@@ -763,6 +763,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
+  #assistantWorkbenchContextScopeKey: string | null = null
   #markReadRequestVersion = 0
   #chatkitResizeCleanup: (() => void) | null = null
   #overlayDialogControlsCleanup: (() => void) | null = null
@@ -784,6 +785,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitDisplayMode = computed<CreateChatKitOptions['displayMode']>(() =>
     this.overlayDialog() ? 'pet' : 'chat'
   )
+  readonly projectId = computed(() => getOptionalSignalValue(this.facade, 'projectId'))
+  readonly #projectSelectionEnabled = computed(
+    () => Boolean(this.facade.assistantId()?.trim()) && !this.facade.threadId()?.trim()
+  )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
@@ -799,6 +804,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     assistantId: this.facade.assistantId,
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
+    projectId: this.projectId,
+    composer: computed(() => ({
+      projects: { enabled: this.#projectSelectionEnabled() }
+    })),
     initialThread: this.facade.threadId,
     displayMode: this.chatkitDisplayMode,
     layout: {
@@ -817,6 +826,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     onThreadChange: ({ threadId }) => {
       this.#chatkitOriginThreadId = normalizeConversationThreadId(threadId)
       this.facade.onChatThreadChange(threadId)
+    },
+    onProjectChange: ({ projectId }) => {
+      this.facade.onChatProjectChange?.(projectId)
     },
     onThreadLoadEnd: ({ threadId }) => {
       this.markChatkitThreadRead(threadId)
@@ -1181,6 +1193,19 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         .catch((error) => {
           this.#toastr.error(getErrorMessage(error) || 'Failed to switch the current conversation.')
         })
+    })
+
+    effect(() => {
+      const hostId = this.fixedViewHostId()
+      const projectId = this.projectId()
+      const threadId = this.facade.threadId()
+      const scopeKey = `${hostId ?? 'none'}:${projectId ?? 'personal'}:${threadId ?? 'new'}`
+      if (scopeKey === this.#assistantWorkbenchContextScopeKey) {
+        return
+      }
+
+      this.#assistantWorkbenchContextScopeKey = scopeKey
+      this.#assistantWorkbenchContexts.set({})
     })
 
     effect((onCleanup) => {

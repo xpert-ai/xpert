@@ -49,6 +49,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     { initialValue: normalizeWorkbenchPath(this.#router.url) }
   )
   readonly slug = computed(() => parseWorkbenchSlug(this.currentUrl()))
+  readonly projectId = computed(() => parseWorkbenchProjectId(this.currentUrl()))
   readonly threadId = computed(() => parseWorkbenchThreadId(this.currentUrl()))
   readonly availableXperts = signal<IXpert[]>([])
   readonly loading = signal(false)
@@ -72,7 +73,8 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly identity = computed(() => {
     const xpertId = this.xpertId()
-    return xpertId ? `chat-xpert-workbench:${xpertId}` : null
+    const projectId = this.projectId()
+    return xpertId ? `chat-xpert-workbench:${xpertId}:${projectId ?? 'personal'}` : null
   })
   readonly viewState = computed<WorkbenchChatViewState>(() => {
     if (!this.organizationId()) {
@@ -135,6 +137,23 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     this.handleThreadChange(threadId)
   }
 
+  onChatProjectChange(projectId: string | null) {
+    const normalizedProjectId = projectId?.trim() || null
+    if (normalizedProjectId === this.projectId()) {
+      return
+    }
+
+    const slug = this.currentXpert()?.slug ?? this.slug()
+    if (!slug) {
+      return
+    }
+
+    this.suppressAutoResume.set(true)
+    this.activeConversation.set(null)
+    const commands = normalizedProjectId ? ['/chat/x', slug, 'p', normalizedProjectId, 'c'] : ['/chat/x', slug, 'c']
+    void this.#router.navigate(commands, { queryParamsHandling: 'preserve' })
+  }
+
   async beginPendingConversation(startId: number, control: ChatKitControl) {
     if (!startId || this.pendingConversationStartId() !== startId) {
       return
@@ -161,7 +180,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const entryKey = `${xpertId}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
+    const entryKey = `${xpertId}:${this.projectId() ?? 'personal'}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
     if (this.#lastConversationEntryKey === entryKey) {
       return
     }
@@ -269,11 +288,16 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
   private async navigateToChat() {
     const slug = this.currentXpert()?.slug ?? this.slug()
-    if (!slug || this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c`) {
+    if (!slug) {
       return
     }
 
-    await this.#router.navigate(['/chat/x', slug, 'c'], { queryParamsHandling: 'preserve' })
+    const commands = this.workbenchRouteCommands(slug)
+    if (this.currentUrl() === this.workbenchRoutePath(slug)) {
+      return
+    }
+
+    await this.#router.navigate(commands, { queryParamsHandling: 'preserve' })
   }
 
   private navigateToThread(threadId: string) {
@@ -282,21 +306,36 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
+    const commands = [...this.workbenchRouteCommands(slug), threadId]
     if (
       this.threadId() === threadId &&
-      this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c/${encodeURIComponent(threadId)}`
+      this.currentUrl() === `${this.workbenchRoutePath(slug)}/${encodeURIComponent(threadId)}`
     ) {
       return
     }
 
-    void this.#router.navigate(['/chat/x', slug, 'c', threadId], { queryParamsHandling: 'preserve' })
+    void this.#router.navigate(commands, { queryParamsHandling: 'preserve' })
+  }
+
+  private workbenchRouteCommands(slug: string) {
+    const projectId = this.projectId()
+    return projectId ? ['/chat/x', slug, 'p', projectId, 'c'] : ['/chat/x', slug, 'c']
+  }
+
+  private workbenchRoutePath(slug: string) {
+    const projectId = this.projectId()
+    return projectId
+      ? `/chat/x/${encodeURIComponent(slug)}/p/${encodeURIComponent(projectId)}/c`
+      : `/chat/x/${encodeURIComponent(slug)}/c`
   }
 
   private async getLatestConversationThreadId(xpertId: string) {
+    const projectId = this.projectId()
     const result = (await firstValueFrom(
       this.#conversationService
         .findAllByXpert(xpertId, {
           take: 1,
+          where: projectId ? { projectId } : { projectId: { $isNull: true } },
           order: {
             updatedAt: OrderTypeEnum.DESC
           }
@@ -309,7 +348,15 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
   private isConversationEntryRoute() {
     const slug = this.slug()
-    return !!slug && this.currentUrl() === `/chat/x/${encodeURIComponent(slug)}/c`
+    if (!slug) {
+      return false
+    }
+
+    const projectId = this.projectId()
+    const expectedPath = projectId
+      ? `/chat/x/${encodeURIComponent(slug)}/p/${encodeURIComponent(projectId)}/c`
+      : `/chat/x/${encodeURIComponent(slug)}/c`
+    return this.currentUrl() === expectedPath
   }
 }
 
@@ -323,12 +370,17 @@ function normalizeWorkbenchPath(url: string) {
 }
 
 function parseWorkbenchSlug(url: string) {
-  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/([^/]+)\/c(?:\/|$)/)
+  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/([^/]+)\/(?:p\/[^/]+\/)?c(?:\/|$)/)
+  return match?.[1] ? safeDecodeURIComponent(match[1]) : null
+}
+
+function parseWorkbenchProjectId(url: string) {
+  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/[^/]+\/p\/([^/]+)\/c(?:\/|$)/)
   return match?.[1] ? safeDecodeURIComponent(match[1]) : null
 }
 
 function parseWorkbenchThreadId(url: string) {
-  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/[^/]+\/c\/([^/]+)$/)
+  const match = normalizeWorkbenchPath(url).match(/^\/chat\/x\/[^/]+\/(?:p\/[^/]+\/)?c\/([^/]+)$/)
   return match?.[1] ? safeDecodeURIComponent(match[1]) : null
 }
 

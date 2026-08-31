@@ -22,6 +22,7 @@ import {
     CrudController,
     PaginationParams,
     ParseJsonPipe,
+    Public,
     TransformInterceptor,
     UploadFileCommand,
     getFileAssetDestination
@@ -58,6 +59,7 @@ import { XpertProject } from './entities/project.entity'
 import { XpertProjectTask } from './entities/project-task.entity'
 import {
     ProjectPermission,
+    XpertProjectAuthGuard,
     XpertProjectFeatureGuard,
     XpertProjectGuard,
     XpertProjectOwnerGuard,
@@ -76,8 +78,9 @@ import { XpertProjectMembershipService } from './services/project-membership.ser
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
+@Public()
 @UseInterceptors(TransformInterceptor)
-@UseGuards(XpertProjectFeatureGuard, XpertProjectPermissionGuard)
+@UseGuards(XpertProjectAuthGuard, XpertProjectFeatureGuard, XpertProjectPermissionGuard)
 @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 @Controller()
 export class XpertProjectController extends CrudController<XpertProject> {

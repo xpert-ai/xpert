@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common'
+import { HttpClient } from '@angular/common/http'
 import { computed, effect, inject, isSignal, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
@@ -38,6 +39,7 @@ type AssistantRuntimeInput = {
   history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
   layout?: CreateChatKitOptions['layout']
+  composer?: Signal<CreateChatKitOptions['composer'] | null>
   pet?: CreateChatKitOptions['pet']
   titleKey: string
   titleDefault: string
@@ -47,6 +49,7 @@ type AssistantRuntimeInput = {
   onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
   onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
   onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onProjectChange?: NonNullable<ChatKitEventHandlers['onProjectChange']>
   onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
   onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
@@ -68,6 +71,7 @@ type AssistantHostedRuntimeInput = {
   history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
   layout?: CreateChatKitOptions['layout']
+  composer?: Signal<CreateChatKitOptions['composer'] | null>
   pet?: CreateChatKitOptions['pet']
   taskSummary?: CreateChatKitOptions['taskSummary']
   workbench?: CreateChatKitOptions['workbench']
@@ -81,6 +85,7 @@ type AssistantHostedRuntimeInput = {
   onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
   onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
   onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onProjectChange?: NonNullable<ChatKitEventHandlers['onProjectChange']>
   onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
   onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
@@ -101,6 +106,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     history: input.history,
     initialThread: input.initialThread,
     layout: input.layout,
+    composer: input.composer,
     pet: input.pet,
     titleKey: input.titleKey,
     titleDefault: input.titleDefault,
@@ -110,6 +116,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     onResponseStart: input.onResponseStart,
     onResponseEnd: input.onResponseEnd,
     onThreadChange: input.onThreadChange,
+    onProjectChange: input.onProjectChange,
     onThreadLoadStart: input.onThreadLoadStart,
     onThreadLoadEnd: input.onThreadLoadEnd
   })
@@ -226,6 +233,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   const appService = inject(AppService)
   const store = inject(Store)
   const artifactService = inject(ArtifactService, { optional: true })
+  const httpClient = inject(HttpClient, { optional: true })
 
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
@@ -288,6 +296,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const initialThread = untracked(() => input.initialThread?.() ?? null)
     const requestContext = input.requestContext?.() ?? null
     const projectId = input.projectId?.() ?? null
+    const composer = input.composer?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
     const displayMode = readReactiveChatKitOption(input.displayMode)
@@ -314,7 +323,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         getClientSecret: async (currentClientSecret) =>
           input.getClientSecret
             ? input.getClientSecret(currentClientSecret)
-            : buildAssistantClientSecret(currentToken, currentOrganizationId)
+            : createAssistantChatkitSession(httpClient, fixedApiUrl, assistantId, currentToken, currentOrganizationId)
       },
       locale: currentLocale,
       theme: currentTheme,
@@ -359,12 +368,14 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       history: input.history,
       startScreen,
       composer: {
+        ...composer,
         attachments: {
           enabled: true,
           maxCount: 5,
-          maxSize: 10 * 1024 * 1024
+          maxSize: 10 * 1024 * 1024,
+          ...composer?.attachments
         },
-        tools: []
+        tools: composer?.tools ?? []
       },
       request: {
         context: requestContext ?? {}
@@ -375,6 +386,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       onResponseStart: input.onResponseStart,
       onResponseEnd: input.onResponseEnd,
       onThreadChange: input.onThreadChange,
+      onProjectChange: input.onProjectChange,
       onThreadLoadStart: input.onThreadLoadStart,
       onThreadLoadEnd: input.onThreadLoadEnd,
       onError: (event: { error?: { message?: string } }) => {
@@ -532,6 +544,35 @@ function normalizeRgbColor(value: string) {
 
 function buildAssistantApiUrl(baseUrl?: string | null) {
   return `${resolveAbsoluteApiBaseUrl(baseUrl)}/api/ai`
+}
+
+type AssistantChatkitSessionResponse = {
+  client_secret: string
+}
+
+async function createAssistantChatkitSession(
+  httpClient: HttpClient | null,
+  apiUrl: string,
+  assistantId: string,
+  fallbackSecret: string,
+  organizationId?: string | null
+): Promise<ChatKitClientSecretResult> {
+  // HttpClient keeps the platform login session fresh. The returned short-lived
+  // token is what direct iframe requests can safely refresh after a 401.
+  if (httpClient) {
+    const session = await firstValueFrom(
+      httpClient.post<AssistantChatkitSessionResponse>(`${apiUrl}/v1/chatkit/sessions`, {
+        assistant: { id: assistantId }
+      })
+    )
+    const secret = session.client_secret?.trim()
+    if (!secret) {
+      throw new Error('Missing client_secret in ChatKit session response.')
+    }
+    return buildAssistantClientSecret(secret, organizationId)
+  }
+
+  return buildAssistantClientSecret(fallbackSecret, organizationId)
 }
 
 function buildAssistantClientSecret(secret: string, organizationId?: string | null): ChatKitClientSecretResult {

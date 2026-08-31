@@ -30,6 +30,7 @@ export type WorkbenchChatFacade = {
   activeConversation: Signal<IChatConversation | null>
   viewErrorMessage(): string
   onChatThreadChange(threadId: string | null): void
+  onChatProjectChange?(projectId: string | null): void
   beginPendingConversation(startId: number, control: ChatKitControl): Promise<void>
   ensureConversationEntry(control: ChatKitControl): Promise<void>
   setActiveConversation(conversation: IChatConversation | null): void

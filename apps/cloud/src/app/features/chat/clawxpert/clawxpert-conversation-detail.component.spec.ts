@@ -341,11 +341,14 @@ type MockChatKitRuntimeInput = {
   displayMode?: () => CreateChatKitOptions['displayMode']
   header?: () => CreateChatKitOptions['header']
   initialThread?: () => string | null
+  projectId?: () => string | null
+  composer?: () => { projects?: { enabled?: boolean } }
   layout?: CreateChatKitOptions['layout']
   taskSummary?: CreateChatKitOptions['taskSummary']
   workbench?: CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
+  onProjectChange?: (event: { projectId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
   onEffect?: (event: MockChatKitEvent) => void
@@ -433,12 +436,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     initialLayout: ReturnType<typeof signal<XpertWorkbenchInitialLayoutEnum | null>>
     defaultViewKey: ReturnType<typeof signal<string | null>>
     currentWorkspaceId: ReturnType<typeof signal<string | null>>
+    projectId: ReturnType<typeof signal<string | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
     pendingConversationStartId: ReturnType<typeof signal<number>>
     activeConversation: ReturnType<typeof signal<IChatConversation | null>>
     onChatThreadChange: jest.Mock
+    onChatProjectChange: jest.Mock
     beginPendingConversation: jest.Mock
     ensureConversationEntry: jest.Mock
     navigateToOverview: jest.Mock
@@ -516,12 +521,14 @@ describe('ClawXpertConversationDetailComponent', () => {
       initialLayout: signal(null),
       defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
+      projectId: signal<string | null>(null),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
       pendingConversationStartId: signal(0),
       activeConversation,
       onChatThreadChange: jest.fn(),
+      onChatProjectChange: jest.fn(),
       beginPendingConversation: jest.fn(),
       ensureConversationEntry: jest.fn(),
       navigateToOverview: jest.fn(),
@@ -762,6 +769,40 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().layout).toEqual({
       maxWidth: '960px'
     })
+  })
+
+  it('forwards ChatKit Project changes to the workbench facade', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().projectId?.()).toBe('project-1')
+    getRuntimeInput().onProjectChange?.({ projectId: 'project-2' })
+
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2')
+  })
+
+  it('hides Project selection after a conversation starts', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+  })
+
+  it('keeps Project selection available before the first message, including after a Project is selected', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+
+    facade.projectId.set('project-1')
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
 
   it('enables the task summary only for the ClawXpert ChatKit runtime', async () => {
@@ -1023,6 +1064,60 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('bom')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).toBeNull()
+  })
+
+  it('keeps the fixed DOCX view while clearing its request context after a Project switch', async () => {
+    facade.threadId.set(null)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('docx-editor')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const docxTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'docx-editor')
+    expect(docxTab).toBeDefined()
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'personal-doc-1'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'personal-doc-1',
+            title: 'Personal document'
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        docxEditor: expect.any(Object)
+      })
+    )
+    const fixedViewLoadCount = viewExtensionApi.getSlotViews.mock.calls.length
+
+    facade.projectId.set('project-2')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.fixedViewTabs()).toContainEqual(docxTab)
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledTimes(fixedViewLoadCount)
+    expect(getRuntimeInput().requestContext?.()).toEqual({
+      env: {
+        workspaceId: 'workspace-1',
+        xpertId: 'assistant-1'
+      }
+    })
   })
 
   it('selects the extension view requested by the view query parameter before the configured default', async () => {

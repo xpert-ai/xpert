@@ -128,7 +128,8 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.viewState()).toBe('ready')
     expect(facade.xpertId()).toBe('xpert-1')
     expect(facade.assistantId()).toBe('xpert-1')
-    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1')
+    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1:personal')
+    expect(facade.projectId()).toBeNull()
     expect(facade.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
     expect(facade.defaultViewKey()).toBe('provider__metrics')
   })
@@ -164,6 +165,9 @@ describe('XpertWorkbenchFacade', () => {
 
     expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-1', {
       take: 1,
+      where: {
+        projectId: { $isNull: true }
+      },
       order: {
         updatedAt: 'DESC'
       }
@@ -200,6 +204,67 @@ describe('XpertWorkbenchFacade', () => {
 
     expect(facade.suppressAutoResume()).toBe(true)
     expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('syncs ChatKit Project changes into the workbench route and starts a blank scoped chat', async () => {
+    const viewState = '?view=sales-orders&viewSelection=order-1&viewParameters=%7B%22tab%22%3A%22open%22%7D'
+    router.url = `/chat/x/sales/c${viewState}`
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+
+    await settle()
+    facade.setActiveConversation({ id: 'conversation-1' } as IChatConversation)
+    facade.onChatProjectChange(' project-1 ')
+
+    expect(facade.suppressAutoResume()).toBe(true)
+    expect(facade.activeConversation()).toBeNull()
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c'], {
+      queryParamsHandling: 'preserve'
+    })
+
+    setRoute(`/chat/x/sales/p/project-1/c${viewState}`)
+    facade.onChatProjectChange(null)
+
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('keeps the Project scope in history lookup and thread navigation', async () => {
+    router.url = '/chat/x/sales/p/project-1/c'
+    conversationService.findAllByXpert.mockReturnValue(
+      of({ items: [{ id: 'conversation-1', threadId: 'thread-1' } as IChatConversation] })
+    )
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+
+    await settle()
+    await facade.ensureConversationEntry(createMockChatKitControl())
+
+    expect(facade.projectId()).toBe('project-1')
+    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1:project-1')
+    expect(conversationService.findAllByXpert).toHaveBeenCalledWith('xpert-1', {
+      take: 1,
+      where: {
+        projectId: 'project-1'
+      },
+      order: {
+        updatedAt: 'DESC'
+      }
+    })
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c', 'thread-1'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('does not leave the Project route when ChatKit clears the active thread', async () => {
+    router.url = '/chat/x/sales/p/project-1/c/thread-1'
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+
+    await settle()
+    facade.onChatThreadChange(null)
+
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c'], {
       queryParamsHandling: 'preserve'
     })
   })
