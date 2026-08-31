@@ -54,18 +54,18 @@ const activeConnector: ConnectorInstance = {
   }
 }
 
-const wecomPendingConnector: ConnectorInstance = {
-  id: 'wecom-connector-1',
+const embeddedQrPendingConnector: ConnectorInstance = {
+  id: 'embedded-qr-connector-1',
   workspaceId: 'workspace-1',
-  provider: 'wecom',
-  authMethodId: 'wecom-qr',
+  provider: 'embedded-qr',
+  authMethodId: 'qr',
   status: 'pending'
 }
 
-const wecomCliPendingConnector: ConnectorInstance = {
-  ...wecomPendingConnector,
-  id: 'wecom-cli-connector-1',
-  authMethodId: 'wecom-cli-qr'
+const secondaryEmbeddedQrPendingConnector: ConnectorInstance = {
+  ...embeddedQrPendingConnector,
+  id: 'secondary-embedded-qr-connector-1',
+  authMethodId: 'secondary-qr'
 }
 
 const connectorDefinition: ConnectorStrategyDefinition = {
@@ -105,30 +105,6 @@ const githubDefinition: ConnectorStrategyDefinition = {
   ]
 }
 
-const qqMailDefinition: ConnectorStrategyDefinition = {
-  provider: 'qq-mail',
-  label: 'QQ Mail',
-  authMethods: [
-    {
-      id: 'imap-smtp-authorization-code',
-      type: 'api_key',
-      label: 'IMAP/SMTP authentication',
-      credentials: {
-        fields: [
-          {
-            name: 'integrationId',
-            label: 'QQ Mail System Integration',
-            type: 'integration',
-            provider: 'qq-mail-imap-smtp',
-            required: true
-          }
-        ]
-      }
-    },
-    { id: 'oauth2-pkce', type: 'oauth2', label: 'OAuth authentication' }
-  ]
-}
-
 const dingtalkDefinition: ConnectorStrategyDefinition = {
   provider: 'dingtalk',
   label: 'DingTalk',
@@ -141,55 +117,46 @@ const dingtalkDefinition: ConnectorStrategyDefinition = {
   ]
 }
 
-const wecomDefinition: ConnectorStrategyDefinition = {
-  provider: 'wecom',
-  label: {
-    en_US: 'WeCom',
-    zh_Hans: '企业微信'
-  },
-  description: {
-    en_US: 'Connect WeCom by scanning a QR code.',
-    zh_Hans: '通过企业微信扫码连接。'
-  },
+const qrPresentation = {
+  mode: 'embedded_qr' as const,
+  title: 'Connect QR provider',
+  description: 'Scan the QR code to complete authorization.',
+  ariaLabel: 'Authorization QR code',
+  completionHint: 'The dialog will close after authorization.',
+  cancelLabel: 'Cancel authorization',
+  copyLinkLabel: 'Copy link',
+  copyLinkError: 'Could not copy authorization link.'
+}
+
+const embeddedQrDefinition: ConnectorStrategyDefinition = {
+  provider: 'embedded-qr',
+  label: 'Embedded QR',
+  description: 'Connect by scanning a QR code.',
   authMethods: [
     {
-      id: 'wecom-qr',
+      id: 'qr',
       type: 'oauth2',
-      label: {
-        en_US: 'WeCom QR login',
-        zh_Hans: '企业微信扫码登录'
-      }
+      label: 'QR authorization',
+      authorizationPresentation: qrPresentation
     }
   ]
 }
 
-const wecomCliDefinition: ConnectorStrategyDefinition = {
-  ...wecomDefinition,
-  description: {
-    en_US: 'Connect an official WeCom AI Bot by QR code or Bot ID and Secret.',
-    zh_Hans: '通过扫码或 Bot ID 与 Secret 连接企业微信智能机器人。'
-  },
+const secondaryEmbeddedQrDefinition: ConnectorStrategyDefinition = {
+  ...embeddedQrDefinition,
   authMethods: [
     {
-      id: 'wecom-cli-qr',
+      id: 'secondary-qr',
       type: 'oauth2',
-      label: {
-        en_US: 'WeCom AI Bot QR connection',
-        zh_Hans: '企业微信智能机器人扫码连接'
-      }
+      label: 'Secondary QR authorization',
+      authorizationPresentation: qrPresentation
     },
     {
-      id: 'wecom-cli-manual',
+      id: 'token',
       type: 'api_key',
-      label: {
-        en_US: 'WeCom AI Bot credentials',
-        zh_Hans: '企业微信智能机器人凭据'
-      },
+      label: 'API token',
       credentials: {
-        fields: [
-          { name: 'botId', label: 'Bot ID', required: true },
-          { name: 'botSecret', label: 'Secret', type: 'password', required: true, secret: true }
-        ]
+        fields: [{ name: 'token', label: 'Token', type: 'password', required: true, secret: true }]
       }
     }
   ]
@@ -470,17 +437,16 @@ describe('XpertConnectorsComponent', () => {
     fixture.destroy()
   })
 
-  it('opens WeCom QR authorization in the current connector dialog without a new window', async () => {
-    const authorizationUrl =
-      'https://open.work.weixin.qq.com/wwopen/sso/qrConnect?appid=ww-test&agentid=1000002&redirect_uri=https%3A%2F%2Ftunnel.example.com%2Fapi%2Fconnector%2Foauth%2Fcallback&state=state-1'
+  it('opens embedded QR authorization in the current connector dialog without a new window', async () => {
+    const authorizationUrl = 'https://auth.example.com/qr/state-1'
     const openSpy = jest.spyOn(window, 'open')
     const { component, connectorService, fixture } = await setup({
       workspaceId: 'workspace-1',
-      definitions: [wecomDefinition],
+      definitions: [embeddedQrDefinition],
       connectors: [],
       connectResponse: {
         status: 'pending',
-        connector: wecomPendingConnector,
+        connector: embeddedQrPendingConnector,
         authorizationUrl,
         stateExpiresAt: '2026-01-01T00:00:00.000Z',
         pollIntervalSeconds: 5
@@ -488,7 +454,7 @@ describe('XpertConnectorsComponent', () => {
     })
 
     await fixture.whenStable()
-    component.definitions.set([wecomDefinition])
+    component.definitions.set([embeddedQrDefinition])
     component.connectors.set([])
     fixture.detectChanges()
 
@@ -503,12 +469,12 @@ describe('XpertConnectorsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(connectorService.connect).toHaveBeenCalledWith('workspace-1', 'wecom', {
-      authMethodId: 'wecom-qr'
+    expect(connectorService.connect).toHaveBeenCalledWith('workspace-1', 'embedded-qr', {
+      authMethodId: 'qr'
     })
     expect(openSpy).not.toHaveBeenCalled()
-    expect(component.selectedDefinition()?.provider).toBe('wecom')
-    expect(component.pendingAuthorizationUrl(wecomPendingConnector)).toBe(authorizationUrl)
+    expect(component.selectedDefinition()?.provider).toBe('embedded-qr')
+    expect(component.pendingAuthorizationUrl(embeddedQrPendingConnector)).toBe(authorizationUrl)
 
     const host = fixture.nativeElement as HTMLElement
     expect(host.querySelector('[data-connector-authorization-qr]')).not.toBeNull()
@@ -518,23 +484,23 @@ describe('XpertConnectorsComponent', () => {
     fixture.destroy()
   })
 
-  it('opens the current WeCom CLI QR authorization in the connector dialog without a new window', async () => {
-    const authorizationUrl = 'https://work.weixin.qq.com/ai/qc/gen?source=wecom_cli_external&scode=wecom-cli-state'
+  it('opens the current secondary embedded QR authorization in the connector dialog without a new window', async () => {
+    const authorizationUrl = 'https://auth.example.com/qr/secondary-state'
     const openSpy = jest.spyOn(window, 'open')
     const { component, connectorService, fixture } = await setup({
       workspaceId: 'workspace-1',
-      definitions: [wecomCliDefinition],
+      definitions: [secondaryEmbeddedQrDefinition],
       connectors: [],
       connectResponse: {
         status: 'pending',
-        connector: wecomCliPendingConnector,
+        connector: secondaryEmbeddedQrPendingConnector,
         authorizationUrl,
         pollIntervalSeconds: 3
       }
     })
 
     await fixture.whenStable()
-    component.definitions.set([wecomCliDefinition])
+    component.definitions.set([secondaryEmbeddedQrDefinition])
     component.connectors.set([])
     fixture.detectChanges()
 
@@ -549,12 +515,12 @@ describe('XpertConnectorsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(connectorService.connect).toHaveBeenCalledWith('workspace-1', 'wecom', {
-      authMethodId: 'wecom-cli-qr'
+    expect(connectorService.connect).toHaveBeenCalledWith('workspace-1', 'embedded-qr', {
+      authMethodId: 'secondary-qr'
     })
     expect(openSpy).not.toHaveBeenCalled()
-    expect(component.selectedDefinition()?.provider).toBe('wecom')
-    expect(component.pendingAuthorizationUrl(wecomCliPendingConnector)).toBe(authorizationUrl)
+    expect(component.selectedDefinition()?.provider).toBe('embedded-qr')
+    expect(component.pendingAuthorizationUrl(secondaryEmbeddedQrPendingConnector)).toBe(authorizationUrl)
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-connector-authorization-qr]')).not.toBeNull()
 
     fixture.destroy()
@@ -651,17 +617,17 @@ describe('XpertConnectorsComponent', () => {
     fixture.destroy()
   })
 
-  it('reopens pending WeCom authorization in the current dialog from the card action', async () => {
+  it('reopens pending embedded QR authorization in the current dialog from the card action', async () => {
     const openSpy = jest.spyOn(window, 'open')
     const { component, fixture } = await setup({
-      definitions: [wecomDefinition],
-      connectors: [wecomPendingConnector]
+      definitions: [embeddedQrDefinition],
+      connectors: [embeddedQrPendingConnector]
     })
 
-    component.definitions.set([wecomDefinition])
-    component.connectors.set([wecomPendingConnector])
+    component.definitions.set([embeddedQrDefinition])
+    component.connectors.set([embeddedQrPendingConnector])
     component.pendingAuthorizationUrls.set({
-      [wecomPendingConnector.id]: 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect?state=state-1'
+      [embeddedQrPendingConnector.id]: 'https://auth.example.com/qr/state-1'
     })
     fixture.detectChanges()
 
@@ -675,23 +641,23 @@ describe('XpertConnectorsComponent', () => {
     fixture.detectChanges()
 
     expect(openSpy).not.toHaveBeenCalled()
-    expect(component.selectedDefinition()?.provider).toBe('wecom')
+    expect(component.selectedDefinition()?.provider).toBe('embedded-qr')
     expect(host.querySelector('[data-connector-authorization-qr]')).not.toBeNull()
 
     fixture.destroy()
   })
 
-  it('copies the WeCom QR authorization link from the embedded dialog', async () => {
-    const authorizationUrl = 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect?state=state-1'
+  it('copies the embedded QR authorization link from the embedded dialog', async () => {
+    const authorizationUrl = 'https://auth.example.com/qr/state-1'
     const { clipboard, component, fixture } = await setup({
-      definitions: [wecomDefinition],
-      connectors: [wecomPendingConnector]
+      definitions: [embeddedQrDefinition],
+      connectors: [embeddedQrPendingConnector]
     })
 
-    component.definitions.set([wecomDefinition])
-    component.connectors.set([wecomPendingConnector])
-    component.pendingAuthorizationUrls.set({ [wecomPendingConnector.id]: authorizationUrl })
-    component.openConnectorDialog(wecomDefinition)
+    component.definitions.set([embeddedQrDefinition])
+    component.connectors.set([embeddedQrPendingConnector])
+    component.pendingAuthorizationUrls.set({ [embeddedQrPendingConnector.id]: authorizationUrl })
+    component.openConnectorDialog(embeddedQrDefinition)
     fixture.detectChanges()
 
     const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
@@ -730,7 +696,7 @@ describe('XpertConnectorsComponent', () => {
 
     const host = fixture.nativeElement as HTMLElement
     expect(host.querySelector('button[data-connector-action="cancel-authorization"]')?.textContent).toContain(
-      'XP.Xpert.ConnectorCancelAuthorization'
+      'XP.ACTIONS.Cancel'
     )
 
     await component.disconnect(pendingConnector)
@@ -802,37 +768,35 @@ describe('XpertConnectorsComponent', () => {
     fixture.destroy()
   })
 
-  it('keeps WeCom authorization URL changes inside the embedded QR dialog while polling', async () => {
+  it('keeps embedded QR authorization URL changes inside the embedded QR dialog while polling', async () => {
     const openSpy = jest.spyOn(window, 'open')
     const { component, fixture, workspace } = await setup({
-      definitions: [wecomDefinition],
+      definitions: [embeddedQrDefinition],
       connectors: [],
       connectResponse: {
         status: 'pending',
-        connector: wecomPendingConnector,
-        authorizationUrl: 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect?state=state-1',
+        connector: embeddedQrPendingConnector,
+        authorizationUrl: 'https://auth.example.com/qr/state-1',
         stateExpiresAt: '2026-01-01T00:00:00.000Z',
         pollIntervalSeconds: 5
       },
       pollResponse: {
-        connector: wecomPendingConnector,
-        authorizationUrl: 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect?state=state-2',
+        connector: embeddedQrPendingConnector,
+        authorizationUrl: 'https://auth.example.com/qr/state-2',
         pollIntervalSeconds: 5
       }
     })
 
     workspace.set({ id: 'workspace-1' })
-    component.definitions.set([wecomDefinition])
-    await component.connect(wecomDefinition)
+    component.definitions.set([embeddedQrDefinition])
+    await component.connect(embeddedQrDefinition)
     await (component as unknown as TestableConnectorsComponent).pollAuthorization(
       'workspace-1',
-      wecomPendingConnector.id
+      embeddedQrPendingConnector.id
     )
 
     expect(openSpy).not.toHaveBeenCalled()
-    expect(component.pendingAuthorizationUrl(wecomPendingConnector)).toBe(
-      'https://open.work.weixin.qq.com/wwopen/sso/qrConnect?state=state-2'
-    )
+    expect(component.pendingAuthorizationUrl(embeddedQrPendingConnector)).toBe('https://auth.example.com/qr/state-2')
 
     fixture.destroy()
   })
@@ -967,65 +931,6 @@ describe('XpertConnectorsComponent', () => {
     expect(host.querySelector('input[data-credential-field="clientSecret"]')).toBeNull()
     expect(host.querySelector<HTMLInputElement>('input[data-credential-field="token"]')?.type).toBe('password')
 
-    fixture.destroy()
-  })
-
-  it('renders a System Integration selector and submits only the selected integration ID', async () => {
-    const connected: ConnectorInstance = {
-      id: 'qq-mail-1',
-      workspaceId: 'workspace-1',
-      provider: 'qq-mail',
-      authMethodId: 'imap-smtp-authorization-code',
-      status: 'active',
-      profile: { email: '123456@qq.com' }
-    }
-    const { component, connectorService, fixture, workspace } = await setup({
-      definitions: [qqMailDefinition],
-      connectors: [],
-      connectResponse: { status: 'active', connector: connected }
-    })
-    workspace.set({ id: 'workspace-1' })
-    component.definitions.set([qqMailDefinition])
-    component.connectors.set([])
-    component.openConnectorDialog(qqMailDefinition)
-    component.selectAuthMethod(qqMailDefinition, 'imap-smtp-authorization-code')
-    component.formFor(qqMailDefinition).controls.integrationId.setValue('integration-1')
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const selector = (fixture.nativeElement as HTMLElement).querySelector(
-      'xp-integration-select[data-credential-field="integrationId"]'
-    )
-    expect(selector).not.toBeNull()
-    expect(
-      (fixture.nativeElement as HTMLElement)
-        .querySelector<HTMLAnchorElement>('a[href="/settings/integration/create?provider=qq-mail-imap-smtp"]')
-        ?.getAttribute('target')
-    ).toBe('_blank')
-
-    await component.connect(qqMailDefinition)
-    expect(connectorService.connect).toHaveBeenCalledWith('workspace-1', 'qq-mail', {
-      authMethodId: 'imap-smtp-authorization-code',
-      values: { integrationId: 'integration-1' }
-    })
-    fixture.destroy()
-  })
-
-  it('defaults to IMAP/SMTP when a connector exposes multiple authentication methods', async () => {
-    const { component, fixture } = await setup({
-      workspaceId: 'workspace-1',
-      definitions: [qqMailDefinition],
-      connectors: []
-    })
-
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(component.authMethodsFor(qqMailDefinition).map((method) => method.id)).toEqual([
-      'imap-smtp-authorization-code',
-      'oauth2-pkce'
-    ])
-    expect(component.formFor(qqMailDefinition).controls.authMethodId.value).toBe('imap-smtp-authorization-code')
     fixture.destroy()
   })
 

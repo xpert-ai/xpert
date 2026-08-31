@@ -15,26 +15,15 @@ export type ConnectorOAuthConfig = {
   redirectPath?: string
 }
 
-type ConnectorCredentialFieldBase = {
+export type ConnectorAppCredentialField = {
   name: string
   label: RuntimeI18nText
+  type?: 'text' | 'password'
   required?: boolean
   placeholder?: RuntimeI18nText
   description?: RuntimeI18nText
+  secret?: boolean
 }
-
-export type ConnectorAppCredentialField =
-  | (ConnectorCredentialFieldBase & {
-      type?: 'text' | 'password'
-      secret?: boolean
-    })
-  | (ConnectorCredentialFieldBase & {
-      /** Selects an organization-scoped System Integration instead of collecting its secret here. */
-      type: 'integration'
-      /** Exact integration provider name used to filter choices and preselect the create page. */
-      provider: string
-      secret?: false
-    })
 
 export type ConnectorAppCredentialsConfig = {
   fields?: ConnectorAppCredentialField[]
@@ -47,9 +36,21 @@ export type ConnectorAppCredentialsConfig = {
 
 export type ConnectorCredentialFormDefinition = ConnectorAppCredentialsConfig
 
+export type ConnectorAuthorizationPresentation = {
+  mode: 'embedded_qr'
+  title: RuntimeI18nText
+  description: RuntimeI18nText
+  ariaLabel: RuntimeI18nText
+  completionHint: RuntimeI18nText
+  cancelLabel: RuntimeI18nText
+  copyLinkLabel: RuntimeI18nText
+  copyLinkError: RuntimeI18nText
+}
+
 type ConnectorAuthMethodBase = {
   id: string
   label: RuntimeI18nText
+  authorizationPresentation?: ConnectorAuthorizationPresentation
 }
 
 export type ConnectorAuthMethodDefinition = ConnectorAuthMethodBase &
@@ -212,45 +213,42 @@ function assertConnectorAuthMethod(method: unknown, provider: string): asserts m
     throw new Error(`Connector '${provider}' API key method '${idValue.trim()}' must declare credentials`)
   }
 
-  const credentialForm = type === 'api_key' ? Reflect.get(method, 'credentials') : Reflect.get(method, 'appCredentials')
-  if (credentialForm !== undefined) {
-    assertConnectorCredentialForm(credentialForm, provider, idValue.trim())
+  const authorizationPresentation = Reflect.get(method, 'authorizationPresentation')
+  if (authorizationPresentation !== undefined) {
+    assertConnectorAuthorizationPresentation(authorizationPresentation, provider, idValue.trim(), type)
   }
 }
 
-function assertConnectorCredentialForm(value: unknown, provider: string, authMethodId: string): void {
-  if (!isObjectValue(value)) {
-    throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has invalid credentials`)
+function assertConnectorAuthorizationPresentation(
+  value: unknown,
+  provider: string,
+  authMethodId: string,
+  authMethodType: 'oauth2' | 'api_key'
+): asserts value is ConnectorAuthorizationPresentation {
+  if (!isObjectValue(value) || Reflect.get(value, 'mode') !== 'embedded_qr') {
+    throw new Error(
+      `Connector '${provider}' authentication method '${authMethodId}' has an invalid authorization presentation`
+    )
   }
-  const fields = Reflect.get(value, 'fields')
-  if (fields === undefined) {
-    return
+  if (authMethodType !== 'oauth2') {
+    throw new Error(
+      `Connector '${provider}' authentication method '${authMethodId}' can declare authorization presentation only for OAuth`
+    )
   }
-  if (!Array.isArray(fields)) {
-    throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has invalid credential fields`)
-  }
-  for (const field of fields) {
-    if (!isObjectValue(field)) {
-      throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has an invalid credential field`)
-    }
-    const name = Reflect.get(field, 'name')
-    const label = Reflect.get(field, 'label')
-    const fieldType = Reflect.get(field, 'type')
-    if (typeof name !== 'string' || !name.trim() || !isRuntimeI18nText(label)) {
-      throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has an invalid credential field`)
-    }
-    if (fieldType !== undefined && fieldType !== 'text' && fieldType !== 'password' && fieldType !== 'integration') {
+
+  for (const field of [
+    'title',
+    'description',
+    'ariaLabel',
+    'completionHint',
+    'cancelLabel',
+    'copyLinkLabel',
+    'copyLinkError'
+  ] as const) {
+    if (!isRuntimeI18nText(Reflect.get(value, field))) {
       throw new Error(
-        `Connector '${provider}' authentication method '${authMethodId}' has unsupported credential field type '${String(fieldType)}'`
+        `Connector '${provider}' authentication method '${authMethodId}' authorization presentation must declare '${field}'`
       )
-    }
-    if (fieldType === 'integration') {
-      const integrationProvider = Reflect.get(field, 'provider')
-      if (typeof integrationProvider !== 'string' || !integrationProvider.trim()) {
-        throw new Error(
-          `Connector '${provider}' authentication method '${authMethodId}' integration field '${name.trim()}' must declare a provider`
-        )
-      }
     }
   }
 }

@@ -149,7 +149,7 @@
   @let authMethod = selectedAuthMethod(definition);
   @let connectorAuthMethod = authMethodForConnector(definition, connector);
   @let credentialForm = credentialFormFor(authMethod);
-  @let embeddedAuthorization = usesEmbeddedAuthorization(definition, connectorAuthMethod);
+  @let authorizationPresentation = authorizationPresentationFor(connectorAuthMethod);
   @let authorizationLink = pendingAuthorizationUrl(connector);
 
   <div
@@ -162,7 +162,7 @@
   >
     <div
       [class]="
-        embeddedAuthorization && connector?.status === 'pending'
+        authorizationPresentation && connector?.status === 'pending'
           ? 'max-h-[min(860px,calc(100vh-32px))] w-full max-w-3xl overflow-auto rounded-lg border border-divider-regular bg-components-card-bg shadow-2xl'
           : 'max-h-[min(760px,calc(100vh-32px))] w-full max-w-lg overflow-auto rounded-lg border border-divider-regular bg-components-card-bg shadow-2xl'
       "
@@ -205,8 +205,8 @@
         </button>
       </header>
 
-      <div [class]="embeddedAuthorization && connector?.status === 'pending' ? 'px-5 py-5' : 'space-y-5 px-5 py-5'">
-        @if (embeddedAuthorization && connector?.status === 'pending' && authorizationLink) {
+      <div [class]="authorizationPresentation && connector?.status === 'pending' ? 'px-5 py-5' : 'space-y-5 px-5 py-5'">
+        @if (authorizationPresentation && connector?.status === 'pending' && authorizationLink) {
           <div
             class="rounded-lg bg-background-default-subtle px-4 py-6 sm:px-8 sm:py-10"
             data-connector-authorization-qr
@@ -215,7 +215,7 @@
               class="mx-auto flex w-full max-w-md flex-col items-center rounded-lg border border-divider-regular bg-components-card-bg px-6 py-8 text-center shadow-sm sm:px-10"
             >
               <h3 class="text-xl font-semibold text-text-primary">
-                {{ 'XP.Xpert.ConnectorWeComQrTitle' | translate: { Default: 'Connect WeCom intelligent robot' } }}
+                {{ authorizationPresentation.title | i18n }}
               </h3>
               <div class="mt-7 rounded-lg border border-divider-regular bg-components-card-bg p-3 shadow-sm">
                 <qrcode
@@ -224,16 +224,11 @@
                   [qrdata]="authorizationLink"
                   [width]="280"
                   [margin]="1"
-                  [ariaLabel]="
-                    'XP.Xpert.ConnectorWeComQrAriaLabel' | translate: { Default: 'WeCom authorization QR code' }
-                  "
+                  [ariaLabel]="authorizationPresentation.ariaLabel | i18n"
                 />
               </div>
               <p class="mt-5 max-w-xs text-sm leading-6 text-text-secondary">
-                {{
-                  'XP.Xpert.ConnectorWeComQrDescription'
-                    | translate: { Default: 'Use WeCom to scan the QR code and complete authorization.' }
-                }}
+                {{ authorizationPresentation.description | i18n }}
               </p>
               @if (isPolling(connector)) {
                 <span class="mt-3 inline-flex items-center gap-1.5 text-xs text-text-tertiary">
@@ -359,34 +354,15 @@
                       <span aria-hidden="true"> *</span>
                     }
                   </z-form-label>
-                  @if (field.type === 'integration') {
-                    <xp-integration-select
-                      class="w-full"
-                      [attr.data-credential-field]="field.name"
-                      [provider]="field.provider"
-                      [refreshKey]="reloadKey()"
-                      [formControlName]="field.name"
-                      [placeholder]="field.placeholder ? (field.placeholder | i18n) : null"
-                    />
-                    <a
-                      class="mt-1 inline-flex w-fit items-center text-xs text-text-secondary underline underline-offset-2"
-                      [href]="'/settings/integration/create?provider=' + field.provider"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ 'XP.KEY_WORDS.NewSystemIntegration' | translate: { Default: 'New system integration' } }}
-                    </a>
-                  } @else {
-                    <input
-                      z-input
-                      [attr.data-credential-field]="field.name"
-                      [type]="field.type === 'password' || field.secret ? 'password' : 'text'"
-                      [formControlName]="field.name"
-                      [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
-                      [attr.autocomplete]="field.type === 'password' || field.secret ? 'new-password' : 'off'"
-                      [attr.disabled]="!canManageWorkspace() ? true : null"
-                    />
-                  }
+                  <input
+                    z-input
+                    [attr.data-credential-field]="field.name"
+                    [type]="field.type === 'password' || field.secret ? 'password' : 'text'"
+                    [formControlName]="field.name"
+                    [placeholder]="field.placeholder ? (field.placeholder | i18n) : ''"
+                    [attr.autocomplete]="field.type === 'password' || field.secret ? 'new-password' : 'off'"
+                    [attr.disabled]="!canManageWorkspace() ? true : null"
+                  />
                   @if (field.description) {
                     <z-form-message>{{ field.description | i18n }}</z-form-message>
                   }
@@ -418,17 +394,14 @@
 
       <footer
         [class]="
-          embeddedAuthorization && connector?.status === 'pending'
+          authorizationPresentation && connector?.status === 'pending'
             ? 'flex flex-wrap items-center justify-between gap-3 border-t border-divider-regular px-5 py-4'
             : 'flex flex-wrap items-center justify-end gap-2 border-t border-divider-regular px-5 py-4'
         "
       >
-        @if (embeddedAuthorization && connector?.status === 'pending') {
+        @if (authorizationPresentation && connector?.status === 'pending') {
           <span class="text-sm text-text-secondary">
-            {{
-              'XP.Xpert.ConnectorWeComQrAutoClose'
-                | translate: { Default: 'The dialog will close automatically after authorization.' }
-            }}
+            {{ authorizationPresentation.completionHint | i18n }}
           </span>
           <div class="flex flex-wrap items-center justify-end gap-2">
             <button
@@ -446,7 +419,7 @@
               } @else {
                 <z-icon [zType]="disconnectIcon" />
               }
-              {{ 'XP.Xpert.ConnectorCancelAuthorization' | translate: { Default: 'Cancel authorization' } }}
+              {{ authorizationPresentation.cancelLabel | i18n }}
             </button>
             <button
               z-button
@@ -455,10 +428,10 @@
               type="button"
               data-connector-action="copy-authorization-url"
               [zDisabled]="!authorizationLink"
-              (click)="copyPendingAuthorizationUrl(connector)"
+              (click)="copyPendingAuthorizationUrl(connector, authorizationPresentation)"
             >
               <z-icon zType="copy" />
-              {{ 'XP.Xpert.ConnectorCopyAuthorizationUrl' | translate: { Default: 'Copy link' } }}
+              {{ authorizationPresentation.copyLinkLabel | i18n }}
             </button>
           </div>
         } @else {
@@ -482,7 +455,7 @@
                 <z-icon [zType]="disconnectIcon" />
               }
               @if (connector.status === 'pending') {
-                {{ 'XP.Xpert.ConnectorCancelAuthorization' | translate: { Default: 'Cancel authorization' } }}
+                {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
               } @else {
                 {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect connector' } }}
               }

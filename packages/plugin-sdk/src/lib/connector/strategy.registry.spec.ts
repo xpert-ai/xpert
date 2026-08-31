@@ -127,26 +127,25 @@ describe('ConnectorStrategyRegistry', () => {
     expect(() => assertConnectorDefinition(definition)).toThrow('unsupported authentication method type')
   })
 
-  it('accepts a provider-scoped System Integration credential field', () => {
+  it('accepts plugin-owned embedded QR authorization presentation', () => {
     expect(() =>
       assertConnectorDefinition({
-        provider: 'mail',
-        label: 'Mail',
+        provider: 'qr-provider',
+        label: 'QR Provider',
         authMethods: [
           {
-            id: 'imap-smtp',
-            type: 'api_key',
-            label: 'IMAP/SMTP',
-            credentials: {
-              fields: [
-                {
-                  name: 'integrationId',
-                  label: 'System Integration',
-                  type: 'integration',
-                  provider: 'mail-imap-smtp',
-                  required: true
-                }
-              ]
+            id: 'qr',
+            type: 'oauth2',
+            label: 'QR authorization',
+            authorizationPresentation: {
+              mode: 'embedded_qr',
+              title: 'Connect QR provider',
+              description: 'Scan the QR code to authorize.',
+              ariaLabel: 'Authorization QR code',
+              completionHint: 'This dialog closes after authorization.',
+              cancelLabel: 'Cancel authorization',
+              copyLinkLabel: 'Copy link',
+              copyLinkError: 'Could not copy authorization link.'
             }
           }
         ]
@@ -154,23 +153,24 @@ describe('ConnectorStrategyRegistry', () => {
     ).not.toThrow()
   })
 
-  it('rejects a System Integration field without a provider discriminator', () => {
+  it('rejects incomplete embedded QR authorization presentation', () => {
     expect(() =>
       assertConnectorDefinition({
-        provider: 'mail',
-        label: 'Mail',
+        provider: 'qr-provider',
+        label: 'QR Provider',
         authMethods: [
           {
-            id: 'imap-smtp',
-            type: 'api_key',
-            label: 'IMAP/SMTP',
-            credentials: {
-              fields: [{ name: 'integrationId', label: 'System Integration', type: 'integration' }]
+            id: 'qr',
+            type: 'oauth2',
+            label: 'QR authorization',
+            authorizationPresentation: {
+              mode: 'embedded_qr',
+              title: 'Connect QR provider'
             }
           }
         ]
       })
-    ).toThrow("integration field 'integrationId' must declare a provider")
+    ).toThrow("authorization presentation must declare 'description'")
   })
 
   it('validates decorated function providers', () => {
