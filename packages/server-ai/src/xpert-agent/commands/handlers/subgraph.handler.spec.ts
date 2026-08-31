@@ -15,6 +15,7 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     IEnvironment,
+    IXpert,
     IXpertAgent,
     IXpertAgentExecution,
     STATE_VARIABLE_HUMAN,
@@ -24,6 +25,7 @@ import {
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { setModelVisionSupport } from '../../../copilot-model/model-capabilities'
 import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
@@ -323,13 +325,9 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
             } as any
         )
 
-        const expectedMessageContent = [
-            'steer input 1',
-            '',
-            'Referenced content:',
-            '[Quoted text]',
-            '> ref-1'
-        ].join('\n')
+        const expectedMessageContent = ['steer input 1', '', 'Referenced content:', '[Quoted text]', '> ref-1'].join(
+            '\n'
+        )
         const getMessageContent = (message: unknown) => {
             if (!message || typeof message !== 'object') {
                 return undefined
@@ -426,6 +424,8 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         fallbackSupportsVision?: boolean
         middlewareReplacementSupportsVision?: boolean
         observePublicProfile?: boolean
+        workspaceDataScope?: 'shared' | 'user'
+        commandXpert?: Partial<IXpert>
     }) {
         const primaryInvoke = jest.fn(async (_messages: unknown) => {
             if (options.primaryError) {
@@ -473,7 +473,9 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             },
             team: {
                 id: 'xpert-1',
+                tenantId: 'tenant-1',
                 workspaceId: 'workspace-1',
+                workspaceDataScope: options.workspaceDataScope ?? 'shared',
                 agentConfig: {},
                 copilotModel: {
                     model: 'primary-model',
@@ -555,15 +557,16 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             })
         }
         const createScopedApi = jest.fn().mockReturnValue({})
+        const middlewareRuntime = {
+            createScopedApi
+        }
         const handler = new XpertAgentSubgraphHandler(
             null,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus,
             { t: jest.fn(), translate: jest.fn() } as never,
             null,
-            {
-                createScopedApi
-            } as unknown as AgentMiddlewareRuntimeService,
+            middlewareRuntime as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
         Object.defineProperty(handler, 'agentMiddlewareRegistry', {
@@ -590,11 +593,11 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         return {
             command: new XpertAgentSubgraphCommand(
                 'agent-1',
-                {
+                options.commandXpert ?? {
                     id: 'xpert-1',
                     tenantId: 'tenant-1',
                     workspaceId: 'workspace-1',
-                    workspaceDataScope: 'user'
+                    workspaceDataScope: options.workspaceDataScope ?? 'shared'
                 },
                 {
                     isStart: true,
@@ -619,6 +622,8 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             fallbackInvoke,
             createScopedApi,
             handler,
+            commandBus,
+            middlewareRuntime,
             observedModelProfiles,
             primaryInvoke,
             replacementInvoke
@@ -626,9 +631,18 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
     }
 
     it('binds a user-scoped Xpert middleware runtime to user-xperts', async () => {
-        const fixture = createFixture({ primarySupportsVision: true })
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-a')
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            workspaceDataScope: 'user',
+            commandXpert: { id: 'xpert-1' }
+        })
 
-        await fixture.handler.execute(fixture.command)
+        try {
+            await fixture.handler.execute(fixture.command)
+        } finally {
+            userSpy.mockRestore()
+        }
 
         expect(fixture.createScopedApi).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -747,6 +761,39 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
 
         expect(fixture.primaryInvoke).not.toHaveBeenCalled()
         expect(JSON.stringify(fixture.replacementInvoke.mock.calls[0]?.[0])).not.toContain('image_url')
+    })
+
+    it('binds Agent toolsets and middleware to the user-Xpert execution scope', async () => {
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-a')
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            workspaceDataScope: 'user',
+            commandXpert: { id: 'xpert-1' }
+        })
+
+        try {
+            await fixture.handler.execute(fixture.command)
+        } finally {
+            userSpy.mockRestore()
+        }
+
+        const getToolsCommand = fixture.commandBus.execute.mock.calls.find(
+            ([command]) => command?.constructor.name === 'ToolsetGetToolsCommand'
+        )?.[0] as { environment?: Record<string, unknown> }
+        expect(getToolsCommand.environment?.xpertId).toBe('xpert-1')
+        expect(getToolsCommand.environment?.workspaceDataScope).toBe('user')
+        expect(getToolsCommand.environment).not.toHaveProperty('catalog')
+        expect(getToolsCommand.environment).not.toHaveProperty('scopeId')
+        expect(getToolsCommand.environment).not.toHaveProperty('isolateByUser')
+        expect(fixture.middlewareRuntime.createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'user-a',
+                xpertId: 'xpert-1',
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1',
+                isolateByUser: true
+            })
+        )
     })
 })
 

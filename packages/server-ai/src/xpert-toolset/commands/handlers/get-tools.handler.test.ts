@@ -32,6 +32,8 @@ describe('ToolsetGetToolsHandler', () => {
         await handler.execute(
             new ToolsetGetToolsCommand(['toolset-1'], {
                 workspaceId: 'workspace-1',
+                xpertId: 'xpert-1',
+                workspaceDataScope: 'user',
                 executionId: 'execution-1'
             })
         )
@@ -42,6 +44,8 @@ describe('ToolsetGetToolsHandler', () => {
             workspaceId: 'workspace-1',
             principal: { type: 'user', id: 'user-1', userId: 'user-1' },
             toolsetIds: ['toolset-1'],
+            xpertId: 'xpert-1',
+            workspaceDataScope: 'user',
             executionId: 'execution-1'
         })
     })

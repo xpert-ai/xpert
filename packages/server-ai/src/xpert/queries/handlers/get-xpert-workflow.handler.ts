@@ -95,7 +95,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
                     collaborators: collaborators.filter(nonNullable).map((node) => node.entity),
                     team: {
                         ...draft.team,
-                        ...pick(xpert, 'id', 'tenantId', 'organizationId', 'workspaceId')
+                        ...pick(xpert, 'id', 'tenantId', 'organizationId', 'workspaceId', 'workspaceDataScope')
                     }
                 } as IXpertAgent,
                 graph: { nodes, connections },

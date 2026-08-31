@@ -481,6 +481,61 @@ describe('XpertService command facade', () => {
         )
     })
 
+    it('overwrites forged draft workspace policy when saving a draft', async () => {
+        const { repository, service } = createService()
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const xpert = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            workspaceDataScope: 'user'
+        } as Xpert
+        jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+        repository.save.mockImplementation(async (entity) => entity)
+
+        await service.saveDraft('xpert-1', {
+            team: {
+                name: 'Draft',
+                workspaceDataScope: 'shared'
+            },
+            nodes: [],
+            connections: []
+        } as any)
+
+        expect(xpert.draft.team.workspaceDataScope).toBe('user')
+    })
+
+    it('overwrites forged draft workspace policy when updating a draft', async () => {
+        const { repository, service } = createService()
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const xpert = {
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            workspaceDataScope: 'user',
+            draft: {
+                team: {
+                    name: 'Before',
+                    workspaceDataScope: 'shared'
+                }
+            },
+            graph: { nodes: [], connections: [] }
+        } as Xpert
+        jest.spyOn(service, 'findOne').mockResolvedValue(xpert)
+        repository.save.mockImplementation(async (entity) => entity)
+
+        await service.updateDraft('xpert-1', {
+            team: {
+                name: 'After',
+                workspaceDataScope: 'shared'
+            }
+        })
+
+        expect(xpert.draft.team.workspaceDataScope).toBe('user')
+    })
+
     it('hides tenant-scope workspace xperts from organization account lists', async () => {
         const { repository, queryBus, service, workspaceAccessService } = createService()
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')

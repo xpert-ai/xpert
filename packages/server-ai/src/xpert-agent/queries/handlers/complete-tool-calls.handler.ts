@@ -28,7 +28,7 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
     ) {}
 
     public async execute(command: CompleteToolCallsQuery): Promise<TSensitiveOperation> {
-        const { xpertId, tasks, values, isDraft } = command
+        const { xpertId, tasks, values, isDraft, projectId } = command
 
         const _tasks = await Promise.all(
             tasks.map(async (task) => {
@@ -55,7 +55,10 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
                 )
                 const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
                     new ToolsetGetToolsCommand(agent.toolsetIds, {
-                        workspaceId: agent.team?.workspaceId
+                        projectId,
+                        workspaceId: agent.team?.workspaceId,
+                        xpertId,
+                        workspaceDataScope: agent.team?.workspaceDataScope
                     })
                 )
                 try {

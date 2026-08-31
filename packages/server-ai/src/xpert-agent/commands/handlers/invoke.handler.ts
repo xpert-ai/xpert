@@ -448,7 +448,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         // Has bugs
                         console.error(`Interrupting for tool calls:`, state.tasks)
                         const operation = await this.queryBus.execute(
-                            new CompleteToolCallsQuery(xpert.id, state.tasks, state.values, options.isDraft)
+                            new CompleteToolCallsQuery(
+                                xpert.id,
+                                state.tasks,
+                                state.values,
+                                options.isDraft,
+                                options.projectId
+                            )
                         )
                         subscriber.next({
                             data: {

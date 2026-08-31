@@ -30,7 +30,6 @@ import {
     allChannels,
     channelName,
     ChatMessageEventTypeEnum,
-    figureOutXpert,
     findStartNodes,
     getCurrentGraph,
     getWorkflowTriggers,
@@ -43,7 +42,6 @@ import {
     IXpertAgentExecution,
     KnowledgebaseChannel,
     mapTranslationLanguage,
-    resolveRuntimeXpert,
     STATE_VARIABLE_HUMAN,
     stringifyMessageContent,
     TAgentRunnableConfigurable,
@@ -147,6 +145,7 @@ import {
     createInvalidToolCallRepairContext
 } from './invalid-tool-call-diagnostics'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
+import { resolveToolRuntimeScope } from '../../../tool-runtime/workspace-scope'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
@@ -171,7 +170,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
     public async execute(command: XpertAgentSubgraphCommand): Promise<TAgentSubgraphResult> {
         const { agentKeyOrName, xpert, options } = command
-        const promptWorkflowXpert = figureOutXpert(xpert as IXpert, options?.isDraft)
         const {
             isStart,
             execution,
@@ -243,6 +241,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // The xpert (agent team)
         const team = agent.team
+        const runtimeXpert = {
+            ...team,
+            id: team?.id ?? xpert.id
+        } as IXpert
+        const promptWorkflowXpert = runtimeXpert
         const agentKey = agent.key
         const agentTitle = agent.title?.trim() || agent.name?.trim()
         const isRootExecution = Boolean(
@@ -291,13 +294,27 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             }
         }
 
+        const runtimeUserId = RequestContext.currentUserId()
+        const runtimeOrganizationId = RequestContext.getOrganizationId() ?? null
+        const runtimeWorkspaceScope = resolveToolRuntimeScope(
+            {
+                tenantId: runtimeXpert.tenantId,
+                organizationId: runtimeOrganizationId,
+                userId: runtimeUserId,
+                projectId: options.projectId,
+                xpertId: runtimeXpert.id
+            },
+            runtimeXpert.workspaceDataScope
+        )
+
         // Create tools
         const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
             new ToolsetGetToolsCommand(agent.toolsetIds, {
                 projectId: options.projectId,
-                workspaceId: xpert.workspaceId,
+                workspaceId: runtimeXpert.workspaceId,
                 conversationId: options.conversationId,
-                xpertId: xpert.id,
+                xpertId: runtimeXpert.id,
+                workspaceDataScope: runtimeXpert.workspaceDataScope,
                 agentKey,
                 executionId: execution.id,
                 signal: abortController.signal,
@@ -394,7 +411,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Memory tools
         if (team.memory?.enabled && team.memory?.qa?.enabled) {
             tools.push(
-                ...initializeMemoryTools(options.store, xpert.id).map((tool) => ({
+                ...initializeMemoryTools(options.store, runtimeXpert.id).map((tool) => ({
                     toolset: {
                         provider: 'memories',
                         title: translate({ en_US: 'Memory', zh_Hans: '记忆' })
@@ -451,7 +468,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const item = await this.createAgentSubgraph(follower, {
                     mute: options.mute,
                     store: options.store,
-                    xpert,
+                    xpert: runtimeXpert,
                     options: {
                         leaderKey: agent.key,
                         isDraft: command.options.isDraft,
@@ -560,7 +577,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const { stateGraph, nextNodes, failNode } = await this.createAgentSubgraph(node.entity, {
                     mute: options.mute,
                     store: options.store,
-                    xpert,
+                    xpert: runtimeXpert,
                     options: {
                         leaderKey: parentKey,
                         isDraft: command.options.isDraft,
@@ -640,17 +657,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset, variables } =
                     await this.commandBus.execute<CreateWorkflowNodeCommand, TWorkflowGraphNode>(
-                        new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
+                        new CreateWorkflowNodeCommand(runtimeXpert.id, graph, node, parentKey, {
                             mute: options.mute,
                             store: options.store,
                             isDraft: options.isDraft,
                             subscriber,
                             environment,
                             conversationId: options.conversationId,
-                            xpert: {
-                                ...team,
-                                workspaceId: team.workspaceId ?? xpert.workspaceId
-                            }
+                            xpert: runtimeXpert
                         })
                     )
                 if (channel) {
@@ -764,26 +778,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const visibleMiddlewareNodes = getRuntimeEnabledMiddlewareNodes(graph, agent, {
             runtimeCapabilities: options.runtimeCapabilities
         })
-        const organizationId = RequestContext.getOrganizationId() ?? null
-        const runtimeUserId = RequestContext.currentUserId()
-        const runtimeWorkspaceCatalog = options.projectId
-            ? 'projects'
-            : xpert.workspaceDataScope === 'user'
-              ? 'user-xperts'
-              : 'xperts'
-        const runtimeWorkspaceScopeId = options.projectId ?? xpert.id
         const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
-            tenantId: xpert.tenantId,
-            organizationId,
+            tenantId: runtimeXpert.tenantId,
+            organizationId: runtimeOrganizationId,
             userId: runtimeUserId,
-            workspaceId: xpert.workspaceId,
+            workspaceId: runtimeXpert.workspaceId,
             projectId: options.projectId,
-            xpertId: xpert.id,
-            catalog: runtimeWorkspaceCatalog,
-            scopeId: runtimeWorkspaceScopeId,
-            isolateByUser: runtimeWorkspaceCatalog === 'user-xperts',
-            xpertName: xpert.name,
+            xpertId: runtimeXpert.id,
+            catalog: runtimeWorkspaceScope.catalog,
+            scopeId: runtimeWorkspaceScope.scopeId,
+            isolateByUser: runtimeWorkspaceScope.isolateByUser,
+            xpertName: runtimeXpert.name,
             conversationId: options.conversationId,
             threadId: thread_id,
             agentKey,
@@ -793,16 +799,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             workspacePath: options.workspacePath
         })
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
-            tenantId: xpert.tenantId,
-            organizationId,
+            tenantId: runtimeXpert.tenantId,
+            organizationId: runtimeOrganizationId,
             userId: runtimeUserId,
-            workspaceId: xpert.workspaceId,
+            workspaceId: runtimeXpert.workspaceId,
             projectId: options.projectId,
             conversationId: options.conversationId,
             threadId: thread_id,
-            xpertId: xpert.id,
-            workspaceDataScope: xpert.workspaceDataScope,
-            xpertFeatures: resolveRuntimeXpert(xpert as IXpert, Boolean(options?.isDraft)).features ?? null,
+            xpertId: runtimeXpert.id,
+            workspaceDataScope: runtimeXpert.workspaceDataScope,
+            xpertFeatures: runtimeXpert.features ?? null,
             agentKey,
             knowledgebaseIds: agent.knowledgebaseIds,
             store: options.store,
@@ -854,11 +860,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         )
         const runtimeAgentMiddlewares = runtimeMiddlewareEntries.map(({ middleware }) => middleware)
         const shouldEnableTitleMiddleware = Boolean(
-            xpert.features?.title?.enabled &&
+            runtimeXpert.features?.title?.enabled &&
             isStart &&
             !hiddenAgent &&
             !leaderKey &&
-            (!xpert.agent || xpert.agent.key === agent.key)
+            (!runtimeXpert.agent || runtimeXpert.agent.key === agent.key)
         )
         const titleMiddleware = shouldEnableTitleMiddleware
             ? this.xpertTitleMiddlewareService.createMiddleware({
@@ -988,7 +994,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // State
         // State channel for knowledgebase pipeline
-        if (xpert.knowledgebase) {
+        if (runtimeXpert.knowledgebase) {
             channels.push({
                 name: KnowledgebaseChannel,
                 annotation: Annotation<Record<string, unknown>>({
@@ -1107,7 +1113,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             const { memories } = state
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
-            let systemTemplate = `Current date: ${state.sys.date}\nYour ID is '${agent.key}'. Your name is '${agent.name || xpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
+            let systemTemplate = `Current date: ${state.sys.date}\nYour ID is '${agent.key}'. Your name is '${agent.name || runtimeXpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
             if (memories?.length) {
                 systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
             }
@@ -1287,7 +1293,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                                 invalidToolCalls,
                                 threadId: thread_id,
                                 executionId: resolveExecutionId(),
-                                xpertId: xpert.id,
+                                xpertId: runtimeXpert.id,
                                 agentKey,
                                 agentChannel,
                                 model: execution.metadata,
@@ -1395,7 +1401,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     key,
                     createBeforeAgentNode(hook, agentChannel).withConfig({
                         runName: key,
-                        tags: [thread_id, xpert.id, key]
+                        tags: [thread_id, runtimeXpert.id, key]
                     })
                 )
             )
@@ -1410,7 +1416,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         )
                     ).withConfig({
                         runName: stagePendingFollowUpsNodeKey,
-                        tags: [thread_id, xpert.id, stagePendingFollowUpsNodeKey]
+                        tags: [thread_id, runtimeXpert.id, stagePendingFollowUpsNodeKey]
                     })
                 )
                 .addNode(
@@ -1427,7 +1433,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         )
                     ).withConfig({
                         runName: consumePendingFollowUpsNodeKey,
-                        tags: [thread_id, xpert.id, consumePendingFollowUpsNodeKey]
+                        tags: [thread_id, runtimeXpert.id, consumePendingFollowUpsNodeKey]
                     })
                 )
             beforeModelHooks.forEach(({ key, hook }) =>
@@ -1435,7 +1441,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     key,
                     createBeforeModelNode(hook, agentChannel).withConfig({
                         runName: key,
-                        tags: [thread_id, xpert.id, key]
+                        tags: [thread_id, runtimeXpert.id, key]
                     })
                 )
             )
@@ -1443,7 +1449,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 agentKey,
                 new RunnableLambda({ func: callModel }).withConfig({
                     runName: agentKey,
-                    tags: [thread_id, xpert.id, agentKey]
+                    tags: [thread_id, runtimeXpert.id, agentKey]
                 }),
                 {
                     defer: hasMultipleInputs(graph, agent.key)
@@ -1458,7 +1464,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         index === afterModelExecutionOrder.length - 1,
                         errorHandling,
                         agent.options?.memories
-                    ).withConfig({ runName: key, tags: [thread_id, xpert.id, key] })
+                    ).withConfig({ runName: key, tags: [thread_id, runtimeXpert.id, key] })
                 )
             )
             afterAgentExecutionOrder.forEach(({ key, hook }) =>
@@ -1466,7 +1472,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     key,
                     createAfterAgentNode(hook, agentChannel, errorHandling).withConfig({
                         runName: key,
-                        tags: [thread_id, xpert.id, key]
+                        tags: [thread_id, runtimeXpert.id, key]
                     })
                 )
             )

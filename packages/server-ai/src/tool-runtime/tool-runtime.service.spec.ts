@@ -2,10 +2,13 @@ import { Tool } from '@langchain/core/tools'
 import { MCP_CAPABILITY_DESCRIPTOR_VERSION, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import {
     AnyXpertToolDefinition,
+    DefaultRuntimeCapabilityRegistry,
     MANAGED_QUEUE_SERVICE_TOKEN,
     McpCapabilityRuntimeProvider,
     ToolExecutionContext,
-    defineXpertTool
+    WorkspaceFilesRuntimeCapability,
+    defineXpertTool,
+    type WorkspaceFilesApi
 } from '@xpert-ai/plugin-sdk'
 import { Test, TestingModule } from '@nestjs/testing'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -155,6 +158,129 @@ describe('ToolRuntimeService', () => {
         })
 
         expect(descriptor.source.toolsetId).toBe('toolset-1')
+    })
+
+    it('passes the host-bound user-Xpert scope and scoped capability into legacy plugin toolsets', async () => {
+        const runtime = new DeclaredTestToolset(declaredTool())
+        const scopedFiles = {} as WorkspaceFilesApi
+        const scopedCapabilities = new DefaultRuntimeCapabilityRegistry().register(
+            WorkspaceFilesRuntimeCapability,
+            scopedFiles
+        )
+        find.mockResolvedValue([
+            Object.assign(new XpertToolset(), {
+                id: 'toolset-1',
+                type: 'native-plugin',
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                tenantId: 'tenant-1',
+                workspaceId: 'workspace-1'
+            })
+        ])
+        commandExecute.mockResolvedValue(runtime)
+        createScopedApi.mockReturnValue({
+            createModelClient: jest.fn(),
+            getModelProvider: jest.fn(),
+            capabilities: scopedCapabilities
+        })
+
+        await service.loadToolsets({
+            source: 'agent',
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            workspaceId: 'workspace-1',
+            principal: { type: 'user', id: 'user-a', userId: 'user-a' },
+            toolsetIds: ['toolset-1'],
+            xpertId: 'xpert-1',
+            workspaceDataScope: 'user'
+        })
+
+        expect(createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                userId: 'user-a',
+                xpertId: 'xpert-1',
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1',
+                isolateByUser: true
+            })
+        )
+        const params = commandExecute.mock.calls[0][0].params
+        expect(params.runtimeScope).toEqual(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                userId: 'user-a',
+                xpertId: 'xpert-1',
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1',
+                isolateByUser: true
+            })
+        )
+        expect(params.runtimeCapabilities.get(WorkspaceFilesRuntimeCapability)).toBe(scopedFiles)
+    })
+
+    it('uses an explicit host file API and derives Project scope instead of trusting supplied fields', async () => {
+        const runtime = new DeclaredTestToolset(declaredTool())
+        const scopedFiles = {} as WorkspaceFilesApi
+        const hostFiles = {} as WorkspaceFilesApi
+        find.mockResolvedValue([
+            Object.assign(new XpertToolset(), {
+                id: 'toolset-1',
+                type: 'native-plugin',
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                tenantId: 'tenant-1',
+                workspaceId: 'workspace-1'
+            })
+        ])
+        commandExecute.mockResolvedValue(runtime)
+        createScopedApi.mockReturnValue({
+            createModelClient: jest.fn(),
+            getModelProvider: jest.fn(),
+            capabilities: new DefaultRuntimeCapabilityRegistry().register(WorkspaceFilesRuntimeCapability, scopedFiles)
+        })
+
+        const request = {
+            source: 'agent',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            principal: { type: 'user', id: 'user-1', userId: 'user-1' },
+            toolsetIds: ['toolset-1'],
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            workspaceDataScope: 'user',
+            // These obsolete derived fields simulate an untyped/older caller.
+            catalog: 'user-xperts',
+            scopeId: 'forged-scope',
+            isolateByUser: true,
+            host: { files: hostFiles }
+        } as Parameters<ToolRuntimeService['loadToolsets']>[0] & {
+            catalog: 'user-xperts'
+            scopeId: string
+            isolateByUser: boolean
+        }
+
+        await service.loadToolsets(request)
+
+        expect(createScopedApi.mock.calls[0][0]).toEqual(
+            expect.objectContaining({
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                catalog: 'projects',
+                scopeId: 'project-1',
+                isolateByUser: false
+            })
+        )
+
+        const params = commandExecute.mock.calls[0][0].params
+        expect(params.runtimeCapabilities.get(WorkspaceFilesRuntimeCapability)).toBe(hostFiles)
+        expect(params.runtimeScope).toEqual(
+            expect.objectContaining({
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                catalog: 'projects',
+                scopeId: 'project-1',
+                isolateByUser: false
+            })
+        )
     })
 
     it('loads an organization-scoped native toolset without deriving a workspace for MCP publication calls', async () => {
@@ -310,6 +436,8 @@ describe('ToolRuntimeService', () => {
             workspaceId: 'workspace-1',
             principal: { type: 'user', id: 'user-1', userId: 'user-1' },
             toolsetIds: ['toolset-1'],
+            xpertId: 'xpert-1',
+            workspaceDataScope: 'shared',
             executionId: 'execution-1'
         })
         const tools = await loaded.initTools()
@@ -331,6 +459,57 @@ describe('ToolRuntimeService', () => {
         await expect(context.host.credentials?.get('apiKey')).resolves.toBe('toolset-secret')
         await expect(context.host.credentials?.get('nested')).resolves.toEqual({ region: 'cn' })
         await expect(context.host.credentials?.get('missing')).resolves.toBeNull()
+    })
+
+    it('does not expose workspace files when execution has no Project or Xpert binding', async () => {
+        const scopedFiles = {} as WorkspaceFilesApi
+        const hostFiles = {} as WorkspaceFilesApi
+        const execute = jest.fn(async (_input: unknown, _context: ToolExecutionContext) => ({
+            content: [{ type: 'text' as const, text: 'done' }]
+        }))
+        const runtime = new DeclaredTestToolset(
+            defineXpertTool({
+                name: 'native_search',
+                description: 'Search documents',
+                inputSchema: z.object({ query: z.string() }),
+                exposure: { mcp: { eligible: true } },
+                behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
+                requiredContext: ['workspace'],
+                execute
+            })
+        )
+        find.mockResolvedValue([
+            Object.assign(new XpertToolset(), {
+                id: 'toolset-1',
+                type: 'native-plugin',
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                tenantId: 'tenant-1',
+                workspaceId: 'workspace-1'
+            })
+        ])
+        commandExecute.mockResolvedValue(runtime)
+        createScopedApi.mockReturnValue({
+            createModelClient: jest.fn(),
+            getModelProvider: jest.fn(),
+            capabilities: new DefaultRuntimeCapabilityRegistry().register(WorkspaceFilesRuntimeCapability, scopedFiles)
+        })
+
+        const [loaded] = await service.loadToolsets({
+            source: 'agent',
+            tenantId: 'tenant-1',
+            workspaceId: 'workspace-1',
+            principal: { type: 'user', id: 'user-1', userId: 'user-1' },
+            toolsetIds: ['toolset-1'],
+            executionId: 'execution-1',
+            host: { files: hostFiles }
+        })
+        const params = commandExecute.mock.calls[0][0].params
+        expect(params.runtimeCapabilities?.get(WorkspaceFilesRuntimeCapability)).toBeUndefined()
+
+        const tools = await loaded.initTools()
+        await tools[0].invoke({ query: 'xpert' }, { configurable: { tool_call_id: 'agent-tool-call-1' } })
+
+        expect(execute.mock.calls[0][1].host).not.toHaveProperty('files')
     })
 })
 

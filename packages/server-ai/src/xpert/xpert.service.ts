@@ -382,6 +382,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             nodes: normalizeMiddlewareNodes(draft.nodes),
             team: {
                 ...draft.team,
+                workspaceDataScope: xpert.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }
@@ -407,6 +408,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             team: {
                 ...(currentDraft.team ?? {}),
                 ...(draft.team ?? {}),
+                workspaceDataScope: xpert.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }

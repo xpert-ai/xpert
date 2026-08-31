@@ -1,4 +1,5 @@
 import { BaseStore } from '@langchain/langgraph'
+import type { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import type { TExecutionIdResolver } from '../../xpert-agent-execution'
 
@@ -15,6 +16,7 @@ export class ToolsetGetToolsCommand implements ICommand {
             workspaceId?: string | null
             conversationId?: string
             xpertId?: string | null
+            workspaceDataScope?: XpertWorkspaceDataScope | null
             agentKey?: string
             executionId?: string
             signal?: AbortSignal
