@@ -9,8 +9,10 @@ import { StatisticsTokensPerSecondHandler } from "./statistics-tokens-per-second
 import { StatisticsTokenCostQueryHandler } from "./statistics-token-cost.handler";
 import { StatisticsUserSatisfactionRateHandler } from "./statistics-user-satisfaction-rate.handler";
 import { StatisticsModelsHandler } from "./statistics-models.handler";
+import { AssertChatConversationAccessHandler } from "./conversation-assert-access.handler";
 
 export const QueryHandlers = [
+	AssertChatConversationAccessHandler,
 	GetChatConversationHandler,
 	FindChatConversationHandler,
 	StatisticsDailyConvHandler,

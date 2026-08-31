@@ -14,6 +14,7 @@ describe('FindThreadHandler', () => {
                 xpertId: 'xpert-1'
             })
             .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce(undefined)
         const handler = new FindThreadHandler(queryBus)
 
         await expect(handler.execute(new FindThreadQuery('thread-1'))).resolves.toMatchObject({
@@ -35,6 +36,7 @@ describe('FindThreadHandler', () => {
                 status: 'idle',
                 xpertId: 'xpert-1'
             })
+            .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce({
                 checkpoint: {
                     channel_values: {

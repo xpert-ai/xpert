@@ -20,6 +20,7 @@ jest.mock('@xpert-ai/contracts', () => {
 
 import { lastValueFrom, of, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
@@ -39,7 +40,9 @@ describe('XpertChatHandler reference-only inputs', () => {
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
+    let publishedXpertAccessService: { getAccessiblePublishedXpertFamilyIds: jest.Mock }
     let handler: XpertChatHandler
+    let currentUserIdSpy: jest.SpyInstance
 
     const xpert = {
         id: 'xpert-1',
@@ -51,6 +54,14 @@ describe('XpertChatHandler reference-only inputs', () => {
         features: {},
         agentConfig: {}
     } as any
+
+    beforeAll(() => {
+        currentUserIdSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+    })
+
+    afterAll(() => {
+        currentUserIdSpy.mockRestore()
+    })
 
     beforeEach(() => {
         xpertService = {
@@ -75,13 +86,17 @@ describe('XpertChatHandler reference-only inputs', () => {
         goalService = {
             getByConversationId: jest.fn().mockResolvedValue(null)
         }
+        publishedXpertAccessService = {
+            getAccessiblePublishedXpertFamilyIds: jest.fn(async (id: string) => [id])
+        }
 
         handler = new XpertChatHandler(
             xpertService as any,
             assistantBindingService as any,
             commandBus as any,
             queryBus as any,
-            goalService as unknown as ChatConversationGoalService
+            goalService as unknown as ChatConversationGoalService,
+            publishedXpertAccessService as any
         )
     })
 
@@ -93,6 +108,9 @@ describe('XpertChatHandler reference-only inputs', () => {
         })
         queryBus.execute.mockResolvedValue({
             id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-1',
+            xpertId: 'xpert-1',
             status: 'busy',
             messages: [
                 {
@@ -163,6 +181,8 @@ describe('XpertChatHandler reference-only inputs', () => {
             .mockResolvedValueOnce({
                 id: 'conversation-1',
                 threadId: 'thread-1',
+                createdById: 'user-1',
+                xpertId: 'xpert-1',
                 status: 'busy',
                 messages: [
                     {
@@ -544,6 +564,9 @@ describe('XpertChatHandler reference-only inputs', () => {
         })
         queryBus.execute.mockResolvedValue({
             id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-1',
+            xpertId: 'xpert-1',
             status: 'busy',
             messages: [
                 {

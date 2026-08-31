@@ -9,10 +9,11 @@ import {
 } from '@xpert-ai/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
+import { t } from 'i18next'
 import { DeepPartial, FindOptionsWhere, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ChatMessageService } from '../chat-message/chat-message.service'
@@ -21,9 +22,12 @@ import { resolveFileAssetWorkspaceRelativePath } from '../file-understanding/dom
 import { GetFileAssetQuery } from '../file-understanding/queries'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
+
+export type ChatConversationAccessOperation = 'read' | 'contribute' | 'manage'
 
 @Injectable()
 export class ChatConversationService extends TenantOrganizationAwareCrudService<ChatConversation> {
@@ -39,7 +43,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         readonly queryBus: QueryBus,
         @InjectQueue('conversation-summary') private summaryQueue: Queue,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly projectAccessService: XpertProjectAccessService
     ) {
         super(repository)
     }
@@ -70,11 +75,75 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     select: { id: true, projectId: true }
                 })
                 if (existing && existing.projectId !== partialEntity.projectId) {
-                    throw new BadRequestException('A conversation cannot be moved to another Project')
+                    throw new BadRequestException(
+                        t('server-ai:Error.ConversationProjectImmutable', {
+                            defaultValue: 'A conversation cannot be moved to another Project'
+                        })
+                    )
                 }
             }
         }
         return super.update(id, partialEntity, ...options)
+    }
+
+    /** Authorize one persisted conversation for the current human actor. */
+    async assertAccess(
+        conversationOrId: ChatConversation | string,
+        operation: ChatConversationAccessOperation = 'read'
+    ): Promise<ChatConversation> {
+        let conversation =
+            typeof conversationOrId === 'string'
+                ? await this.findOneInOrganizationOrTenant(conversationOrId, { relations: ['xpert'] })
+                : conversationOrId
+
+        if (!conversation) {
+            throw this.conversationAccessDenied()
+        }
+
+        const currentUserId = RequestContext.currentUserId()
+        if (conversation.projectId) {
+            const access =
+                operation === 'read'
+                    ? await this.projectAccessService.assertCanRead(conversation.projectId)
+                    : await this.projectAccessService.assertCanUse(conversation.projectId)
+
+            if (
+                operation === 'manage' &&
+                conversation.createdById !== currentUserId &&
+                !['owner', 'manager'].includes(access.role)
+            ) {
+                throw this.conversationAccessDenied()
+            }
+            return conversation
+        }
+
+        if (currentUserId && conversation.createdById === currentUserId) {
+            return conversation
+        }
+
+        if (currentUserId && conversation.xpertId) {
+            if (!conversation.xpert) {
+                conversation =
+                    (await this.findOneInOrganizationOrTenant(conversation.id, { relations: ['xpert'] })) ??
+                    conversation
+            }
+            if (
+                conversation.xpert?.createdById === currentUserId &&
+                conversation.xpert.userId === conversation.createdById
+            ) {
+                return conversation
+            }
+        }
+
+        throw this.conversationAccessDenied()
+    }
+
+    private conversationAccessDenied() {
+        return new ForbiddenException(
+            t('server-ai:Error.ConversationAccessDenied', {
+                defaultValue: 'You do not have access to this conversation'
+            })
+        )
     }
 
     async findAllByXpert(xpertId: string, options: PaginationParams<ChatConversation>) {

@@ -177,11 +177,11 @@ export class ContextsController {
         }
         if (conversationId) {
             const conversation = await this.queryBus.execute(new GetChatConversationQuery({ id: conversationId }))
-            assertPublicXpertSessionConversationAccess(conversation)
+            await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
         }
         if (threadId) {
             const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-            assertPublicXpertSessionConversationAccess(conversation)
+            await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
         }
     }
 

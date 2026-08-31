@@ -1,3 +1,4 @@
+import { AssertXpertAgentExecutionAccessHandler } from "./assert-access.handler";
 import { FindExecutionsByXpertHandler } from "./find-by-expert.handler";
 import { FindAgentExecutionsHandler } from "./find.handler";
 import { XpertAgentExecutionCheckpointsHandler } from "./get-checkpoints.handler";
@@ -6,6 +7,7 @@ import { XpertAgentExecutionOneHandler } from "./get-one.handler";
 import { GetThreadContextUsageHandler } from "./get-thread-context-usage.handler";
 
 export const QueryHandlers = [
+	AssertXpertAgentExecutionAccessHandler,
 	FindExecutionsByXpertHandler,
 	FindAgentExecutionsHandler,
 	XpertAgentExecutionCheckpointsHandler,

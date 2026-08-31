@@ -1,6 +1,7 @@
 import {
     ApiKeyBindingType,
     IApiPrincipal,
+    IXpert,
     isTenantSharedXpertWorkspace,
     SecretTokenBindingType
 } from '@xpert-ai/contracts'
@@ -21,6 +22,7 @@ import { Xpert } from './xpert.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
+import { isSameXpertFamily } from './xpert-family'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
 
@@ -544,6 +546,45 @@ export class PublishedXpertAccessService {
             rows.map((row) => row.id),
             this.normalizeRelations(options?.relations)
         )
+    }
+
+    async getAccessiblePublishedXpertFamilyIds(id: string) {
+        const xpert = await this.getAccessiblePublishedXpert(id)
+        const family = await this.repository.find({
+            select: { id: true },
+            where: {
+                tenantId: xpert.tenantId,
+                organizationId: xpert.organizationId ?? IsNull(),
+                workspaceId: xpert.workspaceId ?? IsNull(),
+                type: xpert.type,
+                slug: xpert.slug,
+                publishAt: Not(IsNull())
+            }
+        })
+
+        return uniq([xpert.id, ...family.map((item) => item.id)])
+    }
+
+    async isPublishedXpertInFamily(candidateId: string, xpert: IXpert) {
+        if (candidateId === xpert.id) return true
+
+        const candidate = await this.repository.findOne({
+            select: {
+                id: true,
+                tenantId: true,
+                organizationId: true,
+                workspaceId: true,
+                type: true,
+                slug: true
+            },
+            where: {
+                id: candidateId,
+                tenantId: xpert.tenantId,
+                publishAt: Not(IsNull())
+            }
+        })
+
+        return !!candidate && isSameXpertFamily(candidate, xpert)
     }
 
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {

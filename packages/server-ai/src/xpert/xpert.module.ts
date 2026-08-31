@@ -89,7 +89,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
         CopilotStoreModule,
         CopilotUsageModule,
         HandoffQueueModule,
-        ChatConversationModule,
+        forwardRef(() => ChatConversationModule),
         SseStreamModule,
         forwardRef(() => XpertProjectModule)
     ],

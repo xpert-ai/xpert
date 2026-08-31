@@ -85,7 +85,7 @@ export class FileUnderstandingController {
     async listConversationFiles(@Param('conversationId') conversationId: string) {
         if (getPublicXpertSessionConversationScope()) {
             const conversation = await this.queryBus.execute(new GetChatConversationQuery({ id: conversationId }))
-            assertPublicXpertSessionConversationAccess(conversation)
+            await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
         }
         return this.queryBus.execute(new ListConversationFilesQuery(conversationId))
     }

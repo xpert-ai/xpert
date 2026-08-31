@@ -56,6 +56,43 @@ describe('PublishedXpertAccessService', () => {
         ;(RequestContext.isTenantScope as jest.Mock).mockReturnValue(false)
     })
 
+    it('returns every published version id in the accessible Xpert family', async () => {
+        const xpert = {
+            id: 'xpert-current',
+            tenantId: 'tenant-1',
+            organizationId: 'org-requested',
+            workspaceId: 'workspace-1',
+            createdById: 'user-1',
+            type: XpertTypeEnum.Agent,
+            slug: 'demo',
+            publishAt: new Date()
+        }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(xpert),
+            find: jest.fn().mockResolvedValue([{ id: 'xpert-current' }, { id: 'xpert-v1' }]),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpertFamilyIds('xpert-current')).resolves.toEqual([
+            'xpert-current',
+            'xpert-v1'
+        ])
+
+        expect(repository.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                select: { id: true },
+                where: expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-requested',
+                    workspaceId: 'workspace-1',
+                    type: XpertTypeEnum.Agent,
+                    slug: 'demo'
+                })
+            })
+        )
+    })
+
     it('uses requestedOrganizationId when authorizing assistant access', async () => {
         const qb = createQueryBuilderMock({ count: 1 })
         const repository = {

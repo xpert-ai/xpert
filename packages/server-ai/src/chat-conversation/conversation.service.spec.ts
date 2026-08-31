@@ -20,6 +20,10 @@ jest.mock('@xpert-ai/server-core', () => ({
         findAll() {
             return Promise.resolve({ items: [], total: 0 })
         }
+
+        findOneInOrganizationOrTenant(): Promise<T> {
+            return Promise.resolve(null)
+        }
     }
 }))
 
@@ -36,6 +40,10 @@ jest.mock('../xpert-agent-execution/queries', () => ({
     XpertAgentExecutionStateQuery: class XpertAgentExecutionStateQuery {}
 }))
 
+jest.mock('../xpert-project/services/project-access.service', () => ({
+    XpertProjectAccessService: class XpertProjectAccessService {}
+}))
+
 jest.mock('./conversation.entity', () => ({
     ChatConversation: class ChatConversation {}
 }))
@@ -50,7 +58,7 @@ jest.mock('./dto', () => ({
 
 import { TFile } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'
@@ -60,6 +68,7 @@ import { VolumeClient } from '../shared/volume'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 
 describe('ChatConversationService workspace files', () => {
     let repository: { findOne: jest.Mock; query: jest.Mock }
@@ -78,6 +87,10 @@ describe('ChatConversationService workspace files', () => {
     }
     let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
     let queryBus: { execute: jest.Mock }
+    let projectAccessService: {
+        assertCanRead: jest.Mock
+        assertCanUse: jest.Mock
+    }
     let service: ChatConversationService
     const conversation = {
         id: 'conversation-1',
@@ -137,6 +150,10 @@ describe('ChatConversationService workspace files', () => {
         queryBus = {
             execute: jest.fn()
         }
+        projectAccessService = {
+            assertCanRead: jest.fn().mockResolvedValue({ role: 'member' }),
+            assertCanUse: jest.fn().mockResolvedValue({ role: 'member' })
+        }
 
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
@@ -145,12 +162,49 @@ describe('ChatConversationService workspace files', () => {
             {} as CommandBus,
             queryBus as unknown as QueryBus,
             {} as Queue,
-            volumeClient
+            volumeClient,
+            projectAccessService as unknown as XpertProjectAccessService
         )
     })
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('rejects access to another user non-Project conversation', async () => {
+        await expect(
+            service.assertAccess({
+                ...conversation,
+                createdById: 'user-2'
+            } as ChatConversation)
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('uses Project membership for contribution access', async () => {
+        await service.assertAccess(
+            {
+                ...conversation,
+                createdById: 'user-2',
+                projectId: 'project-1'
+            } as ChatConversation,
+            'contribute'
+        )
+
+        expect(projectAccessService.assertCanUse).toHaveBeenCalledWith('project-1')
+    })
+
+    it('revokes Project conversation access even for its creator after membership is removed', async () => {
+        projectAccessService.assertCanRead.mockRejectedValue(new ForbiddenException())
+        projectAccessService.assertCanUse.mockRejectedValue(new ForbiddenException())
+        const projectConversation = {
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation
+
+        await expect(service.assertAccess(projectConversation)).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(service.assertAccess(projectConversation, 'contribute')).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
     })
 
     it('lists files inside the current conversation workspace', async () => {

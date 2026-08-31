@@ -7,7 +7,6 @@ import {
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
 import {
-    CrudController,
     PaginationParams,
     ParseJsonPipe,
     RequestContext,
@@ -18,8 +17,10 @@ import {
 } from '@xpert-ai/server-core'
 import {
     Body,
+    BadRequestException,
     Controller,
     Delete,
+    ForbiddenException,
     Get,
     HttpStatus,
     Logger,
@@ -39,18 +40,21 @@ import { Like } from 'typeorm'
 import { createReadStream } from 'fs'
 import type { Response } from 'express'
 import archiver from 'archiver'
+import { t } from 'i18next'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
+import { FindXpertQuery } from '../xpert'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
-import { CancelConversationCommand } from './commands'
+import { CancelConversationCommand, ChatConversationBindXpertCommand } from './commands'
 import { ChatConversationGoalService } from './goal'
+import { assertSafeChatConversationRelations } from './conversation-relations'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
-export class ChatConversationController extends CrudController<ChatConversation> {
+export class ChatConversationController {
     readonly #logger = new Logger(ChatConversationController.name)
 
     constructor(
@@ -59,9 +63,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly organizationScopeService: SuperAdminOrganizationScopeService
-    ) {
-        super(service)
-    }
+    ) {}
 
     @ApiOperation({ summary: 'find my all' })
     @ApiResponse({
@@ -74,9 +76,10 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Query('search') search?: string,
         ...options: any[]
     ): Promise<IPagination<ChatConversationPublicDTO>> {
+        assertSafeChatConversationRelations(filter?.relations)
         const where = {
-            ...transformWhere(filter.where ?? {}),
-            createdById: RequestContext.currentUserId()
+            ...transformWhere(filter?.where ?? {}),
+            createdById: this.requireCurrentUserId()
         } as any
         if (search) {
             where.title = Like(`%${search}%`)
@@ -116,7 +119,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
     ): Promise<ChatConversationPublicDTO> {
         return this.organizationScopeService.run(organizationId, async () => {
             const conversation = await this.service.findOneByThreadId(threadId)
-            return new ChatConversationPublicDTO(conversation)
+            return new ChatConversationPublicDTO(await this.service.assertAccess(conversation))
         })
     }
 
@@ -128,9 +131,60 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
         ...options: any[]
     ): Promise<ChatConversationPublicDTO> {
-        return this.organizationScopeService.run(organizationId, () =>
-            this.service.findOneDetail(id, { select, relations })
-        )
+        return this.organizationScopeService.run(organizationId, async () => {
+            await this.service.assertAccess(id)
+            assertSafeChatConversationRelations(relations)
+            return this.service.findOneDetail(id, { select, relations })
+        })
+    }
+
+    @Put(':id')
+    async updateConversation(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body() body: Partial<Pick<ChatConversation, 'title' | 'status' | 'options' | 'xpertId'>>,
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.organizationScopeService.run(organizationId, async () => {
+            let conversation = await this.service.assertAccess(id, 'manage')
+            if (body.xpertId !== undefined) {
+                const xpertId = this.requireXpertId(body.xpertId)
+                if (conversation.xpertId && conversation.xpertId !== xpertId) {
+                    throw new ForbiddenException(
+                        t('server-ai:Error.ConversationXpertImmutable', {
+                            defaultValue: 'A conversation cannot be moved to another Xpert'
+                        })
+                    )
+                }
+                if (!conversation.xpertId) {
+                    await this.assertCanBindOwnedXpert(xpertId)
+                    conversation = await this.commandBus.execute(new ChatConversationBindXpertCommand(id, xpertId))
+                    if (conversation.xpertId !== xpertId) {
+                        throw new ForbiddenException(
+                            t('server-ai:Error.ConversationXpertImmutable', {
+                                defaultValue: 'A conversation cannot be moved to another Xpert'
+                            })
+                        )
+                    }
+                }
+            }
+            await this.service.update(id, {
+                ...(body.title !== undefined ? { title: body.title } : {}),
+                ...(body.status !== undefined ? { status: body.status } : {}),
+                ...(body.options !== undefined ? { options: body.options } : {})
+            })
+            return this.service.findOneDetail(id, {})
+        })
+    }
+
+    @Delete(':id')
+    async deleteConversation(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.organizationScopeService.run(organizationId, async () => {
+            await this.service.assertAccess(id, 'manage')
+            return this.service.delete(id)
+        })
     }
 
     @Get(':id/state')
@@ -138,7 +192,10 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Param('id', UUIDValidationPipe) id: string,
         @Query('organizationId') organizationId?: string
     ): Promise<any> {
-        return this.organizationScopeService.run(organizationId, () => this.service.getThreadState(id))
+        return this.organizationScopeService.run(organizationId, async () => {
+            await this.service.assertAccess(id)
+            return this.service.getThreadState(id)
+        })
     }
 
     @ApiOperation({
@@ -150,7 +207,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
     async getGoal(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
         this.warnLegacyGoalRoute('GET', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
-            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            const conversation = await this.service.assertAccess(id)
             return this.goalService.getByConversationId(conversation.id)
         })
     }
@@ -168,7 +225,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
     ) {
         this.warnLegacyGoalRoute('PUT', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
-            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            const conversation = await this.service.assertAccess(id, 'contribute')
             return this.goalService.setGoalFromUser(conversation.id, body)
         })
     }
@@ -186,7 +243,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
     ) {
         this.warnLegacyGoalRoute('PATCH', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
-            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            const conversation = await this.service.assertAccess(id, 'contribute')
             return this.goalService.patchGoalFromUser(conversation.id, body)
         })
     }
@@ -200,7 +257,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
     async clearGoal(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
         this.warnLegacyGoalRoute('DELETE', id, organizationId)
         return this.organizationScopeService.run(organizationId, async () => {
-            const conversation = await this.service.findOneInOrganizationOrTenant(id)
+            const conversation = await this.service.assertAccess(id, 'contribute')
             return this.goalService.clearGoalFromUser(conversation.id)
         })
     }
@@ -211,9 +268,10 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Body() body: IChatConversationMarkReadRequest,
         @Query('organizationId') organizationId?: string
     ) {
-        return this.organizationScopeService.run(organizationId, () =>
-            this.service.markRead(id, body?.lastReadMessageId)
-        )
+        return this.organizationScopeService.run(organizationId, async () => {
+            await this.service.assertAccess(id)
+            return this.service.markRead(id, body?.lastReadMessageId)
+        })
     }
 
     @Post(':id/cancel')
@@ -222,9 +280,10 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Query('organizationId') organizationId?: string
     ) {
         try {
-            return await this.organizationScopeService.run(organizationId, () =>
-                this.commandBus.execute(new CancelConversationCommand({ conversationId: id }))
-            )
+            return await this.organizationScopeService.run(organizationId, async () => {
+                await this.service.assertAccess(id, 'contribute')
+                return this.commandBus.execute(new CancelConversationCommand({ conversationId: id }))
+            })
         } catch (error) {
             console.error('Error cancelling conversation:', error)
             throw error
@@ -236,7 +295,14 @@ export class ChatConversationController extends CrudController<ChatConversation>
         @Param('id', UUIDValidationPipe) xpertId: string,
         @Query('data', ParseJsonPipe) filter?: PaginationParams<ChatConversation>
     ) {
-        const result = await this.service.findAllByXpert(xpertId, filter)
+        assertSafeChatConversationRelations(filter?.relations)
+        const result = await this.service.findAllByXpert(xpertId, {
+            ...filter,
+            where: {
+                ...(filter?.where ?? {}),
+                createdById: this.requireCurrentUserId()
+            }
+        })
         return {
             ...result,
             items: result.items.map((_) => new ChatConversationSimpleDTO(_))
@@ -340,5 +406,45 @@ export class ChatConversationController extends CrudController<ChatConversation>
         this.#logger.warn(
             `Deprecated ${method} /chat-conversation/:id/goal route used; use /ai/conversations/:conversation_id/goal instead. conversationId=${conversationId}${organizationId ? ` organizationId=${organizationId}` : ''}`
         )
+    }
+
+    private requireCurrentUserId() {
+        const userId = RequestContext.currentUserId()
+        if (!userId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ConversationUserContextRequired', {
+                    defaultValue: 'A user context is required to access conversations'
+                })
+            )
+        }
+        return userId
+    }
+
+    private requireXpertId(value: unknown) {
+        if (typeof value !== 'string' || !value.trim()) {
+            throw new BadRequestException(
+                t('server-ai:Error.InvalidThreadAssistantId', {
+                    defaultValue: 'Thread assistant_id must be a non-empty string.'
+                })
+            )
+        }
+        return value.trim()
+    }
+
+    private async assertCanBindOwnedXpert(xpertId: string) {
+        try {
+            await this.queryBus.execute(
+                new FindXpertQuery({
+                    id: xpertId,
+                    createdById: this.requireCurrentUserId()
+                })
+            )
+        } catch {
+            throw new ForbiddenException(
+                t('server-ai:Error.AssistantAccessForbidden', {
+                    defaultValue: 'You do not have access to this assistant.'
+                })
+            )
+        }
     }
 }
