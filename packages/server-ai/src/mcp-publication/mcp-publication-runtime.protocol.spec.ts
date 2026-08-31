@@ -34,6 +34,8 @@ import { McpSubscriptionService } from './mcp-subscription.service'
 import { McpTaskService } from './mcp-task.service'
 import { McpPublicationAuthorizationService } from './mcp-publication-authorization.service'
 
+const WORKBUDDY_PROTOCOL_VERSION = '2025-03-26'
+
 describe('McpPublicationRuntimeService protocol', () => {
     let runtime: McpPublicationRuntimeService
     let executeTool: jest.Mock
@@ -248,6 +250,40 @@ describe('McpPublicationRuntimeService protocol', () => {
             expect.objectContaining({ name: 'generic_search', description: 'Generic remote search' }),
             expect.objectContaining({ name: 'generic_write', description: 'Generic remote search' })
         ])
+    })
+
+    it('serves WorkBuddy-compatible 2025-era initialize, tool listing, and tool calls', async () => {
+        const initialized = await legacyRequest(
+            'initialize',
+            {
+                protocolVersion: WORKBUDDY_PROTOCOL_VERSION,
+                capabilities: {},
+                clientInfo: { name: 'workbuddy', version: '1.0.0' }
+            },
+            101
+        )
+
+        expect(initialized.status).toBe(200)
+        expect(initialized.body.result).toEqual(
+            expect.objectContaining({
+                protocolVersion: WORKBUDDY_PROTOCOL_VERSION,
+                serverInfo: expect.objectContaining({ name: 'generic' })
+            })
+        )
+
+        const listed = await legacyRequest('tools/list', {}, 102)
+        expect(listed.status).toBe(200)
+        expect(listed.body.result?.tools).toEqual([
+            expect.objectContaining({ name: 'generic_search' }),
+            expect.objectContaining({ name: 'generic_write' })
+        ])
+
+        const called = await legacyRequest('tools/call', { name: 'generic_search', arguments: { query: 'MCP' } }, 103)
+        expect(called.status).toBe(200)
+        expect(called.body.result?.content).toEqual([{ type: 'text', text: 'generic MCP result' }])
+        expect(executeTool).toHaveBeenCalledWith(
+            expect.objectContaining({ source: 'mcp', toolName: 'catalog-generic-search', arguments: { query: 'MCP' } })
+        )
     })
 
     it('validates the modern Tasks extension envelope and stamps server identity on task results', async () => {
@@ -884,6 +920,14 @@ describe('McpPublicationRuntimeService protocol', () => {
         await runtime.handle('generic', nodeRequest as unknown as Request, nodeResponse as unknown as Response, body)
         return { status: nodeResponse.statusCode, body: nodeResponse.jsonBody() }
     }
+
+    async function legacyRequest(method: string, params: object, id: number) {
+        const body = { jsonrpc: '2.0', id, method, params }
+        const nodeRequest = legacyNodeRequest(method)
+        const nodeResponse = new MemoryResponse()
+        await runtime.handle('generic', nodeRequest as unknown as Request, nodeResponse as unknown as Response, body)
+        return { status: nodeResponse.statusCode, body: nodeResponse.mcpBody() }
+    }
 })
 
 class MemoryResponse extends EventEmitter {
@@ -951,6 +995,18 @@ class MemoryResponse extends EventEmitter {
         return JSON.parse(text)
     }
 
+    mcpBody(): ReturnType<MemoryResponse['jsonBody']> {
+        const text = this.textBody()
+        if (!text.startsWith('event:')) return this.jsonBody()
+        const data = text
+            .split(/\r?\n/)
+            .find((line) => line.startsWith('data:'))
+            ?.slice('data:'.length)
+            .trim()
+        if (!data) throw new Error('Expected MCP SSE data frame')
+        return JSON.parse(data)
+    }
+
     textBody() {
         return Buffer.concat(this.#chunks).toString('utf8')
     }
@@ -1007,6 +1063,30 @@ function modernNodeRequest(
         protocol: 'http',
         get(name: string) {
             return requestHeaders[name.toLowerCase() as keyof typeof requestHeaders]
+        },
+        [Symbol.asyncIterator]() {
+            return {
+                next: async () => ({ done: true as const, value: undefined })
+            }
+        }
+    }
+}
+
+function legacyNodeRequest(method: string) {
+    const requestHeaders: Record<string, string> = {
+        authorization: 'Bearer xpert_mcp_test',
+        accept: 'application/json, text/event-stream',
+        'content-type': 'application/json',
+        'mcp-method': method
+    }
+    if (method !== 'initialize') requestHeaders['mcp-protocol-version'] = WORKBUDDY_PROTOCOL_VERSION
+    return {
+        method: 'POST',
+        url: '/api/mcp/p/generic',
+        headers: requestHeaders,
+        protocol: 'http',
+        get(name: string) {
+            return requestHeaders[name.toLowerCase()]
         },
         [Symbol.asyncIterator]() {
             return {
