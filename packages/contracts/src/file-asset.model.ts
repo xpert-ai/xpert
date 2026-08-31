@@ -3,7 +3,7 @@ import { IStorageFile } from './storage-file.model'
 export type FileAssetStatus = 'success' | 'partial_success' | 'failed'
 export type FileAssetDestinationKind = 'storage' | 'volume' | 'sandbox'
 export type FileAssetSourceKind = 'multipart' | 'storage_file' | 'local_file' | 'buffer'
-export type FileUploadVolumeCatalog = 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts'
+export type FileUploadVolumeCatalog = 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts' | 'user-xperts'
 export type FileUploadSandboxMode = 'mounted_workspace' | 'backend_upload'
 
 export interface IFileAssetSource {
