@@ -1988,6 +1988,11 @@
       "ProjectUpdated": "Project updated"
     },
     "Xpert": {
+      "IsolateWorkspaceDataByUser": "Isolate runtime data by user",
+      "IsolateWorkspaceDataByUserHint": "When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.",
+      "WorkspaceDataScope": "Runtime data scope",
+      "UserIsolatedWorkspaceData": "User isolated",
+      "SharedWorkspaceData": "Shared",
       "Xpert": "Xpert",
       "EnterpriseH5AppUnavailable": "This enterprise digital expert is unavailable or not configured.",
       "EnterpriseH5SessionUnavailable": "Unable to verify your enterprise identity for this digital expert.",

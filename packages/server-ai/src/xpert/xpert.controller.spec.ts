@@ -21,7 +21,7 @@ import type { XpertTemplateWorkspaceInitializer } from './template-workspace-ini
 import type { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import type { XpertDraftDslDTO } from './dto'
 import { FindCopilotModelsQuery } from '../copilot/queries'
-import { XpertImportCommand, XpertSyncTemplateCommand } from './commands'
+import { XpertExportCommand, XpertImportCommand, XpertSyncTemplateCommand } from './commands'
 
 jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
@@ -421,6 +421,60 @@ describe('XpertController', () => {
             )
         ).resolves.toEqual(xpert)
         expect(templateWorkspaceInitializer.initializeByTemplateId).not.toHaveBeenCalled()
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('shared')
+    })
+
+    it('passes an explicit user workspace data scope to DSL creation', async () => {
+        commandBus.execute.mockResolvedValue({ id: 'xpert-1' })
+
+        await controller.importDSL(
+            { team: { name: 'private-assistant' } } as XpertDraftDslDTO,
+            undefined,
+            LanguagesEnum.English,
+            'user'
+        )
+
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('user')
+    })
+
+    it('rejects an unsupported workspace data scope before importing', async () => {
+        await expect(
+            controller.importDSL(
+                { team: { name: 'invalid-assistant' } } as XpertDraftDslDTO,
+                undefined,
+                LanguagesEnum.English,
+                'tenant' as 'shared'
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('inherits the source workspace data scope when duplicating without an override', async () => {
+        xpertService.findOne.mockResolvedValue({ id: 'xpert-1', workspaceDataScope: 'user' })
+        commandBus.execute.mockResolvedValueOnce({ team: { name: 'source' }, nodes: [], connections: [] })
+        commandBus.execute.mockResolvedValueOnce({ id: 'copy-1' })
+
+        await controller.duplicate('xpert-1', { basic: { name: 'copy' }, isDraft: true })
+
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(XpertExportCommand)
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('user')
+    })
+
+    it('uses the pre-creation workspace data scope override when duplicating', async () => {
+        xpertService.findOne.mockResolvedValue({ id: 'xpert-1', workspaceDataScope: 'shared' })
+        commandBus.execute.mockResolvedValueOnce({ team: { name: 'source' }, nodes: [], connections: [] })
+        commandBus.execute.mockResolvedValueOnce({ id: 'copy-1' })
+
+        await controller.duplicate('xpert-1', {
+            basic: { name: 'copy', workspaceDataScope: 'user' },
+            isDraft: true
+        })
+
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('user')
     })
 
     it('forwards update-from-template to the sync command without publishing', async () => {

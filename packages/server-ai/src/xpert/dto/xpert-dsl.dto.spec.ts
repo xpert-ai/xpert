@@ -60,4 +60,20 @@ describe('XpertDraftDslDTO', () => {
             ]
         })
     })
+
+    it('does not export the local workspace data scope into portable DSL', () => {
+        const plain = instanceToPlain(
+            new XpertDraftDslDTO({
+                team: {
+                    name: 'private-assistant',
+                    workspaceDataScope: 'user'
+                },
+                nodes: [],
+                connections: []
+            })
+        )
+
+        expect(plain.team).toMatchObject({ name: 'private-assistant' })
+        expect(plain.team).not.toHaveProperty('workspaceDataScope')
+    })
 })

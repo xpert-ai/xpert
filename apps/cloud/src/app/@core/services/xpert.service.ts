@@ -47,7 +47,8 @@ import {
   TXpertTemplateSyncResult,
   TWorkflowVarGroup,
   TXpertTeamDraft,
-  XpertTypeEnum
+  XpertTypeEnum,
+  XpertWorkspaceDataScope
 } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
@@ -356,13 +357,15 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/export/template`).pipe(tap(() => this.refresh()))
   }
 
-  importDSL(dslObject: Record<string, any>, options?: { templateId?: string }) {
+  importDSL(
+    dslObject: Record<string, any>,
+    options?: { templateId?: string; workspaceDataScope?: XpertWorkspaceDataScope }
+  ) {
     const templateId = options?.templateId?.trim()
-    return this.httpClient.post<IXpert>(
-      this.apiBaseUrl + `/import`,
-      dslObject,
-      templateId ? { params: { templateId } } : undefined
-    )
+    const workspaceDataScope = options?.workspaceDataScope ?? 'shared'
+    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/import`, dslObject, {
+      params: createOptionalQueryParams({ templateId, workspaceDataScope })
+    })
   }
 
   syncFromTemplate(id: string) {

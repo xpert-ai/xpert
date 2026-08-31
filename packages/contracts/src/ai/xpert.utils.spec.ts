@@ -128,6 +128,7 @@ describe('xpert utils', () => {
       tenantId: 'tenant-1',
       organizationId: 'organization-1',
       workspaceId: 'workspace-1',
+      workspaceDataScope: 'user',
       title: 'Published Xpert',
       agent: {
         key: 'published-agent'
@@ -139,6 +140,7 @@ describe('xpert utils', () => {
       draft: {
         team: {
           workspaceId: 'draft-workspace',
+          workspaceDataScope: 'shared',
           title: 'Draft Xpert',
           agent: {
             key: 'draft-agent',
@@ -170,6 +172,7 @@ describe('xpert utils', () => {
         tenantId: 'tenant-1',
         organizationId: 'organization-1',
         workspaceId: 'draft-workspace',
+        workspaceDataScope: 'user',
         title: 'Draft Xpert',
         agent: expect.objectContaining({
           key: 'draft-agent',

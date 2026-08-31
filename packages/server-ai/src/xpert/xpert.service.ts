@@ -1,6 +1,7 @@
 import {
     ChecklistItem,
     convertToUrlPath,
+    DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     ICopilotStore,
     IUser,
     IXpertPrincipalReference,
@@ -18,9 +19,18 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { OptionParams, PaginationParams, RequestContext, transformWhere, UserGroupService } from '@xpert-ai/server-core'
-import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    HttpException,
+    HttpStatus,
+    Inject,
+    Injectable,
+    NotFoundException
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
+import { t } from 'i18next'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
@@ -72,7 +82,18 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async updateXpert(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
-        assign(_entity, entity)
+        const { workspaceDataScope, ...mutableEntity } = entity
+        if (
+            workspaceDataScope !== undefined &&
+            workspaceDataScope !== (_entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE)
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.XpertWorkspaceDataScopeImmutable', {
+                    defaultValue: 'Workspace data isolation cannot be changed after the Xpert is created.'
+                })
+            )
+        }
+        assign(_entity, mutableEntity)
         return await super.save(_entity)
     }
 
@@ -111,6 +132,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return await super.create(
             {
                 ...entity,
+                workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
             },
             ...options

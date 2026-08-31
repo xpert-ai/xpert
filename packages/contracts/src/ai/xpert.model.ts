@@ -157,6 +157,12 @@ export type TXpert = {
   description?: string
 
   /**
+   * Ownership of non-Project runtime files. This is selected when the Xpert is
+   * created and is immutable afterwards. Missing legacy values mean `shared`.
+   */
+  workspaceDataScope?: XpertWorkspaceDataScope
+
+  /**
    * Is active
    */
   active?: boolean
@@ -265,6 +271,10 @@ export type TXpert = {
 
   tags?: ITag[]
 }
+
+export type XpertWorkspaceDataScope = 'shared' | 'user'
+
+export const DEFAULT_XPERT_WORKSPACE_DATA_SCOPE: XpertWorkspaceDataScope = 'shared'
 
 /**
  * Digital Expert

@@ -24,11 +24,12 @@ import {
     TXpertMarketplaceProfile,
     TXpertOptions,
     TXpertTeamDraft,
+    XpertWorkspaceDataScope,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { BusinessArea, Integration, Tag, User, UserGroup } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsBoolean, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsIn, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Transform, TransformFnParams } from 'class-transformer'
 import {
     Column,
@@ -88,6 +89,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     @IsOptional()
     @Column({ nullable: true })
     description?: string
+
+    @ApiPropertyOptional({ enum: ['shared', 'user'], default: 'shared' })
+    @IsOptional()
+    @IsIn(['shared', 'user'])
+    @Column({ type: 'varchar', length: 16, default: 'shared', update: false })
+    workspaceDataScope: XpertWorkspaceDataScope
 
     @ApiPropertyOptional({ type: () => Boolean })
     @IsBoolean()

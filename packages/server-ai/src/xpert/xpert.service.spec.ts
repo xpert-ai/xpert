@@ -39,8 +39,9 @@ jest.mock('./types', () => ({
     }
 }))
 
-import { ForbiddenException } from '@nestjs/common'
+import { DEFAULT_XPERT_WORKSPACE_DATA_SCOPE } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
 import type { Xpert } from './xpert.entity'
@@ -292,6 +293,7 @@ describe('XpertService command facade', () => {
         expect(repository.create).toHaveBeenCalledWith(
             expect.objectContaining({
                 name: 'agent-defaults',
+                workspaceDataScope: DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 agentConfig: {
                     maxConcurrency: 4,
                     recursionLimit: 1000
@@ -304,6 +306,58 @@ describe('XpertService command facade', () => {
                     maxConcurrency: 4,
                     recursionLimit: 1000
                 }
+            })
+        )
+    })
+
+    it('preserves an explicit user workspace data scope on create', async () => {
+        const { repository, service } = createService()
+        repository.save.mockImplementation(async (entity) => entity)
+
+        await service.create({
+            name: 'private-workspace',
+            workspaceDataScope: 'user'
+        })
+
+        expect(repository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'private-workspace',
+                workspaceDataScope: 'user'
+            })
+        )
+    })
+
+    it('rejects changing workspace data scope after creation', async () => {
+        const { repository, service } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            workspaceDataScope: 'shared'
+        })
+
+        await expect(service.updateXpert('xpert-1', { workspaceDataScope: 'user' })).rejects.toThrow(
+            BadRequestException
+        )
+        expect(repository.save).not.toHaveBeenCalled()
+    })
+
+    it('keeps the persisted workspace data scope out of ordinary update assignments', async () => {
+        const { repository, service } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            name: 'before',
+            workspaceDataScope: 'user'
+        })
+        repository.save.mockImplementation(async (entity) => entity)
+
+        await service.updateXpert('xpert-1', {
+            name: 'after',
+            workspaceDataScope: 'user'
+        })
+
+        expect(repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'after',
+                workspaceDataScope: 'user'
             })
         )
     })

@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, signal, viewChild } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { injectPluginAPI, IPluginDescriptor } from '@cloud/app/@core/state'
 import { AiProviderRole } from '@xpert-ai/contracts'
 import { catchError, firstValueFrom, from, map, of, switchMap } from 'rxjs'
@@ -68,6 +68,7 @@ type RecommendedTemplateToolsetDependency = {
     TranslateModule,
     ZardButtonComponent,
     ZardCheckboxComponent,
+    ZardSwitchComponent,
     CopilotConfigFormComponent
   ],
   template: `
@@ -140,6 +141,32 @@ type RecommendedTemplateToolsetDependency = {
                 }
               </div>
             </div>
+          </div>
+
+          <div
+            class="mt-4 flex items-start justify-between gap-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
+          >
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-text-primary">
+                {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
+              </div>
+              <div class="mt-1 text-xs leading-5 text-text-secondary">
+                {{
+                  'XP.Xpert.IsolateWorkspaceDataByUserHint'
+                    | translate
+                      : {
+                          Default:
+                            'When enabled, each user gets separate runtime files. Otherwise all users who can run the expert share the same files.'
+                        }
+                }}
+              </div>
+            </div>
+            <z-switch
+              zSize="sm"
+              class="shrink-0"
+              [ngModel]="isolateWorkspaceData()"
+              (ngModelChange)="isolateWorkspaceData.set($event)"
+            />
           </div>
 
           @if (!hasSelectedCopilotModel() && hasCopilotFeature()) {
@@ -349,6 +376,7 @@ export class ClawXpertSetupWizardComponent {
   readonly enablingPrimaryCopilot = signal(false)
   readonly savingModelProvider = signal(false)
   readonly selectedCopilotModel = signal<ICopilotModel | null>(null)
+  readonly isolateWorkspaceData = signal(false)
   readonly selectedRecommendedTemplateIds = signal<string[]>([])
   readonly initializationStatus = signal<InitializationStatus | null>(null)
   readonly initializationError = signal<string | null>(null)
@@ -525,7 +553,11 @@ export class ClawXpertSetupWizardComponent {
     try {
       const selectedTemplates = this.selectedRecommendedTemplates()
       const failedTemplateNames: string[] = []
-      const xpert = await this.#bootstrap.createClawXpert(selectedCopilotModel, SUPPRESS_SETUP_WARNINGS)
+      const createOptions = {
+        ...SUPPRESS_SETUP_WARNINGS,
+        workspaceDataScope: this.isolateWorkspaceData() ? ('user' as const) : ('shared' as const)
+      }
+      const xpert = await this.#bootstrap.createClawXpert(selectedCopilotModel, createOptions)
       for (const template of selectedTemplates) {
         const templateName = template.title || template.name || template.id
         this.initializationStatus.set({
@@ -535,7 +567,7 @@ export class ClawXpertSetupWizardComponent {
           }
         })
         try {
-          await this.#bootstrap.createTemplateXpert(template, selectedCopilotModel, SUPPRESS_SETUP_WARNINGS)
+          await this.#bootstrap.createTemplateXpert(template, selectedCopilotModel, createOptions)
         } catch {
           failedTemplateNames.push(templateName)
         }

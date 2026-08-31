@@ -20,7 +20,8 @@ import {
     SecretTokenBindingType,
     xpertLabel,
     resolveRuntimeXpert,
-    XpertFrequentQuestionsRequest
+    XpertFrequentQuestionsRequest,
+    XpertWorkspaceDataScope
 } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -235,13 +236,22 @@ export class XpertController extends CrudController<Xpert> {
     async importDSL(
         @Body() dsl: XpertDraftDslDTO,
         @Query('templateId') templateId?: string,
-        @I18nLang() language: LanguagesEnum = LanguagesEnum.English
+        @I18nLang() language: LanguagesEnum = LanguagesEnum.English,
+        @Query('workspaceDataScope') workspaceDataScope?: XpertWorkspaceDataScope
     ) {
         try {
             const normalizedTemplateId = typeof templateId === 'string' ? templateId.trim() : ''
+            if (workspaceDataScope && workspaceDataScope !== 'shared' && workspaceDataScope !== 'user') {
+                throw new BadRequestException(
+                    t('server-ai:Error.XpertWorkspaceDataScopeInvalid', {
+                        defaultValue: 'workspaceDataScope must be shared or user'
+                    })
+                )
+            }
             const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
                 new XpertImportCommand(dsl, {
                     language: LanguagesMap[language] ?? language,
+                    workspaceDataScope: workspaceDataScope ?? 'shared',
                     ...(normalizedTemplateId
                         ? { templateId: normalizedTemplateId, sourceTemplateId: normalizedTemplateId }
                         : {})
@@ -256,7 +266,13 @@ export class XpertController extends CrudController<Xpert> {
             }
             return xpert
         } catch (error) {
-            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+            if (error instanceof HttpException) {
+                throw error
+            }
+            throw new HttpException(
+                error instanceof Error ? error.message : String(error),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            )
         }
     }
 
@@ -1111,13 +1127,28 @@ export class XpertController extends CrudController<Xpert> {
     @Post(':id/duplicate')
     async duplicate(@Param('id') id: string, @Body() body: { basic: Partial<IXpert>; isDraft: boolean }) {
         try {
+            const workspaceDataScope = body.basic.workspaceDataScope
+            if (workspaceDataScope && workspaceDataScope !== 'shared' && workspaceDataScope !== 'user') {
+                throw new BadRequestException(
+                    t('server-ai:Error.XpertWorkspaceDataScopeInvalid', {
+                        defaultValue: 'workspaceDataScope must be shared or user'
+                    })
+                )
+            }
+            const sourceXpert = await this.service.findOne(id)
             const xpertDto = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft, false))
             const dsl = instanceToPlain(xpertDto)
             return await this.commandBus.execute(
-                new XpertImportCommand({ ...dsl, team: { ...dsl.team, ...body.basic } })
+                new XpertImportCommand(
+                    { ...dsl, team: { ...dsl.team, ...body.basic } },
+                    { workspaceDataScope: workspaceDataScope ?? sourceXpert.workspaceDataScope }
+                )
             )
         } catch (err) {
-            throw new InternalServerErrorException(err.message)
+            if (err instanceof HttpException) {
+                throw err
+            }
+            throw new InternalServerErrorException(err instanceof Error ? err.message : String(err))
         }
     }
 
