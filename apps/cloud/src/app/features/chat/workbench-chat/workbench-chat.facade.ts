@@ -1,6 +1,6 @@
 import { InjectionToken, Signal } from '@angular/core'
 import { ChatKitControl } from '@xpert-ai/chatkit-angular'
-import type { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import type { TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import { IChatConversation } from '../../../@core'
 
 export type WorkbenchChatViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
@@ -22,6 +22,8 @@ export type WorkbenchChatFacade = {
   threadId: Signal<string | null>
   /** Current Chat Project route scope when this workbench supports Project isolation. */
   projectId?: Signal<string | null>
+  /** Access for the current Project route; null is pending, unavailable, or denied. */
+  projectAccess?: Signal<TXpertProjectAccessSummary | null>
   loading: Signal<boolean>
   loadingUserPreference: Signal<boolean>
   viewState: Signal<WorkbenchChatViewState>

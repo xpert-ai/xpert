@@ -20,7 +20,8 @@ import type {
     XpertViewFileAccessGrantResult,
     XpertViewFileAccessPurpose,
     XpertViewFileAccessRequest,
-    XpertViewFileAccessSessionResult
+    XpertViewFileAccessSessionResult,
+    XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import type { WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
@@ -40,6 +41,8 @@ type WorkspaceFileAccessBinding = {
     hostType: string
     hostId: string
     viewKey: string
+    dataScopeKey: string
+    runtimeScope: XpertViewRuntimeScopeInput
 }
 
 type WorkspaceFileAccessSessionRecord = WorkspaceFileAccessBinding & {
@@ -99,13 +102,19 @@ export class WorkspaceFileAccessService {
     ) {}
 
     async createSession(
-        input: { hostType: string; hostId: string; viewKey: string },
+        input: {
+            hostType: string
+            hostId: string
+            viewKey: string
+            runtimeScope?: XpertViewRuntimeScopeInput
+        },
         request: Pick<Request, 'headers' | 'secure'>
     ): Promise<WorkspaceFileAccessSessionCreation> {
         const resolved = await this.viewExtensionService.resolveViewFileAccessContext(
             input.hostType,
             input.hostId,
-            input.viewKey
+            input.viewKey,
+            { runtimeScope: input.runtimeScope }
         )
         const sessionId = randomUUID()
         const expiresAt = new Date(Date.now() + WORKSPACE_FILE_ACCESS_TTL_MS).toISOString()
@@ -117,6 +126,11 @@ export class WorkspaceFileAccessService {
             hostType: resolved.context.hostType,
             hostId: resolved.context.hostId,
             viewKey: resolved.manifest.key,
+            dataScopeKey: resolved.context.runtimeScope?.dataScopeKey ?? `${resolved.context.hostType}:${resolved.context.hostId}`,
+            runtimeScope: {
+                projectId: resolved.context.runtimeScope?.projectId ?? null,
+                conversationId: resolved.context.runtimeScope?.conversationId ?? null
+            },
             origin: readRequestOrigin(request),
             expiresAt
         }
@@ -132,7 +146,9 @@ export class WorkspaceFileAccessService {
                 userId: session.userId,
                 hostType: session.hostType,
                 hostId: session.hostId,
-                viewKey: session.viewKey
+                viewKey: session.viewKey,
+                dataScopeKey: session.dataScopeKey,
+                runtimeScope: session.runtimeScope
             },
             this.getJwtSecret(),
             { expiresIn: Math.floor(WORKSPACE_FILE_ACCESS_TTL_MS / 1000) }
@@ -161,7 +177,8 @@ export class WorkspaceFileAccessService {
             session.hostType,
             session.hostId,
             session.viewKey,
-            request
+            request,
+            { runtimeScope: session.runtimeScope }
         )
         this.assertContextMatchesSession(session, {
             tenantId: resolved.context.tenantId,
@@ -169,7 +186,11 @@ export class WorkspaceFileAccessService {
             userId: resolved.context.userId,
             hostType: resolved.context.hostType,
             hostId: resolved.context.hostId,
-            viewKey: resolved.manifest.key
+            viewKey: resolved.manifest.key,
+            dataScopeKey:
+                resolved.context.runtimeScope?.dataScopeKey ??
+                `${resolved.context.hostType}:${resolved.context.hostId}`,
+            runtimeScope: session.runtimeScope
         })
         this.assertPortableReference(session, resolved.resource.reference)
 
@@ -381,7 +402,9 @@ function bindingFromSession(session: WorkspaceFileAccessSessionRecord): Workspac
         userId: session.userId,
         hostType: session.hostType,
         hostId: session.hostId,
-        viewKey: session.viewKey
+        viewKey: session.viewKey,
+        dataScopeKey: session.dataScopeKey,
+        runtimeScope: session.runtimeScope
     }
 }
 
@@ -392,7 +415,9 @@ function bindingsMatch(left: WorkspaceFileAccessBinding, right: WorkspaceFileAcc
         left.userId === right.userId &&
         left.hostType === right.hostType &&
         left.hostId === right.hostId &&
-        left.viewKey === right.viewKey
+        left.viewKey === right.viewKey &&
+        left.dataScopeKey === right.dataScopeKey &&
+        runtimeScopesMatch(left.runtimeScope, right.runtimeScope)
     )
 }
 
@@ -414,7 +439,25 @@ function isSessionJwtPayload(value: string | JwtPayload): value is WorkspaceFile
         isNonEmptyString(value.userId) &&
         isNonEmptyString(value.hostType) &&
         isNonEmptyString(value.hostId) &&
-        isNonEmptyString(value.viewKey)
+        isNonEmptyString(value.viewKey) &&
+        isNonEmptyString(value.dataScopeKey) &&
+        isRuntimeScopeInput(value.runtimeScope)
+    )
+}
+
+function runtimeScopesMatch(left: XpertViewRuntimeScopeInput, right: XpertViewRuntimeScopeInput) {
+    return (left.projectId ?? null) === (right.projectId ?? null) &&
+        (left.conversationId ?? null) === (right.conversationId ?? null)
+}
+
+function isRuntimeScopeInput(value: unknown): value is XpertViewRuntimeScopeInput {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const scope = value as { projectId?: unknown; conversationId?: unknown }
+    return (
+        (scope.projectId === undefined || scope.projectId === null || typeof scope.projectId === 'string') &&
+        (scope.conversationId === undefined ||
+            scope.conversationId === null ||
+            typeof scope.conversationId === 'string')
     )
 }
 

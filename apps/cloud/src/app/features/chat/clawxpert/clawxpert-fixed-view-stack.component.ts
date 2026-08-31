@@ -1,5 +1,5 @@
 import { Component, computed, effect, input, signal } from '@angular/core'
-import type { IconDefinition, XpertViewQuery } from '@xpert-ai/contracts'
+import type { IconDefinition, XpertViewQuery, XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
 import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 
 export type ClawXpertFixedViewTab = {
@@ -29,6 +29,8 @@ export type ClawXpertFixedViewTab = {
         [viewKey]="tab.viewKey"
         [query]="tab.query"
         [fillAvailableHeight]="true"
+        [runtimeScope]="runtimeScope()"
+        [runtimeUserId]="runtimeUserId()"
       />
     }
   `
@@ -39,6 +41,8 @@ export class ClawXpertFixedViewStackComponent {
   readonly hostType = input.required<string>()
   readonly hostId = input.required<string>()
   readonly slot = input.required<string>()
+  readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
+  readonly runtimeUserId = input<string | null>(null)
 
   readonly #mountedTabIds = signal<ReadonlySet<string>>(new Set())
   readonly mountedTabs = computed(() => {

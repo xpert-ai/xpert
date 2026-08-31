@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { Component, effect, input, signal } from '@angular/core'
+import { Component, computed, effect, input, signal, untracked } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
-import { XpertExtensionViewManifest, XpertViewQuery } from '@xpert-ai/contracts'
+import { XpertExtensionViewManifest, XpertViewQuery, XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
 import { injectViewExtensionApi } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
@@ -17,7 +17,7 @@ import { getErrorMessage } from '@cloud/app/@core/types'
       <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
         {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
       </div>
-    } @else if (error()) {
+    } @else if (error() && !hasRenderedView()) {
       <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
         {{ error() }}
       </div>
@@ -30,6 +30,8 @@ import { getErrorMessage } from '@cloud/app/@core/types'
           [hostType]="hostType()"
           [hostId]="hostId()"
           [manifest]="view"
+          [runtimeScope]="runtimeScope()"
+          [runtimeUserId]="runtimeUserId()"
           [initialQuery]="query() ?? emptyQuery"
           [active]="true"
           [fillAvailableHeight]="fillAvailableHeight()"
@@ -70,6 +72,8 @@ import { getErrorMessage } from '@cloud/app/@core/types'
                 [hostType]="hostType()"
                 [hostId]="hostId()"
                 [manifest]="view"
+                [runtimeScope]="runtimeScope()"
+                [runtimeUserId]="runtimeUserId()"
                 [initialQuery]="emptyQuery"
                 [active]="true"
               />
@@ -92,6 +96,8 @@ export class ExtensionHostOutletComponent {
   readonly viewKey = input<string | null>(null)
   readonly query = input<XpertViewQuery | null>(null)
   readonly fillAvailableHeight = input(false)
+  readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
+  readonly runtimeUserId = input<string | null>(null)
   readonly emptyQuery: XpertViewQuery = {}
 
   readonly #api = injectViewExtensionApi()
@@ -100,6 +106,9 @@ export class ExtensionHostOutletComponent {
   readonly error = signal<string | null>(null)
   readonly views = signal<XpertExtensionViewManifest[]>([])
   readonly selectedView = signal<XpertExtensionViewManifest | null>(null)
+  readonly hasRenderedView = computed(() =>
+    this.mode() === 'single-view' ? Boolean(this.selectedView()) : this.views().length > 0
+  )
 
   private loadVersion = 0
 
@@ -110,12 +119,16 @@ export class ExtensionHostOutletComponent {
       const slot = this.slot()
       const mode = this.mode()
       const viewKey = this.viewKey()
+      const runtimeScope = this.runtimeScope()
+      const runtimeUserId = this.runtimeUserId()
 
       if (!hostType || !hostId || !slot) {
         return
       }
 
-      void this.loadViews(++this.loadVersion, hostType, hostId, slot, mode, viewKey)
+      void untracked(() =>
+        this.loadViews(++this.loadVersion, hostType, hostId, slot, mode, viewKey, runtimeScope, runtimeUserId)
+      )
     })
   }
 
@@ -125,17 +138,34 @@ export class ExtensionHostOutletComponent {
     hostId: string,
     slot: string,
     mode: 'slot' | 'single-view',
-    viewKey: string | null
+    viewKey: string | null,
+    runtimeScope: XpertViewRuntimeScopeInput | null,
+    runtimeUserId: string | null
   ) {
-    this.loading.set(true)
+    const viewIdentity = JSON.stringify([hostType, hostId, slot, mode, viewKey, runtimeUserId])
+    const preserveRenderedView =
+      viewIdentity === this.#loadedViewIdentity &&
+      (mode === 'single-view' ? Boolean(this.selectedView()) : this.views().length > 0)
+
+    if (preserveRenderedView) {
+      this.failClosedProjectActions(runtimeScope, mode)
+    } else {
+      this.views.set([])
+      this.selectedView.set(null)
+    }
+
+    this.loading.set(!preserveRenderedView)
     this.error.set(null)
 
     try {
-      const views = await firstValueFrom(this.#api.getSlotViews(hostType, hostId, slot))
+      const views = await firstValueFrom(
+        this.#api.getSlotViews(hostType, hostId, slot, runtimeScope ? { runtimeScope } : {})
+      )
       if (version !== this.loadVersion) {
         return
       }
 
+      this.#loadedViewIdentity = viewIdentity
       this.views.set(views)
       this.selectedView.set(mode === 'single-view' ? (views.find((item) => item.key === viewKey) ?? null) : null)
     } catch (error) {
@@ -144,12 +174,36 @@ export class ExtensionHostOutletComponent {
       }
 
       this.error.set(getErrorMessage(error))
-      this.views.set([])
-      this.selectedView.set(null)
+      if (!preserveRenderedView) {
+        this.views.set([])
+        this.selectedView.set(null)
+      }
     } finally {
       if (version === this.loadVersion) {
         this.loading.set(false)
       }
     }
   }
+
+  private failClosedProjectActions(runtimeScope: XpertViewRuntimeScopeInput | null, mode: 'slot' | 'single-view') {
+    if (!runtimeScope?.projectId) {
+      return
+    }
+
+    const failClosed = (manifest: XpertExtensionViewManifest) => {
+      const actions = manifest.actions?.filter(
+        (action) => action.requiredHostAccess !== 'edit' && action.requiredHostAccess !== 'manage'
+      )
+      return actions?.length === manifest.actions?.length ? manifest : { ...manifest, actions }
+    }
+
+    if (mode === 'single-view') {
+      this.selectedView.update((manifest) => (manifest ? failClosed(manifest) : manifest))
+      return
+    }
+
+    this.views.update((views) => views.map(failClosed))
+  }
+
+  #loadedViewIdentity: string | null = null
 }

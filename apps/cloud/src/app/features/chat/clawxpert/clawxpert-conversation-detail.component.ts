@@ -12,8 +12,9 @@ import type {
   TChatElementReference,
   TChatFileElementReference,
   XpertExtensionViewManifest,
+  XpertViewHostEventMessage,
   XpertViewQuery,
-  XpertViewHostEventMessage
+  XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import {
   ZardButtonComponent,
@@ -506,6 +507,8 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
                   hostType="agent"
                   [hostId]="hostId"
                   [slot]="agentWorkbenchFixedSlot"
+                  [runtimeScope]="viewRuntimeScope()"
+                  [runtimeUserId]="facade.userId()"
                 />
               }
 
@@ -592,7 +595,8 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
                       class="h-full p-2 pr-0"
                       [conversationId]="resolvedConversationId()"
                       [xpertId]="facade.xpertId()"
-                      [mode]="'editable'"
+                      [projectId]="viewRuntimeScope().projectId"
+                      [mode]="conversationFilesMode()"
                       [reloadKey]="fileListReloadKey()"
                       (referenceRequest)="handleWorkspaceReference($event)"
                     />
@@ -786,6 +790,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.overlayDialog() ? 'pet' : 'chat'
   )
   readonly projectId = computed(() => getOptionalSignalValue(this.facade, 'projectId'))
+  readonly projectAccess = computed(() => this.facade.projectAccess?.() ?? null)
+  readonly runtimeProjectId = computed(() =>
+    this.facade.projectId ? this.projectId() : (this.resolvedConversation()?.projectId ?? null)
+  )
   readonly #projectSelectionEnabled = computed(
     () => Boolean(this.facade.assistantId()?.trim()) && !this.facade.threadId()?.trim()
   )
@@ -859,7 +867,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const toolCompletedEvent = createAssistantToolCompletedHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
-        threadId: this.facade.threadId()
+        threadId: this.facade.threadId(),
+        runtimeScope: this.viewRuntimeScope(),
+        userId: this.facade.userId()
       })
       if (toolCompletedEvent) {
         console.info('[view-extension] publishing assistant tool completed host event', {
@@ -926,6 +936,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
+  readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => ({
+    projectId: this.runtimeProjectId(),
+    conversationId: this.resolvedConversationId()
+  }))
+  readonly conversationFilesMode = computed<'editable' | 'readonly'>(() => {
+    if (!this.runtimeProjectId()) {
+      return 'editable'
+    }
+    return this.projectAccess()?.capabilities.canEdit === true ? 'editable' : 'readonly'
+  })
   readonly contextLoading = signal(false)
   readonly contextError = signal<string | null>(null)
   readonly isChatMinimizedToPet = signal(false)
@@ -1197,9 +1217,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     effect(() => {
       const hostId = this.fixedViewHostId()
-      const projectId = this.projectId()
-      const threadId = this.facade.threadId()
-      const scopeKey = `${hostId ?? 'none'}:${projectId ?? 'personal'}:${threadId ?? 'new'}`
+      const runtimeScope = this.viewRuntimeScope()
+      const scopeKey = `${hostId ?? 'none'}:${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
       if (scopeKey === this.#assistantWorkbenchContextScopeKey) {
         return
       }
@@ -1210,6 +1229,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
+      const runtimeScope = this.viewRuntimeScope()
       if (!hostId) {
         this.#fixedViewsHostId = null
         this.resetFixedViews(true)
@@ -1222,7 +1242,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
 
       let cancelled = false
-      void this.loadFixedViews(hostId, () => cancelled)
+      void this.loadFixedViews(hostId, runtimeScope, () => cancelled)
 
       onCleanup(() => {
         cancelled = true
@@ -2116,14 +2136,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
-  private async loadFixedViews(hostId: string, isCancelled: () => boolean) {
+  private async loadFixedViews(hostId: string, runtimeScope: XpertViewRuntimeScopeInput, isCancelled: () => boolean) {
     const version = ++this.#fixedViewsLoadVersion
     this.loadingFixedViews.set(true)
     this.fixedViewError.set(null)
 
     try {
       const manifests = await firstValueFrom(
-        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_FIXED_SLOT)
+        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_FIXED_SLOT, { runtimeScope })
       )
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return

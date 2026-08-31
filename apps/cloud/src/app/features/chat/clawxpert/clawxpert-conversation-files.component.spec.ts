@@ -2,7 +2,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatConversationService } from '../../../@core'
+import { of } from 'rxjs'
+import { ChatConversationService, XpertAPIService } from '../../../@core'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 
 type FileWorkbenchReferenceRequest = {
@@ -15,7 +16,8 @@ type FileWorkbenchReferenceRequest = {
 
 var MockFileWorkbenchComponent: any
 jest.mock('../../../@core', () => ({
-  ChatConversationService: class ChatConversationService {}
+  ChatConversationService: class ChatConversationService {},
+  XpertAPIService: class XpertAPIService {}
 }))
 
 jest.mock('../../../@shared/files', () => {
@@ -34,7 +36,7 @@ jest.mock('../../../@shared/files', () => {
     @Input() fileUploader?: unknown
     @Input() fileDownloader?: unknown
     @Input() referenceable?: boolean
-    @Input() reloadKey?: number
+    @Input() reloadKey?: unknown
     @Input() treeSize?: 'sm' | 'default' | 'lg'
     @Output() readonly referenceRequest = new EventEmitter<FileWorkbenchReferenceRequest>()
   }
@@ -50,7 +52,17 @@ describe('ClawXpertConversationFilesComponent', () => {
     getFiles: jest.fn(),
     getFile: jest.fn(),
     saveFile: jest.fn(),
-    downloadFile: jest.fn()
+    downloadFile: jest.fn(),
+    uploadFile: jest.fn(),
+    deleteFile: jest.fn()
+  }
+  const xpertService = {
+    getWorkspaceFiles: jest.fn(),
+    getWorkspaceFile: jest.fn(),
+    saveWorkspaceFile: jest.fn(),
+    downloadWorkspaceFile: jest.fn(),
+    uploadWorkspaceFileToFolder: jest.fn(),
+    deleteWorkspaceFile: jest.fn()
   }
 
   beforeEach(async () => {
@@ -61,6 +73,10 @@ describe('ClawXpertConversationFilesComponent', () => {
         {
           provide: ChatConversationService,
           useValue: conversationService
+        },
+        {
+          provide: XpertAPIService,
+          useValue: xpertService
         }
       ]
     }).compileComponents()
@@ -100,7 +116,43 @@ describe('ClawXpertConversationFilesComponent', () => {
     expect(typeof workbench.fileLoader).toBe('function')
     expect(typeof workbench.fileSaver).toBe('function')
     expect(typeof workbench.fileDownloader).toBe('function')
-    expect(workbench.reloadKey).toBe(3)
+    expect(workbench.reloadKey).toBe('personal:conversation-1:xpert-1:3')
+  })
+
+  it('loads the personal Xpert workspace without waiting for a conversation', () => {
+    xpertService.getWorkspaceFiles.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(ClawXpertConversationFilesComponent)
+    fixture.componentRef.setInput('xpertId', 'xpert-1')
+    fixture.detectChanges()
+
+    const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent)).componentInstance as {
+      rootId?: string | null
+      filesLoader?: (path?: string) => unknown
+    }
+    ;(workbench.filesLoader as (path?: string) => unknown)('shared')
+
+    expect(workbench.rootId).toBe('xpert-1')
+    expect(xpertService.getWorkspaceFiles).toHaveBeenCalledWith('xpert-1', 'shared')
+    expect(conversationService.getFiles).not.toHaveBeenCalled()
+  })
+
+  it('keeps Project workspace loading bound to its conversation', () => {
+    conversationService.getFiles.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(ClawXpertConversationFilesComponent)
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    fixture.componentRef.setInput('xpertId', 'xpert-1')
+    fixture.componentRef.setInput('projectId', 'project-1')
+    fixture.detectChanges()
+
+    const workbench = fixture.debugElement.query(By.directive(MockFileWorkbenchComponent)).componentInstance as {
+      rootId?: string | null
+      filesLoader?: (path?: string) => unknown
+    }
+    ;(workbench.filesLoader as (path?: string) => unknown)('docs')
+
+    expect(workbench.rootId).toBe('conversation-1')
+    expect(conversationService.getFiles).toHaveBeenCalledWith('conversation-1', 'docs')
+    expect(xpertService.getWorkspaceFiles).not.toHaveBeenCalled()
   })
 
   it('re-emits file reference requests from the workbench', () => {

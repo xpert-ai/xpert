@@ -17,12 +17,15 @@ import {
   OrderTypeEnum,
   Store
 } from '../../../@core'
+import type { TXpertProjectAccessSummary } from '@xpert-ai/contracts'
 import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
+import { XpertProjectApiService } from '../../project/project-api.service'
 import { WorkbenchChatFacade, WorkbenchChatViewState } from '../workbench-chat/workbench-chat.facade'
 
 @Injectable()
 export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
+  #projectAccessRequestId = 0
   #conversationEntryRequestId = 0
   #lastConversationEntryKey: string | null = null
   readonly #assistantBindingService = inject(AssistantBindingService)
@@ -30,6 +33,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #translate = inject(TranslateService)
+  readonly #projectApi = inject(XpertProjectApiService)
 
   readonly definition = {
     titleKey: 'XP.Chat.XpertWorkbench.Title',
@@ -50,6 +54,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   )
   readonly slug = computed(() => parseWorkbenchSlug(this.currentUrl()))
   readonly projectId = computed(() => parseWorkbenchProjectId(this.currentUrl()))
+  readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
   readonly threadId = computed(() => parseWorkbenchThreadId(this.currentUrl()))
   readonly availableXperts = signal<IXpert[]>([])
   readonly loading = signal(false)
@@ -116,6 +121,19 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
         this.#lastConversationEntryKey = null
       }
     })
+
+    effect(() => {
+      const organizationId = this.organizationId()
+      const projectId = this.projectId()
+      const requestId = ++this.#projectAccessRequestId
+      this.projectAccess.set(null)
+
+      if (!organizationId || !projectId) {
+        return
+      }
+
+      void this.loadProjectAccess(projectId, requestId)
+    })
   }
 
   viewErrorMessage() {
@@ -150,6 +168,8 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
     this.suppressAutoResume.set(true)
     this.activeConversation.set(null)
+    this.#projectAccessRequestId++
+    this.projectAccess.set(null)
     const commands = normalizedProjectId ? ['/chat/x', slug, 'p', normalizedProjectId, 'c'] : ['/chat/x', slug, 'c']
     void this.#router.navigate(commands, { queryParamsHandling: 'preserve' })
   }
@@ -264,6 +284,19 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     } finally {
       if (requestId === this.#loadRequestId) {
         this.loading.set(false)
+      }
+    }
+  }
+
+  private async loadProjectAccess(projectId: string, requestId: number) {
+    try {
+      const access = await firstValueFrom(this.#projectApi.access(projectId))
+      if (requestId === this.#projectAccessRequestId && this.projectId() === projectId) {
+        this.projectAccess.set(access)
+      }
+    } catch {
+      if (requestId === this.#projectAccessRequestId && this.projectId() === projectId) {
+        this.projectAccess.set(null)
       }
     }
   }

@@ -11,6 +11,7 @@ import {
   XpertViewActionDefinition,
   XpertViewDataResult,
   XpertViewQuery,
+  XpertViewRuntimeScopeInput,
   XpertViewQuerySchema
 } from '@xpert-ai/contracts'
 import { injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
@@ -131,6 +132,8 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
               [hostType]="hostType()"
               [hostId]="hostId()"
               [manifest]="manifest()"
+              [runtimeScope]="runtimeScope()"
+              [runtimeUserId]="runtimeUserId()"
               [query]="query()"
               [active]="active()"
               [fillAvailableHeight]="fillAvailableHeight()"
@@ -157,6 +160,8 @@ export class ViewRendererComponent {
   readonly initialQuery = input<XpertViewQuery>({})
   readonly active = input<boolean>(true)
   readonly fillAvailableHeight = input(false)
+  readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
+  readonly runtimeUserId = input<string | null>(null)
 
   readonly #api = injectViewExtensionApi()
   readonly #toastr = injectToastr()
@@ -200,6 +205,7 @@ export class ViewRendererComponent {
     effect(() => {
       this.hostType()
       this.hostId()
+      this.runtimeScope()
       const manifest = this.manifest()
       this.query()
 
@@ -310,7 +316,14 @@ export class ViewRendererComponent {
 
     try {
       const result = await firstValueFrom(
-        this.#api.executeAction(this.hostType(), this.hostId(), this.manifest().key, action.key, { targetId })
+        this.#api.executeAction(
+          this.hostType(),
+          this.hostId(),
+          this.manifest().key,
+          action.key,
+          { targetId },
+          this.runtimeScope() ?? undefined
+        )
       )
 
       if (result.message) {
@@ -382,7 +395,15 @@ export class ViewRendererComponent {
     try {
       const manifest = this.manifest()
       const query = normalizeViewQuery(this.query(), manifest.dataSource.querySchema)
-      const data = await firstValueFrom(this.#api.getViewData(this.hostType(), this.hostId(), manifest.key, query))
+      const data = await firstValueFrom(
+        this.#api.getViewData(
+          this.hostType(),
+          this.hostId(),
+          manifest.key,
+          query,
+          this.runtimeScope() ?? undefined
+        )
+      )
 
       if (requestId !== this.requestId) {
         return

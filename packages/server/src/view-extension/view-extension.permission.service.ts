@@ -20,13 +20,13 @@ export class ViewExtensionPermissionService {
 		})
 	}
 
-	filterVisibleManifests(manifests: XpertExtensionViewManifest[]) {
+	filterVisibleManifests(manifests: XpertExtensionViewManifest[], context?: XpertViewHostContext) {
 		return manifests
 			.filter((manifest) => manifest.visible !== false)
 			.filter((manifest) => this.hasPermissions(manifest.permissions))
 			.map((manifest) => ({
 				...manifest,
-				actions: this.filterVisibleActions(manifest.actions)
+				actions: this.filterVisibleActions(manifest.actions, context)
 			}))
 	}
 
@@ -36,11 +36,15 @@ export class ViewExtensionPermissionService {
 		}
 	}
 
-	filterVisibleActions(actions?: XpertViewActionDefinition[]) {
-		return actions?.filter((action) => this.hasPermissions(action.permissions)) ?? []
+	filterVisibleActions(actions?: XpertViewActionDefinition[], context?: XpertViewHostContext) {
+		return (
+			actions?.filter(
+				(action) => this.hasPermissions(action.permissions) && (!context || this.hasRequiredHostAccess(action, context))
+			) ?? []
+		)
 	}
 
-	ensureActionVisible(action: XpertViewActionDefinition | undefined) {
+	ensureActionVisible(action: XpertViewActionDefinition | undefined, context?: XpertViewHostContext) {
 		if (!action) {
 			throw new ForbiddenException('No permission to access this extension action')
 		}
@@ -48,6 +52,21 @@ export class ViewExtensionPermissionService {
 		if (!this.hasPermissions(action.permissions)) {
 			throw new ForbiddenException('No permission to access this extension action')
 		}
+
+		if (context && !this.hasRequiredHostAccess(action, context)) {
+			throw new ForbiddenException('The current Project role does not allow this extension action')
+		}
+	}
+
+	private hasRequiredHostAccess(action: XpertViewActionDefinition, context: XpertViewHostContext) {
+		const required = action.requiredHostAccess
+		if (!required || !context.runtimeScope?.projectId) return true
+
+		const access = context.runtimeScope.projectAccess
+		if (!access) return false
+		if (required === 'read') return access.canRead
+		if (required === 'edit') return access.canEdit
+		return access.canManage
 	}
 
 	private hasPermissions(permissions?: string[]) {
