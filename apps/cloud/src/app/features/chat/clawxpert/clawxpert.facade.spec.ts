@@ -655,7 +655,9 @@ describe('ClawXpertFacade', () => {
     )
     await flushPromises()
 
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-created'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-created'], {
+      queryParamsHandling: 'preserve'
+    })
   })
 
   it('binds the next entry-created conversation from the bootstrap pending marker', async () => {
@@ -1581,7 +1583,9 @@ describe('ClawXpertFacade', () => {
     facade.onChatThreadChange('thread-new')
     await flushPromises()
 
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'], {
+      queryParamsHandling: 'preserve'
+    })
   })
 
   it('does not resolve stale saved threads from the new-task route', async () => {
@@ -1670,7 +1674,9 @@ describe('ClawXpertFacade', () => {
     await facade.continueConversation()
 
     expect(conversationService.getByThreadId).toHaveBeenCalledWith('thread-main')
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-main'], {
+      queryParamsHandling: 'preserve'
+    })
   })
 
   it('suppresses auto resume for explicit new conversations and focuses the composer instead', async () => {
@@ -1792,7 +1798,25 @@ describe('ClawXpertFacade', () => {
     await flushPromises()
 
     expect(facade.suppressAutoResume()).toBe(false)
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-new'], {
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('preserves the active Bid workbench URL state when an execution conversation changes the thread', async () => {
+    router.url =
+      '/chat/clawxpert/c/thread-current?view=bid.studio&viewSelection=project-1&viewParameters=%7B%22view%22%3A%22workflow%22%2C%22section%22%3A%22review%22%7D'
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+    router.navigate.mockClear()
+
+    facade.onChatThreadChange('thread-execution')
+    await flushPromises()
+
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/clawxpert', 'c', 'thread-execution'], {
+      queryParamsHandling: 'preserve'
+    })
   })
 
   it('clears saved conversation pointers when rebinding to a different ClawXpert', async () => {

@@ -168,7 +168,9 @@ describe('XpertWorkbenchFacade', () => {
         updatedAt: 'DESC'
       }
     })
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'], {
+      queryParamsHandling: 'preserve'
+    })
     expect(control.focusComposer).not.toHaveBeenCalled()
   })
 
@@ -189,13 +191,17 @@ describe('XpertWorkbenchFacade', () => {
     await settle()
     facade.onChatThreadChange('thread-2')
 
-    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'])
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-2'], {
+      queryParamsHandling: 'preserve'
+    })
 
     setRoute('/chat/x/sales/c/thread-2')
     facade.onChatThreadChange(null)
 
     expect(facade.suppressAutoResume()).toBe(true)
-    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'])
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
+      queryParamsHandling: 'preserve'
+    })
   })
 
   it('preserves the selected assistant view while resuming a thread', async () => {
@@ -209,7 +215,27 @@ describe('XpertWorkbenchFacade', () => {
     await facade.ensureConversationEntry(createMockChatKitControl())
 
     expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-1'], {
-      queryParams: { view: 'sales-orders' }
+      queryParamsHandling: 'preserve'
+    })
+  })
+
+  it('preserves complete workbench view state across consecutive thread switches', async () => {
+    const viewState = '?view=bid.studio&viewSelection=project-1&viewParameters=%7B%22view%22%3A%22workflow%22%7D'
+    router.url = `/chat/x/sales/c/thread-1${viewState}`
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+
+    await settle()
+    facade.onChatThreadChange('thread-2')
+
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c', 'thread-2'], {
+      queryParamsHandling: 'preserve'
+    })
+
+    setRoute(`/chat/x/sales/c/thread-2${viewState}`)
+    facade.onChatThreadChange('thread-3')
+
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c', 'thread-3'], {
+      queryParamsHandling: 'preserve'
     })
   })
 

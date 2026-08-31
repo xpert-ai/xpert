@@ -273,12 +273,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const queryParams = this.currentViewQueryParams()
-    if (queryParams) {
-      await this.#router.navigate(['/chat/x', slug, 'c'], { queryParams })
-    } else {
-      await this.#router.navigate(['/chat/x', slug, 'c'])
-    }
+    await this.#router.navigate(['/chat/x', slug, 'c'], { queryParamsHandling: 'preserve' })
   }
 
   private navigateToThread(threadId: string) {
@@ -294,17 +289,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const queryParams = this.currentViewQueryParams()
-    if (queryParams) {
-      void this.#router.navigate(['/chat/x', slug, 'c', threadId], { queryParams })
-    } else {
-      void this.#router.navigate(['/chat/x', slug, 'c', threadId])
-    }
-  }
-
-  private currentViewQueryParams() {
-    const view = this.#router.parseUrl(this.#router.url).queryParams['view']
-    return typeof view === 'string' && view.trim() ? { view: view.trim() } : undefined
+    void this.#router.navigate(['/chat/x', slug, 'c', threadId], { queryParamsHandling: 'preserve' })
   }
 
   private async getLatestConversationThreadId(xpertId: string) {
