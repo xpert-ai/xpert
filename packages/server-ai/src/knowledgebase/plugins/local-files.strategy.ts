@@ -8,15 +8,18 @@ import {
 	STATE_VARIABLE_HUMAN,
 	TChatRequestHuman
 } from '@xpert-ai/contracts'
-import { GetStorageFileQuery } from '@xpert-ai/server-core'
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DocumentSourceStrategy, IDocumentSourceStrategy } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
+import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
 
 interface LocalFileConfig {
 	fileExtensions: string[]
 	[STATE_VARIABLE_HUMAN]: TChatRequestHuman
 }
+
+type LocalFileReference = NonNullable<TChatRequestHuman['files']>[number]
 
 @DocumentSourceStrategy('local-file')
 @Injectable()
@@ -92,9 +95,13 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 	async loadDocuments(config: LocalFileConfig): Promise<Document[]> {
 		const human = config[STATE_VARIABLE_HUMAN]
 		if (human?.files) {
-			const _files = human.files as Array<IStorageFile>
-			const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-				new GetStorageFileQuery(_files.map((file) => file.id))
+			const storageFileIds = human.files.map(resolveLegacyStorageFileId)
+			const storageFiles = await Promise.all(
+				storageFileIds.map((storageFileId) =>
+					this.queryBus.execute<GetOwnedStorageFileQuery, IStorageFile>(
+						new GetOwnedStorageFileQuery(storageFileId)
+					)
+				)
 			)
 			// const fileProvider = new FileStorage().getProvider()
 			return storageFiles.map((file) => {
@@ -117,4 +124,18 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 
 		return []
 	}
+}
+
+function resolveLegacyStorageFileId(file: LocalFileReference): string {
+	if ('storageFileId' in file && typeof file.storageFileId === 'string' && file.storageFileId.trim()) {
+		return file.storageFileId.trim()
+	}
+	if ('id' in file && typeof file.id === 'string' && file.id.trim()) {
+		return file.id.trim()
+	}
+	throw new BadRequestException(
+		t('server-ai:Error.LocalFileStorageIdRequired', {
+			defaultValue: 'A StorageFile id is required for the local-file source'
+		})
+	)
 }

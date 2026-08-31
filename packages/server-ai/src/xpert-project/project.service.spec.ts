@@ -10,6 +10,7 @@ import { XpertProjectService } from './project.service'
 import { XpertProjectAccessService } from './services/project-access.service'
 import { XpertProjectTaskService } from './services'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
+import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 
 describe('XpertProjectService collaboration access', () => {
     beforeEach(() => {
@@ -113,6 +114,23 @@ describe('XpertProjectService collaboration access', () => {
         expect(project.xperts).toEqual([current])
         expect(repository.save).toHaveBeenCalledWith(project)
     })
+
+    it('authorizes new Project attachments through the owned StorageFile query', async () => {
+        const existing = { id: 'storage-existing' }
+        const canonical = { id: 'storage-new', createdById: 'user-1' }
+        const project = { id: 'project-1', attachments: [existing] } as XpertProject
+        const repository = { save: jest.fn() }
+        const queryBus = { execute: jest.fn().mockResolvedValue(canonical) }
+        const service = createService(repository as never, undefined, undefined, undefined, queryBus as never)
+        jest.spyOn(service, 'findOne').mockResolvedValue(project)
+
+        await service.addAttachments(project.id, [existing.id, canonical.id])
+
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(GetOwnedStorageFileQuery))
+        expect((queryBus.execute.mock.calls[0][0] as GetOwnedStorageFileQuery).storageFileId).toBe(canonical.id)
+        expect(project.attachments).toEqual([existing, canonical])
+        expect(repository.save).toHaveBeenCalledWith(project)
+    })
 })
 
 function createService(
@@ -124,12 +142,13 @@ function createService(
         normalize: async (project: XpertProject) => project,
         contains: (project: XpertProject, xpert: IXpert) =>
             project.xperts?.some((linkedXpert) => linkedXpert.id === xpert.id) ?? false
-    } as unknown as XpertProjectXpertBindingService
+    } as unknown as XpertProjectXpertBindingService,
+    queryBus: QueryBus = {} as QueryBus
 ) {
     return new XpertProjectService(
         repository,
         {} as CommandBus,
-        {} as QueryBus,
+        queryBus,
         {} as XpertProjectTaskService,
         {} as XpertWorkspaceAccessService,
         {} as XpertWorkspaceService,

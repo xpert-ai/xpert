@@ -467,6 +467,30 @@ describe('ConversationsController searchConversations', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
+
+    it('filters unauthorized file relations before returning conversation messages', async () => {
+        const { controller, conversationService, messageService } = createController()
+        const conversation = { id: 'conversation-1', threadId: 'thread-1' }
+        const rawMessage = {
+            id: 'message-1',
+            conversationId: conversation.id,
+            attachments: [{ id: 'victim-storage-file' }],
+            fileAssets: [{ id: 'victim-file-asset' }]
+        }
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue(conversation)
+        messageService.findAllInOrganizationOrTenant.mockResolvedValue({ items: [rawMessage], total: 1 })
+        messageService.filterAuthorizedFileRelations.mockResolvedValue({
+            ...rawMessage,
+            attachments: [],
+            fileAssets: []
+        })
+
+        await expect(controller.listMessages(conversation.id)).resolves.toMatchObject({
+            items: [{ attachments: [], fileAssets: [] }]
+        })
+
+        expect(messageService.filterAuthorizedFileRelations).toHaveBeenCalledWith(rawMessage, conversation.id)
+    })
 })
 
 function createController() {
@@ -490,7 +514,8 @@ function createController() {
     }
     const messageService = {
         findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [], total: 0 }),
-        findOneInOrganizationOrTenant: jest.fn()
+        findOneInOrganizationOrTenant: jest.fn(),
+        filterAuthorizedFileRelations: jest.fn((message) => Promise.resolve(message))
     }
     const feedbackService = {
         create: jest.fn(),

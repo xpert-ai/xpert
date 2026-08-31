@@ -8,7 +8,7 @@ import {
     StorageFileService,
     TransformInterceptor
 } from '@xpert-ai/server-core'
-import { IFileAssetDestination, IStorageFile, IUploadFileTarget, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { IFileAssetDestination, IStorageFile, SecretTokenBindingType } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     Body,
@@ -35,7 +35,9 @@ import {
     FileParseMode,
     GetFileAssetByStorageFileQuery
 } from '../file-understanding'
-import { GetChatConversationQuery } from '../chat-conversation'
+import type { ChatConversation } from '../chat-conversation/conversation.entity'
+import { FileAssetAccessService } from '../file-understanding/file-asset-access.service'
+import { resolveExternalStorageUploadTarget } from './external-upload-target'
 import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
@@ -57,7 +59,8 @@ export class ContextsController {
     constructor(
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
-        private readonly storageFileService: StorageFileService
+        private readonly storageFileService: StorageFileService,
+        private readonly fileAssetAccessService: FileAssetAccessService
     ) {}
 
     @Post('file')
@@ -92,20 +95,33 @@ export class ContextsController {
         @Body('xpertId') xpertId?: string,
         @Body('workspacePath') workspacePath?: string
     ): Promise<AgentFile | IFileAssetDestination> {
-        const target = this.resolveUploadTarget(targetValue)
+        const target = resolveExternalStorageUploadTarget(targetValue, {
+            kind: 'storage',
+            directory: 'contexts',
+            prefix: 'files'
+        })
+        workspacePath = undefined
+        const conversation = await this.resolveConversationReferences(conversationId, threadId)
+        if (conversation) {
+            conversationId = conversation.id
+            threadId = conversation.threadId
+            projectId = conversation.projectId
+            xpertId = conversation.xpertId
+        }
         const publicScope = getPublicXpertSessionConversationScope()
         if (publicScope) {
             if (target.kind !== 'storage' || projectId) {
                 throw new ForbiddenException()
             }
-            if (xpertId?.trim() && xpertId.trim() !== publicScope.xpertId) {
+            if (!conversation && xpertId?.trim() && xpertId.trim() !== publicScope.xpertId) {
                 throw new ForbiddenException()
             }
-            await this.ensurePublicConversationReference(conversationId, threadId)
-            xpertId = publicScope.xpertId
-            // Restricted clients cannot choose a logical Agent Workspace path.
-            // The trusted projection layer derives it later from the FileAsset id.
-            workspacePath = undefined
+            xpertId = conversation?.xpertId ?? publicScope.xpertId
+        } else if (!conversation) {
+            await this.fileAssetAccessService.assertUploadScope({ projectId, xpertId })
+        }
+        if (conversation) {
+            await this.fileAssetAccessService.assertCanCreateConversationAsset(conversation, 'upload')
         }
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
@@ -164,69 +180,70 @@ export class ContextsController {
         const fileAsset = await this.queryBus.execute<GetFileAssetByStorageFileQuery, FileAsset | null>(
             new GetFileAssetByStorageFileQuery(id)
         )
-        this.assertPublicFileAccess(fileAsset)
+        let authorizedStorageFile: IStorageFile
         if (fileAsset?.id) {
-            await this.commandBus.execute(new DeleteFileAssetCommand(fileAsset.id))
+            const { asset: authorizedAsset, storageFile } = await this.fileAssetAccessService.resolve({
+                locator: { fileAssetId: fileAsset.id, storageFileId: id },
+                authority: { kind: 'current-owner' },
+                operation: 'delete'
+            })
+            if (!storageFile) {
+                throw new ForbiddenException()
+            }
+            authorizedStorageFile = storageFile
+            await this.assertPublicFileAccess(authorizedAsset)
+            await this.commandBus.execute(new DeleteFileAssetCommand(authorizedAsset.id))
+        } else {
+            await this.assertPublicFileAccess(null)
+            authorizedStorageFile = await this.fileAssetAccessService.assertStorageFileOwner(id)
         }
-        return await this.storageFileService.deleteStorageFile(id)
+        return await this.storageFileService.deleteAuthorizedStorageFile(authorizedStorageFile)
     }
 
-    private async ensurePublicConversationReference(conversationId?: string, threadId?: string) {
-        if (!getPublicXpertSessionConversationScope()) {
-            return
-        }
+    private async resolveConversationReferences(conversationId?: string, threadId?: string) {
+        let conversationById: ChatConversation | undefined
+        let conversationByThread: ChatConversation | undefined
         if (conversationId) {
-            const conversation = await this.queryBus.execute(new GetChatConversationQuery({ id: conversationId }))
-            await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
+            conversationById = await this.fileAssetAccessService.assertConversationAccess(
+                { kind: 'conversation', conversationId },
+                'attach'
+            )
         }
         if (threadId) {
-            const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-            await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
+            conversationByThread = await this.fileAssetAccessService.assertConversationAccess(
+                { kind: 'conversation', threadId },
+                'attach'
+            )
         }
+        if (conversationById && conversationByThread && conversationById.id !== conversationByThread.id) {
+            throw new BadRequestException('Conversation and thread references do not match')
+        }
+        const conversation = conversationById ?? conversationByThread
+        if (conversation && getPublicXpertSessionConversationScope()) {
+            await (
+                assertPublicXpertSessionConversationAccess as unknown as (
+                    conversation: ChatConversation,
+                    queryBus: QueryBus
+                ) => Promise<void> | void
+            )(conversation, this.queryBus)
+        }
+        return conversation
     }
 
-    private assertPublicFileAccess(fileAsset: FileAsset | null) {
+    private async assertPublicFileAccess(fileAsset: FileAsset | null) {
         const scope = getPublicXpertSessionConversationScope()
         if (!scope) {
             return
         }
-        if (!fileAsset || fileAsset.userId !== scope.createdById || fileAsset.xpertId !== scope.xpertId) {
+        if (!fileAsset || fileAsset.userId !== scope.createdById) {
             throw new ForbiddenException()
         }
-    }
-
-    private resolveUploadTarget(targetValue?: string): IUploadFileTarget {
-        const defaultTarget: IUploadFileTarget = {
-            kind: 'storage',
-            directory: 'contexts',
-            prefix: 'files'
-        }
-
-        if (!targetValue) {
-            return defaultTarget
-        }
-
-        const target = this.parseJson<IUploadFileTarget>(targetValue, 'target')
-        if (!target || Array.isArray(target) || !target.kind) {
-            throw new BadRequestException('Invalid target payload')
-        }
-
-        if (target.kind === 'storage') {
-            return {
-                ...defaultTarget,
-                ...target
-            }
-        }
-
-        return target
-    }
-
-    private parseJson<T>(value: string, field: string): T {
-        try {
-            return JSON.parse(value) as T
-        } catch {
-            throw new BadRequestException(`Invalid ${field} JSON`)
-        }
+        await (
+            assertPublicXpertSessionConversationAccess as unknown as (
+                conversation: Pick<ChatConversation, 'createdById' | 'xpertId'>,
+                queryBus: QueryBus
+            ) => Promise<void> | void
+        )({ createdById: fileAsset.userId, xpertId: fileAsset.xpertId }, this.queryBus)
     }
 
     private resolveParseMode(value?: FileParseMode): FileParseMode {

@@ -35,7 +35,8 @@ import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/quer
 import {
     AttachFileToConversationCommand,
     CreateFileAssetCommand,
-    EnqueueFileParseCommand
+    EnqueueFileParseCommand,
+    ResolveAuthorizedFileAssetQuery
 } from '../../../file-understanding'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import type { TRuntimeCapabilitiesSelection } from '../../../shared/agent/runtime-capabilities'
@@ -692,6 +693,17 @@ describe('XpertChatHandler', () => {
             originalName: 'contract.docx',
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                return {
+                    asset: {
+                        ...workspaceFile,
+                        capabilities: ['workspace']
+                    }
+                }
+            }
+            return null
+        })
 
         const stream = await handler.execute(
             new XpertChatCommand(
@@ -721,6 +733,7 @@ describe('XpertChatHandler', () => {
         ) as ChatMessageUpsertCommand
         expect(humanMessageCommand.entity.fileAssets).toEqual([{ id: 'file-asset-workspace-1' }])
         expect(humanMessageCommand.entity.attachments).toBeUndefined()
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
 
         const attachCommand = commands.find(
             (command) => command instanceof AttachFileToConversationCommand

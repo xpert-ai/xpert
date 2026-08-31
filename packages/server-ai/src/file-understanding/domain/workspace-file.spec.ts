@@ -57,6 +57,7 @@ describe('file-understanding workspace file helpers', () => {
     it.each([
         ['projects', 'project-1', { catalog: 'projects', projectId: 'project-1', userId: 'user-1' }],
         ['xperts', 'xpert-1', { catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: true }],
+        ['user-xperts', 'xpert-1', { catalog: 'user-xperts', xpertId: 'xpert-1', userId: 'user-1' }],
         ['users', 'user-scope', { catalog: 'users', userId: 'user-scope' }],
         ['knowledges', 'knowledge-1', { catalog: 'knowledges', knowledgeId: 'knowledge-1', userId: 'user-1' }],
         ['skills', 'skill-root-1', { catalog: 'skills', rootId: 'skill-root-1', userId: 'user-1' }]
@@ -65,7 +66,9 @@ describe('file-understanding workspace file helpers', () => {
             resolveFileAssetWorkspaceVolumeScope(
                 {
                     tenantId: 'tenant-1',
-                    userId: 'user-1',
+                    userId: catalog === 'users' ? scopeId : 'user-1',
+                    projectId: catalog === 'projects' ? scopeId : undefined,
+                    xpertId: catalog === 'xperts' || catalog === 'user-xperts' ? scopeId : undefined,
                     metadata: {
                         workspace: {
                             catalog,
@@ -83,8 +86,32 @@ describe('file-understanding workspace file helpers', () => {
     })
 
     it.each([
+        [
+            'Project',
+            { projectId: 'project-owner' },
+            { catalog: 'projects', scopeId: 'project-victim' }
+        ],
+        [
+            'user-isolated Xpert',
+            { xpertId: 'xpert-owner' },
+            { catalog: 'user-xperts', scopeId: 'xpert-victim' }
+        ],
+        ['user', { userId: 'user-owner' }, { catalog: 'users', scopeId: 'user-victim' }]
+    ])('rejects forged %s workspace metadata that disagrees with canonical FileAsset scope', (_label, asset, workspace) => {
+        expect(
+            resolveFileAssetWorkspaceVolumeScope({
+                tenantId: 'tenant-1',
+                userId: 'user-owner',
+                ...asset,
+                metadata: { workspace }
+            })
+        ).toBeNull()
+    })
+
+    it.each([
         ['projects', 'project-1', { catalog: 'projects', projectId: 'project-1', userId: 'user-1' }],
         ['xperts', 'xpert-1', { catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: false }],
+        ['user-xperts', 'xpert-1', { catalog: 'user-xperts', xpertId: 'xpert-1', userId: 'user-1' }],
         ['users', 'user-scope', { catalog: 'users', userId: 'user-scope' }],
         ['knowledges', 'knowledge-1', { catalog: 'knowledges', knowledgeId: 'knowledge-1', userId: 'user-1' }],
         ['skills', 'skill-root-1', { catalog: 'skills', rootId: 'skill-root-1', userId: 'user-1' }]
@@ -134,5 +161,82 @@ describe('file-understanding workspace file helpers', () => {
             catalog: 'users',
             userId: 'user-1'
         })
+    })
+
+    it('preserves an explicit historical xpert isolation discriminator', () => {
+        expect(
+            resolveFileAssetWorkspaceVolumeScope({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                xpertId: 'xpert-1',
+                metadata: {
+                    workspace: { catalog: 'xperts', scopeId: 'xpert-1', isolateByUser: true }
+                }
+            })
+        ).toMatchObject({
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            userId: 'user-1',
+            isolateByUser: true
+        })
+    })
+
+    it('uses a legacy absolute path only to identify the historical user-isolated xpert layout', () => {
+        expect(
+            resolveFileAssetWorkspaceVolumeScope({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                xpertId: 'xpert-1',
+                metadata: {
+                    workspace: {
+                        catalog: 'xperts',
+                        scopeId: 'xpert-1',
+                        absolutePath: '/sandbox/tenant-1/xpert/xpert-1/user/user-1/reports/result.pdf'
+                    }
+                }
+            })
+        ).toMatchObject({
+            catalog: 'xperts',
+            xpertId: 'xpert-1',
+            userId: 'user-1',
+            isolateByUser: true
+        })
+    })
+
+    it('fails closed when legacy xpert metadata cannot prove its isolation layout', () => {
+        expect(
+            resolveFileAssetWorkspaceVolumeScope({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                xpertId: 'xpert-1',
+                metadata: {
+                    workspace: {
+                        catalog: 'xperts',
+                        scopeId: 'xpert-1',
+                        absolutePath: '/home/user/data/reports/result.pdf'
+                    }
+                }
+            })
+        ).toBeNull()
+        expect(
+            resolveFileAssetWorkspaceVolumeScope({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                xpertId: 'xpert-1',
+                metadata: {
+                    workspace: { catalog: 'xperts', scopeId: 'different-xpert', isolateByUser: false }
+                }
+            })
+        ).toBeNull()
+    })
+
+    it('requires both user and xpert identities for a user-isolated xpert scope', () => {
+        expect(
+            resolveWorkspaceVolumeScope({
+                tenantId: 'tenant-1',
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1'
+            })
+        ).toBeNull()
     })
 })

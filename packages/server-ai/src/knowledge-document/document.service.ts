@@ -16,7 +16,7 @@ import {
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { RequestContext, StorageFileService, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { RequestContext, type StorageFile, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     ConflictException,
@@ -26,7 +26,7 @@ import {
     Logger,
     NotFoundException
 } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
 import {
@@ -54,6 +54,7 @@ import {
     resolveKnowledgeDocumentSourceHash
 } from './document-hash'
 import { TDocChunkMetadata } from './types'
+import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 
 type OriginalFileDownloadTarget = {
     absolutePath: string
@@ -350,14 +351,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         private readonly dataSource: DataSource,
 
-        private readonly storageFileService: StorageFileService,
-
         private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver,
 
         @Inject(forwardRef(() => KnowledgebaseService))
         private readonly knowledgebaseService: KnowledgebaseService,
 
         private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
         @InjectQueue('embedding-document') private docQueue: Queue
     ) {
         super(repo)
@@ -1747,7 +1747,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
     private async completeDocumentSystemAttributes(document: Partial<IKnowledgeDocument>) {
         if (document.storageFileId && (!document.type || !document.mimeType)) {
-            const storageFile = await this.storageFileService.findOne(document.storageFileId)
+            const storageFile = await this.queryBus.execute<GetOwnedStorageFileQuery, StorageFile>(
+                new GetOwnedStorageFileQuery(document.storageFileId)
+            )
             document.type ??= storageFile.originalName.split('.').pop()
             document.mimeType ??= storageFile.mimetype
         } else if (document.options?.url) {

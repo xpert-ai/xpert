@@ -67,8 +67,7 @@ import {
     KnowledgebaseTypeEnum
 } from '@xpert-ai/contracts'
 import { DataSource, Repository } from 'typeorm'
-import { StorageFileService } from '@xpert-ai/server-core'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import type { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase'
 import type { KnowledgeWorkAreaResolver } from '../shared'
@@ -76,6 +75,7 @@ import { computeKnowledgeDocumentChunkHash, computeKnowledgeDocumentProcessingHa
 import { KnowledgeDocument } from './document.entity'
 import { buildLogicalFolderPath, KnowledgeDocumentService } from './document.service'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
+import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 
 function createService(
     documents: Partial<KnowledgeDocument>[],
@@ -83,6 +83,7 @@ function createService(
         repo?: object
         knowledgebaseService?: object
         commandBus?: object
+        queryBus?: object
         dataSource?: object
     }
 ) {
@@ -91,9 +92,6 @@ function createService(
         ...(overrides?.repo ?? {})
     } as unknown as Repository<KnowledgeDocument>
 
-    const storageFileService = {
-        findOne: jest.fn()
-    } as unknown as StorageFileService
     const knowledgeWorkAreaResolver = {
         resolve: jest.fn(async () => ({
             volume: {
@@ -105,10 +103,10 @@ function createService(
     const service = new KnowledgeDocumentService(
         repo,
         (overrides?.dataSource ?? {}) as DataSource,
-        storageFileService,
         knowledgeWorkAreaResolver,
         (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
         (overrides?.commandBus ?? {}) as CommandBus,
+        (overrides?.queryBus ?? {}) as QueryBus,
         {} as Queue
     )
     Object.assign(service, {
@@ -118,6 +116,29 @@ function createService(
     })
     return service
 }
+
+describe('KnowledgeDocumentService StorageFile authorization', () => {
+    it('resolves document StorageFile metadata through the owner-authorized query', async () => {
+        const execute = jest.fn().mockResolvedValue({
+            id: 'storage-file-1',
+            originalName: 'report.pdf',
+            mimetype: 'application/pdf'
+        })
+        const service = createService([], { queryBus: { execute } })
+        const document = { storageFileId: 'storage-file-1' }
+
+        await (service as any).completeDocumentSystemAttributes(document)
+
+        expect(execute).toHaveBeenCalledWith(expect.any(GetOwnedStorageFileQuery))
+        expect((execute.mock.calls[0][0] as GetOwnedStorageFileQuery).storageFileId).toBe('storage-file-1')
+        expect(document).toEqual(
+            expect.objectContaining({
+                type: 'pdf',
+                mimeType: 'application/pdf'
+            })
+        )
+    })
+})
 
 describe('KnowledgeDocumentService logical folder paths', () => {
     it('orders ancestors from the root to the selected entity', async () => {

@@ -7,18 +7,24 @@ import type {
     IStorageFile,
     IUploadFileTarget,
     TChatReference,
-    TChatRequestHuman
+    TChatRequestHuman,
+    XpertWorkspaceDataScope
 } from '@xpert-ai/contracts'
 import { getFileAssetDestination, getStorageFileFromAsset, UploadFileCommand } from '@xpert-ai/server-core'
+import { isUUID } from 'class-validator'
 import mime from 'mime-types'
 import path from 'path'
-import {
-    AttachFileToConversationCommand,
-    CreateFileAssetCommand,
-    EnqueueFileParseCommand,
-    GetFileAssetByStorageFileQuery
-} from '../../../file-understanding'
-import type { AgentFile, FileAsset } from '../../../file-understanding'
+import { AttachFileToConversationCommand } from '../../../file-understanding/commands/attach-file-to-conversation.command'
+import { CreateFileAssetCommand } from '../../../file-understanding/commands/create-file-asset.command'
+import { CreateWorkspaceFileAssetCommand } from '../../../file-understanding/commands/create-workspace-file-asset.command'
+import { EnqueueFileParseCommand } from '../../../file-understanding/commands/enqueue-file-parse.command'
+import type { AgentFile } from '../../../file-understanding/domain/types'
+import type { FileAsset } from '../../../file-understanding/entities/file-asset.entity'
+import { AssertFileUploadScopeQuery } from '../../../file-understanding/queries/assert-file-upload-scope.query'
+import { GetFileAssetByStorageFileQuery } from '../../../file-understanding/queries/get-file-asset-by-storage-file.query'
+import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding/queries/resolve-authorized-file-asset.query'
+import type { AuthorizedFileAsset, FileAssetAuthority } from '../../../file-understanding/file-asset-access.service'
 
 const DEFAULT_UPLOAD_TARGET: IUploadFileTarget = {
     kind: 'storage',
@@ -40,6 +46,7 @@ export type NormalizeChatRequestFilesContext = {
     threadId?: string
     projectId?: string
     xpertId?: string
+    workspaceDataScope?: XpertWorkspaceDataScope | null
 }
 
 export async function normalizeChatHumanInputFiles(
@@ -233,12 +240,33 @@ async function normalizeChatRequestFile(
     const storageFileId = readString(file, 'storageFileId')
     const existingFileAssetId = readFileAssetId(file)
     if (existingFileAssetId) {
+        const authorized = await deps.queryBus.execute<ResolveAuthorizedFileAssetQuery, AuthorizedFileAsset>(
+            new ResolveAuthorizedFileAssetQuery({
+                locator: {
+                    fileAssetId: existingFileAssetId,
+                    ...(storageFileId ? { storageFileId } : {})
+                },
+                authority: resolveFileAssetAuthority(deps.context),
+                operation: deps.context?.conversationId || deps.context?.threadId ? 'attach' : 'read'
+            })
+        )
+        const fileAsset = authorized.asset
         // Already a FileAsset-backed AgentFile; normalize aliases so persistence
         // code can rely on fileAssetId/fileId/id carrying the same durable id.
         return {
             file: toAgentFileLike(file, {
-                id: existingFileAssetId,
-                storageFileId
+                id: fileAsset.id,
+                storageFileId: fileAsset.storageFileId,
+                originalName: fileAsset.originalName,
+                mimeType: fileAsset.mimeType,
+                size: fileAsset.size,
+                status: fileAsset.status,
+                parseStatus: fileAsset.status,
+                purpose: fileAsset.purpose,
+                parseMode: fileAsset.parseMode,
+                capabilities: fileAsset.capabilities ?? [],
+                summary: fileAsset.summary,
+                workspacePath: fileAsset.workspacePath
             }),
             changed:
                 readString(file, 'id') !== existingFileAssetId ||
@@ -267,17 +295,84 @@ async function normalizeChatRequestFile(
         }
     }
 
-    const dataUrl = readDataUrl(file)
-    if (!dataUrl) {
-        return { file, changed: false }
+    const workspaceFilePath = readWorkspaceFilePath(file)
+    if (workspaceFilePath && (deps.context?.projectId || deps.context?.xpertId)) {
+        const workspaceDataScope = deps.context?.workspaceDataScope
+        const catalog = deps.context?.projectId ? 'projects' : workspaceDataScope === 'user' ? 'user-xperts' : 'xperts'
+        const fileAsset = await deps.commandBus.execute<CreateWorkspaceFileAssetCommand, FileAsset>(
+            new CreateWorkspaceFileAssetCommand({
+                conversationId: deps.context?.conversationId,
+                threadId: deps.context?.threadId,
+                projectId: deps.context?.projectId,
+                xpertId: deps.context?.xpertId,
+                catalog,
+                filePath: workspaceFilePath,
+                originalName:
+                    readString(file, 'originalName') ??
+                    readString(file, 'name') ??
+                    readString(file, 'fileName') ??
+                    path.posix.basename(workspaceFilePath),
+                mimeType: readString(file, 'mimeType') ?? readString(file, 'mimetype'),
+                size: readNumber(file, 'size'),
+                fileUrl: readString(file, 'fileUrl') ?? readString(file, 'url'),
+                purpose: 'workspace',
+                parseMode: readParseMode(file) ?? 'auto',
+                metadata: buildFileAssetMetadata(file, 'chat_request_workspace_file')
+            })
+        )
+
+        return {
+            file: toAgentFileLike(file, {
+                id: fileAsset.id,
+                storageFileId: fileAsset.storageFileId,
+                originalName: fileAsset.originalName,
+                size: fileAsset.size,
+                mimeType: fileAsset.mimeType,
+                status: fileAsset.status,
+                parseStatus: fileAsset.status,
+                purpose: fileAsset.purpose,
+                parseMode: fileAsset.parseMode,
+                capabilities: fileAsset.capabilities ?? [],
+                summary: fileAsset.summary,
+                workspacePath: fileAsset.workspacePath ?? workspaceFilePath
+            }),
+            changed: true
+        }
     }
 
-    // Webhook sources such as WeChat may only have inline bytes. Persist them
-    // through the same storage + FileAsset pipeline as normal context uploads.
-    return {
-        file: await createFileAssetFromDataUrl(file, dataUrl, deps),
-        changed: true
+    const dataUrl = readDataUrl(file)
+    if (dataUrl) {
+        // Webhook sources such as WeChat may only have inline bytes. Persist them
+        // through the same storage + FileAsset pipeline as normal context uploads.
+        return {
+            file: await createFileAssetFromDataUrl(file, dataUrl, deps),
+            changed: true
+        }
     }
+
+    const legacyId = isFileAssetLike(file) ? null : readString(file, 'id')
+    const legacyStorageFileId = legacyId && isUUID(legacyId) ? legacyId : null
+    if (legacyStorageFileId) {
+        // Older clients used a bare StorageFile id. Authorize that id before any
+        // lookup or relation write, then upgrade it to a managed FileAsset.
+        const fileAsset = await resolveOrCreateFileAssetForStorageFile(file, legacyStorageFileId, deps)
+        return {
+            file: toAgentFileLike(file, {
+                id: fileAsset.id,
+                storageFileId: fileAsset.storageFileId ?? legacyStorageFileId,
+                status: fileAsset.status,
+                parseStatus: fileAsset.status,
+                purpose: fileAsset.purpose,
+                parseMode: fileAsset.parseMode,
+                capabilities: fileAsset.capabilities ?? [],
+                summary: fileAsset.summary,
+                workspacePath: fileAsset.workspacePath
+            }),
+            changed: true
+        }
+    }
+
+    return { file, changed: false }
 }
 
 /**
@@ -359,16 +454,24 @@ async function resolveOrCreateFileAssetForStorageFile(
         context?: NormalizeChatRequestFilesContext
     }
 ) {
+    const storageFile = await deps.queryBus.execute<GetOwnedStorageFileQuery, IStorageFile>(
+        new GetOwnedStorageFileQuery(storageFileId)
+    )
     const existingFileAsset = await deps.queryBus.execute<GetFileAssetByStorageFileQuery, FileAsset | null>(
         new GetFileAssetByStorageFileQuery(storageFileId)
     )
     if (existingFileAsset) {
-        return existingFileAsset
+        return (
+            await deps.queryBus.execute<ResolveAuthorizedFileAssetQuery, AuthorizedFileAsset>(
+                new ResolveAuthorizedFileAssetQuery({
+                    locator: { fileAssetId: existingFileAsset.id, storageFileId },
+                    authority: resolveFileAssetAuthority(deps.context),
+                    operation: deps.context?.conversationId || deps.context?.threadId ? 'attach' : 'read'
+                })
+            )
+        ).asset
     }
 
-    // CreateFileAssetCommand can hydrate metadata from a StorageFile-shaped
-    // object; when we only receive an id, preserve whatever file fields arrived.
-    const storageFile = buildStorageFileStub(file, storageFileId)
     const fileAsset = await deps.commandBus.execute<CreateFileAssetCommand, FileAsset>(
         new CreateFileAssetCommand({
             storageFile,
@@ -396,6 +499,7 @@ async function createFileAssetFromDataUrl(
     }
 ) {
     const originalName = resolveOriginalName(file, dataUrl.mimeType)
+    await deps.queryBus.execute(new AssertFileUploadScopeQuery(deps.context ?? {}))
     // Upload the decoded bytes first so StorageFile remains the object-storage
     // source of truth and FileAsset can focus on understanding/parsing state.
     const uploadAsset = await deps.commandBus.execute<UploadFileCommand, IFileAsset>(
@@ -484,21 +588,6 @@ function toAgentFileLike(
     }
 }
 
-function buildStorageFileStub(file: FileRecord, storageFileId: string): IStorageFile {
-    return {
-        id: storageFileId,
-        file: readString(file, 'file') ?? readString(file, 'objectKey') ?? storageFileId,
-        url: readString(file, 'url') ?? readString(file, 'fileUrl'),
-        fileUrl: readString(file, 'fileUrl') ?? readString(file, 'url'),
-        thumb: readString(file, 'thumb'),
-        thumbUrl: readString(file, 'thumbUrl') ?? readString(file, 'thumb'),
-        originalName: readString(file, 'originalName') ?? readString(file, 'name') ?? readString(file, 'fileName'),
-        size: readNumber(file, 'size'),
-        mimetype: readString(file, 'mimetype') ?? readString(file, 'mimeType') ?? readString(file, 'type'),
-        storageProvider: readString(file, 'storageProvider')
-    } as IStorageFile
-}
-
 function buildFileAssetMetadata(file: FileRecord, source: string): Record<string, unknown> {
     return compactRecord({
         source,
@@ -583,6 +672,30 @@ function readNumber(record: FileRecord, key: string) {
     return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
+function readWorkspaceFilePath(file: FileRecord) {
+    const value = readString(file, 'workspacePath') ?? readString(file, 'filePath')
+    if (!value) {
+        return null
+    }
+    return value.replace(/^\/workspace\/+/, '').replace(/^\/+/, '')
+}
+
+function readParseMode(file: FileRecord) {
+    const value = readString(file, 'parseMode')
+    return value === 'auto' || value === 'fast' || value === 'deep' || value === 'none' ? value : null
+}
+
 function compactRecord(record: Record<string, unknown>) {
     return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null))
+}
+
+function resolveFileAssetAuthority(context?: NormalizeChatRequestFilesContext): FileAssetAuthority {
+    if (context?.conversationId || context?.threadId) {
+        return {
+            kind: 'conversation',
+            conversationId: context.conversationId,
+            threadId: context.threadId
+        }
+    }
+    return { kind: 'current-owner' }
 }

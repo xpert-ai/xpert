@@ -9,8 +9,7 @@ import { TextLoader } from 'langchain/document_loaders/fs/text'
 import path from 'node:path'
 import { RequestContext } from '@xpert-ai/server-core'
 import {
-    GetFileAssetByStorageFileQuery,
-    GetFileAssetQuery,
+    ResolveAuthorizedFileAssetQuery,
     resolveFileAssetWorkspaceRelativePath,
     resolveFileAssetWorkspaceVolumeScope,
     SearchFileChunksQuery
@@ -125,12 +124,20 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
         id?: string
     }) {
         const fileAssetId = file.fileId ?? file.fileAssetId
-        const fileAsset = fileAssetId
-            ? await this.queryBus.execute(new GetFileAssetQuery(fileAssetId))
-            : (file.storageFileId ?? file.id)
-              ? await this.queryBus.execute(new GetFileAssetByStorageFileQuery(file.storageFileId ?? file.id))
-              : null
-        return { fileAsset: (fileAsset ?? null) as FileAsset | null }
+        const storageFileId = file.storageFileId ?? file.id
+        if (!fileAssetId && !storageFileId) {
+            return { fileAsset: null as FileAsset | null }
+        }
+        const { asset } = await this.queryBus.execute(
+            new ResolveAuthorizedFileAssetQuery({
+                locator: fileAssetId
+                    ? { fileAssetId, ...(file.storageFileId ? { storageFileId } : {}) }
+                    : { storageFileId },
+                authority: { kind: 'current-owner' },
+                operation: 'read'
+            })
+        )
+        return { fileAsset: (asset ?? null) as FileAsset | null }
     }
 
     private async tryLoadFileUnderstandingDocs(fileAsset?: FileAsset | null) {

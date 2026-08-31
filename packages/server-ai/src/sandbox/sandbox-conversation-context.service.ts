@@ -99,6 +99,7 @@ export class SandboxConversationContextService {
             userId,
             provider,
             xpertId: conversation.xpertId,
+            workspaceDataScope: conversation.xpert?.workspaceDataScope,
             projectId: effectiveProjectId,
             conversationId,
             environmentId: effectiveSandboxEnvironmentId

@@ -765,14 +765,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const organizationId = RequestContext.getOrganizationId() ?? null
+        const runtimeUserId = RequestContext.currentUserId()
+        const runtimeWorkspaceCatalog = options.projectId
+            ? 'projects'
+            : xpert.workspaceDataScope === 'user'
+              ? 'user-xperts'
+              : 'xperts'
+        const runtimeWorkspaceScopeId = options.projectId ?? xpert.id
         const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
             tenantId: xpert.tenantId,
             organizationId,
-            userId: RequestContext.currentUserId(),
+            userId: runtimeUserId,
             workspaceId: xpert.workspaceId,
             projectId: options.projectId,
             xpertId: xpert.id,
+            catalog: runtimeWorkspaceCatalog,
+            scopeId: runtimeWorkspaceScopeId,
+            isolateByUser: runtimeWorkspaceCatalog === 'user-xperts',
             xpertName: xpert.name,
             conversationId: options.conversationId,
             threadId: thread_id,
@@ -785,12 +795,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
             tenantId: xpert.tenantId,
             organizationId,
-            userId: RequestContext.currentUserId(),
+            userId: runtimeUserId,
             workspaceId: xpert.workspaceId,
             projectId: options.projectId,
             conversationId: options.conversationId,
             threadId: thread_id,
             xpertId: xpert.id,
+            workspaceDataScope: xpert.workspaceDataScope,
             xpertFeatures: resolveRuntimeXpert(xpert as IXpert, Boolean(options?.isDraft)).features ?? null,
             agentKey,
             knowledgebaseIds: agent.knowledgebaseIds,

@@ -168,6 +168,7 @@ describe('XpertAgentInvokeHandler', () => {
                 'agent-1',
                 {
                     id: 'xpert-1',
+                    workspaceDataScope: 'user',
                     features: {}
                 } as any,
                 {
@@ -216,6 +217,7 @@ describe('XpertAgentInvokeHandler', () => {
                 'agent-1',
                 {
                     id: 'xpert-1',
+                    workspaceDataScope: 'user',
                     features: {}
                 } as any,
                 {
@@ -260,6 +262,7 @@ describe('XpertAgentInvokeHandler', () => {
             userId: 'user-1',
             provider: undefined,
             xpertId: 'xpert-1',
+            workspaceDataScope: 'user',
             projectId: undefined,
             conversationId: undefined,
             environmentId: undefined
@@ -610,6 +613,7 @@ describe('XpertAgentInvokeHandler', () => {
             userId: 'user-1',
             provider: 'local-shell-sandbox',
             xpertId: 'xpert-1',
+            workspaceDataScope: undefined,
             projectId: undefined,
             conversationId: undefined,
             environmentId: 'sandbox-env-1'

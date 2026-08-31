@@ -1,11 +1,13 @@
-import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { GetFileUnderstandingStatusQuery, ListProjectFilesQuery, SearchFileChunksQuery } from '../../file-understanding'
+import { ForbiddenException } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ResolveAuthorizedFileAssetQuery, SearchFileChunksQuery } from '../../file-understanding'
 import { VolumeHandle } from '../volume'
 import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtime-capability.service'
 
-describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
+describe('WorkspaceFilesRuntimeCapabilityService', () => {
     const roots: string[] = []
 
     afterEach(async () => {
@@ -96,15 +98,20 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         await mkdir(path.dirname(path.join(serverRoot, relativePath)), { recursive: true })
         await writeFile(path.join(serverRoot, relativePath), Buffer.from('crown-chest'))
         const fileAsset = conversationFileAsset(relativePath)
+        const expectedLocator =
+            _label === 'FileAsset id' ? { fileAssetId: fileAsset.id } : { storageFileId: fileAsset.storageFileId }
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query.fileAssetId === fileAsset.id || query.storageFileId === fileAsset.storageFileId) {
-                    return Promise.resolve(fileAsset)
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    if (JSON.stringify(query.input.locator) === JSON.stringify(expectedLocator)) {
+                        return Promise.resolve({ asset: fileAsset })
+                    }
+                    return Promise.reject(new ForbiddenException())
                 }
                 return Promise.resolve(null)
             })
         }
-        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const service = createService(serverRoot, '/host/project-1', { queryBus })
         const scoped = service.createScopedApi({
             tenantId: 'tenant-1',
             organizationId: 'organization-1',
@@ -117,14 +124,31 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             filePath: relativePath,
             buffer: Buffer.from('crown-chest')
         })
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    locator: expectedLocator,
+                    authority: { kind: 'conversation', conversationId: 'conversation-1' },
+                    operation: 'read'
+                })
+            })
+        )
     })
 
-    it('rejects a FileAsset handle attached to another conversation', async () => {
+    it('uses the centrally authorized conversation link instead of mutable FileAsset scope fields', async () => {
         const serverRoot = await temporaryRoot()
         const relativePath = 'sessions/conversation-1/files/8d70766b-c87b-465e-b06c-c900eb18f79a/crown-chest.png'
-        const fileAsset = conversationFileAsset(relativePath)
-        const queryBus = { execute: jest.fn().mockResolvedValue(fileAsset) }
-        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const fileAsset = {
+            ...conversationFileAsset(relativePath),
+            conversationId: 'forged-conversation',
+            projectId: 'forged-project'
+        }
+        await mkdir(path.dirname(path.join(serverRoot, relativePath)), { recursive: true })
+        await writeFile(path.join(serverRoot, relativePath), Buffer.from('crown-chest'))
+        const queryBus = {
+            execute: jest.fn().mockResolvedValue({ asset: fileAsset })
+        }
+        const service = createService(serverRoot, '/host/project-1', { queryBus })
         const scoped = service.createScopedApi({
             tenantId: 'tenant-1',
             organizationId: 'organization-1',
@@ -133,7 +157,17 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             conversationId: 'conversation-2'
         })
 
-        await expect(scoped.readRuntimeBuffer(fileAsset.id)).rejects.toThrow('Workspace file not found')
+        await expect(scoped.readRuntimeBuffer(fileAsset.id)).resolves.toMatchObject({
+            filePath: relativePath,
+            buffer: Buffer.from('crown-chest')
+        })
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    authority: { kind: 'conversation', conversationId: 'conversation-2' }
+                })
+            })
+        )
     })
 
     it('lists and searches only chunks from a visible Project FileAsset', async () => {
@@ -141,11 +175,8 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const fileAssetId = '8d70766b-c87b-465e-b06c-c900eb18f79a'
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query instanceof GetFileUnderstandingStatusQuery) {
-                    return Promise.resolve({ fileAssetId, status: 'ready' })
-                }
-                if (query instanceof ListProjectFilesQuery) {
-                    return Promise.resolve([{ id: fileAssetId }])
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return Promise.resolve({ asset: { id: fileAssetId } })
                 }
                 if (query instanceof SearchFileChunksQuery) {
                     return Promise.resolve([
@@ -161,7 +192,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
                 return Promise.resolve([])
             })
         }
-        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const service = createService(serverRoot, '/host/project-1', { queryBus })
 
         await expect(
             service.searchUnderstandingChunks({
@@ -182,7 +213,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             }
         ])
 
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListProjectFilesQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(SearchFileChunksQuery))
     })
 
@@ -190,16 +221,13 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const serverRoot = await temporaryRoot()
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query instanceof GetFileUnderstandingStatusQuery) {
-                    return Promise.resolve({ fileAssetId: 'file-1', status: 'ready' })
-                }
-                if (query instanceof ListProjectFilesQuery) {
-                    return Promise.resolve([])
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return Promise.reject(new ForbiddenException())
                 }
                 return Promise.resolve([])
             })
         }
-        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const service = createService(serverRoot, '/host/project-1', { queryBus })
 
         await expect(
             service.listUnderstandingChunks({
@@ -210,7 +238,230 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         ).rejects.toThrow('not found in the current workspace')
     })
 
-    function createService(serverRoot: string, hostRoot: string, queryBus?: { execute: jest.Mock }) {
+    it('rejects a middleware workspace request that supplies another tenant', async () => {
+        const tenantSpy = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-actor')
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-actor')
+        const service = createService(await temporaryRoot(), '/host/project-1')
+
+        try {
+            await expect(
+                service.readBuffer({
+                    tenantId: 'tenant-victim',
+                    userId: 'user-actor',
+                    catalog: 'users',
+                    scopeId: 'user-actor',
+                    filePath: 'private.txt'
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        } finally {
+            tenantSpy.mockRestore()
+            userSpy.mockRestore()
+        }
+    })
+
+    it('rejects a middleware workspace request for another user catalog', async () => {
+        const tenantSpy = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-actor')
+        const service = createService(await temporaryRoot(), '/host/project-1')
+
+        try {
+            await expect(
+                service.readBuffer({
+                    tenantId: 'tenant-1',
+                    userId: 'user-victim',
+                    catalog: 'users',
+                    scopeId: 'user-victim',
+                    filePath: 'private.txt'
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        } finally {
+            tenantSpy.mockRestore()
+            userSpy.mockRestore()
+        }
+    })
+
+    it('rejects a middleware user-Xpert request that supplies another user', async () => {
+        const tenantSpy = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-actor')
+        const service = createService(await temporaryRoot(), '/host/project-1')
+
+        try {
+            await expect(
+                service.readBuffer({
+                    tenantId: 'tenant-1',
+                    userId: 'user-victim',
+                    catalog: 'user-xperts',
+                    scopeId: 'xpert-1',
+                    xpertId: 'xpert-1',
+                    filePath: 'private.txt'
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        } finally {
+            tenantSpy.mockRestore()
+            userSpy.mockRestore()
+        }
+    })
+
+    it('keeps two users on the same user-scoped Xpert in distinct user-Xpert volumes', async () => {
+        const commandBus = successfulUploadCommandBus('drafts/report.txt')
+        const service = createService(await temporaryRoot(), '/host/xpert-1', { commandBus })
+        const userA = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-a',
+            xpertId: 'xpert-1',
+            catalog: 'user-xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: true
+        })
+        const userB = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-b',
+            xpertId: 'xpert-1',
+            catalog: 'user-xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: true
+        })
+
+        await userA.uploadBuffer({ originalName: 'a.txt', buffer: Buffer.from('a') })
+        await userB.uploadBuffer({ originalName: 'b.txt', buffer: Buffer.from('b') })
+
+        const targets = commandBus.execute.mock.calls.map(([command]) => command.input.targets[0])
+        expect(targets).toEqual([
+            expect.objectContaining({ catalog: 'user-xperts', xpertId: 'xpert-1', userId: 'user-a' }),
+            expect.objectContaining({ catalog: 'user-xperts', xpertId: 'xpert-1', userId: 'user-b' })
+        ])
+    })
+
+    it.each([
+        ['Project runtime', { projectId: 'project-1', xpertId: 'xpert-1' }, { catalog: 'xperts', xpertId: 'xpert-2' }],
+        [
+            'user-Xpert runtime',
+            {
+                xpertId: 'xpert-1',
+                catalog: 'user-xperts' as const,
+                scopeId: 'xpert-1',
+                isolateByUser: true
+            },
+            { catalog: 'projects', projectId: 'project-2' }
+        ]
+    ])('does not let plugin input override its host-bound %s scope', async (_label, defaults, override) => {
+        const serverRoot = await temporaryRoot()
+        await writeFile(path.join(serverRoot, 'private.txt'), 'private')
+        const service = createService(serverRoot, '/host/runtime')
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            ...defaults
+        })
+
+        await expect(scoped.readBuffer({ filePath: 'private.txt' })).resolves.toMatchObject({
+            filePath: 'private.txt',
+            buffer: Buffer.from('private')
+        })
+        await expect(
+            scoped.readBuffer({
+                filePath: 'private.txt',
+                ...override
+            } as never)
+        ).rejects.toThrow('outside the current execution scope')
+    })
+
+    it('rejects a member upload resolved from a Project scopeId before writing', async () => {
+        const serverRoot = await temporaryRoot()
+        const commandBus = { execute: jest.fn() }
+        const projectAccessService = {
+            assertCanEdit: jest.fn().mockRejectedValue(new ForbiddenException('Project editor access is required'))
+        }
+        const service = createService(serverRoot, '/host/project-1', { commandBus, projectAccessService })
+
+        await expect(
+            service.uploadBuffer({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                catalog: 'projects',
+                scopeId: 'project-1',
+                originalName: 'report.docx',
+                buffer: Buffer.from('docx')
+            })
+        ).rejects.toThrow('Project editor access is required')
+
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('rejects a member delete before mutating the Project volume', async () => {
+        const serverRoot = await temporaryRoot()
+        await writeFile(path.join(serverRoot, 'shared.txt'), 'keep')
+        const projectAccessService = {
+            assertCanEdit: jest.fn().mockRejectedValue(new ForbiddenException('Project editor access is required'))
+        }
+        const service = createService(serverRoot, '/host/project-1', { projectAccessService })
+
+        await expect(service.deleteFile(reference('shared.txt'))).rejects.toThrow('Project editor access is required')
+
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+        await expect(readFile(path.join(serverRoot, 'shared.txt'), 'utf8')).resolves.toBe('keep')
+    })
+
+    it('allows an editor runtime write with one Project edit check', async () => {
+        const serverRoot = await temporaryRoot()
+        const commandBus = successfulUploadCommandBus('exports/report.txt')
+        const projectAccessService = { assertCanEdit: jest.fn().mockResolvedValue({}) }
+        const service = createService(serverRoot, '/host/project-1', { commandBus, projectAccessService })
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            workspaceRoot: '/workspace'
+        })
+
+        await expect(
+            scoped.writeRuntimeBuffer({
+                path: '/workspace/exports/report.txt',
+                originalName: 'report.txt',
+                buffer: Buffer.from('report')
+            })
+        ).resolves.toMatchObject({
+            filePath: 'exports/report.txt',
+            reference: { projectId: 'project-1' }
+        })
+
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledTimes(1)
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not request Project edit access for a non-Project upload', async () => {
+        const serverRoot = await temporaryRoot()
+        const commandBus = successfulUploadCommandBus('exports/report.txt')
+        const projectAccessService = { assertCanEdit: jest.fn().mockResolvedValue({}) }
+        const service = createService(serverRoot, '/host/project-1', { commandBus, projectAccessService })
+
+        await expect(
+            service.uploadBuffer({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                catalog: 'xperts',
+                scopeId: 'xpert-1',
+                xpertId: 'xpert-1',
+                originalName: 'report.txt',
+                buffer: Buffer.from('report')
+            })
+        ).resolves.toMatchObject({ filePath: 'exports/report.txt', catalog: 'xperts' })
+
+        expect(projectAccessService.assertCanEdit).not.toHaveBeenCalled()
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    function createService(
+        serverRoot: string,
+        hostRoot: string,
+        options: {
+            commandBus?: { execute: jest.Mock }
+            queryBus?: { execute: jest.Mock }
+            projectAccessService?: { assertCanEdit: jest.Mock }
+        } = {}
+    ) {
         const volume = new VolumeHandle(
             { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1', userId: 'user-1' },
             serverRoot,
@@ -218,10 +469,26 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             'http://localhost/files'
         )
         return new WorkspaceFilesRuntimeCapabilityService(
-            { execute: jest.fn() },
+            options.commandBus ?? { execute: jest.fn() },
             { resolve: jest.fn().mockReturnValue(volume) },
-            queryBus
+            options.projectAccessService ?? { assertCanEdit: jest.fn().mockResolvedValue({}) },
+            options.queryBus
         )
+    }
+
+    function successfulUploadCommandBus(filePath: string) {
+        return {
+            execute: jest.fn().mockResolvedValue({
+                status: 'success',
+                destinations: [
+                    {
+                        kind: 'volume',
+                        status: 'success',
+                        path: filePath
+                    }
+                ]
+            })
+        }
     }
 
     function conversationFileAsset(relativePath: string) {

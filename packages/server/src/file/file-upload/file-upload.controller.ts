@@ -10,7 +10,10 @@ import { UploadFileCommand } from './upload-file.command'
 export class FileUploadController {
 	constructor(private readonly commandBus: CommandBus) {}
 
-	@ApiOperation({ summary: 'Upload a file to one or more destinations' })
+	@ApiOperation({
+		summary:
+			'Upload a file to server-managed storage. Multi-target, Volume, and Sandbox uploads are reserved for trusted server commands.'
+	})
 	@ApiResponse({
 		status: 200,
 		description: 'The file has been successfully uploaded'
@@ -27,8 +30,20 @@ export class FileUploadController {
 		}
 
 		const targets = this.parseJson<IUploadFileTarget[]>(targetsValue, 'targets')
-		if (!Array.isArray(targets) || !targets.length) {
-			throw new BadRequestException('At least one upload target is required')
+		if (!Array.isArray(targets) || targets.length !== 1) {
+			throw new BadRequestException('Exactly one upload target is required')
+		}
+		const [target] = targets
+		if (
+			!target ||
+			typeof target !== 'object' ||
+			Array.isArray(target) ||
+			target.kind !== 'storage' ||
+			Object.keys(target).some((key) => key !== 'kind')
+		) {
+			throw new BadRequestException(
+				'Public file uploads support only the server-managed storage target without a client-selected locator'
+			)
 		}
 
 		return this.commandBus.execute(
@@ -37,7 +52,7 @@ export class FileUploadController {
 					kind: 'multipart',
 					file
 				},
-				targets,
+				targets: [{ kind: 'storage' }],
 				metadata: metadataValue ? this.parseJson<Record<string, any>>(metadataValue, 'metadata') : undefined
 			})
 		)

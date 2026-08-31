@@ -1,7 +1,6 @@
 import {
     AIPermissionsEnum,
     IKnowledgebase,
-    IStorageFile,
     IUser,
     IXpertProject,
     IXpertProjectTaskConversation,
@@ -53,6 +52,7 @@ import { XpertProjectMembership } from './entities/project-membership.entity'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { XpertProjectAccessService } from './services/project-access.service'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
+import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { t } from 'i18next'
 
 @Injectable()
@@ -669,9 +669,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const project = await this.findOne(id, { relations: ['attachments'] })
         const existingAttachmentIds = new Set(project.attachments.map((attachment) => attachment.id))
 
-        const newAttachments = files
-            .filter((fileId) => !existingAttachmentIds.has(fileId))
-            .map((fileId) => ({ id: fileId }) as IStorageFile)
+        const newAttachmentIds = files.filter((fileId) => !existingAttachmentIds.has(fileId))
+        const newAttachments = await Promise.all(
+            newAttachmentIds.map((fileId) => this.queryBus.execute(new GetOwnedStorageFileQuery(fileId)))
+        )
 
         project.attachments = [...project.attachments, ...newAttachments]
         await this.repository.save(project)

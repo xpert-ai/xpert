@@ -32,11 +32,35 @@ jest.mock('../shared/agent/middleware-runtime.service', () => ({
     AgentMiddlewareRuntimeService: class AgentMiddlewareRuntimeService {}
 }))
 
+jest.mock('../shared/volume', () => ({
+    resolveXpertDataVolumeScope: (input: {
+        tenantId: string
+        userId?: string
+        xpertId: string
+        workspaceDataScope?: string
+    }) =>
+        input.workspaceDataScope === 'user'
+            ? {
+                  tenantId: input.tenantId,
+                  userId: input.userId,
+                  catalog: 'user-xperts',
+                  xpertId: input.xpertId
+              }
+            : {
+                  tenantId: input.tenantId,
+                  userId: input.userId,
+                  catalog: 'xperts',
+                  xpertId: input.xpertId,
+                  isolateByUser: false
+              }
+}))
+
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     AgentMiddlewareRegistry: class AgentMiddlewareRegistry {},
     RequestContext: {
         currentTenantId: jest.fn().mockReturnValue('tenant-1'),
-        currentUserId: jest.fn().mockReturnValue('user-1')
+        currentUserId: jest.fn().mockReturnValue('user-1'),
+        getOrganizationId: jest.fn().mockReturnValue('org-1')
     }
 }))
 
@@ -64,12 +88,17 @@ describe('XpertAgentService', () => {
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let agentMiddlewareRuntimeService: {
+        createScopedApi: jest.Mock
         api: {
             createModelClient: jest.Mock
             wrapWorkflowNodeExecution: jest.Mock
         }
     }
     let service: XpertAgentService
+    let scopedRuntime: {
+        createModelClient: jest.Mock
+        wrapWorkflowNodeExecution: jest.Mock
+    }
 
     beforeEach(() => {
         commandBus = {
@@ -83,7 +112,12 @@ describe('XpertAgentService', () => {
                 }
             })
         }
+        scopedRuntime = {
+            createModelClient: jest.fn(),
+            wrapWorkflowNodeExecution: jest.fn()
+        }
         agentMiddlewareRuntimeService = {
+            createScopedApi: jest.fn().mockReturnValue(scopedRuntime),
             api: {
                 createModelClient: jest.fn(),
                 wrapWorkflowNodeExecution: jest.fn()
@@ -309,6 +343,7 @@ describe('XpertAgentService', () => {
         queryBus.execute.mockResolvedValueOnce({
             id: 'xpert-1',
             workspaceId: 'workspace-1',
+            workspaceDataScope: 'user',
             features: {
                 sandbox: {
                     enabled: true
@@ -336,14 +371,25 @@ describe('XpertAgentService', () => {
             expect.objectContaining({
                 xpertId: 'xpert-1',
                 workspaceId: 'workspace-1',
+                workspaceDataScope: 'user',
                 xpertFeatures: {
                     sandbox: {
                         enabled: true
                     }
                 },
-                runtime: agentMiddlewareRuntimeService.api
+                runtime: scopedRuntime
             })
         )
+        expect(agentMiddlewareRuntimeService.createScopedApi).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            catalog: 'user-xperts',
+            scopeId: 'xpert-1',
+            xpertId: 'xpert-1',
+            isolateByUser: true
+        })
     })
 
     it('loads draft features for middleware tool test requests', async () => {
@@ -365,6 +411,7 @@ describe('XpertAgentService', () => {
         queryBus.execute.mockResolvedValueOnce({
             id: 'xpert-1',
             workspaceId: 'workspace-1',
+            workspaceDataScope: 'user',
             features: {
                 sandbox: {
                     enabled: true
@@ -385,12 +432,22 @@ describe('XpertAgentService', () => {
             expect.objectContaining({
                 xpertId: 'xpert-1',
                 workspaceId: 'workspace-1',
+                workspaceDataScope: 'user',
                 xpertFeatures: {
                     sandbox: {
                         enabled: true
                     }
                 },
-                runtime: agentMiddlewareRuntimeService.api
+                runtime: scopedRuntime
+            })
+        )
+        expect(agentMiddlewareRuntimeService.createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1',
+                xpertId: 'xpert-1',
+                userId: 'user-1',
+                isolateByUser: true
             })
         )
         expect(invoke).toHaveBeenCalledWith({

@@ -1,4 +1,11 @@
-import { BadRequestException, Inject, Injectable, InternalServerErrorException, Optional } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    Optional
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
@@ -30,10 +37,8 @@ import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-cor
 import {
     CreateWorkspaceFileAssetCommand,
     EnqueueFileParseCommand,
-    GetFileAssetByStorageFileQuery,
-    GetFileAssetQuery,
     GetFileUnderstandingStatusQuery,
-    ListProjectFilesQuery,
+    ResolveAuthorizedFileAssetQuery,
     SearchFileChunksQuery,
     ValidateFileUnderstandingReferencesQuery,
     isWorkspaceFileCatalog,
@@ -44,6 +49,12 @@ import {
     type FileChunk,
     type WorkspaceVolumeScopeResolution
 } from '../../file-understanding'
+import type {
+    FileAssetAuthority,
+    FileAssetLocator,
+    FileAssetOperation
+} from '../../file-understanding/file-asset-access.service'
+import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
@@ -83,6 +94,8 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         private readonly commandBus: Pick<CommandBus, 'execute'>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
+        @Inject(XpertProjectAccessService)
+        private readonly projectAccessService: Pick<XpertProjectAccessService, 'assertCanEdit'>,
         @Optional()
         @Inject(QueryBus)
         private readonly queryBus?: Pick<QueryBus, 'execute'>
@@ -96,22 +109,23 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
      */
     createScopedApi(defaults: WorkspaceFilesRuntimeDefaults): WorkspaceFilesApi {
         return {
-            uploadBuffer: (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
-            understandFile: (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
-            getUnderstandingStatus: (input) => this.getUnderstandingStatus(applyRuntimeScopeDefaults(input, defaults)),
-            retryUnderstanding: (input) => this.retryUnderstanding(applyRuntimeScopeDefaults(input, defaults)),
-            validateUnderstandingReferences: (input) =>
+            uploadBuffer: async (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
+            understandFile: async (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
+            getUnderstandingStatus: async (input) =>
+                this.getUnderstandingStatus(applyRuntimeScopeDefaults(input, defaults)),
+            retryUnderstanding: async (input) => this.retryUnderstanding(applyRuntimeScopeDefaults(input, defaults)),
+            validateUnderstandingReferences: async (input) =>
                 this.validateUnderstandingReferences(applyRuntimeScopeDefaults(input, defaults)),
-            listUnderstandingChunks: (input) =>
+            listUnderstandingChunks: async (input) =>
                 this.listUnderstandingChunks(applyRuntimeScopeDefaults(input, defaults)),
-            searchUnderstandingChunks: (input) =>
+            searchUnderstandingChunks: async (input) =>
                 this.searchUnderstandingChunks(applyRuntimeScopeDefaults(input, defaults)),
-            resolveFile: (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
-            readBuffer: (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
-            deleteFile: (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
-            resolveRuntimeReference: (input) => this.resolveRuntimeReferenceWithDefaults(input, defaults),
-            readRuntimeBuffer: (input) => this.readRuntimeBufferWithDefaults(input, defaults),
-            writeRuntimeBuffer: (input) => this.writeRuntimeBufferWithDefaults(input, defaults)
+            resolveFile: async (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
+            readBuffer: async (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
+            deleteFile: async (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
+            resolveRuntimeReference: async (input) => this.resolveRuntimeReferenceWithDefaults(input, defaults),
+            readRuntimeBuffer: async (input) => this.readRuntimeBufferWithDefaults(input, defaults),
+            writeRuntimeBuffer: async (input) => this.writeRuntimeBufferWithDefaults(input, defaults)
         }
     }
 
@@ -122,6 +136,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         const originalName =
             normalizeOptionalString(input.originalName) ?? normalizeOptionalString(input.fileName) ?? 'workspace-file'
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
+        await this.assertCanMutateVolume(volumeScope)
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -215,6 +230,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
 
     async getUnderstandingStatus(input: WorkspaceUnderstandingStatusInput): Promise<WorkspaceUnderstandingStatus> {
         const queryBus = this.requireQueryBus()
+        await this.assertUnderstandingAssetVisible(input, 'read')
         const status = await queryBus.execute(
             new GetFileUnderstandingStatusQuery(input.fileAssetId, this.resolveUnderstandingScope(input))
         )
@@ -234,6 +250,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         ) {
             throw new BadRequestException('Only failed or unavailable file understanding can be retried')
         }
+        await this.assertUnderstandingAssetVisible(input, 'parse')
         await this.commandBus.execute(new EnqueueFileParseCommand(input.fileAssetId))
         return this.getUnderstandingStatus(input)
     }
@@ -245,6 +262,11 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             throw new BadRequestException('references must contain between 1 and 120 items')
         }
         const excerptLength = Math.min(Math.max(input.excerptLength ?? 320, 80), 800)
+        await Promise.all(
+            [...new Set(input.references.map((reference) => reference.fileAssetId))].map((fileAssetId) =>
+                this.assertUnderstandingAssetVisible({ ...input, fileAssetId }, 'read')
+            )
+        )
         return this.requireQueryBus().execute(
             new ValidateFileUnderstandingReferencesQuery(
                 input.references,
@@ -397,6 +419,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
     async deleteFile(input: WorkspaceFileReference): Promise<void> {
         const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
         const { volumeScope } = this.resolveVolumeScope(input)
+        await this.assertCanMutateVolume(volumeScope)
         const client = new VolumeSubtreeClient(this.volumeClient.resolve(volumeScope), { allowRootWorkspace: true })
         await client.deleteFile('', filePath)
     }
@@ -457,18 +480,11 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             return normalizeRuntimeWorkspaceFilePath(value, defaults)
         }
 
-        const fileAsset =
-            (await this.queryBus
-                .execute<GetFileAssetQuery, FileAsset | null>(new GetFileAssetQuery(raw))
-                .catch(() => null)) ??
-            (await this.queryBus
-                .execute<GetFileAssetByStorageFileQuery, FileAsset | null>(new GetFileAssetByStorageFileQuery(raw))
-                .catch(() => null))
+        const fileAsset = await this.resolveAuthorizedRuntimeFileAsset(raw, defaults)
         if (!fileAsset) {
             return normalizeRuntimeWorkspaceFilePath(value, defaults)
         }
 
-        this.assertRuntimeFileAssetScope(fileAsset, defaults)
         const relativePath = resolveFileAssetWorkspaceRelativePath(fileAsset)
         if (!relativePath) {
             throw new BadRequestException('Workspace file not found')
@@ -476,24 +492,25 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         return normalizeRuntimeWorkspaceFilePath(relativePath, defaults)
     }
 
-    private assertRuntimeFileAssetScope(fileAsset: FileAsset, defaults: WorkspaceFilesRuntimeDefaults) {
-        const tenantId = normalizeOptionalString(defaults.tenantId) ?? RequestContext.currentTenantId()
-        const organizationId = defaults.organizationId ?? RequestContext.getOrganizationId() ?? null
-        const userId = normalizeOptionalString(defaults.userId) ?? RequestContext.currentUserId()
-        const projectId = normalizeOptionalString(defaults.projectId)
-        const xpertId = normalizeOptionalString(defaults.xpertId)
-        const conversationId = normalizeOptionalString(defaults.conversationId)
-        const scopeMismatch =
-            !tenantId ||
-            fileAsset.tenantId !== tenantId ||
-            (fileAsset.organizationId ?? null) !== organizationId ||
-            Boolean(userId && fileAsset.userId && fileAsset.userId !== userId) ||
-            Boolean(projectId && fileAsset.projectId !== projectId) ||
-            Boolean(xpertId && fileAsset.xpertId !== xpertId) ||
-            Boolean(conversationId && fileAsset.conversationId !== conversationId)
-        if (scopeMismatch) {
-            throw new BadRequestException('Workspace file not found')
+    private async resolveAuthorizedRuntimeFileAsset(raw: string, defaults: WorkspaceFilesRuntimeDefaults) {
+        const authority = this.resolveFileAssetAuthority(defaults)
+        const locators: FileAssetLocator[] = [{ fileAssetId: raw }, { storageFileId: raw }]
+        for (const locator of locators) {
+            try {
+                const authorized = await this.requireQueryBus().execute(
+                    new ResolveAuthorizedFileAssetQuery({ locator, authority, operation: 'read' })
+                )
+                if (authorized?.asset) {
+                    return authorized.asset
+                }
+            } catch (error) {
+                if (!(error instanceof ForbiddenException)) {
+                    throw error
+                }
+                // Bare UUID locators are backwards compatible with both FileAsset and StorageFile ids.
+            }
         }
+        return null
     }
 
     /**
@@ -578,15 +595,36 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         catalog: WorkspaceFile['catalog']
         scopeId?: string
     } {
-        const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
+        const requestedTenantId = normalizeOptionalString(input.tenantId)
+        const actorTenantId = RequestContext.currentTenantId()
+        if (requestedTenantId && actorTenantId && requestedTenantId !== actorTenantId) {
+            throw new ForbiddenException('Workspace file tenant is outside the current actor scope')
+        }
+        const tenantId = actorTenantId ?? requestedTenantId
         if (!tenantId) {
             throw new BadRequestException('tenantId is required for workspace file access')
         }
-        const userId = normalizeOptionalString(input.userId) ?? RequestContext.currentUserId()
         const catalog = normalizeOptionalString(input.catalog)
         if (catalog && !isWorkspaceFileCatalog(catalog)) {
             throw new BadRequestException(`Unsupported workspace file catalog: ${catalog}`)
         }
+        const actorUserId = RequestContext.currentUserId()
+        const requestedUserId = normalizeOptionalString(input.userId)
+        const requestedScopeId = normalizeOptionalString(input.scopeId)
+        if (
+            (catalog === 'users' || catalog === 'user-xperts') &&
+            actorUserId &&
+            (requestedUserId && requestedUserId !== actorUserId)
+        ) {
+            throw new ForbiddenException('Workspace user scope is outside the current actor scope')
+        }
+        if (catalog === 'users' && actorUserId && requestedScopeId && requestedScopeId !== actorUserId) {
+            throw new ForbiddenException('Workspace user scope is outside the current actor scope')
+        }
+        const userId =
+            (catalog === 'users' || catalog === 'user-xperts') && actorUserId
+                ? actorUserId
+                : (requestedUserId ?? actorUserId)
 
         const resolved = resolveWorkspaceVolumeScope(input, { tenantId, userId })
         if (!resolved) {
@@ -595,8 +633,24 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         return resolved
     }
 
+    private async assertCanMutateVolume(volumeScope: WorkspaceVolumeScopeResolution['volumeScope']) {
+        if (volumeScope.catalog !== 'projects') {
+            return
+        }
+        const projectId = normalizeOptionalString(volumeScope.projectId)
+        if (!projectId) {
+            throw new BadRequestException('projectId is required for Project workspace file mutation')
+        }
+        await this.projectAccessService.assertCanEdit(projectId)
+    }
+
     private resolveUnderstandingScope(input: WorkspaceFileScope) {
-        const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
+        const requestedTenantId = normalizeOptionalString(input.tenantId)
+        const actorTenantId = RequestContext.currentTenantId()
+        if (requestedTenantId && actorTenantId && requestedTenantId !== actorTenantId) {
+            throw new ForbiddenException('File understanding tenant is outside the current actor scope')
+        }
+        const tenantId = actorTenantId ?? requestedTenantId
         if (!tenantId) {
             throw new BadRequestException('tenantId is required for file understanding access')
         }
@@ -608,17 +662,30 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         }
     }
 
-    /** Normalize unauthorized Project assets to the same scoped not-found failure. */
-    private async assertUnderstandingAssetVisible(input: WorkspaceUnderstandingStatusInput) {
-        const scope = this.resolveUnderstandingScope(input)
-        await this.requireQueryBus().execute(new GetFileUnderstandingStatusQuery(input.fileAssetId, scope))
-        if (!scope.projectId) {
-            return
-        }
-        const files = await this.requireQueryBus().execute(new ListProjectFilesQuery(scope.projectId))
-        if (!files.some((file) => file.id === input.fileAssetId)) {
+    /** Normalize unauthorized assets to the same scoped not-found failure. */
+    private async assertUnderstandingAssetVisible(
+        input: WorkspaceUnderstandingStatusInput,
+        operation: FileAssetOperation = 'read'
+    ) {
+        try {
+            const authorized = await this.requireQueryBus().execute(
+                new ResolveAuthorizedFileAssetQuery({
+                    locator: { fileAssetId: input.fileAssetId },
+                    authority: this.resolveFileAssetAuthority(input),
+                    operation
+                })
+            )
+            if (!authorized?.asset) {
+                throw new Error('File asset access was not resolved')
+            }
+        } catch {
             throw new BadRequestException('File understanding asset was not found in the current workspace')
         }
+    }
+
+    private resolveFileAssetAuthority(input: object): FileAssetAuthority {
+        const conversationId = 'conversationId' in input ? normalizeOptionalString(input.conversationId) : undefined
+        return conversationId ? { kind: 'conversation', conversationId } : { kind: 'current-owner' }
     }
 
     /** Convert a persisted chunk to the bounded plugin-facing DTO. */
@@ -710,6 +777,19 @@ function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defau
         normalizeOptionalString(scoped.organizationId) ?? normalizeOptionalString(defaults.organizationId)
     scoped.userId = normalizeOptionalString(scoped.userId) ?? normalizeOptionalString(defaults.userId)
 
+    const boundScope = resolveBoundRuntimeWorkspaceScope(defaults)
+    if (boundScope) {
+        assertBoundRuntimeWorkspaceScope(scoped, boundScope)
+        scoped.catalog = boundScope.catalog
+        scoped.scopeId = boundScope.scopeId
+        scoped.projectId = boundScope.projectId
+        scoped.xpertId = boundScope.xpertId
+        scoped.knowledgeId = undefined
+        scoped.rootId = undefined
+        scoped.isolateByUser = boundScope.isolateByUser
+        return scoped
+    }
+
     if (!hasExplicitWorkspaceScope(scoped)) {
         const projectId = normalizeOptionalString(defaults.projectId)
         const xpertId = normalizeOptionalString(defaults.xpertId)
@@ -730,6 +810,71 @@ function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defau
     }
 
     return scoped
+}
+
+type BoundRuntimeWorkspaceScope = Pick<
+    WorkspaceFileScope,
+    'catalog' | 'scopeId' | 'projectId' | 'xpertId' | 'isolateByUser'
+> & {
+    catalog: 'projects' | 'xperts' | 'user-xperts'
+    scopeId: string
+}
+
+function resolveBoundRuntimeWorkspaceScope(defaults: WorkspaceFilesRuntimeDefaults): BoundRuntimeWorkspaceScope | null {
+    const projectId = normalizeOptionalString(defaults.projectId)
+    const xpertId = normalizeOptionalString(defaults.xpertId)
+    const requestedCatalog = normalizeOptionalString(defaults.catalog)
+    const requestedScopeId = normalizeOptionalString(defaults.scopeId)
+
+    if (projectId) {
+        if ((requestedCatalog && requestedCatalog !== 'projects') || (requestedScopeId && requestedScopeId !== projectId)) {
+            throw new BadRequestException('Workspace runtime Project scope is inconsistent')
+        }
+        return {
+            catalog: 'projects',
+            scopeId: projectId,
+            projectId,
+            xpertId,
+            isolateByUser: false
+        }
+    }
+
+    if (!xpertId) {
+        return null
+    }
+    const catalog = requestedCatalog ?? (defaults.isolateByUser ? 'user-xperts' : 'xperts')
+    if ((catalog !== 'xperts' && catalog !== 'user-xperts') || (requestedScopeId && requestedScopeId !== xpertId)) {
+        throw new BadRequestException('Workspace runtime Xpert scope is inconsistent')
+    }
+    return {
+        catalog,
+        scopeId: xpertId,
+        projectId: undefined,
+        xpertId,
+        isolateByUser: catalog === 'user-xperts'
+    }
+}
+
+function assertBoundRuntimeWorkspaceScope(scope: WorkspaceFileScope, bound: BoundRuntimeWorkspaceScope) {
+    const requestedCatalog = normalizeOptionalString(scope.catalog)
+    const requestedScopeId = normalizeOptionalString(scope.scopeId)
+    const requestedProjectId = normalizeOptionalString(scope.projectId)
+    const requestedXpertId = normalizeOptionalString(scope.xpertId)
+    const hasForeignScope = Boolean(
+        normalizeOptionalString(scope.knowledgeId) ||
+            normalizeOptionalString(scope.rootId) ||
+            (bound.catalog === 'projects' ? false : requestedProjectId)
+    )
+    if (
+        (requestedCatalog && requestedCatalog !== bound.catalog) ||
+        (requestedScopeId && requestedScopeId !== bound.scopeId) ||
+        (requestedProjectId && requestedProjectId !== bound.projectId) ||
+        (requestedXpertId && requestedXpertId !== bound.xpertId) ||
+        (typeof scope.isolateByUser === 'boolean' && scope.isolateByUser !== bound.isolateByUser) ||
+        hasForeignScope
+    ) {
+        throw new BadRequestException('Workspace file scope is outside the current execution scope')
+    }
 }
 
 function assertRuntimeScopeMatch(

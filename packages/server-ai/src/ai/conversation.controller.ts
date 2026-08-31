@@ -412,7 +412,7 @@ export class ConversationsController {
         @Query('limit') limit?: number,
         @Query('offset') offset?: number
     ) {
-        await this.ensureConversationAccess(conversationId)
+        const conversation = await this.ensureConversationAccess(conversationId)
         const result = await this.messageService.findAllInOrganizationOrTenant({
             where: { conversationId },
             relations: ['attachments', 'fileAssets'],
@@ -420,10 +420,13 @@ export class ConversationsController {
             take: limit,
             skip: offset
         })
-        return {
-            ...result,
-            items: result.items.map((item) => new ChatMessageDTO(item))
-        }
+        const items = await Promise.all(
+            result.items.map(
+                async (item) =>
+                    new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
+            )
+        )
+        return { ...result, items }
     }
 
     @HttpCode(HttpStatus.OK)
@@ -466,10 +469,13 @@ export class ConversationsController {
                   take: body.limit,
                   skip: body.offset
               })
-        return {
-            ...result,
-            items: result.items.map((item) => new ChatMessageDTO(item))
-        }
+        const items = await Promise.all(
+            result.items.map(
+                async (item) =>
+                    new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
+            )
+        )
+        return { ...result, items }
     }
 
     @Post(':conversation_id/messages')
@@ -502,12 +508,12 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string
     ) {
-        await this.ensurePublicConversationAccess(conversationId)
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
         const message = await this.messageService.findOneInOrganizationOrTenant(messageId, {
             where: { conversationId },
             relations: ['attachments', 'fileAssets']
         })
-        return new ChatMessageDTO(message)
+        return new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(message, conversation.id))
     }
 
     @Patch(':conversation_id/messages/:message_id')

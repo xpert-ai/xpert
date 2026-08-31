@@ -140,6 +140,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             userId,
             provider: sandboxFeature?.provider,
             xpertId: workspaceXpertId,
+            workspaceDataScope: latestXpert.workspaceDataScope,
             projectId: options.projectId,
             conversationId: options.conversationId,
             environmentId: sandboxEnvironmentId

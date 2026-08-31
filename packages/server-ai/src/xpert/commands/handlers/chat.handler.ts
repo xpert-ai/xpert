@@ -274,11 +274,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             let followUpInput = request.message.input
-            let followUpXpert: IXpert | null = null
+            const followUpXpert = xpertId
+                ? await this.xpertService
+                      .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
+                      .catch(() => null)
+                : null
             if (request.mode === 'queue' && this.assistantModelSelectionService && xpertId) {
-                followUpXpert = await this.xpertService
-                    .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
-                    .catch(() => null)
                 if (followUpXpert) {
                     const runtimeXpert = figureOutXpert(followUpXpert, options?.isDraft)
                     const selection = await this.assistantModelSelectionService.resolveSelection(runtimeXpert, {
@@ -299,7 +300,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     conversationId: conversation.id,
                     threadId: activeThreadId,
                     projectId: options.projectId ?? conversation.projectId,
-                    xpertId
+                    xpertId,
+                    workspaceDataScope: followUpXpert?.workspaceDataScope
                 }
             })
             if (normalizedFollowUpInput.changed && normalizedFollowUpInput.input) {
@@ -386,11 +388,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     conversation.threadId
                 )
             }
-            followUpXpert ??= xpertId
-                ? await this.xpertService
-                      .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
-                      .catch(() => null)
-                : null
             await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpFiles, {
                 xpertId: followUpXpert?.id ?? xpertId,
                 projectId: followUpSandboxScope.projectId,
@@ -636,7 +633,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         conversationId: conversation.id,
                         threadId: activeThreadId,
                         projectId: options.projectId ?? resolveRequestProjectId(request) ?? conversation.projectId,
-                        xpertId: xpert.id
+                        xpertId: xpert.id,
+                        workspaceDataScope: xpert.workspaceDataScope
                     }
                 })
                 if (normalizedInput.changed && normalizedInput.input) {

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/server-core'
@@ -18,6 +18,7 @@ import {
 import { VOLUME_CLIENT, VolumeClient } from '../../../shared/volume'
 import { CreateWorkspaceFileAssetCommand } from '../create-workspace-file-asset.command'
 import { EnqueueFileParseCommand } from '../enqueue-file-parse.command'
+import { FileAssetAccessService } from '../../file-asset-access.service'
 
 @CommandHandler(CreateWorkspaceFileAssetCommand)
 export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWorkspaceFileAssetCommand> {
@@ -28,11 +29,50 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
         private readonly conversationFileLinkRepository: Repository<ConversationFileLink>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly fileAssetAccessService: FileAssetAccessService
     ) {}
 
     async execute(command: CreateWorkspaceFileAssetCommand) {
-        const input = command.input
+        const actorTenantId = RequestContext.currentTenantId()
+        const actorUserId = RequestContext.currentUserId()
+        if (
+            !actorTenantId ||
+            !actorUserId ||
+            (command.input.tenantId && command.input.tenantId !== actorTenantId) ||
+            (command.input.userId && command.input.userId !== actorUserId)
+        ) {
+            throw new ForbiddenException()
+        }
+        const conversation =
+            command.input.conversationId || command.input.threadId
+                ? await this.fileAssetAccessService.assertConversationAccess(
+                      {
+                          kind: 'conversation',
+                          conversationId: command.input.conversationId,
+                          threadId: command.input.threadId
+                      },
+                      'attach'
+                  )
+                : null
+        if (conversation) {
+            await this.fileAssetAccessService.assertConversationInputScope(conversation, command.input)
+            await this.fileAssetAccessService.assertCanCreateConversationAsset(conversation, 'understand')
+        } else {
+            await this.fileAssetAccessService.assertUnderstandingScope({
+                projectId: command.input.projectId,
+                xpertId: command.input.xpertId
+            })
+        }
+        const input: WorkspaceUnderstandFileInput = {
+            ...command.input,
+            tenantId: actorTenantId,
+            userId: actorUserId,
+            conversationId: conversation?.id ?? command.input.conversationId,
+            threadId: conversation?.threadId ?? command.input.threadId,
+            projectId: conversation?.projectId ?? command.input.projectId,
+            xpertId: conversation?.xpertId ?? command.input.xpertId
+        }
         const filePath = normalizeWorkspaceFilePath(input.filePath)
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
         const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
@@ -49,9 +89,9 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
         const size = typeof input.size === 'number' && Number.isFinite(input.size) ? input.size : stat.size
         const purpose = resolvePurpose(input.purpose)
         const parseMode = resolveParseMode(input.parseMode)
-        const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        const userId = normalizeOptionalString(input.userId) ?? RequestContext.currentUserId()
+        const tenantId = actorTenantId
+        const organizationId = conversation?.organizationId ?? RequestContext.getOrganizationId()
+        const userId = actorUserId
         const fileUrl =
             normalizeOptionalString(input.fileUrl) ?? normalizeOptionalString(input.url) ?? volume.publicUrl(filePath)
         const workspacePath = filePath
@@ -212,6 +252,8 @@ function resolveWorkspaceVolumeScopeError(
             return `projectId is required for project ${context}`
         case 'xperts':
             return `xpertId is required for xpert ${context}`
+        case 'user-xperts':
+            return `userId and xpertId are required for user-isolated xpert ${context}`
         case 'users':
             return `userId is required for user ${context}`
         case 'knowledges':

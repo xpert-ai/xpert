@@ -78,6 +78,7 @@ describe('SandboxConversationContextService', () => {
             projectId: null,
             tenantId: 'tenant-from-conversation',
             xpert: {
+                workspaceDataScope: 'user',
                 features: {
                     sandbox: {
                         enabled: true,
@@ -100,6 +101,7 @@ describe('SandboxConversationContextService', () => {
             userId: 'user-conversation-owner',
             provider: 'local-shell-sandbox',
             xpertId: 'xpert-1',
+            workspaceDataScope: 'user',
             projectId: null,
             conversationId: 'conversation-1',
             environmentId: null
@@ -133,6 +135,7 @@ describe('SandboxConversationContextService', () => {
             projectId: 'project-1',
             tenantId: 'tenant-1',
             xpert: {
+                workspaceDataScope: 'shared',
                 features: {
                     sandbox: {
                         enabled: true,
@@ -156,6 +159,7 @@ describe('SandboxConversationContextService', () => {
             userId: 'user-1',
             provider: 'local-shell-sandbox',
             xpertId: 'xpert-1',
+            workspaceDataScope: 'shared',
             projectId: null,
             conversationId: 'conversation-1',
             environmentId: 'sandbox-env-1'
@@ -184,6 +188,7 @@ describe('SandboxConversationContextService', () => {
             projectId: 'project-1',
             tenantId: 'tenant-1',
             xpert: {
+                workspaceDataScope: 'user',
                 features: {
                     sandbox: {
                         enabled: true,
@@ -203,6 +208,7 @@ describe('SandboxConversationContextService', () => {
             userId: 'user-1',
             provider: 'local-shell-sandbox',
             xpertId: 'xpert-1',
+            workspaceDataScope: 'user',
             projectId: 'project-1',
             conversationId: 'conversation-1',
             environmentId: null

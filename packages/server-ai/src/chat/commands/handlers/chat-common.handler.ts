@@ -35,7 +35,6 @@ import {
     IChatConversation,
     IChatMessage,
     IEnvironment,
-    IStorageFile,
     IXpert,
     IXpertAgent,
     IXpertAgentExecution,
@@ -87,6 +86,13 @@ import {
 import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
+import {
+    attachChatFileAssetsToConversation,
+    getChatMessageFiles,
+    normalizeChatHumanInputFiles,
+    toChatFileAssetReferences,
+    toLegacyChatStorageFileAttachments
+} from '../../../xpert/commands/handlers/chat-file-assets'
 import {
     Instruction,
     isChatModelWithBindTools,
@@ -145,7 +151,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         const { tenantId, organizationId, user, from: chatFrom } = command.options
         const userId = RequestContext.currentUserId()
         const languageCode = command.options.language || user.preferredLanguage || 'en-US'
-        const rawSendInput = request.action === 'send' ? request.message.input : null
+        let rawSendInput = request.action === 'send' ? request.message.input : null
         let input: TChatRequestHuman | null = hydratedRequest.action === 'send' ? hydratedRequest.message.input : null
         let projectId = request.action === 'send' ? request.projectId : undefined
         let checkpointId: string | undefined
@@ -155,15 +161,33 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
         if (request.action === 'follow_up') {
             const conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, ['messages', 'messages.attachments'])
+                new GetChatConversationQuery({ id: request.conversationId }, [
+                    'messages',
+                    'messages.attachments',
+                    'messages.fileAssets'
+                ])
             )
             if (!conversation) {
                 throw new Error(`Conversation "${request.conversationId}" not found`)
             }
 
-            const followUpInput = request.message.input
-            const hydratedFollowUpInput =
-                hydratedRequest.action === 'follow_up' ? hydratedRequest.message.input : followUpInput
+            let followUpInput = request.message.input
+            const normalizedFollowUp = await normalizeChatHumanInputFiles(followUpInput, {
+                commandBus: this.commandBus,
+                queryBus: this.queryBus,
+                context: {
+                    conversationId: conversation.id,
+                    threadId: conversation.threadId,
+                    projectId: conversation.projectId
+                }
+            })
+            if (normalizedFollowUp.changed && normalizedFollowUp.input) {
+                followUpInput = normalizedFollowUp.input
+            }
+            const hydratedFollowUpInput = hydrateHumanInput(followUpInput)
+            const followUpFiles = Array.isArray(followUpInput?.files) ? followUpInput.files : []
+            const followUpFileAssets = toChatFileAssetReferences(followUpFiles)
+            const followUpAttachments = toLegacyChatStorageFileAttachments(followUpFiles)
             const targetExecutionId =
                 request.target?.executionId ??
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
@@ -188,11 +212,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                               references
                           }
                         : {}),
-                    ...(followUpInput?.files
+                    ...(followUpAttachments.length
                         ? {
-                              attachments: followUpInput.files as IStorageFile[]
+                              attachments: followUpAttachments
                           }
                         : {}),
+                    ...(followUpFileAssets.length ? { fileAssets: followUpFileAssets } : {}),
                     executionId: targetExecutionId ?? undefined,
                     followUpMode: request.mode,
                     followUpStatus: 'pending',
@@ -204,6 +229,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     }
                 })
             )
+            await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpFiles, {
+                projectId: conversation.projectId
+            })
 
             return EMPTY
         }
@@ -220,7 +248,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 throw new Error('Conversation ID is required for confirm or reject operation')
             }
             conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, ['messages', 'messages.attachments'])
+                new GetChatConversationQuery({ id: request.conversationId }, [
+                    'messages',
+                    'messages.attachments',
+                    'messages.fileAssets'
+                ])
             )
             if (!conversation) {
                 throw new Error(`Conversation "${request.conversationId}" not found`)
@@ -281,10 +313,30 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             status: 'busy',
                             error: null
                         },
-                        ['messages', 'messages.attachments']
+                        ['messages', 'messages.attachments', 'messages.fileAssets']
                     )
                 )
                 projectId ??= conversation.projectId
+            }
+
+            if (request.action === 'send' && input) {
+                const normalizedInput = await normalizeChatHumanInputFiles(input, {
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    context: {
+                        conversationId: conversation.id,
+                        threadId: conversation.threadId,
+                        projectId: conversation.projectId ?? projectId
+                    }
+                })
+                if (normalizedInput.changed && normalizedInput.input) {
+                    input = normalizedInput.input
+                    rawSendInput = {
+                        ...(rawSendInput ?? {}),
+                        files: input.files
+                    } as TChatRequestHuman
+                    executionInputs = input
+                }
             }
 
             const persistedPendingFollowUpGroup =
@@ -334,9 +386,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                               references: userMessage.references
                           }
                         : {}),
-                    ...(userMessage.attachments?.length
+                    ...(getChatMessageFiles(userMessage).length
                         ? {
-                              files: userMessage.attachments
+                              files: getChatMessageFiles(userMessage)
                           }
                         : {})
                 } as TChatRequestHuman
@@ -378,6 +430,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 } else {
                     const persistedInput = rawSendInput ?? input
                     const references = normalizeReferences(persistedInput?.references)
+                    const persistedFiles = Array.isArray(persistedInput?.files) ? persistedInput.files : []
+                    const fileAssets = toChatFileAssetReferences(persistedFiles)
+                    const legacyAttachments = toLegacyChatStorageFileAttachments(persistedFiles)
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
                             role: 'human',
@@ -388,9 +443,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                                       references
                                   }
                                 : {}),
-                            attachments: persistedInput?.files as IStorageFile[]
+                            ...(legacyAttachments.length ? { attachments: legacyAttachments } : {}),
+                            ...(fileAssets.length ? { fileAssets } : {})
                         })
                     )
+                    await attachChatFileAssetsToConversation(this.commandBus, conversation, persistedFiles, {
+                        projectId: conversation.projectId ?? projectId
+                    })
                 }
             }
         }

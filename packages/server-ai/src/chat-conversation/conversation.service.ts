@@ -8,6 +8,7 @@ import {
     TFileDirectory
 } from '@xpert-ai/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import type { StorageFile } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -19,8 +20,12 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { resolveFileAssetWorkspaceRelativePath } from '../file-understanding/domain/workspace-file'
-import { GetFileAssetQuery } from '../file-understanding/queries'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import {
+    GetFileAssetByStorageFileQuery,
+    GetOwnedStorageFileQuery,
+    ResolveAuthorizedFileAssetQuery
+} from '../file-understanding/queries'
+import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { ChatConversation } from './conversation.entity'
@@ -471,12 +476,36 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     async getAttachments(id: string) {
-        const conversation = await this.findOne(id, { relations: ['attachments'] })
-        return conversation.attachments
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read', ['attachments'])
+        const attachments: StorageFile[] = []
+        for (const attachment of conversation.attachments ?? []) {
+            try {
+                const fileAsset = await this.queryBus.execute(new GetFileAssetByStorageFileQuery(attachment.id))
+                if (fileAsset?.id) {
+                    const authorized = await this.queryBus.execute(
+                        new ResolveAuthorizedFileAssetQuery({
+                            locator: { fileAssetId: fileAsset.id, storageFileId: attachment.id },
+                            authority: { kind: 'conversation', conversationId: conversation.id },
+                            operation: 'read'
+                        })
+                    )
+                    if (authorized.storageFile) {
+                        attachments.push(authorized.storageFile)
+                    }
+                } else {
+                    attachments.push(await this.queryBus.execute(new GetOwnedStorageFileQuery(attachment.id)))
+                }
+            } catch (error) {
+                if (!(error instanceof ForbiddenException)) {
+                    throw error
+                }
+            }
+        }
+        return attachments
     }
 
     async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
-        const conversation = await this.findOne(id)
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         return client.list(scopePath, {
             path,
@@ -485,11 +514,27 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     async readWorkspaceFile(id: string, filePath: string, fileAssetId?: string, metadataOnly = false): Promise<TFile> {
-        const conversation = await this.findOne(id)
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
         let resolvedFilePath = filePath.startsWith('/workspace/') ? filePath.slice('/workspace/'.length) : filePath
         if (fileAssetId) {
-            const fileAsset = await this.queryBus.execute(new GetFileAssetQuery(fileAssetId))
-            if (!fileAsset || fileAsset.conversationId !== conversation.id) {
+            let fileAsset
+            try {
+                fileAsset = (
+                    await this.queryBus.execute(
+                        new ResolveAuthorizedFileAssetQuery({
+                            locator: { fileAssetId },
+                            authority: { kind: 'conversation', conversationId: conversation.id },
+                            operation: 'read'
+                        })
+                    )
+                ).asset
+            } catch (error) {
+                if (error instanceof ForbiddenException) {
+                    throw new BadRequestException('Conversation file not found')
+                }
+                throw error
+            }
+            if (!fileAsset) {
                 throw new BadRequestException('Conversation file not found')
             }
             const workspaceRelativePath = resolveFileAssetWorkspaceRelativePath(fileAsset, filePath)
@@ -505,13 +550,14 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     async getWorkspaceFileDownload(id: string, filePath: string) {
-        const conversation = await this.findOne(id)
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         return client.getDownloadTarget(scopePath, filePath)
     }
 
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
-        const conversation = await this.findOne(id)
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
+        await this.assertCanMutateWorkspace(conversation)
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         return client.saveFile(scopePath, filePath, content)
     }
@@ -521,13 +567,15 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         folderPath: string,
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
-        const conversation = await this.findOne(id)
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
+        await this.assertCanMutateWorkspace(conversation)
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         return client.uploadFile(scopePath, folderPath, file)
     }
 
     async deleteWorkspaceFile(id: string, filePath: string): Promise<void> {
-        const conversation = await this.findOne(id)
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
+        await this.assertCanMutateWorkspace(conversation)
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         await client.deleteFile(scopePath, filePath)
     }
@@ -565,6 +613,21 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         }
 
         throw new BadRequestException('Non-project conversations require xpertId to access workspace files')
+    }
+
+    private async getAuthorizedWorkspaceConversation(
+        id: string,
+        operation: 'read' | 'contribute',
+        relations: string[] = []
+    ) {
+        await this.assertAccess(id, operation)
+        return this.findOne(id, { relations: Array.from(new Set(['xpert', ...relations])) })
+    }
+
+    private async assertCanMutateWorkspace(conversation: ChatConversation) {
+        if (conversation.projectId) {
+            await this.projectAccessService.assertCanEdit(conversation.projectId)
+        }
     }
 
     private async ensureInitialReadState(conversation: ChatConversation) {
@@ -796,12 +859,13 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     private createXpertVolumeHandle(conversation: ChatConversation) {
-        return this.volumeClient.resolve({
+        return this.volumeClient.resolve(
+            resolveXpertDataVolumeScope({
             tenantId: conversation.tenantId,
-            catalog: 'xperts',
             userId: conversation.createdById,
             xpertId: conversation.xpertId,
-            isolateByUser: false
-        })
+                workspaceDataScope: conversation.xpert?.workspaceDataScope
+            })
+        )
     }
 }

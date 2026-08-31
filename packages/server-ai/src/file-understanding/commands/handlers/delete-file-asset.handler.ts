@@ -14,6 +14,7 @@ import {
     FileEmbedding
 } from '../../entities'
 import { FileUnderstandingVectorService } from '../../file-understanding-vector.service'
+import { FileAssetAccessService } from '../../file-asset-access.service'
 import { DeleteFileAssetCommand } from '../delete-file-asset.command'
 import { normalizeRelativePath } from '../../../shared/file-upload-targets/utils'
 
@@ -33,11 +34,16 @@ export class DeleteFileAssetHandler implements ICommandHandler<DeleteFileAssetCo
         @InjectRepository(ConversationFileLink)
         private readonly conversationFileLinkRepository: Repository<ConversationFileLink>,
         private readonly storageFileService: StorageFileService,
-        private readonly fileVectorService: FileUnderstandingVectorService
+        private readonly fileVectorService: FileUnderstandingVectorService,
+        private readonly fileAssetAccessService: FileAssetAccessService
     ) {}
 
     async execute(command: DeleteFileAssetCommand) {
-        const asset = await this.fileAssetRepository.findOne({ where: { id: command.fileAssetId } })
+        const { asset } = await this.fileAssetAccessService.resolve({
+            locator: { fileAssetId: command.fileAssetId },
+            authority: { kind: 'current-owner' },
+            operation: 'delete'
+        })
         const pageImageStorageKeys = await this.listPageImageStorageKeys(command.fileAssetId)
         const storageProvider = await this.resolveStorageProvider(asset)
 

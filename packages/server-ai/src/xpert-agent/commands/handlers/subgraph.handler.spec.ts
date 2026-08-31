@@ -324,10 +324,6 @@ describe('subgraph steer follow-up pre-turn node handlers', () => {
         )
 
         const expectedMessageContent = [
-            'Attachment File: attachment',
-            '<file_content>',
-            'No local file path available.',
-            '</file_content>',
             'steer input 1',
             '',
             'Referenced content:',
@@ -558,6 +554,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 }
             })
         }
+        const createScopedApi = jest.fn().mockReturnValue({})
         const handler = new XpertAgentSubgraphHandler(
             null,
             commandBus as unknown as CommandBus,
@@ -565,7 +562,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             { t: jest.fn(), translate: jest.fn() } as never,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({})
+                createScopedApi
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
@@ -596,7 +593,8 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 {
                     id: 'xpert-1',
                     tenantId: 'tenant-1',
-                    workspaceId: 'workspace-1'
+                    workspaceId: 'workspace-1',
+                    workspaceDataScope: 'user'
                 },
                 {
                     isStart: true,
@@ -619,12 +617,28 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 }
             ),
             fallbackInvoke,
+            createScopedApi,
             handler,
             observedModelProfiles,
             primaryInvoke,
             replacementInvoke
         }
     }
+
+    it('binds a user-scoped Xpert middleware runtime to user-xperts', async () => {
+        const fixture = createFixture({ primarySupportsVision: true })
+
+        await fixture.handler.execute(fixture.command)
+
+        expect(fixture.createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1',
+                isolateByUser: true
+            })
+        )
+    })
 
     async function invokeGraph(fixture: ReturnType<typeof createFixture>) {
         const { graph } = await fixture.handler.execute(fixture.command)
