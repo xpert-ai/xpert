@@ -3,9 +3,10 @@ import { BaseMessage, isAIMessage, isHumanMessage, isToolMessage } from '@langch
 import { Injectable, Logger } from '@nestjs/common'
 import { FileMemoryRuntime, FileMemoryService } from './file-memory.service'
 import { decideFileMemoryWriteback } from './file-memory.writeback'
+import { createFileMemoryScopeKey, FileMemoryXpertScope } from './ports'
 
 export type FileMemoryWritebackSnapshot = {
-    xpert: { tenantId: string; id: string }
+    xpert: FileMemoryXpertScope
     runtime?: FileMemoryRuntime
     messages: BaseMessage[]
     conversationId?: string
@@ -27,7 +28,7 @@ export class FileMemoryWritebackRunner {
     constructor(private readonly fileMemoryService: FileMemoryService) {}
 
     enqueue(snapshot: FileMemoryWritebackSnapshot) {
-        const key = `${snapshot.xpert.tenantId}:${snapshot.xpert.id}`
+        const key = createFileMemoryScopeKey(snapshot.xpert)
         const slot = this.slots.get(key) ?? { running: false }
         slot.pending = snapshot
         this.slots.set(key, slot)
