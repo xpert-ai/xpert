@@ -124,6 +124,14 @@ export type TAgentExecutionMetadata = {
    * AI Model
    */
   model?: string
+  /** Opaque Assistant model option used by the Primary Agent. */
+  primaryModelId?: string
+  primaryModelSource?: import('./assistant-model.model').TAssistantPrimaryModelSelectionSource
+  /** Sanitized model snapshot used to keep resume and retry deterministic. */
+  primaryModelSnapshot?: Pick<
+    import('./copilot-model.model').TCopilotModel,
+    'copilotId' | 'modelType' | 'model' | 'options'
+  >
   triggerSource?: 'integration' | 'channel' | 'api' | 'job' | 'trigger' | string
   sourceIntegrationId?: string
   integrationId?: string

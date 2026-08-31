@@ -4,7 +4,8 @@ jest.mock('../assistant-binding', () => ({
     AssistantBindingService: class {}
 }))
 jest.mock('../xpert', () => ({
-    PublishedXpertAccessService: class {}
+    PublishedXpertAccessService: class {},
+    AssistantModelSelectionService: class {}
 }))
 jest.mock('../skill-package', () => ({
     SkillPackageService: class {}
@@ -35,7 +36,11 @@ function createController(
 
     return new AssistantsController(
         publishedXpertAccessService as ConstructorParameters<typeof AssistantsController>[0],
-        runtimeCapabilitiesService as ConstructorParameters<typeof AssistantsController>[1]
+        runtimeCapabilitiesService as ConstructorParameters<typeof AssistantsController>[1],
+        {
+            getModels: jest.fn(),
+            setPreference: jest.fn()
+        } as unknown as ConstructorParameters<typeof AssistantsController>[2]
     )
 }
 

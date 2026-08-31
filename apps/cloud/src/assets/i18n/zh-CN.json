@@ -3333,6 +3333,18 @@
       "ProjectUpdated": "项目更新成功"
     },
     "Xpert": {
+      "ModelSelection": {
+        "PrimaryModel": "主模型",
+        "PrimaryModelDescription": "当用户未选择其他模型时默认使用。",
+        "SelectableModels": "用户可切换模型",
+        "SelectableModelsDescription": "添加用户可在 ChatKit 中选择的可选 LLM。主模型会自动包含在列表中。",
+        "Reorder": "调整模型顺序",
+        "MoveUp": "上移模型",
+        "MoveDown": "下移模型",
+        "Remove": "移除模型",
+        "Empty": "当前仅向用户提供主模型。",
+        "Duplicate": "主模型和可切换模型不能重复。"
+      },
       "EnterpriseH5AppUnavailable": "当前企业数字专家不可用或尚未配置。",
       "EnterpriseH5SessionUnavailable": "无法验证当前企业身份，暂时不能使用该数字专家。",
       "DingTalkChatApp": "钉钉工作台应用",

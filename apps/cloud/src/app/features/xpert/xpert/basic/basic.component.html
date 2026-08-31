@@ -54,7 +54,136 @@
     <tag-select [category]="eTagCategoryEnum.XPERT" formControlName="tags"></tag-select>
   </div>
 
-  <copilot-model-select class="w-full py-2 my-2" [modelType]="eModelType.LLM" formControlName="copilotModel" />
+  <section class="mt-4 rounded-xl border border-divider-regular bg-components-card-bg p-3">
+    <div class="mb-2 flex items-center justify-between gap-3">
+      <div>
+        <div class="text-sm font-medium text-text-primary">
+          {{ 'XP.Xpert.ModelSelection.PrimaryModel' | translate: { Default: 'Primary model' } }}
+        </div>
+        <div class="mt-0.5 text-xs text-text-tertiary">
+          {{
+            'XP.Xpert.ModelSelection.PrimaryModelDescription'
+              | translate: { Default: 'Used by default when the user has not selected another model.' }
+          }}
+        </div>
+      </div>
+      <span
+        class="shrink-0 rounded-md border border-divider-regular bg-components-panel-bg px-2 py-0.5 text-[11px] font-medium text-text-secondary"
+      >
+        {{ 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' } }}
+      </span>
+    </div>
+    <copilot-model-select
+      class="block w-full"
+      [hiddenLabel]="true"
+      [modelType]="eModelType.LLM"
+      [required]="true"
+      [clearable]="false"
+      formControlName="copilotModel"
+    />
+  </section>
+
+  <section class="mt-3 rounded-xl border border-divider-regular bg-components-card-bg p-3">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-sm font-medium text-text-primary">
+          {{ 'XP.Xpert.ModelSelection.SelectableModels' | translate: { Default: 'User-selectable models' } }}
+        </div>
+        <div class="mt-0.5 text-xs leading-5 text-text-tertiary">
+          {{
+            'XP.Xpert.ModelSelection.SelectableModelsDescription'
+              | translate
+                : {
+                    Default:
+                      'Add optional LLMs that users may choose in ChatKit. The Primary model is always included automatically.'
+                  }
+          }}
+        </div>
+      </div>
+      <button
+        type="button"
+        z-button
+        zType="outline"
+        zSize="sm"
+        class="shrink-0 cursor-pointer"
+        (click)="addAllowedModel()"
+      >
+        <z-icon zType="plus" zSize="sm" />
+        {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
+      </button>
+    </div>
+
+    @if (allowedModels.length) {
+      <div
+        class="mt-3 flex flex-col gap-2"
+        cdkDropList
+        [cdkDropListData]="allowedModels.controls"
+        (cdkDropListDropped)="dropAllowedModel($event)"
+      >
+        @for (
+          control of allowedModels.controls;
+          track control;
+          let index = $index;
+          let first = $first;
+          let last = $last
+        ) {
+          <div
+            cdkDrag
+            class="flex items-center gap-1.5 rounded-lg border border-divider-regular bg-components-panel-bg p-2"
+          >
+            <button
+              type="button"
+              cdkDragHandle
+              class="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500"
+              [attr.aria-label]="'XP.Xpert.ModelSelection.Reorder' | translate: { Default: 'Reorder model' }"
+            >
+              <i class="ri-draggable"></i>
+            </button>
+            <copilot-model-select
+              class="min-w-0 flex-1"
+              [hiddenLabel]="true"
+              [modelType]="eModelType.LLM"
+              [ngModel]="control.value"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="updateAllowedModel(index, $event)"
+            />
+            <button
+              type="button"
+              class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-tertiary hover:bg-hover-bg hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+              [disabled]="first"
+              [attr.aria-label]="'XP.Xpert.ModelSelection.MoveUp' | translate: { Default: 'Move model up' }"
+              (click)="moveAllowedModel(index, -1)"
+            >
+              <z-icon zType="chevron-up" zSize="sm" />
+            </button>
+            <button
+              type="button"
+              class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-tertiary hover:bg-hover-bg hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+              [disabled]="last"
+              [attr.aria-label]="'XP.Xpert.ModelSelection.MoveDown' | translate: { Default: 'Move model down' }"
+              (click)="moveAllowedModel(index, 1)"
+            >
+              <z-icon zType="chevron-down" zSize="sm" />
+            </button>
+            <button
+              type="button"
+              class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500"
+              [attr.aria-label]="'XP.Xpert.ModelSelection.Remove' | translate: { Default: 'Remove model' }"
+              (click)="removeAllowedModel(index)"
+            >
+              <z-icon zType="trash" zSize="sm" />
+            </button>
+          </div>
+        }
+      </div>
+    } @else {
+      <div
+        class="mt-3 rounded-lg border border-dashed border-divider-regular px-3 py-4 text-center text-xs text-text-tertiary"
+      >
+        {{ 'XP.Xpert.ModelSelection.Empty' | translate: { Default: 'Only the Primary model is available to users.' } }}
+      </div>
+    }
+  </section>
 
   <!-- <div class="flex flex-col mt-4 rounded-xl pt-2 pb-3 px-3 bg-background-default-subtle dark:bg-neutral-800"
     formArrayName="starters">

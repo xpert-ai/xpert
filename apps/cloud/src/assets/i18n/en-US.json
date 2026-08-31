@@ -3061,6 +3061,18 @@
       "NoMiddlewaresAvailable": "No middleware providers available"
     },
     "Xpert": {
+      "ModelSelection": {
+        "PrimaryModel": "Primary model",
+        "PrimaryModelDescription": "Used by default when the user has not selected another model.",
+        "SelectableModels": "User-selectable models",
+        "SelectableModelsDescription": "Add optional LLMs that users may choose in ChatKit. The Primary model is always included automatically.",
+        "Reorder": "Reorder model",
+        "MoveUp": "Move model up",
+        "MoveDown": "Move model down",
+        "Remove": "Remove model",
+        "Empty": "Only the Primary model is available to users.",
+        "Duplicate": "The Primary model and selectable models must be unique."
+      },
       "Assistant": "Assistant",
       "FixedKnowledgeFilter": "Fixed filter boundary",
       "FixedKnowledgeFilterHint": "Always enforced by the server. The Agent cannot view, change, or remove it.",

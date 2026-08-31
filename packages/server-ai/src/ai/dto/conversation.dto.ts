@@ -15,6 +15,7 @@ import {
 
 type ChatMessageThirdPartyMetadata = {
     runtimeCapabilities?: unknown
+    model?: unknown
 }
 
 function isObjectValue(value: unknown): value is object {
@@ -27,6 +28,14 @@ function readRuntimeCapabilitiesMetadata(value: unknown): unknown {
     }
 
     return (value as ChatMessageThirdPartyMetadata).runtimeCapabilities
+}
+
+function readModelMetadata(value: unknown): string | undefined {
+    if (!isObjectValue(value) || !('model' in value)) {
+        return undefined
+    }
+    const model = (value as ChatMessageThirdPartyMetadata).model
+    return typeof model === 'string' && model.trim() ? model : undefined
 }
 
 @Exclude()
@@ -137,6 +146,9 @@ export class ChatMessageDTO {
     @Expose()
     runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended
 
+    @Expose()
+    model?: string
+
     constructor(partial: Partial<IChatMessage>) {
         Object.assign(this, partial)
         const runtimeCapabilities = normalizeRuntimeCapabilitiesSelection(
@@ -145,6 +157,7 @@ export class ChatMessageDTO {
         if (runtimeCapabilities) {
             this.runtimeCapabilities = runtimeCapabilities
         }
+        this.model = readModelMetadata(partial.thirdPartyMessage)
     }
 }
 

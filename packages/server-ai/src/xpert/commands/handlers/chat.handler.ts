@@ -16,6 +16,7 @@ import {
     IAssistantBindingToolPreferences,
     IChatConversation,
     IChatMessage,
+    IXpertAgentExecution,
     IXpert,
     LongTermMemoryTypeEnum,
     shortTitle,
@@ -24,6 +25,7 @@ import {
     STATE_VARIABLE_SYS,
     TChatConversationStatus,
     TChatRequest,
+    TAssistantPrimaryModelSelection,
     TFollowUpConsumedEvent,
     TChatRequestHuman,
     TSensitiveOperation,
@@ -50,6 +52,8 @@ import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertService } from '../../xpert.service'
+import { AssistantModelSelectionService } from '../../assistant-model-selection.service'
+import { sanitizeAssistantModelSnapshot } from '../../assistant-model-selection.util'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
@@ -132,7 +136,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly goalService: ChatConversationGoalService,
         private readonly redisSseStreamService?: RedisSseStreamService,
         @Optional() private readonly projectService?: XpertProjectService,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService
     ) {}
 
     /**
@@ -255,6 +260,22 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             let followUpInput = request.message.input
+            let followUpXpert: IXpert | null = null
+            if (request.mode === 'queue' && this.assistantModelSelectionService && xpertId) {
+                followUpXpert = await this.xpertService
+                    .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
+                    .catch(() => null)
+                if (followUpXpert) {
+                    const runtimeXpert = figureOutXpert(followUpXpert, options?.isDraft)
+                    const selection = await this.assistantModelSelectionService.resolveSelection(runtimeXpert, {
+                        explicitModelId: followUpInput.model
+                    })
+                    followUpInput = {
+                        ...followUpInput,
+                        model: selection.id
+                    }
+                }
+            }
             // Follow-ups are persisted immediately as pending human messages, so
             // normalize files before deriving message.fileAssets or attachments.
             const normalizedFollowUpInput = await normalizeChatHumanInputFiles(followUpInput, {
@@ -335,6 +356,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     visibleAt: null,
                     thirdPartyMessage: {
                         followUpInput,
+                        ...(request.mode === 'queue' && followUpInput.model ? { model: followUpInput.model } : {}),
                         followUpClientMessageId: request.message.clientMessageId ?? null
                     }
                 })
@@ -346,8 +368,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             if (request.mode === 'steer') {
                 await this.assertSteerTargetIsActive(targetExecutionId, canPersistInterruptedSteerFollowUp)
             }
-            const followUpXpert = xpertId
-                ? await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent'] }).catch(() => null)
+            followUpXpert ??= xpertId
+                ? await this.xpertService
+                      .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
+                      .catch(() => null)
                 : null
             await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpFiles, {
                 xpertId: followUpXpert?.id ?? xpertId,
@@ -370,7 +394,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const timeStart = Date.now()
 
         // Published assistant execution can be granted by UserGroup without workspace read membership.
-        const xpert = await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent', 'knowledgebase'] })
+        const xpert = await this.xpertService.findOneForRuntime(xpertId, {
+            relations: ['agent', 'agent.copilotModel', 'copilotModel', 'knowledgebase']
+        })
         const [userPreference, clawXpertBinding] = await Promise.all([
             this.assistantBindingService.getUserPreferenceByAssistantId(xpertId),
             this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
@@ -416,6 +442,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let createdConversationForRequest = false
         let activeThreadId: string
         let isDerivedThread = Boolean(options?.isDerivedThread)
+        let sourceModelExecution: IXpertAgentExecution | null = null
+        let primaryModelSelection: TAssistantPrimaryModelSelection | null = null
         const requestedSandboxEnvironmentId = resolveRequestSandboxEnvironmentId(request)
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
@@ -440,8 +468,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Missing resume target execution')
             }
             state ??= normalizeChatState()
+            sourceModelExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(executionId))
             if (!hasExplicitPlanModeFlag(state) || !hasExplicitRuntimeCapabilities(state)) {
-                const targetExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(executionId))
+                const targetExecution = sourceModelExecution
                 const inheritedRuntimeCapabilities = !hasExplicitRuntimeCapabilities(state)
                     ? getRuntimeCapabilitiesFromState(targetExecution?.inputs)
                     : null
@@ -654,6 +683,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 if (!sourceExecution) {
                     throw new BadRequestException(`Retry source execution "${sourceExecutionId}" not found`)
                 }
+                sourceModelExecution = sourceExecution
                 checkpointId = request.checkpointId
                     ? request.checkpointId
                     : await this.resolveRetryInputCheckpointId(
@@ -716,8 +746,36 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
             }
 
+            // Resolve once at the root execution boundary. The audited snapshot is
+            // then reused by resume/retry, so later preference or authoring changes
+            // cannot silently switch the model inside an existing run.
+            primaryModelSelection = await this.resolvePrimaryModelSelection({
+                request,
+                xpert: latestXpert,
+                runtimeAgentKey,
+                input,
+                sourceExecution: sourceModelExecution
+            })
+            if (primaryModelSelection) {
+                applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
+            }
+            if (primaryModelSelection && input) {
+                input = { ...input, model: primaryModelSelection.id }
+                state = normalizeChatState({
+                    ...(state ?? {}),
+                    [STATE_VARIABLE_HUMAN]: input
+                })
+            }
+
             // New execution (Run) in thread
             const executionMetadata = buildChatSourceExecutionMetadata(options)
+            const primaryModelMetadata = primaryModelSelection
+                ? {
+                      primaryModelId: primaryModelSelection.id,
+                      primaryModelSource: primaryModelSelection.source,
+                      primaryModelSnapshot: sanitizeAssistantModelSnapshot(primaryModelSelection.model)
+                  }
+                : null
             execution = await this.commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
                     ...(execution ?? {}),
@@ -726,7 +784,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     inputs: input,
                     status: XpertAgentExecutionStatusEnum.RUNNING,
                     threadId: activeThreadId,
-                    ...(executionMetadata ? { metadata: executionMetadata } : {})
+                    ...(executionMetadata || primaryModelMetadata
+                        ? {
+                              metadata: {
+                                  ...(execution?.metadata ?? {}),
+                                  ...(executionMetadata ?? {}),
+                                  ...(primaryModelMetadata ?? {})
+                              }
+                          }
+                        : {})
                 })
             )
             executionId = execution.id
@@ -759,7 +825,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const fileAssets = toChatFileAssetReferences(persistedFiles)
                     const legacyAttachments = toLegacyChatStorageFileAttachments(persistedFiles)
                     const thirdPartyMessage =
-                        persistedRuntimeCapabilities || persistedInput?.commandSource || isGoalRun
+                        persistedRuntimeCapabilities ||
+                        persistedInput?.commandSource ||
+                        isGoalRun ||
+                        primaryModelSelection
                             ? {
                                   ...(isGoalRun
                                       ? {
@@ -775,7 +844,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                       ? {
                                             commandSource: persistedInput.commandSource
                                         }
-                                      : {})
+                                      : {}),
+                                  ...(primaryModelSelection ? { model: primaryModelSelection.id } : {})
                               }
                             : null
                     const _humanMessage: Partial<IChatMessage> = {
@@ -828,6 +898,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
             )
             await this.conversationThreadService?.advanceHead(activeThreadId, aiMessage.id)
+        }
+        if (request.action === 'resume') {
+            primaryModelSelection = await this.resolvePrimaryModelSelection({
+                request,
+                xpert: latestXpert,
+                runtimeAgentKey,
+                input,
+                sourceExecution: sourceModelExecution
+            })
+            if (primaryModelSelection) {
+                applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
+            }
+            if (primaryModelSelection && input) {
+                input = { ...input, model: primaryModelSelection.id }
+                state = normalizeChatState({
+                    ...(state ?? {}),
+                    [STATE_VARIABLE_HUMAN]: input
+                })
+            }
         }
         const preparedAgentChatState = prepareAgentChatState({
             state,
@@ -936,6 +1025,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     >(
                         new XpertAgentChatCommand(state, runtimeAgentKey, xpert, {
                             ...(options ?? {}),
+                            ...(primaryModelSelection
+                                ? {
+                                      primaryCopilotModel: primaryModelSelection.model,
+                                      primaryModelId: primaryModelSelection.id,
+                                      primaryAgentKey: latestXpert.agent?.key,
+                                      primaryModelSource: primaryModelSelection.source
+                                  }
+                                : {}),
                             thread_id: activeThreadId,
                             projectId: sandboxProjectId,
                             sandboxEnvironmentId,
@@ -1301,6 +1398,45 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             'execution.id': executionId,
             'xpert.id': xpert.id,
             'project.id': options.projectId
+        })
+    }
+
+    private async resolvePrimaryModelSelection({
+        request,
+        xpert,
+        runtimeAgentKey,
+        input,
+        sourceExecution
+    }: {
+        request: TChatRequest
+        xpert: Partial<IXpert>
+        runtimeAgentKey: string
+        input: TChatRequestHuman | null
+        sourceExecution: IXpertAgentExecution | null
+    }): Promise<TAssistantPrimaryModelSelection | null> {
+        const primaryAgentKey = xpert.agent?.key
+        if (!this.assistantModelSelectionService || !primaryAgentKey || runtimeAgentKey !== primaryAgentKey) {
+            return null
+        }
+
+        const metadata = sourceExecution?.metadata
+        if (request.action === 'resume') {
+            return this.assistantModelSelectionService.resolveSelection(xpert, {
+                continuationModelId: metadata?.primaryModelId,
+                continuationModelSnapshot: metadata?.primaryModelSnapshot,
+                continuationSource: metadata?.primaryModelSource,
+                ignorePreference: !metadata?.primaryModelId
+            })
+        }
+        if (request.action === 'retry') {
+            return this.assistantModelSelectionService.resolveSelection(xpert, {
+                retryModelId: metadata?.primaryModelId,
+                retryModelSnapshot: metadata?.primaryModelSnapshot,
+                ignorePreference: !metadata?.primaryModelId
+            })
+        }
+        return this.assistantModelSelectionService.resolveSelection(xpert, {
+            explicitModelId: typeof input?.model === 'string' ? input.model : undefined
         })
     }
 

@@ -94,6 +94,7 @@ import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stag
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { CopilotGetOneQuery } from '../../../copilot'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
 import {
@@ -145,6 +146,7 @@ import {
     createInvalidToolCallErrorMessage,
     createInvalidToolCallRepairContext
 } from './invalid-tool-call-diagnostics'
+import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
@@ -254,9 +256,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // LLM
         let chatModel: BaseChatModel
+        let effectiveCopilotModel = agent.copilotModel ?? team.copilotModel
         if (!hiddenAgent) {
+            effectiveCopilotModel = resolveEffectiveCopilotModel(team, agent, options)
             chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
                 new GetXpertChatModelQuery(agent.team, agent, {
+                    copilotModel: effectiveCopilotModel,
                     abortController: rootController,
                     usageCallback: modelUsageRecorder.usageCallback,
                     threadId: thread_id
@@ -264,18 +269,25 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             )
 
             // Record ai model info into execution
-            const copilotModel = agent.copilotModel ?? team.copilotModel
-            if (!copilotModel?.copilot) {
+            const copilot =
+                effectiveCopilotModel?.copilot ??
+                (effectiveCopilotModel?.copilotId
+                    ? await this.queryBus.execute(
+                          new CopilotGetOneQuery(team.tenantId, effectiveCopilotModel.copilotId, ['modelProvider'])
+                      )
+                    : null)
+            if (!copilot) {
                 throw new XpertConfigException(
                     await this.i18nService.t('xpert.Error.CopilotModelConfigError', {
                         lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-                        args: { model: copilotModel.model }
+                        args: { model: effectiveCopilotModel.model }
                     })
                 )
             }
             execution.metadata = {
-                provider: copilotModel.copilot.modelProvider?.providerName,
-                model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+                ...(execution.metadata ?? {}),
+                provider: copilot.modelProvider?.providerName,
+                model: effectiveCopilotModel.model || copilot.copilotModel?.model
             }
         }
 
@@ -1559,8 +1571,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         if (summarize?.enabled) {
+            const summarizationChatModel =
+                effectiveCopilotModel === options.primaryCopilotModel
+                    ? await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+                          new GetXpertChatModelQuery(agent.team, agent, {
+                              abortController: rootController,
+                              usageCallback: modelUsageRecorder.usageCallback,
+                              threadId: thread_id
+                          })
+                      )
+                    : chatModel
             subgraphBuilder
-                .addNode(GRAPH_NODE_SUMMARIZE_CONVERSATION, createSummarizeAgent(chatModel, summarize, agentKey))
+                .addNode(
+                    GRAPH_NODE_SUMMARIZE_CONVERSATION,
+                    createSummarizeAgent(summarizationChatModel, summarize, agentKey)
+                )
                 .addEdge(GRAPH_NODE_SUMMARIZE_CONVERSATION, END)
         }
 

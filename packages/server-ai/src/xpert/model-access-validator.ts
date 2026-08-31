@@ -12,10 +12,7 @@ import { OnEvent } from '@nestjs/event-emitter'
 import { t } from 'i18next'
 import { ModelAccessService } from '../model-access'
 import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
-import {
-    buildMiddlewareModelTargetCatalog,
-    MiddlewareModelTargetCatalog
-} from './copilot-model-sync.util'
+import { buildMiddlewareModelTargetCatalog, MiddlewareModelTargetCatalog } from './copilot-model-sync.util'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
 
 type DraftModelReference = {
@@ -43,6 +40,7 @@ export class XpertModelAccessValidator {
             return []
         }
 
+        validateAssistantAllowedModels(event.draft)
         const middlewareModelTargets = buildMiddlewareModelTargetCatalog(
             this.xpertAgentService.getMiddlewareStrategies()
         )
@@ -92,8 +90,7 @@ export function collectDraftModelReferences(
             model?.copilot?.id ??
             model?.referencedModel?.copilotId ??
             model?.referencedModel?.copilot?.id
-        const copilotModelId =
-            model?.model ?? model?.referencedModel?.model ?? model?.copilot?.copilotModel?.model
+        const copilotModelId = model?.model ?? model?.referencedModel?.model ?? model?.copilot?.copilotModel?.model
         if (!copilotId || !copilotModelId) {
             return
         }
@@ -102,14 +99,14 @@ export function collectDraftModelReferences(
             copilotId,
             copilotModelId,
             modelType:
-                model?.modelType ??
-                model?.referencedModel?.modelType ??
-                model?.copilot?.copilotModel?.modelType ??
-                null
+                model?.modelType ?? model?.referencedModel?.modelType ?? model?.copilot?.copilotModel?.modelType ?? null
         })
     }
 
     append('team.copilotModel', draft.team?.copilotModel)
+    for (const [index, model] of (draft.team?.options?.modelSelection?.allowedModels ?? []).entries()) {
+        append(`team.options.modelSelection.allowedModels.${index}`, model)
+    }
     append('team.memory.copilotModel', draft.team?.memory?.copilotModel)
     if (draft.team?.features?.textToSpeech?.enabled) {
         append('team.features.textToSpeech.copilotModel', draft.team.features.textToSpeech.copilotModel)
@@ -125,10 +122,7 @@ export function collectDraftModelReferences(
                 append(`nodes.${node.key}.options.fallback.copilotModel`, node.entity.options.fallback.copilotModel)
             }
         } else if (node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.CLASSIFIER) {
-            append(
-                `nodes.${node.key}.copilotModel`,
-                (node.entity as IWFNClassifier).copilotModel
-            )
+            append(`nodes.${node.key}.copilotModel`, (node.entity as IWFNClassifier).copilotModel)
         } else if (node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE) {
             const middleware = node.entity as IWFNMiddleware
             for (const target of middlewareModelTargets[middleware.provider] ?? []) {
@@ -149,6 +143,39 @@ export function collectDraftModelReferences(
         seen.add(key)
         return true
     })
+}
+
+function validateAssistantAllowedModels(draft: TXpertTeamDraft): void {
+    const allowedModels = draft.team?.options?.modelSelection?.allowedModels
+    if (allowedModels === undefined) {
+        return
+    }
+    if (!Array.isArray(allowedModels)) {
+        throw new BadRequestException(
+            t('server-ai:Error.AssistantModelSelectionInvalidList', {
+                defaultValue: 'Assistant selectable models must be an array.'
+            })
+        )
+    }
+    for (const [index, model] of allowedModels.entries()) {
+        const optionsAreValid =
+            model?.options === undefined ||
+            (model.options !== null && typeof model.options === 'object' && !Array.isArray(model.options))
+        if (
+            !model?.copilotId?.trim() ||
+            !model?.model?.trim() ||
+            model?.modelType !== AiModelTypeEnum.LLM ||
+            !optionsAreValid
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.AssistantModelSelectionInvalidModel', {
+                    defaultValue:
+                        'Selectable model at position {{position}} must identify an available LLM model and contain valid options.',
+                    position: index + 1
+                })
+            )
+        }
+    }
 }
 
 function readMiddlewareModel(

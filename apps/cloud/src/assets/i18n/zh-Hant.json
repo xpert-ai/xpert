@@ -5225,6 +5225,18 @@
       }
     },
     "Xpert": {
+      "ModelSelection": {
+        "PrimaryModel": "主要模型",
+        "PrimaryModelDescription": "當使用者未選擇其他模型時預設使用。",
+        "SelectableModels": "使用者可切換模型",
+        "SelectableModelsDescription": "新增使用者可在 ChatKit 中選擇的可選 LLM。主要模型會自動包含在清單中。",
+        "Reorder": "調整模型順序",
+        "MoveUp": "上移模型",
+        "MoveDown": "下移模型",
+        "Remove": "移除模型",
+        "Empty": "目前僅向使用者提供主要模型。",
+        "Duplicate": "主要模型和可切換模型不能重複。"
+      },
       "EnterpriseH5AppUnavailable": "目前企業數位專家無法使用或尚未設定。",
       "EnterpriseH5SessionUnavailable": "無法驗證目前企業身分，暫時無法使用該數位專家。",
       "DingTalkChatApp": "釘釘工作台應用",

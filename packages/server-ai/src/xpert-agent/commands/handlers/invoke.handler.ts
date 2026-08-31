@@ -58,6 +58,7 @@ import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../kn
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { applicationTracing } from '../../../tracing'
+import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -224,7 +225,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
 
         const team = agent.team
-        const copilotModel = agent.copilotModel ?? team.copilotModel
+        const copilotModel = resolveEffectiveCopilotModel(team, agent, options)
 
         // Unmutes
         xpertGraph.nodes

@@ -9,6 +9,7 @@ import {
     IModelAccessModelSnapshot,
     IModelAccessResolution,
     IModelAccessRequest,
+    I18nObject,
     IModelGatewayCatalog,
     IModelGatewayCatalogItem,
     IUser,
@@ -80,6 +81,8 @@ type ModelTarget = {
     copilotName?: string | null
     provider: string
     providerLabel?: IModelAccessModelSnapshot['providerLabel']
+    providerIconSmall?: I18nObject
+    providerBackground?: string
     modelType: AiModelTypeEnum
     model: string
     modelLabel?: IModelAccessModelSnapshot['modelLabel']
@@ -119,6 +122,11 @@ export type CatalogModelAccessBatchInput = Pick<
 > & {
     models: Array<Pick<ResolveModelInput, 'copilotId' | 'copilotModelId' | 'modelType'>>
 }
+
+export type CatalogModelLabel = Pick<
+    ModelTarget,
+    'provider' | 'providerLabel' | 'providerIconSmall' | 'providerBackground' | 'modelLabel'
+>
 
 type ModelAccessResolutionContext = {
     billableUserId: string
@@ -1319,6 +1327,34 @@ export class ModelAccessService {
         return availability
     }
 
+    async getCatalogModelLabels(input: CatalogModelAccessBatchInput): Promise<Array<CatalogModelLabel | null>> {
+        if (!input.models.length) {
+            return []
+        }
+        const runtimeOrganizationId = input.organizationId ?? null
+        const targets = await this.loadTargets(
+            input.models.map((model) => ({
+                tenantId: input.tenantId,
+                organizationId: runtimeOrganizationId,
+                userId: input.userId,
+                xpertId: input.xpertId,
+                ...model
+            })),
+            runtimeOrganizationId
+        )
+        return targets.map((target) =>
+            target
+                ? {
+                      providerLabel: target.providerLabel,
+                      provider: target.provider,
+                      providerIconSmall: target.providerIconSmall,
+                      providerBackground: target.providerBackground,
+                      modelLabel: target.modelLabel
+                  }
+                : null
+        )
+    }
+
     private async resolveModelAccessWithContext(
         input: ResolveModelInput,
         target: ModelTarget | null,
@@ -2039,6 +2075,8 @@ export class ModelAccessService {
             copilotName: copilot.name,
             provider: providerName,
             providerLabel: providerSchema?.label,
+            providerIconSmall: providerSchema?.icon_small,
+            providerBackground: providerSchema?.background,
             modelType: input.modelType,
             model: input.copilotModelId,
             modelLabel: predefined?.label ?? {
