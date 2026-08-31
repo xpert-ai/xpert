@@ -1,14 +1,15 @@
-import { AIPermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { XpertProjectService } from '../project.service'
 import { RequestContext } from '@xpert-ai/server-core'
 import { XPERT_PROJECT_PERMISSION } from './project-permission.decorator'
+import { XpertProjectAccessService } from '../services/project-access.service'
+import { t } from 'i18next'
 
 @Injectable()
 export class XpertProjectGuard implements CanActivate {
     constructor(
-        private readonly service: XpertProjectService,
+        private readonly accessService: XpertProjectAccessService,
         private readonly reflector: Reflector
     ) {}
 
@@ -18,37 +19,18 @@ export class XpertProjectGuard implements CanActivate {
         const id = request.params.id
 
         if (!user?.id || !user.tenantId) {
-            throw new ForbiddenException('An authenticated user is required')
-        }
-
-        const project = await this.service.findOne(id, { relations: ['members'] })
-
-        if (!project) {
-            throw new ForbiddenException('Xpert project not found')
-        }
-
-        const isMember = project.members?.some((member) => member.id === user.id) === true
-        const isOwner = project.ownerId === user.id || project.createdById === user.id
-
-        const organizationId = RequestContext.getOrganizationId()
-        if (
-            project.tenantId !== user.tenantId ||
-            (organizationId ? project.organizationId !== organizationId : Boolean(project.organizationId))
-        ) {
-            throw new ForbiddenException('Access denied')
+            throw new ForbiddenException(
+                t('server-ai:Error.AuthenticatedUserRequired', { defaultValue: 'An authenticated user is required' })
+            )
         }
 
         const permission = this.reflector.getAllAndOverride<AIPermissionsEnum>(XPERT_PROJECT_PERMISSION, [
             context.getHandler(),
             context.getClass()
         ])
-        const canManage =
-            permission === AIPermissionsEnum.XPERT_PROJECT_MANAGE &&
-            (RequestContext.hasPermissions([AIPermissionsEnum.XPERT_PROJECT_MANAGE]) ||
-                RequestContext.hasRoles([RolesEnum.SUPER_ADMIN]))
-        if (!isMember && !isOwner && !canManage) {
-            throw new ForbiddenException('Access denied')
-        }
+        if (permission === AIPermissionsEnum.XPERT_PROJECT_MANAGE) await this.accessService.assertCanManage(id)
+        else if (permission === AIPermissionsEnum.XPERT_PROJECT_EDIT) await this.accessService.assertCanEdit(id)
+        else await this.accessService.assertCanRead(id)
 
         return true
     }

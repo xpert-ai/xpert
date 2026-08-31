@@ -4,9 +4,11 @@ import {
     FeatureModule,
     IntegrationModule,
     RedisModule,
-    TenantModule
+    TenantModule,
+    User,
+    UserOrganization
 } from '@xpert-ai/server-core'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from '@nestjs/core'
@@ -42,6 +44,11 @@ import { VcsService } from './services/vcs-service'
 import { ProjectViewHostDefinition } from '../view-extension/hosts/project-view-host.definition'
 import { XpertProjectFeatureGuard, XpertProjectPermissionGuard } from './guards'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
+import { XpertModule } from '../xpert/xpert.module'
+import { XpertProjectMembership } from './entities/project-membership.entity'
+import { XpertProjectAccessModule } from './project-access.module'
+import { XpertProjectMembershipService } from './services/project-membership.service'
+import { XpertProjectOwnerGuard } from './guards/project-owner.guard'
 
 @Module({
     imports: [
@@ -63,14 +70,19 @@ import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
             XpertProjectSwimlane,
             ChatConversation,
             Feature,
-            FeatureOrganization
+            FeatureOrganization,
+            XpertProjectMembership,
+            User,
+            UserOrganization
         ]),
         TenantModule,
         RedisModule,
         FeatureModule,
         CqrsModule,
         IntegrationModule,
-        XpertWorkspaceModule
+        XpertWorkspaceModule,
+        XpertProjectAccessModule,
+        forwardRef(() => XpertModule)
     ],
     controllers: [XpertProjectController],
     providers: [
@@ -87,8 +99,10 @@ import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
         ProjectViewHostDefinition,
         XpertProjectFeatureGuard,
         XpertProjectPermissionGuard,
+        XpertProjectOwnerGuard,
+        XpertProjectMembershipService,
         ...CommandHandlers
     ],
-    exports: [XpertProjectService]
+    exports: [XpertProjectService, XpertProjectAccessModule, XpertProjectMembershipService]
 })
 export class XpertProjectModule {}

@@ -18,6 +18,30 @@ export type TXpertProjectSettings = {
   projectAssistantId?: string
 }
 export type TXpertProjectManagementMode = 'simple' | 'advanced'
+export type TXpertProjectMemberRole = 'manager' | 'editor' | 'member'
+export type TXpertProjectAccessRole = 'owner' | TXpertProjectMemberRole
+export type TXpertProjectAccessSummary = {
+  role: TXpertProjectAccessRole
+  capabilities: {
+    canRead: boolean
+    canEdit: boolean
+    canManage: boolean
+    canUse: boolean
+  }
+}
+export type TXpertProjectMemberSummary = {
+  id: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  username?: string
+  imageUrl?: string
+  membershipId?: string
+  projectRole: TXpertProjectAccessRole
+  joinedAt?: Date
+}
+export type TXpertProjectMemberInput = { userId: string; role?: TXpertProjectMemberRole }
+export type TXpertProjectMemberRoleInput = { role: TXpertProjectMemberRole }
 export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'
 export type TXpertProjectPlanStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type TXpertProjectMilestoneStatus = 'planned' | 'in_progress' | 'completed' | 'blocked'
@@ -124,6 +148,7 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   toolsets?: IXpertToolset[]
   knowledges?: IKnowledgebase[]
   members?: IUser[]
+  memberships?: IXpertProjectMembership[]
   /**
    * @deprecated Use project file volume / FileAsset workspace projection instead.
    */
@@ -134,6 +159,18 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   attachments?: IStorageFile[]
 
   vcs?: IXpertProjectVCS
+}
+
+export interface IXpertProjectMembership extends IBasePerTenantAndOrganizationEntityModel {
+  projectId: string
+  project?: IXpertProject
+  userId: string
+  user?: IUser
+  role: TXpertProjectMemberRole
+  invitedById?: string
+  invitedBy?: IUser
+  joinedAt: Date
+  removedAt?: Date
 }
 
 export type IXpertProjectCreateInput = Partial<IXpertProject> & {

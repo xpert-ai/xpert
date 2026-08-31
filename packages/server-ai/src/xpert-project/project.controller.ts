@@ -14,7 +14,8 @@ import {
     IXpertProjectSprint,
     IXpertProjectSwimlane,
     IXpertToolset,
-    OrderTypeEnum
+    OrderTypeEnum,
+    TXpertProjectMemberRole
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
@@ -23,8 +24,7 @@ import {
     ParseJsonPipe,
     TransformInterceptor,
     UploadFileCommand,
-    getFileAssetDestination,
-    UserPublicDTO
+    getFileAssetDestination
 } from '@xpert-ai/server-core'
 import {
     BadRequestException,
@@ -38,6 +38,7 @@ import {
     Logger,
     NotFoundException,
     Param,
+    Patch,
     Post,
     Put,
     Query,
@@ -49,12 +50,19 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FindOneOptions } from 'typeorm'
+import { t } from 'i18next'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
 import { XpertProjectDto, XpertProjectTaskDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectTask } from './entities/project-task.entity'
-import { ProjectPermission, XpertProjectFeatureGuard, XpertProjectGuard, XpertProjectPermissionGuard } from './guards'
+import {
+    ProjectPermission,
+    XpertProjectFeatureGuard,
+    XpertProjectGuard,
+    XpertProjectOwnerGuard,
+    XpertProjectPermissionGuard
+} from './guards'
 import { XpertProjectService } from './project.service'
 import { VOLUME_CLIENT, VolumeClient } from '../shared'
 import {
@@ -63,6 +71,8 @@ import {
     XpertProjectAutomationService,
     XpertProjectPlanService
 } from './services'
+import { XpertProjectAccessService } from './services/project-access.service'
+import { XpertProjectMembershipService } from './services/project-membership.service'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -80,6 +90,8 @@ export class XpertProjectController extends CrudController<XpertProject> {
         private readonly activityService: XpertProjectActivityService,
         private readonly assetService: XpertProjectAssetService,
         private readonly automationService: XpertProjectAutomationService,
+        private readonly accessService: XpertProjectAccessService,
+        private readonly membershipService: XpertProjectMembershipService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {
@@ -150,7 +162,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
         for (const toolsetId of toolsetIds ?? []) await this.service.addToolset(project.id, toolsetId)
         for (const knowledgebaseId of knowledgebaseIds ?? [])
             await this.service.addKnowledge(project.id, knowledgebaseId)
-        if (memberIds?.length) await this.service.updateMembers(project.id, memberIds)
+        for (const memberId of memberIds ?? []) await this.membershipService.add(project.id, memberId)
 
         await this.planService.ensureDefaults(project.id)
         await this.activityService.record(project.id, {
@@ -258,6 +270,27 @@ export class XpertProjectController extends CrudController<XpertProject> {
         return this.service.findAllMy(params)
     }
 
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @Get('available')
+    async findAvailable(
+        @Query('xpertId') xpertId: string,
+        @Query('status') status?: 'active' | 'archived' | 'all',
+        @Query('skip') skip?: string,
+        @Query('take') take?: string
+    ) {
+        if (!xpertId?.trim()) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectXpertIdRequired', { defaultValue: 'A Project Xpert ID is required' })
+            )
+        }
+        return this.service.findAvailableForXpert({
+            xpertId: xpertId.trim(),
+            status,
+            skip: Math.max(Number(skip) || 0, 0),
+            take: Math.min(Math.max(Number(take) || 25, 1), 100)
+        })
+    }
+
     @Get(':id')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
     @UseGuards(XpertProjectGuard)
@@ -290,15 +323,25 @@ export class XpertProjectController extends CrudController<XpertProject> {
         return this.service.getXperts(id, params)
     }
 
+    @Get(':id/available-xperts')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    @UseGuards(XpertProjectGuard)
+    async getAvailableXperts(@Param('id') id: string, @Query('skip') skip?: string, @Query('take') take?: string) {
+        return this.service.getAvailableXperts(id, {
+            skip: Math.max(Number(skip) || 0, 0),
+            take: Math.min(Math.max(Number(take) || 50, 1), 100)
+        })
+    }
+
     @Put(':id/xperts/:xpert')
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     @UseGuards(XpertProjectGuard)
     async updateXperts(@Param('id') id: string, @Param('xpert') xpertId: string) {
         return this.service.addXpert(id, xpertId)
     }
 
     @Put(':id/assistant')
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     @UseGuards(XpertProjectGuard)
     async setAssistant(@Param('id') id: string, @Body() input: { xpertId?: string }) {
         const xpertId = input?.xpertId?.trim()
@@ -307,7 +350,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
     }
 
     @Delete(':id/xperts/:xpert')
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     @UseGuards(XpertProjectGuard)
     async removeXpert(@Param('id') id: string, @Param('xpert') xpertId: string) {
         return this.service.removeXpert(id, xpertId)
@@ -378,15 +421,63 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @Get(':id/members')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
     async getMembers(@Param('id') id: string) {
-        const project = await this.service.findOne(id, { relations: ['members'] })
-        return project.members.map((_) => new UserPublicDTO(_))
+        return this.membershipService.list(id)
     }
 
     @UseGuards(XpertProjectGuard)
     @Put(':id/members')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     async updateMembers(@Param('id') id: string, @Body() members: string[]) {
-        await this.service.updateMembers(id, members)
+        await this.membershipService.replaceMembers(id, members)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Post(':id/members')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    addMember(@Param('id') id: string, @Body() input: { userId: string; role?: TXpertProjectMemberRole }) {
+        return this.membershipService.add(id, input.userId, input.role ?? 'member')
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Patch(':id/members/:userId')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    updateMemberRole(
+        @Param('id') id: string,
+        @Param('userId') userId: string,
+        @Body() input: { role: TXpertProjectMemberRole }
+    ) {
+        return this.membershipService.updateRole(id, userId, input.role)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/members/:userId')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    removeMember(@Param('id') id: string, @Param('userId') userId: string) {
+        return this.membershipService.remove(id, userId)
+    }
+
+    @UseGuards(XpertProjectGuard, XpertProjectOwnerGuard)
+    @Patch(':id/owner')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    transferOwnership(@Param('id') id: string, @Body() input: { userId: string }) {
+        return this.membershipService.transferOwnership(id, input.userId)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/access')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    async getAccess(@Param('id') id: string) {
+        const { role, project } = await this.accessService.assertCanRead(id)
+        return {
+            role,
+            capabilities: {
+                canRead: true,
+                canEdit: ['owner', 'manager', 'editor'].includes(role),
+                canManage: ['owner', 'manager'].includes(role),
+                canUse: project.status !== 'archived'
+            }
+        }
     }
 
     @UseGuards(XpertProjectGuard)

@@ -25,7 +25,9 @@ import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
 
 type PublishedXpertQueryOptions = {
-    where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>>
+    where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>> & {
+        organizationId?: string | null
+    }
     relations?: string[]
     search?: string
     order?: Record<string, 'ASC' | 'DESC' | 'asc' | 'desc'>
@@ -176,6 +178,13 @@ export class PublishedXpertAccessService {
         }
         if (where.version != null) {
             qb.andWhere('xpert.version = :version', { version: where.version })
+        }
+        if (where.organizationId === null) {
+            qb.andWhere('xpert.organizationId IS NULL')
+        } else if (where.organizationId) {
+            qb.andWhere('xpert.organizationId = :whereOrganizationId', {
+                whereOrganizationId: where.organizationId
+            })
         }
 
         return qb

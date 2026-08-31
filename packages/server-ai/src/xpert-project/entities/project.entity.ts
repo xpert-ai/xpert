@@ -10,6 +10,7 @@ import {
     IXpertProjectAsset,
     IXpertProjectAutomation,
     IXpertProjectPlan,
+    IXpertProjectMembership,
     IXpertProjectVCS,
     IXpertToolset,
     IXpertWorkspace,
@@ -34,6 +35,7 @@ import { XpertProjectActivity } from './project-activity.entity'
 import { XpertProjectAsset } from './project-asset.entity'
 import { XpertProjectAutomation } from './project-automation.entity'
 import { XpertProjectPlan } from './project-plan.entity'
+import { XpertProjectMembership } from './project-membership.entity'
 
 @Entity('xpert_project')
 export class XpertProject extends TenantOrganizationBaseEntity implements IXpertProject {
@@ -163,6 +165,10 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
     @ApiPropertyOptional({ type: () => XpertProjectAutomation, isArray: true })
     @OneToMany(() => XpertProjectAutomation, (_) => _.project, { cascade: ['insert', 'update', 'remove'] })
     automations?: IXpertProjectAutomation[]
+
+    @ApiPropertyOptional({ type: () => XpertProjectMembership, isArray: true })
+    @OneToMany(() => XpertProjectMembership, (membership) => membership.project)
+    memberships?: IXpertProjectMembership[]
 
     /*
     |--------------------------------------------------------------------------

@@ -687,6 +687,27 @@ describe('PublishedXpertAccessService', () => {
         expect(qb.addSelect).toHaveBeenCalledWith('xpert.createdAt', 'order_createdAt')
     })
 
+    it('applies an exact Organization filter before pagination and counting', async () => {
+        const qb = createQueryBuilderMock({ rows: [] })
+        const repository = {
+            find: jest.fn().mockResolvedValue([]),
+            createQueryBuilder: jest.fn().mockReturnValue(qb)
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await service.findAccessiblePublishedXperts({
+            where: { organizationId: 'org-requested' },
+            skip: 10,
+            take: 20
+        })
+
+        expect(qb.andWhere).toHaveBeenCalledWith('xpert.organizationId = :whereOrganizationId', {
+            whereOrganizationId: 'org-requested'
+        })
+        expect(qb.skip).toHaveBeenCalledWith(10)
+        expect(qb.take).toHaveBeenCalledWith(20)
+    })
+
     it('rejects access when none of creator, workspace membership, or user-group membership grants access', async () => {
         const repository = {
             findOne: jest.fn().mockResolvedValue({
