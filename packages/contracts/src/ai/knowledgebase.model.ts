@@ -67,6 +67,12 @@ export type TKnowledgebase = {
    * KB description
    */
   description?: string
+
+  /**
+   * Stable application-owned classification labels used for exact discovery.
+   * These are machine-readable identifiers, not user-facing search tags.
+   */
+  applicationTags?: string[]
   /**
    * Public in tenant or in organization or private
    * @default private

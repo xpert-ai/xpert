@@ -66,6 +66,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @Column({ nullable: true })
     description?: string
 
+    @ApiPropertyOptional({ type: () => [String] })
+    @IsString({ each: true })
+    @IsOptional()
+    @Column({ type: 'jsonb', nullable: true, default: () => "'[]'::jsonb" })
+    applicationTags?: string[]
+
     @ApiProperty({ type: () => String, enum: KnowledgebasePermission })
     @IsEnum(KnowledgebasePermission)
     @IsOptional()

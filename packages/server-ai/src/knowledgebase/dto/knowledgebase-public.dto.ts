@@ -11,6 +11,8 @@ import { Exclude, Expose } from 'class-transformer'
 @Exclude()
 export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
     @Expose()
+    applicationTags?: string[]
+    @Expose()
     declare id: string
 
     @Expose()

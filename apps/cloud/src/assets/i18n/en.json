@@ -1799,6 +1799,60 @@
       "InstallingSkill": "Installing skill...",
       "InstallNow": "Install Now",
       "InstallOrUpdate": "Install or Update",
+      "Application": {
+        "AppTemplate": "App template",
+        "LoadingDetails": "Loading application details…",
+        "Marketplace": "Application marketplace",
+        "ViewSetupDetails": "View setup details",
+        "Includes": "Included with this application",
+        "DataScope": "Data scope",
+        "DeveloperLabel": "Developer: {{developer}}",
+        "ScreenshotAlt": "Screenshot of {{app}}",
+        "EnableApp": "Enable {{app}}",
+        "EmbeddingModel": "Embedding model",
+        "VisionModel": "Vision model",
+        "GoToModelSettings": "Go to model settings",
+        "DetailsUnavailable": "Application details are unavailable",
+        "BackToMarketplace": "Back to application marketplace",
+        "MissingIdentifier": "The application or plugin identifier is missing.",
+        "InitializedSuccessfully": "The application was initialized successfully.",
+        "DefaultStepWorkspace": "Create a dedicated application workspace",
+        "DefaultStepKnowledgebase": "Create the plugin-declared knowledge base",
+        "DefaultStepAssistant": "Install and publish the Assistant",
+        "GovernedInitialization": "Governed initialization",
+        "InitializationUnavailable": "Initialization not available",
+        "ScopeApplication": "{{scope}} application",
+        "Action": {
+          "Open": "Open application",
+          "ContactAdministrator": "Contact administrator",
+          "SwitchOrganization": "Switch organization",
+          "NotSupported": "Not supported yet",
+          "Repair": "Repair application",
+          "Initializing": "Initializing…",
+          "ApplyToOrganization": "Apply to current organization",
+          "RepairAndReinitialize": "Repair and reinitialize"
+        },
+        "Preflight": {
+          "OrganizationRequired": "Switch to an organization before enabling this organization-scoped application.",
+          "RoleRequired": "You can view the application details, but an organization administrator must initialize it.",
+          "PrimaryModelRequired": "The current organization has no available primary language model. Configure a model first.",
+          "EmbeddingModelRequired": "The current organization has no available embedding model. Configure a model first.",
+          "VisionModelRequired": "The current organization has no model with vision support. Configure a model first.",
+          "ScopeNotSupported": "Application initialization is not available for this scope yet."
+        },
+        "Status": {
+          "Ready": "Enabled",
+          "Initializing": "Initializing",
+          "Failed": "Initialization failed",
+          "Degraded": "Needs repair",
+          "NotInstalled": "Not enabled"
+        },
+        "Scope": {
+          "Tenant": "Tenant",
+          "Organization": "Organization",
+          "Personal": "Personal"
+        }
+      },
       "AgentSquare": {
         "Tab": "Experts",
         "SearchPlaceholder": "Search agents, scenarios, capabilities, or templates",

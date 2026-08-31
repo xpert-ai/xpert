@@ -139,6 +139,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     language: true,
     avatar: true,
     description: true,
+    applicationTags: true,
     permission: true,
     copilotModelId: true,
     chatModelId: true,
@@ -332,6 +333,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         if (Object.prototype.hasOwnProperty.call(entity, 'metadataSchema')) {
             entity.metadataSchema = this.validateAndNormalizeMetadataSchema(entity.metadataSchema)
         }
+        if (Object.prototype.hasOwnProperty.call(entity, 'applicationTags')) {
+            entity.applicationTags = this.normalizeApplicationTags(entity.applicationTags)
+        }
         return await super.create(entity)
     }
 
@@ -488,6 +492,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             if (Object.prototype.hasOwnProperty.call(entity, 'metadataSchema')) {
                 entity.metadataSchema = this.validateAndNormalizeMetadataSchema(entity.metadataSchema)
             }
+            if (Object.prototype.hasOwnProperty.call(entity, 'applicationTags')) {
+                entity.applicationTags = this.normalizeApplicationTags(entity.applicationTags)
+            }
             const hasCopilotModel = Object.prototype.hasOwnProperty.call(entity, 'copilotModel')
             const hasCopilotModelId = Object.prototype.hasOwnProperty.call(entity, 'copilotModelId')
             const hasEmbeddingModelChange = hasCopilotModel || hasCopilotModelId
@@ -548,6 +555,23 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             // Re-throw other errors
             throw error
         }
+    }
+
+    /**
+     * Normalizes machine-readable application classifications at the write
+     * boundary. Limits prevent unbounded JSON metadata while preserving stable
+     * exact-match tags for plugin discovery.
+     */
+    private normalizeApplicationTags(value: unknown): string[] {
+        if (!Array.isArray(value)) return []
+        return [
+            ...new Set(
+                value
+                    .filter((item): item is string => typeof item === 'string')
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+            )
+        ].slice(0, 32)
     }
 
     private validateAndNormalizeMetadataSchema(schema?: KBMetadataFieldDef[] | null): KBMetadataFieldDef[] {

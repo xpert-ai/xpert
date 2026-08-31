@@ -6,6 +6,7 @@ import {
     SecretTokenBindingType,
     TXpertWorkspaceAccessPurpose,
     TXpertWorkspaceCapabilities,
+    isOrganizationSharedXpertWorkspace,
     isTenantSharedXpertWorkspace
 } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
@@ -159,6 +160,11 @@ export class XpertWorkspaceAccessService {
         }
     }
 
+    /**
+     * Resolves effective access without expanding organization-shared
+     * workspaces into per-user membership rows. Sharing applies only when the
+     * workspace belongs to the RequestContext organization and tenant.
+     */
     async getCapabilities(workspace: XpertWorkspace): Promise<TXpertWorkspaceCapabilities> {
         const user = RequestContext.currentUser()
         const tenantId = user?.tenantId
@@ -171,6 +177,7 @@ export class XpertWorkspaceAccessService {
         const isMember = !!userId && !!workspace.members?.some((member) => member.id === userId)
         const isTenantAdmin = user?.role?.name === RolesEnum.SUPER_ADMIN || user?.role?.name === RolesEnum.ADMIN
         const isTenantShared = isTenantSharedXpertWorkspace(workspace)
+        const isOrganizationShared = isOrganizationSharedXpertWorkspace(workspace)
         const isTenantWorkspace = !workspace.organizationId
         const isCurrentOrganizationWorkspace = !!organizationId && workspace.organizationId === organizationId
 
@@ -190,7 +197,7 @@ export class XpertWorkspaceAccessService {
         }
 
         if (isCurrentOrganizationWorkspace) {
-            const canRead = isOwner || isMember
+            const canRead = isOrganizationShared || isOwner || isMember
             const canWrite = canRead
             // A published Xpert grant unlocks execution only; it must not expose workspace authoring resources.
             const canRun =
@@ -205,7 +212,7 @@ export class XpertWorkspaceAccessService {
                 canRead,
                 canRun,
                 canWrite,
-                canManage: isOwner
+                canManage: isOwner || (isOrganizationShared && isTenantAdmin)
             }
         }
 
@@ -271,6 +278,7 @@ export class XpertWorkspaceAccessService {
         return isTenantSharedXpertWorkspace(workspace)
     }
 
+    /** Mirrors `getCapabilities` in SQL so list results cannot exceed point-read access. */
     private async applyCurrentReadScope(
         query: SelectQueryBuilder<XpertWorkspace>,
         user: IUser,
@@ -292,6 +300,10 @@ export class XpertWorkspaceAccessService {
                                     memberQb
                                         .where('workspace.ownerId = :ownerId', { ownerId: userId })
                                         .orWhere('member.id = :userId', { userId })
+                                        .orWhere(
+                                            `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = :organizationSharedVisibility`,
+                                            { organizationSharedVisibility: 'organization-shared' }
+                                        )
                                 })
                             )
                         })

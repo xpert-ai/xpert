@@ -10,6 +10,7 @@ import {
     ImportKnowledgebaseArchiveCommand,
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
+    ReadKnowledgebaseDocumentImageCommand,
     UploadKnowledgebaseDocumentFileCommand
 } from '../knowledgebase-documents.command'
 import {
@@ -18,6 +19,7 @@ import {
     ImportKnowledgebaseArchiveHandler,
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
+    ReadKnowledgebaseDocumentImageHandler,
     UploadKnowledgebaseDocumentFileHandler
 } from './knowledgebase-documents.handler'
 import { DocumentTypeEnum } from '@xpert-ai/contracts'
@@ -185,6 +187,74 @@ describe('MoveKnowledgebaseDocumentHandler', () => {
             expectedVersion: 3
         })
         expect(result.affectedDocumentIds).toEqual(['doc-1'])
+    })
+})
+
+describe('ReadKnowledgebaseDocumentImageHandler', () => {
+    it('returns original image bytes and a governed file reference', async () => {
+        const knowledgebaseService = { findOne: jest.fn().mockResolvedValue({ id: 'kb-1' }) }
+        const documentService = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'image-1',
+                tenantId: 'tenant-1',
+                knowledgebaseId: 'kb-1',
+                name: 'diagram.png',
+                mimeType: 'image/png',
+                sourceHash: 'hash-1',
+                filePath: 'files/diagram.png'
+            }),
+            getOriginalFileDownloads: jest.fn().mockResolvedValue([
+                {
+                    fileName: 'diagram.png',
+                    mimeType: 'image/png',
+                    content: Buffer.from('png')
+                }
+            ])
+        }
+        const handler = new ReadKnowledgebaseDocumentImageHandler(
+            knowledgebaseService as never,
+            documentService as never
+        )
+
+        const result = await handler.execute(
+            new ReadKnowledgebaseDocumentImageCommand({ knowledgebaseId: 'kb-1', documentId: 'image-1' })
+        )
+
+        expect(knowledgebaseService.findOne).toHaveBeenCalledWith('kb-1')
+        expect(result).toMatchObject({
+            knowledgebaseId: 'kb-1',
+            documentId: 'image-1',
+            mimeType: 'image/png',
+            sourceHash: 'hash-1',
+            reference: {
+                tenantId: 'tenant-1',
+                knowledgeId: 'kb-1',
+                filePath: 'files/diagram.png'
+            }
+        })
+        expect(result.buffer).toEqual(Buffer.from('png'))
+    })
+
+    it('rejects a document from a different Knowledge base before reading bytes', async () => {
+        const documentService = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'image-2',
+                knowledgebaseId: 'kb-2',
+                mimeType: 'image/png'
+            }),
+            getOriginalFileDownloads: jest.fn()
+        }
+        const handler = new ReadKnowledgebaseDocumentImageHandler(
+            { findOne: jest.fn().mockResolvedValue({ id: 'kb-1' }) } as never,
+            documentService as never
+        )
+
+        await expect(
+            handler.execute(
+                new ReadKnowledgebaseDocumentImageCommand({ knowledgebaseId: 'kb-1', documentId: 'image-2' })
+            )
+        ).rejects.toThrow(/not an image in this knowledgebase/)
+        expect(documentService.getOriginalFileDownloads).not.toHaveBeenCalled()
     })
 })
 

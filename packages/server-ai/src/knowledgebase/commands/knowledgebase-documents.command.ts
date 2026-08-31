@@ -7,7 +7,8 @@ import {
     KnowledgebaseListDocumentsInput,
     KnowledgebaseMoveDocumentInput,
     KnowledgebaseStartProcessingInput,
-    KnowledgebaseUploadFileInput
+    KnowledgebaseUploadFileInput,
+    KnowledgebaseReadImageInput
 } from '@xpert-ai/plugin-sdk'
 
 export class ListKnowledgebaseDocumentsCommand {
@@ -44,4 +45,9 @@ export class GetKnowledgebaseDocumentStatusCommand {
 
 export class DeleteKnowledgebaseDocumentsCommand {
     constructor(public readonly input: KnowledgebaseDeleteDocumentsInput) {}
+}
+
+/** Server-only command for a scoped, original standalone image read. */
+export class ReadKnowledgebaseDocumentImageCommand {
+    constructor(public readonly input: KnowledgebaseReadImageInput) {}
 }

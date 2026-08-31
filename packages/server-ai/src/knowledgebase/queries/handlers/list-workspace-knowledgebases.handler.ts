@@ -40,6 +40,7 @@ export class ListWorkspaceKnowledgebasesHandler implements IQueryHandler<ListWor
                 id: item.id,
                 name: item.name,
                 description: item.description ?? null,
+                applicationTags: item.applicationTags ?? [],
                 type: item.type ?? null,
                 status: item.status ?? null,
                 permission: item.permission ?? null,

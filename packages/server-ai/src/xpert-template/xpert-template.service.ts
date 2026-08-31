@@ -10,6 +10,8 @@ import {
     IXpert,
     IXpertMCPTemplate,
     LanguagesEnum,
+    PluginMarketplaceContribution,
+    PluginTemplateApplicationSummary,
     resolveI18nText,
     WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
     TAvatar,
@@ -43,6 +45,7 @@ import { SkillRepositoryService } from '../skill-repository/skill-repository.ser
 import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
 import { XpertTemplate } from './xpert-template.entity'
 import { readXpertTemplateDslMetadata } from './xpert-template-dsl-metadata'
+import { resolvePluginApplicationConfigAssets } from '../plugin-resource/plugin-application-assets'
 
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
@@ -84,6 +87,7 @@ type TXpertTemplateDescriptor = {
     releaseNotes?: string
     xpertName?: string
     dependencies?: XpertTemplatePluginDependencies
+    application?: PluginTemplateApplicationSummary
 }
 
 type TXpertTemplateGroup = {
@@ -910,6 +914,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         return recommendedApps
     }
 
+    /** Selects the newest plugin record visible in the current request scope. */
     private getEffectivePluginRecords() {
         const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
         const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
@@ -927,8 +932,10 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             )
             .reverse()
             .filter((plugin) => {
-                const key = plugin.packageName ?? plugin.name
-                if (seen.has(key)) {
+                const key = normalizePluginPackageName(
+                    plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name ?? ''
+                )
+                if (!key || seen.has(key)) {
                     return false
                 }
                 seen.add(key)
@@ -978,6 +985,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         const targetApps = contribution.targetApps ?? plugin.instance?.meta?.targetApps
         const targetAppMeta = contribution.targetAppMeta ?? plugin.instance?.meta?.targetAppMeta ?? null
         const dslMetadata = readXpertTemplateDslMetadata(exportData, language)
+        const application = this.resolveTemplateApplication(plugin, key)
 
         return {
             ...contribution,
@@ -996,8 +1004,57 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             pluginName,
             pluginDisplayName: this.normalizeTemplateString(plugin.instance?.meta?.displayName ?? pluginName),
             dependencies: contribution.dependencies,
+            ...(application ? { application } : {}),
             avatar: contribution.avatar ?? dslMetadata.avatar,
             order: typeof contribution.order === 'number' ? contribution.order : Number.MAX_SAFE_INTEGER
+        }
+    }
+
+    /**
+     * Attaches an App only through an explicit template key declared by the
+     * same loaded plugin. Names, descriptions, and marketplace ordering never
+     * participate in the association, and ambiguous declarations fail closed.
+     */
+    private resolveTemplateApplication(
+        plugin: LoadedPluginRecord,
+        templateKey: string
+    ): PluginTemplateApplicationSummary | null {
+        const pluginName = normalizePluginPackageName(
+            this.normalizeTemplateString(plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name) ?? ''
+        )
+        const targetAppMeta = plugin.instance?.meta?.targetAppMeta ?? {}
+        const metadataEntries = Object.values(targetAppMeta) as Array<{
+            marketplace?: { contents?: PluginMarketplaceContribution[] }
+        }>
+        const contributions = metadataEntries.flatMap((metadata) =>
+            Array.isArray(metadata?.marketplace?.contents) ? metadata.marketplace.contents : []
+        )
+        const matches = contributions.filter(
+            (item) =>
+                item.type === 'app' &&
+                item.appConfig?.assistantTemplateKey?.trim() === templateKey &&
+                !!item.name?.trim()
+        )
+        const uniqueMatches = Array.from(new Map(matches.map((item) => [item.name, item])).values())
+        if (uniqueMatches.length > 1) {
+            throw new Error(`Plugin '${pluginName}' declares multiple Apps for Assistant template '${templateKey}'`)
+        }
+        const app = uniqueMatches[0]
+        if (!app?.appConfig) {
+            return null
+        }
+        const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+        return {
+            id: `${pluginName}:${app.name}`,
+            pluginName,
+            appName: app.name,
+            displayName: app.displayName ?? app.name,
+            description: app.description,
+            icon: app.icon ?? plugin.instance?.meta?.icon,
+            color: app.color,
+            scope: appConfig.scope,
+            assistantTemplateKey: appConfig.assistantTemplateKey,
+            config: appConfig
         }
     }
 

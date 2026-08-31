@@ -202,4 +202,19 @@ describe('XpertWorkspaceService', () => {
         )
         expect(workspaceRepository.save).not.toHaveBeenCalled()
     })
+
+    it('allows organization-shared visibility for organization workspaces', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            settings: { access: { visibility: 'private' } }
+        })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+
+        const result = await service.updateVisibility('workspace-1', 'organization-shared')
+
+        expect(workspaceRepository.save).toHaveBeenCalled()
+        expect(result.settings?.access?.visibility).toBe('organization-shared')
+    })
 })

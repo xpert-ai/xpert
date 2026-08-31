@@ -64,6 +64,8 @@ import {
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput,
     KnowledgebaseUploadedFile,
+    KnowledgebaseReadImageInput,
+    KnowledgebaseReadImageResult,
     KnowledgebaseWriteChunkInput,
     KnowledgebaseWriteChunkResult,
     AgentMiddlewareEvent,
@@ -121,6 +123,7 @@ import {
     MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand,
+    ReadKnowledgebaseDocumentImageCommand,
     WriteAgentKnowledgeChunkCommand
 } from '../../knowledgebase/commands'
 import { EnsureKnowledgebasesCommand } from '../../knowledgebase/commands'
@@ -585,6 +588,11 @@ export class AgentMiddlewareRuntimeService {
         input: KnowledgebaseDeleteDocumentsInput
     ): Promise<KnowledgebaseDeleteDocumentsResult> {
         return this.commandBus.execute(new DeleteKnowledgebaseDocumentsCommand(input))
+    }
+
+    /** Delegates scoped image reads to the Knowledge command boundary; never exposes storage paths directly. */
+    async readKnowledgebaseDocumentImage(input: KnowledgebaseReadImageInput): Promise<KnowledgebaseReadImageResult> {
+        return this.commandBus.execute(new ReadKnowledgebaseDocumentImageCommand(input))
     }
 
     async resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {
@@ -1115,7 +1123,8 @@ export class AgentMiddlewareRuntimeService {
                     createDocuments: (input) => this.createKnowledgebaseDocuments(input),
                     startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
                     getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
-                    deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
+                    deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input),
+                    readImage: (input) => this.readKnowledgebaseDocumentImage(input)
                 }
             ],
             [

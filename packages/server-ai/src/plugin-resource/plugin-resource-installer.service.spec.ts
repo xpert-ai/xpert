@@ -143,36 +143,36 @@ describe('PluginResourceInstallerService helpers', () => {
             [
                 {
                     componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                    componentKey: 'bid-engineering',
+                    componentKey: 'example-engineering',
                     definitionHash: 'hash'
                 }
             ],
             [
                 {
                     componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                    componentKey: 'bid-engineering',
-                    targetAgentKey: 'Agent_BidInterpretation'
+                    componentKey: 'example-engineering',
+                    targetAgentKey: 'Agent_Interpretation'
                 },
                 {
                     componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                    componentKey: 'bid-engineering',
-                    targetAgentKey: 'Agent_BidOutline'
+                    componentKey: 'example-engineering',
+                    targetAgentKey: 'Agent_Outline'
                 },
                 {
                     componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                    componentKey: 'bid-engineering',
-                    targetAgentKey: 'Agent_BidAuthoring'
+                    componentKey: 'example-engineering',
+                    targetAgentKey: 'Agent_Authoring'
                 }
             ],
-            '@xpert-ai/plugin-bid',
+            '@acme/plugin-example-app',
             '/tmp/plugin',
             '1.2.3'
         )
 
         expect(resolved.map((item) => item.targetAgentKey)).toEqual([
-            'Agent_BidInterpretation',
-            'Agent_BidOutline',
-            'Agent_BidAuthoring'
+            'Agent_Interpretation',
+            'Agent_Outline',
+            'Agent_Authoring'
         ])
         expect(resolved.every((item) => item.pluginVersion === '1.2.3')).toBe(true)
     })

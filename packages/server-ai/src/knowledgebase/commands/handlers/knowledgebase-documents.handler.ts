@@ -19,7 +19,9 @@ import {
     KnowledgebaseListDocumentsResult,
     KnowledgebaseMoveDocumentResult,
     KnowledgebaseUploadedFile,
-    DocumentTransformerRegistry
+    KnowledgebaseReadImageResult,
+    DocumentTransformerRegistry,
+    WORKSPACE_FILES_SOURCE
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
@@ -39,7 +41,8 @@ import {
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
-    UploadKnowledgebaseDocumentFileCommand
+    UploadKnowledgebaseDocumentFileCommand,
+    ReadKnowledgebaseDocumentImageCommand
 } from '../knowledgebase-documents.command'
 
 const DEFAULT_MAX_ARCHIVE_ENTRIES = 500
@@ -464,6 +467,54 @@ export class GetKnowledgebaseDocumentStatusHandler implements ICommandHandler<Ge
         })
         return {
             documents: items.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
+        }
+    }
+}
+
+/**
+ * Reads an independent Knowledge image through the existing Knowledge and
+ * document access services. The cross-check prevents a caller from combining
+ * an authorized Knowledge ID with a document ID from another Knowledge base.
+ */
+@Injectable()
+@CommandHandler(ReadKnowledgebaseDocumentImageCommand)
+export class ReadKnowledgebaseDocumentImageHandler implements ICommandHandler<ReadKnowledgebaseDocumentImageCommand> {
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService
+    ) {}
+
+    async execute(command: ReadKnowledgebaseDocumentImageCommand): Promise<KnowledgebaseReadImageResult> {
+        const { knowledgebaseId, documentId } = command.input
+        await this.knowledgebaseService.findOne(knowledgebaseId)
+        const document = await this.documentService.findOne(documentId)
+        if (document.knowledgebaseId !== knowledgebaseId || !document.mimeType?.startsWith('image/')) {
+            throw new BadRequestException('The selected Knowledge document is not an image in this knowledgebase')
+        }
+        const downloads = await this.documentService.getOriginalFileDownloads([documentId])
+        const download = downloads[0]
+        if (!download) throw new BadRequestException('The Knowledge image file is unavailable')
+        return {
+            knowledgebaseId,
+            documentId,
+            name: document.name || download.fileName,
+            mimeType: document.mimeType || download.mimeType,
+            size: download.content.length,
+            sourceHash: document.sourceHash,
+            reference: {
+                source: WORKSPACE_FILES_SOURCE,
+                tenantId: document.tenantId,
+                catalog: 'knowledges',
+                scopeId: knowledgebaseId,
+                knowledgeId: knowledgebaseId,
+                filePath: document.filePath,
+                workspacePath: document.filePath,
+                originalName: document.name || download.fileName,
+                name: document.name || download.fileName,
+                mimeType: document.mimeType || download.mimeType,
+                size: download.content.length
+            },
+            buffer: download.content
         }
     }
 }

@@ -272,8 +272,8 @@ describe('AgentMiddlewareRuntimeService', () => {
         const commands: unknown[] = []
         const selectedSkillRefs = [
             {
-                pluginName: '@xpert-ai/plugin-bid',
-                componentKey: 'bid-outline-planning'
+                pluginName: '@acme/plugin-example-app',
+                componentKey: 'outline-planning'
             }
         ]
         jest.spyOn(service as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
@@ -296,7 +296,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         await service.startAssistantTask({
             xpertId: 'xpert-1',
-            agentKey: 'Agent_BidOutline',
+            agentKey: 'Agent_Outline',
             taskId: 'task-1',
             prompt: 'Plan this outline.',
             selectedSkillRefs
@@ -304,7 +304,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         expect((service as any).resolveAssistantTaskSkillSelection).toHaveBeenCalledWith(
             'xpert-1',
-            'Agent_BidOutline',
+            'Agent_Outline',
             selectedSkillRefs
         )
         const chatCommand = commands.find((command) => command instanceof XpertChatCommand) as XpertChatCommand
@@ -318,7 +318,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         const xpert = {
             id: 'xpert-1',
             workspaceId: 'workspace-1',
-            agent: { key: 'Agent_BidOutline' },
+            agent: { key: 'Agent_Outline' },
             agents: [],
             graph: {
                 nodes: [
@@ -335,7 +335,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connections: [
                     {
                         type: 'workflow',
-                        from: 'Agent_BidOutline',
+                        from: 'Agent_Outline',
                         to: 'Middleware_Skills'
                     }
                 ]
@@ -346,7 +346,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 return [
                     {
                         id: 'skill-outline-1',
-                        sharedSkillId: 'plugin:@xpert-ai/plugin-bid:skill:bid-outline-planning'
+                        sharedSkillId: 'plugin:@acme/plugin-example-app:skill:outline-planning'
                     }
                 ]
             }
@@ -354,13 +354,13 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         await expect(
-            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_BidOutline', [
-                { pluginName: '@xpert-ai/plugin-bid', componentKey: 'bid-outline-planning' }
+            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
+                { pluginName: '@acme/plugin-example-app', componentKey: 'outline-planning' }
             ])
         ).resolves.toEqual({ workspaceId: 'workspace-1', skillIds: ['skill-outline-1'] })
         await expect(
-            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_BidOutline', [
-                { pluginName: '@xpert-ai/plugin-bid', componentKey: 'bid-service' }
+            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
+                { pluginName: '@acme/plugin-example-app', componentKey: 'service' }
             ])
         ).rejects.toThrow(/not directly connected/)
     })

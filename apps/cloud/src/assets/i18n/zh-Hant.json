@@ -41,6 +41,62 @@
   },
   "XP": {
     "Title": "元數分析雲",
+    "Explore": {
+      "Application": {
+        "AppTemplate": "App 範本",
+        "LoadingDetails": "正在載入應用程式詳情…",
+        "Marketplace": "應用程式市場",
+        "ViewSetupDetails": "查看初始化詳情",
+        "Includes": "應用程式包含",
+        "DataScope": "資料範圍",
+        "DeveloperLabel": "開發者：{{developer}}",
+        "ScreenshotAlt": "{{app}} 的應用程式截圖",
+        "EnableApp": "啟用 {{app}}",
+        "EmbeddingModel": "Embedding 模型",
+        "VisionModel": "視覺理解模型",
+        "GoToModelSettings": "前往模型設定",
+        "DetailsUnavailable": "應用程式詳情不可用",
+        "BackToMarketplace": "返回應用程式市場",
+        "MissingIdentifier": "缺少應用程式識別碼或插件識別碼。",
+        "InitializedSuccessfully": "應用程式已成功初始化。",
+        "DefaultStepWorkspace": "建立專屬應用程式工作空間",
+        "DefaultStepKnowledgebase": "建立插件宣告的知識庫",
+        "DefaultStepAssistant": "安裝並發佈 Assistant",
+        "GovernedInitialization": "受控初始化",
+        "InitializationUnavailable": "初始化尚未開放",
+        "ScopeApplication": "{{scope}}應用程式",
+        "Action": {
+          "Open": "開啟應用程式",
+          "ContactAdministrator": "聯絡管理員",
+          "SwitchOrganization": "切換到組織",
+          "NotSupported": "尚未支援",
+          "Repair": "修復應用程式",
+          "Initializing": "初始化中…",
+          "ApplyToOrganization": "應用到目前組織",
+          "RepairAndReinitialize": "修復並重新初始化"
+        },
+        "Preflight": {
+          "OrganizationRequired": "請先切換到一個組織，再啟用此組織級應用程式。",
+          "RoleRequired": "你可以查看應用程式詳情，但需要聯絡組織管理員完成初始化。",
+          "PrimaryModelRequired": "目前組織還沒有可用的主要語言模型，請先完成模型設定。",
+          "EmbeddingModelRequired": "目前組織還沒有可用的 Embedding 模型，請先完成模型設定。",
+          "VisionModelRequired": "目前組織還沒有支援視覺理解的模型，請先完成模型設定。",
+          "ScopeNotSupported": "此作用域的應用程式初始化尚未開放。"
+        },
+        "Status": {
+          "Ready": "已啟用",
+          "Initializing": "初始化中",
+          "Failed": "初始化失敗",
+          "Degraded": "需要修復",
+          "NotInstalled": "未啟用"
+        },
+        "Scope": {
+          "Tenant": "租戶級",
+          "Organization": "組織級",
+          "Personal": "個人級"
+        }
+      }
+    },
     "McpPublication": {
       "Title": "MCP 服務",
       "Description": "將目前租戶或組織範圍內的能力發佈為經過驗證的 MCP 2026-07-28 Streamable HTTP 服務。",

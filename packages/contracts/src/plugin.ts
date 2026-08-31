@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import type { AiModelTypeEnum } from './agent'
 import { JsonSchemaObjectType } from './ai/types'
 import type { IXpert } from './ai/xpert.model'
 import type { TMcpStdioRuntimePolicy } from './ai/xpert-tool-mcp.model'
@@ -117,6 +118,200 @@ export type PluginMarketplaceContributionType =
   | 'assistant-template'
   | (string & {})
 export type PluginMarketplaceOperationAccess = 'read' | 'write' | 'admin' | (string & {})
+
+/** Stable placement scopes declared by plugin application contributions. */
+export const PLUGIN_APPLICATION_SCOPE = {
+  TENANT: 'tenant',
+  ORGANIZATION: 'organization',
+  PERSONAL: 'personal'
+} as const
+
+/**
+ * Lifecycle states persisted for a governed plugin application installation.
+ * `degraded` means the installation record exists but one or more managed
+ * resources failed the host health check.
+ */
+export const PLUGIN_APPLICATION_INSTALLATION_STATUS = {
+  INITIALIZING: 'initializing',
+  READY: 'ready',
+  FAILED: 'failed',
+  DEGRADED: 'degraded'
+} as const
+
+/**
+ * Scope declared by a trusted plugin application contribution.
+ *
+ * The current host initializer supports `organization`; the other values are
+ * stable contract values for discovery and UI gating until their installers
+ * are implemented.
+ */
+export type PluginApplicationScope = (typeof PLUGIN_APPLICATION_SCOPE)[keyof typeof PLUGIN_APPLICATION_SCOPE]
+export type PluginApplicationInstallationStatus =
+  (typeof PLUGIN_APPLICATION_INSTALLATION_STATUS)[keyof typeof PLUGIN_APPLICATION_INSTALLATION_STATUS]
+
+/** Product capability rendered on a plugin application's marketplace detail page. */
+export interface PluginMarketplaceAppFeature {
+  key: string
+  title: string | I18nObject
+  description?: string | I18nObject
+  icon?: IconDefinition
+}
+
+/**
+ * Knowledge base resource that the host creates as part of an organization
+ * application installation. The plugin declares intent; the host supplies all
+ * tenant, organization, workspace, and actor scope.
+ */
+export interface PluginMarketplaceAppKnowledgebaseConfig {
+  key: string
+  name: string | I18nObject
+  description?: string | I18nObject
+  permission: 'organization'
+  applicationTags?: string[]
+  graphRag?: { enabled: boolean }
+}
+
+/** Model capabilities required before the host may initialize an application. */
+export interface PluginMarketplaceAppModelRequirements {
+  primary?: boolean
+  embedding?: boolean
+  vision?: boolean
+  embeddingLabel?: string | I18nObject
+  visionLabel?: string | I18nObject
+}
+
+/**
+ * Declarative, host-owned initialization contract for a trusted plugin App.
+ * The host only executes this contract from a loaded plugin contribution.
+ */
+export interface PluginMarketplaceAppConfig {
+  scope: PluginApplicationScope
+  assistantTemplateKey: string
+  workspace: {
+    mode: 'dedicated'
+    name: string | I18nObject
+    description?: string | I18nObject
+    sharing: 'organization'
+  }
+  knowledgebases?: PluginMarketplaceAppKnowledgebaseConfig[]
+  modelRequirements?: PluginMarketplaceAppModelRequirements
+  presentation?: {
+    tagline?: string | I18nObject
+    longDescription?: string | I18nObject
+    developer?: string
+    screenshots?: string[]
+    features?: PluginMarketplaceAppFeature[]
+    useCases?: Array<string | I18nObject>
+    dataScope?: string | I18nObject
+    initializationSummary?: string | I18nObject
+    initializationSteps?: Array<string | I18nObject>
+  }
+  entry?: {
+    type: 'assistant-chat'
+  }
+}
+
+/**
+ * Trusted application metadata attached to an Assistant template after the
+ * host resolves an explicit `assistantTemplateKey` link from a loaded plugin.
+ */
+export interface PluginTemplateApplicationSummary {
+  id: string
+  pluginName: string
+  appName: string
+  displayName: string | I18nObject
+  description?: string | I18nObject
+  icon?: IconDefinition
+  color?: string
+  scope: PluginApplicationScope
+  assistantTemplateKey: string
+  config: PluginMarketplaceAppConfig
+}
+
+/**
+ * Persisted control-plane record for one plugin application in one declared
+ * scope. Managed resource identifiers are retained so health checks and
+ * retries never need to rediscover resources by display name.
+ */
+export interface IPluginApplicationInstallation extends IBasePerTenantAndOrganizationEntityModel {
+  pluginName: string
+  appName: string
+  declaredScope: PluginApplicationScope
+  scopeKey: string
+  status: PluginApplicationInstallationStatus
+  pluginVersion?: string | null
+  templateId?: string | null
+  templateVersion?: string | null
+  operationId?: string | null
+  workspaceId?: string | null
+  xpertId?: string | null
+  knowledgebaseIds?: string[] | null
+  resourceRefs?: Record<string, string> | null
+  errorCode?: string | null
+  errorMessage?: string | null
+}
+
+/** Host-authorized model choice returned by application initialization preflight. */
+export interface PluginApplicationModelOption {
+  id: string
+  copilotId: string
+  model: string
+  label: string | I18nObject
+  modelType: AiModelTypeEnum
+}
+
+/** Read model used by marketplace cards to render installation health and actions. */
+export interface PluginApplicationStatusSummary {
+  appId: string
+  status: PluginApplicationInstallationStatus | 'not_installed'
+  initializationAccess?: 'allowed' | 'organization_required' | 'role_required' | 'unsupported'
+  installationId?: string
+  workspaceId?: string | null
+  xpertId?: string | null
+  assistantSlug?: string | null
+  errorCode?: string | null
+  errorMessage?: string | null
+}
+
+/**
+ * Server-computed initialization readiness. Clients may select only model IDs
+ * returned here and cannot provide tenant, organization, or workspace scope.
+ */
+export interface PluginApplicationPreflight {
+  supported: boolean
+  scope: PluginApplicationScope
+  canInitialize: boolean
+  reason?:
+    | 'organization_scope_required'
+    | 'role_required'
+    | 'scope_not_supported'
+    | 'primary_model_required'
+    | 'embedding_model_required'
+    | 'vision_model_required'
+  embeddingModels: PluginApplicationModelOption[]
+  visionModels: PluginApplicationModelOption[]
+  primaryModelAvailable: boolean
+  modelRequirements: PluginMarketplaceAppModelRequirements
+}
+
+/** Complete application detail assembled from trusted plugin metadata and scoped runtime state. */
+export interface PluginApplicationDetail {
+  application: PluginTemplateApplicationSummary
+  status: PluginApplicationStatusSummary
+  preflight: PluginApplicationPreflight
+}
+
+/**
+ * User-selectable portion of an initialization request. Scope and target
+ * resources are intentionally absent and are derived from RequestContext.
+ */
+export interface PluginApplicationInitializeInput {
+  pluginName: string
+  appName: string
+  embeddingModelId?: string
+  visionModelId?: string
+  operationId: string
+}
 
 export interface PluginMarketplaceOperation {
   name: string
@@ -290,6 +485,8 @@ export interface PluginMarketplaceContribution {
   operations?: PluginMarketplaceOperation[]
   tags?: string[]
   metadata?: Record<string, unknown>
+  /** Valid only when `type` is `app`. */
+  appConfig?: PluginMarketplaceAppConfig
 }
 
 export interface PluginMarketplaceTrialShortcut {

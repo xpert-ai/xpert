@@ -122,13 +122,16 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
     }
 
     async updateVisibility(id: string, visibility: TXpertWorkspaceVisibility) {
-        if (visibility !== 'private' && visibility !== 'tenant-shared') {
+        if (visibility !== 'private' && visibility !== 'tenant-shared' && visibility !== 'organization-shared') {
             throw new BadRequestException('Invalid workspace visibility.')
         }
 
         const { workspace } = await this.workspaceAccessService.assertCanManage(id)
         if (visibility === 'tenant-shared' && workspace.organizationId) {
             throw new BadRequestException('Only tenant-level workspaces can be shared across the tenant.')
+        }
+        if (visibility === 'organization-shared' && !workspace.organizationId) {
+            throw new BadRequestException('Only organization workspaces can be shared across an organization.')
         }
 
         workspace.settings = {

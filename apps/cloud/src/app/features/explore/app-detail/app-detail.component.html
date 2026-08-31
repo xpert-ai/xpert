@@ -1,0 +1,292 @@
+@if (loading()) {
+  <div class="flex min-h-[70vh] items-center justify-center text-sm text-muted-foreground">
+    {{ 'XP.Explore.Application.LoadingDetails' | translate: { Default: 'Loading application details…' } }}
+  </div>
+} @else if (detail(); as appDetail) {
+  <main class="relative min-h-screen overflow-hidden">
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0 opacity-60"
+      style="
+        background-image: radial-gradient(
+          circle at 1px 1px,
+          color-mix(in oklab, var(--border) 75%, transparent) 1px,
+          transparent 0
+        );
+        background-size: 24px 24px;
+      "
+    ></div>
+
+    <div class="relative mx-auto max-w-[1500px] px-6 py-8 lg:px-10">
+      <nav class="flex items-center gap-2 text-sm text-muted-foreground">
+        <a routerLink="/explore" [queryParams]="{ tab: 'agent-square' }" class="transition hover:text-foreground">{{
+          'XP.Explore.Application.Marketplace' | translate: { Default: 'Application marketplace' }
+        }}</a>
+        <z-icon zType="chevron-right" zSize="sm" />
+        <span class="text-foreground">{{ appDetail.application.displayName | i18n }}</span>
+      </nav>
+
+      <section class="mt-10 grid gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div class="min-w-0">
+          <header class="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <div
+              class="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-3xl bg-primary/5 shadow-sm ring-1 ring-border"
+            >
+              <xp-icon [icon]="appDetail.application.icon ?? null" [size]="72" />
+            </div>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {{ 'XP.Explore.Application.AppTemplate' | translate: { Default: 'App template' } }}
+                </span>
+                <span
+                  class="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
+                  >{{ scopeLabel() }}</span
+                >
+                <span
+                  class="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
+                  >{{ statusLabel() }}</span
+                >
+              </div>
+              <h1 class="mt-4 text-4xl font-semibold tracking-tight text-foreground lg:text-5xl">
+                {{ appDetail.application.displayName | i18n }}
+              </h1>
+              <p class="mt-3 text-lg text-muted-foreground">{{ presentation()?.tagline | i18n }}</p>
+              <div class="mt-6 flex flex-wrap gap-3">
+                <button z-button type="button" (click)="primaryAction()" [disabled]="status() === 'initializing'">
+                  {{ primaryActionLabel() }}
+                </button>
+                <button z-button zType="outline" type="button" (click)="setupOpen.set(true)">
+                  {{ 'XP.Explore.Application.ViewSetupDetails' | translate: { Default: 'View setup details' } }}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <section class="mt-12 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            @if (presentation()?.screenshots?.length) {
+              <div class="grid gap-4 p-5" [class.md:grid-cols-2]="(presentation()?.screenshots?.length ?? 0) > 1">
+                @for (screenshot of presentation()?.screenshots ?? []; track screenshot) {
+                  <img
+                    class="w-full rounded-xl border border-border object-cover"
+                    [src]="screenshot"
+                    [alt]="screenshotAlt(appDetail.application.displayName | i18n)"
+                  />
+                }
+              </div>
+            } @else {
+              <div
+                class="flex min-h-[360px] flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/40 px-8 py-14 text-center"
+              >
+                <div
+                  class="flex h-20 w-20 items-center justify-center rounded-2xl bg-card shadow-sm ring-1 ring-border"
+                >
+                  <xp-icon [icon]="appDetail.application.icon ?? null" [size]="48" />
+                </div>
+                <h2 class="mt-6 text-2xl font-semibold text-foreground">
+                  {{ appDetail.application.displayName | i18n }}
+                </h2>
+                <p class="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+                  {{ presentation()?.longDescription | i18n }}
+                </p>
+                <div class="mt-7 flex flex-wrap justify-center gap-2">
+                  @for (useCase of presentation()?.useCases ?? []; track $index) {
+                    <span class="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">{{
+                      useCase | i18n
+                    }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </section>
+
+          <section class="mt-10 grid gap-5 md:grid-cols-2">
+            @for (feature of presentation()?.features ?? []; track feature.key) {
+              <article class="rounded-2xl border border-border bg-card p-5">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <z-icon zType="sparkles" />
+                </div>
+                <h3 class="mt-4 font-semibold text-foreground">{{ feature.title | i18n }}</h3>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">{{ feature.description | i18n }}</p>
+              </article>
+            }
+          </section>
+        </div>
+
+        <aside class="h-fit rounded-2xl border border-border bg-card p-6 xl:sticky xl:top-8">
+          <h2 class="text-lg font-semibold text-foreground">
+            {{ 'XP.Explore.Application.Includes' | translate: { Default: 'Included with this application' } }}
+          </h2>
+          <div class="mt-5 space-y-3">
+            @for (feature of presentation()?.features ?? []; track feature.key) {
+              <div class="flex gap-3 rounded-xl border border-border p-4">
+                <z-icon zType="check" zSize="sm" class="mt-0.5 text-primary" />
+                <div>
+                  <div class="text-sm font-semibold text-foreground">{{ feature.title | i18n }}</div>
+                  <div class="mt-1 text-xs leading-5 text-muted-foreground">{{ feature.description | i18n }}</div>
+                </div>
+              </div>
+            }
+          </div>
+          <div class="mt-6 rounded-xl bg-muted/40 p-4">
+            <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {{ 'XP.Explore.Application.DataScope' | translate: { Default: 'Data scope' } }}
+            </div>
+            <p class="mt-2 text-sm leading-6 text-foreground">{{ presentation()?.dataScope | i18n }}</p>
+          </div>
+          <div class="mt-5 text-xs text-muted-foreground">{{ developerLabel() }}</div>
+        </aside>
+      </section>
+    </div>
+
+    @if (setupOpen()) {
+      <div class="fixed inset-0 z-50 bg-foreground/20 backdrop-blur-[1px]" (click)="closeSetup()"></div>
+      <aside
+        class="fixed inset-y-0 right-0 z-50 flex w-full max-w-[520px] flex-col border-l border-border bg-card shadow-2xl"
+      >
+        <header class="flex items-center justify-between border-b border-border px-6 py-5">
+          <h2 class="text-xl font-semibold text-foreground">
+            {{ enableApplicationLabel(appDetail.application.displayName | i18n) }}
+          </h2>
+          <button
+            type="button"
+            class="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+            (click)="closeSetup()"
+          >
+            <z-icon zType="x" />
+          </button>
+        </header>
+        <div class="flex-1 overflow-y-auto px-6 py-7">
+          <div class="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-primary/5 ring-1 ring-border">
+            <xp-icon [icon]="appDetail.application.icon ?? null" [size]="64" />
+          </div>
+          <p class="mx-auto mt-5 max-w-sm text-center text-base font-semibold leading-7 text-foreground">
+            {{ presentation()?.initializationSummary | i18n }}
+          </p>
+
+          @if (presentation()?.screenshots?.[0]; as screenshot) {
+            <div class="mt-6 overflow-hidden rounded-xl border border-border bg-muted/30 p-2">
+              <img
+                class="aspect-[16/10] w-full rounded-lg object-contain"
+                [src]="screenshot"
+                [alt]="screenshotAlt(appDetail.application.displayName | i18n)"
+              />
+            </div>
+          }
+
+          <div class="mt-8 space-y-4">
+            @for (resource of initializationSteps(); track $index; let index = $index) {
+              <div class="flex gap-3">
+                <span
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+                  >{{ index + 1 }}</span
+                ><span class="pt-1 text-sm text-foreground">{{ resource | i18n }}</span>
+              </div>
+            }
+          </div>
+
+          @if (modelRequirements().embedding || modelRequirements().vision) {
+            <div class="mt-8 space-y-5">
+              @if (modelRequirements().embedding) {
+                <div>
+                  <div class="text-sm font-semibold text-foreground">
+                    {{
+                      modelRequirements().embeddingLabel
+                        ? (modelRequirements().embeddingLabel | i18n)
+                        : ('XP.Explore.Application.EmbeddingModel' | translate: { Default: 'Embedding model' })
+                    }}
+                  </div>
+                  <copilot-model-select
+                    class="mt-2 block w-full"
+                    hiddenLabel
+                    required
+                    [readonly]="initializing()"
+                    [modelType]="modelType.TEXT_EMBEDDING"
+                    [(ngModel)]="embeddingModel"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </div>
+              }
+              @if (modelRequirements().vision) {
+                <div>
+                  <div class="text-sm font-semibold text-foreground">
+                    {{
+                      modelRequirements().visionLabel
+                        ? (modelRequirements().visionLabel | i18n)
+                        : ('XP.Explore.Application.VisionModel' | translate: { Default: 'Vision model' })
+                    }}
+                  </div>
+                  <copilot-model-select
+                    class="mt-2 block w-full"
+                    hiddenLabel
+                    required
+                    [readonly]="initializing()"
+                    [features]="visionFeatures"
+                    [modelType]="modelType.LLM"
+                    [(ngModel)]="visionModel"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </div>
+              }
+            </div>
+          }
+
+          @if (preflightMessage()) {
+            <div
+              class="mt-5 rounded-xl border border-state-warning-hover bg-state-warning-hover/10 p-4 text-sm leading-6 text-text-warning"
+            >
+              {{ preflightMessage() }}
+            </div>
+            @if (
+              ['primary_model_required', 'embedding_model_required', 'vision_model_required'].includes(
+                appDetail.preflight.reason ?? ''
+              )
+            ) {
+              <a
+                routerLink="/settings/copilot"
+                class="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+                >{{ 'XP.Explore.Application.GoToModelSettings' | translate: { Default: 'Go to model settings' } }}</a
+              >
+            }
+          }
+
+          <div class="mt-6 rounded-xl border border-border p-4">
+            <div class="flex gap-3">
+              <z-icon zType="lock" zSize="sm" class="mt-1 text-muted-foreground" />
+              <div>
+                <div class="text-sm font-semibold text-foreground">
+                  {{ 'XP.Explore.Application.DataScope' | translate: { Default: 'Data scope' } }}
+                </div>
+                <p class="mt-1 text-xs leading-5 text-muted-foreground">{{ presentation()?.dataScope | i18n }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="grid grid-cols-2 gap-3 border-t border-border p-6">
+          <button z-button type="button" class="w-full" [disabled]="!canSubmit()" (click)="initialize()">
+            {{ initializeActionLabel() }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            class="w-full"
+            [disabled]="initializing()"
+            (click)="closeSetup()"
+          >
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+          </button>
+        </footer>
+      </aside>
+    }
+  </main>
+} @else {
+  <div class="flex min-h-[70vh] flex-col items-center justify-center gap-4 text-center">
+    <h1 class="text-2xl font-semibold text-foreground">
+      {{ 'XP.Explore.Application.DetailsUnavailable' | translate: { Default: 'Application details are unavailable' } }}
+    </h1>
+    <a routerLink="/explore" class="text-sm text-primary hover:underline">
+      {{ 'XP.Explore.Application.BackToMarketplace' | translate: { Default: 'Back to application marketplace' } }}
+    </a>
+  </div>
+}

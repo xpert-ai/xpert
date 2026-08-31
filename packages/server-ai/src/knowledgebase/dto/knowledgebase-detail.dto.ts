@@ -71,6 +71,7 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
 
     @Expose()
     declare type?: IKnowledgebase['type']
+    declare applicationTags?: string[]
 
     @Expose()
     declare structure?: IKnowledgebase['structure']
@@ -167,7 +168,9 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     declare visionModel?: ICopilotModel
 
     @Expose()
-    @Transform((params: TransformFnParams) => params.value?.map((item: IXpert) => new KnowledgebaseLinkedXpertDTO(item)))
+    @Transform((params: TransformFnParams) =>
+        params.value?.map((item: IXpert) => new KnowledgebaseLinkedXpertDTO(item))
+    )
     declare xperts?: IXpert[]
 
     @Expose()

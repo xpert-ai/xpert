@@ -20,7 +20,13 @@
   } @else if (mode() !== 'mine' && items().length) {
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       @for (item of items(); track item.id) {
-        <xp-explore-xpert-card [search]="search()" [templateItem]="item" (actionClick)="install(item)" />
+        <xp-explore-xpert-card
+          [search]="search()"
+          [templateItem]="item"
+          [applicationStatus]="applicationStatus(item)"
+          (cardClick)="openTemplate(item)"
+          (actionClick)="install(item)"
+        />
       }
     </div>
   } @else {

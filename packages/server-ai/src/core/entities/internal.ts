@@ -59,6 +59,7 @@ export * from '../../skill-repository/repository-index/skill-repository-index.en
 export * from '../../skill-package/skill-package.entity'
 export * from '../../prompt-workflow/prompt-workflow.entity'
 export * from '../../plugin-resource/plugin-resource-installation.entity'
+export * from '../../plugin-resource/plugin-application-installation.entity'
 export * from '../../xpert-toolset/mcp-runtime-instance.entity'
 export * from '../../artifacts/entities'
 export * from '../../model-access/model-access-request.entity'

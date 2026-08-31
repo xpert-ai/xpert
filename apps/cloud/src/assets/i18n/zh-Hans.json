@@ -1345,6 +1345,60 @@
       "InstallingSkill": "正在安装技能...",
       "InstallNow": "立即安装",
       "InstallOrUpdate": "安装或更新",
+      "Application": {
+        "AppTemplate": "App 模板",
+        "LoadingDetails": "正在加载应用详情…",
+        "Marketplace": "应用市场",
+        "ViewSetupDetails": "查看初始化详情",
+        "Includes": "应用包含",
+        "DataScope": "数据范围",
+        "DeveloperLabel": "开发者：{{developer}}",
+        "ScreenshotAlt": "{{app}} 的应用截图",
+        "EnableApp": "启用 {{app}}",
+        "EmbeddingModel": "Embedding 模型",
+        "VisionModel": "视觉理解模型",
+        "GoToModelSettings": "前往模型配置",
+        "DetailsUnavailable": "应用详情不可用",
+        "BackToMarketplace": "返回应用市场",
+        "MissingIdentifier": "缺少应用标识或插件标识。",
+        "InitializedSuccessfully": "应用已成功初始化。",
+        "DefaultStepWorkspace": "创建专属应用工作空间",
+        "DefaultStepKnowledgebase": "创建插件声明的知识库",
+        "DefaultStepAssistant": "安装并发布 Assistant",
+        "GovernedInitialization": "受控初始化",
+        "InitializationUnavailable": "初始化暂未开放",
+        "ScopeApplication": "{{scope}}应用",
+        "Action": {
+          "Open": "打开应用",
+          "ContactAdministrator": "联系管理员",
+          "SwitchOrganization": "切换到组织",
+          "NotSupported": "暂未支持",
+          "Repair": "修复应用",
+          "Initializing": "初始化中…",
+          "ApplyToOrganization": "应用到当前组织",
+          "RepairAndReinitialize": "修复并重新初始化"
+        },
+        "Preflight": {
+          "OrganizationRequired": "请先切换到一个组织，再启用此组织级应用。",
+          "RoleRequired": "你可以查看应用详情，但需要联系组织管理员完成初始化。",
+          "PrimaryModelRequired": "当前组织还没有可用的主语言模型，请先完成模型配置。",
+          "EmbeddingModelRequired": "当前组织还没有可用的 Embedding 模型，请先完成模型配置。",
+          "VisionModelRequired": "当前组织还没有支持视觉理解的模型，请先完成模型配置。",
+          "ScopeNotSupported": "此作用域的应用初始化尚未开放。"
+        },
+        "Status": {
+          "Ready": "已启用",
+          "Initializing": "初始化中",
+          "Failed": "初始化失败",
+          "Degraded": "需要修复",
+          "NotInstalled": "未启用"
+        },
+        "Scope": {
+          "Tenant": "租户级",
+          "Organization": "组织级",
+          "Personal": "个人级"
+        }
+      },
       "AgentSquare": {
         "Tab": "专家",
         "SearchPlaceholder": "搜索智能体、场景、能力或模板",
