@@ -197,7 +197,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                         const handler = createMcpHandler(
                             () => this.createServer(publication, principal, visibleCapabilities, requestId, traceId),
                             {
-                                legacy: 'reject',
+                                legacy: 'stateless',
                                 responseMode: 'auto',
                                 bus: this.subscriptions.bus(publication.id)
                             }
