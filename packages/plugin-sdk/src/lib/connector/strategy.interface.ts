@@ -15,15 +15,26 @@ export type ConnectorOAuthConfig = {
   redirectPath?: string
 }
 
-export type ConnectorAppCredentialField = {
+type ConnectorCredentialFieldBase = {
   name: string
   label: RuntimeI18nText
-  type?: 'text' | 'password'
   required?: boolean
   placeholder?: RuntimeI18nText
   description?: RuntimeI18nText
-  secret?: boolean
 }
+
+export type ConnectorAppCredentialField =
+  | (ConnectorCredentialFieldBase & {
+      type?: 'text' | 'password'
+      secret?: boolean
+    })
+  | (ConnectorCredentialFieldBase & {
+      /** Selects an organization-scoped System Integration instead of collecting its secret here. */
+      type: 'integration'
+      /** Exact integration provider name used to filter choices and preselect the create page. */
+      provider: string
+      secret?: false
+    })
 
 export type ConnectorAppCredentialsConfig = {
   fields?: ConnectorAppCredentialField[]
@@ -36,19 +47,22 @@ export type ConnectorAppCredentialsConfig = {
 
 export type ConnectorCredentialFormDefinition = ConnectorAppCredentialsConfig
 
-export type ConnectorAuthMethodDefinition =
-  | {
-      id: string
-      type: 'oauth2'
-      label: RuntimeI18nText
-      appCredentials?: ConnectorCredentialFormDefinition
-    }
-  | {
-      id: string
-      type: 'api_key'
-      label: RuntimeI18nText
-      credentials: ConnectorCredentialFormDefinition
-    }
+type ConnectorAuthMethodBase = {
+  id: string
+  label: RuntimeI18nText
+}
+
+export type ConnectorAuthMethodDefinition = ConnectorAuthMethodBase &
+  (
+    | {
+        type: 'oauth2'
+        appCredentials?: ConnectorCredentialFormDefinition
+      }
+    | {
+        type: 'api_key'
+        credentials: ConnectorCredentialFormDefinition
+      }
+  )
 
 export type ConnectorPermissionDeclaration = {
   key: string
@@ -196,6 +210,48 @@ function assertConnectorAuthMethod(method: unknown, provider: string): asserts m
 
   if (type === 'api_key' && !isObjectValue(Reflect.get(method, 'credentials'))) {
     throw new Error(`Connector '${provider}' API key method '${idValue.trim()}' must declare credentials`)
+  }
+
+  const credentialForm = type === 'api_key' ? Reflect.get(method, 'credentials') : Reflect.get(method, 'appCredentials')
+  if (credentialForm !== undefined) {
+    assertConnectorCredentialForm(credentialForm, provider, idValue.trim())
+  }
+}
+
+function assertConnectorCredentialForm(value: unknown, provider: string, authMethodId: string): void {
+  if (!isObjectValue(value)) {
+    throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has invalid credentials`)
+  }
+  const fields = Reflect.get(value, 'fields')
+  if (fields === undefined) {
+    return
+  }
+  if (!Array.isArray(fields)) {
+    throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has invalid credential fields`)
+  }
+  for (const field of fields) {
+    if (!isObjectValue(field)) {
+      throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has an invalid credential field`)
+    }
+    const name = Reflect.get(field, 'name')
+    const label = Reflect.get(field, 'label')
+    const fieldType = Reflect.get(field, 'type')
+    if (typeof name !== 'string' || !name.trim() || !isRuntimeI18nText(label)) {
+      throw new Error(`Connector '${provider}' authentication method '${authMethodId}' has an invalid credential field`)
+    }
+    if (fieldType !== undefined && fieldType !== 'text' && fieldType !== 'password' && fieldType !== 'integration') {
+      throw new Error(
+        `Connector '${provider}' authentication method '${authMethodId}' has unsupported credential field type '${String(fieldType)}'`
+      )
+    }
+    if (fieldType === 'integration') {
+      const integrationProvider = Reflect.get(field, 'provider')
+      if (typeof integrationProvider !== 'string' || !integrationProvider.trim()) {
+        throw new Error(
+          `Connector '${provider}' authentication method '${authMethodId}' integration field '${name.trim()}' must declare a provider`
+        )
+      }
+    }
   }
 }
 

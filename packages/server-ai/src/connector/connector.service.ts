@@ -773,6 +773,22 @@ export class ConnectorService {
     async disconnect(workspaceId: string, connectorId: string) {
         await this.workspaceAccessService.assertCanManage(workspaceId)
         const connector = await this.requireConnector({ workspaceId, connectorId })
+        await this.clearConnectorConnection(connector)
+        return null
+    }
+
+    async cancelAuthorization(workspaceId: string, connectorId: string) {
+        await this.workspaceAccessService.assertCanManage(workspaceId)
+        const connector = await this.requireConnector({ workspaceId, connectorId })
+        if (connector.status !== 'pending') {
+            throw new BadRequestException('Connector authorization is not pending')
+        }
+
+        await this.clearConnectorConnection(connector)
+        return null
+    }
+
+    private async clearConnectorConnection(connector: Connector) {
         connector.status = 'disconnected'
         connector.connectionAttemptId = null
         connector.credentialCiphertext = null
@@ -784,7 +800,6 @@ export class ConnectorService {
         connector.lastError = null
         await this.connectorRepository.save(connector)
         await this.consumeSupersededSessions(connector)
-        return null
     }
 
     async getRuntimeConnector(input: ConnectorRuntimeGetInput): Promise<ConnectorRuntimeCredential> {

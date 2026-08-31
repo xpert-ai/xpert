@@ -41,4 +41,8 @@ export class XpertConnectorService {
   disconnect(workspaceId: string, connectorId: string) {
     return this.#http.delete<void>(`${API_CONNECTOR}/${workspaceId}/${connectorId}`)
   }
+
+  cancelAuthorization(workspaceId: string, connectorId: string) {
+    return this.#http.post<void>(`${API_CONNECTOR}/${workspaceId}/${connectorId}/cancel-authorization`, {})
+  }
 }

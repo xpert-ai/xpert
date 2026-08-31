@@ -30,6 +30,8 @@ export class IntegrationSelectComponent {
   readonly placeholder = input<string | null>(null)
   readonly features = input<IntegrationFeatureEnum[] | null>(null)
   readonly enterpriseH5Platform = input<string | null>(null)
+  /** Optional caller-owned cache key for reloading integrations after a create flow in another tab. */
+  readonly refreshKey = input<unknown>()
 
   // States
   readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
@@ -56,6 +58,7 @@ export class IntegrationSelectComponent {
   readonly integrationId = this.cva.value$
 
   readonly integrations = derivedAsync(() => {
+    this.refreshKey()
     const where = {}
     const providers = this.#providers()
     if (this.provider()) {

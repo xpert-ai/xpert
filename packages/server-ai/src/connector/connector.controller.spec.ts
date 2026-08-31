@@ -130,6 +130,16 @@ describe('ConnectorController', () => {
 
         expect(service.connect).not.toHaveBeenCalled()
     })
+
+    it('delegates pending authorization cancellation to the service', async () => {
+        const service: Pick<ConnectorService, 'cancelAuthorization'> = {
+            cancelAuthorization: jest.fn().mockResolvedValue(null)
+        }
+        const controller = new ConnectorController(service as ConnectorService)
+
+        await expect(controller.cancelAuthorization('workspace-1', 'connector-1')).resolves.toBeNull()
+        expect(service.cancelAuthorization).toHaveBeenCalledWith('workspace-1', 'connector-1')
+    })
 })
 
 function htmlResponse() {
