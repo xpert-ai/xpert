@@ -15,6 +15,7 @@ import type {
   IXpertProjectTaskConversation,
   IXpertProjectTaskExecution,
   TXpertProjectAccessSummary,
+  TXpertProjectMemberSummary,
   IPagination
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
@@ -74,6 +75,10 @@ export class XpertProjectApiService {
 
   access(id: string): Observable<TXpertProjectAccessSummary> {
     return this.#http.get<TXpertProjectAccessSummary>(`${API_XPERT_PROJECT}/${id}/access`)
+  }
+
+  members(id: string) {
+    return this.#http.get<TXpertProjectMemberSummary[]>(`${API_XPERT_PROJECT}/${id}/members`)
   }
 
   overview(id: string) {

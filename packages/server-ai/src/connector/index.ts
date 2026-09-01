@@ -1,4 +1,7 @@
 export * from './connector.entity'
+export * from './connector-personal-account.entity'
+export * from './connector-personal-grant.entity'
+export * from './connector-runtime-audit.entity'
 export * from './connector-oauth-session.entity'
 export * from './connector.service'
 export * from './connector.module'

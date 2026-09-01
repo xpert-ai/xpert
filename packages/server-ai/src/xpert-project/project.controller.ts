@@ -229,14 +229,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @UseGuards(XpertProjectGuard)
     @Delete(':id')
     async delete(@Param('id') id: string) {
-        return this.service.delete(id)
+        return this.service.deleteProject(id)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     @UseGuards(XpertProjectGuard)
     @Delete(':id/soft')
     async softRemove(@Param('id') id: string) {
-        return this.service.softRemove(id)
+        return this.service.softRemoveProject(id)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)

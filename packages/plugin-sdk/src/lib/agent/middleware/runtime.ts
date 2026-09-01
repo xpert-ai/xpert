@@ -137,6 +137,8 @@ export type AgentMiddlewareRuntimeScope = {
   threadId?: string | null
   agentKey?: string | null
   executionId?: string | null
+  /** Connector bindings selected for this conversation. An empty list denies connector resolution. */
+  connectorBindingIds?: string[] | null
   usageCallback?: (usage: TLLMUsage) => void | Promise<void>
   workspaceRoot?: string | null
   workspacePath?: string | null

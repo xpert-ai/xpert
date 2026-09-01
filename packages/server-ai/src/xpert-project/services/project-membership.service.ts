@@ -2,6 +2,7 @@ import { TXpertProjectMemberRole, TXpertProjectMemberSummary, UserType } from '@
 import { RequestContext, User, UserOrganization, UserPublicDTO } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
@@ -17,7 +18,8 @@ export class XpertProjectMembershipService {
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(UserOrganization)
         private readonly userOrganizationRepository: Repository<UserOrganization>,
-        private readonly accessService: XpertProjectAccessService
+        private readonly accessService: XpertProjectAccessService,
+        private readonly eventEmitter: EventEmitter2
     ) {}
 
     async list(projectId: string): Promise<TXpertProjectMemberSummary[]> {
@@ -197,6 +199,13 @@ export class XpertProjectMembershipService {
         membership.removedAt = new Date()
         await this.membershipRepository.softRemove(membership)
         await this.removeLegacyMember(project, userId)
+        await this.eventEmitter.emitAsync('xpert-project.member-removed', {
+            tenantId: project.tenantId,
+            organizationId: project.organizationId,
+            projectId,
+            userId,
+            actorId: RequestContext.currentUserId()
+        })
     }
 
     /** Compatibility bridge for the old PUT members endpoint. */

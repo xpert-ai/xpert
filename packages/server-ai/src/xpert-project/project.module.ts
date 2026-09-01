@@ -49,6 +49,7 @@ import { XpertProjectMembership } from './entities/project-membership.entity'
 import { XpertProjectAccessModule } from './project-access.module'
 import { XpertProjectMembershipService } from './services/project-membership.service'
 import { XpertProjectOwnerGuard } from './guards/project-owner.guard'
+import { ConnectorModule } from '../connector/connector.module'
 
 @Module({
     imports: [
@@ -81,6 +82,7 @@ import { XpertProjectOwnerGuard } from './guards/project-owner.guard'
         CqrsModule,
         IntegrationModule,
         XpertWorkspaceModule,
+        ConnectorModule,
         XpertProjectAccessModule,
         forwardRef(() => XpertModule)
     ],

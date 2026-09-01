@@ -144,6 +144,10 @@ describe('AgentMiddlewareRuntimeService', () => {
     let volumeClient: { resolve: jest.Mock }
     let volumeRoot: string
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
+    let connectors: {
+        createScopedRuntimeApi: jest.Mock
+        resolveSelectedRuntimeBindings: jest.Mock
+    }
     let artifacts: { createScopedApi: jest.Mock }
     let collaboration: CollaborationService
     let copilotService: CopilotService
@@ -169,6 +173,13 @@ describe('AgentMiddlewareRuntimeService', () => {
         workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, {
             assertCanEdit: jest.fn().mockResolvedValue({})
         })
+        connectors = {
+            createScopedRuntimeApi: jest.fn(() => ({
+                getConnector: jest.fn().mockResolvedValue(undefined),
+                getConnectorCredential: jest.fn().mockResolvedValue(undefined)
+            })),
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([])
+        }
         artifacts = {
             createScopedApi: jest.fn((defaults) => ({
                 createArtifact: jest.fn(),
@@ -221,10 +232,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             {
                 t: jest.fn().mockReturnValue('AI model not found')
             } as any,
-            {
-                getRuntimeConnector: jest.fn().mockResolvedValue(undefined),
-                getRuntimeConnectorCredential: jest.fn().mockResolvedValue(undefined)
-            } as any,
+            connectors as unknown as ConstructorParameters<typeof AgentMiddlewareRuntimeService>[3],
             workspaceFiles,
             artifacts as any,
             collaboration,
@@ -389,6 +397,29 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('uses the exact invocation scope for Connector preflight and runtime credentials', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            connectorBindingIds: ['binding-1']
+        }
+        const scopedConnectorApi = {
+            getConnector: jest.fn().mockResolvedValue({ id: 'binding-1' }),
+            getConnectorCredential: jest.fn().mockResolvedValue({ token: 'scoped-token' })
+        }
+        connectors.createScopedRuntimeApi.mockReturnValueOnce(scopedConnectorApi)
+
+        await service.resolveSelectedConnectorRuntimeBindings(scope)
+        const runtime = service.createScopedApi(scope)
+
+        expect(connectors.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(['binding-1'], scope)
+        expect(connectors.createScopedRuntimeApi).toHaveBeenCalledWith(scope)
+        expect(runtime.capabilities?.require(ConnectorRuntimeCapability)).toBe(scopedConnectorApi)
     })
 
     it('registers the execution-scoped KnowledgeDocument visual assets capability', async () => {

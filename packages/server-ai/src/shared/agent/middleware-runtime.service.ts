@@ -1103,6 +1103,10 @@ export class AgentMiddlewareRuntimeService {
         this.api = this.createScopedApi()
     }
 
+    resolveSelectedConnectorRuntimeBindings(scope: AgentMiddlewareRuntimeScope) {
+        return this.connectors.resolveSelectedRuntimeBindings(scope.connectorBindingIds, scope)
+    }
+
     /**
      * Build an Agent middleware runtime API for a specific invocation scope.
      *
@@ -1120,6 +1124,7 @@ export class AgentMiddlewareRuntimeService {
         })
         const collaborationApi = this.collaboration.createScopedApi(scope)
         const actorTokenApi = this.createActorTokenApi(scope)
+        const connectorApi = this.connectors.createScopedRuntimeApi(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [ActorTokenRuntimeCapability, actorTokenApi],
             [
@@ -1169,13 +1174,7 @@ export class AgentMiddlewareRuntimeService {
                     resolveFile: (input) => this.resolveFile(input, scope)
                 }
             ],
-            [
-                ConnectorRuntimeCapability,
-                {
-                    getConnector: (input) => this.connectors.getRuntimeConnector(input),
-                    getConnectorCredential: (input) => this.connectors.getRuntimeConnectorCredential(input)
-                }
-            ],
+            [ConnectorRuntimeCapability, connectorApi],
             [ArtifactsRuntimeCapability, artifactsApi],
             [CollaborationRuntimeCapability, collaborationApi],
             // Provisioning is host-authorized and deliberately separate from

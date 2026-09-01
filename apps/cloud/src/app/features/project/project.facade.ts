@@ -9,10 +9,13 @@ import type {
   IXpertProjectMilestone,
   IXpertProjectPlan,
   IXpertProjectSprint,
-  IXpertProjectTask
+  IXpertProjectTask,
+  IXpertTask,
+  TXpertProjectAccessSummary
 } from '@xpert-ai/contracts'
+import { OrderTypeEnum } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
-import { getErrorMessage } from '@cloud/app/@core'
+import { getErrorMessage, XpertTaskService } from '@cloud/app/@core'
 import { XpertProjectApiService, XpertProjectOverview, XpertProjectTaskRelations } from './project-api.service'
 
 const itemsOf = <T>(value: T[] | { items: T[]; total: number } | undefined) =>
@@ -21,6 +24,7 @@ const itemsOf = <T>(value: T[] | { items: T[]; total: number } | undefined) =>
 @Injectable({ providedIn: 'root' })
 export class XpertProjectFacade {
   readonly #api = inject(XpertProjectApiService)
+  readonly #taskService = inject(XpertTaskService)
   readonly project = signal<IXpertProject | null>(null)
   readonly projects = signal<IXpertProject[]>([])
   readonly plans = signal<IXpertProjectPlan[]>([])
@@ -35,6 +39,8 @@ export class XpertProjectFacade {
   readonly assetsError = signal<string | null>(null)
   readonly activities = signal<IXpertProjectActivity[]>([])
   readonly automations = signal<IXpertProjectAutomation[]>([])
+  readonly scheduledTasks = signal<IXpertTask[]>([])
+  readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
   readonly loading = signal(false)
   readonly error = signal<string | null>(null)
   readonly projectLoading = signal(false)
@@ -65,10 +71,13 @@ export class XpertProjectFacade {
     this.error.set(null)
     this.conversations.set([])
     this.conversationsError.set(null)
+    this.scheduledTasks.set([])
+    this.projectAccess.set(null)
     try {
       const overview = await firstValueFrom(this.#api.overview(id))
       if (sequence !== this.#projectLoadSequence) return null
       this.setOverview(overview)
+      await Promise.all([this.loadScheduledTasks(id, sequence), this.loadProjectAccess(id, sequence)])
       return overview
     } catch (error) {
       if (sequence !== this.#projectLoadSequence) return null
@@ -112,6 +121,15 @@ export class XpertProjectFacade {
     this.project.set(project)
     this.projects.update((items) => [project, ...items])
     return project
+  }
+
+  async reloadScheduledTasks(projectId = this.project()?.id) {
+    const id = projectId?.trim()
+    if (!id) {
+      this.scheduledTasks.set([])
+      return []
+    }
+    return this.loadScheduledTasks(id, this.#projectLoadSequence)
   }
 
   async updateProject(input: Partial<IXpertProject>) {
@@ -318,6 +336,33 @@ export class XpertProjectFacade {
     this.assetCount.set(overview.assetTotal ?? totalOf(overview.assets))
     this.activities.set(itemsOf(overview.activities))
     this.automations.set(itemsOf(overview.automations))
+  }
+
+  private async loadProjectAccess(projectId: string, sequence: number) {
+    try {
+      const access = await firstValueFrom(this.#api.access(projectId))
+      if (sequence === this.#projectLoadSequence) this.projectAccess.set(access)
+    } catch {
+      if (sequence === this.#projectLoadSequence) this.projectAccess.set(null)
+    }
+  }
+
+  private async loadScheduledTasks(projectId: string, sequence: number) {
+    try {
+      const response = await firstValueFrom(
+        this.#taskService.getAll({
+          where: { projectId },
+          order: { createdAt: OrderTypeEnum.DESC },
+          take: 50
+        })
+      )
+      const items = response.items ?? []
+      if (sequence === this.#projectLoadSequence) this.scheduledTasks.set(items)
+      return items
+    } catch {
+      if (sequence === this.#projectLoadSequence) this.scheduledTasks.set([])
+      return []
+    }
   }
 }
 

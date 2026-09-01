@@ -13,7 +13,9 @@ import {
     TXpertTaskScheduleCapabilities,
     TScheduleOptions,
     ScheduleTaskStatus,
+    STATE_VARIABLE_HUMAN,
     TaskFrequency,
+    UserType,
     WorkflowNodeTypeEnum,
     XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY,
     XPERT_TASK_SCHEDULE_PROPERTY_PREFIX,
@@ -26,18 +28,42 @@ import {
     OutboundActorTokenProvider,
     RedisLockService,
     RequestContext,
-    TenantOrganizationAwareCrudService
+    TenantOrganizationAwareCrudService,
+    User
 } from '@xpert-ai/server-core'
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException,
+    OnModuleInit,
+    Optional
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { OnEvent } from '@nestjs/event-emitter'
 import { Cron, SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import chalk from 'chalk'
 import { CronJob, CronTime } from 'cron'
+import { isEqual } from 'lodash'
 import { lastValueFrom, toArray } from 'rxjs'
-import { Between, Repository, SelectQueryBuilder } from 'typeorm'
+import {
+    Brackets,
+    Between,
+    FindManyOptions,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Repository,
+    SelectQueryBuilder
+} from 'typeorm'
+import { t } from 'i18next'
+import { createHash, randomUUID } from 'node:crypto'
 import { XpertChatCommand } from '../xpert/commands'
 import { XpertService } from '../xpert/xpert.service'
+import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatConversationUpsertCommand } from '../chat-conversation'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
@@ -54,10 +80,41 @@ import {
     TypeOrmScheduledTaskExecutionStore
 } from './scheduled-task-execution.coordinator'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
+import { XpertProjectXpertBindingService } from '../xpert-project/services/project-xpert-binding.service'
+import { XpertProject } from '../xpert-project/entities/project.entity'
+import { ConnectorService } from '../connector/connector.service'
+import { getRuntimeConnectorBindingIds } from '../shared/agent/runtime-capabilities'
+
+export type ProjectMemberRemovedEvent = {
+    tenantId: string
+    organizationId?: string | null
+    projectId: string
+    userId: string
+}
+
+export type ProjectXpertRemovedEvent = {
+    tenantId: string
+    organizationId?: string | null
+    projectId: string
+    xpertIds: string[]
+}
 
 const SCHEDULED_TASK_HEARTBEAT_MS = 60 * 1000
 const AUTO_TASK_CRON_LOCK_KEY = 'scheduler:xpert-auto-task'
 const AUTO_TASK_CRON_LOCK_TTL = 5 * 60 * 1000
+const PROJECT_TASK_RUN_AS_USER_MISSING = 'The scheduled task no longer has a valid run-as user'
+const PROJECT_TASK_XPERT_REQUIRED = 'A Project automation must be bound to a Project Xpert'
+const PROJECT_TASK_ACCESS_UNAVAILABLE = 'Project task access validation is not available'
+const PROJECT_TASK_RUN_AS_PROJECT_REQUIRED = 'Run-as transfer is only available for Project automations'
+const PROJECT_TASK_RUN_AS_TARGET_REQUIRED = 'Select a run-as user'
+const PROJECT_TASK_RUN_AS_TARGET_NOT_FOUND = 'The proposed run-as user was not found in this tenant'
+const PROJECT_TASK_RUN_AS_ALREADY_ASSIGNED = 'The selected user is already the run-as user'
+const PROJECT_TASK_RUN_AS_PROPOSAL_MISSING = 'This automation has no pending run-as transfer'
+const PROJECT_TASK_RUN_AS_PROPOSAL_TARGET_ONLY = 'Only the proposed run-as user can accept this transfer'
+const PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED = 'The run-as transfer changed before it could be accepted'
+const PROJECT_TASK_PERSONAL_CONNECTOR_RUN_AS_ONLY =
+    'Only the confirmed run-as user can change personal Connectors for this automation'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -85,11 +142,19 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly redisLockService: RedisLockService,
+        private readonly connectorService: ConnectorService,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+        private readonly projectXpertBindingService: XpertProjectXpertBindingService,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider,
         @Optional()
         @InjectRepository(ScheduledTaskExecution)
-        private readonly scheduledTaskExecutionRepository?: Repository<ScheduledTaskExecution>
+        private readonly scheduledTaskExecutionRepository?: Repository<ScheduledTaskExecution>,
+        @Optional()
+        private readonly projectAccessService?: XpertProjectAccessService,
+        @Optional()
+        private readonly publishedXpertAccessService?: PublishedXpertAccessService
     ) {
         super(repository)
         if (scheduledTaskExecutionRepository) {
@@ -101,11 +166,264 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     private readonly scheduledTaskExecutionCoordinator?: ScheduledTaskExecutionCoordinator
 
+    /**
+     * HTTP-only query boundary. Internal schedulers deliberately continue to use
+     * findAll/findOne so background recovery is not evaluated as the HTTP actor.
+     */
+    async findHttpAccessible(filter: FindManyOptions<XpertTask> = {}, requiredWhere?: FindOptionsWhere<XpertTask>) {
+        const user = RequestContext.currentUser()
+        if (!user?.id || !user.tenantId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.AuthenticatedUserRequired', { defaultValue: 'An authenticated user is required' })
+            )
+        }
+
+        const query = this.repository.createQueryBuilder('httpTask')
+        query.setFindOptions({
+            ...filter,
+            ...(requiredWhere ? { where: mergeRequiredTaskWhere(filter.where, requiredWhere) } : {})
+        })
+        const ownedProjectExists = query
+            .subQuery()
+            .select('1')
+            .from(XpertProject, 'httpOwnedProject')
+            .where('httpOwnedProject.id = httpTask.projectId')
+            .andWhere('httpOwnedProject.ownerId = :httpUserId', { httpUserId: user.id })
+            .getQuery()
+        const activeMembershipExists = query
+            .subQuery()
+            .select('1')
+            .from(XpertProject, 'httpMemberProject')
+            .innerJoin(
+                'httpMemberProject.memberships',
+                'httpProjectMembership',
+                'httpProjectMembership.userId = :httpUserId AND httpProjectMembership.deletedAt IS NULL',
+                { httpUserId: user.id }
+            )
+            .where('httpMemberProject.id = httpTask.projectId')
+            .getQuery()
+        query.andWhere('httpTask.tenantId = :httpTenantId', { httpTenantId: user.tenantId }).andWhere(
+            new Brackets((qb) => {
+                qb.where('httpTask.projectId IS NULL AND httpTask.createdById = :httpUserId')
+                    .orWhere(`EXISTS ${ownedProjectExists}`)
+                    .orWhere(`EXISTS ${activeMembershipExists}`)
+            })
+        )
+
+        const organizationId = RequestContext.getOrganizationId()
+        if (organizationId)
+            query.andWhere('httpTask.organizationId = :httpOrganizationId', { httpOrganizationId: organizationId })
+        else query.andWhere('httpTask.organizationId IS NULL')
+
+        const [items, total] = await query.getManyAndCount()
+        return { items, total }
+    }
+
+    async findHttpAccessibleById(
+        id: string,
+        relations?: FindManyOptions<XpertTask>['relations'],
+        select?: FindManyOptions<XpertTask>['select']
+    ) {
+        const { items } = await this.findHttpAccessible({ where: { id }, relations, select, take: 1 })
+        const task = items[0]
+        if (!task) {
+            throw new NotFoundException(
+                t('server-ai:Error.XpertTaskNotFound', { defaultValue: 'The requested Xpert task was not found' })
+            )
+        }
+        return task
+    }
+
+    async updateHttpTask(id: string, entity: Partial<IXpertTask>) {
+        const task = await this.findOne(id)
+        if (!task.projectId) {
+            await this.assertHttpMutationAccess(id)
+        }
+        return this.updateTask(id, entity)
+    }
+
+    async scheduleHttpTask(id: string, entity?: Partial<IXpertTask>) {
+        await this.assertHttpMutationAccess(id)
+        return entity ? this.updateTask(id, { ...entity, status: ScheduleTaskStatus.SCHEDULED }) : this.schedule(id)
+    }
+
+    async pauseHttpTask(id: string) {
+        await this.assertHttpMutationAccess(id)
+        return this.pause(id)
+    }
+
+    async archiveHttpTask(id: string) {
+        await this.assertHttpMutationAccess(id)
+        return this.archive(id)
+    }
+
+    async unarchiveHttpTask(id: string) {
+        await this.assertHttpMutationAccess(id)
+        return this.unarchive(id)
+    }
+
+    async testHttpTask(id: string, options: TChatOptions) {
+        await this.assertHttpMutationAccess(id)
+        return this.test(id, options)
+    }
+
+    async deleteHttpTask(id: string) {
+        await this.assertHttpMutationAccess(id)
+        this.deleteJob(id)
+        return this.delete(id)
+    }
+
+    async softDeleteHttpTask(id: string) {
+        await this.assertHttpMutationAccess(id)
+        await this.pause(id)
+        return this.softRemove(id)
+    }
+
+    async recoverHttpTask(id: string) {
+        await this.assertHttpMutationAccess(id, true)
+        return this.softRecover(id, { withDeleted: true })
+    }
+
+    async proposeProjectTaskRunAs(id: string, nextRunAsUserId: string) {
+        const task = await this.findOne(id)
+        const { projectId, xpertId } = this.requireProjectTaskRunAsScope(task)
+        const actorId = this.requireCurrentUserId()
+        const currentRunAsUserId = task.runAsUserId ?? task.createdById
+        const { projectAccessService } = this.getProjectAccessServices()
+        if (actorId === currentRunAsUserId) {
+            await projectAccessService.assertCanUse(projectId)
+        } else {
+            await projectAccessService.assertCanManage(projectId)
+        }
+
+        const targetUserId = nextRunAsUserId?.trim()
+        if (!targetUserId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsTargetRequired', {
+                    defaultValue: PROJECT_TASK_RUN_AS_TARGET_REQUIRED
+                }) || PROJECT_TASK_RUN_AS_TARGET_REQUIRED
+            )
+        }
+        if (targetUserId === currentRunAsUserId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsAlreadyAssigned', {
+                    defaultValue: PROJECT_TASK_RUN_AS_ALREADY_ASSIGNED
+                }) || PROJECT_TASK_RUN_AS_ALREADY_ASSIGNED
+            )
+        }
+
+        const { xpertId: currentXpertId } = await this.assertProjectTaskRunAsTarget(
+            task,
+            projectId,
+            xpertId,
+            targetUserId
+        )
+        const xpertIdChanged = currentXpertId !== task.xpertId
+        task.xpertId = currentXpertId
+        const proposal = {
+            ...(xpertIdChanged ? { xpertId: currentXpertId } : {}),
+            pendingRunAsUserId: targetUserId,
+            pendingRunAsRequestedById: actorId,
+            pendingRunAsRequestedAt: new Date(),
+            pendingRunAsConfigurationHash: buildProjectTaskRunAsConfigurationHash(task)
+        }
+        await this.repository.update(task.id, proposal)
+        Object.assign(task, proposal)
+        return task
+    }
+
+    async acceptProjectTaskRunAs(id: string) {
+        const task = await this.findOne(id)
+        const { projectId, xpertId } = this.requireProjectTaskRunAsScope(task)
+        const actorId = this.requireCurrentUserId()
+        if (!task.pendingRunAsUserId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsProposalMissing', {
+                    defaultValue: PROJECT_TASK_RUN_AS_PROPOSAL_MISSING
+                }) || PROJECT_TASK_RUN_AS_PROPOSAL_MISSING
+            )
+        }
+        if (task.pendingRunAsUserId !== actorId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectTaskRunAsProposalTargetOnly', {
+                    defaultValue: PROJECT_TASK_RUN_AS_PROPOSAL_TARGET_ONLY
+                }) || PROJECT_TASK_RUN_AS_PROPOSAL_TARGET_ONLY
+            )
+        }
+
+        const configurationHash = buildProjectTaskRunAsConfigurationHash(task)
+        if (!task.pendingRunAsConfigurationHash || task.pendingRunAsConfigurationHash !== configurationHash) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsProposalChanged', {
+                    defaultValue: PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED
+                }) || PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED
+            )
+        }
+
+        const { user: nextRunAsUser, xpertId: currentXpertId } = await this.assertProjectTaskRunAsTarget(
+            task,
+            projectId,
+            xpertId,
+            actorId
+        )
+        await this.assertProjectTaskConnectorSelection({ ...task, xpertId: currentXpertId }, nextRunAsUser)
+        const update = {
+            ...(currentXpertId !== task.xpertId ? { xpertId: currentXpertId } : {}),
+            runAsUserId: actorId,
+            pendingRunAsUserId: null,
+            pendingRunAsRequestedById: null,
+            pendingRunAsRequestedAt: null,
+            pendingRunAsConfigurationHash: null
+        }
+        const result = await this.repository.update(
+            {
+                id: task.id,
+                pendingRunAsUserId: actorId,
+                pendingRunAsConfigurationHash: configurationHash
+            },
+            update
+        )
+        if (result.affected !== 1) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsProposalChanged', {
+                    defaultValue: PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED
+                }) || PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED
+            )
+        }
+
+        Object.assign(task, update, { runAsUser: nextRunAsUser })
+        if (task.status === ScheduleTaskStatus.SCHEDULED) {
+            this.rescheduleTask(task, nextRunAsUser)
+        }
+        return task
+    }
+
+    async assertHttpMutationAccess(id: string, withDeleted = false) {
+        const task = await this.findOne(id, { withDeleted })
+        if (task.projectId) {
+            if (!this.projectAccessService) {
+                throw new Error(
+                    t('server-ai:Error.ProjectTaskAccessUnavailable', {
+                        defaultValue: PROJECT_TASK_ACCESS_UNAVAILABLE
+                    }) || PROJECT_TASK_ACCESS_UNAVAILABLE
+                )
+            }
+            await this.projectAccessService.assertCanManage(task.projectId)
+        } else if (task.createdById !== RequestContext.currentUserId()) {
+            throw new ForbiddenException(
+                t('server-ai:Error.XpertTaskAccessDenied', {
+                    defaultValue: 'You cannot access this Xpert task.'
+                })
+            )
+        }
+        return task
+    }
+
     async onModuleInit() {
         const { items: jobs, total } = await this.getActiveJobs()
         jobs.filter((job) => job.options).forEach((job) => {
             try {
-                this.scheduleCronJob(job, job.createdBy)
+                this.scheduleCronJob(job, job.runAsUser ?? job.createdBy)
             } catch (err) {
                 console.error(chalk.red('Schedule "' + job.name + '" error:' + getErrorMessage(err)))
             }
@@ -120,72 +438,21 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         scheduledExecution?: ScheduledTaskExecution
     ) {
         try {
-            const task = await this.findOne(id, { relations: ['xpert', 'createdBy', 'createdBy.role'] })
-            const chatOptions = applyScheduledTaskOidcContext(
-                task,
-                RequestContext.currentUser() ?? task.createdBy,
-                options,
-                this.outboundActorTokenProvider
+            const task = await this.findOne(id, {
+                relations: ['xpert', 'createdBy', 'createdBy.role', 'runAsUser', 'runAsUser.role']
+            })
+            const actor = task.runAsUser ?? task.createdBy
+            if (!actor) {
+                const reason =
+                    t('server-ai:Error.ProjectTaskRunAsUserMissing', {
+                        defaultValue: PROJECT_TASK_RUN_AS_USER_MISSING
+                    }) || PROJECT_TASK_RUN_AS_USER_MISSING
+                await this.pauseInvalidProjectTask(task, reason)
+                throw new BadRequestException(reason)
+            }
+            return await this.runWithTaskRequestContext(task, actor, () =>
+                this.executeLoadedTask(task, actor, options, scheduledAt, scheduledExecution)
             )
-            if (scheduledExecution) {
-                await this.requireScheduledTaskExecutionCoordinator().markRunning(scheduledExecution)
-            }
-            const runtimeState = await this.resolveTaskRuntimeState(task, scheduledAt)
-            const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
-                prompt: task.prompt,
-                xpertId: task.xpertId,
-                taskId: task.id,
-                conversationTaskId: task.id,
-                conversationId: scheduledExecution?.conversationId,
-                executionId: scheduledExecution?.executionId,
-                timeZone: task.timeZone || options.timeZone,
-                runtimeState,
-                chatOptions
-            })
-            if (scheduledExecution) {
-                await this.requireScheduledTaskExecutionCoordinator().bindRun(
-                    scheduledExecution,
-                    conversation.id,
-                    execution.id
-                )
-            }
-
-            const heartbeat = scheduledExecution
-                ? setInterval(() => {
-                      void this.requireScheduledTaskExecutionCoordinator()
-                          .refreshLease(scheduledExecution)
-                          .catch((error) => {
-                              this.#logger.warn(`Scheduled task lease refresh failed: ${getErrorMessage(error)}`)
-                          })
-                  }, SCHEDULED_TASK_HEARTBEAT_MS)
-                : undefined
-            const finish = (status: ScheduledTaskExecutionStatus, error?: unknown) => {
-                if (heartbeat) {
-                    clearInterval(heartbeat)
-                }
-                if (scheduledExecution) {
-                    void this.finishScheduledTaskExecution(task, scheduledExecution, status, error).catch(
-                        (finishError) => {
-                            this.#logger.error(`Scheduled task state update failed: ${getErrorMessage(finishError)}`)
-                        }
-                    )
-                }
-            }
-
-            observable.subscribe({
-                next: () => undefined,
-                error: (error) => {
-                    this.#logger.error('Scheduled task execution failed:', getErrorMessage(error))
-                    finish(ScheduledTaskExecutionStatus.FAILED, error)
-                },
-                complete: () => finish(ScheduledTaskExecutionStatus.SUCCEEDED)
-            })
-
-            return {
-                conversationId: conversation.id,
-                threadId: conversation.threadId,
-                runId: execution.id
-            }
         } catch (error) {
             if (scheduledExecution) {
                 await this.requireScheduledTaskExecutionCoordinator().finish(
@@ -198,9 +465,96 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         }
     }
 
+    private async executeLoadedTask(
+        task: XpertTask,
+        actor: IUser,
+        options: TChatOptions,
+        scheduledAt?: Date,
+        scheduledExecution?: ScheduledTaskExecution
+    ) {
+        await this.assertProjectTaskCanRun(task).catch(async (error) => {
+            await this.pauseInvalidProjectTask(task, getErrorMessage(error))
+            throw error
+        })
+        const chatOptions = applyScheduledTaskOidcContext(task, actor, options, this.outboundActorTokenProvider)
+        if (scheduledExecution) {
+            await this.requireScheduledTaskExecutionCoordinator().markRunning(scheduledExecution)
+        }
+        const runtimeState = await this.resolveTaskRuntimeState(task, scheduledAt)
+        const conversationId = scheduledExecution?.conversationId ?? randomUUID()
+        const executionId = scheduledExecution?.executionId ?? randomUUID()
+        await this.assertProjectTaskConnectorsCanRun(task, actor, runtimeState, conversationId, executionId).catch(
+            async (error) => {
+                const detail = getErrorMessage(error)
+                const reason =
+                    t('server-ai:Error.ProjectTaskConnectorUnavailable', {
+                        reason: detail,
+                        defaultValue: `Project automation was paused because a selected Connector is unavailable: ${detail}`
+                    }) || `Project automation was paused because a selected Connector is unavailable: ${detail}`
+                await this.pauseInvalidProjectTask(task, reason)
+                throw new BadRequestException(reason)
+            }
+        )
+        const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
+            prompt: task.prompt,
+            xpertId: task.xpertId,
+            projectId: task.projectId,
+            taskId: task.id,
+            conversationTaskId: task.id,
+            conversationId,
+            executionId,
+            timeZone: task.timeZone || options.timeZone,
+            runtimeState,
+            chatOptions
+        })
+        if (scheduledExecution) {
+            await this.requireScheduledTaskExecutionCoordinator().bindRun(
+                scheduledExecution,
+                conversation.id,
+                execution.id
+            )
+        }
+
+        const heartbeat = scheduledExecution
+            ? setInterval(() => {
+                  void this.requireScheduledTaskExecutionCoordinator()
+                      .refreshLease(scheduledExecution)
+                      .catch((error) => {
+                          this.#logger.warn(`Scheduled task lease refresh failed: ${getErrorMessage(error)}`)
+                      })
+              }, SCHEDULED_TASK_HEARTBEAT_MS)
+            : undefined
+        const finish = (status: ScheduledTaskExecutionStatus, error?: unknown) => {
+            if (heartbeat) {
+                clearInterval(heartbeat)
+            }
+            if (scheduledExecution) {
+                void this.finishScheduledTaskExecution(task, scheduledExecution, status, error).catch((finishError) => {
+                    this.#logger.error(`Scheduled task state update failed: ${getErrorMessage(finishError)}`)
+                })
+            }
+        }
+
+        observable.subscribe({
+            next: () => undefined,
+            error: (error) => {
+                this.#logger.error('Scheduled task execution failed:', getErrorMessage(error))
+                finish(ScheduledTaskExecutionStatus.FAILED, error)
+            },
+            complete: () => finish(ScheduledTaskExecutionStatus.SUCCEEDED)
+        })
+
+        return {
+            conversationId: conversation.id,
+            threadId: conversation.threadId,
+            runId: execution.id
+        }
+    }
+
     private async createPersistedTaskChatRun(params: {
         prompt?: string | null
         xpertId?: string | null
+        projectId?: string | null
         taskId?: string | null
         conversationTaskId?: string | null
         conversationId?: string | null
@@ -215,6 +569,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 status: 'busy',
                 taskId: params.conversationTaskId ?? undefined,
                 xpertId: params.xpertId ?? undefined,
+                projectId: params.projectId ?? undefined,
                 options: {
                     parameters: {
                         input: params.prompt
@@ -246,6 +601,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 {
                     ...(params.chatOptions ?? {}),
                     xpertId: params.xpertId ?? undefined,
+                    projectId: params.projectId ?? undefined,
                     timeZone: params.timeZone ?? params.chatOptions?.timeZone,
                     from: 'job',
                     taskId: params.taskId ?? undefined,
@@ -343,15 +699,37 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 .createQueryBuilder('task')
                 .leftJoinAndSelect('task.createdBy', 'createdBy')
                 .leftJoinAndSelect('createdBy.role', 'createdByRole')
+                .leftJoinAndSelect('task.runAsUser', 'runAsUser')
+                .leftJoinAndSelect('runAsUser.role', 'runAsUserRole')
                 .where('task.id = :taskId', { taskId: expiredExecution.taskId })
                 .andWhere('task.tenantId = :tenantId', { tenantId: expiredExecution.tenantId })
                 .andWhere('task.status = :status', { status: ScheduleTaskStatus.SCHEDULED })
                 .getOne()
-            if (!task?.createdBy || !task.xpertId) {
+            if (!task) {
+                continue
+            }
+            const actor = task.runAsUser ?? task.createdBy
+            if (!actor || !task.xpertId) {
+                if (task.projectId) {
+                    const reason = !actor
+                        ? t('server-ai:Error.ProjectTaskRunAsUserMissing', {
+                              defaultValue: PROJECT_TASK_RUN_AS_USER_MISSING
+                          }) || PROJECT_TASK_RUN_AS_USER_MISSING
+                        : t('server-ai:Error.ProjectTaskXpertRequired', {
+                              defaultValue: PROJECT_TASK_XPERT_REQUIRED
+                          }) || PROJECT_TASK_XPERT_REQUIRED
+                    const error = new BadRequestException(reason)
+                    await this.pauseInvalidProjectTask(task, reason)
+                    await this.requireScheduledTaskExecutionCoordinator().finish(
+                        expiredExecution,
+                        ScheduledTaskExecutionStatus.FAILED,
+                        error
+                    )
+                }
                 continue
             }
 
-            await this.runWithTaskRequestContext(task, task.createdBy, async () => {
+            await this.runWithTaskRequestContext(task, actor, async () => {
                 const claimed = await this.requireScheduledTaskExecutionCoordinator().claim(
                     task,
                     expiredExecution.occurrenceKey,
@@ -386,7 +764,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         }
     }
 
-    private runWithTaskRequestContext(task: IXpertTask, user: IUser, callback: () => void | Promise<void>) {
+    private runWithTaskRequestContext<T>(
+        task: Pick<IXpertTask, 'tenantId' | 'organizationId'>,
+        user: IUser,
+        callback: () => T | Promise<T>
+    ): Promise<T> {
         if (!user) {
             return Promise.resolve(callback())
         }
@@ -413,8 +795,325 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             where: {
                 status: ScheduleTaskStatus.SCHEDULED
             },
-            relations: ['createdBy', 'createdBy.role']
+            relations: ['createdBy', 'createdBy.role', 'runAsUser', 'runAsUser.role']
         })
+    }
+
+    async assertProjectTaskCanBeCreated(
+        task: Pick<IXpertTask, 'projectId' | 'xpertId' | 'runtimeState' | 'tenantId' | 'organizationId'>
+    ) {
+        if (!task.projectId) return
+        if (!task.xpertId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskXpertRequired', {
+                    defaultValue: PROJECT_TASK_XPERT_REQUIRED
+                }) || PROJECT_TASK_XPERT_REQUIRED
+            )
+        }
+        const { projectAccessService } = this.getProjectAccessServices()
+        await projectAccessService.assertCanManage(task.projectId)
+        await this.assertProjectTaskCanRun(task)
+        const actor = RequestContext.currentUser()
+        if (!actor) {
+            throw new ForbiddenException(
+                t('server-ai:Error.AuthenticatedUserRequired', { defaultValue: 'An authenticated user is required' })
+            )
+        }
+        await this.assertProjectTaskConnectorSelection(task, actor)
+    }
+
+    private async assertProjectTaskCanBeManaged(task: Pick<IXpertTask, 'projectId'>) {
+        if (!task.projectId) return
+        const { projectAccessService } = this.getProjectAccessServices()
+        await projectAccessService.assertCanManage(task.projectId)
+    }
+
+    private async assertProjectTaskCanRun(
+        task: Pick<IXpertTask, 'projectId' | 'xpertId' | 'tenantId' | 'organizationId'>
+    ) {
+        if (!task.projectId) return
+        if (!task.xpertId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskXpertRequired', {
+                    defaultValue: PROJECT_TASK_XPERT_REQUIRED
+                }) || PROJECT_TASK_XPERT_REQUIRED
+            )
+        }
+        const currentXpertId = await this.resolveProjectTaskCurrentXpertId(task, task.xpertId)
+        task.xpertId = currentXpertId
+        const { projectAccessService, publishedXpertAccessService } = this.getProjectAccessServices()
+        await projectAccessService.assertCanUseXpert(task.projectId, currentXpertId)
+        await publishedXpertAccessService.getAccessiblePublishedXpert(currentXpertId)
+    }
+
+    private getProjectAccessServices() {
+        if (!this.projectAccessService || !this.publishedXpertAccessService) {
+            throw new Error(
+                t('server-ai:Error.ProjectTaskAccessUnavailable', { defaultValue: PROJECT_TASK_ACCESS_UNAVAILABLE }) ||
+                    PROJECT_TASK_ACCESS_UNAVAILABLE
+            )
+        }
+        return {
+            projectAccessService: this.projectAccessService,
+            publishedXpertAccessService: this.publishedXpertAccessService
+        }
+    }
+
+    private requireProjectTaskRunAsScope(task: XpertTask) {
+        const projectId = task.projectId?.trim()
+        const xpertId = task.xpertId?.trim()
+        if (!projectId || !xpertId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsProjectRequired', {
+                    defaultValue: PROJECT_TASK_RUN_AS_PROJECT_REQUIRED
+                }) || PROJECT_TASK_RUN_AS_PROJECT_REQUIRED
+            )
+        }
+        return { projectId, xpertId }
+    }
+
+    private requireCurrentUserId() {
+        const userId = RequestContext.currentUserId()?.trim()
+        if (!userId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.AuthenticatedUserRequired', {
+                    defaultValue: 'An authenticated user is required'
+                })
+            )
+        }
+        return userId
+    }
+
+    private async assertProjectTaskRunAsTarget(
+        task: XpertTask,
+        projectId: string,
+        xpertId: string,
+        targetUserId: string
+    ) {
+        const targetUser = await this.userRepository.findOne({
+            where: { id: targetUserId, tenantId: task.tenantId, type: UserType.USER },
+            relations: ['role']
+        })
+        if (!targetUser) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsTargetNotFound', {
+                    defaultValue: PROJECT_TASK_RUN_AS_TARGET_NOT_FOUND
+                }) || PROJECT_TASK_RUN_AS_TARGET_NOT_FOUND
+            )
+        }
+
+        const currentXpertId = await this.resolveProjectTaskCurrentXpertId(task, xpertId)
+        const { projectAccessService, publishedXpertAccessService } = this.getProjectAccessServices()
+        await projectAccessService.assertCanUseXpert(projectId, currentXpertId, {
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            userId: targetUserId
+        })
+        await this.runWithTaskRequestContext(task, targetUser, () =>
+            publishedXpertAccessService.getAccessiblePublishedXpert(currentXpertId)
+        )
+        return { user: targetUser, xpertId: currentXpertId }
+    }
+
+    private async resolveProjectTaskCurrentXpertId(
+        task: Pick<IXpertTask, 'projectId' | 'tenantId' | 'organizationId'>,
+        xpertId: string
+    ) {
+        if (!task.projectId) return xpertId
+
+        const currentXpert = await this.projectXpertBindingService.resolveCurrentById(xpertId, {
+            tenantId: task.tenantId?.trim() || RequestContext.currentTenantId(),
+            organizationId: task.organizationId ?? RequestContext.getOrganizationId()
+        })
+        if (!currentXpert) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectXpertRequired', {
+                    defaultValue: 'The Xpert is not part of this Project'
+                })
+            )
+        }
+        return currentXpert.id
+    }
+
+    private async pauseInvalidProjectTask(task: Pick<XpertTask, 'id' | 'projectId'>, statusReason: string) {
+        if (!task.projectId) return
+        this.deleteJob(task.id)
+        await this.repository.update(task.id, {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason
+        })
+    }
+
+    private async assertProjectTaskConnectorsCanRun(
+        task: Pick<IXpertTask, 'tenantId' | 'organizationId' | 'projectId' | 'xpertId'>,
+        actor: IUser,
+        runtimeState: TXpertChatState | null,
+        conversationId: string,
+        executionId: string
+    ) {
+        if (!task.projectId) return
+        const bindingIds = getRuntimeConnectorBindingIds(runtimeState?.[STATE_VARIABLE_HUMAN]?.runtimeCapabilities)
+        if (!bindingIds.length) return
+        await this.connectorService.resolveSelectedRuntimeBindings(bindingIds, {
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            userId: actor.id,
+            projectId: task.projectId,
+            xpertId: task.xpertId,
+            conversationId,
+            executionId,
+            connectorBindingIds: bindingIds
+        })
+    }
+
+    private async assertProjectTaskConnectorSelection(
+        task: Pick<
+            IXpertTask,
+            'id' | 'tenantId' | 'organizationId' | 'projectId' | 'xpertId' | 'runtimeState' | 'createdById'
+        >,
+        actor: IUser
+    ) {
+        const projectId = task.projectId?.trim()
+        const xpertId = task.xpertId?.trim()
+        if (!projectId || !xpertId) return
+        const bindingIds = getRuntimeConnectorBindingIds(task.runtimeState?.[STATE_VARIABLE_HUMAN]?.runtimeCapabilities)
+        if (!bindingIds.length) return
+
+        const tenantId = task.tenantId?.trim() || RequestContext.currentTenantId()
+        const organizationId = task.organizationId ?? RequestContext.getOrganizationId()
+        await this.runWithTaskRequestContext(
+            {
+                ...task,
+                tenantId,
+                organizationId
+            },
+            actor,
+            () =>
+                this.connectorService.resolveSelectedRuntimeBindings(bindingIds, {
+                    tenantId,
+                    organizationId,
+                    userId: actor.id,
+                    projectId,
+                    xpertId,
+                    conversationId: `task-preflight:${task.id ?? 'new'}`,
+                    executionId: randomUUID(),
+                    connectorBindingIds: bindingIds
+                })
+        ).catch((error) => {
+            const detail = getErrorMessage(error)
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskConnectorSelectionUnavailable', {
+                    reason: detail,
+                    defaultValue: `A selected Connector is not available to the run-as user: ${detail}`
+                }) || `A selected Connector is not available to the run-as user: ${detail}`
+            )
+        })
+    }
+
+    private async assertProjectTaskMutationAccess(existingTask: XpertTask, updateEntity: XpertTaskMutation) {
+        const projectId = existingTask.projectId?.trim()
+        if (!projectId) return
+
+        const { projectAccessService } = this.getProjectAccessServices()
+        let manageError: unknown
+        try {
+            await projectAccessService.assertCanManage(projectId)
+        } catch (error) {
+            manageError = error
+        }
+
+        const currentRuntimeState = existingTask.runtimeState
+        const nextRuntimeState = Object.prototype.hasOwnProperty.call(updateEntity, 'runtimeState')
+            ? updateEntity.runtimeState
+            : currentRuntimeState
+        const currentBindingIds = getTaskConnectorBindingIds(currentRuntimeState)
+        const nextBindingIds = getTaskConnectorBindingIds(nextRuntimeState)
+        const changedBindingIds = symmetricStringDifference(currentBindingIds, nextBindingIds)
+
+        if (!changedBindingIds.length) {
+            if (manageError) throw manageError
+            return
+        }
+
+        const bindings = await this.connectorService.listBindings({ type: 'project', projectId })
+        const authorizationModeById = new Map(bindings.map((binding) => [binding.id, binding.authorizationMode]))
+        const currentBindingIdSet = new Set(currentBindingIds)
+        const nextBindingIdSet = new Set(nextBindingIds)
+        const actorId = RequestContext.currentUserId()?.trim()
+        const runAsUserId = (existingTask.runAsUserId ?? existingTask.createdById)?.trim()
+        const changesPersonalBinding = changedBindingIds.some(
+            (bindingId) => authorizationModeById.get(bindingId) === 'personal'
+        )
+
+        if (!manageError) {
+            if (changesPersonalBinding && (!actorId || actorId !== runAsUserId)) {
+                throw new ForbiddenException(
+                    t('server-ai:Error.ProjectTaskPersonalConnectorRunAsOnly', {
+                        defaultValue: PROJECT_TASK_PERSONAL_CONNECTOR_RUN_AS_ONLY
+                    }) || PROJECT_TASK_PERSONAL_CONNECTOR_RUN_AS_ONLY
+                )
+            }
+            return
+        }
+
+        if (!actorId || actorId !== runAsUserId) throw manageError
+        const mutationKeys = XPERT_TASK_MUTATION_KEYS.filter((key) =>
+            Object.prototype.hasOwnProperty.call(updateEntity, key)
+        )
+        if (
+            mutationKeys.some((key) => key !== 'runtimeState') ||
+            !isEqual(
+                runtimeStateWithoutConnectorSelection(currentRuntimeState),
+                runtimeStateWithoutConnectorSelection(nextRuntimeState)
+            )
+        ) {
+            throw manageError
+        }
+
+        const changesNonPersonalBinding = changedBindingIds.some((bindingId) => {
+            const mode = authorizationModeById.get(bindingId)
+            const removesMissingBinding =
+                !mode && currentBindingIdSet.has(bindingId) && !nextBindingIdSet.has(bindingId)
+            return mode !== 'personal' && !removesMissingBinding
+        })
+        if (changesNonPersonalBinding) throw manageError
+    }
+
+    private async invalidatePendingRunAsProposalForConfigurationChange(
+        existingTask: XpertTask,
+        xpertId: string,
+        runtimeState: TXpertChatState | null | undefined
+    ) {
+        if (
+            !existingTask.pendingRunAsUserId ||
+            buildProjectTaskRunAsConfigurationHash(existingTask) ===
+                buildProjectTaskRunAsConfigurationHash({ ...existingTask, xpertId, runtimeState })
+        ) {
+            return
+        }
+
+        const update = {
+            pendingRunAsUserId: null,
+            pendingRunAsRequestedById: null,
+            pendingRunAsRequestedAt: null,
+            pendingRunAsConfigurationHash: null
+        }
+        const result = await this.repository.update(
+            {
+                id: existingTask.id,
+                pendingRunAsUserId: existingTask.pendingRunAsUserId,
+                pendingRunAsConfigurationHash: existingTask.pendingRunAsConfigurationHash ?? IsNull()
+            },
+            update
+        )
+        if (result.affected !== 1) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsProposalChanged', {
+                    defaultValue: PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED
+                }) || PROJECT_TASK_RUN_AS_PROPOSAL_CHANGED
+            )
+        }
+        Object.assign(existingTask, update)
     }
 
     async getScheduleCapabilities(xpertId: string, agentKey?: string | null): Promise<TXpertTaskScheduleCapabilities> {
@@ -463,15 +1162,111 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         }
     }
 
+    @OnEvent('xpert-project.member-removed')
+    async pauseProjectTasksForRemovedMember(event: ProjectMemberRemovedEvent) {
+        const organizationId = event.organizationId ?? IsNull()
+        const tasks = await this.repository.find({
+            where: [
+                {
+                    tenantId: event.tenantId,
+                    organizationId,
+                    projectId: event.projectId,
+                    runAsUserId: event.userId
+                },
+                {
+                    tenantId: event.tenantId,
+                    organizationId,
+                    projectId: event.projectId,
+                    runAsUserId: IsNull(),
+                    createdById: event.userId
+                }
+            ]
+        })
+        const pausedTaskState = {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason: t('server-ai:Error.ProjectTaskRunAsMembershipRemoved', {
+                defaultValue: 'The run-as user is no longer a member of this Project'
+            })
+        }
+
+        for (const task of tasks) {
+            if (task.status === ScheduleTaskStatus.ARCHIVED) continue
+            this.deleteJob(task.id)
+            await this.repository.update(task.id, pausedTaskState)
+        }
+    }
+
+    @OnEvent('xpert-project.xpert-removed')
+    async pauseProjectTasksForRemovedXpert(event: ProjectXpertRemovedEvent) {
+        const tasks = await this.repository.find({
+            where: {
+                tenantId: event.tenantId,
+                organizationId: event.organizationId ?? IsNull(),
+                projectId: event.projectId,
+                xpertId: In(event.xpertIds)
+            }
+        })
+        const pausedTaskState = {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason: t('server-ai:Error.ProjectTaskXpertRemoved', {
+                defaultValue: 'The scheduled Xpert is no longer part of this Project'
+            })
+        }
+
+        for (const task of tasks) {
+            if (task.status === ScheduleTaskStatus.ARCHIVED) continue
+            this.deleteJob(task.id)
+            await this.repository.update(task.id, pausedTaskState)
+        }
+    }
+
     /**
      * Update task and reschedule if necessary
      */
     async updateTask(id: string, entity: Partial<IXpertTask>) {
+        const existingTask = await this.findOne(id)
         const updateEntity = sanitizeTaskMutationInput(entity)
+        await this.assertProjectTaskMutationAccess(existingTask, updateEntity)
+        if (existingTask.projectId) {
+            let xpertId = updateEntity.xpertId ?? existingTask.xpertId
+            if (!xpertId) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectTaskXpertRequired', {
+                        defaultValue: PROJECT_TASK_XPERT_REQUIRED
+                    }) || PROJECT_TASK_XPERT_REQUIRED
+                )
+            }
+            xpertId = await this.resolveProjectTaskCurrentXpertId(existingTask, xpertId)
+            if (xpertId !== existingTask.xpertId || Object.prototype.hasOwnProperty.call(updateEntity, 'xpertId')) {
+                updateEntity.xpertId = xpertId
+            }
+            const runAsUserId = existingTask.runAsUserId ?? existingTask.createdById
+            const { user: runAsUser } = await this.assertProjectTaskRunAsTarget(
+                existingTask,
+                existingTask.projectId,
+                xpertId,
+                runAsUserId
+            )
+            const runtimeState = Object.prototype.hasOwnProperty.call(updateEntity, 'runtimeState')
+                ? updateEntity.runtimeState
+                : existingTask.runtimeState
+            await this.assertProjectTaskConnectorSelection(
+                {
+                    ...existingTask,
+                    xpertId,
+                    runtimeState
+                },
+                runAsUser
+            )
+            await this.invalidatePendingRunAsProposalForConfigurationChange(existingTask, xpertId, runtimeState)
+        }
         await super.update(id, updateEntity)
-        const task = await this.findOne(id, { relations: ['xpert'] })
+        const task = await this.findOne(id, {
+            relations: ['xpert', 'createdBy', 'createdBy.role', 'runAsUser', 'runAsUser.role']
+        })
         if (task.status === ScheduleTaskStatus.SCHEDULED) {
-            this.rescheduleTask(task, RequestContext.currentUser())
+            await this.repository.update(id, { statusReason: null })
+            this.rescheduleTask(task, task.runAsUser ?? RequestContext.currentUser() ?? task.createdBy)
         } else {
             this.deleteJob(task.id)
         }
@@ -479,30 +1274,57 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     }
 
     async schedule(id: string) {
-        const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
-        this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
-        return await this.update(id, { status: ScheduleTaskStatus.SCHEDULED })
+        const task = await this.findOne(id, {
+            relations: ['createdBy', 'createdBy.role', 'runAsUser', 'runAsUser.role']
+        })
+        await this.assertProjectTaskCanBeManaged(task)
+        const runAsUser = task.runAsUser ?? task.createdBy
+        let xpertIdChanged = false
+        if (task.projectId && runAsUser) {
+            if (!task.xpertId) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectTaskXpertRequired', {
+                        defaultValue: PROJECT_TASK_XPERT_REQUIRED
+                    }) || PROJECT_TASK_XPERT_REQUIRED
+                )
+            }
+            const currentXpertId = await this.resolveProjectTaskCurrentXpertId(task, task.xpertId)
+            xpertIdChanged = currentXpertId !== task.xpertId
+            task.xpertId = currentXpertId
+            await this.assertProjectTaskConnectorSelection(task, runAsUser)
+        }
+        this.rescheduleTask(task, runAsUser ?? RequestContext.currentUser())
+        return await this.update(id, {
+            status: ScheduleTaskStatus.SCHEDULED,
+            statusReason: null,
+            ...(xpertIdChanged ? { xpertId: task.xpertId } : {})
+        })
     }
 
     async pause(id: string) {
         const task = await this.findOne(id)
+        await this.assertProjectTaskCanBeManaged(task)
         this.deleteJob(task.id)
         return await this.update(id, { status: ScheduleTaskStatus.PAUSED })
     }
 
     async archive(id: string) {
         const task = await this.findOne(id)
+        await this.assertProjectTaskCanBeManaged(task)
         this.deleteJob(task.id)
         return await this.update(id, { status: ScheduleTaskStatus.ARCHIVED })
     }
 
     async unarchive(id: string) {
         const task = await this.findOne(id)
+        await this.assertProjectTaskCanBeManaged(task)
         this.deleteJob(task.id)
         return await this.update(id, { status: ScheduleTaskStatus.PAUSED })
     }
 
     async test(id: string, options: TChatOptions) {
+        const task = await this.findOne(id)
+        await this.assertProjectTaskCanBeManaged(task)
         return await this.executeTask(id, options)
     }
 
@@ -2363,17 +3185,95 @@ const XPERT_TASK_MUTATION_KEYS = [
 type XpertTaskMutation = Partial<Pick<IXpertTask, (typeof XPERT_TASK_MUTATION_KEYS)[number]>>
 
 function sanitizeTaskMutationInput(entity: Partial<IXpertTask>): XpertTaskMutation {
-    const result: XpertTaskMutation = {}
-    const source = entity as Record<string, unknown>
-    const target = result as Record<string, unknown>
+    return {
+        ...(Object.prototype.hasOwnProperty.call(entity, 'name') ? { name: entity.name } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'schedule') ? { schedule: entity.schedule } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'options') ? { options: entity.options } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'timeZone') ? { timeZone: entity.timeZone } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'prompt') ? { prompt: entity.prompt } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'status') ? { status: entity.status } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'runtimeState') ? { runtimeState: entity.runtimeState } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'xpertId') ? { xpertId: entity.xpertId } : {}),
+        ...(Object.prototype.hasOwnProperty.call(entity, 'agentKey') ? { agentKey: entity.agentKey } : {})
+    }
+}
 
-    for (const key of XPERT_TASK_MUTATION_KEYS) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-            target[key] = source[key]
+function getTaskConnectorBindingIds(runtimeState: TXpertChatState | null | undefined): string[] {
+    return getRuntimeConnectorBindingIds(runtimeState?.[STATE_VARIABLE_HUMAN]?.runtimeCapabilities)
+}
+
+function symmetricStringDifference(left: string[], right: string[]): string[] {
+    const leftSet = new Set(left)
+    const rightSet = new Set(right)
+    return [...new Set([...left, ...right])].filter((value) => leftSet.has(value) !== rightSet.has(value))
+}
+
+function runtimeStateWithoutConnectorSelection(
+    runtimeState: TXpertChatState | null | undefined
+): TXpertChatState | null | undefined {
+    const human = runtimeState?.[STATE_VARIABLE_HUMAN]
+    const runtimeCapabilities = human?.runtimeCapabilities
+    if (!runtimeState || !human || !runtimeCapabilities) return runtimeState
+
+    const remainingCapabilities: RuntimeCapabilitiesSelectionWithConnectors = { ...runtimeCapabilities }
+    delete remainingCapabilities.connectors
+    const remainingHuman = { ...human }
+    delete remainingHuman.runtimeCapabilities
+    if (isConnectorOnlyInheritanceShell(remainingCapabilities)) {
+        return {
+            ...runtimeState,
+            [STATE_VARIABLE_HUMAN]: remainingHuman
         }
     }
+    return {
+        ...runtimeState,
+        [STATE_VARIABLE_HUMAN]: {
+            ...human,
+            runtimeCapabilities: remainingCapabilities
+        }
+    }
+}
 
-    return result
+type RuntimeCapabilitiesSelectionWithConnectors = NonNullable<
+    NonNullable<TXpertChatState[typeof STATE_VARIABLE_HUMAN]>['runtimeCapabilities']
+> & {
+    inheritUnselected?: boolean
+    connectors?: { bindingIds: string[] }
+}
+
+function isConnectorOnlyInheritanceShell(
+    capabilities: Omit<RuntimeCapabilitiesSelectionWithConnectors, 'connectors'>
+): boolean {
+    if (capabilities.mode !== 'allowlist' || capabilities.inheritUnselected !== true) return false
+    if (
+        Object.keys(capabilities).some(
+            (key) => !['mode', 'inheritUnselected', 'skills', 'plugins', 'subAgents'].includes(key)
+        )
+    ) {
+        return false
+    }
+
+    const skills = capabilities.skills
+    if (!skills || skills.ids.length > 0 || Object.keys(skills).some((key) => key !== 'ids')) {
+        return false
+    }
+    const plugins = capabilities.plugins
+    if (!plugins || plugins.nodeKeys.length > 0 || Object.keys(plugins).some((key) => key !== 'nodeKeys')) {
+        return false
+    }
+    const subAgents = capabilities.subAgents
+    return !subAgents || (subAgents.nodeKeys.length === 0 && Object.keys(subAgents).every((key) => key === 'nodeKeys'))
+}
+
+export function buildProjectTaskRunAsConfigurationHash(task: Pick<IXpertTask, 'xpertId' | 'runtimeState'>): string {
+    return createHash('sha256')
+        .update(
+            JSON.stringify({
+                xpertId: task.xpertId?.trim() ?? '',
+                connectorBindingIds: getTaskConnectorBindingIds(task.runtimeState).sort()
+            })
+        )
+        .digest('hex')
 }
 
 function isMiddlewareEntity(value: unknown): value is IWFNMiddleware {
@@ -2484,6 +3384,16 @@ function applyJsonSchemaDescriptionTitles(schema: unknown) {
     }
 
     applyJsonSchemaDescriptionTitles(Reflect.get(schema, 'items'))
+}
+
+function mergeRequiredTaskWhere(
+    where: FindManyOptions<XpertTask>['where'],
+    requiredWhere: FindOptionsWhere<XpertTask>
+): FindManyOptions<XpertTask>['where'] {
+    if (Array.isArray(where)) {
+        return where.map((condition) => ({ ...condition, ...requiredWhere }))
+    }
+    return { ...(where ?? {}), ...requiredWhere }
 }
 
 export function buildScheduleOccurrenceKey(task: IXpertTask, scheduledAt = new Date()) {

@@ -68,6 +68,7 @@ import { normalizeChatState } from '../../../shared/agent/utils'
 import {
     getRuntimeCapabilitiesFromState,
     hasExplicitRuntimeCapabilities,
+    isRuntimeCapabilitiesAllowlist,
     normalizeRuntimeCapabilitiesSelection,
     TRuntimeCapabilitiesSelection
 } from '../../../shared/agent/runtime-capabilities'
@@ -1712,7 +1713,7 @@ function filterRuntimeCapabilitiesBySkillPreference(
     workspaceId?: string | null,
     toolPreferences?: IAssistantBindingToolPreferences | null
 ) {
-    if (runtimeCapabilities?.mode !== 'allowlist') {
+    if (!isRuntimeCapabilitiesAllowlist(runtimeCapabilities)) {
         return runtimeCapabilities
     }
 
@@ -1747,7 +1748,7 @@ function withPreferenceSkillState(
 ): TXpertChatState {
     const normalizedWorkspaceId = runtimeCapabilities?.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
 
-    if (runtimeCapabilities?.mode === 'allowlist') {
+    if (isRuntimeCapabilitiesAllowlist(runtimeCapabilities)) {
         const disabledSkillIds = normalizedWorkspaceId
             ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
             : []

@@ -38,6 +38,9 @@ describe('XpertProjectMembershipService', () => {
         assertCanManage: jest.fn(),
         assertIsOwner: jest.fn()
     }
+    const eventEmitter = {
+        emitAsync: jest.fn().mockResolvedValue([])
+    }
     let service: XpertProjectMembershipService
 
     beforeEach(() => {
@@ -51,7 +54,8 @@ describe('XpertProjectMembershipService', () => {
             projectRepository as never,
             userRepository as never,
             userOrganizationRepository as never,
-            accessService as never
+            accessService as never,
+            eventEmitter as never
         )
     })
 
@@ -113,6 +117,13 @@ describe('XpertProjectMembershipService', () => {
         expect(membership.removedAt).toBeInstanceOf(Date)
         expect(membershipRepository.softRemove).toHaveBeenCalledWith(membership)
         expect(projectRepository.save).toHaveBeenCalledWith(expect.objectContaining({ members: [] }))
+        expect(eventEmitter.emitAsync).toHaveBeenCalledWith('xpert-project.member-removed', {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            projectId: 'project-1',
+            userId: 'user-2',
+            actorId: 'manager-1'
+        })
     })
 
     it('transfers ownership only to an active member and demotes the previous owner to manager', async () => {

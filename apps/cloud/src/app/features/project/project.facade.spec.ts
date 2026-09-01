@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { TestBed } from '@angular/core/testing'
 import { throwError } from 'rxjs'
+import { XpertTaskService } from '../../@core'
 import { XpertProjectApiService } from './project-api.service'
 import { XpertProjectFacade } from './project.facade'
 
@@ -20,6 +21,10 @@ describe('XpertProjectFacade', () => {
         {
           provide: XpertProjectApiService,
           useValue: api
+        },
+        {
+          provide: XpertTaskService,
+          useValue: { getAll: jest.fn() }
         }
       ]
     })

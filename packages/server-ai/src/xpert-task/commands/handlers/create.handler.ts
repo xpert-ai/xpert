@@ -1,10 +1,11 @@
 import { IXpertAgent, RolesEnum, TaskFrequency, TScheduleOptions, ScheduleTaskStatus } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { Logger } from '@nestjs/common'
+import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { I18nService } from 'nestjs-i18n'
+import { t } from 'i18next'
 import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 import { XpertTaskService } from '../../xpert-task.service'
 import { CreateXpertTaskCommand } from '../create.command'
@@ -22,6 +23,17 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
     ) {}
 
     public async execute(command: CreateXpertTaskCommand) {
+        const currentUserId = RequestContext.currentUserId()
+
+        if (command.task.runAsUserId && command.task.runAsUserId !== currentUserId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskRunAsConfirmationRequired', {
+                    defaultValue: 'The selected run-as user must confirm this automation before it can be assigned'
+                })
+            )
+        }
+        command.task.runAsUserId = currentUserId
+        await this.taskService.assertProjectTaskCanBeCreated(command.task)
         const { xpertId, agentKey } = command.task
 
         // Trial account limit
@@ -49,6 +61,9 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
         const timeZone = resolveTaskTimeZone(command.task.timeZone, request?.headers?.['time-zone'])
         const task = await this.taskService.create({
             ...command.task,
+            pendingRunAsUserId: null,
+            pendingRunAsRequestedById: null,
+            pendingRunAsRequestedAt: null,
             schedule: null, // Clear schedule to avoid confusion
             timeZone,
             status: ScheduleTaskStatus.SCHEDULED
