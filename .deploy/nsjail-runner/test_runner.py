@@ -16,6 +16,18 @@ from unittest import mock
 import runner
 
 
+class RunnerHealthContractTest(unittest.TestCase):
+    def test_advertises_project_content_protection_capability(self) -> None:
+        self.assertEqual(
+            runner.health_response(),
+            {
+                "status": "ok",
+                "protocolVersion": 2,
+                "capabilities": {"projectContentReadOnly": True},
+            },
+        )
+
+
 class RunnerStateRootSafetyTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()

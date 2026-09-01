@@ -20,6 +20,14 @@ export class ProjectContentIntegrityError extends Error {
 }
 
 export async function assertProjectContentRootIntegrity(volumeRoot: string) {
+    await validateProjectContentTree(volumeRoot)
+}
+
+export async function findValidatedProjectSkillFiles(volumeRoot: string): Promise<string[]> {
+    return await validateProjectContentTree(volumeRoot)
+}
+
+async function validateProjectContentTree(volumeRoot: string): Promise<string[]> {
     const projectFile = await openProjectContentEntry(volumeRoot, 'project.md')
     try {
         assertRegularSingleLinkFile(projectFile.fileStat, 'project.md')
@@ -32,15 +40,6 @@ export async function assertProjectContentRootIntegrity(volumeRoot: string) {
         if (!skillsRoot.fileStat.isDirectory()) {
             throw new ProjectContentIntegrityError('skills', 'not_directory')
         }
-    } finally {
-        await skillsRoot.fileHandle.close()
-    }
-}
-
-export async function findValidatedProjectSkillFiles(volumeRoot: string): Promise<string[]> {
-    await assertProjectContentRootIntegrity(volumeRoot)
-    const skillsRoot = await openProjectContentEntry(volumeRoot, 'skills', true)
-    try {
         return await validateProjectSkillsDirectory(volumeRoot, skillsRoot, '')
     } finally {
         await skillsRoot.fileHandle.close()

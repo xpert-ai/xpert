@@ -1,5 +1,6 @@
 {
     "Error": {
+        "SandboxProviderProjectContentReadOnlyUnsupported": "Sandbox provider {{provider}} does not support read-only Project Content.",
         "ProjectContentApiRequired": "Use the Project Content API to modify project.md or Project skills.",
         "ProjectContentDeleteApiRequired": "Project instructions and skills cannot be deleted through the file API.",
         "ProjectContentGenericWriteForbidden": "Project instructions and skills must be changed from Project configuration.",
@@ -349,6 +350,7 @@
         "NsJailRunnerNotConfigured": "NsJail Runner is not configured. Set NSJAIL_RUNNER_URL and NSJAIL_RUNNER_TOKEN.",
         "NsJailWorkspaceBindingRequired": "NsJail sandbox requires an explicit workspace binding.",
         "NsJailRunnerUnavailable": "NsJail Runner is not healthy or rejected the configured token.",
+        "NsJailRunnerProjectContentReadOnlyUnsupported": "NsJail Runner does not declare support for read-only Project Content.",
         "NsJailWorkspacePathOutsideVolume": "Resolved workspace path is outside of the mapped volume root.",
         "NsJailWorkspacePathOutsideMount": "Resolved workspace path is outside of the mounted workspace root.",
         "NsJailRunnerInvalidExecutionResult": "NsJail Runner returned an invalid execution result.",

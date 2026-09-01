@@ -1,5 +1,6 @@
 {
     "Error": {
+        "SandboxProviderProjectContentReadOnlyUnsupported": "沙盒提供者 {{provider}} 不支持只读项目内容。",
         "ProjectContentApiRequired": "请使用项目内容 API 修改 project.md 或项目技能。",
         "ProjectContentDeleteApiRequired": "不能通过文件 API 删除项目指令和技能。",
         "ProjectContentGenericWriteForbidden": "项目指令和技能必须在项目配置中修改。",
@@ -349,6 +350,7 @@
         "NsJailRunnerNotConfigured": "尚未配置 NsJail Runner，请设置 NSJAIL_RUNNER_URL 和 NSJAIL_RUNNER_TOKEN。",
         "NsJailWorkspaceBindingRequired": "NsJail 沙盒需要明确的工作区映射。",
         "NsJailRunnerUnavailable": "NsJail Runner 未通过健康检查或拒绝了当前令牌。",
+        "NsJailRunnerProjectContentReadOnlyUnsupported": "NsJail Runner 未声明支持只读 Project Content。",
         "NsJailWorkspacePathOutsideVolume": "解析后的工作区路径超出了映射卷根目录。",
         "NsJailWorkspacePathOutsideMount": "解析后的工作区路径超出了已挂载的工作区根目录。",
         "NsJailRunnerInvalidExecutionResult": "NsJail Runner 返回了无效的执行结果。",
