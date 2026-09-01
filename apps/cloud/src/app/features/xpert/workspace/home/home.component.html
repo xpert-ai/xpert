@@ -43,13 +43,24 @@
       </nav>
 
       @if (currentUrl().includes('clawxpert-connectors')) {
-        <z-search-input
-          class="w-full sm:w-64"
-          [placeholder]="'XP.Xpert.SearchConnectors' | translate: { Default: 'Search connectors' }"
-          [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-          [ngModel]="connectorSearchQuery()"
-          (ngModelChange)="connectorSearchQuery.set($event)"
-        />
+        <div class="flex w-full items-center gap-2 sm:w-auto">
+          <z-search-input
+            class="min-w-0 flex-1 sm:w-64"
+            [placeholder]="'XP.Xpert.SearchConnectors' | translate: { Default: 'Search connectors' }"
+            [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+            [ngModel]="connectorSearchQuery()"
+            (ngModelChange)="connectorSearchQuery.set($event)"
+          />
+          <button
+            type="button"
+            class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-default disabled:opacity-50"
+            [disabled]="!workspace()"
+            (click)="openCustomConnectors()"
+          >
+            <i class="ri-add-circle-line text-lg" aria-hidden="true"></i>
+            <span>{{ 'XP.Xpert.CustomConnector' | translate: { Default: 'Custom connector' } }}</span>
+          </button>
+        </div>
       }
     </div>
   </header>
