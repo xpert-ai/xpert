@@ -1,4 +1,4 @@
-import { signal } from '@angular/core'
+import { Component, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type {
   ConnectorBinding,
@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { ToastrService, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
-import { XpertConnectorsComponent } from './connectors.component'
+import { ClawXpertConnectorsComponent, XpertConnectorsComponent } from './connectors.component'
 
 jest.mock('apps/cloud/src/app/@core', () => {
   const { inject } = require('@angular/core')
@@ -31,6 +31,13 @@ jest.mock('apps/cloud/src/app/@core', () => {
 jest.mock('../home/home.component', () => ({
   XpertWorkspaceHomeComponent: class XpertWorkspaceHomeComponent {}
 }))
+
+@Component({
+  selector: 'xpert-connectors',
+  standalone: true,
+  template: ''
+})
+class StubXpertConnectorsComponent {}
 
 const workspaceScope = { type: 'workspace' as const, workspaceId: 'workspace-1' }
 
@@ -352,6 +359,27 @@ describe('XpertConnectorsComponent', () => {
       values: { token: 'github_pat_test' }
     })
     expect(openSpy).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+})
+
+describe('ClawXpertConnectorsComponent', () => {
+  afterEach(() => TestBed.resetTestingModule())
+
+  it('renders the workspace connector component without binding child state on the wrapper', async () => {
+    TestBed.resetTestingModule()
+    await TestBed.configureTestingModule({
+      imports: [ClawXpertConnectorsComponent]
+    })
+      .overrideComponent(ClawXpertConnectorsComponent, {
+        set: { imports: [StubXpertConnectorsComponent] }
+      })
+      .compileComponents()
+
+    const fixture = TestBed.createComponent(ClawXpertConnectorsComponent)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('xpert-connectors')).not.toBeNull()
     fixture.destroy()
   })
 })
