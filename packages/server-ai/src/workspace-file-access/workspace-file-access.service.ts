@@ -292,7 +292,7 @@ export class WorkspaceFileAccessService {
         // consequently omits both Origin and Referer from an <img> request, but
         // still sends trustworthy Fetch Metadata. The request is already bound
         // to an HttpOnly session cookie and an opaque, short-lived grant; only
-        // admit the exact same-site image subresource shape for previews.
+        // admit the exact same-origin or same-site image subresource shape for previews.
         if (!origin && purpose === 'preview' && isSameSiteImageRequest(request.headers)) {
             return null
         }
@@ -516,8 +516,9 @@ function workspaceFileContentOrigin() {
 }
 
 function isSameSiteImageRequest(headers: Request['headers']) {
+    const fetchSite = headers['sec-fetch-site']
     return (
-        headers['sec-fetch-site'] === 'same-site' &&
+        (fetchSite === 'same-origin' || fetchSite === 'same-site') &&
         headers['sec-fetch-mode'] === 'no-cors' &&
         headers['sec-fetch-dest'] === 'image'
     )
