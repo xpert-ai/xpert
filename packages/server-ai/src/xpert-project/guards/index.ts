@@ -1,3 +1,4 @@
+export * from './project-auth.guard'
 export * from './project.guard'
 export * from './project-owner.guard'
 export * from './project-permission.decorator'

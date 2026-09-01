@@ -12,15 +12,16 @@ import { IXpert, TXpertTeamDraft } from './xpert.model'
 
 export type TXpertProjectSettings = {
   /** @deprecated Project instructions are stored in /project/<projectId>/project.md. */
-  instruction: string
+  instruction?: string
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
-  /** Explicit default Assistant used by the Project assistant panel and task orchestration. */
+  /** @deprecated Project Xperts are peers and no default Project Assistant is selected. */
   projectAssistantId?: string
 }
 export type TXpertProjectManagementMode = 'simple' | 'advanced'
 export type TXpertProjectMemberRole = 'manager' | 'editor' | 'member'
 export type TXpertProjectAccessRole = 'owner' | TXpertProjectMemberRole
+export type TXpertProjectInvitationStatus = 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired'
 export type TXpertProjectAccessSummary = {
   role: TXpertProjectAccessRole
   capabilities: {
@@ -56,6 +57,8 @@ export type TXpertProjectSkills = { items: TXpertProjectSkillSummary[]; total: n
 export type TXpertProjectSkillFile = { path: string; content: string }
 export type TXpertProjectMemberInput = { userId: string; role?: TXpertProjectMemberRole }
 export type TXpertProjectMemberRoleInput = { role: TXpertProjectMemberRole }
+export type TXpertProjectInvitationInput = { email: string; role?: TXpertProjectMemberRole }
+export type TXpertProjectInvitationTokenInput = { token: string }
 export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'
 export type TXpertProjectPlanStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type TXpertProjectMilestoneStatus = 'planned' | 'in_progress' | 'completed' | 'blocked'
@@ -150,6 +153,7 @@ export type TXpertProject = {
  * Expert Project
  */
 export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizationEntityModel {
+  /** @deprecated Projects are scoped by Organization and no longer bind runtime data to a Workspace. */
   workspaceId?: string
   workspace?: IXpertWorkspace
 
@@ -187,6 +191,24 @@ export interface IXpertProjectMembership extends IBasePerTenantAndOrganizationEn
   removedAt?: Date
 }
 
+export interface IXpertProjectInvitation extends IBasePerTenantAndOrganizationEntityModel {
+  projectId: string
+  project?: IXpertProject
+  email: string
+  normalizedEmail: string
+  targetUserId?: string
+  targetUser?: IUser
+  role: TXpertProjectMemberRole
+  status: TXpertProjectInvitationStatus
+  expiresAt: Date
+  invitedById: string
+  invitedBy?: IUser
+  acceptedById?: string
+  acceptedBy?: IUser
+  acceptedAt?: Date
+  lastSentAt: Date
+}
+
 export type IXpertProjectCreateInput = Partial<IXpertProject> & {
   xpertIds?: string[]
   toolsetIds?: string[]
@@ -209,7 +231,7 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
   priority?: TXpertProjectTaskPriority
   assigneeId?: string
   assignee?: IUser
-  /** Project Assistant responsible for executing this task. */
+  /** Project Xpert responsible for executing this task. */
   assigneeXpertId?: string
   dueDate?: Date
   planId?: string
