@@ -71,7 +71,7 @@ export class XpertWorkspaceFilesService {
     }
 
     private async createClient(xpertId: string) {
-        const volume = this.volumeClient.resolve(await this.resolveScope(xpertId))
+        const volume = await this.volumeClient.resolve(await this.resolveScope(xpertId)).ensureRoot()
         return new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
     }
 
