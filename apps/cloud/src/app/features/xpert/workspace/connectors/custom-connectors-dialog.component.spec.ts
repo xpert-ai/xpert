@@ -5,6 +5,10 @@ import { of } from 'rxjs'
 import { ToastrService, XpertToolsetCategoryEnum, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { CustomConnectorsDialogComponent } from './custom-connectors-dialog.component'
 
+jest.mock('apps/cloud/src/app/@shared/mcp', () => ({
+  XpertMCPManageComponent: class XpertMCPManageComponent {}
+}))
+
 describe('CustomConnectorsDialogComponent', () => {
   const toolsets = [
     { id: 'mcp-1', name: 'Search server', description: 'Search workspace content' },
