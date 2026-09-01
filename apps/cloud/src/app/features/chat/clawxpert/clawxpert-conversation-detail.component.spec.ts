@@ -818,11 +818,13 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(false)
 
     facade.projectId.set('project-1')
     await settle(fixture)
 
     expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(false)
   })
 
   it('enables the task summary only for the ClawXpert ChatKit runtime', async () => {
