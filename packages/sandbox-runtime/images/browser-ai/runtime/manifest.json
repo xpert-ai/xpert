@@ -1,5 +1,5 @@
 {
-  "sandboxRuntimeVersion": "1.2.0",
+  "sandboxRuntimeVersion": "1.2.1",
   "imageFamily": "browser-ai",
   "profileName": "browser/ai-playwright-1.61/v1",
   "contractVersion": "1",
@@ -7,6 +7,6 @@
   "playwrightVersion": "1.61.0",
   "browserRevision": "1228",
   "onnxRuntimeVersion": "1.26.0-dev.20260416-b7804b056c",
-  "modelCatalogSha256": "9a462f1e5b6a6b69e4023fc43e97af9ace45a5e63746fc97e790993dd5800d7b",
+  "modelCatalogSha256": "a19cc5ed0431cdfc1854893ee61c1fc3c2194dc42ab4419d9531d94e9d3acefc",
   "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec"
 }
