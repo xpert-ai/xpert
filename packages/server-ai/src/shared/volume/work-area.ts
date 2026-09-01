@@ -1,7 +1,6 @@
 import { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { t } from 'i18next'
-import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import {
     resolveXpertDataVolumeScope,
@@ -225,7 +224,11 @@ export class XpertWorkAreaResolver {
     }
 
     private async ensureRelativePaths(volume: VolumeHandle, paths: string[]) {
-        await Promise.all(paths.map((relativePath) => fsPromises.mkdir(volume.path(relativePath), { recursive: true })))
+        await Promise.all(
+            paths.map((relativePath) =>
+                VolumeHandle.ensureDirectory(volume.serverRoot, relativePath, volume.serverRoot)
+            )
+        )
     }
 }
 
@@ -277,7 +280,10 @@ export class KnowledgeWorkAreaResolver {
     }
 
     getFilesPath(folder?: string | null) {
-        return normalizeRelativePath(KNOWLEDGE_FILES_PATH, folder ?? undefined)
+        // Normalize the caller-controlled folder before prepending the managed subtree.
+        // Otherwise `../tmp` would normalize `files/../tmp` to a sibling of `files`.
+        const relativeFolder = normalizeRelativePath(folder ?? undefined)
+        return normalizeRelativePath(KNOWLEDGE_FILES_PATH, relativeFolder)
     }
 
     getUserStagingPath(userId: string) {
@@ -329,7 +335,11 @@ export class KnowledgeWorkAreaResolver {
     }
 
     private async ensureRelativePaths(volume: VolumeHandle, paths: string[]) {
-        await Promise.all(paths.map((relativePath) => fsPromises.mkdir(volume.path(relativePath), { recursive: true })))
+        await Promise.all(
+            paths.map((relativePath) =>
+                VolumeHandle.ensureDirectory(volume.serverRoot, relativePath, volume.serverRoot)
+            )
+        )
     }
 }
 

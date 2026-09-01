@@ -34,6 +34,7 @@ import {
     WorkspaceValidatedUnderstandingReference
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
+import { t } from 'i18next'
 import {
     CreateWorkspaceFileAssetCommand,
     EnqueueFileParseCommand,
@@ -55,7 +56,7 @@ import type {
     FileAssetOperation
 } from '../../file-understanding/file-asset-access.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -137,6 +138,17 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             normalizeOptionalString(input.originalName) ?? normalizeOptionalString(input.fileName) ?? 'workspace-file'
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
         await this.assertCanMutateVolume(volumeScope)
+        const targetPath = path.posix.join(
+            normalizeOptionalString(input.folder) ?? '',
+            normalizeOptionalString(input.fileName) ?? originalName
+        )
+        if (catalog === 'projects' && isProjectGovernedContentPath(targetPath)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectGovernedContentRuntimeReadOnly', {
+                    defaultValue: 'Project instructions and skills are read-only during Agent runtime'
+                })
+            )
+        }
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -418,8 +430,15 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
 
     async deleteFile(input: WorkspaceFileReference): Promise<void> {
         const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
-        const { volumeScope } = this.resolveVolumeScope(input)
+        const { volumeScope, catalog } = this.resolveVolumeScope(input)
         await this.assertCanMutateVolume(volumeScope)
+        if (catalog === 'projects' && isProjectGovernedContentPath(filePath)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectGovernedContentRuntimeReadOnly', {
+                    defaultValue: 'Project instructions and skills are read-only during Agent runtime'
+                })
+            )
+        }
         const client = new VolumeSubtreeClient(this.volumeClient.resolve(volumeScope), { allowRootWorkspace: true })
         await client.deleteFile('', filePath)
     }

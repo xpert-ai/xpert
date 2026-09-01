@@ -171,6 +171,69 @@ describe('FileWorkspaceProjectionService', () => {
         }
     )
 
+    it('does not let a Project workspace symlink redirect attachment projection into skills', async () => {
+        const volumeRoot = path.join(tempRoot, 'project-volume')
+        await fsPromises.mkdir(path.join(volumeRoot, 'skills'), { recursive: true })
+        await fsPromises.mkdir(path.join(volumeRoot, 'sessions', 'conversation-1', 'files'), { recursive: true })
+        await fsPromises.writeFile(path.join(volumeRoot, 'skills', 'SKILL.md'), '# Original\n')
+        await fsPromises.symlink(
+            '../../../skills',
+            path.join(volumeRoot, 'sessions', 'conversation-1', 'files', 'file-asset-1')
+        )
+        const asset = {
+            id: 'file-asset-1',
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            conversationId: 'conversation-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            originalName: 'SKILL.md',
+            capabilities: ['read']
+        }
+        const fileAssetRepository: MockFileAssetRepository = {
+            findOne: jest.fn().mockResolvedValue(asset),
+            save: jest.fn(async (value) => value)
+        }
+        const fileArtifactRepository: MockFileArtifactRepository = {
+            find: jest.fn().mockResolvedValue([]),
+            save: jest.fn(async (value) => value)
+        }
+        const storageFileService: MockStorageFileService = { findOne: jest.fn().mockResolvedValue(null) }
+        const projectVolume = createTestVolume(volumeRoot, {
+            tenantId: 'tenant-1',
+            catalog: 'projects',
+            projectId: 'project-1',
+            userId: 'user-1'
+        })
+        const workAreaResolver: MockWorkAreaResolver = {
+            resolve: jest.fn().mockResolvedValue({
+                workspaceRoot: '/workspace',
+                volumeScope: projectVolume.scope,
+                sessionPath: { relativePath: 'sessions/conversation-1' },
+                volume: projectVolume
+            })
+        }
+        const service = createProjectionService(
+            fileAssetRepository,
+            fileArtifactRepository,
+            storageFileService,
+            workAreaResolver
+        )
+
+        await service.projectFileAsset({
+            fileAssetId: asset.id,
+            conversationId: 'conversation-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            buffer: Buffer.from('# Replaced\n')
+        })
+
+        await expect(fsPromises.readFile(path.join(volumeRoot, 'skills', 'SKILL.md'), 'utf8')).resolves.toBe(
+            '# Original\n'
+        )
+        expect(fileAssetRepository.save).not.toHaveBeenCalled()
+    })
+
     it('writes attached files into the conversation workspace and records workspacePath', async () => {
         const asset = {
             id: 'file-asset-1',
@@ -201,9 +264,12 @@ describe('FileWorkspaceProjectionService', () => {
                 sessionPath: {
                     relativePath: 'sessions/conversation-1'
                 },
-                volume: {
-                    path: (relativePath: string) => path.join(tempRoot, relativePath)
-                }
+                volume: createTestVolume(tempRoot, {
+                    tenantId: 'tenant-1',
+                    catalog: 'xperts',
+                    xpertId: 'xpert-1',
+                    isolateByUser: false
+                })
             })
         }
         const fileArtifactRepository: MockFileArtifactRepository = {
@@ -287,9 +353,11 @@ describe('FileWorkspaceProjectionService', () => {
                     catalog: 'environment',
                     environmentId: 'environment-1'
                 },
-                volume: {
-                    path: (relativePath: string) => path.join(tempRoot, relativePath)
-                }
+                volume: createTestVolume(tempRoot, {
+                    tenantId: 'tenant-1',
+                    catalog: 'environment',
+                    environmentId: 'environment-1'
+                })
             })
         }
         const fileArtifactRepository: MockFileArtifactRepository = {
@@ -467,7 +535,11 @@ describe('FileWorkspaceProjectionService', () => {
                 workspaceRoot: '/workspace',
                 volumeScope: { catalog: 'projects', projectId: 'canonical-project' },
                 sessionPath: { relativePath: 'sessions/conversation-1' },
-                volume: { path: (relativePath: string) => path.join(tempRoot, relativePath) }
+                volume: createTestVolume(tempRoot, {
+                    tenantId: 'tenant-1',
+                    catalog: 'projects',
+                    projectId: 'canonical-project'
+                })
             })
         }
         const projectAccessService: MockProjectAccessService = {
@@ -561,9 +633,12 @@ describe('FileWorkspaceProjectionService', () => {
                 sessionPath: {
                     relativePath: 'sessions/conversation-1'
                 },
-                volume: {
-                    path: (relativePath: string) => path.join(tempRoot, relativePath)
-                }
+                volume: createTestVolume(tempRoot, {
+                    tenantId: 'tenant-1',
+                    catalog: 'xperts',
+                    xpertId: 'xpert-1',
+                    isolateByUser: false
+                })
             })
         }
         const storageProvider: IFileStorageProvider = {
@@ -614,3 +689,7 @@ describe('FileWorkspaceProjectionService', () => {
         getProviderSpy.mockRestore()
     })
 })
+
+function createTestVolume(root: string, scope: ConstructorParameters<typeof VolumeHandle>[0]) {
+    return new VolumeHandle(scope, root, root, 'http://localhost/api/sandbox/volume/test')
+}

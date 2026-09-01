@@ -69,6 +69,10 @@ export interface IUploadFileSandboxTarget {
   strategy?: string
   mode: FileUploadSandboxMode
   workspacePath?: string
+  /** Trusted server-side boundary for mounted workspace writes. */
+  workspaceBoundaryPath?: string
+  /** Prevent generic uploads from mutating Project-authored instructions and skills. */
+  projectContentReadOnly?: boolean
   workspaceUrl?: string
   workspaceId?: string
   sandboxUrl?: string

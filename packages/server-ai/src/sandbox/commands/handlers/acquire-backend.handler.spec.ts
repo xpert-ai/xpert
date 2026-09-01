@@ -241,6 +241,53 @@ describe('SandboxAcquireBackendHandler', () => {
         expect((result as { workspaceBinding?: unknown }).workspaceBinding).toBe(workspaceBinding)
     })
 
+    it('derives Project Content protection from the typed Project volume scope', async () => {
+        provider.create.mockResolvedValue({ id: 'sandbox-project', execute: jest.fn() })
+
+        await handler.execute(
+            new SandboxAcquireBackendCommand({
+                tenantId: 'tenant-1',
+                provider: 'nsjail',
+                volumeScope: {
+                    tenantId: 'tenant-1',
+                    catalog: 'projects',
+                    projectId: 'project-1'
+                },
+                workingDirectory: '/workspace/agents/xpert-1',
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/project/project-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace/agents/xpert-1'
+                },
+                workFor: { type: 'environment', id: 'environment-1' }
+            })
+        )
+
+        expect(provider.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                protectProjectContent: true,
+                workFor: { type: 'environment', id: 'environment-1' }
+            })
+        )
+
+        await handler.execute(
+            new SandboxAcquireBackendCommand({
+                tenantId: 'tenant-1',
+                provider: 'nsjail',
+                workingDirectory: '/workspace/agents/xpert-1',
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/project/project-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace/agents/xpert-1'
+                },
+                workFor: { type: 'environment', id: 'environment-1' }
+            })
+        )
+
+        expect(provider.create).toHaveBeenCalledTimes(2)
+        expect(provider.create.mock.calls[1]?.[0]).not.toHaveProperty('protectProjectContent')
+    })
+
     it('throws when provider is omitted', async () => {
         await expect(
             handler.execute(

@@ -423,7 +423,7 @@ describe('ChatConversationService workspace files', () => {
         expect(sql).not.toContain('ON CONFLICT ("tenantId", "conversationId", "userId")')
     })
 
-    it('uses the sandbox environment workspace when the conversation has a sandbox environment id', async () => {
+    it('uses the Project workspace when the conversation also has a sandbox environment id', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue({
             ...conversation,
             projectId: 'project-1',
@@ -437,8 +437,8 @@ describe('ChatConversationService workspace files', () => {
 
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'environment',
-            environmentId: 'sandbox-env-1',
+            catalog: 'projects',
+            projectId: 'project-1',
             userId: 'user-1'
         })
     })
@@ -553,6 +553,27 @@ describe('ChatConversationService workspace files', () => {
 
         expect(findConversation).toHaveBeenCalledWith('conversation-1', { relations: ['xpert'] })
         expect(saveWorkspaceFile).toHaveBeenCalledWith('', 'README.md', '# Updated\n')
+    })
+
+    it('rejects generic writes to Project instructions and skills', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        const saveWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile')
+
+        await expect(
+            service.saveWorkspaceFile('conversation-1', '/workspace/project.md', '# forged')
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            service.uploadWorkspaceFile('conversation-1', 'skills/pdf', {
+                originalname: 'SKILL.md',
+                buffer: Buffer.from('# forged')
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+        expect(saveWorkspaceFile).not.toHaveBeenCalled()
     })
 
     it('rejects a non-member before resolving any conversation workspace volume', async () => {

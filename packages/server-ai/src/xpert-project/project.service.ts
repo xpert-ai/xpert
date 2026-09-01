@@ -55,6 +55,7 @@ import { XpertProjectXpertBindingService } from './services/project-xpert-bindin
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { t } from 'i18next'
 import { ConnectorService } from '../connector/connector.service'
+import { XpertProjectContentService } from './services/project-content.service'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -69,6 +70,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         private readonly workspaceAccessService: XpertWorkspaceAccessService,
         private readonly workspaceService: XpertWorkspaceService,
         private readonly accessService: XpertProjectAccessService,
+        private readonly contentService: XpertProjectContentService,
         private readonly publishedXpertAccess: PublishedXpertAccessService,
         private readonly connectorService: ConnectorService,
         private readonly eventEmitter: EventEmitter2,
@@ -83,7 +85,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      */
     public async create(entity: DeepPartial<XpertProject>, ...options: unknown[]): Promise<XpertProject> {
         const workspace = await this.resolveAuthoringWorkspace(entity.workspaceId as string | undefined)
-        return super.create({ ...entity, workspaceId: workspace.id }, ...options)
+        const project = await super.create({ ...entity, workspaceId: workspace.id }, ...options)
+        await this.contentService.initialize(project)
+        return project
     }
 
     /**
@@ -735,6 +739,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             relations: ['copilotModel', 'xperts', 'toolsets', 'knowledges', 'attachments']
         })
 
+        const { content: instruction } = await this.contentService.readInstructions(id)
         const duplicate = await this.create({
             ...project,
             id: undefined, // Clear the ID to create a new project
@@ -746,6 +751,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             updatedById: undefined,
             name: `${project.name} - Copy`,
             status: 'active',
+            settings: {
+                ...project.settings,
+                instruction
+            },
             xperts: project.xperts.map((xpert) => ({ id: xpert.id })),
             toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
             knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),

@@ -42,6 +42,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import fs from 'fs'
+import { t } from 'i18next'
 import { I18nService } from 'nestjs-i18n'
 import { isAbsolute, join, relative } from 'path'
 import { Observable } from 'rxjs'
@@ -55,6 +56,8 @@ import {
 } from '../shared'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
+import { isProjectGovernedContentPath } from '../shared/volume/project-content-path'
+import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxPreviewAuthGuard } from './sandbox-preview-auth.guard'
 import { SandboxPreviewSessionService } from './sandbox-preview-session.service'
@@ -199,6 +202,7 @@ export class SandboxController {
             })
             const volume = this.volumeClient.resolve(resolved.volumeScope)
             const workspacePath = this.resolveUploadWorkspacePath(resolved, volume, workspace)
+            this.assertProjectUploadAllowed(resolved, volume, workspacePath, folderPath, file.originalname)
             const workspaceUrl = this.resolveWorkspacePublicUrl(volume, workspacePath)
 
             const asset = await this.commandBus.execute(
@@ -212,6 +216,8 @@ export class SandboxController {
                             kind: 'sandbox',
                             mode: 'mounted_workspace',
                             workspacePath,
+                            workspaceBoundaryPath: volume.serverRoot,
+                            projectContentReadOnly: !!resolved.effectiveProjectId,
                             workspaceUrl,
                             folder: folderPath || ''
                         }
@@ -256,7 +262,30 @@ export class SandboxController {
         if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
             throw new BadRequestException('Invalid sandbox workspace path')
         }
-        return volume.publicUrl(relativePath === '.' ? '' : relativePath)
+        return volume.exposesDirectFileUrls() ? volume.publicUrl(relativePath === '.' ? '' : relativePath) : undefined
+    }
+
+    private assertProjectUploadAllowed(
+        resolved: Awaited<ReturnType<SandboxConversationContextService['resolveConversationSandbox']>>,
+        volume: VolumeHandle,
+        workspacePath: string,
+        folderPath: string | undefined,
+        originalName: string
+    ) {
+        if (!resolved.effectiveProjectId) return
+        const workspaceRelativePath = relative(volume.serverRoot, workspacePath).replace(/\\/g, '/')
+        const filePath = normalizeRelativePath(
+            workspaceRelativePath === '.' ? '' : workspaceRelativePath,
+            folderPath,
+            normalizeFileName(originalName)
+        )
+        if (isProjectGovernedContentPath(filePath)) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectContentGenericWriteForbidden', {
+                    defaultValue: 'Project instructions and skills must be changed from Project configuration'
+                })
+            )
+        }
     }
 
     @Header('content-type', 'text/event-stream')

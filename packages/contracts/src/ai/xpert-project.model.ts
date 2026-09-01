@@ -11,6 +11,7 @@ import { IXpertWorkspace } from './xpert-workspace.model'
 import { IXpert, TXpertTeamDraft } from './xpert.model'
 
 export type TXpertProjectSettings = {
+  /** @deprecated Project instructions are stored in /project/<projectId>/project.md. */
   instruction: string
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
@@ -40,6 +41,19 @@ export type TXpertProjectMemberSummary = {
   projectRole: TXpertProjectAccessRole
   joinedAt?: Date
 }
+export type TXpertProjectInstructions = { content: string }
+export type TXpertProjectSkillSource = 'repository' | 'upload' | 'legacy'
+export type TXpertProjectSkillSummary = {
+  id: string
+  name: string
+  path: string
+  enabled: boolean
+  source: TXpertProjectSkillSource
+  description?: string
+  version?: string
+}
+export type TXpertProjectSkills = { items: TXpertProjectSkillSummary[]; total: number }
+export type TXpertProjectSkillFile = { path: string; content: string }
 export type TXpertProjectMemberInput = { userId: string; role?: TXpertProjectMemberRole }
 export type TXpertProjectMemberRoleInput = { role: TXpertProjectMemberRole }
 export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'

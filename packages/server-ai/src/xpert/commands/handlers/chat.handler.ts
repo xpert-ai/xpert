@@ -81,6 +81,7 @@ import { RedisSseStreamService } from '../../../shared/stream'
 import { applicationMetrics } from '../../../metrics'
 import { applicationTracing } from '../../../tracing'
 import { XpertProjectService } from '../../../xpert-project/project.service'
+import { XpertProjectContentService } from '../../../xpert-project/services/project-content.service'
 import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
@@ -141,7 +142,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly redisSseStreamService?: RedisSseStreamService,
         @Optional() private readonly projectService?: XpertProjectService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
-        @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService
+        @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService,
+        @Optional() private readonly projectContentService?: XpertProjectContentService
     ) {}
 
     /**
@@ -241,6 +243,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                   : hydratedFollowUpRequest
                     ? normalizeChatState(hydratedFollowUpRequest.state, hydratedFollowUpRequest.message.input)
                     : normalizeChatState(request.state)
+        let projectInstruction: string | null = null
 
         if (request.action === 'follow_up') {
             const conversation = existingConversation
@@ -621,6 +624,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
             if (conversation.projectId && this.projectService) {
                 await this.projectService.assertRuntimeAccess(conversation.projectId, xpert.id)
+                if (this.projectContentService) {
+                    projectInstruction = await this.projectContentService.readRuntimeInstructions(
+                        conversation.projectId
+                    )
+                }
             }
 
             const attachmentSandboxScope = resolveAgentSandboxScope(request, conversation, options)
@@ -949,6 +957,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             assistantTaskSkillSelection: options?.assistantTaskSkillSelection
         })
         state = preparedAgentChatState.state
+        state = {
+            ...state,
+            [STATE_VARIABLE_SYS]: {
+                ...(state[STATE_VARIABLE_SYS] ?? {}),
+                project_instruction: projectInstruction
+            }
+        }
         input = preparedAgentChatState.input
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
         const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input

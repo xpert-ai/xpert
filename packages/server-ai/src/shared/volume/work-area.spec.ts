@@ -227,6 +227,8 @@ describe('KnowledgeWorkAreaResolver', () => {
     it('returns files subpaths for new knowledge uploads', () => {
         expect(resolver.getFilesPath('manuals')).toBe('files/manuals')
         expect(resolver.getFilesPath('/manuals\\team')).toBe('files/manuals/team')
+        expect(() => resolver.getFilesPath('../tmp')).toThrow('Invalid relative path')
+        expect(() => resolver.getFilesPath('manuals/../../.knowledge')).toThrow('Invalid relative path')
     })
 })
 

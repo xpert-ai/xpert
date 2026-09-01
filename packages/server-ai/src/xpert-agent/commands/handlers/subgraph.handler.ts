@@ -1167,6 +1167,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
             let systemTemplate = `Current date: ${state.sys.date}\nYour ID is '${agent.key}'. Your name is '${agent.name || runtimeXpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
+            if (state.sys.project_instruction?.trim()) {
+                systemTemplate += `\n\n<ProjectInstructions>\n${state.sys.project_instruction}\n</ProjectInstructions>`
+            }
             if (memories?.length) {
                 systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
             }

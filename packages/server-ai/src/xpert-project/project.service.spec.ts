@@ -10,6 +10,7 @@ import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectService } from './project.service'
 import { XpertProjectAccessService } from './services/project-access.service'
+import { XpertProjectContentService } from './services/project-content.service'
 import { XpertProjectTaskService } from './services'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
@@ -275,6 +276,7 @@ function createService(
         {} as XpertWorkspaceAccessService,
         {} as XpertWorkspaceService,
         accessService,
+        { initialize: jest.fn() } as unknown as XpertProjectContentService,
         publishedXpertAccess,
         connectorService,
         eventEmitter,

@@ -3,27 +3,36 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IXpert, IXpertTask, IXpertWorkspace, TXpertProjectMemberSummary } from '@xpert-ai/contracts'
+import type {
+  IXpert,
+  IXpertTask,
+  IXpertWorkspace,
+  TXpertProjectMemberSummary,
+  TXpertProjectSkillSummary
+} from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
   ZardFormImports,
   ZardInputDirective,
+  ZardMenuImports,
   ZardSelectImports,
   ZardSwitchComponent,
   ZardDialogService
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
+import { ScheduleTaskStatus, Store, ToastrService, XpertTaskService, getErrorMessage } from '../../@core'
 import { XpertAPIService } from '../../@core/services/xpert.service'
 import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.service'
-import { ScheduleTaskStatus, Store, ToastrService, XpertTaskService, getErrorMessage } from '../../@core'
 import { XpertTaskDialogService } from '../../@shared/chat/task-dialog/task-dialog.service'
+import { XpertSkillInstallDialogComponent, type XpertSkillInstallDialogResult } from '../../@shared/skills'
 import { XpertProjectApiService } from './project-api.service'
 import { XpertProjectFacade } from './project.facade'
 import { isProjectAssistant } from './project-assistant.constants'
 import { XpertProjectAssistantsDialogComponent } from './project-assistants-dialog.component'
 import { XpertProjectConnectorsDialogComponent } from './project-connectors-dialog.component'
+import { XpertProjectSkillsDialogComponent } from './project-skills-dialog.component'
 
 @Component({
   standalone: true,
@@ -39,6 +48,7 @@ import { XpertProjectConnectorsDialogComponent } from './project-connectors-dial
     ZardSwitchComponent,
     ...ZardFormImports,
     ...ZardCardImports,
+    ...ZardMenuImports,
     ...ZardSelectImports
   ],
   template: `
@@ -253,22 +263,96 @@ import { XpertProjectConnectorsDialogComponent } from './project-connectors-dial
           ><textarea
             z-input
             class="min-h-36 resize-y"
-            [value]="instruction()"
-            (input)="instruction.set($any($event.target).value)"
+            [disabled]="!canEdit() || savingInstruction()"
+            [ngModel]="instruction()"
+            (ngModelChange)="instruction.set($event)"
             [placeholder]="'XP.XProject.GuidancePlaceholder' | translate"
           ></textarea>
         </z-form-field>
-        <div>
-          <button
-            z-button
-            zType="default"
-            zSize="default"
-            type="button"
-            [disabled]="saving()"
-            (click)="saveInstructions()"
-          >
-            {{ (saving() ? 'XP.XProject.Saving' : 'XP.XProject.SaveInstructions') | translate }}
-          </button>
+        @if (canEdit()) {
+          <div>
+            <button
+              z-button
+              zType="default"
+              zSize="default"
+              type="button"
+              [disabled]="savingInstruction()"
+              (click)="saveInstructions()"
+            >
+              {{ (savingInstruction() ? 'XP.XProject.Saving' : 'XP.XProject.SaveInstructions') | translate }}
+            </button>
+          </div>
+        }
+      </section>
+
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="skills-title">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex items-center gap-2">
+            <h3 id="skills-title" class="text-base font-semibold text-text-primary">
+              {{ 'XP.XProject.ProjectSkills' | translate }}
+            </h3>
+            <z-badge zType="outline">{{ facade.projectSkills().length }}</z-badge>
+          </div>
+          <div class="flex items-center gap-2">
+            @if (canEdit()) {
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                z-menu
+                [zMenuTriggerFor]="addSkillMenu"
+                [disabled]="skillMutationInProgress()"
+              >
+                <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddProjectSkill' | translate }}
+              </button>
+            }
+            <button z-button zType="outline" zSize="sm" type="button" (click)="openProjectSkills()">
+              {{ 'XP.XProject.ManageProjectSkills' | translate }}
+            </button>
+          </div>
+        </div>
+        <input
+          #skillPackageInput
+          class="hidden"
+          type="file"
+          accept=".zip,application/zip"
+          (change)="uploadSkillPackage($event)"
+        />
+        <ng-template #addSkillMenu>
+          <div z-menu-content class="w-56">
+            <button type="button" z-menu-item (click)="skillPackageInput.click()">
+              <i class="ri-upload-2-line mr-2"></i>{{ 'XP.XProject.UploadProjectSkillPackage' | translate }}
+            </button>
+            <button type="button" z-menu-item (click)="installProjectSkillFromRepository()">
+              <i class="ri-search-line mr-2"></i>{{ 'XP.XProject.InstallProjectSkillFromRepository' | translate }}
+            </button>
+          </div>
+        </ng-template>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          @for (skill of facade.projectSkills(); track skill.id) {
+            <div class="flex min-w-0 items-start gap-3 rounded-xl border border-divider-subtle p-3">
+              <i class="ri-sparkling-2-line mt-0.5 text-text-tertiary"></i>
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 items-center gap-2">
+                  <p class="truncate text-sm font-medium text-text-primary">{{ skill.name }}</p>
+                  <z-badge zType="outline">{{ skillSourceKey(skill.source) | translate }}</z-badge>
+                </div>
+                @if (skill.description) {
+                  <p class="mt-1 line-clamp-2 text-xs text-text-secondary">{{ skill.description }}</p>
+                }
+                <p class="mt-1 text-xs text-text-tertiary">
+                  {{
+                    (skill.enabled ? 'XP.XProject.ProjectSkillEnabled' : 'XP.XProject.ProjectSkillDisabled') | translate
+                  }}
+                </p>
+              </div>
+            </div>
+          } @empty {
+            <p class="col-span-full rounded-xl border border-divider-subtle p-5 text-center text-sm text-text-tertiary">
+              {{ 'XP.XProject.NoProjectSkills' | translate }}
+            </p>
+          }
         </div>
       </section>
 
@@ -484,7 +568,9 @@ export class XpertProjectConfigComponent {
   readonly workspacesLoading = signal(false)
   readonly bindingWorkspace = signal(false)
   readonly instruction = signal('')
-  readonly saving = signal(false)
+  readonly savingInstruction = signal(false)
+  readonly skillMutationInProgress = signal(false)
+  readonly canEdit = computed(() => this.facade.projectAccess()?.capabilities.canEdit ?? false)
   readonly allowSuggestions = signal(true)
   readonly autoReferenceAssets = signal(true)
   readonly availableXperts = signal<IXpert[]>([])
@@ -519,29 +605,26 @@ export class XpertProjectConfigComponent {
   #loadedMembersProjectId: string | null = null
 
   constructor() {
-    effect(
-      () => {
-        const value = this.facade.project()?.settings?.instruction
-        if (value !== undefined && !this.saving()) this.instruction.set(value)
-        const project = this.facade.project()
-        if (!project) return
-        if (project.id !== this.#loadedMembersProjectId) {
-          this.#loadedMembersProjectId = project.id
-          void this.loadProjectMembers(project.id)
-        }
-        const xpertId = project.settings?.projectAssistantId ?? project.xperts?.[0]?.id ?? ''
-        if (!this.bindingXpert()) this.selectedXpertId.set(xpertId)
-        const workspaceId = project.workspaceId ?? ''
-        if (workspaceId !== this.#loadedWorkspaceId) {
-          this.#loadedWorkspaceId = workspaceId
-          this.workspaceSelection.set(workspaceId)
-          void this.loadWorkspace(workspaceId)
-          void this.loadXperts(workspaceId)
-          if (!workspaceId) void this.loadAuthoringWorkspaces()
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      const content = this.facade.projectInstruction()
+      if (!this.savingInstruction()) this.instruction.set(content)
+      const project = this.facade.project()
+      if (!project) return
+      if (project.id !== this.#loadedMembersProjectId) {
+        this.#loadedMembersProjectId = project.id
+        void this.loadProjectMembers(project.id)
+      }
+      const xpertId = project.settings?.projectAssistantId ?? project.xperts?.[0]?.id ?? ''
+      if (!this.bindingXpert()) this.selectedXpertId.set(xpertId)
+      const workspaceId = project.workspaceId ?? ''
+      if (workspaceId !== this.#loadedWorkspaceId) {
+        this.#loadedWorkspaceId = workspaceId
+        this.workspaceSelection.set(workspaceId)
+        void this.loadWorkspace(workspaceId)
+        void this.loadXperts(workspaceId)
+        if (!workspaceId) void this.loadAuthoringWorkspaces()
+      }
+    })
   }
 
   async loadWorkspace(workspaceId: string) {
@@ -666,13 +749,93 @@ export class XpertProjectConfigComponent {
   }
 
   async saveInstructions() {
-    this.saving.set(true)
+    if (!this.canEdit()) return
+    this.savingInstruction.set(true)
     try {
-      await this.facade.updateProject({
-        settings: { ...(this.facade.project()?.settings ?? {}), instruction: this.instruction() }
-      })
+      await this.facade.saveProjectInstructions(this.instruction())
+      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.saving.set(false)
+      this.savingInstruction.set(false)
+    }
+  }
+
+  async installProjectSkillFromRepository() {
+    const projectId = this.facade.project()?.id
+    if (!projectId || !this.canEdit() || this.skillMutationInProgress()) return
+    const result = await firstValueFrom(
+      this.#dialog.open(XpertSkillInstallDialogComponent, {
+        data: { scope: 'project' },
+        width: 'min(96vw, 72rem)',
+        maxWidth: '72rem',
+        disableClose: true,
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+    if (!result || result.kind !== 'repository-index') return
+    await this.installProjectSkill(projectId, result)
+  }
+
+  async uploadSkillPackage(event: Event) {
+    const input = event.target
+    if (!(input instanceof HTMLInputElement)) return
+    const file = input.files?.[0]
+    input.value = ''
+    const projectId = this.facade.project()?.id
+    if (!file || !projectId || !this.canEdit() || this.skillMutationInProgress()) return
+
+    this.skillMutationInProgress.set(true)
+    try {
+      await firstValueFrom(this.#api.uploadSkills(projectId, file))
+      await this.facade.reloadProjectContent(projectId)
+      this.#toastr.success('XP.XProject.ProjectSkillPackageUploaded')
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.skillMutationInProgress.set(false)
+    }
+  }
+
+  async openProjectSkills() {
+    const projectId = this.facade.project()?.id
+    if (!projectId) return
+    const changed = await firstValueFrom(
+      this.#dialog.open(XpertProjectSkillsDialogComponent, {
+        data: { projectId, skills: this.facade.projectSkills(), canEdit: this.canEdit() },
+        width: 'min(94vw, 760px)',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true,
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+    if (changed) await this.facade.reloadProjectContent(projectId)
+  }
+
+  skillSourceKey(source: TXpertProjectSkillSummary['source']) {
+    switch (source) {
+      case 'repository':
+        return 'XP.XProject.ProjectSkillSourceRepository'
+      case 'upload':
+        return 'XP.XProject.ProjectSkillSourceUpload'
+      default:
+        return 'XP.XProject.ProjectSkillSourceLegacy'
+    }
+  }
+
+  private async installProjectSkill(projectId: string, result: XpertSkillInstallDialogResult) {
+    if (result.kind !== 'repository-index') return
+    this.skillMutationInProgress.set(true)
+    try {
+      await firstValueFrom(this.#api.installSkill(projectId, result.skillIndex.id))
+      await this.facade.reloadProjectContent(projectId)
+      this.#toastr.success('XP.XProject.ProjectSkillInstalled')
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.skillMutationInProgress.set(false)
     }
   }
 

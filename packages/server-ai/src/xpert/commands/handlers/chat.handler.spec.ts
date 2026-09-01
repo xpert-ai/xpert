@@ -59,6 +59,7 @@ describe('XpertChatHandler', () => {
     let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
     let redisSseStreamService: { wrapChatStream: jest.Mock }
     let projectService: { assertRuntimeAccess: jest.Mock }
+    let projectContentService: { readRuntimeInstructions: jest.Mock }
     let publishedXpertAccessService: { getAccessiblePublishedXpertFamilyIds: jest.Mock }
     let handler: XpertChatHandler
     let currentUserIdSpy: jest.SpyInstance
@@ -125,6 +126,9 @@ describe('XpertChatHandler', () => {
         projectService = {
             assertRuntimeAccess: jest.fn().mockResolvedValue({ id: 'project-1' })
         }
+        projectContentService = {
+            readRuntimeInstructions: jest.fn().mockResolvedValue('# Project instructions')
+        }
         publishedXpertAccessService = {
             getAccessiblePublishedXpertFamilyIds: jest.fn(async (id: string) => [id])
         }
@@ -137,7 +141,10 @@ describe('XpertChatHandler', () => {
             goalService as unknown as ChatConversationGoalService,
             publishedXpertAccessService as any,
             redisSseStreamService as any,
-            projectService as any
+            projectService as any,
+            undefined,
+            undefined,
+            projectContentService as any
         )
     })
 
@@ -1508,7 +1515,9 @@ describe('XpertChatHandler', () => {
 
         expect(agentCommand.options.projectId).toBe('project-1')
         expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
+        expect(agentCommand.state.sys.project_instruction).toBe('# Project instructions')
         expect(projectService.assertRuntimeAccess).toHaveBeenCalledWith('project-1', 'xpert-1')
+        expect(projectContentService.readRuntimeInstructions).toHaveBeenCalledWith('project-1')
     })
 
     it.each<TChatRequest>([

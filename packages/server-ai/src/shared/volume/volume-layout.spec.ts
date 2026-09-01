@@ -17,6 +17,7 @@ import {
     getSandboxVolumeRootPath,
     getDockerHostSandboxVolumeRootPath,
     normalizeSandboxPublicVolumeSubpath,
+    normalizeSandboxVolumeRequestSubpath,
     usesFlattenedSandboxVolumeLayout
 } from './volume-layout'
 
@@ -144,4 +145,19 @@ describe('volume layout helpers', () => {
         expect(getDockerHostSandboxVolumeRootPath('tenant-1')).toBe('/mnt/sandbox/tenant-1')
     })
 
+    it.each([
+        'foo/../user/user-1/xpert/xpert-1/report.txt',
+        'foo\\..\\user\\user-1\\xpert\\xpert-1\\report.txt',
+        '/user/user-1/xpert/xpert-1/report.txt',
+        '../tenant-2/report.txt',
+        'report.txt\0.pdf'
+    ])('rejects unsafe public volume request path %s', (subpath) => {
+        expect(normalizeSandboxVolumeRequestSubpath(subpath)).toBeNull()
+    })
+
+    it('normalizes a safe public volume request path without changing its catalog boundary', () => {
+        expect(normalizeSandboxVolumeRequestSubpath('project/project-1/./reports/report.pdf')).toBe(
+            'project/project-1/reports/report.pdf'
+        )
+    })
 })

@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ResolveAuthorizedFileAssetQuery, SearchFileChunksQuery } from '../../file-understanding'
 import { VolumeHandle } from '../volume'
@@ -388,6 +388,29 @@ describe('WorkspaceFilesRuntimeCapabilityService', () => {
         expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
+
+    it.each(['project.md', 'skills/pdf/SKILL.md', 'shared/../skills/pdf/SKILL.md'])(
+        'rejects runtime writes to governed Project Content path %s',
+        async (filePath) => {
+            const commandBus = { execute: jest.fn() }
+            const service = createService(await temporaryRoot(), '/host/project-1', { commandBus })
+
+            await expect(
+                service.uploadBuffer({
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    catalog: 'projects',
+                    scopeId: 'project-1',
+                    projectId: 'project-1',
+                    fileName: filePath,
+                    originalName: path.posix.basename(filePath),
+                    buffer: Buffer.from('blocked')
+                })
+            ).rejects.toBeInstanceOf(BadRequestException)
+
+            expect(commandBus.execute).not.toHaveBeenCalled()
+        }
+    )
 
     it('rejects a member delete before mutating the Project volume', async () => {
         const serverRoot = await temporaryRoot()

@@ -90,6 +90,9 @@ describe('SandboxController', () => {
     let volumeClient: {
         resolve: jest.Mock
     }
+    let workspaceMappers: {
+        forProvider: jest.Mock
+    }
 
     beforeEach(() => {
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
@@ -128,6 +131,11 @@ describe('SandboxController', () => {
         volumeClient = {
             resolve: jest.fn()
         }
+        workspaceMappers = {
+            forProvider: jest.fn().mockReturnValue({
+                mapWorkspaceToVolume: jest.fn().mockReturnValue('/volumes/project-1')
+            })
+        }
 
         controller = new SandboxController(
             {} as unknown as I18nService,
@@ -137,7 +145,7 @@ describe('SandboxController', () => {
             sandboxManagedServiceService as unknown as SandboxManagedServiceService,
             sandboxPreviewSessionService as unknown as SandboxPreviewSessionService,
             organizationScopeService as unknown as SuperAdminOrganizationScopeService,
-            {} as WorkspacePathMapperFactory,
+            workspaceMappers as unknown as WorkspacePathMapperFactory,
             volumeClient as unknown as VolumeClient
         )
     })
@@ -224,15 +232,38 @@ describe('SandboxController', () => {
         )
 
         await expect(
-            controller.terminal(
-                { cmd: 'ls' },
-                null,
-                'conversation-1',
-                new EventEmitter() as unknown as Response
-            )
+            controller.terminal({ cmd: 'ls' }, null, 'conversation-1', new EventEmitter() as unknown as Response)
         ).rejects.toBeInstanceOf(ForbiddenException)
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
+
+    it.each(['project.md', 'skills/pdf/SKILL.md'])(
+        'rejects generic Project uploads to governed content path %s',
+        async (filePath) => {
+            sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+                effectiveProjectId: 'project-1',
+                provider: 'local-shell-sandbox',
+                volumeScope: { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1' },
+                workingDirectory: '/workspace/project-1',
+                workspaceBinding: { workspaceRoot: '/workspace/project-1' }
+            })
+            volumeClient.resolve.mockReturnValue({
+                serverRoot: '/volumes/project-1',
+                exposesDirectFileUrls: jest.fn().mockReturnValue(false)
+            })
+            const slash = filePath.lastIndexOf('/')
+            const folder = slash < 0 ? '' : filePath.slice(0, slash)
+            const originalname = slash < 0 ? filePath : filePath.slice(slash + 1)
+
+            await expect(
+                controller.uploadFile('', 'conversation-1', folder, {
+                    originalname,
+                    buffer: Buffer.from('blocked')
+                } as Express.Multer.File)
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            expect(commandBus.execute).not.toHaveBeenCalled()
+        }
+    )
 
     it('lists managed sandbox services for a conversation', async () => {
         sandboxManagedServiceService.listByConversationId.mockResolvedValue([
