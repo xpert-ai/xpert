@@ -44,4 +44,21 @@ describe('CrudService id scoping', () => {
 			where: [{ id: 'route-id' }, { id: 'route-id' }]
 		})
 	})
+
+	it.each(['findOne', 'findOneByIdString', 'findOneOrFailByIdString'] as const)(
+		'keeps the route id authoritative when %s receives an empty OR scope',
+		async (method) => {
+			const record = Object.assign(new TestEntity(), { id: 'route-id' })
+			const repository = {
+				findOne: jest.fn().mockResolvedValue(record),
+				findOneOrFail: jest.fn().mockResolvedValue(record)
+			}
+			const service = new TestCrudService(repository as unknown as Repository<TestEntity>)
+
+			await service[method]('route-id', { where: [] })
+
+			const query = (repository.findOne.mock.calls[0] ?? repository.findOneOrFail.mock.calls[0])[0]
+			expect(query.where).toEqual({ id: 'route-id' })
+		}
+	)
 })

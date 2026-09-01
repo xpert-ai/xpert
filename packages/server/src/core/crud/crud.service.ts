@@ -282,7 +282,11 @@ export abstract class CrudService<T extends BaseEntity> implements ICrudService<
 			id
 		})
 
-		return Array.isArray(where) ? where.map(scope) : scope(where)
+		if (Array.isArray(where)) {
+			return where.length ? where.map(scope) : scope()
+		}
+
+		return scope(where)
 	}
 
 	/**
