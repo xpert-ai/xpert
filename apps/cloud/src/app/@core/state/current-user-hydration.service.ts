@@ -279,29 +279,35 @@ export class CurrentUserHydrationService {
   }
 
   private syncSelectedOrganizationFeatures(user: IUser) {
-    if (this.store.activeScope.level === RequestScopeLevel.TENANT) {
+    const activeScope = this.store.activeScope
+    if (activeScope.level === RequestScopeLevel.TENANT) {
       this.store.selectedOrganization = null
       this.store.featureOrganizations = []
       return
     }
 
-    const memberships = user.organizations ?? []
-    const selectedOrganizationId = this.store.selectedOrganization?.id
-    const membership = selectedOrganizationId
-      ? memberships.find((item) => getMembershipOrganizationId(item) === selectedOrganizationId)
-      : null
-    const nextMembership =
-      membership ??
-      memberships.find((item) => item.isDefault && item.organization) ??
-      memberships.find((item) => item.organization) ??
-      null
-    const organization = nextMembership?.organization ?? null
-    const featureOrganizations = Array.isArray(organization?.featureOrganizations)
-      ? organization.featureOrganizations
-      : []
+    const activeOrganizationId = activeScope.organizationId
+    const membership = (user.organizations ?? []).find(
+      (item) => getMembershipOrganizationId(item) === activeOrganizationId
+    )
+    if (membership?.organization) {
+      this.store.selectedOrganization = membership.organization
+      this.store.featureOrganizations = Array.isArray(membership.organization.featureOrganizations)
+        ? membership.organization.featureOrganizations
+        : []
+      return
+    }
 
-    this.store.selectedOrganization = organization
-    this.store.featureOrganizations = featureOrganizations
+    const selectedOrganization = this.store.selectedOrganization
+    if (selectedOrganization?.id === activeOrganizationId) {
+      if (Array.isArray(selectedOrganization.featureOrganizations)) {
+        this.store.featureOrganizations = selectedOrganization.featureOrganizations
+      }
+      return
+    }
+
+    this.store.selectedOrganization = null
+    this.store.featureOrganizations = []
   }
 
   private buildInFlightKey(userId: string, tenantId: string | null, relations: readonly string[]) {
