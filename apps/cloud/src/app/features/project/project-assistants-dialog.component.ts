@@ -10,23 +10,31 @@ import {
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectApiService } from './project-api.service'
 
 export interface XpertProjectAssistantsDialogData {
   project: IXpertProject
-  workspaceXperts: IXpert[]
+  availableXperts: IXpert[]
 }
 
 @Component({
   standalone: true,
   selector: 'xp-project-assistants-dialog',
-  imports: [CommonModule, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ...ZardSelectImports],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    EmojiAvatarComponent,
+    ...ZardSelectImports
+  ],
   template: `
     <section class="flex max-h-[82vh] min-w-0 flex-col">
       <header class="flex items-start justify-between border-b border-divider-subtle pb-4">
         <div class="min-w-0">
           <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-            {{ 'XP.XProject.ProjectAssistant' | translate }}
+            {{ 'XP.XProject.ProjectExperts' | translate }}
           </p>
           <h2 class="mt-1 text-lg font-semibold text-text-primary">
             {{ 'XP.XProject.ProjectExperts' | translate }}
@@ -48,29 +56,6 @@ export interface XpertProjectAssistantsDialogData {
       </header>
 
       <div class="min-h-0 space-y-5 overflow-y-auto py-5">
-        <section class="rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex min-w-0 items-center gap-3">
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-              >
-                <i class="ri-sparkling-2-line"></i>
-              </span>
-              <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-text-primary">
-                  {{ defaultAssistant()?.title || defaultAssistant()?.name || ('XP.XProject.NotSelected' | translate) }}
-                </p>
-                <p class="mt-1 text-xs text-text-secondary">
-                  {{ 'XP.XProject.DefaultProjectAssistant' | translate }}
-                </p>
-              </div>
-            </div>
-            @if (defaultAssistant()) {
-              <z-badge zType="secondary">{{ 'XP.XProject.DefaultXpert' | translate }}</z-badge>
-            }
-          </div>
-        </section>
-
         <section class="space-y-3">
           <div class="flex items-center justify-between gap-3">
             <div>
@@ -86,11 +71,12 @@ export interface XpertProjectAssistantsDialogData {
             @for (assistant of members(); track assistant.id) {
               <div class="flex items-center justify-between gap-3 p-3">
                 <div class="flex min-w-0 items-center gap-3">
-                  <span
-                    class="flex size-8 shrink-0 items-center justify-center rounded-md bg-components-item-bg text-text-secondary"
-                  >
-                    <i class="ri-user-star-line"></i>
-                  </span>
+                  <emoji-avatar
+                    [avatar]="assistant.avatar"
+                    [fallbackLabel]="assistant.title || assistant.name"
+                    small
+                    class="size-8 shrink-0 overflow-hidden rounded-md"
+                  />
                   <div class="min-w-0">
                     <p class="truncate text-sm font-medium text-text-primary">
                       {{ assistant.title || assistant.name }}
@@ -98,33 +84,17 @@ export interface XpertProjectAssistantsDialogData {
                     <p class="truncate text-xs text-text-tertiary">{{ assistant.slug }}</p>
                   </div>
                 </div>
-                <div class="flex shrink-0 items-center gap-1">
-                  @if (isDefault(assistant.id)) {
-                    <z-badge zType="secondary">{{ 'XP.XProject.DefaultXpert' | translate }}</z-badge>
-                  } @else {
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="sm"
-                      type="button"
-                      [disabled]="busy()"
-                      (click)="setDefault(assistant)"
-                    >
-                      {{ 'XP.XProject.SetAsDefault' | translate }}
-                    </button>
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="sm"
-                      type="button"
-                      [disabled]="busy()"
-                      [attr.aria-label]="'XP.XProject.RemoveXpert' | translate"
-                      (click)="remove(assistant)"
-                    >
-                      <i class="ri-delete-bin-line text-text-destructive"></i>
-                    </button>
-                  }
-                </div>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  type="button"
+                  [disabled]="busy()"
+                  [attr.aria-label]="'XP.XProject.RemoveXpert' | translate"
+                  (click)="remove(assistant)"
+                >
+                  <i class="ri-delete-bin-line text-text-destructive"></i>
+                </button>
               </div>
             } @empty {
               <p class="p-5 text-center text-sm text-text-tertiary">{{ 'XP.XProject.NoProjectExperts' | translate }}</p>
@@ -182,17 +152,11 @@ export class XpertProjectAssistantsDialogComponent {
   readonly data = inject<XpertProjectAssistantsDialogData>(Z_MODAL_DATA)
   readonly members = signal<IXpert[]>([...(this.data.project.xperts ?? [])])
   readonly selectedId = signal('')
-  readonly defaultId = signal(this.data.project.settings?.projectAssistantId ?? this.data.project.xperts?.[0]?.id ?? '')
   readonly busy = signal(false)
   readonly availableCandidates = computed(() => {
     const memberIds = new Set(this.members().map((item) => item.id))
-    return this.data.workspaceXperts.filter((item) => !memberIds.has(item.id))
+    return this.data.availableXperts.filter((item) => !memberIds.has(item.id))
   })
-  readonly defaultAssistant = computed(() => this.members().find((item) => item.id === this.defaultId()) ?? null)
-
-  isDefault(id: string) {
-    return id === this.defaultId()
-  }
 
   select(value: string | number | Array<string | number>) {
     const selected = Array.isArray(value) ? value[0] : value
@@ -201,7 +165,7 @@ export class XpertProjectAssistantsDialogComponent {
 
   async add() {
     const projectId = this.data.project.id
-    const assistant = this.data.workspaceXperts.find((item) => item.id === this.selectedId())
+    const assistant = this.data.availableXperts.find((item) => item.id === this.selectedId())
     if (!assistant || !projectId) return
     this.busy.set(true)
     try {
@@ -213,19 +177,8 @@ export class XpertProjectAssistantsDialogComponent {
     }
   }
 
-  async setDefault(assistant: IXpert) {
-    if (!assistant.id || assistant.id === this.defaultId()) return
-    this.busy.set(true)
-    try {
-      await firstValueFrom(this.#api.setAssistant(this.data.project.id, assistant.id))
-      this.defaultId.set(assistant.id)
-    } finally {
-      this.busy.set(false)
-    }
-  }
-
   async remove(assistant: IXpert) {
-    if (!assistant.id || this.isDefault(assistant.id)) return
+    if (!assistant.id) return
     this.busy.set(true)
     try {
       await firstValueFrom(this.#api.removeXpert(this.data.project.id, assistant.id))

@@ -4,6 +4,8 @@ import type {
   IChatConversation,
   IXpertProject,
   IXpertProjectCreateInput,
+  IXpertProjectInvitation,
+  IXpertProjectMembership,
   IXpertProjectActivity,
   IXpertProjectAsset,
   IXpertProjectMilestone,
@@ -14,15 +16,22 @@ import type {
   IXpertProjectTask,
   IXpertProjectTaskConversation,
   IXpertProjectTaskExecution,
+  IPagination,
+  IXpert,
   TXpertProjectAccessSummary,
-  TXpertProjectMemberSummary,
   TXpertProjectInstructions,
+  TXpertProjectInvitationInput,
+  TXpertProjectInvitationTokenInput,
+  TXpertProjectMemberInput,
+  TXpertProjectMemberRole,
+  TXpertProjectMemberRoleInput,
+  TXpertProjectMemberSummary,
   TXpertProjectSkills,
   TXpertProjectSkillSummary,
-  IPagination
+  TFile,
+  TFileDirectory
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
-import type { Observable } from 'rxjs'
 
 export interface XpertProjectOverview {
   project: IXpertProject
@@ -49,6 +58,12 @@ export interface XpertProjectTaskRelations {
   executions: IXpertProjectTaskExecution[]
 }
 
+export type XpertProjectConversationTarget = {
+  conversationId?: string
+  threadId?: string
+  xpertId?: string
+}
+
 @Injectable({ providedIn: 'root' })
 export class XpertProjectApiService {
   readonly #http = inject(HttpClient)
@@ -69,19 +84,75 @@ export class XpertProjectApiService {
 
   get(id: string) {
     return this.#http.get<IXpertProject>(`${API_XPERT_PROJECT}/${id}`, {
-      params: new HttpParams().set(
-        '$relations',
-        JSON.stringify(['owner', 'members', 'workspace', 'xperts', 'toolsets', 'knowledges'])
-      )
+      params: new HttpParams().set('data', JSON.stringify({ relations: ['owner', 'xperts'] }))
     })
   }
 
-  access(id: string): Observable<TXpertProjectAccessSummary> {
+  access(id: string) {
     return this.#http.get<TXpertProjectAccessSummary>(`${API_XPERT_PROJECT}/${id}/access`)
+  }
+
+  availableXperts(id: string, options: { skip?: number; take?: number } = {}) {
+    return this.#http.get<{ items: IXpert[]; total: number }>(`${API_XPERT_PROJECT}/${id}/available-xperts`, {
+      params: {
+        skip: options.skip ?? 0,
+        take: options.take ?? 100
+      }
+    })
+  }
+
+  availableForXpert(xpertId: string, options: { status?: string; skip?: number; take?: number } = {}) {
+    return this.#http.get<IPagination<IXpertProject>>(`${API_XPERT_PROJECT}/available`, {
+      params: {
+        xpertId,
+        status: options.status ?? 'active',
+        skip: options.skip ?? 0,
+        take: options.take ?? 1
+      }
+    })
   }
 
   members(id: string) {
     return this.#http.get<TXpertProjectMemberSummary[]>(`${API_XPERT_PROJECT}/${id}/members`)
+  }
+
+  addMember(id: string, input: TXpertProjectMemberInput) {
+    return this.#http.post<IXpertProjectMembership>(`${API_XPERT_PROJECT}/${id}/members`, input)
+  }
+
+  updateMember(id: string, userId: string, role: TXpertProjectMemberRole) {
+    const input: TXpertProjectMemberRoleInput = { role }
+    return this.#http.patch<IXpertProjectMembership>(`${API_XPERT_PROJECT}/${id}/members/${userId}`, input)
+  }
+
+  removeMember(id: string, userId: string) {
+    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}/members/${userId}`)
+  }
+
+  transferOwnership(id: string, userId: string) {
+    return this.#http.patch<IXpertProject>(`${API_XPERT_PROJECT}/${id}/owner`, { userId })
+  }
+
+  invitations(id: string) {
+    return this.#http.get<IXpertProjectInvitation[]>(`${API_XPERT_PROJECT}/${id}/invitations`)
+  }
+
+  invite(id: string, input: TXpertProjectInvitationInput) {
+    return this.#http.post<IXpertProjectInvitation>(`${API_XPERT_PROJECT}/${id}/invitations`, input)
+  }
+
+  revokeInvitation(id: string, invitationId: string) {
+    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}/invitations/${invitationId}`)
+  }
+
+  acceptInvitation(token: string) {
+    const input: TXpertProjectInvitationTokenInput = { token }
+    return this.#http.post<IXpertProjectMembership>(`${API_XPERT_PROJECT}/invitations/accept`, input)
+  }
+
+  declineInvitation(token: string) {
+    const input: TXpertProjectInvitationTokenInput = { token }
+    return this.#http.post<IXpertProjectInvitation>(`${API_XPERT_PROJECT}/invitations/decline`, input)
   }
 
   instructions(id: string) {
@@ -117,9 +188,7 @@ export class XpertProjectApiService {
   }
 
   uninstallSkill(id: string, skillId: string) {
-    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}/content/skills`, {
-      params: { skillId }
-    })
+    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}/content/skills`, { params: { skillId } })
   }
 
   overview(id: string) {
@@ -179,6 +248,31 @@ export class XpertProjectApiService {
     return this.#http.get<{ items: IXpertProjectAsset[]; total: number }>(`${API_XPERT_PROJECT}/${id}/assets`, {
       params
     })
+  }
+
+  workspaceFiles(id: string, path = '') {
+    return this.#http.get<TFileDirectory[]>(`${API_XPERT_PROJECT}/${id}/workspace/files`, {
+      params: { path }
+    })
+  }
+
+  workspaceFile(id: string, path: string) {
+    return this.#http.get<TFile>(`${API_XPERT_PROJECT}/${id}/workspace/file`, { params: { path } })
+  }
+
+  saveWorkspaceFile(id: string, path: string, content: string) {
+    return this.#http.put<TFile>(`${API_XPERT_PROJECT}/${id}/workspace/file`, { path, content })
+  }
+
+  uploadWorkspaceFile(id: string, file: File, path = '') {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('path', path)
+    return this.#http.post<TFile>(`${API_XPERT_PROJECT}/${id}/workspace/file/upload`, form)
+  }
+
+  deleteWorkspaceFile(id: string, path: string) {
+    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}/workspace/file`, { params: { path } })
   }
 
   activities(id: string) {
