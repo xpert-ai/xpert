@@ -20,7 +20,9 @@ describe('assistant tool host event helpers', () => {
       {
         hostType: 'agent',
         hostId: 'assistant-1',
-        threadId: 'thread-1'
+        threadId: 'thread-1',
+        runtimeScope: { projectId: null, conversationId: 'conversation-1' },
+        userId: 'user-1'
       }
     )
 
@@ -31,6 +33,7 @@ describe('assistant tool host event helpers', () => {
       receivedAt: expect.any(String),
       hostType: 'agent',
       hostId: 'assistant-1',
+      dataScopeKey: 'user:user-1:personal:agent:assistant-1',
       threadId: 'thread-1',
       toolName: 'excalidraw_patch_scene',
       toolCallId: 'call-1',
@@ -60,6 +63,22 @@ describe('assistant tool host event helpers', () => {
     ).toBeNull()
   })
 
+  it('does not create a scope-sensitive event when the current user key is unavailable', () => {
+    expect(
+      createAssistantToolCompletedHostEvent(
+        {
+          name: 'lg.tool.end',
+          data: { toolName: 'excalidraw_patch_scene' }
+        },
+        {
+          hostType: 'agent',
+          hostId: 'assistant-1',
+          runtimeScope: { projectId: null, conversationId: 'conversation-1' }
+        }
+      )
+    ).toBeNull()
+  })
+
   it('converts ChatKit component logs into generic assistant tool completed host events', () => {
     const event = createAssistantToolCompletedHostEvent(
       {
@@ -73,7 +92,9 @@ describe('assistant tool host event helpers', () => {
       {
         hostType: 'agent',
         hostId: 'assistant-1',
-        threadId: 'thread-1'
+        threadId: 'thread-1',
+        runtimeScope: { projectId: 'project-1', conversationId: 'conversation-1' },
+        userId: 'user-1'
       }
     )
 
@@ -84,6 +105,7 @@ describe('assistant tool host event helpers', () => {
         receivedAt: expect.any(String),
         hostType: 'agent',
         hostId: 'assistant-1',
+        dataScopeKey: 'user:user-1:project:project-1',
         threadId: 'thread-1',
         toolName: 'excalidraw_patch_scene',
         data: expect.objectContaining({

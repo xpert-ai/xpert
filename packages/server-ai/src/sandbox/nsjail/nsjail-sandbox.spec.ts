@@ -3,9 +3,10 @@ import { Readable } from 'node:stream'
 import { NsjailRunnerClient, NsjailRunnerRequestError } from './nsjail-runner.client'
 import { NsjailSandbox } from './nsjail-sandbox'
 
-function createSandbox(client: NsjailRunnerClient) {
+function createSandbox(client: NsjailRunnerClient, protectProjectContent = false) {
     return new NsjailSandbox({
         client,
+        ...(protectProjectContent ? { protectProjectContent: true as const } : {}),
         runtimeId: 'a'.repeat(32),
         workspacePath: '/sandbox/project-1',
         workingDirectory: '/workspace'
@@ -68,7 +69,7 @@ describe('NsjailSandbox', () => {
             .mockRejectedValueOnce(runtimeNotFound)
             .mockResolvedValue(result)
         const createRuntime = jest.fn().mockResolvedValue(undefined)
-        const sandbox = createSandbox({ createRuntime, execute } as unknown as NsjailRunnerClient)
+        const sandbox = createSandbox({ createRuntime, execute } as unknown as NsjailRunnerClient, true)
 
         await expect(Promise.all([sandbox.execute('first'), sandbox.execute('second')])).resolves.toEqual([
             result,
@@ -78,6 +79,7 @@ describe('NsjailSandbox', () => {
         expect(createRuntime).toHaveBeenCalledTimes(1)
         expect(createRuntime).toHaveBeenCalledWith({
             runtimeId: 'a'.repeat(32),
+            protectProjectContent: true,
             workingDirectory: '/workspace',
             workspacePath: '/sandbox/project-1'
         })

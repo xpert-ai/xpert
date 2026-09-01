@@ -5,6 +5,7 @@ import {
   PLUGIN_LOAD_STATUS,
   replaceAgentInDraft,
   type TXpertTeamDraft,
+  type XpertWorkspaceDataScope,
   type XpertTemplatePluginDependencies
 } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
@@ -38,6 +39,7 @@ const CLAWXPERT_DEFAULT_WORKSPACE_NAME = 'Default Workspace'
 type CreateXpertOptions = {
   suppressAutoPublishWarning?: boolean
   suppressPluginPrepareWarning?: boolean
+  workspaceDataScope?: XpertWorkspaceDataScope
 }
 
 @Injectable({ providedIn: 'root' })
@@ -71,7 +73,8 @@ export class ClawXpertBootstrapService {
         basic: {
           name: installName,
           title: CLAWXPERT_TITLE,
-          copilotModel: selectedCopilotModel
+          copilotModel: selectedCopilotModel,
+          workspaceDataScope: options?.workspaceDataScope ?? 'shared'
         }
       })
     )
@@ -109,7 +112,8 @@ export class ClawXpertBootstrapService {
           title: template.title || installName,
           description: template.description,
           avatar: template.avatar,
-          copilotModel: selectedCopilotModel
+          copilotModel: selectedCopilotModel,
+          workspaceDataScope: options?.workspaceDataScope ?? 'shared'
         }
       })
     )

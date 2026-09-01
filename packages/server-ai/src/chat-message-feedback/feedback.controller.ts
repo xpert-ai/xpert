@@ -1,84 +1,140 @@
-import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
+import { ChatMessageFeedbackRatingEnum } from '@xpert-ai/contracts'
 import {
-	CallHandler,
-	CanActivate,
-	Controller,
-	ExecutionContext,
-	Injectable,
-	NestInterceptor,
-	UseGuards,
-	UseInterceptors
+    PaginationParams,
+    ParseJsonPipe,
+    RequestContext,
+    TransformInterceptor,
+    UUIDValidationPipe,
+    transformWhere
+} from '@xpert-ai/server-core'
+import {
+    Body,
+    Controller,
+    Delete,
+    ForbiddenException,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    UseInterceptors
 } from '@nestjs/common'
-import { Reflector } from '@nestjs/core'
-import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { Observable } from 'rxjs'
-import { tap } from 'rxjs/operators'
+import { FindOptionsOrder, FindOptionsWhere } from 'typeorm'
+import { assertSafeChatConversationRelations } from '../chat-conversation/conversation-relations'
 import { ChatMessageFeedback } from './feedback.entity'
 import { ChatMessageFeedbackService } from './feedback.service'
 
-@Injectable()
-class CleanJobGuard implements CanActivate {
-	constructor(
-		private reflector: Reflector,
-		private readonly feedbackService: ChatMessageFeedbackService
-	) {}
-
-	async canActivate(context: ExecutionContext) {
-		const request = context.switchToHttp().getRequest()
-		const method = request.method
-		let id: string | undefined
-
-		if (['DELETE'].includes(method)) {
-			id = request.params.id || request.body.id
-			if (id) {
-				try {
-					await this.feedbackService.deleteSummary(id)
-				} catch (err) {
-					console.error(err)
-					return false
-				}
-			}
-		}
-		return true
-	}
-}
-
-@Injectable()
-class ResponseInterceptor implements NestInterceptor {
-	constructor(private readonly feedbackService: ChatMessageFeedbackService) {}
-	intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-		return next.handle().pipe(
-			tap((data) => {
-				const request = context.switchToHttp().getRequest()
-				const method = request.method
-				let id: string | undefined
-				if (['POST'].includes(method)) {
-					id = data.id
-				} else if (method === 'PUT') {
-					id = request.params.id
-				}
-				if (id) {
-					this.feedbackService.triggerSummary(id).catch((err) => {
-						console.error(err)
-					})
-				}
-			})
-		)
-	}
+type FeedbackMutationBody = {
+    conversationId?: string
+    messageId?: string
+    rating?: ChatMessageFeedbackRatingEnum
+    content?: string
 }
 
 @ApiTags('ChatMessageFeedback')
 @ApiBearerAuth()
-@UseInterceptors(TransformInterceptor, ResponseInterceptor)
-@UseGuards(CleanJobGuard)
+@UseInterceptors(TransformInterceptor)
 @Controller()
-export class ChatMessageFeedbackController extends CrudController<ChatMessageFeedback> {
-	constructor(
-		private readonly service: ChatMessageFeedbackService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {
-		super(service)
-	}
+export class ChatMessageFeedbackController {
+    readonly #logger = new Logger(ChatMessageFeedbackController.name)
+
+    constructor(private readonly service: ChatMessageFeedbackService) {}
+
+    @Get()
+    async findAll(
+        @Query('data', ParseJsonPipe) filter?: PaginationParams<ChatMessageFeedback>,
+        @Query('$where', ParseJsonPipe) where?: PaginationParams<ChatMessageFeedback>['where'],
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatMessageFeedback>['relations'],
+        @Query('$order', ParseJsonPipe) order?: PaginationParams<ChatMessageFeedback>['order'],
+        @Query('$take') take?: number,
+        @Query('$skip') skip?: number
+    ) {
+        const requestedRelations = relations ?? filter?.relations
+        assertSafeChatConversationRelations(requestedRelations)
+        return this.service.findAllAuthorized({
+            where: transformWhere(where ?? filter?.where) as FindOptionsWhere<ChatMessageFeedback>,
+            relations: requestedRelations,
+            order: (order ?? filter?.order) as FindOptionsOrder<ChatMessageFeedback>,
+            take: take ?? filter?.take,
+            skip: skip ?? filter?.skip
+        })
+    }
+
+    @Get('my')
+    async findMyAll(@Query('data', ParseJsonPipe) filter?: PaginationParams<ChatMessageFeedback>) {
+        const userId = RequestContext.currentUserId()
+        if (!userId) {
+            throw new ForbiddenException()
+        }
+        assertSafeChatConversationRelations(filter?.relations)
+        return this.service.findAllAuthorized({
+            where: {
+                ...(transformWhere(filter?.where ?? {}) as FindOptionsWhere<ChatMessageFeedback>),
+                createdById: userId
+            },
+            relations: filter?.relations,
+            order: filter?.order as FindOptionsOrder<ChatMessageFeedback>,
+            take: filter?.take,
+            skip: filter?.skip
+        })
+    }
+
+    @Get(':id')
+    async findById(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('$relations', ParseJsonPipe) relations?: string[]
+    ) {
+        assertSafeChatConversationRelations(relations)
+        return this.service.findOneAuthorized(id, { relations })
+    }
+
+    @HttpCode(HttpStatus.CREATED)
+    @Post()
+    async create(@Body() body: FeedbackMutationBody) {
+        const feedback = await this.service.createAuthorized({
+            conversationId: this.requireId(body?.conversationId),
+            messageId: this.requireId(body?.messageId),
+            ...(body?.rating !== undefined ? { rating: body.rating } : {}),
+            ...(body?.content !== undefined ? { content: body.content } : {})
+        })
+        this.triggerSummary(feedback.id)
+        return feedback
+    }
+
+    @HttpCode(HttpStatus.ACCEPTED)
+    @Put(':id')
+    async update(@Param('id', UUIDValidationPipe) id: string, @Body() body: FeedbackMutationBody) {
+        const feedback = await this.service.updateAuthorized(id, {
+            ...(body?.rating !== undefined ? { rating: body.rating } : {}),
+            ...(body?.content !== undefined ? { content: body.content } : {})
+        })
+        this.triggerSummary(feedback.id)
+        return feedback
+    }
+
+    @HttpCode(HttpStatus.ACCEPTED)
+    @Delete(':id')
+    async delete(@Param('id', UUIDValidationPipe) id: string) {
+        await this.service.deleteSummary(id)
+        return this.service.deleteAuthorized(id)
+    }
+
+    private triggerSummary(id: string) {
+        this.service.triggerSummary(id).catch((error) => {
+            this.#logger.warn(
+                `Failed to trigger feedback summary for ${id}: ${error instanceof Error ? error.message : String(error)}`
+            )
+        })
+    }
+
+    private requireId(value: unknown) {
+        if (typeof value !== 'string' || !value.trim()) {
+            throw new ForbiddenException()
+        }
+        return value
+    }
 }

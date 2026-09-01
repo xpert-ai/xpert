@@ -1,7 +1,15 @@
+import { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
-import fsPromises from 'node:fs/promises'
+import { t } from 'i18next'
 import path from 'node:path'
-import { VOLUME_CLIENT, VolumeClient, VolumeHandle, VolumeScope, WorkspaceBinding } from './volume'
+import {
+    resolveXpertDataVolumeScope,
+    VOLUME_CLIENT,
+    VolumeClient,
+    VolumeHandle,
+    VolumeScope,
+    WorkspaceBinding
+} from './volume'
 import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
 
 const XPERT_FILE_MEMORY_WORKSPACE_PATH = '.xpert/memory'
@@ -17,13 +25,14 @@ export type XpertRuntimeWorkAreaInput = {
     projectId?: string | null
     conversationId?: string | null
     environmentId?: string | null
+    workspaceDataScope?: XpertWorkspaceDataScope | null
 }
 
 export type XpertRuntimeWorkAreaPath = {
     relativePath: string
     serverPath: string
     workspacePath: string
-    publicUrl: string
+    publicUrl?: string
 }
 
 export type XpertRuntimeWorkArea = {
@@ -33,7 +42,7 @@ export type XpertRuntimeWorkArea = {
     workingDirectory: string
     volumePath: string
     workspaceRoot: string
-    workspaceUrl: string
+    workspaceUrl?: string
     defaultPath: XpertRuntimeWorkAreaPath
     sharedPath?: XpertRuntimeWorkAreaPath
     agentPath?: XpertRuntimeWorkAreaPath
@@ -57,7 +66,7 @@ export type KnowledgeRuntimeWorkArea = {
     workingDirectory: string
     volumePath: string
     workspaceRoot: string
-    workspaceUrl: string
+    workspaceUrl?: string
     defaultPath: XpertRuntimeWorkAreaPath
     filesPath: XpertRuntimeWorkAreaPath
     userStagingPath: XpertRuntimeWorkAreaPath
@@ -111,14 +120,22 @@ export class XpertWorkAreaResolver {
         }
     }
 
-    async resolveXpertMemory(input: { tenantId: string; xpertId: string; provider?: string | null }) {
+    async resolveXpertMemory(input: {
+        tenantId: string
+        userId: string
+        xpertId: string
+        workspaceDataScope?: XpertWorkspaceDataScope | null
+        provider?: string | null
+    }) {
         const volume = await this.volumeClient
-            .resolve({
-                tenantId: input.tenantId,
-                catalog: 'xperts',
-                xpertId: input.xpertId,
-                isolateByUser: false
-            })
+            .resolve(
+                resolveXpertDataVolumeScope({
+                    tenantId: input.tenantId,
+                    userId: input.userId,
+                    xpertId: input.xpertId,
+                    workspaceDataScope: input.workspaceDataScope
+                })
+            )
             .ensureRoot()
         const memoryPath = XPERT_FILE_MEMORY_WORKSPACE_PATH
         await this.ensureRelativePaths(volume, [memoryPath])
@@ -133,15 +150,6 @@ export class XpertWorkAreaResolver {
     }
 
     private resolveVolumeScope(input: XpertRuntimeWorkAreaInput): VolumeScope {
-        if (input.environmentId) {
-            return {
-                tenantId: input.tenantId,
-                catalog: 'environment',
-                environmentId: input.environmentId,
-                userId: input.userId
-            }
-        }
-
         if (input.projectId) {
             return {
                 tenantId: input.tenantId,
@@ -151,38 +159,54 @@ export class XpertWorkAreaResolver {
             }
         }
 
-        if (!input.xpertId) {
-            throw new Error('Xpert work area requires xpertId when projectId and environmentId are not provided')
-        }
-
-        return {
-            tenantId: input.tenantId,
-            catalog: 'xperts',
-            xpertId: input.xpertId,
-            userId: input.userId,
-            isolateByUser: false
-        }
-    }
-
-    private resolveRelativePaths(input: XpertRuntimeWorkAreaInput) {
         if (input.environmentId) {
             return {
-                defaultPath: '',
-                allPaths: ['']
+                tenantId: input.tenantId,
+                catalog: 'environment',
+                environmentId: input.environmentId,
+                userId: input.userId
             }
         }
 
+        if (!input.xpertId) {
+            throw new Error(
+                t('server-ai:Error.XpertWorkAreaXpertRequired', {
+                    defaultValue: 'Xpert work area requires xpertId when projectId and environmentId are not provided'
+                })
+            )
+        }
+
+        return resolveXpertDataVolumeScope({
+            tenantId: input.tenantId,
+            userId: input.userId,
+            xpertId: input.xpertId,
+            workspaceDataScope: input.workspaceDataScope
+        })
+    }
+
+    private resolveRelativePaths(input: XpertRuntimeWorkAreaInput) {
         if (input.projectId) {
-            const defaultPath = ''
             const sharedPath = 'shared'
             const agentPath = input.xpertId ? path.posix.join('agents', input.xpertId) : undefined
+            const defaultPath = agentPath ?? ''
             const sessionPath = input.conversationId ? path.posix.join('sessions', input.conversationId) : undefined
+            const memoryPath = agentPath ? path.posix.join(agentPath, XPERT_FILE_MEMORY_WORKSPACE_PATH) : undefined
             return {
                 defaultPath,
                 sharedPath,
                 agentPath,
                 sessionPath,
-                allPaths: [defaultPath, sharedPath, agentPath, sessionPath, '.xpert'].filter(isNonEmptyString)
+                memoryPath,
+                allPaths: [defaultPath, sharedPath, agentPath, sessionPath, memoryPath, '.xpert'].filter(
+                    isNonEmptyString
+                )
+            }
+        }
+
+        if (input.environmentId) {
+            return {
+                defaultPath: '',
+                allPaths: ['']
             }
         }
 
@@ -200,7 +224,11 @@ export class XpertWorkAreaResolver {
     }
 
     private async ensureRelativePaths(volume: VolumeHandle, paths: string[]) {
-        await Promise.all(paths.map((relativePath) => fsPromises.mkdir(volume.path(relativePath), { recursive: true })))
+        await Promise.all(
+            paths.map((relativePath) =>
+                VolumeHandle.ensureDirectory(volume.serverRoot, relativePath, volume.serverRoot)
+            )
+        )
     }
 }
 
@@ -252,7 +280,10 @@ export class KnowledgeWorkAreaResolver {
     }
 
     getFilesPath(folder?: string | null) {
-        return normalizeRelativePath(KNOWLEDGE_FILES_PATH, folder ?? undefined)
+        // Normalize the caller-controlled folder before prepending the managed subtree.
+        // Otherwise `../tmp` would normalize `files/../tmp` to a sibling of `files`.
+        const relativeFolder = normalizeRelativePath(folder ?? undefined)
+        return normalizeRelativePath(KNOWLEDGE_FILES_PATH, relativeFolder)
     }
 
     getUserStagingPath(userId: string) {
@@ -304,7 +335,11 @@ export class KnowledgeWorkAreaResolver {
     }
 
     private async ensureRelativePaths(volume: VolumeHandle, paths: string[]) {
-        await Promise.all(paths.map((relativePath) => fsPromises.mkdir(volume.path(relativePath), { recursive: true })))
+        await Promise.all(
+            paths.map((relativePath) =>
+                VolumeHandle.ensureDirectory(volume.serverRoot, relativePath, volume.serverRoot)
+            )
+        )
     }
 }
 
@@ -330,7 +365,7 @@ function toRuntimePath(
         relativePath,
         serverPath,
         workspacePath: mapServerPathToWorkspacePath(workspaceBinding, serverPath),
-        publicUrl: volume.publicUrl(relativePath)
+        ...(volume.exposesDirectFileUrls() ? { publicUrl: volume.publicUrl(relativePath) } : {})
     }
 }
 

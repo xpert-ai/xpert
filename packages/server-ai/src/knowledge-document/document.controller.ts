@@ -4,6 +4,7 @@ import {
     IKnowledgeDocument,
     IKnowledgeDocumentChunk,
     IKnowledgeDocumentUpdateInput,
+    IPagination,
     KnowledgeDocumentProcessingMode,
     KnowledgeDocumentAnalysisPage,
     KnowledgeDocumentAnalysisPreview,
@@ -16,7 +17,15 @@ import {
     KBDocumentStatusEnum,
     TRagWebOptions
 } from '@xpert-ai/contracts'
-import { CrudController, IntegrationService, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
+import {
+    CrudController,
+    IntegrationService,
+    PaginationParams,
+    ParseJsonPipe,
+    RequestContext,
+    TransformInterceptor,
+    transformWhere
+} from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
     BadRequestException,
@@ -24,6 +33,7 @@ import {
     ClassSerializerInterceptor,
     Controller,
     Delete,
+    ForbiddenException,
     Get,
     Head,
     InternalServerErrorException,
@@ -45,7 +55,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { Document } from 'langchain/document'
 import { Queue } from 'bull'
-import { In } from 'typeorm'
+import { FindOptionsWhere, In } from 'typeorm'
 import type { Request, Response } from 'express'
 import archiver from 'archiver'
 import { createReadStream } from 'node:fs'
@@ -55,7 +65,7 @@ import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
-import { TVectorSearchParams } from '../knowledgebase'
+import type { TVectorSearchParams } from '../knowledgebase/vector-store'
 import { DocumentChunkDTO } from './dto'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import {
@@ -65,7 +75,7 @@ import {
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { resolveKnowledgeDocumentTransformerIdentity } from './document-hash'
 import { t } from 'i18next'
-import { resolveHttpByteRange } from '../shared'
+import { resolveHttpByteRange } from '../shared/utils/http-byte-range'
 
 function parseExpectedVersion(version: unknown) {
     if (typeof version === 'number' && Number.isInteger(version) && version > 0) {
@@ -91,6 +101,78 @@ function inlineContentDisposition(fileName: string) {
     return `inline; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`
 }
 
+const KNOWLEDGE_DOCUMENT_SAFE_READ_RELATIONS = new Set([
+    'parent',
+    'storageFile',
+    'knowledgebase',
+    'knowledgebase.pipeline'
+])
+
+function knowledgeDocumentAccessDenied() {
+    return new ForbiddenException(
+        t('server-ai:Error.KnowledgebaseAccessDenied', {
+            defaultValue: 'You do not have access to this knowledgebase'
+        })
+    )
+}
+
+function getSafeKnowledgeDocumentReadRelations(relations: unknown): string[] | undefined {
+    if (relations === undefined) {
+        return undefined
+    }
+    if (
+        !Array.isArray(relations) ||
+        relations.some(
+            (relation) => typeof relation !== 'string' || !KNOWLEDGE_DOCUMENT_SAFE_READ_RELATIONS.has(relation)
+        )
+    ) {
+        throw knowledgeDocumentAccessDenied()
+    }
+    return relations
+}
+
+function collectKnowledgebaseIdValues(value: unknown, ids: Set<string>): void {
+    if (typeof value === 'string') {
+        if (value.trim()) {
+            ids.add(value.trim())
+        }
+        return
+    }
+    if (Array.isArray(value)) {
+        value.forEach((item) => collectKnowledgebaseIdValues(item, ids))
+        return
+    }
+    if (!value || typeof value !== 'object') {
+        return
+    }
+    for (const nested of Object.values(value)) {
+        collectKnowledgebaseIdValues(nested, ids)
+    }
+}
+
+function requireKnowledgebaseId(value: unknown): string {
+    if (Array.isArray(value)) {
+        if (!value.length) {
+            throw knowledgeDocumentAccessDenied()
+        }
+        const ids = value.map((branch) => requireKnowledgebaseId(branch))
+        if (ids.some((id) => id !== ids[0])) {
+            throw knowledgeDocumentAccessDenied()
+        }
+        return ids[0]
+    }
+    if (!value || typeof value !== 'object' || !('knowledgebaseId' in value)) {
+        throw knowledgeDocumentAccessDenied()
+    }
+
+    const ids = new Set<string>()
+    collectKnowledgebaseIdValues(value.knowledgebaseId, ids)
+    if (ids.size !== 1) {
+        throw knowledgeDocumentAccessDenied()
+    }
+    return [...ids][0]
+}
+
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
@@ -110,11 +192,105 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         super(service)
     }
 
+    @Get()
+    async findAll(
+        @Query('data', ParseJsonPipe) data?: PaginationParams<KnowledgeDocument>
+    ): Promise<IPagination<KnowledgeDocument>> {
+        return this.findAllAccessible(data)
+    }
+
+    @Get('count')
+    async getCount(@Query('$where', ParseJsonPipe) where?: FindOptionsWhere<KnowledgeDocument>): Promise<number> {
+        return (
+            await this.findAllAccessible({
+                where,
+                take: 1,
+                skip: 0,
+                order: {},
+                withDeleted: false
+            })
+        ).total
+    }
+
+    @Get('pagination')
+    async pagination(
+        @Query('data', ParseJsonPipe) data?: PaginationParams<KnowledgeDocument>
+    ): Promise<IPagination<KnowledgeDocument>> {
+        return this.findAllAccessible(data)
+    }
+
+    @Get('my')
+    async findMyAll(
+        @Query('data', ParseJsonPipe) data?: PaginationParams<KnowledgeDocument>
+    ): Promise<IPagination<KnowledgeDocument>> {
+        return this.findAllAccessible(data)
+    }
+
+    private async findAllAccessible(
+        data?: PaginationParams<KnowledgeDocument>
+    ): Promise<IPagination<KnowledgeDocument>> {
+        const knowledgebaseId = requireKnowledgebaseId(data?.where)
+        await this.service.assertKnowledgebaseReadAccess(knowledgebaseId)
+        return this.service.findAll({
+            ...(data ?? {}),
+            where: transformWhere(data?.where),
+            relations: getSafeKnowledgeDocumentReadRelations(data?.relations)
+        })
+    }
+
+    @Get('status')
+    async getStatus(@Query('ids') _ids: string) {
+        const ids = _ids.split(',').map((id) => id.trim())
+        await this.service.assertDocumentsReadAccess(ids)
+        const { items } = await this.service.findAll({
+            select: ['id', 'status', 'progress', 'processMsg'],
+            where: { id: In(ids) }
+        })
+        return items
+    }
+
+    @Get(':id')
+    async findById(
+        @Param('id') id: string,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<KnowledgeDocument>['relations'],
+        @Query('$select', ParseJsonPipe) select?: PaginationParams<KnowledgeDocument>['select']
+    ): Promise<KnowledgeDocument> {
+        await this.service.assertDocumentReadAccess(id)
+        return this.service.findOneByIdString(id, {
+            select,
+            relations: getSafeKnowledgeDocumentReadRelations(relations)
+        })
+    }
+
+    @Post()
+    async create(@Body() entity: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
+        await this.service.assertKnowledgebaseWriteAccess(requireKnowledgebaseId(entity))
+        await this.service.assertOwnedStorageFiles([entity.storageFileId])
+        await this.service.prepareExternalDocumentInputs([entity])
+        return this.service.create(entity)
+    }
+
+    @Delete(':id/soft')
+    async softRemove(@Param('id') id: string): Promise<KnowledgeDocument> {
+        await this.service.assertDocumentWriteAccess(id)
+        return this.service.softRemove(id)
+    }
+
+    @Put(':id/recover')
+    async softRecover(@Param('id') id: string): Promise<KnowledgeDocument> {
+        await this.service.assertDocumentWriteAccess(id, true)
+        return this.service.softRecover(id, { withDeleted: true })
+    }
+
     @Post('bulk')
     async createBulk(
         @Body() entities: Partial<IKnowledgeDocument>[],
         @Query('process', ParseBoolPipe) process?: boolean
     ) {
+        const knowledgebaseIds = [...new Set(entities.map((entity) => requireKnowledgebaseId(entity)))]
+        await Promise.all(knowledgebaseIds.map((id) => this.service.assertKnowledgebaseWriteAccess(id)))
+        await this.service.assertOwnedStorageFiles(entities.map((entity) => entity.storageFileId))
+        await this.service.prepareExternalDocumentInputs(entities)
         entities.forEach((entity) => {
             entity.status = KBDocumentStatusEnum.WAITING
             entity.progress = 0
@@ -138,6 +314,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         @Body() entities: Partial<IKnowledgeDocument>[],
         @Query('process', ParseBoolPipe) process?: boolean
     ) {
+        await this.service.assertDocumentsWriteAccess(entities.map((entity) => entity.id))
+        await this.service.assertOwnedStorageFiles(entities.map((entity) => entity.storageFileId))
+        await this.service.prepareExternalDocumentInputs(entities, { resolveDocumentIds: true })
         if (process) {
             entities.forEach((entity) => {
                 entity.status = KBDocumentStatusEnum.WAITING
@@ -153,7 +332,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Delete('bulk')
     async deleteBulk(@Body() body: { documents?: { id?: string; version?: number }[] }) {
-        return await this.service.deleteBulkWithVersion(body.documents ?? [])
+        const documents = body.documents ?? []
+        await this.service.assertDocumentsWriteAccess(documents.map((document) => document.id))
+        return await this.service.deleteBulkWithVersion(documents)
     }
 
     @Post('folder-child-counts')
@@ -161,6 +342,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         if (!body.knowledgebaseId) {
             throw new BadRequestException('knowledgebaseId is required')
         }
+        await this.service.assertKnowledgebaseReadAccess(body.knowledgebaseId)
         return await this.service.getFolderChildCounts({
             knowledgebaseId: body.knowledgebaseId,
             folderIds: body.folderIds ?? []
@@ -175,6 +357,8 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         if (!body.knowledgebaseId) {
             throw new BadRequestException('knowledgebaseId is required')
         }
+        await this.service.assertDocumentWriteAccess(id)
+        await this.service.assertKnowledgebaseWriteAccess(body.knowledgebaseId)
         return await this.service.moveDocument({
             knowledgebaseId: body.knowledgebaseId,
             documentId: id,
@@ -185,21 +369,28 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Put(':id')
     async update(@Param('id') id: string, @Body() entity: IKnowledgeDocumentUpdateInput) {
+        await this.service.assertDocumentWriteAccess(id)
+        await this.service.assertOwnedStorageFiles([entity.storageFileId])
+        entity.id = id
+        await this.service.prepareExternalDocumentInputs([entity], { resolveDocumentIds: true })
         return await this.service.updateWithVersion(id, entity, parseExpectedVersion(entity.version))
     }
 
     @Delete(':id')
     async delete(@Param('id') id: string, @Query('version') version: string) {
+        await this.service.assertDocumentWriteAccess(id)
         return await this.service.deleteWithVersion(id, parseExpectedVersion(version))
     }
 
     @Post('process')
     async start(@Body() body: { ids: string[]; mode?: KnowledgeDocumentProcessingMode }) {
+        await this.service.assertDocumentsWriteAccess(body.ids)
         return await this.service.startProcessing(body.ids, undefined, parseProcessingMode(body.mode))
     }
 
     @Get(':id/reprocess-capabilities')
     async getReprocessCapabilities(@Param('id') id: string): Promise<KnowledgeDocumentReprocessCapabilities> {
+        await this.service.assertDocumentReadAccess(id)
         const document = await this.service.findOne(id)
         const transformer = document.sourceConfig
             ? (document.metadata?.transformSnapshot?.transformer ??
@@ -215,11 +406,13 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Get('preview-file/:id')
     async previewFile(@Param('id') id: string): Promise<Document[]> {
+        await this.service.assertDocumentReadAccess(id)
         return await this.service.previewFile(id)
     }
 
     @Get(':id/original-file/download')
     async downloadOriginalFile(@Param('id') id: string, @Res() res: Response) {
+        await this.service.assertDocumentReadAccess(id)
         const file = await this.service.getOriginalFileDownload(id)
         const encodedFilename = encodeURIComponent(file.fileName)
         res.setHeader('Content-Type', file.mimeType)
@@ -232,6 +425,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Get(':id/analysis-preview')
     async getAnalysisPreview(@Param('id') id: string): Promise<KnowledgeDocumentAnalysisPreview> {
+        await this.service.assertDocumentReadAccess(id)
         return await this.analysisSnapshotService.getPreview(await this.service.findOne(id))
     }
 
@@ -240,16 +434,19 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         @Param('id') id: string,
         @Param('page', ParseIntPipe) page: number
     ): Promise<KnowledgeDocumentAnalysisPage> {
+        await this.service.assertDocumentReadAccess(id)
         return await this.analysisSnapshotService.getPage(await this.service.findOne(id), page)
     }
 
     @Get(':id/analysis-preview/pages/:page/raw')
     async getAnalysisPreviewRawPage(@Param('id') id: string, @Param('page', ParseIntPipe) page: number) {
+        await this.service.assertDocumentReadAccess(id)
         return await this.analysisSnapshotService.getRawPage(await this.service.findOne(id), page)
     }
 
     @Get(':id/analysis-preview/assets/:assetId')
     async getAnalysisPreviewAsset(@Param('id') id: string, @Param('assetId') assetId: string, @Res() res: Response) {
+        await this.service.assertDocumentReadAccess(id)
         const target = await this.analysisSnapshotService.resolveAsset(await this.service.findOne(id), assetId)
         res.setHeader('Content-Type', target.mimeType)
         res.setHeader('Content-Disposition', inlineContentDisposition(target.fileName))
@@ -259,17 +456,20 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
     }
 
     @Get(':id/original-file/preview')
-    previewOriginalFile(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    async previewOriginalFile(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+        await this.service.assertDocumentReadAccess(id)
         return this.streamOriginalFilePreview(id, req, res, false)
     }
 
     @Head(':id/original-file/preview')
-    headOriginalFile(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    async headOriginalFile(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+        await this.service.assertDocumentReadAccess(id)
         return this.streamOriginalFilePreview(id, req, res, true)
     }
 
     @Post('original-files/download')
     async downloadOriginalFiles(@Body('ids') ids: string[], @Res() res: Response) {
+        await this.service.assertDocumentsReadAccess(ids)
         const files = await this.service.getOriginalFileDownloads(ids)
         if (!files.length) {
             throw new BadRequestException('No original files are available for download')
@@ -337,6 +537,15 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
     @Post('estimate')
     async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
         entity.parserConfig ??= {}
+        if (entity.id) {
+            await this.service.assertDocumentReadAccess(entity.id)
+        } else {
+            await this.service.assertKnowledgebaseReadAccess(requireKnowledgebaseId(entity))
+            if (entity.storageFileId) {
+                await this.service.assertOwnedStorageFiles([entity.storageFileId])
+            }
+            await this.service.prepareExternalDocumentInputs([entity])
+        }
         try {
             entity.category ??= isDocumentSheet(entity.type)
                 ? KBDocumentCategoryEnum.Sheet
@@ -384,16 +593,6 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         >(new KnowledgeDocLoadCommand({ doc: document, stage: 'test', mode }))
     }
 
-    @Get('status')
-    async getStatus(@Query('ids') _ids: string) {
-        const ids = _ids.split(',').map((id) => id.trim())
-        const { items } = await this.service.findAll({
-            select: ['id', 'status', 'progress', 'processMsg'],
-            where: { id: In(ids) }
-        })
-        return items
-    }
-
     @Get('web/:type/options')
     async getWebOptions(@Param('type') type: string) {
         return await this.queryBus.execute(new GetRagWebOptionsQuery(type))
@@ -402,14 +601,26 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
     @Post('web/:type/load')
     async loadRagWeb(
         @Param('type') type: string,
-        @Body() body: { webOptions: TRagWebOptions; integration: IIntegration }
+        @Body() body: { webOptions: TRagWebOptions; integration?: Pick<IIntegration, 'id'> }
     ) {
-        if (body.integration) {
-            body.integration = await this.integrationService.findOne(body.integration.id)
+        if (!body.integration?.id) {
+            throw new BadRequestException('integration.id is required')
+        }
+        const integration = await this.integrationService.findOneInOrganizationOrTenant(body.integration.id)
+        if (
+            !integration ||
+            (!integration.organizationId && integration.createdById !== RequestContext.currentUserId())
+        ) {
+            throw knowledgeDocumentAccessDenied()
         }
 
         try {
-            const docs = await this.commandBus.execute(new RagWebLoadCommand(type, body))
+            const docs = await this.commandBus.execute(
+                new RagWebLoadCommand(type, {
+                    webOptions: body.webOptions,
+                    integration
+                })
+            )
             return docs
         } catch (err) {
             throw new InternalServerErrorException(err.message)
@@ -418,6 +629,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Delete(':id/job')
     async stopJob(@Param('id') id: string) {
+        await this.service.assertDocumentWriteAccess(id)
         const knowledgeDocument = await this.service.findOne(id)
         try {
             if (knowledgeDocument.jobId) {
@@ -442,6 +654,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Delete(':id/page/:pageId')
     async deletePage(@Param('id') docId: string, @Param('pageId') id: string) {
+        await this.service.assertDocumentWriteAccess(docId)
         try {
             await this.service.deletePage(docId, id)
         } catch (err) {
@@ -461,6 +674,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
          */
         @Query('data', ParseJsonPipe) params: TVectorSearchParams
     ) {
+        await this.service.assertDocumentReadAccess(id)
         try {
             const result = await this.service.getChunks(id, params)
             return {
@@ -484,6 +698,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
          */
         @Body() entity: IKnowledgeDocumentChunk
     ) {
+        await this.service.assertDocumentWriteAccess(docId)
         try {
             return await this.service.createChunk(docId, entity)
         } catch (err) {
@@ -493,11 +708,13 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Put(':docId/chunk/:id')
     async updateChunk(@Param('docId') docId: string, @Param('id') id: string, @Body() entity: IKnowledgeDocumentChunk) {
+        await this.service.assertDocumentWriteAccess(docId)
         await this.service.updateChunkWithVersion(docId, id, entity)
     }
 
     @Delete(':docId/chunk/:id')
     async deleteChunk(@Param('docId') docId: string, @Param('id') id: string, @Query('version') version: string) {
+        await this.service.assertDocumentWriteAccess(docId)
         await this.service.deleteChunkWithVersion(docId, id, parseExpectedVersion(version))
     }
 }

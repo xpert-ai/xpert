@@ -17,10 +17,16 @@ import {
     MANAGED_QUEUE_SERVICE_TOKEN,
     type ManagedQueueService
 } from '@xpert-ai/plugin-sdk'
-import { SecretTokenBindingType, XpertToolsetCategoryEnum, type IXpertToolset } from '@xpert-ai/contracts'
+import {
+    SecretTokenBindingType,
+    XpertToolsetCategoryEnum,
+    type IXpertToolset,
+    type XpertWorkspaceDataScope
+} from '@xpert-ai/contracts'
 import { createBuiltinToolset, XpertToolsetService } from '../xpert-toolset'
 import { PublishedXpertAccessService } from '../xpert'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { resolveToolRuntimeScope } from '../tool-runtime/workspace-scope'
 
 const COMPLETED_STATUSES = new Set(['completed', 'done', 'succeeded', 'success'])
 const FAILED_STATUSES = new Set(['failed', 'error', 'cancelled', 'canceled', 'expired'])
@@ -81,6 +87,7 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
             generator.toolset,
             input.xpertId,
             input.projectId,
+            generator.workspaceDataScope,
             submission.toolName,
             toolInput
         )
@@ -103,6 +110,7 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
             generator.toolset,
             input.xpertId,
             input.projectId,
+            generator.workspaceDataScope,
             generator.capability.tools.query,
             { task_id: providerTaskId, wait_seconds: 0, download_video: toolBoolean(true) }
         )
@@ -133,9 +141,16 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
                 status: 'tracking_stopped'
             }
         }
-        const result = await this.invokeTool(generator.toolset, input.xpertId, null, toolName, {
-            task_id: input.providerTaskId
-        })
+        const result = await this.invokeTool(
+            generator.toolset,
+            input.xpertId,
+            null,
+            generator.workspaceDataScope,
+            toolName,
+            {
+                task_id: input.providerTaskId
+            }
+        )
         const data = readArtifactData(result)
         const status = (readString(data, 'status') || 'cancelled').toLowerCase()
         return {
@@ -203,7 +218,7 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
                 supportsAudio: capability.supportsAudio,
                 supportsCancel: Boolean(capability.tools.cancel)
             }
-            return [{ toolset, capability, summary }]
+            return [{ toolset, capability, summary, workspaceDataScope: xpert.workspaceDataScope }]
         })
     }
 
@@ -219,20 +234,25 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
         toolset: IXpertToolset,
         xpertId: string,
         projectId: string | null | undefined,
+        workspaceDataScope: XpertWorkspaceDataScope | null | undefined,
         toolName: string,
         input: Record<string, unknown>
     ): Promise<unknown> {
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const userId = RequestContext.currentUserId()
-        const scopedModelRuntime = this.modelRuntime.createScopedApi({
-            tenantId,
-            organizationId,
-            userId,
-            workspaceId: toolset.workspaceId,
-            projectId,
-            xpertId
-        })
+        const runtimeScope = resolveToolRuntimeScope(
+            {
+                tenantId,
+                organizationId,
+                userId,
+                workspaceId: toolset.workspaceId,
+                projectId,
+                xpertId
+            },
+            workspaceDataScope
+        )
+        const scopedModelRuntime = this.modelRuntime.createScopedApi(runtimeScope)
         const controller = await createBuiltinToolset(toolset.type, toolset, {
             tenantId,
             organizationId,
@@ -246,7 +266,9 @@ export class VideoGenerationService implements VideoGenerationPermissionService 
             modelRuntime: {
                 createModelClient: scopedModelRuntime.createModelClient,
                 getModelProvider: scopedModelRuntime.getModelProvider
-            }
+            },
+            runtimeCapabilities: scopedModelRuntime.capabilities,
+            runtimeScope
         })
         try {
             await controller.initTools()

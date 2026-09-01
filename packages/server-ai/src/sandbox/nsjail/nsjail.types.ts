@@ -1,15 +1,27 @@
 import type { ExecuteResponse, FileOperationError } from '@xpert-ai/plugin-sdk'
 import type { TSandboxManagedServiceStatus, TSandboxManagedServiceTransportMode } from '@xpert-ai/contracts'
 
+export const NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION = 2
+
 export type NsjailRunnerConfig = {
     baseUrl: string
     token: string
+}
+
+export type NsjailRunnerHealth = {
+    available: boolean
+    protocolVersion: number | null
+    capabilities: {
+        projectContentReadOnly: boolean
+    }
 }
 
 export type NsjailRuntimeCreateRequest = {
     runtimeId: string
     workingDirectory: string
     workspacePath: string
+    /** Fixed Project Content paths are over-mounted read-only by the Runner. */
+    protectProjectContent?: true
 }
 
 export type NsjailExecutionRequest = {

@@ -2,7 +2,9 @@ import { environment as env, getConfig, setConfig } from '@xpert-ai/server-confi
 import {
   API_PRINCIPAL_USER_ID_HEADER,
   MCP_HTTP_CORS_EXPOSED_HEADERS,
-  MCP_HTTP_CORS_REQUEST_HEADERS
+  MCP_HTTP_CORS_REQUEST_HEADERS,
+  XPERT_VIEW_CONVERSATION_ID_HEADER,
+  XPERT_VIEW_PROJECT_ID_HEADER
 } from '@xpert-ai/contracts'
 import { initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
 import {
@@ -116,7 +118,7 @@ export async function bootstrap(options: { title: string; version: string }) {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders:
       `Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}, ` +
-      `${headersForOpenAI}, ${MCP_HTTP_CORS_REQUEST_HEADERS.join(', ')}`,
+      `${XPERT_VIEW_PROJECT_ID_HEADER}, ${XPERT_VIEW_CONVERSATION_ID_HEADER}, ${headersForOpenAI}, ${MCP_HTTP_CORS_REQUEST_HEADERS.join(', ')}`,
     exposedHeaders: MCP_HTTP_CORS_EXPOSED_HEADERS.join(', ')
   })
 

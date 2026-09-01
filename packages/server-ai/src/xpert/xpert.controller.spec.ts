@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AiModelTypeEnum, LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
@@ -21,7 +21,8 @@ import type { XpertTemplateWorkspaceInitializer } from './template-workspace-ini
 import type { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import type { XpertDraftDslDTO } from './dto'
 import { FindCopilotModelsQuery } from '../copilot/queries'
-import { XpertImportCommand, XpertSyncTemplateCommand } from './commands'
+import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
+import { XpertExportCommand, XpertImportCommand, XpertSyncTemplateCommand } from './commands'
 
 jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
@@ -71,6 +72,10 @@ jest.mock('./auth/anonymous-auth.guard', () => ({
 
 jest.mock('./guards/xpert.guard', () => ({
     XpertGuard: class {}
+}))
+
+jest.mock('./guards/xpert-workspace-auth.guard', () => ({
+    XpertWorkspaceAuthGuard: class {}
 }))
 
 jest.mock('../xpert-workspace/', () => ({
@@ -133,16 +138,30 @@ jest.mock('./dto', () => ({
 }))
 
 jest.mock('../chat-conversation', () => ({
-    ChatConversationDeleteCommand: class {},
+    ChatConversationDeleteCommand: class {
+        constructor(public readonly where: unknown) {}
+    },
     ChatConversationLogsQuery: class {
         constructor(
             public readonly options: unknown,
             public readonly search?: string
         ) {}
     },
-    ChatConversationUpsertCommand: class {},
-    FindChatConversationQuery: class {},
-    GetChatConversationQuery: class {},
+    ChatConversationUpsertCommand: class {
+        constructor(public readonly entity: unknown) {}
+    },
+    FindChatConversationQuery: class {
+        constructor(
+            public readonly where: unknown,
+            public readonly options?: unknown
+        ) {}
+    },
+    GetChatConversationQuery: class {
+        constructor(
+            public readonly where: unknown,
+            public readonly relations?: unknown
+        ) {}
+    },
     StatisticsAverageSessionInteractionsQuery: class {},
     StatisticsDailyConvQuery: class {},
     StatisticsDailyEndUsersQuery: class {},
@@ -182,6 +201,7 @@ describe('XpertController', () => {
         findBySlug: jest.Mock
         findOne: jest.Mock
         publish: jest.Mock
+        assertCanAuthorById: jest.Mock
         updateXpert: jest.Mock
     }
     let environmentService: {
@@ -208,12 +228,16 @@ describe('XpertController', () => {
     let queryBus: {
         execute: jest.Mock
     }
+    let publishedXpertAccessService: {
+        getAccessiblePublishedXpertFamilyIds: jest.Mock
+    }
     beforeEach(() => {
         xpertService = {
             findByPrincipalUserId: jest.fn(),
             findBySlug: jest.fn(),
             findOne: jest.fn(),
             publish: jest.fn(),
+            assertCanAuthorById: jest.fn(),
             updateXpert: jest.fn()
         }
         environmentService = {
@@ -249,6 +273,9 @@ describe('XpertController', () => {
         queryBus = {
             execute: jest.fn()
         }
+        publishedXpertAccessService = {
+            getAccessiblePublishedXpertFamilyIds: jest.fn()
+        }
         jest.mocked(transformWhere).mockImplementation((where: unknown) => where)
 
         controller = new XpertController(
@@ -267,6 +294,7 @@ describe('XpertController', () => {
             templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
             {} as unknown as XpertWorkspaceFilesService,
             {} as unknown as CopilotUsageService,
+            publishedXpertAccessService as never,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )
@@ -303,6 +331,14 @@ describe('XpertController', () => {
         xpertService.findByPrincipalUserId.mockResolvedValue(null)
 
         await expect(controller.getByPrincipalUser('technical-user')).resolves.toBeNull()
+    })
+
+    it('does not expose execution history before authorizing the xpert', async () => {
+        xpertService.assertCanAuthorById.mockRejectedValue(new ForbiddenException('Access denied'))
+
+        await expect(controller.getExecutions('victim-xpert')).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(FindExecutionsByXpertQuery))
     })
 
     it('forwards a valid business area when publishing an xpert', async () => {
@@ -421,6 +457,60 @@ describe('XpertController', () => {
             )
         ).resolves.toEqual(xpert)
         expect(templateWorkspaceInitializer.initializeByTemplateId).not.toHaveBeenCalled()
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('shared')
+    })
+
+    it('passes an explicit user workspace data scope to DSL creation', async () => {
+        commandBus.execute.mockResolvedValue({ id: 'xpert-1' })
+
+        await controller.importDSL(
+            { team: { name: 'private-assistant' } } as XpertDraftDslDTO,
+            undefined,
+            LanguagesEnum.English,
+            'user'
+        )
+
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('user')
+    })
+
+    it('rejects an unsupported workspace data scope before importing', async () => {
+        await expect(
+            controller.importDSL(
+                { team: { name: 'invalid-assistant' } } as XpertDraftDslDTO,
+                undefined,
+                LanguagesEnum.English,
+                'tenant' as 'shared'
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('inherits the source workspace data scope when duplicating without an override', async () => {
+        xpertService.findOne.mockResolvedValue({ id: 'xpert-1', workspaceDataScope: 'user' })
+        commandBus.execute.mockResolvedValueOnce({ team: { name: 'source' }, nodes: [], connections: [] })
+        commandBus.execute.mockResolvedValueOnce({ id: 'copy-1' })
+
+        await controller.duplicate('xpert-1', { basic: { name: 'copy' }, isDraft: true })
+
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(XpertExportCommand)
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('user')
+    })
+
+    it('uses the pre-creation workspace data scope override when duplicating', async () => {
+        xpertService.findOne.mockResolvedValue({ id: 'xpert-1', workspaceDataScope: 'shared' })
+        commandBus.execute.mockResolvedValueOnce({ team: { name: 'source' }, nodes: [], connections: [] })
+        commandBus.execute.mockResolvedValueOnce({ id: 'copy-1' })
+
+        await controller.duplicate('xpert-1', {
+            basic: { name: 'copy', workspaceDataScope: 'user' },
+            isDraft: true
+        })
+
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
+        expect(importCommand.options.workspaceDataScope).toBe('user')
     })
 
     it('forwards update-from-template to the sync command without publishing', async () => {
@@ -486,25 +576,6 @@ describe('XpertController', () => {
             }
         })
         expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
-    })
-
-    it('rejects unknown enterprise H5 platform keys in Chat App settings', async () => {
-        xpertService.findOne.mockResolvedValue({
-            id: 'xpert-1',
-            app: { enabled: true }
-        })
-
-        await expect(
-            controller.updateChatApp('xpert-1', {
-                channels: {
-                    unknown: {
-                        enabled: true,
-                        integrationId: 'integration-1'
-                    }
-                }
-            } as never)
-        ).rejects.toThrow(BadRequestException)
-        expect(xpertService.updateXpert).not.toHaveBeenCalled()
     })
 
     it('initializes the xpert principal user on demand', async () => {
@@ -582,6 +653,107 @@ describe('XpertController', () => {
         )
         expect(query.options.where.createdAt).toBeDefined()
     })
+
+    it.each(['attachments', 'messages.attachments', 'messages.fileAssets'])(
+        'rejects managed file relation expansion from Xpert conversation logs: %s',
+        async (relation) => {
+            await expect(
+                controller.getConversations(
+                    'xpert-1',
+                    {
+                        relations: [relation],
+                        take: 20,
+                        skip: 0,
+                        order: {},
+                        where: {},
+                        withDeleted: false
+                    },
+                    '2026-06-01T00:00:00.000Z',
+                    '2026-06-12T00:00:00.000Z'
+                )
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(queryBus.execute).not.toHaveBeenCalled()
+        }
+    )
+
+    it('scopes public conversation lookup to every published version in the assistant family', async () => {
+        xpertService.findBySlug.mockResolvedValue({ id: 'xpert-current' })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue([
+            'xpert-current',
+            'xpert-previous'
+        ])
+        queryBus.execute.mockResolvedValue({ id: 'conversation-1', xpertId: 'xpert-previous' })
+
+        await controller.getAppConversation('assistant', 'conversation-1')
+
+        expect(publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds).toHaveBeenCalledWith('xpert-current')
+        const query = queryBus.execute.mock.calls[0][0] as {
+            where: { id: string; xpertId: { _value: string[] } }
+        }
+        expect(query.where.id).toBe('conversation-1')
+        expect(query.where.xpertId._value).toEqual(['xpert-current', 'xpert-previous'])
+    })
+
+    it('keeps the route conversation id authoritative on public updates', async () => {
+        xpertService.findBySlug.mockResolvedValue({ id: 'xpert-current' })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue(['xpert-current'])
+        queryBus.execute.mockResolvedValue({ id: 'conversation-route' })
+
+        await controller.updateAppConversation('assistant', 'conversation-route', {
+            id: 'conversation-victim',
+            title: 'Renamed',
+            xpertId: 'xpert-victim',
+            createdById: 'user-victim'
+        })
+
+        const command = commandBus.execute.mock.calls[0][0] as { entity: Record<string, unknown> }
+        expect(command.entity).toEqual({ id: 'conversation-route', title: 'Renamed' })
+    })
+
+    it('does not update a public conversation outside the assistant family', async () => {
+        xpertService.findBySlug.mockResolvedValue({ id: 'xpert-current' })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue(['xpert-current'])
+        queryBus.execute.mockRejectedValue(new NotFoundException())
+
+        await expect(
+            controller.updateAppConversation('assistant', 'conversation-from-another-family', {
+                title: 'Renamed'
+            })
+        ).rejects.toBeInstanceOf(NotFoundException)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it.each(['attachments', 'messages.attachments', 'messages.fileAssets'])(
+        'rejects managed file relation expansion from the public conversation detail route: %s',
+        async (relation) => {
+            await expect(
+                controller.getAppConversation('assistant', 'conversation-1', [relation])
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(queryBus.execute).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['attachments', 'messages.attachments', 'messages.fileAssets'])(
+        'rejects managed file relation expansion from the public conversation list route: %s',
+        async (relation) => {
+            await expect(
+                controller.getAppConversations('assistant', {
+                    relations: [relation],
+                    take: 20,
+                    skip: 0,
+                    order: {},
+                    where: {},
+                    withDeleted: false
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(xpertService.findBySlug).not.toHaveBeenCalled()
+            expect(queryBus.execute).not.toHaveBeenCalled()
+        }
+    )
 
     it('enriches public chat-app requests with resolved xpert context before enqueueing', async () => {
         const request: TChatRequest = {

@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs'
-import { TXpertTemplateSource } from '@xpert-ai/contracts'
+import { TXpertTemplateSource, XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { XpertDraftDslDTO } from '../dto'
 
 export type XpertImportCommandOptions = {
@@ -15,6 +15,8 @@ export type XpertImportCommandOptions = {
     templateId?: string
     sourceTemplateId?: string
     templateSource?: TXpertTemplateSource
+    /** Local workspace ownership selected by the creation entrypoint; never read from DSL. */
+    workspaceDataScope?: XpertWorkspaceDataScope
 }
 
 export class XpertImportCommand implements ICommand {

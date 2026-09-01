@@ -39,7 +39,7 @@ export function getXpertAgent(xpert: IXpert, keyOrName: string, options: { isDra
             collaborators: collaborators.filter(nonNullable).map((node) => node.entity),
             team: {
                 ...draft.team,
-                ...pick(xpert, 'id', 'tenantId', 'organizationId', 'workspaceId')
+                ...pick(xpert, 'id', 'tenantId', 'organizationId', 'workspaceId', 'workspaceDataScope')
             }
         } as IXpertAgent
     } else {

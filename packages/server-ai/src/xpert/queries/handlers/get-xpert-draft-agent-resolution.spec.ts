@@ -41,6 +41,8 @@ describe('draft agent resolution', () => {
             id: 'xpert-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            workspaceDataScope: 'user',
             graph: {
                 nodes: [],
                 connections: []
@@ -88,6 +90,26 @@ describe('draft agent resolution', () => {
         )
     })
 
+    it('loads an agent through runtime workspace access', async () => {
+        const xpert = createXpert(createDraft())
+        const service = {
+            findOne: jest.fn().mockRejectedValue(new Error('authoring access path must not be used')),
+            findOneForRuntime: jest.fn().mockResolvedValue(xpert)
+        } as Partial<XpertService> as XpertService
+        const handler = new GetXpertAgentHandler(service, createQueryBus())
+
+        const agent = await handler.execute(new GetXpertAgentQuery('xpert-1', 'Agent_Primary', true))
+
+        expect(agent?.key).toBe('Agent_Primary')
+        expect(service.findOneForRuntime).toHaveBeenCalledWith(
+            'xpert-1',
+            expect.objectContaining({
+                relations: expect.arrayContaining(['agent', 'toolsets', 'executors'])
+            })
+        )
+        expect(service.findOne).not.toHaveBeenCalled()
+    })
+
     it('uses hidden primary fallback when querying that primary agent directly', async () => {
         const xpert = createXpert(createDraft())
         const service = createXpertService(xpert)
@@ -96,5 +118,41 @@ describe('draft agent resolution', () => {
         const agent = await handler.execute(new GetXpertAgentQuery('xpert-1', 'Agent_Primary', true))
 
         expect(agent?.key).toBe('Agent_Primary')
+    })
+
+    it('keeps the persisted workspace data policy on a draft agent result', async () => {
+        const draft = createDraft()
+        draft.team.workspaceDataScope = 'shared'
+        const service = createXpertService(createXpert(draft))
+        const handler = new GetXpertAgentHandler(service, createQueryBus())
+
+        const agent = await handler.execute(new GetXpertAgentQuery('xpert-1', 'Agent_Primary', true))
+
+        expect(agent?.team).toEqual(
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                workspaceDataScope: 'user'
+            })
+        )
+    })
+
+    it('keeps the persisted workspace data policy on a draft workflow result', async () => {
+        const draft = createDraft()
+        draft.team.workspaceDataScope = 'shared'
+        const service = createXpertService(createXpert(draft))
+        const handler = new GetXpertWorkflowHandler(
+            service,
+            { translate: jest.fn() } as Partial<I18nService> as I18nService,
+            createQueryBus()
+        )
+
+        const result = await handler.execute(new GetXpertWorkflowQuery('xpert-1', 'Agent_Primary', true))
+
+        expect(result.agent?.team).toEqual(
+            expect.objectContaining({
+                workspaceId: 'workspace-1',
+                workspaceDataScope: 'user'
+            })
+        )
     })
 })

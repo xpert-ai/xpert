@@ -40,7 +40,7 @@ import {
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { In, Not } from 'typeorm'
+import { FindOptionsWhere, In, Not } from 'typeorm'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { StatisticsKnowledgebasesQuery } from './queries'
@@ -52,7 +52,7 @@ import { buildLogicalFolderPath, KnowledgeDocumentService } from '../knowledge-d
 import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
-import { KnowledgeWorkAreaResolver } from '../shared'
+import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 
 @ApiTags('Knowledgebase')
 @ApiBearerAuth()
@@ -89,20 +89,44 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     async findAll(
         @Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>
     ): Promise<IPagination<Knowledgebase>> {
-        const { where, ...rest } = data ?? {}
+        return this.findAllAccessible(data)
+    }
+
+    @ApiOperation({ summary: 'Get total accessible record count' })
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
+    @Get('count')
+    async getCount(@Query('$where', ParseJsonPipe) where?: FindOptionsWhere<Knowledgebase>): Promise<number> {
+        return (await this.findAllAccessible({ where, take: 1, skip: 0, order: {}, withDeleted: false })).total
+    }
+
+    @ApiOperation({ summary: 'Find accessible records using pagination' })
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
+    @Get('pagination')
+    async pagination(
+        @Query('data', ParseJsonPipe) data?: PaginationParams<Knowledgebase>
+    ): Promise<IPagination<Knowledgebase>> {
+        return this.findAllAccessible(data)
+    }
+
+    private findAllAccessible(data?: PaginationParams<Knowledgebase>): Promise<IPagination<Knowledgebase>> {
+        const { where, relations, ...rest } = data ?? {}
+        const requestedWhere = Array.isArray(where) && where.length ? where : [where ?? {}]
         return this.service.findAll({
             ...rest,
-            where: [
+            relations: this.service.getSafeReadRelations(relations),
+            where: requestedWhere.flatMap((condition) => [
                 {
-                    ...(where ?? {}),
+                    ...condition,
                     createdById: RequestContext.currentUserId()
                 },
                 {
-                    ...(where ?? {}),
+                    ...condition,
                     createdById: Not(RequestContext.currentUserId()),
                     permission: In([KnowledgebasePermission.Organization])
                 }
-            ]
+            ])
         })
     }
 
@@ -113,7 +137,15 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         @Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>,
         @Query('published') published?: boolean
     ) {
-        const result = await this.service.getAllByWorkspace(workspaceId, data, published, RequestContext.currentUser())
+        const result = await this.service.getAllByWorkspace(
+            workspaceId,
+            {
+                ...data,
+                relations: this.service.getSafeReadRelations(data.relations)
+            },
+            published,
+            RequestContext.currentUser()
+        )
         return {
             ...result,
             items: result.items.map((item) => new KnowledgebasePublicDTO(item))
@@ -129,9 +161,10 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     async findAllByMe(
         @Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>
     ): Promise<IPagination<Knowledgebase>> {
-        const { where, ...rest } = data ?? {}
+        const { where, relations, ...rest } = data ?? {}
         return this.service.findAll({
             ...rest,
+            relations: this.service.getSafeReadRelations(relations),
             where: {
                 ...(where ?? {}),
                 createdById: RequestContext.currentUserId()
@@ -148,9 +181,10 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     async findAllByPublic(
         @Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>
     ): Promise<IPagination<Knowledgebase>> {
-        const { where, ...rest } = data ?? {}
+        const { where, relations, ...rest } = data ?? {}
         return this.service.findAll({
             ...rest,
+            relations: this.service.getSafeReadRelations(relations),
             where: {
                 ...(where ?? {}),
                 permission: In([KnowledgebasePermission.Organization, KnowledgebasePermission.Public]),
@@ -167,6 +201,18 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     @Get('detail/:id')
     async findOneDetail(@Param('id', UUIDValidationPipe) id: string): Promise<KnowledgebaseDetailDTO> {
         return this.service.findOneDetail(id)
+    }
+
+    @Get(':id')
+    async findById(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<Knowledgebase>['relations'],
+        @Query('$select', ParseJsonPipe) select?: PaginationParams<Knowledgebase>['select']
+    ): Promise<Knowledgebase> {
+        return this.service.findOneByIdString(id, {
+            select,
+            relations: this.service.getSafeReadRelations(relations)
+        })
     }
 
     @Get('text-splitter/strategies')
@@ -240,6 +286,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
      * @returns
      */
     @Post(':id/task')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
     async createTask(@Param('id') id: string, @Body() body: Partial<IKnowledgebaseTask>) {
         return this.service.createTask(id, body)
     }
@@ -254,6 +302,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     }
 
     @Post(':id/task/:taskId/process')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
     async processTask(
         @Param('id') id: string,
         @Param('taskId') taskId: string,
@@ -273,6 +323,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
      * @param parentId The document ID of the parent folder.
      */
     @Post(':id/file')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(
         @Param('id') id: string,
@@ -280,10 +332,11 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         @Body('path') subpath: string,
         @UploadedFile() file: Express.Multer.File
     ) {
+        await this.service.assertKnowledgebaseTaskWriteAccess(id)
         await this.service.assertNotRebuilding(id)
         let parentFolder = ''
         if (parentId) {
-            const parents = await this.documentService.findAncestors(parentId)
+            const parents = await this.service.resolveKnowledgebaseFolderAncestors(id, parentId)
             parentFolder = buildLogicalFolderPath(parents)
         }
 
@@ -362,7 +415,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         @Query('data', ParseJsonPipe) params: PaginationParams<KnowledgeRetrievalLog>
     ) {
         // Resolve through the scoped knowledgebase service before exposing its audit trail.
-        await this.service.findOne(id)
+        await this.service.findOneByIdString(id)
         return this.retrievalLogService.findAll({
             ...(params ?? {}),
             where: {

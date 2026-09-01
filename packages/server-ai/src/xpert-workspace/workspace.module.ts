@@ -1,4 +1,4 @@
-import { TenantModule, UserOrganizationModule } from '@xpert-ai/server-core'
+import { TenantModule, User, UserOrganization, UserOrganizationModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -10,15 +10,15 @@ import { XpertWorkspaceService } from './workspace.service'
 import { QueryHandlers } from './queries/handlers'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-workspace', module: XpertWorkspaceModule }]),
-		TypeOrmModule.forFeature([XpertWorkspace]),
-		TenantModule,
-		UserOrganizationModule,
-		CqrsModule,
-	],
-	controllers: [XpertWorkspaceController],
-	providers: [XpertWorkspaceService, XpertWorkspaceAccessService, ...QueryHandlers],
-	exports: [XpertWorkspaceService, XpertWorkspaceAccessService]
+    imports: [
+        RouterModule.register([{ path: '/xpert-workspace', module: XpertWorkspaceModule }]),
+        TypeOrmModule.forFeature([XpertWorkspace, User, UserOrganization]),
+        TenantModule,
+        UserOrganizationModule,
+        CqrsModule
+    ],
+    controllers: [XpertWorkspaceController],
+    providers: [XpertWorkspaceService, XpertWorkspaceAccessService, ...QueryHandlers],
+    exports: [XpertWorkspaceService, XpertWorkspaceAccessService]
 })
 export class XpertWorkspaceModule {}

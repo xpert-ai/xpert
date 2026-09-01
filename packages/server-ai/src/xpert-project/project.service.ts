@@ -1,16 +1,17 @@
 import {
     AIPermissionsEnum,
     IKnowledgebase,
-    IStorageFile,
     IUser,
     IXpertProject,
+    IXpertProjectCreateInput,
     IXpertProjectTaskConversation,
     IXpertProjectTaskExecution,
     IXpertProjectTask,
     IXpertProjectVCS,
     IXpertToolset,
     IXpert,
-    OrderTypeEnum
+    OrderTypeEnum,
+    ScheduleTaskStatus
 } from '@xpert-ai/contracts'
 import type { ProjectEnsureInput, ProjectEnsureResult } from '@xpert-ai/plugin-sdk'
 import {
@@ -27,9 +28,8 @@ import { BadRequestException, ForbiddenException, Injectable, Logger } from '@ne
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
-import { assign, omit } from 'lodash'
-import { Brackets, DeepPartial, IsNull, Repository } from 'typeorm'
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import { omit } from 'lodash'
+import { Brackets, DeepPartial, In, IsNull, Repository } from 'typeorm'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
@@ -41,14 +41,20 @@ import { XpertProjectPlan } from './entities/project-plan.entity'
 import { XpertProjectMilestone } from './entities/project-milestone.entity'
 import { XpertProjectAsset } from './entities/project-asset.entity'
 import { XpertProjectAutomation } from './entities/project-automation.entity'
+import { XpertProjectMembership } from './entities/project-membership.entity'
 import { XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
 import { ExportProjectCommand } from './commands'
-import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
-import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
-import { ChatConversation } from '../chat-conversation/conversation.entity'
-import { XpertProjectTaskExecution } from './entities/project-task-execution.entity'
+import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
+import { XpertProjectAccessService } from './services/project-access.service'
+import { XpertProjectContentService } from './services/project-content.service'
+import { XpertTask } from '../xpert-task/xpert-task.entity'
+import { t } from 'i18next'
+import { ProjectUpdateInputDTO } from './dto'
+import { ConnectorService } from '../connector/connector.service'
+import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
+import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -60,19 +66,56 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly taskService: XpertProjectTaskService,
-        private readonly workspaceAccessService: XpertWorkspaceAccessService,
-        private readonly workspaceService: XpertWorkspaceService
+        private readonly accessService: XpertProjectAccessService,
+        private readonly contentService: XpertProjectContentService,
+        private readonly publishedXpertAccess: PublishedXpertAccessService,
+        private readonly connectorService: ConnectorService,
+        private readonly xpertBindingService: XpertProjectXpertBindingService
     ) {
         super(repository)
     }
 
-    /**
-     * New Projects always receive an authoring Workspace. Legacy Projects may
-     * still have a null workspaceId until they are explicitly repaired.
-     */
+    /** Create from the ordinary authenticated API without accepting persisted identity fields. */
+    async createProject(input: IXpertProjectCreateInput) {
+        return this.create({
+            name: input.name,
+            avatar: input.avatar,
+            description: input.description,
+            status: input.status ?? 'active',
+            settings: input.settings,
+            copilotModelId: input.copilotModelId,
+            vcsId: input.vcsId
+        })
+    }
+
     public async create(entity: DeepPartial<XpertProject>, ...options: unknown[]): Promise<XpertProject> {
-        const workspace = await this.resolveAuthoringWorkspace(entity.workspaceId as string | undefined)
-        return super.create({ ...entity, workspaceId: workspace.id }, ...options)
+        const settings = entity.settings as IXpertProject['settings'] | undefined
+        const project = await super.create(
+            {
+                ...omit(entity, [
+                    'workspace',
+                    'workspaceId',
+                    'xperts',
+                    'members',
+                    'memberships',
+                    'toolsets',
+                    'knowledges'
+                ]),
+                ...(settings
+                    ? {
+                          settings: {
+                              instruction: settings.instruction ?? '',
+                              mode: settings.mode,
+                              managementMode: settings.managementMode
+                          }
+                      }
+                    : {}),
+                ownerId: RequestContext.currentUserId()
+            },
+            ...options
+        )
+        await this.contentService.initialize(project)
+        return project
     }
 
     /**
@@ -81,18 +124,23 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      */
     async ensureManagedProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
         const projectId = requiredProjectText(input.projectId, 'projectId', 100)
-        const workspaceId = requiredProjectText(input.workspaceId, 'workspaceId', 100)
         const xpertId = requiredProjectText(input.xpertId, 'xpertId', 100)
         const name = requiredProjectText(input.name, 'name', 240)
         const user = RequestContext.currentUser()
         if (!user?.id || !user.tenantId) {
-            throw new ForbiddenException('An authenticated user is required')
+            throw new ForbiddenException(
+                t('server-ai:Error.AuthenticatedUserRequired', { defaultValue: 'An authenticated user is required' })
+            )
         }
 
         const organizationId = RequestContext.getOrganizationId()
-        const xpert: IXpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
-        if (xpert.workspaceId !== workspaceId) {
-            throw new BadRequestException('The Assistant does not belong to the requested workspace')
+        const xpert = await this.resolveAccessibleCurrentXpert(xpertId)
+        if ((xpert.organizationId ?? null) !== (organizationId ?? null)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectXpertOrganizationMismatch', {
+                    defaultValue: 'The Xpert must belong to the Project Organization'
+                })
+            )
         }
 
         // Tenant and organization participate in lookup so retries cannot adopt
@@ -107,29 +155,29 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         })
         const operation = project ? 'updated' : 'created'
         if (project && project.ownerId !== user.id) {
-            throw new ForbiddenException('Only the Project owner can synchronize this Project')
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectOwnerSyncRequired', {
+                    defaultValue: 'Only the Project owner can synchronize this Project'
+                })
+            )
         }
-        if (project && project.workspaceId !== workspaceId) {
-            await this.assertWorkspaceCanBeBound(project, workspaceId)
-        }
-
         if (!project) {
             project = await this.create({
                 id: projectId,
                 name,
                 status: input.status,
-                workspaceId,
-                ownerId: user.id,
-                xperts: [xpert]
+                ownerId: user.id
             })
+            project.xperts = [xpert]
+            project = await this.repository.save(project)
         } else {
             // Bid/business state is authoritative while existing Assistant
             // connections are preserved and de-duplicated.
             project.name = name
             project.status = input.status
-            project.workspaceId = workspaceId
             project.xperts ??= []
-            if (!project.xperts.some((item) => item.id === xpertId)) {
+            await this.xpertBindingService.normalize(project)
+            if (!this.xpertBindingService.contains(project, xpert)) {
                 project.xperts.push(xpert)
             }
             project = await this.repository.save(project)
@@ -137,105 +185,89 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
         return {
             projectId: project.id,
-            workspaceId,
-            xpertIds: project.xperts?.map((item) => item.id) ?? [xpertId],
+            // Compatibility only: provisioning clients still carry a Workspace id,
+            // but Project persistence and runtime no longer use it.
+            workspaceId: input.workspaceId,
+            xpertIds: project.xperts?.map((item) => item.id) ?? [xpert.id],
             operation
         }
     }
 
     /** Require active Project membership and an explicit Assistant connection. */
     async assertRuntimeAccess(projectId: string, xpertId: string): Promise<XpertProject> {
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        const userId = RequestContext.currentUserId()
-        const project = await this.repository
-            .createQueryBuilder('project')
-            .leftJoinAndSelect('project.xperts', 'xpert')
-            .leftJoin('project.members', 'member')
-            .where('project.id = :projectId', { projectId })
-            .andWhere('project.tenantId = :tenantId', { tenantId })
-            .andWhere(organizationId ? 'project.organizationId = :organizationId' : 'project.organizationId IS NULL', {
-                organizationId
-            })
-            .andWhere('(project.ownerId = :userId OR project.createdById = :userId OR member.id = :userId)', { userId })
-            .andWhere('xpert.id = :xpertId', { xpertId })
-            .andWhere('project.workspaceId = xpert.workspaceId')
-            .andWhere('project.workspaceId IS NOT NULL')
-            .andWhere("project.status <> 'archived'")
-            .getOne()
-        if (!project) {
-            throw new ForbiddenException('The requested Project is not available')
-        }
-        await this.workspaceAccessService.assertCanRun(project.workspaceId)
+        const { project } = await this.accessService.assertCanUseXpert(projectId, xpertId)
+        await this.publishedXpertAccess.getAccessiblePublishedXpert(xpertId)
         return project
     }
 
     async assertProjectAccess(projectId: string): Promise<XpertProject> {
-        const userId = RequestContext.currentUserId()
-        const project = await this.repository
-            .createQueryBuilder('project')
-            .leftJoinAndSelect('project.members', 'member')
-            .where('project.id = :projectId', { projectId })
-            .andWhere('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
-            .andWhere(
-                RequestContext.getOrganizationId()
-                    ? 'project.organizationId = :organizationId'
-                    : 'project.organizationId IS NULL',
-                {
-                    organizationId: RequestContext.getOrganizationId()
-                }
-            )
-            .andWhere('(project.ownerId = :userId OR project.createdById = :userId OR member.id = :userId)', { userId })
-            .getOne()
-        if (!project) throw new ForbiddenException('The requested Project is not available')
-        return project
+        return (await this.accessService.assertCanRead(projectId)).project
     }
 
     async assertToolPermission(projectId: string, operation: 'view' | 'edit') {
-        const project = await this.assertProjectAccess(projectId)
-        const userId = RequestContext.currentUserId()
-        const isOwner = project.ownerId === userId || project.createdById === userId
-        if (isOwner) return project
-        const permission =
-            operation === 'edit' ? AIPermissionsEnum.XPERT_PROJECT_EDIT : AIPermissionsEnum.XPERT_PROJECT_VIEW
-        if (!RequestContext.hasPermissions([permission])) {
-            throw new ForbiddenException('Project permission is required')
-        }
-        return project
+        return (
+            await (operation === 'edit'
+                ? this.accessService.assertCanEdit(projectId)
+                : this.accessService.assertCanRead(projectId))
+        ).project
     }
 
-    public async update(id: string, partialEntity: QueryDeepPartialEntity<XpertProject>): Promise<XpertProject> {
+    public async update(id: string, input: ProjectUpdateInputDTO): Promise<XpertProject> {
         const project = await this.findOne(id)
-        const nextMode = (partialEntity.settings as IXpertProject['settings'] | undefined)?.managementMode
+        const nextMode = input.settings?.managementMode
         if (project.settings?.managementMode === 'advanced' && nextMode === 'simple') {
-            throw new BadRequestException('Advanced projects cannot be downgraded to simple mode')
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectAdvancedModeDowngradeUnsupported', {
+                    defaultValue: 'Advanced Projects cannot be downgraded to simple mode.'
+                })
+            )
         }
-        if (Object.prototype.hasOwnProperty.call(partialEntity, 'workspaceId')) {
-            const nextWorkspaceId =
-                typeof partialEntity.workspaceId === 'string' ? partialEntity.workspaceId.trim() : ''
-            if (!nextWorkspaceId) {
-                throw new BadRequestException('Project Workspace is required')
-            }
-            if (nextWorkspaceId !== project.workspaceId) {
-                await this.assertWorkspaceCanBeBound(project, nextWorkspaceId)
-            }
-        }
-        if (partialEntity.copilotModel) {
-            project.copilotModel ??= {}
-            assign(project.copilotModel, partialEntity.copilotModel)
-        }
-        if (partialEntity.settings) {
-            partialEntity.settings = {
+
+        if (input.name !== undefined) project.name = input.name
+        if (input.avatar !== undefined) project.avatar = input.avatar
+        if (input.description !== undefined) project.description = input.description
+        if (input.settings) {
+            project.settings = {
                 ...(project.settings ?? { instruction: '' }),
-                ...(partialEntity.settings as IXpertProject['settings'])
+                ...(input.settings.mode !== undefined ? { mode: input.settings.mode } : {}),
+                ...(input.settings.managementMode !== undefined
+                    ? { managementMode: input.settings.managementMode }
+                    : {})
             }
         }
-        assign(project, omit(partialEntity, 'copilotModel'))
         return await this.repository.save(project)
     }
 
     async archive(id: string): Promise<XpertProject> {
-        return this.update(id, { status: 'archived' })
+        const project = await this.findOne(id)
+        project.status = 'archived'
+        return this.repository.save(project)
+    }
+
+    async deleteProject(id: string) {
+        const project = await this.findOne(id)
+        return this.repository.manager.transaction(async (manager) => {
+            await this.connectorService.deleteProjectBindings(
+                { projectId: project.id, tenantId: project.tenantId },
+                manager
+            )
+            return manager.getRepository(XpertProject).delete({
+                id: project.id,
+                tenantId: project.tenantId,
+                organizationId: project.organizationId ?? IsNull()
+            })
+        })
+    }
+
+    async softRemoveProject(id: string) {
+        const project = await this.findOne(id)
+        return this.repository.manager.transaction(async (manager) => {
+            await this.connectorService.deleteProjectBindings(
+                { projectId: project.id, tenantId: project.tenantId },
+                manager
+            )
+            return manager.getRepository(XpertProject).softRemove(project)
+        })
     }
 
     /**
@@ -244,12 +276,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      * @param options
      * @returns
      */
-    async findAllMy(options: PaginationParams<XpertProject>) {
+    async findAllMy(options: Partial<PaginationParams<XpertProject>> = {}) {
         const user = RequestContext.currentUser()
         const organizationId = RequestContext.getOrganizationId()
-        const requestedStatus = !Array.isArray(options?.where)
-            ? (options?.where as Record<string, unknown> | undefined)?.status
-            : undefined
+        const requestedStatus = !Array.isArray(options?.where) ? options?.where?.status : undefined
 
         const orderBy = options?.order
             ? Object.keys(options.order).reduce((order, name) => {
@@ -260,13 +290,15 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
         const query = this.repository
             .createQueryBuilder('project')
-            .leftJoinAndSelect('project.members', 'member')
+            .leftJoin(
+                'project.memberships',
+                'membership',
+                'membership.userId = :userId AND membership.deletedAt IS NULL'
+            )
             .where('project.tenantId = :tenantId')
             .andWhere(
                 new Brackets((qb) => {
-                    qb.where('project.ownerId = :userId')
-                        .orWhere('project.createdById = :userId')
-                        .orWhere('member.id = :userId')
+                    qb.where('project.ownerId = :userId').orWhere('membership.userId = :userId')
                 })
             )
             .orderBy(orderBy)
@@ -310,19 +342,20 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             query.take(options.take)
         }
 
-        const projects = await query.getMany()
+        const [projects, total] = await query.getManyAndCount()
 
         return {
             items: projects,
-            total: projects.length
+            total
         }
     }
 
     async getXperts(id: string, params: PaginationParams<IXpertProject>) {
         const project = await this.findOne({
             where: { id },
-            relations: ['xperts', ...(params?.relations?.map((relation) => `xperts.${relation}`) ?? [])]
+            relations: ['xperts']
         })
+        await this.xpertBindingService.normalize(project)
 
         const total = project.xperts.length
         const xperts = params?.take ? project.xperts.slice(params.skip, params.skip + params.take) : project.xperts
@@ -333,77 +366,163 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
     }
 
-    async addXpert(id: string, xpertId: string) {
-        const project = await this.findOne({
-            where: { id },
-            relations: ['xperts']
-        })
-
-        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
-        await this.assertResourceWorkspace(project.workspaceId, xpert.workspaceId, 'Assistant')
-
-        const xpertExists = project.xperts.some((xpert) => xpert.id === xpertId)
-        if (xpertExists) {
-            this.#logger.warn(`Xpert with id ${xpertId} already exists in project ${id}`)
-            return project
+    async getAvailableXperts(id: string, params: { skip?: number; take?: number } = {}) {
+        const { project } = await this.accessService.assertCanManage(id)
+        const where = { organizationId: project.organizationId ?? null, latest: true }
+        const [items, total] = await Promise.all([
+            this.publishedXpertAccess.findAccessiblePublishedXperts({
+                where,
+                skip: Math.max(params.skip ?? 0, 0),
+                take: Math.min(Math.max(params.take ?? 50, 1), 100)
+            }),
+            this.publishedXpertAccess.countAccessiblePublishedXperts(where)
+        ])
+        return {
+            items: items.map((xpert) => new XpertIdentiDto(xpert)),
+            total
         }
-
-        project.xperts.push(xpert) // Assuming xpert is an entity with at least an id field
-        await this.repository.save(project)
-
-        return project
     }
 
-    /**
-     * Bind the Project's explicit default Assistant. The relation is kept in
-     * sync so the selected Assistant can be used by the panel immediately.
-     */
-    async setAssistant(id: string, xpertId: string) {
-        const project = await this.findOne({
-            where: { id },
-            relations: ['xperts']
-        })
-        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }))
-        await this.assertResourceWorkspace(project.workspaceId, xpert.workspaceId, 'Assistant')
+    async findAvailableForXpert(input: {
+        xpertId: string
+        status?: 'active' | 'archived' | 'all'
+        skip?: number
+        take?: number
+    }) {
+        const xpert = await this.resolveAccessibleCurrentXpert(input.xpertId)
+        const userId = RequestContext.currentUserId()
+        const organizationId = RequestContext.getOrganizationId()
+        const query = this.repository.createQueryBuilder('project')
+        const linkedXpertSubquery = query
+            .subQuery()
+            .select('1')
+            .from(XpertProject, 'linkedProject')
+            .innerJoin('linkedProject.xperts', 'linkedXpert')
+            .where('linkedProject.id = project.id')
+            .andWhere('linkedXpert.tenantId = :xpertTenantId', { xpertTenantId: xpert.tenantId })
+            .andWhere('linkedXpert.type = :xpertType', { xpertType: xpert.type })
+            .andWhere('linkedXpert.slug = :xpertSlug', { xpertSlug: xpert.slug })
+        if (xpert.organizationId) {
+            linkedXpertSubquery.andWhere('linkedXpert.organizationId = :xpertOrganizationId', {
+                xpertOrganizationId: xpert.organizationId
+            })
+        } else {
+            linkedXpertSubquery.andWhere('linkedXpert.organizationId IS NULL')
+        }
+        if (xpert.workspaceId) {
+            linkedXpertSubquery.andWhere('linkedXpert.workspaceId = :xpertWorkspaceId', {
+                xpertWorkspaceId: xpert.workspaceId
+            })
+        } else {
+            linkedXpertSubquery.andWhere('linkedXpert.workspaceId IS NULL')
+        }
+        const linkedXpertExists = linkedXpertSubquery.getQuery()
+        const activeMembershipExists = query
+            .subQuery()
+            .select('1')
+            .from(XpertProjectMembership, 'availableMembership')
+            .where('availableMembership.projectId = project.id')
+            .andWhere('availableMembership.userId = :userId', { userId })
+            .andWhere('availableMembership.deletedAt IS NULL')
+            .getQuery()
+        query
+            .where('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
+            .andWhere(`EXISTS ${linkedXpertExists}`)
+            .andWhere(
+                new Brackets((qb) => {
+                    qb.where('project.ownerId = :userId').orWhere(`EXISTS ${activeMembershipExists}`)
+                })
+            )
+        if (organizationId) query.andWhere('project.organizationId = :organizationId', { organizationId })
+        else query.andWhere('project.organizationId IS NULL')
+        if (input.status && input.status !== 'all') query.andWhere('project.status = :status', { status: input.status })
+        else if (!input.status) query.andWhere("project.status <> 'archived'")
+        query.skip(Math.max(input.skip ?? 0, 0)).take(Math.min(Math.max(input.take ?? 25, 1), 100))
+        const [items, total] = await query.getManyAndCount()
+        return { items, total }
+    }
 
-        if (!project.xperts.some((item) => item.id === xpertId)) {
-            project.xperts.push(xpert)
+    async addXpert(id: string, xpertId: string) {
+        const { project } = await this.accessService.assertCanManage(id)
+        const withXperts = await this.findOne({ where: { id }, relations: ['xperts'] })
+        const xpert = await this.resolveAccessibleCurrentXpert(xpertId)
+        if ((xpert.organizationId ?? null) !== (project.organizationId ?? null)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectXpertOrganizationMismatch', {
+                    defaultValue: 'The Xpert must belong to the Project Organization'
+                })
+            )
         }
-        project.settings = {
-            ...(project.settings ?? { instruction: '' }),
-            projectAssistantId: xpertId
+
+        await this.xpertBindingService.normalize(withXperts)
+        const xpertExists = this.xpertBindingService.contains(withXperts, xpert)
+        if (xpertExists) {
+            this.#logger.warn(`Xpert with id ${xpertId} already exists in project ${id}`)
+            return withXperts
         }
-        await this.repository.save(project)
-        return this.findOne({ where: { id }, relations: ['xperts'] })
+
+        withXperts.xperts.push(xpert)
+        await this.repository.save(withXperts)
+
+        return withXperts
+    }
+
+    /** @deprecated Legacy client wrapper. Adds the requested Xpert as a peer; it does not select a default. */
+    async setAssistant(id: string, xpertId: string) {
+        return this.addXpert(id, xpertId)
     }
 
     async removeXpert(id: string, xpertId: string) {
+        await this.accessService.assertCanManage(id)
         const project = await this.findOne({
             where: { id },
             relations: ['xperts']
         })
-
-        const defaultAssistantId = project.settings?.projectAssistantId ?? project.xperts[0]?.id
-        if (defaultAssistantId === xpertId) {
-            throw new BadRequestException('Bind another Project Assistant before removing the current one')
-        }
-
-        const xpertIndex = project.xperts.findIndex((xpert) => xpert.id === xpertId)
-        if (xpertIndex === -1) {
+        const currentXpert = await this.xpertBindingService.resolveCurrentById(xpertId, {
+            tenantId: project.tenantId,
+            organizationId: project.organizationId
+        })
+        const removedXpertIds = project.xperts
+            .filter(
+                (linkedXpert) =>
+                    linkedXpert.id === xpertId ||
+                    (currentXpert ? this.xpertBindingService.isSameXpert(linkedXpert, currentXpert) : false)
+            )
+            .map((linkedXpert) => linkedXpert.id)
+        if (removedXpertIds.length === 0) {
             this.#logger.warn(`Xpert with id ${xpertId} does not exist in project ${id}`)
             return project
         }
 
-        project.xperts.splice(xpertIndex, 1)
+        project.xperts = project.xperts.filter((linkedXpert) => !removedXpertIds.includes(linkedXpert.id))
         await this.repository.save(project)
+        const taskXpertIds = [xpertId, ...removedXpertIds]
+        if (currentXpert) taskXpertIds.push(currentXpert.id)
+        await this.repository.manager.getRepository(XpertTask).update(
+            { projectId: id, xpertId: In([...new Set(taskXpertIds)]) },
+            {
+                status: ScheduleTaskStatus.PAUSED,
+                statusReason: t('server-ai:Error.ProjectTaskXpertRemoved', {
+                    defaultValue: 'The scheduled Xpert is no longer part of this Project'
+                })
+            }
+        )
 
         return project
+    }
+
+    private async resolveAccessibleCurrentXpert(xpertId: string): Promise<IXpert> {
+        const requestedXpert = await this.publishedXpertAccess.getAccessiblePublishedXpert(xpertId)
+        const currentXpert = await this.xpertBindingService.resolveCurrent(requestedXpert)
+        if (currentXpert.id === requestedXpert.id) return requestedXpert
+
+        return this.publishedXpertAccess.getAccessiblePublishedXpert(currentXpert.id)
     }
 
     async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
         const project = await this.findOne({
             where: { id },
-            relations: ['toolsets', ...(params?.relations?.map((relation) => `toolsets.${relation}`) ?? [])]
+            relations: ['toolsets']
         })
 
         const total = project.toolsets.length
@@ -417,27 +536,12 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
     }
 
-    async addToolset(id: string, toolsetId: string) {
-        const project = await this.findOne({
-            where: { id },
-            relations: ['toolsets']
-        })
-
-        const toolsets = await this.queryBus.execute(new FindXpertToolsetsQuery([toolsetId]))
-        for (const toolset of toolsets) {
-            await this.assertResourceWorkspace(project.workspaceId, toolset.workspaceId, 'Toolset')
-        }
-
-        const exists = project.toolsets.some((_) => _.id === toolsetId)
-        if (exists) {
-            this.#logger.warn(`Toolset with id ${toolsetId} already exists in project ${id}`)
-            return project
-        }
-
-        project.toolsets.push(...toolsets) // Assuming toolset is an entity with at least an id field
-        await this.repository.save(project)
-
-        return project
+    async addToolset(_id: string, _toolsetId: string) {
+        throw new BadRequestException(
+            t('server-ai:Error.ProjectToolsetBindingDeprecated', {
+                defaultValue: 'Projects no longer bind Toolsets directly; configure the Project Xperts instead'
+            })
+        )
     }
 
     async removeToolset(id: string, toolsetId: string) {
@@ -461,7 +565,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     async getKnowledges(id: string, params: PaginationParams<IKnowledgebase>) {
         const project = await this.findOne({
             where: { id },
-            relations: ['knowledges', ...(params?.relations?.map((relation) => `knowledges.${relation}`) ?? [])]
+            relations: ['knowledges']
         })
 
         const total = project.knowledges.length
@@ -475,25 +579,12 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
     }
 
-    async addKnowledge(id: string, knowledgebaseId: string) {
-        const project = await this.findOne({
-            where: { id },
-            relations: ['knowledges']
-        })
-
-        const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({ id: knowledgebaseId }))
-        await this.assertResourceWorkspace(project.workspaceId, knowledgebase.workspaceId, 'Knowledgebase')
-
-        const exists = project.knowledges.some((_) => _.id === knowledgebaseId)
-        if (exists) {
-            this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} already exists in project ${id}`)
-            return project
-        }
-
-        project.knowledges.push(knowledgebase)
-        await this.repository.save(project)
-
-        return project
+    async addKnowledge(_id: string, _knowledgebaseId: string) {
+        throw new BadRequestException(
+            t('server-ai:Error.ProjectKnowledgebaseBindingDeprecated', {
+                defaultValue: 'Projects no longer bind Knowledgebases directly; configure the Project Xperts instead'
+            })
+        )
     }
 
     async removeKnowledgebase(id: string, knowledgebaseId: string) {
@@ -514,12 +605,12 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return project
     }
 
-    async updateMembers(id: string, members: string[]) {
-        const project = await this.findOne(id)
-        project.members = members.map((id) => ({ id }) as IUser)
-        await this.repository.save(project)
-
-        return await this.findOne(id, { relations: ['members'] })
+    async updateMembers(_id: string, _members: string[]) {
+        throw new BadRequestException(
+            t('server-ai:Error.ProjectMembershipApiRequired', {
+                defaultValue: 'Use the Project membership API to manage members'
+            })
+        )
     }
 
     async getTasks(id: string, params: PaginationParams<XpertProjectTask>) {
@@ -624,9 +715,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const project = await this.findOne(id, { relations: ['attachments'] })
         const existingAttachmentIds = new Set(project.attachments.map((attachment) => attachment.id))
 
-        const newAttachments = files
-            .filter((fileId) => !existingAttachmentIds.has(fileId))
-            .map((fileId) => ({ id: fileId }) as IStorageFile)
+        const newAttachmentIds = files.filter((fileId) => !existingAttachmentIds.has(fileId))
+        const newAttachments = await Promise.all(
+            newAttachmentIds.map((fileId) => this.queryBus.execute(new GetOwnedStorageFileQuery(fileId)))
+        )
 
         project.attachments = [...project.attachments, ...newAttachments]
         await this.repository.save(project)
@@ -650,9 +742,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     async duplicate(id: string): Promise<XpertProject> {
         const project = await this.findOne(id, {
-            relations: ['copilotModel', 'xperts', 'toolsets', 'knowledges', 'attachments']
+            relations: ['copilotModel', 'xperts', 'attachments']
         })
 
+        const { content: instruction } = await this.contentService.readInstructions(id)
         const duplicate = await this.create({
             ...project,
             id: undefined, // Clear the ID to create a new project
@@ -664,17 +757,19 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             updatedById: undefined,
             name: `${project.name} - Copy`,
             status: 'active',
-            xperts: project.xperts.map((xpert) => ({ id: xpert.id })),
-            toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
-            knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
+            settings: {
+                instruction,
+                mode: project.settings?.mode,
+                managementMode: project.settings?.managementMode
+            },
             attachments: project.attachments.map((_) => ({ id: _.id }))
         })
+        for (const xpert of project.xperts) await this.addXpert(duplicate.id, xpert.id)
 
         const planRepository = this.repository.manager.getRepository(XpertProjectPlan)
         const taskRepository = this.repository.manager.getRepository(XpertProjectTask)
         const milestoneRepository = this.repository.manager.getRepository(XpertProjectMilestone)
         const assetRepository = this.repository.manager.getRepository(XpertProjectAsset)
-        const automationRepository = this.repository.manager.getRepository(XpertProjectAutomation)
         const plans = await planRepository.find({ where: { projectId: id }, relations: ['milestones'] })
         const planIds = new Map<string, string>()
         for (const plan of plans) {
@@ -740,22 +835,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 })
             )
         }
-        const automations = await automationRepository.find({ where: { projectId: id } })
-        for (const automation of automations) {
-            await automationRepository.save(
-                automationRepository.create({
-                    ...automation,
-                    id: undefined,
-                    projectId: duplicate.id,
-                    tenantId: duplicate.tenantId,
-                    organizationId: duplicate.organizationId,
-                    createdById: duplicate.createdById,
-                    updatedById: undefined,
-                    lastRunAt: undefined,
-                    nextRunAt: undefined
-                })
-            )
-        }
         return duplicate
     }
 
@@ -800,7 +879,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const taskRepository = this.repository.manager.getRepository(XpertProjectTask)
         const taskStepRepository = this.repository.manager.getRepository(XpertProjectTaskStep)
         const assetRepository = this.repository.manager.getRepository(XpertProjectAsset)
-        const automationRepository = this.repository.manager.getRepository(XpertProjectAutomation)
         const planIdMap = new Map<string, string>()
         const milestoneIdMap = new Map<string, string>()
         const plans = (root.plans ?? source.plans) as Array<Record<string, unknown>> | undefined
@@ -946,22 +1024,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 })
             )
         }
-        const automations = (root.automations ?? source.automations) as Array<Record<string, unknown>> | undefined
-        for (const inputAutomation of Array.isArray(automations) ? automations : []) {
-            if (!inputAutomation.trigger || !Array.isArray(inputAutomation.actions)) continue
-            await automationRepository.save(
-                automationRepository.create({
-                    projectId: project.id,
-                    name: typeof inputAutomation.name === 'string' ? inputAutomation.name : 'Imported automation',
-                    enabled: inputAutomation.enabled === true,
-                    trigger: inputAutomation.trigger,
-                    actions: inputAutomation.actions,
-                    tenantId: project.tenantId,
-                    organizationId: project.organizationId,
-                    createdById: project.createdById
-                })
-            )
-        }
         return project
     }
 
@@ -974,77 +1036,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
 
         return project?.vcs
-    }
-
-    private async resolveAuthoringWorkspace(workspaceId?: string) {
-        const normalizedWorkspaceId = workspaceId?.trim()
-        if (normalizedWorkspaceId) {
-            const access = await this.workspaceAccessService.assertCanAuthor(normalizedWorkspaceId)
-            return access.workspace
-        }
-
-        const workspace = await this.workspaceService.findMyDefault('authoring')
-        if (!workspace) {
-            throw new BadRequestException(
-                'Project Workspace is required. Select an authoring Workspace before creating a Project.'
-            )
-        }
-        return workspace
-    }
-
-    private async assertWorkspaceCanBeBound(project: XpertProject, workspaceId: string) {
-        const access = await this.workspaceAccessService.assertCanAuthor(workspaceId)
-        if (await this.hasProjectRuntimeData(project.id)) {
-            throw new BadRequestException(
-                'A Project with conversations, executions, tasks, or assets cannot change Workspace. Copy it instead.'
-            )
-        }
-
-        const [xperts, toolsets, knowledges] = await Promise.all([
-            this.repository.findOne({ where: { id: project.id }, relations: ['xperts'] }),
-            this.repository.findOne({ where: { id: project.id }, relations: ['toolsets'] }),
-            this.repository.findOne({ where: { id: project.id }, relations: ['knowledges'] })
-        ])
-        for (const xpert of xperts?.xperts ?? []) {
-            if (xpert.workspaceId !== access.workspace.id) {
-                throw new BadRequestException('All Project Assistants must belong to the selected Workspace')
-            }
-        }
-        for (const toolset of toolsets?.toolsets ?? []) {
-            if (toolset.workspaceId !== access.workspace.id) {
-                throw new BadRequestException('All Project Toolsets must belong to the selected Workspace')
-            }
-        }
-        for (const knowledge of knowledges?.knowledges ?? []) {
-            if (knowledge.workspaceId !== access.workspace.id) {
-                throw new BadRequestException('All Project Knowledgebases must belong to the selected Workspace')
-            }
-        }
-    }
-
-    private async assertResourceWorkspace(
-        projectWorkspaceId: string | undefined,
-        resourceWorkspaceId: string | undefined,
-        kind: string
-    ) {
-        if (!projectWorkspaceId) {
-            throw new BadRequestException('Bind a Workspace to the Project before adding resources')
-        }
-        if (!resourceWorkspaceId || resourceWorkspaceId !== projectWorkspaceId) {
-            throw new BadRequestException(`${kind} must belong to the Project Workspace`)
-        }
-        await this.workspaceAccessService.assertCanRun(projectWorkspaceId)
-    }
-
-    private async hasProjectRuntimeData(projectId: string) {
-        const manager = this.repository.manager
-        const [taskCount, assetCount, executionCount, conversationCount] = await Promise.all([
-            manager.getRepository(XpertProjectTask).count({ where: { projectId } }),
-            manager.getRepository(XpertProjectAsset).count({ where: { projectId } }),
-            manager.getRepository(XpertProjectTaskExecution).count({ where: { projectId } }),
-            manager.getRepository(ChatConversation).count({ where: { projectId } })
-        ])
-        return taskCount > 0 || assetCount > 0 || executionCount > 0 || conversationCount > 0
     }
 
     @OnEvent(EventNameIntegrationAuthorized)

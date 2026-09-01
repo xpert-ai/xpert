@@ -108,7 +108,23 @@ const mockVolumeClient = jest.fn().mockImplementation((params) => ({
 jest.mock('../shared/volume', () => ({
     VolumeClient: mockVolumeClient,
     WorkspaceVolumeClient: mockWorkspaceVolumeClient,
-    VolumeSubtreeClient: mockWorkspaceVolumeClient
+    VolumeSubtreeClient: mockWorkspaceVolumeClient,
+    resolveXpertDataVolumeScope: jest.fn((input) =>
+        input.workspaceDataScope === 'user'
+            ? {
+                  tenantId: input.tenantId,
+                  catalog: 'user-xperts',
+                  userId: input.userId,
+                  xpertId: input.xpertId
+              }
+            : {
+                  tenantId: input.tenantId,
+                  catalog: 'xperts',
+                  userId: input.userId,
+                  xpertId: input.xpertId,
+                  isolateByUser: false
+              }
+    )
 }))
 
 import { TFile } from '@xpert-ai/contracts'
@@ -150,6 +166,7 @@ describe('XpertService memory files', () => {
         expect(mockVolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
+            userId: 'user-1',
             xpertId: 'xpert-1',
             isolateByUser: false
         })
@@ -157,6 +174,7 @@ describe('XpertService memory files', () => {
             expect.objectContaining({
                 tenantId: 'tenant-1',
                 catalog: 'xperts',
+                userId: 'user-1',
                 xpertId: 'xpert-1',
                 isolateByUser: false
             }),
@@ -183,6 +201,7 @@ describe('XpertService memory files', () => {
         expect(mockVolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
+            userId: 'user-1',
             xpertId: 'xpert-1',
             isolateByUser: false
         })
@@ -205,6 +224,7 @@ describe('XpertService memory files', () => {
         expect(mockVolumeClient).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
+            userId: 'user-1',
             xpertId: 'xpert-1',
             isolateByUser: false
         })

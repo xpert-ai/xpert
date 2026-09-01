@@ -74,6 +74,13 @@ export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTo
 
     async getParamsFaker(id: string) {
         const tool = await this.getTool(id, { relations: ['toolset'] })
+        if (tool.toolset.category === XpertToolsetCategoryEnum.BUILTIN) {
+            const jsonSchema = ToolSchemaParser.parseZodToJsonSchema(
+                tool.schema as Parameters<typeof ToolSchemaParser.parseZodToJsonSchema>[0]
+            )
+            return JSONSchemaFaker.generate(jsonSchema as Schema)
+        }
+
         const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
             new ToolsetGetToolsCommand([tool.toolsetId], {
                 workspaceId: tool.toolset?.workspaceId

@@ -1,6 +1,6 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { inject, Injectable } from '@angular/core'
-import { IXpertTask } from '../../../@core'
+import { IXpert, IXpertTask } from '../../../@core'
 import { XpertTaskDialogComponent } from './task-dialog.component'
 
 type CreateTaskDialogOptions = {
@@ -8,7 +8,10 @@ type CreateTaskDialogOptions = {
   xpertId?: string | null
   agentKey?: string | null
   lockXpertSelection?: boolean
+  availableXperts?: IXpert[]
+  projectId?: string | null
   task?: Partial<IXpertTask>
+  connectorOnly?: boolean
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,6 +23,7 @@ export class XpertTaskDialogService {
     const agentKey = options?.agentKey?.trim()
     const task = {
       ...options?.task,
+      ...(options?.projectId ? { projectId: options.projectId } : {}),
       ...(xpertId
         ? {
             xpertId,
@@ -32,6 +36,8 @@ export class XpertTaskDialogService {
       data: {
         total: options?.total ?? undefined,
         lockXpertSelection: !!options?.lockXpertSelection,
+        availableXperts: options?.availableXperts,
+        ...(options?.connectorOnly ? { connectorOnly: true } : {}),
         ...(Object.keys(task).length ? { task } : {})
       },
       disableClose: true,

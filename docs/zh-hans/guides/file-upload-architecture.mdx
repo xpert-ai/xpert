@@ -32,7 +32,7 @@
 
 ### 2. Target 编排
 
-Target 描述“文件要传到哪里”。
+Target 描述“文件要传到哪里”。完整 target 模型是受信服务端调用 `UploadFileCommand` 时使用的内部编排合同，不是公开 HTTP 接口的请求合同。
 
 内建 target kind：
 
@@ -50,6 +50,8 @@ Target 描述“文件要传到哪里”。
 `UploadFileService` 会从 `target.strategy` 或内建映射中解析具体 strategy。
 
 每个 target 产出一个 destination，最终聚合成一个 `FileAsset`。
+
+公开的 `POST /files/upload` 边界会更窄：只接受一个普通 target，并且它唯一的属性必须是 `{"kind":"storage"}`。接口会拒绝多 target、`volume`、`sandbox`、显式 `strategy`，以及客户端传入的 `provider`、`directory`、`fileName` 等 target 定位字段。服务端会重新构造 canonical storage target，并在下发 `UploadFileCommand` 前自行管理这些值。
 
 ### 3. 文件存储 Provider
 
@@ -104,6 +106,8 @@ Target 描述“文件要传到哪里”。
 
 这就是当前唯一保留的文件扩展模型。
 
+自定义 target strategy 是受信服务端的扩展点。注册 strategy 并不代表它的 target 字段可以通过 `POST /files/upload` 对外传入。
+
 不再保留 upload-specific storage provider 这一层，因为它与 `IFileStorageProvider` 的职责重复。
 
 ## 插件配置模型
@@ -135,15 +139,17 @@ Target 描述“文件要传到哪里”。
 字段：
 
 - `file`：multipart 文件
-- `targets`：JSON 字符串数组
+- `targets`：内容必须恰好为 `[{"kind":"storage"}]` 的 JSON 字符串
 - `metadata`：可选 JSON 字符串
+
+`provider`、`directory`、`fileName`、`strategy` 以及其他 target 定位或策略字段均由服务端管理，外部客户端不能传入。
 
 示例：
 
 ```bash
 curl -X POST http://localhost:3000/api/files/upload \
   -F 'file=@./README.md' \
-  -F 'targets=[{"kind":"storage","provider":"S3","directory":"files","prefix":"docs"}]'
+  -F 'targets=[{"kind":"storage"}]'
 ```
 
 ### 返回
@@ -170,25 +176,22 @@ curl -X POST http://localhost:3000/api/files/upload \
 
 ### 上传到对象存储
 
-使用 `storage` target：
+外部客户端使用 canonical `storage` target：
 
 ```json
-[
-  {
-    "kind": "storage",
-    "provider": "S3",
-    "directory": "files",
-    "prefix": "knowledge"
-  }
-]
+[{ "kind": "storage" }]
 ```
 
-这里的 provider 可以是：
+provider、directory 和文件名由服务端选择。服务端配置的 provider 可以是：
 
 - 宿主内建本地 provider `LOCAL`
 - 插件型 provider，如 `MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS`
 
-### 上传到 volume
+### 受信服务端 target
+
+其余 target kind 和字段只供构造 `UploadFileCommand` 的受信宿主代码或已注册的 target strategy 使用。下面的 descriptor 都不是 `POST /files/upload` 的合法请求 payload。
+
+### 上传到 volume（仅受信服务端）
 
 ```json
 [
@@ -208,7 +211,7 @@ curl -X POST http://localhost:3000/api/files/upload \
 - `absolutePath`
 - `mimeType`
 
-### 上传到 sandbox mounted workspace
+### 上传到 sandbox mounted workspace（仅受信服务端）
 
 ```json
 [
@@ -228,7 +231,7 @@ curl -X POST http://localhost:3000/api/files/upload \
 - `workspacePath`
 - `workspaceUrl`
 
-### 上传到 sandbox backend
+### 上传到 sandbox backend（仅受信服务端）
 
 ```json
 [
@@ -246,9 +249,9 @@ curl -X POST http://localhost:3000/api/files/upload \
 - `sandbox:backend_upload` 只支持 UTF-8 文本文件
 - 二进制文件请继续使用 `mounted_workspace`
 
-### 一次上传多个目标
+### 一次上传多个目标（仅受信服务端）
 
-一次请求可以把同一个文件写入多个 destination：
+受信服务端的一个 `UploadFileCommand` 可以把同一个文件写入多个 destination：
 
 ```json
 [
@@ -302,6 +305,8 @@ curl -X POST http://localhost:3000/api/files/upload \
 ## 如何通过插件扩展
 
 ### 新增自定义 target strategy
+
+自定义 target strategy 只由受信服务端的 `UploadFileCommand` 调用方触发。公开上传接口不接受自定义 `strategy` 或自定义 target 定位字段。
 
 ```ts
 import { FileUploadTargetStrategy, IFileUploadTargetStrategy } from '@xpert-ai/plugin-sdk'
@@ -372,7 +377,7 @@ export class R2Provider implements IFileStorageProvider {
 
 ### `file-upload`
 
-这里应该继续作为所有新上传能力的统一入口。
+这里应该继续作为所有新上传能力的统一内部编排入口。公开 HTTP controller 仍保持为更窄的 canonical storage 上传边界。
 
 未来凡是涉及以下场景，优先落在这一层：
 
@@ -381,7 +386,7 @@ export class R2Provider implements IFileStorageProvider {
 - 多目标上传编排
 - 通用上传校验、metadata、状态聚合
 
-新的业务上传接口应优先包装 `UploadFileCommand`，而不是再新增一套平行的上传实现。
+新的业务上传接口应优先用自己的授权逻辑和服务端 target 构造来包装 `UploadFileCommand`，而不是再新增一套平行的上传实现；也不应通过 `POST /files/upload` 暴露任意 target descriptor。
 
 ### `file-storage`
 

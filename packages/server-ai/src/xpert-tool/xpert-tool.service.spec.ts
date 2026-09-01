@@ -101,6 +101,53 @@ describe('XpertToolService', () => {
         )
     })
 
+    it('generates builtin parameters from registry metadata without creating a runtime', async () => {
+        const latestTool: IBuiltinTool = {
+            identity: {
+                name: 'seedream_text_to_image',
+                author: 'yu rongku',
+                label: { en_US: 'Seedream text to image' },
+                provider: 'seedream_aigc'
+            },
+            description: {
+                human: { en_US: 'Generate an image.' },
+                llm: 'Generate an image.'
+            },
+            schema: {
+                type: 'object',
+                required: ['prompt'],
+                properties: {
+                    prompt: { type: 'string', const: 'Draw a fox' }
+                }
+            }
+        }
+        const commandBus = { execute: jest.fn() }
+        const testingModule = await Test.createTestingModule({
+            providers: [
+                XpertToolService,
+                { provide: getRepositoryToken(XpertTool), useValue: {} },
+                { provide: XpertToolsetService, useValue: {} },
+                { provide: CommandBus, useValue: commandBus },
+                { provide: QueryBus, useValue: { execute: jest.fn().mockResolvedValue([latestTool]) } }
+            ]
+        }).compile()
+        const service = testingModule.get(XpertToolService)
+        const persistedTool = Object.assign(new XpertTool(), {
+            id: 'tool-id',
+            name: 'seedream_text_to_image',
+            toolsetId: 'toolset-1',
+            toolset: Object.assign(new XpertToolset(), {
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                type: 'seedream_aigc',
+                workspaceId: 'workspace-1'
+            })
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(persistedTool)
+
+        await expect(service.getParamsFaker('tool-id')).resolves.toEqual({ prompt: 'Draw a fox' })
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
     it.each([false, true])('closes the runtime after parameter schema inspection (fails=%s)', async (fails) => {
         const close = jest.fn().mockResolvedValue(undefined)
         const runtime = {

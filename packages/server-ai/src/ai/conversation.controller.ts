@@ -3,6 +3,7 @@ import {
     Body,
     Controller,
     Delete,
+    ForbiddenException,
     Get,
     HttpCode,
     HttpStatus,
@@ -25,7 +26,7 @@ import {
     transformWhere,
     UUIDValidationPipe
 } from '@xpert-ai/server-core'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FindOptionsOrder, In, Like } from 'typeorm'
 import {
     IChatConversation,
@@ -36,6 +37,7 @@ import {
     TThreadGoalSetRequest
 } from '@xpert-ai/contracts'
 import {
+    type ChatConversationAccessOperation,
     ChatConversationGoalService,
     ChatConversationService,
     ChatConversationThreadService
@@ -53,8 +55,10 @@ import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
-import { XpertService } from '../xpert'
+import { bindConversationAssistantIfUnbound, bindConversationProjectIfUnbound } from './assistant-request-context'
+import { PublishedXpertAccessService, XpertService } from '../xpert'
 import { XpertProjectService } from '../xpert-project'
+import { t } from 'i18next'
 
 type ConversationSearchRequest = {
     where?: Record<string, OperatorValue>
@@ -79,6 +83,34 @@ type FeedbackSearchRequest = {
 }
 
 type FeedbackMutationRequest = Partial<Pick<IChatMessageFeedback, 'rating' | 'content'>>
+type ConversationCreateRequest = Partial<
+    Pick<
+        IChatConversation,
+        'id' | 'threadId' | 'title' | 'status' | 'options' | 'from' | 'fromEndUserId' | 'xpertId' | 'projectId'
+    >
+>
+type ConversationUpdateRequest = Partial<Pick<IChatConversation, 'title' | 'status' | 'options'>>
+type MessageMutationRequest = Partial<
+    Pick<
+        IChatMessage,
+        | 'id'
+        | 'parentId'
+        | 'role'
+        | 'status'
+        | 'content'
+        | 'reasoning'
+        | 'error'
+        | 'references'
+        | 'taskSummary'
+        | 'thirdPartyMessage'
+        | 'events'
+        | 'executionId'
+        | 'followUpMode'
+        | 'followUpStatus'
+        | 'targetExecutionId'
+        | 'visibleAt'
+    >
+>
 
 @ApiTags('AI/Conversations')
 @ApiBearerAuth()
@@ -95,31 +127,113 @@ export class ConversationsController {
         private readonly messageService: ChatMessageService,
         private readonly feedbackService: ChatMessageFeedbackService,
         private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertService: XpertService,
         @Optional() private readonly projectService?: XpertProjectService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService
     ) {}
 
     @Post()
-    async createConversation(@Body() body: Partial<IChatConversation>) {
+    async createConversation(@Body() body: ConversationCreateRequest) {
         const publicScope = getPublicXpertSessionConversationScope()
         const xpertId = publicScope?.xpertId ?? this.normalizeString(body.xpertId)
         const projectId = this.normalizeString(body.projectId)
+        const requestedConversationId = this.normalizeString(body.id)
+        const requestedThreadId = this.normalizeString(body.threadId)
+        const createdById = publicScope?.createdById ?? RequestContext.currentUserId()
+        if (!createdById) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ConversationUserContextRequired', {
+                    defaultValue: 'A user context is required to create a conversation'
+                })
+            )
+        }
+        const xpert = xpertId ? await this.publishedXpertAccessService.getAccessiblePublishedXpert(xpertId) : null
         if (projectId) {
             // Validate the Project/Assistant/user tuple before projectId reaches
             // persistence; the client cannot create a conversation in another workspace.
-            if (!xpertId) throw new BadRequestException('xpertId is required for a Project conversation')
-            if (!this.projectService) throw new BadRequestException('Project conversations are unavailable')
+            if (!xpertId) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationXpertRequired', {
+                        defaultValue: 'A Project conversation requires an Xpert ID'
+                    })
+                )
+            }
+            if (!this.projectService) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
             await this.projectService.assertRuntimeAccess(projectId, xpertId)
         }
+
+        let existingConversation = requestedConversationId
+            ? await this.ensureConversationAccess(requestedConversationId, 'contribute')
+            : await this.findConversationCreatedByThread(requestedThreadId, createdById)
+        if (existingConversation) {
+            if (requestedThreadId && existingConversation.threadId !== requestedThreadId) {
+                throw this.conversationAccessDenied()
+            }
+            if (xpert) {
+                existingConversation = await bindConversationAssistantIfUnbound(
+                    this.commandBus,
+                    existingConversation,
+                    xpert,
+                    this.publishedXpertAccessService
+                )
+            }
+            existingConversation = await bindConversationProjectIfUnbound(
+                this.commandBus,
+                existingConversation,
+                projectId || undefined
+            )
+
+            if (body.title === undefined && body.status === undefined && body.options === undefined) {
+                return new ConversationDTO(existingConversation)
+            }
+
+            const conversation = await this.commandBus.execute(
+                new ChatConversationUpsertCommand({
+                    id: existingConversation.id,
+                    ...(body.title !== undefined ? { title: body.title } : {}),
+                    ...(body.status !== undefined ? { status: body.status } : {}),
+                    ...(body.options !== undefined ? { options: body.options } : {})
+                })
+            )
+            return new ConversationDTO(conversation)
+        }
+
         const conversation = await this.commandBus.execute(
             new ChatConversationUpsertCommand({
-                ...body,
-                ...(publicScope ? { createdById: publicScope.createdById, xpertId: publicScope.xpertId } : {}),
+                ...(requestedThreadId ? { threadId: requestedThreadId } : {}),
+                ...(body.title !== undefined ? { title: body.title } : {}),
+                ...(body.status !== undefined ? { status: body.status } : {}),
+                ...(body.options !== undefined ? { options: body.options } : {}),
+                ...(body.fromEndUserId !== undefined ? { fromEndUserId: body.fromEndUserId } : {}),
+                createdById,
+                ...(xpertId ? { xpertId } : {}),
+                ...(projectId ? { projectId } : {}),
                 from: body.from ?? 'api'
             })
         )
         return new ConversationDTO(conversation)
+    }
+
+    private async findConversationCreatedByThread(threadId: string, createdById: string) {
+        if (!threadId) {
+            return null
+        }
+
+        const result = await this.conversationService.findAllInOrganizationOrTenant({
+            where: { threadId, createdById },
+            order: { createdAt: 'ASC' },
+            take: 1
+        })
+        const conversation = result.items[0]
+        return conversation ? this.ensureConversationAccess(conversation.id, 'contribute') : null
     }
 
     @HttpCode(HttpStatus.OK)
@@ -133,9 +247,22 @@ export class ConversationsController {
         const publicScope = getPublicXpertSessionConversationScope()
         if (publicScope) {
             where['createdById'] = publicScope.createdById
-            where['xpertId'] = publicScope.xpertId
+            where['xpertId'] = In(
+                await this.publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds(publicScope.xpertId)
+            )
         } else if (currentUser) {
             where['createdById'] = await this.resolveConversationCreatedByFilter(currentUser, body.where)
+            const xpertId = this.extractSingleXpertId(body.where)
+            if (xpertId) {
+                try {
+                    where['xpertId'] = In(
+                        await this.publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds(xpertId)
+                    )
+                } catch {
+                    // Draft, deleted, or inaccessible filters keep their exact
+                    // transformed value and remain owner-scoped below.
+                }
+            }
         }
         const result = await this.conversationService.findAllInOrganizationOrTenant({
             where,
@@ -195,24 +322,22 @@ export class ConversationsController {
 
     @Get(':conversation_id')
     async getConversation(@Param('conversation_id', UUIDValidationPipe) id: string) {
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(id)
-        assertPublicXpertSessionConversationAccess(conversation)
+        const conversation = await this.ensureConversationAccess(id)
         return new ConversationDTO(conversation)
     }
 
     @Patch(':conversation_id')
     async updateConversation(
         @Param('conversation_id', UUIDValidationPipe) id: string,
-        @Body() body: Partial<IChatConversation>
+        @Body() body: ConversationUpdateRequest
     ) {
-        const existing = await this.conversationService.findOneInOrganizationOrTenant(id)
-        assertPublicXpertSessionConversationAccess(existing)
-        const publicScope = getPublicXpertSessionConversationScope()
+        await this.ensureConversationAccess(id, 'manage')
         const conversation = await this.commandBus.execute(
             new ChatConversationUpsertCommand({
-                ...body,
                 id,
-                ...(publicScope ? { createdById: publicScope.createdById, xpertId: publicScope.xpertId } : {})
+                ...(body.title !== undefined ? { title: body.title } : {}),
+                ...(body.status !== undefined ? { status: body.status } : {}),
+                ...(body.options !== undefined ? { options: body.options } : {})
             })
         )
         return new ConversationDTO(conversation)
@@ -221,8 +346,7 @@ export class ConversationsController {
     @HttpCode(HttpStatus.ACCEPTED)
     @Delete(':conversation_id')
     async deleteConversation(@Param('conversation_id', UUIDValidationPipe) id: string) {
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(id)
-        assertPublicXpertSessionConversationAccess(conversation)
+        const conversation = await this.ensureConversationAccess(id, 'manage')
         await this.commandBus.execute(new ThreadDeleteCommand(conversation.threadId))
     }
 
@@ -237,7 +361,7 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Body() body: TThreadGoalSetRequest
     ) {
-        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        const conversation = await this.ensureConversationAccess(conversationId, 'contribute')
         return this.goalService.setGoalFromUser(conversation.id, body)
     }
 
@@ -246,13 +370,13 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Body() body: TThreadGoalPatchRequest
     ) {
-        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        const conversation = await this.ensureConversationAccess(conversationId, 'contribute')
         return this.goalService.patchGoalFromUser(conversation.id, body)
     }
 
     @Delete(':conversation_id/goal')
     async clearGoal(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
-        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        const conversation = await this.ensureConversationAccess(conversationId, 'contribute')
         return this.goalService.clearGoalFromUser(conversation.id)
     }
 
@@ -288,8 +412,7 @@ export class ConversationsController {
         @Query('limit') limit?: number,
         @Query('offset') offset?: number
     ) {
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(conversationId)
-        assertPublicXpertSessionConversationAccess(conversation)
+        const conversation = await this.ensureConversationAccess(conversationId)
         const result = await this.messageService.findAllInOrganizationOrTenant({
             where: { conversationId },
             relations: ['attachments', 'fileAssets'],
@@ -297,10 +420,13 @@ export class ConversationsController {
             take: limit,
             skip: offset
         })
-        return {
-            ...result,
-            items: result.items.map((item) => new ChatMessageDTO(item))
-        }
+        const items = await Promise.all(
+            result.items.map(
+                async (item) =>
+                    new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
+            )
+        )
+        return { ...result, items }
     }
 
     @HttpCode(HttpStatus.OK)
@@ -309,8 +435,7 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Body() body: MessageSearchRequest
     ) {
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(conversationId)
-        assertPublicXpertSessionConversationAccess(conversation)
+        const conversation = await this.ensureConversationAccess(conversationId)
         const { threadId: requestedThreadIdValue, ...rawMessageWhere } = body.where ?? {}
         const where = {
             ...transformWhere(rawMessageWhere),
@@ -344,24 +469,34 @@ export class ConversationsController {
                   take: body.limit,
                   skip: body.offset
               })
-        return {
-            ...result,
-            items: result.items.map((item) => new ChatMessageDTO(item))
-        }
+        const items = await Promise.all(
+            result.items.map(
+                async (item) =>
+                    new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
+            )
+        )
+        return { ...result, items }
     }
 
     @Post(':conversation_id/messages')
     async createMessage(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
-        @Body() body: Partial<IChatMessage>
+        @Body() body: MessageMutationRequest
     ) {
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(conversationId)
-        assertPublicXpertSessionConversationAccess(conversation)
+        await this.ensureConversationAccess(conversationId, 'contribute')
         const publicScope = getPublicXpertSessionConversationScope()
+        const createdById = publicScope?.createdById ?? RequestContext.currentUserId()
+        if (!createdById) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ConversationUserContextRequired', {
+                    defaultValue: 'A user context is required to create a conversation message'
+                })
+            )
+        }
         const message = await this.commandBus.execute(
             new ChatMessageUpsertCommand({
-                ...body,
-                ...(publicScope ? { createdById: publicScope.createdById } : {}),
+                ...this.pickMessageMutation(body),
+                createdById,
                 conversationId
             })
         )
@@ -373,25 +508,25 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string
     ) {
-        await this.ensurePublicConversationAccess(conversationId)
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
         const message = await this.messageService.findOneInOrganizationOrTenant(messageId, {
             where: { conversationId },
             relations: ['attachments', 'fileAssets']
         })
-        return new ChatMessageDTO(message)
+        return new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(message, conversation.id))
     }
 
     @Patch(':conversation_id/messages/:message_id')
     async updateMessage(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string,
-        @Body() body: Partial<IChatMessage>
+        @Body() body: MessageMutationRequest
     ) {
-        await this.ensurePublicConversationAccess(conversationId)
+        await this.ensureConversationAccess(conversationId, 'contribute')
         await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
         const message = await this.commandBus.execute(
             new ChatMessageUpsertCommand({
-                ...body,
+                ...this.pickMessageMutation(body),
                 id: messageId,
                 conversationId
             })
@@ -405,7 +540,7 @@ export class ConversationsController {
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Param('message_id', UUIDValidationPipe) messageId: string
     ) {
-        await this.ensurePublicConversationAccess(conversationId)
+        await this.ensureConversationAccess(conversationId, 'contribute')
         await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
         await this.messageService.delete(messageId)
     }
@@ -461,7 +596,7 @@ export class ConversationsController {
         @Param('message_id', UUIDValidationPipe) messageId: string,
         @Body() body: FeedbackMutationRequest
     ) {
-        await this.ensureMessage(conversationId, messageId)
+        await this.ensureMessage(conversationId, messageId, 'contribute')
         const publicScope = getPublicXpertSessionConversationScope()
         const feedback = await this.feedbackService.create({
             ...body,
@@ -493,7 +628,7 @@ export class ConversationsController {
         @Param('feedback_id', UUIDValidationPipe) feedbackId: string,
         @Body() body: FeedbackMutationRequest
     ) {
-        await this.ensureMessage(conversationId, messageId)
+        await this.ensureMessage(conversationId, messageId, 'contribute')
         await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
         await this.feedbackService.update(feedbackId, {
             ...body,
@@ -514,19 +649,54 @@ export class ConversationsController {
         @Param('message_id', UUIDValidationPipe) messageId: string,
         @Param('feedback_id', UUIDValidationPipe) feedbackId: string
     ) {
-        await this.ensureMessage(conversationId, messageId)
+        await this.ensureMessage(conversationId, messageId, 'contribute')
         await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
         await this.feedbackService.delete(feedbackId)
     }
 
     private async ensurePublicConversationAccess(conversationId: string) {
-        const conversation = await this.conversationService.findOneInOrganizationOrTenant(conversationId)
-        assertPublicXpertSessionConversationAccess(conversation)
+        return this.ensureConversationAccess(conversationId)
+    }
+
+    private async ensureConversationAccess(
+        conversationId: string,
+        operation: ChatConversationAccessOperation = 'read'
+    ) {
+        const conversation = await this.conversationService.assertAccess(conversationId, operation)
+        await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
         return conversation
     }
 
-    private async ensureMessage(conversationId: string, messageId: string) {
-        await this.ensurePublicConversationAccess(conversationId)
+    private conversationAccessDenied() {
+        return new ForbiddenException(
+            t('server-ai:Error.ConversationAccessDenied', {
+                defaultValue: 'You do not have access to this conversation'
+            })
+        )
+    }
+
+    private pickMessageMutation(body: MessageMutationRequest): MessageMutationRequest {
+        return {
+            ...(body.id !== undefined ? { id: body.id } : {}),
+            ...(body.parentId !== undefined ? { parentId: body.parentId } : {}),
+            ...(body.role !== undefined ? { role: body.role } : {}),
+            ...(body.status !== undefined ? { status: body.status } : {}),
+            ...(body.content !== undefined ? { content: body.content } : {}),
+            ...(body.reasoning !== undefined ? { reasoning: body.reasoning } : {}),
+            ...(body.error !== undefined ? { error: body.error } : {}),
+            ...(body.references !== undefined ? { references: body.references } : {}),
+            ...(body.taskSummary !== undefined ? { taskSummary: body.taskSummary } : {}),
+            ...(body.thirdPartyMessage !== undefined ? { thirdPartyMessage: body.thirdPartyMessage } : {}),
+            ...(body.events !== undefined ? { events: body.events } : {}),
+            ...(body.executionId !== undefined ? { executionId: body.executionId } : {}),
+            ...(body.followUpMode !== undefined ? { followUpMode: body.followUpMode } : {}),
+            ...(body.followUpStatus !== undefined ? { followUpStatus: body.followUpStatus } : {}),
+            ...(body.targetExecutionId !== undefined ? { targetExecutionId: body.targetExecutionId } : {}),
+            ...(body.visibleAt !== undefined ? { visibleAt: body.visibleAt } : {})
+        }
+    }
+    private async ensureMessage(conversationId: string, messageId: string, operation: 'read' | 'contribute' = 'read') {
+        await this.ensureConversationAccess(conversationId, operation)
         return this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
     }
 }

@@ -33,7 +33,7 @@ export abstract class ModelProviderBuiltinToolset<
   constructor(
     private readonly modelProviderOptions: ModelProviderBuiltinToolsetOptions,
     toolset?: IXpertToolset,
-    private readonly runtimeCapabilities?: RuntimeCapabilityResolver,
+    _runtimeCapabilities?: RuntimeCapabilityResolver,
     params?: TBuiltinToolsetParams
   ) {
     super(modelProviderOptions.toolsetProviderName, toolset, params)
@@ -62,7 +62,7 @@ export abstract class ModelProviderBuiltinToolset<
   }
 
   protected getWorkspaceFiles(): WorkspaceFilesApi {
-    const workspaceFiles = this.runtimeCapabilities?.get(WorkspaceFilesRuntimeCapability)
+    const workspaceFiles = this.params?.runtimeCapabilities?.get(WorkspaceFilesRuntimeCapability)
     if (!workspaceFiles) {
       throw new Error(this.modelProviderOptions.missingWorkspaceMessage)
     }
@@ -70,27 +70,15 @@ export abstract class ModelProviderBuiltinToolset<
   }
 
   protected createWorkspaceScope(): WorkspaceFileScope | undefined {
-    const projectId = normalizeOptionalString(this.params?.projectId)
-    if (projectId) {
-      return {
-        tenantId: normalizeOptionalString(this.params?.tenantId),
-        userId: normalizeOptionalString(this.params?.userId),
-        catalog: 'projects',
-        scopeId: projectId,
-        projectId
-      }
+    const runtimeScope = this.params?.runtimeScope
+    if (runtimeScope) {
+      return normalizeWorkspaceScope(runtimeScope)
     }
 
-    const xpertId = normalizeOptionalString(this.xpertId)
-    if (!xpertId) return undefined
-    return {
-      tenantId: normalizeOptionalString(this.params?.tenantId),
-      userId: normalizeOptionalString(this.params?.userId),
-      catalog: 'xperts',
-      scopeId: xpertId,
-      xpertId,
-      isolateByUser: false
+    if (normalizeOptionalString(this.params?.projectId) || normalizeOptionalString(this.xpertId)) {
+      throw new Error(this.modelProviderOptions.missingWorkspaceMessage)
     }
+    return undefined
   }
 
   protected async createAsyncModelClient<TInput, TData>(
@@ -138,4 +126,28 @@ export abstract class ModelProviderBuiltinToolset<
 function normalizeOptionalString(value: string | null | undefined) {
   const normalized = value?.trim()
   return normalized || undefined
+}
+
+function normalizeWorkspaceScope(scope: WorkspaceFileScope): WorkspaceFileScope {
+  const tenantId = normalizeOptionalString(scope.tenantId)
+  const organizationId = normalizeOptionalString(scope.organizationId)
+  const userId = normalizeOptionalString(scope.userId)
+  const catalog = scope.catalog ?? undefined
+  const scopeId = normalizeOptionalString(scope.scopeId)
+  const projectId = normalizeOptionalString(scope.projectId)
+  const knowledgeId = normalizeOptionalString(scope.knowledgeId)
+  const rootId = normalizeOptionalString(scope.rootId)
+  const xpertId = normalizeOptionalString(scope.xpertId)
+  return {
+    ...(tenantId ? { tenantId } : {}),
+    ...(organizationId ? { organizationId } : {}),
+    ...(userId ? { userId } : {}),
+    ...(catalog ? { catalog } : {}),
+    ...(scopeId ? { scopeId } : {}),
+    ...(projectId ? { projectId } : {}),
+    ...(knowledgeId ? { knowledgeId } : {}),
+    ...(rootId ? { rootId } : {}),
+    ...(xpertId ? { xpertId } : {}),
+    ...(typeof scope.isolateByUser === 'boolean' ? { isolateByUser: scope.isolateByUser } : {})
+  }
 }

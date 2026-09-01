@@ -56,7 +56,15 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
         return items
     }
 
-    async findAllByXpertAgent(xpertId: string, agentKey: string, options: PaginationParams<XpertAgentExecution>) {
-        return await this.findAll({ ...options, where: { xpertId, agentKey, parentId: IsNull() } })
+    async findAllByXpertAgent(
+        xpertId: string,
+        agentKey: string,
+        options: PaginationParams<XpertAgentExecution>,
+        createdById?: string
+    ) {
+        return await this.findAll({
+            ...options,
+            where: { xpertId, agentKey, parentId: IsNull(), ...(createdById ? { createdById } : {}) }
+        })
     }
 }

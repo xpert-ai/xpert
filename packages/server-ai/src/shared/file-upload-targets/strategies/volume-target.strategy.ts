@@ -5,10 +5,9 @@ import {
     TFileUploadContext,
     TResolvedFileUploadSource
 } from '@xpert-ai/plugin-sdk'
-import { Inject, Injectable } from '@nestjs/common'
-import fsPromises from 'fs/promises'
-import path from 'path'
-import { VOLUME_CLIENT, VolumeClient } from '../../volume'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { t } from 'i18next'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient } from '../../volume'
 import { normalizeFileName, normalizeRelativePath, resolveVolumeTarget } from '../utils'
 
 @Injectable()
@@ -28,20 +27,33 @@ export class VolumeTargetStrategy implements IFileUploadTargetStrategy<IUploadFi
         const fileName = normalizeFileName(target.fileName || source.originalName)
         const filePath = normalizeRelativePath(target.folder, fileName)
         const absolutePath = volume.path(filePath)
-        await fsPromises.mkdir(path.dirname(absolutePath), { recursive: true })
-        await fsPromises.writeFile(absolutePath, source.buffer)
-        const url = volume.publicUrl(filePath)
+        await volume.writeFile(filePath, source.buffer, {
+            assertCanWrite: (canonicalRelativePath, fileStat) => {
+                if (
+                    volume.scope.catalog === 'projects' &&
+                    (isProjectGovernedContentPath(canonicalRelativePath) || (fileStat && fileStat.nlink !== 1))
+                ) {
+                    throw new ForbiddenException(
+                        t('server-ai:Error.ProjectGovernedContentRuntimeReadOnly', {
+                            defaultValue: 'Project instructions and skills are read-only during Agent runtime'
+                        })
+                    )
+                }
+            }
+        })
+        const url = volume.exposesDirectFileUrls() ? volume.publicUrl(filePath) : undefined
+        const { fileUrl: _fileUrl, url: _url, ...targetMetadata } = target.metadata ?? {}
 
         return {
             kind: 'volume',
             status: 'success',
             path: filePath,
-            url,
+            ...(url ? { url } : {}),
             metadata: {
-                ...(target.metadata ?? {}),
+                ...targetMetadata,
                 catalog: target.catalog,
                 filePath,
-                fileUrl: url,
+                ...(url ? { fileUrl: url } : {}),
                 absolutePath,
                 mimeType: source.mimeType
             }

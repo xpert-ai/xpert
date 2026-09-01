@@ -6,6 +6,14 @@ export type RuntimeCapabilityIcon = IconDefinition
 
 export type ConnectorStatus = 'pending' | 'active' | 'expired' | 'error' | 'disconnected'
 
+export const CONNECTOR_SCOPE_TYPES = ['workspace', 'project'] as const
+export type ConnectorScopeType = (typeof CONNECTOR_SCOPE_TYPES)[number]
+
+export type ConnectorScope = { type: 'workspace'; workspaceId: string } | { type: 'project'; projectId: string }
+
+export const CONNECTOR_AUTHORIZATION_MODES = ['personal', 'shared'] as const
+export type ConnectorAuthorizationMode = (typeof CONNECTOR_AUTHORIZATION_MODES)[number]
+
 export type ConnectorOAuthConfig = {
   type: 'oauth2'
   authorizationUrl?: string
@@ -36,19 +44,34 @@ export type ConnectorAppCredentialsConfig = {
 
 export type ConnectorCredentialFormDefinition = ConnectorAppCredentialsConfig
 
-export type ConnectorAuthMethodDefinition =
-  | {
-      id: string
-      type: 'oauth2'
-      label: RuntimeI18nText
-      appCredentials?: ConnectorCredentialFormDefinition
-    }
-  | {
-      id: string
-      type: 'api_key'
-      label: RuntimeI18nText
-      credentials: ConnectorCredentialFormDefinition
-    }
+export type ConnectorAuthorizationPresentation = {
+  mode: 'embedded_qr'
+  title: RuntimeI18nText
+  description: RuntimeI18nText
+  ariaLabel: RuntimeI18nText
+  completionHint: RuntimeI18nText
+  cancelLabel: RuntimeI18nText
+  copyLinkLabel: RuntimeI18nText
+  copyLinkError: RuntimeI18nText
+}
+
+type ConnectorAuthMethodBase = {
+  id: string
+  label: RuntimeI18nText
+  authorizationPresentation?: ConnectorAuthorizationPresentation
+}
+
+export type ConnectorAuthMethodDefinition = ConnectorAuthMethodBase &
+  (
+    | {
+        type: 'oauth2'
+        appCredentials?: ConnectorCredentialFormDefinition
+      }
+    | {
+        type: 'api_key'
+        credentials: ConnectorCredentialFormDefinition
+      }
+  )
 
 export type ConnectorPermissionDeclaration = {
   key: string
@@ -67,6 +90,8 @@ export type ConnectorDefinitionBase = {
   description?: RuntimeI18nText
   icon?: RuntimeCapabilityIcon
   permissions?: ConnectorPermissionDeclaration[]
+  /** Credential ownership modes supported by this provider. Legacy providers are shared-only. */
+  authorizationModes?: ConnectorAuthorizationMode[]
   /** Maps credentials stored before multi-auth support to a declared OAuth method. */
   legacyAuthMethodId?: string
 }
@@ -103,6 +128,10 @@ export function getConnectorAuthMethods(definition: ConnectorStrategyDefinition)
   ]
 }
 
+export function getConnectorAuthorizationModes(definition: ConnectorStrategyDefinition): ConnectorAuthorizationMode[] {
+  return definition.authorizationModes?.length ? [...definition.authorizationModes] : ['shared']
+}
+
 export function assertConnectorDefinition(definition: unknown): asserts definition is ConnectorStrategyDefinition {
   if (!isObjectValue(definition)) {
     throw new Error('Connector strategy must expose a valid connector definition')
@@ -121,8 +150,25 @@ export function assertConnectorDefinition(definition: unknown): asserts definiti
 
   const auth: unknown = Reflect.get(definition, 'auth')
   const authMethods: unknown = Reflect.get(definition, 'authMethods')
+  const authorizationModes: unknown = Reflect.get(definition, 'authorizationModes')
   const resolvedMethods: Array<{ id: string; type: 'oauth2' | 'api_key' }> = []
   const ids = new Set<string>()
+
+  if (authorizationModes !== undefined) {
+    if (!Array.isArray(authorizationModes) || !authorizationModes.length) {
+      throw new Error(`Connector '${provider}' must declare at least one authorization mode`)
+    }
+    const seenModes = new Set<ConnectorAuthorizationMode>()
+    for (const mode of authorizationModes) {
+      if (mode !== 'personal' && mode !== 'shared') {
+        throw new Error(`Connector '${provider}' has unsupported authorization mode '${String(mode)}'`)
+      }
+      if (seenModes.has(mode)) {
+        throw new Error(`Connector '${provider}' has duplicate authorization mode '${mode}'`)
+      }
+      seenModes.add(mode)
+    }
+  }
 
   if (authMethods !== undefined) {
     if (!Array.isArray(authMethods) || !authMethods.length) {
@@ -197,6 +243,45 @@ function assertConnectorAuthMethod(method: unknown, provider: string): asserts m
   if (type === 'api_key' && !isObjectValue(Reflect.get(method, 'credentials'))) {
     throw new Error(`Connector '${provider}' API key method '${idValue.trim()}' must declare credentials`)
   }
+
+  const authorizationPresentation = Reflect.get(method, 'authorizationPresentation')
+  if (authorizationPresentation !== undefined) {
+    assertConnectorAuthorizationPresentation(authorizationPresentation, provider, idValue.trim(), type)
+  }
+}
+
+function assertConnectorAuthorizationPresentation(
+  value: unknown,
+  provider: string,
+  authMethodId: string,
+  authMethodType: 'oauth2' | 'api_key'
+): asserts value is ConnectorAuthorizationPresentation {
+  if (!isObjectValue(value) || Reflect.get(value, 'mode') !== 'embedded_qr') {
+    throw new Error(
+      `Connector '${provider}' authentication method '${authMethodId}' has an invalid authorization presentation`
+    )
+  }
+  if (authMethodType !== 'oauth2') {
+    throw new Error(
+      `Connector '${provider}' authentication method '${authMethodId}' can declare authorization presentation only for OAuth`
+    )
+  }
+
+  for (const field of [
+    'title',
+    'description',
+    'ariaLabel',
+    'completionHint',
+    'cancelLabel',
+    'copyLinkLabel',
+    'copyLinkError'
+  ] as const) {
+    if (!isRuntimeI18nText(Reflect.get(value, field))) {
+      throw new Error(
+        `Connector '${provider}' authentication method '${authMethodId}' authorization presentation must declare '${field}'`
+      )
+    }
+  }
 }
 
 function isConnectorOAuthConfig(value: unknown): value is ConnectorOAuthConfig {
@@ -226,7 +311,12 @@ export type ConnectorProfile = {
 
 export type ConnectorInstance = {
   id: string
-  workspaceId: string
+  /** @deprecated Prefer scope. */
+  workspaceId?: string | null
+  projectId?: string | null
+  scopeType?: ConnectorScopeType
+  scope?: ConnectorScope
+  authorizationMode?: ConnectorAuthorizationMode
   provider: string
   authMethodId?: string | null
   status: ConnectorStatus
@@ -243,6 +333,50 @@ export type ConnectorInstance = {
   updatedAt?: string
 }
 
+export type ConnectorBinding = ConnectorInstance & {
+  scopeType: ConnectorScopeType
+  scope: ConnectorScope
+  authorizationMode: ConnectorAuthorizationMode
+}
+
+export type ConnectorBindingCreateRequest = {
+  scope: ConnectorScope
+  provider: string
+  authorizationMode: ConnectorAuthorizationMode
+}
+
+export type ConnectorRuntimeOption = {
+  bindingId: string
+  provider: string
+  authorizationMode: ConnectorAuthorizationMode
+  status: ConnectorStatus
+  granted: boolean
+  label: RuntimeI18nText
+  description?: RuntimeI18nText
+  icon?: RuntimeCapabilityIcon
+  /** Sanitized authentication forms needed to connect the current user's account. */
+  authMethods?: ConnectorAuthMethodDefinition[]
+  profile?: ConnectorProfile | null
+}
+
+export type ConnectorRuntimeOptions = {
+  scope: ConnectorScope
+  items: ConnectorRuntimeOption[]
+}
+
+export type ConnectorPersonalAccountInstance = {
+  id: string
+  provider: string
+  status: ConnectorStatus
+  authMethodId?: string | null
+  profile?: ConnectorProfile | null
+  scopes?: string[]
+  expiresAt?: string | null
+  connectedAt?: string | null
+  disconnectedAt?: string | null
+  lastError?: string | null
+}
+
 export type ConnectorOAuthStartRequest = {
   app?: ConnectorAppCredentialPayload
 }
@@ -250,6 +384,8 @@ export type ConnectorOAuthStartRequest = {
 export type ConnectorConnectRequest = {
   authMethodId?: string
   values?: ConnectorAppCredentialPayload
+  /** Assistant proving run access when a non-member authorizes a personal Workspace connector. */
+  xpertId?: string
   /** @deprecated Use values instead. */
   app?: ConnectorAppCredentialPayload
 }
@@ -271,6 +407,8 @@ export type ConnectorOAuthStartResponse = {
 
 export type ConnectorOAuthStatusResponse = {
   connector: ConnectorInstance
+  /** Whether this binding currently has a usable credential for the requesting user. */
+  granted?: boolean
   authorizationUrl?: string | null
   stateExpiresAt?: string | null
   pollIntervalSeconds?: number | null
@@ -279,7 +417,11 @@ export type ConnectorOAuthStatusResponse = {
 
 export type ConnectorRuntimeCredential = {
   connectorId: string
-  workspaceId: string
+  bindingId: string
+  scope: ConnectorScope
+  authorizationMode: ConnectorAuthorizationMode
+  workspaceId?: string | null
+  projectId?: string | null
   provider: string
   appId: string
   brand?: string
@@ -291,7 +433,11 @@ export type ConnectorRuntimeCredential = {
 
 export type ConnectorRuntimeCredentialV2 = {
   connectorId: string
-  workspaceId: string
+  bindingId: string
+  scope: ConnectorScope
+  authorizationMode: ConnectorAuthorizationMode
+  workspaceId?: string | null
+  projectId?: string | null
   provider: string
   authMethodId: string
   credentials: Record<string, unknown>
@@ -301,8 +447,12 @@ export type ConnectorRuntimeCredentialV2 = {
 }
 
 export type ConnectorRuntimeGetInput = {
-  workspaceId: string
-  provider: string
+  bindingId?: string
+  /** @deprecated Use bindingId. */
+  workspaceId?: string
+  projectId?: string
+  provider?: string
+  /** @deprecated Use bindingId. */
   connectorId?: string
 }
 
@@ -434,6 +584,14 @@ export type ConnectorCredentialRefreshInput = {
   credential: ConnectorCredential
 }
 
+export type ConnectorCredentialRevokeReason = 'disconnect' | 'delete' | 'rotate'
+
+export type ConnectorCredentialRevokeInput = {
+  authMethodId: string
+  credential: ConnectorCredential
+  reason: ConnectorCredentialRevokeReason
+}
+
 export type ConnectorRuntimeCredentialResolveInput = {
   authMethodId: string
   credential: ConnectorCredential
@@ -475,6 +633,11 @@ export interface ConnectorStrategyRuntime {
   exchangeAuthorizationCode?(input: ConnectorAuthorizationCodeInput): Promise<ConnectorCredential>
   pollConnection?(input: ConnectorConnectionPollInput): Promise<ConnectorConnectionPollResult>
   refreshConnectionCredential?(input: ConnectorCredentialRefreshInput): Promise<ConnectorCredential>
+  /**
+   * Revokes a provider-side credential before the host destroys a shared credential locally.
+   * Implementations should be idempotent. Hosts remain compatible with providers that omit this hook.
+   */
+  revokeCredential?(input: ConnectorCredentialRevokeInput): Promise<void>
   resolveRuntimeCredential?(
     input: ConnectorRuntimeCredentialResolveInput
   ): Promise<Record<string, unknown>> | Record<string, unknown>

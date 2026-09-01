@@ -452,7 +452,7 @@ describe('RemoteComponentRendererComponent', () => {
     await component.handleFileAccessRequest({ fileKey: 'asset-2', targetId: 'project-1', purpose: 'preview' })
 
     expect(api.createViewFileAccessSession).toHaveBeenCalledTimes(1)
-    expect(api.createViewFileAccessSession).toHaveBeenCalledWith('agent', 'assistant-1', manifest.key)
+    expect(api.createViewFileAccessSession).toHaveBeenCalledWith('agent', 'assistant-1', manifest.key, undefined)
     expect(api.createViewFileAccessGrant).toHaveBeenNthCalledWith(1, 'session-1', {
       fileKey: 'asset-1',
       targetId: 'project-1',
@@ -466,6 +466,55 @@ describe('RemoteComponentRendererComponent', () => {
     fixture.destroy()
     await Promise.resolve()
     expect(api.revokeViewFileAccessSession).toHaveBeenCalledWith('session-1')
+  })
+
+  it('updates Project runtime scope without replacing the mounted renderer and drops the old file session', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: null })
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      fileAccess: { purposes: ['preview'] }
+    })
+    await flushRemoteEntry(fixture)
+
+    const component = fixture.componentInstance as unknown as {
+      handleFileAccessRequest(message: Record<string, unknown>): Promise<unknown>
+      handleFrameLoad(): void
+    }
+    await component.handleFileAccessRequest({ fileKey: 'asset-1', purpose: 'preview' })
+    const initialSrc = (fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement).getAttribute('src')
+
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-2', conversationId: null })
+    await flushRemoteEntry(fixture)
+
+    expect(fixture.componentInstance).toBe(component)
+    expect(api.getRemoteComponentEntry).toHaveBeenLastCalledWith('agent', 'assistant-1', manifest.key, {
+      projectId: 'project-2',
+      conversationId: null
+    })
+    expect(api.revokeViewFileAccessSession).toHaveBeenCalledWith('session-1')
+    const updatedFrame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    expect(updatedFrame.getAttribute('src')).not.toBe(initialSrc)
+
+    const postMessage = jest
+      .spyOn(updatedFrame.contentWindow as Window, 'postMessage')
+      .mockImplementation(() => undefined)
+    component.handleFrameLoad()
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'init',
+        runtimeScope: { projectId: 'project-2', conversationId: null }
+      }),
+      '*'
+    )
+
+    await component.handleFileAccessRequest({ fileKey: 'asset-2', purpose: 'preview' })
+    expect(api.createViewFileAccessSession).toHaveBeenLastCalledWith('agent', 'assistant-1', manifest.key, {
+      projectId: 'project-2',
+      conversationId: null
+    })
   })
 
   it('ignores postMessage events from a different iframe source', async () => {
@@ -672,5 +721,164 @@ describe('RemoteComponentRendererComponent', () => {
     )
     expect(postMessage.mock.calls[0][0].event).not.toHaveProperty('hostType')
     expect(postMessage.mock.calls[0][0].event).not.toHaveProperty('hostId')
+  })
+
+  it('routes only the matching Project scope and fails closed when either scope key is missing', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: 'conversation-1' })
+    fixture.componentRef.setInput('runtimeUserId', 'user-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      hostEvents: {
+        subscriptions: [
+          {
+            key: 'project-data-changed',
+            event: 'view.data.changed',
+            action: { type: 'forward' }
+          }
+        ]
+      }
+    })
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const postMessage = jest.spyOn(frame.contentWindow as Window, 'postMessage').mockImplementation(() => undefined)
+    postMessage.mockClear()
+
+    for (const [id, dataScopeKey] of [
+      ['project-data-changed-other-project', 'user:user-1:project:project-2'],
+      ['project-data-changed-other-user', 'user:user-2:project:project-1'],
+      ['project-data-changed-personal', 'user:user-1:personal:agent:assistant-1'],
+      ['project-data-changed-missing-scope', undefined]
+    ] as const) {
+      hostEvents.publish({
+        id,
+        type: 'view.data.changed',
+        source: 'view-extension',
+        receivedAt: '2026-08-29T00:00:00.000Z',
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        ...(dataScopeKey ? { dataScopeKey } : {})
+      })
+    }
+
+    expect(postMessage).not.toHaveBeenCalled()
+
+    hostEvents.publish({
+      id: 'project-data-changed-1',
+      type: 'view.data.changed',
+      source: 'view-extension',
+      receivedAt: '2026-08-29T00:00:00.000Z',
+      hostType: 'project',
+      hostId: 'project-1',
+      dataScopeKey: 'user:user-1:project:project-1'
+    })
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'hostEvent',
+        event: expect.objectContaining({ type: 'view.data.changed' })
+      }),
+      '*'
+    )
+    expect(postMessage).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not deliver a scoped event to a renderer without a runtime scope key', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('runtimeUserId', 'user-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      hostEvents: {
+        subscriptions: [
+          {
+            key: 'project-data-changed',
+            event: 'view.data.changed',
+            action: { type: 'forward' }
+          }
+        ]
+      }
+    })
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const postMessage = jest.spyOn(frame.contentWindow as Window, 'postMessage').mockImplementation(() => undefined)
+    postMessage.mockClear()
+
+    hostEvents.publish({
+      id: 'project-data-changed-1',
+      type: 'view.data.changed',
+      source: 'view-extension',
+      receivedAt: '2026-08-29T00:00:00.000Z',
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      dataScopeKey: 'user:user-1:project:project-1'
+    })
+
+    expect(postMessage).not.toHaveBeenCalled()
+  })
+
+  it('isolates personal runtime events by the current user', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('runtimeScope', { projectId: null, conversationId: 'conversation-1' })
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      hostEvents: {
+        subscriptions: [
+          {
+            key: 'tool-completed',
+            event: 'assistant.tool.completed',
+            action: { type: 'forward' }
+          }
+        ]
+      }
+    })
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const postMessage = jest.spyOn(frame.contentWindow as Window, 'postMessage').mockImplementation(() => undefined)
+    postMessage.mockClear()
+
+    hostEvents.publish({
+      id: 'tool-completed-missing-scope-key',
+      type: 'assistant.tool.completed',
+      source: 'chatkit',
+      receivedAt: '2026-08-29T00:00:00.000Z',
+      hostType: 'agent',
+      hostId: 'assistant-1'
+    })
+    expect(postMessage).not.toHaveBeenCalled()
+
+    fixture.componentRef.setInput('runtimeUserId', 'user-1')
+    fixture.detectChanges()
+
+    hostEvents.publish({
+      id: 'tool-completed-other-user',
+      type: 'assistant.tool.completed',
+      source: 'chatkit',
+      receivedAt: '2026-08-29T00:00:00.000Z',
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      dataScopeKey: 'user:user-2:personal:agent:assistant-1'
+    })
+    expect(postMessage).not.toHaveBeenCalled()
+
+    hostEvents.publish({
+      id: 'tool-completed-current-user',
+      type: 'assistant.tool.completed',
+      source: 'chatkit',
+      receivedAt: '2026-08-29T00:00:00.000Z',
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      dataScopeKey: 'user:user-1:personal:agent:assistant-1'
+    })
+
+    expect(postMessage).toHaveBeenCalledTimes(1)
   })
 })

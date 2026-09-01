@@ -111,10 +111,7 @@ export abstract class CrudService<T extends BaseEntity> implements ICrudService<
 		try {
 			options = options as FindOneOptions<T>
 			const record = await this.repository.findOneOrFail({
-				where: {
-					id,
-					...(options && options.where ? options.where : {})
-				},
+				where: this.scopeWhereToId(id, options?.where),
 				...(options && options.select ? { select: options.select } : {}),
 				...(options && options.relations ? { relations: options.relations } : []),
 				...(options && options.order ? { order: options.order } : {})
@@ -245,10 +242,7 @@ export abstract class CrudService<T extends BaseEntity> implements ICrudService<
 	 */
 	public async findOneByIdString(id: ID, options?: IFindOneOptions<T>): Promise<T> {
 		const record = await this.repository.findOne({
-			where: {
-				id,
-				...(options && options.where ? options.where : {})
-			},
+			where: this.scopeWhereToId(id, options?.where),
 			...(options && options.select ? { select: options.select } : {}),
 			...(options && options.relations ? { relations: options.relations } : []),
 			...(options && options.order ? { order: options.order } : {}),
@@ -264,10 +258,7 @@ export abstract class CrudService<T extends BaseEntity> implements ICrudService<
 		let _options: FindOneOptions<T> = options ?? {}
 		if (typeof id === 'string' || typeof id === 'number') {
 			_options = {
-				where: {
-					id,
-					...(options && options.where ? options.where : {})
-				},
+				where: this.scopeWhereToId(id, options?.where),
 				...(options && options.select ? { select: options.select } : {}),
 				...(options && options.relations ? { relations: options.relations } : []),
 				...(options && options.order ? { order: options.order } : {})
@@ -280,6 +271,22 @@ export abstract class CrudService<T extends BaseEntity> implements ICrudService<
 			throw new NotFoundException(`The requested record was not found`)
 		}
 		return record
+	}
+
+	private scopeWhereToId(
+		id: string | number,
+		where?: FindOptionsWhere<T> | FindOptionsWhere<T>[]
+	): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
+		const scope = (condition: FindOptionsWhere<T> = {}) => ({
+			...condition,
+			id
+		})
+
+		if (Array.isArray(where)) {
+			return where.length ? where.map(scope) : scope()
+		}
+
+		return scope(where)
 	}
 
 	/**

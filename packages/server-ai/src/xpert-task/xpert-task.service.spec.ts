@@ -2,17 +2,26 @@ import {
     IWFNMiddleware,
     IXpertTask,
     ScheduleTaskStatus,
+    STATE_VARIABLE_HUMAN,
     TaskFrequency,
     TXpertGraph,
+    UserType,
     WorkflowNodeTypeEnum,
     XPERT_TASK_SCHEDULE_IDEMPOTENCY_KEY,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { SchedulerRegistry } from '@nestjs/schedule'
-import { RedisLockRunResult, RedisLockService } from '@xpert-ai/server-core'
+import {
+    OutboundActorTokenProvider,
+    RedisLockRunResult,
+    RedisLockService,
+    RequestContext,
+    User
+} from '@xpert-ai/server-core'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
-import { Repository, UpdateResult } from 'typeorm'
+import { Brackets, Repository, UpdateResult } from 'typeorm'
 import { of } from 'rxjs'
 import { z } from 'zod'
 import { ChatConversationUpsertCommand } from '../chat-conversation'
@@ -25,8 +34,19 @@ import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ScheduleNote } from './schedule-note.entity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
-import { buildScheduleOccurrenceKey, resolveScheduledOccurrence, XpertTaskService } from './xpert-task.service'
+import {
+    buildProjectTaskRunAsConfigurationHash,
+    buildScheduleOccurrenceKey,
+    resolveScheduledOccurrence,
+    XpertTaskService
+} from './xpert-task.service'
 import { ScheduledTaskExecution, ScheduledTaskExecutionStatus } from './scheduled-task-execution.entity'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
+import { XpertProjectXpertBindingService } from '../xpert-project/services/project-xpert-binding.service'
+import { XpertProject } from '../xpert-project/entities/project.entity'
+import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
+import { ConnectorService } from '../connector/connector.service'
+import type { RuntimeCapabilitiesSelection, TXpertChatState } from '@xpert-ai/chatkit-types'
 
 type CommandBusMock = {
     execute: jest.Mock<Promise<unknown>, [unknown]>
@@ -37,6 +57,92 @@ type AgentMiddlewareRegistryMock = {
 }
 
 describe('XpertTaskService', () => {
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    it('immediately removes in-memory jobs when a Project run-as member is removed', async () => {
+        const repository = createRepositoryMock<XpertTask>()
+        const tasks = [
+            createTaskFixture({ id: 'task-run-as', projectId: 'project-1', runAsUserId: 'user-2' }),
+            createTaskFixture({
+                id: 'task-legacy',
+                projectId: 'project-1',
+                runAsUserId: undefined,
+                createdById: 'user-2'
+            })
+        ]
+        jest.mocked(repository.find).mockResolvedValue(tasks)
+        const service = createService(createCommandBusMock(), undefined, undefined, repository)
+        const deleteJob = jest.spyOn(service, 'deleteJob').mockImplementation()
+
+        await service.pauseProjectTasksForRemovedMember({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            projectId: 'project-1',
+            userId: 'user-2'
+        })
+
+        expect(deleteJob).toHaveBeenCalledTimes(2)
+        expect(deleteJob).toHaveBeenCalledWith('task-run-as')
+        expect(deleteJob).toHaveBeenCalledWith('task-legacy')
+        expect(repository.update).toHaveBeenNthCalledWith(
+            1,
+            'task-run-as',
+            expect.objectContaining({
+                status: ScheduleTaskStatus.PAUSED,
+                statusReason: expect.any(String)
+            })
+        )
+        expect(repository.update).toHaveBeenNthCalledWith(
+            2,
+            'task-legacy',
+            expect.objectContaining({
+                status: ScheduleTaskStatus.PAUSED,
+                statusReason: expect.any(String)
+            })
+        )
+    })
+
+    it('immediately removes in-memory jobs when a Project Xpert is removed', async () => {
+        const repository = createRepositoryMock<XpertTask>()
+        const tasks = [
+            createTaskFixture({ id: 'task-current', projectId: 'project-1', xpertId: 'xpert-current' }),
+            createTaskFixture({
+                id: 'task-archived',
+                projectId: 'project-1',
+                xpertId: 'xpert-old',
+                status: ScheduleTaskStatus.ARCHIVED
+            })
+        ]
+        jest.mocked(repository.find).mockResolvedValue(tasks)
+        const service = createService(createCommandBusMock(), undefined, undefined, repository)
+        const deleteJob = jest.spyOn(service, 'deleteJob').mockImplementation()
+
+        await service.pauseProjectTasksForRemovedXpert({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            projectId: 'project-1',
+            xpertIds: ['xpert-current', 'xpert-old']
+        })
+
+        expect(repository.find).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                projectId: 'project-1',
+                xpertId: expect.anything()
+            }
+        })
+        expect(deleteJob).toHaveBeenCalledWith('task-current')
+        expect(deleteJob).not.toHaveBeenCalledWith('task-archived')
+        expect(repository.update).toHaveBeenCalledTimes(1)
+        expect(repository.update).toHaveBeenCalledWith(
+            'task-current',
+            expect.objectContaining({ status: ScheduleTaskStatus.PAUSED, statusReason: expect.any(String) })
+        )
+    })
+
     it('scans due auto tasks under a renewable Redis lock', async () => {
         const autoTaskQuery = {
             leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -246,6 +352,293 @@ describe('XpertTaskService', () => {
         })
     })
 
+    it('locks a Project task run to its Project and confirmed run-as user', async () => {
+        const commandBus = createCommandBusMock()
+        const projectAccess = {
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const publishedXpertAccess = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+        }
+        const service = createService(commandBus, undefined, undefined, undefined, undefined, {
+            projectAccess,
+            publishedXpertAccess
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                runAsUserId: 'user-2',
+                runAsUser: { id: 'user-2' }
+            })
+        )
+
+        await service.executeTask('task-1', { timeZone: 'UTC' })
+
+        expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1')
+        expect(publishedXpertAccess.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-1')
+        expect(findCommand(commandBus, ChatConversationUpsertCommand).entity).toMatchObject({
+            projectId: 'project-1'
+        })
+        expect(findCommand(commandBus, XpertChatCommand).options).toMatchObject({
+            projectId: 'project-1'
+        })
+    })
+
+    it('runs a Project automation with the current Xpert version', async () => {
+        const commandBus = createCommandBusMock()
+        const connectorService = {
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([])
+        }
+        const outboundActorTokenProvider = {
+            mint: jest.fn().mockReturnValue({ token: 'current-xpert-token' })
+        }
+        const projectAccess = {
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const publishedXpertAccess = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-current' })
+        }
+        const projectXpertBinding = {
+            resolveCurrentById: jest.fn().mockResolvedValue({ id: 'xpert-current' })
+        }
+        const service = createService(commandBus, undefined, undefined, undefined, undefined, {
+            projectAccess,
+            publishedXpertAccess,
+            projectXpertBinding,
+            connectorService,
+            outboundActorTokenProvider
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                xpertId: 'xpert-history',
+                runAsUserId: 'user-1',
+                runtimeState: createConnectorRuntimeState(['binding-1']),
+                options: {
+                    frequency: TaskFrequency.Daily,
+                    time: '08:00',
+                    automationContext: {
+                        source: 'project',
+                        oidcClientId: 'project-automation'
+                    }
+                } as IXpertTask['options']
+            })
+        )
+
+        await service.executeTask('task-1', { timeZone: 'UTC' })
+
+        expect(projectXpertBinding.resolveCurrentById).toHaveBeenCalledWith('xpert-history', {
+            tenantId: 'tenant-1',
+            organizationId: null
+        })
+        expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-current')
+        expect(publishedXpertAccess.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-current')
+        expect(connectorService.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(
+            ['binding-1'],
+            expect.objectContaining({ xpertId: 'xpert-current' })
+        )
+        expect(outboundActorTokenProvider.mint).toHaveBeenCalledWith(
+            expect.objectContaining({
+                act: expect.objectContaining({ xpert_id: 'xpert-current' })
+            })
+        )
+        expect(findCommand(commandBus, ChatConversationUpsertCommand).entity).toMatchObject({
+            projectId: 'project-1',
+            xpertId: 'xpert-current'
+        })
+        expect(findCommand(commandBus, XpertAgentExecutionUpsertCommand).execution).toMatchObject({
+            xpertId: 'xpert-current'
+        })
+        expect(findCommand(commandBus, XpertChatCommand).options).toMatchObject({
+            projectId: 'project-1',
+            xpertId: 'xpert-current',
+            context: {
+                env: {
+                    oidc_token: 'current-xpert-token'
+                }
+            }
+        })
+    })
+
+    it('pauses a Project automation when its current Xpert cannot be resolved', async () => {
+        const commandBus = createCommandBusMock()
+        const repository = createRepositoryMock<XpertTask>()
+        const service = createService(commandBus, undefined, undefined, repository, undefined, {
+            projectAccess: {
+                assertCanUseXpert: jest.fn()
+            },
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn()
+            },
+            projectXpertBinding: {
+                resolveCurrentById: jest.fn().mockResolvedValue(null)
+            }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                xpertId: 'xpert-history',
+                runAsUserId: 'user-1'
+            })
+        )
+
+        await expect(service.executeTask('task-1', { timeZone: 'UTC' })).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(repository.update).toHaveBeenCalledWith(
+            'task-1',
+            expect.objectContaining({
+                status: ScheduleTaskStatus.PAUSED,
+                statusReason: expect.any(String)
+            })
+        )
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof ChatConversationUpsertCommand)
+        ).toBe(false)
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof XpertChatCommand)).toBe(false)
+    })
+
+    it('pauses a Project task with a visible reason when runtime access is lost', async () => {
+        const repository = createRepositoryMock<XpertTask>()
+        const projectAccess = {
+            assertCanUseXpert: jest.fn().mockRejectedValue(new Error('Project membership was revoked'))
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn()
+            }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                runAsUserId: 'user-1',
+                runAsUser: { id: 'user-1' }
+            })
+        )
+
+        await expect(service.executeTask('task-1', { timeZone: 'UTC' })).rejects.toThrow(
+            'Project membership was revoked'
+        )
+
+        expect(repository.update).toHaveBeenCalledWith('task-1', {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason: 'Project membership was revoked'
+        })
+    })
+
+    it('preflights selected Project Connectors before creating the task conversation', async () => {
+        const commandBus = createCommandBusMock()
+        const connectorService = {
+            resolveSelectedRuntimeBindings: jest
+                .fn()
+                .mockResolvedValue([{ bindingId: 'binding-1', provider: 'example' }])
+        }
+        const service = createService(commandBus, undefined, undefined, undefined, undefined, {
+            projectAccess: {
+                assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+            },
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            connectorService
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                runAsUserId: 'user-1',
+                runtimeState: createConnectorRuntimeState(['binding-1'])
+            })
+        )
+
+        await service.executeTask('task-1', { timeZone: 'UTC' })
+
+        expect(connectorService.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(
+            ['binding-1'],
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                conversationId: expect.any(String),
+                executionId: expect.any(String),
+                connectorBindingIds: ['binding-1']
+            })
+        )
+        const connectorPreflightOrder = connectorService.resolveSelectedRuntimeBindings.mock.invocationCallOrder[0]
+        const conversationCreateOrder = commandBus.execute.mock.invocationCallOrder.find(
+            (_, index) => commandBus.execute.mock.calls[index][0] instanceof ChatConversationUpsertCommand
+        )
+        expect(conversationCreateOrder).toBeDefined()
+        expect(connectorPreflightOrder).toBeLessThan(conversationCreateOrder ?? 0)
+
+        const runtimeScope = connectorService.resolveSelectedRuntimeBindings.mock.calls[0][1]
+        expect(findCommand(commandBus, ChatConversationUpsertCommand).entity).toMatchObject({
+            id: runtimeScope.conversationId
+        })
+        expect(findCommand(commandBus, XpertAgentExecutionUpsertCommand).execution).toMatchObject({
+            id: runtimeScope.executionId
+        })
+    })
+
+    it('pauses a Project task before conversation creation when a selected Connector becomes unavailable', async () => {
+        const commandBus = createCommandBusMock()
+        const repository = createRepositoryMock<XpertTask>()
+        const connectorService = {
+            resolveSelectedRuntimeBindings: jest
+                .fn()
+                .mockRejectedValue(new Error('Personal Connector grant was revoked'))
+        }
+        const service = createService(commandBus, undefined, undefined, repository, undefined, {
+            projectAccess: {
+                assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+            },
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            connectorService
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                runAsUserId: 'user-1',
+                runtimeState: createConnectorRuntimeState(['binding-1'])
+            })
+        )
+
+        await expect(service.executeTask('task-1', { timeZone: 'UTC' })).rejects.toThrow(
+            'Project automation was paused because a selected Connector is unavailable'
+        )
+
+        expect(repository.update).toHaveBeenCalledWith('task-1', {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason:
+                'Project automation was paused because a selected Connector is unavailable: Personal Connector grant was revoked'
+        })
+        expect(
+            commandBus.execute.mock.calls.some(([command]) => command instanceof ChatConversationUpsertCommand)
+        ).toBe(false)
+    })
+
+    it('pauses a Project task when its confirmed run-as user no longer exists', async () => {
+        const repository = createRepositoryMock<XpertTask>()
+        const service = createService(createCommandBusMock(), undefined, undefined, repository)
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                runAsUserId: 'missing-user',
+                runAsUser: undefined,
+                createdBy: undefined
+            })
+        )
+
+        await expect(service.executeTask('task-1', { timeZone: 'UTC' })).rejects.toThrow()
+
+        expect(repository.update).toHaveBeenCalledWith('task-1', {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason: 'The scheduled task no longer has a valid run-as user'
+        })
+    })
+
     it('injects configured task runtime state into scheduled task runs', async () => {
         const commandBus = createCommandBusMock()
         const service = createService(commandBus)
@@ -391,6 +784,8 @@ describe('XpertTaskService', () => {
 
         const updateInput = {
             prompt: 'Updated prompt',
+            projectId: 'another-project',
+            runAsUserId: 'another-user',
             conversations: [
                 {
                     id: 'conversation-1'
@@ -417,6 +812,681 @@ describe('XpertTaskService', () => {
         expect(updatePayload).not.toHaveProperty('conversations')
         expect(updatePayload).not.toHaveProperty('xpert')
         expect(updatePayload).not.toHaveProperty('executionCount')
+        expect(updatePayload).not.toHaveProperty('projectId')
+        expect(updatePayload).not.toHaveProperty('runAsUserId')
+    })
+
+    it('requires Project manager access before updating a Project automation', async () => {
+        const repository = createRepositoryMock<XpertTask>()
+        const projectAccess = {
+            assertCanManage: jest.fn().mockRejectedValue(new Error('Project manager access is required')),
+            assertCanUseXpert: jest.fn()
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn()
+            }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(createTaskFixture({ projectId: 'project-1' }))
+
+        await expect(service.updateTask('task-1', { prompt: 'Changed' })).rejects.toThrow(
+            'Project manager access is required'
+        )
+
+        expect(projectAccess.assertCanManage).toHaveBeenCalledWith('project-1')
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('validates edited Connector selections as the confirmed run-as user before saving', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        const runAsUser = { id: 'user-2', tenantId: 'tenant-1' } as User
+        jest.mocked(userRepository.findOne).mockResolvedValue(runAsUser)
+        const connectorService = {
+            listBindings: jest.fn().mockResolvedValue([
+                { id: 'binding-1', authorizationMode: 'personal' },
+                { id: 'binding-2', authorizationMode: 'personal' }
+            ]),
+            resolveSelectedRuntimeBindings: jest.fn().mockRejectedValue(new Error('Personal grant is missing'))
+        }
+        const projectAccess = {
+            assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' }),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            connectorService,
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                organizationId: 'org-1',
+                runAsUserId: runAsUser.id,
+                runtimeState: createConnectorRuntimeState(['binding-1'])
+            })
+        )
+
+        await expect(
+            service.updateTask('task-1', { runtimeState: createConnectorRuntimeState(['binding-2']) })
+        ).rejects.toThrow('A selected Connector is not available to the run-as user')
+
+        expect(connectorService.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(
+            ['binding-2'],
+            expect.objectContaining({
+                userId: runAsUser.id,
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                connectorBindingIds: ['binding-2']
+            })
+        )
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('does not let a Project manager change another run-as users personal Connector selection', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('manager-1')
+        const repository = createRepositoryMock<XpertTask>()
+        const connectorService = {
+            listBindings: jest.fn().mockResolvedValue([
+                { id: 'binding-1', authorizationMode: 'personal' },
+                { id: 'binding-2', authorizationMode: 'personal' }
+            ]),
+            resolveSelectedRuntimeBindings: jest.fn()
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess: {
+                assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' })
+            },
+            publishedXpertAccess: { getAccessiblePublishedXpert: jest.fn() },
+            connectorService
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                runAsUserId: 'user-2',
+                runtimeState: createConnectorRuntimeState(['binding-1'])
+            })
+        )
+
+        await expect(
+            service.updateTask('task-1', { runtimeState: createConnectorRuntimeState(['binding-2']) })
+        ).rejects.toThrow('Only the confirmed run-as user can change personal Connectors')
+
+        expect(connectorService.resolveSelectedRuntimeBindings).not.toHaveBeenCalled()
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('does not let a non-manager run-as user change non-Connector runtime capabilities', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-2', tenantId: 'tenant-1' } as User)
+        const projectAccess = {
+            assertCanManage: jest.fn().mockRejectedValue(new Error('Project manager access is required')),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const connectorService = {
+            listBindings: jest.fn().mockResolvedValue([
+                { id: 'binding-1', authorizationMode: 'personal' },
+                { id: 'binding-2', authorizationMode: 'personal' }
+            ]),
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([])
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            connectorService,
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                organizationId: 'org-1',
+                runAsUserId: 'user-2',
+                runtimeState: createInheritedConnectorRuntimeState(['binding-1'])
+            })
+        )
+
+        await expect(
+            service.updateTask('task-1', {
+                runtimeState: createInheritedConnectorRuntimeState(['binding-2'], {
+                    recommended: {
+                        skills: { ids: ['skill-not-approved-by-manager'] },
+                        plugins: { nodeKeys: [] },
+                        subAgents: { nodeKeys: [] }
+                    }
+                })
+            })
+        ).rejects.toThrow('Project manager access is required')
+
+        expect(connectorService.resolveSelectedRuntimeBindings).not.toHaveBeenCalled()
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects a configuration update when run-as acceptance wins the proposal CAS race', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('manager-1')
+        const repository = createRepositoryMock<XpertTask>()
+        jest.mocked(repository.update).mockResolvedValue(Object.assign(new UpdateResult(), { affected: 0 }))
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' } as User)
+        const projectAccess = {
+            assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' }),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const connectorService = {
+            listBindings: jest.fn().mockResolvedValue([
+                { id: 'binding-1', authorizationMode: 'shared' },
+                { id: 'binding-2', authorizationMode: 'shared' }
+            ]),
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([])
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            connectorService,
+            userRepository
+        })
+        const task = createTaskFixture({
+            projectId: 'project-1',
+            organizationId: 'org-1',
+            runAsUserId: 'user-1',
+            pendingRunAsUserId: 'user-2',
+            runtimeState: createConnectorRuntimeState(['binding-1'])
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+
+        await expect(
+            service.updateTask('task-1', { runtimeState: createConnectorRuntimeState(['binding-2']) })
+        ).rejects.toThrow('The run-as transfer changed before it could be accepted')
+
+        expect(repository.update).toHaveBeenCalledTimes(1)
+        expect(repository.update).toHaveBeenCalledWith(
+            {
+                id: 'task-1',
+                pendingRunAsUserId: 'user-2',
+                pendingRunAsConfigurationHash: task.pendingRunAsConfigurationHash
+            },
+            {
+                pendingRunAsUserId: null,
+                pendingRunAsRequestedById: null,
+                pendingRunAsRequestedAt: null,
+                pendingRunAsConfigurationHash: null
+            }
+        )
+    })
+
+    it('lets the current run-as user propose a qualified Project member without changing the active identity', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        const nextUser = { id: 'user-2', tenantId: 'tenant-1' } as User
+        jest.mocked(userRepository.findOne).mockResolvedValue(nextUser)
+        const projectAccess = {
+            assertCanUse: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' }),
+            assertCanManage: jest.fn(),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const publishedXpertAccess = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess,
+            userRepository
+        })
+        const task = createTaskFixture({
+            projectId: 'project-1',
+            organizationId: 'org-1',
+            runAsUserId: 'user-1'
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+
+        const result = await service.proposeProjectTaskRunAs('task-1', 'user-2')
+
+        expect(projectAccess.assertCanUse).toHaveBeenCalledWith('project-1')
+        expect(projectAccess.assertCanManage).not.toHaveBeenCalled()
+        expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1', {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-2'
+        })
+        expect(publishedXpertAccess.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-1')
+        expect(repository.update).toHaveBeenCalledWith('task-1', {
+            pendingRunAsUserId: 'user-2',
+            pendingRunAsRequestedById: 'user-1',
+            pendingRunAsRequestedAt: expect.any(Date),
+            pendingRunAsConfigurationHash: expect.any(String)
+        })
+        expect(jest.mocked(repository.update).mock.calls[0][1]).not.toHaveProperty('runAsUserId')
+        expect(result).toMatchObject({
+            runAsUserId: 'user-1',
+            pendingRunAsUserId: 'user-2',
+            pendingRunAsRequestedById: 'user-1'
+        })
+    })
+
+    it('lets a Project manager propose a run-as transfer', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('manager-1')
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-2', tenantId: 'tenant-1' } as User)
+        const projectAccess = {
+            assertCanUse: jest.fn(),
+            assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' }),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, undefined, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({ projectId: 'project-1', organizationId: 'org-1', runAsUserId: 'user-1' })
+        )
+
+        await service.proposeProjectTaskRunAs('task-1', 'user-2')
+
+        expect(projectAccess.assertCanManage).toHaveBeenCalledWith('project-1')
+        expect(projectAccess.assertCanUse).not.toHaveBeenCalled()
+    })
+
+    it('rejects a run-as proposal when the target is outside the task tenant', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue(null)
+        const projectAccess = {
+            assertCanUse: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' }),
+            assertCanManage: jest.fn(),
+            assertCanUseXpert: jest.fn()
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: { getAccessiblePublishedXpert: jest.fn() },
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({ projectId: 'project-1', organizationId: 'org-1', runAsUserId: 'user-1' })
+        )
+
+        await expect(service.proposeProjectTaskRunAs('task-1', 'other-tenant-user')).rejects.toThrow(
+            'The proposed run-as user was not found in this tenant'
+        )
+
+        expect(userRepository.findOne).toHaveBeenCalledWith({
+            where: { id: 'other-tenant-user', tenantId: 'tenant-1', type: UserType.USER },
+            relations: ['role']
+        })
+        expect(projectAccess.assertCanUseXpert).not.toHaveBeenCalled()
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects a run-as proposal when the target is not a Project member', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-2', tenantId: 'tenant-1' } as User)
+        const projectAccess = {
+            assertCanUse: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' }),
+            assertCanManage: jest.fn(),
+            assertCanUseXpert: jest.fn().mockRejectedValue(new Error('Project membership is required'))
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: { getAccessiblePublishedXpert: jest.fn() },
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({ projectId: 'project-1', organizationId: 'org-1', runAsUserId: 'user-1' })
+        )
+
+        await expect(service.proposeProjectTaskRunAs('task-1', 'user-2')).rejects.toThrow(
+            'Project membership is required'
+        )
+
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects a run-as proposal when the target cannot run the Project Xpert', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-2', tenantId: 'tenant-1' } as User)
+        const projectAccess = {
+            assertCanUse: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' }),
+            assertCanManage: jest.fn(),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockRejectedValue(new Error('Xpert run access is required'))
+            },
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({ projectId: 'project-1', organizationId: 'org-1', runAsUserId: 'user-1' })
+        )
+
+        await expect(service.proposeProjectTaskRunAs('task-1', 'user-2')).rejects.toThrow(
+            'Xpert run access is required'
+        )
+
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('changes run-as only after the proposed user accepts and revalidates access', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const repository = createRepositoryMock<XpertTask>()
+        jest.mocked(repository.update).mockResolvedValue(Object.assign(new UpdateResult(), { affected: 1 }))
+        const userRepository = createRepositoryMock<User>()
+        const nextUser = { id: 'user-2', tenantId: 'tenant-1' } as User
+        jest.mocked(userRepository.findOne).mockResolvedValue(nextUser)
+        const projectAccess = {
+            assertCanUse: jest.fn(),
+            assertCanManage: jest.fn(),
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess,
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            userRepository
+        })
+        const task = createTaskFixture({
+            projectId: 'project-1',
+            organizationId: 'org-1',
+            runAsUserId: 'user-1',
+            pendingRunAsUserId: 'user-2',
+            pendingRunAsRequestedById: 'manager-1',
+            pendingRunAsRequestedAt: new Date('2026-08-27T00:00:00.000Z')
+        })
+        const proposalConfigurationHash = task.pendingRunAsConfigurationHash
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+        const rescheduleTask = jest.spyOn(service, 'rescheduleTask').mockImplementation()
+
+        const result = await service.acceptProjectTaskRunAs('task-1')
+
+        expect(repository.update).toHaveBeenCalledWith(
+            {
+                id: 'task-1',
+                pendingRunAsUserId: 'user-2',
+                pendingRunAsConfigurationHash: proposalConfigurationHash
+            },
+            {
+                runAsUserId: 'user-2',
+                pendingRunAsUserId: null,
+                pendingRunAsRequestedById: null,
+                pendingRunAsRequestedAt: null,
+                pendingRunAsConfigurationHash: null
+            }
+        )
+        expect(result).toMatchObject({
+            runAsUserId: 'user-2',
+            runAsUser: nextUser,
+            pendingRunAsUserId: null,
+            pendingRunAsRequestedById: null,
+            pendingRunAsRequestedAt: null
+        })
+        expect(rescheduleTask).toHaveBeenCalledWith(expect.objectContaining({ runAsUserId: 'user-2' }), nextUser)
+    })
+
+    it('does not accept a run-as proposal for a different user', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-3')
+        const repository = createRepositoryMock<XpertTask>()
+        const service = createService(createCommandBusMock(), undefined, undefined, repository)
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                organizationId: 'org-1',
+                runAsUserId: 'user-1',
+                pendingRunAsUserId: 'user-2'
+            })
+        )
+
+        await expect(service.acceptProjectTaskRunAs('task-1')).rejects.toThrow(
+            'Only the proposed run-as user can accept this transfer'
+        )
+
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('does not accept a run-as proposal after its Xpert or Connector snapshot changes', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const repository = createRepositoryMock<XpertTask>()
+        const task = createTaskFixture({
+            projectId: 'project-1',
+            organizationId: 'org-1',
+            runAsUserId: 'user-1',
+            pendingRunAsUserId: 'user-2',
+            runtimeState: createConnectorRuntimeState(['binding-1'])
+        })
+        task.runtimeState = createConnectorRuntimeState(['binding-2'])
+        const service = createService(createCommandBusMock(), undefined, undefined, repository)
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+
+        await expect(service.acceptProjectTaskRunAs('task-1')).rejects.toThrow(
+            'The run-as transfer changed before it could be accepted'
+        )
+
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('does not accept a run-as proposal after the target loses Xpert run access', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-2', tenantId: 'tenant-1' } as User)
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess: {
+                assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+            },
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockRejectedValue(new Error('Xpert run access was revoked'))
+            },
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                organizationId: 'org-1',
+                runAsUserId: 'user-1',
+                pendingRunAsUserId: 'user-2'
+            })
+        )
+
+        await expect(service.acceptProjectTaskRunAs('task-1')).rejects.toThrow('Xpert run access was revoked')
+
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('does not accept a run-as proposal while selected personal Connectors are unavailable to the target', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const repository = createRepositoryMock<XpertTask>()
+        const userRepository = createRepositoryMock<User>()
+        jest.mocked(userRepository.findOne).mockResolvedValue({ id: 'user-2', tenantId: 'tenant-1' } as User)
+        const connectorService = {
+            resolveSelectedRuntimeBindings: jest.fn().mockRejectedValue(new Error('Personal grant is missing'))
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, repository, undefined, {
+            projectAccess: {
+                assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+            },
+            publishedXpertAccess: {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' })
+            },
+            connectorService,
+            userRepository
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(
+            createTaskFixture({
+                projectId: 'project-1',
+                organizationId: 'org-1',
+                runAsUserId: 'user-1',
+                pendingRunAsUserId: 'user-2',
+                runtimeState: createConnectorRuntimeState(['binding-1'])
+            })
+        )
+
+        await expect(service.acceptProjectTaskRunAs('task-1')).rejects.toThrow(
+            'A selected Connector is not available to the run-as user'
+        )
+
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('limits HTTP task reads to active Project members without changing scheduler queries', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const repository = createRepositoryMock<XpertTask>()
+        const ownerProjectSubquery = {
+            select: jest.fn().mockReturnThis(),
+            from: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getQuery: jest.fn().mockReturnValue('(SELECT 1 FROM owner_project)')
+        }
+        const membershipSubquery = {
+            select: jest.fn().mockReturnThis(),
+            from: jest.fn().mockReturnThis(),
+            innerJoin: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            getQuery: jest.fn().mockReturnValue('(SELECT 1 FROM active_membership)')
+        }
+        const query = {
+            setFindOptions: jest.fn().mockReturnThis(),
+            subQuery: jest.fn().mockReturnValueOnce(ownerProjectSubquery).mockReturnValueOnce(membershipSubquery),
+            andWhere: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[createTaskFixture({ projectId: 'project-1' })], 1])
+        }
+        jest.mocked(repository.createQueryBuilder).mockReturnValue(query as never)
+        const service = createService(createCommandBusMock(), undefined, undefined, repository)
+
+        await expect(
+            service.findHttpAccessible({ where: { projectId: 'project-1' } }, { createdById: 'user-1' })
+        ).resolves.toMatchObject({ total: 1 })
+
+        expect(query.setFindOptions).toHaveBeenCalledWith({
+            where: { projectId: 'project-1', createdById: 'user-1' }
+        })
+        expect(query).not.toHaveProperty('distinct')
+        expect(ownerProjectSubquery.from).toHaveBeenCalledWith(XpertProject, 'httpOwnedProject')
+        expect(membershipSubquery.from).toHaveBeenCalledWith(XpertProject, 'httpMemberProject')
+        expect(membershipSubquery.innerJoin).toHaveBeenCalledWith(
+            'httpMemberProject.memberships',
+            'httpProjectMembership',
+            'httpProjectMembership.userId = :httpUserId AND httpProjectMembership.deletedAt IS NULL',
+            { httpUserId: 'user-1' }
+        )
+        expect(query.andWhere).toHaveBeenCalledWith('httpTask.tenantId = :httpTenantId', {
+            httpTenantId: 'tenant-1'
+        })
+        expect(query.andWhere).toHaveBeenCalledWith('httpTask.organizationId = :httpOrganizationId', {
+            httpOrganizationId: 'org-1'
+        })
+        const membershipScope = query.andWhere.mock.calls[1][0] as Brackets
+        const predicate = {
+            where: jest.fn().mockReturnThis(),
+            orWhere: jest.fn().mockReturnThis()
+        }
+        membershipScope.whereFactory(predicate as never)
+        expect(predicate.where).toHaveBeenCalledWith(
+            'httpTask.projectId IS NULL AND httpTask.createdById = :httpUserId'
+        )
+        expect(predicate.orWhere).toHaveBeenNthCalledWith(1, 'EXISTS (SELECT 1 FROM owner_project)')
+        expect(predicate.orWhere).toHaveBeenNthCalledWith(2, 'EXISTS (SELECT 1 FROM active_membership)')
+
+        const rawFindAll = jest.spyOn(service, 'findAll').mockResolvedValue({ items: [], total: 0 })
+        const httpFindAll = jest.spyOn(service, 'findHttpAccessible')
+        await service.getActiveJobs()
+
+        expect(rawFindAll).toHaveBeenCalledWith({
+            where: { status: ScheduleTaskStatus.SCHEDULED },
+            relations: ['createdBy', 'createdBy.role', 'runAsUser', 'runAsUser.role']
+        })
+        expect(httpFindAll).toHaveBeenCalledTimes(0)
+    })
+
+    it('requires Project manager access for Project tasks and ownership for personal tasks', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const projectAccess = {
+            assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' }),
+            assertCanUseXpert: jest.fn()
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, undefined, undefined, {
+            projectAccess
+        })
+        const findOne = jest
+            .spyOn(service, 'findOne')
+            .mockResolvedValueOnce(createTaskFixture({ projectId: 'project-1' }))
+            .mockResolvedValueOnce(createTaskFixture({ projectId: null }))
+        const deleteJob = jest.spyOn(service, 'deleteJob').mockImplementation()
+        const deleteTask = jest.spyOn(service, 'delete').mockResolvedValue(undefined)
+
+        await service.deleteHttpTask('project-task')
+
+        expect(projectAccess.assertCanManage).toHaveBeenCalledWith('project-1')
+        expect(deleteJob).toHaveBeenCalledWith('project-task')
+        expect(deleteTask).toHaveBeenCalledWith('project-task')
+
+        projectAccess.assertCanManage.mockClear()
+        await service.deleteHttpTask('personal-task')
+
+        expect(findOne).toHaveBeenLastCalledWith('personal-task', { withDeleted: false })
+        expect(projectAccess.assertCanManage).not.toHaveBeenCalled()
+        expect(deleteTask).toHaveBeenCalledWith('personal-task')
+
+        findOne.mockResolvedValueOnce(createTaskFixture({ projectId: null, createdById: 'user-2' }))
+        await expect(service.deleteHttpTask('other-personal-task')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(deleteTask).not.toHaveBeenCalledWith('other-personal-task')
+    })
+
+    it('requires Project manager access before recovering a soft-deleted Project task', async () => {
+        const projectAccess = {
+            assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' }),
+            assertCanUseXpert: jest.fn()
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, undefined, undefined, {
+            projectAccess
+        })
+        const findOne = jest.spyOn(service, 'findOne').mockResolvedValue(createTaskFixture({ projectId: 'project-1' }))
+        const recover = jest.spyOn(service, 'softRecover').mockResolvedValue(createTaskFixture())
+
+        await service.recoverHttpTask('project-task')
+
+        expect(findOne).toHaveBeenCalledWith('project-task', { withDeleted: true })
+        expect(projectAccess.assertCanManage).toHaveBeenCalledWith('project-1')
+        expect(recover).toHaveBeenCalledWith('project-task', { withDeleted: true })
+    })
+
+    it('requires Project manager access before pausing and soft-removing a Project task', async () => {
+        const projectAccess = {
+            assertCanManage: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'manager' }),
+            assertCanUseXpert: jest.fn()
+        }
+        const service = createService(createCommandBusMock(), undefined, undefined, undefined, undefined, {
+            projectAccess
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(createTaskFixture({ projectId: 'project-1' }))
+        const pause = jest.spyOn(service, 'pause').mockResolvedValue(createTaskFixture())
+        const softRemove = jest.spyOn(service, 'softRemove').mockResolvedValue(createTaskFixture())
+
+        await service.softDeleteHttpTask('project-task')
+
+        expect(projectAccess.assertCanManage).toHaveBeenCalledWith('project-1')
+        expect(pause).toHaveBeenCalledWith('project-task')
+        expect(softRemove).toHaveBeenCalledWith('project-task')
     })
 })
 
@@ -429,6 +1499,15 @@ function createService(
     options: {
         autoTaskRepository?: Repository<AutoTask>
         redisLockService?: ReturnType<typeof createRedisLockServiceMock>
+        projectAccess?: Partial<
+            Pick<XpertProjectAccessService, 'assertCanUse' | 'assertCanManage' | 'assertCanUseXpert'>
+        >
+        publishedXpertAccess?: Pick<PublishedXpertAccessService, 'getAccessiblePublishedXpert'>
+        projectXpertBinding?: Pick<XpertProjectXpertBindingService, 'resolveCurrentById'>
+        connectorService?: Pick<ConnectorService, 'resolveSelectedRuntimeBindings'> &
+            Partial<Pick<ConnectorService, 'listBindings'>>
+        userRepository?: Repository<User>
+        outboundActorTokenProvider?: { mint: jest.Mock }
     } = {}
 ) {
     const autoTaskRepository = options.autoTaskRepository ?? createRepositoryMock<AutoTask>()
@@ -445,7 +1524,20 @@ function createService(
         agentMiddlewareRegistry as unknown as AgentMiddlewareRegistry,
         commandBus as unknown as CommandBus,
         createQueryBusMock(),
-        redisLockService as unknown as RedisLockService
+        redisLockService as unknown as RedisLockService,
+        {
+            listBindings: jest.fn().mockResolvedValue([]),
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([]),
+            ...(options.connectorService ?? {})
+        } as ConnectorService,
+        options.userRepository ?? createRepositoryMock<User>(),
+        (options.projectXpertBinding ?? {
+            resolveCurrentById: jest.fn(async (id: string) => ({ id }))
+        }) as XpertProjectXpertBindingService,
+        options.outboundActorTokenProvider as OutboundActorTokenProvider | undefined,
+        undefined,
+        options.projectAccess as XpertProjectAccessService | undefined,
+        options.publishedXpertAccess as PublishedXpertAccessService | undefined
     )
 }
 
@@ -588,7 +1680,49 @@ function createTaskFixture(overrides: Partial<IXpertTask> = {}) {
         ...overrides
     }
 
+    if (task.pendingRunAsUserId && task.pendingRunAsConfigurationHash === undefined) {
+        task.pendingRunAsConfigurationHash = buildProjectTaskRunAsConfigurationHash(task)
+    }
+
     return task as unknown as XpertTask
+}
+
+function createConnectorRuntimeState(bindingIds: string[]): TXpertChatState {
+    const runtimeCapabilities: RuntimeCapabilitiesSelection & {
+        connectors: { bindingIds: string[] }
+    } = {
+        mode: 'allowlist',
+        skills: { ids: [] },
+        plugins: { nodeKeys: [] },
+        connectors: { bindingIds }
+    }
+    return {
+        [STATE_VARIABLE_HUMAN]: {
+            runtimeCapabilities
+        }
+    }
+}
+
+function createInheritedConnectorRuntimeState(
+    bindingIds: string[],
+    overrides: Partial<RuntimeCapabilitiesSelection> = {}
+): TXpertChatState {
+    const runtimeCapabilities: RuntimeCapabilitiesSelection & {
+        inheritUnselected: true
+        connectors: { bindingIds: string[] }
+    } = {
+        ...overrides,
+        mode: 'allowlist',
+        skills: { ids: [] },
+        plugins: { nodeKeys: [] },
+        inheritUnselected: true,
+        connectors: { bindingIds }
+    }
+    return {
+        [STATE_VARIABLE_HUMAN]: {
+            runtimeCapabilities
+        }
+    }
 }
 
 function createRepositoryMock<T>() {

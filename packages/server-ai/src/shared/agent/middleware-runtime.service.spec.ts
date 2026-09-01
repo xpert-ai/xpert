@@ -94,7 +94,8 @@ import {
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { ConnectorRuntimeCapability } from '@xpert-ai/plugin-sdk'
-import { GetStorageFileQuery, UploadFileCommand } from '@xpert-ai/server-core'
+import { ForbiddenException } from '@nestjs/common'
+import { UploadFileCommand } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
@@ -104,7 +105,11 @@ import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
-import { CreateWorkspaceFileAssetCommand, GetFileAssetQuery } from '../../file-understanding'
+import {
+    CreateWorkspaceFileAssetCommand,
+    GetOwnedStorageFileQuery,
+    ResolveAuthorizedFileAssetQuery
+} from '../../file-understanding'
 import {
     CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
@@ -140,6 +145,10 @@ describe('AgentMiddlewareRuntimeService', () => {
     let volumeClient: { resolve: jest.Mock }
     let volumeRoot: string
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
+    let connectors: {
+        createScopedRuntimeApi: jest.Mock
+        resolveSelectedRuntimeBindings: jest.Mock
+    }
     let artifacts: { createScopedApi: jest.Mock }
     let collaboration: CollaborationService
     let copilotService: CopilotService
@@ -162,7 +171,16 @@ describe('AgentMiddlewareRuntimeService', () => {
         volumeClient = {
             resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
         }
-        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient)
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, {
+            assertCanEdit: jest.fn().mockResolvedValue({})
+        })
+        connectors = {
+            createScopedRuntimeApi: jest.fn(() => ({
+                getConnector: jest.fn().mockResolvedValue(undefined),
+                getConnectorCredential: jest.fn().mockResolvedValue(undefined)
+            })),
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([])
+        }
         artifacts = {
             createScopedApi: jest.fn((defaults) => ({
                 createArtifact: jest.fn(),
@@ -215,10 +233,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             {
                 t: jest.fn().mockReturnValue('AI model not found')
             } as any,
-            {
-                getRuntimeConnector: jest.fn().mockResolvedValue(undefined),
-                getRuntimeConnectorCredential: jest.fn().mockResolvedValue(undefined)
-            } as any,
+            connectors as unknown as ConstructorParameters<typeof AgentMiddlewareRuntimeService>[3],
             workspaceFiles,
             artifacts as any,
             collaboration,
@@ -385,6 +400,29 @@ describe('AgentMiddlewareRuntimeService', () => {
         ).resolves.toBeUndefined()
     })
 
+    it('uses the exact invocation scope for Connector preflight and runtime credentials', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            connectorBindingIds: ['binding-1']
+        }
+        const scopedConnectorApi = {
+            getConnector: jest.fn().mockResolvedValue({ id: 'binding-1' }),
+            getConnectorCredential: jest.fn().mockResolvedValue({ token: 'scoped-token' })
+        }
+        connectors.createScopedRuntimeApi.mockReturnValueOnce(scopedConnectorApi)
+
+        await service.resolveSelectedConnectorRuntimeBindings(scope)
+        const runtime = service.createScopedApi(scope)
+
+        expect(connectors.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(['binding-1'], scope)
+        expect(connectors.createScopedRuntimeApi).toHaveBeenCalledWith(scope)
+        expect(runtime.capabilities?.require(ConnectorRuntimeCapability)).toBe(scopedConnectorApi)
+    })
+
     it('registers the execution-scoped KnowledgeDocument visual assets capability', async () => {
         const scope = {
             tenantId: 'tenant-1',
@@ -420,6 +458,12 @@ describe('AgentMiddlewareRuntimeService', () => {
                 writeRuntimeBuffer: expect.any(Function)
             })
         })
+    })
+
+    it('does not expose workspace or visual-asset capabilities from the unbound global runtime', () => {
+        expect(service.api.capabilities?.has(WorkspaceFilesRuntimeCapability)).toBe(false)
+        expect(service.api.capabilities?.has(KnowledgeDocumentVisualAssetsRuntimeCapability)).toBe(false)
+        expect(visualAssetsRuntime.createScopedApi).not.toHaveBeenCalled()
     })
 
     it('resolves the organization model provider connection before the tenant provider', async () => {
@@ -1599,7 +1643,15 @@ describe('AgentMiddlewareRuntimeService', () => {
             throw new Error(`Unexpected command: ${command?.constructor?.name}`)
         })
 
-        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).uploadBuffer({
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
+        const result = await runtime.capabilities?.require(WorkspaceFilesRuntimeCapability).uploadBuffer({
             tenantId: 'tenant-1',
             userId: 'user-1',
             catalog: 'xperts',
@@ -1664,7 +1716,15 @@ describe('AgentMiddlewareRuntimeService', () => {
             throw new Error(`Unexpected command: ${command?.constructor?.name}`)
         })
 
-        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).understandFile({
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
+        const result = await runtime.capabilities?.require(WorkspaceFilesRuntimeCapability).understandFile({
             tenantId: 'tenant-1',
             userId: 'user-1',
             catalog: 'xperts',
@@ -1713,7 +1773,16 @@ describe('AgentMiddlewareRuntimeService', () => {
         mkdirSync(join(volumeRoot, 'files/docx-editor/documents/doc-1/versions'), { recursive: true })
         writeFileSync(join(volumeRoot, relativePath), Buffer.from([0x50, 0x4b, 0x03, 0x04]))
 
-        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).readBuffer({
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
+        const files = runtime.capabilities!.require(WorkspaceFilesRuntimeCapability)
+        const result = await files.readBuffer({
             tenantId: 'tenant-1',
             catalog: 'xperts',
             xpertId: 'xpert-1',
@@ -1731,7 +1800,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             })
         )
 
-        await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).deleteFile({
+        await files.deleteFile({
             tenantId: 'tenant-1',
             catalog: 'xperts',
             xpertId: 'xpert-1',
@@ -1877,19 +1946,16 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('resolves file asset references through the runtime facade', async () => {
         queryBus.execute.mockImplementation(async (query: unknown) => {
-            if (query instanceof GetFileAssetQuery) {
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
                 return {
-                    id: 'file-asset-1',
-                    storageFileId: 'storage-1',
-                    originalName: '合同.pdf',
-                    mimeType: 'application/pdf',
-                    size: 1024
-                }
-            }
-
-            if (query instanceof GetStorageFileQuery) {
-                return [
-                    {
+                    asset: {
+                        id: 'file-asset-1',
+                        storageFileId: 'storage-1',
+                        originalName: '合同.pdf',
+                        mimeType: 'application/pdf',
+                        size: 1024
+                    },
+                    storageFile: {
                         id: 'storage-1',
                         file: 'files/tenant-1/contract.pdf',
                         fileUrl: 'https://files.example/contract.pdf',
@@ -1897,15 +1963,20 @@ describe('AgentMiddlewareRuntimeService', () => {
                         mimetype: 'application/pdf',
                         size: 1024
                     }
-                ]
+                }
             }
 
             throw new Error(`Unexpected query: ${query?.constructor?.name}`)
         })
 
-        const file = await service.api.capabilities?.require(FileRuntimeCapability).resolveFile({
-            fileAssetId: 'file-asset-1'
-        })
+        const file = await service
+            .createScopedApi({ conversationId: 'conversation-1' })
+            .capabilities?.require(FileRuntimeCapability)
+            .resolveFile({
+                fileAssetId: 'file-asset-1',
+                storageFileId: 'storage-1',
+                url: 'https://attacker.example/forged.pdf'
+            })
 
         expect(file).toEqual(
             expect.objectContaining({
@@ -1918,6 +1989,58 @@ describe('AgentMiddlewareRuntimeService', () => {
                 url: 'https://files.example/contract.pdf',
                 previewUrl: 'https://files.example/contract.pdf'
             })
+        )
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: {
+                    locator: { fileAssetId: 'file-asset-1', storageFileId: 'storage-1' },
+                    authority: { kind: 'conversation', conversationId: 'conversation-1' },
+                    operation: 'read'
+                }
+            })
+        )
+    })
+
+    it('resolves legacy storage references only through the owner-authorized fallback', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                throw new ForbiddenException()
+            }
+            if (query instanceof GetOwnedStorageFileQuery) {
+                return {
+                    id: 'storage-legacy-1',
+                    file: 'files/tenant-1/legacy.pdf',
+                    fileUrl: 'https://files.example/legacy.pdf',
+                    originalName: 'legacy.pdf',
+                    mimetype: 'application/pdf',
+                    size: 256
+                }
+            }
+
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const file = await service
+            .createScopedApi({ conversationId: 'conversation-1' })
+            .capabilities?.require(FileRuntimeCapability)
+            .resolveFile({
+                storageFileId: 'storage-legacy-1',
+                url: 'https://attacker.example/forged.pdf'
+            })
+
+        expect(file).toEqual(
+            expect.objectContaining({
+                id: 'storage-legacy-1',
+                storageFileId: 'storage-legacy-1',
+                name: 'legacy.pdf',
+                mimeType: 'application/pdf',
+                url: 'https://files.example/legacy.pdf',
+                previewUrl: 'https://files.example/legacy.pdf'
+            })
+        )
+        expect(queryBus.execute).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ storageFileId: 'storage-legacy-1' })
         )
     })
 

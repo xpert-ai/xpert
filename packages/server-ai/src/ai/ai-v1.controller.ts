@@ -2,7 +2,6 @@ import {
     IApiKey,
     IFileAssetDestination,
     IStorageFile,
-    IUploadFileTarget,
     SecretTokenBindingType,
     TChatOptions,
     TChatRequest
@@ -48,6 +47,7 @@ import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgeDocument } from '../core/entities/internal'
 import { PublishedXpertAccessService } from '../xpert'
+import { resolveExternalStorageUploadTarget } from './external-upload-target'
 
 const DEFAULT_CHATKIT_SESSION_EXPIRES_AFTER = 600
 const MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER = 3600
@@ -107,12 +107,14 @@ export class AIV1Controller {
         description: 'Knowledgebase'
     })
     async updateKnowledgebase(@Param('id') id: string, @Body() body: CreateKnowledgebaseDTO) {
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
         return this.kbService.updateKnowledgebase(id, body)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Delete('kb/:id')
     async deleteKnowledgebase(@Param('id') id: string, @ApiKeyDecorator() apiKey: IApiKey) {
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
         return this.kbService.delete(id)
     }
 
@@ -123,22 +125,28 @@ export class AIV1Controller {
         description: 'Knowledge documents'
     })
     async createDocBulk(@Param('id') id: string, @Body() entities: KnowledgeDocument[]) {
-        return await this.docService.createBulk(entities?.map((entity) => ({ ...entity, knowledgebaseId: id })))
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
+        const documents = (entities ?? []).map((entity) => ({ ...entity, knowledgebaseId: id }))
+        await this.docService.assertOwnedStorageFiles(documents.map((document) => document.storageFileId))
+        await this.docService.prepareExternalDocumentInputs(documents)
+        return await this.docService.createBulk(documents)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Post('kb/:id/process')
     async start(@Param('id') id: string, @Body() ids: string[]) {
+        await this.docService.assertDocumentsWriteAccessInKnowledgebase(ids, id)
         return this.docService.startProcessing(ids, id)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Get('kb/:id/status')
-    async getStatus(@Query('ids') _ids: string) {
+    async getStatus(@Param('id') knowledgebaseId: string, @Query('ids') _ids: string) {
         const ids = _ids.split(',').map((id) => id.trim())
+        await this.docService.assertDocumentsReadAccessInKnowledgebase(ids, knowledgebaseId)
         const { items } = await this.docService.findAll({
             select: ['id', 'status', 'progress', 'processMsg'],
-            where: { id: In(ids) }
+            where: { id: In(ids), knowledgebaseId }
         })
         return items
     }
@@ -172,7 +180,11 @@ export class AIV1Controller {
         @UploadedFile() file: Express.Multer.File,
         @Body('target') targetValue?: string
     ): Promise<IStorageFile | IFileAssetDestination> {
-        const target = this.resolveUploadTarget(targetValue)
+        const target = resolveExternalStorageUploadTarget(targetValue, {
+            kind: 'storage',
+            directory: 'files',
+            prefix: 'files'
+        })
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -270,40 +282,6 @@ export class AIV1Controller {
             client_secret: token,
             expires_at: validUntil,
             expires_after: expires_after
-        }
-    }
-
-    private resolveUploadTarget(targetValue?: string): IUploadFileTarget {
-        const defaultTarget: IUploadFileTarget = {
-            kind: 'storage',
-            directory: 'files',
-            prefix: 'files'
-        }
-
-        if (!targetValue) {
-            return defaultTarget
-        }
-
-        const target = this.parseJson<IUploadFileTarget>(targetValue, 'target')
-        if (!target || Array.isArray(target) || !target.kind) {
-            throw new BadRequestException('Invalid target payload')
-        }
-
-        if (target.kind === 'storage') {
-            return {
-                ...defaultTarget,
-                ...target
-            }
-        }
-
-        return target
-    }
-
-    private parseJson<T>(value: string, field: string): T {
-        try {
-            return JSON.parse(value) as T
-        } catch {
-            throw new BadRequestException(`Invalid ${field} JSON`)
         }
     }
 }

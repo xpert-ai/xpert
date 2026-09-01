@@ -1,6 +1,7 @@
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
-import { Logger } from '@nestjs/common'
+import { ForbiddenException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { t } from 'i18next'
 import { XpertAgentExecutionService } from '../../agent-execution.service'
 import { XpertAgentExecutionUpsertCommand } from '../upsert.command'
 
@@ -19,6 +20,17 @@ export class XpertAgentExecutionUpsertHandler implements ICommandHandler<XpertAg
         if (entity.id) {
             const existing = await this.executionService.findOneOrFailByIdString(entity.id)
             if (existing.success) {
+                if (
+                    existing.record.threadId &&
+                    entity.threadId !== undefined &&
+                    entity.threadId !== existing.record.threadId
+                ) {
+                    throw new ForbiddenException(
+                        t('server-ai:Error.ExecutionThreadImmutable', {
+                            defaultValue: 'An execution cannot be moved to another thread'
+                        })
+                    )
+                }
                 const update =
                     existing.record.status === XpertAgentExecutionStatusEnum.INTERRUPTED &&
                     entity.status !== XpertAgentExecutionStatusEnum.RUNNING

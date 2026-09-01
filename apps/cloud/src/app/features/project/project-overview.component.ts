@@ -137,8 +137,8 @@ export class XpertProjectOverviewComponent {
     },
     {
       label: 'XP.XProject.Automations',
-      value: this.facade.automations().length,
-      detail: 'XP.XProject.ConfiguredWorkflows',
+      value: this.facade.scheduledTasks().length,
+      detail: 'XP.XProject.AutomationPanelHint',
       params: {},
       icon: 'ri-loop-right-line'
     }

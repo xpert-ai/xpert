@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { RequestContext } from '@xpert-ai/server-core'
 import { FileAsset } from '../../entities'
 import { GetFileAssetQuery } from '../get-file-asset.query'
 
@@ -12,6 +13,10 @@ export class GetFileAssetHandler implements IQueryHandler<GetFileAssetQuery> {
     ) {}
 
     execute(query: GetFileAssetQuery) {
-        return this.repository.findOne({ where: { id: query.fileAssetId } })
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId) {
+            return null
+        }
+        return this.repository.findOne({ where: { id: query.fileAssetId, tenantId } })
     }
 }

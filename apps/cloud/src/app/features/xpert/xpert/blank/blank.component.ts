@@ -416,6 +416,7 @@ export class XpertNewBlankComponent {
   readonly avatar = model<TAvatar>()
   readonly title = model<string>()
   readonly copilotModel = model<ICopilotModel>(this.#dialogData.defaultCopilotModel ?? undefined)
+  readonly isolateWorkspaceData = signal(false)
   readonly selectedTemplateId = model<string | null>(this.#dialogData.initialTemplateId ?? null)
   readonly selectedTemplate = signal<TXpertTemplate | null>(null)
   readonly selectedTemplateDraft = signal<TXpertTeamDraft | null>(null)
@@ -1219,6 +1220,7 @@ export class XpertNewBlankComponent {
         title: this.title(),
         description: this.description(),
         copilotModel: this.copilotModel(),
+        workspaceDataScope: this.isolateWorkspaceData() ? 'user' : 'shared',
         latest: true,
         workspaceId: this.workspaceId() ?? undefined,
         avatar: this.avatar(),
@@ -1272,7 +1274,8 @@ export class XpertNewBlankComponent {
     )
     const xpert = await firstValueFrom(
       this.xpertService.importDSL(nextDraft, {
-        templateId: this.selectedTemplate()?.id ?? this.selectedTemplateId() ?? undefined
+        templateId: this.selectedTemplate()?.id ?? this.selectedTemplateId() ?? undefined,
+        workspaceDataScope: this.isolateWorkspaceData() ? 'user' : 'shared'
       })
     )
     const hydratedXpert = this.withInitialPrimaryAgentPrompt(xpert, primaryAgentPrompt)

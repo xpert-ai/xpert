@@ -1,25 +1,52 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
-import { Column, Entity, Index } from 'typeorm'
+import type { ConnectorAuthorizationMode, ConnectorScopeType } from '@xpert-ai/plugin-sdk'
+import { Check, Column, Entity, Index } from 'typeorm'
 
 @Entity('xpert_connector_oauth_session')
+@Check(
+    'CHK_xpert_connector_oauth_session_scope',
+    `("scopeType" = 'workspace' AND "workspaceId" IS NOT NULL AND "projectId" IS NULL) OR ("scopeType" = 'project' AND "projectId" IS NOT NULL AND "workspaceId" IS NULL)`
+)
+@Check('CHK_xpert_connector_oauth_session_authorization_mode', `"authorizationMode" IN ('personal', 'shared')`)
 export class ConnectorOAuthSession extends TenantOrganizationBaseEntity {
     @Index({ unique: true })
-    @Column({ type: 'varchar', length: 128 })
+    @Column({ type: 'varchar', length: 128, update: false })
     stateHash: string
 
-    @Column({ type: 'uuid' })
-    workspaceId: string
+    @Column({ type: 'varchar', default: 'workspace', update: false })
+    scopeType: ConnectorScopeType
 
-    @Column({ type: 'uuid' })
+    @Column({ type: 'uuid', nullable: true, update: false })
+    workspaceId?: string | null
+
+    @Column({ type: 'uuid', nullable: true, update: false })
+    projectId?: string | null
+
+    @Column({ type: 'varchar', default: 'shared', update: false })
+    authorizationMode: ConnectorAuthorizationMode
+
+    @Column({ type: 'uuid', update: false })
     connectorId: string
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'uuid', nullable: true, update: false })
+    personalAccountId?: string | null
+
+    @Column({ type: 'uuid', nullable: true, update: false })
+    actorUserId?: string | null
+
+    @Column({ type: 'uuid', nullable: true, update: false })
+    xpertId?: string | null
+
+    @Column({ type: 'uuid', nullable: true, update: false })
+    connectionAttemptId?: string | null
+
+    @Column({ type: 'varchar', update: false })
     provider: string
 
-    @Column({ type: 'uuid', nullable: true })
+    @Column({ type: 'uuid', nullable: true, update: false })
     appIntegrationId?: string | null
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', update: false })
     redirectUri: string
 
     @Column({ type: 'text', nullable: true })

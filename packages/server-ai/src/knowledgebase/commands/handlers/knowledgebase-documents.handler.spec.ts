@@ -5,26 +5,31 @@ import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { crc32 } from 'node:zlib'
 import {
+    CreateKnowledgebaseDocumentsCommand,
     CreateKnowledgebaseFolderCommand,
     DeleteKnowledgebaseDocumentsCommand,
+    GetKnowledgebaseDocumentStatusCommand,
     ImportKnowledgebaseArchiveCommand,
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
-    ReadKnowledgebaseDocumentImageCommand,
+    StartKnowledgebaseDocumentsProcessingCommand,
     ReprocessKnowledgebaseDocumentsCommand,
     UploadKnowledgebaseDocumentFileCommand
 } from '../knowledgebase-documents.command'
 import {
+    CreateKnowledgebaseDocumentsHandler,
     CreateKnowledgebaseFolderHandler,
     DeleteKnowledgebaseDocumentsHandler,
+    GetKnowledgebaseDocumentStatusHandler,
     ImportKnowledgebaseArchiveHandler,
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
-    ReadKnowledgebaseDocumentImageHandler,
+    StartKnowledgebaseDocumentsProcessingHandler,
     ReprocessKnowledgebaseDocumentsHandler,
     UploadKnowledgebaseDocumentFileHandler
 } from './knowledgebase-documents.handler'
 import { DocumentTypeEnum } from '@xpert-ai/contracts'
+import { VolumeSubtreeClient } from '../../../shared'
 
 describe('ReprocessKnowledgebaseDocumentsHandler', () => {
     it('invalidates the processing hash even when the requested parser configuration is unchanged', async () => {
@@ -91,7 +96,7 @@ describe('ReprocessKnowledgebaseDocumentsHandler', () => {
 
 describe('ListKnowledgebaseDocumentsHandler', () => {
     it('returns a bounded document catalog without exposing folders by default', async () => {
-        const knowledgebaseService = { findOne: jest.fn(async () => ({ id: 'kb-1' })) }
+        const knowledgebaseService = { findOneByIdString: jest.fn(async () => ({ id: 'kb-1' })) }
         const documentService = {
             findAll: jest.fn(async () => ({
                 items: [
@@ -126,7 +131,7 @@ describe('ListKnowledgebaseDocumentsHandler', () => {
             })
         )
 
-        expect(knowledgebaseService.findOne).toHaveBeenCalledWith('kb-1')
+        expect(knowledgebaseService.findOneByIdString).toHaveBeenCalledWith('kb-1', { select: { id: true } })
         expect(documentService.findAll).toHaveBeenCalledWith(expect.objectContaining({ skip: 10, take: 10 }))
         expect(result).toEqual(
             expect.objectContaining({
@@ -154,7 +159,7 @@ describe('ListKnowledgebaseDocumentsHandler', () => {
             knowledgebaseId: 'kb-1',
             sourceType: DocumentTypeEnum.FOLDER
         }
-        const knowledgebaseService = { findOne: jest.fn(async () => ({ id: 'kb-1' })) }
+        const knowledgebaseService = { findOneByIdString: jest.fn(async () => ({ id: 'kb-1' })) }
         const documentService = {
             findOne: jest.fn(async () => folder),
             findAll: jest.fn(async () => ({ items: [], total: 0 }))
@@ -199,10 +204,11 @@ describe('CreateKnowledgebaseFolderHandler', () => {
             findAll: jest.fn(async () => ({ items: [], total: 0 })),
             createDocument: jest.fn(async () => created)
         }
-        const handler = new CreateKnowledgebaseFolderHandler(
-            { assertNotRebuilding: jest.fn() } as any,
-            documentService as any
-        )
+        const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
+            assertNotRebuilding: jest.fn()
+        }
+        const handler = new CreateKnowledgebaseFolderHandler(knowledgebaseService as any, documentService as any)
 
         const result = await handler.execute(
             new CreateKnowledgebaseFolderCommand({
@@ -219,6 +225,9 @@ describe('CreateKnowledgebaseFolderHandler', () => {
                 name: '26B31301'
             })
         )
+        expect(knowledgebaseService.assertKnowledgebaseWriteAccess).toHaveBeenCalledWith('kb-1', {
+            select: { id: true }
+        })
         expect(result.folder).toMatchObject({ id: 'folder-case', folderPath: 'customers/JNGL/cases' })
     })
 })
@@ -226,6 +235,7 @@ describe('CreateKnowledgebaseFolderHandler', () => {
 describe('MoveKnowledgebaseDocumentHandler', () => {
     it('delegates the governed move and returns affected descendants', async () => {
         const documentService = {
+            assertDocumentsWriteAccessInKnowledgebase: jest.fn(),
             moveDocument: jest.fn(async () => ({
                 document: {
                     id: 'doc-1',
@@ -251,86 +261,23 @@ describe('MoveKnowledgebaseDocumentHandler', () => {
             parentId: 'folder-agreement',
             expectedVersion: 3
         })
+        expect(documentService.assertDocumentsWriteAccessInKnowledgebase).toHaveBeenCalledWith(['doc-1'], 'kb-1')
         expect(result.affectedDocumentIds).toEqual(['doc-1'])
-    })
-})
-
-describe('ReadKnowledgebaseDocumentImageHandler', () => {
-    it('returns original image bytes and a governed file reference', async () => {
-        const knowledgebaseService = { findOne: jest.fn().mockResolvedValue({ id: 'kb-1' }) }
-        const documentService = {
-            findOne: jest.fn().mockResolvedValue({
-                id: 'image-1',
-                tenantId: 'tenant-1',
-                knowledgebaseId: 'kb-1',
-                name: 'diagram.png',
-                mimeType: 'image/png',
-                sourceHash: 'hash-1',
-                filePath: 'files/diagram.png'
-            }),
-            getOriginalFileDownloads: jest.fn().mockResolvedValue([
-                {
-                    fileName: 'diagram.png',
-                    mimeType: 'image/png',
-                    content: Buffer.from('png')
-                }
-            ])
-        }
-        const handler = new ReadKnowledgebaseDocumentImageHandler(
-            knowledgebaseService as never,
-            documentService as never
-        )
-
-        const result = await handler.execute(
-            new ReadKnowledgebaseDocumentImageCommand({ knowledgebaseId: 'kb-1', documentId: 'image-1' })
-        )
-
-        expect(knowledgebaseService.findOne).toHaveBeenCalledWith('kb-1')
-        expect(result).toMatchObject({
-            knowledgebaseId: 'kb-1',
-            documentId: 'image-1',
-            mimeType: 'image/png',
-            sourceHash: 'hash-1',
-            reference: {
-                tenantId: 'tenant-1',
-                knowledgeId: 'kb-1',
-                filePath: 'files/diagram.png'
-            }
-        })
-        expect(result.buffer).toEqual(Buffer.from('png'))
-    })
-
-    it('rejects a document from a different Knowledge base before reading bytes', async () => {
-        const documentService = {
-            findOne: jest.fn().mockResolvedValue({
-                id: 'image-2',
-                knowledgebaseId: 'kb-2',
-                mimeType: 'image/png'
-            }),
-            getOriginalFileDownloads: jest.fn()
-        }
-        const handler = new ReadKnowledgebaseDocumentImageHandler(
-            { findOne: jest.fn().mockResolvedValue({ id: 'kb-1' }) } as never,
-            documentService as never
-        )
-
-        await expect(
-            handler.execute(
-                new ReadKnowledgebaseDocumentImageCommand({ knowledgebaseId: 'kb-1', documentId: 'image-2' })
-            )
-        ).rejects.toThrow(/not an image in this knowledgebase/)
-        expect(documentService.getOriginalFileDownloads).not.toHaveBeenCalled()
     })
 })
 
 describe('UploadKnowledgebaseDocumentFileHandler', () => {
     it('stores nested uploads using the root-to-child logical folder order', async () => {
-        const knowledgebaseService = { assertNotRebuilding: jest.fn() }
-        const documentService = {
-            findAncestors: jest.fn(async () => [
+        const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
+            assertNotRebuilding: jest.fn(),
+            resolveKnowledgebaseFolderAncestors: jest.fn(async () => [
                 { id: 'folder-water', name: '水利', sourceType: DocumentTypeEnum.FOLDER },
                 { id: 'folder-east', name: '华东', sourceType: DocumentTypeEnum.FOLDER }
             ])
+        }
+        const documentService = {
+            findAncestors: jest.fn()
         }
         const knowledgeWorkAreaResolver = {
             getFilesPath: jest.fn((folder: string) => path.posix.join('files', folder || ''))
@@ -365,7 +312,10 @@ describe('UploadKnowledgebaseDocumentFileHandler', () => {
             } as any)
         )
 
-        expect(documentService.findAncestors).toHaveBeenCalledWith('folder-east')
+        expect(knowledgebaseService.resolveKnowledgebaseFolderAncestors).toHaveBeenCalledWith('kb-1', 'folder-east')
+        expect(knowledgebaseService.assertKnowledgebaseWriteAccess).toHaveBeenCalledWith('kb-1', {
+            select: { id: true }
+        })
         expect(knowledgeWorkAreaResolver.getFilesPath).toHaveBeenCalledWith('水利/华东')
         expect(result.filePath).toMatch(/^files\/水利\/华东\/pricing-/)
     })
@@ -385,6 +335,7 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
 
         const createdDrafts: any[] = []
         const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
             assertNotRebuilding: jest.fn()
         }
         const documentService = {
@@ -518,6 +469,7 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
         const commandBus = createUploadCommandBus(tempRoot)
         const handler = new ImportKnowledgebaseArchiveHandler(
             {
+                assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
                 assertNotRebuilding: jest.fn()
             } as any,
             {
@@ -593,6 +545,7 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
         const commandBus = createUploadCommandBus(tempRoot)
         const handler = new ImportKnowledgebaseArchiveHandler(
             {
+                assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
                 assertNotRebuilding: jest.fn()
             } as any,
             {
@@ -669,6 +622,7 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
         const commandBus = createUploadCommandBus(tempRoot)
         const handler = new ImportKnowledgebaseArchiveHandler(
             {
+                assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
                 assertNotRebuilding: jest.fn()
             } as any,
             {
@@ -739,6 +693,7 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
 describe('DeleteKnowledgebaseDocumentsHandler', () => {
     it('deletes matched documents through KnowledgeDocumentService.deleteBulk', async () => {
         const documentService = {
+            assertDocumentsWriteAccessInKnowledgebase: jest.fn(),
             findAll: jest.fn(async () => ({
                 items: [
                     {
@@ -766,12 +721,195 @@ describe('DeleteKnowledgebaseDocumentsHandler', () => {
             })
         )
         expect(documentService.deleteBulk).toHaveBeenCalledWith(['doc-1'])
+        expect(documentService.assertDocumentsWriteAccessInKnowledgebase).toHaveBeenCalledWith(
+            ['doc-1', 'doc-missing'],
+            'kb-1'
+        )
         expect(result).toEqual({
             knowledgebaseId: 'kb-1',
             documentIds: ['doc-1'],
             deletedDocumentCount: 1,
             missingDocumentIds: ['doc-missing']
         })
+    })
+})
+
+describe('Knowledgebase document command access boundaries', () => {
+    it('stops a document list before querying documents when the knowledgebase read check fails', async () => {
+        const accessError = new Error('denied')
+        const knowledgebaseService = {
+            findOneByIdString: jest.fn(async () => {
+                throw accessError
+            })
+        }
+        const documentService = { findAll: jest.fn() }
+        const handler = new ListKnowledgebaseDocumentsHandler(knowledgebaseService as any, documentService as any)
+
+        await expect(
+            handler.execute(new ListKnowledgebaseDocumentsCommand({ knowledgebaseId: 'victim-kb' }))
+        ).rejects.toBe(accessError)
+        expect(documentService.findAll).not.toHaveBeenCalled()
+    })
+
+    it('stops document creation before rebuild checks or persistence when the knowledgebase write check fails', async () => {
+        const accessError = new Error('denied')
+        const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn(async () => {
+                throw accessError
+            }),
+            assertNotRebuilding: jest.fn()
+        }
+        const documentService = { createBulkWithIncrementalSync: jest.fn() }
+        const handler = new CreateKnowledgebaseDocumentsHandler(
+            knowledgebaseService as any,
+            documentService as any,
+            { getFilesPath: jest.fn(), resolve: jest.fn() } as any
+        )
+
+        await expect(
+            handler.execute(
+                new CreateKnowledgebaseDocumentsCommand({
+                    knowledgebaseId: 'victim-kb',
+                    documents: [{ name: 'victim.pdf', filePath: 'files/victim.pdf' }]
+                })
+            )
+        ).rejects.toBe(accessError)
+        expect(knowledgebaseService.assertNotRebuilding).not.toHaveBeenCalled()
+        expect(documentService.createBulkWithIncrementalSync).not.toHaveBeenCalled()
+    })
+
+    it('canonicalizes a managed runtime file and drops untrusted document fields before persistence', async () => {
+        const readFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile').mockResolvedValue({
+            filePath: 'reference/manual.pdf',
+            fileUrl: 'https://files.example.test/reference/manual.pdf',
+            mimeType: 'application/pdf',
+            size: 128
+        })
+        const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-owner', tenantId: 'tenant-1' })),
+            assertNotRebuilding: jest.fn(),
+            resolveKnowledgebaseFolderAncestors: jest.fn()
+        }
+        const documentService = {
+            createBulkWithIncrementalSync: jest.fn(async (drafts) => ({
+                documents: drafts.map((draft, index) => ({ ...draft, id: `doc-${index + 1}` })),
+                processableIds: [],
+                skippedIds: [],
+                updatedIds: [],
+                createdIds: ['doc-1']
+            }))
+        }
+        const knowledgeWorkAreaResolver = {
+            getFilesPath: jest.fn(() => 'files'),
+            resolve: jest.fn(async () => ({ volume: {} }))
+        }
+        const handler = new CreateKnowledgebaseDocumentsHandler(
+            knowledgebaseService as any,
+            documentService as any,
+            knowledgeWorkAreaResolver as any
+        )
+
+        await handler.execute(
+            new CreateKnowledgebaseDocumentsCommand({
+                knowledgebaseId: 'kb-owner',
+                documents: [
+                    {
+                        id: 'victim-doc',
+                        name: 'manual.pdf',
+                        filePath: 'files/reference/manual.pdf',
+                        fileUrl: 'http://127.0.0.1/internal',
+                        tenantId: 'victim-tenant'
+                    } as never
+                ]
+            })
+        )
+
+        const persisted = documentService.createBulkWithIncrementalSync.mock.calls[0][0][0]
+        expect(readFile).toHaveBeenCalledWith('files', 'reference/manual.pdf', { metadataOnly: true })
+        expect(persisted).toEqual(
+            expect.objectContaining({
+                knowledgebaseId: 'kb-owner',
+                filePath: 'files/reference/manual.pdf',
+                fileUrl: 'https://files.example.test/reference/manual.pdf',
+                mimeType: 'application/pdf',
+                size: '128'
+            })
+        )
+        expect(persisted).not.toHaveProperty('id')
+        expect(persisted).not.toHaveProperty('tenantId')
+        readFile.mockRestore()
+    })
+
+    it.each([
+        ['a remote URL without a managed path', { fileUrl: 'http://127.0.0.1/internal' }],
+        ['a traversal path', { filePath: 'files/../../etc/passwd' }]
+    ])('rejects runtime document creation using %s', async (_label, document) => {
+        const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-owner', tenantId: 'tenant-1' })),
+            assertNotRebuilding: jest.fn(),
+            resolveKnowledgebaseFolderAncestors: jest.fn()
+        }
+        const documentService = { createBulkWithIncrementalSync: jest.fn() }
+        const handler = new CreateKnowledgebaseDocumentsHandler(
+            knowledgebaseService as any,
+            documentService as any,
+            {
+                getFilesPath: jest.fn(() => 'files'),
+                resolve: jest.fn(async () => ({ volume: {} }))
+            } as any
+        )
+
+        await expect(
+            handler.execute(
+                new CreateKnowledgebaseDocumentsCommand({
+                    knowledgebaseId: 'kb-owner',
+                    documents: [{ name: 'victim.pdf', ...document }]
+                })
+            )
+        ).rejects.toBeInstanceOf(Error)
+        expect(documentService.createBulkWithIncrementalSync).not.toHaveBeenCalled()
+    })
+
+    it('uses route-scoped write access before starting processing', async () => {
+        const accessError = new Error('denied')
+        const documentService = {
+            assertDocumentsWriteAccessInKnowledgebase: jest.fn(async () => {
+                throw accessError
+            }),
+            startProcessing: jest.fn()
+        }
+        const handler = new StartKnowledgebaseDocumentsProcessingHandler(documentService as any)
+
+        await expect(
+            handler.execute(
+                new StartKnowledgebaseDocumentsProcessingCommand({
+                    knowledgebaseId: 'victim-kb',
+                    documentIds: ['victim-doc']
+                })
+            )
+        ).rejects.toBe(accessError)
+        expect(documentService.startProcessing).not.toHaveBeenCalled()
+    })
+
+    it('uses route-scoped read access before loading document status', async () => {
+        const accessError = new Error('denied')
+        const documentService = {
+            assertDocumentsReadAccessInKnowledgebase: jest.fn(async () => {
+                throw accessError
+            }),
+            findAll: jest.fn()
+        }
+        const handler = new GetKnowledgebaseDocumentStatusHandler(documentService as any)
+
+        await expect(
+            handler.execute(
+                new GetKnowledgebaseDocumentStatusCommand({
+                    knowledgebaseId: 'victim-kb',
+                    documentIds: ['victim-doc']
+                })
+            )
+        ).rejects.toBe(accessError)
+        expect(documentService.findAll).not.toHaveBeenCalled()
     })
 })
 

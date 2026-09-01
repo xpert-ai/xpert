@@ -54,6 +54,7 @@ import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import { AssistantUserPreference } from './assistant-user-preference.entity'
 import { AssistantUserPreferenceService } from './assistant-user-preference.service'
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
+import { XpertProjectModule } from '../xpert-project/project.module'
 
 @Module({
     imports: [
@@ -88,8 +89,9 @@ import { AssistantModelSelectionService } from './assistant-model-selection.serv
         CopilotStoreModule,
         CopilotUsageModule,
         HandoffQueueModule,
-        ChatConversationModule,
-        SseStreamModule
+        forwardRef(() => ChatConversationModule),
+        SseStreamModule,
+        forwardRef(() => XpertProjectModule)
     ],
     controllers: [XpertController, XpertAccessController],
     providers: [

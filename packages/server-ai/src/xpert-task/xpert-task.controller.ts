@@ -1,4 +1,4 @@
-import { I18nObject, LanguagesEnum, ScheduleTaskStatus, TChatOptions } from '@xpert-ai/contracts'
+import { I18nObject, LanguagesEnum, TChatOptions } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
     CrudController,
@@ -6,7 +6,9 @@ import {
     ParseJsonPipe,
     RequestContext,
     TimeZone,
-    TransformInterceptor
+    TransformInterceptor,
+    UUIDValidationPipe,
+    transformWhere
 } from '@xpert-ai/server-core'
 import {
     BadRequestException,
@@ -15,6 +17,8 @@ import {
     Controller,
     Delete,
     Get,
+    HttpCode,
+    HttpStatus,
     Logger,
     Param,
     Post,
@@ -27,12 +31,13 @@ import {
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { I18nLang } from 'nestjs-i18n'
-import { In } from 'typeorm'
+import { FindManyOptions, FindOptionsWhere, In } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskService } from './xpert-task.service'
 import { CreateXpertTaskCommand } from './commands'
 import { SimpleXpertTask } from './dto/simple.dto'
+import { createXpertTaskRunAsProposalValidationPipe, XpertTaskRunAsProposalDTO } from './dto/run-as.dto'
 
 @ApiTags('XpertTask')
 @ApiBearerAuth()
@@ -48,6 +53,41 @@ export class XpertTaskController extends CrudController<XpertTask> {
         super(service)
     }
 
+    @Get('count')
+    async getCount(@Query() options?: FindOptionsWhere<XpertTask>) {
+        return (await this.service.findHttpAccessible({ where: options })).total
+    }
+
+    @Get('pagination')
+    pagination(
+        @Query('data', ParseJsonPipe) filter?: PaginationParams<XpertTask>,
+        @Query('$where', ParseJsonPipe) where?: HttpTaskWhere,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<XpertTask>['relations'],
+        @Query('$order', ParseJsonPipe) order?: PaginationParams<XpertTask>['order'],
+        @Query('$take') take?: PaginationParams<XpertTask>['take'],
+        @Query('$skip') skip?: PaginationParams<XpertTask>['skip'],
+        @Query('$select', ParseJsonPipe) select?: PaginationParams<XpertTask>['select']
+    ) {
+        return this.service.findHttpAccessible(
+            buildHttpTaskFindOptions(filter, { where, relations, order, take, skip, select })
+        )
+    }
+
+    @Get()
+    findAll(
+        @Query('data', ParseJsonPipe) filter?: PaginationParams<XpertTask>,
+        @Query('$where', ParseJsonPipe) where?: HttpTaskWhere,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<XpertTask>['relations'],
+        @Query('$order', ParseJsonPipe) order?: PaginationParams<XpertTask>['order'],
+        @Query('$take') take?: PaginationParams<XpertTask>['take'],
+        @Query('$skip') skip?: PaginationParams<XpertTask>['skip'],
+        @Query('$select', ParseJsonPipe) select?: PaginationParams<XpertTask>['select']
+    ) {
+        return this.service.findHttpAccessible(
+            buildHttpTaskFindOptions(filter, { where, relations, order, take, skip, select })
+        )
+    }
+
     @Post()
     async create(@Body() entity: XpertTask) {
         const task = await this.commandBus.execute(new CreateXpertTaskCommand(entity))
@@ -55,8 +95,8 @@ export class XpertTaskController extends CrudController<XpertTask> {
     }
 
     @Get('my')
-    async getAllMy(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>) {
-        const result = await super.findMyAll(params)
+    async findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>) {
+        const result = await this.service.findHttpAccessible(params, { createdById: RequestContext.currentUserId() })
         return {
             ...result,
             items: result.items.map((item) => new SimpleXpertTask(item))
@@ -65,20 +105,20 @@ export class XpertTaskController extends CrudController<XpertTask> {
 
     @Get('total')
     async getMyTotal(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>) {
-        const result = await super.findMyAll(params)
+        const result = await this.service.findHttpAccessible(params, { createdById: RequestContext.currentUserId() })
         return result.total
     }
 
     @Get('by-ids')
     async getAllByIds(@Query('ids') ids: string) {
         const _ids = ids.split(',')
-        return this.service.findAll({
-            where: {
-                createdById: RequestContext.currentUserId(),
-                id: In(_ids)
+        return this.service.findHttpAccessible(
+            {
+                where: { id: In(_ids) },
+                relations: ['executions', 'xpert']
             },
-            relations: ['executions', 'xpert']
-        })
+            { createdById: RequestContext.currentUserId() }
+        )
     }
 
     @Get('schedule/capabilities/:xpertId')
@@ -134,7 +174,7 @@ export class XpertTaskController extends CrudController<XpertTask> {
     @Put(':id')
     async update(@Param('id') id: string, @Body() entity: QueryDeepPartialEntity<XpertTask> & XpertTask) {
         try {
-            return await this.service.updateTask(id, entity)
+            return await this.service.updateHttpTask(id, entity)
         } catch (err) {
             throw new BadRequestException(getErrorMessage(err))
         }
@@ -145,10 +185,7 @@ export class XpertTaskController extends CrudController<XpertTask> {
     @Put(':id/schedule')
     async schedule(@Param('id') id: string, @Body() entity: XpertTask) {
         try {
-            if (entity) {
-                return await this.service.updateTask(id, { ...entity, status: ScheduleTaskStatus.SCHEDULED })
-            }
-            return await this.service.schedule(id)
+            return await this.service.scheduleHttpTask(id, entity)
         } catch (err) {
             throw new BadRequestException(getErrorMessage(err))
         }
@@ -156,17 +193,28 @@ export class XpertTaskController extends CrudController<XpertTask> {
 
     @Put(':id/pause')
     async pause(@Param('id') id: string) {
-        return this.service.pause(id)
+        return this.service.pauseHttpTask(id)
     }
 
     @Put(':id/archive')
     async archive(@Param('id') id: string) {
-        return this.service.archive(id)
+        return this.service.archiveHttpTask(id)
     }
 
     @Put(':id/unarchive')
     async unarchive(@Param('id') id: string) {
-        return this.service.unarchive(id)
+        return this.service.unarchiveHttpTask(id)
+    }
+
+    @Post(':id/run-as/proposal')
+    @UsePipes(createXpertTaskRunAsProposalValidationPipe())
+    async proposeRunAs(@Param('id', UUIDValidationPipe) id: string, @Body() body: XpertTaskRunAsProposalDTO) {
+        return this.service.proposeProjectTaskRunAs(id, body.runAsUserId)
+    }
+
+    @Post(':id/run-as/accept')
+    async acceptRunAs(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.acceptProjectTaskRunAs(id)
     }
 
     @Post(':id/test')
@@ -176,7 +224,7 @@ export class XpertTaskController extends CrudController<XpertTask> {
         @TimeZone() timeZone: string,
         @Body() body?: Pick<TChatOptions, 'context' | 'timeZone'>
     ) {
-        return await this.service.test(id, {
+        return await this.service.testHttpTask(id, {
             language,
             timeZone: body?.timeZone ?? timeZone,
             context: body?.context
@@ -335,8 +383,53 @@ export class XpertTaskController extends CrudController<XpertTask> {
     }
 
     @Delete(':id/soft')
-    async softDelete(@Param('id') id: string) {
-        await this.service.pause(id)
-        return this.service.softDelete(id)
+    async softRemove(@Param('id') id: string) {
+        return this.service.softDeleteHttpTask(id)
+    }
+
+    @Get(':id')
+    findById(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<XpertTask>['relations'],
+        @Query('$select', ParseJsonPipe) select?: PaginationParams<XpertTask>['select']
+    ) {
+        return this.service.findHttpAccessibleById(id, relations, select)
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.ACCEPTED)
+    delete(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.deleteHttpTask(id)
+    }
+
+    @Put(':id/recover')
+    @HttpCode(HttpStatus.ACCEPTED)
+    softRecover(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.recoverHttpTask(id)
+    }
+}
+
+type HttpTaskWhere = Parameters<typeof transformWhere>[0]
+
+function buildHttpTaskFindOptions(
+    filter: PaginationParams<XpertTask> | undefined,
+    explicit: {
+        where?: HttpTaskWhere
+        relations?: PaginationParams<XpertTask>['relations']
+        order?: PaginationParams<XpertTask>['order']
+        take?: PaginationParams<XpertTask>['take']
+        skip?: PaginationParams<XpertTask>['skip']
+        select?: PaginationParams<XpertTask>['select']
+    }
+): FindManyOptions<XpertTask> {
+    const where = explicit.where ?? filter?.where
+    return {
+        ...(filter ?? {}),
+        ...(where !== undefined ? { where: transformWhere<XpertTask>(where) ?? undefined } : {}),
+        ...(explicit.relations !== undefined ? { relations: explicit.relations } : {}),
+        ...(explicit.order !== undefined ? { order: explicit.order } : {}),
+        ...(explicit.take !== undefined ? { take: explicit.take } : {}),
+        ...(explicit.skip !== undefined ? { skip: explicit.skip } : {}),
+        ...(explicit.select !== undefined ? { select: explicit.select } : {})
     }
 }

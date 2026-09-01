@@ -1,16 +1,17 @@
-import { Document } from '@langchain/core/documents'
 import { HumanMessage } from '@langchain/core/messages'
-import { _TFile, IStorageFile, IXpert, TXpertAgentOptions } from '@xpert-ai/contracts'
-import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
+import { _TFile, IStorageFile, IXpert, STATE_VARIABLE_SYS, TXpertAgentOptions } from '@xpert-ai/contracts'
+import { FileStorage } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { ForbiddenException } from '@nestjs/common'
 import fs from 'fs'
 import { get } from 'lodash'
-import path from 'path'
 import sharp from 'sharp'
 import type { FileAsset } from '../../file-understanding/entities/file-asset.entity'
-import { GetFileAssetByStorageFileQuery } from '../../file-understanding/queries/get-file-asset-by-storage-file.query'
-import { GetFileAssetQuery } from '../../file-understanding/queries/get-file-asset.query'
+import type { FileAssetAuthority, FileAssetLocator } from '../../file-understanding/file-asset-access.service'
 import { GetFilePreviewQuery, type FilePreviewResult } from '../../file-understanding/queries/get-file-preview.query'
+import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
+import { ReadFileAssetSourceQuery } from '../../file-understanding/queries/read-file-asset-source.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
 import { LoadFileCommand } from '../commands'
 import { AgentStateAnnotation } from './state'
 import { buildReferencedPrompt, normalizeReferences } from './human-input'
@@ -29,6 +30,7 @@ type ResolvedFile = Omit<_TFile, 'filePath'> & {
     size?: number
     workspacePath?: string
     fileAsset?: FileAsset
+    sourceData?: Buffer
 }
 
 type CreateHumanMessageOptions = {
@@ -40,13 +42,7 @@ const MAX_FILE_PROMPT_PAGE_IMAGES = 8
 
 // StorageFile remains the object-storage lookup layer; FileAsset carries the
 // agent-facing understanding state and workspace path.
-async function resolveStorageFile(queryBus: QueryBus, fileId: string): Promise<ResolvedFile | null> {
-    const storageFiles = await queryBus.execute(new GetStorageFileQuery([fileId]))
-    const storageFile = storageFiles[0] as IStorageFile | undefined
-    if (!storageFile) {
-        return null
-    }
-
+function resolveStorageFile(storageFile: IStorageFile): ResolvedFile {
     const provider = new FileStorage().getProvider(storageFile.storageProvider)
     return {
         id: storageFile.id,
@@ -61,73 +57,91 @@ async function resolveStorageFile(queryBus: QueryBus, fileId: string): Promise<R
 
 // Accepts both new AgentFile/FileAsset handles and legacy StorageFile handles,
 // resolving them to a single runtime shape before prompt construction.
-async function resolveAttachmentFile(queryBus: QueryBus, file: ResolvedFile): Promise<ResolvedFile | null> {
-    const explicitAssetId = file.fileId ?? file.fileAssetId
+async function resolveAttachmentFile(
+    queryBus: QueryBus,
+    file: ResolvedFile,
+    authority: FileAssetAuthority
+): Promise<ResolvedFile | null> {
+    const explicitAssetId = file.fileAssetId ?? file.fileId ?? file.fileAsset?.id
     const storageFileId = file.storageFileId ?? (explicitAssetId ? undefined : file.id)
-    const fileAsset = explicitAssetId
-        ? await queryBus.execute<GetFileAssetQuery, FileAsset | null>(new GetFileAssetQuery(explicitAssetId))
+    const locator: FileAssetLocator | null = explicitAssetId
+        ? {
+              fileAssetId: explicitAssetId,
+              ...(storageFileId ? { storageFileId } : {})
+          }
         : storageFileId
-          ? await queryBus.execute<GetFileAssetByStorageFileQuery, FileAsset | null>(
-                new GetFileAssetByStorageFileQuery(storageFileId)
-            )
+          ? { storageFileId }
           : null
-    const resolvedStorageFileId = fileAsset?.storageFileId ?? storageFileId
-    const resolvedStorageFile = resolvedStorageFileId ? await resolveStorageFile(queryBus, resolvedStorageFileId) : null
+    let fileAsset: FileAsset | undefined
+    let authorizedStorageFile: IStorageFile | undefined
+    if (locator) {
+        try {
+            const authorized = await queryBus.execute(
+                new ResolveAuthorizedFileAssetQuery({ locator, authority, operation: 'read' })
+            )
+            fileAsset = authorized.asset
+            authorizedStorageFile = authorized.storageFile
+        } catch (error) {
+            if (!(error instanceof ForbiddenException) || explicitAssetId || !storageFileId) {
+                throw error
+            }
+            authorizedStorageFile = await queryBus.execute(new GetOwnedStorageFileQuery(storageFileId))
+        }
+    }
+    const resolvedStorageFile = authorizedStorageFile ? resolveStorageFile(authorizedStorageFile) : null
 
-    if (resolvedStorageFile) {
+    if (resolvedStorageFile && (resolvedStorageFile.filePath || resolvedStorageFile.fileUrl)) {
         return {
             ...file,
             ...resolvedStorageFile,
             id: resolvedStorageFile.id,
             storageFileId: resolvedStorageFile.storageFileId,
-            fileId: fileAsset?.id ?? file.fileId,
-            fileAssetId: fileAsset?.id ?? file.fileAssetId,
+            fileId: fileAsset?.id,
+            fileAssetId: fileAsset?.id,
+            workspacePath: fileAsset?.workspacePath,
             fileAsset
-        }
-    }
-
-    const localFilePath = file.filePath && path.isAbsolute(file.filePath) ? file.filePath : undefined
-    const workspacePath = file.workspacePath ?? fileAsset?.workspacePath ?? (localFilePath ? undefined : file.filePath)
-    const { filePath: _filePath, ...fileWithoutLocalPath } = file
-    if (file.filePath || file.fileUrl || workspacePath) {
-        return {
-            ...fileWithoutLocalPath,
-            ...(localFilePath ? { filePath: localFilePath } : {}),
-            fileUrl: file.fileUrl ?? fileAssetUrl(fileAsset),
-            mimeType: file.mimeType ?? fileAsset?.mimeType,
-            originalName: file.originalName ?? fileAsset?.originalName,
-            size: file.size ?? fileAsset?.size,
-            workspacePath,
-            fileAsset: fileAsset ?? file.fileAsset
         }
     }
 
     if (fileAsset) {
+        const workspacePath = fileAsset.workspacePath
+        const mimeType = fileAsset.mimeType
+        const sourceData = isInlineMediaType(mimeType)
+            ? await queryBus.execute<ReadFileAssetSourceQuery, Buffer | null>(
+                  new ReadFileAssetSourceQuery(fileAsset.id, authority)
+              )
+            : null
         return {
-            ...fileWithoutLocalPath,
-            mimeType: file.mimeType ?? fileAsset.mimeType,
-            originalName: file.originalName ?? fileAsset.originalName,
-            size: file.size ?? fileAsset.size,
-            fileAsset
+            id: fileAsset.id,
+            fileId: fileAsset.id,
+            fileAssetId: fileAsset.id,
+            ...(fileAsset.storageFileId ? { storageFileId: fileAsset.storageFileId } : {}),
+            mimeType,
+            originalName: fileAsset.originalName,
+            size: fileAsset.size,
+            workspacePath,
+            fileAsset,
+            ...(sourceData ? { sourceData } : {})
+        }
+    }
+
+    if (file.fileUrl) {
+        return {
+            id: file.id,
+            fileUrl: file.fileUrl,
+            mimeType: file.mimeType,
+            originalName: file.originalName,
+            size: file.size
         }
     }
 
     return null
 }
 
-function fileAssetUrl(fileAsset?: FileAsset | null) {
-    const storageFile = fileAsset?.metadata?.storageFile
-    if (!storageFile || typeof storageFile !== 'object' || Array.isArray(storageFile)) {
-        return undefined
-    }
-    const record = storageFile as Record<string, unknown>
-    const url = record.fileUrl ?? record.url
-    return typeof url === 'string' && url.trim() ? url.trim() : undefined
-}
-
 async function hydrateImageReferenceWorkspacePaths(
     queryBus: QueryBus,
-    references: ReturnType<typeof normalizeReferences>
+    references: ReturnType<typeof normalizeReferences>,
+    authority: FileAssetAuthority
 ) {
     return Promise.all(
         references.map(async (reference) => {
@@ -135,10 +149,23 @@ async function hydrateImageReferenceWorkspacePaths(
                 return reference
             }
 
-            const fileAsset = await queryBus.execute<GetFileAssetByStorageFileQuery, FileAsset | null>(
-                new GetFileAssetByStorageFileQuery(reference.fileId)
-            )
-            return fileAsset?.workspacePath ? { ...reference, workspacePath: fileAsset.workspacePath } : reference
+            try {
+                const fileAsset = (
+                    await queryBus.execute(
+                        new ResolveAuthorizedFileAssetQuery({
+                            locator: { storageFileId: reference.fileId },
+                            authority,
+                            operation: 'read'
+                        })
+                    )
+                ).asset
+                return fileAsset?.workspacePath ? { ...reference, workspacePath: fileAsset.workspacePath } : reference
+            } catch (error) {
+                if (error instanceof ForbiddenException) {
+                    return reference
+                }
+                throw error
+            }
         })
     )
 }
@@ -147,8 +174,8 @@ async function toImageContentPart(
     file: ResolvedFile,
     attachment?: TXpertAgentOptions['attachment'] | TXpertAgentOptions['vision']
 ) {
-    if (file.filePath) {
-        const sourceImageData = await fs.promises.readFile(file.filePath)
+    if (file.sourceData || file.filePath) {
+        const sourceImageData = await readInlineMediaSource(file)
         const imageData =
             attachment?.resolution === 'low'
                 ? await sharp(Buffer.from(sourceImageData)).resize(1024).toBuffer()
@@ -173,13 +200,27 @@ async function toImageContentPart(
     }
 }
 
+function isInlineMediaType(mimeType?: string) {
+    return Boolean(mimeType?.startsWith('image/') || mimeType?.startsWith('audio/') || mimeType?.startsWith('video/'))
+}
+
+async function readInlineMediaSource(file: Pick<ResolvedFile, 'filePath' | 'sourceData'>) {
+    if (file.sourceData) {
+        return file.sourceData
+    }
+    if (file.filePath) {
+        return await fs.promises.readFile(file.filePath)
+    }
+    throw new Error('Inline media source is required')
+}
+
 async function toAudioContentPart(file: ResolvedFile) {
     if (!file.mimeType?.startsWith('audio/')) {
         throw new Error('Audio MIME type is required')
     }
 
-    if (file.filePath) {
-        const audioData = await fs.promises.readFile(file.filePath)
+    if (file.sourceData || file.filePath) {
+        const audioData = await readInlineMediaSource(file)
         return {
             type: 'audio' as const,
             source_type: 'base64' as const,
@@ -229,11 +270,12 @@ export async function createHumanMessage(
     options?: CreateHumanMessageOptions
 ) {
     const { human } = state
+    const fileAssetAuthority = resolveFileAssetAuthority(state)
     const agentHuman = await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
     const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
     const normalizedReferences = normalizeReferences(agentHuman?.references)
     const originalReferencePrompt = buildReferencedPrompt(normalizedReferences)
-    const references = await hydrateImageReferenceWorkspacePaths(queryBus, normalizedReferences)
+    const references = await hydrateImageReferenceWorkspacePaths(queryBus, normalizedReferences, fileAssetAuthority)
     const referencePrompt = buildReferencedPrompt(references)
     const selectedSkillsPrompt = await buildSelectedRuntimeSkillsPrompt(
         queryBus,
@@ -260,26 +302,39 @@ export async function createHumanMessage(
     const _files = [] as Array<ResolvedFile>
     if (attachment?.enabled && attachment.variable) {
         const variableFiles = get(state, attachment.variable, []) as Array<_TFile> | _TFile
-        _files.push(...(Array.isArray(variableFiles) ? variableFiles : variableFiles ? [variableFiles] : []))
+        const runtimeFiles = Array.isArray(variableFiles) ? variableFiles : variableFiles ? [variableFiles] : []
+        _files.push(...runtimeFiles)
     }
     if (agentHuman.files?.length) {
         _files.push(...(agentHuman.files as Array<ResolvedFile>))
     }
     const files: Array<ResolvedFile> = (
-        await Promise.all(dedupeFiles(_files).map(async (file) => resolveAttachmentFile(queryBus, file)))
+        await Promise.all(
+            dedupeFiles(_files).map(async (file) => resolveAttachmentFile(queryBus, file, fileAssetAuthority))
+        )
     ).filter((file): file is ResolvedFile => Boolean(file))
 
     const imageReferenceParts = (
         await Promise.all(
             imageReferences.map(async (reference) => {
                 if (reference.fileId) {
-                    const resolvedFile = await resolveStorageFile(queryBus, reference.fileId)
+                    const resolvedFile = await resolveAttachmentFile(
+                        queryBus,
+                        {
+                            id: reference.fileId,
+                            storageFileId: reference.fileId,
+                            originalName: reference.name,
+                            mimeType: reference.mimeType
+                        },
+                        fileAssetAuthority
+                    )
                     if (
                         resolvedFile?.mimeType?.startsWith('image') &&
                         (resolvedFile.filePath || resolvedFile.fileUrl)
                     ) {
                         return await toImageContentPart(resolvedFile, attachment)
                     }
+                    return null
                 }
 
                 if (reference.url?.trim()) {
@@ -300,7 +355,7 @@ export async function createHumanMessage(
         const fileParts = await Promise.all(
             files.map(async (file) => {
                 if (file.mimeType?.startsWith('image')) {
-                    if (!file.filePath && !file.fileUrl) {
+                    if (!file.sourceData && !file.filePath && !file.fileUrl) {
                         return {
                             type: 'text',
                             text: buildFileUnderstandingPrompt(file, null)
@@ -311,10 +366,10 @@ export async function createHumanMessage(
 
                 if (file.mimeType?.startsWith('video')) {
                     // Process video files
-                    if (!file.filePath) {
+                    if (!file.sourceData && !file.filePath) {
                         throw new Error('Video file path is required')
                     }
-                    const videoData = await fs.promises.readFile(file.filePath)
+                    const videoData = await readInlineMediaSource(file)
                     return {
                         type: 'video_url',
                         video_url: {
@@ -377,6 +432,11 @@ export async function createHumanMessage(
     }
 
     return new HumanMessage(finalText)
+}
+
+function resolveFileAssetAuthority(state: Partial<typeof AgentStateAnnotation.State>): FileAssetAuthority {
+    const threadId = state[STATE_VARIABLE_SYS]?.thread_id?.trim()
+    return threadId ? { kind: 'conversation', threadId } : { kind: 'current-owner' }
 }
 
 function formatAttachmentPath(file: ResolvedFile) {

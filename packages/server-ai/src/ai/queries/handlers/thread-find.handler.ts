@@ -1,5 +1,9 @@
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { ChatConversationThreadService, GetChatConversationQuery } from '../../../chat-conversation'
+import {
+    AssertChatConversationAccessQuery,
+    ChatConversationThreadService,
+    GetChatConversationQuery
+} from '../../../chat-conversation'
 import { Optional } from '@nestjs/common'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { ThreadDTO } from '../../dto'
@@ -22,7 +26,8 @@ export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
             (await this.queryBus.execute(
                 new GetChatConversationQuery({ threadId: command.threadId }, command.relations)
             ))
-        assertPublicXpertSessionConversationAccess(chatConversation)
+        await this.queryBus.execute(new AssertChatConversationAccessQuery({ id: chatConversation.id }))
+        await assertPublicXpertSessionConversationAccess(chatConversation, this.queryBus)
 
         const tuple = await this.queryBus.execute(
             new CopilotCheckpointGetTupleQuery({

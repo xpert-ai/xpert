@@ -8,7 +8,7 @@ import type {
   TXpertProjectTaskPriority,
   TXpertProjectTaskStatus
 } from '@xpert-ai/contracts'
-import type { XpertProjectTaskRelations } from './project-api.service'
+import type { XpertProjectConversationTarget, XpertProjectTaskRelations } from './project-api.service'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -159,7 +159,7 @@ type TaskForm = {
                             {{ 'XP.XProject.ExecutionStatus.' + execution.status | translate }}
                           </z-badge>
                           <span class="truncate text-text-secondary">
-                            {{ execution.agentKey || execution.xpertId || ('XP.XProject.Assistant' | translate) }}
+                            {{ execution.agentKey || execution.xpertId || ('XP.XProject.ProjectExpert' | translate) }}
                           </span>
                         </div>
                         <span class="shrink-0 text-text-tertiary">#{{ execution.attempt }}</span>
@@ -172,7 +172,7 @@ type TaskForm = {
                             zType="link"
                             type="button"
                             class="h-auto p-0 text-xs"
-                            (click)="openConversation(execution.conversationId, execution.threadId)"
+                            (click)="openConversation(execution.conversationId, execution.threadId, execution.xpertId)"
                           >
                             {{ 'XP.XProject.OpenConversation' | translate }}
                           </button>
@@ -203,7 +203,9 @@ type TaskForm = {
                           zType="link"
                           type="button"
                           class="h-auto shrink-0 p-0 text-xs"
-                          (click)="openConversation(link.conversationId, link.conversation.threadId)"
+                          (click)="
+                            openConversation(link.conversationId, link.conversation.threadId, link.conversation.xpertId)
+                          "
                         >
                           {{ 'XP.XProject.OpenConversation' | translate }}
                         </button>
@@ -259,7 +261,7 @@ export class XpertProjectTaskDrawerComponent implements OnChanges {
   @Input() opened = false
   @Output() readonly openedChange = new EventEmitter<boolean>()
   @Output() readonly saved = new EventEmitter<Partial<IXpertProjectTask>>()
-  @Output() readonly conversationOpened = new EventEmitter<{ conversationId?: string; threadId?: string }>()
+  @Output() readonly conversationOpened = new EventEmitter<XpertProjectConversationTarget>()
 
   readonly statuses: TXpertProjectTaskStatus[] = [
     'todo',
@@ -308,8 +310,14 @@ export class XpertProjectTaskDrawerComponent implements OnChanges {
   close() {
     this.openedChange.emit(false)
   }
-  openConversation(conversationId?: string, threadId?: string) {
-    this.conversationOpened.emit({ conversationId, threadId })
+  openConversation(conversationId?: string, threadId?: string, xpertId?: string) {
+    const normalizedThreadId = threadId?.trim()
+    if (!normalizedThreadId) return
+    this.conversationOpened.emit({
+      conversationId,
+      threadId: normalizedThreadId,
+      xpertId: xpertId?.trim() || this.task?.assigneeXpertId?.trim() || undefined
+    })
   }
   save() {
     if (!this.task) return

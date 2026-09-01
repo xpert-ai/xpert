@@ -47,6 +47,14 @@ export class XpertTaskService extends OrganizationBaseCrudService<IXpertTask> {
     return this.httpClient.put(this.apiBaseUrl + `/${id}/unarchive`, {})
   }
 
+  proposeRunAs(id: string, runAsUserId: string) {
+    return this.httpClient.post<IXpertTask>(this.apiBaseUrl + `/${id}/run-as/proposal`, { runAsUserId })
+  }
+
+  acceptRunAs(id: string) {
+    return this.httpClient.post<IXpertTask>(this.apiBaseUrl + `/${id}/run-as/accept`, {})
+  }
+
   test(id: string) {
     return this.httpClient.post(this.apiBaseUrl + `/${id}/test`, {})
   }

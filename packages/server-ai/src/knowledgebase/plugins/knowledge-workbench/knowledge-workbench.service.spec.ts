@@ -536,7 +536,7 @@ describe('KnowledgeWorkbenchService', () => {
     })
 
     it('uploads PDF documents with default visual parser and VLM understanding enabled', async () => {
-        const { service, commandBus, documentService } = createService()
+        const { service, knowledgebaseService, commandBus, documentService } = createService()
         commandBus.execute.mockResolvedValueOnce({
             name: 'manual.pdf',
             filePath: 'manual.pdf',
@@ -585,12 +585,69 @@ describe('KnowledgeWorkbenchService', () => {
             })
         )
         expect(documentService.startProcessing).toHaveBeenCalledWith(['doc-2'], 'kb-1')
+        expect(knowledgebaseService.assertKnowledgebaseWriteAccess).toHaveBeenCalledWith('kb-1', {
+            select: { id: true }
+        })
         expect(result.processingStarted).toBe(true)
+    })
+
+    it('does not upload a document when the caller cannot write the selected knowledgebase', async () => {
+        const { service, knowledgebaseService, commandBus, documentService } = createService()
+        const accessError = new Error('denied')
+        knowledgebaseService.assertKnowledgebaseWriteAccess.mockRejectedValueOnce(accessError)
+
+        await expect(
+            service.uploadDocument({
+                allowedKnowledgebaseIds: ['victim-kb'],
+                knowledgebaseId: 'victim-kb',
+                file: {
+                    buffer: Buffer.from('victim'),
+                    originalname: 'victim.pdf'
+                }
+            })
+        ).rejects.toBe(accessError)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(documentService.createDocumentWithIncrementalSync).not.toHaveBeenCalled()
+    })
+
+    it('does not create a folder when the caller cannot write the selected knowledgebase', async () => {
+        const { service, knowledgebaseService, documentService } = createService()
+        const accessError = new Error('denied')
+        knowledgebaseService.assertKnowledgebaseWriteAccess.mockRejectedValueOnce(accessError)
+
+        await expect(
+            service.createFolder({
+                allowedKnowledgebaseIds: ['victim-kb'],
+                knowledgebaseId: 'victim-kb',
+                name: 'stolen'
+            })
+        ).rejects.toBe(accessError)
+
+        expect(documentService.createDocument).not.toHaveBeenCalled()
+    })
+
+    it('does not start processing when the caller cannot write the selected knowledgebase', async () => {
+        const { service, knowledgebaseService, commandBus, documentService } = createService()
+        const accessError = new Error('denied')
+        knowledgebaseService.assertKnowledgebaseWriteAccess.mockRejectedValueOnce(accessError)
+
+        await expect(
+            service.startProcessing({
+                allowedKnowledgebaseIds: ['victim-kb'],
+                knowledgebaseId: 'victim-kb',
+                documentIds: ['victim-doc']
+            })
+        ).rejects.toBe(accessError)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(documentService.startProcessing).not.toHaveBeenCalled()
     })
 })
 
 function createService() {
     const knowledgebaseService = {
+        assertKnowledgebaseWriteAccess: jest.fn(async () => ({ id: 'kb-1' })),
         assertNotRebuilding: jest.fn(async () => undefined),
         findAll: jest.fn(async () => ({
             items: [

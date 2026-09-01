@@ -22,11 +22,21 @@ const sandboxBackend = {
     downloadFiles: jest.fn().mockResolvedValue([{ path: '', content: Buffer.from(''), error: 'file_not_found' }])
 }
 
+const userXpertScope = {
+    tenantId: 'tenant-1',
+    id: 'xpert-1',
+    projectId: 'project-1',
+    userId: 'user-1',
+    workspaceDataScope: 'user'
+} as const
+
 function createContext(): IAgentMiddlewareContext {
     return {
         tenantId: 'tenant-1',
         userId: 'user-1',
         xpertId: 'xpert-1',
+        projectId: 'project-1',
+        workspaceDataScope: 'user',
         conversationId: 'conversation-1',
         xpertFeatures: {
             sandbox: {
@@ -110,12 +120,12 @@ describe('XpertFileMemoryMiddleware', () => {
         expect(middleware.tools?.map((item) => item.name)).not.toContain('write_memory')
 
         await middleware.tools?.[0].invoke({ query: 'history' }, toolConfig())
-        expect(fileMemoryService.listMemoryHeaders).toHaveBeenCalledWith({ tenantId: 'tenant-1', id: 'xpert-1' })
+        expect(fileMemoryService.listMemoryHeaders).toHaveBeenCalledWith(userXpertScope)
         expect(fileMemoryService.recordRecallHits).not.toHaveBeenCalled()
 
         await middleware.tools?.[1].invoke({ memoryId: 'mem-1' }, toolConfig())
         expect(fileMemoryService.getMemory).toHaveBeenCalledWith(
-            { tenantId: 'tenant-1', id: 'xpert-1' },
+            userXpertScope,
             expect.objectContaining({ memoryId: 'mem-1', conversationId: 'conversation-1' })
         )
 
@@ -129,7 +139,7 @@ describe('XpertFileMemoryMiddleware', () => {
             toolConfig()
         )
         expect(fileMemoryService.writeMemory).toHaveBeenCalledWith(
-            { tenantId: 'tenant-1', id: 'xpert-1' },
+            userXpertScope,
             expect.objectContaining({ type: 'project', title: 'Rollout', conversationId: 'conversation-1' })
         )
     })
@@ -185,7 +195,7 @@ describe('XpertFileMemoryMiddleware', () => {
             }
         })
         expect(fileMemoryService.recordRecallHits).toHaveBeenCalledWith(
-            { tenantId: 'tenant-1', id: 'xpert-1' },
+            userXpertScope,
             expect.objectContaining({
                 query: 'history',
                 headers: [expect.objectContaining({ memoryId: 'mem-1' })],
@@ -377,7 +387,7 @@ describe('XpertFileMemoryMiddleware', () => {
 
         expect(enqueue).toHaveBeenCalledWith(
             expect.objectContaining({
-                xpert: { tenantId: 'tenant-1', id: 'xpert-1' },
+                xpert: userXpertScope,
                 conversationId: 'conversation-1',
                 messages: expect.any(Array)
             })

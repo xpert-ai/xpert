@@ -32,7 +32,7 @@ All sources are normalized into one resolved source payload containing:
 
 ### 2. Target orchestration
 
-Targets describe where the file should go.
+Targets describe where the file should go. The full target model is an internal orchestration contract for trusted server-side callers of `UploadFileCommand`; it is not the request contract of the public HTTP endpoint.
 
 Built-in target kinds:
 
@@ -50,6 +50,8 @@ Built-in target strategies:
 `UploadFileService` resolves the target strategy from either `target.strategy` or the built-in mapping.
 
 Each target produces one destination, and all destinations are aggregated into a single `FileAsset`.
+
+The public `POST /files/upload` boundary is intentionally narrower. It accepts exactly one plain target whose only property is `{"kind":"storage"}`. It rejects multiple targets, `volume` and `sandbox` targets, explicit `strategy` values, and client-supplied target locators such as `provider`, `directory`, or `fileName`. The server reconstructs the canonical storage target and manages those values before dispatching `UploadFileCommand`.
 
 ### 3. File-storage providers
 
@@ -104,6 +106,8 @@ Only uploads that target object storage should do that. `volume` and `sandbox` u
 
 This is intentionally the only file extension model now.
 
+Custom target strategies are trusted server-side extension points. Registering a strategy does not make its target fields available through `POST /files/upload`.
+
 There is no upload-specific storage-provider strategy layer anymore, because it duplicated the responsibility of the storage provider itself.
 
 ## Plugin configuration model
@@ -135,15 +139,17 @@ At runtime, effective plugin configuration is resolved with this precedence:
 Fields:
 
 - `file`: multipart file
-- `targets`: JSON string array
+- `targets`: JSON string containing exactly `[{"kind":"storage"}]`
 - `metadata`: optional JSON string
+
+`provider`, `directory`, `fileName`, `strategy`, and other target locator or strategy fields are server-managed and must not be supplied by an external client.
 
 Example:
 
 ```bash
 curl -X POST http://localhost:3000/api/files/upload \
   -F 'file=@./README.md' \
-  -F 'targets=[{"kind":"storage","provider":"S3","directory":"files","prefix":"docs"}]'
+  -F 'targets=[{"kind":"storage"}]'
 ```
 
 ### Response
@@ -170,25 +176,22 @@ The response is always a `FileAsset`.
 
 ### Upload to object storage
 
-Use a `storage` target:
+External clients use the canonical `storage` target:
 
 ```json
-[
-  {
-    "kind": "storage",
-    "provider": "S3",
-    "directory": "files",
-    "prefix": "knowledge"
-  }
-]
+[{ "kind": "storage" }]
 ```
 
-The provider can be either:
+The server selects the provider, directory, and file name. Its configured provider can be either:
 
 - the built-in local provider `LOCAL`
 - a plugin-backed provider such as `MINIO`, `RUSTFS`, `S3`, `WASABI`, or `OSS`
 
-### Upload to volume
+### Trusted server-side targets
+
+The remaining target kinds and fields are available only to trusted host code that constructs `UploadFileCommand`, or to registered target strategies. The following descriptors are not valid payloads for `POST /files/upload`.
+
+### Upload to volume (trusted server only)
 
 ```json
 [
@@ -208,7 +211,7 @@ Returned metadata includes:
 - `absolutePath`
 - `mimeType`
 
-### Upload to sandbox mounted workspace
+### Upload to sandbox mounted workspace (trusted server only)
 
 ```json
 [
@@ -228,7 +231,7 @@ Returned metadata includes:
 - `workspacePath`
 - `workspaceUrl`
 
-### Upload to sandbox backend
+### Upload to sandbox backend (trusted server only)
 
 ```json
 [
@@ -246,9 +249,9 @@ Current limitation:
 - `sandbox:backend_upload` only supports UTF-8 text files
 - binary files should use `mounted_workspace`
 
-### Multi-target upload
+### Multi-target upload (trusted server only)
 
-One request can write the same file to multiple destinations:
+A trusted server-side `UploadFileCommand` can write the same file to multiple destinations:
 
 ```json
 [
@@ -302,6 +305,8 @@ See also: [RustFS File Storage Plugin](/en/guides/rustfs-file-storage)
 ## How to extend with plugins
 
 ### Add a custom target strategy
+
+Custom target strategies are invoked only by trusted server-side `UploadFileCommand` callers. The public upload endpoint does not accept a custom `strategy` or custom target locator fields.
 
 ```ts
 import { FileUploadTargetStrategy, IFileUploadTargetStrategy } from '@xpert-ai/plugin-sdk'
@@ -372,7 +377,7 @@ The intended direction is to keep responsibilities even more explicit.
 
 ### `file-upload`
 
-This should remain the single entry point for all new upload flows.
+This should remain the single internal orchestration entry point for all new upload flows. The public HTTP controller remains a narrower, canonical storage-upload boundary.
 
 Future work should continue to land here when it involves:
 
@@ -381,7 +386,7 @@ Future work should continue to land here when it involves:
 - multi-target orchestration
 - shared upload validation, metadata, and status aggregation
 
-New business uploads should prefer wrapping `UploadFileCommand` instead of adding parallel ad-hoc controllers.
+New business uploads should prefer wrapping `UploadFileCommand` with their own authorization and server-managed target construction instead of adding parallel ad-hoc controllers. They should not expose arbitrary target descriptors through `POST /files/upload`.
 
 ### `file-storage`
 

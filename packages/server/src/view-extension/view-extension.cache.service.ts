@@ -15,6 +15,7 @@ export interface XpertViewCacheHostIdentity {
 	organizationId?: string | null
 	hostType: string
 	hostId: string
+	dataScopeKey?: string | null
 }
 
 @Injectable()
@@ -80,7 +81,8 @@ export class ViewExtensionCacheService implements OnModuleInit {
 			tenantId: context.tenantId,
 			organizationId: context.organizationId,
 			hostType: context.hostType,
-			hostId: context.hostId
+			hostId: context.hostId,
+			dataScopeKey: context.runtimeScope?.dataScopeKey
 		})
 	}
 
@@ -142,8 +144,7 @@ export class ViewExtensionCacheService implements OnModuleInit {
 			context.tenantId,
 			context.organizationId ?? 'tenant',
 			context.userId,
-			context.hostType,
-			context.hostId
+			context.runtimeScope?.dataScopeKey ?? `${context.hostType}:${context.hostId}`
 		].join(':')
 	}
 
@@ -156,7 +157,11 @@ export class ViewExtensionCacheService implements OnModuleInit {
 	}
 
 	private getHostIdentityKey(identity: XpertViewCacheHostIdentity) {
-		return [identity.tenantId, identity.organizationId ?? 'tenant', identity.hostType, identity.hostId].join(':')
+		return [
+			identity.tenantId,
+			identity.organizationId ?? 'tenant',
+			identity.dataScopeKey ?? `${identity.hostType}:${identity.hostId}`
+		].join(':')
 	}
 
 	private normalizeQuery(query: XpertViewQuery) {

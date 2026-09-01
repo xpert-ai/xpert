@@ -45,25 +45,12 @@ function createService() {
 }
 
 describe('XpertProjectAutomationSchedulerService', () => {
-    it('scans due automations under a renewable Redis lock', async () => {
+    it('does not schedule legacy Project automations', async () => {
         const { queryBuilder, redisLockService, service } = createService()
-
-        await service.scan()
-
-        expect(queryBuilder.getMany).toHaveBeenCalledTimes(1)
-        expect(redisLockService.runWithLock).toHaveBeenCalledWith(
-            'scheduler:xpert-project-automation',
-            5 * 60 * 1000,
-            expect.any(Function)
-        )
-    })
-
-    it('skips the database scan when another instance holds the Redis lock', async () => {
-        const { queryBuilder, redisLockService, service } = createService()
-        redisLockService.runWithLock.mockResolvedValueOnce({ acquired: false })
 
         await service.scan()
 
         expect(queryBuilder.getMany).not.toHaveBeenCalled()
+        expect(redisLockService.runWithLock).not.toHaveBeenCalled()
     })
 })

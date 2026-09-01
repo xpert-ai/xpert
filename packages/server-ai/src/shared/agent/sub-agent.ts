@@ -1,5 +1,6 @@
 import type { IXpertAgent, TXpertGraph, TXpertTeamConnection } from '@xpert-ai/contracts'
 import type { TXpertAgentRuntimeOptions } from './state'
+import { isRuntimeCapabilitiesAllowlist } from './runtime-capabilities'
 
 const SUB_AGENT_CONNECTION_TYPES = new Set<TXpertTeamConnection['type']>(['agent', 'xpert'])
 
@@ -33,7 +34,7 @@ export function getRuntimeEnabledSubAgentConnections(
 ): TXpertTeamConnection[] {
     const connections = getAgentSubAgentConnections(graph, agent.key)
     const runtimeCapabilities = options?.runtimeCapabilities
-    if (runtimeCapabilities?.mode !== 'allowlist') {
+    if (!isRuntimeCapabilitiesAllowlist(runtimeCapabilities)) {
         return connections
     }
 

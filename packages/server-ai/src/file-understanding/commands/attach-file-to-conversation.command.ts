@@ -1,4 +1,5 @@
 import { Command } from '@nestjs/cqrs'
+import { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { ConversationFileLink } from '../entities'
 
 export class AttachFileToConversationCommand extends Command<ConversationFileLink> {
@@ -12,6 +13,7 @@ export class AttachFileToConversationCommand extends Command<ConversationFileLin
             threadId?: string
             projectId?: string
             xpertId?: string
+            workspaceDataScope?: XpertWorkspaceDataScope | null
             sandboxEnvironmentId?: string
             sandboxProvider?: string | null
             metadata?: Record<string, unknown>

@@ -14,12 +14,16 @@ import {
 } from './public-xpert-principal'
 
 describe('restricted xpert conversation scope', () => {
+    const queryBus = {
+        execute: jest.fn()
+    }
+
     beforeEach(() => {
         jest.clearAllMocks()
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('communication-user-1')
     })
 
-    it('scopes an enterprise assistant session to its employee and single assistant', () => {
+    it('scopes an enterprise assistant session to its employee and assistant family', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
@@ -33,17 +37,54 @@ describe('restricted xpert conversation scope', () => {
             createdById: 'communication-user-1',
             xpertId: 'xpert-1'
         })
-        expect(() =>
-            assertPublicXpertSessionConversationAccess({
-                createdById: 'communication-user-2',
-                xpertId: 'xpert-1'
+        await expect(
+            assertPublicXpertSessionConversationAccess(
+                {
+                    createdById: 'communication-user-2',
+                    xpertId: 'xpert-1'
+                },
+                queryBus
+            )
+        ).rejects.toThrow(ForbiddenException)
+
+        queryBus.execute.mockResolvedValueOnce(false)
+        await expect(
+            assertPublicXpertSessionConversationAccess(
+                {
+                    createdById: 'communication-user-1',
+                    xpertId: 'xpert-2'
+                },
+                queryBus
+            )
+        ).rejects.toThrow(ForbiddenException)
+    })
+
+    it('accepts a conversation bound to an older published version in the same assistant family', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-current'
+            }
+        })
+        queryBus.execute.mockResolvedValueOnce(true)
+
+        await expect(
+            assertPublicXpertSessionConversationAccess(
+                {
+                    createdById: 'communication-user-1',
+                    xpertId: 'xpert-previous'
+                },
+                queryBus
+            )
+        ).resolves.toBeUndefined()
+
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                candidateXpertId: 'xpert-previous',
+                referenceXpertId: 'xpert-current'
             })
-        ).toThrow(ForbiddenException)
-        expect(() =>
-            assertPublicXpertSessionConversationAccess({
-                createdById: 'communication-user-1',
-                xpertId: 'xpert-2'
-            })
-        ).toThrow(ForbiddenException)
+        )
     })
 })

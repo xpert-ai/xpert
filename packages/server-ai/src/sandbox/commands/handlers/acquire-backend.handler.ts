@@ -22,7 +22,8 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
     constructor(private readonly registry: SandboxProviderRegistry) {}
 
     async execute(command: SandboxAcquireBackendCommand): Promise<TSandboxConfigurable> {
-        const { workFor, provider, workingDirectory, workspaceBinding, environmentId, tenantId } = command.params
+        const { workFor, provider, workingDirectory, workspaceBinding, environmentId, tenantId, volumeScope } =
+            command.params
         if (!workFor?.id) {
             throw new Error('Sandbox session id is required')
         }
@@ -31,7 +32,8 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
         }
 
         const sessionKey = this.getSessionKey(workFor.type, workFor.id)
-        const instanceKey = this.getInstanceKey(provider, workingDirectory, workspaceBinding)
+        const protectProjectContent = workFor.type === 'project' || volumeScope?.catalog === 'projects'
+        const instanceKey = this.getInstanceKey(provider, workingDirectory, workspaceBinding, protectProjectContent)
         const sessionMap = this.instances.get(sessionKey) ?? new Map<string, SandboxInstance>()
         const existing = sessionMap.get(instanceKey)
         if (existing) {
@@ -48,12 +50,22 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
                 }) || fallbackMessage
             )
         }
+        if (protectProjectContent && providerInstance.capabilities?.projectContentReadOnly !== true) {
+            const fallbackMessage = 'Sandbox provider ' + provider + ' does not support read-only Project Content'
+            throw new Error(
+                t('server-ai:Error.SandboxProviderProjectContentReadOnlyUnsupported', {
+                    defaultValue: fallbackMessage,
+                    provider
+                }) || fallbackMessage
+            )
+        }
         const backend = await providerInstance.create({
             environmentId,
             tenantId,
             workFor,
             workingDirectory,
-            workspaceBinding
+            workspaceBinding,
+            ...(protectProjectContent ? { protectProjectContent: true as const } : {})
         })
         const configurable: SandboxRuntimeConfigurable = {
             environmentId: environmentId ?? null,
@@ -76,10 +88,11 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
     private getInstanceKey(
         provider?: string | null,
         workingDirectory?: string | null,
-        workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']
+        workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding'],
+        protectProjectContent = false
     ) {
         const workspaceIdentity = this.getWorkspaceBindingIdentity(workspaceBinding)
-        return `${provider ?? '__default__'}:${workingDirectory ?? '__default__'}:${workspaceIdentity}`
+        return `${provider ?? '__default__'}:${workingDirectory ?? '__default__'}:${workspaceIdentity}:${protectProjectContent}`
     }
 
     private getWorkspaceBindingIdentity(workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']) {

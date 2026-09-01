@@ -10,6 +10,7 @@ import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai
 import { BadRequestException, Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { t } from 'i18next'
 import { I18nLang } from 'nestjs-i18n'
 import { TemplateSkillSyncService } from './template-skill-sync.service'
 import { XpertTemplateService } from './xpert-template.service'
@@ -140,12 +141,23 @@ function parseTemplateInstallBasic(value: object): PluginTemplateInstallBasic | 
     const description = readStringField(value, 'description')
     const avatar = parseAvatar(Reflect.get(value, 'avatar'))
     const copilotModel = parseCopilotModel(Reflect.get(value, 'copilotModel'))
+    const workspaceDataScopeValue = readStringField(value, 'workspaceDataScope')
+    if (workspaceDataScopeValue && workspaceDataScopeValue !== 'shared' && workspaceDataScopeValue !== 'user') {
+        throw new BadRequestException(
+            t('server-ai:Error.XpertWorkspaceDataScopeInvalid', {
+                defaultValue: 'workspaceDataScope must be shared or user'
+            })
+        )
+    }
+    const workspaceDataScope =
+        workspaceDataScopeValue === 'shared' || workspaceDataScopeValue === 'user' ? workspaceDataScopeValue : undefined
     const basic: PluginTemplateInstallBasic = {
         ...(name ? { name } : {}),
         ...(title ? { title } : {}),
         ...(description ? { description } : {}),
         ...(avatar ? { avatar } : {}),
-        ...(copilotModel ? { copilotModel } : {})
+        ...(copilotModel ? { copilotModel } : {}),
+        ...(workspaceDataScope ? { workspaceDataScope } : {})
     }
     return Object.keys(basic).length ? basic : undefined
 }

@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common'
+import { ForbiddenException, Injectable } from '@nestjs/common'
+import { ModuleRef } from '@nestjs/core'
 import {
     agentLabel,
     agentUniqueName,
@@ -8,8 +9,10 @@ import {
     IWFNMiddleware,
     IXpert,
     IXpertAgent,
+    createRuntimeSkillCapabilityId,
     isRequiredMiddleware,
     normalizeMiddlewareProvider,
+    TRuntimeSkillSource,
     TXpertGraph,
     TXpertTeamConnection,
     TXpertTeamNode
@@ -22,6 +25,8 @@ import { PromptWorkflowService } from '../prompt-workflow'
 import { SkillPackageService } from '../skill-package'
 import type { SkillPackage } from '../skill-package/skill-package.entity'
 import { SKILLS_MIDDLEWARE_NAME } from '../skill-package/types'
+import { type XpertProjectAccess, XpertProjectAccessService } from '../xpert-project/services/project-access.service'
+import { XpertProjectContentService } from '../xpert-project/services/project-content.service'
 import {
     getAgentSubAgentConnections,
     getSubAgentConnectionTargetKey,
@@ -29,6 +34,7 @@ import {
 } from '../shared/agent/sub-agent'
 import { normalizeRuntimeIcon } from './runtime-icon'
 import { RuntimeCommandService } from './runtime-command.service'
+import { t } from 'i18next'
 
 export const RUNTIME_CAPABILITY_XPERT_RELATIONS = ['agent', 'agent.copilotModel', 'copilotModel']
 
@@ -39,10 +45,24 @@ export class RuntimeCapabilitiesService {
         private readonly skillPackageService: SkillPackageService,
         private readonly runtimeCommandService: RuntimeCommandService,
         private readonly promptWorkflowService: PromptWorkflowService,
-        private readonly assistantBindingService: AssistantBindingService
+        private readonly assistantBindingService: AssistantBindingService,
+        private readonly moduleRef?: ModuleRef
     ) {}
 
-    async getRuntimeCapabilities(xpert: IXpert, assistantId?: string) {
+    async getRuntimeCapabilities(xpert: IXpert, assistantId?: string, projectId?: string) {
+        const normalizedProjectId = projectId?.trim() || undefined
+        const targetXpertId = xpert.id ?? assistantId
+        let projectAccess: XpertProjectAccess | null = null
+        if (normalizedProjectId) {
+            if (!targetXpertId) {
+                throw new ForbiddenException(
+                    t('server-ai:Error.ProjectNotAvailable', {
+                        defaultValue: 'The requested Project is not available'
+                    })
+                )
+            }
+            projectAccess = await this.getProjectAccessService().assertCanUseXpert(normalizedProjectId, targetXpertId)
+        }
         const agentKey = getRuntimePrimaryAgentKey(xpert)
         const graph = xpert.graph
         const middlewareNodes = agentKey && graph ? getAgentMiddlewareNodes(graph, agentKey) : []
@@ -98,13 +118,26 @@ export class RuntimeCapabilitiesService {
             .map((item) => item.plugin)
             .filter((item): item is NonNullable<typeof item> => !!item)
         const middlewareCommands = middlewareCapabilities.flatMap((item) => item.commands)
-        const runtimeSkills =
-            hasSkillsMiddleware && xpert.workspaceId
-                ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
-                : { skills: [], commands: [] }
+        const runtimeSkills = hasSkillsMiddleware
+            ? normalizedProjectId && targetXpertId && projectAccess
+                ? await this.getProjectScopedRuntimeSkills({
+                      projectId: normalizedProjectId,
+                      projectLabel: projectAccess.project.name,
+                      xpertId: targetXpertId,
+                      xpertLabel: xpert.title ?? xpert.name ?? targetXpertId,
+                      xpertWorkspaceId: xpert.workspaceId,
+                      defaultSelection: defaultSkillSelection,
+                      disabledSkillIds
+                  })
+                : xpert.workspaceId
+                  ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
+                  : { skills: [], commands: [] }
+            : { skills: [], commands: [] }
+        const runtimeSkillWorkspaceId =
+            xpert.workspaceId ?? (normalizedProjectId ? `project:${normalizedProjectId}` : undefined)
         const subAgents = agentKey && graph ? collectRuntimeSubAgents(graph, agentKey) : []
         const commandAllowList = {
-            workspaceId: xpert.workspaceId,
+            workspaceId: runtimeSkillWorkspaceId,
             skillIds: runtimeSkills.skills.map((skill) => skill.id),
             pluginNodeKeys: plugins.map((plugin) => plugin.nodeKey),
             subAgentNodeKeys: subAgents.map((subAgent) => subAgent.nodeKey)
@@ -172,7 +205,10 @@ export class RuntimeCapabilitiesService {
     private async getRuntimeSkills(
         workspaceId: string,
         defaultSelection: RuntimeSkillDefaultSelection,
-        disabledSkillIds: Set<string>
+        disabledSkillIds: Set<string>,
+        options?: {
+            source?: Omit<TRuntimeSkillSource, 'skillId'>
+        }
     ) {
         const query: PaginationParams<SkillPackage> = {
             relations: ['skillIndex', 'skillIndex.repository'],
@@ -188,18 +224,10 @@ export class RuntimeCapabilitiesService {
             RequestContext.currentUser()
         )
 
-        const enabledItems = (result.items ?? []).filter((skill) => !disabledSkillIds.has(skill.id))
-        const skills = enabledItems.map((skill) => {
+        const isDefaultSkill = (skill: SkillPackage) => {
             const skillIndex = skill.skillIndex
             const repositoryId = skillIndex?.repositoryId ?? skillIndex?.repository?.id
-            const runtimeMeta = omitBy(
-                {
-                    icon: normalizeRuntimeIcon(skill.metadata?.icon),
-                    color: readSkillMetadataColor(skill.metadata)
-                },
-                isNil
-            )
-            const isDefault =
+            return (
                 defaultSelection.skillIds.has(skill.id) ||
                 defaultSelection.repositoryDefaults.some(
                     (selection) =>
@@ -207,8 +235,24 @@ export class RuntimeCapabilitiesService {
                         selection.repositoryId === repositoryId &&
                         !selection.disabledSkillIds.has(skill.id)
                 )
+            )
+        }
+        const enabledItems = (result.items ?? []).filter((skill) => !disabledSkillIds.has(skill.id))
+        const skills = enabledItems.map((skill) => {
+            const skillIndex = skill.skillIndex
+            const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
+            const runtimeSkillId = skillSource ? createRuntimeSkillCapabilityId(skillSource) : skill.id
+            const runtimeMeta = omitBy(
+                {
+                    icon: normalizeRuntimeIcon(skill.metadata?.icon),
+                    color: readSkillMetadataColor(skill.metadata),
+                    skillSource
+                },
+                isNil
+            )
+            const isDefault = isDefaultSkill(skill)
             return {
-                id: skill.id,
+                id: runtimeSkillId,
                 workspaceId: skill.workspaceId,
                 label: resolveI18nText(skill.name, skillIndex?.name ?? skillIndex?.skillId ?? skill.id),
                 description: skillIndex?.description,
@@ -218,14 +262,98 @@ export class RuntimeCapabilitiesService {
                 ...(isDefault ? { default: true } : {})
             }
         })
-        const commands = enabledItems.flatMap((skill) =>
-            this.runtimeCommandService.normalizeSkillRuntimeSlashCommands(skill, {
-                workspaceId,
-                label: resolveI18nText(skill.name, skill.skillIndex?.name ?? skill.skillIndex?.skillId ?? skill.id)
-            })
-        )
+        const commands = enabledItems.flatMap((skill) => {
+            const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
+            const runtimeSkillId = skillSource ? createRuntimeSkillCapabilityId(skillSource) : skill.id
+            return this.runtimeCommandService.normalizeSkillRuntimeSlashCommands(
+                { id: runtimeSkillId, metadata: skill.metadata },
+                {
+                    workspaceId,
+                    label: resolveI18nText(skill.name, skill.skillIndex?.name ?? skill.skillIndex?.skillId ?? skill.id)
+                }
+            )
+        })
 
         return { skills, commands }
+    }
+
+    private async getProjectScopedRuntimeSkills({
+        projectId,
+        projectLabel,
+        xpertId,
+        xpertLabel,
+        xpertWorkspaceId,
+        defaultSelection,
+        disabledSkillIds
+    }: {
+        projectId: string
+        projectLabel: string
+        xpertId: string
+        xpertLabel: string
+        xpertWorkspaceId?: string | null
+        defaultSelection: RuntimeSkillDefaultSelection
+        disabledSkillIds: Set<string>
+    }) {
+        const xpertSkills = xpertWorkspaceId
+            ? await this.getRuntimeSkills(xpertWorkspaceId, defaultSelection, disabledSkillIds, {
+                  source: { type: 'xpert', ownerId: xpertId, label: xpertLabel }
+              })
+            : { skills: [], commands: [] }
+        const projectSkills = await this.getProjectRuntimeSkills(projectId, projectLabel)
+        return {
+            skills: [...xpertSkills.skills, ...projectSkills.skills],
+            commands: [...xpertSkills.commands, ...projectSkills.commands]
+        }
+    }
+
+    private async getProjectRuntimeSkills(projectId: string, projectLabel: string) {
+        const result = await this.getProjectContentService().listSkills(projectId)
+        return {
+            skills: result.items
+                .filter((skill) => skill.enabled)
+                .map((skill) => {
+                    const skillSource: TRuntimeSkillSource = {
+                        type: 'project',
+                        ownerId: projectId,
+                        label: projectLabel,
+                        skillId: skill.id
+                    }
+                    return {
+                        id: createRuntimeSkillCapabilityId(skillSource),
+                        workspaceId: `project:${projectId}`,
+                        label: skill.name,
+                        description: skill.description,
+                        provider: 'project',
+                        meta: { skillSource },
+                        default: true
+                    }
+                }),
+            commands: []
+        }
+    }
+
+    private getProjectAccessService() {
+        const service = this.moduleRef?.get(XpertProjectAccessService, { strict: false })
+        if (!service) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectNotAvailable', {
+                    defaultValue: 'The requested Project is not available'
+                })
+            )
+        }
+        return service
+    }
+
+    private getProjectContentService() {
+        const service = this.moduleRef?.get(XpertProjectContentService, { strict: false })
+        if (!service) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectNotAvailable', {
+                    defaultValue: 'The requested Project is not available'
+                })
+            )
+        }
+        return service
     }
 }
 

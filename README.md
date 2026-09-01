@@ -6,18 +6,19 @@ English | [简体中文](./README_zh.md)
   </a>
 </p>
 
-<h1 align="center">Build governed AI systems that can reason, act, and be reviewed</h1>
+<h1 align="center">Everything is a Plugin</h1>
 
 <p align="center">
-  Open-source enterprise Agent platform for multi-agent orchestration, deterministic workflows,<br>
-  governed data execution, human-in-the-loop workbenches, and embeddable assistants.
+  Xpert is an open-source Agent platform where models, integrations, tools, middleware, Skills,<br>
+  Assistants, Workbench views, MCP Apps, and complete Agentic Apps share one governed plugin system.
 </p>
 
 <p align="center">
-  <a href="https://app.xpertai.cn/"><strong>Try XpertAI Cloud</strong></a> ·
+  <a href="https://app.xpertai.cn/plugins/marketplace"><strong>Explore the Plugin Marketplace</strong></a> ·
+  <a href="https://github.com/xpert-ai/xpert-plugins"><strong>Browse Plugin Source</strong></a> ·
+  <a href="https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development"><strong>Develop with Agent Skills</strong></a> ·
   <a href="https://docs.xpertai.cn/en/ai/getting-started/community"><strong>Self-host Xpert</strong></a> ·
-  <a href="https://docs.xpertai.cn/en/">Documentation</a> ·
-  <a href="https://xpertai.cn/en/">Website</a>
+  <a href="https://docs.xpertai.cn/en/">Documentation</a>
 </p>
 
 <p align="center">
@@ -32,13 +33,13 @@ English | [简体中文](./README_zh.md)
   </a>
 </p>
 
-![Xpert AI Agent Square with featured assistants and capability filters](docs/images/readme/agent-marketplace-en.png)
+![Plugin-delivered Assistant templates in the Xpert AI Agent Marketplace](docs/images/readme/agent-marketplace-en.png)
 
-Xpert AI gives teams one place to design digital experts, connect enterprise knowledge and tools, expose reviewable workbench experiences, and embed assistants into existing products. Agents can reason freely where it helps, follow deterministic workflows where consistency matters, and pause for human approval before sensitive actions.
+The Xpert core provides the runtime, contracts, security boundaries, and lifecycle controls. Plugins provide the capabilities and applications that users install: from a model provider or tool to a complete Assistant, multi-Agent workflow, or business-facing Agentic App.
 
-| Design and orchestrate                                                                           | Connect and ground                                                                                         | Review and ship                                                                                           |
-| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Build single-agent, supervisor, hierarchical, swarm, and hybrid Agent/Workflow systems visually. | Connect files, knowledge bases, Skills, MCP tools, semantic models, databases, APIs, and business systems. | Deliver Workbench views, approval steps, plugins, Agentic Apps, and ChatKit-powered embedded experiences. |
+| Discover                                                                                                                | Learn                                                                                                         | Build                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Find and install capabilities and applications in the [Plugin Marketplace](https://app.xpertai.cn/plugins/marketplace). | Study official and community implementations in [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins). | Give a coding agent the [`xpert-plugin-development`](https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development) skill to create, test, deploy, version, and prepare plugins for release. |
 
 ## See Xpert in action
 
@@ -48,10 +49,10 @@ This is a live Agent Studio configuration for **Motion Assistant**. One agent is
 
 ## Why Xpert
 
+- **Everything is a governed plugin** — install and evolve models, integrations, middleware, Skills, MCP tools and Apps, Assistant templates, Remote Components, Workbench views, and complete Agentic Apps through one lifecycle.
 - **Agent and Workflow hybrid architecture** — use agents for flexible reasoning and workflows for stable, inspectable control paths.
 - **Governed enterprise execution** — expose data and business actions through typed tools, semantic objects, policies, approvals, and audit trails instead of handing models raw access.
 - **Human-reviewable workbenches** — let tool calls open focused UI views where users can inspect, correct, approve, or submit results.
-- **An extensible application runtime** — package models, integrations, middleware, Skills, MCP tools, Remote Components, Workbench views, and Assistant templates as plugins.
 
 ## Official Apps
 
@@ -108,28 +109,49 @@ Xpert follows an **Agent-Workflow Hybrid Architecture**. Agents decide how to so
 | [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins) | Official and community integrations, model providers, middleware, tools, Skills, and Agentic Apps. |
 | [`chatkit-js`](https://github.com/xpert-ai/chatkit-js)       | Embeddable ChatKit packages, widgets, and examples for multiple frontend frameworks.               |
 | [`xpert-sdk-js`](https://github.com/xpert-ai/xpert-sdk-js)   | TypeScript SDK packages and examples for calling Xpert APIs.                                       |
-| [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)   | Public Skill examples, templates, and the Agent Skills specification.                              |
+| [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)   | Agent Skills for setting up Xpert and developing plugins, Agentic Apps, Assistants, and pipelines. |
 | [`docs`](https://github.com/xpert-ai/docs)                   | Product, AI, plugin, data, BI, deployment, and tutorial documentation.                             |
 
-## Repository Map
+## Local Development with Agent Skills
 
-Xpert is an Nx monorepo built with Angular, NestJS, TypeORM, LangChain, and shared TypeScript contracts.
+Use the development skills from [`xpert-ai/xpert-skills`](https://github.com/xpert-ai/xpert-skills) to let a supported coding agent set up the platform and build Agentic Apps against a verified local Xpert instance.
 
-| Path                                               | Purpose                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `apps/api`                                         | Main NestJS API application and platform bootstrap.                                                    |
-| `apps/cloud`                                       | Angular application for Cloud UI, Agent Studio, workspaces, settings, ChatKit, and Workbench surfaces. |
-| `packages/server-ai`                               | Agent execution, chat, models, toolsets, MCP, knowledge, handoff, and AI runtime services.             |
-| `packages/server`                                  | Core server modules shared across the platform.                                                        |
-| `packages/contracts`                               | Shared contracts used by the frontend, backend, SDKs, and plugins.                                     |
-| `packages/plugin-sdk`                              | SDK for plugin configuration, permissions, view extensions, and Remote Components.                     |
-| `packages/plugins`                                 | Built-in plugins shipped with the host.                                                                |
-| `packages/core`, `packages/angular`, `packages/ui` | Core data/analytics libraries and reusable UI packages.                                                |
-| `docker`                                           | Docker Compose deployment files and environment templates.                                             |
+Install the two primary skills and their plugin lifecycle companion for Codex. Remove `--global` if you only want to install them for the current project.
 
-See the [development Wiki](https://github.com/xpert-ai/xpert/wiki/Development) for local development guidance.
+```bash
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-platform-local-environment \
+  --agent codex \
+  --global
 
-## Current Focus
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-agentic-app-developer \
+  --agent codex \
+  --global
+
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-plugin-development \
+  --agent codex \
+  --global
+```
+
+Replace `codex` with another target supported by the Skills CLI when necessary. Start a new agent session after installation if the skills are not discovered immediately.
+
+Then ask the coding agent to run the workflow in order:
+
+1. **Set up and verify Xpert**
+
+   > Use `$xpert-platform-local-environment` to clone or reuse an Xpert checkout at `<path>`, set it up in source-hybrid mode, start it, and return a plugin-test-ready environment receipt.
+
+2. **Build the Agentic App**
+
+   > Use `$xpert-agentic-app-developer` to design, implement, securely deploy, and verify `<app description>` as an independent Xpert Agentic App plugin against the verified local platform.
+
+The environment skill defaults to Docker-managed infrastructure with the API and Cloud UI running from source. It verifies checkout and process provenance, service health, and whether required human initialization is complete. The Agentic App skill covers plugin architecture, Agent middleware, Workbench and extension views, Assistant templates, marketplace `appConfig`, deployment, and acceptance. Follow its handoff to `xpert-plugin-development` for plugin packaging and deployment details.
+
+## ROADMAP
+
+The current roadmap prioritizes:
 
 - Project workspaces for planning, files, teams, and task execution.
 - Stronger governance, approval, audit, and role-based access controls.

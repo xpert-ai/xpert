@@ -13,7 +13,19 @@ export class KnowledgebaseViewHostDefinition implements ViewHostDefinitionContra
     constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
 
     async resolve(hostId: string) {
-        const knowledgebase = await this.knowledgebaseService.findOne(hostId)
+        const knowledgebase = await this.knowledgebaseService.findOneByIdString(hostId, {
+            select: {
+                id: true,
+                name: true,
+                type: true,
+                status: true,
+                documentNum: true,
+                tokenNum: true,
+                chunkNum: true,
+                workspaceId: true,
+                pipelineId: true
+            }
+        })
 
         return {
             workspaceId: knowledgebase.workspaceId ?? null,

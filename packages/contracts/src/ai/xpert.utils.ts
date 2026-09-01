@@ -49,6 +49,7 @@ export function resolveRuntimeXpert(xpert: IXpert, isDraft: boolean): IXpert {
     tenantId: xpert.tenantId,
     organizationId: xpert.organizationId,
     workspaceId: draft.team?.workspaceId ?? xpert.workspaceId,
+    workspaceDataScope: xpert.workspaceDataScope,
     draft: xpert.draft,
     graph,
     agent,

@@ -149,6 +149,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   class ClawXpertConversationFilesComponent {
     @Input() conversationId?: string | null
     @Input() xpertId?: string | null
+    @Input() projectId?: string | null
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
     @Output() referenceRequest = new EventEmitter()
@@ -238,6 +239,8 @@ jest.mock('../../../@shared/view-extension', () => {
     @Input() viewKey?: string | null
     @Input() query?: object | null
     @Input() fillAvailableHeight?: boolean
+    @Input() runtimeScope?: object | null
+    @Input() runtimeUserId?: string | null
   }
 
   return {
@@ -260,6 +263,7 @@ import {
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
   type IconDefinition,
+  type TXpertProjectAccessSummary,
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
@@ -286,6 +290,7 @@ import {
 } from './clawxpert-workbench-layout-storage.service'
 import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import { ClawXpertFacade } from './clawxpert.facade'
+import { XpertProjectApiService } from '../../project/project-api.service'
 
 const TEST_LAYOUT_ICON = {
   type: 'font',
@@ -317,6 +322,18 @@ function clearWorkbenchLayoutTestStorage() {
   })
 }
 
+function projectAccess(role: TXpertProjectAccessSummary['role'], canEdit: boolean): TXpertProjectAccessSummary {
+  return {
+    role,
+    capabilities: {
+      canRead: true,
+      canEdit,
+      canManage: role === 'owner' || role === 'manager',
+      canUse: true
+    }
+  }
+}
+
 jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   const { signal } = jest.requireActual('@angular/core')
 
@@ -341,11 +358,14 @@ type MockChatKitRuntimeInput = {
   displayMode?: () => CreateChatKitOptions['displayMode']
   header?: () => CreateChatKitOptions['header']
   initialThread?: () => string | null
+  projectId?: () => string | null
+  composer?: () => { projects?: { enabled?: boolean } }
   layout?: CreateChatKitOptions['layout']
   taskSummary?: CreateChatKitOptions['taskSummary']
   workbench?: CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
+  onProjectChange?: (event: { projectId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
   onEffect?: (event: MockChatKitEvent) => void
@@ -364,10 +384,11 @@ type WorkspaceTabTestComponent = ClawXpertConversationDetailComponent & {
 }
 
 async function settle(fixture: { detectChanges: () => void; whenStable: () => Promise<unknown> }) {
-  fixture.detectChanges()
-  await fixture.whenStable()
-  await Promise.resolve()
-  await Promise.resolve()
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await Promise.resolve()
+  }
   fixture.detectChanges()
 }
 
@@ -433,12 +454,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     initialLayout: ReturnType<typeof signal<XpertWorkbenchInitialLayoutEnum | null>>
     defaultViewKey: ReturnType<typeof signal<string | null>>
     currentWorkspaceId: ReturnType<typeof signal<string | null>>
+    projectId: ReturnType<typeof signal<string | null>>
+    projectAccess: ReturnType<typeof signal<TXpertProjectAccessSummary | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
     pendingConversationStartId: ReturnType<typeof signal<number>>
     activeConversation: ReturnType<typeof signal<IChatConversation | null>>
     onChatThreadChange: jest.Mock
+    onChatProjectChange: jest.Mock
     beginPendingConversation: jest.Mock
     ensureConversationEntry: jest.Mock
     navigateToOverview: jest.Mock
@@ -454,6 +478,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     getById: jest.Mock
     markRead: jest.Mock
     getFile: jest.Mock
+    downloadFile: jest.Mock
   }
   let artifactService: {
     createSignedPreviewLink: jest.Mock
@@ -474,6 +499,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     setViewState: jest.Mock
   }
   let hostEvents: ViewHostEventBus
+  let projectApi: { availableForXpert: jest.Mock; create: jest.Mock }
 
   beforeEach(async () => {
     clearWorkbenchLayoutTestStorage()
@@ -516,12 +542,15 @@ describe('ClawXpertConversationDetailComponent', () => {
       initialLayout: signal(null),
       defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
+      projectId: signal<string | null>(null),
+      projectAccess: signal<TXpertProjectAccessSummary | null>(null),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
       pendingConversationStartId: signal(0),
       activeConversation,
       onChatThreadChange: jest.fn(),
+      onChatProjectChange: jest.fn(),
       beginPendingConversation: jest.fn(),
       ensureConversationEntry: jest.fn(),
       navigateToOverview: jest.fn(),
@@ -576,7 +605,8 @@ describe('ClawXpertConversationDetailComponent', () => {
           mimeType: 'application/pdf',
           size: 2 * 1024 * 1024
         })
-      )
+      ),
+      downloadFile: jest.fn(() => of(new Blob(['private report'], { type: 'application/pdf' })))
     }
     artifactService = {
       createSignedPreviewLink: jest.fn(() =>
@@ -590,6 +620,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     }
     viewExtensionApi = {
       getSlotViews: jest.fn(() => of([]))
+    }
+    projectApi = {
+      availableForXpert: jest.fn(() => of({ items: [], total: 0 })),
+      create: jest.fn(() => of({ id: 'project-created', name: 'Launch project' }))
     }
 
     TestBed.resetTestingModule()
@@ -617,6 +651,10 @@ describe('ClawXpertConversationDetailComponent', () => {
           useValue: viewExtensionApi
         },
         {
+          provide: XpertProjectApiService,
+          useValue: projectApi
+        },
+        {
           provide: ClawXpertSkillTrialIntentService,
           useValue: skillTrialIntent
         },
@@ -641,7 +679,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed')
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: { projectId: null, conversationId: 'conversation-1' }
+    })
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
@@ -675,6 +715,21 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+  })
+
+  it('resolves Project workspace views from the selected Project before a conversation exists', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: {
+        projectId: 'project-1',
+        conversationId: null
+      }
+    })
   })
 
   it('keeps the Workbench open when switching conversations within the same xpert', async () => {
@@ -764,11 +819,95 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
   })
 
+  it('forwards ChatKit Project changes to the workbench facade', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().projectId?.()).toBe('project-1')
+    getRuntimeInput().onProjectChange?.({ projectId: 'project-2' })
+
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2')
+  })
+
+  it('hides Project selection after a conversation starts', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+  })
+
+  it('keeps Project selection available before the first message, including after a Project is selected', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(true)
+
+    facade.projectId.set('project-1')
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(true)
+  })
+
   it('enables the task summary only for the ClawXpert ChatKit runtime', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
     expect(getRuntimeInput().taskSummary).toEqual({ enabled: true })
+  })
+
+  it('hides the entire Project selector rail for an existing conversation', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+    expect(projectApi.availableForXpert).not.toHaveBeenCalled()
+  })
+
+  it('shows the Project selector rail for a new conversation even without existing Projects', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(projectApi.availableForXpert).not.toHaveBeenCalled()
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+  })
+
+  it('creates a Project with the current digital expert and switches the workbench to it', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    getRuntimeInput().onEffect?.({
+      name: 'project.create',
+      data: { name: '  Launch project  ' }
+    })
+    await settle(fixture)
+
+    expect(projectApi.create).toHaveBeenCalledWith({
+      name: 'Launch project',
+      xpertIds: ['assistant-1']
+    })
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-created')
+  })
+
+  it('keeps the Project selector rail available after selecting a Project in a new conversation', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(projectApi.availableForXpert).not.toHaveBeenCalled()
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
 
   it('opens task summary workspace files with the existing file preview', async () => {
@@ -805,6 +944,68 @@ describe('ClawXpertConversationDetailComponent', () => {
         url: 'https://files.example.com/report.pdf'
       })
     )
+  })
+
+  it('downloads task summary workspace files with authentication when no public preview URL is available', async () => {
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    const createObjectURL = jest.fn(() => 'blob:private-report')
+    const revokeObjectURL = jest.fn()
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL })
+    ;(conversationService.getFile as jest.Mock).mockReturnValueOnce(
+      of({
+        filePath: '/workspace/report.pdf',
+        mimeType: 'application/pdf',
+        size: 128
+      })
+    )
+    ;(filePreviewModule.openWorkbenchFilePreviewDialog as jest.Mock).mockReturnValueOnce({
+      closed: of(undefined)
+    })
+
+    try {
+      const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+      await settle(fixture)
+
+      getRuntimeInput().onEffect?.({
+        name: 'task_summary.open_resource',
+        data: {
+          conversationId: 'conversation-1',
+          title: 'Private report',
+          resource: {
+            type: 'workspace_file',
+            workspacePath: '/workspace/report.pdf',
+            fileAssetId: 'file-1'
+          }
+        }
+      })
+      await settle(fixture)
+
+      expect(conversationService.downloadFile).toHaveBeenCalledWith('conversation-1', '/workspace/report.pdf')
+      expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+      expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          id: 'file-1',
+          name: 'Private report',
+          url: 'blob:private-report',
+          previewUrl: 'blob:private-report'
+        })
+      )
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:private-report')
+    } finally {
+      if (originalCreateObjectURL) {
+        Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
+      } else {
+        Reflect.deleteProperty(URL, 'createObjectURL')
+      }
+      if (originalRevokeObjectURL) {
+        Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectURL })
+      } else {
+        Reflect.deleteProperty(URL, 'revokeObjectURL')
+      }
+    }
   })
 
   it('creates an artifact signed preview only when the task summary item is clicked', async () => {
@@ -940,6 +1141,55 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
   })
 
+  it('clears fixed-view request context when the Project scope changes', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'personal-doc-1',
+          docxEditorWorkspaceFilePath: 'files/docx-editor/documents/personal-doc-1/document.docx'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'personal-doc-1',
+            title: 'Personal document',
+            workspaceFilePath: 'files/docx-editor/documents/personal-doc-1/document.docx'
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        docxEditor: expect.any(Object)
+      })
+    )
+
+    fixture.componentInstance.resolvedConversation.set(null)
+    fixture.componentInstance.resolvedConversationId.set(null)
+    facade.projectId.set('project-2')
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual({
+      env: {
+        workspaceId: 'workspace-1',
+        xpertId: 'assistant-1'
+      }
+    })
+  })
+
   it('filters and orders fixed view menu items from the current bound xpert', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(
       of([
@@ -1023,6 +1273,70 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('bom')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).toBeNull()
+  })
+
+  it('keeps the fixed DOCX view while clearing its request context after a Project switch', async () => {
+    facade.threadId.set(null)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('docx-editor')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const docxTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'docx-editor')
+    expect(docxTab).toBeDefined()
+    const mountedDocxView = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance
+    expect(mountedDocxView.runtimeScope).toEqual({ projectId: null, conversationId: null })
+    expect(mountedDocxView.runtimeUserId).toBe('user-1')
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'personal-doc-1'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'personal-doc-1',
+            title: 'Personal document'
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        docxEditor: expect.any(Object)
+      })
+    )
+    const fixedViewLoadCount = viewExtensionApi.getSlotViews.mock.calls.length
+
+    facade.projectId.set('project-2')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.fixedViewTabs()).toContainEqual(docxTab)
+    expect(viewExtensionApi.getSlotViews.mock.calls.length).toBeGreaterThan(fixedViewLoadCount)
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: { projectId: 'project-2', conversationId: null }
+    })
+    const updatedDocxView = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance
+    expect(updatedDocxView).toBe(mountedDocxView)
+    expect(updatedDocxView.runtimeScope).toEqual({ projectId: 'project-2', conversationId: null })
+    expect(updatedDocxView.runtimeUserId).toBe('user-1')
+    expect(getRuntimeInput().requestContext?.()).toEqual({
+      env: {
+        workspaceId: 'workspace-1',
+        xpertId: 'assistant-1'
+      }
+    })
   })
 
   it('selects the extension view requested by the view query parameter before the configured default', async () => {
@@ -2343,6 +2657,25 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
   })
 
+  it.each([
+    ['personal scope', null, null, 'editable'],
+    ['pending Project access', 'project-1', null, 'readonly'],
+    ['Project member access', 'project-1', projectAccess('member', false), 'readonly'],
+    ['Project editor access', 'project-1', projectAccess('editor', true), 'editable']
+  ] as const)('uses %s workspace file mode', async (_case, projectId, access, expectedMode) => {
+    facade.projectId.set(projectId)
+    facade.projectAccess.set(access)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.addWorkspaceTab('files')
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    const files = filesPanel.componentInstance as ClawXpertConversationFilesComponent
+    expect(files.projectId).toBe(projectId)
+    expect(files.mode).toBe(expectedMode)
+  })
+
   it('clears the shared active conversation when the thread is reset or the component is destroyed', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -2729,6 +3062,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         receivedAt: expect.any(String),
         hostType: 'agent',
         hostId: 'assistant-1',
+        dataScopeKey: 'user:user-1:personal:agent:assistant-1',
         threadId: 'thread-1',
         toolName: 'excalidraw_patch_scene',
         toolCallId: 'call-1',

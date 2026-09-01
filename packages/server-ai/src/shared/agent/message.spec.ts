@@ -1,8 +1,4 @@
 jest.mock('@xpert-ai/server-core', () => {
-    class GetStorageFileQuery {
-        constructor(public readonly ids: string[]) {}
-    }
-
     return {
         FileStorage: class FileStorage {
             getProvider() {
@@ -11,18 +7,18 @@ jest.mock('@xpert-ai/server-core', () => {
                     url: (file: string) => file
                 }
             }
-        },
-        GetStorageFileQuery
+        }
     }
 })
 
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { ForbiddenException } from '@nestjs/common'
 import type { TChatRequestHuman } from '@xpert-ai/contracts'
-import { GetStorageFileQuery } from '@xpert-ai/server-core'
 import fs from 'fs'
-import { GetFileAssetByStorageFileQuery } from '../../file-understanding/queries/get-file-asset-by-storage-file.query'
-import { GetFileAssetQuery } from '../../file-understanding/queries/get-file-asset.query'
 import { GetFilePreviewQuery } from '../../file-understanding/queries/get-file-preview.query'
+import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
+import { ReadFileAssetSourceQuery } from '../../file-understanding/queries/read-file-asset-source.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
 import { LoadFileCommand } from '../commands'
 import { hydrateSendRequestHumanInput } from './human-input'
 import { createHumanMessage } from './message'
@@ -294,8 +290,20 @@ describe('createHumanMessage', () => {
         ])
     })
 
-    it('preserves audio attachments as standard LangChain audio blocks', async () => {
-        const readFile = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(Buffer.from('audio bytes'))
+    it('preserves remote audio attachments as standard LangChain audio blocks', async () => {
+        const state = {
+            human: {
+                input: 'Transcribe this recording',
+                files: [
+                    {
+                        filePath: '',
+                        fileUrl: 'https://files.example/recording.wav',
+                        originalName: 'recording.wav',
+                        mimeType: 'audio/wav'
+                    }
+                ]
+            }
+        } as unknown as Parameters<typeof createHumanMessage>[2]
 
         const message = await createHumanMessage(
             {
@@ -304,13 +312,118 @@ describe('createHumanMessage', () => {
             {
                 execute: jest.fn()
             } as unknown as QueryBus,
+            state
+        )
+
+        expect(message.content).toEqual([
+            {
+                type: 'audio',
+                source_type: 'url',
+                url: 'https://files.example/recording.wav',
+                mime_type: 'audio/wav'
+            },
+            {
+                type: 'text',
+                text: 'Transcribe this recording'
+            }
+        ])
+    })
+
+    it('does not read an unmanaged absolute path supplied by human input', async () => {
+        const readFile = jest.spyOn(fs.promises, 'readFile')
+        readFile.mockClear()
+        const commandBus = { execute: jest.fn() }
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            { execute: jest.fn() } as unknown as QueryBus,
             {
                 human: {
-                    input: 'Transcribe this recording',
+                    input: 'Read this file',
                     files: [
                         {
-                            filePath: '/tmp/mcp-app-audio.wav',
-                            originalName: 'mcp-app-audio.wav',
+                            filePath: '/etc/passwd',
+                            originalName: 'passwd',
+                            mimeType: 'text/plain'
+                        }
+                    ]
+                } as unknown as TChatRequestHuman
+            },
+            undefined
+        )
+
+        expect(message.content).toBe('Read this file')
+        expect(readFile).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('does not trust an unmanaged path from a client-controlled state variable', async () => {
+        const readFile = jest.spyOn(fs.promises, 'readFile')
+        readFile.mockClear()
+        const commandBus = { execute: jest.fn() }
+
+        const message = await createHumanMessage(
+            commandBus as unknown as CommandBus,
+            { execute: jest.fn() } as unknown as QueryBus,
+            {
+                human: {
+                    input: 'Read this variable'
+                },
+                client_files: [
+                    {
+                        filePath: '/etc/passwd',
+                        workspacePath: '/etc/passwd',
+                        originalName: 'passwd',
+                        mimeType: 'text/plain'
+                    }
+                ]
+            } as unknown as Parameters<typeof createHumanMessage>[2],
+            {
+                enabled: true,
+                variable: 'client_files'
+            }
+        )
+
+        expect(message.content).toBe('Read this variable')
+        expect(readFile).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('keeps legacy StorageFile-only attachments through an owner-authorized fallback', async () => {
+        const audioData = Buffer.from('legacy audio')
+        const readFile = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(audioData)
+        const queryBus = {
+            execute: jest.fn().mockImplementation(async (query: unknown) => {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    throw new ForbiddenException()
+                }
+                if (query instanceof GetOwnedStorageFileQuery) {
+                    return {
+                        id: 'legacy-storage-1',
+                        tenantId: 'tenant-1',
+                        organizationId: 'org-1',
+                        createdById: 'user-1',
+                        file: '/tmp/legacy-audio.wav',
+                        originalName: 'legacy-audio.wav',
+                        mimetype: 'audio/wav',
+                        storageProvider: 'local'
+                    }
+                }
+                return null
+            })
+        }
+
+        const message = await createHumanMessage(
+            { execute: jest.fn() } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                human: {
+                    input: 'Transcribe this legacy upload',
+                    files: [
+                        {
+                            id: 'legacy-storage-1',
+                            filePath: '',
+                            originalName: 'legacy-audio.wav',
                             mimeType: 'audio/wav'
                         }
                     ]
@@ -323,15 +436,98 @@ describe('createHumanMessage', () => {
             {
                 type: 'audio',
                 source_type: 'base64',
-                data: Buffer.from('audio bytes').toString('base64'),
+                data: audioData.toString('base64'),
                 mime_type: 'audio/wav'
             },
             {
                 type: 'text',
-                text: 'Transcribe this recording'
+                text: 'Transcribe this legacy upload'
             }
         ])
-        expect(readFile).toHaveBeenCalledWith('/tmp/mcp-app-audio.wav')
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(GetOwnedStorageFileQuery))
+        expect(readFile).toHaveBeenCalledWith('/tmp/legacy-audio.wav')
+    })
+
+    it('sends workspace-backed FileAsset images to the model as multimodal content', async () => {
+        const imageData = Buffer.from('workspace image bytes')
+        const queryBus = {
+            execute: jest.fn().mockImplementation(async (query: unknown) => {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return {
+                        asset: {
+                            id: 'file-asset-1',
+                            tenantId: 'tenant-1',
+                            userId: 'user-1',
+                            xpertId: 'xpert-1',
+                            originalName: 'diagram.png',
+                            mimeType: 'image/png',
+                            size: imageData.length,
+                            status: 'partial',
+                            capabilities: ['preview', 'workspace', 'read', 'vision'],
+                            workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/diagram.png',
+                            metadata: {
+                                workspace: {
+                                    catalog: 'xperts',
+                                    scopeId: 'xpert-1',
+                                    relativePath: 'sessions/conversation-1/files/file-asset-1/diagram.png'
+                                }
+                            }
+                        }
+                    }
+                }
+                if (query instanceof ReadFileAssetSourceQuery) {
+                    return imageData
+                }
+                return null
+            })
+        }
+
+        const message = await createHumanMessage(
+            { execute: jest.fn() } as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                sys: {
+                    thread_id: 'thread-1'
+                } as never,
+                human: {
+                    input: 'Describe this image',
+                    files: [
+                        {
+                            fileId: 'file-asset-1',
+                            fileAssetId: 'file-asset-1',
+                            filePath: 'sessions/conversation-1/files/file-asset-1/diagram.png',
+                            workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/diagram.png',
+                            originalName: 'diagram.png',
+                            mimeType: 'image/png'
+                        }
+                    ]
+                } as unknown as TChatRequestHuman
+            },
+            undefined
+        )
+
+        expect(message.content).toEqual([
+            {
+                type: 'image_url',
+                image_url: {
+                    url: `data:image/png;base64,${imageData.toString('base64')}`
+                }
+            },
+            {
+                type: 'text',
+                text: 'Describe this image'
+            }
+        ])
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ReadFileAssetSourceQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: {
+                    locator: { fileAssetId: 'file-asset-1' },
+                    authority: { kind: 'conversation', threadId: 'thread-1' },
+                    operation: 'read'
+                }
+            })
+        )
     })
 
     it('overrides client-supplied image workspace paths with the authoritative file asset path', async () => {
@@ -348,24 +544,23 @@ describe('createHumanMessage', () => {
         }
         const queryBus = {
             execute: jest.fn().mockImplementation(async (query: unknown) => {
-                if (query instanceof GetFileAssetByStorageFileQuery) {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
                     return {
-                        id: 'asset-1',
-                        storageFileId: 'storage-1',
-                        workspacePath
-                    }
-                }
-                if (query instanceof GetStorageFileQuery) {
-                    return [
-                        {
+                        asset: {
+                            id: 'asset-1',
+                            storageFileId: 'storage-1',
+                            workspacePath
+                        },
+                        storageFile: {
                             id: 'storage-1',
-                            file: '',
+                            file: 'files/diagram.png',
+                            fileUrl: 'https://files.example/diagram.png',
                             originalName: 'diagram.png',
                             mimetype: 'image/png',
                             size: 2048,
                             storageProvider: 'local'
                         }
-                    ]
+                    }
                 }
                 return null
             })
@@ -390,7 +585,11 @@ describe('createHumanMessage', () => {
         )
         expect(textPart?.text).toContain(`Workspace Path: ${workspacePath}`)
         expect(textPart?.text).not.toContain(clientWorkspacePath)
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.objectContaining({ storageFileId: imageReference.fileId }))
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({ locator: { storageFileId: imageReference.fileId } })
+            })
+        )
     })
 
     it.each([
@@ -421,24 +620,23 @@ describe('createHumanMessage', () => {
             })
             const queryBus = {
                 execute: jest.fn().mockImplementation(async (query: unknown) => {
-                    if (query instanceof GetFileAssetByStorageFileQuery) {
+                    if (query instanceof ResolveAuthorizedFileAssetQuery) {
                         return {
-                            id: 'asset-1',
-                            storageFileId: 'storage-1',
-                            workspacePath
-                        }
-                    }
-                    if (query instanceof GetStorageFileQuery) {
-                        return [
-                            {
+                            asset: {
+                                id: 'asset-1',
+                                storageFileId: 'storage-1',
+                                workspacePath
+                            },
+                            storageFile: {
                                 id: 'storage-1',
-                                file: '',
+                                file: 'files/diagram.png',
+                                fileUrl: 'https://files.example/diagram.png',
                                 originalName: imageName,
                                 mimetype: 'image/png',
                                 size: 2048,
                                 storageProvider: 'local'
                             }
-                        ]
+                        }
                     }
                     return null
                 })
@@ -470,6 +668,16 @@ describe('createHumanMessage', () => {
     it('adds file understanding cards without inlining preview chunks', async () => {
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return {
+                        asset: {
+                            id: 'file-asset-1',
+                            status: 'ready',
+                            capabilities: ['preview', 'read', 'search', 'workspace'],
+                            summary: 'A'.repeat(900)
+                        }
+                    }
+                }
                 if (query instanceof GetFilePreviewQuery) {
                     return {
                         file: {
@@ -552,15 +760,17 @@ describe('createHumanMessage', () => {
     it('creates file understanding cards from workspace-backed FileAsset handles without storage files', async () => {
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query instanceof GetFileAssetQuery) {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
                     return {
-                        id: 'file-asset-1',
-                        originalName: 'contract.docx',
-                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        size: 22900,
-                        status: 'ready',
-                        capabilities: ['preview', 'read', 'workspace'],
-                        workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
+                        asset: {
+                            id: 'file-asset-1',
+                            originalName: 'contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            size: 22900,
+                            status: 'ready',
+                            capabilities: ['preview', 'read', 'workspace'],
+                            workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
+                        }
                     }
                 }
                 if (query instanceof GetFilePreviewQuery) {
@@ -614,21 +824,23 @@ describe('createHumanMessage', () => {
         const workspacePath = 'files/wechat/integration-1/uuid-1/msg-1/contract.docx'
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query instanceof GetFileAssetQuery) {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
                     return {
-                        id: 'file-asset-1',
-                        originalName: 'contract.docx',
-                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        size: 22900,
-                        status: 'uploaded',
-                        capabilities: ['preview', 'workspace'],
-                        workspacePath,
-                        metadata: {
-                            workspace: {
-                                catalog: 'xperts',
-                                scopeId: 'xpert-1',
-                                relativePath: workspacePath,
-                                workspacePath
+                        asset: {
+                            id: 'file-asset-1',
+                            originalName: 'contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            size: 22900,
+                            status: 'uploaded',
+                            capabilities: ['preview', 'workspace'],
+                            workspacePath,
+                            metadata: {
+                                workspace: {
+                                    catalog: 'xperts',
+                                    scopeId: 'xpert-1',
+                                    relativePath: workspacePath,
+                                    workspacePath
+                                }
                             }
                         }
                     }
@@ -673,13 +885,15 @@ describe('createHumanMessage', () => {
     it('does not raw-load a FileAsset when no workspace path is available', async () => {
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query instanceof GetFileAssetQuery) {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
                     return {
-                        id: 'file-asset-1',
-                        originalName: 'contract.docx',
-                        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        status: 'uploaded',
-                        capabilities: ['preview', 'workspace']
+                        asset: {
+                            id: 'file-asset-1',
+                            originalName: 'contract.docx',
+                            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            status: 'uploaded',
+                            capabilities: ['preview', 'workspace']
+                        }
                     }
                 }
                 return null

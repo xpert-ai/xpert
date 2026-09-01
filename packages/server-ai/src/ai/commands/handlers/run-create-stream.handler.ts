@@ -10,15 +10,17 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { isNil, omitBy } from 'lodash'
 import { map } from 'rxjs/operators'
 import { Observable } from 'rxjs'
+import { t } from 'i18next'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
+import { AssertChatConversationAccessQuery } from '../../../chat-conversation/queries/conversation-assert-access.query'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
-import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { AssertXpertAgentExecutionAccessQuery } from '../../../xpert-agent-execution/queries'
 import { XpertProjectService } from '../../../xpert-project'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
@@ -322,6 +324,14 @@ export function validateRunCreateInput(
         )
     }
 
+    if (parsed.data.conversationId && parsed.data.conversationId !== conversation.id) {
+        throw new BadRequestException(
+            t('server-ai:Error.RunConversationMismatch', {
+                defaultValue: 'The requested conversation does not match the thread conversation'
+            })
+        )
+    }
+
     return {
         ...parsed.data,
         conversationId: parsed.data.conversationId ?? conversation.id
@@ -369,13 +379,13 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         let conversation =
             conversationThread?.conversation ??
             (await this.queryBus.execute(new GetChatConversationQuery({ threadId })))
-        assertPublicXpertSessionConversationAccess(conversation)
+        await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
+        await this.queryBus.execute(new AssertChatConversationAccessQuery({ id: conversation.id }, 'contribute'))
         const xpert = await resolveAssistantForRequest(
             runCreate.assistant_id,
             this.publishedXpertAccessService,
             this.xpertPrincipalService
         )
-        applyAssistantScope(xpert)
         const chatRequest = validateRunCreateInput(runCreate.input, {
             ...conversation,
             status: conversationThread?.status ?? conversation.status
@@ -384,24 +394,53 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         if (chatRequest.action === 'send' && !chatRequest.projectId) {
             chatRequest.projectId = getContextProjectId(runtimeContext)
         }
-        const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
+
+        const referencedExecutionId =
+            chatRequest.action === 'retry'
+                ? chatRequest.source.executionId
+                : chatRequest.action === 'resume' || chatRequest.action === 'follow_up'
+                  ? chatRequest.target?.executionId
+                  : undefined
+        const referencedExecution = referencedExecutionId
+            ? await this.queryBus.execute(
+                  new AssertXpertAgentExecutionAccessQuery(referencedExecutionId, 'contribute', conversation.threadId)
+              )
+            : null
 
         // Backfill legacy threads independently with a compare-and-set update.
-        conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
+        conversation = await bindConversationAssistantIfUnbound(
+            this.commandBus,
+            conversation,
+            xpert,
+            this.publishedXpertAccessService
+        )
         // Project scope is persisted before streaming and then treated as the
         // sole trusted source for runtime files and nested Agent execution.
         const requestedProjectId = chatRequest.action === 'send' ? chatRequest.projectId : undefined
+        const effectiveProjectId = conversation.projectId ?? requestedProjectId
+        if (effectiveProjectId) {
+            if (!this.projectService) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
+            // This must execute while RequestContext still represents the real
+            // human actor, before the assistant technical principal is applied.
+            await this.projectService.assertRuntimeAccess(effectiveProjectId, xpert.id)
+        }
         conversation = await bindConversationProjectIfUnbound(this.commandBus, conversation, requestedProjectId)
         if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
             throw new BadRequestException('This Assistant requires a Project workspace')
-        }
-        if (conversation.projectId && this.projectService) {
-            await this.projectService.assertRuntimeAccess(conversation.projectId, xpert.id)
         }
         if (chatRequest.action === 'send' && conversation.projectId) {
             // Replace transient request scope with the authorized persisted id.
             chatRequest.projectId = conversation.projectId
         }
+
+        applyAssistantScope(xpert)
+        const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
 
         // Persist the sandbox option only when the request changes it.
         if (
@@ -420,15 +459,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         if (ownsRunClaim && this.conversationThreadService) {
             await this.conversationThreadService.claimForRun(threadId)
         }
+        let execution = chatRequest.action === 'follow_up' ? referencedExecution : null
 
-        let execution
         let stream: Observable<MessageEvent>
         try {
-            execution =
-                chatRequest.action === 'follow_up' && chatRequest.target?.executionId
-                    ? await this.queryBus.execute(new XpertAgentExecutionOneQuery(chatRequest.target.executionId))
-                    : null
-
             if (!execution) {
                 execution = await this.commandBus.execute(
                     new XpertAgentExecutionUpsertCommand(

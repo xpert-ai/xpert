@@ -2,7 +2,11 @@ import { BadRequestException, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { v4 as uuidv4 } from 'uuid'
-import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
+import {
+    AssertChatConversationAccessQuery,
+    ChatConversationUpsertCommand,
+    GetChatConversationQuery
+} from '../../../chat-conversation'
 import { ThreadAlreadyExistsException } from '../../../core'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
 import {
@@ -69,11 +73,14 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
                 })
             )
             if (conversation) {
-                assertPublicXpertSessionConversationAccess(conversation)
+                await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
 
                 if (input.if_exists === 'raise') {
                     throw new ThreadAlreadyExistsException()
                 }
+                await this.queryBus.execute(
+                    new AssertChatConversationAccessQuery({ id: conversation.id }, 'contribute')
+                )
             }
         }
 
@@ -87,15 +94,23 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
                 })
             )
             if (conversation) {
-                assertPublicXpertSessionConversationAccess(conversation)
+                await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
 
                 if (input.if_exists === 'raise') {
                     throw new ThreadAlreadyExistsException()
                 }
+                await this.queryBus.execute(
+                    new AssertChatConversationAccessQuery({ id: conversation.id }, 'contribute')
+                )
             }
         }
         if (conversation && xpert) {
-            conversation = await bindConversationAssistantIfUnbound(this.commandBus, conversation, xpert.id)
+            conversation = await bindConversationAssistantIfUnbound(
+                this.commandBus,
+                conversation,
+                xpert,
+                this.publishedXpertAccessService
+            )
         }
 
         if (!conversation) {

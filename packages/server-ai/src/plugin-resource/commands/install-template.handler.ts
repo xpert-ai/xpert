@@ -66,7 +66,8 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 language: command.language,
                 templateId: command.templateId,
                 sourceTemplateId: template.id,
-                templateSource: createXpertTemplateSource(template)
+                templateSource: createXpertTemplateSource(template),
+                workspaceDataScope: command.basic?.workspaceDataScope
             })
         )
 
@@ -124,10 +125,11 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
 
         const team = teamValue as TXpertTeamDraft['team']
         const features = normalizeTemplateSandboxFeatures(team.features, sandboxProviders)
+        const { workspaceDataScope: _workspaceDataScope, ...portableBasic } = basic ?? {}
         return new XpertDraftDslDTO({
             team: {
                 ...team,
-                ...basic,
+                ...portableBasic,
                 ...(features ? { features } : {}),
                 workspaceId
             },

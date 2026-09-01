@@ -11,6 +11,12 @@ describe('SandboxTerminalGateway', () => {
     }
     let client: {
         emit: jest.Mock
+        handshake?: {
+            user?: {
+                id: string
+                tenantId: string
+            }
+        }
         id: string
     }
 
@@ -32,6 +38,12 @@ describe('SandboxTerminalGateway', () => {
     })
 
     it('opens terminal sessions and forwards input and resize operations', async () => {
+        client.handshake = {
+            user: {
+                id: 'user-1',
+                tenantId: 'tenant-1'
+            }
+        }
         let openOptions: SandboxTerminalOpenOptions | null = null
         const session = {
             close: jest.fn(),
@@ -63,6 +75,10 @@ describe('SandboxTerminalGateway', () => {
         )
 
         expect(sandboxConversationContextService.resolveConversationSandbox).toHaveBeenCalledWith({
+            actor: {
+                id: 'user-1',
+                tenantId: 'tenant-1'
+            },
             conversationId: 'conversation-1',
             projectId: 'project-1'
         })

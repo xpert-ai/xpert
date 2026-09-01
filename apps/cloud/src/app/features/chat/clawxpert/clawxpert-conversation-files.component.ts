@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
-import { ChatConversationService } from '../../../@core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core'
+import { ChatConversationService, XpertAPIService } from '../../../@core'
 import {
   FileWorkbenchComponent,
   FileWorkbenchReferenceRequest,
@@ -22,15 +22,15 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
   imports: [CommonModule, TranslateModule, FileWorkbenchComponent],
   template: `
     <xp-file-workbench
-      [rootId]="xpertId() || conversationId()"
+      [rootId]="workspaceRootId()"
       [rootLabel]="'XP.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
-      [filesLoader]="loadConversationFiles"
-      [fileLoader]="loadConversationFile"
-      [fileSaver]="mode() === 'editable' ? saveConversationFile : null"
-      [fileDeleter]="mode() === 'editable' ? deleteConversationFile : null"
-      [fileUploader]="mode() === 'editable' ? uploadConversationFile : null"
-      [fileDownloader]="downloadConversationFile"
-      [reloadKey]="reloadKey()"
+      [filesLoader]="loadWorkspaceFiles"
+      [fileLoader]="loadWorkspaceFile"
+      [fileSaver]="mode() === 'editable' ? saveWorkspaceFile : null"
+      [fileDeleter]="mode() === 'editable' ? deleteWorkspaceFile : null"
+      [fileUploader]="mode() === 'editable' ? uploadWorkspaceFile : null"
+      [fileDownloader]="downloadWorkspaceFile"
+      [reloadKey]="workspaceReloadKey()"
       [referenceable]="true"
       [treeSize]="'sm'"
       (referenceRequest)="referenceRequest.emit($event)"
@@ -43,38 +43,54 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
 })
 export class ClawXpertConversationFilesComponent {
   readonly #conversationService = inject(ChatConversationService)
+  readonly #xpertService = inject(XpertAPIService)
 
   readonly conversationId = input<string | null | undefined>(null)
   readonly xpertId = input<string | null | undefined>(null)
+  readonly projectId = input<string | null | undefined>(null)
   readonly mode = input<ClawXpertConversationFilesMode>('editable')
   readonly reloadKey = input<number>(0)
   readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
+  readonly workspaceRootId = computed(() =>
+    this.normalizedProjectId() ? this.normalizedConversationId() : this.normalizedXpertId()
+  )
+  readonly workspaceReloadKey = computed(() =>
+    [
+      this.normalizedProjectId() ?? 'personal',
+      this.normalizedConversationId() ?? 'no-conversation',
+      this.normalizedXpertId() ?? 'no-xpert',
+      this.reloadKey()
+    ].join(':')
+  )
 
-  readonly loadConversationFiles: FileWorkbenchFilesLoader = (path?: string) => {
-    const conversationId = this.conversationId()
-    if (!conversationId) {
+  readonly loadWorkspaceFiles: FileWorkbenchFilesLoader = (path?: string) => {
+    if (this.normalizedProjectId()) {
+      const conversationId = this.normalizedConversationId()
+      return conversationId ? this.#conversationService.getFiles(conversationId, path ?? '') : []
+    }
+
+    const xpertId = this.normalizedXpertId()
+    if (!xpertId) {
       return []
     }
 
-    return this.#conversationService.getFiles(conversationId, path ?? '')
+    return this.#xpertService.getWorkspaceFiles(xpertId, path ?? '')
   }
 
-  readonly loadConversationFile: FileWorkbenchFileLoader = (path: string) => {
-    const conversationId = this.conversationId()
-    if (!conversationId) {
-      throw new Error('Conversation context is required')
+  readonly loadWorkspaceFile: FileWorkbenchFileLoader = (path: string) => {
+    if (this.normalizedProjectId()) {
+      return this.#conversationService.getFile(this.requireConversationId(), path)
     }
 
-    return this.#conversationService.getFile(conversationId, path)
+    return this.#xpertService.getWorkspaceFile(this.requireXpertId(), path)
   }
 
-  readonly downloadConversationFile: FileWorkbenchFileDownloader = async (path, item) => {
-    const conversationId = this.conversationId()
-    if (!conversationId) {
-      throw new Error('Conversation context is required')
-    }
-
-    const blob = await firstValueFrom(this.#conversationService.downloadFile(conversationId, path))
+  readonly downloadWorkspaceFile: FileWorkbenchFileDownloader = async (path, item) => {
+    const blob = await firstValueFrom(
+      this.normalizedProjectId()
+        ? this.#conversationService.downloadFile(this.requireConversationId(), path)
+        : this.#xpertService.downloadWorkspaceFile(this.requireXpertId(), path)
+    )
     return {
       kind: 'blob',
       blob,
@@ -82,30 +98,55 @@ export class ClawXpertConversationFilesComponent {
     }
   }
 
-  readonly saveConversationFile: FileWorkbenchFileSaver = (path: string, content: string) => {
-    const conversationId = this.conversationId()
-    if (!conversationId) {
-      throw new Error('Conversation context is required')
+  readonly saveWorkspaceFile: FileWorkbenchFileSaver = (path: string, content: string) => {
+    if (this.normalizedProjectId()) {
+      return this.#conversationService.saveFile(this.requireConversationId(), path, content)
     }
 
-    return this.#conversationService.saveFile(conversationId, path, content)
+    return this.#xpertService.saveWorkspaceFile(this.requireXpertId(), path, content)
   }
 
-  readonly uploadConversationFile: FileWorkbenchFileUploader = (file: File, path: string) => {
-    const conversationId = this.conversationId()
-    if (!conversationId) {
-      throw new Error('Conversation context is required')
+  readonly uploadWorkspaceFile: FileWorkbenchFileUploader = (file: File, path: string) => {
+    if (this.normalizedProjectId()) {
+      return this.#conversationService.uploadFile(this.requireConversationId(), file, path)
     }
 
-    return this.#conversationService.uploadFile(conversationId, file, path)
+    return this.#xpertService.uploadWorkspaceFileToFolder(this.requireXpertId(), file, path)
   }
 
-  readonly deleteConversationFile: FileWorkbenchFileDeleter = (path: string) => {
-    const conversationId = this.conversationId()
+  readonly deleteWorkspaceFile: FileWorkbenchFileDeleter = (path: string) => {
+    if (this.normalizedProjectId()) {
+      return this.#conversationService.deleteFile(this.requireConversationId(), path)
+    }
+
+    return this.#xpertService.deleteWorkspaceFile(this.requireXpertId(), path)
+  }
+
+  private normalizedConversationId() {
+    return this.conversationId()?.trim() || null
+  }
+
+  private normalizedXpertId() {
+    return this.xpertId()?.trim() || null
+  }
+
+  private normalizedProjectId() {
+    return this.projectId()?.trim() || null
+  }
+
+  private requireConversationId() {
+    const conversationId = this.normalizedConversationId()
     if (!conversationId) {
       throw new Error('Conversation context is required')
     }
+    return conversationId
+  }
 
-    return this.#conversationService.deleteFile(conversationId, path)
+  private requireXpertId() {
+    const xpertId = this.normalizedXpertId()
+    if (!xpertId) {
+      throw new Error('Xpert context is required')
+    }
+    return xpertId
   }
 }

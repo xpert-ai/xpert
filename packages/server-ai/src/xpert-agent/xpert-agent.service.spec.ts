@@ -28,15 +28,21 @@ jest.mock('../xpert/queries', () => ({
     }
 }))
 
+jest.mock('../xpert/xpert.service', () => ({
+    XpertService: class XpertService {}
+}))
+
 jest.mock('../shared/agent/middleware-runtime.service', () => ({
     AgentMiddlewareRuntimeService: class AgentMiddlewareRuntimeService {}
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     AgentMiddlewareRegistry: class AgentMiddlewareRegistry {},
+    SandboxWorkspaceMapperStrategy: () => () => undefined,
     RequestContext: {
         currentTenantId: jest.fn().mockReturnValue('tenant-1'),
-        currentUserId: jest.fn().mockReturnValue('user-1')
+        currentUserId: jest.fn().mockReturnValue('user-1'),
+        getOrganizationId: jest.fn().mockReturnValue('organization-1')
     }
 }))
 
@@ -68,7 +74,9 @@ describe('XpertAgentService', () => {
             createModelClient: jest.Mock
             wrapWorkflowNodeExecution: jest.Mock
         }
+        createScopedApi: jest.Mock
     }
+    let xpertService: { assertCanAuthorById: jest.Mock }
     let service: XpertAgentService
 
     beforeEach(() => {
@@ -87,14 +95,19 @@ describe('XpertAgentService', () => {
             api: {
                 createModelClient: jest.fn(),
                 wrapWorkflowNodeExecution: jest.fn()
-            }
+            },
+            createScopedApi: jest.fn().mockReturnValue({ scope: 'bounded-runtime' })
+        }
+        xpertService = {
+            assertCanAuthorById: jest.fn().mockResolvedValue(undefined)
         }
 
         service = new XpertAgentService(
             {} as any,
             commandBus as any,
             queryBus as any,
-            agentMiddlewareRuntimeService as any
+            agentMiddlewareRuntimeService as any,
+            xpertService as never
         )
         const scheduler = {
             meta: {
@@ -341,9 +354,20 @@ describe('XpertAgentService', () => {
                         enabled: true
                     }
                 },
-                runtime: agentMiddlewareRuntimeService.api
+                runtime: { scope: 'bounded-runtime' }
             })
         )
+        expect(xpertService.assertCanAuthorById).toHaveBeenCalledWith('xpert-1')
+        expect(agentMiddlewareRuntimeService.createScopedApi).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
     })
 
     it('loads draft features for middleware tool test requests', async () => {
@@ -390,11 +414,31 @@ describe('XpertAgentService', () => {
                         enabled: true
                     }
                 },
-                runtime: agentMiddlewareRuntimeService.api
+                runtime: { scope: 'bounded-runtime' }
             })
         )
         expect(invoke).toHaveBeenCalledWith({
             command: 'pwd'
         })
+    })
+
+    it('rejects middleware preview for an assistant the caller cannot author', async () => {
+        const createMiddleware = jest.fn()
+        ;(service as any).agentMiddlewareRegistry = {
+            list: jest.fn().mockReturnValue([]),
+            get: jest.fn().mockReturnValue({ createMiddleware })
+        }
+        xpertService.assertCanAuthorById.mockRejectedValueOnce(new Error('forbidden'))
+
+        await expect(
+            service.testMiddlewareTool('SandboxShell', 'sandbox_shell', {
+                xpertId: 'victim-xpert',
+                parameters: {}
+            })
+        ).rejects.toThrow('forbidden')
+
+        expect(queryBus.execute).not.toHaveBeenCalled()
+        expect(createMiddleware).not.toHaveBeenCalled()
+        expect(agentMiddlewareRuntimeService.createScopedApi).not.toHaveBeenCalled()
     })
 })

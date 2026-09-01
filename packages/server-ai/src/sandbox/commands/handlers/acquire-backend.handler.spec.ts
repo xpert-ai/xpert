@@ -7,6 +7,7 @@ describe('SandboxAcquireBackendHandler', () => {
         get: jest.Mock
     }
     let provider: {
+        capabilities?: { projectContentReadOnly: boolean }
         create: jest.Mock
         isAvailable?: jest.Mock
     }
@@ -14,6 +15,7 @@ describe('SandboxAcquireBackendHandler', () => {
 
     beforeEach(() => {
         provider = {
+            capabilities: { projectContentReadOnly: true },
             create: jest.fn()
         }
         registry = {
@@ -241,6 +243,53 @@ describe('SandboxAcquireBackendHandler', () => {
         expect((result as { workspaceBinding?: unknown }).workspaceBinding).toBe(workspaceBinding)
     })
 
+    it('derives Project Content protection from the typed Project volume scope', async () => {
+        provider.create.mockResolvedValue({ id: 'sandbox-project', execute: jest.fn() })
+
+        await handler.execute(
+            new SandboxAcquireBackendCommand({
+                tenantId: 'tenant-1',
+                provider: 'nsjail',
+                volumeScope: {
+                    tenantId: 'tenant-1',
+                    catalog: 'projects',
+                    projectId: 'project-1'
+                },
+                workingDirectory: '/workspace/agents/xpert-1',
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/project/project-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace/agents/xpert-1'
+                },
+                workFor: { type: 'environment', id: 'environment-1' }
+            })
+        )
+
+        expect(provider.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                protectProjectContent: true,
+                workFor: { type: 'environment', id: 'environment-1' }
+            })
+        )
+
+        await handler.execute(
+            new SandboxAcquireBackendCommand({
+                tenantId: 'tenant-1',
+                provider: 'nsjail',
+                workingDirectory: '/workspace/agents/xpert-1',
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/project/project-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace/agents/xpert-1'
+                },
+                workFor: { type: 'environment', id: 'environment-1' }
+            })
+        )
+
+        expect(provider.create).toHaveBeenCalledTimes(2)
+        expect(provider.create.mock.calls[1]?.[0]).not.toHaveProperty('protectProjectContent')
+    })
+
     it('throws when provider is omitted', async () => {
         await expect(
             handler.execute(
@@ -275,4 +324,32 @@ describe('SandboxAcquireBackendHandler', () => {
         ).rejects.toThrow('Sandbox provider is unavailable: local-shell-sandbox')
         expect(provider.create).not.toHaveBeenCalled()
     })
+
+    it.each([undefined, { projectContentReadOnly: false }])(
+        'fails closed when a Project runtime provider does not declare Project Content protection support',
+        async (capabilities) => {
+            provider.capabilities = capabilities
+
+            await expect(
+                handler.execute(
+                    new SandboxAcquireBackendCommand({
+                        tenantId: 'tenant-1',
+                        provider: 'unsupported-sandbox',
+                        volumeScope: {
+                            tenantId: 'tenant-1',
+                            catalog: 'projects',
+                            projectId: 'project-1'
+                        },
+                        workspaceBinding: {
+                            volumeRoot: '/sandbox/tenant-1/project/project-1',
+                            workspaceRoot: '/workspace',
+                            workspacePath: '/workspace/agents/xpert-1'
+                        },
+                        workFor: { type: 'environment', id: 'environment-1' }
+                    })
+                )
+            ).rejects.toThrow('does not support read-only Project Content')
+            expect(provider.create).not.toHaveBeenCalled()
+        }
+    )
 })

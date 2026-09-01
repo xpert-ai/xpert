@@ -75,7 +75,7 @@ describe('ModelProviderBuiltinToolset', () => {
     )
   })
 
-  it('resolves workspace files from the shared runtime capability', () => {
+  it('does not use an installation-level capability as execution workspace files', () => {
     const workspaceFiles = {} as WorkspaceFilesApi
     const capabilities = new DefaultRuntimeCapabilityRegistry().register(
       WorkspaceFilesRuntimeCapability,
@@ -83,28 +83,128 @@ describe('ModelProviderBuiltinToolset', () => {
     )
     const toolset = new TestModelProviderToolset(capabilities)
 
-    expect(toolset.workspaceFiles()).toBe(workspaceFiles)
+    expect(() => toolset.workspaceFiles()).toThrow('Workspace files are required.')
   })
 
-  it('builds project and Xpert workspace scopes from runtime params', () => {
+  it('prefers the execution-scoped workspace capability over the installation registry', () => {
+    const installationFiles = {} as WorkspaceFilesApi
+    const executionFiles = {} as WorkspaceFilesApi
+    const installationCapabilities = new DefaultRuntimeCapabilityRegistry().register(
+      WorkspaceFilesRuntimeCapability,
+      installationFiles
+    )
+    const executionCapabilities = new DefaultRuntimeCapabilityRegistry().register(
+      WorkspaceFilesRuntimeCapability,
+      executionFiles
+    )
+    const toolset = new TestModelProviderToolset(
+      installationCapabilities,
+      createParams({}, { runtimeCapabilities: executionCapabilities } as never)
+    )
+
+    expect(toolset.workspaceFiles()).toBe(executionFiles)
+  })
+
+  it('fails closed when an execution resolver does not provide host-bound workspace files', () => {
+    const installationFiles = {} as WorkspaceFilesApi
+    const installationCapabilities = new DefaultRuntimeCapabilityRegistry().register(
+      WorkspaceFilesRuntimeCapability,
+      installationFiles
+    )
+    const executionCapabilities = new DefaultRuntimeCapabilityRegistry()
+    const toolset = new TestModelProviderToolset(
+      installationCapabilities,
+      createParams({}, { runtimeCapabilities: executionCapabilities } as never)
+    )
+
+    expect(() => toolset.workspaceFiles()).toThrow('Workspace files are required.')
+  })
+
+  it('fails closed when execution params omit a workspace capability resolver', () => {
+    const installationFiles = {} as WorkspaceFilesApi
+    const installationCapabilities = new DefaultRuntimeCapabilityRegistry().register(
+      WorkspaceFilesRuntimeCapability,
+      installationFiles
+    )
+    const toolset = new TestModelProviderToolset(installationCapabilities, createParams())
+
+    expect(() => toolset.workspaceFiles()).toThrow('Workspace files are required.')
+  })
+
+  it('preserves the host-bound Project scope instead of rebuilding it from legacy params', () => {
     const projectToolset = new TestModelProviderToolset(
       undefined,
-      createParams({}, { projectId: ' project-1 ', tenantId: ' tenant-1 ', userId: ' user-1 ' })
+      createParams({}, {
+        projectId: 'project-from-legacy-param',
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        runtimeScope: {
+          tenantId: ' tenant-1 ',
+          organizationId: ' organization-1 ',
+          userId: ' user-1 ',
+          catalog: 'projects',
+          scopeId: ' project-1 ',
+          projectId: ' project-1 ',
+          xpertId: ' xpert-1 ',
+          isolateByUser: false
+        }
+      } as never)
     )
     expect(projectToolset.workspaceScope()).toEqual({
       tenantId: 'tenant-1',
+      organizationId: 'organization-1',
       userId: 'user-1',
       catalog: 'projects',
       scopeId: 'project-1',
-      projectId: 'project-1'
-    })
-
-    const xpertToolset = new TestModelProviderToolset(undefined, createParams({}, { xpertId: 'xpert-1' }))
-    expect(xpertToolset.workspaceScope()).toEqual({
-      catalog: 'xperts',
-      scopeId: 'xpert-1',
+      projectId: 'project-1',
       xpertId: 'xpert-1',
       isolateByUser: false
+    })
+  })
+
+  it.each([
+    ['Project', { projectId: 'project-1' }],
+    ['Xpert', { xpertId: 'xpert-1' }]
+  ] as const)('fails closed when a %s execution has no host-bound runtime scope', (_label, identity) => {
+    const toolset = new TestModelProviderToolset(undefined, createParams({}, identity))
+
+    expect(() => toolset.workspaceScope()).toThrow('Workspace files are required.')
+  })
+
+  it('keeps two users on one user-scoped Xpert in distinct host-bound scopes', () => {
+    const createUserToolset = (userId: string) =>
+      new TestModelProviderToolset(
+        undefined,
+        createParams({}, {
+          tenantId: 'tenant-1',
+          userId,
+          xpertId: 'xpert-1',
+          runtimeScope: {
+            tenantId: 'tenant-1',
+            userId,
+            catalog: 'user-xperts',
+            scopeId: 'xpert-1',
+            xpertId: 'xpert-1',
+            isolateByUser: true
+          }
+        } as never)
+      )
+
+    expect(createUserToolset('user-a').workspaceScope()).toEqual({
+      tenantId: 'tenant-1',
+      userId: 'user-a',
+      catalog: 'user-xperts',
+      scopeId: 'xpert-1',
+      xpertId: 'xpert-1',
+      isolateByUser: true
+    })
+    expect(createUserToolset('user-b').workspaceScope()).toEqual({
+      tenantId: 'tenant-1',
+      userId: 'user-b',
+      catalog: 'user-xperts',
+      scopeId: 'xpert-1',
+      xpertId: 'xpert-1',
+      isolateByUser: true
     })
   })
 

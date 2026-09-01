@@ -4,7 +4,7 @@ import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
-import { CopilotModule } from '../copilot'
+import { CopilotModule } from '../copilot/copilot.module'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
@@ -54,7 +54,7 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
         RedisModule,
         TenantModule,
         CqrsModule,
-        CopilotModule,
+        forwardRef(() => CopilotModule),
         ChatMessageModule,
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => XpertAgentModule)

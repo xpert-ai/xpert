@@ -43,6 +43,8 @@ export type TAgentStateSystem = {
     common_times: string
     soul?: string | null
     profile?: string | null
+    /** Server-validated Project instruction loaded from project.md. */
+    project_instruction?: string | null
     volume?: string | null
     workspace_path?: string | null
     workspace_url?: string | null

@@ -1,10 +1,11 @@
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/server-core'
 import { createHash } from 'crypto'
-import { Repository } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { ConversationFileLink, FileAsset } from '../../entities'
+import { FileAssetAccessService } from '../../file-asset-access.service'
 import { CreateFileAssetCommand } from '../create-file-asset.command'
 
 function buildStorageFileMetadata(storageFile?: CreateFileAssetCommand['input']['storageFile']) {
@@ -49,7 +50,8 @@ export class CreateFileAssetHandler implements ICommandHandler<CreateFileAssetCo
         @InjectRepository(FileAsset)
         private readonly fileAssetRepository: Repository<FileAsset>,
         @InjectRepository(ConversationFileLink)
-        private readonly conversationFileLinkRepository: Repository<ConversationFileLink>
+        private readonly conversationFileLinkRepository: Repository<ConversationFileLink>,
+        private readonly fileAssetAccessService: FileAssetAccessService
     ) {}
 
     async execute(command: CreateFileAssetCommand) {
@@ -59,23 +61,63 @@ export class CreateFileAssetHandler implements ICommandHandler<CreateFileAssetCo
             throw new BadRequestException('storageFileId is required')
         }
 
-        const existing = await this.fileAssetRepository.findOne({ where: { storageFileId } })
+        const canonicalStorageFile = await this.fileAssetAccessService.assertStorageFileOwner(storageFileId)
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+        if (!tenantId || !userId) {
+            throw new ForbiddenException()
+        }
+
+        const conversation =
+            input.conversationId || input.threadId
+                ? await this.fileAssetAccessService.assertConversationAccess(
+                      {
+                          kind: 'conversation',
+                          conversationId: input.conversationId,
+                          threadId: input.threadId
+                      },
+                      'attach'
+                  )
+                : null
+        if (!conversation && (input.projectId || input.xpertId)) {
+            await this.fileAssetAccessService.assertUploadScope({
+                projectId: input.projectId,
+                xpertId: input.xpertId
+            })
+        }
+        if (conversation) {
+            await this.fileAssetAccessService.assertConversationInputScope(conversation, input)
+            await this.fileAssetAccessService.assertCanCreateConversationAsset(conversation, 'upload')
+        }
+
+        const existing = await this.fileAssetRepository.findOne({ where: { storageFileId, tenantId } })
+        if (existing) {
+            await this.fileAssetAccessService.resolve({
+                locator: { fileAssetId: existing.id, storageFileId },
+                authority: { kind: 'current-owner' },
+                operation: 'write'
+            })
+            if (conversation) {
+                await this.fileAssetAccessService.assertCanLinkToConversation(existing.id, conversation)
+            }
+        }
         const uploadedFile = input.uploadedFile
         const sha256 = uploadedFile?.buffer ? createHash('sha256').update(uploadedFile.buffer).digest('hex') : undefined
-        const storageFile = input.storageFile
+        const storageFile = canonicalStorageFile
         // StorageFile remains the storage-layer record; FileAsset is deduped by
         // storageFileId so repeated uploads/retries update parser state in place.
         const fileAsset = await this.fileAssetRepository.save(
             this.fileAssetRepository.create({
                 ...(existing ?? {}),
-                tenantId: RequestContext.currentTenantId() ?? existing?.tenantId,
-                organizationId: RequestContext.getOrganizationId() ?? existing?.organizationId,
-                userId: RequestContext.currentUserId() ?? existing?.userId,
+                tenantId,
+                organizationId: organizationId ?? existing?.organizationId,
+                userId: existing?.userId ?? userId,
                 storageFileId,
-                conversationId: input.conversationId ?? existing?.conversationId,
-                threadId: input.threadId ?? existing?.threadId,
-                projectId: input.projectId ?? existing?.projectId,
-                xpertId: input.xpertId ?? existing?.xpertId,
+                conversationId: existing?.conversationId ?? conversation?.id,
+                threadId: existing?.threadId ?? conversation?.threadId,
+                projectId: existing?.projectId ?? conversation?.projectId ?? input.projectId,
+                xpertId: existing?.xpertId ?? conversation?.xpertId ?? input.xpertId,
                 originalName: storageFile?.originalName ?? uploadedFile?.originalname ?? existing?.originalName,
                 fileName: storageFile?.file ?? existing?.fileName,
                 mimeType: storageFile?.mimetype ?? uploadedFile?.mimetype ?? existing?.mimeType,
@@ -90,22 +132,24 @@ export class CreateFileAssetHandler implements ICommandHandler<CreateFileAssetCo
             })
         )
 
-        if (input.conversationId) {
+        if (conversation) {
             const existingLink = await this.conversationFileLinkRepository.findOne({
                 where: {
-                    conversationId: input.conversationId,
+                    tenantId,
+                    organizationId: conversation.organizationId ?? IsNull(),
+                    conversationId: conversation.id,
                     fileAssetId: fileAsset.id
                 }
             })
             await this.conversationFileLinkRepository.save(
                 this.conversationFileLinkRepository.create({
                     ...(existingLink ?? {}),
-                    tenantId: RequestContext.currentTenantId() ?? existingLink?.tenantId,
-                    organizationId: RequestContext.getOrganizationId() ?? existingLink?.organizationId,
-                    conversationId: input.conversationId,
+                    tenantId,
+                    organizationId: conversation.organizationId ?? existingLink?.organizationId,
+                    conversationId: conversation.id,
                     fileAssetId: fileAsset.id,
                     storageFileId,
-                    threadId: input.threadId ?? existingLink?.threadId,
+                    threadId: conversation.threadId ?? existingLink?.threadId,
                     metadata: buildFileAssetMetadata(existingLink?.metadata, input.metadata, storageFile)
                 })
             )
