@@ -924,6 +924,10 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             updated: 1,
             deleted: 1
         })
+        expect(vectorStore.deleteChunks).toHaveBeenCalledWith(expect.arrayContaining(['row-b', 'row-deleted']))
+        expect(result.embeddingChunks.map((chunk) => chunk.pageContent)).toEqual(
+            expect.arrayContaining(['new content', 'added content'])
+        )
     })
 
     it('adds stored chunk versions to vector search results', async () => {

@@ -40,6 +40,7 @@ import {
     ImportKnowledgebaseArchiveCommand,
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand,
     ReadKnowledgebaseDocumentImageCommand
@@ -442,6 +443,55 @@ export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHan
         )
         return {
             documents: docs.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
+        }
+    }
+}
+
+/**
+ * Reprocesses documents only after resolving every id inside the requested
+ * Knowledge base. Replacing parser configuration here lets a plugin upgrade a
+ * processing strategy without gaining access to another scope or file path.
+ */
+@Injectable()
+@CommandHandler(ReprocessKnowledgebaseDocumentsCommand)
+export class ReprocessKnowledgebaseDocumentsHandler implements ICommandHandler<ReprocessKnowledgebaseDocumentsCommand> {
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService,
+        @Optional() private readonly transformerRegistry?: DocumentTransformerRegistry
+    ) {}
+
+    async execute(command: ReprocessKnowledgebaseDocumentsCommand): Promise<KnowledgebaseDocumentStatusResult> {
+        const knowledgebaseId = command.input.knowledgebaseId?.trim()
+        const documentIds = uniqueStrings(command.input.documentIds)
+        if (!knowledgebaseId) throw new BadRequestException('knowledgebaseId is required')
+        if (!documentIds.length) throw new BadRequestException('documentIds is required')
+        await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
+        const { items } = await this.documentService.findAll({
+            where: { knowledgebaseId, id: In(documentIds) }
+        })
+        if (items.length !== documentIds.length) {
+            throw new BadRequestException('Every document must belong to the selected knowledgebase')
+        }
+        const invalidatedAt = new Date().toISOString()
+        for (const document of items) {
+            document.parserConfig = resolveKnowledgeDocumentParserConfig({
+                ...document,
+                parserConfig: command.input.parserConfig
+            })
+            // An explicit reprocess request must not be short-circuited by the
+            // worker's unchanged-processing-hash optimization. The worker will
+            // compute and persist the new hash when this run begins.
+            document.processingHash = null
+            document.metadata = {
+                ...(document.metadata ?? {}),
+                imageUnderstandingInvalidatedAt: invalidatedAt
+            }
+        }
+        await this.documentService.save(items)
+        const documents = await this.documentService.startProcessing(documentIds, knowledgebaseId, 'full')
+        return {
+            documents: documents.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
         }
     }
 }

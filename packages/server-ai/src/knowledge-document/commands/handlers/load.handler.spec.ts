@@ -11,6 +11,70 @@ describe('KnowledgeDocLoadHandler', () => {
         jest.restoreAllMocks()
     })
 
+    it('merges plugin image metadata without replacing host-owned snapshot references', async () => {
+        const handler = new KnowledgeDocLoadHandler({} as any, {} as any, {} as any)
+        const update = jest.fn()
+        ;(handler as any).kbDocumentService = { update }
+        const doc = {
+            id: 'doc-1',
+            metadata: {
+                transformSnapshot: { sha256: 'host-transform' },
+                analysisSnapshot: { sha256: 'host-analysis' },
+                imageUnderstandingInvalidatedAt: '2026-08-30T00:00:00.000Z',
+                retained: true
+            }
+        }
+
+        await (handler as any).persistImageUnderstandingDocumentMetadata(doc, 'prod', {
+            pluginImageUnderstanding: { strategy: 'plugin-image-policy', version: 1 },
+            transformSnapshot: { sha256: 'plugin-transform' },
+            analysisSnapshot: { sha256: 'plugin-analysis' }
+        })
+
+        expect(update).toHaveBeenCalledWith('doc-1', {
+            metadata: {
+                transformSnapshot: { sha256: 'host-transform' },
+                analysisSnapshot: { sha256: 'host-analysis' },
+                retained: true,
+                pluginImageUnderstanding: { strategy: 'plugin-image-policy', version: 1 }
+            }
+        })
+    })
+
+    it('passes persisted document metadata into image reprocessing while keeping current assets authoritative', () => {
+        const handler = new KnowledgeDocLoadHandler({} as any, {} as any, {} as any)
+        const chunks = [new Document({ pageContent: 'manual retrieval text' }) as any]
+
+        const result = (handler as any).createImageUnderstandingDocument(
+            {
+                id: 'doc-1',
+                metadata: {
+                    pluginImageUnderstanding: {
+                        safety: { status: 'pass', confidence: 0.98 }
+                    },
+                    retained: 'persisted'
+                }
+            },
+            {
+                id: 'doc-1',
+                metadata: {
+                    assets: [{ type: 'image', filePath: 'images/current.png' }],
+                    retained: 'transformed'
+                }
+            },
+            chunks
+        )
+
+        expect(result.metadata).toEqual({
+            pluginImageUnderstanding: {
+                safety: { status: 'pass', confidence: 0.98 }
+            },
+            retained: 'transformed',
+            assets: [{ type: 'image', filePath: 'images/current.png' }]
+        })
+        expect(result.chunks).toBe(chunks)
+    })
+
     it('uses the default text splitter when parserConfig is null', async () => {
         const handler = new KnowledgeDocLoadHandler({} as any, {} as any, {} as any)
         const chunks = [
@@ -141,6 +205,9 @@ describe('KnowledgeDocLoadHandler', () => {
         ;(handler as any).transformerRegistry = {
             get: jest.fn(() => transformer)
         }
+        ;(handler as any).imageUnderstandingRegistry = {
+            get: jest.fn(() => ({ permissions: [], understandImages: jest.fn() }))
+        }
         ;(handler as any).cacheManager = {
             get: jest.fn(async () => undefined),
             set: jest.fn()
@@ -194,6 +261,87 @@ describe('KnowledgeDocLoadHandler', () => {
                 })
             })
         )
+    })
+
+    it('runs a deterministic image-understanding branch without resolving a vision model', async () => {
+        const transformedChunk = new Document({
+            pageContent: 'Original image',
+            metadata: { chunkId: 'source-1', chunkIndex: 0 }
+        }) as any
+        const splitChunk = new Document({
+            pageContent: 'Fallback text',
+            metadata: { chunkId: 'split-1', chunkIndex: 0 }
+        }) as any
+        const understoodChunk = new Document({
+            pageContent: 'Human-authored semantic retrieval text',
+            metadata: { chunkId: 'understood-1', chunkIndex: 0 }
+        }) as any
+        const transformer = {
+            permissions: [],
+            transformDocuments: jest.fn(async () => [
+                {
+                    id: 'doc-1',
+                    chunks: [transformedChunk],
+                    metadata: {
+                        assets: [{ type: 'image', filePath: 'images/source.png' }]
+                    }
+                }
+            ])
+        }
+        const strategy = {
+            permissions: [],
+            requiresVisionModel: jest.fn(async () => false),
+            understandImages: jest.fn(async (_document, config) => {
+                expect(config.visionModel).toBeUndefined()
+                return { chunks: [understoodChunk] }
+            })
+        }
+        const knowledgebaseService = {
+            getVisionModel: jest.fn(async () => {
+                throw new Error('Vision model must not be resolved')
+            })
+        }
+        const handler = new KnowledgeDocLoadHandler(
+            knowledgebaseService as any,
+            { execute: jest.fn(async () => ({ fileSystem: {} })) } as any,
+            {} as any
+        )
+        ;(handler as any).knowledgeWorkAreaResolver = {
+            resolve: jest.fn(async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }))
+        }
+        ;(handler as any).transformerRegistry = { get: jest.fn(() => transformer) }
+        ;(handler as any).imageUnderstandingRegistry = { get: jest.fn(() => strategy) }
+        ;(handler as any).cacheManager = {
+            get: jest.fn(async () => undefined),
+            set: jest.fn()
+        }
+        jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks: [splitChunk] })
+
+        const result = await handler.execute(
+            new KnowledgeDocLoadCommand({
+                doc: {
+                    id: 'doc-1',
+                    name: 'image.png',
+                    type: 'png',
+                    category: KBDocumentCategoryEnum.Image,
+                    knowledgebaseId: 'kb-1',
+                    filePath: 'image.png',
+                    parserConfig: {
+                        imageUnderstandingType: 'plugin-image-policy',
+                        imageUnderstanding: { semanticSource: 'manual' }
+                    },
+                    status: KBDocumentStatusEnum.RUNNING
+                } as any,
+                stage: 'test'
+            })
+        )
+
+        expect(result.chunks).toEqual([understoodChunk])
+        expect(strategy.requiresVisionModel).toHaveBeenCalledWith(
+            expect.objectContaining({ stage: 'test', semanticSource: 'manual' })
+        )
+        expect(strategy.understandImages).toHaveBeenCalledTimes(1)
+        expect(knowledgebaseService.getVisionModel).not.toHaveBeenCalled()
     })
 
     it('loads a saved transform snapshot without resolving or calling the transformer in rechunk mode', async () => {

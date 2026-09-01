@@ -169,6 +169,17 @@ export type KnowledgebaseStartProcessingInput = {
   documentIds: string[]
 }
 
+/**
+ * Re-runs authorized Knowledge documents with a replacement parser contract.
+ * The host resolves tenant and organization scope from the current runtime;
+ * callers cannot move documents between Knowledge bases through this API.
+ */
+export type KnowledgebaseReprocessDocumentsInput = {
+  knowledgebaseId: string
+  documentIds: string[]
+  parserConfig: KnowledgebaseDocumentParserConfig
+}
+
 export type KnowledgebaseDocumentStatusInput = {
   knowledgebaseId?: string
   documentIds: string[]
@@ -230,6 +241,8 @@ export interface KnowledgebaseDocumentsApi {
 
   startProcessing(input: KnowledgebaseStartProcessingInput): Promise<KnowledgebaseDocumentStatusResult>
 
+  reprocessDocuments(input: KnowledgebaseReprocessDocumentsInput): Promise<KnowledgebaseDocumentStatusResult>
+
   getDocumentStatus(input: KnowledgebaseDocumentStatusInput): Promise<KnowledgebaseDocumentStatusResult>
 
   deleteDocuments(input: KnowledgebaseDeleteDocumentsInput): Promise<KnowledgebaseDeleteDocumentsResult>
@@ -241,6 +254,6 @@ export interface KnowledgebaseDocumentsApi {
 export const KnowledgebaseDocumentsRuntimeCapability = createRuntimeCapability<KnowledgebaseDocumentsApi>(
   'platform.knowledgebase.documents',
   {
-    description: 'Upload, import, create, process, inspect, and delete persistent knowledgebase documents.'
+    description: 'Upload, import, create, process, reprocess, inspect, and delete persistent knowledgebase documents.'
   }
 )

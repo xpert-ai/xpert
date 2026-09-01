@@ -11,6 +11,7 @@ import {
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
     ReadKnowledgebaseDocumentImageCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     UploadKnowledgebaseDocumentFileCommand
 } from '../knowledgebase-documents.command'
 import {
@@ -20,9 +21,73 @@ import {
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
     ReadKnowledgebaseDocumentImageHandler,
+    ReprocessKnowledgebaseDocumentsHandler,
     UploadKnowledgebaseDocumentFileHandler
 } from './knowledgebase-documents.handler'
 import { DocumentTypeEnum } from '@xpert-ai/contracts'
+
+describe('ReprocessKnowledgebaseDocumentsHandler', () => {
+    it('invalidates the processing hash even when the requested parser configuration is unchanged', async () => {
+        const parserConfig = {
+            imageUnderstandingType: 'plugin-image-policy',
+            imageUnderstanding: { strict: true }
+        }
+        const documents = [
+            { id: 'doc-1', knowledgebaseId: 'kb-1', parserConfig, processingHash: 'hash-1', metadata: {} },
+            { id: 'doc-2', knowledgebaseId: 'kb-1', parserConfig, processingHash: 'hash-2', metadata: {} }
+        ]
+        const knowledgebaseService = { assertNotRebuilding: jest.fn() }
+        const documentService = {
+            findAll: jest.fn(async () => ({ items: documents, total: documents.length })),
+            save: jest.fn(async (items) => items),
+            startProcessing: jest.fn(async () => documents)
+        }
+        const handler = new ReprocessKnowledgebaseDocumentsHandler(knowledgebaseService as any, documentService as any)
+
+        await handler.execute(
+            new ReprocessKnowledgebaseDocumentsCommand({
+                knowledgebaseId: 'kb-1',
+                documentIds: ['doc-1', 'doc-2', 'doc-1'],
+                parserConfig
+            })
+        )
+
+        expect(knowledgebaseService.assertNotRebuilding).toHaveBeenCalledWith('kb-1')
+        expect(documentService.save).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    parserConfig: expect.objectContaining({ imageUnderstandingType: 'plugin-image-policy' }),
+                    processingHash: null,
+                    metadata: expect.objectContaining({ imageUnderstandingInvalidatedAt: expect.any(String) })
+                })
+            ])
+        )
+        expect(documentService.startProcessing).toHaveBeenCalledWith(['doc-1', 'doc-2'], 'kb-1', 'full')
+    })
+
+    it('rejects a mixed-scope document selection without starting work', async () => {
+        const documentService = {
+            findAll: jest.fn(async () => ({ items: [{ id: 'doc-1', knowledgebaseId: 'kb-1' }], total: 1 })),
+            save: jest.fn(),
+            startProcessing: jest.fn()
+        }
+        const handler = new ReprocessKnowledgebaseDocumentsHandler(
+            { assertNotRebuilding: jest.fn() } as any,
+            documentService as any
+        )
+
+        await expect(
+            handler.execute(
+                new ReprocessKnowledgebaseDocumentsCommand({
+                    knowledgebaseId: 'kb-1',
+                    documentIds: ['doc-1', 'doc-outside'],
+                    parserConfig: {}
+                })
+            )
+        ).rejects.toThrow('Every document must belong')
+        expect(documentService.startProcessing).not.toHaveBeenCalled()
+    })
+})
 
 describe('ListKnowledgebaseDocumentsHandler', () => {
     it('returns a bounded document catalog without exposing folders by default', async () => {

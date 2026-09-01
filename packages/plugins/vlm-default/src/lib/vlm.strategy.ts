@@ -99,7 +99,10 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
   ): Promise<TImageUnderstandingResult> {
     await this.validateConfig(config)
 
-    const client = config.visionModel // ✅ Injected by the core system
+    const client = config.visionModel
+    if (!client) {
+      throw new Error('Vision Model is required')
+    }
     const params = {
       files: doc.metadata?.assets?.filter((asset) => asset.type === 'image') ?? [],
       chunks: doc.chunks as DocumentInterface<ChunkMetadata>[]

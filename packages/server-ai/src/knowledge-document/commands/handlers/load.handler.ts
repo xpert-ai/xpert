@@ -16,6 +16,7 @@ import {
     DocumentTransformerRegistry,
     ImageUnderstandingRegistry,
     TextSplitterRegistry,
+    TImageUnderstandingMetadata,
     TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
@@ -81,7 +82,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         const { doc, stage, mode = 'full' } = command.input
         const docParserConfig = resolveKnowledgeDocumentParserConfig(doc)
 
-        let visionModel: BaseChatModel = null
+        let visionModel: BaseChatModel | undefined
         if (!doc.knowledgebaseId) {
             throw new Error('knowledgebaseId is required for knowledge document loading')
         }
@@ -241,8 +242,13 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
                 if (images?.length && docParserConfig.imageUnderstandingType) {
                     try {
+                        const imageUnderstandingDocument = this.createImageUnderstandingDocument(
+                            doc,
+                            transItem,
+                            splitted.chunks
+                        )
                         const imageCacheConfig = {
-                            document: { ...transItem, chunks: splitted.chunks },
+                            document: imageUnderstandingDocument,
                             parserConfig: pick(docParserConfig, [
                                 'imageUnderstandingType',
                                 'imageUnderstandingIntegration',
@@ -253,15 +259,21 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
                         let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
                         if (!imgTransformed) {
-                            if (!visionModel) {
+                            const imageUnderstanding = this.imageUnderstandingRegistry.get(
+                                docParserConfig.imageUnderstandingType
+                            )
+                            const strategyConfig = {
+                                ...(docParserConfig.imageUnderstanding ?? {}),
+                                stage
+                            }
+                            const requiresVisionModel =
+                                (await imageUnderstanding.requiresVisionModel?.(strategyConfig)) ?? true
+                            if (requiresVisionModel && !visionModel) {
                                 visionModel = await this.knowledgebaseService.getVisionModel(
                                     doc.knowledgebaseId,
                                     docParserConfig.imageUnderstandingModel
                                 )
                             }
-                            const imageUnderstanding = this.imageUnderstandingRegistry.get(
-                                docParserConfig.imageUnderstandingType
-                            )
                             const permissions = await this.commandBus.execute(
                                 new PluginPermissionsCommand(imageUnderstanding.permissions, {
                                     knowledgebaseId: doc.knowledgebaseId,
@@ -269,23 +281,21 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                                     // folder: stage === 'test' ? 'temp/' : `/`
                                 })
                             )
-                            imgTransformed = await imageUnderstanding.understandImages(
-                                {
-                                    ...transItem,
-                                    chunks: splitted.chunks
-                                } as IKnowledgeDocument<ChunkMetadata>,
-                                {
-                                    ...(docParserConfig.imageUnderstanding ?? {}),
-                                    stage,
-                                    visionModel,
-                                    permissions
-                                }
-                            )
+                            imgTransformed = await imageUnderstanding.understandImages(imageUnderstandingDocument, {
+                                ...strategyConfig,
+                                visionModel,
+                                permissions
+                            })
 
                             await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
                         }
 
                         chunks.push(...imgTransformed.chunks)
+                        await this.persistImageUnderstandingDocumentMetadata(
+                            doc,
+                            stage,
+                            imgTransformed.metadata?.documentMetadata
+                        )
                         await this.recordImageUnderstandingWarnings(
                             doc,
                             stage,
@@ -316,6 +326,27 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         return this.loadWeb(doc)
     }
 
+    /**
+     * Builds the generic document passed to an image-understanding strategy.
+     * Persisted document metadata is carried across reprocessing so a strategy
+     * can retain its previous bounded assessment, while transformer metadata
+     * remains authoritative for the current file assets.
+     */
+    private createImageUnderstandingDocument(
+        doc: IKnowledgeDocument,
+        transformed: Partial<IKnowledgeDocument<ChunkMetadata>>,
+        chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+    ): IKnowledgeDocument<ChunkMetadata> {
+        return {
+            ...transformed,
+            metadata: {
+                ...(doc.metadata ?? {}),
+                ...(transformed.metadata ?? {})
+            },
+            chunks
+        } as IKnowledgeDocument<ChunkMetadata>
+    }
+
     private async recordImageUnderstandingWarnings(
         doc: IKnowledgeDocument,
         stage: string,
@@ -331,6 +362,24 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         }
         doc.metadata = metadata
         await this.kbDocumentService.update(doc.id, { metadata } as Partial<IKnowledgeDocument>)
+    }
+
+    /**
+     * Persists JSON-safe strategy output on the owning document while keeping
+     * host-managed transform and analysis snapshot references authoritative.
+     */
+    private async persistImageUnderstandingDocumentMetadata(
+        doc: IKnowledgeDocument,
+        stage: string,
+        documentMetadata: TImageUnderstandingMetadata['documentMetadata']
+    ) {
+        if (stage === 'test' || !doc.id || !documentMetadata) return
+        const metadata = {
+            ...omit(doc.metadata ?? {}, 'imageUnderstandingInvalidatedAt'),
+            ...omit(documentMetadata, 'transformSnapshot', 'analysisSnapshot')
+        }
+        doc.metadata = metadata
+        await this.kbDocumentService.update(doc.id, { metadata })
     }
 
     async loadWeb(doc: IKnowledgeDocument) {
