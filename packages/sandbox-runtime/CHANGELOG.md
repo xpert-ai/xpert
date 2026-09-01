@@ -1,5 +1,11 @@
 # @xpert-ai/sandbox-runtime
 
+## 1.2.1
+
+### Patch Changes
+
+- ba10381: Release the document Sandbox Runtime image family.
+
 ## 1.2.0
 
 ### Minor Changes

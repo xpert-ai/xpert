@@ -1,5 +1,5 @@
 {
-  "sandboxRuntimeVersion": "1.2.0",
+  "sandboxRuntimeVersion": "1.2.1",
   "imageFamily": "document",
   "profileName": "document/libreoffice-v1",
   "contractVersion": "1",
