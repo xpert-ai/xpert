@@ -885,9 +885,9 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     private createXpertVolumeHandle(conversation: ChatConversation) {
         return this.volumeClient.resolve(
             resolveXpertDataVolumeScope({
-            tenantId: conversation.tenantId,
-            userId: conversation.createdById,
-            xpertId: conversation.xpertId,
+                tenantId: conversation.tenantId,
+                userId: conversation.createdById,
+                xpertId: conversation.xpertId,
                 workspaceDataScope: conversation.xpert?.workspaceDataScope
             })
         )

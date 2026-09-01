@@ -126,7 +126,9 @@ export class WorkspaceFileAccessService {
             hostType: resolved.context.hostType,
             hostId: resolved.context.hostId,
             viewKey: resolved.manifest.key,
-            dataScopeKey: resolved.context.runtimeScope?.dataScopeKey ?? `${resolved.context.hostType}:${resolved.context.hostId}`,
+            dataScopeKey:
+                resolved.context.runtimeScope?.dataScopeKey ??
+                `${resolved.context.hostType}:${resolved.context.hostId}`,
             runtimeScope: {
                 projectId: resolved.context.runtimeScope?.projectId ?? null,
                 conversationId: resolved.context.runtimeScope?.conversationId ?? null
@@ -292,7 +294,7 @@ export class WorkspaceFileAccessService {
         // consequently omits both Origin and Referer from an <img> request, but
         // still sends trustworthy Fetch Metadata. The request is already bound
         // to an HttpOnly session cookie and an opaque, short-lived grant; only
-        // admit the exact same-site image subresource shape for previews.
+        // admit the exact same-origin or same-site image subresource shape for previews.
         if (!origin && purpose === 'preview' && isSameSiteImageRequest(request.headers)) {
             return null
         }
@@ -446,8 +448,10 @@ function isSessionJwtPayload(value: string | JwtPayload): value is WorkspaceFile
 }
 
 function runtimeScopesMatch(left: XpertViewRuntimeScopeInput, right: XpertViewRuntimeScopeInput) {
-    return (left.projectId ?? null) === (right.projectId ?? null) &&
+    return (
+        (left.projectId ?? null) === (right.projectId ?? null) &&
         (left.conversationId ?? null) === (right.conversationId ?? null)
+    )
 }
 
 function isRuntimeScopeInput(value: unknown): value is XpertViewRuntimeScopeInput {
@@ -516,8 +520,9 @@ function workspaceFileContentOrigin() {
 }
 
 function isSameSiteImageRequest(headers: Request['headers']) {
+    const fetchSite = headers['sec-fetch-site']
     return (
-        headers['sec-fetch-site'] === 'same-site' &&
+        (fetchSite === 'same-origin' || fetchSite === 'same-site') &&
         headers['sec-fetch-mode'] === 'no-cors' &&
         headers['sec-fetch-dest'] === 'image'
     )

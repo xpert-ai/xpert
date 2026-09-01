@@ -1,11 +1,6 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { t } from 'i18next'
-import {
-    isProjectGovernedContentPath,
-    VOLUME_CLIENT,
-    VolumeClient,
-    VolumeSubtreeClient
-} from '../../shared/volume'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
 import { XpertProjectAccessService } from './project-access.service'
 import { XpertProjectContentService } from './project-content.service'
 

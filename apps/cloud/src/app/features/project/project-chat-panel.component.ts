@@ -13,7 +13,15 @@ import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '
 @Component({
   standalone: true,
   selector: 'xp-project-chat-panel',
-  imports: [CommonModule, DragDropModule, RouterLink, TranslateModule, ChatKit, ZardButtonComponent, EmojiAvatarComponent],
+  imports: [
+    CommonModule,
+    DragDropModule,
+    RouterLink,
+    TranslateModule,
+    ChatKit,
+    ZardButtonComponent,
+    EmojiAvatarComponent
+  ],
   template: `
     <section
       #panel
@@ -223,9 +231,7 @@ export class XpertProjectChatPanelComponent {
   constructor() {
     effect(() => {
       const xperts = this.eligibleAssistants()
-      this.selectedAssistantId.set(
-        resolveProjectChatAssistantId(xperts, this.assistantKey(), this.initialThreadId())
-      )
+      this.selectedAssistantId.set(resolveProjectChatAssistantId(xperts, this.assistantKey(), this.initialThreadId()))
     })
   }
 

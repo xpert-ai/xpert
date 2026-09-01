@@ -199,9 +199,7 @@ export class XpertProjectCreateDialogComponent {
     }
     const memberIds = [
       ...new Set(
-        value.memberIds
-          .map((user) => user.id?.trim())
-          .filter((id): id is string => !!id && id !== this.#store.userId)
+        value.memberIds.map((user) => user.id?.trim()).filter((id): id is string => !!id && id !== this.#store.userId)
       )
     ]
     if (memberIds.length) input.memberIds = memberIds

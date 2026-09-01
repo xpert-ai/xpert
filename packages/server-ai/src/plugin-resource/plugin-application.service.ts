@@ -1,5 +1,7 @@
 import {
     AiModelTypeEnum,
+    AiProviderRole,
+    ICopilot,
     IPluginApplicationInstallation,
     KnowledgeGraphStatus,
     KnowledgebasePermission,
@@ -34,7 +36,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, LessThan, Repository } from 'typeorm'
 import { CopilotWithProviderDto } from '../copilot/dto'
-import { FindCopilotModelsQuery } from '../copilot/queries'
+import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
 import { Xpert } from '../xpert/xpert.entity'
@@ -164,10 +166,20 @@ export class PluginApplicationService {
 
         const requirements = application.config.modelRequirements ?? {}
         const embeddingModel = requirements.embedding
-            ? await this.resolveRequiredModel(input.embeddingModelId, AiModelTypeEnum.TEXT_EMBEDDING)
+            ? await this.resolveRequiredModel(
+                  input.embeddingModelId,
+                  AiModelTypeEnum.TEXT_EMBEDDING,
+                  undefined,
+                  preflight.defaultEmbeddingModelId
+              )
             : null
         const visionModel = requirements.vision
-            ? await this.resolveRequiredModel(input.visionModelId, AiModelTypeEnum.LLM, ModelFeature.VISION)
+            ? await this.resolveRequiredModel(
+                  input.visionModelId,
+                  AiModelTypeEnum.LLM,
+                  ModelFeature.VISION,
+                  preflight.defaultVisionModelId
+              )
             : null
         const claim = await this.claimInstallation(resolved, operationId)
         const installation = claim.installation
@@ -432,6 +444,8 @@ export class PluginApplicationService {
                 reason,
                 embeddingModels: [],
                 visionModels: [],
+                defaultEmbeddingModelId: null,
+                defaultVisionModelId: null,
                 primaryModelAvailable: !modelRequirements.primary,
                 modelRequirements
             }
@@ -445,6 +459,14 @@ export class PluginApplicationService {
             modelRequirements.primary ? this.modelOptions(AiModelTypeEnum.LLM) : Promise.resolve([])
         ])
         const primaryModelAvailable = !modelRequirements.primary || primaryModels.length > 0
+        const [defaultEmbeddingModelId, defaultVisionModelId] = await Promise.all([
+            modelRequirements.embedding
+                ? this.defaultModelOptionId(AiProviderRole.Embedding, embeddingModels)
+                : Promise.resolve(null),
+            modelRequirements.vision
+                ? this.defaultModelOptionId(AiProviderRole.Primary, visionModels)
+                : Promise.resolve(null)
+        ])
         if (modelRequirements.primary && !primaryModelAvailable) reason = 'primary_model_required'
         else if (modelRequirements.embedding && !embeddingModels.length) reason = 'embedding_model_required'
         else if (modelRequirements.vision && !visionModels.length) reason = 'vision_model_required'
@@ -455,6 +477,8 @@ export class PluginApplicationService {
             ...(reason ? { reason } : {}),
             embeddingModels,
             visionModels,
+            defaultEmbeddingModelId,
+            defaultVisionModelId,
             primaryModelAvailable,
             modelRequirements
         }
@@ -693,9 +717,13 @@ export class PluginApplicationService {
     private async resolveRequiredModel(
         id: string | undefined,
         modelType: AiModelTypeEnum,
-        requiredFeature?: ModelFeature
+        requiredFeature?: ModelFeature,
+        defaultModelId?: string | null
     ): Promise<ResolvedModel> {
-        const option = id ? (await this.modelOptions(modelType, requiredFeature)).find((item) => item.id === id) : null
+        const resolvedId = id?.trim() || defaultModelId?.trim()
+        const option = resolvedId
+            ? (await this.modelOptions(modelType, requiredFeature)).find((item) => item.id === resolvedId)
+            : null
         if (!option) {
             throw new BadRequestException(requiredFeature ? 'invalid_vision_model' : 'invalid_embedding_model')
         }
@@ -703,6 +731,28 @@ export class PluginApplicationService {
             option,
             config: { copilotId: option.copilotId, model: option.model, modelType }
         }
+    }
+
+    /** Resolves the configured organization role default only when it remains an authorized setup option. */
+    private async defaultModelOptionId(
+        role: AiProviderRole,
+        options: PluginApplicationModelOption[]
+    ): Promise<string | null> {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        if (!tenantId || !organizationId || !options.length) {
+            return null
+        }
+        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot | null>(
+            new CopilotOneByRoleQuery(tenantId, organizationId, role)
+        )
+        const copilotId = copilot?.id?.trim()
+        const model = copilot?.copilotModel?.model?.trim()
+        if (!copilotId || !model) {
+            return null
+        }
+        const optionId = this.modelOptionId(copilotId, model)
+        return options.some((option) => option.id === optionId) ? optionId : null
     }
 
     private modelOptionId(copilotId: string, model: string) {

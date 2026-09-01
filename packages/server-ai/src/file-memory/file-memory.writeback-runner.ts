@@ -86,14 +86,18 @@ export class FileMemoryWritebackRunner {
             return
         }
 
-        await this.fileMemoryService.recordWritebackCandidate(snapshot.xpert, {
-            conversationId: snapshot.conversationId,
-            sourceRef: snapshot.conversationId ? `conversation:${snapshot.conversationId}` : undefined,
-            metadata: {
-                summary: conversationText.slice(0, 2_000),
-                messageCount: messages.length
-            }
-        }, snapshot.runtime)
+        await this.fileMemoryService.recordWritebackCandidate(
+            snapshot.xpert,
+            {
+                conversationId: snapshot.conversationId,
+                sourceRef: snapshot.conversationId ? `conversation:${snapshot.conversationId}` : undefined,
+                metadata: {
+                    summary: conversationText.slice(0, 2_000),
+                    messageCount: messages.length
+                }
+            },
+            snapshot.runtime
+        )
 
         try {
             const model = await snapshot.getModel?.()
@@ -105,41 +109,57 @@ export class FileMemoryWritebackRunner {
             }
 
             const searchStartedAt = Date.now()
-            const candidates = await this.fileMemoryService.searchMemory(snapshot.xpert, {
-                query: conversationText,
-                conversationId: snapshot.conversationId,
-                limit: 6
-            }, snapshot.runtime)
+            const candidates = await this.fileMemoryService.searchMemory(
+                snapshot.xpert,
+                {
+                    query: conversationText,
+                    conversationId: snapshot.conversationId,
+                    limit: 6
+                },
+                snapshot.runtime
+            )
             this.logger.log(
                 `[XpertFileMemory] writeback candidates=${candidates.length} searchMs=${Date.now() - searchStartedAt} xpert=${snapshot.xpert.id}`
             )
             const decisionStartedAt = Date.now()
             const decision = await decideFileMemoryWriteback(model, messages, candidates, snapshot.prompt)
             this.logger.log(
-                `[XpertFileMemory] writeback decision=${decision.action} memoryId=${'memoryId' in decision ? decision.memoryId ?? '-' : '-'} decisionMs=${Date.now() - decisionStartedAt}`
+                `[XpertFileMemory] writeback decision=${decision.action} memoryId=${'memoryId' in decision ? (decision.memoryId ?? '-') : '-'} decisionMs=${Date.now() - decisionStartedAt}`
             )
             if (decision.action === 'archive') {
-                await this.fileMemoryService.archiveMemory(snapshot.xpert, {
-                    memoryId: decision.memoryId,
-                    reason: decision.reason,
-                    conversationId: snapshot.conversationId
-                }, snapshot.runtime)
+                await this.fileMemoryService.archiveMemory(
+                    snapshot.xpert,
+                    {
+                        memoryId: decision.memoryId,
+                        reason: decision.reason,
+                        conversationId: snapshot.conversationId
+                    },
+                    snapshot.runtime
+                )
                 return
             }
             if (decision.action === 'upsert') {
-                await this.fileMemoryService.writeMemory(snapshot.xpert, {
-                    type: decision.type,
-                    memoryId: decision.memoryId,
-                    title: decision.title,
-                    summary: decision.summary,
-                    content: decision.content,
-                    tags: decision.tags,
-                    sourceRefs: decision.sourceRefs ?? (snapshot.conversationId ? [`conversation:${snapshot.conversationId}`] : undefined),
-                    conversationId: snapshot.conversationId,
-                    source: 'writeback'
-                }, snapshot.runtime)
+                await this.fileMemoryService.writeMemory(
+                    snapshot.xpert,
+                    {
+                        type: decision.type,
+                        memoryId: decision.memoryId,
+                        title: decision.title,
+                        summary: decision.summary,
+                        content: decision.content,
+                        tags: decision.tags,
+                        sourceRefs:
+                            decision.sourceRefs ??
+                            (snapshot.conversationId ? [`conversation:${snapshot.conversationId}`] : undefined),
+                        conversationId: snapshot.conversationId,
+                        source: 'writeback'
+                    },
+                    snapshot.runtime
+                )
             }
-            this.logger.log(`[XpertFileMemory] writeback completed xpert=${snapshot.xpert.id} elapsedMs=${Date.now() - startedAt}`)
+            this.logger.log(
+                `[XpertFileMemory] writeback completed xpert=${snapshot.xpert.id} elapsedMs=${Date.now() - startedAt}`
+            )
         } catch (error) {
             this.logger.warn(`File memory writeback skipped: ${error instanceof Error ? error.message : String(error)}`)
         }
@@ -147,7 +167,10 @@ export class FileMemoryWritebackRunner {
 }
 
 function isNonEmptyWritebackMessage(message: BaseMessage) {
-    return (isHumanMessage(message) || isAIMessage(message) || isToolMessage(message)) && Boolean(stringifyMessageContent(message.content).trim())
+    return (
+        (isHumanMessage(message) || isAIMessage(message) || isToolMessage(message)) &&
+        Boolean(stringifyMessageContent(message.content).trim())
+    )
 }
 
 function formatConversationForSearch(messages: BaseMessage[]) {

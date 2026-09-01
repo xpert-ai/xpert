@@ -206,7 +206,10 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         )
     }
 
-    private async resolveRuntimeScope(xpert: IXpert, options?: ViewHostResolutionOptions): Promise<XpertViewRuntimeScope> {
+    private async resolveRuntimeScope(
+        xpert: IXpert,
+        options?: ViewHostResolutionOptions
+    ): Promise<XpertViewRuntimeScope> {
         const requestedProjectId = options?.runtimeScope?.projectId ?? null
         const conversationId = options?.runtimeScope?.conversationId ?? null
         let projectId = requestedProjectId
@@ -251,9 +254,10 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             workspaceDataScope: xpert.workspaceDataScope
         })
         const scopeId = xpert.id
-        const dataScopeKey = fileScope.catalog === 'user-xperts'
-            ? `${fileScope.catalog}:${fileScope.userId}:${scopeId}`
-            : `${fileScope.catalog}:${scopeId}`
+        const dataScopeKey =
+            fileScope.catalog === 'user-xperts'
+                ? `${fileScope.catalog}:${fileScope.userId}:${scopeId}`
+                : `${fileScope.catalog}:${scopeId}`
         return {
             projectId: null,
             conversationId,

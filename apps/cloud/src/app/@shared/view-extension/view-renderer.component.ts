@@ -396,13 +396,7 @@ export class ViewRendererComponent {
       const manifest = this.manifest()
       const query = normalizeViewQuery(this.query(), manifest.dataSource.querySchema)
       const data = await firstValueFrom(
-        this.#api.getViewData(
-          this.hostType(),
-          this.hostId(),
-          manifest.key,
-          query,
-          this.runtimeScope() ?? undefined
-        )
+        this.#api.getViewData(this.hostType(), this.hostId(), manifest.key, query, this.runtimeScope() ?? undefined)
       )
 
       if (requestId !== this.requestId) {

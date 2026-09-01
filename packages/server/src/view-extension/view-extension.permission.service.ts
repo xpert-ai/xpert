@@ -39,7 +39,8 @@ export class ViewExtensionPermissionService {
 	filterVisibleActions(actions?: XpertViewActionDefinition[], context?: XpertViewHostContext) {
 		return (
 			actions?.filter(
-				(action) => this.hasPermissions(action.permissions) && (!context || this.hasRequiredHostAccess(action, context))
+				(action) =>
+					this.hasPermissions(action.permissions) && (!context || this.hasRequiredHostAccess(action, context))
 			) ?? []
 		)
 	}

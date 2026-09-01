@@ -421,9 +421,7 @@ export class FileAssetAccessService {
         // origin from the persisted Xpert instead of trusting mutable
         // projection metadata; if the origin can no longer be resolved, fail
         // closed for non-owners until an explicit ConversationFileLink exists.
-        const xpert = await this.publishedXpertAccessService
-            .getPublishedXpertInTenant(asset.xpertId)
-            .catch(() => null)
+        const xpert = await this.publishedXpertAccessService.getPublishedXpertInTenant(asset.xpertId).catch(() => null)
         return !xpert || xpert.workspaceDataScope === 'user'
     }
 

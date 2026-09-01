@@ -86,27 +86,22 @@ describe('file-understanding workspace file helpers', () => {
     })
 
     it.each([
-        [
-            'Project',
-            { projectId: 'project-owner' },
-            { catalog: 'projects', scopeId: 'project-victim' }
-        ],
-        [
-            'user-isolated Xpert',
-            { xpertId: 'xpert-owner' },
-            { catalog: 'user-xperts', scopeId: 'xpert-victim' }
-        ],
+        ['Project', { projectId: 'project-owner' }, { catalog: 'projects', scopeId: 'project-victim' }],
+        ['user-isolated Xpert', { xpertId: 'xpert-owner' }, { catalog: 'user-xperts', scopeId: 'xpert-victim' }],
         ['user', { userId: 'user-owner' }, { catalog: 'users', scopeId: 'user-victim' }]
-    ])('rejects forged %s workspace metadata that disagrees with canonical FileAsset scope', (_label, asset, workspace) => {
-        expect(
-            resolveFileAssetWorkspaceVolumeScope({
-                tenantId: 'tenant-1',
-                userId: 'user-owner',
-                ...asset,
-                metadata: { workspace }
-            })
-        ).toBeNull()
-    })
+    ])(
+        'rejects forged %s workspace metadata that disagrees with canonical FileAsset scope',
+        (_label, asset, workspace) => {
+            expect(
+                resolveFileAssetWorkspaceVolumeScope({
+                    tenantId: 'tenant-1',
+                    userId: 'user-owner',
+                    ...asset,
+                    metadata: { workspace }
+                })
+            ).toBeNull()
+        }
+    )
 
     it.each([
         ['projects', 'project-1', { catalog: 'projects', projectId: 'project-1', userId: 'user-1' }],

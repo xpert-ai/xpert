@@ -1,11 +1,17 @@
+import { HttpErrorResponse } from '@angular/common/http'
 import { computed, effect, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRouteSnapshot, NavigationEnd, Route, Router } from '@angular/router'
 import { RolesEnum } from '@xpert-ai/contracts'
-import { IOrganization, RequestScopeLevel, Store } from '@cloud/app/@core/state'
-import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
+import { type ActiveScope, IOrganization, RequestScopeLevel, Store } from '@cloud/app/@core/state'
+import { distinctUntilChanged, filter, firstValueFrom, map, startWith } from 'rxjs'
+import { OrganizationsService } from './organizations.service'
 
 export type RouteScopeContext = 'tenant-only' | 'organization-only' | 'dual-scope'
+
+type PersistedOrganizationResolution =
+  | { status: 'resolved'; organization: IOrganization | null }
+  | { status: 'unavailable' }
 
 const DEFAULT_TENANT_ROUTE = '/settings/tenant'
 const DEFAULT_ORGANIZATION_ROUTE = '/chat'
@@ -14,6 +20,8 @@ const DEFAULT_ORGANIZATION_ROUTE = '/chat'
 export class ScopeService {
   readonly #router = inject(Router)
   readonly #store = inject(Store)
+  readonly #organizationsService = inject(OrganizationsService)
+  #entryScopeInitialization: { userId: string; promise: Promise<void> } | null = null
   readonly #currentUser = toSignal(this.#store.user$, {
     initialValue: this.#store.user
   })
@@ -56,6 +64,13 @@ export class ScopeService {
 
   constructor() {
     effect(() => {
+      const userId = this.#currentUser()?.id
+      if (!userId || (this.#entryScopeInitialization && this.#entryScopeInitialization.userId !== userId)) {
+        this.#entryScopeInitialization = null
+      }
+    })
+
+    effect(() => {
       const routeScope = this.currentRouteScope()
       const url = this.currentUrl()
       if (!url) {
@@ -92,16 +107,32 @@ export class ScopeService {
     })
   }
 
-  initializeEntryScope(organizations: IOrganization[], preferredOrganizationId?: string | null) {
+  async initializeEntryScope(organizations: IOrganization[], preferredOrganizationId?: string | null) {
+    const userId = this.#currentUser()?.id ?? this.#store.userId
+    if (userId && this.#entryScopeInitialization?.userId === userId) {
+      return this.#entryScopeInitialization.promise
+    }
+
+    const promise = this.initializeEntryScopeOnce(organizations, preferredOrganizationId)
+    if (userId) {
+      this.#entryScopeInitialization = { userId, promise }
+    }
+
+    return promise
+  }
+
+  private async initializeEntryScopeOnce(organizations: IOrganization[], preferredOrganizationId?: string | null) {
     const validOrganizations = this.resolveValidOrganizations(organizations)
     const scope = this.activeScope()
-    const persistedOrganization =
-      scope.level === RequestScopeLevel.ORGANIZATION
-        ? (validOrganizations.find((organization) => organization.id === scope.organizationId) ?? null)
-        : null
+    const persistedOrganizationResolution = await this.resolvePersistedOrganization(validOrganizations, scope)
+    if (persistedOrganizationResolution.status === 'unavailable') {
+      return
+    }
+
+    const persistedOrganization = persistedOrganizationResolution.organization
     const defaultOrganization = this.resolveDefaultOrganization(validOrganizations, preferredOrganizationId)
 
-    if (!validOrganizations.length) {
+    if (!validOrganizations.length && !persistedOrganization) {
       if (scope.level !== RequestScopeLevel.TENANT || this.#store.selectedOrganization) {
         this.#store.setTenantScope()
       }
@@ -202,6 +233,39 @@ export class ScopeService {
 
   private resolveOrganizationFallback() {
     return this.#store.getLastCompatibleRoute(RequestScopeLevel.ORGANIZATION) || DEFAULT_ORGANIZATION_ROUTE
+  }
+
+  private async resolvePersistedOrganization(
+    organizations: IOrganization[],
+    scope: ActiveScope
+  ): Promise<PersistedOrganizationResolution> {
+    if (scope.level !== RequestScopeLevel.ORGANIZATION) {
+      return { status: 'resolved', organization: null }
+    }
+
+    const membershipOrganization = organizations.find((organization) => organization.id === scope.organizationId)
+    if (membershipOrganization || !this.canUseTenantScope()) {
+      return { status: 'resolved', organization: membershipOrganization ?? null }
+    }
+
+    try {
+      const organization = await firstValueFrom(
+        this.#organizationsService.getById(scope.organizationId, undefined, [
+          'featureOrganizations',
+          'featureOrganizations.feature'
+        ])
+      )
+      return {
+        status: 'resolved',
+        organization: organization?.id === scope.organizationId && organization.isActive !== false ? organization : null
+      }
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && (error.status === 403 || error.status === 404)) {
+        return { status: 'resolved', organization: null }
+      }
+
+      return { status: 'unavailable' }
+    }
   }
 
   private resolveScopeTransitionTarget(level: RequestScopeLevel) {

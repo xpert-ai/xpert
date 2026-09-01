@@ -80,7 +80,12 @@ export class ViewExtensionApiService {
     )
   }
 
-  getRemoteComponentEntry(hostType: string, hostId: string, viewKey: string, runtimeScope?: XpertViewRuntimeScopeInput) {
+  getRemoteComponentEntry(
+    hostType: string,
+    hostId: string,
+    viewKey: string,
+    runtimeScope?: XpertViewRuntimeScopeInput
+  ) {
     return this.httpClient.get(
       `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/remote-component/entry`,
       { responseType: 'text', headers: createRuntimeScopeHeaders(runtimeScope) }

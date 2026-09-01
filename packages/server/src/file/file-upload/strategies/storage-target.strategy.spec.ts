@@ -49,9 +49,9 @@ describe('StorageTargetStrategy', () => {
 	it.each(['../tenant-B/key.txt', '/tenant-B/key.txt', String.raw`..\tenant-B\key.txt`])(
 		'rejects a path-bearing file name before writing: %s',
 		async (fileName) => {
-			await expect(
-				strategy.upload(source, { kind: 'storage', fileName }, context)
-			).rejects.toThrow('Invalid file name')
+			await expect(strategy.upload(source, { kind: 'storage', fileName }, context)).rejects.toThrow(
+				'Invalid file name'
+			)
 
 			expect(mockPutFile).not.toHaveBeenCalled()
 			expect(storageFileService.createStorageFile).not.toHaveBeenCalled()

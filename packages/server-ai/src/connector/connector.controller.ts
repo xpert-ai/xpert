@@ -281,11 +281,7 @@ export class ConnectorController {
         )
     }
 
-    private bindOAuthBrowser(
-        result: ConnectorConnectResponse,
-        request: HttpRequestLike,
-        response?: Response
-    ) {
+    private bindOAuthBrowser(result: ConnectorConnectResponse, request: HttpRequestLike, response?: Response) {
         if (result.status !== 'pending' || !result.authorizationUrl || !response) {
             return
         }

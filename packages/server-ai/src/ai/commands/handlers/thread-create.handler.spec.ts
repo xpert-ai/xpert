@@ -31,14 +31,14 @@ import { ThreadCreateCommand } from '../thread-create.command'
 import { resolveThreadCreateAssistantId, ThreadCreateHandler } from './thread-create.handler'
 
 describe('resolveThreadCreateAssistantId', () => {
-	it.each([
-		['non-string', 123],
-		['null', null],
-		['empty', ''],
-		['blank', '   ']
-	])('rejects an invalid assistant_id: %s', (_label, assistantId) => {
-		expect(() => resolveThreadCreateAssistantId({ assistant_id: assistantId })).toThrow(BadRequestException)
-	})
+    it.each([
+        ['non-string', 123],
+        ['null', null],
+        ['empty', ''],
+        ['blank', '   ']
+    ])('rejects an invalid assistant_id: %s', (_label, assistantId) => {
+        expect(() => resolveThreadCreateAssistantId({ assistant_id: assistantId })).toThrow(BadRequestException)
+    })
 })
 
 describe('ThreadCreateHandler', () => {
@@ -272,7 +272,7 @@ describe('ThreadCreateHandler', () => {
         expect(bind.xpertId).toBe('xpert-1')
     })
 
-    it('rejects binding another public session user\'s thread', async () => {
+    it("rejects binding another public session user's thread", async () => {
         jest.mocked(RequestContext.currentApiPrincipal).mockReturnValue({
             id: 'session-user-1',
             principalType: 'client_secret',

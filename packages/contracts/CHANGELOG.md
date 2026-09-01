@@ -1,5 +1,19 @@
 # @xpert-ai/contracts
 
+## 3.17.6
+
+### Patch Changes
+
+- afb69b7: Release Xpert 3.17.6 after publishing the complete Sandbox Runtime image suite.
+
+## 3.17.5
+
+### Patch Changes
+
+- 9e59e41: Add stable tenant- and organization-scoped MCP publication, capability, authentication, execution context, tool result, resource, prompt, app, task, and change-event contracts for the Xpert MCP publishing platform.
+
+  Keep plugin schema contracts on the Zod v3 compatibility API while allowing consumers to install Zod 3.25 or Zod 4.
+
 ## 3.17.4
 
 ### Patch Changes

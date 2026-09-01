@@ -92,35 +92,35 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
         //
     }
 
-	async loadDocuments(config: LocalFileConfig): Promise<Document[]> {
-		const human = config[STATE_VARIABLE_HUMAN]
-		if (human?.files) {
-			const storageFileIds = human.files.map(resolveLegacyStorageFileId)
-			const storageFiles = await Promise.all(
-				storageFileIds.map((storageFileId) =>
-					this.queryBus.execute<GetOwnedStorageFileQuery, IStorageFile>(
-						new GetOwnedStorageFileQuery(storageFileId)
-					)
-				)
-			)
-			// const fileProvider = new FileStorage().getProvider()
-			return storageFiles.map((file) => {
-				return new Document({
-					pageContent: '',
-					metadata: {
-						source: 'file-system',
-						filePath: file.file,
-						fileUrl: file.fileUrl,
-						size: file.size,
-						originalName: file.originalName,
-						mimeType: file.mimetype,
-						category: classificateDocumentCategory({
-							type: file.originalName.split('.').pop().toLowerCase()
-						})
-					}
-				})
-			})
-		}
+    async loadDocuments(config: LocalFileConfig): Promise<Document[]> {
+        const human = config[STATE_VARIABLE_HUMAN]
+        if (human?.files) {
+            const storageFileIds = human.files.map(resolveLegacyStorageFileId)
+            const storageFiles = await Promise.all(
+                storageFileIds.map((storageFileId) =>
+                    this.queryBus.execute<GetOwnedStorageFileQuery, IStorageFile>(
+                        new GetOwnedStorageFileQuery(storageFileId)
+                    )
+                )
+            )
+            // const fileProvider = new FileStorage().getProvider()
+            return storageFiles.map((file) => {
+                return new Document({
+                    pageContent: '',
+                    metadata: {
+                        source: 'file-system',
+                        filePath: file.file,
+                        fileUrl: file.fileUrl,
+                        size: file.size,
+                        originalName: file.originalName,
+                        mimeType: file.mimetype,
+                        category: classificateDocumentCategory({
+                            type: file.originalName.split('.').pop().toLowerCase()
+                        })
+                    }
+                })
+            })
+        }
 
         return []
     }

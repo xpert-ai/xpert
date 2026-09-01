@@ -69,8 +69,6 @@ describe('XpertProjectCreateDialogComponent', () => {
 
     component.submit()
 
-    expect(dialogRef.close).toHaveBeenCalledWith(
-      expect.objectContaining({ memberIds: ['member-1'] })
-    )
+    expect(dialogRef.close).toHaveBeenCalledWith(expect.objectContaining({ memberIds: ['member-1'] }))
   })
 })

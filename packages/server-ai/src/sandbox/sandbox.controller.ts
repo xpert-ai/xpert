@@ -48,12 +48,7 @@ import { isAbsolute, relative } from 'path'
 import { Observable } from 'rxjs'
 import { getMediaTypeWithCharset } from '../shared/utils/utils'
 import { resolveHttpByteRange } from '../shared/utils/http-byte-range'
-import {
-    VOLUME_CLIENT,
-    VolumeClient,
-    VolumeHandle,
-    assertValidVolumeScopeId
-} from '../shared/volume/volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeHandle, assertValidVolumeScopeId } from '../shared/volume/volume'
 import { isProjectGovernedContentPath } from '../shared/volume/project-content-path'
 import { WorkspacePathMapperFactory } from '../shared/volume/workspace-path-mapper.factory'
 import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'

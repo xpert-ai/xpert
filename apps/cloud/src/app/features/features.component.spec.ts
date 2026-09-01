@@ -146,6 +146,7 @@ async function setup(options: FeatureTestOptions = {}) {
     level: RequestScopeLevel.ORGANIZATION,
     organizationId: 'org-1'
   })
+  const activeScopeSubject = new BehaviorSubject(activeScope())
   const store = {
     get user() {
       return userSubject.value
@@ -185,7 +186,7 @@ async function setup(options: FeatureTestOptions = {}) {
     featureContextHydrated$: of(true),
     preferences: signal(null),
     updatePreferences: jest.fn(),
-    selectActiveScope: jest.fn(() => of(activeScope())),
+    selectActiveScope: jest.fn(() => activeScopeSubject.asObservable()),
     hasFeatureEnabled: jest.fn((feature: AiFeatureEnum) => {
       if (feature === AiFeatureEnum.FEATURE_XPERT) {
         return options.hasXpertFeature ?? true
@@ -320,6 +321,7 @@ async function setup(options: FeatureTestOptions = {}) {
 
   return {
     component,
+    activeScopeSubject,
     store,
     router,
     selectedOrganizationSubject,
@@ -343,8 +345,10 @@ describe('FeaturesComponent sidebar organization default', () => {
     expect(component.sidebarCollapsed()).toBe(false)
   })
 
-  it('does not overwrite a manual choice until the organization changes', async () => {
-    const { component, selectedOrganizationSubject } = await setup({ sidebarExpandedByDefault: true })
+  it('does not overwrite a manual choice when the organization changes', async () => {
+    const { activeScopeSubject, component, selectedOrganizationSubject } = await setup({
+      sidebarExpandedByDefault: true
+    })
     component.sidebarCollapsed.set(true)
     await component.ngOnInit()
 
@@ -353,9 +357,10 @@ describe('FeaturesComponent sidebar organization default', () => {
 
     expect(component.sidebarCollapsed()).toBe(true)
 
+    activeScopeSubject.next({ level: RequestScopeLevel.ORGANIZATION, organizationId: 'org-2' })
     selectedOrganizationSubject.next({ id: 'org-2', sidebarExpandedByDefault: true })
 
-    expect(component.sidebarCollapsed()).toBe(false)
+    expect(component.sidebarCollapsed()).toBe(true)
   })
 })
 

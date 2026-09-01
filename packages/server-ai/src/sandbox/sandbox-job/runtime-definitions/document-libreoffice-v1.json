@@ -2,7 +2,7 @@
     "name": "document/libreoffice-v1",
     "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
     "contractVersion": "1",
-    "sandboxRuntimeVersion": "1.2.0",
+    "sandboxRuntimeVersion": "1.2.1",
     "timeoutMs": 180000,
     "hardDeadlineMs": 240000,
     "resources": {
@@ -28,7 +28,7 @@
         "readOnlyRootFilesystem": true
     },
     "expectedManifest": {
-        "sandboxRuntimeVersion": "1.2.0",
+        "sandboxRuntimeVersion": "1.2.1",
         "imageFamily": "document",
         "profileName": "document/libreoffice-v1",
         "contractVersion": "1",

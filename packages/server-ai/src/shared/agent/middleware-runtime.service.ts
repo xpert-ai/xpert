@@ -62,6 +62,7 @@ import {
     KnowledgebaseSearchInput,
     KnowledgebaseSearchResult,
     KnowledgebaseStartProcessingInput,
+    KnowledgebaseReprocessDocumentsInput,
     KnowledgebaseUploadFileInput,
     KnowledgebaseUploadedFile,
     KnowledgebaseReadImageInput,
@@ -122,6 +123,7 @@ import {
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     UploadKnowledgebaseDocumentFileCommand,
     ReadKnowledgebaseDocumentImageCommand,
     WriteAgentKnowledgeChunkCommand
@@ -579,6 +581,13 @@ export class AgentMiddlewareRuntimeService {
         input: KnowledgebaseStartProcessingInput
     ): Promise<KnowledgebaseDocumentStatusResult> {
         return this.commandBus.execute(new StartKnowledgebaseDocumentsProcessingCommand(input))
+    }
+
+    /** Dispatches a scope-checked full reprocess without exposing storage paths. */
+    async reprocessKnowledgebaseDocuments(
+        input: KnowledgebaseReprocessDocumentsInput
+    ): Promise<KnowledgebaseDocumentStatusResult> {
+        return this.commandBus.execute(new ReprocessKnowledgebaseDocumentsCommand(input))
     }
 
     async getKnowledgebaseDocumentStatus(
@@ -1113,7 +1122,7 @@ export class AgentMiddlewareRuntimeService {
      * The workspace-files capability is scoped here so plugin tools can receive
      * simple sandbox paths while server-side reads still honor the current
      * project/Xpert workspace boundary.
-    */
+     */
     createScopedApi(scope: AgentMiddlewareRuntimeScope = {}): AgentMiddlewareRuntimeApi {
         const workspaceFilesApi = hasBoundRuntimeWorkspaceScope(scope)
             ? this.workspaceFiles.createScopedApi(scope)
@@ -1146,6 +1155,7 @@ export class AgentMiddlewareRuntimeService {
                     importArchive: (input) => this.importKnowledgebaseArchive(input),
                     createDocuments: (input) => this.createKnowledgebaseDocuments(input),
                     startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
+                    reprocessDocuments: (input) => this.reprocessKnowledgebaseDocuments(input),
                     getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
                     deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input),
                     readImage: (input) => this.readKnowledgebaseDocumentImage(input)

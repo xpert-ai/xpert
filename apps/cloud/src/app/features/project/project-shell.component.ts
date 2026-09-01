@@ -405,8 +405,7 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
 
         const eligibleIds = candidates.map((candidate) => candidate.xpertId)
         this.chatEligibleAssistantIds.set(eligibleIds)
-        const selectedId =
-          candidates.length === 1 ? candidates[0].xpertId : await this.selectProjectExpert(eligibleIds)
+        const selectedId = candidates.length === 1 ? candidates[0].xpertId : await this.selectProjectExpert(eligibleIds)
         if (!selectedId) {
           return { success: false, code: 'cancelled', message: 'Project expert selection was cancelled.' }
         }

@@ -170,7 +170,9 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         }
     }
 
-    private createDraftXpertMiddlewareRuntime(draftContext: Awaited<ReturnType<typeof this.getDraftXpertMiddlewareContext>>) {
+    private createDraftXpertMiddlewareRuntime(
+        draftContext: Awaited<ReturnType<typeof this.getDraftXpertMiddlewareContext>>
+    ) {
         const tenantId = RequestContext.currentTenantId()
         const userId = RequestContext.currentUserId()
         const xpertScope = draftContext.xpertId

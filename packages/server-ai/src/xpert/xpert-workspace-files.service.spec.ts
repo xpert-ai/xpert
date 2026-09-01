@@ -16,7 +16,10 @@ jest.mock('./xpert.service', () => ({
 import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'node:crypto'
-import { VolumeSubtreeClient } from '../shared/volume'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { VolumeHandle, VolumeSubtreeClient } from '../shared/volume'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 
 describe('XpertWorkspaceFilesService', () => {
@@ -123,7 +126,9 @@ describe('XpertWorkspaceFilesService', () => {
 
     it('lists the bound xpert workspace without requiring a conversation', async () => {
         jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
-        const volume = { name: 'xpert-volume' }
+        const ensureRoot = jest.fn()
+        const volume = { name: 'xpert-volume', ensureRoot }
+        ensureRoot.mockResolvedValue(volume)
         const resolve = jest.fn().mockReturnValue(volume)
         const list = jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
         const service = new XpertWorkspaceFilesService(
@@ -150,8 +155,47 @@ describe('XpertWorkspaceFilesService', () => {
         expect(list).toHaveBeenCalledWith('', { path: 'files', deepth: 2 })
     })
 
+    it('initializes a missing xpert workspace before listing it for the first time', async () => {
+        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
+        const provisioningRoot = await mkdtemp(path.join(tmpdir(), 'xpert-workspace-files-'))
+        const workspaceRoot = path.join(provisioningRoot, 'xpert', 'xpert-1')
+        const volume = new VolumeHandle(
+            {
+                tenantId: 'tenant-1',
+                catalog: 'xperts',
+                userId: 'user-1',
+                xpertId: 'xpert-1',
+                isolateByUser: false
+            },
+            workspaceRoot,
+            workspaceRoot,
+            'http://localhost/volume/xpert/xpert-1',
+            provisioningRoot
+        )
+        const service = new XpertWorkspaceFilesService(
+            {
+                findOne: jest.fn().mockResolvedValue({
+                    id: 'xpert-1',
+                    tenantId: 'tenant-1',
+                    workspaceDataScope: 'shared'
+                })
+            },
+            { createScopedApi: jest.fn() },
+            { resolve: jest.fn().mockReturnValue(volume) }
+        )
+
+        try {
+            await expect(service.list('xpert-1')).resolves.toEqual([])
+        } finally {
+            await rm(provisioningRoot, { recursive: true, force: true })
+        }
+    })
+
     it('resolves the same user-scoped Xpert to distinct volumes for two users', async () => {
-        const resolve = jest.fn().mockReturnValue({})
+        const ensureRoot = jest.fn()
+        const volume = { ensureRoot }
+        ensureRoot.mockResolvedValue(volume)
+        const resolve = jest.fn().mockReturnValue(volume)
         const list = jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
         const xpertService = {
             findOne: jest.fn().mockResolvedValue({

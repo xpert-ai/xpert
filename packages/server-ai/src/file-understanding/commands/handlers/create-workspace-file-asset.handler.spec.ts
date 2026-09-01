@@ -95,10 +95,7 @@ describe('CreateWorkspaceFileAssetHandler authorization', () => {
             conversation,
             expect.objectContaining({ xpertId: 'xpert-current' })
         )
-        expect(fileAssetAccessService.assertCanCreateConversationAsset).toHaveBeenCalledWith(
-            conversation,
-            'understand'
-        )
+        expect(fileAssetAccessService.assertCanCreateConversationAsset).toHaveBeenCalledWith(conversation, 'understand')
         expect(result).toMatchObject({
             conversationId: conversation.id,
             projectId: conversation.projectId,

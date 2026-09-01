@@ -47,9 +47,9 @@ describe('ChatMessageController', () => {
 
         await expect(controller.suggestedQuestions('message-1')).resolves.toEqual(['Next?'])
 
-        expect(queryBus.execute).toHaveBeenCalledWith(
-            new AssertChatConversationAccessQuery({ id: 'conversation-1' })
+        expect(queryBus.execute).toHaveBeenCalledWith(new AssertChatConversationAccessQuery({ id: 'conversation-1' }))
+        expect(queryBus.execute.mock.invocationCallOrder[0]).toBeLessThan(
+            commandBus.execute.mock.invocationCallOrder[0]
         )
-        expect(queryBus.execute.mock.invocationCallOrder[0]).toBeLessThan(commandBus.execute.mock.invocationCallOrder[0])
     })
 })

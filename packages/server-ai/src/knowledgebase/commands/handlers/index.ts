@@ -9,6 +9,7 @@ import {
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
     ReadKnowledgebaseDocumentImageHandler,
+    ReprocessKnowledgebaseDocumentsHandler,
     StartKnowledgebaseDocumentsProcessingHandler,
     UploadKnowledgebaseDocumentFileHandler
 } from './knowledgebase-documents.handler'
@@ -27,6 +28,7 @@ export const CommandHandlers = [
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
     ReadKnowledgebaseDocumentImageHandler,
+    ReprocessKnowledgebaseDocumentsHandler,
     KnowledgebaseClearHandler,
     PluginPermissionsHandler,
     StartKnowledgebaseDocumentsProcessingHandler,

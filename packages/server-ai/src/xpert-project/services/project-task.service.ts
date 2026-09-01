@@ -151,10 +151,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         return this.save(task)
     }
 
-    private async resolveAssigneeXpertId(
-        project: XpertProject,
-        requestedId?: string
-    ): Promise<string | undefined> {
+    private async resolveAssigneeXpertId(project: XpertProject, requestedId?: string): Promise<string | undefined> {
         const normalizedId = typeof requestedId === 'string' ? requestedId.trim() : ''
         if (!normalizedId) return undefined
         const assigneeXpertId = normalizedId

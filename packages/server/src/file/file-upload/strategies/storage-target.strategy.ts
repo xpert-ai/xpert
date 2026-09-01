@@ -68,7 +68,13 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 
 	private normalizePathSegment(value: string | undefined, label: string) {
 		const normalized = `${value ?? ''}`.trim()
-		if (!normalized || normalized === '.' || normalized === '..' || normalized.includes('/') || normalized.includes('\\')) {
+		if (
+			!normalized ||
+			normalized === '.' ||
+			normalized === '..' ||
+			normalized.includes('/') ||
+			normalized.includes('\\')
+		) {
 			throw new Error(`Invalid ${label}`)
 		}
 		return normalized

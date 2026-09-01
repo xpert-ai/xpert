@@ -22,6 +22,7 @@ import {
   RouterOutlet
 } from '@angular/router'
 import {
+  type ActiveScope,
   CurrentUserHydrationService,
   CURRENT_USER_BOOTSTRAP_RELATIONS,
   CURRENT_USER_BOOTSTRAP_SELECT,
@@ -212,7 +213,7 @@ export class FeaturesComponent implements OnInit {
   #sidebarResizePointerId: number | null = null
   #sidebarResizeHandle: HTMLElement | null = null
   #sidebarResizeAbortController: AbortController | null = null
-  #sidebarDefaultScopeKey: string | null = null
+  #sidebarDefaultApplied = false
 
   constructor() {
     this.#router.events
@@ -263,7 +264,7 @@ export class FeaturesComponent implements OnInit {
       )
       .subscribe(([, , org, scope]) => {
         this.organization = org
-        this.applySidebarDefault(org, scope.level)
+        this.applySidebarDefault(org, scope)
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
         void this.maybeOpenEntryOnboardingGuide()
@@ -313,7 +314,7 @@ export class FeaturesComponent implements OnInit {
     const organizations = memberships.map(({ organization }) => organization)
     const preferredOrganizationId = memberships.find((membership) => membership.isDefault)?.organizationId ?? null
 
-    this.#scopeService.initializeEntryScope(organizations, preferredOrganizationId)
+    await this.#scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
     //tenant enabled/disabled features for relatives organizations
     const { tenant, role } = this.user
@@ -451,16 +452,19 @@ export class FeaturesComponent implements OnInit {
     this.sidebarCollapsed.set(collapsed)
   }
 
-  private applySidebarDefault(organization: IOrganization | null | undefined, scopeLevel: RequestScopeLevel) {
-    const organizationId = scopeLevel === RequestScopeLevel.ORGANIZATION ? organization?.id : null
-    const scopeKey = organizationId ? `organization:${organizationId}` : `scope:${scopeLevel}`
-
-    if (this.#sidebarDefaultScopeKey === scopeKey) {
+  private applySidebarDefault(organization: IOrganization | null | undefined, scope: ActiveScope) {
+    if (this.#sidebarDefaultApplied) {
       return
     }
 
-    this.#sidebarDefaultScopeKey = scopeKey
-    this.sidebarCollapsed.set(!organizationId || organization?.sidebarExpandedByDefault !== true)
+    if (scope.level === RequestScopeLevel.ORGANIZATION && organization?.id !== scope.organizationId) {
+      return
+    }
+
+    this.#sidebarDefaultApplied = true
+    this.sidebarCollapsed.set(
+      scope.level !== RequestScopeLevel.ORGANIZATION || organization?.sidebarExpandedByDefault !== true
+    )
   }
 
   startSidebarResize(event: PointerEvent) {

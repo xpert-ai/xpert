@@ -118,6 +118,7 @@ import {
     ImportKnowledgebaseArchiveCommand,
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     EnsureKnowledgebasesCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
@@ -1562,6 +1563,31 @@ describe('AgentMiddlewareRuntimeService', () => {
                 process: true
             })
         )
+    })
+
+    it('reprocesses scoped knowledge documents with a replacement parser contract', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ReprocessKnowledgebaseDocumentsCommand) {
+                return { documents: [{ id: 'doc-1', status: 'running', knowledgebaseId: 'kb-1' }] }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities
+            ?.require(KnowledgebaseDocumentsRuntimeCapability)
+            .reprocessDocuments({
+                knowledgebaseId: 'kb-1',
+                documentIds: ['doc-1'],
+                parserConfig: { imageUnderstandingType: 'image-policy-v2' }
+            })
+
+        expect(result?.documents[0]?.status).toBe('running')
+        const command = commandBus.execute.mock.calls[0][0] as ReprocessKnowledgebaseDocumentsCommand
+        expect(command.input).toEqual({
+            knowledgebaseId: 'kb-1',
+            documentIds: ['doc-1'],
+            parserConfig: { imageUnderstandingType: 'image-policy-v2' }
+        })
     })
 
     it('exposes knowledgebase document deletion through the runtime facade', async () => {

@@ -9,7 +9,7 @@ import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, PluginApplicationDetail, PluginApplicationService } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpI18nPipe, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { pluginApplicationCopilotModel, pluginApplicationModelId } from './app-detail-model.util'
+import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from './app-detail-model.util'
 
 /** Marketplace detail and governed initialization surface for a trusted plugin App. */
 @Component({
@@ -84,9 +84,19 @@ export class ApplicationDetailComponent {
       const detail = await firstValueFrom(this.#applications.getDetail(pluginName, appName))
       this.detail.set(detail)
       this.embeddingModel.set(
-        pluginApplicationCopilotModel(detail.preflight.embeddingModels[0], AiModelTypeEnum.TEXT_EMBEDDING)
+        pluginApplicationDefaultCopilotModel(
+          detail.preflight.embeddingModels,
+          detail.preflight.defaultEmbeddingModelId,
+          AiModelTypeEnum.TEXT_EMBEDDING
+        )
       )
-      this.visionModel.set(pluginApplicationCopilotModel(detail.preflight.visionModels[0], AiModelTypeEnum.LLM))
+      this.visionModel.set(
+        pluginApplicationDefaultCopilotModel(
+          detail.preflight.visionModels,
+          detail.preflight.defaultVisionModelId,
+          AiModelTypeEnum.LLM
+        )
+      )
     } catch (error) {
       this.detail.set(null)
       this.#toastr.error(getErrorMessage(error))

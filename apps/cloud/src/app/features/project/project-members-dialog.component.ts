@@ -173,7 +173,9 @@ type ProjectMembersDialogData = {
               </button>
             </div>
           } @else {
-            <p class="rounded-lg border border-divider-subtle bg-background-default-subtle p-3 text-xs text-text-secondary">
+            <p
+              class="rounded-lg border border-divider-subtle bg-background-default-subtle p-3 text-xs text-text-secondary"
+            >
               {{ 'XP.XProject.OrganizationInvitationPermissionRequired' | translate }}
             </p>
           }

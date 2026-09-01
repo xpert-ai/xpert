@@ -19,10 +19,7 @@ import {
 import { firstValueFrom } from 'rxjs'
 import { ScheduleTaskStatus, Store, ToastrService, XpertTaskService, getErrorMessage } from '../../@core'
 import { XpertTaskDialogService } from '../../@shared/chat/task-dialog/task-dialog.service'
-import {
-  XpertSkillInstallDialogComponent,
-  type XpertSkillInstallDialogResult
-} from '../../@shared/skills'
+import { XpertSkillInstallDialogComponent, type XpertSkillInstallDialogResult } from '../../@shared/skills'
 import { XpertProjectApiService } from './project-api.service'
 import { XpertProjectAssistantsDialogComponent } from './project-assistants-dialog.component'
 import { XpertProjectConnectorsDialogComponent } from './project-connectors-dialog.component'
@@ -185,7 +182,13 @@ import { UserAvatarComponent } from '../../@shared/user/avatar/avatar.component'
             </button>
           </div>
         </div>
-        <input #skillPackageInput class="hidden" type="file" accept=".zip,application/zip" (change)="uploadSkillPackage($event)" />
+        <input
+          #skillPackageInput
+          class="hidden"
+          type="file"
+          accept=".zip,application/zip"
+          (change)="uploadSkillPackage($event)"
+        />
         <ng-template #addSkillMenu>
           <div z-menu-content class="w-56">
             <button type="button" z-menu-item (click)="skillPackageInput.click()">
@@ -209,7 +212,9 @@ import { UserAvatarComponent } from '../../@shared/user/avatar/avatar.component'
                   <p class="mt-1 line-clamp-2 text-xs text-text-secondary">{{ skill.description }}</p>
                 }
                 <p class="mt-1 text-xs text-text-tertiary">
-                  {{ (skill.enabled ? 'XP.XProject.ProjectSkillEnabled' : 'XP.XProject.ProjectSkillDisabled') | translate }}
+                  {{
+                    (skill.enabled ? 'XP.XProject.ProjectSkillEnabled' : 'XP.XProject.ProjectSkillDisabled') | translate
+                  }}
                 </p>
               </div>
             </div>
