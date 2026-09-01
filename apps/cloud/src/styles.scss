@@ -2,7 +2,11 @@
 /* You can add global styles to this file, and also import other style files */
 
 @config "../tailwind.config.js";
-@import 'tailwindcss' source(none);
+// `packages/ui/styles.css` already owns the shared Tailwind preflight. This
+// stylesheet only needs the theme registry and utilities for Cloud sources;
+// importing preflight again here resets tokenized borders to `currentColor`.
+@import 'tailwindcss/theme' layer(theme) source(none);
+@import 'tailwindcss/utilities' layer(utilities) source(none);
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 @source "./app/**/*.{ts,html,scss,sass,css}";
 @source "../../../libs/**/*.{ts,html,scss,sass,css}";
