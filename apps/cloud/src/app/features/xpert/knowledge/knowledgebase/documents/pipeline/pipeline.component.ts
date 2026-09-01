@@ -64,12 +64,7 @@ export class KnowledgeDocumentPipelineComponent {
 
   readonly step = signal(1)
 
-  readonly #pipeline = toSignal(
-    this.knowledgebaseAPI.getOneById(this.knowledgebaseComponent.paramId(), {
-      relations: ['pipeline'],
-      select: ['id', 'name', 'tenantId', 'organizationId', 'workspaceId']
-    })
-  )
+  readonly #pipeline = toSignal(this.knowledgebaseAPI.getDetail(this.knowledgebaseComponent.paramId()))
 
   readonly pipeline = computed(() => this.#pipeline()?.pipeline)
   readonly graph = computed(() => this.pipeline()?.graph)

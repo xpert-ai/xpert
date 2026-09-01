@@ -26,7 +26,7 @@ import {
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { XpertProjectFacade } from './project.facade'
-import type { XpertProjectTaskRelations } from './project-api.service'
+import type { XpertProjectConversationTarget, XpertProjectTaskRelations } from './project-api.service'
 import {
   XpertProjectPlanDialogComponent,
   type XpertProjectPlanDialogMode,
@@ -714,8 +714,7 @@ export class XpertProjectPlanComponent implements OnInit {
   }
   taskAssistantName(task: IXpertProjectTask) {
     const project = this.facade.project()
-    const id = task.assigneeXpertId || project?.settings?.projectAssistantId || project?.xperts?.[0]?.id
-    const assistant = project?.xperts?.find((item) => item.id === id)
+    const assistant = project?.xperts?.find((item) => item.id === task.assigneeXpertId)
     return assistant?.title || assistant?.name || ''
   }
   toggleCompletedCollapsed() {
@@ -821,12 +820,12 @@ export class XpertProjectPlanComponent implements OnInit {
     }
     await this.saveTask(task, result)
   }
-  openTaskConversation(event: { conversationId?: string; threadId?: string }) {
+  openTaskConversation(event: XpertProjectConversationTarget) {
     const threadId = event.threadId?.trim()
     if (!threadId) return
     void this.#router.navigate([], {
       relativeTo: this.#route,
-      queryParams: { chat: 'open', threadId },
+      queryParams: { chat: 'open', threadId, xpert: event.xpertId?.trim() || null },
       queryParamsHandling: 'merge'
     })
   }

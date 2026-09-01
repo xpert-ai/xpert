@@ -111,9 +111,10 @@ In that case:
 
 Root rules:
 
-- in `dev` without `SANDBOX_VOLUME`, use `~/data`
+- in `dev`, when the server runs directly on the host without `SANDBOX_VOLUME`, use `~/data/${tenantId}` by default
 - otherwise prefer `${SANDBOX_VOLUME}/${tenantId}`
 - if `SANDBOX_VOLUME` is still unavailable, fall back to `~/data/${tenantId}`
+- only `SANDBOX_VOLUME_LAYOUT=legacy-flat` opts an unconfigured `dev` environment into the old `~/data` flat root
 
 ### `DockerVolumeClient`
 
@@ -204,7 +205,8 @@ Root calculation is centralized in [packages/server-ai/src/shared/volume/volume-
 
 | Scenario                                                 | Value                           |
 | -------------------------------------------------------- | ------------------------------- |
-| `dev` without `SANDBOX_VOLUME`                           | `~/data`                        |
+| `dev`, server outside Docker, without `SANDBOX_VOLUME`   | `~/data/${tenantId}`            |
+| `dev`, no volume, `SANDBOX_VOLUME_LAYOUT=legacy-flat`    | `~/data`                        |
 | `dev`, server not in Docker, `SANDBOX_VOLUME` configured | `${SANDBOX_VOLUME}/${tenantId}` |
 | `dev`, server in Docker                                  | `/sandbox/${tenantId}`          |
 | non-`dev`                                                | `/sandbox/${tenantId}`          |
@@ -213,26 +215,37 @@ Root calculation is centralized in [packages/server-ai/src/shared/volume/volume-
 
 `getDockerHostSandboxVolumeRootPath(tenantId)`:
 
-| Scenario                                  | Value                                |
-| ----------------------------------------- | ------------------------------------ |
-| `dev` without `SANDBOX_VOLUME`            | `~/data`                             |
-| `SANDBOX_VOLUME` configured               | `${SANDBOX_VOLUME}/${tenantId}`      |
-| no `SANDBOX_VOLUME` outside flattened dev | falls back to the API-container root |
+| Scenario                                | Value                                |
+| --------------------------------------- | ------------------------------------ |
+| `dev`, server outside Docker, no volume | `~/data/${tenantId}`                 |
+| explicit `legacy-flat` opt-in           | `~/data`                             |
+| `SANDBOX_VOLUME` configured             | `${SANDBOX_VOLUME}/${tenantId}`      |
+| other cases without `SANDBOX_VOLUME`    | falls back to the API-container root |
 
-### Flattened local development
+### Layered local development and legacy flat compatibility
 
-Flattened mode is enabled when both are true:
+When the development server runs directly on the host without `SANDBOX_VOLUME`, it now uses a layered layout by default:
+
+```text
+~/data/<tenantId>/project/<projectId>/...
+~/data/<tenantId>/xpert/<xpertId>/...
+```
+
+Different Projects and shared Xperts therefore no longer treat the entire `~/data` directory as their Volume root. Project asset indexing and conversation attachment projection stay inside the selected logical subtree.
+
+The old flattened mode is enabled only when all three conditions are true:
 
 - `environment.envName === 'dev'`
 - `SANDBOX_VOLUME` is not configured
+- `SANDBOX_VOLUME_LAYOUT=legacy-flat` is explicitly configured
 
-In that mode:
+In compatibility mode:
 
 - `serverRoot` and `hostRoot` both collapse to `~/data`
-- all logical catalogs share that one root
+- legacy shared catalogs continue to share that one root, while private Xpert and runtime-job scopes keep their isolated leaves
 - public URLs are normalized by `normalizeSandboxPublicVolumeSubpath()`
 
-That is the main reason why local-development disk roots and logical public URLs may not look identical.
+Changing the setting does not move, copy, or delete existing files. Keep `legacy-flat` enabled to read old flat data, or migrate files manually after confirming the target tenant, catalog, and ID.
 
 ## Logical Volume subpaths
 

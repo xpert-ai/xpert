@@ -1,13 +1,11 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AiModelTypeEnum, LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
-import { EventEmitter, once } from 'events'
+import { EventEmitter } from 'events'
 import type { Response } from 'express'
 import type { I18nService } from 'nestjs-i18n'
 import { EMPTY, Observable } from 'rxjs'
-import { PassThrough, Readable } from 'stream'
-import { finished } from 'stream/promises'
 import type { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import type { CopilotUsageService } from '../copilot-usage/copilot-usage.service'
 import type { EnvironmentService } from '../environment'
@@ -23,6 +21,7 @@ import type { XpertTemplateWorkspaceInitializer } from './template-workspace-ini
 import type { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import type { XpertDraftDslDTO } from './dto'
 import { FindCopilotModelsQuery } from '../copilot/queries'
+import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import { XpertExportCommand, XpertImportCommand, XpertSyncTemplateCommand } from './commands'
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -73,6 +72,10 @@ jest.mock('./auth/anonymous-auth.guard', () => ({
 
 jest.mock('./guards/xpert.guard', () => ({
     XpertGuard: class {}
+}))
+
+jest.mock('./guards/xpert-workspace-auth.guard', () => ({
+    XpertWorkspaceAuthGuard: class {}
 }))
 
 jest.mock('../xpert-workspace/', () => ({
@@ -135,16 +138,30 @@ jest.mock('./dto', () => ({
 }))
 
 jest.mock('../chat-conversation', () => ({
-    ChatConversationDeleteCommand: class {},
+    ChatConversationDeleteCommand: class {
+        constructor(public readonly where: unknown) {}
+    },
     ChatConversationLogsQuery: class {
         constructor(
             public readonly options: unknown,
             public readonly search?: string
         ) {}
     },
-    ChatConversationUpsertCommand: class {},
-    FindChatConversationQuery: class {},
-    GetChatConversationQuery: class {},
+    ChatConversationUpsertCommand: class {
+        constructor(public readonly entity: unknown) {}
+    },
+    FindChatConversationQuery: class {
+        constructor(
+            public readonly where: unknown,
+            public readonly options?: unknown
+        ) {}
+    },
+    GetChatConversationQuery: class {
+        constructor(
+            public readonly where: unknown,
+            public readonly relations?: unknown
+        ) {}
+    },
     StatisticsAverageSessionInteractionsQuery: class {},
     StatisticsDailyConvQuery: class {},
     StatisticsDailyEndUsersQuery: class {},
@@ -174,7 +191,7 @@ type ControllerPrivateAccess = {
 }
 
 type RuntimeCapabilitiesControllerAccess = {
-    getRuntimeCapabilities(id: string, isDraft?: string | boolean | string[], projectId?: string): Promise<unknown>
+    getRuntimeCapabilities(id: string, isDraft?: string | boolean | string[]): Promise<unknown>
 }
 
 describe('XpertController', () => {
@@ -184,6 +201,7 @@ describe('XpertController', () => {
         findBySlug: jest.Mock
         findOne: jest.Mock
         publish: jest.Mock
+        assertCanAuthorById: jest.Mock
         updateXpert: jest.Mock
     }
     let environmentService: {
@@ -204,14 +222,14 @@ describe('XpertController', () => {
     let templateWorkspaceInitializer: {
         initializeByTemplateId: jest.Mock
     }
-    let workspaceFilesService: {
-        download: jest.Mock
-    }
     let commandBus: {
         execute: jest.Mock
     }
     let queryBus: {
         execute: jest.Mock
+    }
+    let publishedXpertAccessService: {
+        getAccessiblePublishedXpertFamilyIds: jest.Mock
     }
     beforeEach(() => {
         xpertService = {
@@ -219,6 +237,7 @@ describe('XpertController', () => {
             findBySlug: jest.fn(),
             findOne: jest.fn(),
             publish: jest.fn(),
+            assertCanAuthorById: jest.fn(),
             updateXpert: jest.fn()
         }
         environmentService = {
@@ -248,14 +267,14 @@ describe('XpertController', () => {
                 skipped: []
             }))
         }
-        workspaceFilesService = {
-            download: jest.fn()
-        }
         commandBus = {
             execute: jest.fn()
         }
         queryBus = {
             execute: jest.fn()
+        }
+        publishedXpertAccessService = {
+            getAccessiblePublishedXpertFamilyIds: jest.fn()
         }
         jest.mocked(transformWhere).mockImplementation((where: unknown) => where)
 
@@ -273,8 +292,9 @@ describe('XpertController', () => {
             xpertPrincipalService as unknown as XpertPrincipalService,
             {} as unknown as XpertFrequentQuestionsService,
             templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
-            workspaceFilesService as unknown as XpertWorkspaceFilesService,
+            {} as unknown as XpertWorkspaceFilesService,
             {} as unknown as CopilotUsageService,
+            publishedXpertAccessService as never,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
         )
@@ -291,100 +311,6 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
-    })
-
-    it('streams a Xpert workspace file from its authorized handle and closes it after the response ends', async () => {
-        const fileHandle = {
-            close: jest.fn().mockResolvedValue(undefined),
-            createReadStream: jest.fn().mockReturnValue(Readable.from([Buffer.from('xpert workspace file')]))
-        }
-        workspaceFilesService.download.mockResolvedValue({
-            absolutePath: '/proc/self/fd/21',
-            fileHandle,
-            fileName: 'report.txt',
-            mimeType: 'text/plain',
-            type: 'file'
-        })
-        const response = createDownloadResponse()
-
-        await controller.downloadWorkspaceFile('xpert-1', 'report.txt', response.value)
-        await response.completed
-
-        expect(workspaceFilesService.download).toHaveBeenCalledWith('xpert-1', 'report.txt')
-        expect(response.body()).toEqual(Buffer.from('xpert workspace file'))
-        expect(fileHandle.createReadStream).toHaveBeenCalledTimes(1)
-        expect(fileHandle.close).toHaveBeenCalled()
-    })
-
-    it('closes a Xpert workspace file handle when the client closes the response early', async () => {
-        const source = new PassThrough()
-        let markStreamReady: () => void = () => undefined
-        const streamReady = new Promise<void>((resolve) => {
-            markStreamReady = resolve
-        })
-        const fileHandle = {
-            close: jest.fn().mockResolvedValue(undefined),
-            createReadStream: jest.fn().mockImplementation(() => {
-                markStreamReady()
-                return source
-            })
-        }
-        workspaceFilesService.download.mockResolvedValue({
-            absolutePath: '/proc/self/fd/22',
-            fileHandle,
-            fileName: 'large.mov',
-            mimeType: 'video/quicktime',
-            type: 'file'
-        })
-        const response = createDownloadResponse()
-        const responseCompleted = response.completed.catch(() => undefined)
-        const responseClosed = once(response.stream, 'close')
-
-        const download = controller.downloadWorkspaceFile('xpert-1', 'large.mov', response.value)
-        await streamReady
-        response.stream.destroy()
-        await responseClosed
-        await download
-        await responseCompleted
-
-        expect(source.destroyed).toBe(true)
-        expect(fileHandle.close).toHaveBeenCalled()
-    })
-
-    it('archives Xpert workspace directory entries from authorized handles and closes every handle', async () => {
-        const directoryHandle = { close: jest.fn().mockResolvedValue(undefined) }
-        const entryHandle = {
-            close: jest.fn().mockResolvedValue(undefined),
-            createReadStream: jest.fn().mockReturnValue(Readable.from([Buffer.from('inside archive')]))
-        }
-        async function* entries() {
-            try {
-                yield { archivePath: 'nested/', type: 'directory' as const }
-                try {
-                    yield { archivePath: 'nested/report.txt', fileHandle: entryHandle, type: 'file' as const }
-                } finally {
-                    await entryHandle.close()
-                }
-            } finally {
-                await directoryHandle.close()
-            }
-        }
-        workspaceFilesService.download.mockResolvedValue({
-            directoryHandle,
-            entries: entries(),
-            fileName: 'docs.zip',
-            mimeType: 'application/zip',
-            type: 'directory'
-        })
-        const response = createDownloadResponse()
-
-        await controller.downloadWorkspaceFile('xpert-1', 'docs', response.value)
-        await response.completed
-
-        expect(response.body().subarray(0, 2)).toEqual(Buffer.from('PK'))
-        expect(entryHandle.createReadStream).toHaveBeenCalledTimes(1)
-        expect(entryHandle.close).toHaveBeenCalled()
-        expect(directoryHandle.close).toHaveBeenCalled()
     })
 
     it('returns the xpert linked to a technical user', async () => {
@@ -405,6 +331,14 @@ describe('XpertController', () => {
         xpertService.findByPrincipalUserId.mockResolvedValue(null)
 
         await expect(controller.getByPrincipalUser('technical-user')).resolves.toBeNull()
+    })
+
+    it('does not expose execution history before authorizing the xpert', async () => {
+        xpertService.assertCanAuthorById.mockRejectedValue(new ForbiddenException('Access denied'))
+
+        await expect(controller.getExecutions('victim-xpert')).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(queryBus.execute).not.toHaveBeenCalledWith(expect.any(FindExecutionsByXpertQuery))
     })
 
     it('forwards a valid business area when publishing an xpert', async () => {
@@ -644,25 +578,6 @@ describe('XpertController', () => {
         expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
     })
 
-    it('rejects unknown enterprise H5 platform keys in Chat App settings', async () => {
-        xpertService.findOne.mockResolvedValue({
-            id: 'xpert-1',
-            app: { enabled: true }
-        })
-
-        await expect(
-            controller.updateChatApp('xpert-1', {
-                channels: {
-                    unknown: {
-                        enabled: true,
-                        integrationId: 'integration-1'
-                    }
-                }
-            } as never)
-        ).rejects.toThrow(BadRequestException)
-        expect(xpertService.updateXpert).not.toHaveBeenCalled()
-    })
-
     it('initializes the xpert principal user on demand', async () => {
         const xpert = {
             id: 'xpert-1',
@@ -738,6 +653,107 @@ describe('XpertController', () => {
         )
         expect(query.options.where.createdAt).toBeDefined()
     })
+
+    it.each(['attachments', 'messages.attachments', 'messages.fileAssets'])(
+        'rejects managed file relation expansion from Xpert conversation logs: %s',
+        async (relation) => {
+            await expect(
+                controller.getConversations(
+                    'xpert-1',
+                    {
+                        relations: [relation],
+                        take: 20,
+                        skip: 0,
+                        order: {},
+                        where: {},
+                        withDeleted: false
+                    },
+                    '2026-06-01T00:00:00.000Z',
+                    '2026-06-12T00:00:00.000Z'
+                )
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(queryBus.execute).not.toHaveBeenCalled()
+        }
+    )
+
+    it('scopes public conversation lookup to every published version in the assistant family', async () => {
+        xpertService.findBySlug.mockResolvedValue({ id: 'xpert-current' })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue([
+            'xpert-current',
+            'xpert-previous'
+        ])
+        queryBus.execute.mockResolvedValue({ id: 'conversation-1', xpertId: 'xpert-previous' })
+
+        await controller.getAppConversation('assistant', 'conversation-1')
+
+        expect(publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds).toHaveBeenCalledWith('xpert-current')
+        const query = queryBus.execute.mock.calls[0][0] as {
+            where: { id: string; xpertId: { _value: string[] } }
+        }
+        expect(query.where.id).toBe('conversation-1')
+        expect(query.where.xpertId._value).toEqual(['xpert-current', 'xpert-previous'])
+    })
+
+    it('keeps the route conversation id authoritative on public updates', async () => {
+        xpertService.findBySlug.mockResolvedValue({ id: 'xpert-current' })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue(['xpert-current'])
+        queryBus.execute.mockResolvedValue({ id: 'conversation-route' })
+
+        await controller.updateAppConversation('assistant', 'conversation-route', {
+            id: 'conversation-victim',
+            title: 'Renamed',
+            xpertId: 'xpert-victim',
+            createdById: 'user-victim'
+        })
+
+        const command = commandBus.execute.mock.calls[0][0] as { entity: Record<string, unknown> }
+        expect(command.entity).toEqual({ id: 'conversation-route', title: 'Renamed' })
+    })
+
+    it('does not update a public conversation outside the assistant family', async () => {
+        xpertService.findBySlug.mockResolvedValue({ id: 'xpert-current' })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue(['xpert-current'])
+        queryBus.execute.mockRejectedValue(new NotFoundException())
+
+        await expect(
+            controller.updateAppConversation('assistant', 'conversation-from-another-family', {
+                title: 'Renamed'
+            })
+        ).rejects.toBeInstanceOf(NotFoundException)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it.each(['attachments', 'messages.attachments', 'messages.fileAssets'])(
+        'rejects managed file relation expansion from the public conversation detail route: %s',
+        async (relation) => {
+            await expect(
+                controller.getAppConversation('assistant', 'conversation-1', [relation])
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(queryBus.execute).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['attachments', 'messages.attachments', 'messages.fileAssets'])(
+        'rejects managed file relation expansion from the public conversation list route: %s',
+        async (relation) => {
+            await expect(
+                controller.getAppConversations('assistant', {
+                    relations: [relation],
+                    take: 20,
+                    skip: 0,
+                    order: {},
+                    where: {},
+                    withDeleted: false
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(xpertService.findBySlug).not.toHaveBeenCalled()
+            expect(queryBus.execute).not.toHaveBeenCalled()
+        }
+    )
 
     it('enriches public chat-app requests with resolved xpert context before enqueueing', async () => {
         const request: TChatRequest = {
@@ -917,7 +933,7 @@ describe('XpertController', () => {
             }
         })
 
-        await expect(controllerAccess.getRuntimeCapabilities('xpert-1', 'true', 'project-1')).resolves.toEqual({
+        await expect(controllerAccess.getRuntimeCapabilities('xpert-1', 'true')).resolves.toEqual({
             skills: [],
             plugins: [],
             subAgents: [],
@@ -941,22 +957,7 @@ describe('XpertController', () => {
                     connections: []
                 }
             }),
-            'xpert-1',
-            'project-1'
+            'xpert-1'
         )
     })
 })
-
-function createDownloadResponse() {
-    const stream = new PassThrough()
-    const chunks: Buffer[] = []
-    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
-    const response = stream as PassThrough & { setHeader: jest.Mock }
-    response.setHeader = jest.fn()
-    return {
-        value: response as unknown as Response,
-        stream,
-        completed: finished(stream),
-        body: () => Buffer.concat(chunks)
-    }
-}

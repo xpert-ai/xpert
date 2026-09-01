@@ -9,7 +9,7 @@ import type {
   TXpertProjectTaskPriority,
   TXpertProjectTaskStatus
 } from '@xpert-ai/contracts'
-import type { XpertProjectTaskRelations } from './project-api.service'
+import type { XpertProjectConversationTarget, XpertProjectTaskRelations } from './project-api.service'
 import {
   Z_MODAL_DATA,
   ZardBadgeComponent,
@@ -167,7 +167,7 @@ type TaskForm = {
                       {{ 'XP.XProject.ExecutionStatus.' + execution.status | translate }}
                     </z-badge>
                     <span class="truncate text-text-secondary">
-                      {{ execution.agentKey || execution.xpertId || ('XP.XProject.Assistant' | translate) }}
+                      {{ execution.agentKey || execution.xpertId || ('XP.XProject.ProjectExpert' | translate) }}
                     </span>
                   </div>
                   <span class="shrink-0 text-text-tertiary">#{{ execution.attempt }}</span>
@@ -180,7 +180,7 @@ type TaskForm = {
                       zType="link"
                       type="button"
                       class="h-auto p-0 text-xs"
-                      (click)="openConversation(execution.conversationId, execution.threadId)"
+                      (click)="openConversation(execution.conversationId, execution.threadId, execution.xpertId)"
                     >
                       {{ 'XP.XProject.OpenConversation' | translate }}
                     </button>
@@ -211,7 +211,9 @@ type TaskForm = {
                     zType="link"
                     type="button"
                     class="h-auto shrink-0 p-0 text-xs"
-                    (click)="openConversation(link.conversationId, link.conversation.threadId)"
+                    (click)="
+                      openConversation(link.conversationId, link.conversation.threadId, link.conversation.xpertId)
+                    "
                   >
                     {{ 'XP.XProject.OpenConversation' | translate }}
                   </button>
@@ -299,8 +301,7 @@ export class XpertProjectTaskDialogComponent {
       dueDate: this.task.dueDate ? new Date(this.task.dueDate).toISOString().slice(0, 10) : '',
       planId: this.task.planId || this.plans[0]?.id || '',
       milestoneId: this.task.milestoneId || '',
-      assigneeXpertId:
-        this.task.assigneeXpertId || this.project?.settings?.projectAssistantId || this.project?.xperts?.[0]?.id || ''
+      assigneeXpertId: this.task.assigneeXpertId || ''
     })
   }
 
@@ -316,8 +317,17 @@ export class XpertProjectTaskDialogComponent {
   close() {
     this.#dialogRef.close(null)
   }
-  openConversation(conversationId?: string, threadId?: string) {
-    if (threadId?.trim()) this.#dialogRef.close({ openConversation: { conversationId, threadId } })
+  openConversation(conversationId?: string, threadId?: string, xpertId?: string) {
+    const normalizedThreadId = threadId?.trim()
+    if (normalizedThreadId) {
+      this.#dialogRef.close({
+        openConversation: {
+          conversationId,
+          threadId: normalizedThreadId,
+          xpertId: xpertId?.trim() || this.task.assigneeXpertId?.trim() || undefined
+        }
+      })
+    }
   }
   save() {
     const value = this.form.getRawValue()
@@ -342,7 +352,7 @@ export type XpertProjectTaskDialogData = {
 
 export type XpertProjectTaskDialogResult =
   | Partial<IXpertProjectTask>
-  | { openConversation: { conversationId?: string; threadId: string } }
+  | { openConversation: XpertProjectConversationTarget & { threadId: string } }
 
 function normalizeStatus(status: IXpertProjectTask['status'], advanced: boolean): TXpertProjectTaskStatus {
   if (status === 'pending') return 'todo'

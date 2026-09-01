@@ -6,7 +6,11 @@ import { XpertProjectMilestone } from '../entities/project-milestone.entity'
 import { XpertProjectPlan } from '../entities/project-plan.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectAsset } from '../entities/project-asset.entity'
+import { XpertProjectAutomation } from '../entities/project-automation.entity'
+import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { VOLUME_CLIENT, VolumeClient } from '../../shared/volume'
+import { XpertProjectContentService } from './project-content.service'
+import { XpertProjectXpertBindingService } from './project-xpert-binding.service'
 
 @Injectable()
 export class XpertProjectMigrationService implements OnApplicationBootstrap {
@@ -19,6 +23,12 @@ export class XpertProjectMigrationService implements OnApplicationBootstrap {
         private readonly milestoneRepository: Repository<XpertProjectMilestone>,
         @InjectRepository(XpertProjectTask) private readonly taskRepository: Repository<XpertProjectTask>,
         @InjectRepository(XpertProjectAsset) private readonly assetRepository: Repository<XpertProjectAsset>,
+        @InjectRepository(XpertProjectAutomation)
+        private readonly automationRepository: Repository<XpertProjectAutomation>,
+        @InjectRepository(XpertProjectMembership)
+        private readonly membershipRepository: Repository<XpertProjectMembership>,
+        private readonly contentService: XpertProjectContentService,
+        private readonly xpertBindingService: XpertProjectXpertBindingService,
         @Inject(VOLUME_CLIENT) private readonly volumeClient: VolumeClient
     ) {}
 
@@ -31,20 +41,44 @@ export class XpertProjectMigrationService implements OnApplicationBootstrap {
     }
 
     async backfill() {
-        const projects = await this.projectRepository.find()
+        const projects = await this.projectRepository.find({ relations: ['members', 'xperts'] })
         for (const project of projects) {
-            await this.ensureDefaults(project)
-            await this.normalizeTasks(project.id)
-            await this.indexAssets(project)
+            await this.runPhase(project, 'defaults', () => this.ensureDefaults(project))
+            await this.runPhase(project, 'memberships', () => this.backfillMemberships(project))
+            await this.runPhase(project, 'xperts', () => this.xpertBindingService.normalize(project, { persist: true }))
+            await this.runPhase(project, 'tasks', () => this.normalizeTasks(project.id))
+            await this.runPhase(project, 'assets', () => this.indexAssets(project))
+            await this.runPhase(project, 'content', () => this.contentService.initialize(project))
+            await this.runPhase(project, 'automations', () =>
+                this.automationRepository.update({ projectId: project.id, enabled: true }, { enabled: false })
+            )
         }
         return projects.length
     }
 
+    private async runPhase(project: XpertProject, phase: ProjectBackfillPhase, operation: () => Promise<unknown>) {
+        try {
+            await operation()
+        } catch (error) {
+            this.#logger.warn(
+                `Project backfill phase failed: projectId=${project.id} phase=${phase} error=${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            )
+        }
+    }
+
     async ensureDefaults(project: XpertProject) {
+        let changed = false
+        if (!project.ownerId && project.createdById) {
+            project.ownerId = project.createdById
+            changed = true
+        }
         if (!project.settings?.managementMode) {
             project.settings = { ...(project.settings ?? { instruction: '' }), managementMode: 'simple' }
-            await this.projectRepository.save(project)
+            changed = true
         }
+        if (changed) await this.projectRepository.save(project)
         let plan = await this.planRepository.findOne({ where: { projectId: project.id, name: 'Default plan' } })
         if (!plan) {
             plan = await this.planRepository.save(
@@ -80,6 +114,36 @@ export class XpertProjectMigrationService implements OnApplicationBootstrap {
         }
     }
 
+    async backfillMemberships(project: XpertProject) {
+        for (const user of project.members ?? []) {
+            if (!user.id || user.id === project.ownerId) continue
+            const existing = await this.membershipRepository.findOne({
+                where: { projectId: project.id, userId: user.id },
+                withDeleted: true
+            })
+            if (existing && !existing.deletedAt) continue
+            if (existing) {
+                existing.deletedAt = null
+                existing.removedAt = null
+                existing.role = 'member'
+                existing.joinedAt = existing.joinedAt ?? project.createdAt ?? new Date()
+                await this.membershipRepository.save(existing)
+            } else {
+                await this.membershipRepository.save(
+                    this.membershipRepository.create({
+                        projectId: project.id,
+                        userId: user.id,
+                        role: 'member',
+                        joinedAt: project.createdAt ?? new Date(),
+                        tenantId: project.tenantId,
+                        organizationId: project.organizationId,
+                        createdById: project.createdById
+                    })
+                )
+            }
+        }
+    }
+
     async normalizeTasks(projectId: string) {
         const tasks = await this.taskRepository.find({ where: { projectId } })
         for (const task of tasks) {
@@ -105,7 +169,7 @@ export class XpertProjectMigrationService implements OnApplicationBootstrap {
         const entries = (await client.list({ path: '/', deepth: 64 })) ?? []
         for (const entry of flattenVolumeEntries(entries)) {
             const path = entry.fullPath?.replace(/^\/+/, '') || entry.filePath
-            if (!path || paths.has(path)) continue
+            if (!path || paths.has(path) || XpertProjectContentService.isGovernedPath(path)) continue
             paths.add(path)
             await this.assetRepository.save(
                 this.assetRepository.create({
@@ -172,25 +236,20 @@ export class XpertProjectMigrationService implements OnApplicationBootstrap {
     }
 }
 
-function flattenVolumeEntries(
-    entries: Array<{ filePath?: string; fullPath?: string; fileType?: string; size?: number; children?: unknown[] }>
-): Array<{
+type ProjectBackfillPhase = 'defaults' | 'memberships' | 'xperts' | 'tasks' | 'assets' | 'content' | 'automations'
+
+type ProjectVolumeEntry = {
     filePath?: string
     fullPath?: string
     fileType?: string
     size?: number
-}> {
+    children?: ProjectVolumeEntry[]
+}
+
+function flattenVolumeEntries(entries: ProjectVolumeEntry[]): Array<Omit<ProjectVolumeEntry, 'children'>> {
     return entries.flatMap((entry) => [
         { filePath: entry.filePath, fullPath: entry.fullPath, fileType: entry.fileType, size: entry.size },
-        ...flattenVolumeEntries(
-            (entry.children ?? []) as Array<{
-                filePath?: string
-                fullPath?: string
-                fileType?: string
-                size?: number
-                children?: unknown[]
-            }>
-        )
+        ...flattenVolumeEntries(entry.children ?? [])
     ])
 }
 

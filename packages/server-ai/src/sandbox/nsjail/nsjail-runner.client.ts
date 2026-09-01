@@ -8,6 +8,7 @@ import {
     NsjailFileUploadResult,
     NsjailProxyRequest,
     NsjailRunnerConfig,
+    NsjailRunnerHealth,
     NsjailRuntimeCreateRequest,
     NsjailServiceLogs,
     NsjailServiceStartRequest,
@@ -263,8 +264,29 @@ function parseTerminalEvent(value: unknown): NsjailTerminalEvent {
     }
 }
 
-function parseHealthResult(value: unknown): boolean {
-    return isObjectLike(value) && readString(value, 'status') === 'ok'
+function parseHealthResult(value: unknown): NsjailRunnerHealth {
+    if (!isObjectLike(value) || readString(value, 'status') !== 'ok') {
+        return {
+            available: false,
+            capabilities: { projectContentReadOnly: false },
+            protocolVersion: null
+        }
+    }
+
+    const protocolVersionValue = readNumber(value, 'protocolVersion')
+    const protocolVersion =
+        protocolVersionValue !== null && Number.isInteger(protocolVersionValue) && protocolVersionValue > 0
+            ? protocolVersionValue
+            : null
+    const capabilitiesValue = Reflect.get(value, 'capabilities')
+    const projectContentReadOnly =
+        isObjectLike(capabilitiesValue) && readBoolean(capabilitiesValue, 'projectContentReadOnly') === true
+
+    return {
+        available: true,
+        capabilities: { projectContentReadOnly },
+        protocolVersion
+    }
 }
 
 export class NsjailRunnerRequestError extends Error {
@@ -318,6 +340,10 @@ export class NsjailRunnerClient {
     }
 
     async isHealthy(): Promise<boolean> {
+        return (await this.getHealth()).available
+    }
+
+    async getHealth(): Promise<NsjailRunnerHealth> {
         const value = await this.requestJson('/health', { method: 'GET', timeoutMs: RUNNER_HEALTH_TIMEOUT_MS })
         return parseHealthResult(value)
     }

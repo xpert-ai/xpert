@@ -11,6 +11,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { I18nService } from 'nestjs-i18n'
+import { t } from 'i18next'
 import { In, Repository } from 'typeorm'
 import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
@@ -108,7 +109,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             if (entity.status) {
                 task.status = entity.status
             } else if (task.steps.length > 0 && task.steps.every((step) => step.status === 'done')) {
-                // A completed step list is the assistant's canonical completion signal.
+                // A completed step list is the project expert's canonical completion signal.
                 // Persist the task state even when the model omits the redundant status field.
                 task.status = 'done'
             }
@@ -144,7 +145,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (!task) throw new NotFoundException('Project task not found')
         const nextInput = { ...input } as Partial<IXpertProjectTask>
         if (Object.prototype.hasOwnProperty.call(input, 'assigneeXpertId')) {
-            nextInput.assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId, false)
+            nextInput.assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
         }
         Object.assign(task, nextInput, { projectId })
         return this.save(task)
@@ -152,16 +153,17 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 
     private async resolveAssigneeXpertId(
         project: XpertProject,
-        requestedId?: string,
-        useDefault = true
+        requestedId?: string
     ): Promise<string | undefined> {
         const normalizedId = typeof requestedId === 'string' ? requestedId.trim() : ''
-        if (!normalizedId && !useDefault) return undefined
-        const fallback = project.settings?.projectAssistantId || project.xperts?.[0]?.id
-        const assigneeXpertId = normalizedId || fallback
-        if (!assigneeXpertId) return undefined
+        if (!normalizedId) return undefined
+        const assigneeXpertId = normalizedId
         if (!project.xperts?.some((xpert) => xpert.id === assigneeXpertId)) {
-            throw new BadRequestException('The task execution Assistant must be a member of this Project')
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectTaskXpertNotMember', {
+                    defaultValue: 'The task execution Xpert must be a member of this Project'
+                })
+            )
         }
         return assigneeXpertId
     }
@@ -338,7 +340,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     relations: ['xperts']
                 })
                 if (!project) throw new NotFoundException('Xpert project not found')
-                await this.resolveAssigneeXpertId(project, input.assigneeXpertId, false)
+                await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
             }
             for (const task of tasks) {
                 Object.assign(task, {

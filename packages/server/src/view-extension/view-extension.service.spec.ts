@@ -118,6 +118,37 @@ describe('ViewExtensionService file actions', () => {
 		)
 	})
 
+	it('returns only Project experts that provide every feature required by a view', async () => {
+		const { service, provider, hostDefinition } = createService()
+		provider.getViewManifests.mockResolvedValueOnce([
+			{
+				...manifest,
+				hostType: 'project',
+				activation: { requiredFeatures: ['office_editor', 'project_documents'] }
+			}
+		])
+		hostDefinition.resolve.mockResolvedValueOnce({
+			workspaceId: 'workspace-1',
+			hostSnapshot: { id: 'project-1' },
+			context: {
+				capabilities: {
+					features: ['office_editor', 'project_documents'],
+					featureProviders: {
+						office_editor: [
+							{ xpertId: 'xpert-1', name: 'Editor One' },
+							{ xpertId: 'xpert-2', name: 'Editor Two' }
+						],
+						project_documents: [{ xpertId: 'xpert-2', name: 'Editor Two' }]
+					}
+				}
+			}
+		})
+
+		const views = await service.listSlotViews('project', 'project-1', 'main')
+
+		expect(views[0].runtime?.featureProviders).toEqual([{ xpertId: 'xpert-2', name: 'Editor Two' }])
+	})
+
 	it('loads remote component entries for vue runtime views', async () => {
 		const { service, provider } = createService()
 		const remoteManifest = {

@@ -1,5 +1,11 @@
 import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail-sandbox.provider'
 
+const protectedRunnerHealth = {
+    capabilities: { projectContentReadOnly: true },
+    protocolVersion: 2,
+    status: 'ok'
+}
+
 describe('NsjailSandboxProvider', () => {
     const fetchSpy = jest.spyOn(global, 'fetch')
     const originalUrl = process.env.NSJAIL_RUNNER_URL
@@ -27,6 +33,7 @@ describe('NsjailSandboxProvider', () => {
 
     it('uses deployment configuration for provider discovery without probing transient Runner health', async () => {
         const provider = new NsjailSandboxProvider()
+        expect(provider.capabilities.projectContentReadOnly).toBe(true)
         await expect(provider.isAvailable()).resolves.toBe(false)
 
         process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
@@ -57,7 +64,7 @@ describe('NsjailSandboxProvider', () => {
         process.env.NSJAIL_RUNNER_TOKEN = 'secret'
         fetchSpy
             .mockResolvedValueOnce(
-                new Response(JSON.stringify({ status: 'ok' }), {
+                new Response(JSON.stringify(protectedRunnerHealth), {
                     headers: { 'content-type': 'application/json' },
                     status: 200
                 })
@@ -128,6 +135,30 @@ describe('NsjailSandboxProvider', () => {
         expect(fetchSpy.mock.calls.at(-1)?.[1]?.body).not.toEqual(expect.stringContaining('protectProjectContent'))
     })
 
+    it('fails closed when a legacy Runner cannot declare Project Content protection', async () => {
+        process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
+        process.env.NSJAIL_RUNNER_TOKEN = 'secret'
+        fetchSpy.mockResolvedValue(
+            new Response(JSON.stringify({ status: 'ok' }), {
+                headers: { 'content-type': 'application/json' },
+                status: 200
+            })
+        )
+
+        await expect(
+            new NsjailSandboxProvider().create({
+                workFor: { id: 'project-1', type: 'project' },
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/project/project-1',
+                    workspacePath: '/workspace',
+                    workspaceRoot: '/workspace'
+                }
+            })
+        ).rejects.toThrow('does not declare support for read-only Project Content')
+        expect(fetchSpy).toHaveBeenCalledTimes(1)
+        expect(fetchSpy.mock.calls[0]?.[0]).toBe('http://runner:8090/health')
+    })
+
     it('rejects creation when the configured Runner is unhealthy', async () => {
         process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
         process.env.NSJAIL_RUNNER_TOKEN = 'invalid'
@@ -157,7 +188,7 @@ describe('NsjailSandboxProvider', () => {
         process.env.NSJAIL_RUNNER_TOKEN = 'secret'
         fetchSpy
             .mockResolvedValueOnce(
-                new Response(JSON.stringify({ status: 'ok' }), {
+                new Response(JSON.stringify(protectedRunnerHealth), {
                     headers: { 'content-type': 'application/json' },
                     status: 200
                 })
@@ -194,7 +225,7 @@ describe('NsjailSandboxProvider', () => {
         process.env.NSJAIL_RUNNER_TOKEN = 'secret'
         fetchSpy
             .mockResolvedValueOnce(
-                new Response(JSON.stringify({ status: 'ok' }), {
+                new Response(JSON.stringify(protectedRunnerHealth), {
                     headers: { 'content-type': 'application/json' },
                     status: 200
                 })

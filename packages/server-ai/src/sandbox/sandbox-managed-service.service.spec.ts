@@ -13,8 +13,8 @@ describe('SandboxManagedServiceService', () => {
   let repository: {
     findOne: jest.Mock
   }
-  let conversationService: {
-    findOne: jest.Mock
+  let conversationRepository: {
+    findOneBy: jest.Mock
   }
   let sandboxConversationContextService: {
     resolveConversationSandbox: jest.Mock
@@ -25,8 +25,8 @@ describe('SandboxManagedServiceService', () => {
     repository = {
       findOne: jest.fn()
     }
-    conversationService = {
-      findOne: jest.fn().mockResolvedValue({ id: 'conversation-1' })
+    conversationRepository = {
+      findOneBy: jest.fn().mockResolvedValue({ id: 'conversation-1' })
     }
     sandboxConversationContextService = {
       resolveConversationSandbox: jest.fn().mockResolvedValue({
@@ -38,7 +38,7 @@ describe('SandboxManagedServiceService', () => {
 
     service = new SandboxManagedServiceService(
       repository as unknown as Repository<SandboxManagedServiceEntity>,
-      conversationService as never,
+      conversationRepository as never,
       sandboxConversationContextService as never
     )
   })

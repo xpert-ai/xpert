@@ -73,10 +73,18 @@ export type SandboxProviderCreateOptions = {
   }
 }
 
+export type SandboxProviderCapabilities = {
+  /** The provider enforces project.md and skills as read-only inside the runtime. */
+  projectContentReadOnly: boolean
+}
+
 export interface ISandboxProvider<T extends SandboxBackendProtocol = SandboxBackendProtocol> {
   type: string
 
   meta: TSandboxProviderMeta
+
+  /** Optional for backward compatibility; protected requests treat absence as unsupported. */
+  readonly capabilities?: SandboxProviderCapabilities
 
   /**
    * Whether this provider is currently available in this deployment.

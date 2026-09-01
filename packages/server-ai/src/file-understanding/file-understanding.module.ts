@@ -1,5 +1,5 @@
 import { StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -35,9 +35,9 @@ import { XpertModule } from '../xpert/xpert.module'
         TenantModule,
         UserModule,
         StorageFileModule,
-        ChatConversationModule,
+        forwardRef(() => ChatConversationModule),
         XpertProjectAccessModule,
-        XpertModule,
+        forwardRef(() => XpertModule),
         RagVStoreModule,
         VolumeModule
     ],

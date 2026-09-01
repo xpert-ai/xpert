@@ -15,6 +15,7 @@ import { Injectable } from '@nestjs/common'
 import { NsjailRunnerClient } from './nsjail-runner.client'
 import { getNsjailMessage } from './nsjail-i18n'
 import { NsjailSandbox } from './nsjail-sandbox'
+import { NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION, type NsjailRunnerHealth } from './nsjail.types'
 
 export const NSJAIL_SANDBOX_PROVIDER = 'nsjail'
 const NSJAIL_DEFAULT_WORKING_DIRECTORY = '/workspace'
@@ -58,10 +59,14 @@ function createRuntimeId(
 @Injectable()
 @SandboxProviderStrategy(NSJAIL_SANDBOX_PROVIDER)
 export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
-    private healthCache: { available: boolean; configKey: string; expiresAt: number } | null = null
-    private healthRequest: { configKey: string; promise: Promise<boolean> } | null = null
+    private healthCache: { health: NsjailRunnerHealth; configKey: string; expiresAt: number } | null = null
+    private healthRequest: { configKey: string; promise: Promise<NsjailRunnerHealth> } | null = null
 
     readonly type = NSJAIL_SANDBOX_PROVIDER
+
+    readonly capabilities = {
+        projectContentReadOnly: true
+    } as const
 
     readonly meta: TSandboxProviderMeta = {
         name: {
@@ -83,25 +88,31 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
         return Boolean(config.baseUrl && config.token)
     }
 
-    private async isRunnerHealthy(config: ReturnType<typeof readRunnerConfig>): Promise<boolean> {
+    private async getRunnerHealth(config: ReturnType<typeof readRunnerConfig>): Promise<NsjailRunnerHealth> {
         const configKey = `${config.baseUrl}\u0000${config.token}`
         if (this.healthCache?.configKey === configKey && this.healthCache.expiresAt > Date.now()) {
-            return this.healthCache.available
+            return this.healthCache.health
         }
         if (this.healthRequest?.configKey === configKey) {
             return this.healthRequest.promise
         }
 
         const promise = new NsjailRunnerClient(config)
-            .isHealthy()
-            .catch(() => false)
-            .then((available) => {
+            .getHealth()
+            .catch(
+                (): NsjailRunnerHealth => ({
+                    available: false,
+                    capabilities: { projectContentReadOnly: false },
+                    protocolVersion: null
+                })
+            )
+            .then((health) => {
                 this.healthCache = {
-                    available,
+                    health,
                     configKey,
                     expiresAt: Date.now() + RUNNER_HEALTH_CACHE_MS
                 }
-                return available
+                return health
             })
             .finally(() => {
                 if (this.healthRequest?.configKey === configKey) {
@@ -135,7 +146,9 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
                 )
             )
         }
-        if (!(await this.isRunnerHealthy(config))) {
+        const protectProjectContent = options.protectProjectContent === true || options.workFor.type === 'project'
+        const runnerHealth = await this.getRunnerHealth(config)
+        if (!runnerHealth.available) {
             throw new Error(
                 getNsjailMessage(
                     'NsJailRunnerUnavailable',
@@ -143,10 +156,22 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
                 )
             )
         }
+        if (
+            protectProjectContent &&
+            (runnerHealth.protocolVersion === null ||
+                runnerHealth.protocolVersion < NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION ||
+                !runnerHealth.capabilities.projectContentReadOnly)
+        ) {
+            throw new Error(
+                getNsjailMessage(
+                    'NsJailRunnerProjectContentReadOnlyUnsupported',
+                    'NsJail Runner does not declare support for read-only Project Content.'
+                )
+            )
+        }
 
         const workingDirectory = normalizeWorkingDirectory(options.workingDirectory ?? this.getDefaultWorkingDir())
         const workspacePath = options.workspaceBinding.volumeRoot
-        const protectProjectContent = options.protectProjectContent === true || options.workFor.type === 'project'
         const runtimeId = createRuntimeId(options, workspacePath, workingDirectory, protectProjectContent)
         const client = new NsjailRunnerClient(config)
         await client.createRuntime({

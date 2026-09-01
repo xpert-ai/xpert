@@ -205,9 +205,7 @@ describe('ChatConversationService workspace files', () => {
         } as ChatConversation
 
         await expect(service.assertAccess(projectConversation)).rejects.toBeInstanceOf(ForbiddenException)
-        await expect(service.assertAccess(projectConversation, 'contribute')).rejects.toBeInstanceOf(
-            ForbiddenException
-        )
+        await expect(service.assertAccess(projectConversation, 'contribute')).rejects.toBeInstanceOf(ForbiddenException)
     })
 
     it('lists files inside the current conversation workspace', async () => {
@@ -424,16 +422,20 @@ describe('ChatConversationService workspace files', () => {
     })
 
     it('uses the Project workspace when the conversation also has a sandbox environment id', async () => {
-        jest.spyOn(service, 'findOne').mockResolvedValue({
+        const projectConversation = {
             ...conversation,
             projectId: 'project-1',
             options: {
                 sandboxEnvironmentId: 'sandbox-env-1'
             }
-        } as ChatConversation)
+        } as ChatConversation
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue(projectConversation)
+        jest.spyOn(service, 'findOne').mockResolvedValue(projectConversation)
         jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
 
         await service.getWorkspaceFiles('conversation-1', '/4567', 1)
+
+        expect(projectAccessService.assertCanRead).toHaveBeenCalledWith('project-1')
 
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
@@ -530,7 +532,10 @@ describe('ChatConversationService workspace files', () => {
     it('returns download targets inside the current conversation workspace', async () => {
         const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const getDownloadTarget = jest.spyOn(VolumeSubtreeClient.prototype, 'getDownloadTarget').mockResolvedValue({
-            absolutePath: '/workspace/root/docs',
+            directoryHandle: {} as never,
+            entries: (async function* () {
+                yield* [] as never[]
+            })(),
             fileName: 'docs.zip',
             mimeType: 'application/zip',
             type: 'directory'
@@ -604,7 +609,9 @@ describe('ChatConversationService workspace files', () => {
             ...conversation,
             projectId: 'project-1'
         } as ChatConversation)
-        projectAccessService.assertCanEdit.mockRejectedValueOnce(new ForbiddenException('Project editor access required'))
+        projectAccessService.assertCanEdit.mockRejectedValueOnce(
+            new ForbiddenException('Project editor access required')
+        )
         const saveFile = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile')
 
         await expect(service.saveWorkspaceFile('conversation-1', 'README.md', 'changed')).rejects.toBeInstanceOf(

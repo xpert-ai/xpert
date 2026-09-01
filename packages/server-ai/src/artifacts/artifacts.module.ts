@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { UserModule, UserOrganizationModule } from '@xpert-ai/server-core'
 import { VolumeModule } from '../shared/volume'
-import { XpertWorkspaceModule } from '../xpert-workspace'
+import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { Artifact, ArtifactAccessLog, ArtifactLink, ArtifactVersion } from './entities'
 import {
     ArtifactsManagementController,

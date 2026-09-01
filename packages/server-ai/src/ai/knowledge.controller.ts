@@ -57,12 +57,14 @@ export class KnowledgesController {
         description: 'Knowledgebase'
     })
     async updateKnowledgebase(@Param('id') id: string, @Body() body: CreateKnowledgebaseDTO) {
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
         return this.kbService.updateKnowledgebase(id, body)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Delete(':id')
     async deleteKnowledgebase(@Param('id') id: string, @ApiKeyDecorator() apiKey: IApiKey) {
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
         return this.kbService.delete(id)
     }
 
@@ -73,22 +75,28 @@ export class KnowledgesController {
         description: 'Knowledge documents'
     })
     async createDocBulk(@Param('id') id: string, @Body() entities: KnowledgeDocument[]) {
-        return await this.docService.createBulk(entities?.map((entity) => ({ ...entity, knowledgebaseId: id })))
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
+        const documents = (entities ?? []).map((entity) => ({ ...entity, knowledgebaseId: id }))
+        await this.docService.assertOwnedStorageFiles(documents.map((document) => document.storageFileId))
+        await this.docService.prepareExternalDocumentInputs(documents)
+        return await this.docService.createBulk(documents)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Post(':id/process')
     async start(@Param('id') id: string, @Body() ids: string[]) {
+        await this.docService.assertDocumentsWriteAccessInKnowledgebase(ids, id)
         return this.docService.startProcessing(ids, id)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Get(':id/status')
-    async getStatus(@Query('ids') _ids: string) {
+    async getStatus(@Param('id') knowledgebaseId: string, @Query('ids') _ids: string) {
         const ids = _ids.split(',').map((id) => id.trim())
+        await this.docService.assertDocumentsReadAccessInKnowledgebase(ids, knowledgebaseId)
         const { items } = await this.docService.findAll({
             select: ['id', 'status', 'progress', 'processMsg'],
-            where: { id: In(ids) }
+            where: { id: In(ids), knowledgebaseId }
         })
         return items
     }

@@ -6,7 +6,6 @@ import type { IChatConversation, IXpertProject } from '@xpert-ai/contracts'
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef } from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
 import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '../assistant/assistant-chatkit.runtime'
-import { isProjectAssistant } from './project-assistant.constants'
 
 export type XpertProjectConversationDialogData = {
   projectId: string
@@ -61,10 +60,10 @@ export type XpertProjectConversationDialogData = {
           <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
             <i class="ri-chat-off-line text-3xl text-text-tertiary"></i>
             <p class="mt-3 text-sm font-medium text-text-primary">
-              {{ 'XP.XProject.ProjectChatUnavailable' | translate }}
+              {{ 'XP.XProject.ProjectConversationExpertUnavailable' | translate }}
             </p>
             <p class="mt-1 max-w-sm text-xs text-text-secondary">
-              {{ 'XP.XProject.ProjectChatUnavailableDesc' | translate }}
+              {{ 'XP.XProject.ProjectConversationExpertUnavailableDesc' | translate }}
             </p>
           </div>
         } @else if (control(); as chatkitControl) {
@@ -91,14 +90,7 @@ export class XpertProjectConversationDialogComponent {
   readonly projectId = this.data.projectId.trim()
   readonly assistantId = computed(() => {
     const conversationAssistantId = this.conversation.xpertId?.trim()
-    if (conversationAssistantId) return conversationAssistantId
-
-    const project = this.data.project
-    const configuredId = project?.settings?.projectAssistantId?.trim()
-    if (configuredId) return configuredId
-
-    const assistants = project?.xperts ?? []
-    return assistants.find((assistant) => isProjectAssistant(assistant))?.id ?? assistants[0]?.id ?? null
+    return conversationAssistantId || null
   })
   readonly identity = computed(() => {
     const conversationId = this.conversation.id.trim()
@@ -123,6 +115,14 @@ export class XpertProjectConversationDialogComponent {
     projectId: computed(() => this.projectId || null),
     frameUrl: this.chatkitFrameUrl,
     requestContext: this.requestContext,
+    composer: computed(() => ({
+      projects: {
+        enabled: true,
+        locked: true,
+        label: this.data.project?.name || this.projectId
+      },
+      connectors: { enabled: true }
+    })),
     initialThread: this.initialThread,
     layout: { maxWidth: '100%' },
     titleKey: 'XP.XProject.ConversationDetail',

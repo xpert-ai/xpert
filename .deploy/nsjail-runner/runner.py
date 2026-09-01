@@ -43,6 +43,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 RUNNER_HOST = os.environ.get("XPERT_NSJAIL_RUNNER_HOST", "0.0.0.0")
 RUNNER_PORT = int(os.environ.get("XPERT_NSJAIL_RUNNER_PORT", "8090"))
 RUNNER_TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "").strip()
+RUNNER_PROTOCOL_VERSION = 2
 WORKSPACE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_WORKSPACE_ROOT", "/sandbox")).resolve()
 ROOTFS = pathlib.Path(os.environ.get("XPERT_NSJAIL_ROOTFS", "/opt/xpert-rootfs")).resolve()
 STATE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_STATE_ROOT", "/var/lib/xpert-nsjail")).resolve()
@@ -103,6 +104,14 @@ BASE_ENV = {
     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     "TERM": "xterm-256color",
 }
+
+
+def health_response() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "protocolVersion": RUNNER_PROTOCOL_VERSION,
+        "capabilities": {"projectContentReadOnly": True},
+    }
 
 
 class RunnerError(Exception):
@@ -1561,7 +1570,7 @@ class RunnerHandler(BaseHTTPRequestHandler):
             parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
             if parts == ["health"] and method == "GET":
                 self._authorize()
-                self._write_json({"status": "ok"})
+                self._write_json(health_response())
                 return
             self._authorize()
             payload = self._read_json() if method == "POST" else None

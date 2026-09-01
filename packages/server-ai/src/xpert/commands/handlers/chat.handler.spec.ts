@@ -59,7 +59,6 @@ describe('XpertChatHandler', () => {
     let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
     let redisSseStreamService: { wrapChatStream: jest.Mock }
     let projectService: { assertRuntimeAccess: jest.Mock }
-    let projectContentService: { readRuntimeInstructions: jest.Mock }
     let publishedXpertAccessService: { getAccessiblePublishedXpertFamilyIds: jest.Mock }
     let handler: XpertChatHandler
     let currentUserIdSpy: jest.SpyInstance
@@ -126,9 +125,6 @@ describe('XpertChatHandler', () => {
         projectService = {
             assertRuntimeAccess: jest.fn().mockResolvedValue({ id: 'project-1' })
         }
-        projectContentService = {
-            readRuntimeInstructions: jest.fn().mockResolvedValue('# Project instructions')
-        }
         publishedXpertAccessService = {
             getAccessiblePublishedXpertFamilyIds: jest.fn(async (id: string) => [id])
         }
@@ -141,10 +137,7 @@ describe('XpertChatHandler', () => {
             goalService as unknown as ChatConversationGoalService,
             publishedXpertAccessService as any,
             redisSseStreamService as any,
-            projectService as any,
-            undefined,
-            undefined,
-            projectContentService as any
+            projectService as any
         )
     })
 
@@ -361,6 +354,85 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('streams successfully from a Nest forwardRef placeholder populated with Object.assign', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
+                    ? { id: 'execution-1', threadId: 'thread-1' }
+                    : command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    ...(command.entity.role === 'human'
+                        ? { id: 'human-1' }
+                        : command.entity.role === 'ai' && command.entity.status === 'thinking'
+                          ? { id: 'ai-1' }
+                          : {}),
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+        const nestPlaceholder = Object.assign(Object.create(XpertChatHandler.prototype) as XpertChatHandler, handler)
+
+        const stream = await nestPlaceholder.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-forward-ref',
+                        input: { input: 'Hello from the placeholder' }
+                    }
+                },
+                { xpertId: 'xpert-1' } as XpertChatCommandOptions
+            )
+        )
+
+        await expect(lastValueFrom(stream.pipe(toArray()))).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({ event: ChatMessageEventTypeEnum.ON_CONVERSATION_END })
+                })
+            ])
+        )
     })
 
     it('persists the active goal objective for marked internal goal runs', async () => {
@@ -705,7 +777,8 @@ describe('XpertChatHandler', () => {
                 return {
                     asset: {
                         ...workspaceFile,
-                        capabilities: ['workspace']
+                        status: 'ready',
+                        capabilities: []
                     }
                 }
             }
@@ -740,7 +813,6 @@ describe('XpertChatHandler', () => {
         ) as ChatMessageUpsertCommand
         expect(humanMessageCommand.entity.fileAssets).toEqual([{ id: 'file-asset-workspace-1' }])
         expect(humanMessageCommand.entity.attachments).toBeUndefined()
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
 
         const attachCommand = commands.find(
             (command) => command instanceof AttachFileToConversationCommand
@@ -750,9 +822,9 @@ describe('XpertChatHandler', () => {
             conversationId: 'conversation-1',
             threadId: 'thread-1',
             xpertId: 'xpert-1',
+            projectId: 'project-1',
             sandboxEnvironmentId: 'environment-1'
         })
-        expect(attachCommand.input.projectId).toBeUndefined()
         expect(attachCommand.input.storageFileId).toBeUndefined()
     })
 
@@ -1515,9 +1587,7 @@ describe('XpertChatHandler', () => {
 
         expect(agentCommand.options.projectId).toBe('project-1')
         expect(agentCommand.options.sandboxEnvironmentId).toBeUndefined()
-        expect(agentCommand.state.sys.project_instruction).toBe('# Project instructions')
         expect(projectService.assertRuntimeAccess).toHaveBeenCalledWith('project-1', 'xpert-1')
-        expect(projectContentService.readRuntimeInstructions).toHaveBeenCalledWith('project-1')
     })
 
     it.each<TChatRequest>([
@@ -1615,6 +1685,7 @@ describe('XpertChatHandler', () => {
 
         expect(projectService.assertRuntimeAccess).not.toHaveBeenCalled()
         expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertService.findOneForRuntime).not.toHaveBeenCalled()
     })
 
     it('accepts an existing conversation from another published version in the same Xpert family', async () => {
@@ -1674,6 +1745,7 @@ describe('XpertChatHandler', () => {
 
         expect(projectService.assertRuntimeAccess).not.toHaveBeenCalled()
         expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertService.findOneForRuntime).not.toHaveBeenCalled()
     })
 
     it('persists steer follow-ups while an interrupted conversation has a waiting operation', async () => {
@@ -2221,6 +2293,8 @@ describe('XpertChatHandler', () => {
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
+                    xpertId: 'xpert-1',
+                    createdById: 'user-1',
                     threadId: 'thread-1',
                     messages: [
                         {
@@ -2336,6 +2410,8 @@ describe('XpertChatHandler', () => {
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
+                    xpertId: 'xpert-1',
+                    createdById: 'user-1',
                     threadId: 'thread-1',
                     messages: [
                         {
