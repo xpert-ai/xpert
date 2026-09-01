@@ -134,13 +134,13 @@ describe('CopilotUsageService', () => {
         expect(modelUsageLedger.totals).toHaveBeenCalledWith({ unit: 'generation' })
     })
 
-    it('summarizes user usage by xpert creator with current and grand totals', async () => {
+    it('summarizes user usage by the billed user with current and grand totals', async () => {
         const qb = createQueryBuilderMock<CopilotUser>([
             {
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
                 orgId: 'provider-org-1',
-                userId: 'owner-user',
+                userId: 'shared-user',
                 provider: 'openai',
                 model: 'gpt-4.1',
                 currency: 'USD',
@@ -152,8 +152,8 @@ describe('CopilotUsageService', () => {
                 runtimeUserCount: '2',
                 xpertCount: '3',
                 updatedAt: new Date('2026-06-01T00:00:00.000Z'),
-                userRelationId: 'owner-user',
-                userEmail: 'owner@example.com',
+                userRelationId: 'shared-user',
+                userEmail: 'shared@example.com',
                 organizationRelationId: 'org-1',
                 organizationName: 'Org 1',
                 total: '1'
@@ -177,7 +177,7 @@ describe('CopilotUsageService', () => {
             {
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
-                userId: 'owner-user',
+                userId: 'shared-user',
                 provider: 'openai',
                 model: 'gpt-4.1',
                 membershipPointsUsed: '0.0285'
@@ -199,23 +199,16 @@ describe('CopilotUsageService', () => {
                 end: '2026-06-01T23:59:59.999Z',
                 provider: 'openai',
                 model: 'gpt-4.1',
-                userId: 'owner-user',
+                userId: 'shared-user',
                 currency: 'USD'
             },
             { order: { updatedAt: OrderTypeEnum.DESC }, take: 20, skip: 0 }
         )
 
-        expect((qb as any).leftJoin).toHaveBeenCalledWith(
-            'xpert',
-            'usage_xpert',
-            '"usage_xpert"."id"::text = "usage"."xpertId"'
-        )
-        expect((qb as any).addSelect).toHaveBeenCalledWith(
-            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text)',
-            'userId'
-        )
-        expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
-        expect((qb as any).addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
+        expect(qb.leftJoin).not.toHaveBeenCalledWith('xpert', expect.anything(), expect.anything())
+        expect(qb.addSelect).toHaveBeenCalledWith('"usage"."userId"::text', 'userId')
+        expect(qb.addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
+        expect(qb.addSelect).toHaveBeenCalledWith('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
         expect(qb.addSelect).not.toHaveBeenCalledWith(expect.stringContaining('usage_membership'), expect.anything())
         expect(qb.leftJoin).not.toHaveBeenCalledWith(expect.any(Function), 'usage_membership', expect.anything())
         expect(membershipQb.addSelect).toHaveBeenCalledWith('SUM(ABS(ledger.pointsDelta))', 'membershipPointsUsed')
@@ -227,7 +220,7 @@ describe('CopilotUsageService', () => {
             { membershipScopeOrganizationId: 'org-1' }
         )
         expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.userId = :membershipUserId', {
-            membershipUserId: 'owner-user'
+            membershipUserId: 'shared-user'
         })
         expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.provider = :provider', { provider: 'openai' })
         expect(membershipQb.andWhere).toHaveBeenCalledWith('ledger.model = :model', { model: 'gpt-4.1' })
@@ -243,17 +236,15 @@ describe('CopilotUsageService', () => {
                 membershipPageorg0: 'org-1',
                 membershipPageprovider0: 'openai',
                 membershipPagemodel0: 'gpt-4.1',
-                membershipPageuser0: 'owner-user'
+                membershipPageuser0: 'shared-user'
             })
         )
-        expect((qb as any).addGroupBy).toHaveBeenCalledWith(
-            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text)'
-        )
+        expect(qb.addGroupBy).toHaveBeenCalledWith('"usage"."userId"::text')
         expect(result.total).toBe(1)
         expect(result.items[0]).toMatchObject({
             dimension: 'user',
             organizationId: 'org-1',
-            userId: 'owner-user',
+            userId: 'shared-user',
             provider: 'openai',
             model: 'gpt-4.1',
             currency: 'USD',
@@ -271,7 +262,7 @@ describe('CopilotUsageService', () => {
         })
     })
 
-    it('filters usage summaries and totals by xpert creator user id', async () => {
+    it('filters usage summaries and totals by billed user id', async () => {
         const summaryQb = createQueryBuilderMock<CopilotUser>([])
         const totalsQb = createQueryBuilderMock<CopilotUser>([])
         const userRepository: RepositoryMock = {
@@ -290,14 +281,13 @@ describe('CopilotUsageService', () => {
         }
         const service = createService(userRepository, orgRepository)
 
-        await service.findSummaries({ dimension: 'user', userId: 'owner-user' })
-        await service.findTotals({ dimension: 'user', userId: 'owner-user' })
+        await service.findSummaries({ dimension: 'user', userId: 'shared-user' })
+        await service.findTotals({ dimension: 'user', userId: 'shared-user' })
 
         for (const qb of [summaryQb, totalsQb]) {
-            expect((qb as any).andWhere).toHaveBeenCalledWith(
-                'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text) = :filterUserId',
-                { filterUserId: 'owner-user' }
-            )
+            expect((qb as any).andWhere).toHaveBeenCalledWith('"usage"."userId"::text = :filterUserId', {
+                filterUserId: 'shared-user'
+            })
         }
     })
 
@@ -478,10 +468,10 @@ describe('CopilotUsageService', () => {
         })
     })
 
-    it('filters user details by creator but returns runtime user usage rows', async () => {
+    it('filters user details by billed user', async () => {
         const detail = {
             id: 'detail-1',
-            userId: 'assistant-tech-user',
+            userId: 'shared-user',
             xpertId: 'xpert-1',
             provider: 'openai',
             model: 'gpt-4.1',
@@ -509,18 +499,17 @@ describe('CopilotUsageService', () => {
             dimension: 'user',
             organizationId: 'org-1',
             orgId: null,
-            userId: 'owner-user',
+            userId: 'shared-user',
             provider: 'openai',
             model: 'gpt-4.1',
             currency: 'USD'
         })
 
-        expect((qb as any).andWhere).toHaveBeenCalledWith(
-            'COALESCE("usage_xpert"."createdById"::text, "usage"."userId"::text) = :groupUserId',
-            { groupUserId: 'owner-user' }
-        )
+        expect((qb as any).andWhere).toHaveBeenCalledWith('"usage"."userId"::text = :groupUserId', {
+            groupUserId: 'shared-user'
+        })
         expect(result[0]).toMatchObject({
-            userId: 'assistant-tech-user',
+            userId: 'shared-user',
             xpertId: 'xpert-1'
         })
     })
@@ -600,7 +589,7 @@ describe('CopilotUsageService', () => {
         })
     })
 
-    it('rejects quota changes for creator-aggregated user usage', async () => {
+    it('adjusts quota for billed user usage', async () => {
         const quotaRow = {
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -636,17 +625,31 @@ describe('CopilotUsageService', () => {
                 groupKey: {
                     dimension: 'user',
                     organizationId: 'org-1',
-                    userId: 'owner-user',
+                    userId: 'user-1',
                     provider: 'openai',
                     model: 'gpt-4.1',
                     currency: 'USD'
                 },
                 tokenLimit: 50
             })
-        ).rejects.toThrow('Creator-aggregated user usage quota changes are not supported')
+        ).resolves.toBeNull()
 
-        expect(userRepository.find).not.toHaveBeenCalled()
-        expect(userRepository.save).not.toHaveBeenCalled()
+        expect(userRepository.find).toHaveBeenCalledWith({
+            where: expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                provider: 'openai',
+                model: 'gpt-4.1',
+                currency: 'USD'
+            })
+        })
+        expect(userRepository.save).toHaveBeenCalledWith([
+            expect.objectContaining({
+                userId: 'user-1',
+                tokenLimit: 150
+            })
+        ])
     })
 
     it('renews organization quota by rolling current usage into total usage', async () => {
