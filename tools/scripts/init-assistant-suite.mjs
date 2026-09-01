@@ -187,7 +187,16 @@ function readTemplateSource(xpert) {
 
 /** Resolves the primary Agent key from the current draft or published Assistant. */
 function readPrimaryAgentKey(xpert) {
-  return xpert?.draft?.team?.agent?.key ?? xpert?.agent?.key ?? null
+  const direct = xpert?.draft?.team?.agent?.key ?? xpert?.agent?.key
+  if (direct) return direct
+  const publishedLeaders = (xpert?.graph?.nodes ?? []).filter(
+    (node) => node?.type === 'agent' && node?.entity?.leaderKey == null
+  )
+  if (publishedLeaders.length === 1) {
+    return publishedLeaders[0].entity?.key ?? publishedLeaders[0].key ?? null
+  }
+  const configured = Object.keys(xpert?.options?.agent ?? {})
+  return configured.length === 1 ? configured[0] : null
 }
 
 /** Prevents a resume from adopting an unrelated Assistant with a colliding name. */
@@ -409,9 +418,10 @@ async function main() {
       ? pluginResponse.body.items[0]
       : null
   if (!pluginDescriptor) throw new LocalPluginCliError(`Plugin ${profile.plugin.name} is not loaded in this scope.`)
-  if (profile.plugin.version && pluginDescriptor.version !== profile.plugin.version) {
+  const pluginVersion = pluginDescriptor.version ?? pluginDescriptor.currentVersion
+  if (profile.plugin.version && pluginVersion !== profile.plugin.version) {
     throw new LocalPluginCliError(
-      `Plugin ${profile.plugin.name} version ${pluginDescriptor.version ?? '<unknown>'} does not match profile version ${profile.plugin.version}.`
+      `Plugin ${profile.plugin.name} version ${pluginVersion ?? '<unknown>'} does not match profile version ${profile.plugin.version}.`
     )
   }
 
@@ -423,7 +433,12 @@ async function main() {
         headers
       )
       assertResponseOk(`Template preflight ${definition.key}`, response)
-      if (response.body?.pluginName !== profile.plugin.name || response.body?.key !== definition.templateKey) {
+      const expectedTemplateId = templateId(profile, definition)
+      const templateKey = response.body?.name ?? response.body?.key
+      if (
+        response.body?.pluginName !== profile.plugin.name ||
+        (response.body?.key !== expectedTemplateId && templateKey !== definition.templateKey)
+      ) {
         throw new LocalPluginCliError(`Template preflight mismatch for ${definition.key}.`)
       }
     })

@@ -13,7 +13,7 @@ import {
     OrderTypeEnum,
     ScheduleTaskStatus
 } from '@xpert-ai/contracts'
-import type { ProjectEnsureInput, ProjectEnsureResult } from '@xpert-ai/plugin-sdk'
+import type { ProjectEnsureInput, ProjectEnsureResult, ProjectExternalAssistantExpectation } from '@xpert-ai/plugin-sdk'
 import {
     applyWhereToQueryBuilder,
     EventNameIntegrationAuthorized,
@@ -55,6 +55,12 @@ import { ProjectUpdateInputDTO } from './dto'
 import { ConnectorService } from '../connector/connector.service'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
+import {
+    describeExternalAssistantBinding,
+    directExternalAssistantIds,
+    matchesExternalAssistantExpectation,
+    type ResolvedExternalAssistantBinding
+} from '../xpert/external-assistant-binding'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -142,6 +148,11 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 })
             )
         }
+        const externalXperts = await this.resolveManagedProjectExternalXperts(xpert, input)
+        const requiredXperts = [xpert, ...externalXperts].filter(
+            (candidate, index, items) =>
+                items.findIndex((item) => this.xpertBindingService.isSameXpert(item, candidate)) === index
+        )
 
         // Tenant and organization participate in lookup so retries cannot adopt
         // a same-id Project from a different security boundary.
@@ -168,7 +179,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 status: input.status,
                 ownerId: user.id
             })
-            project.xperts = [xpert]
+            project.xperts = requiredXperts
             project = await this.repository.save(project)
         } else {
             // Bid/business state is authoritative while existing Assistant
@@ -177,8 +188,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             project.status = input.status
             project.xperts ??= []
             await this.xpertBindingService.normalize(project)
-            if (!this.xpertBindingService.contains(project, xpert)) {
-                project.xperts.push(xpert)
+            for (const requiredXpert of requiredXperts) {
+                if (!this.xpertBindingService.contains(project, requiredXpert)) {
+                    project.xperts.push(requiredXpert)
+                }
             }
             project = await this.repository.save(project)
         }
@@ -512,11 +525,92 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     }
 
     private async resolveAccessibleCurrentXpert(xpertId: string): Promise<IXpert> {
-        const requestedXpert = await this.publishedXpertAccess.getAccessiblePublishedXpert(xpertId)
+        const requestedXpert = await this.publishedXpertAccess.getAccessiblePublishedXpert(xpertId, {
+            relations: ['agent']
+        })
         const currentXpert = await this.xpertBindingService.resolveCurrent(requestedXpert)
         if (currentXpert.id === requestedXpert.id) return requestedXpert
 
-        return this.publishedXpertAccess.getAccessiblePublishedXpert(currentXpert.id)
+        return this.publishedXpertAccess.getAccessiblePublishedXpert(currentXpert.id, {
+            relations: ['agent']
+        })
+    }
+
+    /**
+     * Validate the complete portable External Assistant set before Project persistence.
+     * Empty/omitted expectations preserve the existing single-Assistant ensure contract.
+     */
+    private async resolveManagedProjectExternalXperts(requester: IXpert, input: ProjectEnsureInput): Promise<IXpert[]> {
+        const expectations = normalizeProjectExternalAssistantExpectations(input.externalAssistantExpectations)
+        if (!expectations.length) return []
+        const requesterAgentKey = requiredProjectText(input.requesterAgentKey ?? '', 'requesterAgentKey', 100)
+        if (requester.agent?.key !== requesterAgentKey) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectRequesterAgentMismatch', {
+                    defaultValue: 'The requester Agent must be the primary Agent of the Project Assistant.'
+                })
+            )
+        }
+
+        const candidates = await Promise.all(
+            directExternalAssistantIds(requester, requesterAgentKey).map(async (candidateId) => {
+                try {
+                    return await this.queryBus.execute<FindXpertQuery, IXpert>(
+                        new FindXpertQuery({ id: candidateId }, { relations: ['agent'] })
+                    )
+                } catch {
+                    return null
+                }
+            })
+        )
+        const availableCandidates = candidates.filter((candidate): candidate is IXpert => candidate !== null)
+        const bindings = availableCandidates.map((candidate) => ({
+            candidate,
+            descriptor: describeExternalAssistantBinding(requester, candidate)
+        }))
+
+        const resolved: IXpert[] = []
+        for (const expectation of expectations) {
+            const matches = bindings.filter(({ descriptor }) =>
+                matchesExternalAssistantExpectation(descriptor, expectation)
+            )
+            if (matches.length > 1) {
+                throw projectExternalAssistantError('ProjectAssistantBindingAmbiguous', 'ambiguous')
+            }
+            const match = matches[0]
+            if (!match) {
+                const nearMatch = bindings.find(({ descriptor }) =>
+                    isNearProjectExternalAssistantMatch(descriptor, expectation)
+                )
+                throw projectExternalAssistantError(
+                    nearMatch?.descriptor.status === 'unpublished'
+                        ? 'ProjectAssistantBindingUnpublished'
+                        : nearMatch?.descriptor.status === 'cross_organization'
+                          ? 'ProjectAssistantBindingCrossOrganization'
+                          : nearMatch
+                            ? 'ProjectAssistantBindingIncompatible'
+                            : 'ProjectAssistantBindingMissing',
+                    nearMatch?.descriptor.status ?? 'missing'
+                )
+            }
+            if (match.descriptor.status === 'unpublished') {
+                throw projectExternalAssistantError('ProjectAssistantBindingUnpublished', 'unpublished')
+            }
+            if (match.descriptor.status === 'cross_organization') {
+                throw projectExternalAssistantError('ProjectAssistantBindingCrossOrganization', 'cross_organization')
+            }
+            if (match.descriptor.status !== 'available') {
+                throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
+            }
+            // The requester Assistant and its direct, required graph edge are the
+            // authorization anchor for portable role resolution. Re-applying the
+            // USER_XPERT token audience to the target here would reject every
+            // valid external Assistant because that delegated token is purposely
+            // scoped to the requester only. The candidate has already been fully
+            // validated for publication, organization and portable identity.
+            resolved.push(match.candidate)
+        }
+        return resolved
     }
 
     async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
@@ -1062,6 +1156,50 @@ function requiredProjectText(value: string, field: string, maxLength: number): s
         throw new BadRequestException(`${field} is required and must not exceed ${maxLength} characters`)
     }
     return normalized
+}
+
+function normalizeProjectExternalAssistantExpectations(
+    expectations: ProjectExternalAssistantExpectation[] | undefined
+): ProjectExternalAssistantExpectation[] {
+    const normalized = Array.from(
+        new Map(
+            (expectations ?? []).map((expectation) => {
+                const value = {
+                    pluginName: requiredProjectText(expectation.pluginName, 'pluginName', 160),
+                    templateKey: requiredProjectText(expectation.templateKey, 'templateKey', 160),
+                    agentKey: requiredProjectText(expectation.agentKey, 'agentKey', 160)
+                }
+                return [`${value.pluginName}\u0000${value.templateKey}\u0000${value.agentKey}`, value] as const
+            })
+        ).values()
+    )
+    if (normalized.length > 32) {
+        throw new BadRequestException(
+            t('server-ai:Error.ProjectExternalExpectationsLimit', {
+                defaultValue: 'A Project ensure request cannot contain more than 32 External Assistant expectations.'
+            })
+        )
+    }
+    return normalized
+}
+
+function isNearProjectExternalAssistantMatch(
+    binding: ResolvedExternalAssistantBinding,
+    expectation: ProjectExternalAssistantExpectation
+) {
+    return (
+        binding.templateSource?.templateKey === expectation.templateKey ||
+        binding.primaryAgentKey === expectation.agentKey
+    )
+}
+
+function projectExternalAssistantError(key: string, fallbackStatus: string) {
+    return new BadRequestException({
+        errorCode: `project_assistant_binding_${fallbackStatus}`,
+        message: t(`server-ai:Error.${key}`, {
+            defaultValue: `The required External Assistant binding is ${fallbackStatus}.`
+        })
+    })
 }
 
 function normalizeImportedTaskStatus(value: unknown): IXpertProjectTask['status'] {

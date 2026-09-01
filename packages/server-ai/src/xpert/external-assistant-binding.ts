@@ -62,7 +62,7 @@ export function describeExternalAssistantBinding(
     const sameOrganization = Boolean(
         requester.organizationId && runtime.organizationId && requester.organizationId === runtime.organizationId
     )
-    const published = Boolean(runtime.graph && runtime.agent?.key && runtime.active !== false)
+    const published = Boolean(runtime.publishAt && runtime.graph && runtime.agent?.key && runtime.active !== false)
     return {
         xpertId: runtime.id,
         title: runtime.title?.trim() || runtime.name,
