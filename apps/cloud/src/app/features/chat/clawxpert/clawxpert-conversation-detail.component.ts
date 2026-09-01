@@ -814,7 +814,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     requestContext: this.assistantRequestContext,
     projectId: this.projectId,
     composer: computed(() => ({
-      projects: { enabled: this.#projectSelectionEnabled() }
+      projects: {
+        enabled: this.#projectSelectionEnabled(),
+        createEnabled: false
+      }
     })),
     initialThread: this.facade.threadId,
     displayMode: this.chatkitDisplayMode,

@@ -23,8 +23,9 @@ export type XpertSkillInstallDialogResult =
       packages: ISkillPackage[]
     }
 
-type XpertSkillInstallDialogData = {
+export type XpertSkillInstallDialogData = {
   workspaceId?: string | null
+  scope?: 'workspace' | 'project'
 }
 
 @Component({
@@ -60,17 +61,23 @@ type XpertSkillInstallDialogData = {
         <div class="min-w-0">
           <h4 class="text-lg font-semibold text-text-primary">
             {{
-              'XP.Xpert.InstallWorkspaceSkillsTitle'
-                | translate: { Default: 'Install or update skills in this workspace' }
+              (isProject() ? 'XP.XProject.InstallProjectSkillTitle' : 'XP.Xpert.InstallWorkspaceSkillsTitle')
+                | translate
+                  : {
+                      Default: isProject()
+                        ? 'Install a skill in this Project'
+                        : 'Install or update skills in this workspace'
+                    }
             }}
           </h4>
           <p class="mt-1 text-sm leading-6 text-text-secondary">
             {{
-              'XP.Xpert.InstallWorkspaceSkillsDialogDesc'
+              (isProject() ? 'XP.XProject.InstallProjectSkillDescription' : 'XP.Xpert.InstallWorkspaceSkillsDialogDesc')
                 | translate
                   : {
-                      Default:
-                        'Browse repositories, pick a skill, and install it into the current workspace. Existing installs are reused, and newer versions update in place.'
+                      Default: isProject()
+                        ? 'Browse repositories and install a skill into this Project.'
+                        : 'Browse repositories, pick a skill, and install it into the current workspace. Existing installs are reused, and newer versions update in place.'
                     }
             }}
           </p>
@@ -84,10 +91,12 @@ type XpertSkillInstallDialogData = {
           <div class="text-sm font-semibold text-text-primary">
             {{ 'XP.Skill.SelectSkillSource' | translate: { Default: 'Select a skill source' } }}
           </div>
-          <button z-button zType="outline" type="button" (click)="showGithubInstall.update(toggleBoolean)">
-            <z-icon zType="add" class="mr-1 text-base"></z-icon>
-            {{ 'XP.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}
-          </button>
+          @if (!isProject()) {
+            <button z-button zType="outline" type="button" (click)="showGithubInstall.update(toggleBoolean)">
+              <z-icon zType="add" class="mr-1 text-base"></z-icon>
+              {{ 'XP.Skill.AddSkill' | translate: { Default: 'Add Skill' } }}
+            </button>
+          }
         </div>
 
         @if (showGithubInstall()) {
@@ -128,6 +137,7 @@ export class XpertSkillInstallDialogComponent {
 
   readonly selectedRepository = signal<ISkillRepository | null>(null)
   readonly workspaceId = signal(this.#data?.workspaceId ?? null)
+  readonly isProject = signal(this.#data?.scope === 'project')
   readonly showGithubInstall = signal(false)
   readonly toggleBoolean = (value: boolean) => !value
 

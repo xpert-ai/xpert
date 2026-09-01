@@ -25,7 +25,7 @@ import { yaml } from '@xpert-ai/server-common'
 import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { OnEvent } from '@nestjs/event-emitter'
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter'
 import { assign, omit } from 'lodash'
 import { Brackets, DeepPartial, IsNull, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
@@ -54,6 +54,8 @@ import { XpertProjectAccessService } from './services/project-access.service'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { t } from 'i18next'
+import { ConnectorService } from '../connector/connector.service'
+import { XpertProjectContentService } from './services/project-content.service'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -68,7 +70,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         private readonly workspaceAccessService: XpertWorkspaceAccessService,
         private readonly workspaceService: XpertWorkspaceService,
         private readonly accessService: XpertProjectAccessService,
+        private readonly contentService: XpertProjectContentService,
         private readonly publishedXpertAccess: PublishedXpertAccessService,
+        private readonly connectorService: ConnectorService,
+        private readonly eventEmitter: EventEmitter2,
         private readonly xpertBindingService: XpertProjectXpertBindingService
     ) {
         super(repository)
@@ -80,7 +85,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      */
     public async create(entity: DeepPartial<XpertProject>, ...options: unknown[]): Promise<XpertProject> {
         const workspace = await this.resolveAuthoringWorkspace(entity.workspaceId as string | undefined)
-        return super.create({ ...entity, workspaceId: workspace.id }, ...options)
+        const project = await super.create({ ...entity, workspaceId: workspace.id }, ...options)
+        await this.contentService.initialize(project)
+        return project
     }
 
     /**
@@ -204,6 +211,32 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return this.update(id, { status: 'archived' })
     }
 
+    async deleteProject(id: string) {
+        const project = await this.findOne(id)
+        return this.repository.manager.transaction(async (manager) => {
+            await this.connectorService.deleteProjectBindings(
+                { projectId: project.id, tenantId: project.tenantId },
+                manager
+            )
+            return manager.getRepository(XpertProject).delete({
+                id: project.id,
+                tenantId: project.tenantId,
+                organizationId: project.organizationId ?? IsNull()
+            })
+        })
+    }
+
+    async softRemoveProject(id: string) {
+        const project = await this.findOne(id)
+        return this.repository.manager.transaction(async (manager) => {
+            await this.connectorService.deleteProjectBindings(
+                { projectId: project.id, tenantId: project.tenantId },
+                manager
+            )
+            return manager.getRepository(XpertProject).softRemove(project)
+        })
+    }
+
     /**
      * Query all projects I have permission to view.
      *
@@ -234,8 +267,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             .where('project.tenantId = :tenantId')
             .andWhere(
                 new Brackets((qb) => {
-                    qb.where('project.ownerId = :userId')
-                        .orWhere('membership.userId = :userId')
+                    qb.where('project.ownerId = :userId').orWhere('membership.userId = :userId')
                 })
             )
             .orderBy(orderBy)
@@ -433,6 +465,14 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
         project.xperts = project.xperts.filter((linkedXpert) => !removedXpertIds.includes(linkedXpert.id))
         await this.repository.save(project)
+        const taskXpertIds = [xpertId, ...removedXpertIds]
+        if (currentXpert) taskXpertIds.push(currentXpert.id)
+        await this.eventEmitter.emitAsync('xpert-project.xpert-removed', {
+            tenantId: project.tenantId,
+            organizationId: project.organizationId,
+            projectId: id,
+            xpertIds: [...new Set(taskXpertIds)]
+        })
 
         return project
     }
@@ -699,6 +739,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             relations: ['copilotModel', 'xperts', 'toolsets', 'knowledges', 'attachments']
         })
 
+        const { content: instruction } = await this.contentService.readInstructions(id)
         const duplicate = await this.create({
             ...project,
             id: undefined, // Clear the ID to create a new project
@@ -710,6 +751,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             updatedById: undefined,
             name: `${project.name} - Copy`,
             status: 'active',
+            settings: {
+                ...project.settings,
+                instruction
+            },
             xperts: project.xperts.map((xpert) => ({ id: xpert.id })),
             toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
             knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
@@ -720,7 +765,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const taskRepository = this.repository.manager.getRepository(XpertProjectTask)
         const milestoneRepository = this.repository.manager.getRepository(XpertProjectMilestone)
         const assetRepository = this.repository.manager.getRepository(XpertProjectAsset)
-        const automationRepository = this.repository.manager.getRepository(XpertProjectAutomation)
         const plans = await planRepository.find({ where: { projectId: id }, relations: ['milestones'] })
         const planIds = new Map<string, string>()
         for (const plan of plans) {
@@ -786,22 +830,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                 })
             )
         }
-        const automations = await automationRepository.find({ where: { projectId: id } })
-        for (const automation of automations) {
-            await automationRepository.save(
-                automationRepository.create({
-                    ...automation,
-                    id: undefined,
-                    projectId: duplicate.id,
-                    tenantId: duplicate.tenantId,
-                    organizationId: duplicate.organizationId,
-                    createdById: duplicate.createdById,
-                    updatedById: undefined,
-                    lastRunAt: undefined,
-                    nextRunAt: undefined
-                })
-            )
-        }
         return duplicate
     }
 
@@ -846,7 +874,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         const taskRepository = this.repository.manager.getRepository(XpertProjectTask)
         const taskStepRepository = this.repository.manager.getRepository(XpertProjectTaskStep)
         const assetRepository = this.repository.manager.getRepository(XpertProjectAsset)
-        const automationRepository = this.repository.manager.getRepository(XpertProjectAutomation)
         const planIdMap = new Map<string, string>()
         const milestoneIdMap = new Map<string, string>()
         const plans = (root.plans ?? source.plans) as Array<Record<string, unknown>> | undefined
@@ -986,22 +1013,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
                     size: typeof inputAsset.size === 'number' ? inputAsset.size : undefined,
                     source: (inputAsset.source as 'upload' | 'ai_output' | 'conversation' | 'import') ?? 'import',
                     status: 'available',
-                    tenantId: project.tenantId,
-                    organizationId: project.organizationId,
-                    createdById: project.createdById
-                })
-            )
-        }
-        const automations = (root.automations ?? source.automations) as Array<Record<string, unknown>> | undefined
-        for (const inputAutomation of Array.isArray(automations) ? automations : []) {
-            if (!inputAutomation.trigger || !Array.isArray(inputAutomation.actions)) continue
-            await automationRepository.save(
-                automationRepository.create({
-                    projectId: project.id,
-                    name: typeof inputAutomation.name === 'string' ? inputAutomation.name : 'Imported automation',
-                    enabled: inputAutomation.enabled === true,
-                    trigger: inputAutomation.trigger,
-                    actions: inputAutomation.actions,
                     tenantId: project.tenantId,
                     organizationId: project.organizationId,
                     createdById: project.createdById

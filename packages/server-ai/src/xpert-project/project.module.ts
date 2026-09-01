@@ -49,6 +49,9 @@ import { XpertProjectMembership } from './entities/project-membership.entity'
 import { XpertProjectAccessModule } from './project-access.module'
 import { XpertProjectMembershipService } from './services/project-membership.service'
 import { XpertProjectOwnerGuard } from './guards/project-owner.guard'
+import { ConnectorModule } from '../connector/connector.module'
+import { XpertProjectContentService } from './services/project-content.service'
+import { SkillRepositoryIndexModule, SkillRepositoryModule } from '../skill-repository'
 
 @Module({
     imports: [
@@ -81,6 +84,9 @@ import { XpertProjectOwnerGuard } from './guards/project-owner.guard'
         CqrsModule,
         IntegrationModule,
         XpertWorkspaceModule,
+        ConnectorModule,
+        forwardRef(() => SkillRepositoryModule),
+        forwardRef(() => SkillRepositoryIndexModule),
         XpertProjectAccessModule,
         forwardRef(() => XpertModule)
     ],
@@ -101,8 +107,9 @@ import { XpertProjectOwnerGuard } from './guards/project-owner.guard'
         XpertProjectPermissionGuard,
         XpertProjectOwnerGuard,
         XpertProjectMembershipService,
+        XpertProjectContentService,
         ...CommandHandlers
     ],
-    exports: [XpertProjectService, XpertProjectAccessModule, XpertProjectMembershipService]
+    exports: [XpertProjectService, XpertProjectAccessModule, XpertProjectContentService, XpertProjectMembershipService]
 })
 export class XpertProjectModule {}

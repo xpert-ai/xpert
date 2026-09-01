@@ -115,7 +115,8 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
             null,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({})
+                createScopedApi: jest.fn().mockReturnValue({}),
+                resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue([])
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
@@ -558,7 +559,8 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         }
         const createScopedApi = jest.fn().mockReturnValue({})
         const middlewareRuntime = {
-            createScopedApi
+            createScopedApi,
+            resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue([])
         }
         const handler = new XpertAgentSubgraphHandler(
             null,
@@ -872,7 +874,8 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({})
+                createScopedApi: jest.fn().mockReturnValue({}),
+                resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue([])
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
@@ -1003,7 +1006,8 @@ describe('XpertAgentSubgraphHandler hidden agent graph', () => {
             null,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({})
+                createScopedApi: jest.fn().mockReturnValue({}),
+                resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue([])
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
@@ -1139,7 +1143,11 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
         }
     }
 
-    function createHandler(graph: TestGraph, registryGet = jest.fn()) {
+    function createHandler(
+        graph: TestGraph,
+        registryGet = jest.fn(),
+        selectedRuntimeBindings: Array<{ bindingId: string; provider: string }> = []
+    ) {
         const commandBus = {
             execute: jest.fn(async (command) => {
                 if (command.constructor.name === 'ToolsetGetToolsCommand') {
@@ -1180,7 +1188,8 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             null,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({})
+                createScopedApi: jest.fn().mockReturnValue({}),
+                resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue(selectedRuntimeBindings)
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )
@@ -1247,6 +1256,42 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
         await handler.execute(command)
 
         expect(registryGet).not.toHaveBeenCalled()
+    })
+
+    it('mounts selected Connector runtime middleware without a graph middleware node', async () => {
+        const { graph, command } = createCommand({
+            fileUnderstanding: {
+                enabled: false
+            }
+        })
+        command.options.runtimeCapabilities = {
+            mode: 'allowlist',
+            skills: { ids: [] },
+            plugins: { nodeKeys: [] },
+            connectors: { bindingIds: ['binding-1'] }
+        }
+        const createMiddleware = jest.fn().mockReturnValue({
+            name: 'ConnectorRuntime:github',
+            tools: []
+        })
+        const registryGet = jest.fn().mockReturnValue({
+            meta: { name: 'ConnectorRuntime:github' },
+            createMiddleware
+        })
+        const handler = createHandler(graph, registryGet, [{ bindingId: 'binding-1', provider: 'github' }])
+
+        await handler.execute(command)
+
+        expect(registryGet).toHaveBeenCalledWith('ConnectorRuntime:github', undefined)
+        expect(createMiddleware).toHaveBeenCalledWith(
+            { connectorId: 'binding-1' },
+            expect.objectContaining({
+                node: expect.objectContaining({
+                    provider: 'ConnectorRuntime:github',
+                    required: true
+                })
+            })
+        )
     })
 })
 
@@ -1370,7 +1415,8 @@ describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {
             null,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({})
+                createScopedApi: jest.fn().mockReturnValue({}),
+                resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue([])
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
         )

@@ -36,7 +36,8 @@ function normalizeWorkingDirectory(workingDirectory: string): string {
 function createRuntimeId(
     options: SandboxProviderCreateOptions,
     workspacePath: string,
-    workingDirectory: string
+    workingDirectory: string,
+    protectProjectContent: boolean
 ): string {
     return createHash('sha256')
         .update(
@@ -46,7 +47,8 @@ function createRuntimeId(
                 options.workFor.id,
                 options.environmentId ?? '',
                 workspacePath,
-                workingDirectory
+                workingDirectory,
+                protectProjectContent
             ])
         )
         .digest('hex')
@@ -144,17 +146,20 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
 
         const workingDirectory = normalizeWorkingDirectory(options.workingDirectory ?? this.getDefaultWorkingDir())
         const workspacePath = options.workspaceBinding.volumeRoot
-        const runtimeId = createRuntimeId(options, workspacePath, workingDirectory)
+        const protectProjectContent = options.protectProjectContent === true || options.workFor.type === 'project'
+        const runtimeId = createRuntimeId(options, workspacePath, workingDirectory, protectProjectContent)
         const client = new NsjailRunnerClient(config)
         await client.createRuntime({
             runtimeId,
             workingDirectory,
-            workspacePath
+            workspacePath,
+            ...(protectProjectContent ? { protectProjectContent: true as const } : {})
         })
 
         return new NsjailSandbox({
             client,
             environmentId: options.environmentId,
+            ...(protectProjectContent ? { protectProjectContent: true as const } : {}),
             runtimeId,
             workspacePath,
             workingDirectory

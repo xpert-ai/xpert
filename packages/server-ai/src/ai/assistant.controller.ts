@@ -89,12 +89,19 @@ export class AssistantsController {
 
     @Get(':id/runtime-capabilities')
     @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
-    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+    @ApiQuery({ name: 'projectId', required: false, type: String })
+    async getRuntimeCapabilities(
+        @Param('id') id: string,
+        @Query('isDraft') isDraft?: string | boolean | string[],
+        @Query('projectId') projectId?: string
+    ) {
         const sourceXpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
         })
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
-        return this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+        return projectId
+            ? this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id, projectId)
+            : this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
     }
 
     @Get(':id/models')

@@ -143,18 +143,20 @@ import { IconComponent } from '../../@shared/avatar'
                       <h3 id="project-command-card" class="text-base font-semibold text-text-primary">
                         {{ 'XP.XProject.Instruction' | translate }}
                       </h3>
-                      <a
-                        z-button
-                        zType="ghost"
-                        zSize="sm"
-                        [routerLink]="['/project', id(), 'config']"
-                        [attr.aria-label]="'XP.XProject.Edit' | translate"
-                        [title]="'XP.XProject.Edit' | translate"
-                      >
-                        <i class="ri-add-line"></i>
-                      </a>
+                      @if (canEditProjectContent()) {
+                        <a
+                          z-button
+                          zType="ghost"
+                          zSize="sm"
+                          [routerLink]="['/project', id(), 'config']"
+                          [attr.aria-label]="'XP.XProject.Edit' | translate"
+                          [title]="'XP.XProject.Edit' | translate"
+                        >
+                          <i class="ri-add-line"></i>
+                        </a>
+                      }
                     </div>
-                    @if (facade.project()?.settings?.instruction?.trim(); as instruction) {
+                    @if (facade.projectInstruction().trim(); as instruction) {
                       <p class="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6 text-text-secondary">
                         {{ instruction }}
                       </p>
@@ -256,33 +258,23 @@ import { IconComponent } from '../../@shared/avatar'
                         <h3 id="project-skills-card" class="text-base font-semibold text-text-primary">
                           {{ 'XP.XProject.Skills' | translate }}
                         </h3>
-                        <span class="text-sm text-text-tertiary">{{ workspaceSkills().length }}</span>
                       </div>
-                      <a
-                        z-button
-                        zType="ghost"
-                        zSize="sm"
-                        [routerLink]="workspaceId() ? ['/xpert/w', workspaceId(), 'skills'] : null"
-                        [attr.aria-label]="'XP.XProject.OpenWorkspaceResources' | translate"
-                        [title]="'XP.XProject.OpenWorkspaceResources' | translate"
-                      >
-                        <i class="ri-add-line"></i>
-                      </a>
+                      @if (canEditProjectContent()) {
+                        <a
+                          z-button
+                          zType="ghost"
+                          zSize="sm"
+                          [routerLink]="['/project', id(), 'config']"
+                          [attr.aria-label]="'XP.XProject.ManageProjectSkills' | translate"
+                          [title]="'XP.XProject.ManageProjectSkills' | translate"
+                        >
+                          <i class="ri-add-line"></i>
+                        </a>
+                      }
                     </div>
-                    @if (workspaceSkills().length) {
-                      <div class="mt-4 flex flex-wrap gap-2">
-                        @for (skill of workspaceSkills().slice(0, 5); track skill.id) {
-                          <span
-                            class="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-divider-subtle bg-background-default-subtle"
-                            [title]="skillLabel(skill)"
-                          >
-                            <xp-icon [icon]="skill.metadata?.icon ?? null" [size]="22"></xp-icon>
-                          </span>
-                        }
-                      </div>
-                    } @else {
-                      <p class="mt-4 text-sm text-text-tertiary">{{ 'XP.XProject.NoSkillsInWorkspace' | translate }}</p>
-                    }
+                    <p class="mt-4 text-sm text-text-tertiary">
+                      {{ 'XP.XProject.ProjectSkillsPanelHint' | translate }}
+                    </p>
                   </section>
 
                   <section
@@ -417,6 +409,7 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   readonly workspaceSkills = signal<ISkillPackage[]>([])
   readonly workspaceResourcesLoading = signal(false)
   readonly projectExperts = computed(() => this.facade.project()?.xperts ?? [])
+  readonly canEditProjectContent = computed(() => this.facade.projectAccess()?.capabilities.canEdit ?? false)
   readonly workspaceConnectorCount = computed(() => this.workspaceConnectors().length)
   readonly workspaceId = computed(() => this.facade.project()?.workspaceId ?? '')
   readonly #connectorService = inject(XpertConnectorService)

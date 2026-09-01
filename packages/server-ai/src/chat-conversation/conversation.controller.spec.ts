@@ -1,6 +1,10 @@
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ForbiddenException, Logger } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/server-core'
+import { once } from 'events'
+import type { Response } from 'express'
+import { PassThrough, Readable } from 'stream'
+import { finished } from 'stream/promises'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { ChatConversationController } from './conversation.controller'
 import { ChatConversationService } from './conversation.service'
@@ -17,6 +21,7 @@ describe('ChatConversationController goal routes', () => {
         findAllByXpert: jest.Mock
         findOneDetail: jest.Mock
         findOneInOrganizationOrTenant: jest.Mock
+        getWorkspaceFileDownload: jest.Mock
         update: jest.Mock
     }
     let goalService: {
@@ -46,6 +51,7 @@ describe('ChatConversationController goal routes', () => {
                 id: 'scoped-conversation-1',
                 threadId: 'thread-1'
             }),
+            getWorkspaceFileDownload: jest.fn(),
             update: jest.fn().mockResolvedValue({ affected: 1 })
         }
         goalService = {
@@ -79,6 +85,101 @@ describe('ChatConversationController goal routes', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('streams a conversation file from its authorized handle and closes it after the response ends', async () => {
+        const fileHandle = {
+            close: jest.fn().mockResolvedValue(undefined),
+            createReadStream: jest.fn().mockReturnValue(Readable.from([Buffer.from('conversation file')]))
+        }
+        service.getWorkspaceFileDownload.mockResolvedValue({
+            absolutePath: '/proc/self/fd/11',
+            fileHandle,
+            fileName: 'report.txt',
+            mimeType: 'text/plain',
+            type: 'file'
+        })
+        const response = createDownloadResponse()
+
+        await controller.downloadFile('conversation-1', 'report.txt', 'org-1', response.value)
+        await response.completed
+
+        expect(organizationScopeService.run).toHaveBeenCalledWith('org-1', expect.any(Function))
+        expect(service.getWorkspaceFileDownload).toHaveBeenCalledWith('conversation-1', 'report.txt')
+        expect(response.body()).toEqual(Buffer.from('conversation file'))
+        expect(fileHandle.createReadStream).toHaveBeenCalledTimes(1)
+        expect(fileHandle.close).toHaveBeenCalled()
+    })
+
+    it('closes a conversation file handle when the client closes the response early', async () => {
+        const source = new PassThrough()
+        let markStreamReady: () => void = () => undefined
+        const streamReady = new Promise<void>((resolve) => {
+            markStreamReady = resolve
+        })
+        const fileHandle = {
+            close: jest.fn().mockResolvedValue(undefined),
+            createReadStream: jest.fn().mockImplementation(() => {
+                markStreamReady()
+                return source
+            })
+        }
+        service.getWorkspaceFileDownload.mockResolvedValue({
+            absolutePath: '/proc/self/fd/12',
+            fileHandle,
+            fileName: 'large.mov',
+            mimeType: 'video/quicktime',
+            type: 'file'
+        })
+        const response = createDownloadResponse()
+        const responseCompleted = response.completed.catch(() => undefined)
+        const responseClosed = once(response.stream, 'close')
+
+        const download = controller.downloadFile('conversation-1', 'large.mov', 'org-1', response.value)
+        await streamReady
+        response.stream.destroy()
+        await responseClosed
+        await download
+        await responseCompleted
+
+        expect(source.destroyed).toBe(true)
+        expect(fileHandle.close).toHaveBeenCalled()
+    })
+
+    it('archives conversation directory entries from authorized handles and closes every handle', async () => {
+        const directoryHandle = { close: jest.fn().mockResolvedValue(undefined) }
+        const entryHandle = {
+            close: jest.fn().mockResolvedValue(undefined),
+            createReadStream: jest.fn().mockReturnValue(Readable.from([Buffer.from('inside archive')]))
+        }
+        async function* entries() {
+            try {
+                yield { archivePath: 'nested/', type: 'directory' as const }
+                try {
+                    yield { archivePath: 'nested/report.txt', fileHandle: entryHandle, type: 'file' as const }
+                } finally {
+                    await entryHandle.close()
+                }
+            } finally {
+                await directoryHandle.close()
+            }
+        }
+        service.getWorkspaceFileDownload.mockResolvedValue({
+            directoryHandle,
+            entries: entries(),
+            fileName: 'docs.zip',
+            mimeType: 'application/zip',
+            type: 'directory'
+        })
+        const response = createDownloadResponse()
+
+        await controller.downloadFile('conversation-1', 'docs', 'org-1', response.value)
+        await response.completed
+
+        expect(response.body().subarray(0, 2)).toEqual(Buffer.from('PK'))
+        expect(entryHandle.createReadStream).toHaveBeenCalledTimes(1)
+        expect(entryHandle.close).toHaveBeenCalled()
+        expect(directoryHandle.close).toHaveBeenCalled()
     })
 
     it('resolves the scoped conversation before reading a goal', async () => {
@@ -244,3 +345,17 @@ describe('ChatConversationController goal routes', () => {
         expect(service.delete).toHaveBeenCalledWith('requested-conversation-1')
     })
 })
+
+function createDownloadResponse() {
+    const stream = new PassThrough()
+    const chunks: Buffer[] = []
+    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
+    const response = stream as PassThrough & { setHeader: jest.Mock }
+    response.setHeader = jest.fn()
+    return {
+        value: response as unknown as Response,
+        stream,
+        completed: finished(stream),
+        body: () => Buffer.concat(chunks)
+    }
+}

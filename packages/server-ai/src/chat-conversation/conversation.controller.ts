@@ -37,9 +37,9 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { Like } from 'typeorm'
-import { createReadStream } from 'fs'
 import type { Response } from 'express'
 import archiver from 'archiver'
+import { finished } from 'stream/promises'
 import { t } from 'i18next'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
 import { FindXpertQuery } from '../xpert'
@@ -358,17 +358,69 @@ export class ChatConversationController {
         )
 
         if (file.type === 'directory') {
+            if (res.destroyed || res.writableEnded) {
+                await file.entries.return(undefined)
+                await file.directoryHandle.close().catch(() => undefined)
+                return
+            }
             const archive = archiver('zip', { zlib: { level: 9 } })
-            archive.on('error', (error) => {
-                res.destroy(error)
-            })
-            archive.pipe(res)
-            archive.directory(file.absolutePath, false)
-            await archive.finalize()
+            let currentStream: ReturnType<typeof file.directoryHandle.createReadStream> | null = null
+            const abort = () => {
+                archive.abort()
+                currentStream?.destroy()
+                void file.entries.return(undefined)
+                void file.directoryHandle.close().catch(() => undefined)
+            }
+            res.once('close', abort)
+            res.once('error', abort)
+            try {
+                archive.on('error', (error) => {
+                    res.destroy(error)
+                })
+                archive.pipe(res)
+                for await (const entry of file.entries) {
+                    if (entry.type === 'directory') {
+                        archive.append('', { name: entry.archivePath })
+                    } else {
+                        currentStream = entry.fileHandle.createReadStream()
+                        archive.append(currentStream, { name: entry.archivePath })
+                        await finished(currentStream)
+                        currentStream = null
+                    }
+                }
+                await archive.finalize()
+            } catch (error) {
+                if (!res.destroyed && !res.writableEnded) throw error
+            } finally {
+                res.off('close', abort)
+                res.off('error', abort)
+                currentStream?.destroy()
+                await file.entries.return(undefined)
+                await file.directoryHandle.close().catch(() => undefined)
+            }
             return
         }
 
-        createReadStream(file.absolutePath).pipe(res)
+        if (res.destroyed || res.writableEnded) {
+            await file.fileHandle.close().catch(() => undefined)
+            return
+        }
+        const stream = file.fileHandle.createReadStream({ autoClose: false })
+        const abort = () => stream.destroy()
+        res.once('close', abort)
+        res.once('error', abort)
+        try {
+            stream.on('error', (error) => res.destroy(error))
+            stream.pipe(res)
+            await finished(stream)
+        } catch (error) {
+            if (!res.destroyed && !res.writableEnded) throw error
+        } finally {
+            res.off('close', abort)
+            res.off('error', abort)
+            stream.destroy()
+            await file.fileHandle.close().catch(() => undefined)
+        }
     }
 
     @Put(':id/file')

@@ -3,9 +3,20 @@ import { STATE_VARIABLE_HUMAN } from '@xpert-ai/contracts'
 
 export const RUNTIME_CAPABILITIES_HUMAN_INPUT_KEY = 'runtimeCapabilities'
 
-export type TRuntimeCapabilitiesSelection = RuntimeCapabilitiesSelection
-export type TRuntimeCapabilitiesSelectionSet = RuntimeCapabilitiesSelectionSet
-export type TRuntimeCapabilitiesSelectionWithRecommended = RuntimeCapabilitiesSelection
+export type TRuntimeConnectorSelection = {
+    bindingIds: string[]
+}
+
+export type TRuntimeCapabilitiesSelectionSet = RuntimeCapabilitiesSelectionSet & {
+    connectors?: TRuntimeConnectorSelection
+}
+
+export type TRuntimeCapabilitiesSelection = Omit<RuntimeCapabilitiesSelection, 'recommended'> &
+    TRuntimeCapabilitiesSelectionSet & {
+        inheritUnselected?: boolean
+        recommended?: TRuntimeCapabilitiesSelectionSet
+    }
+export type TRuntimeCapabilitiesSelectionWithRecommended = TRuntimeCapabilitiesSelection
 
 export type TRuntimeSkillSelection = {
     workspaceId?: string
@@ -35,9 +46,11 @@ export function normalizeStringArray(value: unknown): string[] {
 
 type RuntimeCapabilitiesSelectionCandidate = {
     mode?: unknown
+    inheritUnselected?: unknown
     skills?: unknown
     plugins?: unknown
     subAgents?: unknown
+    connectors?: unknown
     recommended?: unknown
 }
 
@@ -45,6 +58,7 @@ type RuntimeCapabilitiesSelectionSetCandidate = {
     skills?: unknown
     plugins?: unknown
     subAgents?: unknown
+    connectors?: unknown
 }
 
 type SkillSelectionCandidate = {
@@ -54,6 +68,10 @@ type SkillSelectionCandidate = {
 
 type NodeKeySelectionCandidate = {
     nodeKeys?: unknown
+}
+
+type ConnectorSelectionCandidate = {
+    bindingIds?: unknown
 }
 
 type ChatStateCandidate = {
@@ -84,6 +102,10 @@ function toNodeKeySelectionCandidate(value: unknown): NodeKeySelectionCandidate 
     return isObjectValue(value) ? (value as NodeKeySelectionCandidate) : null
 }
 
+function toConnectorSelectionCandidate(value: unknown): ConnectorSelectionCandidate | null {
+    return isObjectValue(value) ? (value as ConnectorSelectionCandidate) : null
+}
+
 function normalizeSelectionSet(
     value: RuntimeCapabilitiesSelectionSetCandidate,
     fallbackWorkspaceId?: string
@@ -91,6 +113,7 @@ function normalizeSelectionSet(
     const skills = toSkillSelectionCandidate(value.skills)
     const plugins = toNodeKeySelectionCandidate(value.plugins)
     const subAgents = toNodeKeySelectionCandidate(value.subAgents)
+    const connectors = toConnectorSelectionCandidate(value.connectors)
     const workspaceId =
         typeof skills?.workspaceId === 'string' && skills.workspaceId.trim()
             ? skills.workspaceId.trim()
@@ -106,7 +129,8 @@ function normalizeSelectionSet(
         },
         subAgents: {
             nodeKeys: normalizeStringArray(subAgents?.nodeKeys)
-        }
+        },
+        ...(connectors ? { connectors: { bindingIds: normalizeStringArray(connectors.bindingIds) } } : {})
     }
 }
 
@@ -115,7 +139,8 @@ function hasSelectionSet(selection?: TRuntimeCapabilitiesSelectionSet | null): b
         selection &&
         (selection.skills.ids.length > 0 ||
             selection.plugins.nodeKeys.length > 0 ||
-            (selection.subAgents?.nodeKeys.length ?? 0) > 0)
+            (selection.subAgents?.nodeKeys.length ?? 0) > 0 ||
+            (selection.connectors?.bindingIds.length ?? 0) > 0)
     )
 }
 
@@ -123,6 +148,7 @@ function mergeSelectionSets(
     ...selections: Array<TRuntimeCapabilitiesSelectionSet | null | undefined>
 ): TRuntimeCapabilitiesSelectionSet {
     const workspaceId = selections.find((selection) => selection?.skills.workspaceId)?.skills.workspaceId
+    const hasConnectorSelection = selections.some((selection) => !!selection?.connectors)
 
     return {
         skills: {
@@ -134,7 +160,14 @@ function mergeSelectionSets(
         },
         subAgents: {
             nodeKeys: mergeStringLists(...selections.map((selection) => selection?.subAgents?.nodeKeys))
-        }
+        },
+        ...(hasConnectorSelection
+            ? {
+                  connectors: {
+                      bindingIds: mergeStringLists(...selections.map((selection) => selection?.connectors?.bindingIds))
+                  }
+              }
+            : {})
     }
 }
 
@@ -155,9 +188,15 @@ export function normalizeRuntimeCapabilitiesSelection(
 
     return {
         mode: 'allowlist',
+        ...(candidate.inheritUnselected === true ? { inheritUnselected: true } : {}),
         ...merged,
         ...(hasSelectionSet(recommended) ? { recommended } : {})
     }
+}
+
+export function isRuntimeCapabilitiesAllowlist(value: unknown): boolean {
+    const candidate = toSelectionCandidate(value)
+    return candidate?.mode === 'allowlist' && candidate.inheritUnselected !== true
 }
 
 export function getRecommendedRuntimeSkillSelection(value: unknown): TRuntimeSkillSelection {
@@ -173,6 +212,10 @@ export function getRecommendedRuntimeSkillSelection(value: unknown): TRuntimeSki
     }
 }
 
+export function getRuntimeConnectorBindingIds(value: unknown): string[] {
+    return normalizeRuntimeCapabilitiesSelection(value)?.connectors?.bindingIds ?? []
+}
+
 export function mergeRuntimeCapabilitiesSelection(
     current: TRuntimeCapabilitiesSelectionWithRecommended | null | undefined,
     next: TRuntimeCapabilitiesSelectionWithRecommended | null | undefined
@@ -186,6 +229,7 @@ export function mergeRuntimeCapabilitiesSelection(
 
     return {
         mode: 'allowlist',
+        ...(current?.inheritUnselected || next?.inheritUnselected ? { inheritUnselected: true } : {}),
         ...merged,
         ...(hasSelectionSet(recommended) ? { recommended } : {})
     }

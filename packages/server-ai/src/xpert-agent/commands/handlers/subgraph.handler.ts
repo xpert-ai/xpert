@@ -37,11 +37,13 @@ import {
     isAgentKey,
     isAgentWorkflowNode,
     isAgentWorkflowNodeType,
+    IWFNMiddleware,
     IXpert,
     IXpertAgent,
     IXpertAgentExecution,
     KnowledgebaseChannel,
     mapTranslationLanguage,
+    normalizeMiddlewareProvider,
     STATE_VARIABLE_HUMAN,
     stringifyMessageContent,
     TAgentRunnableConfigurable,
@@ -61,6 +63,7 @@ import {
     AgentBuiltInState,
     AgentMiddleware,
     AgentMiddlewareRegistry,
+    AgentMiddlewareRuntimeScope,
     BeforeModelHandler,
     IAgentMiddlewareContext,
     JumpToTarget,
@@ -127,7 +130,9 @@ import {
     getRuntimeEnabledSubAgentConnections,
     getSubAgentConnectionTargetKey,
     createAgentChannel,
-    createPlanModeMiddlewareEntries
+    createPlanModeMiddlewareEntries,
+    getRuntimeConnectorBindingIds,
+    isRuntimeCapabilitiesAllowlist
 } from '../../../shared'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
@@ -146,6 +151,10 @@ import {
 } from './invalid-tool-call-diagnostics'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { resolveToolRuntimeScope } from '../../../tool-runtime/workspace-scope'
+import {
+    CONNECTOR_MIDDLEWARE_NAME,
+    connectorRuntimeMiddlewareProvider
+} from '../../../xpert-middleware/connector.middleware'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
@@ -435,7 +444,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         let runtimeEnabledFollowers = agent.followers ?? []
         let runtimeEnabledCollaborators = agent.collaborators ?? []
 
-        if (options.runtimeCapabilities?.mode === 'allowlist') {
+        if (isRuntimeCapabilitiesAllowlist(options.runtimeCapabilities)) {
             const enabledSubAgentConnections = getRuntimeEnabledSubAgentConnections(graph, agent, {
                 runtimeCapabilities: options.runtimeCapabilities
             })
@@ -779,7 +788,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtimeCapabilities: options.runtimeCapabilities
         })
         const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
-        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
+        const connectorBindingIds = getRuntimeConnectorBindingIds(options.runtimeCapabilities)
+        const middlewareRuntimeScope: AgentMiddlewareRuntimeScope = {
             tenantId: runtimeXpert.tenantId,
             organizationId: runtimeOrganizationId,
             userId: runtimeUserId,
@@ -794,10 +804,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             threadId: thread_id,
             agentKey,
             executionId: resolveExecutionId(),
+            connectorBindingIds,
             usageCallback: usageRecorder.usageCallback,
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath
-        })
+        }
+        const selectedRuntimeConnectorBindings =
+            await this.agentMiddlewareRuntimeService.resolveSelectedConnectorRuntimeBindings(middlewareRuntimeScope)
+        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi(middlewareRuntimeScope)
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
             tenantId: runtimeXpert.tenantId,
             organizationId: runtimeOrganizationId,
@@ -843,6 +857,40 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 middleware: fileUnderstandingMiddleware
             })
         }
+        for (const binding of selectedRuntimeConnectorBindings) {
+            const runtimeProvider = connectorRuntimeMiddlewareProvider(binding.provider)
+            const strategy = (() => {
+                try {
+                    return this.agentMiddlewareRegistry.get(runtimeProvider, runtimeOrganizationId ?? undefined)
+                } catch {
+                    throw new InternalServerErrorException(
+                        t('server-ai:Error.ConnectorRuntimeNotRegistered', {
+                            provider: binding.provider,
+                            defaultValue: `Connector runtime '${binding.provider}' is not registered`
+                        })
+                    )
+                }
+            })()
+            const key = `__connector_runtime_${binding.bindingId}__`
+            const middleware = inheritMiddlewareToolDisplayMetadata(
+                await strategy.createMiddleware(
+                    { connectorId: binding.bindingId },
+                    {
+                        ...middlewareContext,
+                        node: {
+                            id: key,
+                            key,
+                            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                            provider: runtimeProvider,
+                            required: true
+                        }
+                    }
+                ),
+                strategy.meta
+            )
+            middleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
+            builtinMiddlewareEntries.push({ key, middleware })
+        }
         const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
             graph,
             agent,
@@ -853,6 +901,20 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 runtimeCapabilities: options.runtimeCapabilities
             }
         )
+        const visibleMiddlewareEntries = visibleMiddlewareNodes.reduce<
+            Array<{ key: string; middleware: AgentMiddleware }>
+        >((entries, node, index) => {
+            const entity = node.entity as IWFNMiddleware
+            const isGraphConnectorMiddleware =
+                normalizeMiddlewareProvider(entity.provider) === CONNECTOR_MIDDLEWARE_NAME
+            if (isRuntimeCapabilitiesAllowlist(options.runtimeCapabilities) && isGraphConnectorMiddleware) {
+                return entries
+            }
+            const middleware = visibleAgentMiddlewares[index]
+            if (middleware) entries.push({ key: node.key, middleware })
+            return entries
+        }, [])
+        const effectiveVisibleAgentMiddlewares = visibleMiddlewareEntries.map(({ middleware }) => middleware)
         const runtimeMiddlewareEntries = await createPlanModeMiddlewareEntries(
             this.agentMiddlewareRegistry,
             middlewareContext,
@@ -882,22 +944,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                   ]
                 : []),
             ...builtinMiddlewareEntries,
-            ...visibleMiddlewareNodes.reduce<Array<{ key: string; middleware: AgentMiddleware }>>(
-                (acc, node, index) => {
-                    const middleware = visibleAgentMiddlewares[index]
-                    if (middleware) {
-                        acc.push({ key: node.key, middleware })
-                    }
-                    return acc
-                },
-                []
-            ),
+            ...visibleMiddlewareEntries,
             ...runtimeMiddlewareEntries
         ]
         // Middleware tools
         const middlewareTools: TGraphTool[] = [
             ...builtinMiddlewareEntries.map(({ middleware }) => middleware),
-            ...visibleAgentMiddlewares,
+            ...effectiveVisibleAgentMiddlewares,
             ...runtimeAgentMiddlewares
         ]
             .filter((middleware) => middleware?.tools?.length)
@@ -1114,6 +1167,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
             let systemTemplate = `Current date: ${state.sys.date}\nYour ID is '${agent.key}'. Your name is '${agent.name || runtimeXpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
+            if (state.sys.project_instruction?.trim()) {
+                systemTemplate += `\n\n<ProjectInstructions>\n${state.sys.project_instruction}\n</ProjectInstructions>`
+            }
             if (memories?.length) {
                 systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
             }

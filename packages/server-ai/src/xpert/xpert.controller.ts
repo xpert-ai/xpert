@@ -72,8 +72,8 @@ import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
-import { createReadStream } from 'fs'
 import archiver from 'archiver'
+import { finished } from 'stream/promises'
 import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -449,12 +449,19 @@ export class XpertController extends CrudController<Xpert> {
     @UseGuards(XpertGuard)
     @Get(':id/runtime-capabilities')
     @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
-    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+    @ApiQuery({ name: 'projectId', required: false, type: String })
+    async getRuntimeCapabilities(
+        @Param('id') id: string,
+        @Query('isDraft') isDraft?: string | boolean | string[],
+        @Query('projectId') projectId?: string
+    ) {
         const sourceXpert = await this.service.findOne(id, {
             relations: RUNTIME_CAPABILITY_XPERT_RELATIONS
         })
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
-        return this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+        return projectId
+            ? this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id, projectId)
+            : this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
     }
 
     @UseGuards(XpertGuard)
@@ -710,15 +717,67 @@ export class XpertController extends CrudController<Xpert> {
         )
 
         if (file.type === 'directory') {
+            if (res.destroyed || res.writableEnded) {
+                await file.entries.return(undefined)
+                await file.directoryHandle.close().catch(() => undefined)
+                return
+            }
             const archive = archiver('zip', { zlib: { level: 9 } })
-            archive.on('error', (error) => res.destroy(error))
-            archive.pipe(res)
-            archive.directory(file.absolutePath, false)
-            await archive.finalize()
+            let currentStream: ReturnType<typeof file.directoryHandle.createReadStream> | null = null
+            const abort = () => {
+                archive.abort()
+                currentStream?.destroy()
+                void file.entries.return(undefined)
+                void file.directoryHandle.close().catch(() => undefined)
+            }
+            res.once('close', abort)
+            res.once('error', abort)
+            try {
+                archive.on('error', (error) => res.destroy(error))
+                archive.pipe(res)
+                for await (const entry of file.entries) {
+                    if (entry.type === 'directory') {
+                        archive.append('', { name: entry.archivePath })
+                    } else {
+                        currentStream = entry.fileHandle.createReadStream()
+                        archive.append(currentStream, { name: entry.archivePath })
+                        await finished(currentStream)
+                        currentStream = null
+                    }
+                }
+                await archive.finalize()
+            } catch (error) {
+                if (!res.destroyed && !res.writableEnded) throw error
+            } finally {
+                res.off('close', abort)
+                res.off('error', abort)
+                currentStream?.destroy()
+                await file.entries.return(undefined)
+                await file.directoryHandle.close().catch(() => undefined)
+            }
             return
         }
 
-        createReadStream(file.absolutePath).pipe(res)
+        if (res.destroyed || res.writableEnded) {
+            await file.fileHandle.close().catch(() => undefined)
+            return
+        }
+        const stream = file.fileHandle.createReadStream({ autoClose: false })
+        const abort = () => stream.destroy()
+        res.once('close', abort)
+        res.once('error', abort)
+        try {
+            stream.on('error', (error) => res.destroy(error))
+            stream.pipe(res)
+            await finished(stream)
+        } catch (error) {
+            if (!res.destroyed && !res.writableEnded) throw error
+        } finally {
+            res.off('close', abort)
+            res.off('error', abort)
+            stream.destroy()
+            await file.fileHandle.close().catch(() => undefined)
+        }
     }
 
     @UseGuards(XpertGuard)

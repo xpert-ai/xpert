@@ -33,6 +33,8 @@ export type SandboxProviderCreateOptions = {
    * Explicit mapping between the server-visible volume root and the sandbox-visible workspace root.
    */
   workspaceBinding?: SandboxWorkspaceBinding
+  /** Trusted Project scope hint for providers that can enforce read-only Project Content. */
+  protectProjectContent?: true
   /**
    * Canonical sandbox environment identifier that owns the container lifecycle.
    */

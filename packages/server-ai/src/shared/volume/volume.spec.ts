@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 
 const mockEnvironment = {
@@ -44,6 +44,7 @@ describe('Volume runtime clients', () => {
 
         expect(volume.serverRoot).toBe('/sandbox/tenant-1/project/project-1')
         expect(volume.hostRoot).toBe('/mnt/sandbox/tenant-1/project/project-1')
+        expect(volume.serverProvisioningRoot).toBe('/sandbox')
         expect(volume.publicBaseUrl).toBe('http://localhost:3000/api/sandbox/volume/project/project-1')
     })
 
@@ -99,6 +100,84 @@ describe('Volume runtime clients', () => {
         }
     })
 
+    it.each([
+        { userId: 'user-1', xpertId: '../../../user/user-2/xpert/xpert-2' },
+        { userId: '..\\user-2', xpertId: 'xpert-1' }
+    ])('rejects unsafe user-xpert scope identifiers before resolving a volume root', (scope) => {
+        expect(() =>
+            new DockerVolumeClient().resolve({
+                tenantId: 'tenant-1',
+                catalog: 'user-xperts',
+                ...scope
+            })
+        ).toThrow(Error)
+    })
+
+    it.each(['../tenant-2', 'tenant-1/user/user-1'])('rejects unsafe tenant identifiers: %s', (tenantId) => {
+        expect(() =>
+            new DockerVolumeClient().resolve({
+                tenantId,
+                catalog: 'projects',
+                projectId: 'project-1'
+            })
+        ).toThrow(Error)
+        expect(() => new DockerVolumeClient().resolveRoot(tenantId)).toThrow(Error)
+    })
+
+    it('rejects a symlink that resolves outside the selected volume root', async () => {
+        const baseRoot = await mkdtemp(path.join(tmpdir(), 'volume-realpath-'))
+        const volumeRoot = path.join(baseRoot, 'volume')
+        const privateRoot = path.join(baseRoot, 'private')
+        await mkdir(volumeRoot)
+        await mkdir(privateRoot)
+        await writeFile(path.join(privateRoot, 'secret.txt'), 'secret', 'utf8')
+        await symlink(privateRoot, path.join(volumeRoot, 'escape'))
+
+        try {
+            await expect(VolumeHandle.openExistingFile(volumeRoot, 'escape/secret.txt')).rejects.toThrow(
+                'outside of the volume root'
+            )
+        } finally {
+            await rm(baseRoot, { recursive: true, force: true })
+        }
+    })
+
+    it('allows a symlink that stays inside the selected volume root', async () => {
+        const volumeRoot = await mkdtemp(path.join(tmpdir(), 'volume-realpath-control-'))
+        await mkdir(path.join(volumeRoot, 'files'))
+        await writeFile(path.join(volumeRoot, 'files', 'report.txt'), 'report', 'utf8')
+        await symlink(path.join(volumeRoot, 'files'), path.join(volumeRoot, 'current'))
+
+        try {
+            const openedFile = await VolumeHandle.openExistingFile(volumeRoot, 'current/report.txt')
+            expect(openedFile.filePath).toBe(await realpath(path.join(volumeRoot, 'files', 'report.txt')))
+            await openedFile.fileHandle.close()
+        } finally {
+            await rm(volumeRoot, { recursive: true, force: true })
+        }
+    })
+
+    it('keeps reading the validated file descriptor when the original path is replaced', async () => {
+        const baseRoot = await mkdtemp(path.join(tmpdir(), 'volume-open-handle-'))
+        const volumeRoot = path.join(baseRoot, 'volume')
+        const privateRoot = path.join(baseRoot, 'private')
+        const reportPath = path.join(volumeRoot, 'report.txt')
+        await mkdir(volumeRoot)
+        await mkdir(privateRoot)
+        await writeFile(reportPath, 'safe report', 'utf8')
+        await writeFile(path.join(privateRoot, 'secret.txt'), 'secret', 'utf8')
+
+        const openedFile = await VolumeHandle.openExistingFile(volumeRoot, 'report.txt')
+        try {
+            await rename(reportPath, path.join(volumeRoot, 'original.txt'))
+            await symlink(path.join(privateRoot, 'secret.txt'), reportPath)
+            await expect(openedFile.fileHandle.readFile('utf8')).resolves.toBe('safe report')
+        } finally {
+            await openedFile.fileHandle.close()
+            await rm(baseRoot, { recursive: true, force: true })
+        }
+    })
+
     it('keeps local-shell workspace paths on the server-visible volume', () => {
         const volume = new DockerVolumeClient().resolve({
             tenantId: 'tenant-1',
@@ -137,6 +216,7 @@ describe('Volume runtime clients', () => {
 
         expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/user/user-1')
         expect(volume.hostRoot).toBe('/tmp/sandbox/tenant-1/user/user-1')
+        expect(volume.serverProvisioningRoot).toBe('/tmp/sandbox')
     })
 
     it('keeps projects and shared xperts in distinct logical subtrees in local development', () => {
@@ -235,6 +315,7 @@ describe('Volume runtime clients', () => {
         const expected = path.join(process.env.HOME!, 'data', 'user', userId, 'xpert', xpertId)
         expect(volume.serverRoot).toBe(expected)
         expect(volume.hostRoot).toBe(expected)
+        expect(volume.serverProvisioningRoot).toBe(path.join(process.env.HOME!, 'data'))
         expect(volume.publicBaseUrl).toBe(`http://localhost:3000/api/sandbox/volume/user/${userId}/xpert/${xpertId}`)
     })
 

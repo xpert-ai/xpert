@@ -1,10 +1,13 @@
 import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { normalizeUploadedFileName } from '@xpert-ai/server-common'
-import { BadRequestException } from '@nestjs/common'
-import fsPromises from 'fs/promises'
-import { basename, dirname, isAbsolute, relative, resolve } from 'path'
-import { extractOfficePreviewText, getMediaTypeWithCharset, listFiles } from '../utils'
-import { VolumeHandle } from './volume'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { constants as fsConstants } from 'fs'
+import fsPromises, { type FileHandle } from 'fs/promises'
+import { t } from 'i18next'
+import { basename, isAbsolute, relative, resolve } from 'path'
+import { extractOfficePreviewText, getMediaTypeWithCharset } from '../utils'
+import { isProjectGovernedContentPath } from './project-content-path'
+import { listVolumeFiles, VolumeHandle } from './volume'
 
 const EDITABLE_SUBTREE_EXTENSIONS = new Set([
     'md',
@@ -29,12 +32,25 @@ type TVolumeSubtreeOptions = {
     allowRootWorkspace?: boolean
 }
 
-export type TVolumeSubtreeDownloadTarget = {
-    absolutePath: string
-    fileName: string
-    mimeType: string
-    type: 'file' | 'directory'
-}
+export type TVolumeSubtreeDownloadTarget =
+    | {
+          absolutePath: string
+          fileHandle: FileHandle
+          fileName: string
+          mimeType: string
+          type: 'file'
+      }
+    | {
+          directoryHandle: FileHandle
+          entries: AsyncGenerator<TVolumeSubtreeArchiveEntry>
+          fileName: string
+          mimeType: string
+          type: 'directory'
+      }
+
+export type TVolumeSubtreeArchiveEntry =
+    | { archivePath: string; type: 'directory' }
+    | { archivePath: string; fileHandle: FileHandle; type: 'file' }
 
 export class VolumeSubtreeClient {
     constructor(
@@ -43,87 +59,71 @@ export class VolumeSubtreeClient {
     ) {}
 
     async list(scopePath: string, params?: { path?: string; deepth?: number }): Promise<TFileDirectory[]> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, params?.path)
-        const baseUrl = this.volume.publicUrl(normalizeSubtreePath(scopePath))
-        const files = await listFiles(relativePath || '/', params?.deepth ?? 1, 0, {
-            root: subtreeRoot,
-            baseUrl
-        })
+        const subtreeRoot = await this.openSubtreeRoot(scopePath)
+        try {
+            const relativePath = this.resolveSubtreeRelativePath(subtreeRoot.filePath, params?.path)
+            const baseUrl = this.volume.publicUrl(normalizeSubtreePath(scopePath))
+            const files = await listVolumeFiles(subtreeRoot.descriptorPath, relativePath, {
+                boundaryRoot: this.volume.serverRoot,
+                baseUrl,
+                depth: params?.deepth ?? 1
+            })
 
-        return files ?? []
+            return this.exposesDirectFileUrls() ? files : omitDirectFileUrls(files)
+        } finally {
+            await subtreeRoot.fileHandle.close()
+        }
     }
 
     async readFile(scopePath: string, filePath: string, options?: { metadataOnly?: boolean }): Promise<TFile> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
-        if (!relativePath) {
-            throw new BadRequestException('File path is required')
-        }
+        const { openedFile, relativePath } = await this.openSubtreeFile(scopePath, filePath)
+        try {
+            const stat = openedFile.fileStat
+            const subtreePrefix = normalizeSubtreePath(scopePath)
+            const publicPath = [subtreePrefix, relativePath].filter(Boolean).join('/')
+            const publicUrl = this.exposesDirectFileUrls() ? this.volume.publicUrl(publicPath) : undefined
+            const metadata: TFile = {
+                filePath: relativePath,
+                fileType: getSubtreeFileExtension(relativePath) || 'text',
+                mimeType: getMediaTypeWithCharset(relativePath),
+                size: stat.size,
+                createdAt: stat.mtime,
+                updatedAt: stat.mtime,
+                ...(publicUrl ? { fileUrl: publicUrl, url: publicUrl } : {})
+            }
+            if (options?.metadataOnly) {
+                return metadata
+            }
 
-        const absolutePath = resolve(subtreeRoot, relativePath)
-        const stat = await fsPromises.stat(absolutePath).catch(() => null)
-        if (!stat?.isFile()) {
-            throw new BadRequestException('Conversation file not found')
-        }
-
-        const subtreePrefix = normalizeSubtreePath(scopePath)
-        const publicPath = [subtreePrefix, relativePath].filter(Boolean).join('/')
-        const metadata: TFile = {
-            filePath: relativePath,
-            fileType: getSubtreeFileExtension(relativePath) || 'text',
-            mimeType: getMediaTypeWithCharset(relativePath),
-            size: stat.size,
-            createdAt: stat.mtime,
-            updatedAt: stat.mtime,
-            fileUrl: this.volume.publicUrl(publicPath),
-            url: this.volume.publicUrl(publicPath)
-        }
-        if (options?.metadataOnly) {
-            return metadata
-        }
-
-        const buffer = await fsPromises.readFile(absolutePath)
-        const binary = isBinaryBuffer(buffer)
-        return {
-            ...metadata,
-            contents: binary ? undefined : buffer.toString('utf8'),
-            previewText: binary ? await extractOfficePreviewText(relativePath, buffer) : undefined
+            const buffer = await openedFile.fileHandle.readFile()
+            const binary = isBinaryBuffer(buffer)
+            return {
+                ...metadata,
+                contents: binary ? undefined : buffer.toString('utf8'),
+                previewText: binary ? await extractOfficePreviewText(relativePath, buffer) : undefined
+            }
+        } finally {
+            await openedFile.fileHandle.close()
         }
     }
 
     async readBuffer(scopePath: string, filePath: string): Promise<Buffer> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
-        if (!relativePath) {
-            throw new BadRequestException('File path is required')
+        const { openedFile } = await this.openSubtreeFile(scopePath, filePath)
+        try {
+            return await openedFile.fileHandle.readFile()
+        } finally {
+            await openedFile.fileHandle.close()
         }
-
-        const absolutePath = resolve(subtreeRoot, relativePath)
-        const stat = await fsPromises.stat(absolutePath).catch(() => null)
-        if (!stat?.isFile()) {
-            throw new BadRequestException('Conversation file not found')
-        }
-
-        return fsPromises.readFile(absolutePath)
     }
 
     async getDownloadTarget(scopePath: string, filePath: string): Promise<TVolumeSubtreeDownloadTarget> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
-        if (!relativePath) {
-            throw new BadRequestException('File path is required')
-        }
-
-        const absolutePath = resolve(subtreeRoot, relativePath)
-        const stat = await fsPromises.stat(absolutePath).catch(() => null)
-        if (!stat) {
-            throw new BadRequestException('Conversation file not found')
-        }
+        const { openedFile, relativePath } = await this.openSubtreeEntry(scopePath, filePath)
+        const stat = openedFile.fileStat
 
         if (stat.isDirectory()) {
             return {
-                absolutePath,
+                directoryHandle: openedFile.fileHandle,
+                entries: this.iterateArchiveEntries(openedFile),
                 fileName: `${basename(relativePath)}.zip`,
                 mimeType: 'application/zip',
                 type: 'directory'
@@ -131,11 +131,13 @@ export class VolumeSubtreeClient {
         }
 
         if (!stat.isFile()) {
+            await openedFile.fileHandle.close()
             throw new BadRequestException('Conversation file not found')
         }
 
         return {
-            absolutePath,
+            absolutePath: openedFile.descriptorPath,
+            fileHandle: openedFile.fileHandle,
             fileName: basename(relativePath),
             mimeType: getMediaTypeWithCharset(relativePath),
             type: 'file'
@@ -143,27 +145,40 @@ export class VolumeSubtreeClient {
     }
 
     async saveFile(scopePath: string, filePath: string, content: string): Promise<TFile> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
-        if (!relativePath) {
-            throw new BadRequestException('File path is required')
-        }
-        if (!isEditableSubtreeFile(relativePath)) {
-            throw new BadRequestException('This file type cannot be edited')
-        }
+        const { openedFile, relativePath } = await this.openSubtreeFile(scopePath, filePath, fsConstants.O_RDWR)
+        try {
+            this.assertMutationAllowed(openedFile.volumeRelativePath, openedFile.fileStat)
+            if (!isEditableSubtreeFile(relativePath)) {
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeFileTypeNotEditable', {
+                        defaultValue: 'This file type cannot be edited'
+                    })
+                )
+            }
+            const existingBuffer = await openedFile.fileHandle.readFile()
+            if (isBinaryBuffer(existingBuffer)) {
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeFileTypeNotEditable', {
+                        defaultValue: 'This file type cannot be edited'
+                    })
+                )
+            }
 
-        const absolutePath = resolve(subtreeRoot, relativePath)
-        const stat = await fsPromises.stat(absolutePath).catch(() => null)
-        if (!stat?.isFile()) {
-            throw new BadRequestException('Conversation file not found')
+            const nextBuffer = Buffer.from(content ?? '', 'utf8')
+            await openedFile.fileHandle.truncate(0)
+            let offset = 0
+            while (offset < nextBuffer.length) {
+                const { bytesWritten } = await openedFile.fileHandle.write(
+                    nextBuffer,
+                    offset,
+                    nextBuffer.length - offset,
+                    offset
+                )
+                offset += bytesWritten
+            }
+        } finally {
+            await openedFile.fileHandle.close()
         }
-
-        const existingBuffer = await fsPromises.readFile(absolutePath)
-        if (isBinaryBuffer(existingBuffer)) {
-            throw new BadRequestException('This file type cannot be edited')
-        }
-
-        await fsPromises.writeFile(absolutePath, content ?? '', 'utf8')
         return this.readFile(scopePath, relativePath)
     }
 
@@ -172,62 +187,164 @@ export class VolumeSubtreeClient {
         folderPath: string,
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativeFolderPath = this.resolveSubtreeRelativePath(subtreeRoot, folderPath)
-        let fileName = ''
+        const subtreeRoot = await this.openSubtreeRoot(scopePath)
+        let relativeFilePath: string
         try {
-            fileName = normalizeUploadedFileName(file.originalname)
-        } catch {
-            throw new BadRequestException('File name is required')
-        }
+            const relativeFolderPath = this.resolveSubtreeRelativePath(subtreeRoot.filePath, folderPath)
+            let fileName = ''
+            try {
+                fileName = normalizeUploadedFileName(file.originalname)
+            } catch {
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeFileNameRequired', { defaultValue: 'File name is required' })
+                )
+            }
 
-        const relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
-        const absoluteFilePath = resolve(subtreeRoot, relativeFilePath)
-        const resolvedRelativePath = relative(subtreeRoot, absoluteFilePath)
-        if (resolvedRelativePath.startsWith('..') || isAbsolute(resolvedRelativePath)) {
-            throw new BadRequestException('Invalid conversation file path')
+            relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
+            await VolumeHandle.writeFile(subtreeRoot.descriptorPath, relativeFilePath, file.buffer, {
+                boundaryRoot: this.volume.serverRoot,
+                assertCanWrite: (canonicalRelativePath, fileStat) =>
+                    this.assertMutationAllowed(canonicalRelativePath, fileStat)
+            })
+        } finally {
+            await subtreeRoot.fileHandle.close()
         }
-
-        await fsPromises.mkdir(dirname(absoluteFilePath), { recursive: true })
-        await fsPromises.writeFile(absoluteFilePath, file.buffer)
-        return this.readFile(scopePath, resolvedRelativePath.replace(/\\/g, '/'))
+        return this.readFile(scopePath, relativeFilePath)
     }
 
     async deleteFile(scopePath: string, filePath: string): Promise<void> {
-        const subtreeRoot = this.resolveSubtreeRoot(scopePath)
-        const relativePath = this.resolveSubtreeRelativePath(subtreeRoot, filePath)
-        if (!relativePath) {
-            throw new BadRequestException('File path is required')
+        const subtreeRoot = await this.openSubtreeRoot(scopePath)
+        try {
+            const relativePath = this.resolveSubtreeRelativePath(subtreeRoot.filePath, filePath)
+            if (!relativePath) {
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeFilePathRequired', { defaultValue: 'File path is required' })
+                )
+            }
+            await VolumeHandle.removePath(subtreeRoot.descriptorPath, relativePath, {
+                boundaryRoot: this.volume.serverRoot,
+                assertCanRemove: (canonicalRelativePath) => this.assertMutationAllowed(canonicalRelativePath)
+            })
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+                throw error
+            }
+            throw new BadRequestException(
+                t('server-ai:Error.VolumeSubtreeEntryNotFound', { defaultValue: 'Conversation file not found' })
+            )
+        } finally {
+            await subtreeRoot.fileHandle.close()
         }
-
-        const absolutePath = resolve(subtreeRoot, relativePath)
-        const stat = await fsPromises.stat(absolutePath).catch(() => null)
-        if (!stat) {
-            throw new BadRequestException('Conversation file not found')
-        }
-
-        if (stat.isDirectory()) {
-            await fsPromises.rm(absolutePath, { recursive: true, force: true })
-            return
-        }
-
-        await fsPromises.unlink(absolutePath)
     }
 
-    private resolveSubtreeRoot(scopePath: string) {
+    private async openSubtreeRoot(scopePath: string) {
         const normalizedScopePath = normalizeSubtreePath(scopePath)
         if (!normalizedScopePath && !this.options?.allowRootWorkspace) {
-            throw new BadRequestException('Workspace path is required')
+            throw new BadRequestException(
+                t('server-ai:Error.VolumeSubtreeWorkspacePathRequired', {
+                    defaultValue: 'Workspace path is required'
+                })
+            )
         }
 
-        const volumeRoot = this.volume.path()
-        const subtreeRoot = normalizedScopePath ? resolve(volumeRoot, normalizedScopePath) : volumeRoot
-        const relativeToVolume = relative(volumeRoot, subtreeRoot)
-        if (relativeToVolume.startsWith('..') || isAbsolute(relativeToVolume)) {
-            throw new BadRequestException('Invalid workspace path')
+        try {
+            const openedRoot = await VolumeHandle.openExistingFile(this.volume.path(), normalizedScopePath, {
+                boundaryRoot: this.volume.path(),
+                flags:
+                    fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
+            })
+            if (!openedRoot.fileStat.isDirectory()) {
+                await openedRoot.fileHandle.close()
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeWorkspacePathInvalid', {
+                        defaultValue: 'Invalid workspace path'
+                    })
+                )
+            }
+            return openedRoot
+        } catch (error) {
+            if (error instanceof BadRequestException) {
+                throw error
+            }
+            throw new BadRequestException(
+                t('server-ai:Error.VolumeSubtreeWorkspacePathInvalid', { defaultValue: 'Invalid workspace path' })
+            )
         }
+    }
 
-        return subtreeRoot
+    private async openSubtreeEntry(scopePath: string, filePath: string, flags = fsConstants.O_RDONLY) {
+        const subtreeRoot = await this.openSubtreeRoot(scopePath)
+        try {
+            const relativePath = this.resolveSubtreeRelativePath(subtreeRoot.filePath, filePath)
+            if (!relativePath) {
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeFilePathRequired', { defaultValue: 'File path is required' })
+                )
+            }
+            const openedFile = await VolumeHandle.openExistingFile(subtreeRoot.descriptorPath, relativePath, {
+                boundaryRoot: this.volume.serverRoot,
+                flags
+            })
+            return { openedFile, relativePath }
+        } catch (error) {
+            if (error instanceof BadRequestException) {
+                throw error
+            }
+            throw new BadRequestException(
+                t('server-ai:Error.VolumeSubtreeEntryNotFound', { defaultValue: 'Conversation file not found' })
+            )
+        } finally {
+            await subtreeRoot.fileHandle.close()
+        }
+    }
+
+    private async openSubtreeFile(scopePath: string, filePath: string, flags = fsConstants.O_RDONLY) {
+        const result = await this.openSubtreeEntry(scopePath, filePath, flags)
+        if (!result.openedFile.fileStat.isFile()) {
+            await result.openedFile.fileHandle.close()
+            throw new BadRequestException(
+                t('server-ai:Error.VolumeSubtreeEntryNotFound', { defaultValue: 'Conversation file not found' })
+            )
+        }
+        return result
+    }
+
+    private async *iterateArchiveEntries(
+        openedDirectory: TOpenedSubtreePath,
+        prefix = ''
+    ): AsyncGenerator<TVolumeSubtreeArchiveEntry> {
+        try {
+            const entries = await fsPromises.readdir(openedDirectory.descriptorPath, { withFileTypes: true })
+            for (const entry of entries) {
+                if (entry.isSymbolicLink()) {
+                    continue
+                }
+
+                let openedEntry: TOpenedSubtreePath | null = null
+                try {
+                    openedEntry = await VolumeHandle.openExistingFile(openedDirectory.descriptorPath, entry.name, {
+                        boundaryRoot: this.volume.serverRoot,
+                        flags: entry.isDirectory()
+                            ? fsConstants.O_RDONLY |
+                              (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
+                            : fsConstants.O_RDONLY
+                    })
+                    const archivePath = [prefix, entry.name].filter(Boolean).join('/')
+                    if (openedEntry.fileStat.isDirectory()) {
+                        yield { archivePath: `${archivePath}/`, type: 'directory' }
+                        const childDirectory = openedEntry
+                        openedEntry = null
+                        yield* this.iterateArchiveEntries(childDirectory, archivePath)
+                    } else if (openedEntry.fileStat.isFile()) {
+                        yield { archivePath, fileHandle: openedEntry.fileHandle, type: 'file' }
+                    }
+                } finally {
+                    await openedEntry?.fileHandle.close()
+                }
+            }
+        } finally {
+            await openedDirectory.fileHandle.close()
+        }
     }
 
     private resolveSubtreeRelativePath(subtreeRoot: string, filePath?: string | null) {
@@ -244,6 +361,36 @@ export class VolumeSubtreeClient {
 
         return relativePath.replace(/\\/g, '/')
     }
+
+    private exposesDirectFileUrls() {
+        return this.volume.exposesDirectFileUrls()
+    }
+
+    private assertMutationAllowed(canonicalRelativePath: string, fileStat?: { nlink: number }) {
+        if (fileStat && fileStat.nlink !== 1) {
+            throw new ForbiddenException(
+                t('server-ai:Error.VolumeSubtreeMultipleLinksForbidden', {
+                    defaultValue: 'Files with multiple hard links cannot be changed'
+                })
+            )
+        }
+        if (this.volume.scope.catalog === 'projects' && isProjectGovernedContentPath(canonicalRelativePath)) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectContentGenericWriteForbidden', {
+                    defaultValue: 'Project instructions and skills must be changed from Project configuration'
+                })
+            )
+        }
+    }
+}
+
+type TOpenedSubtreePath = Awaited<ReturnType<typeof VolumeHandle.openExistingFile>>
+
+function omitDirectFileUrls(files: TFileDirectory[]): TFileDirectory[] {
+    return files.map(({ url: _url, fileUrl: _fileUrl, children, ...file }) => ({
+        ...file,
+        ...(children ? { children: omitDirectFileUrls(children) } : {})
+    }))
 }
 
 function normalizeSubtreePath(filePath?: string | null) {

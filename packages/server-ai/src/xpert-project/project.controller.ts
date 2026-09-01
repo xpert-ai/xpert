@@ -15,7 +15,8 @@ import {
     IXpertProjectSwimlane,
     IXpertToolset,
     OrderTypeEnum,
-    TXpertProjectMemberRole
+    TXpertProjectMemberRole,
+    TXpertProjectSkillFile
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
@@ -74,7 +75,10 @@ import {
     XpertProjectPlanService
 } from './services'
 import { XpertProjectAccessService } from './services/project-access.service'
+import { XpertProjectContentService } from './services/project-content.service'
 import { XpertProjectMembershipService } from './services/project-membership.service'
+
+const PROJECT_SKILL_ARCHIVE_MAX_BYTES = 25 * 1024 * 1024
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -94,6 +98,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
         private readonly assetService: XpertProjectAssetService,
         private readonly automationService: XpertProjectAutomationService,
         private readonly accessService: XpertProjectAccessService,
+        private readonly contentService: XpertProjectContentService,
         private readonly membershipService: XpertProjectMembershipService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
@@ -229,14 +234,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @UseGuards(XpertProjectGuard)
     @Delete(':id')
     async delete(@Param('id') id: string) {
-        return this.service.delete(id)
+        return this.service.deleteProject(id)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     @UseGuards(XpertProjectGuard)
     @Delete(':id/soft')
     async softRemove(@Param('id') id: string) {
-        return this.service.softRemove(id)
+        return this.service.softRemoveProject(id)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
@@ -481,6 +486,89 @@ export class XpertProjectController extends CrudController<XpertProject> {
                 canUse: project.status !== 'archived'
             }
         }
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/content/instructions')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    getInstructions(@Param('id') id: string) {
+        return this.contentService.readInstructions(id)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Put(':id/content/instructions')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    updateInstructions(@Param('id') id: string, @Body() input: { content?: string }) {
+        return this.contentService.updateInstructions(id, input.content ?? '')
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/content/skills')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    getProjectSkills(@Param('id') id: string) {
+        return this.contentService.listSkills(id)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Post(':id/content/skills/install')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    installProjectSkill(@Param('id') id: string, @Body() input: { indexId?: string }) {
+        return this.contentService.installSkill(id, input.indexId ?? '')
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Post(':id/content/skills/upload')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PROJECT_SKILL_ARCHIVE_MAX_BYTES } }))
+    uploadProjectSkills(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+        return this.contentService.uploadSkills(id, file)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Patch(':id/content/skills')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    updateProjectSkillState(@Param('id') id: string, @Body() input: { skillId?: string; enabled?: boolean }) {
+        if (typeof input.enabled !== 'boolean') {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectSkillEnabledRequired', {
+                    defaultValue: 'Project skill enabled state is required'
+                })
+            )
+        }
+        return this.contentService.setSkillEnabled(id, input.skillId ?? '', input.enabled)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/content/skills')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    uninstallProjectSkill(@Param('id') id: string, @Query('skillId') skillId: string) {
+        return this.contentService.uninstallSkill(id, skillId)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/content/skills/file')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    getProjectSkillFile(@Param('id') id: string, @Query('path') filePath: string): Promise<TXpertProjectSkillFile> {
+        return this.contentService.readSkillFile(id, filePath)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Put(':id/content/skills/file')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    updateProjectSkillFile(
+        @Param('id') id: string,
+        @Body() input: { path: string; content?: string }
+    ): Promise<TXpertProjectSkillFile> {
+        return this.contentService.writeSkillFile(id, input.path, input.content ?? '')
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/content/skills/file')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    deleteProjectSkillPath(@Param('id') id: string, @Query('path') filePath: string) {
+        return this.contentService.deleteSkillPath(id, filePath)
     }
 
     @UseGuards(XpertProjectGuard)
@@ -943,6 +1031,13 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
         if (!file) throw new BadRequestException('A project file is required')
+        if (XpertProjectContentService.isGovernedPath(file.originalname)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectContentApiRequired', {
+                    defaultValue: 'Use the Project Content API to modify project.md or Project skills'
+                })
+            )
+        }
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -985,6 +1080,13 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @Delete(':id/file')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
     async deleteFile(@Param('id') id: string, @Query('path') filePath: string) {
+        if (XpertProjectContentService.isGovernedPath(filePath)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectContentDeleteApiRequired', {
+                    defaultValue: 'Project instructions and skills cannot be deleted through the file API'
+                })
+            )
+        }
         const project = await this.service.findOne(id)
         const client = await this.volumeClient
             .resolve({

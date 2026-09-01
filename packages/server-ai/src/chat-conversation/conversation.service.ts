@@ -25,7 +25,14 @@ import {
     GetOwnedStorageFileQuery,
     ResolveAuthorizedFileAssetQuery
 } from '../file-understanding/queries'
-import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import {
+    isProjectGovernedContentPath,
+    resolveXpertDataVolumeScope,
+    VOLUME_CLIENT,
+    VolumeClient,
+    VolumeSubtreeClient
+} from '../shared/volume'
+import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { ChatConversation } from './conversation.entity'
@@ -558,6 +565,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
+        this.assertGenericWorkspaceMutationAllowed(conversation, normalizeWorkspaceFilePath(filePath))
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         return client.saveFile(scopePath, filePath, content)
     }
@@ -569,6 +577,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     ): Promise<TFile> {
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
+        const uploadPath = normalizeRelativePath(
+            normalizeWorkspaceFilePath(folderPath),
+            normalizeFileName(file.originalname)
+        )
+        this.assertGenericWorkspaceMutationAllowed(conversation, uploadPath)
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         return client.uploadFile(scopePath, folderPath, file)
     }
@@ -576,11 +589,21 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     async deleteWorkspaceFile(id: string, filePath: string): Promise<void> {
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
+        this.assertGenericWorkspaceMutationAllowed(conversation, normalizeWorkspaceFilePath(filePath))
         const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
         await client.deleteFile(scopePath, filePath)
     }
 
     private createWorkspaceVolumeClient(conversation: ChatConversation) {
+        if (conversation.projectId) {
+            return {
+                client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
+                    allowRootWorkspace: true
+                }),
+                scopePath: ''
+            }
+        }
+
         const sandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim()
         if (sandboxEnvironmentId) {
             return {
@@ -590,15 +613,6 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         allowRootWorkspace: true
                     }
                 ),
-                scopePath: ''
-            }
-        }
-
-        if (conversation.projectId) {
-            return {
-                client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
-                    allowRootWorkspace: true
-                }),
                 scopePath: ''
             }
         }
@@ -627,6 +641,16 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     private async assertCanMutateWorkspace(conversation: ChatConversation) {
         if (conversation.projectId) {
             await this.projectAccessService.assertCanEdit(conversation.projectId)
+        }
+    }
+
+    private assertGenericWorkspaceMutationAllowed(conversation: ChatConversation, filePath: string) {
+        if (conversation.projectId && isProjectGovernedContentPath(filePath)) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectContentGenericWriteForbidden', {
+                    defaultValue: 'Project instructions and skills must be changed from Project configuration'
+                })
+            )
         }
     }
 
@@ -868,4 +892,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             })
         )
     }
+}
+
+function normalizeWorkspaceFilePath(filePath?: string | null) {
+    const normalized = (filePath ?? '').trim().replace(/\\/g, '/')
+    return normalized.startsWith('/workspace/')
+        ? normalized.slice('/workspace/'.length)
+        : normalized.replace(/^\/+/, '')
 }

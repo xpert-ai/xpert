@@ -2,10 +2,12 @@ import { BadRequestException, NotFoundException } from '@nestjs/common'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { AiModelTypeEnum, LanguagesEnum, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { RequestContext, SecretTokenService, transformWhere, UserService } from '@xpert-ai/server-core'
-import { EventEmitter } from 'events'
+import { EventEmitter, once } from 'events'
 import type { Response } from 'express'
 import type { I18nService } from 'nestjs-i18n'
 import { EMPTY, Observable } from 'rxjs'
+import { PassThrough, Readable } from 'stream'
+import { finished } from 'stream/promises'
 import type { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import type { CopilotUsageService } from '../copilot-usage/copilot-usage.service'
 import type { EnvironmentService } from '../environment'
@@ -172,7 +174,7 @@ type ControllerPrivateAccess = {
 }
 
 type RuntimeCapabilitiesControllerAccess = {
-    getRuntimeCapabilities(id: string, isDraft?: string | boolean | string[]): Promise<unknown>
+    getRuntimeCapabilities(id: string, isDraft?: string | boolean | string[], projectId?: string): Promise<unknown>
 }
 
 describe('XpertController', () => {
@@ -201,6 +203,9 @@ describe('XpertController', () => {
     }
     let templateWorkspaceInitializer: {
         initializeByTemplateId: jest.Mock
+    }
+    let workspaceFilesService: {
+        download: jest.Mock
     }
     let commandBus: {
         execute: jest.Mock
@@ -243,6 +248,9 @@ describe('XpertController', () => {
                 skipped: []
             }))
         }
+        workspaceFilesService = {
+            download: jest.fn()
+        }
         commandBus = {
             execute: jest.fn()
         }
@@ -265,7 +273,7 @@ describe('XpertController', () => {
             xpertPrincipalService as unknown as XpertPrincipalService,
             {} as unknown as XpertFrequentQuestionsService,
             templateWorkspaceInitializer as unknown as XpertTemplateWorkspaceInitializer,
-            {} as unknown as XpertWorkspaceFilesService,
+            workspaceFilesService as unknown as XpertWorkspaceFilesService,
             {} as unknown as CopilotUsageService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus
@@ -283,6 +291,100 @@ describe('XpertController', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('streams a Xpert workspace file from its authorized handle and closes it after the response ends', async () => {
+        const fileHandle = {
+            close: jest.fn().mockResolvedValue(undefined),
+            createReadStream: jest.fn().mockReturnValue(Readable.from([Buffer.from('xpert workspace file')]))
+        }
+        workspaceFilesService.download.mockResolvedValue({
+            absolutePath: '/proc/self/fd/21',
+            fileHandle,
+            fileName: 'report.txt',
+            mimeType: 'text/plain',
+            type: 'file'
+        })
+        const response = createDownloadResponse()
+
+        await controller.downloadWorkspaceFile('xpert-1', 'report.txt', response.value)
+        await response.completed
+
+        expect(workspaceFilesService.download).toHaveBeenCalledWith('xpert-1', 'report.txt')
+        expect(response.body()).toEqual(Buffer.from('xpert workspace file'))
+        expect(fileHandle.createReadStream).toHaveBeenCalledTimes(1)
+        expect(fileHandle.close).toHaveBeenCalled()
+    })
+
+    it('closes a Xpert workspace file handle when the client closes the response early', async () => {
+        const source = new PassThrough()
+        let markStreamReady: () => void = () => undefined
+        const streamReady = new Promise<void>((resolve) => {
+            markStreamReady = resolve
+        })
+        const fileHandle = {
+            close: jest.fn().mockResolvedValue(undefined),
+            createReadStream: jest.fn().mockImplementation(() => {
+                markStreamReady()
+                return source
+            })
+        }
+        workspaceFilesService.download.mockResolvedValue({
+            absolutePath: '/proc/self/fd/22',
+            fileHandle,
+            fileName: 'large.mov',
+            mimeType: 'video/quicktime',
+            type: 'file'
+        })
+        const response = createDownloadResponse()
+        const responseCompleted = response.completed.catch(() => undefined)
+        const responseClosed = once(response.stream, 'close')
+
+        const download = controller.downloadWorkspaceFile('xpert-1', 'large.mov', response.value)
+        await streamReady
+        response.stream.destroy()
+        await responseClosed
+        await download
+        await responseCompleted
+
+        expect(source.destroyed).toBe(true)
+        expect(fileHandle.close).toHaveBeenCalled()
+    })
+
+    it('archives Xpert workspace directory entries from authorized handles and closes every handle', async () => {
+        const directoryHandle = { close: jest.fn().mockResolvedValue(undefined) }
+        const entryHandle = {
+            close: jest.fn().mockResolvedValue(undefined),
+            createReadStream: jest.fn().mockReturnValue(Readable.from([Buffer.from('inside archive')]))
+        }
+        async function* entries() {
+            try {
+                yield { archivePath: 'nested/', type: 'directory' as const }
+                try {
+                    yield { archivePath: 'nested/report.txt', fileHandle: entryHandle, type: 'file' as const }
+                } finally {
+                    await entryHandle.close()
+                }
+            } finally {
+                await directoryHandle.close()
+            }
+        }
+        workspaceFilesService.download.mockResolvedValue({
+            directoryHandle,
+            entries: entries(),
+            fileName: 'docs.zip',
+            mimeType: 'application/zip',
+            type: 'directory'
+        })
+        const response = createDownloadResponse()
+
+        await controller.downloadWorkspaceFile('xpert-1', 'docs', response.value)
+        await response.completed
+
+        expect(response.body().subarray(0, 2)).toEqual(Buffer.from('PK'))
+        expect(entryHandle.createReadStream).toHaveBeenCalledTimes(1)
+        expect(entryHandle.close).toHaveBeenCalled()
+        expect(directoryHandle.close).toHaveBeenCalled()
     })
 
     it('returns the xpert linked to a technical user', async () => {
@@ -815,7 +917,7 @@ describe('XpertController', () => {
             }
         })
 
-        await expect(controllerAccess.getRuntimeCapabilities('xpert-1', 'true')).resolves.toEqual({
+        await expect(controllerAccess.getRuntimeCapabilities('xpert-1', 'true', 'project-1')).resolves.toEqual({
             skills: [],
             plugins: [],
             subAgents: [],
@@ -839,7 +941,22 @@ describe('XpertController', () => {
                     connections: []
                 }
             }),
-            'xpert-1'
+            'xpert-1',
+            'project-1'
         )
     })
 })
+
+function createDownloadResponse() {
+    const stream = new PassThrough()
+    const chunks: Buffer[] = []
+    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
+    const response = stream as PassThrough & { setHeader: jest.Mock }
+    response.setHeader = jest.fn()
+    return {
+        value: response as unknown as Response,
+        stream,
+        completed: finished(stream),
+        body: () => Buffer.concat(chunks)
+    }
+}

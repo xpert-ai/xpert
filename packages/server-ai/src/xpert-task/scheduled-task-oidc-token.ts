@@ -81,7 +81,8 @@ function createScheduledTaskOidcToken(
 ): string {
     const tenantId = normalizeString(task.tenantId) ?? normalizeString(user?.tenantId)
     const organizationId = normalizeString(task.organizationId)
-    const delegatedUserId = normalizeString(task.createdById) ?? normalizeString(user?.id)
+    const delegatedUserId =
+        normalizeString(task.runAsUserId) ?? normalizeString(task.createdById) ?? normalizeString(user?.id)
     const taskId = normalizeString(task.id)
     const xpertId = normalizeString(task.xpertId) ?? normalizeString(automationContext?.xpertId)
     const assistantCode = normalizeString(automationContext?.assistantCode)

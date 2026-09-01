@@ -16,7 +16,13 @@ import {
 } from '@nestjs/common'
 import { Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { ConfigService } from '@xpert-ai/server-config'
-import type { ConnectorConnectRequest, ConnectorOAuthCompleteRequest } from '@xpert-ai/plugin-sdk'
+import type {
+    ConnectorBindingCreateRequest,
+    ConnectorConnectRequest,
+    ConnectorConnectResponse,
+    ConnectorOAuthCompleteRequest,
+    ConnectorScope
+} from '@xpert-ai/plugin-sdk'
 import type { Response } from 'express'
 import { t } from 'i18next'
 import { WorkspaceGuard } from '../xpert-workspace/guards/workspace.guard'
@@ -33,6 +39,7 @@ type HttpRequestLike = {
         'x-forwarded-proto'?: string
         'x-forwarded-host'?: string
         'accept-language'?: string
+        cookie?: string
     }
     get?(name: string): string | undefined
 }
@@ -63,17 +70,25 @@ export class ConnectorController {
         @Req() request: HttpRequestLike,
         @Res() response: Response
     ) {
-        let workspaceId: string | undefined
+        let scope: ConnectorScope | undefined
+        let callbackConnectorId: string | undefined
         let status: 'success' | 'error' = 'success'
         let errorMessage: string | undefined
         try {
+            const context = await this.assertOAuthCallbackBrowser(state, request)
+            callbackConnectorId = context?.connectorId
             const connector = await this.service.completeOAuthCallback({ state, code })
-            workspaceId = connector.workspaceId
+            scope =
+                connector.scope ??
+                (connector.workspaceId ? { type: 'workspace', workspaceId: connector.workspaceId } : undefined)
         } catch (error) {
             status = 'error'
             errorMessage = oauthCallbackErrorMessage(error)
             const context = await this.service.getOAuthCallbackContext(state).catch(() => null)
-            workspaceId = context?.workspaceId
+            callbackConnectorId = context?.connectorId ?? callbackConnectorId
+            scope =
+                context?.scope ??
+                (context?.workspaceId ? { type: 'workspace', workspaceId: context.workspaceId } : undefined)
         }
 
         response.setHeader('Content-Type', 'text/html; charset=utf-8')
@@ -83,12 +98,17 @@ export class ConnectorController {
             'Content-Security-Policy',
             "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
         )
+        if (callbackConnectorId) {
+            response.clearCookie(oauthBrowserCookieName(callbackConnectorId), {
+                path: '/api/connector/oauth/callback'
+            })
+        }
         response.send(
             renderConnectorOAuthResultPage({
                 status,
                 locale: resolveOAuthPageLocale(request.headers?.['accept-language']),
-                returnUrl: buildWorkspaceReturnUrl(this.clientBaseUrl, workspaceId),
-                hasWorkspace: !!workspaceId,
+                returnUrl: buildScopeReturnUrl(this.clientBaseUrl, scope),
+                hasWorkspace: !!scope,
                 errorMessage
             })
         )
@@ -96,8 +116,92 @@ export class ConnectorController {
 
     @Public()
     @Post('oauth/callback')
-    completeOAuthCallback(@Body() body: ConnectorOAuthCompleteRequest) {
-        return this.service.completeOAuthCallback(body)
+    async completeOAuthCallback(
+        @Body() body: ConnectorOAuthCompleteRequest,
+        @Req() request: HttpRequestLike,
+        @Res({ passthrough: true }) response?: Response
+    ) {
+        const context = await this.assertOAuthCallbackBrowser(body.state, request)
+        try {
+            return await this.service.completeOAuthCallback(body)
+        } finally {
+            if (context?.connectorId) {
+                response?.clearCookie(oauthBrowserCookieName(context.connectorId), {
+                    path: '/api/connector/oauth/callback'
+                })
+            }
+        }
+    }
+
+    @Get('runtime-options')
+    runtimeOptions(@Query('xpertId') xpertId: string, @Query('projectId') projectId?: string) {
+        return this.service.runtimeOptions(xpertId, projectId)
+    }
+
+    @Get('bindings')
+    bindings(@Query('scopeType') scopeType: string, @Query('scopeId') scopeId: string) {
+        return this.service.listBindings(queryScope(scopeType, scopeId))
+    }
+
+    @Get('definitions')
+    scopedDefinitions(@Query('scopeType') scopeType: string, @Query('scopeId') scopeId: string) {
+        return this.service.definitionsForScope(queryScope(scopeType, scopeId))
+    }
+
+    @Post('bindings')
+    createBinding(@Body() body: ConnectorBindingCreateRequest) {
+        return this.service.createBinding(body)
+    }
+
+    @Delete('bindings/:connectorId')
+    deleteBinding(@Param('connectorId') connectorId: string) {
+        return this.service.deleteBinding(connectorId)
+    }
+
+    @Post('bindings/:connectorId/connect')
+    async connectBinding(
+        @Param('connectorId') connectorId: string,
+        @Body() body: ConnectRequest,
+        @Req() request: HttpRequestLike,
+        @Res({ passthrough: true }) response?: Response
+    ) {
+        if (hasLegacyAppIntegrationReference(body)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ConnectorAppIntegrationUnsupported', {
+                    defaultValue: 'Connector app integrations are not supported'
+                })
+            )
+        }
+        const { authMethodId, values, app, xpertId } = body ?? {}
+        const result = await this.service.connectBinding(connectorId, {
+            authMethodId,
+            values,
+            app,
+            xpertId,
+            redirectUri: buildCallbackUrl(request)
+        })
+        this.bindOAuthBrowser(result, request, response)
+        return result
+    }
+
+    @Get('bindings/:connectorId/authorization-status')
+    bindingAuthorizationStatus(@Param('connectorId') connectorId: string, @Query('xpertId') xpertId?: string) {
+        return this.service.authorizationStatusBinding(connectorId, xpertId)
+    }
+
+    @Post('bindings/:connectorId/consent')
+    consentBinding(@Param('connectorId') connectorId: string, @Body() body?: { xpertId?: string }) {
+        return this.service.consentPersonalBinding(connectorId, body?.xpertId)
+    }
+
+    @Get('personal-accounts')
+    personalAccounts() {
+        return this.service.listPersonalAccounts()
+    }
+
+    @Delete('personal-accounts/:accountId')
+    disconnectPersonalAccount(@Param('accountId') accountId: string) {
+        return this.service.disconnectPersonalAccount(accountId)
     }
 
     @UseGuards(WorkspaceGuard)
@@ -126,11 +230,12 @@ export class ConnectorController {
 
     @UseGuards(WorkspaceOwnerGuard)
     @Post(':workspaceId/:provider/connect')
-    connect(
+    async connect(
         @Param('workspaceId') workspaceId: string,
         @Param('provider') provider: string,
         @Body() body: ConnectRequest,
-        @Req() request: HttpRequestLike
+        @Req() request: HttpRequestLike,
+        @Res({ passthrough: true }) response?: Response
     ) {
         if (hasLegacyAppIntegrationReference(body)) {
             throw new BadRequestException(
@@ -140,12 +245,14 @@ export class ConnectorController {
             )
         }
         const { authMethodId, values, app } = body ?? {}
-        return this.service.connect(workspaceId, provider, {
+        const result = await this.service.connect(workspaceId, provider, {
             authMethodId,
             values,
             app,
             redirectUri: buildCallbackUrl(request)
         })
+        this.bindOAuthBrowser(result, request, response)
+        return result
     }
 
     @UseGuards(WorkspaceOwnerGuard)
@@ -173,6 +280,39 @@ export class ConnectorController {
             'http://localhost:4200'
         )
     }
+
+    private bindOAuthBrowser(
+        result: ConnectorConnectResponse,
+        request: HttpRequestLike,
+        response?: Response
+    ) {
+        if (result.status !== 'pending' || !result.authorizationUrl || !response) {
+            return
+        }
+        const state = oauthStateFromAuthorizationUrl(result.authorizationUrl)
+        if (!state) {
+            return
+        }
+        const expires = result.stateExpiresAt ? new Date(result.stateExpiresAt) : undefined
+        response.cookie(oauthBrowserCookieName(result.connector.id), this.service.createOAuthBrowserBinding(state), {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: requestProtocol(request) === 'https',
+            path: '/api/connector/oauth/callback',
+            ...(expires && !Number.isNaN(expires.getTime()) ? { expires } : {})
+        })
+    }
+
+    private async assertOAuthCallbackBrowser(state: string, request: HttpRequestLike) {
+        const context = await this.service.getOAuthCallbackContext(state)
+        if (context) {
+            this.service.assertOAuthBrowserBinding(
+                state,
+                readCookie(request.headers?.cookie, oauthBrowserCookieName(context.connectorId))
+            )
+        }
+        return context
+    }
 }
 
 function buildCallbackUrl(request: HttpRequestLike) {
@@ -183,13 +323,59 @@ function buildCallbackUrl(request: HttpRequestLike) {
     return `${proto}://${host}/api/connector/oauth/callback`
 }
 
+function requestProtocol(request: HttpRequestLike) {
+    return (request.headers?.['x-forwarded-proto']?.split(',')[0]?.trim() || request.protocol || 'http').toLowerCase()
+}
+
+function oauthStateFromAuthorizationUrl(authorizationUrl: string) {
+    try {
+        return new URL(authorizationUrl).searchParams.get('state')?.trim() || null
+    } catch {
+        return null
+    }
+}
+
+function oauthBrowserCookieName(connectorId: string) {
+    return `xpert_connector_oauth_${connectorId.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+}
+
+function readCookie(header: string | undefined, name: string) {
+    const item = header
+        ?.split(';')
+        .map((value) => value.trim())
+        .find((value) => value.startsWith(`${name}=`))
+    if (!item) return undefined
+    try {
+        return decodeURIComponent(item.slice(name.length + 1))
+    } catch {
+        return undefined
+    }
+}
+
 function hasLegacyAppIntegrationReference(input: ConnectRequest | undefined) {
     return !!input && Object.prototype.hasOwnProperty.call(input, 'appIntegrationId')
 }
 
-function buildWorkspaceReturnUrl(clientBaseUrl: string, workspaceId?: string) {
-    const path = workspaceId ? `/xpert/w/${encodeURIComponent(workspaceId)}/connectors` : '/xpert/w'
+function buildScopeReturnUrl(clientBaseUrl: string, scope?: ConnectorScope) {
+    const path =
+        scope?.type === 'workspace'
+            ? `/xpert/w/${encodeURIComponent(scope.workspaceId)}/connectors`
+            : scope?.type === 'project'
+              ? `/project/${encodeURIComponent(scope.projectId)}`
+              : '/xpert/w'
     return new URL(path, clientBaseUrl).toString()
+}
+
+function queryScope(scopeType: string, scopeId: string): ConnectorScope {
+    if (scopeType === 'workspace') {
+        return { type: 'workspace', workspaceId: scopeId }
+    }
+    if (scopeType === 'project') {
+        return { type: 'project', projectId: scopeId }
+    }
+    throw new BadRequestException(
+        t('server-ai:Error.ConnectorScopeInvalid', { defaultValue: 'Connector scope is invalid' })
+    )
 }
 
 function resolveOAuthPageLocale(acceptLanguage?: string): 'en' | 'zh' {

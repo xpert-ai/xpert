@@ -11,6 +11,7 @@ import {
     XpertProjectPlanService
 } from './services'
 import { XpertProjectAccessService } from './services/project-access.service'
+import { XpertProjectContentService } from './services/project-content.service'
 import { XpertProjectMembershipService } from './services/project-membership.service'
 
 describe('XpertProjectController collaboration endpoints', () => {
@@ -61,12 +62,32 @@ describe('XpertProjectController collaboration endpoints', () => {
         await controller.addMember('project-1', { userId: 'user-2' })
         expect(membershipService.add).toHaveBeenCalledWith('project-1', 'user-2', 'member')
     })
+
+    it('delegates Project instructions and skills to the governed Content service', async () => {
+        const contentService = {
+            readInstructions: jest.fn().mockResolvedValue({ content: 'Ship safely' }),
+            updateInstructions: jest.fn().mockResolvedValue({ content: 'Ship now' }),
+            listSkills: jest.fn().mockResolvedValue({ items: [], total: 0 })
+        }
+        const controller = createController({}, {}, {}, contentService)
+
+        await expect(controller.getInstructions('project-1')).resolves.toEqual({ content: 'Ship safely' })
+        await expect(controller.updateInstructions('project-1', { content: 'Ship now' })).resolves.toEqual({
+            content: 'Ship now'
+        })
+        await expect(controller.getProjectSkills('project-1')).resolves.toEqual({ items: [], total: 0 })
+
+        expect(contentService.readInstructions).toHaveBeenCalledWith('project-1')
+        expect(contentService.updateInstructions).toHaveBeenCalledWith('project-1', 'Ship now')
+        expect(contentService.listSkills).toHaveBeenCalledWith('project-1')
+    })
 })
 
 function createController(
     service: object,
     accessService: object = {},
-    membershipService: object = {}
+    membershipService: object = {},
+    contentService: object = {}
 ) {
     return new XpertProjectController(
         service as XpertProjectService,
@@ -77,6 +98,7 @@ function createController(
         {} as XpertProjectAssetService,
         {} as XpertProjectAutomationService,
         accessService as XpertProjectAccessService,
+        contentService as XpertProjectContentService,
         membershipService as XpertProjectMembershipService,
         {} as VolumeClient
     )

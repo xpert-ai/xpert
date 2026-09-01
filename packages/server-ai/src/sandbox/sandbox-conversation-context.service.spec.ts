@@ -125,7 +125,7 @@ describe('SandboxConversationContextService', () => {
         expect(resolved.workingDirectory).toBe('/workspace/root')
     })
 
-    it('prefers the persisted sandbox environment over project scope for terminal sessions', async () => {
+    it('prefers Project scope over a persisted sandbox environment for terminal sessions', async () => {
         conversationService.findOne.mockResolvedValue({
             createdById: 'user-1',
             id: 'conversation-1',
@@ -160,7 +160,7 @@ describe('SandboxConversationContextService', () => {
             provider: 'local-shell-sandbox',
             xpertId: 'xpert-1',
             workspaceDataScope: 'shared',
-            projectId: null,
+            projectId: 'project-override',
             conversationId: 'conversation-1',
             environmentId: 'sandbox-env-1'
         })
@@ -170,14 +170,14 @@ describe('SandboxConversationContextService', () => {
                     provider: 'local-shell-sandbox',
                     tenantId: 'tenant-1',
                     workFor: {
-                        type: 'environment',
-                        id: 'sandbox-env-1'
+                        type: 'project',
+                        id: 'project-override'
                     },
                     workingDirectory: '/workspace/root'
                 })
             })
         )
-        expect(resolved.effectiveProjectId).toBeNull()
+        expect(resolved.effectiveProjectId).toBe('project-override')
         expect(resolved.effectiveSandboxEnvironmentId).toBe('sandbox-env-1')
     })
 

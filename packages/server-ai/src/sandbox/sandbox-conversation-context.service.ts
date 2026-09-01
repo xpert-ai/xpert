@@ -88,10 +88,8 @@ export class SandboxConversationContextService {
         }
 
         const effectiveSandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim() || null
-        const effectiveProjectId = effectiveSandboxEnvironmentId
-            ? null
-            : (params.projectId ?? conversation.projectId ?? null)
-        if (!effectiveSandboxEnvironmentId && !effectiveProjectId && !conversation.xpertId) {
+        const effectiveProjectId = params.projectId ?? conversation.projectId ?? null
+        if (!effectiveProjectId && !effectiveSandboxEnvironmentId && !conversation.xpertId) {
             throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
         }
         const workArea = await this.workAreaResolver.resolve({
@@ -112,10 +110,10 @@ export class SandboxConversationContextService {
                 workingDirectory: workArea.workingDirectory,
                 workspaceBinding: workArea.workspaceBinding,
                 volumeScope: workArea.volumeScope,
-                workFor: effectiveSandboxEnvironmentId
-                    ? { type: 'environment', id: effectiveSandboxEnvironmentId }
-                    : effectiveProjectId
-                      ? { type: 'project', id: effectiveProjectId }
+                workFor: effectiveProjectId
+                    ? { type: 'project', id: effectiveProjectId }
+                    : effectiveSandboxEnvironmentId
+                      ? { type: 'environment', id: effectiveSandboxEnvironmentId }
                       : { type: 'user', id: userId }
             })
         )

@@ -22,29 +22,8 @@ export class XpertProjectAutomationSchedulerService {
 
     @Cron('*/30 * * * * *')
     async scan() {
-        await this.redisLockService.runWithLock(PROJECT_AUTOMATION_LOCK_KEY, PROJECT_AUTOMATION_LOCK_TTL, async () => {
-            const due = await this.repository
-                .createQueryBuilder('automation')
-                .where('automation.enabled = :enabled', { enabled: true })
-                .andWhere("automation.trigger ->> 'type' = 'schedule'")
-                .andWhere('(automation.nextRunAt IS NULL OR automation.nextRunAt <= :now)', { now: new Date() })
-                .take(100)
-                .getMany()
-            for (const automation of due) {
-                try {
-                    const occurrenceKey = `${automation.id}:${automation.nextRunAt?.toISOString() ?? new Date().toISOString()}`
-                    await this.automationService.run(automation.projectId, automation.id, occurrenceKey)
-                    const now = new Date()
-                    automation.lastRunAt = now
-                    automation.nextRunAt = nextScheduleDate(automation.trigger?.cron, automation.trigger?.timezone, now)
-                    await this.repository.save(automation)
-                } catch (error) {
-                    this.#logger.warn(
-                        `Automation ${automation.id} was not scheduled: ${error instanceof Error ? error.message : String(error)}`
-                    )
-                }
-            }
-        })
+        // Legacy rows remain queryable, but only XpertTask is allowed to schedule new Project work.
+        return
     }
 }
 

@@ -380,6 +380,7 @@ class NsjailTerminalSession implements SandboxTerminalSession {
 export type NsjailSandboxOptions = {
     client: NsjailRunnerClient
     environmentId?: string | null
+    protectProjectContent?: true
     runtimeId: string
     workspacePath: string
     workingDirectory: string
@@ -675,7 +676,8 @@ export class NsjailSandbox
         const request: NsjailRuntimeCreateRequest = {
             runtimeId: this.options.runtimeId,
             workingDirectory: this.workingDirectory,
-            workspacePath: this.options.workspacePath
+            workspacePath: this.options.workspacePath,
+            ...(this.options.protectProjectContent ? { protectProjectContent: true as const } : {})
         }
         const promise = this.options.client.createRuntime(request).then(() => {
             if (this.runtimeGeneration === failedGeneration) {

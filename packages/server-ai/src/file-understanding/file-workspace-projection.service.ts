@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import { Repository } from 'typeorm'
-import { VOLUME_CLIENT, VolumeClient } from '../shared/volume'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared/volume'
 import { XpertWorkAreaResolver } from '../shared/volume/work-area'
 import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { readPageImageFileName, readPageImageStorageKey, readWorkspaceProvider } from './domain/page-image-artifact'
@@ -123,8 +123,7 @@ export class FileWorkspaceProjectionService {
                     return asset
                 }
 
-                await fsPromises.mkdir(path.dirname(serverPath), { recursive: true })
-                await fsPromises.writeFile(serverPath, buffer)
+                await writeProjectedVolumeFile(workArea.volume, relativePath, buffer)
 
                 const workspacePath = path.posix.join(workArea.workspaceRoot, relativePath)
                 asset.workspacePath = workspacePath
@@ -157,7 +156,7 @@ export class FileWorkspaceProjectionService {
                 storageProvider: storageFile?.storageProvider,
                 assetFolderRelativePath,
                 workspaceRoot: workArea.workspaceRoot,
-                resolveServerPath: (relativePath) => workArea.volume.path(relativePath)
+                volume: workArea.volume
             })
             return projectedAsset
         } catch (error) {
@@ -205,7 +204,7 @@ export class FileWorkspaceProjectionService {
         storageProvider?: string
         assetFolderRelativePath: string
         workspaceRoot: string
-        resolveServerPath: (relativePath: string) => string
+        volume: VolumeHandle
     }) {
         const artifacts = await this.fileArtifactRepository.find({
             where: {
@@ -238,13 +237,11 @@ export class FileWorkspaceProjectionService {
                 typeof page === 'number' ? `page-${String(page).padStart(4, '0')}.png` : `${artifact.id}.png`
             const fileName = normalizeFileName(readPageImageFileName(artifact.metadata) ?? fallbackFileName)
             const relativePath = normalizeRelativePath(input.assetFolderRelativePath, 'pages', fileName)
-            const serverPath = input.resolveServerPath(relativePath)
             const workspacePath = path.posix.join(input.workspaceRoot, relativePath)
 
             try {
                 const buffer = await storageProvider.getFile(storageKey)
-                await fsPromises.mkdir(path.dirname(serverPath), { recursive: true })
-                await fsPromises.writeFile(serverPath, buffer)
+                await writeProjectedVolumeFile(input.volume, relativePath, buffer)
                 artifact.metadata = {
                     ...(artifact.metadata ?? {}),
                     workspacePath,
@@ -321,6 +318,20 @@ async function pathExists(filePath: string) {
     } catch {
         return false
     }
+}
+
+async function writeProjectedVolumeFile(volume: VolumeHandle, relativePath: string, buffer: Buffer) {
+    await VolumeHandle.writeFile(volume.serverRoot, relativePath, buffer, {
+        boundaryRoot: volume.serverRoot,
+        assertCanWrite: (canonicalRelativePath, fileStat) => {
+            if (
+                volume.scope.catalog === 'projects' &&
+                (isProjectGovernedContentPath(canonicalRelativePath) || (fileStat && fileStat.nlink !== 1))
+            ) {
+                throw new Error('Project instructions and skills are read-only for generic file projection')
+            }
+        }
+    })
 }
 
 function normalizeWorkspaceRelativePath(value: unknown) {

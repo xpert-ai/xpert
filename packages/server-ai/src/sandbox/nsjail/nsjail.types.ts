@@ -10,6 +10,8 @@ export type NsjailRuntimeCreateRequest = {
     runtimeId: string
     workingDirectory: string
     workspacePath: string
+    /** Fixed Project Content paths are over-mounted read-only by the Runner. */
+    protectProjectContent?: true
 }
 
 export type NsjailExecutionRequest = {

@@ -3,23 +3,36 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import type { IXpert, IXpertWorkspace } from '@xpert-ai/contracts'
+import type {
+  IXpert,
+  IXpertTask,
+  IXpertWorkspace,
+  TXpertProjectMemberSummary,
+  TXpertProjectSkillSummary
+} from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
   ZardFormImports,
   ZardInputDirective,
+  ZardMenuImports,
   ZardSelectImports,
   ZardSwitchComponent,
   ZardDialogService
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
+import { ScheduleTaskStatus, Store, ToastrService, XpertTaskService, getErrorMessage } from '../../@core'
 import { XpertAPIService } from '../../@core/services/xpert.service'
 import { XpertWorkspaceService } from '../../@core/services/xpert-workspace.service'
+import { XpertTaskDialogService } from '../../@shared/chat/task-dialog/task-dialog.service'
+import { XpertSkillInstallDialogComponent, type XpertSkillInstallDialogResult } from '../../@shared/skills'
+import { XpertProjectApiService } from './project-api.service'
 import { XpertProjectFacade } from './project.facade'
 import { isProjectAssistant } from './project-assistant.constants'
 import { XpertProjectAssistantsDialogComponent } from './project-assistants-dialog.component'
+import { XpertProjectConnectorsDialogComponent } from './project-connectors-dialog.component'
+import { XpertProjectSkillsDialogComponent } from './project-skills-dialog.component'
 
 @Component({
   standalone: true,
@@ -35,6 +48,7 @@ import { XpertProjectAssistantsDialogComponent } from './project-assistants-dial
     ZardSwitchComponent,
     ...ZardFormImports,
     ...ZardCardImports,
+    ...ZardMenuImports,
     ...ZardSelectImports
   ],
   template: `
@@ -249,22 +263,96 @@ import { XpertProjectAssistantsDialogComponent } from './project-assistants-dial
           ><textarea
             z-input
             class="min-h-36 resize-y"
-            [value]="instruction()"
-            (input)="instruction.set($any($event.target).value)"
+            [disabled]="!canEdit() || savingInstruction()"
+            [ngModel]="instruction()"
+            (ngModelChange)="instruction.set($event)"
             [placeholder]="'XP.XProject.GuidancePlaceholder' | translate"
           ></textarea>
         </z-form-field>
-        <div>
-          <button
-            z-button
-            zType="default"
-            zSize="default"
-            type="button"
-            [disabled]="saving()"
-            (click)="saveInstructions()"
-          >
-            {{ (saving() ? 'XP.XProject.Saving' : 'XP.XProject.SaveInstructions') | translate }}
-          </button>
+        @if (canEdit()) {
+          <div>
+            <button
+              z-button
+              zType="default"
+              zSize="default"
+              type="button"
+              [disabled]="savingInstruction()"
+              (click)="saveInstructions()"
+            >
+              {{ (savingInstruction() ? 'XP.XProject.Saving' : 'XP.XProject.SaveInstructions') | translate }}
+            </button>
+          </div>
+        }
+      </section>
+
+      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="skills-title">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="flex items-center gap-2">
+            <h3 id="skills-title" class="text-base font-semibold text-text-primary">
+              {{ 'XP.XProject.ProjectSkills' | translate }}
+            </h3>
+            <z-badge zType="outline">{{ facade.projectSkills().length }}</z-badge>
+          </div>
+          <div class="flex items-center gap-2">
+            @if (canEdit()) {
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                z-menu
+                [zMenuTriggerFor]="addSkillMenu"
+                [disabled]="skillMutationInProgress()"
+              >
+                <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddProjectSkill' | translate }}
+              </button>
+            }
+            <button z-button zType="outline" zSize="sm" type="button" (click)="openProjectSkills()">
+              {{ 'XP.XProject.ManageProjectSkills' | translate }}
+            </button>
+          </div>
+        </div>
+        <input
+          #skillPackageInput
+          class="hidden"
+          type="file"
+          accept=".zip,application/zip"
+          (change)="uploadSkillPackage($event)"
+        />
+        <ng-template #addSkillMenu>
+          <div z-menu-content class="w-56">
+            <button type="button" z-menu-item (click)="skillPackageInput.click()">
+              <i class="ri-upload-2-line mr-2"></i>{{ 'XP.XProject.UploadProjectSkillPackage' | translate }}
+            </button>
+            <button type="button" z-menu-item (click)="installProjectSkillFromRepository()">
+              <i class="ri-search-line mr-2"></i>{{ 'XP.XProject.InstallProjectSkillFromRepository' | translate }}
+            </button>
+          </div>
+        </ng-template>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          @for (skill of facade.projectSkills(); track skill.id) {
+            <div class="flex min-w-0 items-start gap-3 rounded-xl border border-divider-subtle p-3">
+              <i class="ri-sparkling-2-line mt-0.5 text-text-tertiary"></i>
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 items-center gap-2">
+                  <p class="truncate text-sm font-medium text-text-primary">{{ skill.name }}</p>
+                  <z-badge zType="outline">{{ skillSourceKey(skill.source) | translate }}</z-badge>
+                </div>
+                @if (skill.description) {
+                  <p class="mt-1 line-clamp-2 text-xs text-text-secondary">{{ skill.description }}</p>
+                }
+                <p class="mt-1 text-xs text-text-tertiary">
+                  {{
+                    (skill.enabled ? 'XP.XProject.ProjectSkillEnabled' : 'XP.XProject.ProjectSkillDisabled') | translate
+                  }}
+                </p>
+              </div>
+            </div>
+          } @empty {
+            <p class="col-span-full rounded-xl border border-divider-subtle p-5 text-center text-sm text-text-tertiary">
+              {{ 'XP.XProject.NoProjectSkills' | translate }}
+            </p>
+          }
         </div>
       </section>
 
@@ -340,35 +428,131 @@ import { XpertProjectAssistantsDialogComponent } from './project-assistants-dial
         </div>
       </section>
 
-      <section class="flex flex-col gap-4 border-t border-divider-subtle pt-6" aria-labelledby="automation-title">
+      <section class="space-y-4 border-t border-divider-subtle pt-6" aria-labelledby="connectors-title">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h3 id="automation-title" class="text-base font-semibold text-text-primary">
-              {{ 'XP.XProject.Automations' | translate }}
+            <h3 id="connectors-title" class="text-base font-semibold text-text-primary">
+              {{ 'XP.XProject.ProjectConnectors' | translate }}
             </h3>
-            <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.AutomationDescription' | translate }}</p>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.ProjectConnectorsDescription' | translate }}</p>
           </div>
-          <button z-button zType="outline" zSize="default" type="button" (click)="addAutomation()">
-            <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddAutomation' | translate }}
+          <button z-button zType="outline" type="button" (click)="openConnectors()">
+            <i class="ri-plug-line mr-1"></i>{{ 'XP.XProject.ManageProjectConnectors' | translate }}
           </button>
         </div>
-        <div class="divide-y divide-divider-subtle">
-          @for (automation of facade.automations(); track automation.id) {
-            <div class="flex items-center justify-between gap-3 py-3">
-              <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-text-primary">{{ automation.name }}</p>
-                <p class="text-xs text-text-tertiary">
-                  {{ automation.trigger.type }} ·
-                  {{ 'XP.XProject.ActionsCount' | translate: { count: automation.actions.length } }}
-                </p>
+      </section>
+
+      <section class="space-y-4 border-t border-divider-subtle pt-6" aria-labelledby="automations-title">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 id="automations-title" class="text-base font-semibold text-text-primary">
+              {{ 'XP.XProject.ProjectAutomations' | translate }}
+            </h3>
+            <p class="mt-1 text-sm text-text-secondary">
+              {{ 'XP.XProject.ProjectAutomationsDescription' | translate }}
+            </p>
+          </div>
+          @if (canManage()) {
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              [disabled]="!facade.project()?.xperts?.length"
+              (click)="openTask()"
+            >
+              <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddAutomation' | translate }}
+            </button>
+          }
+        </div>
+        <div class="divide-y divide-divider-subtle rounded-xl border border-divider-subtle">
+          @for (task of facade.scheduledTasks(); track task.id) {
+            <div class="space-y-3 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <button
+                  class="min-w-0 text-left"
+                  type="button"
+                  [disabled]="!canOpenTask(task)"
+                  (click)="openTask(task)"
+                >
+                  <p class="truncate text-sm font-medium text-text-primary">{{ task.name || task.prompt }}</p>
+                  <p class="truncate text-xs text-text-tertiary">
+                    {{ task.scheduleDescription || task.options?.frequency }}
+                  </p>
+                  <p class="mt-1 truncate text-xs text-text-secondary">
+                    {{ 'XP.XProject.AutomationRunAs' | translate }}:
+                    {{ taskRunAsLabel(task) || ('XP.XProject.UnknownProjectMember' | translate) }}
+                  </p>
+                </button>
+                <div class="flex items-center gap-2">
+                  <z-badge [zType]="task.status === scheduledStatus ? 'default' : 'secondary'">{{
+                    task.status
+                  }}</z-badge>
+                  @if (canManage()) {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
+                      type="button"
+                      [disabled]="taskMutationId() === task.id"
+                      (click)="toggleTask(task)"
+                    >
+                      <i [class]="task.status === scheduledStatus ? 'ri-pause-line' : 'ri-play-line'"></i>
+                    </button>
+                  }
+                </div>
               </div>
-              <z-switch
-                [ngModel]="automation.enabled"
-                (ngModelChange)="toggleAutomation(automation.id, $event)"
-              ></z-switch>
+
+              @if (task.pendingRunAsUserId) {
+                <div
+                  class="flex flex-col gap-2 rounded-lg border border-divider-subtle bg-background-default-subtle p-2.5 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <p class="text-xs text-text-secondary">
+                    {{ 'XP.XProject.AutomationRunAsPending' | translate }}:
+                    {{ projectMemberLabel(task.pendingRunAsUserId) || task.pendingRunAsUserId }}
+                  </p>
+                  @if (canAcceptTaskRunAs(task)) {
+                    <button
+                      z-button
+                      zType="default"
+                      zSize="sm"
+                      type="button"
+                      [disabled]="runAsMutationId() === task.id"
+                      (click)="acceptTaskRunAs(task)"
+                    >
+                      {{ 'XP.XProject.AcceptAutomationRunAs' | translate }}
+                    </button>
+                  }
+                </div>
+              }
+
+              @if (canProposeTaskRunAs(task) && runAsTargetMembers(task).length) {
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <z-select
+                    class="min-w-0 flex-1"
+                    [zValue]="runAsProposalTarget(task)"
+                    [zDisabled]="runAsMutationId() === task.id"
+                    [zPlaceholder]="'XP.XProject.SelectAutomationRunAs' | translate"
+                    (zSelectionChange)="selectRunAsTarget(task.id, $event)"
+                  >
+                    @for (member of runAsTargetMembers(task); track member.id) {
+                      <z-select-item [zValue]="member.id">{{ projectMemberLabel(member.id) }}</z-select-item>
+                    }
+                  </z-select>
+                  <button
+                    z-button
+                    zType="outline"
+                    zSize="sm"
+                    type="button"
+                    [disabled]="runAsMutationId() === task.id || !runAsProposalTarget(task)"
+                    (click)="proposeTaskRunAs(task)"
+                  >
+                    {{ 'XP.XProject.ProposeAutomationRunAs' | translate }}
+                  </button>
+                </div>
+              }
             </div>
           } @empty {
-            <p class="py-8 text-center text-sm text-text-tertiary">{{ 'XP.XProject.NoAutomations' | translate }}</p>
+            <p class="p-5 text-center text-sm text-text-tertiary">{{ 'XP.XProject.NoAutomations' | translate }}</p>
           }
         </div>
       </section>
@@ -384,7 +568,9 @@ export class XpertProjectConfigComponent {
   readonly workspacesLoading = signal(false)
   readonly bindingWorkspace = signal(false)
   readonly instruction = signal('')
-  readonly saving = signal(false)
+  readonly savingInstruction = signal(false)
+  readonly skillMutationInProgress = signal(false)
+  readonly canEdit = computed(() => this.facade.projectAccess()?.capabilities.canEdit ?? false)
   readonly allowSuggestions = signal(true)
   readonly autoReferenceAssets = signal(true)
   readonly availableXperts = signal<IXpert[]>([])
@@ -401,31 +587,44 @@ export class XpertProjectConfigComponent {
   readonly selectedXpertId = signal('')
   readonly xpertsLoading = signal(false)
   readonly bindingXpert = signal(false)
+  readonly projectMembers = signal<TXpertProjectMemberSummary[]>([])
+  readonly taskMutationId = signal<string | null>(null)
+  readonly runAsMutationId = signal<string | null>(null)
+  readonly runAsProposalTargets = signal<Record<string, string>>({})
+  readonly scheduledStatus = ScheduleTaskStatus.SCHEDULED
+  readonly canManage = computed(() => this.facade.projectAccess()?.capabilities.canManage ?? false)
   readonly #xpertService = inject(XpertAPIService)
   readonly #workspaceService = inject(XpertWorkspaceService)
+  readonly #api = inject(XpertProjectApiService)
   readonly #dialog = inject(ZardDialogService)
+  readonly #taskDialog = inject(XpertTaskDialogService)
+  readonly #taskService = inject(XpertTaskService)
+  readonly #store = inject(Store)
+  readonly #toastr = inject(ToastrService)
   #loadedWorkspaceId: string | null = null
+  #loadedMembersProjectId: string | null = null
 
   constructor() {
-    effect(
-      () => {
-        const value = this.facade.project()?.settings?.instruction
-        if (value !== undefined && !this.saving()) this.instruction.set(value)
-        const project = this.facade.project()
-        if (!project) return
-        const xpertId = project.settings?.projectAssistantId ?? project.xperts?.[0]?.id ?? ''
-        if (!this.bindingXpert()) this.selectedXpertId.set(xpertId)
-        const workspaceId = project.workspaceId ?? ''
-        if (workspaceId !== this.#loadedWorkspaceId) {
-          this.#loadedWorkspaceId = workspaceId
-          this.workspaceSelection.set(workspaceId)
-          void this.loadWorkspace(workspaceId)
-          void this.loadXperts(workspaceId)
-          if (!workspaceId) void this.loadAuthoringWorkspaces()
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      const content = this.facade.projectInstruction()
+      if (!this.savingInstruction()) this.instruction.set(content)
+      const project = this.facade.project()
+      if (!project) return
+      if (project.id !== this.#loadedMembersProjectId) {
+        this.#loadedMembersProjectId = project.id
+        void this.loadProjectMembers(project.id)
+      }
+      const xpertId = project.settings?.projectAssistantId ?? project.xperts?.[0]?.id ?? ''
+      if (!this.bindingXpert()) this.selectedXpertId.set(xpertId)
+      const workspaceId = project.workspaceId ?? ''
+      if (workspaceId !== this.#loadedWorkspaceId) {
+        this.#loadedWorkspaceId = workspaceId
+        this.workspaceSelection.set(workspaceId)
+        void this.loadWorkspace(workspaceId)
+        void this.loadXperts(workspaceId)
+        if (!workspaceId) void this.loadAuthoringWorkspaces()
+      }
+    })
   }
 
   async loadWorkspace(workspaceId: string) {
@@ -437,6 +636,15 @@ export class XpertProjectConfigComponent {
       this.workspace.set(await firstValueFrom(this.#workspaceService.getById(workspaceId)))
     } catch {
       this.workspace.set(null)
+    }
+  }
+
+  async loadProjectMembers(projectId: string) {
+    try {
+      const members = await firstValueFrom(this.#api.members(projectId))
+      if (projectId === this.facade.project()?.id) this.projectMembers.set(members)
+    } catch {
+      if (projectId === this.facade.project()?.id) this.projectMembers.set([])
     }
   }
 
@@ -525,27 +733,244 @@ export class XpertProjectConfigComponent {
     await this.facade.loadProject(project.id)
   }
 
+  async openConnectors() {
+    const projectId = this.facade.project()?.id
+    if (!projectId) return
+    await firstValueFrom(
+      this.#dialog.open(XpertProjectConnectorsDialogComponent, {
+        data: { projectId, canManage: this.canManage() },
+        width: 'min(96vw, 840px)',
+        maxWidth: 'calc(100vw - 24px)',
+        disableClose: true,
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+  }
+
   async saveInstructions() {
-    this.saving.set(true)
+    if (!this.canEdit()) return
+    this.savingInstruction.set(true)
     try {
-      await this.facade.updateProject({
-        settings: { ...(this.facade.project()?.settings ?? {}), instruction: this.instruction() }
-      })
+      await this.facade.saveProjectInstructions(this.instruction())
+      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.saving.set(false)
+      this.savingInstruction.set(false)
     }
   }
 
-  async addAutomation() {
-    await this.facade.createAutomation({
-      name: 'New automation',
-      enabled: false,
-      trigger: { type: 'task.status_changed' },
-      actions: []
-    })
+  async installProjectSkillFromRepository() {
+    const projectId = this.facade.project()?.id
+    if (!projectId || !this.canEdit() || this.skillMutationInProgress()) return
+    const result = await firstValueFrom(
+      this.#dialog.open(XpertSkillInstallDialogComponent, {
+        data: { scope: 'project' },
+        width: 'min(96vw, 72rem)',
+        maxWidth: '72rem',
+        disableClose: true,
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+    if (!result || result.kind !== 'repository-index') return
+    await this.installProjectSkill(projectId, result)
   }
 
-  async toggleAutomation(id: string, enabled: boolean) {
-    await this.facade.updateAutomation(id, { enabled })
+  async uploadSkillPackage(event: Event) {
+    const input = event.target
+    if (!(input instanceof HTMLInputElement)) return
+    const file = input.files?.[0]
+    input.value = ''
+    const projectId = this.facade.project()?.id
+    if (!file || !projectId || !this.canEdit() || this.skillMutationInProgress()) return
+
+    this.skillMutationInProgress.set(true)
+    try {
+      await firstValueFrom(this.#api.uploadSkills(projectId, file))
+      await this.facade.reloadProjectContent(projectId)
+      this.#toastr.success('XP.XProject.ProjectSkillPackageUploaded')
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.skillMutationInProgress.set(false)
+    }
+  }
+
+  async openProjectSkills() {
+    const projectId = this.facade.project()?.id
+    if (!projectId) return
+    const changed = await firstValueFrom(
+      this.#dialog.open(XpertProjectSkillsDialogComponent, {
+        data: { projectId, skills: this.facade.projectSkills(), canEdit: this.canEdit() },
+        width: 'min(94vw, 760px)',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true,
+        backdropClass: 'backdrop-blur-sm-black',
+        panelClass: 'xp-overlay-pane-card'
+      }).closed
+    )
+    if (changed) await this.facade.reloadProjectContent(projectId)
+  }
+
+  skillSourceKey(source: TXpertProjectSkillSummary['source']) {
+    switch (source) {
+      case 'repository':
+        return 'XP.XProject.ProjectSkillSourceRepository'
+      case 'upload':
+        return 'XP.XProject.ProjectSkillSourceUpload'
+      default:
+        return 'XP.XProject.ProjectSkillSourceLegacy'
+    }
+  }
+
+  private async installProjectSkill(projectId: string, result: XpertSkillInstallDialogResult) {
+    if (result.kind !== 'repository-index') return
+    this.skillMutationInProgress.set(true)
+    try {
+      await firstValueFrom(this.#api.installSkill(projectId, result.skillIndex.id))
+      await this.facade.reloadProjectContent(projectId)
+      this.#toastr.success('XP.XProject.ProjectSkillInstalled')
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.skillMutationInProgress.set(false)
+    }
+  }
+
+  async openTask(task?: IXpertTask) {
+    const project = this.facade.project()
+    if (!project || (task ? !this.canOpenTask(task) : !this.canManage())) return
+    const connectorOnly = !!task && !this.canManage()
+    const result = await firstValueFrom(
+      this.#taskDialog.openCreateTask({
+        task,
+        projectId: project.id,
+        availableXperts: project.xperts ?? [],
+        connectorOnly
+      }).closed
+    )
+    if (result) await this.facade.reloadScheduledTasks(project.id)
+  }
+
+  async toggleTask(task: IXpertTask) {
+    if (!task.id || !this.canManage()) return
+    this.taskMutationId.set(task.id)
+    try {
+      if (task.status === this.scheduledStatus) {
+        await firstValueFrom(this.#taskService.pause(task.id))
+      } else {
+        await firstValueFrom(this.#taskService.schedule(task.id))
+      }
+      const projectId = this.facade.project()?.id
+      if (projectId) await this.facade.reloadScheduledTasks(projectId)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.taskMutationId.set(null)
+    }
+  }
+
+  taskRunAsUserId(task: IXpertTask) {
+    return task.runAsUserId?.trim() || task.createdById?.trim() || ''
+  }
+
+  canOpenTask(task: IXpertTask) {
+    return this.canManage() || this.taskRunAsUserId(task) === this.#store.userId
+  }
+
+  taskRunAsLabel(task: IXpertTask) {
+    const userId = this.taskRunAsUserId(task)
+    const persistedUser = task.runAsUser
+    return (
+      this.projectMemberLabel(userId) ||
+      persistedUser?.fullName ||
+      [persistedUser?.firstName, persistedUser?.lastName].filter(Boolean).join(' ') ||
+      persistedUser?.username ||
+      persistedUser?.email ||
+      userId
+    )
+  }
+
+  projectMemberLabel(userId?: string | null) {
+    const member = this.projectMembers().find((item) => item.id === userId)
+    if (!member) return ''
+    return [member.firstName, member.lastName].filter(Boolean).join(' ') || member.username || member.email || member.id
+  }
+
+  memberRoleKey(role: TXpertProjectMemberSummary['projectRole']) {
+    const suffix = role.charAt(0).toUpperCase() + role.slice(1)
+    return `XP.XProject.Role${suffix}`
+  }
+
+  runAsTargetMembers(task: IXpertTask) {
+    const currentRunAsUserId = this.taskRunAsUserId(task)
+    return this.projectMembers().filter((member) => member.id !== currentRunAsUserId)
+  }
+
+  canProposeTaskRunAs(task: IXpertTask) {
+    const currentUserId = this.#store.userId
+    return !!task.id && !!currentUserId && (this.canManage() || this.taskRunAsUserId(task) === currentUserId)
+  }
+
+  canAcceptTaskRunAs(task: IXpertTask) {
+    return !!task.id && !!this.#store.userId && task.pendingRunAsUserId === this.#store.userId
+  }
+
+  selectRunAsTarget(taskId: string | undefined, value: string | number | Array<string | number>) {
+    if (!taskId) return
+    const selected = Array.isArray(value) ? value[0] : value
+    this.runAsProposalTargets.update((targets) => ({
+      ...targets,
+      [taskId]: selected == null ? '' : String(selected)
+    }))
+  }
+
+  runAsProposalTarget(task: IXpertTask) {
+    return task.id ? (this.runAsProposalTargets()[task.id] ?? '') : ''
+  }
+
+  async proposeTaskRunAs(task: IXpertTask) {
+    const taskId = task.id
+    const projectId = this.facade.project()?.id
+    const targetUserId = this.runAsProposalTarget(task)
+    if (
+      !taskId ||
+      !projectId ||
+      !this.canProposeTaskRunAs(task) ||
+      !this.runAsTargetMembers(task).some((member) => member.id === targetUserId)
+    ) {
+      return
+    }
+
+    this.runAsMutationId.set(taskId)
+    try {
+      await firstValueFrom(this.#taskService.proposeRunAs(taskId, targetUserId))
+      this.runAsProposalTargets.update((targets) => ({ ...targets, [taskId]: '' }))
+      this.#toastr.success('XP.XProject.AutomationRunAsProposalSent')
+      await this.facade.reloadScheduledTasks(projectId)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.runAsMutationId.set(null)
+    }
+  }
+
+  async acceptTaskRunAs(task: IXpertTask) {
+    const taskId = task.id
+    const projectId = this.facade.project()?.id
+    if (!taskId || !projectId || !this.canAcceptTaskRunAs(task)) return
+
+    this.runAsMutationId.set(taskId)
+    try {
+      await firstValueFrom(this.#taskService.acceptRunAs(taskId))
+      this.#toastr.success('XP.XProject.AutomationRunAsAccepted')
+      await this.facade.reloadScheduledTasks(projectId)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.runAsMutationId.set(null)
+    }
   }
 }

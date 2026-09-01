@@ -89,3 +89,21 @@ export function normalizeSandboxPublicVolumeSubpath(subpath: string) {
 
     return subpath.replace(LEGACY_PUBLIC_VOLUME_PREFIX, '')
 }
+
+export function normalizeSandboxVolumeRequestSubpath(subpath: string): string | null {
+    const unixPath = subpath.replace(/\\/g, '/')
+    if (!unixPath || unixPath.includes('\0') || path.posix.isAbsolute(unixPath)) {
+        return null
+    }
+
+    const segments = unixPath.split('/').filter((segment) => segment && segment !== '.')
+    if (!segments.length || segments.some((segment) => segment === '..')) {
+        return null
+    }
+
+    const normalized = path.posix.normalize(segments.join('/'))
+    if (!normalized || normalized === '.' || normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
+        return null
+    }
+    return normalized
+}

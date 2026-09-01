@@ -15,6 +15,10 @@ import type {
   IXpertProjectTaskConversation,
   IXpertProjectTaskExecution,
   TXpertProjectAccessSummary,
+  TXpertProjectMemberSummary,
+  TXpertProjectInstructions,
+  TXpertProjectSkills,
+  TXpertProjectSkillSummary,
   IPagination
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
@@ -74,6 +78,48 @@ export class XpertProjectApiService {
 
   access(id: string): Observable<TXpertProjectAccessSummary> {
     return this.#http.get<TXpertProjectAccessSummary>(`${API_XPERT_PROJECT}/${id}/access`)
+  }
+
+  members(id: string) {
+    return this.#http.get<TXpertProjectMemberSummary[]>(`${API_XPERT_PROJECT}/${id}/members`)
+  }
+
+  instructions(id: string) {
+    return this.#http.get<TXpertProjectInstructions>(`${API_XPERT_PROJECT}/${id}/content/instructions`)
+  }
+
+  updateInstructions(id: string, content: string) {
+    const input: TXpertProjectInstructions = { content }
+    return this.#http.put<TXpertProjectInstructions>(`${API_XPERT_PROJECT}/${id}/content/instructions`, input)
+  }
+
+  skills(id: string) {
+    return this.#http.get<TXpertProjectSkills>(`${API_XPERT_PROJECT}/${id}/content/skills`)
+  }
+
+  installSkill(id: string, indexId: string) {
+    return this.#http.post<TXpertProjectSkillSummary>(`${API_XPERT_PROJECT}/${id}/content/skills/install`, {
+      indexId
+    })
+  }
+
+  uploadSkills(id: string, file: File) {
+    const form = new FormData()
+    form.append('file', file)
+    return this.#http.post<TXpertProjectSkillSummary[]>(`${API_XPERT_PROJECT}/${id}/content/skills/upload`, form)
+  }
+
+  setSkillEnabled(id: string, skillId: string, enabled: boolean) {
+    return this.#http.patch<TXpertProjectSkillSummary>(`${API_XPERT_PROJECT}/${id}/content/skills`, {
+      skillId,
+      enabled
+    })
+  }
+
+  uninstallSkill(id: string, skillId: string) {
+    return this.#http.delete<void>(`${API_XPERT_PROJECT}/${id}/content/skills`, {
+      params: { skillId }
+    })
   }
 
   overview(id: string) {

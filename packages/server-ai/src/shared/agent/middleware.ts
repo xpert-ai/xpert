@@ -20,6 +20,7 @@ import { TXpertAgentRuntimeOptions } from './state'
 import { filterDisabledTools } from './tool-preference'
 import { orderNodesByKeyOrder } from './workflow'
 import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
+import { isRuntimeCapabilitiesAllowlist } from './runtime-capabilities'
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
 
@@ -85,7 +86,7 @@ export function getRuntimeEnabledMiddlewareNodes(
         agent.options?.middlewares?.order || []
     )
     const runtimeCapabilities = options?.runtimeCapabilities
-    if (runtimeCapabilities?.mode !== 'allowlist') {
+    if (!isRuntimeCapabilitiesAllowlist(runtimeCapabilities)) {
         assertSingleSkillsMiddlewareConnection(agent.key, middlewares)
         return middlewares
     }

@@ -24,7 +24,12 @@ Example structure:
 */
 import { SystemMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
-import { ISkillRepositoryIndex, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
+import {
+    ISkillRepositoryIndex,
+    parseRuntimeSkillCapabilityId,
+    TAgentMiddlewareMeta,
+    TRuntimeSkillSource
+} from '@xpert-ai/contracts'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -40,11 +45,18 @@ import { access, readFile, stat } from 'fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'path'
 import { In, Repository } from 'typeorm'
 import { z } from 'zod/v3'
+import { t } from 'i18next'
 import { SkillPackage } from '../../skill-package.entity'
 import { SkillPackageService } from '../../skill-package.service'
 import { SKILLS_MIDDLEWARE_NAME } from '../../types'
 import { SandboxAcquireBackendCommand, SandboxCopyTreeCommand } from '../../../sandbox'
 import type { WorkspaceBinding } from '../../../shared'
+import {
+    findValidatedProjectSkillFiles,
+    readProjectSkillManifest,
+    resolveXpertDataVolumeScope,
+    VolumeClient
+} from '../../../shared/volume'
 import { SkillRepositoryIndexService } from '../../../skill-repository/repository-index/skill-repository-index.service'
 import { XpertWorkspaceAccessService, getWorkspaceRoot } from '../../../xpert-workspace'
 
@@ -116,9 +128,14 @@ type SkillPromptMetadata = {
     path?: string
     source?: string
     packagePath?: string
+    /** Namespaced relative path used inside the shared runtime skills directory. */
+    runtimePath?: string
+    runtimeSource?: TRuntimeSkillSource['type']
     repositoryId?: string
     workspaceId: string
     version: string
+    /** Authoritative source directory for non-Workspace skills such as Project Content. */
+    localPath?: string
 }
 
 type SkillSyncRecord = {
@@ -158,6 +175,7 @@ Automatic skill discovery is enabled. If the installed skills above are not enou
 Search only when a new skill is likely to materially improve the answer. Do not install unrelated or speculative skills.
 
 This is a runtime skill flow. Do not use read_skill_file, repository search, repository install, npx skills add, or runtime skill directories to create or maintain workspace skill packages. Use dedicated workspace skill authoring tools when present.`
+const PROJECT_SKILL_PRIORITY_SYSTEM_PROMPT = `When no skill is explicitly selected, prefer a matching Project skill over a general Xpert skill. An explicitly selected skill always takes priority.`
 const SKILLS_SYSTEM_PROMPT = `
 ## Skills System
 
@@ -490,6 +508,30 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         return { skillIds, workspaceId, hasRuntimeSelection }
     }
 
+    private resolveProjectRuntimeSkillSelection(skillIds: string[], xpertId: string | undefined, projectId: string) {
+        const xpertSkillIds = new Set<string>()
+        const projectSkillIds = new Set<string>()
+
+        for (const id of skillIds) {
+            const source = parseRuntimeSkillCapabilityId(id)
+            if (!source) {
+                // Backward compatibility with Project capabilities emitted before source-aware IDs.
+                projectSkillIds.add(id)
+                continue
+            }
+            if (source.type === 'xpert' && xpertId && source.ownerId === xpertId) {
+                xpertSkillIds.add(source.skillId)
+            } else if (source.type === 'project' && source.ownerId === projectId) {
+                projectSkillIds.add(source.skillId)
+            }
+        }
+
+        return {
+            xpertSkillIds: Array.from(xpertSkillIds),
+            projectSkillIds: Array.from(projectSkillIds)
+        }
+    }
+
     private resolveRuntimeSkillSelectionMode(state: Record<string, unknown>): RuntimeSkillSelectionMode | null {
         const rootState = state as RuntimeSkillSelectionState
         const startState = this.asRecord(state[START_STATE_KEY]) as RuntimeSkillSelectionState
@@ -607,6 +649,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         userId: string,
         projectId?: string | null,
         xpertId?: string | null,
+        workspaceDataScope?: IAgentMiddlewareContext['workspaceDataScope'],
         workingDirectory?: string
     ): Promise<SandboxBackendProtocol> {
         const volumeScope = projectId
@@ -617,13 +660,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                   userId
               }
             : xpertId
-              ? {
-                    tenantId,
-                    catalog: 'xperts' as const,
-                    xpertId,
-                    userId,
-                    isolateByUser: false
-                }
+              ? resolveXpertDataVolumeScope({ tenantId, xpertId, userId, workspaceDataScope })
               : {
                     tenantId,
                     catalog: 'users' as const,
@@ -648,7 +685,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         options: ISkillsMiddlewareOptions,
         context: IAgentMiddlewareContext
     ): Promise<AgentMiddleware> {
-        const { tenantId, userId, workspaceId: contextWorkspaceId, projectId, xpertId } = context
+        const { tenantId, userId, workspaceId: contextWorkspaceId, projectId, xpertId, workspaceDataScope } = context
         const normalizedContextWorkspaceId = this.sanitizeWorkspaceId(contextWorkspaceId)
         const autoDiscoveryOptions = this.resolveAutoDiscoveryOptions(options)
         this.#logger.debug(`SkillsMiddleware using context workspace: ${normalizedContextWorkspaceId}`)
@@ -725,9 +762,11 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             if (!packagePath) {
                 return
             }
+            const runtimePath = skill.runtimePath?.trim() || packagePath
 
-            const workspaceRoot = getWorkspaceRoot(tenantId, skill.workspaceId)
-            const localSkillPath = await this.resolveLocalPackagePath(workspaceRoot, packagePath)
+            const localSkillPath =
+                skill.localPath ??
+                (await this.resolveLocalPackagePath(getWorkspaceRoot(tenantId, skill.workspaceId), packagePath))
             if (!localSkillPath) {
                 this.#logger.warn(
                     `Skip syncing skill "${skill.name}" because package path "${packagePath}" is missing in workspace "${skill.workspaceId}".`
@@ -738,7 +777,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 new SandboxCopyTreeCommand(sandbox, {
                     version: skill.version,
                     localPath: localSkillPath,
-                    containerPath: join(runtimeSkillsRoot, packagePath),
+                    containerPath: join(runtimeSkillsRoot, runtimePath),
                     overwrite: true
                 })
             )
@@ -754,7 +793,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 return null
             }
 
-            const containerPath = join(runtimeSkillsRoot, packagePath)
+            const runtimePath = skill.runtimePath?.trim() || packagePath
+            const containerPath = join(runtimeSkillsRoot, runtimePath)
             const sandboxIdentity = buildSandboxSyncIdentity(sandbox)
             const pathKey = getSkillSyncPathKey(sandboxIdentity, containerPath)
             const key = buildSkillSyncKey(sandbox, containerPath, String(skill.version))
@@ -806,9 +846,9 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             runtimeSkillsRoot: string,
             skills: SkillPromptMetadata[]
         ) => {
-            for (const skill of skills) {
-                scheduleSkillSync(sandbox, runtimeSkillsRoot, skill)
-            }
+            return skills
+                .map((skill) => scheduleSkillSync(sandbox, runtimeSkillsRoot, skill))
+                .filter((record): record is SkillSyncRecord => Boolean(record))
         }
 
         const findSkillSyncForPath = (sandbox: unknown, fullPath: string): SkillSyncRecord | null => {
@@ -870,6 +910,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     userId,
                     projectId,
                     xpertId,
+                    workspaceDataScope,
                     this.getSandboxWorkingDirectory(sandbox) || runtimeWorkingDirectory || undefined
                 )
                 const result = await fallbackBackend.execute(`cat ${this.escapeForShell(fullPath)}`)
@@ -906,6 +947,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                         userId,
                         projectId,
                         xpertId,
+                        workspaceDataScope,
                         runtimeWorkingDirectory || undefined
                     )
                     const result = await fallbackBackend.execute(command, {
@@ -1092,7 +1134,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             stateSchema: this.stateSchema,
             tools: [
                 readSkillFile,
-                ...(autoDiscoveryOptions.enabled ? [searchSkillRepository, installWorkspaceSkills] : [])
+                ...(!projectId && autoDiscoveryOptions.enabled ? [searchSkillRepository, installWorkspaceSkills] : [])
                 /*skillShell*/
             ],
             wrapModelCall: async (request, handler) => {
@@ -1125,6 +1167,10 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     runtimeSkillSelectionMode !== 'workspace_blacklist' && !hasRuntimeSelection
                 lastEffectiveWorkspaceId = runtimeWorkspaceId
 
+                const projectRuntimeSelection = projectId
+                    ? this.resolveProjectRuntimeSkillSelection(runtimeSkillIds, xpertId, projectId)
+                    : null
+
                 const workspaceSkillSelections = new Map<string, Set<string>>()
                 if (shouldUseConfiguredDefaults && hasConfiguredSkillOverride) {
                     this.appendWorkspaceSkills(
@@ -1152,7 +1198,65 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 }
 
                 const skills: SkillPromptMetadata[] = []
-                if (runtimeSkillSelectionMode === 'workspace_blacklist' && stateWorkspaceId) {
+                if (projectId) {
+                    const selectedProjectSkillIds = hasRuntimeSelection
+                        ? new Set(projectRuntimeSelection?.projectSkillIds ?? [])
+                        : undefined
+                    const projectSkills = await this.loadProjectSkillMetadata(
+                        runtimeSkillsRootInContainer,
+                        tenantId,
+                        projectId,
+                        selectedProjectSkillIds
+                    )
+                    skills.push(...projectSkills)
+
+                    if (normalizedContextWorkspaceId) {
+                        let xpertSkills: SkillPromptMetadata[] = []
+                        if (hasRuntimeSelection) {
+                            const selectedXpertSkillIds = projectRuntimeSelection?.xpertSkillIds ?? []
+                            if (selectedXpertSkillIds.length && hasConfiguredSkillOverride) {
+                                const configuredSkillIdSet = new Set(configuredSkillIds)
+                                xpertSkills = await this.loadSkillMetadata(
+                                    runtimeSkillsRootInContainer,
+                                    selectedXpertSkillIds.filter((id) => configuredSkillIdSet.has(id)),
+                                    normalizedContextWorkspaceId
+                                )
+                            } else if (selectedXpertSkillIds.length && configuredRepositoryDefault) {
+                                const repositorySkills = await this.loadRepositoryWorkspaceSkillMetadata(
+                                    runtimeSkillsRootInContainer,
+                                    normalizedContextWorkspaceId,
+                                    configuredRepositoryDefault.repositoryId
+                                )
+                                const selectedSkillIdSet = new Set(selectedXpertSkillIds)
+                                xpertSkills = this.filterSkillMetadata(
+                                    repositorySkills.filter((skill) => selectedSkillIdSet.has(skill.id)),
+                                    configuredRepositoryDefault.disabledSkillIds
+                                )
+                            }
+                        } else if (hasConfiguredSkillOverride) {
+                            xpertSkills = await this.loadSkillMetadata(
+                                runtimeSkillsRootInContainer,
+                                configuredSkillIds,
+                                normalizedContextWorkspaceId
+                            )
+                        } else if (configuredRepositoryDefault) {
+                            const repositorySkills = await this.loadRepositoryWorkspaceSkillMetadata(
+                                runtimeSkillsRootInContainer,
+                                normalizedContextWorkspaceId,
+                                configuredRepositoryDefault.repositoryId
+                            )
+                            xpertSkills = this.filterSkillMetadata(
+                                repositorySkills,
+                                configuredRepositoryDefault.disabledSkillIds
+                            )
+                        }
+                        skills.push(
+                            ...xpertSkills.map((skill) =>
+                                this.withRuntimeSkillNamespace(runtimeSkillsRootInContainer, 'xpert', skill)
+                            )
+                        )
+                    }
+                } else if (runtimeSkillSelectionMode === 'workspace_blacklist' && stateWorkspaceId) {
                     const workspaceSkills = await this.loadWorkspaceSkillMetadata(
                         runtimeSkillsRootInContainer,
                         runtimeWorkspaceId
@@ -1174,15 +1278,18 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     )
                     skills.push(...workspaceSkills)
                 }
-                for (const [workspaceId, ids] of workspaceSkillSelections.entries()) {
-                    const workspaceSkills = await this.loadSkillMetadata(
-                        runtimeSkillsRootInContainer,
-                        Array.from(ids),
-                        workspaceId
-                    )
-                    skills.push(...workspaceSkills)
+                if (!projectId) {
+                    for (const [workspaceId, ids] of workspaceSkillSelections.entries()) {
+                        const workspaceSkills = await this.loadSkillMetadata(
+                            runtimeSkillsRootInContainer,
+                            Array.from(ids),
+                            workspaceId
+                        )
+                        skills.push(...workspaceSkills)
+                    }
                 }
                 if (
+                    !projectId &&
                     shouldUseConfiguredDefaults &&
                     hasConfiguredSkillOverride &&
                     configuredSkillIds.length > 0 &&
@@ -1204,7 +1311,19 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 const sandbox = request.runtime.configurable.sandbox
                 const sandboxScopedSyncKey = `${buildSandboxSyncIdentity(sandbox)}:${syncKey}`
                 if (!skillsSynced || sandboxScopedSyncKey !== lastSyncedKey) {
-                    scheduleSkillsToSandbox(sandbox, runtimeSkillsRootInContainer, effectiveSkills)
+                    const records = scheduleSkillsToSandbox(sandbox, runtimeSkillsRootInContainer, effectiveSkills)
+                    if (projectId) {
+                        await Promise.all(records.map((record) => record.promise))
+                        const failure = records.find((record) => record.error)?.error
+                        if (failure) {
+                            throw new Error(
+                                t('server-ai:Error.ProjectSkillProjectionFailed', {
+                                    defaultValue: 'Project skills could not be prepared for this run: {{message}}',
+                                    message: failure.message
+                                })
+                            )
+                        }
+                    }
                     skillsSynced = true
                     lastSyncedKey = sandboxScopedSyncKey
                 }
@@ -1213,7 +1332,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 const extraPrompt = [
                     options?.systemPrompt,
                     skillsSection,
-                    autoDiscoveryOptions.enabled ? AUTO_DISCOVERY_SYSTEM_PROMPT : null
+                    projectId ? PROJECT_SKILL_PRIORITY_SYSTEM_PROMPT : null,
+                    !projectId && autoDiscoveryOptions.enabled ? AUTO_DISCOVERY_SYSTEM_PROMPT : null
                 ]
                     .filter(Boolean)
                     .join('\n\n')
@@ -1326,6 +1446,65 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         return true
     }
 
+    private async loadProjectSkillMetadata(
+        runtimeSkillsRoot: string,
+        tenantId: string,
+        projectId: string,
+        allowedSkillIds?: ReadonlySet<string>
+    ): Promise<SkillPromptMetadata[]> {
+        const projectRoot = VolumeClient._getWorkspaceRoot(tenantId, 'projects', projectId)
+        const skillsRoot = join(projectRoot, 'skills')
+        const skillFiles = await findValidatedProjectSkillFiles(projectRoot).catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(
+                t('server-ai:Error.ProjectSkillProjectionFailed', {
+                    defaultValue: 'Project skills could not be prepared for this run: {{message}}',
+                    message
+                })
+            )
+        })
+        const projectSkillManifest = await readProjectSkillManifest(projectRoot).catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(
+                t('server-ai:Error.ProjectSkillProjectionFailed', {
+                    defaultValue: 'Project skills could not be prepared for this run: {{message}}',
+                    message
+                })
+            )
+        })
+        const disabledSkillIds = new Set(
+            projectSkillManifest.items.filter((item) => !item.enabled).map((item) => item.id)
+        )
+        const skills: SkillPromptMetadata[] = []
+        for (const skillMdPath of skillFiles) {
+            const parsed = await this.parseSkillMetadata(skillMdPath)
+            if (!parsed) continue
+            const relativeSkillDirectory = relative(skillsRoot, dirname(skillMdPath)).replace(/\\/g, '/') || '_root'
+            if (
+                disabledSkillIds.has(relativeSkillDirectory) ||
+                (allowedSkillIds && !allowedSkillIds.has(relativeSkillDirectory))
+            ) {
+                continue
+            }
+            const sourceStat = await stat(skillMdPath)
+            const runtimePath = join('project', relativeSkillDirectory)
+            skills.push({
+                id: relativeSkillDirectory,
+                name: parsed.name ?? relativeSkillDirectory,
+                description: parsed.description ?? '',
+                path: join(runtimeSkillsRoot, runtimePath, SKILL_FILE_NAME),
+                source: 'project',
+                packagePath: relativeSkillDirectory,
+                runtimePath,
+                runtimeSource: 'project',
+                workspaceId: `project:${projectId}`,
+                version: String(sourceStat.mtimeMs),
+                localPath: dirname(skillMdPath)
+            })
+        }
+        return skills
+    }
+
     private async loadSkillMetadata(
         workspacePath: string,
         skillIds: string[],
@@ -1399,6 +1578,24 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             deduped.set(`${skill.workspaceId}:${skill.id}`, skill)
         }
         return Array.from(deduped.values())
+    }
+
+    private withRuntimeSkillNamespace(
+        runtimeSkillsRoot: string,
+        source: TRuntimeSkillSource['type'],
+        skill: SkillPromptMetadata
+    ): SkillPromptMetadata {
+        const packagePath = skill.packagePath?.trim()
+        if (!packagePath) {
+            return { ...skill, runtimeSource: source }
+        }
+        const runtimePath = join(source, packagePath)
+        return {
+            ...skill,
+            path: join(runtimeSkillsRoot, runtimePath, SKILL_FILE_NAME),
+            runtimePath,
+            runtimeSource: source
+        }
     }
 
     private async parseSkillPackage(
