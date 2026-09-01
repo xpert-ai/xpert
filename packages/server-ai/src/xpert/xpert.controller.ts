@@ -79,7 +79,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
-import { Between, DeleteResult, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
+import { Between, DeleteResult, In, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { randomBytes } from 'crypto'
@@ -130,6 +130,7 @@ import {
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
+import { assertSafeChatConversationRelations } from '../chat-conversation/conversation-relations'
 import { EnvironmentService } from '../environment'
 import { XpertDeleteCommand } from './commands/delete.command'
 import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
@@ -145,6 +146,8 @@ import { FindCopilotModelsQuery } from '../copilot/queries'
 import { t } from 'i18next'
 import { isUUID } from 'class-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
+import { PublishedXpertAccessService } from './published-xpert-access.service'
+import { XpertWorkspaceAuthGuard } from './guards/xpert-workspace-auth.guard'
 
 const XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 
@@ -170,6 +173,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly templateWorkspaceInitializer: XpertTemplateWorkspaceInitializer,
         private readonly workspaceFilesService: XpertWorkspaceFilesService,
         private readonly copilotUsageService: CopilotUsageService,
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {
@@ -538,6 +542,7 @@ export class XpertController extends CrudController<Xpert> {
         @Param('id') id: string,
         @Query('$order', ParseJsonPipe) order?: PaginationParams<XpertAgentExecution>['order']
     ) {
+        await this.service.assertCanAuthorById(id)
         return this.queryBus.execute(new FindExecutionsByXpertQuery(id, { order }))
     }
 
@@ -685,7 +690,8 @@ export class XpertController extends CrudController<Xpert> {
         return await this.service.uploadMemoryFile(id, path, file)
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Get(':id/workspace/files')
     async listWorkspaceFiles(
         @Param('id', UUIDValidationPipe) id: string,
@@ -1222,6 +1228,7 @@ export class XpertController extends CrudController<Xpert> {
         @Query('end') end: string,
         @Query('search') search?: string
     ) {
+        assertSafeChatConversationRelations(data?.relations)
         const { where } = data
         const result = await this.queryBus.execute(
             new ChatConversationLogsQuery(
@@ -1368,6 +1375,15 @@ export class XpertController extends CrudController<Xpert> {
             : { fromEndUserId }
     }
 
+    private async getPublicConversationFamilyIds(slug: string) {
+        const xpert = await this.service.findBySlug(slug)
+        if (!xpert) {
+            throw new NotFoundException(`Not found xpert '${slug}'`)
+        }
+
+        return this.publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds(xpert.id)
+    }
+
     @Public()
     @UseGuards(AnonymousXpertAuthGuard)
     @Get(':name/conversation/:id')
@@ -1377,10 +1393,13 @@ export class XpertController extends CrudController<Xpert> {
         @Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
         @Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select']
     ) {
+        assertSafeChatConversationRelations(relations)
+        const xpertIds = await this.getPublicConversationFamilyIds(name)
         const conversation = await this.queryBus.execute(
             new GetChatConversationQuery(
                 {
                     id,
+                    xpertId: In(xpertIds),
                     ...this.getPublicUserCondition()
                 },
                 relations
@@ -1393,8 +1412,10 @@ export class XpertController extends CrudController<Xpert> {
     @UseGuards(AnonymousXpertAuthGuard)
     @Delete(':name/conversation/:id')
     async deleteAppConversation(@Param('name') slug: string, @Param('id') id: string) {
-        await this.queryBus.execute(new GetChatConversationQuery({ id, ...this.getPublicUserCondition() }))
-        await this.commandBus.execute(new ChatConversationDeleteCommand({ id, ...this.getPublicUserCondition() }))
+        const xpertIds = await this.getPublicConversationFamilyIds(slug)
+        const where = { id, xpertId: In(xpertIds), ...this.getPublicUserCondition() }
+        await this.queryBus.execute(new GetChatConversationQuery(where))
+        await this.commandBus.execute(new ChatConversationDeleteCommand(where))
     }
 
     @Public()
@@ -1404,13 +1425,14 @@ export class XpertController extends CrudController<Xpert> {
         @Param('name') slug: string,
         @Query('data', ParseJsonPipe) paginationOptions?: PaginationParams<ChatConversation>
     ) {
-        const xpert = await this.service.findBySlug(slug)
+        assertSafeChatConversationRelations(paginationOptions?.relations)
+        const xpertIds = await this.getPublicConversationFamilyIds(slug)
         const conversation = await this.queryBus.execute(
             new FindChatConversationQuery(
                 {
                     ...(paginationOptions.where ?? {}),
                     ...this.getPublicUserCondition(),
-                    xpertId: xpert.id
+                    xpertId: In(xpertIds)
                 },
                 paginationOptions
             )
@@ -1426,11 +1448,14 @@ export class XpertController extends CrudController<Xpert> {
         @Param('id') id: string,
         @Body() entity: Partial<IChatConversation>
     ) {
-        await this.queryBus.execute(new FindChatConversationQuery({ id, ...this.getPublicUserCondition() }))
+        const xpertIds = await this.getPublicConversationFamilyIds(slug)
+        await this.queryBus.execute(
+            new GetChatConversationQuery({ id, xpertId: In(xpertIds), ...this.getPublicUserCondition() })
+        )
         await this.commandBus.execute(
             new ChatConversationUpsertCommand({
-                id,
-                ...entity
+                ...pickPublicConversationUpdate(entity),
+                id
             })
         )
     }
@@ -1444,8 +1469,10 @@ export class XpertController extends CrudController<Xpert> {
         @Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
         @Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select']
     ) {
+        assertSafeChatConversationRelations(relations)
+        const xpertIds = await this.getPublicConversationFamilyIds(name)
         const conversation = await this.queryBus.execute(
-            new FindChatConversationQuery({ id, ...this.getPublicUserCondition() }, { relations })
+            new GetChatConversationQuery({ id, xpertId: In(xpertIds), ...this.getPublicUserCondition() }, relations)
         )
         return await this.queryBus.execute(new FindMessageFeedbackQuery({ conversationId: conversation.id }, relations))
     }
@@ -1697,6 +1724,14 @@ export class XpertController extends CrudController<Xpert> {
         @Query('userId') userId?: string
     ) {
         return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end, id, { model, userId }))
+    }
+}
+
+function pickPublicConversationUpdate(entity: Partial<IChatConversation>): Partial<IChatConversation> {
+    return {
+        ...(entity.title !== undefined ? { title: entity.title } : {}),
+        ...(entity.status !== undefined ? { status: entity.status } : {}),
+        ...(entity.options !== undefined ? { options: entity.options } : {})
     }
 }
 

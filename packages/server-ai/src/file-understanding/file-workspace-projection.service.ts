@@ -1,10 +1,15 @@
 import { FileStorage, RequestContext, StorageFile } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import { Repository } from 'typeorm'
-import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared/volume'
+import {
+    isProjectGovernedContentPath,
+    VOLUME_CLIENT,
+    VolumeClient,
+    VolumeHandle,
+    VolumeSubtreeClient
+} from '../shared/volume'
 import { XpertWorkAreaResolver } from '../shared/volume/work-area'
 import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { readPageImageFileName, readPageImageStorageKey, readWorkspaceProvider } from './domain/page-image-artifact'
@@ -103,8 +108,9 @@ export class FileWorkspaceProjectionService {
                 existingProjection.scopeId === projectionScope.scopeId
                     ? normalizeWorkspaceRelativePath(existingProjection.relativePath)
                     : null
-            const existingServerPath = existingRelativePath ? workArea.volume.path(existingRelativePath) : null
-            const hasCurrentProjection = existingServerPath ? await pathExists(existingServerPath) : false
+            const hasCurrentProjection = existingRelativePath
+                ? await volumeFileExists(workArea.volume, existingRelativePath)
+                : false
 
             if (!hasCurrentProjection) {
                 const existingFileName =
@@ -113,7 +119,6 @@ export class FileWorkspaceProjectionService {
                         : asset.id
                 const fileName = normalizeFileName(storageFile?.originalName ?? asset.originalName ?? existingFileName)
                 const relativePath = normalizeRelativePath(assetFolderRelativePath, fileName)
-                const serverPath = workArea.volume.path(relativePath)
                 const buffer =
                     input.buffer ??
                     (storageFile
@@ -133,7 +138,6 @@ export class FileWorkspaceProjectionService {
                     workspace: {
                         relativePath,
                         workspacePath,
-                        absolutePath: serverPath,
                         catalog: projectionScope.catalog,
                         scopeId: projectionScope.scopeId,
                         provider: sandboxProvider ?? null,
@@ -196,7 +200,7 @@ export class FileWorkspaceProjectionService {
             return null
         }
         const sourceVolume = await this.volumeClient.resolve(sourceScope).ensureRoot()
-        return await fsPromises.readFile(sourceVolume.path(relativePath))
+        return await new VolumeSubtreeClient(sourceVolume, { allowRootWorkspace: true }).readBuffer('', relativePath)
     }
 
     private async projectPageImageArtifacts(input: {
@@ -311,12 +315,17 @@ function resolveProjectionScope(scope: {
     }
 }
 
-async function pathExists(filePath: string) {
+async function volumeFileExists(volume: VolumeHandle, relativePath: string) {
+    let openedFile: Awaited<ReturnType<typeof VolumeHandle.openExistingFile>> | null = null
     try {
-        await fsPromises.access(filePath)
-        return true
+        openedFile = await VolumeHandle.openExistingFile(volume.serverRoot, relativePath, {
+            boundaryRoot: volume.serverRoot
+        })
+        return openedFile.fileStat.isFile()
     } catch {
         return false
+    } finally {
+        await openedFile?.fileHandle.close()
     }
 }
 

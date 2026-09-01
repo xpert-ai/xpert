@@ -35,7 +35,15 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { BadRequestException, ForbiddenException, Logger, NotFoundException, Optional } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    forwardRef,
+    Inject,
+    Logger,
+    NotFoundException,
+    Optional
+} from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING, RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
@@ -130,7 +138,7 @@ function resolveVisibleConversationTitle(
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
-    readonly #logger = new Logger(XpertChatHandler.name)
+    private readonly logger = new Logger(XpertChatHandler.name)
 
     constructor(
         private readonly xpertService: XpertService,
@@ -140,10 +148,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly goalService: ChatConversationGoalService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly redisSseStreamService?: RedisSseStreamService,
-        @Optional() private readonly projectService?: XpertProjectService,
+        @Optional()
+        @Inject(forwardRef(() => XpertProjectService))
+        private readonly projectService?: XpertProjectService,
+        @Optional()
+        @Inject(forwardRef(() => XpertProjectContentService))
+        private readonly projectContentService?: XpertProjectContentService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
-        @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService,
-        @Optional() private readonly projectContentService?: XpertProjectContentService
+        @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService
     ) {}
 
     /**
@@ -617,10 +629,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             // reject any transient route/job value that attempts to cross it.
             const requestedProjectId = options.projectId ?? resolveRequestProjectId(request)
             if (conversation.projectId && requestedProjectId && conversation.projectId !== requestedProjectId) {
-                throw new BadRequestException('The requested Project does not match the conversation Project')
+                throw new BadRequestException(
+                    t('server-ai:Error.RequestedProjectConversationMismatch', {
+                        defaultValue: 'The requested Project does not match the conversation Project'
+                    })
+                )
             }
             if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
-                throw new BadRequestException('This Assistant requires a Project workspace')
+                throw new BadRequestException(
+                    t('server-ai:Error.XpertProjectRequired', {
+                        defaultValue: 'This Assistant requires a Project workspace'
+                    })
+                )
             }
             if (conversation.projectId && this.projectService) {
                 await this.projectService.assertRuntimeAccess(conversation.projectId, xpert.id)
@@ -907,6 +927,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
                     await attachChatFileAssetsToConversation(this.commandBus, conversation, persistedFiles, {
                         xpertId: xpert.id,
+                        workspaceDataScope: xpert.workspaceDataScope,
                         projectId: attachmentSandboxScope.projectId,
                         sandboxEnvironmentId: attachmentSandboxScope.sandboxEnvironmentId,
                         sandboxProvider: figureOutXpert(xpert as IXpert, Boolean(options?.isDraft)).features?.sandbox
@@ -967,6 +988,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         input = preparedAgentChatState.input
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
         const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
+        const logger = this.logger
 
         const stream = new Observable<MessageEvent>((subscriber) => {
             let chatMetricsFinished = false
@@ -1022,7 +1044,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             } as MessageEvent)
 
-            const logger = this.#logger
             RunnableLambda.from(async (input: TChatRequestHuman) => {
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
@@ -1313,7 +1334,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 } as MessageEvent
                             } catch (err) {
                                 finishChatMetrics('error')
-                                this.#logger.warn(err)
+                                logger.warn(err)
                                 subscriber.error(err)
                             }
                         })
@@ -1325,7 +1346,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                              * This function is triggered when the stream is unsubscribed
                              */
                             unsubscribe: async () => {
-                                this.#logger.debug(`Canceled by client!`)
+                                logger.debug(`Canceled by client!`)
                                 try {
                                     // Record Execution
                                     const timeEnd = Date.now()
@@ -1368,7 +1389,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     finishChatMetrics('aborted')
                                 } catch (err) {
                                     finishChatMetrics('error')
-                                    this.#logger.error(err)
+                                    logger.error(err)
                                 }
                             }
                         })
@@ -1896,11 +1917,10 @@ function resolveAgentSandboxScope(
 
     return {
         sandboxEnvironmentId,
-        projectId: sandboxEnvironmentId
-            ? undefined
-            : options?.projectId?.trim() ||
-              resolveRequestProjectId(request) ||
-              conversation.projectId?.trim() ||
-              undefined
+        projectId:
+            options?.projectId?.trim() ||
+            resolveRequestProjectId(request) ||
+            conversation.projectId?.trim() ||
+            undefined
     }
 }

@@ -22,7 +22,7 @@ export class SuggestedQuestionsHandler implements ICommandHandler<SuggestedQuest
 
     public async execute(command: SuggestedQuestionsCommand) {
         const { messageId } = command.params
-        const message = await this.service.findOne(messageId, {
+        const message = await this.service.findOneAuthorized(messageId, {
             relations: [
                 'conversation',
                 'conversation.xpert',

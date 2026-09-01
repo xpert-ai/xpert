@@ -26,6 +26,7 @@ import { ToolSchemaParser } from '../shared/tools/utils'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
 import { resolveXpertDataVolumeScope } from '../shared/volume'
 import { FindXpertQuery } from '../xpert/queries'
+import { XpertService } from '../xpert/xpert.service'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
 
@@ -42,6 +43,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly agentMiddlewareRuntimeService: AgentMiddlewareRuntimeService,
+        private readonly xpertService: XpertService,
         @Optional()
         @Inject(LOADED_PLUGINS)
         private readonly loadedPlugins: LoadedPluginRecord[] = []
@@ -154,6 +156,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
             }
         }
 
+        await this.xpertService.assertCanAuthorById(xpertId)
         const xpert = await this.queryBus.execute<
             FindXpertQuery,
             Pick<IXpert, 'id' | 'features' | 'workspaceId' | 'workspaceDataScope'> | null
