@@ -185,6 +185,19 @@
     }
   </section>
 
+  <div class="flex flex-wrap items-center gap-1 py-2 text-sm">
+    <span class="text-text-secondary">
+      {{ 'XP.Xpert.WorkspaceDataScope' | translate: { Default: 'Runtime data scope' } }}:
+    </span>
+    <span class="font-medium text-text-primary">
+      @if (workspaceDataScope() === 'user') {
+        {{ 'XP.Xpert.UserIsolatedWorkspaceData' | translate: { Default: 'User isolated' } }}
+      } @else {
+        {{ 'XP.Xpert.SharedWorkspaceData' | translate: { Default: 'Shared' } }}
+      }
+    </span>
+  </div>
+
   <!-- <div class="flex flex-col mt-4 rounded-xl pt-2 pb-3 px-3 bg-background-default-subtle dark:bg-neutral-800"
     formArrayName="starters">
     <label class="xp-input-label shrink-0">{{'XP.Copilot.Roles.Starters' | translate: {Default: 'Starters'} }}</label>

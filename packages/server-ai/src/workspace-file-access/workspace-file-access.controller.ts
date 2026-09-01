@@ -13,12 +13,12 @@ import {
     UseGuards
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { IsIn, IsOptional, IsString } from 'class-validator'
+import { IsIn, IsObject, IsOptional, IsString } from 'class-validator'
 import type { Request, Response } from 'express'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { t } from 'i18next'
-import type { XpertViewFileAccessPurpose } from '@xpert-ai/contracts'
+import type { XpertViewFileAccessPurpose, XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
 import { Public } from '@xpert-ai/server-core'
 import { UseValidationPipe } from '@xpert-ai/server-core'
 import { getMediaTypeWithCharset, resolveHttpByteRange } from '../shared'
@@ -34,6 +34,10 @@ class CreateWorkspaceFileAccessSessionDto {
 
     @IsString()
     viewKey!: string
+
+    @IsOptional()
+    @IsObject()
+    runtimeScope?: XpertViewRuntimeScopeInput
 }
 
 class CreateWorkspaceFileAccessGrantDto {

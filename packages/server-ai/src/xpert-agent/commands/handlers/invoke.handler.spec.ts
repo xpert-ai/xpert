@@ -75,6 +75,7 @@ import { XpertAgentInvokeHandler } from './invoke.handler'
 import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
+import { CompleteToolCallsQuery } from '../../queries'
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -168,6 +169,7 @@ describe('XpertAgentInvokeHandler', () => {
                 'agent-1',
                 {
                     id: 'xpert-1',
+                    workspaceDataScope: 'user',
                     features: {}
                 } as any,
                 {
@@ -216,6 +218,7 @@ describe('XpertAgentInvokeHandler', () => {
                 'agent-1',
                 {
                     id: 'xpert-1',
+                    workspaceDataScope: 'user',
                     features: {}
                 } as any,
                 {
@@ -260,6 +263,7 @@ describe('XpertAgentInvokeHandler', () => {
             userId: 'user-1',
             provider: undefined,
             xpertId: 'xpert-1',
+            workspaceDataScope: 'user',
             projectId: undefined,
             conversationId: undefined,
             environmentId: undefined
@@ -610,6 +614,7 @@ describe('XpertAgentInvokeHandler', () => {
             userId: 'user-1',
             provider: 'local-shell-sandbox',
             xpertId: 'xpert-1',
+            workspaceDataScope: undefined,
             projectId: undefined,
             conversationId: undefined,
             environmentId: 'sandbox-env-1'
@@ -790,6 +795,63 @@ describe('XpertAgentInvokeHandler', () => {
                 })
             ])
         )
+    })
+
+    it('passes the active Project to interrupted tool-call completion', async () => {
+        const graph = createGraph()
+        graph.getState.mockResolvedValue({
+            config: {
+                configurable: {
+                    thread_id: 'thread-1',
+                    checkpoint_ns: '',
+                    checkpoint_id: 'checkpoint-new'
+                }
+            },
+            parentConfig: null,
+            values: {},
+            tasks: [{ id: 'task-1', name: 'search' }]
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+        queryBus.execute.mockResolvedValue({ tasks: [] })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: { input: 'Run the tool' }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    workspaceDataScope: 'user',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    projectId: 'project-1',
+                    conversationId: 'conversation-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: { next: jest.fn() },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream).catch(() => undefined)
+
+        const completeQuery = queryBus.execute.mock.calls.find(
+            ([query]) => query instanceof CompleteToolCallsQuery
+        )?.[0] as CompleteToolCallsQuery
+        expect(completeQuery.projectId).toBe('project-1')
     })
 })
 

@@ -1,4 +1,4 @@
-import { IWFNMiddleware, TAgentMiddlewareMeta, TXpertFeatures } from '@xpert-ai/contracts'
+import { IWFNMiddleware, TAgentMiddlewareMeta, TXpertFeatures, XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { RunnableToolLike } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
@@ -15,6 +15,7 @@ export interface IAgentMiddlewareContext {
   conversationId?: string
   threadId?: string
   xpertId?: string
+  workspaceDataScope?: XpertWorkspaceDataScope | null
   xpertFeatures?: TXpertFeatures | null
   agentKey?: string
   knowledgebaseIds?: string[]

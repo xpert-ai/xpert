@@ -1,4 +1,9 @@
-import { FileUploadVolumeCatalog } from '@xpert-ai/contracts'
+import {
+    DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
+    FileUploadVolumeCatalog,
+    TFileDirectory,
+    XpertWorkspaceDataScope
+} from '@xpert-ai/contracts'
 import {
     SandboxWorkspaceMapperStrategy,
     type SandboxWorkspaceBinding,
@@ -9,6 +14,7 @@ import { Injectable } from '@nestjs/common'
 import { environment } from '@xpert-ai/server-config'
 import { normalizeUploadedFileName, urlJoin } from '@xpert-ai/server-common'
 import fsPromises from 'fs/promises'
+import { t } from 'i18next'
 import path from 'path'
 import { listFiles } from '../utils'
 import {
@@ -230,6 +236,22 @@ export function getVolumeSubpath(scope: Omit<VolumeScope, 'tenantId'>) {
                 throw new Error('userId is required for user-isolated xpert volume access')
             }
             return `/xpert/${scope.xpertId}/user/${scope.userId}`
+        case 'user-xperts':
+            if (!scope.userId) {
+                throw new Error(
+                    t('server-ai:Error.UserXpertVolumeUserRequired', {
+                        defaultValue: 'userId is required for user-owned xpert volume access'
+                    })
+                )
+            }
+            if (!scope.xpertId) {
+                throw new Error(
+                    t('server-ai:Error.UserXpertVolumeXpertRequired', {
+                        defaultValue: 'xpertId is required for user-owned xpert volume access'
+                    })
+                )
+            }
+            return `/user/${scope.userId}/xpert/${scope.xpertId}`
         case 'runtime-jobs':
             if (!scope.jobId) {
                 throw new Error('jobId is required for runtime job volume access')
@@ -239,11 +261,59 @@ export function getVolumeSubpath(scope: Omit<VolumeScope, 'tenantId'>) {
 }
 
 export function getVolumePublicBaseUrl(scope: Omit<VolumeScope, 'tenantId'>) {
+    const subpath = trimLeadingSlash(getVolumeSubpath(scope))
+    const usesPrivateXpertRoute =
+        scope.catalog === 'user-xperts' || (scope.catalog === 'xperts' && getXpertUserIsolation(scope.isolateByUser))
     return urlJoin(
         environment.baseUrl,
         '/api/sandbox/volume',
-        normalizeSandboxPublicVolumeSubpath(trimLeadingSlash(getVolumeSubpath(scope)))
+        usesPrivateXpertRoute ? subpath : normalizeSandboxPublicVolumeSubpath(subpath)
     )
+}
+
+export type XpertDataVolumeScope =
+    | {
+          tenantId: string
+          catalog: 'xperts'
+          userId?: string | null
+          xpertId: string
+          isolateByUser: false
+      }
+    | {
+          tenantId: string
+          catalog: 'user-xperts'
+          userId: string
+          xpertId: string
+      }
+
+export function resolveXpertDataVolumeScope(input: {
+    tenantId: string
+    userId?: string | null
+    xpertId: string
+    workspaceDataScope?: XpertWorkspaceDataScope | null
+}): XpertDataVolumeScope {
+    if ((input.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE) === 'user') {
+        if (!input.userId) {
+            throw new Error(
+                t('server-ai:Error.XpertWorkspaceUserRequired', {
+                    defaultValue: 'userId is required for a user-isolated Xpert workspace'
+                })
+            )
+        }
+        return {
+            tenantId: input.tenantId,
+            catalog: 'user-xperts',
+            userId: input.userId,
+            xpertId: input.xpertId
+        }
+    }
+    return {
+        tenantId: input.tenantId,
+        catalog: 'xperts',
+        ...(input.userId ? { userId: input.userId } : {}),
+        xpertId: input.xpertId,
+        isolateByUser: false
+    }
 }
 
 export function getVolumeRootPath(client: VolumeClient, scope: VolumeScope) {
@@ -279,6 +349,14 @@ export class VolumeHandle {
         return normalizedRelativePath ? urlJoin(this.publicBaseUrl, normalizedRelativePath) : this.publicBaseUrl
     }
 
+    exposesDirectFileUrls() {
+        return (
+            this.scope.catalog !== 'projects' &&
+            this.scope.catalog !== 'user-xperts' &&
+            !(this.scope.catalog === 'xperts' && getXpertUserIsolation(this.scope.isolateByUser))
+        )
+    }
+
     async putFile(folder = '', file: { originalname: string; buffer: Buffer; mimetype?: string }): Promise<string> {
         const normalizedFolder = normalizeRelativePathForVolume(folder)
         const fileName = normalizeUploadedFileName(file.originalname)
@@ -312,11 +390,19 @@ export class VolumeHandle {
     }
 
     async list(params: { path?: string; deepth?: number }) {
-        return await listFiles(params.path || '/', params.deepth ?? 1, 0, {
+        const files = await listFiles(params.path || '/', params.deepth ?? 1, 0, {
             root: this.serverRoot,
             baseUrl: this.publicBaseUrl
         })
+        return this.exposesDirectFileUrls() ? files : omitVolumeDirectFileUrls(files ?? [])
     }
+}
+
+function omitVolumeDirectFileUrls(files: TFileDirectory[]): TFileDirectory[] {
+    return files.map(({ url: _url, fileUrl: _fileUrl, children, ...file }) => ({
+        ...file,
+        ...(children ? { children: omitVolumeDirectFileUrls(children) } : {})
+    }))
 }
 
 abstract class BaseRuntimeVolumeClient extends VolumeClient {
@@ -327,16 +413,19 @@ abstract class BaseRuntimeVolumeClient extends VolumeClient {
         const roots = this.resolveRoot(tenantId)
         const subpath = getVolumeSubpath(subscope)
         const flattened = usesFlattenedSandboxVolumeLayout()
-        // The legacy dev layout keeps durable catalogs directly under ~/data,
-        // but a runtime job must still own a deletable subtree. Otherwise
-        // cleanupVolume(job) would delete the shared root together with durable
-        // project/Xpert files and outputs that the job just persisted.
-        const isolateRuntimeJob = flattened && scope.catalog === 'runtime-jobs'
+        // The explicit legacy-flat dev layout keeps existing durable catalogs
+        // directly under ~/data. Runtime jobs still need a deletable subtree,
+        // while private Xpert scopes retain their isolation contract.
+        const isolateCatalog =
+            flattened &&
+            (scope.catalog === 'runtime-jobs' ||
+                scope.catalog === 'user-xperts' ||
+                (scope.catalog === 'xperts' && getXpertUserIsolation(scope.isolateByUser)))
 
         return new VolumeHandle(
             scope,
-            flattened && !isolateRuntimeJob ? roots.serverRoot : path.join(roots.serverRoot, trimLeadingSlash(subpath)),
-            flattened && !isolateRuntimeJob ? roots.hostRoot : path.join(roots.hostRoot, trimLeadingSlash(subpath)),
+            flattened && !isolateCatalog ? roots.serverRoot : path.join(roots.serverRoot, trimLeadingSlash(subpath)),
+            flattened && !isolateCatalog ? roots.hostRoot : path.join(roots.hostRoot, trimLeadingSlash(subpath)),
             getVolumePublicBaseUrl(subscope)
         )
     }

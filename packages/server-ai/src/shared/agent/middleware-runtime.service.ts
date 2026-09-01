@@ -21,7 +21,7 @@ import {
     normalizeMiddlewareProvider
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
-import { Injectable, Logger, Optional } from '@nestjs/common'
+import { ForbiddenException, Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import {
@@ -100,7 +100,7 @@ import {
     type WorkspaceFilesApi,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
-import { FileStorage, GetStorageFileQuery, OutboundActorTokenProvider } from '@xpert-ai/server-core'
+import { FileStorage, OutboundActorTokenProvider } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
@@ -130,7 +130,10 @@ import { EnsureKnowledgebasesCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
-import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
+import type { FileAsset } from '../../file-understanding/entities/file-asset.entity'
+import type { FileAssetAuthority, FileAssetLocator } from '../../file-understanding/file-asset-access.service'
+import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { applicationMetrics } from '../../metrics'
@@ -595,62 +598,79 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new ReadKnowledgebaseDocumentImageCommand(input))
     }
 
-    async resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {
+    async resolveFile(
+        input: AgentMiddlewareFileReference,
+        scope: AgentMiddlewareRuntimeScope = {}
+    ): Promise<AgentMiddlewareResolvedFile | null> {
         const directUrl =
             normalizeOptionalString(input.previewUrl) ??
             normalizeOptionalString(input.fileUrl) ??
             normalizeOptionalString(input.url)
-        const fileAssetId =
-            normalizeOptionalString(input.fileAssetId) ??
-            normalizeOptionalString(input.fileId) ??
-            (!normalizeOptionalString(input.storageFileId) ? normalizeOptionalString(input.id) : undefined)
-        let storageFileId = normalizeOptionalString(input.storageFileId)
+        const explicitFileAssetId = normalizeOptionalString(input.fileAssetId) ?? normalizeOptionalString(input.fileId)
+        const requestedStorageFileId = normalizeOptionalString(input.storageFileId)
+        const bareId = normalizeOptionalString(input.id)
+        const fileAssetId = explicitFileAssetId ?? (!requestedStorageFileId ? bareId : undefined)
+        const legacyStorageFileId = requestedStorageFileId ?? (!explicitFileAssetId ? bareId : undefined)
+        let storageFileId = requestedStorageFileId
         let fileAsset: FileAsset | null = null
         let storageFile: IStorageFile | null = null
 
-        if (!directUrl && fileAssetId) {
-            fileAsset = await this.queryBus.execute<GetFileAssetQuery, FileAsset | null>(
-                new GetFileAssetQuery(fileAssetId)
-            )
-            storageFileId = storageFileId ?? normalizeOptionalString(fileAsset?.storageFileId)
+        if (fileAssetId || storageFileId) {
+            let locator: FileAssetLocator
+            if (fileAssetId) {
+                locator = { fileAssetId, ...(requestedStorageFileId ? { storageFileId: requestedStorageFileId } : {}) }
+            } else {
+                locator = { storageFileId }
+            }
+            try {
+                const authorized = await this.queryBus.execute(
+                    new ResolveAuthorizedFileAssetQuery({
+                        locator,
+                        authority: this.resolveFileAssetAuthority(scope),
+                        operation: 'read'
+                    })
+                )
+                fileAsset = authorized.asset
+                storageFile = authorized.storageFile ?? null
+                storageFileId = normalizeOptionalString(storageFile?.id)
+            } catch (error) {
+                if (!(error instanceof ForbiddenException) || explicitFileAssetId || !legacyStorageFileId) {
+                    throw error
+                }
+                storageFile = await this.queryBus.execute(new GetOwnedStorageFileQuery(legacyStorageFileId))
+                storageFileId = normalizeOptionalString(storageFile?.id)
+            }
         }
 
-        if (!directUrl && storageFileId) {
-            const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-                new GetStorageFileQuery([storageFileId])
-            )
-            storageFile = storageFiles[0] ?? null
-        }
-
-        const url = directUrl ?? this.resolveStorageFileUrl(storageFile)
+        const url = storageFile ? this.resolveStorageFileUrl(storageFile) : directUrl
         if (!url) {
             return null
         }
 
         const name =
-            normalizeOptionalString(input.name) ??
-            normalizeOptionalString(input.originalName) ??
             normalizeOptionalString(fileAsset?.originalName) ??
             normalizeOptionalString(fileAsset?.fileName) ??
             normalizeOptionalString(storageFile?.originalName) ??
+            normalizeOptionalString(input.name) ??
+            normalizeOptionalString(input.originalName) ??
             'source-document'
         const mimeType =
-            normalizeOptionalString(input.mimeType) ??
-            normalizeOptionalString(input.mimetype) ??
             normalizeOptionalString(fileAsset?.mimeType) ??
-            normalizeOptionalString(storageFile?.mimetype)
+            normalizeOptionalString(storageFile?.mimetype) ??
+            normalizeOptionalString(input.mimeType) ??
+            normalizeOptionalString(input.mimetype)
         const size =
-            typeof input.size === 'number'
-                ? input.size
-                : typeof fileAsset?.size === 'number'
-                  ? fileAsset.size
-                  : typeof storageFile?.size === 'number'
-                    ? storageFile.size
+            typeof fileAsset?.size === 'number'
+                ? fileAsset.size
+                : typeof storageFile?.size === 'number'
+                  ? storageFile.size
+                  : typeof input.size === 'number'
+                    ? input.size
                     : undefined
 
         return {
-            id: fileAssetId ?? storageFileId ?? url,
-            ...(fileAssetId ? { fileId: fileAssetId, fileAssetId } : {}),
+            id: fileAsset?.id ?? storageFileId ?? url,
+            ...(fileAsset ? { fileId: fileAsset.id, fileAssetId: fileAsset.id } : {}),
             ...(storageFileId ? { storageFileId } : {}),
             name,
             ...(mimeType ? { mimeType } : {}),
@@ -1089,18 +1109,17 @@ export class AgentMiddlewareRuntimeService {
      * The workspace-files capability is scoped here so plugin tools can receive
      * simple sandbox paths while server-side reads still honor the current
      * project/Xpert workspace boundary.
-     */
+    */
     createScopedApi(scope: AgentMiddlewareRuntimeScope = {}): AgentMiddlewareRuntimeApi {
-        const workspaceFilesApi = hasRuntimeWorkspaceScope(scope)
+        const workspaceFilesApi = hasBoundRuntimeWorkspaceScope(scope)
             ? this.workspaceFiles.createScopedApi(scope)
-            : this.workspaceFiles.api
+            : null
         const artifactsApi = this.artifacts.createScopedApi({
             ...scope,
             organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
         })
         const collaborationApi = this.collaboration.createScopedApi(scope)
         const actorTokenApi = this.createActorTokenApi(scope)
-        const visualAssetsApi = this.visualAssetsRuntime(scope, workspaceFilesApi)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [ActorTokenRuntimeCapability, actorTokenApi],
             [
@@ -1147,7 +1166,7 @@ export class AgentMiddlewareRuntimeService {
             [
                 FileRuntimeCapability,
                 {
-                    resolveFile: (input) => this.resolveFile(input)
+                    resolveFile: (input) => this.resolveFile(input, scope)
                 }
             ],
             [
@@ -1159,8 +1178,6 @@ export class AgentMiddlewareRuntimeService {
             ],
             [ArtifactsRuntimeCapability, artifactsApi],
             [CollaborationRuntimeCapability, collaborationApi],
-            [WorkspaceFilesRuntimeCapability, workspaceFilesApi],
-            [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssetsApi],
             // Provisioning is host-authorized and deliberately separate from
             // Agent-visible tools; plugins access it through runtime capabilities.
             [
@@ -1170,6 +1187,13 @@ export class AgentMiddlewareRuntimeService {
                 }
             ]
         ])
+        if (workspaceFilesApi) {
+            capabilities.register(WorkspaceFilesRuntimeCapability, workspaceFilesApi)
+            capabilities.register(
+                KnowledgeDocumentVisualAssetsRuntimeCapability,
+                this.visualAssetsRuntime(scope, workspaceFilesApi)
+            )
+        }
 
         return {
             createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope, true),
@@ -1269,6 +1293,11 @@ export class AgentMiddlewareRuntimeService {
         }
 
         return new FileStorage().getProvider(storageFile.storageProvider)?.url(file)
+    }
+
+    private resolveFileAssetAuthority(scope: AgentMiddlewareRuntimeScope): FileAssetAuthority {
+        const conversationId = normalizeOptionalString(scope.conversationId)
+        return conversationId ? { kind: 'conversation', conversationId } : { kind: 'current-owner' }
     }
 
     private async findAssistantTaskConversation(
@@ -1386,16 +1415,9 @@ function pruneUndefined<T extends Record<string, unknown>>(value: T): T {
     return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)) as T
 }
 
-/** Check whether a middleware runtime needs a per-invocation workspace facade. */
-function hasRuntimeWorkspaceScope(scope: AgentMiddlewareRuntimeScope) {
-    return Boolean(
-        normalizeOptionalString(scope.tenantId) ||
-        normalizeOptionalString(scope.userId) ||
-        normalizeOptionalString(scope.projectId) ||
-        normalizeOptionalString(scope.xpertId) ||
-        normalizeOptionalString(scope.workspaceRoot) ||
-        normalizeOptionalString(scope.workspacePath)
-    )
+/** Workspace capabilities are safe only when the host binds a concrete data owner. */
+function hasBoundRuntimeWorkspaceScope(scope: AgentMiddlewareRuntimeScope) {
+    return Boolean(normalizeOptionalString(scope.projectId) || normalizeOptionalString(scope.xpertId))
 }
 
 function mapConversationStatusToTaskStatus(

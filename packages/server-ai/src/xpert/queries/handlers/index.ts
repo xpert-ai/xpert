@@ -9,7 +9,7 @@ import { StatisticsXpertTokensHandler } from "./statistics-xpert-tokens.handler"
 import { StatisticsXpertsHandler } from "./statistics-xperts.handler";
 import { StatisticsXpertIntegrationsHandler } from "./statistics-xpert-integrations.handler";
 import { GetXpertWorkflowHandler } from "./get-xpert-workflow.handler";
-
+import { IsPublishedXpertInFamilyHandler } from "./is-published-xpert-in-family.handler";
 
 export const QueryHandlers = [
 	FindXpertHandler,
@@ -22,5 +22,6 @@ export const QueryHandlers = [
 	StatisticsXpertMessagesHandler,
 	StatisticsXpertTokensHandler,
 	StatisticsXpertsHandler,
-	StatisticsXpertIntegrationsHandler
+	StatisticsXpertIntegrationsHandler,
+	IsPublishedXpertInFamilyHandler
 ];

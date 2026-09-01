@@ -13,6 +13,10 @@ jest.mock('../../../xpert', () => ({
     XpertPrincipalService: class XpertPrincipalService {}
 }))
 
+jest.mock('../../../xpert-project', () => ({
+    XpertProjectService: class XpertProjectService {}
+}))
+
 jest.mock('@xpert-ai/contracts', () => {
     const actual = jest.requireActual('@xpert-ai/contracts')
 
@@ -49,10 +53,13 @@ import {
     SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { hydrateSendRequestHumanInput } from '../../../shared/agent/human-input'
 import { ChatConversationBindXpertCommand } from '../../../chat-conversation/commands/bind-xpert.command'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
+import { AssertChatConversationAccessQuery } from '../../../chat-conversation/queries/conversation-assert-access.query'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
+import { AssertXpertAgentExecutionAccessQuery } from '../../../xpert-agent-execution/queries'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { resolveAssistantForRequest } from '../../assistant-request-context'
 import { normalizeRunStreamMessage, RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
@@ -687,6 +694,19 @@ describe('validateRunCreateInput', () => {
     it('rejects missing input', () => {
         expect(() => validateRunCreateInput({}, conversation)).toThrow()
     })
+
+    it('rejects a payload that names a different conversation than the thread', () => {
+        expect(() =>
+            validateRunCreateInput(
+                {
+                    action: 'send',
+                    conversationId: 'conversation-2',
+                    message: { input: { input: 'Hi' } }
+                },
+                conversation
+            )
+        ).toThrow(BadRequestException)
+    })
 })
 
 describe('RunCreateStreamHandler environment resolution', () => {
@@ -941,6 +961,7 @@ describe('RunCreateStreamHandler execute', () => {
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-1', {
             relations: ['user', 'createdBy', 'workspace']
         })
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(AssertChatConversationAccessQuery))
         expect(publishedXpertAccessService.getPublishedXpertInTenant).not.toHaveBeenCalled()
         expect(xpertChatCommand).toBeInstanceOf(XpertChatCommand)
         expect(xpertChatCommand.options).toMatchObject({
@@ -1660,7 +1681,7 @@ describe('RunCreateStreamHandler execute', () => {
                     }
                 }
 
-                if (query.constructor.name === 'XpertAgentExecutionOneQuery') {
+                if (query instanceof AssertXpertAgentExecutionAccessQuery) {
                     return {
                         id: 'execution-1',
                         threadId: 'thread-1'
@@ -1715,5 +1736,66 @@ describe('RunCreateStreamHandler execute', () => {
                 error: reject
             })
         })
+    })
+
+    it('rejects a supplied resume execution from another thread before it can be upserted', async () => {
+        ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+        const commandBus = {
+            execute: jest.fn()
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-1',
+                        options: {}
+                    }
+                }
+                if (query instanceof AssertXpertAgentExecutionAccessQuery) {
+                    throw new ForbiddenException('Access denied')
+                }
+                return null
+            })
+        }
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOneForRuntime: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                    id: 'xpert-1',
+                    environmentId: null
+                })
+            } as any
+        )
+
+        await expect(
+            handler.execute({
+                threadId: 'thread-1',
+                runCreate: {
+                    assistant_id: 'xpert-1',
+                    input: {
+                        action: 'resume',
+                        conversationId: 'conversation-1',
+                        target: {
+                            aiMessageId: 'message-1',
+                            executionId: 'victim-execution'
+                        },
+                        decision: {
+                            type: 'confirm'
+                        }
+                    }
+                }
+            } as any)
+        ).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            new AssertXpertAgentExecutionAccessQuery('victim-execution', 'contribute', 'thread-1')
+        )
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 })

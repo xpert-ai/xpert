@@ -51,7 +51,7 @@ export interface IArtifactWorkspaceFileReference {
   workspacePath: string
   tenantId?: string | null
   userId?: string | null
-  catalog?: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts' | null
+  catalog?: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts' | 'user-xperts' | null
   scopeId?: string | null
   projectId?: string | null
   knowledgeId?: string | null

@@ -1,7 +1,7 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
 
 /** Logical workspace volume catalog supported by plugin-facing file APIs. */
-export type WorkspaceFileCatalog = 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts'
+export type WorkspaceFileCatalog = 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts' | 'user-xperts'
 
 /** Stable source identifier for portable workspace file references. */
 export const WORKSPACE_FILES_SOURCE = 'platform.workspace.files' as const

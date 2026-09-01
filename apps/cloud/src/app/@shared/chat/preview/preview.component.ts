@@ -114,6 +114,7 @@ import {
 } from '../composer/composer'
 import type { ChatFollowUpRailItem } from '../follow-ups/follow-ups'
 import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import { loadPreviewConversation } from './preview-conversation'
 
 const LONG_TEXT_REFERENCE_THRESHOLD = 5000
 
@@ -316,6 +317,7 @@ export class ChatConversationPreviewComponent {
 
   // States
   readonly conversation = signal<Partial<IChatConversation>>(null)
+  readonly conversationLoadError = signal('')
 
   readonly feedbacks = signal<Record<string, IChatMessageFeedback>>({})
   readonly #feedbacks = derivedAsync(() => {
@@ -469,30 +471,20 @@ export class ChatConversationPreviewComponent {
     return endedStatuses.has(status)
   }
 
-  private convSub = toObservable(this.conversationId)
+  private convSub = toObservable(
+    computed(() => ({
+      conversationId: this.conversationId(),
+      organizationId: this.organizationId() ?? undefined
+    }))
+  )
     .pipe(
-      switchMap((id) =>
-        id
-          ? this.conversationService.getOneById(
-              this.conversationId(),
-              {
-                relations: [
-                  'messages',
-                  'messages.attachments',
-                  'messages.fileAssets',
-                  'xpert',
-                  'xpert.agent',
-                  'xpert.agents',
-                  'executions'
-                ]
-              },
-              this.organizationId() ?? undefined
-            )
-          : of(null)
+      switchMap(({ conversationId, organizationId }) =>
+        loadPreviewConversation(this.conversationService, conversationId, organizationId)
       ),
       takeUntilDestroyed(this.#destroyRef)
     )
-    .subscribe((conv) => {
+    .subscribe(({ conversation: conv, error }) => {
+      this.conversationLoadError.set(error ?? '')
       this.conversation.set(conv)
       if (conv) {
         this._messages.set(filterLatestMessages(conv.messages) as IChatMessage[])
@@ -501,6 +493,9 @@ export class ChatConversationPreviewComponent {
         }
         this.parameterValue.set(conv.options?.parameters ?? {})
       } else {
+        if (error) {
+          this._messages.set([])
+        }
         this.parameterValue.set(null)
       }
     })

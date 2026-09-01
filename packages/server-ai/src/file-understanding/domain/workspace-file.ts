@@ -62,13 +62,33 @@ export function resolveFileAssetWorkspaceVolumeScope(
               }
             : inferFileAssetWorkspaceVolumeScope(fileAsset, tenantId, defaults)
     }
+    const catalog = normalizeOptionalString(workspaceRecord.catalog)
+    const scopeId = normalizeOptionalString(workspaceRecord.scopeId)
+    const projectId = normalizeOptionalString(fileAsset?.projectId)
+    const xpertId = normalizeOptionalString(fileAsset?.xpertId)
+    if (catalog === 'projects' && (!scopeId || !projectId || scopeId !== projectId)) {
+        return null
+    }
+    if ((catalog === 'xperts' || catalog === 'user-xperts') && (!scopeId || !xpertId || scopeId !== xpertId)) {
+        return null
+    }
+    if (catalog === 'users' && (!scopeId || !userId || scopeId !== userId)) {
+        return null
+    }
+    const isolateByUser =
+        catalog === 'xperts'
+            ? resolvePersistedXpertUserIsolation(workspaceRecord, scopeId ?? xpertId, userId)
+            : undefined
+    if (catalog === 'xperts' && isolateByUser === null) {
+        return null
+    }
     const resolved = resolveWorkspaceVolumeScope(
         {
             tenantId,
             userId,
-            catalog: normalizeOptionalString(workspaceRecord.catalog) as WorkspaceFileCatalog | undefined,
-            scopeId: normalizeOptionalString(workspaceRecord.scopeId),
-            isolateByUser: typeof workspaceRecord.isolateByUser === 'boolean' ? workspaceRecord.isolateByUser : false
+            catalog: catalog as WorkspaceFileCatalog | undefined,
+            scopeId,
+            isolateByUser
         },
         { tenantId, userId }
     )
@@ -125,6 +145,16 @@ export function resolveWorkspaceVolumeScope(
                           userId,
                           isolateByUser: input?.isolateByUser ?? false
                       },
+                      catalog,
+                      scopeId: xpertId
+                  }
+                : null
+        }
+        case 'user-xperts': {
+            const xpertId = normalizeOptionalString(input?.xpertId) ?? scopeId
+            return xpertId && userId
+                ? {
+                      volumeScope: { tenantId, catalog, xpertId, userId },
                       catalog,
                       scopeId: xpertId
                   }
@@ -240,7 +270,7 @@ export function resolveWorkspaceFileCatalog(
 }
 
 export function isWorkspaceFileCatalog(value: string): value is WorkspaceFileCatalog {
-    return ['projects', 'users', 'knowledges', 'skills', 'xperts'].includes(value)
+    return ['projects', 'users', 'knowledges', 'skills', 'xperts', 'user-xperts'].includes(value)
 }
 
 function readWorkspaceMetadataRecord(metadata?: Record<string, unknown>) {
@@ -248,6 +278,34 @@ function readWorkspaceMetadataRecord(metadata?: Record<string, unknown>) {
     return workspace && typeof workspace === 'object' && !Array.isArray(workspace)
         ? (workspace as Record<string, unknown>)
         : null
+}
+
+function resolvePersistedXpertUserIsolation(
+    workspaceRecord: Record<string, unknown>,
+    xpertId?: string,
+    userId?: string
+): boolean | null {
+    if (typeof workspaceRecord.isolateByUser === 'boolean') {
+        return workspaceRecord.isolateByUser
+    }
+    const legacyAbsolutePath = normalizeOptionalString(workspaceRecord.absolutePath)
+    if (!legacyAbsolutePath || !xpertId) {
+        return null
+    }
+
+    const segments = legacyAbsolutePath.replace(/\\/g, '/').split('/').filter(Boolean)
+    const xpertSegmentIndex = segments.findIndex(
+        (segment, index) => segment === 'xpert' && segments[index + 1] === xpertId
+    )
+    if (xpertSegmentIndex < 0) {
+        return null
+    }
+
+    const layoutSuffix = segments.slice(xpertSegmentIndex + 2)
+    if (layoutSuffix[0] !== 'user') {
+        return false
+    }
+    return userId && layoutSuffix[1] === userId ? true : null
 }
 
 function normalizeWorkspaceRelativePath(value: unknown) {

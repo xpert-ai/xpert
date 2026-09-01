@@ -1,6 +1,7 @@
 import {
     AiModelTypeEnum,
     AiProviderRole,
+    DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     FetchFrom,
     ICopilot,
     ICopilotModel,
@@ -49,7 +50,8 @@ const OVERWRITE_PROTECTED_TEAM_FIELDS = [
     'slug',
     'latest',
     'version',
-    'publishAt'
+    'publishAt',
+    'workspaceDataScope'
 ]
 const OVERWRITE_PROTECTED_AGENT_FIELDS = [...SYSTEM_FIELDS, 'createdAt', 'updatedAt', 'xpertId', 'key']
 
@@ -124,7 +126,12 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             )
         }
 
-        return this.importAsNewXpert(draft, command.options?.normalizeCopilotModels === true, templateSource)
+        return this.importAsNewXpert(
+            draft,
+            command.options?.normalizeCopilotModels === true,
+            templateSource,
+            command.options.workspaceDataScope
+        )
     }
 
     /**
@@ -134,7 +141,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
     private async importAsNewXpert(
         draft: XpertDraftDslDTO,
         normalizeCopilotModels = false,
-        templateSource?: TXpertTemplateSource | null
+        templateSource?: TXpertTemplateSource | null,
+        workspaceDataScope = DEFAULT_XPERT_WORKSPACE_DATA_SCOPE
     ): Promise<IXpert> {
         const team = draft.team
         await this.validateImportedName(team.name)
@@ -147,7 +155,17 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         const primaryAgent = await this.syncImportDraftLlmModels(draft, modelSyncContext)
 
         const xpert = await this.xpertService.create({
-            ...omit(team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases', ...SYSTEM_FIELDS),
+            ...omit(
+                team,
+                'draft',
+                'agent',
+                'agents',
+                'toolsets',
+                'knowledgebases',
+                'workspaceDataScope',
+                ...SYSTEM_FIELDS
+            ),
+            workspaceDataScope,
             options: this.withTemplateSource(team.options, templateSource),
             latest: true,
             version: null,

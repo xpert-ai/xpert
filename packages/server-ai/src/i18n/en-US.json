@@ -340,7 +340,8 @@
         "WorkspaceFileAccessDenied": "Workspace file access was denied.",
         "WorkspaceFileAccessInvalidReference": "View file access requires a scoped Workspace Files reference.",
         "WorkspaceFileAccessUnavailable": "Workspace file access is not configured.",
-        "WorkspaceFileUploadRequired": "Workspace file is required."
+        "WorkspaceFileUploadRequired": "Workspace file is required.",
+        "ProjectInteractiveSessionRequired": "An interactive user ChatKit session is required to access Projects."
     },
     "Mcp": {
         "Test": {

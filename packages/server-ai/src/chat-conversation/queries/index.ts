@@ -1,4 +1,5 @@
 export * from './conversation-find.query'
+export * from './conversation-assert-access.query'
 export * from './conversation-get.query'
 export * from './conversation-logs.query'
 export * from './statistics-average-session-interactions.query'

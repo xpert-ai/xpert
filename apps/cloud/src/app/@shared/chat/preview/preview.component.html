@@ -24,6 +24,15 @@
 
 <div class="grow flex flex-col rounded-b-2xl overflow-y-auto">
   <div class="flex-1 relative overflow-x-hidden px-3 pt-4">
+    @if (conversationLoadError(); as loadError) {
+      <div
+        class="mb-4 flex w-full items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      >
+        <z-icon zType="triangle-alert" class="mt-0.5 size-4 shrink-0" />
+        <span class="min-w-0 break-words">{{ loadError }}</span>
+      </div>
+    }
+
     @if (parameters()?.length) {
       <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()" [(ngModel)]="parameterValue" />
     }

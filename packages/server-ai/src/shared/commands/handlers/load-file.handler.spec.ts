@@ -1,6 +1,6 @@
 import type { QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
-import { GetFileAssetQuery } from '../../../file-understanding'
+import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding'
 import { VolumeClient, VolumeHandle, type VolumeRootResolution, type VolumeScope } from '../../volume'
 import { LoadFileCommand } from '../load-file.command'
 import { LoadFileHandler } from './load-file.handler'
@@ -26,6 +26,7 @@ describe('LoadFileHandler', () => {
     it.each([
         ['projects', 'project-1', { catalog: 'projects', projectId: 'project-1', userId: 'user-1' }],
         ['xperts', 'xpert-1', { catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: false }],
+        ['user-xperts', 'xpert-1', { catalog: 'user-xperts', xpertId: 'xpert-1', userId: 'user-1' }],
         ['users', 'user-scope', { catalog: 'users', userId: 'user-scope' }],
         ['knowledges', 'knowledge-1', { catalog: 'knowledges', knowledgeId: 'knowledge-1', userId: 'user-1' }],
         ['skills', 'skill-root-1', { catalog: 'skills', rootId: 'skill-root-1', userId: 'user-1' }]
@@ -35,20 +36,25 @@ describe('LoadFileHandler', () => {
             const relativePath = 'files/wechat/integration-1/uuid-1/msg-1/contract.txt'
             const queryBus = {
                 execute: jest.fn().mockImplementation((query) => {
-                    if (query instanceof GetFileAssetQuery) {
+                    if (query instanceof ResolveAuthorizedFileAssetQuery) {
                         return {
-                            id: 'file-asset-1',
-                            tenantId: 'tenant-1',
-                            userId: 'user-1',
-                            originalName: 'contract.txt',
-                            mimeType: 'text/plain',
-                            status: 'uploaded',
-                            workspacePath: relativePath,
-                            metadata: {
-                                workspace: {
-                                    catalog,
-                                    scopeId,
-                                    relativePath
+                            asset: {
+                                id: 'file-asset-1',
+                                tenantId: 'tenant-1',
+                                userId: catalog === 'users' ? scopeId : 'user-1',
+                                projectId: catalog === 'projects' ? scopeId : undefined,
+                                xpertId: catalog === 'xperts' || catalog === 'user-xperts' ? scopeId : undefined,
+                                originalName: 'contract.txt',
+                                mimeType: 'text/plain',
+                                status: 'uploaded',
+                                workspacePath: relativePath,
+                                metadata: {
+                                    workspace: {
+                                        catalog,
+                                        scopeId,
+                                        relativePath,
+                                        ...(catalog === 'xperts' ? { isolateByUser: false } : {})
+                                    }
                                 }
                             }
                         }
@@ -77,6 +83,7 @@ describe('LoadFileHandler', () => {
                 ...expectedScope
             })
             expect(processText).toHaveBeenCalledWith(`/tmp/workspace-volume/tenant-1/${catalog}/${relativePath}`)
+            expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
         }
     )
 })

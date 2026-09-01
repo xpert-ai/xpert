@@ -34,6 +34,9 @@ describe('DeleteFileAssetHandler', () => {
         const fileVectorService = {
             deleteFileVectors: jest.fn().mockResolvedValue(undefined)
         }
+        const fileAssetAccessService = {
+            resolve: jest.fn().mockResolvedValue({ asset })
+        }
         const handler = Reflect.construct(DeleteFileAssetHandler, [
             fileAssetRepository,
             fileArtifactRepository,
@@ -42,12 +45,18 @@ describe('DeleteFileAssetHandler', () => {
             fileEmbeddingRepository,
             conversationFileLinkRepository,
             storageFileService,
-            fileVectorService
+            fileVectorService,
+            fileAssetAccessService
         ]) as DeleteFileAssetHandler
 
         await handler.execute(new DeleteFileAssetCommand('file-1'))
 
         expect(fileVectorService.deleteFileVectors).toHaveBeenCalledWith('file-1', asset)
+        expect(fileAssetAccessService.resolve).toHaveBeenCalledWith({
+            locator: { fileAssetId: 'file-1' },
+            authority: { kind: 'current-owner' },
+            operation: 'delete'
+        })
         expect(fileVectorService.deleteFileVectors.mock.invocationCallOrder[0]).toBeLessThan(
             fileEmbeddingRepository.delete.mock.invocationCallOrder[0]
         )

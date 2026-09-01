@@ -5237,6 +5237,11 @@
         "Empty": "目前僅向使用者提供主要模型。",
         "Duplicate": "主要模型和可切換模型不能重複。"
       },
+      "IsolateWorkspaceDataByUser": "按使用者隔離執行資料",
+      "IsolateWorkspaceDataByUserHint": "啟用後，每位使用者使用獨立的執行檔案；停用後，所有有權執行此數字專家的使用者共用同一份檔案。",
+      "WorkspaceDataScope": "執行資料範圍",
+      "UserIsolatedWorkspaceData": "按使用者隔離",
+      "SharedWorkspaceData": "共用",
       "EnterpriseH5AppUnavailable": "目前企業數位專家無法使用或尚未設定。",
       "EnterpriseH5SessionUnavailable": "無法驗證目前企業身分，暫時無法使用該數位專家。",
       "DingTalkChatApp": "釘釘工作台應用",

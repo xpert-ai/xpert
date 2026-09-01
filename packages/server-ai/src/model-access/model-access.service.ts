@@ -23,6 +23,7 @@ import {
     ModelAccessSourceEnum,
     ModelAccessUnavailableReasonEnum,
     ModelFeature,
+    SecretTokenBindingType,
     TModelGatewayExternalRequestCreateInput,
     TModelAccessRequestApproveInput,
     TModelAccessRequestCreateInput,
@@ -47,7 +48,7 @@ import { CopilotWithProviderDto } from '../copilot/dto'
 import { usesOrganizationCredentials } from '../copilot/utils'
 import { CopilotProviderModel } from '../copilot-provider/models/copilot-provider-model.entity'
 import { ExceedingLimitException } from '../core/errors'
-import { MembershipModelAccess, MembershipService } from '../membership/membership.service'
+import { MembershipModelAccess, MembershipService, XpertBillingPayer } from '../membership/membership.service'
 import { endOfDayInTimeZone } from '../shared/utils'
 import { ModelAccessEvent } from './model-access-event.entity'
 import { ModelAccessRequest } from './model-access-request.entity'
@@ -1205,7 +1206,8 @@ export class ModelAccessService {
         const billableUserId = await this.membershipService.resolveBillableUserId({
             tenantId: input.tenantId,
             userId: input.userId,
-            xpertId: input.xpertId
+            xpertId: input.xpertId,
+            xpertBillingPayer: this.resolveXpertBillingPayer(input.userId)
         })
         const runtimeOrganizationId = input.organizationId ?? null
 
@@ -1245,7 +1247,8 @@ export class ModelAccessService {
         const billableUserId = await this.membershipService.resolveBillableUserId({
             tenantId: input.tenantId,
             userId: input.userId,
-            xpertId: input.xpertId
+            xpertId: input.xpertId,
+            xpertBillingPayer: this.resolveXpertBillingPayer(input.userId)
         })
         const runtimeOrganizationId = input.organizationId ?? null
         const modelTypes = new Set(input.models.map((model) => model.modelType))
@@ -1353,6 +1356,22 @@ export class ModelAccessService {
                   }
                 : null
         )
+    }
+
+    private resolveXpertBillingPayer(runtimeUserId: string): XpertBillingPayer {
+        const principal = RequestContext.currentApiPrincipal()
+        if (principal) {
+            const delegatedXpertUser =
+                (principal.clientSecretBindingType === SecretTokenBindingType.USER_XPERT ||
+                    principal.clientSecretBindingType === SecretTokenBindingType.ENTERPRISE_XPERT) &&
+                principal.requestedUserId?.trim() === runtimeUserId
+            return delegatedXpertUser ? XpertBillingPayer.RuntimeUser : XpertBillingPayer.Creator
+        }
+
+        const currentUser = RequestContext.currentUser()
+        return currentUser?.id === runtimeUserId && currentUser.type === UserType.USER
+            ? XpertBillingPayer.RuntimeUser
+            : XpertBillingPayer.Creator
     }
 
     private async resolveModelAccessWithContext(

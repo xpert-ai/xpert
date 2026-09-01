@@ -8,6 +8,7 @@ import {
     IWFNTool,
     IWorkflowNode,
     IXpertAgentExecution,
+    type XpertWorkspaceDataScope,
     TAgentRunnableConfigurable,
     TXpertGraph,
     TXpertTeamNode,
@@ -45,12 +46,13 @@ export function createToolNode(
         commandBus: CommandBus
         queryBus: QueryBus
         xpertId: string
+        workspaceDataScope?: XpertWorkspaceDataScope | null
         workspaceId?: string
         environment: IEnvironment
         conversationId: string
     }
 ): TWorkflowGraphNode {
-    const { commandBus, queryBus, xpertId, workspaceId, environment, conversationId } = params
+    const { commandBus, queryBus, xpertId, workspaceDataScope, workspaceId, environment, conversationId } = params
     const entity = node.entity as IWFNTool
 
     const toolsetId = entity.toolsetId
@@ -80,6 +82,7 @@ export function createToolNode(
                         workspaceId,
                         conversationId,
                         xpertId,
+                        workspaceDataScope,
                         agentKey,
                         executionId,
                         signal: config.signal,

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 import {
   API_PREFIX,
   IChatConversation,
+  IChatMessage,
   IChatConversationReadState,
   IChatConversationUnreadXpertSummary,
   IStorageFile,
@@ -72,6 +73,15 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`, {
       params: appendOrganizationIdQueryParam(null, organizationId)
     })
+  }
+
+  getMessages(id: string, organizationId?: string) {
+    return this.httpClient.get<{ items: IChatMessage[]; total: number }>(
+      API_PREFIX + `/ai/conversations/${id}/messages`,
+      {
+        params: appendOrganizationIdQueryParam(null, organizationId)
+      }
+    )
   }
 
   cancelConversation(id: string, organizationId?: string) {

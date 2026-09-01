@@ -712,6 +712,7 @@ describe('ClawXpertSetupWizardComponent', () => {
     expect(fixture.nativeElement.querySelector('xp-copilot-config-form')).toBeNull()
     expect(fixture.nativeElement.textContent).not.toContain('XP.ACTIONS.Next')
     expect(fixture.nativeElement.querySelector('a[href], [routerlink]')).toBeNull()
+    expect(fixture.componentInstance.isolateWorkspaceData()).toBe(false)
   })
 
   it('does not block the default ClawXpert install step while recommended templates are loading', async () => {
@@ -954,7 +955,8 @@ describe('ClawXpertSetupWizardComponent', () => {
       },
       {
         suppressAutoPublishWarning: true,
-        suppressPluginPrepareWarning: true
+        suppressPluginPrepareWarning: true,
+        workspaceDataScope: 'shared'
       }
     )
     expect(facade.bindPublishedXpert).toHaveBeenCalled()
@@ -1445,7 +1447,8 @@ describe('ClawXpertSetupWizardComponent', () => {
       }),
       {
         suppressAutoPublishWarning: true,
-        suppressPluginPrepareWarning: true
+        suppressPluginPrepareWarning: true,
+        workspaceDataScope: 'shared'
       }
     )
   })
@@ -1518,6 +1521,7 @@ describe('ClawXpertSetupWizardComponent', () => {
       component.recommendedTemplateItems()?.[0]?.template ?? createRecommendedTemplate(),
       true
     )
+    component.isolateWorkspaceData.set(true)
     component.completeInitialization()
     await flushPromises()
     await flushPromises()
@@ -1530,7 +1534,8 @@ describe('ClawXpertSetupWizardComponent', () => {
       },
       {
         suppressAutoPublishWarning: true,
-        suppressPluginPrepareWarning: true
+        suppressPluginPrepareWarning: true,
+        workspaceDataScope: 'user'
       }
     )
     expect(clawXpertBootstrap.createTemplateXpert).toHaveBeenCalledWith(
@@ -1545,7 +1550,8 @@ describe('ClawXpertSetupWizardComponent', () => {
       },
       {
         suppressAutoPublishWarning: true,
-        suppressPluginPrepareWarning: true
+        suppressPluginPrepareWarning: true,
+        workspaceDataScope: 'user'
       }
     )
     expect(dialog.open).not.toHaveBeenCalled()
@@ -1934,7 +1940,8 @@ describe('ClawXpertSetupWizardComponent', () => {
       },
       {
         suppressAutoPublishWarning: true,
-        suppressPluginPrepareWarning: true
+        suppressPluginPrepareWarning: true,
+        workspaceDataScope: 'shared'
       }
     )
     expect(templateService.getTemplate).not.toHaveBeenCalled()

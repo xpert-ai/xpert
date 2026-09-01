@@ -200,8 +200,12 @@ export class ChatTaskSummaryService {
                 return
             }
             await Promise.all(
-                result.items.map((message) => {
-                    message.taskSummary = extractChatMessageTaskSummary(message)
+                result.items.map(async (message) => {
+                    const authorizedMessage = await this.messageService.filterAuthorizedFileRelations(
+                        message,
+                        conversationId
+                    )
+                    message.taskSummary = extractChatMessageTaskSummary(authorizedMessage)
                     return this.messageService.save(message)
                 })
             )

@@ -147,14 +147,28 @@ describe('ViewRendererComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    expect(api.getViewData).toHaveBeenNthCalledWith(1, 'project', 'project-1', 'provider__activity', {
-      page: 1,
-      pageSize: 1
-    })
-    expect(api.getViewData).toHaveBeenNthCalledWith(2, 'project', 'project-1', 'provider__activity', {
-      page: 2,
-      pageSize: 1
-    })
+    expect(api.getViewData).toHaveBeenNthCalledWith(
+      1,
+      'project',
+      'project-1',
+      'provider__activity',
+      {
+        page: 1,
+        pageSize: 1
+      },
+      undefined
+    )
+    expect(api.getViewData).toHaveBeenNthCalledWith(
+      2,
+      'project',
+      'project-1',
+      'provider__activity',
+      {
+        page: 2,
+        pageSize: 1
+      },
+      undefined
+    )
     expect(component.items()).toEqual([
       { id: '1', title: 'First', subtitle: 'One' },
       { id: '2', title: 'Second', subtitle: 'Two' }
@@ -204,7 +218,7 @@ describe('ViewRendererComponent', () => {
     fixture.detectChanges()
     await fixture.whenStable()
 
-    expect(api.getViewData).toHaveBeenLastCalledWith('project', 'project-1', 'provider__status', {})
+    expect(api.getViewData).toHaveBeenLastCalledWith('project', 'project-1', 'provider__status', {}, undefined)
   })
 
   it('applies a supported deep-link selection as the initial view query', async () => {
@@ -243,10 +257,16 @@ describe('ViewRendererComponent', () => {
       selectionId: 'record-1',
       parameters: { section: 'features' }
     })
-    expect(api.getViewData).toHaveBeenCalledWith('project', 'project-1', 'provider__status', {
-      selectionId: 'record-1',
-      parameters: { section: 'features' }
-    })
+    expect(api.getViewData).toHaveBeenCalledWith(
+      'project',
+      'project-1',
+      'provider__status',
+      {
+        selectionId: 'record-1',
+        parameters: { section: 'features' }
+      },
+      undefined
+    )
   })
 
   it('uses backend supplied i18n keys for view data errors', async () => {

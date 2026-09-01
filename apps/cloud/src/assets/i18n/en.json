@@ -3936,6 +3936,11 @@
         "Empty": "Only the Primary model is available to users.",
         "Duplicate": "The Primary model and selectable models must be unique."
       },
+      "IsolateWorkspaceDataByUser": "Isolate runtime data by user",
+      "IsolateWorkspaceDataByUserHint": "When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.",
+      "WorkspaceDataScope": "Runtime data scope",
+      "UserIsolatedWorkspaceData": "User isolated",
+      "SharedWorkspaceData": "Shared",
       "Xpert": "Xpert",
       "CreateDigitalExpert": "Create digital expert",
       "CreateXpertFromTemplate": "Create a digital expert from template {{value}}",

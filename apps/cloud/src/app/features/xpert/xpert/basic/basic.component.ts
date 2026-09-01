@@ -91,6 +91,7 @@ export class XpertBasicComponent implements IsDirty {
     return null
   })
   readonly type = computed(() => this.xpert()?.type)
+  readonly workspaceDataScope = computed(() => this.xpert()?.workspaceDataScope ?? 'shared')
   readonly team = computed(() => (this.type() === XpertTypeEnum.Agent ? this.draft()?.team : this.xpert()))
 
   readonly isExpanded = model<boolean>(false)

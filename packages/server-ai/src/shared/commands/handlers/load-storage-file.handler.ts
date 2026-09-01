@@ -1,7 +1,8 @@
-import { FileStorage, GetStorageFileQuery, StorageFile } from '@xpert-ai/server-core'
+import { FileStorage, StorageFile } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
+import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
 import { LoadFileCommand } from '../load-file.command'
 import { LoadStorageFileCommand } from '../load-storage-file.command'
 
@@ -18,8 +19,8 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
     public async execute(command: LoadStorageFileCommand) {
         const { id } = command
 
-        const [storageFile] = await this.queryBus.execute<GetStorageFileQuery, StorageFile[]>(
-            new GetStorageFileQuery([id])
+        const storageFile = await this.queryBus.execute<GetOwnedStorageFileQuery, StorageFile>(
+            new GetOwnedStorageFileQuery(id)
         )
 
         return await this.queryBus.execute<LoadFileCommand, Document[]>(

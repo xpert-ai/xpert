@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs'
-import { LanguagesEnum, TAvatar, TCopilotModel } from '@xpert-ai/contracts'
+import { LanguagesEnum, TAvatar, TCopilotModel, XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 
 export type PluginTemplateInstallBasic = {
     name?: string
@@ -7,6 +7,7 @@ export type PluginTemplateInstallBasic = {
     description?: string
     avatar?: TAvatar
     copilotModel?: TCopilotModel
+    workspaceDataScope?: XpertWorkspaceDataScope
 }
 
 export class PluginTemplateInstallCommand implements ICommand {

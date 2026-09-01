@@ -12,7 +12,12 @@ import {
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from './toolset'
-import type { AgentMiddlewareModelProviderConnection, AgentMiddlewareRuntimeApi } from '../agent/middleware/runtime'
+import type {
+  AgentMiddlewareModelProviderConnection,
+  AgentMiddlewareRuntimeApi,
+  AgentMiddlewareRuntimeScope
+} from '../agent/middleware/runtime'
+import type { RuntimeCapabilityResolver } from '../core/runtime-capability'
 import type { ManagedQueueService } from '../managed-queue'
 import type { McpCapabilityDefinitions, McpCapabilityRuntimeProvider } from '../mcp'
 
@@ -47,6 +52,10 @@ export type TBuiltinToolsetParams = TToolsetParams & {
   queryBus: QueryBus
   store?: BaseStore
   modelRuntime?: TToolModelRuntime
+  /** Host-bound capabilities for this execution; these override installation-level plugin capabilities. */
+  runtimeCapabilities?: RuntimeCapabilityResolver
+  /** Authoritative execution scope used by scoped capabilities and delayed plugin jobs. */
+  runtimeScope?: AgentMiddlewareRuntimeScope
   managedQueue?: ManagedQueueService
   /** Installation scope used to route jobs back to this plugin instance. */
   pluginScopeKey?: string

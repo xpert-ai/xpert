@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { StorageFile } from './storage-file.entity'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
-import { FileStorageProviderEnum, IStorageFile, UploadedFile } from '@xpert-ai/contracts'
+import { FileStorageProviderEnum, IStorageFile, RolesEnum, UploadedFile } from '@xpert-ai/contracts'
 import { FileStorage } from '../file/file-storage/file-storage'
+import { RequestContext } from '../core/context'
 
 @Injectable()
 export class StorageFileService extends TenantOrganizationAwareCrudService<StorageFile> {
@@ -52,9 +53,34 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 		try {
 			// 为了正确触发 StorageFileSubscriber 的 afterRemove 事件参数中的 entity
 			const entity = await this.findOne(id)
-			return await this.repository.remove(entity)
-		} catch (error) {
+			const userId = RequestContext.currentUserId()
+			const isTenantAdmin = RequestContext.hasRoles([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])
+			if (!userId || (entity.createdById !== userId && !isTenantAdmin)) {
+				throw new ForbiddenException()
+			}
+			return await this.removeStorageFile(entity)
+		} catch {
 			throw new ForbiddenException()
 		}
+	}
+
+	/** Remove a StorageFile that has already been authorized by its owning domain. */
+	async deleteAuthorizedStorageFile(storageFile: Pick<StorageFile, 'id' | 'tenantId' | 'organizationId'>) {
+		try {
+			const entity = await this.findOne(storageFile.id)
+			if (
+				entity.tenantId !== storageFile.tenantId ||
+				(entity.organizationId ?? null) !== (storageFile.organizationId ?? null)
+			) {
+				throw new ForbiddenException()
+			}
+			return await this.removeStorageFile(entity)
+		} catch {
+			throw new ForbiddenException()
+		}
+	}
+
+	private async removeStorageFile(entity: StorageFile): Promise<IStorageFile> {
+		return await this.repository.remove(entity)
 	}
 }

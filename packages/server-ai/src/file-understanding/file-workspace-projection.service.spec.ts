@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { FileStorage } from '@xpert-ai/server-core'
 import { IFileStorageProvider } from '@xpert-ai/plugin-sdk'
+import { ForbiddenException } from '@nestjs/common'
 import { VolumeHandle, VolumeSubtreeClient } from '../shared/volume'
 import { FileWorkspaceProjectionService } from './file-workspace-projection.service'
 
@@ -20,6 +21,10 @@ type MockStorageFileService = {
     findOne: jest.Mock
 }
 
+type MockFileAssetAccessService = {
+    resolve: jest.Mock
+}
+
 type MockWorkAreaResolver = {
     resolve: jest.Mock
 }
@@ -28,20 +33,63 @@ type MockVolumeClient = {
     resolve: jest.Mock
 }
 
+type MockProjectAccessService = {
+    assertCanEdit: jest.Mock
+}
+
 function createProjectionService(
     fileAssetRepository: MockFileAssetRepository,
     fileArtifactRepository: MockFileArtifactRepository,
     storageFileService: MockStorageFileService,
     workAreaResolver: MockWorkAreaResolver,
-    volumeClient: MockVolumeClient = { resolve: jest.fn() }
+    volumeClient: MockVolumeClient = { resolve: jest.fn() },
+    fileAssetAccessService: MockFileAssetAccessService = createFileAssetAccessService(
+        fileAssetRepository,
+        storageFileService
+    ),
+    projectAccessService: MockProjectAccessService = { assertCanEdit: jest.fn().mockResolvedValue({ role: 'editor' }) }
 ): FileWorkspaceProjectionService {
     return Reflect.construct(FileWorkspaceProjectionService, [
         fileAssetRepository,
         fileArtifactRepository,
-        storageFileService,
+        fileAssetAccessService,
+        projectAccessService,
         volumeClient,
         workAreaResolver
     ])
+}
+
+function createFileAssetAccessService(
+    fileAssetRepository: MockFileAssetRepository,
+    storageFileService: MockStorageFileService
+): MockFileAssetAccessService {
+    return {
+        resolve: jest.fn(async (input) => {
+            const asset = await fileAssetRepository.findOne({ where: { id: input.locator.fileAssetId } })
+            if (!asset) {
+                throw new Error('File asset not found')
+            }
+            const storageFile = asset.storageFileId ? await storageFileService.findOne(asset.storageFileId) : undefined
+            const conversation =
+                input.authority.kind === 'conversation'
+                    ? {
+                          id: input.authority.conversationId ?? asset.conversationId ?? 'conversation-1',
+                          threadId: input.authority.threadId ?? asset.threadId,
+                          tenantId: asset.tenantId,
+                          organizationId: asset.organizationId,
+                          createdById: asset.createdById ?? asset.userId,
+                          projectId: asset.projectId,
+                          xpertId: asset.xpertId ?? 'xpert-1',
+                          xpert: asset.workspaceDataScope ? { workspaceDataScope: asset.workspaceDataScope } : undefined
+                      }
+                    : undefined
+            return {
+                asset,
+                ...(storageFile ? { storageFile } : {}),
+                ...(conversation ? { conversation } : {})
+            }
+        })
+    }
 }
 
 describe('FileWorkspaceProjectionService', () => {
@@ -54,6 +102,74 @@ describe('FileWorkspaceProjectionService', () => {
     afterEach(async () => {
         await fsPromises.rm(tempRoot, { recursive: true, force: true })
     })
+
+    it.each(['attach', 'parse'] as const)(
+        'rejects a read-only Project member before creating a work area for %s projection',
+        async (operation) => {
+            const asset = {
+                id: 'file-asset-1',
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                originalName: 'report.txt',
+                capabilities: ['read']
+            }
+            const fileAssetRepository: MockFileAssetRepository = {
+                findOne: jest.fn(),
+                save: jest.fn(async (value) => value)
+            }
+            const fileArtifactRepository: MockFileArtifactRepository = {
+                find: jest.fn().mockResolvedValue([]),
+                save: jest.fn(async (value) => value)
+            }
+            const fileAssetAccessService: MockFileAssetAccessService = {
+                resolve: jest.fn().mockResolvedValue({
+                    asset,
+                    conversation: {
+                        id: 'conversation-1',
+                        tenantId: 'tenant-1',
+                        createdById: 'user-1',
+                        projectId: 'project-1',
+                        xpertId: 'xpert-1'
+                    }
+                })
+            }
+            const workAreaResolver: MockWorkAreaResolver = {
+                resolve: jest.fn().mockResolvedValue({
+                    workspaceRoot: '/workspace',
+                    volumeScope: { catalog: 'projects', projectId: 'project-1' },
+                    sessionPath: { relativePath: 'sessions/conversation-1' },
+                    volume: { path: (relativePath: string) => path.join(tempRoot, relativePath) }
+                })
+            }
+            const projectAccessService: MockProjectAccessService = {
+                assertCanEdit: jest.fn().mockRejectedValue(new ForbiddenException())
+            }
+            const service = createProjectionService(
+                fileAssetRepository,
+                fileArtifactRepository,
+                { findOne: jest.fn() },
+                workAreaResolver,
+                { resolve: jest.fn() },
+                fileAssetAccessService,
+                projectAccessService
+            )
+
+            await expect(
+                service.projectFileAsset({
+                    fileAssetId: asset.id,
+                    conversationId: 'conversation-1',
+                    operation,
+                    buffer: Buffer.from('forbidden bytes')
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+
+            expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+            expect(workAreaResolver.resolve).not.toHaveBeenCalled()
+            expect(fileAssetRepository.save).not.toHaveBeenCalled()
+            expect(fileArtifactRepository.find).not.toHaveBeenCalled()
+            await expect(fsPromises.readdir(tempRoot)).resolves.toEqual([])
+        }
+    )
 
     it('writes attached files into the conversation workspace and records workspacePath', async () => {
         const asset = {
@@ -116,8 +232,6 @@ describe('FileWorkspaceProjectionService', () => {
         ).resolves.toBe('pdf bytes')
         expect(fileAssetRepository.save).toHaveBeenCalledWith(
             expect.objectContaining({
-                conversationId: 'conversation-1',
-                xpertId: 'xpert-1',
                 workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/简历.pdf'
             })
         )
@@ -281,7 +395,19 @@ describe('FileWorkspaceProjectionService', () => {
             fileArtifactRepository,
             storageFileService,
             workAreaResolver,
-            volumeClient
+            volumeClient,
+            {
+                resolve: jest.fn().mockResolvedValue({
+                    asset,
+                    conversation: {
+                        id: 'conversation-1',
+                        tenantId: 'tenant-1',
+                        createdById: 'user-1',
+                        projectId: 'project-1',
+                        xpertId: 'xpert-1'
+                    }
+                })
+            }
         )
 
         const projected = await service.projectFileAsset({
@@ -307,6 +433,85 @@ describe('FileWorkspaceProjectionService', () => {
             scopeId: 'environment-1',
             absolutePath: path.join(targetRoot, targetRelativePath)
         })
+    })
+
+    it('allows an editor to project using the authorized conversation scope instead of caller-supplied ids', async () => {
+        const asset = {
+            id: 'file-asset-1',
+            tenantId: 'asset-tenant',
+            userId: 'asset-user',
+            originalName: 'report.txt',
+            capabilities: ['read']
+        }
+        const conversation = {
+            id: 'conversation-1',
+            tenantId: 'canonical-tenant',
+            createdById: 'canonical-user',
+            projectId: 'canonical-project',
+            xpertId: 'canonical-xpert',
+            xpert: { workspaceDataScope: 'user' }
+        }
+        const fileAssetRepository: MockFileAssetRepository = {
+            findOne: jest.fn(),
+            save: jest.fn(async (value) => value)
+        }
+        const fileArtifactRepository: MockFileArtifactRepository = {
+            find: jest.fn().mockResolvedValue([]),
+            save: jest.fn(async (value) => value)
+        }
+        const fileAssetAccessService: MockFileAssetAccessService = {
+            resolve: jest.fn().mockResolvedValue({ asset, conversation })
+        }
+        const workAreaResolver: MockWorkAreaResolver = {
+            resolve: jest.fn().mockResolvedValue({
+                workspaceRoot: '/workspace',
+                volumeScope: { catalog: 'projects', projectId: 'canonical-project' },
+                sessionPath: { relativePath: 'sessions/conversation-1' },
+                volume: { path: (relativePath: string) => path.join(tempRoot, relativePath) }
+            })
+        }
+        const projectAccessService: MockProjectAccessService = {
+            assertCanEdit: jest.fn().mockResolvedValue({ role: 'editor' })
+        }
+        const service = createProjectionService(
+            fileAssetRepository,
+            fileArtifactRepository,
+            { findOne: jest.fn() },
+            workAreaResolver,
+            { resolve: jest.fn() },
+            fileAssetAccessService,
+            projectAccessService
+        )
+
+        await service.projectFileAsset({
+            fileAssetId: asset.id,
+            storageFileId: 'authorized-storage-file',
+            conversationId: conversation.id,
+            projectId: 'forged-project',
+            xpertId: 'forged-xpert',
+            buffer: Buffer.from('authorized bytes')
+        })
+
+        expect(fileAssetAccessService.resolve).toHaveBeenCalledWith({
+            locator: { fileAssetId: asset.id, storageFileId: 'authorized-storage-file' },
+            authority: { kind: 'conversation', conversationId: conversation.id },
+            operation: 'attach'
+        })
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('canonical-project')
+        expect(workAreaResolver.resolve).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'canonical-tenant',
+                userId: 'canonical-user',
+                projectId: 'canonical-project',
+                xpertId: 'canonical-xpert',
+                conversationId: conversation.id,
+                workspaceDataScope: 'user'
+            })
+        )
+        await expect(
+            fsPromises.readFile(path.join(tempRoot, 'sessions/conversation-1/files/file-asset-1/report.txt'), 'utf-8')
+        ).resolves.toBe('authorized bytes')
+        expect(fileAssetRepository.findOne).not.toHaveBeenCalled()
     })
 
     it('projects parsed PDF page images into the same workspace file folder', async () => {

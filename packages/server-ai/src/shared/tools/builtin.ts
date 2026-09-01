@@ -12,9 +12,11 @@ import {
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type {
+    AgentMiddlewareRuntimeScope,
     ManagedQueueService,
     McpCapabilityDefinitions,
     McpCapabilityRuntimeProvider,
+    RuntimeCapabilityResolver,
     TToolModelRuntime
 } from '@xpert-ai/plugin-sdk'
 import { _BaseToolset } from './toolset'
@@ -29,6 +31,8 @@ export type TBuiltinToolsetParams = TToolsetParams & {
     queryBus: QueryBus
     store?: BaseStore
     modelRuntime?: TToolModelRuntime
+    runtimeCapabilities?: RuntimeCapabilityResolver
+    runtimeScope?: AgentMiddlewareRuntimeScope
     managedQueue?: ManagedQueueService
     pluginScopeKey?: string
     pluginName?: string

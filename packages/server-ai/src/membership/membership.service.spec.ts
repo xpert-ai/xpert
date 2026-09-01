@@ -2,7 +2,7 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
-import { MembershipService } from './membership.service'
+import { MembershipService, XpertBillingPayer } from './membership.service'
 import { ForbiddenException } from '@nestjs/common'
 import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPeriod } from './membership-period.entity'
@@ -3415,6 +3415,29 @@ describe('MembershipService', () => {
             undefined,
             false
         )
+    })
+
+    it('uses the runtime user when authenticated Xpert access selects that payer', async () => {
+        const xpertRepository = {
+            findOne: jest.fn()
+        }
+        const service = createMembershipService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            xpertRepository as never
+        )
+
+        await expect(
+            service.resolveBillableUserId({
+                tenantId: 'tenant-1',
+                userId: 'shared-user',
+                xpertId: 'xpert-1',
+                xpertBillingPayer: XpertBillingPayer.RuntimeUser
+            })
+        ).resolves.toBe('shared-user')
+        expect(xpertRepository.findOne).not.toHaveBeenCalled()
     })
 
     it('rejects usage when xpert has no creator instead of billing the runtime user', async () => {

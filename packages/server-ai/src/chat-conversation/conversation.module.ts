@@ -24,6 +24,7 @@ import { ChatConversationThreadService } from './conversation-thread.service'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 
 @Module({
     imports: [
@@ -49,7 +50,8 @@ import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.ent
         ExecutionCancelModule,
         SuperAdminOrganizationScopeModule,
         XpertAgentExecutionModule,
-        SseStreamModule
+        SseStreamModule,
+        XpertProjectAccessModule
     ],
     controllers: [ChatConversationController],
     providers: [

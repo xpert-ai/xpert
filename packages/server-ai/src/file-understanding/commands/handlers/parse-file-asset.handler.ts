@@ -1,7 +1,6 @@
-import { IStorageFile } from '@xpert-ai/contracts'
-import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
+import { FileStorage, StorageFile } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'crypto'
 import fsPromises from 'node:fs/promises'
@@ -14,6 +13,7 @@ import {
 } from '../../domain/page-image-artifact'
 import { ParsedFileArtifact } from '../../domain/types'
 import { FileArtifact, FileAsset, FileChunk } from '../../entities'
+import { FileAssetAccessService } from '../../file-asset-access.service'
 import { FileWorkspaceProjectionService } from '../../file-workspace-projection.service'
 import {
     FileUnderstandingVectorIndexError,
@@ -39,13 +39,17 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
         @InjectRepository(FileArtifact)
         private readonly fileArtifactRepository: Repository<FileArtifact>,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus,
         private readonly parserRegistry: FileParserRegistry,
-        private readonly workspaceProjectionService: FileWorkspaceProjectionService
+        private readonly workspaceProjectionService: FileWorkspaceProjectionService,
+        private readonly fileAssetAccessService: FileAssetAccessService
     ) {}
 
     async execute(command: ParseFileAssetCommand) {
-        const asset = await this.fileAssetRepository.findOneByOrFail({ id: command.fileAssetId })
+        const { asset, storageFile } = await this.fileAssetAccessService.resolve({
+            locator: { fileAssetId: command.fileAssetId },
+            authority: { kind: 'current-owner' },
+            operation: 'parse'
+        })
         if (asset.parseMode === 'none') {
             asset.status = 'ready'
             asset.parsedAt = new Date()
@@ -57,7 +61,6 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
         await this.fileAssetRepository.save(asset)
 
         try {
-            const storageFile = await this.resolveStorageFile(asset.storageFileId)
             const workspaceSource = this.resolveWorkspaceSource(asset)
             if (!storageFile && !workspaceSource?.absolutePath) {
                 throw new Error(`File asset "${asset.id}" does not have a readable storage or workspace source`)
@@ -121,17 +124,7 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
         }
     }
 
-    private async resolveStorageFile(storageFileId?: string) {
-        if (!storageFileId) {
-            return null
-        }
-        const files = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-            new GetStorageFileQuery([storageFileId])
-        )
-        return files[0] ?? null
-    }
-
-    private resolveStorageFilePath(storageFile: IStorageFile) {
+    private resolveStorageFilePath(storageFile: StorageFile) {
         const provider = new FileStorage().getProvider(storageFile.storageProvider)
         return provider.path(storageFile.file)
     }
@@ -194,7 +187,8 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
                 threadId: asset.threadId,
                 projectId: asset.projectId,
                 xpertId: asset.xpertId,
-                sandboxProvider: readWorkspaceProvider(asset.metadata)
+                sandboxProvider: readWorkspaceProvider(asset.metadata),
+                operation: 'parse'
             })
             .catch((error) => {
                 this.#logger.warn(

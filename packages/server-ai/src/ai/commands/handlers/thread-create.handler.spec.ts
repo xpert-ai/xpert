@@ -49,7 +49,8 @@ describe('ThreadCreateHandler', () => {
         execute: jest.fn()
     }
     const publishedXpertAccessService = {
-        getAccessiblePublishedXpert: jest.fn()
+        getAccessiblePublishedXpert: jest.fn(),
+        isPublishedXpertInFamily: jest.fn().mockResolvedValue(false)
     }
     const xpertPrincipalService = {
         ensurePrincipalUser: jest.fn()

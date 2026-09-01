@@ -25,6 +25,25 @@ describe('FileMemory core', () => {
         })
     })
 
+    it('resolves user-isolated file memory to the exact user-xpert volume', () => {
+        expect(getXpertFileMemoryVolumeScope('tenant-1', 'xpert-1', 'user-1', 'user')).toEqual({
+            tenantId: 'tenant-1',
+            catalog: 'user-xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1'
+        })
+    })
+
+    it('uses the project volume and agent memory path when running inside a project', () => {
+        expect(getXpertFileMemoryVolumeScope('tenant-1', 'xpert-1', 'user-1', 'user', 'project-1')).toEqual({
+            tenantId: 'tenant-1',
+            catalog: 'projects',
+            projectId: 'project-1',
+            userId: 'user-1'
+        })
+        expect(getXpertFileMemoryWorkspacePath('xpert-1', 'project-1')).toBe('agents/xpert-1/.xpert/memory')
+    })
+
     it('uses the shared xpert memory root without an xpert-id subdirectory', () => {
         expect(getXpertFileMemoryWorkspacePath('xpert-1')).toBe('.xpert/memory')
     })

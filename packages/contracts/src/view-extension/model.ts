@@ -21,6 +21,11 @@ export type XpertViewActionTransport = 'json' | 'file'
 
 export type XpertViewFileAccessPurpose = 'preview' | 'download'
 
+export type XpertViewHostAccessLevel = 'read' | 'edit' | 'manage'
+
+export const XPERT_VIEW_PROJECT_ID_HEADER = 'x-xpert-view-project-id'
+export const XPERT_VIEW_CONVERSATION_ID_HEADER = 'x-xpert-view-conversation-id'
+
 export type XpertViewSortDirection = 'asc' | 'desc'
 
 export type XpertViewFilterOperator =
@@ -48,10 +53,46 @@ export interface XpertViewHostContext {
   route?: string
   permissions?: string[]
   locale?: string
+  runtimeScope?: XpertViewRuntimeScope
 }
 
 export interface XpertViewHostCapabilities {
   features?: string[]
+}
+
+export interface XpertViewRuntimeScopeInput {
+  projectId?: string | null
+  conversationId?: string | null
+}
+
+export interface XpertViewProjectAccess {
+  role: 'owner' | 'manager' | 'editor' | 'member'
+  canRead: boolean
+  canEdit: boolean
+  canManage: boolean
+  canUse: boolean
+}
+
+export interface XpertViewWorkspaceFilesScope {
+  catalog: 'projects' | 'xperts' | 'user-xperts'
+  scopeId: string
+  projectId?: string | null
+  xpertId?: string | null
+  userId?: string | null
+  isolateByUser?: boolean
+}
+
+export interface XpertViewRuntimeScope {
+  projectId: string | null
+  conversationId: string | null
+  dataScopeKey: string
+  project?: {
+    id: string
+    name: string
+    status?: string | null
+  } | null
+  projectAccess?: XpertViewProjectAccess | null
+  workspaceFiles: XpertViewWorkspaceFilesScope
 }
 
 export type XpertViewHostState = Record<string, unknown>
@@ -279,6 +320,7 @@ export interface XpertViewActionDefinition {
     message?: I18nObject
   }
   permissions?: string[]
+  requiredHostAccess?: XpertViewHostAccessLevel
 }
 
 export interface XpertViewClientCommandDefinition {
@@ -507,6 +549,7 @@ export interface XpertRemoteViewHostEventMessage {
 export interface XpertViewHostEventMessage extends XpertRemoteViewHostEventMessage {
   hostType?: string
   hostId?: string
+  dataScopeKey?: string
 }
 
 export interface XpertExtensionViewManifest {

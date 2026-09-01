@@ -2,7 +2,6 @@ import {
     IApiKey,
     IFileAssetDestination,
     IStorageFile,
-    IUploadFileTarget,
     SecretTokenBindingType,
     TChatOptions,
     TChatRequest
@@ -48,6 +47,7 @@ import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgeDocument } from '../core/entities/internal'
 import { PublishedXpertAccessService } from '../xpert'
+import { resolveExternalStorageUploadTarget } from './external-upload-target'
 
 const DEFAULT_CHATKIT_SESSION_EXPIRES_AFTER = 600
 const MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER = 3600
@@ -172,7 +172,11 @@ export class AIV1Controller {
         @UploadedFile() file: Express.Multer.File,
         @Body('target') targetValue?: string
     ): Promise<IStorageFile | IFileAssetDestination> {
-        const target = this.resolveUploadTarget(targetValue)
+        const target = resolveExternalStorageUploadTarget(targetValue, {
+            kind: 'storage',
+            directory: 'files',
+            prefix: 'files'
+        })
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -273,37 +277,4 @@ export class AIV1Controller {
         }
     }
 
-    private resolveUploadTarget(targetValue?: string): IUploadFileTarget {
-        const defaultTarget: IUploadFileTarget = {
-            kind: 'storage',
-            directory: 'files',
-            prefix: 'files'
-        }
-
-        if (!targetValue) {
-            return defaultTarget
-        }
-
-        const target = this.parseJson<IUploadFileTarget>(targetValue, 'target')
-        if (!target || Array.isArray(target) || !target.kind) {
-            throw new BadRequestException('Invalid target payload')
-        }
-
-        if (target.kind === 'storage') {
-            return {
-                ...defaultTarget,
-                ...target
-            }
-        }
-
-        return target
-    }
-
-    private parseJson<T>(value: string, field: string): T {
-        try {
-            return JSON.parse(value) as T
-        } catch {
-            throw new BadRequestException(`Invalid ${field} JSON`)
-        }
-    }
 }

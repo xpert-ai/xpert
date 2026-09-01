@@ -3345,6 +3345,11 @@
         "Empty": "当前仅向用户提供主模型。",
         "Duplicate": "主模型和可切换模型不能重复。"
       },
+      "IsolateWorkspaceDataByUser": "按用户隔离运行数据",
+      "IsolateWorkspaceDataByUserHint": "启用后，每个用户使用独立的运行文件；关闭后，所有有权运行此数字专家的用户共享同一份文件。",
+      "WorkspaceDataScope": "运行数据范围",
+      "UserIsolatedWorkspaceData": "按用户隔离",
+      "SharedWorkspaceData": "共享",
       "EnterpriseH5AppUnavailable": "当前企业数字专家不可用或尚未配置。",
       "EnterpriseH5SessionUnavailable": "无法验证当前企业身份，暂时不能使用该数字专家。",
       "DingTalkChatApp": "钉钉工作台应用",

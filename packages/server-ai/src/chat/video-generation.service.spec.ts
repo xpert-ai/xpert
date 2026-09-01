@@ -1,5 +1,11 @@
 import { BadRequestException } from '@nestjs/common'
-import { RequestContext, type VideoGenerationToolsetCapability } from '@xpert-ai/plugin-sdk'
+import {
+    DefaultRuntimeCapabilityRegistry,
+    RequestContext,
+    WorkspaceFilesRuntimeCapability,
+    type VideoGenerationToolsetCapability,
+    type WorkspaceFilesApi
+} from '@xpert-ai/plugin-sdk'
 import { SecretTokenBindingType, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { createBuiltinToolset } from '../xpert-toolset'
 import { VideoGenerationService } from './video-generation.service'
@@ -150,7 +156,10 @@ describe('VideoGenerationService', () => {
             userId: 'user-1',
             workspaceId: 'workspace-1',
             projectId: 'project-1',
-            xpertId: 'xpert-1'
+            xpertId: 'xpert-1',
+            catalog: 'projects',
+            scopeId: 'project-1',
+            isolateByUser: false
         })
         expect(createBuiltinToolset).toHaveBeenCalledWith(
             'seedance_type',
@@ -160,7 +169,61 @@ describe('VideoGenerationService', () => {
                 modelRuntime: {
                     createModelClient: harness.scopedModelRuntime.createModelClient,
                     getModelProvider: harness.scopedModelRuntime.getModelProvider
-                }
+                },
+                runtimeCapabilities: harness.scopedModelRuntime.capabilities,
+                runtimeScope: expect.objectContaining({
+                    projectId: 'project-1',
+                    xpertId: 'xpert-1',
+                    catalog: 'projects',
+                    scopeId: 'project-1',
+                    isolateByUser: false
+                })
+            })
+        )
+    })
+
+    it('binds a non-Project video tool invocation to the persisted user-Xpert scope', async () => {
+        const harness = createHarness('user')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-a' } as never)
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-a')
+        jest.mocked(createBuiltinToolset).mockResolvedValue({
+            initTools: jest.fn(),
+            getTool: jest.fn(() => ({
+                invoke: jest.fn().mockResolvedValue({
+                    artifact: { data: { task_id: 'provider-task-1', status: 'queued' } }
+                })
+            })),
+            close: jest.fn()
+        } as never)
+
+        await harness.service.submit({
+            xpertId: 'xpert-1',
+            toolsetId: 'seedance-linked',
+            prompt: 'Generate a clip',
+            model: 'seedance-model'
+        })
+
+        expect(harness.modelRuntime.createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'user-a',
+                xpertId: 'xpert-1',
+                catalog: 'user-xperts',
+                scopeId: 'xpert-1',
+                isolateByUser: true
+            })
+        )
+        expect(jest.mocked(createBuiltinToolset).mock.calls[0][2]).toEqual(
+            expect.objectContaining({
+                runtimeCapabilities: harness.scopedModelRuntime.capabilities,
+                runtimeScope: expect.objectContaining({
+                    userId: 'user-a',
+                    catalog: 'user-xperts',
+                    scopeId: 'xpert-1',
+                    isolateByUser: true
+                })
             })
         )
     })
@@ -341,13 +404,14 @@ describe('VideoGenerationService', () => {
     })
 })
 
-function createHarness() {
+function createHarness(workspaceDataScope: 'shared' | 'user' = 'shared') {
     const seedance = capability('seedance')
     const veo = capability('veo')
     const xpertAccess = {
         getAccessiblePublishedXpert: jest.fn(async () => ({
             id: 'xpert-1',
             workspaceId: 'workspace-1',
+            workspaceDataScope,
             toolsets: [{ id: 'seedance-linked' }]
         }))
     }
@@ -369,9 +433,11 @@ function createHarness() {
             return { meta: {} }
         })
     }
+    const workspaceFiles = {} as WorkspaceFilesApi
     const scopedModelRuntime = {
         createModelClient: jest.fn(),
-        getModelProvider: jest.fn()
+        getModelProvider: jest.fn(),
+        capabilities: new DefaultRuntimeCapabilityRegistry().register(WorkspaceFilesRuntimeCapability, workspaceFiles)
     }
     const modelRuntime = {
         createScopedApi: jest.fn(() => scopedModelRuntime)

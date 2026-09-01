@@ -25,6 +25,7 @@ jest.mock('../xpert-agent-execution', () => ({
 }))
 
 jest.mock('../chat-conversation', () => ({
+    AssertChatConversationAccessQuery: class AssertChatConversationAccessQuery {},
     CancelConversationCommand: class CancelConversationCommand {},
     GetChatConversationQuery: class GetChatConversationQuery {}
 }))
@@ -200,7 +201,14 @@ describe('ThreadsController', () => {
                 }),
             releaseConnection: jest.fn().mockResolvedValue(true)
         }
-        const controller = new ThreadsController({} as any, {} as any, {} as any, redisSseStreamService as any)
+        const queryBus = {
+            execute: jest.fn(async (query: object) =>
+                query.constructor.name === 'AssertChatConversationAccessQuery'
+                    ? { id: 'conversation-1', threadId: 'thread-1', createdById: 'user-1' }
+                    : { id: 'run-1', threadId: 'thread-1' }
+            )
+        }
+        const controller = new ThreadsController({} as any, queryBus as any, {} as any, redisSseStreamService as any)
         const firstResponse = new EventEmitter()
         const secondResponse = new EventEmitter()
 

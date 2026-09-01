@@ -1,3 +1,26 @@
+jest.mock('apps/cloud/src/app/@shared/xpert', () => {
+  const { Component } = jest.requireActual('@angular/core')
+  class XpertBasicFormComponent {}
+  Component({ standalone: true, selector: 'xpert-basic-form', template: '' })(XpertBasicFormComponent)
+  return { XpertBasicFormComponent }
+})
+
+jest.mock('apps/cloud/src/app/@shared/copilot', () => {
+  const { Component } = jest.requireActual('@angular/core')
+  class CopilotConfigFormComponent {}
+  Component({ standalone: true, selector: 'copilot-config-form', template: '' })(CopilotConfigFormComponent)
+  return { CopilotConfigFormComponent }
+})
+
+jest.mock('apps/cloud/src/app/@shared/skills', () => {
+  const { Component } = jest.requireActual('@angular/core')
+  class XpertSkillInstallDialogComponent {}
+  Component({ standalone: true, selector: 'xpert-skill-install-dialog', template: '' })(
+    XpertSkillInstallDialogComponent
+  )
+  return { XpertSkillInstallDialogComponent }
+})
+
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { PluginAPIService, Store } from '@cloud/app/@core/state'
@@ -1286,7 +1309,10 @@ describe('XpertNewBlankComponent', () => {
           workspaceId: 'workspace-1'
         })
       }),
-      { templateId: '@xpert-ai/plugin-salesclaw:salesclaw-business-assistant' }
+      {
+        templateId: '@xpert-ai/plugin-salesclaw:salesclaw-business-assistant',
+        workspaceDataScope: 'shared'
+      }
     )
   })
 
@@ -2385,6 +2411,12 @@ describe('XpertNewBlankComponent', () => {
     await flushPromises()
 
     expect(xpertService.create).toHaveBeenCalled()
+    expect(component.isolateWorkspaceData()).toBe(false)
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceDataScope: 'shared'
+      })
+    )
     expect(xpertService.saveDraft).toHaveBeenCalled()
     expect(xpertService.publish).not.toHaveBeenCalled()
     expect(dialogRef.close).toHaveBeenCalledWith({
@@ -2396,6 +2428,30 @@ describe('XpertNewBlankComponent', () => {
       },
       status: 'created'
     })
+  })
+
+  it('creates a user-isolated blank agent when the data isolation switch is enabled', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+
+    component.isolateWorkspaceData.set(true)
+    await component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceDataScope: 'user'
+      })
+    )
   })
 
   it('seeds a claw blank agent prompt with sys soul and profile placeholders', async () => {
@@ -2530,7 +2586,7 @@ describe('XpertNewBlankComponent', () => {
           })
         ])
       }),
-      { templateId: 'template-agent' }
+      { templateId: 'template-agent', workspaceDataScope: 'shared' }
     )
 
     expect(dialogRef.close).toHaveBeenCalledWith({
@@ -2740,7 +2796,7 @@ describe('XpertNewBlankComponent', () => {
           workspaceId: undefined
         })
       }),
-      { templateId: 'template-agent' }
+      { templateId: 'template-agent', workspaceDataScope: 'shared' }
     )
     expect(xpertService.saveDraft).not.toHaveBeenCalled()
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
@@ -2811,7 +2867,7 @@ describe('XpertNewBlankComponent', () => {
           }
         })
       }),
-      { templateId: 'template-agent' }
+      { templateId: 'template-agent', workspaceDataScope: 'shared' }
     )
   })
 
