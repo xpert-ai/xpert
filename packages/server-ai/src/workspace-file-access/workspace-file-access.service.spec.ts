@@ -128,6 +128,19 @@ describe('WorkspaceFileAccessService', () => {
                 'preview'
             )
         ).toBeNull()
+        expect(
+            service.assertRequestOrigin(
+                authorization.session,
+                {
+                    headers: {
+                        'sec-fetch-site': 'same-origin',
+                        'sec-fetch-mode': 'no-cors',
+                        'sec-fetch-dest': 'image'
+                    }
+                },
+                'preview'
+            )
+        ).toBeNull()
         expect(() =>
             service.assertRequestOrigin(
                 authorization.session,
