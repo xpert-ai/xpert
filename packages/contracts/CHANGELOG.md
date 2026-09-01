@@ -1,5 +1,17 @@
 # @xpert-ai/contracts
 
+## 3.18.0
+
+### Minor Changes
+
+- 8e63a8b: Release Xpert 3.18.0.
+
+### Patch Changes
+
+- dad112d: Add authoritative Project View runtime scopes, membership and scheduling contracts, read/edit/manage action access, immutable Xpert workspace data scopes, scoped Connector bindings with personal or shared authorization, eligible expert providers, Project-scoped workspace files, and collaboration support.
+- 1c71b75: Add Project-scoped Connector authorization and scheduled tasks that run as a confirmed Project member.
+- d45a0c8: Add governed Project instructions and skills with sandbox read-only enforcement.
+
 ## 3.17.6
 
 ### Patch Changes
