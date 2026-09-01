@@ -28,9 +28,10 @@ import { getFileAssetDestination, RequestContext, UploadFileCommand } from '@xpe
 import * as tar from 'tar'
 import { ILike, In, IsNull, Not, Raw } from 'typeorm'
 import unzipper from 'unzipper'
-import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowledge-document'
+import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowledge-document/document.service'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
-import { KnowledgeWorkAreaResolver, VolumeSubtreeClient } from '../../../shared'
+import { VolumeSubtreeClient } from '../../../shared/volume/volume-subtree'
+import { KnowledgeWorkAreaResolver } from '../../../shared/volume/work-area'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import {
     CreateKnowledgebaseDocumentsCommand,

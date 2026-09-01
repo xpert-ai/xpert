@@ -40,7 +40,7 @@ import { KnowledgeGraphFilterScopeService } from './filter'
         TenantModule,
         CqrsModule,
         UserModule,
-        CopilotModule,
+        forwardRef(() => CopilotModule),
         DatabaseModule,
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => IntegrationModule),

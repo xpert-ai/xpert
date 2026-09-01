@@ -65,7 +65,7 @@ import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
-import { TVectorSearchParams } from '../knowledgebase'
+import type { TVectorSearchParams } from '../knowledgebase/vector-store'
 import { DocumentChunkDTO } from './dto'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import {
@@ -75,7 +75,7 @@ import {
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { resolveKnowledgeDocumentTransformerIdentity } from './document-hash'
 import { t } from 'i18next'
-import { resolveHttpByteRange } from '../shared'
+import { resolveHttpByteRange } from '../shared/utils/http-byte-range'
 
 function parseExpectedVersion(version: unknown) {
     if (typeof version === 'number' && Number.isInteger(version) && version > 0) {

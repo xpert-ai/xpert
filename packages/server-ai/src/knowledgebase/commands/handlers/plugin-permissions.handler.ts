@@ -4,7 +4,7 @@ import { BadRequestException, Inject } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { FileSystemPermission, XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { KnowledgeWorkAreaResolver } from '../../../shared'
+import { KnowledgeWorkAreaResolver } from '../../../shared/volume/work-area'
 import { PluginPermissionsCommand } from '../plugin-permissions.command'
 
 @CommandHandler(PluginPermissionsCommand)

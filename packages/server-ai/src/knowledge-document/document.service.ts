@@ -39,9 +39,12 @@ import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { compact, uniq } from 'lodash'
 import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository, UpdateResult } from 'typeorm'
-import { KnowledgebaseService, KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase'
+import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import type { KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase/vector-store'
 import { KnowledgeDocument } from './document.entity'
-import { KnowledgeWorkAreaResolver, LoadStorageFileCommand, VolumeSubtreeClient } from '../shared'
+import { LoadStorageFileCommand } from '../shared/commands/load-storage-file.command'
+import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
+import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeGraphClearDocumentCommand } from '../graphrag/commands'
@@ -54,7 +57,7 @@ import {
     resolveKnowledgeDocumentSourceHash
 } from './document-hash'
 import { TDocChunkMetadata } from './types'
-import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
+import { GetOwnedStorageFileQuery } from '../file-understanding/queries/get-owned-storage-file.query'
 
 type OriginalFileDownloadTarget = {
     absolutePath: string

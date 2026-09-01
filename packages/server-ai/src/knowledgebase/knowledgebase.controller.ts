@@ -52,7 +52,7 @@ import { buildLogicalFolderPath, KnowledgeDocumentService } from '../knowledge-d
 import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
-import { KnowledgeWorkAreaResolver } from '../shared'
+import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 
 @ApiTags('Knowledgebase')
 @ApiBearerAuth()

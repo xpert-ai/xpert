@@ -1,9 +1,21 @@
 import { IXpertTable } from '@xpert-ai/contracts'
 import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common'
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    UseInterceptors
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { DeepPartial } from 'typeorm'
 import { XpertDatabasesQuery } from './queries/get-databases.query'
 import { XpertTable } from './xpert-table.entity'
 import { XpertTableService } from './xpert-table.service'
@@ -12,61 +24,61 @@ import { XpertTableService } from './xpert-table.service'
 @UseInterceptors(TransformInterceptor)
 @Controller('xpert-table')
 export class XpertTableController extends CrudController<XpertTable> {
-	readonly #logger = new Logger(XpertTableController.name)
-	constructor(
-		private readonly service: XpertTableService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {
-		super(service)
-	}
+    readonly #logger = new Logger(XpertTableController.name)
+    constructor(
+        private readonly service: XpertTableService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {
+        super(service)
+    }
 
-	/**
-	 * Create or update table and auto activate (override base POST method)
-	 */
-	@Post()
-	async create(@Body() entity: DeepPartial<XpertTable>) {
-		return this.service.upsertTable(entity as IXpertTable)
-	}
+    /**
+     * Create or update table and auto activate (override base POST method)
+     */
+    @Post()
+    async create(@Body() entity: Partial<IXpertTable>) {
+        return this.service.upsertTable(entity as IXpertTable)
+    }
 
-	/**
-	 * Update table and sync physical table (override base PUT method)
-	 */
-	@Put(':id')
-	async update(@Param('id') id: string, @Body() entity: DeepPartial<XpertTable>) {
-		return this.service.upsertTable({ ...(entity as IXpertTable), id })
-	}
+    /**
+     * Update table and sync physical table (override base PUT method)
+     */
+    @Put(':id')
+    async update(@Param('id') id: string, @Body() entity: Partial<IXpertTable>) {
+        return this.service.upsertTable({ ...(entity as IXpertTable), id })
+    }
 
-	@Get('databases')
-	async getDatabases() {
-		return this.queryBus.execute(new XpertDatabasesQuery({ protocol: 'sql' }))
-	}
+    @Get('databases')
+    async getDatabases() {
+        return this.queryBus.execute(new XpertDatabasesQuery({ protocol: 'sql' }))
+    }
 
-	@Get('schemas')
-	async getDatabaseSchemas(@Query('databaseId') databaseId: string) {
-		return this.service.getDatabaseSchemas(databaseId)
-	}
+    @Get('schemas')
+    async getDatabaseSchemas(@Query('databaseId') databaseId: string) {
+        return this.service.getDatabaseSchemas(databaseId)
+    }
 
-	@Post(':id/activate')
-	async activateTable(@Param('id') tableId: string) {
-		return this.service.activateTable(tableId)
-	}
+    @Post(':id/activate')
+    async activateTable(@Param('id') tableId: string) {
+        return this.service.activateTable(tableId)
+    }
 
-	/**
-	 * Delete table record and physical table
-	 */
-	@ApiOperation({ summary: 'Delete table record and physical table' })
-	@ApiResponse({
-		status: HttpStatus.NO_CONTENT,
-		description: 'The table has been successfully deleted'
-	})
-	@ApiResponse({
-		status: HttpStatus.NOT_FOUND,
-		description: 'Table not found'
-	})
-	@HttpCode(HttpStatus.NO_CONTENT)
-	@Delete(':id')
-	async deleteTable(@Param('id') tableId: string) {
-		return this.service.deleteTable(tableId)
-	}
+    /**
+     * Delete table record and physical table
+     */
+    @ApiOperation({ summary: 'Delete table record and physical table' })
+    @ApiResponse({
+        status: HttpStatus.NO_CONTENT,
+        description: 'The table has been successfully deleted'
+    })
+    @ApiResponse({
+        status: HttpStatus.NOT_FOUND,
+        description: 'Table not found'
+    })
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @Delete(':id')
+    async deleteTable(@Param('id') tableId: string) {
+        return this.service.deleteTable(tableId)
+    }
 }

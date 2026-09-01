@@ -35,19 +35,15 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import { t } from 'i18next'
+import { CreateWorkspaceFileAssetCommand } from '../../file-understanding/commands/create-workspace-file-asset.command'
+import { EnqueueFileParseCommand } from '../../file-understanding/commands/enqueue-file-parse.command'
 import {
-    CreateWorkspaceFileAssetCommand,
-    EnqueueFileParseCommand,
-    GetFileUnderstandingStatusQuery,
-    ResolveAuthorizedFileAssetQuery,
-    SearchFileChunksQuery,
-    ValidateFileUnderstandingReferencesQuery,
     isWorkspaceFileCatalog,
     resolveFileAssetWorkspaceRelativePath,
     resolveWorkspaceFileCatalog,
     resolveWorkspaceVolumeScope,
     type WorkspaceVolumeScopeResolution
-} from '../../file-understanding'
+} from '../../file-understanding/domain/workspace-file'
 import type { FileAsset } from '../../file-understanding/entities/file-asset.entity'
 import type { FileChunk } from '../../file-understanding/entities/file-chunk.entity'
 import type {
@@ -55,6 +51,10 @@ import type {
     FileAssetLocator,
     FileAssetOperation
 } from '../../file-understanding/file-asset-access.service'
+import { GetFileUnderstandingStatusQuery } from '../../file-understanding/queries/get-file-understanding-status.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
+import { SearchFileChunksQuery } from '../../file-understanding/queries/search-file-chunks.query'
+import { ValidateFileUnderstandingReferencesQuery } from '../../file-understanding/queries/validate-file-understanding-references.query'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
@@ -648,7 +648,8 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         if (
             (catalog === 'users' || catalog === 'user-xperts') &&
             actorUserId &&
-            (requestedUserId && requestedUserId !== actorUserId)
+            requestedUserId &&
+            requestedUserId !== actorUserId
         ) {
             throw new ForbiddenException('Workspace user scope is outside the current actor scope')
         }
@@ -907,7 +908,10 @@ function resolveBoundRuntimeWorkspaceScope(defaults: WorkspaceFilesRuntimeDefaul
     const requestedScopeId = normalizeOptionalString(defaults.scopeId)
 
     if (projectId) {
-        if ((requestedCatalog && requestedCatalog !== 'projects') || (requestedScopeId && requestedScopeId !== projectId)) {
+        if (
+            (requestedCatalog && requestedCatalog !== 'projects') ||
+            (requestedScopeId && requestedScopeId !== projectId)
+        ) {
             throw new BadRequestException('Workspace runtime Project scope is inconsistent')
         }
         return {
@@ -942,8 +946,8 @@ function assertBoundRuntimeWorkspaceScope(scope: WorkspaceFileScope, bound: Boun
     const requestedXpertId = normalizeOptionalString(scope.xpertId)
     const hasForeignScope = Boolean(
         normalizeOptionalString(scope.knowledgeId) ||
-            normalizeOptionalString(scope.rootId) ||
-            (bound.catalog === 'projects' ? false : requestedProjectId)
+        normalizeOptionalString(scope.rootId) ||
+        (bound.catalog === 'projects' ? false : requestedProjectId)
     )
     if (
         (requestedCatalog && requestedCatalog !== bound.catalog) ||
