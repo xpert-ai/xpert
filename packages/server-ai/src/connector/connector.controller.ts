@@ -149,6 +149,12 @@ export class ConnectorController {
     }
 
     @UseGuards(WorkspaceOwnerGuard)
+    @Post(':workspaceId/:connectorId/cancel-authorization')
+    cancelAuthorization(@Param('workspaceId') workspaceId: string, @Param('connectorId') connectorId: string) {
+        return this.service.cancelAuthorization(workspaceId, connectorId)
+    }
+
+    @UseGuards(WorkspaceOwnerGuard)
     @Get(':workspaceId/:connectorId/authorization-status')
     authorizationStatus(@Param('workspaceId') workspaceId: string, @Param('connectorId') connectorId: string) {
         return this.service.authorizationStatus(workspaceId, connectorId)

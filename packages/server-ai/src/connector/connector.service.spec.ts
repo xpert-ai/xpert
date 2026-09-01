@@ -216,7 +216,7 @@ describe('ConnectorService', () => {
         expect(connectors.items[0].refreshExpiresAt).toBeNull()
     })
 
-    it('invalidates pending OAuth sessions when disconnecting', async () => {
+    it('cancels pending OAuth sessions and makes the old state unusable', async () => {
         ;(strategy.buildAuthorizationUrl as jest.Mock).mockResolvedValueOnce({
             authorizationUrl: 'https://oauth.example.com/authorize?state=state-1',
             scopes: ['docs:doc:read'],
@@ -231,7 +231,7 @@ describe('ConnectorService', () => {
         })
         const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
 
-        await service.disconnect('workspace-1', start.connector.id)
+        await service.cancelAuthorization('workspace-1', start.connector.id)
 
         expect(sessions.items[0].consumedAt).toBeInstanceOf(Date)
         expect(sessions.items[0].metadataCiphertext).toBeNull()
@@ -239,6 +239,19 @@ describe('ConnectorService', () => {
             BadRequestException
         )
         expect(connectors.items[0].status).toBe('disconnected')
+    })
+
+    it('rejects cancellation when the connector is already active', async () => {
+        const start = await service.startOAuth('workspace-1', 'example', {
+            app: connectorApp(),
+            redirectUri: 'https://xpert.test/api/connector/oauth/callback'
+        })
+        const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
+        await service.completeOAuthCallback({ state, code: 'code-1' })
+
+        await expect(service.cancelAuthorization('workspace-1', start.connector.id)).rejects.toThrow(
+            'Connector authorization is not pending'
+        )
     })
 
     it('does not expose unannotated Object dependencies to Nest injection', () => {

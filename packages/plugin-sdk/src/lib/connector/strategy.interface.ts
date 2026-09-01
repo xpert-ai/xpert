@@ -36,19 +36,34 @@ export type ConnectorAppCredentialsConfig = {
 
 export type ConnectorCredentialFormDefinition = ConnectorAppCredentialsConfig
 
-export type ConnectorAuthMethodDefinition =
-  | {
-      id: string
-      type: 'oauth2'
-      label: RuntimeI18nText
-      appCredentials?: ConnectorCredentialFormDefinition
-    }
-  | {
-      id: string
-      type: 'api_key'
-      label: RuntimeI18nText
-      credentials: ConnectorCredentialFormDefinition
-    }
+export type ConnectorAuthorizationPresentation = {
+  mode: 'embedded_qr'
+  title: RuntimeI18nText
+  description: RuntimeI18nText
+  ariaLabel: RuntimeI18nText
+  completionHint: RuntimeI18nText
+  cancelLabel: RuntimeI18nText
+  copyLinkLabel: RuntimeI18nText
+  copyLinkError: RuntimeI18nText
+}
+
+type ConnectorAuthMethodBase = {
+  id: string
+  label: RuntimeI18nText
+  authorizationPresentation?: ConnectorAuthorizationPresentation
+}
+
+export type ConnectorAuthMethodDefinition = ConnectorAuthMethodBase &
+  (
+    | {
+        type: 'oauth2'
+        appCredentials?: ConnectorCredentialFormDefinition
+      }
+    | {
+        type: 'api_key'
+        credentials: ConnectorCredentialFormDefinition
+      }
+  )
 
 export type ConnectorPermissionDeclaration = {
   key: string
@@ -196,6 +211,45 @@ function assertConnectorAuthMethod(method: unknown, provider: string): asserts m
 
   if (type === 'api_key' && !isObjectValue(Reflect.get(method, 'credentials'))) {
     throw new Error(`Connector '${provider}' API key method '${idValue.trim()}' must declare credentials`)
+  }
+
+  const authorizationPresentation = Reflect.get(method, 'authorizationPresentation')
+  if (authorizationPresentation !== undefined) {
+    assertConnectorAuthorizationPresentation(authorizationPresentation, provider, idValue.trim(), type)
+  }
+}
+
+function assertConnectorAuthorizationPresentation(
+  value: unknown,
+  provider: string,
+  authMethodId: string,
+  authMethodType: 'oauth2' | 'api_key'
+): asserts value is ConnectorAuthorizationPresentation {
+  if (!isObjectValue(value) || Reflect.get(value, 'mode') !== 'embedded_qr') {
+    throw new Error(
+      `Connector '${provider}' authentication method '${authMethodId}' has an invalid authorization presentation`
+    )
+  }
+  if (authMethodType !== 'oauth2') {
+    throw new Error(
+      `Connector '${provider}' authentication method '${authMethodId}' can declare authorization presentation only for OAuth`
+    )
+  }
+
+  for (const field of [
+    'title',
+    'description',
+    'ariaLabel',
+    'completionHint',
+    'cancelLabel',
+    'copyLinkLabel',
+    'copyLinkError'
+  ] as const) {
+    if (!isRuntimeI18nText(Reflect.get(value, field))) {
+      throw new Error(
+        `Connector '${provider}' authentication method '${authMethodId}' authorization presentation must declare '${field}'`
+      )
+    }
   }
 }
 

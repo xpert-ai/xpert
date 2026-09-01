@@ -127,6 +127,52 @@ describe('ConnectorStrategyRegistry', () => {
     expect(() => assertConnectorDefinition(definition)).toThrow('unsupported authentication method type')
   })
 
+  it('accepts plugin-owned embedded QR authorization presentation', () => {
+    expect(() =>
+      assertConnectorDefinition({
+        provider: 'qr-provider',
+        label: 'QR Provider',
+        authMethods: [
+          {
+            id: 'qr',
+            type: 'oauth2',
+            label: 'QR authorization',
+            authorizationPresentation: {
+              mode: 'embedded_qr',
+              title: 'Connect QR provider',
+              description: 'Scan the QR code to authorize.',
+              ariaLabel: 'Authorization QR code',
+              completionHint: 'This dialog closes after authorization.',
+              cancelLabel: 'Cancel authorization',
+              copyLinkLabel: 'Copy link',
+              copyLinkError: 'Could not copy authorization link.'
+            }
+          }
+        ]
+      })
+    ).not.toThrow()
+  })
+
+  it('rejects incomplete embedded QR authorization presentation', () => {
+    expect(() =>
+      assertConnectorDefinition({
+        provider: 'qr-provider',
+        label: 'QR Provider',
+        authMethods: [
+          {
+            id: 'qr',
+            type: 'oauth2',
+            label: 'QR authorization',
+            authorizationPresentation: {
+              mode: 'embedded_qr',
+              title: 'Connect QR provider'
+            }
+          }
+        ]
+      })
+    ).toThrow("authorization presentation must declare 'description'")
+  })
+
   it('validates decorated function providers', () => {
     @ConnectorStrategyKey('function-provider')
     class FunctionConnectorStrategy {

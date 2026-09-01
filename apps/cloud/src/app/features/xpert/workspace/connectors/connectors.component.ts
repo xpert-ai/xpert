@@ -1,5 +1,7 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core'
 import { FormControl, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms'
+import { resolveI18nText } from '@xpert-ai/contracts'
 import {
   ZardButtonComponent,
   ZardFormImports,
@@ -8,10 +10,11 @@ import {
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getConnectorAuthMethods } from '@xpert-ai/plugin-sdk/connector'
 import type {
   ConnectorAppCredentialField,
+  ConnectorAuthorizationPresentation,
   ConnectorAuthMethodDefinition,
   ConnectorCredentialFormDefinition,
   ConnectorInstance,
@@ -21,6 +24,7 @@ import { AlertCircle, Cable, Link2Off, LoaderCircle } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { IconComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 
 type ConnectorStatusLabel = {
@@ -36,6 +40,7 @@ type ConnectorStatusLabel = {
     TranslateModule,
     XpI18nPipe,
     IconComponent,
+    QRCodeComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
@@ -47,6 +52,8 @@ type ConnectorStatusLabel = {
 export class XpertConnectorsComponent {
   readonly #connectorService = inject(XpertConnectorService)
   readonly #workspaceService = inject(XpertWorkspaceService)
+  readonly #clipboard = inject(Clipboard)
+  readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #destroyRef = inject(DestroyRef)
 
@@ -141,8 +148,12 @@ export class XpertConnectorsComponent {
   }
 
   async quickConnect(definition: ConnectorStrategyDefinition) {
-    if (this.credentialFieldsFor(this.selectedAuthMethod(definition)).length) {
+    const authMethod = this.selectedAuthMethod(definition)
+    if (this.credentialFieldsFor(authMethod).length || this.usesEmbeddedAuthorization(authMethod)) {
       this.openConnectorDialog(definition)
+    }
+
+    if (this.credentialFieldsFor(authMethod).length) {
       return
     }
 
@@ -184,8 +195,12 @@ export class XpertConnectorsComponent {
       return
     }
 
+    const usesEmbeddedAuthorization = this.usesEmbeddedAuthorization(authMethod)
     const hasAuthorizationPopup = !!this.#authorizationPopup && !this.#authorizationPopup.closed
-    const reservedPopup = authMethod.type === 'oauth2' && !hasAuthorizationPopup ? this.openAuthorizationPopup() : null
+    const reservedPopup =
+      authMethod.type === 'oauth2' && !usesEmbeddedAuthorization && !hasAuthorizationPopup
+        ? this.openAuthorizationPopup()
+        : null
     this.connectingProvider.set(definition.provider)
     try {
       const values = this.connectorValues(definition, authMethod)
@@ -198,16 +213,23 @@ export class XpertConnectorsComponent {
       this.upsertConnector(response.connector)
       if (response.status === 'active') {
         this.closeReservedAuthorizationPopup(reservedPopup)
+        if (usesEmbeddedAuthorization && this.selectedProvider() === definition.provider) {
+          this.closeConnectorDialog()
+        }
         this.reloadKey.update((value) => value + 1)
         return
       }
 
-      if (response.authorizationUrl) {
-        this.openAuthorizationUrl(response.authorizationUrl)
-      }
       if (response.connector?.id && response.authorizationUrl) {
         this.setPendingAuthorizationUrl(response.connector.id, response.authorizationUrl)
         this.startAuthorizationPolling(workspaceId, response.connector.id, response.pollIntervalSeconds ?? 5)
+      }
+      if (response.authorizationUrl) {
+        if (usesEmbeddedAuthorization) {
+          this.openConnectorDialog(definition)
+        } else {
+          this.openAuthorizationUrl(response.authorizationUrl)
+        }
       }
     } catch (error) {
       this.closeReservedAuthorizationPopup(reservedPopup)
@@ -223,15 +245,28 @@ export class XpertConnectorsComponent {
       return
     }
 
+    const isPendingAuthorization = connector.status === 'pending'
+    if (isPendingAuthorization) {
+      this.clearAuthorizationPolling()
+      this.clearPendingAuthorizationUrl(connector.id)
+      this.closeAuthorizationPopup()
+    }
+
     this.disconnectingConnectorId.set(connector.id)
     try {
-      await firstValueFrom(this.#connectorService.disconnect(workspaceId, connector.id))
+      const request = isPendingAuthorization
+        ? this.#connectorService.cancelAuthorization(workspaceId, connector.id)
+        : this.#connectorService.disconnect(workspaceId, connector.id)
+      await firstValueFrom(request)
       this.clearPendingAuthorizationUrl(connector.id)
       if (this.selectedProvider() === connector.provider) {
         this.closeConnectorDialog()
       }
       this.reloadKey.update((value) => value + 1)
-      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+      this.#toastr.success(
+        isPendingAuthorization ? 'XP.Xpert.ConnectorAuthorizationCancelled' : 'XP.Messages.UpdatedSuccessfully',
+        { Default: isPendingAuthorization ? 'Authorization cancelled.' : 'Updated successfully' }
+      )
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
@@ -349,11 +384,51 @@ export class XpertConnectorsComponent {
     return connector?.id ? this.pendingAuthorizationUrls()[connector.id] : ''
   }
 
+  authMethodForConnector(definition: ConnectorStrategyDefinition, connector?: ConnectorInstance | null) {
+    return (
+      this.authMethodsFor(definition).find((method) => method.id === connector?.authMethodId) ??
+      this.selectedAuthMethod(definition)
+    )
+  }
+
+  authorizationPresentationFor(authMethod?: ConnectorAuthMethodDefinition | null) {
+    return authMethod?.type === 'oauth2' ? (authMethod.authorizationPresentation ?? null) : null
+  }
+
+  usesEmbeddedAuthorization(authMethod?: ConnectorAuthMethodDefinition | null) {
+    return this.authorizationPresentationFor(authMethod)?.mode === 'embedded_qr'
+  }
+
   openPendingAuthorizationUrl(connector: ConnectorInstance) {
+    const definition = this.definitionForConnector(connector)
+    if (definition && this.usesEmbeddedAuthorization(this.authMethodForConnector(definition, connector))) {
+      this.openConnectorDialog(definition)
+      return
+    }
+
     const authorizationUrl = this.pendingAuthorizationUrl(connector)
     if (authorizationUrl) {
       this.openAuthorizationUrl(authorizationUrl)
     }
+  }
+
+  copyPendingAuthorizationUrl(
+    connector: ConnectorInstance | null | undefined,
+    presentation: ConnectorAuthorizationPresentation
+  ) {
+    const authorizationUrl = this.pendingAuthorizationUrl(connector)
+    if (!authorizationUrl) {
+      return
+    }
+
+    if (this.#clipboard.copy(authorizationUrl)) {
+      this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+      return
+    }
+
+    this.#toastr.error(
+      resolveI18nText(presentation.copyLinkError, this.#translate.currentLang) ?? 'Could not copy authorization link.'
+    )
   }
 
   private openAuthorizationUrl(authorizationUrl: string) {
@@ -440,6 +515,10 @@ export class XpertConnectorsComponent {
     return ''
   }
 
+  private definitionForConnector(connector: ConnectorInstance) {
+    return this.definitions().find((definition) => definition.provider === connector.provider) ?? null
+  }
+
   private openAuthorizationPopup() {
     if (this.#authorizationPopup && !this.#authorizationPopup.closed) {
       return this.#authorizationPopup
@@ -465,6 +544,14 @@ export class XpertConnectorsComponent {
     this.#authorizationPopup = null
   }
 
+  private closeAuthorizationPopup() {
+    const popup = this.#authorizationPopup
+    if (popup && !popup.closed) {
+      popup.close()
+    }
+    this.#authorizationPopup = null
+  }
+
   private startAuthorizationPolling(workspaceId: string, connectorId: string, intervalSeconds: number) {
     this.clearAuthorizationPolling()
     this.pollingConnectorId.set(connectorId)
@@ -478,10 +565,14 @@ export class XpertConnectorsComponent {
     try {
       const response = await firstValueFrom(this.#connectorService.pollAuthorization(workspaceId, connectorId))
       this.upsertConnector(response.connector)
+      const definition = this.definitionForConnector(response.connector)
+      const usesEmbeddedAuthorization =
+        definition !== null &&
+        this.usesEmbeddedAuthorization(this.authMethodForConnector(definition, response.connector))
       if (response.authorizationUrl) {
         const currentAuthorizationUrl = this.pendingAuthorizationUrls()[connectorId]
         this.setPendingAuthorizationUrl(connectorId, response.authorizationUrl)
-        if (response.authorizationUrl !== currentAuthorizationUrl) {
+        if (response.authorizationUrl !== currentAuthorizationUrl && !usesEmbeddedAuthorization) {
           this.openAuthorizationUrl(response.authorizationUrl)
         }
       }
@@ -493,6 +584,10 @@ export class XpertConnectorsComponent {
 
       this.clearAuthorizationPolling()
       this.clearPendingAuthorizationUrl(connectorId)
+      this.closeAuthorizationPopup()
+      if (this.selectedProvider() === response.connector.provider) {
+        this.closeConnectorDialog()
+      }
       this.reloadKey.update((value) => value + 1)
     } catch (error) {
       this.clearAuthorizationPolling()
@@ -554,6 +649,7 @@ export class XpertConnectorsComponent {
     TranslateModule,
     XpI18nPipe,
     IconComponent,
+    QRCodeComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
