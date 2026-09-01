@@ -62,7 +62,7 @@ export class AppInitService {
         const organizations = memberships.map(({ organization }) => organization)
         const preferredOrganizationId = memberships.find((membership) => membership.isDefault)?.organizationId ?? null
 
-        this.scopeService.initializeEntryScope(organizations, preferredOrganizationId)
+        await this.scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
         //tenant enabled/disabled features for relatives organizations
         const tenantFeatures = this.user.tenant?.featureOrganizations ?? []
