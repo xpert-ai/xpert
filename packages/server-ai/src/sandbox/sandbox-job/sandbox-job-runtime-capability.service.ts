@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { mkdir, stat } from 'node:fs/promises'
+import { constants as fsConstants } from 'node:fs'
+import { open, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -27,7 +28,7 @@ import {
     type WorkspacePortableFileReference,
     RequestContext
 } from '@xpert-ai/plugin-sdk'
-import { VOLUME_CLIENT, VolumeClient } from '../../shared/volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../../shared/volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { SandboxJobCapacityService, type SandboxJobCapacityLease } from './sandbox-job-capacity.service'
 import { SandboxJobEntity } from './sandbox-job.entity'
@@ -49,6 +50,9 @@ const WAITING_HEARTBEAT_INTERVAL_MS = 30_000
 const WAITING_HEARTBEAT_TTL_MS = 120_000
 const MAX_JOB_INPUT_BYTES = 350 * 1024 * 1024
 const MAX_JOB_OUTPUT_BYTES = 350 * 1024 * 1024
+const RUNTIME_JOB_WORKSPACE_DIRECTORY = 'workspace'
+const RUNTIME_JOB_INPUT_SNAPSHOT_DIRECTORY = '.platform/inputs'
+const INPUT_SNAPSHOT_COPY_BUFFER_BYTES = 1024 * 1024
 
 type ActiveSandbox = {
     runtime: SandboxRuntimeInstance
@@ -377,6 +381,7 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             job.errorCode = null
             job.errorMessage = null
             await this.repository.save(job)
+            await ensureExactRuntimeJobDirectory(volume, RUNTIME_JOB_WORKSPACE_DIRECTORY)
             const readOnlyFiles = await this.prepareReadOnlyInputs(input, volume)
             const createOptions: SandboxRuntimeCreateOptions = {
                 ephemeral: true,
@@ -384,7 +389,10 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 workFor: { type: 'job', id: jobId },
                 definition,
                 binding: resolution.binding,
-                volume: { serverRoot: volume.serverRoot, hostRoot: volume.hostRoot },
+                volume: {
+                    serverRoot: volume.path(RUNTIME_JOB_WORKSPACE_DIRECTORY),
+                    hostRoot: path.join(volume.hostRoot, RUNTIME_JOB_WORKSPACE_DIRECTORY)
+                },
                 resources: definition.resources,
                 networkPolicy: definition.networkPolicy,
                 security: definition.security,
@@ -587,13 +595,25 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 )
             }
             const targetPath = path.posix.join('input', validateRelativePath(file.targetPath, 'input targetPath'))
-            await mkdir(path.dirname(volume.path(targetPath)), { recursive: true })
-            files.push({ source, targetPath, size: file.size, sha256: file.sha256 })
+            await ensureExactRuntimeJobDirectory(
+                volume,
+                path.posix.dirname(path.posix.join(RUNTIME_JOB_WORKSPACE_DIRECTORY, targetPath))
+            )
+            const snapshot = await createVerifiedReadOnlyInputSnapshot(volume, source, file, files.length).catch(
+                (error) => {
+                    throw new SandboxJobRuntimeError(
+                        'EXPORT_INPUT_INVALID',
+                        `Unable to snapshot seekable input ${file.targetPath}: ${messageOf(error)}`,
+                        false
+                    )
+                }
+            )
+            files.push({ source: snapshot, targetPath, size: file.size, sha256: file.sha256 })
         }
         return files
     }
 
-    /** Reject successful output when a mounted Workspace file changed in place. */
+    /** Reject successful output when the platform-owned input snapshot changed in place. */
     private async assertReadOnlyInputsUnchanged(
         files: readonly SandboxRuntimeReadOnlyFile[],
         jobId: string
@@ -881,6 +901,154 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             startedAt: job.startedAt,
             finishedAt: job.finishedAt
         }
+    }
+}
+
+async function createVerifiedReadOnlyInputSnapshot(
+    volume: VolumeHandle,
+    source: SandboxRuntimeReadOnlyFile['source'],
+    file: SandboxJobFileInput,
+    index: number
+): Promise<SandboxRuntimeReadOnlyFile['source']> {
+    const noFollow = typeof fsConstants.O_NOFOLLOW === 'number' ? fsConstants.O_NOFOLLOW : 0
+    const nonBlock = typeof fsConstants.O_NONBLOCK === 'number' ? fsConstants.O_NONBLOCK : 0
+    const sourceHandle = await open(source.serverPath, fsConstants.O_RDONLY | noFollow | nonBlock)
+    const snapshotRelativePath = path.posix.join(
+        RUNTIME_JOB_INPUT_SNAPSHOT_DIRECTORY,
+        `${String(index).padStart(4, '0')}-${file.sha256.toLowerCase()}.snapshot`
+    )
+    let snapshotCreated = false
+    try {
+        const sourceStat = await sourceHandle.stat()
+        if (
+            !sourceStat.isFile() ||
+            sourceStat.size !== source.size ||
+            sourceStat.mtimeMs !== source.mtimeMs ||
+            sourceStat.dev !== source.device ||
+            sourceStat.ino !== source.inode
+        ) {
+            throw new Error(`Sandbox seekable input changed: ${file.targetPath}`)
+        }
+
+        await ensureExactRuntimeJobDirectory(volume, RUNTIME_JOB_INPUT_SNAPSHOT_DIRECTORY)
+        const snapshotDirectory = await VolumeHandle.openExistingFile(
+            volume.serverRoot,
+            RUNTIME_JOB_INPUT_SNAPSHOT_DIRECTORY,
+            {
+                boundaryRoot: volume.serverRoot,
+                flags:
+                    fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
+            }
+        )
+        try {
+            if (
+                !snapshotDirectory.fileStat.isDirectory() ||
+                snapshotDirectory.volumeRelativePath !== RUNTIME_JOB_INPUT_SNAPSHOT_DIRECTORY
+            ) {
+                throw new Error('Sandbox input snapshot directory is invalid')
+            }
+            const anchoredSnapshotPath = path.join(
+                snapshotDirectory.descriptorPath,
+                path.basename(snapshotRelativePath)
+            )
+            const snapshotHandle = await open(
+                anchoredSnapshotPath,
+                fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | noFollow | nonBlock,
+                0o400
+            )
+            snapshotCreated = true
+            try {
+                const digest = createHash('sha256')
+                const buffer = Buffer.allocUnsafe(INPUT_SNAPSHOT_COPY_BUFFER_BYTES)
+                let copiedBytes = 0
+                for (;;) {
+                    const { bytesRead } = await sourceHandle.read(buffer, 0, buffer.length, copiedBytes)
+                    if (!bytesRead) break
+                    if (copiedBytes + bytesRead > file.size) {
+                        throw new Error(`Sandbox seekable input changed: ${file.targetPath}`)
+                    }
+                    digest.update(buffer.subarray(0, bytesRead))
+                    let writtenBytes = 0
+                    while (writtenBytes < bytesRead) {
+                        const result = await snapshotHandle.write(
+                            buffer,
+                            writtenBytes,
+                            bytesRead - writtenBytes,
+                            copiedBytes + writtenBytes
+                        )
+                        if (!result.bytesWritten) {
+                            throw new Error('Sandbox input snapshot could not be written')
+                        }
+                        writtenBytes += result.bytesWritten
+                    }
+                    copiedBytes += bytesRead
+                }
+                if (copiedBytes !== file.size || digest.digest('hex') !== file.sha256.toLowerCase()) {
+                    throw new Error(`Sandbox seekable input changed: ${file.targetPath}`)
+                }
+                await snapshotHandle.sync()
+                await snapshotHandle.chmod(0o400)
+                const snapshotStat = await snapshotHandle.stat()
+                if (!snapshotStat.isFile() || snapshotStat.nlink !== 1 || snapshotStat.size !== copiedBytes) {
+                    throw new Error('Sandbox input snapshot failed its integrity check')
+                }
+            } finally {
+                await snapshotHandle.close()
+            }
+        } finally {
+            await snapshotDirectory.fileHandle.close()
+        }
+
+        const openedSnapshot = await VolumeHandle.openExistingFile(volume.serverRoot, snapshotRelativePath, {
+            boundaryRoot: volume.serverRoot,
+            flags: fsConstants.O_RDONLY
+        })
+        try {
+            const snapshotStat = openedSnapshot.fileStat
+            if (
+                !snapshotStat.isFile() ||
+                snapshotStat.nlink !== 1 ||
+                snapshotStat.size !== file.size ||
+                openedSnapshot.volumeRelativePath !== snapshotRelativePath
+            ) {
+                throw new Error('Sandbox input snapshot failed its integrity check')
+            }
+            return {
+                serverPath: openedSnapshot.filePath,
+                hostPath: path.join(volume.hostRoot, openedSnapshot.volumeRelativePath),
+                size: snapshotStat.size,
+                mtimeMs: snapshotStat.mtimeMs,
+                device: snapshotStat.dev,
+                inode: snapshotStat.ino
+            }
+        } finally {
+            await openedSnapshot.fileHandle.close()
+        }
+    } catch (error) {
+        if (snapshotCreated) {
+            await VolumeHandle.removePath(volume.serverRoot, snapshotRelativePath, {
+                boundaryRoot: volume.serverRoot
+            }).catch(() => undefined)
+        }
+        throw error
+    } finally {
+        await sourceHandle.close()
+    }
+}
+
+async function ensureExactRuntimeJobDirectory(volume: VolumeHandle, relativePath: string) {
+    const normalizedPath = path.posix.normalize(relativePath.replace(/\\/g, '/').replace(/^\/+/, ''))
+    await VolumeHandle.ensureDirectory(volume.serverRoot, normalizedPath, volume.serverRoot)
+    const openedDirectory = await VolumeHandle.openExistingFile(volume.serverRoot, normalizedPath, {
+        boundaryRoot: volume.serverRoot,
+        flags: fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
+    })
+    try {
+        if (!openedDirectory.fileStat.isDirectory() || openedDirectory.volumeRelativePath !== normalizedPath) {
+            throw new Error('Sandbox runtime-job directory failed its integrity check')
+        }
+    } finally {
+        await openedDirectory.fileHandle.close()
     }
 }
 

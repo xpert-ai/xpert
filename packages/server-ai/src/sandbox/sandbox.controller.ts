@@ -93,6 +93,9 @@ export class SandboxController {
         @Res() res: Response
     ) {
         let subpath = paths.join('/')
+        if (isRuntimeJobVolumeSubpath(subpath)) {
+            throw new ForbiddenException('Sandbox runtime-job files require authenticated internal access')
+        }
         if (!tenant) {
             tenant = RequestContext.currentTenantId()
         }
@@ -104,6 +107,9 @@ export class SandboxController {
 
         if (environment.envName === 'dev') {
             subpath = normalizeSandboxPublicVolumeSubpath(subpath)
+        }
+        if (isRuntimeJobVolumeSubpath(subpath)) {
+            throw new ForbiddenException('Sandbox runtime-job files require authenticated internal access')
         }
 
         const filePath = join(volume, subpath)
@@ -678,4 +684,17 @@ export class SandboxController {
             message: error instanceof Error ? error.message : String(error)
         })
     }
+}
+
+function isRuntimeJobVolumeSubpath(value: string) {
+    const segments: string[] = []
+    for (const segment of value.replace(/\\/g, '/').split('/')) {
+        if (!segment || segment === '.') continue
+        if (segment === '..') {
+            segments.pop()
+            continue
+        }
+        segments.push(segment)
+    }
+    return segments[0]?.toLowerCase() === 'runtime-jobs'
 }

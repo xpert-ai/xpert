@@ -154,6 +154,20 @@ describe('SandboxController', () => {
         jest.clearAllMocks()
     })
 
+    it.each([
+        ['the canonical path', ['runtime-jobs', 'job-1', '.platform', 'inputs', 'source.snapshot']],
+        ['a normalized parent alias', ['public', '..', 'runtime-jobs', 'job-1', 'workspace', 'input', 'job.json']],
+        ['a case-insensitive filesystem alias', ['RUNTIME-JOBS', 'job-1', 'workspace', 'output', 'result.txt']]
+    ])('rejects runtime-job files through the anonymous volume route using %s', async (_case, paths) => {
+        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue(null)
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue(null)
+
+        await expect(
+            controller.getVolumeFile(paths, undefined, undefined, { headers: {} } as Request, {} as Response)
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(queryBus.execute).not.toHaveBeenCalled()
+    })
+
     it('acquires the sandbox backend using the conversation xpert sandbox provider', async () => {
         commandBus.execute.mockResolvedValue({
             id: 'sandbox-1',
