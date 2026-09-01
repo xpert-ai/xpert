@@ -42,11 +42,7 @@ export class KnowledgebaseComponent extends TranslationBaseComponent {
     [this.paramId],
     pipe(
       switchMap(([id]) =>
-        id
-          ? this.refresh$.pipe(
-              switchMap(() => this.knowledgebaseService.getOneById(id, { relations: ['copilotModel'] }))
-            )
-          : of(null)
+        id ? this.refresh$.pipe(switchMap(() => this.knowledgebaseService.getDetail(id))) : of(null)
       )
     ),
     {
