@@ -6,18 +6,19 @@
   </a>
 </p>
 
-<h1 align="center">构建能推理、能执行、可复核的企业级 AI 系统</h1>
+<h1 align="center">一切皆插件</h1>
 
 <p align="center">
-  面向企业的开源智能体平台，覆盖多智能体编排、确定性工作流、<br>
-  可治理数据执行、人在回路工作台，以及可嵌入式智能助手。
+  Xpert 是一个开源智能体平台：模型、集成、工具、中间件、Skills、Assistants、<br>
+  Workbench 视图、MCP Apps 和完整的 Agentic Apps，共享一套可治理的插件系统。
 </p>
 
 <p align="center">
-  <a href="https://app.xpertai.cn/"><strong>体验 XpertAI 云服务</strong></a> ·
+  <a href="https://app.xpertai.cn/plugins/marketplace"><strong>探索插件市场</strong></a> ·
+  <a href="https://github.com/xpert-ai/xpert-plugins"><strong>查看插件源码</strong></a> ·
+  <a href="https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development"><strong>使用 Agent Skills 开发插件</strong></a> ·
   <a href="https://docs.xpertai.cn/zh-Hans/ai/getting-started/community"><strong>自托管 Xpert</strong></a> ·
-  <a href="https://docs.xpertai.cn/zh-Hans/">文档</a> ·
-  <a href="https://xpertai.cn/">官网</a>
+  <a href="https://docs.xpertai.cn/zh-Hans/">文档</a>
 </p>
 
 <p align="center">
@@ -32,13 +33,13 @@
   </a>
 </p>
 
-![Xpert AI 智能体广场，展示精选智能体和能力筛选](docs/images/readme/agent-marketplace-zh.png)
+![Xpert AI 智能体市场中由插件交付的 Assistant 模板](docs/images/readme/agent-marketplace-zh.png)
 
-Xpert AI 让团队可以在同一平台中设计数字专家、连接企业知识与工具、提供可复核的工作台，并把智能助手嵌入现有产品。Agent 可以在适合的场景中自由推理，在强调一致性的环节遵循确定性工作流，并在敏感操作前暂停等待人工审批。
+Xpert 内核提供运行时、契约、安全边界和生命周期控制，插件则提供用户能够安装的能力与应用：小到一个模型供应商或工具，大到完整的 Assistant、多智能体工作流或面向业务的 Agentic App。
 
-| 设计与编排                                                                      | 连接与知识增强                                                         | 复核与交付                                                                      |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 可视化构建单 Agent、Supervisor、层级型、Swarm，以及 Agent / Workflow 混合系统。 | 连接文件、知识库、Skills、MCP 工具、语义模型、数据库、API 和业务系统。 | 交付 Workbench 视图、审批步骤、插件、Agentic Apps 和基于 ChatKit 的嵌入式体验。 |
+| 发现                                                                             | 学习                                                                                       | 开发                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 在[插件市场](https://app.xpertai.cn/plugins/marketplace)中发现并安装能力与应用。 | 在 [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins) 中查看官方与社区插件实现。 | 将 [`xpert-plugin-development`](https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development) 技能交给编码智能体，让其创建、测试、部署、管理版本并完成插件发布准备。 |
 
 ## 产品实景
 
@@ -48,10 +49,10 @@ Xpert AI 让团队可以在同一平台中设计数字专家、连接企业知�
 
 ## 为什么选择 Xpert
 
+- **一切皆可治理的插件**：通过统一生命周期安装和演进模型、集成、中间件、Skills、MCP 工具与 Apps、Assistant 模板、Remote Components、Workbench 视图和完整的 Agentic Apps。
 - **Agent 与 Workflow 混合架构**：用 Agent 处理灵活推理，用 Workflow 提供稳定、可检查的控制路径。
 - **可治理的企业执行**：通过类型化工具、语义对象、策略、审批和审计轨迹开放数据与业务动作，而不是把裸权限交给模型。
 - **可人工复核的工作台**：工具调用可以打开聚焦的 UI 视图，让用户检查、修正、审批或提交结果。
-- **可扩展的应用运行时**：把模型、集成、中间件、Skills、MCP 工具、Remote Component、Workbench 视图和 Assistant 模板封装为插件。
 
 ## 官方应用
 
@@ -103,33 +104,54 @@ Xpert 采用**智能体与工作流混合架构**。Agent 决定如何处理开�
 
 ## 生态
 
-| 仓库                                                         | 用途                                                               |
-| ------------------------------------------------------------ | ------------------------------------------------------------------ |
-| [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins) | 官方与社区集成、模型供应商、中间件、工具、Skills 和 Agentic Apps。 |
-| [`chatkit-js`](https://github.com/xpert-ai/chatkit-js)       | 面向多种前端框架的 ChatKit 嵌入包、widgets 和示例。                |
-| [`xpert-sdk-js`](https://github.com/xpert-ai/xpert-sdk-js)   | 用于调用 Xpert API 的 TypeScript SDK 包和示例。                    |
-| [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)   | 公共 Skill 示例、模板和 Agent Skills 规范。                        |
-| [`docs`](https://github.com/xpert-ai/docs)                   | 产品、AI、插件、数据、BI、部署和教程文档。                         |
+| 仓库                                                         | 用途                                                                          |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins) | 官方与社区集成、模型供应商、中间件、工具、Skills 和 Agentic Apps。            |
+| [`chatkit-js`](https://github.com/xpert-ai/chatkit-js)       | 面向多种前端框架的 ChatKit 嵌入包、widgets 和示例。                           |
+| [`xpert-sdk-js`](https://github.com/xpert-ai/xpert-sdk-js)   | 用于调用 Xpert API 的 TypeScript SDK 包和示例。                               |
+| [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)   | 用于搭建 Xpert 及开发插件、Agentic Apps、Assistants 和流水线的 Agent Skills。 |
+| [`docs`](https://github.com/xpert-ai/docs)                   | 产品、AI、插件、数据、BI、部署和教程文档。                                    |
 
-## 仓库导览
+## 使用 Agent Skills 进行本地开发
 
-Xpert 是一个使用 Angular、NestJS、TypeORM、LangChain 和共享 TypeScript 契约构建的 Nx monorepo。
+使用 [`xpert-ai/xpert-skills`](https://github.com/xpert-ai/xpert-skills) 中的开发技能，让受支持的编码智能体搭建 Xpert 平台，并基于已验证的本地实例开发 Agentic Apps。
 
-| 路径                                               | 用途                                                                                   |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `apps/api`                                         | 主 NestJS API 应用和平台启动入口。                                                     |
-| `apps/cloud`                                       | Angular 应用，包含 Cloud UI、Agent Studio、工作空间、设置、ChatKit 和 Workbench 界面。 |
-| `packages/server-ai`                               | Agent 执行、聊天、模型、工具集、MCP、知识、handoff 和 AI runtime 服务。                |
-| `packages/server`                                  | 平台共享的核心服务端模块。                                                             |
-| `packages/contracts`                               | 前端、后端、SDK 和插件共享的契约。                                                     |
-| `packages/plugin-sdk`                              | 面向插件配置、权限、视图扩展和 Remote Component 的 SDK。                               |
-| `packages/plugins`                                 | 随宿主交付的内置插件。                                                                 |
-| `packages/core`, `packages/angular`, `packages/ui` | 核心数据/分析库和可复用 UI 包。                                                        |
-| `docker`                                           | Docker Compose 部署文件和环境变量模板。                                                |
+为 Codex 安装两个主要技能及配套的插件生命周期技能。如果只想安装到当前项目，请移除 `--global`。
 
-本地开发说明请查看[开发 Wiki](https://github.com/xpert-ai/xpert/wiki/Development)。
+```bash
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-platform-local-environment \
+  --agent codex \
+  --global
 
-## 当前重点
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-agentic-app-developer \
+  --agent codex \
+  --global
+
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-plugin-development \
+  --agent codex \
+  --global
+```
+
+需要时可将 `codex` 替换为 Skills CLI 支持的其他目标。如果安装后没有立即发现技能，请新建一个智能体会话。
+
+然后让编码智能体按顺序执行：
+
+1. **搭建并验证 Xpert**
+
+   > 使用 `$xpert-platform-local-environment`，在 `<path>` 克隆或复用 Xpert 代码，以 source-hybrid 模式完成配置和启动，并返回可用于插件测试的环境回执。
+
+2. **开发 Agentic App**
+
+   > 使用 `$xpert-agentic-app-developer`，基于已验证的本地平台，将 `<应用描述>` 设计、实现、安全部署并验收为独立的 Xpert Agentic App 插件。
+
+环境技能默认使用 Docker 管理基础设施，并从源码运行 API 和 Cloud UI；它会验证代码与进程来源、服务健康状态，以及必要的人工初始化是否完成。Agentic App 技能覆盖插件架构、Agent 中间件、Workbench 与扩展视图、Assistant 模板、应用市场 `appConfig`、部署和验收；插件打包和部署细节则按其指引交给 `xpert-plugin-development`。
+
+## ROADMAP
+
+当前路线图重点包括：
 
 - 面向规划、文件、团队和任务执行的项目工作空间。
 - 更完整的治理、审批、审计和基于角色的访问控制。
