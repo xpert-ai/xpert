@@ -65,6 +65,12 @@ So:
 
 That is why API-container code doing `fs.stat`, `git fetch`, `git push`, or file serving should use `/sandbox/...`, not `environment.sandboxConfig.volume`.
 
+For local development:
+
+- `dev` with the API running directly on the host and no `SANDBOX_VOLUME` now defaults to the layered `~/data/${tenantId}/<catalog>/<id>` layout, so Projects and shared Xperts do not share the entire `~/data` root.
+- `dev` with `SANDBOX_VOLUME` keeps the same tenant/type/id semantics as production.
+- The old flat `~/data` root is available only through the explicit `SANDBOX_VOLUME_LAYOUT=legacy-flat` opt-in when `SANDBOX_VOLUME` is unset. This option does not migrate or delete existing files.
+
 ### 2.2 How the Sandbox container sees the same data
 
 When a Sandbox container is created, Docker mounts a host directory into `/workspace/`.

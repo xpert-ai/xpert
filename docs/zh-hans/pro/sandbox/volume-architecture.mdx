@@ -65,10 +65,11 @@ ${SANDBOX_VOLUME:-~/data/}:/sandbox/
 
 这也是为什么 API 容器内做 `fs.stat`、`git fetch`、`git push`、文件下载时，应该使用 `/sandbox/...`，而不是再去使用 `environment.sandboxConfig.volume`。
 
-补充一条本地开发时的判断：
+补充本地开发时的判断：
 
-- `dev` 且未配置 `SANDBOX_VOLUME`：仍沿用本机 `~/data` 的扁平目录模型。
+- `dev`、API 直接运行在本机且未配置 `SANDBOX_VOLUME`：默认使用 `~/data/${tenantId}/<catalog>/<id>` 分层目录；Project 和共享 Xpert 不再共用整个 `~/data` 根。
 - `dev` 且已配置 `SANDBOX_VOLUME`：应视为“已显式启用挂载卷目录”，路径语义和生产的 tenant/type/id 分层保持一致，不能再按扁平目录去裁掉 `user/<id>`、`project/<id>`、`xpert/<id>` 这类前缀。
+- 只有显式设置 `SANDBOX_VOLUME_LAYOUT=legacy-flat`，并且未配置 `SANDBOX_VOLUME` 时，才恢复旧的 `~/data` 扁平根。该开关不会自动迁移或删除历史文件。
 
 ### 2.2 Sandbox 容器如何看到同一份卷
 
