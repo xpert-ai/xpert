@@ -187,6 +187,71 @@ describe('KnowledgebaseService', () => {
         expect(assertWrite).toHaveBeenCalledTimes(3)
     })
 
+    it('preserves workspace identity while authorizing a narrow knowledgebase write projection', async () => {
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(
+                Object.assign(new Knowledgebase(), {
+                    id: 'kb-1',
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    workspaceId: 'workspace-1',
+                    createdById: 'owner-1'
+                })
+            ),
+            delete: jest.fn()
+        }
+        const workspaceAccessService = { assertCan: jest.fn() }
+        const service = createService({
+            repository,
+            workspaceAccessService,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        const result = await runInRequestContext(() =>
+            service.assertKnowledgebaseWriteAccess('kb-1', { select: { id: true } })
+        )
+
+        expect(repository.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({
+                select: expect.objectContaining({ id: true, workspaceId: true, createdById: true })
+            })
+        )
+        expect(workspaceAccessService.assertCan).toHaveBeenNthCalledWith(1, 'workspace-1', 'read')
+        expect(workspaceAccessService.assertCan).toHaveBeenNthCalledWith(2, 'workspace-1', 'write')
+        expect(result).toEqual({ id: 'kb-1' })
+    })
+
+    it('keeps legacy private knowledgebase writes restricted to their creator with a narrow projection', async () => {
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(
+                Object.assign(new Knowledgebase(), {
+                    id: 'kb-private',
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    workspaceId: null,
+                    createdById: 'owner-1'
+                })
+            ),
+            delete: jest.fn()
+        }
+        const workspaceAccessService = { assertCan: jest.fn() }
+        const service = createService({
+            repository,
+            workspaceAccessService,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        await expect(
+            runInRequestContext(
+                () => service.assertKnowledgebaseWriteAccess('kb-private', { select: { id: true } }),
+                'other-user'
+            )
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(workspaceAccessService.assertCan).not.toHaveBeenCalled()
+    })
+
     it('ignores client-controlled ownership when creating a knowledgebase', async () => {
         const save = jest.fn().mockImplementation(async (entity) => entity)
         const repository = {

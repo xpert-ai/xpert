@@ -16,6 +16,16 @@ export function pluginApplicationCopilotModel(
   }
 }
 
+/** Selects the server-authorized organization default, falling back only when no eligible default exists. */
+export function pluginApplicationDefaultCopilotModel(
+  options: PluginApplicationModelOption[],
+  defaultModelId: string | null | undefined,
+  fallbackModelType: AiModelTypeEnum
+): Partial<ICopilotModel> | null {
+  const option = (defaultModelId ? options.find((item) => item.id === defaultModelId) : undefined) ?? options[0]
+  return pluginApplicationCopilotModel(option, fallbackModelType)
+}
+
 /** Serializes the model-select value to the opaque option ID validated by the server. */
 export function pluginApplicationModelId(model: Partial<ICopilotModel> | null): string | null {
   const copilotId = model?.copilotId?.trim()

@@ -1996,13 +1996,18 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         options: FindOneOptions<Knowledgebase> | undefined,
         accessDenied: () => ForbiddenException
     ): Promise<Knowledgebase> {
-        const knowledgebase = await this.findOne(knowledgebaseId, options)
+        // Write authorization needs the parent workspace or legacy owner even
+        // when callers request a narrow projection such as `{ id: true }`.
+        // Mark these fields as explicitly selected so WorkspaceBaseService does
+        // not remove its temporary access fields before this second boundary.
+        const accessSelect = addKnowledgebaseWriteAccessSelect(options)
+        const knowledgebase = await this.findOne(knowledgebaseId, accessSelect.options)
         if (knowledgebase.workspaceId) {
             await this.assertWorkspaceWriteAccess(knowledgebase.workspaceId)
         } else if (!RequestContext.currentUserId() || knowledgebase.createdById !== RequestContext.currentUserId()) {
             throw accessDenied()
         }
-        return knowledgebase
+        return stripKnowledgebaseWriteAccessSelect(knowledgebase, accessSelect)
     }
 
     async resolveKnowledgebaseFolderAncestors(knowledgebaseId: string, parentId: string) {
@@ -2247,6 +2252,69 @@ type KnowledgebaseAccessSelect = {
     options?: FindOneOptions<Knowledgebase>
     addedCreatedById: boolean
     addedPermission: boolean
+}
+
+type KnowledgebaseWriteAccessSelect = {
+    options?: FindOneOptions<Knowledgebase>
+    addedWorkspaceId: boolean
+    addedCreatedById: boolean
+}
+
+function addKnowledgebaseWriteAccessSelect(options?: FindOneOptions<Knowledgebase>): KnowledgebaseWriteAccessSelect {
+    if (!options?.select) {
+        return { options, addedWorkspaceId: false, addedCreatedById: false }
+    }
+
+    if (Array.isArray(options.select)) {
+        const selectedFields = options.select as string[]
+        const addedWorkspaceId = !selectedFields.includes('workspaceId')
+        const addedCreatedById = !selectedFields.includes('createdById')
+        return {
+            options: {
+                ...options,
+                select: [
+                    ...selectedFields,
+                    ...(addedWorkspaceId ? ['workspaceId'] : []),
+                    ...(addedCreatedById ? ['createdById'] : [])
+                ] as FindOneOptions<Knowledgebase>['select']
+            },
+            addedWorkspaceId,
+            addedCreatedById
+        }
+    }
+
+    const addedWorkspaceId = options.select.workspaceId !== true
+    const addedCreatedById = options.select.createdById !== true
+    return {
+        options: {
+            ...options,
+            select: {
+                ...options.select,
+                workspaceId: true,
+                createdById: true
+            }
+        },
+        addedWorkspaceId,
+        addedCreatedById
+    }
+}
+
+function stripKnowledgebaseWriteAccessSelect(
+    knowledgebase: Knowledgebase,
+    accessSelect: KnowledgebaseWriteAccessSelect
+): Knowledgebase {
+    if (!accessSelect.addedWorkspaceId && !accessSelect.addedCreatedById) {
+        return knowledgebase
+    }
+
+    const result = { ...knowledgebase }
+    if (accessSelect.addedWorkspaceId) {
+        delete result.workspaceId
+    }
+    if (accessSelect.addedCreatedById) {
+        delete result.createdById
+    }
+    return result
 }
 
 function addKnowledgebaseAccessSelect(options?: FindOneOptions<Knowledgebase>): KnowledgebaseAccessSelect {

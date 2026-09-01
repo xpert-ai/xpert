@@ -290,6 +290,10 @@ export interface PluginApplicationPreflight {
     | 'vision_model_required'
   embeddingModels: PluginApplicationModelOption[]
   visionModels: PluginApplicationModelOption[]
+  /** Organization Embedding-role default when it is present in embeddingModels. */
+  defaultEmbeddingModelId?: string | null
+  /** Organization Primary-role default when it is vision-capable and present in visionModels. */
+  defaultVisionModelId?: string | null
   primaryModelAvailable: boolean
   modelRequirements: PluginMarketplaceAppModelRequirements
 }

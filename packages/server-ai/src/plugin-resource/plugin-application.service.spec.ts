@@ -1,16 +1,23 @@
-import { PLUGIN_APPLICATION_INSTALLATION_STATUS, RolesEnum } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    AiProviderRole,
+    ModelFeature,
+    PLUGIN_APPLICATION_INSTALLATION_STATUS,
+    RolesEnum
+} from '@xpert-ai/contracts'
 import { SYSTEM_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
 import { RequestContext } from '@xpert-ai/server-core'
 import { NotFoundException } from '@nestjs/common'
 import { PluginApplicationInstallation } from './plugin-application-installation.entity'
 import { PluginApplicationService } from './plugin-application.service'
+import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
 
 describe('PluginApplicationService', () => {
     afterEach(() => {
         jest.restoreAllMocks()
     })
 
-    function createService(contents: unknown[], scopeKey = SYSTEM_GLOBAL_SCOPE) {
+    function createService(contents: unknown[], scopeKey = SYSTEM_GLOBAL_SCOPE, queryBus: object = {}) {
         return new PluginApplicationService(
             {} as never,
             {} as never,
@@ -20,7 +27,7 @@ describe('PluginApplicationService', () => {
             {} as never,
             {} as never,
             {} as never,
-            {} as never,
+            queryBus as never,
             [
                 {
                     name: '@acme/plugin-example-app',
@@ -143,6 +150,136 @@ describe('PluginApplicationService', () => {
             reason: 'role_required',
             embeddingModels: [],
             visionModels: []
+        })
+    })
+
+    it('returns organization role defaults independently from provider catalog order', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as never)
+        const queryBus = {
+            execute: jest.fn(async (query: FindCopilotModelsQuery | CopilotOneByRoleQuery) => {
+                if (query instanceof FindCopilotModelsQuery) {
+                    if (query.type === AiModelTypeEnum.TEXT_EMBEDDING) {
+                        return [
+                            {
+                                id: 'embedding-copilot',
+                                providerWithModels: {
+                                    models: [
+                                        {
+                                            model: 'multimodal-embedding-v1',
+                                            label: 'Multimodal Embedding',
+                                            model_type: AiModelTypeEnum.TEXT_EMBEDDING
+                                        },
+                                        {
+                                            model: 'text-embedding-v4',
+                                            label: 'Text Embedding v4',
+                                            model_type: AiModelTypeEnum.TEXT_EMBEDDING
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                    return [
+                        {
+                            id: 'primary-copilot',
+                            providerWithModels: {
+                                models: [
+                                    {
+                                        model: 'qwen-plus',
+                                        label: 'Qwen Plus',
+                                        model_type: AiModelTypeEnum.LLM,
+                                        features: []
+                                    },
+                                    {
+                                        model: 'qwen-vl-plus',
+                                        label: 'Qwen VL Plus',
+                                        model_type: AiModelTypeEnum.LLM,
+                                        features: [ModelFeature.VISION]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+                if (query.role === AiProviderRole.Embedding) {
+                    return {
+                        id: 'embedding-copilot',
+                        copilotModel: { model: 'text-embedding-v4', modelType: AiModelTypeEnum.TEXT_EMBEDDING }
+                    }
+                }
+                return {
+                    id: 'primary-copilot',
+                    copilotModel: { model: 'qwen-vl-plus', modelType: AiModelTypeEnum.LLM }
+                }
+            })
+        }
+        const service = createService(
+            [
+                {
+                    type: 'app',
+                    name: 'example-app',
+                    appConfig: {
+                        scope: 'organization',
+                        assistantTemplateKey: 'example-assistant',
+                        workspace: { mode: 'dedicated', name: 'Example App Workspace', sharing: 'organization' },
+                        modelRequirements: { primary: true, embedding: true, vision: true }
+                    }
+                }
+            ],
+            SYSTEM_GLOBAL_SCOPE,
+            queryBus
+        )
+        const application = service['resolveApplication']('@acme/plugin-example-app', 'example-app').application
+
+        await expect(service['getPreflightForApplication'](application)).resolves.toMatchObject({
+            canInitialize: true,
+            defaultEmbeddingModelId: 'embedding-copilot/text-embedding-v4',
+            defaultVisionModelId: 'primary-copilot/qwen-vl-plus',
+            embeddingModels: [
+                { id: 'embedding-copilot/multimodal-embedding-v1' },
+                { id: 'embedding-copilot/text-embedding-v4' }
+            ],
+            visionModels: [{ id: 'primary-copilot/qwen-vl-plus' }]
+        })
+    })
+
+    it('uses the server-authorized organization default when initialization omits a model id', async () => {
+        const queryBus = {
+            execute: jest.fn(async (query: FindCopilotModelsQuery) => {
+                if (query.type !== AiModelTypeEnum.TEXT_EMBEDDING) return []
+                return [
+                    {
+                        id: 'embedding-copilot',
+                        providerWithModels: {
+                            models: [
+                                {
+                                    model: 'text-embedding-v4',
+                                    label: 'Text Embedding v4',
+                                    model_type: AiModelTypeEnum.TEXT_EMBEDDING
+                                }
+                            ]
+                        }
+                    }
+                ]
+            })
+        }
+        const service = createService([], SYSTEM_GLOBAL_SCOPE, queryBus)
+
+        await expect(
+            service['resolveRequiredModel'](
+                undefined,
+                AiModelTypeEnum.TEXT_EMBEDDING,
+                undefined,
+                'embedding-copilot/text-embedding-v4'
+            )
+        ).resolves.toMatchObject({
+            config: {
+                copilotId: 'embedding-copilot',
+                model: 'text-embedding-v4',
+                modelType: AiModelTypeEnum.TEXT_EMBEDDING
+            }
         })
     })
 
