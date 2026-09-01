@@ -1,12 +1,20 @@
-import { IUser } from '@xpert-ai/contracts'
-import { Exclude, Expose } from 'class-transformer'
+import { IEnvironment, IUser } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
+import { Exclude, Expose, Transform } from 'class-transformer'
 
 @Expose()
 export class WorkspacePublicDTO {
-	@Exclude()
-	members?: IUser[]
+    @Transform(({ value }) => value && new UserPublicDTO(value))
+    @Expose()
+    owner?: IUser
 
-	constructor(partial: Partial<WorkspacePublicDTO>) {
-		Object.assign(this, partial)
-	}
+    @Exclude()
+    members?: IUser[]
+
+    @Exclude()
+    environments?: IEnvironment[] | null
+
+    constructor(partial: Partial<WorkspacePublicDTO>) {
+        Object.assign(this, partial)
+    }
 }
