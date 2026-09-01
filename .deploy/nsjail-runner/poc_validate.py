@@ -255,7 +255,11 @@ class PocProbe:
 
     def check_health(self) -> None:
         result = self.client.json("GET", "/health")
-        assert result == {"status": "ok"}, result
+        assert result == {
+            "status": "ok",
+            "protocolVersion": 2,
+            "capabilities": {"projectContentReadOnly": True},
+        }, result
 
     def check_invalid_token(self) -> None:
         result = RunnerClient("invalid-token").json("GET", "/health", expect_status=401)
@@ -449,7 +453,11 @@ finally:
             )
             result = future.result(timeout=20)
         assert result["exitCode"] not in (0, None), result
-        assert self.client.json("GET", "/health") == {"status": "ok"}
+        assert self.client.json("GET", "/health") == {
+            "status": "ok",
+            "protocolVersion": 2,
+            "capabilities": {"projectContentReadOnly": True},
+        }
         assert oom_events > 0, observed_events
         self.metrics["oomExitCode"] = result["exitCode"]
         self.metrics["memoryCgroupEvent"] = memory_event_name

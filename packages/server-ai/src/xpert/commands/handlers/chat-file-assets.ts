@@ -195,6 +195,7 @@ export async function attachChatFileAssetsToConversation(
     files: unknown,
     context?: {
         xpertId?: string
+        workspaceDataScope?: XpertWorkspaceDataScope | null
         projectId?: string
         sandboxEnvironmentId?: string
         sandboxProvider?: string | null
@@ -217,6 +218,7 @@ export async function attachChatFileAssetsToConversation(
                     threadId: conversation.threadId,
                     projectId: context?.projectId,
                     xpertId: context?.xpertId,
+                    workspaceDataScope: context?.workspaceDataScope,
                     sandboxEnvironmentId: context?.sandboxEnvironmentId,
                     sandboxProvider: context?.sandboxProvider
                 })

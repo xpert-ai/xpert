@@ -4,7 +4,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { CopilotModule } from '../copilot'
+import { CopilotModule } from '../copilot/copilot.module'
 import { KnowledgebaseModule } from '../knowledgebase/knowledgebase.module'
 import { CommandHandlers } from './commands/handlers'
 import { KnowledgeDocumentController } from './document.controller'
@@ -30,7 +30,7 @@ import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtim
         CqrsModule,
         UserModule,
         StorageFileModule,
-        CopilotModule,
+        forwardRef(() => CopilotModule),
         IntegrationModule,
         forwardRef(() => KnowledgebaseModule),
 

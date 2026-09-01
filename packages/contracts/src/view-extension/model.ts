@@ -58,6 +58,47 @@ export interface XpertViewHostContext {
 
 export interface XpertViewHostCapabilities {
   features?: string[]
+  featureProviders?: Record<string, XpertViewFeatureProvider[]>
+}
+
+export interface XpertViewRuntimeScopeInput {
+  projectId?: string | null
+  conversationId?: string | null
+}
+
+export interface XpertViewFeatureProvider {
+  xpertId: string
+  name: string
+}
+
+export interface XpertViewProjectAccess {
+  role: 'owner' | 'manager' | 'editor' | 'member'
+  canRead: boolean
+  canEdit: boolean
+  canManage: boolean
+  canUse: boolean
+}
+
+export interface XpertViewWorkspaceFilesScope {
+  catalog: 'projects' | 'xperts' | 'user-xperts'
+  scopeId: string
+  projectId?: string | null
+  xpertId?: string | null
+  userId?: string | null
+  isolateByUser?: boolean
+}
+
+export interface XpertViewRuntimeScope {
+  projectId: string | null
+  conversationId: string | null
+  dataScopeKey: string
+  project?: {
+    id: string
+    name: string
+    status?: string | null
+  } | null
+  projectAccess?: XpertViewProjectAccess | null
+  workspaceFiles: XpertViewWorkspaceFilesScope
 }
 
 export interface XpertViewRuntimeScopeInput {
@@ -567,6 +608,9 @@ export interface XpertExtensionViewManifest {
   refreshable?: boolean
   polling?: XpertViewPolling
   activation?: XpertViewActivation
+  runtime?: {
+    featureProviders?: XpertViewFeatureProvider[]
+  }
   workbench?: XpertWorkbenchViewOptions
   view: XpertViewSchema
   dataSource: XpertViewDataSource

@@ -1,28 +1,34 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { TestBed } from '@angular/core/testing'
-import type { IXpertProject, TXpertProjectSkillSummary } from '@xpert-ai/contracts'
-import { of, throwError } from 'rxjs'
+import type { IXpertProject } from '@xpert-ai/contracts'
+import { of, Subject, throwError } from 'rxjs'
 import { XpertTaskService } from '../../@core'
-import { XpertProjectApiService } from './project-api.service'
+import { XpertProjectApiService, type XpertProjectOverview } from './project-api.service'
 import { XpertProjectFacade } from './project.facade'
 
 describe('XpertProjectFacade', () => {
   let api: {
     list: jest.Mock
-    access: jest.Mock
+    create: jest.Mock
+    get: jest.Mock
+    overview: jest.Mock
     instructions: jest.Mock
     skills: jest.Mock
-    updateInstructions: jest.Mock
+    access: jest.Mock
   }
+  let taskService: { getAll: jest.Mock }
 
   beforeEach(() => {
     api = {
       list: jest.fn(),
-      access: jest.fn(),
+      create: jest.fn(),
+      get: jest.fn(),
+      overview: jest.fn(),
       instructions: jest.fn(),
       skills: jest.fn(),
-      updateInstructions: jest.fn()
+      access: jest.fn()
     }
+    taskService = { getAll: jest.fn() }
 
     TestBed.configureTestingModule({
       providers: [
@@ -33,7 +39,7 @@ describe('XpertProjectFacade', () => {
         },
         {
           provide: XpertTaskService,
-          useValue: { getAll: jest.fn() }
+          useValue: taskService
         }
       ]
     })
@@ -62,58 +68,55 @@ describe('XpertProjectFacade', () => {
     expect(facade.error()).toBe('Project permission is required')
   })
 
-  it('loads Project instructions and skills independently of the overview', async () => {
-    const project = { id: 'project-1' } as IXpertProject
-    const skill: TXpertProjectSkillSummary = {
-      id: 'pdf',
-      name: 'PDF',
-      path: 'skills/pdf/SKILL.md',
-      enabled: true,
-      source: 'repository'
-    }
-    api.instructions.mockReturnValue(of({ content: 'Use the project terminology.' }))
-    api.skills.mockReturnValue(of({ items: [skill], total: 1 }))
+  it('does not let an older list response remove a newly created project', async () => {
+    const pendingList = new Subject<{ items: IXpertProject[]; total: number }>()
+    const project = { id: 'project-new', name: 'New project', status: 'active' } as IXpertProject
+    api.list.mockReturnValue(pendingList)
+    api.create.mockReturnValue(of(project))
     const facade = TestBed.inject(XpertProjectFacade)
-    facade.project.set(project)
 
-    await facade.reloadProjectContent()
+    const loadPromise = facade.loadProjects()
+    await facade.createProject({ name: project.name })
+    pendingList.next({ items: [], total: 0 })
+    pendingList.complete()
+    await loadPromise
 
-    expect(api.instructions).toHaveBeenCalledWith('project-1')
-    expect(api.skills).toHaveBeenCalledWith('project-1')
-    expect(facade.projectInstruction()).toBe('Use the project terminology.')
-    expect(facade.projectSkills()).toEqual([skill])
-    expect(facade.projectContentError()).toBeNull()
+    expect(facade.projects()).toEqual([project])
+    expect(facade.loading()).toBe(false)
   })
 
-  it('keeps available skills when Project instructions fail to load', async () => {
-    const skill: TXpertProjectSkillSummary = {
-      id: 'pdf',
-      name: 'PDF',
-      path: 'skills/pdf/SKILL.md',
-      enabled: true,
-      source: 'repository'
-    }
-    api.instructions.mockReturnValue(throwError(() => new Error('Instructions unavailable')))
-    api.skills.mockReturnValue(of({ items: [skill], total: 1 }))
+  it('stops blocking the project shell as soon as the project record loads', async () => {
+    const project = { id: 'project-1', name: 'Project one', status: 'active' } as IXpertProject
+    const pendingOverview = new Subject<XpertProjectOverview>()
+    api.get.mockReturnValue(of(project))
+    api.overview.mockReturnValue(pendingOverview)
+    api.instructions.mockReturnValue(of({ content: '' }))
+    api.skills.mockReturnValue(of({ items: [] }))
+    api.access.mockReturnValue(
+      of({ role: 'member', capabilities: { canRead: true, canEdit: false, canManage: false, canUse: true } })
+    )
+    taskService.getAll.mockReturnValue(of({ items: [], total: 0 }))
     const facade = TestBed.inject(XpertProjectFacade)
-    facade.project.set({ id: 'project-1' } as IXpertProject)
 
-    await facade.reloadProjectContent()
+    const result = await facade.loadProject(project.id)
 
-    expect(facade.projectInstruction()).toBe('')
-    expect(facade.projectSkills()).toEqual([skill])
-    expect(facade.projectContentError()).toBe('Instructions unavailable')
-  })
+    expect(result).toBe(project)
+    expect(facade.project()).toBe(project)
+    expect(facade.projectLoading()).toBe(false)
+    expect(facade.error()).toBeNull()
 
-  it('persists Project instructions through the Content API', async () => {
-    api.updateInstructions.mockReturnValue(of({ content: 'Updated instructions' }))
-    const facade = TestBed.inject(XpertProjectFacade)
-    facade.project.set({ id: 'project-1' } as IXpertProject)
-
-    const result = await facade.saveProjectInstructions('Updated instructions')
-
-    expect(api.updateInstructions).toHaveBeenCalledWith('project-1', 'Updated instructions')
-    expect(result).toEqual({ content: 'Updated instructions' })
-    expect(facade.projectInstruction()).toBe('Updated instructions')
+    pendingOverview.next(emptyOverview(project))
+    pendingOverview.complete()
   })
 })
+
+function emptyOverview(project: IXpertProject): XpertProjectOverview {
+  return {
+    project,
+    plans: [],
+    tasks: [],
+    assets: [],
+    activities: [],
+    automations: []
+  }
+}

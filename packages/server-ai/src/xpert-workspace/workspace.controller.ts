@@ -1,13 +1,10 @@
-import { AIPermissionsEnum, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
-import { DeepPartial } from '@xpert-ai/server-common'
+import { IPagination, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import {
     CrudController,
     PaginationParams,
     ParseJsonPipe,
-    PermissionGuard,
-    Permissions,
-    RequestContext,
-    TransformInterceptor
+    TransformInterceptor,
+    UserPublicDTO
 } from '@xpert-ai/server-core'
 import {
     Body,
@@ -27,7 +24,7 @@ import {
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { XpertWorkspace } from './workspace.entity'
-import { XpertWorkspaceService } from './workspace.service'
+import { XpertWorkspaceCreateInput, XpertWorkspaceService, XpertWorkspaceUpdateInput } from './workspace.service'
 import { WorkspaceAuthoringGuard } from './guards/workspace-authoring.guard'
 import { WorkspaceOwnerGuard } from './guards/workspace-owner.guard'
 import { WorkspacePublicDTO, XpertWorkspaceDTO } from './dto'
@@ -45,11 +42,9 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
         super(service)
     }
 
-    @UseGuards(PermissionGuard)
-    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get()
-    async findAllWorkspaces(@Query('data', ParseJsonPipe) options: PaginationParams<XpertWorkspace>) {
-        return this.service.findAll(options)
+    async findAllWorkspaces(@Query('data', ParseJsonPipe) options?: PaginationParams<XpertWorkspace>) {
+        return this.service.findAllMy(options)
     }
 
     @Get('my')
@@ -58,6 +53,22 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
         @Query('purpose') purpose?: TXpertWorkspaceAccessPurpose
     ) {
         return this.service.findAllMy(options, normalizeWorkspaceAccessPurpose(purpose))
+    }
+
+    @Get('count')
+    async getCount(): Promise<number> {
+        return (await this.service.findAllMy()).total
+    }
+
+    @Get('pagination')
+    async paginationWorkspaces(
+        @Query('data', ParseJsonPipe) options?: PaginationParams<XpertWorkspace>
+    ): Promise<IPagination<WorkspacePublicDTO>> {
+        const { items, total } = await this.service.findAllMyEntities(options)
+        return {
+            items: items.map((workspace) => new WorkspacePublicDTO(workspace)),
+            total
+        }
     }
 
     @Get('my/default')
@@ -82,25 +93,28 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
     })
     @HttpCode(HttpStatus.CREATED)
     @Post()
-    async create(@Body() entity: DeepPartial<XpertWorkspace>): Promise<XpertWorkspace> {
-        entity.ownerId = RequestContext.currentUserId()
-        return this.service.create(entity)
+    async create(@Body() input: XpertWorkspaceCreateInput): Promise<XpertWorkspace> {
+        return this.service.createWorkspace(input)
     }
 
     @UseGuards(WorkspaceAuthoringGuard)
     @Get(':workspaceId')
-    async getOne(
-        @Param('workspaceId') workspaceId: string,
-        @Query('data', ParseJsonPipe) options: PaginationParams<XpertWorkspace>
-    ) {
-        return this.service.findOne(workspaceId, options)
+    async getOne(@Param('workspaceId') workspaceId: string) {
+        const workspace = await this.service.findOne(workspaceId, { relations: ['owner'] })
+        return new WorkspacePublicDTO(workspace)
     }
 
     @UseGuards(WorkspaceAuthoringGuard)
     @Get(':workspaceId/members')
     async getMembers(@Param('workspaceId') workspaceId: string) {
         const workspace = await this.service.findOne(workspaceId, { relations: ['members'] })
-        return workspace.members
+        return workspace.members?.map((member) => new UserPublicDTO(member)) ?? []
+    }
+
+    @UseGuards(WorkspaceOwnerGuard)
+    @Put(':workspaceId')
+    async update(@Param('workspaceId') id: string, @Body() entity: XpertWorkspaceUpdateInput) {
+        return new WorkspacePublicDTO(await this.service.updateWorkspace(id, entity))
     }
 
     @UseGuards(WorkspaceOwnerGuard)
@@ -123,13 +137,25 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
     @UseGuards(WorkspaceOwnerGuard)
     @Delete(':workspaceId')
     async delete(@Param('workspaceId') id: string) {
-        return await this.service.delete(id)
+        return await this.service.deleteWorkspace(id)
+    }
+
+    @UseGuards(WorkspaceOwnerGuard)
+    @Delete(':workspaceId/soft')
+    async softRemove(@Param('workspaceId') id: string) {
+        return this.service.softRemoveWorkspace(id)
+    }
+
+    @UseGuards(WorkspaceOwnerGuard)
+    @Put(':workspaceId/recover')
+    async softRecover(@Param('workspaceId') id: string) {
+        return this.service.recoverWorkspace(id)
     }
 
     @UseGuards(WorkspaceOwnerGuard)
     @Post(':workspaceId/archive')
     async archive(@Param('workspaceId') id: string) {
-        return await this.service.update(id, { status: 'archived' })
+        return await this.service.archiveWorkspace(id)
     }
 }
 

@@ -27,7 +27,12 @@ import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
-import { AttachFileToConversationCommand, GetFileAssetByStorageFileQuery } from '../../../file-understanding'
+import {
+    AttachFileToConversationCommand,
+    GetFileAssetByStorageFileQuery,
+    GetOwnedStorageFileQuery,
+    ResolveAuthorizedFileAssetQuery
+} from '../../../file-understanding'
 import { XpertChatCommand } from '../chat.command'
 import { XpertChatHandler } from './chat.handler'
 
@@ -173,6 +178,16 @@ describe('XpertChatHandler reference-only inputs', () => {
 
     it('binds pasted image references for reference-only follow-up inputs', async () => {
         const commands: any[] = []
+        const fileAsset = {
+            id: 'file-asset-1',
+            storageFileId: 'storage-file-1',
+            originalName: 'diagram.png',
+            mimeType: 'image/png',
+            purpose: 'chat_attachment',
+            parseMode: 'auto',
+            status: 'ready',
+            capabilities: ['preview', 'vision']
+        }
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
             return command instanceof ChatMessageUpsertCommand ? command.entity : null
@@ -192,15 +207,17 @@ describe('XpertChatHandler reference-only inputs', () => {
                     }
                 ]
             })
-            .mockResolvedValueOnce({
-                id: 'file-asset-1',
-                storageFileId: 'storage-file-1',
-                originalName: 'diagram.png',
-                mimeType: 'image/png',
-                purpose: 'chat_attachment',
-                parseMode: 'auto',
-                status: 'ready',
-                capabilities: ['preview', 'vision']
+            .mockImplementation(async (query) => {
+                if (query instanceof GetOwnedStorageFileQuery) {
+                    return { id: 'storage-file-1' }
+                }
+                if (query instanceof GetFileAssetByStorageFileQuery) {
+                    return fileAsset
+                }
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return { asset: fileAsset }
+                }
+                return null
             })
 
         const stream = await handler.execute(
@@ -270,19 +287,26 @@ describe('XpertChatHandler reference-only inputs', () => {
 
     it('accepts reference-only send inputs while hydrating graph state for the agent', async () => {
         const commands: any[] = []
+        const fileAsset = {
+            id: 'file-asset-1',
+            storageFileId: 'file-1',
+            originalName: 'diagram.png',
+            mimeType: 'image/png',
+            size: 857,
+            purpose: 'chat_attachment',
+            parseMode: 'auto',
+            status: 'ready',
+            capabilities: ['preview', 'vision']
+        }
         queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof GetOwnedStorageFileQuery) {
+                return { id: 'file-1' }
+            }
             if (query instanceof GetFileAssetByStorageFileQuery) {
-                return {
-                    id: 'file-asset-1',
-                    storageFileId: 'file-1',
-                    originalName: 'diagram.png',
-                    mimeType: 'image/png',
-                    size: 857,
-                    purpose: 'chat_attachment',
-                    parseMode: 'auto',
-                    status: 'ready',
-                    capabilities: ['preview', 'vision']
-                }
+                return fileAsset
+            }
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                return { asset: fileAsset }
             }
             return null
         })

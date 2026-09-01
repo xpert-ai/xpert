@@ -1,13 +1,18 @@
-import { IChatConversation, SandboxTerminalErrorCode } from '@xpert-ai/contracts'
+import { IChatConversation, IUser, SandboxTerminalErrorCode } from '@xpert-ai/contracts'
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import type { SandboxBackendProtocol } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/server-core'
-import { ChatConversationService } from '../chat-conversation'
-import { VolumeScope, WorkspaceBinding, XpertWorkAreaResolver } from '../shared'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import type { VolumeScope, WorkspaceBinding } from '../shared'
+import { XpertWorkAreaResolver } from '../shared/volume/work-area'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { SandboxAcquireBackendCommand } from './commands'
+import { t } from 'i18next'
 
 export type ResolvedConversationSandboxContext = {
     backend: SandboxBackendProtocol
@@ -29,11 +34,14 @@ export type ResolvedConversationSandboxContext = {
 export class SandboxConversationContextService {
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly conversationService: ChatConversationService,
-        private readonly workAreaResolver: XpertWorkAreaResolver
+        @InjectRepository(ChatConversation)
+        private readonly conversationRepository: Repository<ChatConversation>,
+        private readonly workAreaResolver: XpertWorkAreaResolver,
+        private readonly projectAccessService: XpertProjectAccessService
     ) {}
 
     async resolveConversationSandbox(params: {
+        actor?: IUser
         conversationId: string
         projectId?: string | null
     }): Promise<ResolvedConversationSandboxContext> {
@@ -45,25 +53,22 @@ export class SandboxConversationContextService {
             })
         }
 
-        let conversation: IChatConversation
-        try {
-            conversation = await this.conversationService.findOne(conversationId, {
-                relations: ['xpert']
-            })
-        } catch (error) {
-            if (!(error instanceof NotFoundException)) {
-                throw error
-            }
+        const conversation: IChatConversation | null = await this.conversationRepository.findOne({
+            where: { id: conversationId },
+            relations: ['xpert']
+        })
+        if (!conversation) {
             throw new ForbiddenException({
                 code: SandboxTerminalErrorCode.ConversationNotFound,
                 message: 'Conversation was not found'
             })
         }
 
-        const tenantId = RequestContext.currentTenantId() ?? conversation.tenantId
-        const userId = RequestContext.currentUserId() ?? conversation.createdById ?? null
+        const actor = params.actor ?? RequestContext.currentUser()
+        const tenantId = actor?.tenantId ?? RequestContext.currentTenantId()
+        const userId = actor?.id ?? RequestContext.currentUserId()
 
-        if (!tenantId) {
+        if (!actor || !tenantId || conversation.tenantId !== tenantId) {
             throw new BadRequestException('Sandbox tenant context is required')
         }
 
@@ -88,7 +93,35 @@ export class SandboxConversationContextService {
         }
 
         const effectiveSandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim() || null
-        const effectiveProjectId = params.projectId ?? conversation.projectId ?? null
+        const effectiveProjectId = conversation.projectId?.trim() || null
+        const requestedProjectId = params.projectId?.trim() || null
+        if (requestedProjectId && requestedProjectId !== effectiveProjectId) {
+            throw new BadRequestException(
+                t('server-ai:Error.SandboxConversationProjectMismatch', {
+                    defaultValue: 'The sandbox Project must match the conversation Project'
+                })
+            )
+        }
+        if (effectiveProjectId) {
+            if (!conversation.xpertId) {
+                throw new BadRequestException(
+                    t('server-ai:Error.SandboxProjectConversationXpertRequired', {
+                        defaultValue: 'Project conversations require an Xpert ID for sandbox workspace access'
+                    })
+                )
+            }
+            await this.projectAccessService.assertCanUseXpert(effectiveProjectId, conversation.xpertId, {
+                tenantId,
+                organizationId: conversation.organizationId,
+                userId
+            })
+        } else if (conversation.createdById !== userId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ConversationWorkspaceAccessDenied', {
+                    defaultValue: 'You cannot access files from this conversation'
+                })
+            )
+        }
         if (!effectiveProjectId && !effectiveSandboxEnvironmentId && !conversation.xpertId) {
             throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
         }
@@ -97,10 +130,10 @@ export class SandboxConversationContextService {
             userId,
             provider,
             xpertId: conversation.xpertId,
-            workspaceDataScope: conversation.xpert?.workspaceDataScope,
             projectId: effectiveProjectId,
             conversationId,
-            environmentId: effectiveSandboxEnvironmentId
+            environmentId: effectiveSandboxEnvironmentId,
+            workspaceDataScope: conversation.xpert?.workspaceDataScope
         })
 
         const sandbox = await this.commandBus.execute(

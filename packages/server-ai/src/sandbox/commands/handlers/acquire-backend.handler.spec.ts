@@ -7,6 +7,7 @@ describe('SandboxAcquireBackendHandler', () => {
         get: jest.Mock
     }
     let provider: {
+        capabilities?: { projectContentReadOnly: boolean }
         create: jest.Mock
         isAvailable?: jest.Mock
     }
@@ -14,6 +15,7 @@ describe('SandboxAcquireBackendHandler', () => {
 
     beforeEach(() => {
         provider = {
+            capabilities: { projectContentReadOnly: true },
             create: jest.fn()
         }
         registry = {
@@ -322,4 +324,32 @@ describe('SandboxAcquireBackendHandler', () => {
         ).rejects.toThrow('Sandbox provider is unavailable: local-shell-sandbox')
         expect(provider.create).not.toHaveBeenCalled()
     })
+
+    it.each([undefined, { projectContentReadOnly: false }])(
+        'fails closed when a Project runtime provider does not declare Project Content protection support',
+        async (capabilities) => {
+            provider.capabilities = capabilities
+
+            await expect(
+                handler.execute(
+                    new SandboxAcquireBackendCommand({
+                        tenantId: 'tenant-1',
+                        provider: 'unsupported-sandbox',
+                        volumeScope: {
+                            tenantId: 'tenant-1',
+                            catalog: 'projects',
+                            projectId: 'project-1'
+                        },
+                        workspaceBinding: {
+                            volumeRoot: '/sandbox/tenant-1/project/project-1',
+                            workspaceRoot: '/workspace',
+                            workspacePath: '/workspace/agents/xpert-1'
+                        },
+                        workFor: { type: 'environment', id: 'environment-1' }
+                    })
+                )
+            ).rejects.toThrow('does not support read-only Project Content')
+            expect(provider.create).not.toHaveBeenCalled()
+        }
+    )
 })

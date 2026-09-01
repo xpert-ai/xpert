@@ -50,6 +50,15 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
                 }) || fallbackMessage
             )
         }
+        if (protectProjectContent && providerInstance.capabilities?.projectContentReadOnly !== true) {
+            const fallbackMessage = 'Sandbox provider ' + provider + ' does not support read-only Project Content'
+            throw new Error(
+                t('server-ai:Error.SandboxProviderProjectContentReadOnlyUnsupported', {
+                    defaultValue: fallbackMessage,
+                    provider
+                }) || fallbackMessage
+            )
+        }
         const backend = await providerInstance.create({
             environmentId,
             tenantId,

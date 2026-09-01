@@ -15,7 +15,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { FindOptionsWhere, Repository } from 'typeorm'
 import type { Request, Response } from 'express'
 import { join } from 'path'
-import { ChatConversationService } from '../chat-conversation'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxManagedServiceEntity } from './sandbox-managed-service.entity'
 import { SandboxManagedServiceError } from './sandbox-managed-service.error'
@@ -171,7 +171,8 @@ export class SandboxManagedServiceService implements OnModuleInit {
     constructor(
         @InjectRepository(SandboxManagedServiceEntity)
         private readonly repository: Repository<SandboxManagedServiceEntity>,
-        private readonly conversationService: ChatConversationService,
+        @InjectRepository(ChatConversation)
+        private readonly conversationRepository: Repository<ChatConversation>,
         private readonly sandboxConversationContextService: SandboxConversationContextService
     ) {}
 
@@ -513,7 +514,7 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     private async requireConversation(conversationId: string) {
-        const conversation = await this.conversationService.findOne(conversationId)
+        const conversation = await this.conversationRepository.findOneBy({ id: conversationId })
         if (!conversation) {
             throw new SandboxManagedServiceError(
                 SandboxManagedServiceErrorCode.ConversationNotFound,
@@ -526,7 +527,7 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     private async requireConversationByThreadId(threadId: string) {
-        const conversation = await this.conversationService.findOneByThreadId(threadId)
+        const conversation = await this.conversationRepository.findOneBy({ threadId })
         if (!conversation) {
             throw new SandboxManagedServiceError(
                 SandboxManagedServiceErrorCode.ConversationNotFound,

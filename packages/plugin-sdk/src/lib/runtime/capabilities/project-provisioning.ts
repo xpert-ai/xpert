@@ -7,8 +7,8 @@ export type ProjectProvisioningStatus = 'active' | 'archived'
 export type ProjectEnsureInput = {
   /** Caller-generated id reused across retries to prevent duplicate Projects. */
   projectId: string
-  /** Workspace that owns both the Project and connected Assistant. */
-  workspaceId: string
+  /** @deprecated Projects no longer belong to a Workspace. Accepted only for legacy callers. */
+  workspaceId?: string
   /** Assistant that must be connected to the Project. */
   xpertId: string
   /** Current business-project display name. */
@@ -20,7 +20,8 @@ export type ProjectEnsureInput = {
 /** Effective Project state after an idempotent ensure operation. */
 export type ProjectEnsureResult = {
   projectId: string
-  workspaceId: string
+  /** @deprecated Echoed only when supplied by a legacy caller. */
+  workspaceId?: string
   /** Complete set of Assistants connected after synchronization. */
   xpertIds: string[]
   /** Whether this call inserted the Project or reconciled an existing one. */

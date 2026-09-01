@@ -5,6 +5,9 @@ import { AIV1Controller } from './ai-v1.controller'
 
 describe('AIV1Controller ChatKit sessions', () => {
     function createController() {
+        const commandBus = {
+            execute: jest.fn()
+        }
         const secretTokenService = {
             create: jest.fn().mockResolvedValue(undefined)
         }
@@ -18,14 +21,14 @@ describe('AIV1Controller ChatKit sessions', () => {
         }
         const controller = new AIV1Controller(
             {} as never,
-            {} as never,
+            commandBus as never,
             {} as never,
             {} as never,
             secretTokenService as never,
             publishedXpertAccessService as never
         )
 
-        return { controller, secretTokenService, publishedXpertAccessService }
+        return { controller, commandBus, secretTokenService, publishedXpertAccessService }
     }
 
     afterEach(() => {
@@ -118,5 +121,29 @@ describe('AIV1Controller ChatKit sessions', () => {
             })
         )
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+    })
+
+    it('rejects a client-controlled legacy upload target before dispatch', async () => {
+        const { controller, commandBus } = createController()
+        const file = {
+            originalname: 'file.txt',
+            mimetype: 'text/plain',
+            size: 4,
+            buffer: Buffer.from('test')
+        } as Express.Multer.File
+
+        await expect(
+            controller.create(
+                file,
+                JSON.stringify({
+                    kind: 'volume',
+                    catalog: 'users',
+                    tenantId: 'victim-tenant',
+                    userId: 'victim-user'
+                })
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 })

@@ -1,6 +1,7 @@
-import { UserType } from '@xpert-ai/contracts'
+import { ScheduleTaskStatus, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { XpertProjectMembershipService } from './project-membership.service'
@@ -33,14 +34,18 @@ describe('XpertProjectMembershipService', () => {
     const userOrganizationRepository = {
         findOne: jest.fn()
     }
+    const taskRepository = {
+        update: jest.fn()
+    }
     const accessService = {
         assertCanRead: jest.fn(),
         assertCanManage: jest.fn(),
         assertIsOwner: jest.fn()
     }
     const eventEmitter = {
-        emitAsync: jest.fn().mockResolvedValue([])
-    }
+        emitAsync: jest.fn()
+    } as unknown as EventEmitter2
+
     let service: XpertProjectMembershipService
 
     beforeEach(() => {
@@ -54,8 +59,9 @@ describe('XpertProjectMembershipService', () => {
             projectRepository as never,
             userRepository as never,
             userOrganizationRepository as never,
+            taskRepository as never,
             accessService as never,
-            eventEmitter as never
+            eventEmitter
         )
     })
 
@@ -88,6 +94,7 @@ describe('XpertProjectMembershipService', () => {
                 isActive: true
             })
         })
+        expect(eventEmitter.emitAsync).not.toHaveBeenCalled()
     })
 
     it('rejects a human user who is not active in the Project Organization', async () => {
@@ -102,7 +109,7 @@ describe('XpertProjectMembershipService', () => {
         expect(membershipRepository.save).not.toHaveBeenCalled()
     })
 
-    it('soft-removes a member and updates the legacy member relation', async () => {
+    it('soft-removes a member, pauses their automations, and awaits Connector grant revocation', async () => {
         const membership = {
             id: 'membership-1',
             projectId: project.id,
@@ -112,18 +119,49 @@ describe('XpertProjectMembershipService', () => {
         jest.mocked(membershipRepository.findOne).mockResolvedValue(membership)
         jest.mocked(projectRepository.findOne).mockResolvedValue({ ...project, members: [{ id: 'user-2' }] })
 
-        await service.remove(project.id, 'user-2')
+        let resolveGrantRevocation: (result: unknown[]) => void
+        const grantRevocation = new Promise<unknown[]>((resolve) => {
+            resolveGrantRevocation = resolve
+        })
+        jest.mocked(eventEmitter.emitAsync).mockReturnValue(grantRevocation)
+
+        let completed = false
+        const removal = service.remove(project.id, 'user-2').then(() => {
+            completed = true
+        })
+        await Promise.resolve()
+        await Promise.resolve()
+
+        expect(completed).toBe(false)
+        resolveGrantRevocation!([])
+        await removal
 
         expect(membership.removedAt).toBeInstanceOf(Date)
         expect(membershipRepository.softRemove).toHaveBeenCalledWith(membership)
-        expect(projectRepository.save).toHaveBeenCalledWith(expect.objectContaining({ members: [] }))
-        expect(eventEmitter.emitAsync).toHaveBeenCalledWith('xpert-project.member-removed', {
-            tenantId: 'tenant-1',
-            organizationId: 'org-1',
-            projectId: 'project-1',
-            userId: 'user-2',
-            actorId: 'manager-1'
-        })
+        expect(taskRepository.update).toHaveBeenNthCalledWith(
+            1,
+            { projectId: project.id, runAsUserId: 'user-2' },
+            expect.objectContaining({ status: ScheduleTaskStatus.PAUSED })
+        )
+        expect(taskRepository.update).toHaveBeenNthCalledWith(
+            2,
+            {
+                projectId: project.id,
+                runAsUserId: expect.objectContaining({ _type: 'isNull' }),
+                createdById: 'user-2'
+            },
+            expect.objectContaining({ status: ScheduleTaskStatus.PAUSED })
+        )
+        expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+            'xpert-project.member-removed',
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                projectId: project.id,
+                userId: 'user-2',
+                actorId: 'manager-1'
+            })
+        )
     })
 
     it('transfers ownership only to an active member and demotes the previous owner to manager', async () => {

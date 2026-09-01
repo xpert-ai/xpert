@@ -1,11 +1,19 @@
-import { TXpertProjectMemberRole, TXpertProjectMemberSummary, UserType } from '@xpert-ai/contracts'
+import {
+    PermissionsEnum,
+    ScheduleTaskStatus,
+    TXpertProjectMemberRole,
+    TXpertProjectMemberSummary,
+    UserType
+} from '@xpert-ai/contracts'
 import { RequestContext, User, UserOrganization, UserPublicDTO } from '@xpert-ai/server-core'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
+import { XpertTask } from '../../xpert-task/xpert-task.entity'
 import { XpertProject } from '../entities/project.entity'
+import { XpertProjectActivity } from '../entities/project-activity.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { XpertProjectAccessService } from './project-access.service'
 
@@ -18,6 +26,7 @@ export class XpertProjectMembershipService {
         @InjectRepository(User) private readonly userRepository: Repository<User>,
         @InjectRepository(UserOrganization)
         private readonly userOrganizationRepository: Repository<UserOrganization>,
+        @InjectRepository(XpertTask) private readonly taskRepository: Repository<XpertTask>,
         private readonly accessService: XpertProjectAccessService,
         private readonly eventEmitter: EventEmitter2
     ) {}
@@ -104,6 +113,143 @@ export class XpertProjectMembershipService {
         const saved = await this.membershipRepository.save(membership)
         await this.addLegacyMember(project, user)
         return saved
+    }
+
+    async interveneAsOrganizationAdministrator(projectId: string, inputReason: string) {
+        const actor = RequestContext.currentUser()
+        if (!actor?.id || !actor.tenantId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.AuthenticatedUserRequired', { defaultValue: 'An authenticated user is required' })
+            )
+        }
+        if (!RequestContext.hasAnyPermission([PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.ALL_ORG_EDIT])) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectAdminInterventionPermissionRequired', {
+                    defaultValue:
+                        'Organization user administration permission is required to intervene in this Project.'
+                })
+            )
+        }
+
+        const reason = typeof inputReason === 'string' ? inputReason.trim() : ''
+        if (!reason) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectAdminInterventionInvalid', {
+                    defaultValue: 'A non-empty reason is required for Project administrator intervention.'
+                })
+            )
+        }
+
+        const organizationId = RequestContext.getOrganizationId()
+        if (!organizationId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectNotAvailable', { defaultValue: 'The requested Project is not available' })
+            )
+        }
+
+        const result = await this.projectRepository.manager.transaction(async (manager) => {
+            const projectRepository = manager.getRepository(XpertProject)
+            const membershipRepository = manager.getRepository(XpertProjectMembership)
+            const userOrganizationRepository = manager.getRepository(UserOrganization)
+            const userRepository = manager.getRepository(User)
+            const activityRepository = manager.getRepository(XpertProjectActivity)
+            const project = await projectRepository.findOne({
+                where: { id: projectId, tenantId: actor.tenantId, organizationId },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!project) {
+                throw new ForbiddenException(
+                    t('server-ai:Error.ProjectNotAvailable', { defaultValue: 'The requested Project is not available' })
+                )
+            }
+
+            const [organizationMembership, user] = await Promise.all([
+                userOrganizationRepository.findOne({
+                    where: {
+                        tenantId: actor.tenantId,
+                        organizationId,
+                        userId: actor.id,
+                        isActive: true
+                    }
+                }),
+                userRepository.findOne({
+                    where: { id: actor.id, tenantId: actor.tenantId, type: UserType.USER }
+                })
+            ])
+            if (!organizationMembership || !user) {
+                throw new ForbiddenException(
+                    t('server-ai:Error.ProjectAdminOrganizationMembershipRequired', {
+                        defaultValue: 'The administrator must be an active member of the Project Organization.'
+                    })
+                )
+            }
+            if (project.ownerId === actor.id) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectOwnerAlreadyMember', {
+                        defaultValue: 'The Project owner already has full access'
+                    })
+                )
+            }
+
+            let membership = await membershipRepository.findOne({
+                where: { projectId, userId: actor.id },
+                withDeleted: true,
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (membership) {
+                const isReactivated = !!membership.deletedAt
+                if (isReactivated) await membershipRepository.restore(membership.id)
+                membership.role = 'manager'
+                if (isReactivated) {
+                    membership.joinedAt = new Date()
+                    membership.invitedById = actor.id
+                }
+                membership.removedAt = undefined
+                membership.deletedAt = undefined
+            } else {
+                membership = membershipRepository.create({
+                    projectId,
+                    userId: actor.id,
+                    role: 'manager',
+                    joinedAt: new Date(),
+                    invitedById: actor.id,
+                    tenantId: actor.tenantId,
+                    organizationId,
+                    createdById: actor.id
+                })
+            }
+            const saved = await membershipRepository.save(membership)
+            await activityRepository.save(
+                activityRepository.create({
+                    projectId,
+                    tenantId: actor.tenantId,
+                    organizationId,
+                    type: 'project.admin-intervened',
+                    summary: 'Organization administrator explicitly joined the Project',
+                    entityType: 'project-membership',
+                    entityId: saved.id,
+                    payload: {
+                        actorId: actor.id,
+                        reason,
+                        role: 'manager'
+                    },
+                    createdById: actor.id
+                })
+            )
+            const compatible = await projectRepository.findOne({
+                where: { id: projectId, tenantId: actor.tenantId, organizationId },
+                relations: ['members']
+            })
+            if (compatible) {
+                compatible.members ??= []
+                if (!compatible.members.some((member) => member.id === actor.id)) {
+                    compatible.members.push(user)
+                    await projectRepository.save(compatible)
+                }
+            }
+            return saved
+        })
+        return result
     }
 
     async updateRole(projectId: string, userId: string, role: TXpertProjectMemberRole) {
@@ -199,6 +345,16 @@ export class XpertProjectMembershipService {
         membership.removedAt = new Date()
         await this.membershipRepository.softRemove(membership)
         await this.removeLegacyMember(project, userId)
+        const pausedTaskState = {
+            status: ScheduleTaskStatus.PAUSED,
+            statusReason: t('server-ai:Error.ProjectTaskRunAsMembershipRemoved', {
+                defaultValue: 'The run-as user is no longer a member of this Project'
+            })
+        }
+        await Promise.all([
+            this.taskRepository.update({ projectId, runAsUserId: userId }, pausedTaskState),
+            this.taskRepository.update({ projectId, runAsUserId: IsNull(), createdById: userId }, pausedTaskState)
+        ])
         await this.eventEmitter.emitAsync('xpert-project.member-removed', {
             tenantId: project.tenantId,
             organizationId: project.organizationId,

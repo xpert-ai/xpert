@@ -68,7 +68,7 @@ export class XpertStudioPanelKnowledgeComponent {
   readonly #knowledgebase = derivedAsync<{ loading?: boolean; error?: string; knowledgebase?: IKnowledgebase }>(
     () =>
       this.id()
-        ? this.knowledgebaseService.getOneById(this.id(), { relations: ['copilotModel'] }).pipe(
+        ? this.knowledgebaseService.getDetail(this.id()).pipe(
             map((knowledgebase) => ({ knowledgebase })),
             catchError((err) =>
               of({ error: getErrorMessage(err), knowledgebase: omit(this.node()?.entity, 'id') as IKnowledgebase })

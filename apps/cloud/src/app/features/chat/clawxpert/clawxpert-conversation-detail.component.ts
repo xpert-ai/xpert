@@ -12,8 +12,8 @@ import type {
   TChatElementReference,
   TChatFileElementReference,
   XpertExtensionViewManifest,
-  XpertViewHostEventMessage,
   XpertViewQuery,
+  XpertViewHostEventMessage,
   XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import {
@@ -81,12 +81,22 @@ import {
   type ClawXpertTaskSummaryResourceTarget
 } from './clawxpert-task-summary-effect.utils'
 import { ClawXpertFixedViewStackComponent, type ClawXpertFixedViewTab } from './clawxpert-fixed-view-stack.component'
+import { XpertProjectApiService } from '../../project/project-api.service'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
 const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
 const CHATKIT_DISPLAY_MODE_ATTRIBUTE = 'data-display-mode'
 const CHATKIT_OPEN_ATTRIBUTE = 'data-chat-open'
+
+function getChatProjectCreateName(event: { name: string; data?: Record<string, unknown> }): string | null {
+  if (event.name !== 'project.create') {
+    return null
+  }
+
+  const name = event.data?.['name']
+  return typeof name === 'string' && name.trim() ? name.trim() : null
+}
 const CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE = 'data-chatkit-overlay-drag-bar'
 const CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE = 'data-chatkit-overlay-resize-handle'
 const CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE = 'data-chatkit-overlay-controls-style'
@@ -758,6 +768,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #skillTrialIntent = inject(ClawXpertSkillTrialIntentService)
   readonly #workbenchLayoutStorage = inject(ClawXpertWorkbenchLayoutStorage)
   readonly #workbenchViewUrlState = inject(ClawXpertWorkbenchViewUrlState)
+  readonly #projectApi = inject(XpertProjectApiService)
   readonly #responseActive = signal(false)
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
@@ -767,6 +778,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
   #fixedViewsHostId: string | null = null
+  #fixedViewsScopeKey: string | null = null
   #assistantWorkbenchContextScopeKey: string | null = null
   #markReadRequestVersion = 0
   #chatkitResizeCleanup: (() => void) | null = null
@@ -781,6 +793,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #lastSyncedRoutedThreadId: string | null = null
   #chatkitOriginThreadId: string | null = null
   #chatkitThreadSync = Promise.resolve()
+  #projectCreatePending = false
 
   readonly #providedFacade = inject(WORKBENCH_CHAT_FACADE, { optional: true })
   readonly facade: WorkbenchChatFacade = this.#providedFacade ?? inject(ClawXpertFacade)
@@ -816,8 +829,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     composer: computed(() => ({
       projects: {
         enabled: this.#projectSelectionEnabled(),
-        createEnabled: false
-      }
+        createEnabled: this.#projectSelectionEnabled()
+      },
+      connectors: { enabled: true }
     })),
     initialThread: this.facade.threadId,
     displayMode: this.chatkitDisplayMode,
@@ -845,6 +859,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(threadId)
     },
     onEffect: (event) => {
+      const projectName = getChatProjectCreateName(event)
+      if (projectName) {
+        void this.createChatProject(projectName)
+        return
+      }
       const taskSummaryTarget = getTaskSummaryResourceTarget(event)
       if (taskSummaryTarget) {
         void this.openTaskSummaryResource(taskSummaryTarget)
@@ -1233,15 +1252,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
       const runtimeScope = this.viewRuntimeScope()
+      const scopeKey = `${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
       if (!hostId) {
         this.#fixedViewsHostId = null
+        this.#fixedViewsScopeKey = null
         this.resetFixedViews(true)
         return
       }
 
       if (this.#fixedViewsHostId !== hostId) {
         this.#fixedViewsHostId = hostId
+        this.#fixedViewsScopeKey = scopeKey
         this.resetFixedViews(true)
+      } else if (this.#fixedViewsScopeKey !== scopeKey) {
+        this.#fixedViewsScopeKey = scopeKey
       }
 
       let cancelled = false
@@ -2058,11 +2082,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           const file = await firstValueFrom(
             this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId, true)
           )
-          const url = readHttpUrl(file.fileUrl ?? file.url)
+          let objectUrl: string | null = null
+          let url = readHttpUrl(file.fileUrl ?? file.url)
           if (!url) {
-            throw new Error('Workspace file preview URL is unavailable.')
+            const blob = await firstValueFrom(
+              this.#conversationService.downloadFile(conversationId, target.workspacePath)
+            )
+            objectUrl = URL.createObjectURL(blob)
+            url = objectUrl
           }
-          openWorkbenchFilePreviewDialog(this.#dialog, {
+          const dialogRef = openWorkbenchFilePreviewDialog(this.#dialog, {
             id: target.fileAssetId,
             fileAssetId: target.fileAssetId,
             storageFileId: target.storageFileId,
@@ -2072,6 +2101,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
             url,
             previewUrl: url
           })
+          if (objectUrl) {
+            dialogRef.closed.subscribe(() => URL.revokeObjectURL(objectUrl))
+          }
           return
         }
         case 'artifact': {
@@ -2137,6 +2169,28 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private createWorkspaceTabId(kind: ClawXpertWorkspaceTabKind) {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
+  }
+
+  private async createChatProject(name: string) {
+    const assistantId = this.facade.assistantId()?.trim()
+    if (!assistantId || this.facade.threadId()?.trim() || this.#projectCreatePending) {
+      return
+    }
+
+    this.#projectCreatePending = true
+    try {
+      const project = await firstValueFrom(
+        this.#projectApi.create({
+          name,
+          xpertIds: [assistantId]
+        })
+      )
+      this.facade.onChatProjectChange?.(project.id)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error) || 'Failed to create the Project.')
+    } finally {
+      this.#projectCreatePending = false
+    }
   }
 
   private async loadFixedViews(hostId: string, runtimeScope: XpertViewRuntimeScopeInput, isCancelled: () => boolean) {

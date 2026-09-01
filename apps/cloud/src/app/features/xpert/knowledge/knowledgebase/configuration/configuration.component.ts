@@ -237,11 +237,7 @@ export class KnowledgeConfigurationComponent {
     this.#pollingRebuild.set(true)
     timer(0, 2000)
       .pipe(
-        switchMap(() =>
-          this.knowledgebaseService.getOneById(knowledgebaseId, {
-            relations: ['copilotModel', 'chatModel', 'rerankModel', 'visionModel']
-          })
-        ),
+        switchMap(() => this.knowledgebaseService.getDetail(knowledgebaseId)),
         filter((knowledgebase) => knowledgebase.status !== KnowledgebaseStatusEnum.REBUILDING),
         take(1),
         takeUntilDestroyed(this.#destroyRef),

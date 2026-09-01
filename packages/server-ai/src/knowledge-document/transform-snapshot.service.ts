@@ -13,7 +13,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import { t } from 'i18next'
-import { KnowledgeWorkAreaResolver } from '../shared'
+import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { computeKnowledgeDocumentTransformFingerprint } from './document-hash'
 
 const SNAPSHOT_SCHEMA_VERSION = 1 as const

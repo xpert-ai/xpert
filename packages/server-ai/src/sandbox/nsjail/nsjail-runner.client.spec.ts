@@ -30,6 +30,43 @@ describe('NsjailRunnerClient', () => {
         )
     })
 
+    it('treats legacy Runner health as available without Project Content protection', async () => {
+        fetchSpy.mockResolvedValue(
+            new Response(JSON.stringify({ status: 'ok' }), {
+                headers: { 'content-type': 'application/json' },
+                status: 200
+            })
+        )
+
+        await expect(client.getHealth()).resolves.toEqual({
+            available: true,
+            capabilities: { projectContentReadOnly: false },
+            protocolVersion: null
+        })
+    })
+
+    it('parses the Runner protocol and Project Content capability', async () => {
+        fetchSpy.mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    capabilities: { projectContentReadOnly: true },
+                    protocolVersion: 2,
+                    status: 'ok'
+                }),
+                {
+                    headers: { 'content-type': 'application/json' },
+                    status: 200
+                }
+            )
+        )
+
+        await expect(client.getHealth()).resolves.toEqual({
+            available: true,
+            capabilities: { projectContentReadOnly: true },
+            protocolVersion: 2
+        })
+    })
+
     it('maps execute options and validates the Runner result', async () => {
         fetchSpy.mockResolvedValue(
             new Response(JSON.stringify({ exitCode: 0, output: 'ok\n', timedOut: false, truncated: false }), {

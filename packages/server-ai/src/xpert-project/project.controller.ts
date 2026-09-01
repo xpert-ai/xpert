@@ -21,9 +21,9 @@ import {
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
     CrudController,
+    Public,
     PaginationParams,
     ParseJsonPipe,
-    Public,
     TransformInterceptor,
     UploadFileCommand,
     getFileAssetDestination
@@ -46,16 +46,17 @@ import {
     Query,
     UploadedFile,
     UseGuards,
-    UseInterceptors
+    UseInterceptors,
+    UsePipes
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { FindOneOptions } from 'typeorm'
+import { FindOptionsWhere } from 'typeorm'
 import { t } from 'i18next'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
-import { XpertProjectDto, XpertProjectTaskDto } from './dto'
+import { ProjectUpdateInputDTO, XpertProjectDto, XpertProjectTaskDto, createProjectUpdateValidationPipe } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectTask } from './entities/project-task.entity'
 import {
@@ -67,7 +68,7 @@ import {
     XpertProjectPermissionGuard
 } from './guards'
 import { XpertProjectService } from './project.service'
-import { VOLUME_CLIENT, VolumeClient } from '../shared'
+import { VOLUME_CLIENT, VolumeClient } from '../shared/volume'
 import {
     XpertProjectActivityService,
     XpertProjectAssetService,
@@ -77,7 +78,10 @@ import {
 import { XpertProjectAccessService } from './services/project-access.service'
 import { XpertProjectContentService } from './services/project-content.service'
 import { XpertProjectMembershipService } from './services/project-membership.service'
+import { XpertProjectInvitationService } from './services/project-invitation.service'
+import { XpertProjectWorkspaceFilesService } from './services/project-workspace-files.service'
 
+const PROJECT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 const PROJECT_SKILL_ARCHIVE_MAX_BYTES = 25 * 1024 * 1024
 
 @ApiTags('XpertProject')
@@ -100,6 +104,8 @@ export class XpertProjectController extends CrudController<XpertProject> {
         private readonly accessService: XpertProjectAccessService,
         private readonly contentService: XpertProjectContentService,
         private readonly membershipService: XpertProjectMembershipService,
+        private readonly invitationService: XpertProjectInvitationService,
+        private readonly projectWorkspaceFilesService: XpertProjectWorkspaceFilesService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {
@@ -151,26 +157,29 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @Post()
     async create(@Body() entity: IXpertProjectCreateInput): Promise<XpertProject> {
         const { xpertIds, toolsetIds, knowledgebaseIds, memberIds, ...projectInput } = entity
-        const project = await this.service.create({
+        void toolsetIds
+        void knowledgebaseIds
+        const project = await this.service.createProject({
             ...projectInput,
             status: projectInput.status ?? 'active',
             settings: {
                 instruction: projectInput.settings?.instruction ?? '',
-                ...projectInput.settings,
+                mode: projectInput.settings?.mode,
                 managementMode: projectInput.settings?.managementMode ?? 'simple'
             }
         })
 
-        // Resource selections are part of the create contract so the wizard
-        // can complete project setup in one request. Each helper is
-        // idempotent and applies the current tenant/organization query scope.
-        for (const xpertId of xpertIds ?? []) await this.service.addXpert(project.id, xpertId)
-        const projectAssistantId = projectInput.settings?.projectAssistantId ?? xpertIds?.[0]
-        if (projectAssistantId) await this.service.setAssistant(project.id, projectAssistantId)
-        for (const toolsetId of toolsetIds ?? []) await this.service.addToolset(project.id, toolsetId)
-        for (const knowledgebaseId of knowledgebaseIds ?? [])
-            await this.service.addKnowledge(project.id, knowledgebaseId)
-        for (const memberId of memberIds ?? []) await this.membershipService.add(project.id, memberId)
+        const initialXpertIds = [
+            ...new Set((xpertIds ?? []).map((id) => id?.trim()).filter((id): id is string => !!id))
+        ]
+        const initialMemberIds = [
+            ...new Set(
+                (memberIds ?? []).map((id) => id?.trim()).filter((id): id is string => !!id && id !== project.ownerId)
+            )
+        ]
+
+        for (const xpertId of initialXpertIds) await this.service.addXpert(project.id, xpertId)
+        for (const memberId of initialMemberIds) await this.membershipService.add(project.id, memberId, 'member')
 
         await this.planService.ensureDefaults(project.id)
         await this.activityService.record(project.id, {
@@ -179,14 +188,36 @@ export class XpertProjectController extends CrudController<XpertProject> {
             entityType: 'project',
             entityId: project.id,
             payload: {
-                xpertCount: xpertIds?.length ?? 0,
-                toolsetCount: toolsetIds?.length ?? 0,
-                knowledgebaseCount: knowledgebaseIds?.length ?? 0,
-                memberCount: memberIds?.length ?? 0
+                xpertCount: initialXpertIds.length,
+                // Deprecated direct capability selections are intentionally ignored.
+                toolsetCount: 0,
+                knowledgebaseCount: 0,
+                memberCount: initialMemberIds.length
             }
         })
         return this.service.findOne(project.id, {
-            relations: ['owner', 'members', 'workspace', 'xperts', 'toolsets', 'knowledges', 'copilotModel']
+            relations: ['owner', 'members', 'xperts', 'copilotModel']
+        })
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @Get('available')
+    async findAvailable(
+        @Query('xpertId') xpertId: string,
+        @Query('status') status?: 'active' | 'archived' | 'all',
+        @Query('skip') skip?: string,
+        @Query('take') take?: string
+    ) {
+        if (!xpertId?.trim()) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectXpertIdRequired', { defaultValue: 'A Project Xpert ID is required' })
+            )
+        }
+        return this.service.findAvailableForXpert({
+            xpertId: xpertId.trim(),
+            status,
+            skip: Math.max(Number(skip) || 0, 0),
+            take: Math.min(Math.max(Number(take) || 25, 1), 100)
         })
     }
 
@@ -198,28 +229,36 @@ export class XpertProjectController extends CrudController<XpertProject> {
         return this.service.findAllMy(params)
     }
 
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @Get('count')
+    async getCount(@Query('$where', ParseJsonPipe) where?: FindOptionsWhere<XpertProject>): Promise<number> {
+        return (await this.service.findAllMy({ where, take: 1, skip: 0 })).total
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @Get('pagination')
+    async pagination(
+        @Query('data', ParseJsonPipe) params?: PaginationParams<XpertProject>
+    ): Promise<IPagination<XpertProject>> {
+        return this.service.findAllMy(params)
+    }
+
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     @UseGuards(XpertProjectGuard)
     @Put(':id/workspace')
-    async bindWorkspace(@Param('id') id: string, @Body() input: { workspaceId?: string }) {
-        const workspaceId = input?.workspaceId?.trim()
-        if (!workspaceId) throw new BadRequestException('Project Workspace is required')
-
-        const project = await this.service.update(id, { workspaceId })
-        await this.activityService.record(id, {
-            type: 'project.workspace_bound',
-            summary: 'Project Workspace binding updated',
-            entityType: 'project',
-            entityId: id,
-            payload: { workspaceId }
-        })
-        return new XpertProjectDto(await this.service.findOne(project.id, { relations: ['workspace'] }))
+    async bindWorkspace(@Param('id') _id: string, @Body() _input: { workspaceId?: string }) {
+        throw new BadRequestException(
+            t('server-ai:Error.ProjectWorkspaceBindingDeprecated', {
+                defaultValue: 'Projects no longer bind to a Workspace'
+            })
+        )
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
     @UseGuards(XpertProjectGuard)
+    @UsePipes(createProjectUpdateValidationPipe())
     @Put(':id')
-    async update(@Param('id') id: string, @Body() entity: Partial<XpertProject>) {
+    async update(@Param('id') id: string, @Body() entity: ProjectUpdateInputDTO) {
         const project = await this.service.update(id, entity)
         await this.activityService.record(id, {
             type: 'project.updated',
@@ -231,14 +270,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
-    @UseGuards(XpertProjectGuard)
+    @UseGuards(XpertProjectGuard, XpertProjectOwnerGuard)
     @Delete(':id')
     async delete(@Param('id') id: string) {
         return this.service.deleteProject(id)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
-    @UseGuards(XpertProjectGuard)
+    @UseGuards(XpertProjectGuard, XpertProjectOwnerGuard)
     @Delete(':id/soft')
     async softRemove(@Param('id') id: string) {
         return this.service.softRemoveProject(id)
@@ -278,32 +317,13 @@ export class XpertProjectController extends CrudController<XpertProject> {
         return this.service.findAllMy(params)
     }
 
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    @Get('available')
-    async findAvailable(
-        @Query('xpertId') xpertId: string,
-        @Query('status') status?: 'active' | 'archived' | 'all',
-        @Query('skip') skip?: string,
-        @Query('take') take?: string
-    ) {
-        if (!xpertId?.trim()) {
-            throw new BadRequestException(
-                t('server-ai:Error.ProjectXpertIdRequired', { defaultValue: 'A Project Xpert ID is required' })
-            )
-        }
-        return this.service.findAvailableForXpert({
-            xpertId: xpertId.trim(),
-            status,
-            skip: Math.max(Number(skip) || 0, 0),
-            take: Math.min(Math.max(Number(take) || 25, 1), 100)
-        })
-    }
-
     @Get(':id')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
     @UseGuards(XpertProjectGuard)
-    async getXpertProject(@Param('id') id: string, @Query('data', ParseJsonPipe) params: FindOneOptions<XpertProject>) {
-        const project = await this.service.findOne(id, params)
+    async getXpertProject(@Param('id') id: string) {
+        const project = await this.service.findOne(id, {
+            relations: ['createdBy', 'owner', 'members', 'xperts', 'copilotModel']
+        })
         return new XpertProjectDto(project)
     }
 
@@ -353,7 +373,11 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @UseGuards(XpertProjectGuard)
     async setAssistant(@Param('id') id: string, @Body() input: { xpertId?: string }) {
         const xpertId = input?.xpertId?.trim()
-        if (!xpertId) throw new BadRequestException('Project Assistant is required')
+        if (!xpertId) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectXpertSelectionRequired', { defaultValue: 'A Project Xpert is required' })
+            )
+        }
         return new XpertProjectDto(await this.service.setAssistant(id, xpertId))
     }
 
@@ -569,6 +593,27 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @HttpCode(HttpStatus.NO_CONTENT)
     deleteProjectSkillPath(@Param('id') id: string, @Query('path') filePath: string) {
         return this.contentService.deleteSkillPath(id, filePath)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/invitations')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    listInvitations(@Param('id') id: string) {
+        return this.invitationService.list(id)
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Post(':id/invitations')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    inviteMember(@Param('id') id: string, @Body() input: { email: string; role?: TXpertProjectMemberRole }) {
+        return this.invitationService.invite(id, input.email, input.role ?? 'member')
+    }
+
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/invitations/:invitationId')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
+    revokeInvitation(@Param('id') id: string, @Param('invitationId') invitationId: string) {
+        return this.invitationService.revoke(id, invitationId)
     }
 
     @UseGuards(XpertProjectGuard)
@@ -878,6 +923,51 @@ export class XpertProjectController extends CrudController<XpertProject> {
     // Assets
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
     @UseGuards(XpertProjectGuard)
+    @Get(':id/workspace/files')
+    listWorkspaceFiles(@Param('id') id: string, @Query('path') filePath?: string, @Query('deepth') deepth?: number) {
+        return this.projectWorkspaceFilesService.list(id, filePath, deepth)
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/workspace/file')
+    readWorkspaceFile(@Param('id') id: string, @Query('path') filePath: string) {
+        return this.projectWorkspaceFilesService.read(id, filePath)
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @UseGuards(XpertProjectGuard)
+    @Put(':id/workspace/file')
+    saveWorkspaceFile(@Param('id') id: string, @Body() input: { path: string; content?: string }) {
+        return this.projectWorkspaceFilesService.save(id, input.path, input.content ?? '')
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @UseGuards(XpertProjectGuard)
+    @Post(':id/workspace/file/upload')
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PROJECT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
+    uploadWorkspaceFile(
+        @Param('id') id: string,
+        @Body('path') folderPath: string,
+        @UploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileUploadRequired', { defaultValue: 'Workspace file is required.' })
+            )
+        }
+        return this.projectWorkspaceFilesService.uploadToFolder(id, folderPath, file)
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/workspace/file')
+    deleteWorkspaceFile(@Param('id') id: string, @Query('path') filePath: string) {
+        return this.projectWorkspaceFilesService.delete(id, filePath)
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @UseGuards(XpertProjectGuard)
     @Get(':id/assets')
     listAssets(
         @Param('id') id: string,
@@ -1030,7 +1120,11 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @UseGuards(XpertProjectGuard)
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-        if (!file) throw new BadRequestException('A project file is required')
+        if (!file) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectFileRequired', { defaultValue: 'A Project file is required' })
+            )
+        }
         if (XpertProjectContentService.isGovernedPath(file.originalname)) {
             throw new BadRequestException(
                 t('server-ai:Error.ProjectContentApiRequired', {
@@ -1055,7 +1149,10 @@ export class XpertProjectController extends CrudController<XpertProject> {
         )
         const destination = getFileAssetDestination(asset, 'volume')
         if (!destination || destination.status !== 'success') {
-            throw new BadRequestException(destination?.error || 'Failed to upload project file')
+            throw new BadRequestException(
+                destination?.error ||
+                    t('server-ai:Error.ProjectFileUploadFailed', { defaultValue: 'Failed to upload Project file' })
+            )
         }
         const metadata = await this.assetService.createAsset(id, {
             name: file.originalname,
