@@ -9,6 +9,7 @@ import {
     IModelAccessModelSnapshot,
     IModelAccessResolution,
     IModelAccessRequest,
+    I18nObject,
     IModelGatewayCatalog,
     IModelGatewayCatalogItem,
     IUser,
@@ -22,6 +23,7 @@ import {
     ModelAccessSourceEnum,
     ModelAccessUnavailableReasonEnum,
     ModelFeature,
+    SecretTokenBindingType,
     TModelGatewayExternalRequestCreateInput,
     TModelAccessRequestApproveInput,
     TModelAccessRequestCreateInput,
@@ -46,7 +48,7 @@ import { CopilotWithProviderDto } from '../copilot/dto'
 import { usesOrganizationCredentials } from '../copilot/utils'
 import { CopilotProviderModel } from '../copilot-provider/models/copilot-provider-model.entity'
 import { ExceedingLimitException } from '../core/errors'
-import { MembershipModelAccess, MembershipService } from '../membership/membership.service'
+import { MembershipModelAccess, MembershipService, XpertBillingPayer } from '../membership/membership.service'
 import { endOfDayInTimeZone } from '../shared/utils'
 import { ModelAccessEvent } from './model-access-event.entity'
 import { ModelAccessRequest } from './model-access-request.entity'
@@ -80,6 +82,8 @@ type ModelTarget = {
     copilotName?: string | null
     provider: string
     providerLabel?: IModelAccessModelSnapshot['providerLabel']
+    providerIconSmall?: I18nObject
+    providerBackground?: string
     modelType: AiModelTypeEnum
     model: string
     modelLabel?: IModelAccessModelSnapshot['modelLabel']
@@ -119,6 +123,11 @@ export type CatalogModelAccessBatchInput = Pick<
 > & {
     models: Array<Pick<ResolveModelInput, 'copilotId' | 'copilotModelId' | 'modelType'>>
 }
+
+export type CatalogModelLabel = Pick<
+    ModelTarget,
+    'provider' | 'providerLabel' | 'providerIconSmall' | 'providerBackground' | 'modelLabel'
+>
 
 type ModelAccessResolutionContext = {
     billableUserId: string
@@ -1197,7 +1206,8 @@ export class ModelAccessService {
         const billableUserId = await this.membershipService.resolveBillableUserId({
             tenantId: input.tenantId,
             userId: input.userId,
-            xpertId: input.xpertId
+            xpertId: input.xpertId,
+            xpertBillingPayer: this.resolveXpertBillingPayer(input.userId)
         })
         const runtimeOrganizationId = input.organizationId ?? null
 
@@ -1237,7 +1247,8 @@ export class ModelAccessService {
         const billableUserId = await this.membershipService.resolveBillableUserId({
             tenantId: input.tenantId,
             userId: input.userId,
-            xpertId: input.xpertId
+            xpertId: input.xpertId,
+            xpertBillingPayer: this.resolveXpertBillingPayer(input.userId)
         })
         const runtimeOrganizationId = input.organizationId ?? null
         const modelTypes = new Set(input.models.map((model) => model.modelType))
@@ -1317,6 +1328,50 @@ export class ModelAccessService {
             availability.push(resolution.allowed)
         }
         return availability
+    }
+
+    async getCatalogModelLabels(input: CatalogModelAccessBatchInput): Promise<Array<CatalogModelLabel | null>> {
+        if (!input.models.length) {
+            return []
+        }
+        const runtimeOrganizationId = input.organizationId ?? null
+        const targets = await this.loadTargets(
+            input.models.map((model) => ({
+                tenantId: input.tenantId,
+                organizationId: runtimeOrganizationId,
+                userId: input.userId,
+                xpertId: input.xpertId,
+                ...model
+            })),
+            runtimeOrganizationId
+        )
+        return targets.map((target) =>
+            target
+                ? {
+                      providerLabel: target.providerLabel,
+                      provider: target.provider,
+                      providerIconSmall: target.providerIconSmall,
+                      providerBackground: target.providerBackground,
+                      modelLabel: target.modelLabel
+                  }
+                : null
+        )
+    }
+
+    private resolveXpertBillingPayer(runtimeUserId: string): XpertBillingPayer {
+        const principal = RequestContext.currentApiPrincipal()
+        if (principal) {
+            const delegatedXpertUser =
+                (principal.clientSecretBindingType === SecretTokenBindingType.USER_XPERT ||
+                    principal.clientSecretBindingType === SecretTokenBindingType.ENTERPRISE_XPERT) &&
+                principal.requestedUserId?.trim() === runtimeUserId
+            return delegatedXpertUser ? XpertBillingPayer.RuntimeUser : XpertBillingPayer.Creator
+        }
+
+        const currentUser = RequestContext.currentUser()
+        return currentUser?.id === runtimeUserId && currentUser.type === UserType.USER
+            ? XpertBillingPayer.RuntimeUser
+            : XpertBillingPayer.Creator
     }
 
     private async resolveModelAccessWithContext(
@@ -2039,6 +2094,8 @@ export class ModelAccessService {
             copilotName: copilot.name,
             provider: providerName,
             providerLabel: providerSchema?.label,
+            providerIconSmall: providerSchema?.icon_small,
+            providerBackground: providerSchema?.background,
             modelType: input.modelType,
             model: input.copilotModelId,
             modelLabel: predefined?.label ?? {

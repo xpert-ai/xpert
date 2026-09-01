@@ -35,6 +35,7 @@ import { FileAsset } from '../file-understanding/entities'
 
 @Entity('chat_message')
 @Index(['conversationId'])
+@Index(['createdInThreadId'])
 @Tree('closure-table')
 export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMessage {
     /*
@@ -164,6 +165,12 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     @IsString()
     @Column({ nullable: true })
     conversationId?: string
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    createdInThreadId?: string
 
     @ApiProperty({ type: () => XpertAgentExecution })
     @ManyToOne(() => XpertAgentExecution, {

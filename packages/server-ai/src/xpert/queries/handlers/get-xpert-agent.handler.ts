@@ -16,7 +16,8 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 
     public async execute(command: GetXpertAgentQuery): Promise<IXpertAgent> {
         const { id, agentKey: keyOrName, draft } = command
-        const xpert = await this.service.findOne(id, {
+        // Agent resolution is a runtime read; authoring findOne() would reject run-only UserGroup users.
+        const xpert = await this.service.findOneForRuntime(id, {
             relations: [
                 'agent',
                 'agent.copilotModel',
@@ -66,7 +67,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
                 collaborators: collaborators.filter(nonNullable).map((node) => node.entity),
                 team: {
                     ...draft.team,
-                    ...pick(xpert, 'id', 'tenantId', 'organizationId', 'workspaceId')
+                    ...pick(xpert, 'id', 'tenantId', 'organizationId', 'workspaceId', 'workspaceDataScope')
                 }
             } as IXpertAgent
         } else {

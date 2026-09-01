@@ -1,22 +1,40 @@
 import path from 'node:path'
+import { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
+import { resolveXpertDataVolumeScope } from '../shared/volume'
 import { FILE_MEMORY_DREAM_DIR, FILE_MEMORY_INDEX_FILENAME, FILE_MEMORY_WORKSPACE_PATH, FileMemoryType } from './types'
 import { directoryForFileMemoryType, isFileMemoryType } from './taxonomy'
 
-export function getXpertFileMemoryVolumeScope(tenantId: string, xpertId: string) {
-    return {
-        tenantId,
-        catalog: 'xperts' as const,
-        xpertId,
-        isolateByUser: false
+export function getXpertFileMemoryVolumeScope(
+    tenantId: string,
+    xpertId: string,
+    userId?: string | null,
+    workspaceDataScope?: XpertWorkspaceDataScope | null,
+    projectId?: string | null
+) {
+    if (projectId) {
+        return {
+            tenantId,
+            catalog: 'projects' as const,
+            projectId,
+            userId
+        }
     }
+    return resolveXpertDataVolumeScope({
+        tenantId,
+        userId,
+        xpertId,
+        workspaceDataScope
+    })
 }
 
 export function getFileMemoryWorkspacePath() {
     return FILE_MEMORY_WORKSPACE_PATH
 }
 
-export function getXpertFileMemoryWorkspacePath(_xpertId?: string) {
-    return FILE_MEMORY_WORKSPACE_PATH
+export function getXpertFileMemoryWorkspacePath(xpertId?: string, projectId?: string | null) {
+    return projectId && xpertId
+        ? path.posix.join('agents', xpertId, FILE_MEMORY_WORKSPACE_PATH)
+        : FILE_MEMORY_WORKSPACE_PATH
 }
 
 export function getLegacyXpertFileMemoryWorkspacePath(xpertId: string) {

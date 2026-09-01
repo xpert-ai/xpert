@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, effect, input, signal, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, ElementRef, effect, input, output, signal, viewChild } from '@angular/core'
 import { renderAsync } from 'docx-preview'
 
 @Component({
@@ -22,7 +22,7 @@ import { renderAsync } from 'docx-preview'
 
       <div
         #docxHost
-        class="xp-docx-preview mx-auto max-w-full [&_.docx-wrapper]:!bg-transparent [&_.docx-wrapper]:!p-0 [&_section.docx]:mx-auto [&_section.docx]:max-w-full"
+        class="xp-docx-preview mx-auto max-w-full [&_.docx-wrapper]:!bg-transparent [&_.docx-wrapper]:!p-0 [&_section.docx]:mx-auto [&_section.docx]:max-w-full [&_section.docx.current-page]:ring-2 [&_section.docx.current-page]:ring-primary-100"
         [attr.aria-label]="fileName()"
       ></div>
     </div>
@@ -37,6 +37,7 @@ export class FileDocxPreviewComponent {
   readonly fileName = input('')
   readonly loadingLabel = input('Rendering document...')
   readonly errorLabel = input('Failed to render document preview.')
+  readonly rendered = output<void>()
 
   readonly rendering = signal(false)
   readonly error = signal<string | null>(null)
@@ -63,7 +64,9 @@ export class FileDocxPreviewComponent {
       experimental: true,
       ignoreFonts: false,
       ignoreHeight: false,
-      ignoreLastRenderedPageBreak: true,
+      // Preserve Word's recorded pagination so transformer page coordinates can
+      // be projected onto the corresponding docx-preview page section.
+      ignoreLastRenderedPageBreak: false,
       ignoreWidth: false,
       inWrapper: true,
       renderChanges: false,
@@ -77,6 +80,7 @@ export class FileDocxPreviewComponent {
       .then(() => {
         if (active) {
           this.rendering.set(false)
+          this.rendered.emit()
         }
       })
       .catch((error) => {

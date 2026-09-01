@@ -131,6 +131,15 @@
             </div>
 
             <article class="relative z-10 rounded-xl border border-border bg-background/95 p-5 shadow-xl backdrop-blur">
+              @if (applicationScreenshot(item); as screenshot) {
+                <div class="-mx-5 -mt-5 mb-5 overflow-hidden rounded-t-xl border-b border-border bg-muted/30">
+                  <img
+                    class="aspect-[16/9] w-full object-contain"
+                    [src]="screenshot"
+                    [alt]="applicationScreenshotAlt(item)"
+                  />
+                </div>
+              }
               <div
                 class="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.14em] text-muted-foreground"
               >
@@ -450,7 +459,9 @@
                   "
                   (click)="handlePrimaryAction(item, $event)"
                 >
-                  @if (isTemplate(item) || canUse(item)) {
+                  @if (isTemplate(item)) {
+                    {{ templateActionLabel(item) }}
+                  } @else if (canUse(item)) {
                     {{ 'XP.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
                   } @else if (isPending(item)) {
                     {{ 'XP.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}
@@ -467,6 +478,15 @@
 
     <aside class="rounded-lg border border-border bg-card p-5 xl:sticky xl:top-24 xl:self-start">
       @if (selectedItem(); as item) {
+        @if (applicationScreenshot(item); as screenshot) {
+          <div class="mb-5 overflow-hidden rounded-lg border border-border bg-muted/30">
+            <img
+              class="aspect-[16/9] w-full object-contain"
+              [src]="screenshot"
+              [alt]="applicationScreenshotAlt(item)"
+            />
+          </div>
+        }
         @if (isTemplate(item)) {
           <div
             class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
@@ -567,7 +587,9 @@
             [disabled]="isPending(item)"
             (click)="handlePrimaryAction(item)"
           >
-            @if (isTemplate(item) || canUse(item)) {
+            @if (isTemplate(item)) {
+              {{ templateActionLabel(item) }}
+            } @else if (canUse(item)) {
               {{ 'XP.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
             } @else if (isPending(item)) {
               {{ 'XP.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}

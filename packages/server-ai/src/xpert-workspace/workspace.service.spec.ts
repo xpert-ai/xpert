@@ -1,6 +1,12 @@
 import { IUser } from '@xpert-ai/contracts'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
-import { PaginationParams, RequestContext, UserOrganizationService } from '@xpert-ai/server-core'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import {
+    PaginationParams,
+    RequestContext,
+    User,
+    UserOrganization,
+    UserOrganizationService
+} from '@xpert-ai/server-core'
 import { Repository } from 'typeorm'
 import { XpertWorkspaceAccessService } from './workspace-access.service'
 import { XpertWorkspace } from './workspace.entity'
@@ -13,7 +19,17 @@ describe('XpertWorkspaceService', () => {
         setCurrentUserDefaultWorkspaceId: jest.Mock
     }
     let workspaceRepository: {
+        create: jest.Mock
         save: jest.Mock
+        delete: jest.Mock
+        softRemove: jest.Mock
+        recover: jest.Mock
+    }
+    let userRepository: {
+        find: jest.Mock
+    }
+    let userOrganizationRepository: {
+        find: jest.Mock
     }
     let workspaceAccessService: {
         findAccessibleWorkspaces: jest.Mock
@@ -29,7 +45,17 @@ describe('XpertWorkspaceService', () => {
             setCurrentUserDefaultWorkspaceId: jest.fn()
         }
         workspaceRepository = {
-            save: jest.fn(async (workspace: XpertWorkspace) => workspace)
+            create: jest.fn((workspace) => workspace),
+            save: jest.fn(async (workspace: XpertWorkspace) => workspace),
+            delete: jest.fn(),
+            softRemove: jest.fn(),
+            recover: jest.fn()
+        }
+        userRepository = {
+            find: jest.fn()
+        }
+        userOrganizationRepository = {
+            find: jest.fn()
         }
         workspaceAccessService = {
             findAccessibleWorkspaces: jest.fn(),
@@ -41,6 +67,8 @@ describe('XpertWorkspaceService', () => {
 
         service = new XpertWorkspaceService(
             workspaceRepository as unknown as Repository<XpertWorkspace>,
+            userRepository as unknown as Repository<User>,
+            userOrganizationRepository as unknown as Repository<UserOrganization>,
             userOrganizationService as unknown as UserOrganizationService,
             workspaceAccessService as unknown as XpertWorkspaceAccessService
         )
@@ -74,6 +102,39 @@ describe('XpertWorkspaceService', () => {
         )
         expect(result.items).toHaveLength(1)
         expect(workspaceAccessService.buildAccess).toHaveBeenCalledWith(workspace)
+    })
+
+    it('creates a new workspace without accepting client identity, owner, or system fields', async () => {
+        const input = {
+            id: 'workspace-victim',
+            name: 'Workspace',
+            ownerId: 'user-victim',
+            tenantId: 'tenant-victim',
+            organizationId: 'org-victim',
+            createdById: 'user-victim',
+            settings: {
+                access: { visibility: 'private' as const },
+                system: { kind: 'tenant-default' as const }
+            }
+        }
+
+        await service.createWorkspace(input)
+
+        expect(workspaceRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'Workspace',
+                ownerId: 'user-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                settings: { access: { visibility: 'private' } }
+            })
+        )
+        expect(workspaceRepository.create).toHaveBeenCalledWith(
+            expect.not.objectContaining({
+                id: 'workspace-victim',
+                createdById: 'user-victim'
+            })
+        )
     })
 
     it('returns the explicit default workspace when it is accessible', async () => {
@@ -201,5 +262,192 @@ describe('XpertWorkspaceService', () => {
             BadRequestException
         )
         expect(workspaceRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('updates only mutable workspace fields after manage authorization', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            name: 'Original',
+            ownerId: 'owner-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+        const input = {
+            name: 'Renamed',
+            ownerId: 'attacker',
+            tenantId: 'attacker-tenant',
+            organizationId: 'attacker-organization'
+        }
+
+        await service.updateWorkspace('workspace-1', input)
+
+        expect(workspaceAccessService.assertCanManage).toHaveBeenCalledWith('workspace-1')
+        expect(workspaceRepository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'Renamed',
+                ownerId: 'owner-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1'
+            })
+        )
+    })
+
+    it('preserves system settings while allowing visibility updates', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            name: 'Original',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            settings: {
+                system: {
+                    kind: 'user-default' as const,
+                    userId: 'owner-1'
+                },
+                access: {
+                    visibility: 'private' as const
+                }
+            }
+        })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+
+        await service.updateWorkspace('workspace-1', {
+            settings: {
+                system: {
+                    kind: 'tenant-default',
+                    userId: 'attacker'
+                },
+                access: {
+                    visibility: 'tenant-shared'
+                }
+            }
+        })
+
+        expect(workspaceRepository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                settings: {
+                    system: {
+                        kind: 'user-default',
+                        userId: 'owner-1'
+                    },
+                    access: {
+                        visibility: 'tenant-shared'
+                    }
+                }
+            })
+        )
+    })
+
+    it('replaces organization workspace members only with active users from the same tenant and organization', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        const firstMember = Object.assign(new User(), { id: 'member-1', tenantId: 'tenant-1' })
+        const secondMember = Object.assign(new User(), { id: 'member-2', tenantId: 'tenant-1' })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+        userRepository.find.mockResolvedValue([secondMember, firstMember])
+        userOrganizationRepository.find.mockResolvedValue([
+            Object.assign(new UserOrganization(), { userId: 'member-1', isActive: true }),
+            Object.assign(new UserOrganization(), { userId: 'member-2', isActive: true })
+        ])
+        workspaceAccessService.assertCanRead.mockResolvedValue({ workspace })
+
+        const result = await service.updateMembers('workspace-1', ['member-1', 'member-2'])
+
+        expect(userRepository.find).toHaveBeenCalledWith({
+            where: expect.objectContaining({
+                tenantId: 'tenant-1'
+            })
+        })
+        expect(userOrganizationRepository.find).toHaveBeenCalledWith({
+            where: expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                isActive: true
+            })
+        })
+        expect(workspaceRepository.save).toHaveBeenCalledWith(
+            expect.objectContaining({ members: [firstMember, secondMember] })
+        )
+        expect(result).toBe(workspace)
+    })
+
+    it('allows a same-tenant user in a tenant-level workspace without an organization membership', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: null
+        })
+        const member = Object.assign(new User(), { id: 'member-1', tenantId: 'tenant-1' })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+        userRepository.find.mockResolvedValue([member])
+        workspaceAccessService.assertCanRead.mockResolvedValue({ workspace })
+
+        await expect(service.updateMembers('workspace-1', ['member-1'])).resolves.toBe(workspace)
+
+        expect(userOrganizationRepository.find).not.toHaveBeenCalled()
+        expect(workspaceRepository.save).toHaveBeenCalledWith(expect.objectContaining({ members: [member] }))
+    })
+
+    it('rejects a foreign-tenant workspace member before saving', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+        userRepository.find.mockResolvedValue([])
+
+        await expect(service.updateMembers('workspace-1', ['foreign-member'])).rejects.toThrow(
+            'One or more workspace members are invalid.'
+        )
+        expect(userRepository.find).toHaveBeenCalledWith({
+            where: expect.objectContaining({ tenantId: 'tenant-1' })
+        })
+        expect(userOrganizationRepository.find).not.toHaveBeenCalled()
+        expect(workspaceRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('rejects a same-tenant user without active membership in the workspace organization before saving', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+        userRepository.find.mockResolvedValue([
+            Object.assign(new User(), { id: 'wrong-org-member', tenantId: 'tenant-1' })
+        ])
+        userOrganizationRepository.find.mockResolvedValue([])
+
+        await expect(service.updateMembers('workspace-1', ['wrong-org-member'])).rejects.toThrow(
+            'One or more workspace members are invalid.'
+        )
+        expect(userOrganizationRepository.find).toHaveBeenCalledWith({
+            where: expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                isActive: true
+            })
+        })
+        expect(workspaceRepository.save).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['update', () => service.updateWorkspace('victim-workspace', { name: 'Compromised' })],
+        ['delete', () => service.deleteWorkspace('victim-workspace')],
+        ['soft delete', () => service.softRemoveWorkspace('victim-workspace')],
+        ['recover', () => service.recoverWorkspace('victim-workspace')]
+    ])('rejects %s before mutating a workspace outside the caller access scope', async (_operation, invoke) => {
+        workspaceAccessService.assertCanManage.mockRejectedValue(new ForbiddenException())
+
+        await expect(invoke()).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(workspaceRepository.save).not.toHaveBeenCalled()
+        expect(workspaceRepository.delete).not.toHaveBeenCalled()
+        expect(workspaceRepository.softRemove).not.toHaveBeenCalled()
+        expect(workspaceRepository.recover).not.toHaveBeenCalled()
     })
 })

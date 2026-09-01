@@ -157,6 +157,12 @@ export type TXpert = {
   description?: string
 
   /**
+   * Ownership of non-Project runtime files. This is selected when the Xpert is
+   * created and is immutable afterwards. Missing legacy values mean `shared`.
+   */
+  workspaceDataScope?: XpertWorkspaceDataScope
+
+  /**
    * Is active
    */
   active?: boolean
@@ -266,11 +272,15 @@ export type TXpert = {
   tags?: ITag[]
 }
 
+export type XpertWorkspaceDataScope = 'shared' | 'user'
+
+export const DEFAULT_XPERT_WORKSPACE_DATA_SCOPE: XpertWorkspaceDataScope = 'shared'
+
 /**
  * Digital Expert
  */
 export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
-  environmentId?: string
+  environmentId?: string | null
   environment?: IEnvironment
   /**
    * When type is 'knowledge', it must binding a knowledgebase
@@ -289,6 +299,7 @@ export interface IXpertPrincipalReference {
 
 export enum XpertWorkbenchInitialLayoutEnum {
   TwoColumns = 'two-columns',
+  OverlayDialog = 'overlay-dialog',
   ChatkitMaximized = 'chatkit-maximized',
   WorkbenchMaximized = 'workbench-maximized'
 }
@@ -334,6 +345,11 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Runtime-selectable Primary Agent models. The configured Primary model is added automatically. */
+  modelSelection?: {
+    /** Additional LLM models users may select. */
+    allowedModels: TCopilotModel[]
+  }
   /** Declares how an Assistant resolves the workspace used by files and Agent runs. */
   workspaceScope?: {
     /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
@@ -561,6 +577,7 @@ export enum XpertParameterTypeEnum {
   ARRAY = 'array[object]',
   ARRAY_FILE = 'array[file]',
   ARRAY_DOCUMENT = 'array[document]',
+  ARRAY_MESSAGE = 'array[message]',
 
   BOOLEAN = 'boolean',
   SECRET = 'secret'
@@ -749,6 +766,14 @@ export type TChatOptions = {
    * Per-request runtime context forwarded to agent middleware/tools.
    */
   context?: Record<string, unknown>
+  /** Resolved runtime override for the Assistant Primary Agent only. */
+  primaryCopilotModel?: TCopilotModel
+  /** Opaque Assistant model option id recorded for audit and retry. */
+  primaryModelId?: string
+  /** Published Primary Agent key to which the override is restricted. */
+  primaryAgentKey?: string
+  /** How the effective Primary Agent model was selected. */
+  primaryModelSource?: import('./assistant-model.model').TAssistantPrimaryModelSelectionSource
 }
 
 export type TChatRuntimePrincipal = {

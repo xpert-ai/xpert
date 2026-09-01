@@ -1,4 +1,5 @@
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ForbiddenException } from '@nestjs/common'
 import { XpertAgentExecutionUpsertCommand } from '../upsert.command'
 import { XpertAgentExecutionUpsertHandler } from './upsert.handler'
 
@@ -43,6 +44,32 @@ describe('XpertAgentExecutionUpsertHandler', () => {
         )
 
         expect(service.update).toHaveBeenCalledWith('execution-1', expect.objectContaining({ id: 'execution-1' }))
+        expect(service.create).not.toHaveBeenCalled()
+    })
+
+    it('does not let an existing execution move to another thread', async () => {
+        const service = {
+            findOneOrFailByIdString: jest.fn(async () => ({
+                success: true,
+                record: { id: 'execution-1', threadId: 'thread-1' }
+            })),
+            create: jest.fn(),
+            update: jest.fn(),
+            findOne: jest.fn()
+        }
+        const handler = new XpertAgentExecutionUpsertHandler(service as never, {} as never, {} as never)
+
+        await expect(
+            handler.execute(
+                new XpertAgentExecutionUpsertCommand({
+                    id: 'execution-1',
+                    threadId: 'thread-2',
+                    status: XpertAgentExecutionStatusEnum.RUNNING
+                })
+            )
+        ).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(service.update).not.toHaveBeenCalled()
         expect(service.create).not.toHaveBeenCalled()
     })
 

@@ -6,6 +6,7 @@ import { FileMemoryService } from './file-memory.service'
 import {
     FileMemoryConversationHistoryReader,
     FileMemoryDreamerInvoker,
+    createFileMemoryScopeKey,
     FileMemoryXpertScope,
     ResolvedFileMemoryDreamerConfig
 } from './ports'
@@ -1165,7 +1166,7 @@ function getErrorCode(error: unknown) {
 }
 
 function createDreamKey(xpert: FileMemoryXpertScope) {
-    return `${xpert.tenantId}:${xpert.id}`
+    return createFileMemoryScopeKey(xpert)
 }
 
 function parseConversationIdFromSourceRef(sourceRef?: string) {

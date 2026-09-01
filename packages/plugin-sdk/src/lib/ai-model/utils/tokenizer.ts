@@ -1,6 +1,8 @@
 import type { TiktokenEncoding, TiktokenModel } from 'js-tiktoken'
 import { getEncoding, encodingForModel, getEncodingNameForModel } from 'js-tiktoken'
 
+const encodingCache = new Map<string, ReturnType<typeof getEncoding>>()
+
 /**
  * Fallback token estimation method.
  *
@@ -41,31 +43,32 @@ export function countTokensSafe(
   text: string,
   opts?: { model?: string; encodingName?: TiktokenEncoding | string }
 ): number {
-  return 0
   if (!text) return 0
 
-  let resolvedEncoding: string
-
-  // Decide encoding name
-  if (opts?.encodingName) {
-    resolvedEncoding = String(opts.encodingName)
-  } else if (opts?.model) {
-    resolvedEncoding = getEncodingNameForModel(opts.model as TiktokenModel) ?? 'cl100k_base'
-  } else {
-    resolvedEncoding = 'cl100k_base'
-  }
-
   try {
+    let resolvedEncoding: string
+    if (opts?.encodingName) {
+      resolvedEncoding = String(opts.encodingName)
+    } else if (opts?.model) {
+      resolvedEncoding = getEncodingNameForModel(opts.model as TiktokenModel) ?? 'cl100k_base'
+    } else {
+      resolvedEncoding = 'cl100k_base'
+    }
+
     // Prefer exact token count via js-tiktoken
-    const enc = opts?.model
-      ? encodingForModel(opts.model as TiktokenModel)
-      : getEncoding(resolvedEncoding as TiktokenEncoding)
+    const cacheKey = opts?.model ? `model:${opts.model}` : `encoding:${resolvedEncoding}`
+    let enc = encodingCache.get(cacheKey)
+    if (!enc) {
+      enc = opts?.model
+        ? encodingForModel(opts.model as TiktokenModel)
+        : getEncoding(resolvedEncoding as TiktokenEncoding)
+      encodingCache.set(cacheKey, enc)
+    }
 
     const tokens = enc.encode(text)
     return tokens.length
-  } catch (e) {
-    // Fallback
-    console.warn('[countTokensSafe] tiktoken failed, fallback estimate', e)
+  } catch {
+    // Provider-specific model names are not always known by js-tiktoken.
     return estimateTokens(text)
   }
 }

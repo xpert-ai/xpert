@@ -9,6 +9,16 @@ import { firstValueFrom, of } from 'rxjs'
 import { OrganizationsService, RequestScopeLevel, StorageFileService, Store, ToastrService } from '../../../@core'
 import { OrganizationsComponent } from './organizations.component'
 
+jest.mock('@milkdown/crepe', () => ({
+  Crepe: class Crepe {
+    static Feature = {
+      AI: 'ai',
+      Placeholder: 'placeholder',
+      TopBar: 'top-bar'
+    }
+  }
+}))
+
 const organization: IOrganization = {
   id: 'org-1',
   name: 'Acme',
@@ -22,6 +32,7 @@ const organization: IOrganization = {
   currency: 'USD',
   isActive: true,
   defaultValueDateType: 'TODAY',
+  sidebarExpandedByDefault: true,
   tags: []
 }
 
@@ -176,5 +187,23 @@ describe('OrganizationsComponent', () => {
     expect(idCell?.textContent?.trim()).toBe(organization.id)
     expect(idCell?.className).toContain('min-w-[280px]')
     expect(idCell?.className).not.toContain('truncate')
+  })
+
+  it('loads and saves the organization sidebar default', async () => {
+    const fixture = TestBed.createComponent(OrganizationsComponent)
+    const organizationsService = TestBed.inject(OrganizationsService)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.form.controls.sidebarExpandedByDefault.value).toBe(true)
+
+    fixture.componentInstance.form.controls.sidebarExpandedByDefault.setValue(false)
+    await fixture.componentInstance.saveOrganization()
+
+    expect(organizationsService.update).toHaveBeenCalledWith(
+      organization.id,
+      expect.objectContaining({ sidebarExpandedByDefault: false })
+    )
   })
 })

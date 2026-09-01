@@ -62,23 +62,24 @@ describe('XpertWorkbenchInitialLayoutSettingsComponent', () => {
     TestBed.resetTestingModule()
   })
 
-  it('renders the default two-column layout and both maximized layout choices', () => {
+  it('renders the default, overlay, and both maximized layout choices', () => {
     const fixture = TestBed.createComponent(XpertWorkbenchInitialLayoutSettingsComponent)
     fixture.detectChanges()
 
     const choices = fixture.nativeElement.querySelectorAll('input[type="radio"]')
 
-    expect(choices).toHaveLength(3)
+    expect(choices).toHaveLength(4)
     expect(choices[0].value).toBe(XpertWorkbenchInitialLayoutEnum.TwoColumns)
-    expect(choices[1].value).toBe(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
-    expect(choices[2].value).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    expect(choices[1].value).toBe(XpertWorkbenchInitialLayoutEnum.OverlayDialog)
+    expect(choices[2].value).toBe(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
+    expect(choices[3].value).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
   })
 
   it('writes the selected layout into the xpert draft options', () => {
     const fixture = TestBed.createComponent(XpertWorkbenchInitialLayoutSettingsComponent)
     fixture.detectChanges()
 
-    const workbenchChoice = fixture.nativeElement.querySelectorAll('input[type="radio"]')[2] as HTMLInputElement
+    const workbenchChoice = fixture.nativeElement.querySelectorAll('input[type="radio"]')[3] as HTMLInputElement
     workbenchChoice.click()
 
     expect(apiService.updateXpertOptions).toHaveBeenCalledWith(

@@ -27,6 +27,7 @@ import {
     HttpCode,
     HttpStatus,
     Logger,
+    Optional,
     Param,
     Patch,
     Post,
@@ -54,14 +55,15 @@ import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { RedisSseStreamService, SseConnectionOwnerCandidate } from '../shared/stream'
-import { CancelConversationCommand } from '../chat-conversation'
-import { GetChatConversationQuery } from '../chat-conversation'
+import {
+    AssertChatConversationAccessQuery,
+    CancelConversationCommand,
+    type ChatConversationAccessOperation
+} from '../chat-conversation'
 import { CopilotUserUsageQuery } from '../copilot-user/queries'
 import { formatInUTC0 } from '../shared/utils'
-import {
-    assertPublicXpertSessionConversationAccess,
-    getPublicXpertSessionConversationScope
-} from './public-xpert-principal'
+import { ChatConversationThreadService } from '../chat-conversation'
+import { assertPublicXpertSessionConversationAccess } from './public-xpert-principal'
 
 const SSE_HEARTBEAT_INTERVAL_MS = 30000
 const SSE_HEARTBEAT_COMMENT = ': keep-alive\n\n'
@@ -97,7 +99,8 @@ export class ThreadsController {
         private readonly aiService: AiService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
-        private readonly redisSseStreamService: RedisSseStreamService
+        private readonly redisSseStreamService: RedisSseStreamService,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
     ) {}
 
     // Threads: A thread contains the accumulated outputs of a group of runs.
@@ -126,13 +129,13 @@ export class ThreadsController {
     @HttpCode(HttpStatus.ACCEPTED)
     @Delete(':thread_id')
     async deleteThread(@Param('thread_id') thread_id: string) {
-        await this.ensurePublicThreadAccess(thread_id)
+        await this.ensureThreadAccess(thread_id, 'manage')
         return await this.commandBus.execute(new ThreadDeleteCommand(thread_id))
     }
 
     @Get(':thread_id/state')
     async getThreadState(@Param('thread_id') thread_id: string, @Query() query: any) {
-        await this.ensurePublicThreadAccess(thread_id)
+        await this.ensureThreadAccess(thread_id)
         console.log(query)
         const tuple = await this.queryBus.execute(
             new CopilotCheckpointGetTupleQuery({
@@ -165,8 +168,12 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/copy')
-    async copyThread(@Param('thread_id') thread_id: string) {
-        throw new UnimplementedException()
+    async copyThread(@Param('thread_id') thread_id: string, @Body() body: { metadata?: Record<string, unknown> } = {}) {
+        await this.ensureThreadAccess(thread_id, 'contribute')
+        if (!this.conversationThreadService) throw new UnimplementedException()
+        const thread = await this.conversationThreadService.copyThread(thread_id, body)
+        const { ThreadDTO } = await import('./dto/thread.dto')
+        return new ThreadDTO(thread.conversation, {}, thread)
     }
 
     // Runs: A run is an invocation of a graph / assistant on a thread. It updates the state of the thread.
@@ -177,7 +184,7 @@ export class ThreadsController {
         @Query('limit') limit: number,
         @Query('offset') offset: number
     ) {
-        await this.ensurePublicThreadAccess(thread_id)
+        await this.ensureThreadAccess(thread_id)
         const result = await this.queryBus.execute(
             new FindAgentExecutionsQuery({
                 where: {
@@ -328,7 +335,7 @@ export class ThreadsController {
         @Param('run_id') run_id: string,
         @Headers('last-event-id') lastEventId?: string
     ) {
-        await this.ensurePublicThreadRunAccess(thread_id, run_id)
+        await this.ensureThreadRunAccess(thread_id, run_id)
         const owner = buildSseConnectionOwner(req, {
             mode: 'join',
             lastEventId
@@ -352,14 +359,14 @@ export class ThreadsController {
     @Get(':thread_id/runs/:run_id')
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
         const execution =
-            (await this.ensurePublicThreadRunAccess(thread_id, run_id)) ??
+            (await this.ensureThreadRunAccess(thread_id, run_id)) ??
             (await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id)))
         return transformRun(execution)
     }
 
     @Post(':thread_id/runs/:run_id/cancel')
     async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-        await this.ensurePublicThreadRunAccess(thread_id, run_id)
+        await this.ensureThreadRunAccess(thread_id, run_id, 'contribute')
         // Cancel the run
         try {
             return await this.commandBus.execute(
@@ -377,7 +384,7 @@ export class ThreadsController {
     // Others
     @Get(':thread_id/context-usage')
     async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
-        await this.ensurePublicThreadAccess(threadId)
+        await this.ensureThreadAccess(threadId)
         return await this.queryBus.execute(new GetThreadContextUsageQuery(threadId, agentKey))
     }
 
@@ -387,25 +394,23 @@ export class ThreadsController {
         @Query('start') start: string,
         @Query('end') end?: string
     ) {
-        await this.ensurePublicThreadAccess(threadId)
+        await this.ensureThreadAccess(threadId)
         const endHour = end ?? formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
         return await this.queryBus.execute(new CopilotUserUsageQuery({ start, end: endHour, threadId }))
     }
 
-    private async ensurePublicThreadAccess(threadId: string) {
-        if (!getPublicXpertSessionConversationScope()) {
-            return
-        }
-
-        const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-        assertPublicXpertSessionConversationAccess(conversation)
+    private async ensureThreadAccess(threadId: string, operation: ChatConversationAccessOperation = 'read') {
+        const conversation = await this.queryBus.execute(new AssertChatConversationAccessQuery({ threadId }, operation))
+        await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
+        return conversation
     }
 
-    private async ensurePublicThreadRunAccess(threadId: string, runId: string) {
-        if (!getPublicXpertSessionConversationScope()) {
-            return null
-        }
-        await this.ensurePublicThreadAccess(threadId)
+    private async ensureThreadRunAccess(
+        threadId: string,
+        runId: string,
+        operation: ChatConversationAccessOperation = 'read'
+    ) {
+        await this.ensureThreadAccess(threadId, operation)
         const execution = await this.queryBus.execute<XpertAgentExecutionOneQuery, IXpertAgentExecution>(
             new XpertAgentExecutionOneQuery(runId)
         )

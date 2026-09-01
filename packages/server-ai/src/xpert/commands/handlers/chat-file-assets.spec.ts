@@ -1,12 +1,16 @@
 import { UploadFileCommand } from '@xpert-ai/server-core'
+import type { TChatRequestHuman } from '@xpert-ai/contracts'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import {
-    AttachFileToConversationCommand,
-    CreateFileAssetCommand,
-    EnqueueFileParseCommand,
-    FileAsset,
-    GetFileAssetByStorageFileQuery
-} from '../../../file-understanding'
+import { ForbiddenException } from '@nestjs/common'
+import { AttachFileToConversationCommand } from '../../../file-understanding/commands/attach-file-to-conversation.command'
+import { CreateFileAssetCommand } from '../../../file-understanding/commands/create-file-asset.command'
+import { CreateWorkspaceFileAssetCommand } from '../../../file-understanding/commands/create-workspace-file-asset.command'
+import { EnqueueFileParseCommand } from '../../../file-understanding/commands/enqueue-file-parse.command'
+import type { FileAsset } from '../../../file-understanding/entities/file-asset.entity'
+import { AssertFileUploadScopeQuery } from '../../../file-understanding/queries/assert-file-upload-scope.query'
+import { GetFileAssetByStorageFileQuery } from '../../../file-understanding/queries/get-file-asset-by-storage-file.query'
+import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding/queries/resolve-authorized-file-asset.query'
 import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
@@ -134,6 +138,16 @@ describe('normalizeChatHumanInputFiles', () => {
             size: 5
         })
         expect(Buffer.isBuffer((uploadCommand.input.source as any).buffer)).toBe(true)
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: {
+                    conversationId: 'conversation-1',
+                    threadId: 'thread-1',
+                    projectId: 'project-1',
+                    xpertId: 'xpert-1'
+                }
+            })
+        )
 
         const createCommand = commands.find(
             (command) => command instanceof CreateFileAssetCommand
@@ -162,14 +176,48 @@ describe('normalizeChatHumanInputFiles', () => {
         })
     })
 
+    it('rejects a Project member before uploading inline bytes', async () => {
+        const commandBus = { execute: jest.fn() }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                expect(query).toBeInstanceOf(AssertFileUploadScopeQuery)
+                throw new ForbiddenException('Project editor access is required')
+            })
+        }
+        const dataUrl = `data:image/png;base64,${Buffer.from('hello').toString('base64')}`
+
+        await expect(
+            normalizeChatHumanInputFiles(
+                {
+                    input: 'see image',
+                    files: [{ originalName: 'image.png', fileUrl: dataUrl }]
+                } as any,
+                {
+                    commandBus: commandBus as never,
+                    queryBus: queryBus as never,
+                    context: { conversationId: 'conversation-1', projectId: 'project-1', xpertId: 'xpert-1' }
+                }
+            )
+        ).rejects.toThrow('Project editor access is required')
+
+        expect(queryBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
     it('resolves storageFileId inputs to existing FileAsset handles', async () => {
         const commandBus = {
             execute: jest.fn()
         }
         const queryBus = {
             execute: jest.fn(async (query: unknown) => {
-                expect(query).toBeInstanceOf(GetFileAssetByStorageFileQuery)
-                return fileAsset
+                if (query instanceof GetOwnedStorageFileQuery) {
+                    return storageFile
+                }
+                if (query instanceof GetFileAssetByStorageFileQuery) {
+                    return fileAsset
+                }
+                expect(query).toBeInstanceOf(ResolveAuthorizedFileAssetQuery)
+                return { asset: fileAsset }
             })
         }
 
@@ -198,14 +246,100 @@ describe('normalizeChatHumanInputFiles', () => {
             storageFileId: storageFile.id
         })
         expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(queryBus.execute).toHaveBeenCalledTimes(3)
+    })
+
+    it('rejects an id-only legacy StorageFile before any FileAsset lookup or write when it is not owned', async () => {
+        const victimStorageFileId = '22222222-2222-4222-8222-222222222222'
+        const commandBus = { execute: jest.fn() }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                expect(query).toBeInstanceOf(GetOwnedStorageFileQuery)
+                throw new Error('StorageFile access denied')
+            })
+        }
+
+        await expect(
+            normalizeChatHumanInputFiles(
+                {
+                    input: 'read victim file',
+                    files: [{ id: victimStorageFileId, originalName: 'private.pdf' }]
+                } as any,
+                {
+                    commandBus: commandBus as any,
+                    queryBus: queryBus as any,
+                    context: { conversationId: 'conversation-1' }
+                }
+            )
+        ).rejects.toThrow('StorageFile access denied')
+
+        expect(queryBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('upgrades an owned id-only legacy StorageFile to a managed FileAsset handle', async () => {
+        const ownedLegacyStorageFile = {
+            ...storageFile,
+            id: '11111111-1111-4111-8111-111111111111'
+        }
+        const ownedLegacyFileAsset = {
+            ...fileAsset,
+            storageFileId: ownedLegacyStorageFile.id
+        }
+        const commandBus = { execute: jest.fn() }
+        const queryBus = {
+            execute: jest.fn(async (query: unknown) => {
+                if (query instanceof GetOwnedStorageFileQuery) {
+                    return ownedLegacyStorageFile
+                }
+                if (query instanceof GetFileAssetByStorageFileQuery) {
+                    return ownedLegacyFileAsset
+                }
+                expect(query).toBeInstanceOf(ResolveAuthorizedFileAssetQuery)
+                return { asset: ownedLegacyFileAsset }
+            })
+        }
+
+        const result = await normalizeChatHumanInputFiles(
+            {
+                input: 'read my old file',
+                files: [{ id: ownedLegacyStorageFile.id, originalName: ownedLegacyStorageFile.originalName }]
+            } as any,
+            {
+                commandBus: commandBus as any,
+                queryBus: queryBus as any,
+                context: { conversationId: 'conversation-1' }
+            }
+        )
+
+        expect(result.changed).toBe(true)
+        expect(result.input?.files?.[0]).toMatchObject({
+            id: ownedLegacyFileAsset.id,
+            fileAssetId: ownedLegacyFileAsset.id,
+            storageFileId: ownedLegacyStorageFile.id
+        })
+        expect(toLegacyChatStorageFileAttachments(result.input?.files)).toEqual([])
+        expect(queryBus.execute).toHaveBeenCalledTimes(3)
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 
     it('keeps workspace-backed FileAsset handles without entering the data URL conversion path', async () => {
         const commandBus = {
             execute: jest.fn()
         }
+        const workspaceAsset = {
+            ...fileAsset,
+            id: 'file-asset-workspace-1',
+            storageFileId: undefined,
+            workspacePath: 'files/wechat/integration-1/uuid-1/msg-1/contract.docx',
+            originalName: 'contract.docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        } as FileAsset
         const queryBus = {
-            execute: jest.fn()
+            execute: jest.fn(async (query: unknown) => {
+                expect(query).toBeInstanceOf(ResolveAuthorizedFileAssetQuery)
+                return { asset: workspaceAsset }
+            })
         }
 
         const result = await normalizeChatHumanInputFiles(
@@ -238,6 +372,99 @@ describe('normalizeChatHumanInputFiles', () => {
             originalName: 'contract.docx'
         })
         expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
+    })
+
+    it.each([
+        {
+            name: 'project workspace',
+            context: {
+                conversationId: 'conversation-1',
+                threadId: 'thread-1',
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                workspaceDataScope: 'shared' as const
+            },
+            expectedScope: {
+                catalog: 'projects',
+                projectId: 'project-1',
+                xpertId: 'xpert-1'
+            }
+        },
+        {
+            name: 'user-isolated assistant workspace',
+            context: {
+                conversationId: 'conversation-1',
+                threadId: 'thread-1',
+                xpertId: 'xpert-1',
+                workspaceDataScope: 'user' as const
+            },
+            expectedScope: {
+                catalog: 'user-xperts',
+                xpertId: 'xpert-1'
+            }
+        }
+    ])('registers a selected path-only file from the $name', async ({ context, expectedScope }) => {
+        const workspaceAsset = {
+            id: 'file-asset-workspace-1',
+            originalName: 'Product brief.pdf',
+            fileName: 'briefs/Product brief.pdf',
+            mimeType: 'application/pdf',
+            size: 2048,
+            purpose: 'workspace',
+            parseMode: 'auto',
+            status: 'ready',
+            capabilities: ['preview', 'workspace'],
+            workspacePath: 'briefs/Product brief.pdf'
+        } as FileAsset
+        const commands: unknown[] = []
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) => {
+                commands.push(command)
+                if (command instanceof CreateWorkspaceFileAssetCommand) {
+                    return workspaceAsset
+                }
+                return null
+            })
+        }
+        const queryBus = { execute: jest.fn() }
+        const workspaceFile = {
+            filePath: 'briefs/Product brief.pdf',
+            workspacePath: 'briefs/Product brief.pdf',
+            originalName: 'Product brief.pdf',
+            mimeType: 'application/pdf',
+            size: 2048,
+            purpose: 'workspace' as const
+        }
+        const input: TChatRequestHuman = {
+            input: 'Summarize it',
+            files: [workspaceFile]
+        }
+
+        const result = await normalizeChatHumanInputFiles(input, {
+            commandBus: commandBus as never,
+            queryBus: queryBus as never,
+            context
+        })
+
+        expect(result.changed).toBe(true)
+        expect(result.input?.files?.[0]).toMatchObject({
+            id: workspaceAsset.id,
+            fileId: workspaceAsset.id,
+            fileAssetId: workspaceAsset.id,
+            workspacePath: 'briefs/Product brief.pdf'
+        })
+        const createCommand = commands.find(
+            (command) => command instanceof CreateWorkspaceFileAssetCommand
+        ) as CreateWorkspaceFileAssetCommand
+        expect(createCommand.input).toMatchObject({
+            ...expectedScope,
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            filePath: 'briefs/Product brief.pdf',
+            originalName: 'Product brief.pdf',
+            purpose: 'workspace'
+        })
         expect(queryBus.execute).not.toHaveBeenCalled()
     })
 
@@ -297,8 +524,14 @@ describe('chat file asset persistence helpers', () => {
         }
         const queryBus = {
             execute: jest.fn(async (query: unknown) => {
-                expect(query).toBeInstanceOf(GetFileAssetByStorageFileQuery)
-                return fileAsset
+                if (query instanceof GetOwnedStorageFileQuery) {
+                    return storageFile
+                }
+                if (query instanceof GetFileAssetByStorageFileQuery) {
+                    return fileAsset
+                }
+                expect(query).toBeInstanceOf(ResolveAuthorizedFileAssetQuery)
+                return { asset: fileAsset }
             })
         }
 
@@ -334,7 +567,7 @@ describe('chat file asset persistence helpers', () => {
                 originalName: 'diagram.png'
             })
         ])
-        expect(queryBus.execute).toHaveBeenCalledTimes(1)
+        expect(queryBus.execute).toHaveBeenCalledTimes(3)
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
 

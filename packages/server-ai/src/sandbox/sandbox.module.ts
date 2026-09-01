@@ -17,7 +17,7 @@ import { SandboxManagedServiceService } from './sandbox-managed-service.service'
 import { SandboxService } from './sandbox.service'
 import { SandboxController } from './sandbox.controller'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
-import { ChatConversationModule } from '../chat-conversation'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { SandboxFileMiddleware, SandboxServiceMiddleware, SandboxShellMiddleware } from './middlewares'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
@@ -35,6 +35,7 @@ import { LocalBrowserRuntimeProvider } from './sandbox-job/local-browser-runtime
 import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
 import { VolumeModule } from '../shared/volume'
 import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 
 // Local Browser Runtime is source-checkout tooling, never a production fallback.
 const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment() ? [LocalBrowserRuntimeProvider] : []
@@ -45,11 +46,11 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         TenantModule,
         CqrsModule,
         DiscoveryModule,
-        TypeOrmModule.forFeature([SandboxManagedServiceEntity, SandboxJobEntity]),
+        TypeOrmModule.forFeature([SandboxManagedServiceEntity, SandboxJobEntity, ChatConversation]),
         AgentMiddlewareRuntimeModule,
         VolumeModule,
 
-        ChatConversationModule,
+        XpertProjectAccessModule,
         SuperAdminOrganizationScopeModule
     ],
     controllers: [SandboxController],

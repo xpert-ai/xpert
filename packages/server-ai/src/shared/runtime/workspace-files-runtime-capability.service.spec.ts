@@ -1,8 +1,14 @@
 import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { GetFileUnderstandingStatusQuery, ListProjectFilesQuery, SearchFileChunksQuery } from '../../file-understanding'
+import {
+    GetFileUnderstandingStatusQuery,
+    ResolveAuthorizedFileAssetQuery,
+    SearchFileChunksQuery
+} from '../../file-understanding'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { VolumeHandle } from '../volume'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtime-capability.service'
 
 describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
@@ -40,7 +46,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         )
     })
 
-    it('resolves metadata and a public URL without reading file bytes', async () => {
+    it('resolves private Project metadata without a direct URL or reading file bytes', async () => {
         const serverRoot = await temporaryRoot()
         const filePath = 'drawings/source.pdf'
         await mkdir(path.join(serverRoot, 'drawings'), { recursive: true })
@@ -51,8 +57,6 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             name: 'source.pdf',
             filePath,
             workspacePath: filePath,
-            fileUrl: `http://localhost/files/${filePath}`,
-            url: `http://localhost/files/${filePath}`,
             size: 11,
             catalog: 'projects',
             scopeId: 'project-1'
@@ -67,9 +71,9 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
     })
 
     it.each([
-        ['tenantId', { tenantId: 'tenant-2' }, 'tenantId'],
-        ['organizationId', { organizationId: 'organization-2' }, 'organizationId']
-    ])('rejects a portable reference whose %s conflicts with the execution scope', async (_label, override, field) => {
+        ['tenantId', { tenantId: 'tenant-2' }],
+        ['organizationId', { organizationId: 'organization-2' }]
+    ])('rejects a portable reference whose %s conflicts with the execution scope', async (_label, override) => {
         const serverRoot = await temporaryRoot()
         const service = createService(serverRoot, '/host/project-1')
         const scoped = service.createScopedApi({
@@ -84,7 +88,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
                 ...reference('media/source.mov'),
                 ...override
             })
-        ).rejects.toThrow(`Workspace file ${field} is outside the current execution scope`)
+        ).rejects.toBeInstanceOf(BadRequestException)
     })
 
     it.each([
@@ -96,10 +100,15 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         await mkdir(path.dirname(path.join(serverRoot, relativePath)), { recursive: true })
         await writeFile(path.join(serverRoot, relativePath), Buffer.from('crown-chest'))
         const fileAsset = conversationFileAsset(relativePath)
+        const expectedLocator =
+            _label === 'FileAsset id' ? { fileAssetId: fileAsset.id } : { storageFileId: fileAsset.storageFileId }
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
-                if (query.fileAssetId === fileAsset.id || query.storageFileId === fileAsset.storageFileId) {
-                    return Promise.resolve(fileAsset)
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    if (JSON.stringify(query.input.locator) === JSON.stringify(expectedLocator)) {
+                        return Promise.resolve({ asset: fileAsset })
+                    }
+                    return Promise.reject(new ForbiddenException())
                 }
                 return Promise.resolve(null)
             })
@@ -117,13 +126,35 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             filePath: relativePath,
             buffer: Buffer.from('crown-chest')
         })
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    locator: expectedLocator,
+                    authority: { kind: 'conversation', conversationId: 'conversation-1' },
+                    operation: 'read'
+                })
+            })
+        )
     })
 
-    it('rejects a FileAsset handle attached to another conversation', async () => {
+    it('uses the authorized conversation link instead of mutable FileAsset scope fields', async () => {
         const serverRoot = await temporaryRoot()
         const relativePath = 'sessions/conversation-1/files/8d70766b-c87b-465e-b06c-c900eb18f79a/crown-chest.png'
-        const fileAsset = conversationFileAsset(relativePath)
-        const queryBus = { execute: jest.fn().mockResolvedValue(fileAsset) }
+        const fileAsset = {
+            ...conversationFileAsset(relativePath),
+            conversationId: 'forged-conversation',
+            projectId: 'forged-project'
+        }
+        await mkdir(path.dirname(path.join(serverRoot, relativePath)), { recursive: true })
+        await writeFile(path.join(serverRoot, relativePath), Buffer.from('crown-chest'))
+        const queryBus = {
+            execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return Promise.resolve({ asset: fileAsset })
+                }
+                return Promise.resolve(null)
+            })
+        }
         const service = createService(serverRoot, '/host/project-1', queryBus)
         const scoped = service.createScopedApi({
             tenantId: 'tenant-1',
@@ -133,7 +164,39 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             conversationId: 'conversation-2'
         })
 
-        await expect(scoped.readRuntimeBuffer(fileAsset.id)).rejects.toThrow('Workspace file not found')
+        await expect(scoped.readRuntimeBuffer(fileAsset.id)).resolves.toMatchObject({
+            filePath: relativePath,
+            buffer: Buffer.from('crown-chest')
+        })
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    authority: { kind: 'conversation', conversationId: 'conversation-2' }
+                })
+            })
+        )
+    })
+
+    it('keeps a UUID-shaped filename readable when it is not a managed file id', async () => {
+        const serverRoot = await temporaryRoot()
+        const fileName = '8d70766b-c87b-465e-b06c-c900eb18f79a'
+        await writeFile(path.join(serverRoot, fileName), Buffer.from('plain UUID filename'))
+        const queryBus = {
+            execute: jest.fn().mockRejectedValue(new ForbiddenException())
+        }
+        const service = createService(serverRoot, '/host/project-1', queryBus)
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            projectId: 'project-1'
+        })
+
+        await expect(scoped.readRuntimeBuffer(fileName)).resolves.toMatchObject({
+            filePath: fileName,
+            buffer: Buffer.from('plain UUID filename')
+        })
+        expect(queryBus.execute).toHaveBeenCalledTimes(2)
     })
 
     it('lists and searches only chunks from a visible Project FileAsset', async () => {
@@ -141,11 +204,11 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const fileAssetId = '8d70766b-c87b-465e-b06c-c900eb18f79a'
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return Promise.resolve({ asset: { id: fileAssetId } })
+                }
                 if (query instanceof GetFileUnderstandingStatusQuery) {
                     return Promise.resolve({ fileAssetId, status: 'ready' })
-                }
-                if (query instanceof ListProjectFilesQuery) {
-                    return Promise.resolve([{ id: fileAssetId }])
                 }
                 if (query instanceof SearchFileChunksQuery) {
                     return Promise.resolve([
@@ -182,7 +245,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
             }
         ])
 
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListProjectFilesQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
         expect(queryBus.execute).toHaveBeenCalledWith(expect.any(SearchFileChunksQuery))
     })
 
@@ -190,11 +253,11 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         const serverRoot = await temporaryRoot()
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
+                if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                    return Promise.reject(new BadRequestException())
+                }
                 if (query instanceof GetFileUnderstandingStatusQuery) {
                     return Promise.resolve({ fileAssetId: 'file-1', status: 'ready' })
-                }
-                if (query instanceof ListProjectFilesQuery) {
-                    return Promise.resolve([])
                 }
                 return Promise.resolve([])
             })
@@ -210,6 +273,69 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         ).rejects.toThrow('not found in the current workspace')
     })
 
+    it.each(['project.md', 'skills/pdf/SKILL.md', 'shared/../skills/pdf/SKILL.md'])(
+        'rejects runtime writes to governed Project Content path %s',
+        async (filePath) => {
+            const serverRoot = await temporaryRoot()
+            const service = createService(serverRoot, '/host/project-1')
+
+            await expect(
+                service.uploadBuffer({
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    catalog: 'projects',
+                    scopeId: 'project-1',
+                    projectId: 'project-1',
+                    fileName: filePath,
+                    originalName: path.posix.basename(filePath),
+                    buffer: Buffer.from('blocked')
+                })
+            ).rejects.toBeInstanceOf(BadRequestException)
+        }
+    )
+
+    it('rejects a middleware workspace request that supplies another tenant', async () => {
+        const tenantSpy = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-actor')
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-actor')
+        const service = createService(await temporaryRoot(), '/host/project-1')
+
+        try {
+            await expect(
+                service.readBuffer({
+                    tenantId: 'tenant-victim',
+                    userId: 'user-actor',
+                    catalog: 'users',
+                    scopeId: 'user-actor',
+                    filePath: 'private.txt'
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        } finally {
+            tenantSpy.mockRestore()
+            userSpy.mockRestore()
+        }
+    })
+
+    it('rejects a middleware workspace request for another user catalog', async () => {
+        const tenantSpy = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const userSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-actor')
+        const service = createService(await temporaryRoot(), '/host/project-1')
+
+        try {
+            await expect(
+                service.readBuffer({
+                    tenantId: 'tenant-1',
+                    userId: 'user-victim',
+                    catalog: 'users',
+                    scopeId: 'user-victim',
+                    filePath: 'private.txt'
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        } finally {
+            tenantSpy.mockRestore()
+            userSpy.mockRestore()
+        }
+    })
+
     function createService(serverRoot: string, hostRoot: string, queryBus?: { execute: jest.Mock }) {
         const volume = new VolumeHandle(
             { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1', userId: 'user-1' },
@@ -220,6 +346,7 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         return new WorkspaceFilesRuntimeCapabilityService(
             { execute: jest.fn() },
             { resolve: jest.fn().mockReturnValue(volume) },
+            { assertCanEdit: jest.fn().mockResolvedValue({ role: 'editor' }) },
             queryBus
         )
     }

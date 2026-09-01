@@ -12,7 +12,7 @@ export type AssistantContextSetPayload = {
   context?: Record<string, unknown>
 }
 
-type HostSendUserMessageParams = SendUserMessageParams & {
+export type HostSendUserMessageParams = SendUserMessageParams & {
   files?: unknown[]
   clientMessageId?: string
 }
@@ -102,7 +102,7 @@ export function registerAssistantContextSetCommand(
   })
 }
 
-function toSendUserMessageParams(payload: unknown): HostSendUserMessageParams {
+export function toSendUserMessageParams(payload: unknown): HostSendUserMessageParams {
   const record = isRecord(payload) ? payload : {}
   const files = toArray(record['files'])
   const attachments = toAttachments(record['attachments']).concat(toFileAttachments(files))

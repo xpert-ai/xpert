@@ -1,5 +1,9 @@
 import type { ChatKitEventHandlers } from '@xpert-ai/chatkit-angular'
-import type { XpertViewHostEventMessage } from '../../../@shared/view-extension/view-host-event-bus.service'
+import type { XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
+import {
+  resolveViewRuntimeDataScopeKey,
+  type XpertViewHostEventMessage
+} from '../../../@shared/view-extension/view-host-event-bus.service'
 
 export type ClawXpertAssistantToolLogEvent = Parameters<NonNullable<ChatKitEventHandlers['onLog']>>[0]
 
@@ -10,6 +14,8 @@ type AssistantToolHostEventContext = {
   hostType: string
   hostId?: string | null
   threadId?: string | null
+  runtimeScope?: XpertViewRuntimeScopeInput | null
+  userId?: string | null
 }
 
 type ToolLogData = {
@@ -32,12 +38,22 @@ export function createAssistantToolCompletedHostEvent(
   // ChatKit emits completed tools both as LangGraph lifecycle logs and as rendered component logs.
   // Keep this bridge app-agnostic; plugin-specific ids stay inside the remote component payload handling.
   const data = isToolLogData(event.data) ? event.data : null
+  const dataScopeKey = resolveViewRuntimeDataScopeKey(
+    context.runtimeScope,
+    context.userId,
+    context.hostType,
+    context.hostId
+  )
+  if (context.runtimeScope && !dataScopeKey) {
+    return null
+  }
+
   if (event.name === 'lg.tool.end') {
-    return createLangGraphToolCompletedEvent(event, data, context)
+    return createLangGraphToolCompletedEvent(event, data, context, dataScopeKey)
   }
 
   if (event.name === 'component') {
-    return createComponentToolCompletedEvent(event, data, context)
+    return createComponentToolCompletedEvent(event, data, context, dataScopeKey)
   }
 
   return null
@@ -46,7 +62,8 @@ export function createAssistantToolCompletedHostEvent(
 function createLangGraphToolCompletedEvent(
   event: ClawXpertAssistantToolLogEvent,
   data: ToolLogData | null,
-  context: AssistantToolHostEventContext
+  context: AssistantToolHostEventContext,
+  dataScopeKey?: string
 ) {
   const toolName = readToolLogString(data?.toolName)
   if (!toolName) {
@@ -72,6 +89,7 @@ function createLangGraphToolCompletedEvent(
     receivedAt,
     hostType: context.hostType,
     ...(context.hostId ? { hostId: context.hostId } : {}),
+    ...(dataScopeKey ? { dataScopeKey } : {}),
     ...(context.threadId ? { threadId: context.threadId } : {}),
     toolName,
     ...(toolCallId ? { toolCallId } : {}),
@@ -87,7 +105,8 @@ function createLangGraphToolCompletedEvent(
 function createComponentToolCompletedEvent(
   event: ClawXpertAssistantToolLogEvent,
   data: ToolLogData | null,
-  context: AssistantToolHostEventContext
+  context: AssistantToolHostEventContext,
+  dataScopeKey?: string
 ) {
   // Tool result cards arrive through this path; normalize them without interpreting the output schema.
   const toolName = readToolLogString(data?.tool) ?? readToolLogString(data?.name)
@@ -105,6 +124,7 @@ function createComponentToolCompletedEvent(
     receivedAt,
     hostType: context.hostType,
     ...(context.hostId ? { hostId: context.hostId } : {}),
+    ...(dataScopeKey ? { dataScopeKey } : {}),
     ...(context.threadId ? { threadId: context.threadId } : {}),
     toolName,
     data: {

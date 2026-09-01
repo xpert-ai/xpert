@@ -1,3 +1,71 @@
+@if (isMarketplaceWorkspaceRoute()) {
+  <header class="sticky top-0 z-20 border-b border-border/70 bg-background/95 px-6 py-3 backdrop-blur-xl xl:px-10">
+    <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <nav
+        class="flex w-fit max-w-full items-center gap-1 overflow-x-auto"
+        aria-label="{{ 'XP.Explore.NavigationLabel' | translate: { Default: 'Marketplace navigation' } }}"
+      >
+        <a
+          class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-base font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          [routerLink]="['/explore']"
+          [queryParams]="{ tab: 'agent-square' }"
+        >
+          <i class="ri-team-line"></i>
+          {{ 'XP.Explore.ExpertsTab' | translate: { Default: 'Experts' } }}
+        </a>
+        <a
+          class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground"
+          [class]="
+            currentUrl().includes('clawxpert-skills')
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+              : 'text-muted-foreground'
+          "
+          [attr.aria-current]="currentUrl().includes('clawxpert-skills') ? 'page' : null"
+          [routerLink]="['/explore']"
+          [queryParams]="{ tab: 'skills' }"
+        >
+          <i class="ri-pencil-ruler-line"></i>
+          {{ 'XP.Explore.SkillsTab' | translate: { Default: 'Skills' } }}
+        </a>
+        <a
+          class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground"
+          [class]="
+            currentUrl().includes('clawxpert-connectors')
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+              : 'text-muted-foreground'
+          "
+          [attr.aria-current]="currentUrl().includes('clawxpert-connectors') ? 'page' : null"
+          [routerLink]="['/xpert/w', paramId(), 'clawxpert-connectors']"
+        >
+          <i class="ri-plug-line"></i>
+          {{ 'XP.Explore.ConnectorsTab' | translate: { Default: 'Connectors' } }}
+        </a>
+      </nav>
+
+      @if (currentUrl().includes('clawxpert-connectors')) {
+        <div class="flex w-full items-center gap-2 sm:w-auto">
+          <z-search-input
+            class="min-w-0 flex-1 sm:w-64"
+            [placeholder]="'XP.Xpert.SearchConnectors' | translate: { Default: 'Search connectors' }"
+            [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+            [ngModel]="connectorSearchQuery()"
+            (ngModelChange)="connectorSearchQuery.set($event)"
+          />
+          <button
+            type="button"
+            class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-default disabled:opacity-50"
+            [disabled]="!workspace()"
+            (click)="openCustomConnectors()"
+          >
+            <i class="ri-add-circle-line text-lg" aria-hidden="true"></i>
+            <span>{{ 'XP.Xpert.CustomConnector' | translate: { Default: 'Custom connector' } }}</span>
+          </button>
+        </div>
+      }
+    </div>
+  </header>
+}
+
 @if (!isStandaloneWorkspaceRoute()) {
   <div
     class="sticky top-0 flex justify-between items-center gap-4 pt-4 px-12 pb-2 leading-[56px] z-20 flex-wrap gap-y-2 bg-background-body"

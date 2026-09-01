@@ -1,4 +1,11 @@
-import { BadRequestException, Inject, Injectable, InternalServerErrorException, Optional } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    Inject,
+    Injectable,
+    InternalServerErrorException,
+    Optional
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
@@ -27,24 +34,29 @@ import {
     WorkspaceValidatedUnderstandingReference
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
+import { t } from 'i18next'
+import { CreateWorkspaceFileAssetCommand } from '../../file-understanding/commands/create-workspace-file-asset.command'
+import { EnqueueFileParseCommand } from '../../file-understanding/commands/enqueue-file-parse.command'
 import {
-    CreateWorkspaceFileAssetCommand,
-    EnqueueFileParseCommand,
-    GetFileAssetByStorageFileQuery,
-    GetFileAssetQuery,
-    GetFileUnderstandingStatusQuery,
-    ListProjectFilesQuery,
-    SearchFileChunksQuery,
-    ValidateFileUnderstandingReferencesQuery,
     isWorkspaceFileCatalog,
     resolveFileAssetWorkspaceRelativePath,
     resolveWorkspaceFileCatalog,
     resolveWorkspaceVolumeScope,
-    type FileAsset,
-    type FileChunk,
     type WorkspaceVolumeScopeResolution
-} from '../../file-understanding'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
+} from '../../file-understanding/domain/workspace-file'
+import type { FileAsset } from '../../file-understanding/entities/file-asset.entity'
+import type { FileChunk } from '../../file-understanding/entities/file-chunk.entity'
+import type {
+    FileAssetAuthority,
+    FileAssetLocator,
+    FileAssetOperation
+} from '../../file-understanding/file-asset-access.service'
+import { GetFileUnderstandingStatusQuery } from '../../file-understanding/queries/get-file-understanding-status.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
+import { SearchFileChunksQuery } from '../../file-understanding/queries/search-file-chunks.query'
+import { ValidateFileUnderstandingReferencesQuery } from '../../file-understanding/queries/validate-file-understanding-references.query'
+import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -83,6 +95,8 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         private readonly commandBus: Pick<CommandBus, 'execute'>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
+        @Inject(XpertProjectAccessService)
+        private readonly projectAccessService: Pick<XpertProjectAccessService, 'assertCanEdit'>,
         @Optional()
         @Inject(QueryBus)
         private readonly queryBus?: Pick<QueryBus, 'execute'>
@@ -96,22 +110,23 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
      */
     createScopedApi(defaults: WorkspaceFilesRuntimeDefaults): WorkspaceFilesApi {
         return {
-            uploadBuffer: (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
-            understandFile: (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
-            getUnderstandingStatus: (input) => this.getUnderstandingStatus(applyRuntimeScopeDefaults(input, defaults)),
-            retryUnderstanding: (input) => this.retryUnderstanding(applyRuntimeScopeDefaults(input, defaults)),
-            validateUnderstandingReferences: (input) =>
+            uploadBuffer: async (input) => this.uploadBuffer(applyRuntimeScopeDefaults(input, defaults)),
+            understandFile: async (input) => this.understandFile(applyRuntimeScopeDefaults(input, defaults)),
+            getUnderstandingStatus: async (input) =>
+                this.getUnderstandingStatus(applyRuntimeScopeDefaults(input, defaults)),
+            retryUnderstanding: async (input) => this.retryUnderstanding(applyRuntimeScopeDefaults(input, defaults)),
+            validateUnderstandingReferences: async (input) =>
                 this.validateUnderstandingReferences(applyRuntimeScopeDefaults(input, defaults)),
-            listUnderstandingChunks: (input) =>
+            listUnderstandingChunks: async (input) =>
                 this.listUnderstandingChunks(applyRuntimeScopeDefaults(input, defaults)),
-            searchUnderstandingChunks: (input) =>
+            searchUnderstandingChunks: async (input) =>
                 this.searchUnderstandingChunks(applyRuntimeScopeDefaults(input, defaults)),
-            resolveFile: (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
-            readBuffer: (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
-            deleteFile: (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
-            resolveRuntimeReference: (input) => this.resolveRuntimeReferenceWithDefaults(input, defaults),
-            readRuntimeBuffer: (input) => this.readRuntimeBufferWithDefaults(input, defaults),
-            writeRuntimeBuffer: (input) => this.writeRuntimeBufferWithDefaults(input, defaults)
+            resolveFile: async (input) => this.resolveFile(applyRuntimeScopeDefaults(input, defaults)),
+            readBuffer: async (input) => this.readBuffer(applyRuntimeScopeDefaults(input, defaults)),
+            deleteFile: async (input) => this.deleteFile(applyRuntimeScopeDefaults(input, defaults)),
+            resolveRuntimeReference: async (input) => this.resolveRuntimeReferenceWithDefaults(input, defaults),
+            readRuntimeBuffer: async (input) => this.readRuntimeBufferWithDefaults(input, defaults),
+            writeRuntimeBuffer: async (input) => this.writeRuntimeBufferWithDefaults(input, defaults)
         }
     }
 
@@ -122,6 +137,18 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         const originalName =
             normalizeOptionalString(input.originalName) ?? normalizeOptionalString(input.fileName) ?? 'workspace-file'
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
+        await this.assertCanMutateVolume(volumeScope)
+        const targetPath = path.posix.join(
+            normalizeOptionalString(input.folder) ?? '',
+            normalizeOptionalString(input.fileName) ?? originalName
+        )
+        if (catalog === 'projects' && isProjectGovernedContentPath(targetPath)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectGovernedContentRuntimeReadOnly', {
+                    defaultValue: 'Project instructions and skills are read-only during Agent runtime'
+                })
+            )
+        }
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -147,8 +174,10 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             throw new InternalServerErrorException(destination?.error || 'Failed to upload workspace file')
         }
 
-        const fileUrl =
-            normalizeOptionalString(destination.url) ?? normalizeOptionalString(destination.metadata?.fileUrl)
+        const volume = this.volumeClient.resolve(volumeScope)
+        const fileUrl = volume.exposesDirectFileUrls()
+            ? (normalizeOptionalString(destination.url) ?? normalizeOptionalString(destination.metadata?.fileUrl))
+            : undefined
         return {
             name: normalizeOptionalString(input.fileName) ?? originalName,
             filePath: destination.path,
@@ -164,7 +193,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
 
     async understandFile(input: WorkspaceUnderstandFileInput): Promise<WorkspaceUnderstoodFile> {
         const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
-        const { catalog, scopeId } = this.resolveVolumeScope(input)
+        const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
         const fileAsset = await this.commandBus.execute<CreateWorkspaceFileAssetCommand, FileAsset>(
             new CreateWorkspaceFileAssetCommand({
                 ...input,
@@ -172,7 +201,9 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             })
         )
         const metadata = readWorkspaceMetadata(fileAsset.metadata)
-        const fileUrl = normalizeOptionalString(input.fileUrl) ?? normalizeOptionalString(input.url) ?? metadata.fileUrl
+        const fileUrl = this.volumeClient.resolve(volumeScope).exposesDirectFileUrls()
+            ? (normalizeOptionalString(input.fileUrl) ?? normalizeOptionalString(input.url) ?? metadata.fileUrl)
+            : undefined
         const originalName =
             normalizeOptionalString(input.originalName) ??
             normalizeOptionalString(fileAsset.originalName) ??
@@ -215,6 +246,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
 
     async getUnderstandingStatus(input: WorkspaceUnderstandingStatusInput): Promise<WorkspaceUnderstandingStatus> {
         const queryBus = this.requireQueryBus()
+        await this.assertUnderstandingAssetVisible(input, 'read')
         const status = await queryBus.execute(
             new GetFileUnderstandingStatusQuery(input.fileAssetId, this.resolveUnderstandingScope(input))
         )
@@ -234,6 +266,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         ) {
             throw new BadRequestException('Only failed or unavailable file understanding can be retried')
         }
+        await this.assertUnderstandingAssetVisible(input, 'parse')
         await this.commandBus.execute(new EnqueueFileParseCommand(input.fileAssetId))
         return this.getUnderstandingStatus(input)
     }
@@ -245,6 +278,11 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             throw new BadRequestException('references must contain between 1 and 120 items')
         }
         const excerptLength = Math.min(Math.max(input.excerptLength ?? 320, 80), 800)
+        await Promise.all(
+            [...new Set(input.references.map((reference) => reference.fileAssetId))].map((fileAssetId) =>
+                this.assertUnderstandingAssetVisible({ ...input, fileAssetId }, 'read')
+            )
+        )
         return this.requireQueryBus().execute(
             new ValidateFileUnderstandingReferencesQuery(
                 input.references,
@@ -317,14 +355,13 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         const volume = this.volumeClient.resolve(volumeScope)
         const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
         const buffer = await client.readBuffer('', filePath)
-        const fileUrl = volume.publicUrl(filePath)
+        const fileUrl = volume.exposesDirectFileUrls() ? volume.publicUrl(filePath) : undefined
 
         return {
             name: filePath.split('/').filter(Boolean).pop() ?? filePath,
             filePath,
             workspacePath: filePath,
-            fileUrl,
-            url: fileUrl,
+            ...(fileUrl ? { fileUrl, url: fileUrl } : {}),
             size: buffer.length,
             catalog,
             scopeId,
@@ -341,14 +378,13 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
         const volume = this.volumeClient.resolve(volumeScope)
         const source = await this.resolveReadOnlyFileSource(input)
-        const fileUrl = volume.publicUrl(filePath)
+        const fileUrl = volume.exposesDirectFileUrls() ? volume.publicUrl(filePath) : undefined
 
         return {
             name: filePath.split('/').filter(Boolean).pop() ?? filePath,
             filePath,
             workspacePath: filePath,
-            fileUrl,
-            url: fileUrl,
+            ...(fileUrl ? { fileUrl, url: fileUrl } : {}),
             size: source.size,
             catalog,
             scopeId
@@ -396,7 +432,15 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
 
     async deleteFile(input: WorkspaceFileReference): Promise<void> {
         const filePath = normalizeRequiredWorkspaceFilePath(input.filePath)
-        const { volumeScope } = this.resolveVolumeScope(input)
+        const { volumeScope, catalog } = this.resolveVolumeScope(input)
+        await this.assertCanMutateVolume(volumeScope)
+        if (catalog === 'projects' && isProjectGovernedContentPath(filePath)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectGovernedContentRuntimeReadOnly', {
+                    defaultValue: 'Project instructions and skills are read-only during Agent runtime'
+                })
+            )
+        }
         const client = new VolumeSubtreeClient(this.volumeClient.resolve(volumeScope), { allowRootWorkspace: true })
         await client.deleteFile('', filePath)
     }
@@ -410,7 +454,11 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         defaults: WorkspaceFilesRuntimeDefaults
     ): Promise<WorkspacePortableFileReference> {
         const descriptor = toWorkspaceRuntimeDescriptor(input)
-        const filePath = await this.resolveRuntimeFilePath(readRuntimeFilePath(descriptor), defaults)
+        const filePath = await this.resolveRuntimeFilePath(
+            readRuntimeFilePath(descriptor),
+            defaults,
+            descriptor.source === WORKSPACE_FILES_SOURCE
+        )
         const scopedInput = applyRuntimeScopeDefaults(
             {
                 ...readRuntimeScope(descriptor),
@@ -451,49 +499,51 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         }
     }
 
-    private async resolveRuntimeFilePath(value: unknown, defaults: WorkspaceFilesRuntimeDefaults) {
+    private async resolveRuntimeFilePath(
+        value: unknown,
+        defaults: WorkspaceFilesRuntimeDefaults,
+        volumeRelative = false
+    ) {
         const raw = normalizeOptionalString(value)
         if (!raw || !UUID_PATTERN.test(raw) || !this.queryBus) {
-            return normalizeRuntimeWorkspaceFilePath(value, defaults)
+            return volumeRelative
+                ? normalizeVolumeRelativeFilePath(value)
+                : normalizeRuntimeWorkspaceFilePath(value, defaults)
         }
 
-        const fileAsset =
-            (await this.queryBus
-                .execute<GetFileAssetQuery, FileAsset | null>(new GetFileAssetQuery(raw))
-                .catch(() => null)) ??
-            (await this.queryBus
-                .execute<GetFileAssetByStorageFileQuery, FileAsset | null>(new GetFileAssetByStorageFileQuery(raw))
-                .catch(() => null))
+        const fileAsset = await this.resolveAuthorizedRuntimeFileAsset(raw, defaults)
         if (!fileAsset) {
-            return normalizeRuntimeWorkspaceFilePath(value, defaults)
+            return volumeRelative
+                ? normalizeVolumeRelativeFilePath(value)
+                : normalizeRuntimeWorkspaceFilePath(value, defaults)
         }
 
-        this.assertRuntimeFileAssetScope(fileAsset, defaults)
         const relativePath = resolveFileAssetWorkspaceRelativePath(fileAsset)
         if (!relativePath) {
             throw new BadRequestException('Workspace file not found')
         }
-        return normalizeRuntimeWorkspaceFilePath(relativePath, defaults)
+        return normalizeVolumeRelativeFilePath(relativePath)
     }
 
-    private assertRuntimeFileAssetScope(fileAsset: FileAsset, defaults: WorkspaceFilesRuntimeDefaults) {
-        const tenantId = normalizeOptionalString(defaults.tenantId) ?? RequestContext.currentTenantId()
-        const organizationId = defaults.organizationId ?? RequestContext.getOrganizationId() ?? null
-        const userId = normalizeOptionalString(defaults.userId) ?? RequestContext.currentUserId()
-        const projectId = normalizeOptionalString(defaults.projectId)
-        const xpertId = normalizeOptionalString(defaults.xpertId)
-        const conversationId = normalizeOptionalString(defaults.conversationId)
-        const scopeMismatch =
-            !tenantId ||
-            fileAsset.tenantId !== tenantId ||
-            (fileAsset.organizationId ?? null) !== organizationId ||
-            Boolean(userId && fileAsset.userId && fileAsset.userId !== userId) ||
-            Boolean(projectId && fileAsset.projectId !== projectId) ||
-            Boolean(xpertId && fileAsset.xpertId !== xpertId) ||
-            Boolean(conversationId && fileAsset.conversationId !== conversationId)
-        if (scopeMismatch) {
-            throw new BadRequestException('Workspace file not found')
+    private async resolveAuthorizedRuntimeFileAsset(raw: string, defaults: WorkspaceFilesRuntimeDefaults) {
+        const authority = this.resolveFileAssetAuthority(defaults)
+        const locators: FileAssetLocator[] = [{ fileAssetId: raw }, { storageFileId: raw }]
+        for (const locator of locators) {
+            try {
+                const authorized = await this.requireQueryBus().execute(
+                    new ResolveAuthorizedFileAssetQuery({ locator, authority, operation: 'read' })
+                )
+                if (authorized?.asset) {
+                    return authorized.asset
+                }
+            } catch (error) {
+                if (!(error instanceof ForbiddenException)) {
+                    throw error
+                }
+                // Bare UUID locators are backwards compatible with both FileAsset and StorageFile ids.
+            }
         }
+        return null
     }
 
     /**
@@ -556,6 +606,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         const reference = await this.resolveRuntimeReferenceWithDefaults(
             {
                 ...input,
+                source: WORKSPACE_FILES_SOURCE,
                 filePath: uploaded.filePath,
                 workspacePath: uploaded.filePath,
                 originalName,
@@ -578,15 +629,37 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         catalog: WorkspaceFile['catalog']
         scopeId?: string
     } {
-        const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
+        const requestedTenantId = normalizeOptionalString(input.tenantId)
+        const actorTenantId = RequestContext.currentTenantId()
+        if (requestedTenantId && actorTenantId && requestedTenantId !== actorTenantId) {
+            throw new ForbiddenException('Workspace file tenant is outside the current actor scope')
+        }
+        const tenantId = actorTenantId ?? requestedTenantId
         if (!tenantId) {
             throw new BadRequestException('tenantId is required for workspace file access')
         }
-        const userId = normalizeOptionalString(input.userId) ?? RequestContext.currentUserId()
         const catalog = normalizeOptionalString(input.catalog)
         if (catalog && !isWorkspaceFileCatalog(catalog)) {
             throw new BadRequestException(`Unsupported workspace file catalog: ${catalog}`)
         }
+        const actorUserId = RequestContext.currentUserId()
+        const requestedUserId = normalizeOptionalString(input.userId)
+        const requestedScopeId = normalizeOptionalString(input.scopeId)
+        if (
+            (catalog === 'users' || catalog === 'user-xperts') &&
+            actorUserId &&
+            requestedUserId &&
+            requestedUserId !== actorUserId
+        ) {
+            throw new ForbiddenException('Workspace user scope is outside the current actor scope')
+        }
+        if (catalog === 'users' && actorUserId && requestedScopeId && requestedScopeId !== actorUserId) {
+            throw new ForbiddenException('Workspace user scope is outside the current actor scope')
+        }
+        const userId =
+            (catalog === 'users' || catalog === 'user-xperts') && actorUserId
+                ? actorUserId
+                : (requestedUserId ?? actorUserId)
 
         const resolved = resolveWorkspaceVolumeScope(input, { tenantId, userId })
         if (!resolved) {
@@ -595,8 +668,24 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         return resolved
     }
 
+    private async assertCanMutateVolume(volumeScope: WorkspaceVolumeScopeResolution['volumeScope']) {
+        if (volumeScope.catalog !== 'projects') {
+            return
+        }
+        const projectId = normalizeOptionalString(volumeScope.projectId)
+        if (!projectId) {
+            throw new BadRequestException('projectId is required for Project workspace file mutation')
+        }
+        await this.projectAccessService.assertCanEdit(projectId)
+    }
+
     private resolveUnderstandingScope(input: WorkspaceFileScope) {
-        const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
+        const requestedTenantId = normalizeOptionalString(input.tenantId)
+        const actorTenantId = RequestContext.currentTenantId()
+        if (requestedTenantId && actorTenantId && requestedTenantId !== actorTenantId) {
+            throw new ForbiddenException('File understanding tenant is outside the current actor scope')
+        }
+        const tenantId = actorTenantId ?? requestedTenantId
         if (!tenantId) {
             throw new BadRequestException('tenantId is required for file understanding access')
         }
@@ -608,17 +697,30 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         }
     }
 
-    /** Normalize unauthorized Project assets to the same scoped not-found failure. */
-    private async assertUnderstandingAssetVisible(input: WorkspaceUnderstandingStatusInput) {
-        const scope = this.resolveUnderstandingScope(input)
-        await this.requireQueryBus().execute(new GetFileUnderstandingStatusQuery(input.fileAssetId, scope))
-        if (!scope.projectId) {
-            return
-        }
-        const files = await this.requireQueryBus().execute(new ListProjectFilesQuery(scope.projectId))
-        if (!files.some((file) => file.id === input.fileAssetId)) {
+    /** Normalize unauthorized assets to the same scoped not-found failure. */
+    private async assertUnderstandingAssetVisible(
+        input: WorkspaceUnderstandingStatusInput,
+        operation: FileAssetOperation = 'read'
+    ) {
+        try {
+            const authorized = await this.requireQueryBus().execute(
+                new ResolveAuthorizedFileAssetQuery({
+                    locator: { fileAssetId: input.fileAssetId },
+                    authority: this.resolveFileAssetAuthority(input),
+                    operation
+                })
+            )
+            if (!authorized?.asset) {
+                throw new Error('File asset access was not resolved')
+            }
+        } catch {
             throw new BadRequestException('File understanding asset was not found in the current workspace')
         }
+    }
+
+    private resolveFileAssetAuthority(input: object): FileAssetAuthority {
+        const conversationId = 'conversationId' in input ? normalizeOptionalString(input.conversationId) : undefined
+        return conversationId ? { kind: 'conversation', conversationId } : { kind: 'current-owner' }
     }
 
     /** Convert a persisted chunk to the bounded plugin-facing DTO. */
@@ -699,7 +801,7 @@ function readRuntimeScope(descriptor: Record<string, unknown>): WorkspaceFileSco
  * workspaces are the broader collaboration boundary.
  */
 function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defaults: WorkspaceFilesRuntimeDefaults): T {
-    const scoped = { ...input } as T & WorkspaceFileScope
+    const scoped = { ...input } as T & WorkspaceFileScope & { conversationId?: string | null }
     assertRuntimeScopeMatch('tenantId', scoped.tenantId, defaults.tenantId)
     assertRuntimeScopeMatch('organizationId', scoped.organizationId, defaults.organizationId)
     assertRuntimeScopeMatch('userId', scoped.userId, defaults.userId)
@@ -709,11 +811,68 @@ function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defau
     scoped.organizationId =
         normalizeOptionalString(scoped.organizationId) ?? normalizeOptionalString(defaults.organizationId)
     scoped.userId = normalizeOptionalString(scoped.userId) ?? normalizeOptionalString(defaults.userId)
+    assertRuntimeScopeMatch('conversationId', scoped.conversationId, defaults.conversationId)
+    scoped.conversationId =
+        normalizeOptionalString(scoped.conversationId) ?? normalizeOptionalString(defaults.conversationId)
+
+    const defaultCatalog = normalizeOptionalString(defaults.catalog) as WorkspaceFileScope['catalog']
+    const defaultScopeId = normalizeOptionalString(defaults.scopeId)
+    if (defaultCatalog) {
+        const requestedCatalog = normalizeOptionalString(scoped.catalog)
+        if (requestedCatalog && requestedCatalog !== defaultCatalog) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileCatalogOutsideExecutionScope', {
+                    defaultValue: 'Workspace file catalog is outside the current execution scope'
+                })
+            )
+        }
+        scoped.catalog = defaultCatalog
+    }
+    if (defaultScopeId) {
+        const requestedScopeId = normalizeOptionalString(scoped.scopeId)
+        if (requestedScopeId && requestedScopeId !== defaultScopeId) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileScopeOutsideExecutionScope', {
+                    defaultValue: 'Workspace file scopeId is outside the current execution scope'
+                })
+            )
+        }
+        scoped.scopeId = defaultScopeId
+        if (defaultCatalog === 'projects') {
+            assertRuntimeScopeMatch('projectId', scoped.projectId, defaults.projectId ?? defaultScopeId)
+        } else if (defaultCatalog === 'xperts' || defaultCatalog === 'user-xperts') {
+            assertRuntimeScopeMatch('xpertId', scoped.xpertId, defaults.xpertId ?? defaultScopeId)
+        }
+    }
+
+    const boundScope = resolveBoundRuntimeWorkspaceScope(defaults)
+    if (boundScope) {
+        assertBoundRuntimeWorkspaceScope(scoped, boundScope)
+        scoped.catalog = boundScope.catalog
+        scoped.scopeId = boundScope.scopeId
+        scoped.projectId = boundScope.projectId
+        scoped.xpertId = boundScope.xpertId
+        scoped.knowledgeId = undefined
+        scoped.rootId = undefined
+        scoped.isolateByUser = boundScope.isolateByUser
+        return scoped
+    }
 
     if (!hasExplicitWorkspaceScope(scoped)) {
         const projectId = normalizeOptionalString(defaults.projectId)
         const xpertId = normalizeOptionalString(defaults.xpertId)
-        if (projectId) {
+        if (defaultCatalog && defaultScopeId) {
+            scoped.catalog = defaultCatalog
+            scoped.scopeId = defaultScopeId
+            if (defaultCatalog === 'projects') {
+                scoped.projectId = projectId ?? defaultScopeId
+            } else if (defaultCatalog === 'xperts' || defaultCatalog === 'user-xperts') {
+                scoped.xpertId = xpertId ?? defaultScopeId
+                if (defaultCatalog === 'xperts') {
+                    scoped.isolateByUser = defaults.isolateByUser ?? false
+                }
+            }
+        } else if (projectId) {
             scoped.projectId = projectId
         } else if (xpertId) {
             scoped.xpertId = xpertId
@@ -723,24 +882,99 @@ function applyRuntimeScopeDefaults<T extends WorkspaceFileScope>(input: T, defau
         const catalog = normalizeOptionalString(scoped.catalog)
         if (catalog === 'projects' && !normalizeOptionalString(scoped.projectId)) {
             scoped.projectId = normalizeOptionalString(defaults.projectId)
-        } else if (catalog === 'xperts' && !normalizeOptionalString(scoped.xpertId)) {
+        } else if ((catalog === 'xperts' || catalog === 'user-xperts') && !normalizeOptionalString(scoped.xpertId)) {
             scoped.xpertId = normalizeOptionalString(defaults.xpertId)
-            scoped.isolateByUser = scoped.isolateByUser ?? false
+            if (catalog === 'xperts') {
+                scoped.isolateByUser = scoped.isolateByUser ?? false
+            }
         }
     }
 
     return scoped
 }
 
+type BoundRuntimeWorkspaceScope = Pick<
+    WorkspaceFileScope,
+    'catalog' | 'scopeId' | 'projectId' | 'xpertId' | 'isolateByUser'
+> & {
+    catalog: 'projects' | 'xperts' | 'user-xperts'
+    scopeId: string
+}
+
+function resolveBoundRuntimeWorkspaceScope(defaults: WorkspaceFilesRuntimeDefaults): BoundRuntimeWorkspaceScope | null {
+    const projectId = normalizeOptionalString(defaults.projectId)
+    const xpertId = normalizeOptionalString(defaults.xpertId)
+    const requestedCatalog = normalizeOptionalString(defaults.catalog)
+    const requestedScopeId = normalizeOptionalString(defaults.scopeId)
+
+    if (projectId) {
+        if (
+            (requestedCatalog && requestedCatalog !== 'projects') ||
+            (requestedScopeId && requestedScopeId !== projectId)
+        ) {
+            throw new BadRequestException('Workspace runtime Project scope is inconsistent')
+        }
+        return {
+            catalog: 'projects',
+            scopeId: projectId,
+            projectId,
+            xpertId,
+            isolateByUser: false
+        }
+    }
+
+    if (!xpertId) {
+        return null
+    }
+    const catalog = requestedCatalog ?? (defaults.isolateByUser ? 'user-xperts' : 'xperts')
+    if ((catalog !== 'xperts' && catalog !== 'user-xperts') || (requestedScopeId && requestedScopeId !== xpertId)) {
+        throw new BadRequestException('Workspace runtime Xpert scope is inconsistent')
+    }
+    return {
+        catalog,
+        scopeId: xpertId,
+        projectId: undefined,
+        xpertId,
+        isolateByUser: catalog === 'user-xperts'
+    }
+}
+
+function assertBoundRuntimeWorkspaceScope(scope: WorkspaceFileScope, bound: BoundRuntimeWorkspaceScope) {
+    const requestedCatalog = normalizeOptionalString(scope.catalog)
+    const requestedScopeId = normalizeOptionalString(scope.scopeId)
+    const requestedProjectId = normalizeOptionalString(scope.projectId)
+    const requestedXpertId = normalizeOptionalString(scope.xpertId)
+    const hasForeignScope = Boolean(
+        normalizeOptionalString(scope.knowledgeId) ||
+        normalizeOptionalString(scope.rootId) ||
+        (bound.catalog === 'projects' ? false : requestedProjectId)
+    )
+    if (
+        (requestedCatalog && requestedCatalog !== bound.catalog) ||
+        (requestedScopeId && requestedScopeId !== bound.scopeId) ||
+        (requestedProjectId && requestedProjectId !== bound.projectId) ||
+        (requestedXpertId && requestedXpertId !== bound.xpertId) ||
+        (typeof scope.isolateByUser === 'boolean' && scope.isolateByUser !== bound.isolateByUser) ||
+        hasForeignScope
+    ) {
+        throw new BadRequestException('Workspace file scope is outside the current execution scope')
+    }
+}
+
 function assertRuntimeScopeMatch(
-    field: 'tenantId' | 'organizationId' | 'userId',
+    field: 'tenantId' | 'organizationId' | 'userId' | 'projectId' | 'xpertId' | 'conversationId',
     requested: string | null | undefined,
     authoritative: string | null | undefined
 ) {
     const requestedValue = normalizeOptionalString(requested)
     const authoritativeValue = normalizeOptionalString(authoritative)
     if (requestedValue && authoritativeValue && requestedValue !== authoritativeValue) {
-        throw new BadRequestException(`Workspace file ${field} is outside the current execution scope`)
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFileFieldOutsideExecutionScope', {
+                field,
+                defaultValue: 'Workspace file {{field}} is outside the current execution scope'
+            })
+        )
     }
 }
 
@@ -758,7 +992,42 @@ function hasExplicitWorkspaceScope(scope: WorkspaceFileScope) {
 function normalizeRequiredWorkspaceFilePath(value: unknown) {
     const normalized = normalizeOptionalString(value)?.replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
     if (!normalized || normalized === '.' || normalized.split('/').includes('..')) {
-        throw new BadRequestException('workspace file path is required')
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathRequired', { defaultValue: 'workspace file path is required' })
+        )
+    }
+    return normalized
+}
+
+/** Normalize a path that is already persisted relative to its resolved Volume root. */
+function normalizeVolumeRelativeFilePath(value: unknown) {
+    const raw = normalizeOptionalString(value)
+    if (!raw || raw.includes('\0')) {
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathRequired', { defaultValue: 'workspace file path is required' })
+        )
+    }
+
+    const unixPath = raw.replace(/\\/g, '/')
+    if (path.posix.isAbsolute(unixPath)) {
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePersistedPathRelative', {
+                defaultValue: 'persisted workspace file path must be relative to its volume root'
+            })
+        )
+    }
+    const parts = unixPath.split('/').filter((part) => part && part !== '.')
+    if (!parts.length || parts.some((part) => part === '..')) {
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathInvalid', { defaultValue: 'invalid workspace file path' })
+        )
+    }
+
+    const normalized = path.posix.normalize(parts.join('/'))
+    if (!normalized || normalized === '.' || normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathInvalid', { defaultValue: 'invalid workspace file path' })
+        )
     }
     return normalized
 }
@@ -771,10 +1040,16 @@ function normalizeRequiredWorkspaceFilePath(value: unknown) {
 function normalizeRuntimeWorkspaceFilePath(value: unknown, defaults: WorkspaceFilesRuntimeDefaults) {
     const raw = normalizeOptionalString(value)
     if (!raw) {
-        throw new BadRequestException('workspace file path is required')
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathRequired', { defaultValue: 'workspace file path is required' })
+        )
     }
     if (raw.includes('\0')) {
-        throw new BadRequestException('workspace file path contains invalid characters')
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathInvalidCharacters', {
+                defaultValue: 'workspace file path contains invalid characters'
+            })
+        )
     }
 
     const unixPath = raw.replace(/\\/g, '/')
@@ -787,18 +1062,33 @@ function normalizeRuntimeWorkspaceFilePath(value: unknown, defaults: WorkspaceFi
             return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`)
         })
         if (!matchedRoot) {
-            throw new BadRequestException('absolute workspace file path must be inside the runtime workspace root')
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileAbsolutePathOutsideRoot', {
+                    defaultValue: 'absolute workspace file path must be inside the runtime workspace root'
+                })
+            )
         }
         const normalizedRoot = path.posix.normalize(matchedRoot)
         if (normalizedCandidate === normalizedRoot) {
-            throw new BadRequestException('workspace file path must point to a file below the workspace root')
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFilePathBelowRootRequired', {
+                    defaultValue: 'workspace file path must point to a file below the workspace root'
+                })
+            )
         }
         relativePath = unixPath.slice(matchedRoot.length).replace(/^\/+/, '')
+    } else {
+        const workingDirectory = runtimeWorkingDirectoryRelativePath(defaults)
+        if (workingDirectory) {
+            relativePath = path.posix.join(workingDirectory, unixPath)
+        }
     }
 
     const parts = relativePath.split('/').filter((part) => part && part !== '.')
     if (!parts.length || parts.some((part) => part === '..')) {
-        throw new BadRequestException('invalid workspace file path')
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathInvalid', { defaultValue: 'invalid workspace file path' })
+        )
     }
 
     const normalized = path.posix.normalize(parts.join('/'))
@@ -809,7 +1099,9 @@ function normalizeRuntimeWorkspaceFilePath(value: unknown, defaults: WorkspaceFi
         normalized.startsWith('../') ||
         path.posix.isAbsolute(normalized)
     ) {
-        throw new BadRequestException('invalid workspace file path')
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceFilePathInvalid', { defaultValue: 'invalid workspace file path' })
+        )
     }
     return normalized
 }
@@ -828,8 +1120,31 @@ function uniqueWorkspaceRoots(defaults: WorkspaceFilesRuntimeDefaults) {
 
 /** Rebuild the sandbox-visible workspace path stored in portable references. */
 function toRuntimeWorkspacePath(filePath: string, defaults: WorkspaceFilesRuntimeDefaults) {
-    const workspaceRoot = uniqueWorkspaceRoots(defaults)[0] ?? '/workspace'
+    const workspaceRoot = normalizeOptionalString(defaults.workspaceRoot) ?? '/workspace'
     return path.posix.join(workspaceRoot, filePath)
+}
+
+function runtimeWorkingDirectoryRelativePath(defaults: WorkspaceFilesRuntimeDefaults) {
+    const workspaceRoot = normalizeOptionalString(defaults.workspaceRoot)
+    const workspacePath = normalizeOptionalString(defaults.workspacePath)
+    if (!workspaceRoot || !workspacePath) {
+        return ''
+    }
+    const relativePath = path.posix.relative(
+        path.posix.normalize(workspaceRoot.replace(/\\/g, '/')),
+        path.posix.normalize(workspacePath.replace(/\\/g, '/'))
+    )
+    if (!relativePath || relativePath === '.') {
+        return ''
+    }
+    if (relativePath.startsWith('../') || path.posix.isAbsolute(relativePath)) {
+        throw new BadRequestException(
+            t('server-ai:Error.WorkspaceRuntimePathOutsideRoot', {
+                defaultValue: 'runtime workspace path must be inside the workspace root'
+            })
+        )
+    }
+    return relativePath
 }
 
 function normalizeUploadFolder(value: string) {
@@ -843,6 +1158,8 @@ function resolveWorkspaceVolumeScopeError(input: WorkspaceUploadBufferInput | Wo
             return `projectId is required for project ${context}`
         case 'xperts':
             return `xpertId is required for xpert ${context}`
+        case 'user-xperts':
+            return `userId and xpertId are required for user-isolated xpert ${context}`
         case 'users':
             return `userId is required for user ${context}`
         case 'knowledges':

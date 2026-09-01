@@ -67,7 +67,7 @@ export class ViewExtensionService {
 			}
 
 			return this.permissionService
-				.filterVisibleManifests(manifests)
+				.filterVisibleManifests(manifests, context)
 				.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER))
 		})
 	}
@@ -97,7 +97,10 @@ export class ViewExtensionService {
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
 
-		return resolved.manifest
+		return {
+			...resolved.manifest,
+			actions: this.permissionService.filterVisibleActions(resolved.manifest.actions, context)
+		}
 	}
 
 	async getRemoteComponentEntry(
@@ -181,7 +184,7 @@ export class ViewExtensionService {
 		if (!action) {
 			throw new NotFoundException(`Action '${actionKey}' was not found for view '${viewKey}'`)
 		}
-		this.permissionService.ensureActionVisible(action)
+		this.permissionService.ensureActionVisible(action, context)
 
 		if ((action.transport ?? 'json') !== 'json') {
 			throw new BadRequestException(`Action '${actionKey}' does not support JSON transport`)
@@ -219,7 +222,7 @@ export class ViewExtensionService {
 		if (!action) {
 			throw new NotFoundException(`Action '${actionKey}' was not found for view '${viewKey}'`)
 		}
-		this.permissionService.ensureActionVisible(action)
+		this.permissionService.ensureActionVisible(action, context)
 
 		if ((action.transport ?? 'json') !== 'file') {
 			throw new BadRequestException(`Action '${actionKey}' does not support file transport`)
@@ -245,8 +248,13 @@ export class ViewExtensionService {
 		return result
 	}
 
-	async resolveViewFileAccessContext(hostType: string, hostId: string, viewKey: string) {
-		const context = await this.resolveHostContext(hostType, hostId)
+	async resolveViewFileAccessContext(
+		hostType: string,
+		hostId: string,
+		viewKey: string,
+		options?: ViewHostResolutionOptions
+	) {
+		const context = await this.resolveHostContext(hostType, hostId, options)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
@@ -264,9 +272,10 @@ export class ViewExtensionService {
 		hostType: string,
 		hostId: string,
 		viewKey: string,
-		request: XpertViewFileAccessRequest
+		request: XpertViewFileAccessRequest,
+		options?: ViewHostResolutionOptions
 	) {
-		const context = await this.resolveHostContext(hostType, hostId)
+		const context = await this.resolveHostContext(hostType, hostId, options)
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
@@ -339,13 +348,15 @@ export class ViewExtensionService {
 		}
 
 		const baseContext = buildBaseViewHostContext(hostType, hostId)
-		const resolution = await Promise.resolve(definition.resolve(hostId, options))
+		const runtimeOptions = this.getRuntimeResolutionOptions()
+		const resolutionOptions = options || runtimeOptions ? { ...runtimeOptions, ...options } : undefined
+		const resolution = await Promise.resolve(definition.resolve(hostId, resolutionOptions))
 
 		if (!resolution) {
 			throw new NotFoundException(`View host '${hostType}:${hostId}' was not found`)
 		}
 
-		await this.permissionService.assertHostReadable(definition, baseContext, resolution, options)
+		await this.permissionService.assertHostReadable(definition, baseContext, resolution, resolutionOptions)
 
 		const contextExtension = isRecord(resolution.context) ? resolution.context : {}
 
@@ -356,6 +367,14 @@ export class ViewExtensionService {
 			hostSnapshot: resolution.hostSnapshot,
 			slots: [...definition.slots].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 		}
+	}
+
+	private getRuntimeResolutionOptions(): ViewHostResolutionOptions | undefined {
+		const request = RequestContext.currentRequest()
+		const projectId = getSingleHeader(request?.headers?.['x-xpert-view-project-id'])
+		const conversationId = getSingleHeader(request?.headers?.['x-xpert-view-conversation-id'])
+		if (!projectId && !conversationId) return undefined
+		return { runtimeScope: { projectId, conversationId } }
 	}
 
 	private assertEnterpriseXpertViewHost(hostType: string, hostId: string) {
@@ -394,6 +413,11 @@ export class ViewExtensionService {
 			throw new BadRequestException(`Invalid remote component entry '${entry}'`)
 		}
 	}
+}
+
+function getSingleHeader(value: string | string[] | undefined): string | null {
+	const first = Array.isArray(value) ? value[0] : value
+	return typeof first === 'string' && first.trim() ? first.trim() : null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

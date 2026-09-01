@@ -6,6 +6,8 @@ import {
     KnowledgebaseImportArchiveInput,
     KnowledgebaseListDocumentsInput,
     KnowledgebaseMoveDocumentInput,
+    KnowledgebaseReadImageInput,
+    KnowledgebaseReprocessDocumentsInput,
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput
 } from '@xpert-ai/plugin-sdk'
@@ -38,10 +40,20 @@ export class StartKnowledgebaseDocumentsProcessingCommand {
     constructor(public readonly input: KnowledgebaseStartProcessingInput) {}
 }
 
+/** Requests a full, scope-checked reprocess with a replacement parser contract. */
+export class ReprocessKnowledgebaseDocumentsCommand {
+    constructor(public readonly input: KnowledgebaseReprocessDocumentsInput) {}
+}
+
 export class GetKnowledgebaseDocumentStatusCommand {
     constructor(public readonly input: KnowledgebaseDocumentStatusInput) {}
 }
 
 export class DeleteKnowledgebaseDocumentsCommand {
     constructor(public readonly input: KnowledgebaseDeleteDocumentsInput) {}
+}
+
+/** Server-only command for a scoped, original standalone image read. */
+export class ReadKnowledgebaseDocumentImageCommand {
+    constructor(public readonly input: KnowledgebaseReadImageInput) {}
 }

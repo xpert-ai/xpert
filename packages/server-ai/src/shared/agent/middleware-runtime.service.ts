@@ -21,13 +21,17 @@ import {
     normalizeMiddlewareProvider
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
-import { Injectable, Logger, Optional } from '@nestjs/common'
+import { ForbiddenException, Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import {
     AIModelProviderNotFoundException,
     IAIModelProviderStrategy,
     AgentMiddlewareAssistantTaskFile,
+    AgentMiddlewareExternalAssistantBinding,
+    AgentMiddlewareListExternalAssistantBindingsInput,
+    AgentMiddlewareListCorrelatedExecutionsInput,
+    AgentMiddlewareCorrelatedExecution,
     AgentMiddlewareAssistantTaskCancelResult,
     AgentMiddlewareAssistantTaskInput,
     AgentMiddlewareAssistantTaskResult,
@@ -58,8 +62,11 @@ import {
     KnowledgebaseSearchInput,
     KnowledgebaseSearchResult,
     KnowledgebaseStartProcessingInput,
+    KnowledgebaseReprocessDocumentsInput,
     KnowledgebaseUploadFileInput,
     KnowledgebaseUploadedFile,
+    KnowledgebaseReadImageInput,
+    KnowledgebaseReadImageResult,
     KnowledgebaseWriteChunkInput,
     KnowledgebaseWriteChunkResult,
     AgentMiddlewareEvent,
@@ -94,7 +101,7 @@ import {
     type WorkspaceFilesApi,
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
-import { FileStorage, GetStorageFileQuery, OutboundActorTokenProvider } from '@xpert-ai/server-core'
+import { FileStorage, OutboundActorTokenProvider } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
@@ -116,19 +123,25 @@ import {
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     UploadKnowledgebaseDocumentFileCommand,
+    ReadKnowledgebaseDocumentImageCommand,
     WriteAgentKnowledgeChunkCommand
 } from '../../knowledgebase/commands'
 import { EnsureKnowledgebasesCommand } from '../../knowledgebase/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
-import { FileAsset, GetFileAssetQuery } from '../../file-understanding'
+import type { FileAsset } from '../../file-understanding/entities/file-asset.entity'
+import type { FileAssetAuthority, FileAssetLocator } from '../../file-understanding/file-asset-access.service'
+import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
+import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { applicationMetrics } from '../../metrics'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { FindAgentExecutionsQuery } from '../../xpert-agent-execution/queries/find.query'
 import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
 import { ConnectorService } from '../../connector/connector.service'
@@ -143,6 +156,14 @@ import { ModuleRef } from '@nestjs/core'
 import { wrapAgentExecution } from './execution'
 import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
+import {
+    describeExternalAssistantBinding,
+    directExternalAssistantIds,
+    matchesExternalAssistantExpectation,
+    safeExternalAssistantBinding,
+    type ResolvedExternalAssistantBinding
+} from '../../xpert/external-assistant-binding'
+import { In } from 'typeorm'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -562,6 +583,13 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new StartKnowledgebaseDocumentsProcessingCommand(input))
     }
 
+    /** Dispatches a scope-checked full reprocess without exposing storage paths. */
+    async reprocessKnowledgebaseDocuments(
+        input: KnowledgebaseReprocessDocumentsInput
+    ): Promise<KnowledgebaseDocumentStatusResult> {
+        return this.commandBus.execute(new ReprocessKnowledgebaseDocumentsCommand(input))
+    }
+
     async getKnowledgebaseDocumentStatus(
         input: KnowledgebaseDocumentStatusInput
     ): Promise<KnowledgebaseDocumentStatusResult> {
@@ -574,62 +602,84 @@ export class AgentMiddlewareRuntimeService {
         return this.commandBus.execute(new DeleteKnowledgebaseDocumentsCommand(input))
     }
 
-    async resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {
+    /** Delegates scoped image reads to the Knowledge command boundary; never exposes storage paths directly. */
+    async readKnowledgebaseDocumentImage(input: KnowledgebaseReadImageInput): Promise<KnowledgebaseReadImageResult> {
+        return this.commandBus.execute(new ReadKnowledgebaseDocumentImageCommand(input))
+    }
+
+    async resolveFile(
+        input: AgentMiddlewareFileReference,
+        scope: AgentMiddlewareRuntimeScope = {}
+    ): Promise<AgentMiddlewareResolvedFile | null> {
         const directUrl =
             normalizeOptionalString(input.previewUrl) ??
             normalizeOptionalString(input.fileUrl) ??
             normalizeOptionalString(input.url)
-        const fileAssetId =
-            normalizeOptionalString(input.fileAssetId) ??
-            normalizeOptionalString(input.fileId) ??
-            (!normalizeOptionalString(input.storageFileId) ? normalizeOptionalString(input.id) : undefined)
-        let storageFileId = normalizeOptionalString(input.storageFileId)
+        const explicitFileAssetId = normalizeOptionalString(input.fileAssetId) ?? normalizeOptionalString(input.fileId)
+        const requestedStorageFileId = normalizeOptionalString(input.storageFileId)
+        const bareId = normalizeOptionalString(input.id)
+        const fileAssetId = explicitFileAssetId ?? (!requestedStorageFileId ? bareId : undefined)
+        const legacyStorageFileId = requestedStorageFileId ?? (!explicitFileAssetId ? bareId : undefined)
+        let storageFileId = requestedStorageFileId
         let fileAsset: FileAsset | null = null
         let storageFile: IStorageFile | null = null
 
-        if (!directUrl && fileAssetId) {
-            fileAsset = await this.queryBus.execute<GetFileAssetQuery, FileAsset | null>(
-                new GetFileAssetQuery(fileAssetId)
-            )
-            storageFileId = storageFileId ?? normalizeOptionalString(fileAsset?.storageFileId)
+        if (fileAssetId || storageFileId) {
+            let locator: FileAssetLocator
+            if (fileAssetId) {
+                locator = { fileAssetId, ...(requestedStorageFileId ? { storageFileId: requestedStorageFileId } : {}) }
+            } else {
+                locator = { storageFileId }
+            }
+            try {
+                const authorized = await this.queryBus.execute(
+                    new ResolveAuthorizedFileAssetQuery({
+                        locator,
+                        authority: this.resolveFileAssetAuthority(scope),
+                        operation: 'read'
+                    })
+                )
+                fileAsset = authorized.asset
+                storageFile = authorized.storageFile ?? null
+                storageFileId = normalizeOptionalString(storageFile?.id)
+            } catch (error) {
+                if (!(error instanceof ForbiddenException) || explicitFileAssetId || !legacyStorageFileId) {
+                    throw error
+                }
+                storageFile = await this.queryBus.execute(new GetOwnedStorageFileQuery(legacyStorageFileId))
+                storageFileId = normalizeOptionalString(storageFile?.id)
+            }
         }
 
-        if (!directUrl && storageFileId) {
-            const storageFiles = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-                new GetStorageFileQuery([storageFileId])
-            )
-            storageFile = storageFiles[0] ?? null
-        }
-
-        const url = directUrl ?? this.resolveStorageFileUrl(storageFile)
+        const url = storageFile ? this.resolveStorageFileUrl(storageFile) : directUrl
         if (!url) {
             return null
         }
 
         const name =
-            normalizeOptionalString(input.name) ??
-            normalizeOptionalString(input.originalName) ??
             normalizeOptionalString(fileAsset?.originalName) ??
             normalizeOptionalString(fileAsset?.fileName) ??
             normalizeOptionalString(storageFile?.originalName) ??
+            normalizeOptionalString(input.name) ??
+            normalizeOptionalString(input.originalName) ??
             'source-document'
         const mimeType =
-            normalizeOptionalString(input.mimeType) ??
-            normalizeOptionalString(input.mimetype) ??
             normalizeOptionalString(fileAsset?.mimeType) ??
-            normalizeOptionalString(storageFile?.mimetype)
+            normalizeOptionalString(storageFile?.mimetype) ??
+            normalizeOptionalString(input.mimeType) ??
+            normalizeOptionalString(input.mimetype)
         const size =
-            typeof input.size === 'number'
-                ? input.size
-                : typeof fileAsset?.size === 'number'
-                  ? fileAsset.size
-                  : typeof storageFile?.size === 'number'
-                    ? storageFile.size
+            typeof fileAsset?.size === 'number'
+                ? fileAsset.size
+                : typeof storageFile?.size === 'number'
+                  ? storageFile.size
+                  : typeof input.size === 'number'
+                    ? input.size
                     : undefined
 
         return {
-            id: fileAssetId ?? storageFileId ?? url,
-            ...(fileAssetId ? { fileId: fileAssetId, fileAssetId } : {}),
+            id: fileAsset?.id ?? storageFileId ?? url,
+            ...(fileAsset ? { fileId: fileAsset.id, fileAssetId: fileAsset.id } : {}),
             ...(storageFileId ? { storageFileId } : {}),
             name,
             ...(mimeType ? { mimeType } : {}),
@@ -660,6 +710,94 @@ export class AgentMiddlewareRuntimeService {
         }
     }
 
+    /** Re-resolve the published graph so required-edge changes take effect without persisted instance IDs. */
+    async listExternalAssistantBindings(
+        input: AgentMiddlewareListExternalAssistantBindingsInput
+    ): Promise<AgentMiddlewareExternalAssistantBinding[]> {
+        return (await this.resolveExternalAssistantBindings(input.requesterXpertId, input.requesterAgentKey)).map(
+            safeExternalAssistantBinding
+        )
+    }
+
+    /** Limit reconciliation to requester-owned runs from currently bound external Assistants. */
+    async listCorrelatedAssistantExecutions(
+        input: AgentMiddlewareListCorrelatedExecutionsInput
+    ): Promise<AgentMiddlewareCorrelatedExecution[]> {
+        const bindings = (
+            await this.resolveExternalAssistantBindings(input.requesterXpertId, input.requesterAgentKey)
+        ).filter((binding) => binding.status === 'available')
+        if (!bindings.length) return []
+        const bindingByXpertId = new Map(bindings.map((binding) => [binding.xpertId, binding]))
+        const result = await this.queryBus.execute<FindAgentExecutionsQuery, { items: IXpertAgentExecution[] }>(
+            new FindAgentExecutionsQuery({
+                where: { xpertId: In([...bindingByXpertId.keys()]) } as never,
+                order: { createdAt: 'DESC' },
+                take: Math.min(Math.max(input.limit ?? 100, 1), 200)
+            })
+        )
+        return (result.items ?? []).flatMap((execution) => {
+            const metadata = execution.metadata
+            const inputRecord =
+                execution.inputs && typeof execution.inputs === 'object' && !Array.isArray(execution.inputs)
+                    ? execution.inputs
+                    : undefined
+            const correlation =
+                metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+                    ? (readJsonRecordOrString(metadata, 'correlation') ??
+                      (inputRecord ? readJsonRecordOrString(inputRecord, 'executionCorrelation') : undefined))
+                    : inputRecord
+                      ? readJsonRecordOrString(inputRecord, 'executionCorrelation')
+                      : undefined
+            if (metadata?.['requesterXpertId'] !== input.requesterXpertId || !correlation) return []
+            const namespace = readRecordString(correlation, 'namespace')
+            const operationId = readRecordString(correlation, 'operationId')
+            const subjectId = readRecordString(correlation, 'subjectId')
+            if (
+                namespace !== input.namespace ||
+                subjectId !== input.subjectId ||
+                !operationId ||
+                !execution.id ||
+                !execution.xpertId
+            )
+                return []
+            const binding = bindingByXpertId.get(execution.xpertId)
+            if (!binding) return []
+            const correlationAttributes = readJsonRecordOrString(correlation, 'attributes')
+            const flowExecution = inputRecord ? readJsonRecordOrString(inputRecord, 'flowExecution') : undefined
+            const envelopeMatchesCorrelation =
+                flowExecution &&
+                readRecordString(flowExecution, 'operationId') === operationId &&
+                readRecordString(flowExecution, 'caseId') === subjectId
+            // Chat collaborator calls already persist their structured inputs on
+            // the child execution. Treat the governed flowExecution envelope as
+            // the canonical correlation attributes when the caller did not
+            // redundantly copy those fields into executionCorrelation.attributes.
+            const attributes = correlationAttributes ?? (envelopeMatchesCorrelation ? flowExecution : undefined)
+            return [
+                {
+                    operationId,
+                    subjectId,
+                    ...(attributes ? { attributes } : {}),
+                    status: mapExecutionStatusToTaskStatus(execution.status),
+                    executionId: execution.id,
+                    ...(execution.parentId ? { parentExecutionId: execution.parentId } : {}),
+                    ...(execution.threadId ? { threadId: execution.threadId } : {}),
+                    executorXpertId: execution.xpertId,
+                    ...(execution.agentKey || binding.primaryAgentKey
+                        ? { executorAgentKey: execution.agentKey ?? binding.primaryAgentKey }
+                        : {}),
+                    ...(binding.templateSource?.templateKey
+                        ? { executorAssistantTemplateKey: binding.templateSource.templateKey }
+                        : {}),
+                    ...(binding.title ? { executorAssistantTitle: binding.title } : {}),
+                    ...(binding.publishedVersion ? { executorPublishedVersion: binding.publishedVersion } : {}),
+                    ...(dateString(execution.createdAt) ? { startedAt: dateString(execution.createdAt) } : {}),
+                    ...(dateString(execution.updatedAt) ? { updatedAt: dateString(execution.updatedAt) } : {})
+                }
+            ]
+        })
+    }
+
     async cancelAssistantTask(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskCancelResult> {
@@ -679,21 +817,31 @@ export class AgentMiddlewareRuntimeService {
         }
     }
 
+    /** Starts a task on the current Assistant or one deterministically resolved external Assistant. */
     async startAssistantTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
-        const xpertId = normalizeOptionalString(input.xpertId)
+        const requesterXpertId = normalizeOptionalString(input.xpertId)
         const prompt = normalizeOptionalString(input.prompt)
-        if (!xpertId) {
+        if (!requesterXpertId) {
             throw new Error('xpertId is required to start an assistant task')
         }
         if (!prompt) {
             throw new Error('prompt is required to start an assistant task')
         }
 
+        if (input.target && input.target.requesterXpertId !== requesterXpertId) {
+            throw new Error('External Assistant requester must match xpertId')
+        }
+        // Reject invalid or ambiguous bindings before creating conversation or execution rows.
+        const externalBinding = input.target ? await this.resolveExternalAssistantTarget(input.target) : undefined
+        const xpertId = externalBinding?.xpertId ?? requesterXpertId
+        const agentKey = externalBinding?.primaryAgentKey ?? normalizeOptionalString(input.agentKey)
+        const executionAssistant = externalBinding ?? (await this.resolveAssistantExecutionDescriptor(xpertId))
+
         // Resolve portable plugin skill references before creating any task rows.
         // This keeps invalid or cross-Agent selections from leaving partial runs.
         const assistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
             xpertId,
-            normalizeOptionalString(input.agentKey),
+            agentKey,
             input.selectedSkillRefs
         )
 
@@ -721,11 +869,13 @@ export class AgentMiddlewareRuntimeService {
             new XpertAgentExecutionUpsertCommand({
                 id: executionId,
                 xpertId,
-                agentKey: normalizeOptionalString(input.agentKey),
+                agentKey,
                 status: XpertAgentExecutionStatusEnum.RUNNING,
                 threadId: conversation.threadId,
                 metadata: {
-                    from: 'job'
+                    from: 'job',
+                    requesterXpertId,
+                    ...(input.correlation ? { correlation: input.correlation } : {})
                 }
             })
         )
@@ -748,7 +898,7 @@ export class AgentMiddlewareRuntimeService {
         const stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
             new XpertChatCommand(request, {
                 xpertId,
-                agentKey: normalizeOptionalString(input.agentKey),
+                agentKey,
                 from: 'job',
                 ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
                 projectId: normalizeOptionalString(input.projectId) ?? undefined,
@@ -776,8 +926,93 @@ export class AgentMiddlewareRuntimeService {
             taskId,
             conversationId: conversation.id,
             threadId: conversation.threadId,
-            executionId: execution.id
+            executionId: execution.id,
+            executorXpertId: xpertId,
+            ...(agentKey ? { executorAgentKey: agentKey } : {}),
+            ...(executionAssistant?.templateSource?.templateKey
+                ? { executorAssistantTemplateKey: executionAssistant.templateSource.templateKey }
+                : {}),
+            ...(executionAssistant?.title ? { executorAssistantTitle: executionAssistant.title } : {}),
+            ...(executionAssistant?.publishedVersion
+                ? { executorPublishedVersion: executionAssistant.publishedVersion }
+                : {})
         }
+    }
+
+    /** Resolves optional display metadata for the actual execution Assistant. */
+    private async resolveAssistantExecutionDescriptor(xpertId: string) {
+        try {
+            const xpert = await this.queryBus.execute<FindXpertQuery, IXpert>(
+                new FindXpertQuery({ id: xpertId }, { relations: ['agent'] })
+            )
+            return describeExternalAssistantBinding(xpert, xpert)
+        } catch {
+            return undefined
+        }
+    }
+
+    /** Require exactly one same-organization, published Assistant matching template and Agent identity. */
+    private async resolveExternalAssistantTarget(
+        target: NonNullable<AgentMiddlewareAssistantTaskInput['target']>
+    ): Promise<ResolvedExternalAssistantBinding> {
+        const bindings = await this.resolveExternalAssistantBindings(target.requesterXpertId, target.requesterAgentKey)
+        const matching = bindings.filter((binding) => matchesExternalAssistantExpectation(binding, target.expectation))
+        if (matching.length > 1) {
+            throw new Error('assistant_binding_ambiguous')
+        }
+        const binding = matching[0]
+        if (!binding) {
+            const unpublished = bindings.some(
+                (candidate) =>
+                    candidate.status === 'unpublished' &&
+                    candidate.templateSource?.templateKey === target.expectation.templateKey &&
+                    candidate.primaryAgentKey === target.expectation.agentKey
+            )
+            const nearMatch = bindings.some(
+                (candidate) =>
+                    candidate.templateSource?.templateKey === target.expectation.templateKey ||
+                    candidate.primaryAgentKey === target.expectation.agentKey
+            )
+            throw new Error(
+                unpublished
+                    ? 'assistant_unpublished'
+                    : nearMatch
+                      ? 'assistant_binding_incompatible'
+                      : 'assistant_binding_missing'
+            )
+        }
+        if (binding.status === 'unpublished') throw new Error('assistant_unpublished')
+        if (binding.status !== 'available') throw new Error('assistant_binding_incompatible')
+        return binding
+    }
+
+    /** The requester primary Agent is the trust anchor; nested and optional Xpert edges are excluded. */
+    private async resolveExternalAssistantBindings(
+        requesterXpertIdValue: string,
+        requesterAgentKeyValue: string
+    ): Promise<ResolvedExternalAssistantBinding[]> {
+        const requesterXpertId = normalizeOptionalString(requesterXpertIdValue)
+        const requesterAgentKey = normalizeOptionalString(requesterAgentKeyValue)
+        if (!requesterXpertId || !requesterAgentKey) return []
+        const requester = await this.queryBus.execute<FindXpertQuery, IXpert>(
+            new FindXpertQuery({ id: requesterXpertId }, { relations: ['agent'] })
+        )
+        if (requester.agent?.key !== requesterAgentKey) return []
+        const targetIds = directExternalAssistantIds(requester, requesterAgentKey)
+        const candidates = await Promise.all(
+            targetIds.map(async (id) => {
+                try {
+                    return await this.queryBus.execute<FindXpertQuery, IXpert>(
+                        new FindXpertQuery({ id }, { relations: ['agent'] })
+                    )
+                } catch {
+                    return null
+                }
+            })
+        )
+        return candidates
+            .filter((candidate): candidate is IXpert => Boolean(candidate))
+            .map((candidate) => describeExternalAssistantBinding(requester, candidate))
     }
 
     /**
@@ -877,6 +1112,10 @@ export class AgentMiddlewareRuntimeService {
         this.api = this.createScopedApi()
     }
 
+    resolveSelectedConnectorRuntimeBindings(scope: AgentMiddlewareRuntimeScope) {
+        return this.connectors.resolveSelectedRuntimeBindings(scope.connectorBindingIds, scope)
+    }
+
     /**
      * Build an Agent middleware runtime API for a specific invocation scope.
      *
@@ -885,16 +1124,16 @@ export class AgentMiddlewareRuntimeService {
      * project/Xpert workspace boundary.
      */
     createScopedApi(scope: AgentMiddlewareRuntimeScope = {}): AgentMiddlewareRuntimeApi {
-        const workspaceFilesApi = hasRuntimeWorkspaceScope(scope)
+        const workspaceFilesApi = hasBoundRuntimeWorkspaceScope(scope)
             ? this.workspaceFiles.createScopedApi(scope)
-            : this.workspaceFiles.api
+            : null
         const artifactsApi = this.artifacts.createScopedApi({
             ...scope,
             organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
         })
         const collaborationApi = this.collaboration.createScopedApi(scope)
         const actorTokenApi = this.createActorTokenApi(scope)
-        const visualAssetsApi = this.visualAssetsRuntime(scope, workspaceFilesApi)
+        const connectorApi = this.connectors.createScopedRuntimeApi(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry([
             [ActorTokenRuntimeCapability, actorTokenApi],
             [
@@ -916,8 +1155,10 @@ export class AgentMiddlewareRuntimeService {
                     importArchive: (input) => this.importKnowledgebaseArchive(input),
                     createDocuments: (input) => this.createKnowledgebaseDocuments(input),
                     startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
+                    reprocessDocuments: (input) => this.reprocessKnowledgebaseDocuments(input),
                     getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
-                    deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input)
+                    deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input),
+                    readImage: (input) => this.readKnowledgebaseDocumentImage(input)
                 }
             ],
             [
@@ -931,6 +1172,8 @@ export class AgentMiddlewareRuntimeService {
                 AssistantTaskRuntimeCapability,
                 {
                     startTask: (input) => this.startAssistantTask(input),
+                    listExternalAssistantBindings: (input) => this.listExternalAssistantBindings(input),
+                    listCorrelatedExecutions: (input) => this.listCorrelatedAssistantExecutions(input),
                     getTaskStatus: (input) => this.getAssistantTaskStatus(input),
                     cancelTask: (input) => this.cancelAssistantTask(input)
                 }
@@ -938,20 +1181,12 @@ export class AgentMiddlewareRuntimeService {
             [
                 FileRuntimeCapability,
                 {
-                    resolveFile: (input) => this.resolveFile(input)
+                    resolveFile: (input) => this.resolveFile(input, scope)
                 }
             ],
-            [
-                ConnectorRuntimeCapability,
-                {
-                    getConnector: (input) => this.connectors.getRuntimeConnector(input),
-                    getConnectorCredential: (input) => this.connectors.getRuntimeConnectorCredential(input)
-                }
-            ],
+            [ConnectorRuntimeCapability, connectorApi],
             [ArtifactsRuntimeCapability, artifactsApi],
             [CollaborationRuntimeCapability, collaborationApi],
-            [WorkspaceFilesRuntimeCapability, workspaceFilesApi],
-            [KnowledgeDocumentVisualAssetsRuntimeCapability, visualAssetsApi],
             // Provisioning is host-authorized and deliberately separate from
             // Agent-visible tools; plugins access it through runtime capabilities.
             [
@@ -961,6 +1196,13 @@ export class AgentMiddlewareRuntimeService {
                 }
             ]
         ])
+        if (workspaceFilesApi) {
+            capabilities.register(WorkspaceFilesRuntimeCapability, workspaceFilesApi)
+            capabilities.register(
+                KnowledgeDocumentVisualAssetsRuntimeCapability,
+                this.visualAssetsRuntime(scope, workspaceFilesApi)
+            )
+        }
 
         return {
             createModelClient: (copilotModel, options) => this.createModelClient(copilotModel, options, scope, true),
@@ -1002,6 +1244,7 @@ export class AgentMiddlewareRuntimeService {
             xpert_id: normalizeOptionalString(scope.xpertId),
             xpert_name: normalizeOptionalString(scope.xpertName),
             conversation_id: normalizeOptionalString(scope.conversationId),
+            thread_id: normalizeOptionalString(scope.threadId),
             agent_key: normalizeOptionalString(scope.agentKey),
             execution_id: normalizeOptionalString(scope.executionId)
         })
@@ -1061,6 +1304,11 @@ export class AgentMiddlewareRuntimeService {
         return new FileStorage().getProvider(storageFile.storageProvider)?.url(file)
     }
 
+    private resolveFileAssetAuthority(scope: AgentMiddlewareRuntimeScope): FileAssetAuthority {
+        const conversationId = normalizeOptionalString(scope.conversationId)
+        return conversationId ? { kind: 'conversation', conversationId } : { kind: 'current-owner' }
+    }
+
     private async findAssistantTaskConversation(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<IChatConversation | null> {
@@ -1115,6 +1363,40 @@ export class AgentMiddlewareRuntimeService {
     }
 }
 
+function readRecordString(value: object, key: string) {
+    const candidate = Reflect.get(value, key)
+    return typeof candidate === 'string' ? candidate.trim() : ''
+}
+
+function readJsonRecord(value: object, key: string): Record<string, any> | undefined {
+    const candidate = Reflect.get(value, key)
+    return candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+        ? (candidate as Record<string, any>)
+        : undefined
+}
+
+function readJsonRecordOrString(value: object, key: string): Record<string, any> | undefined {
+    const candidate = Reflect.get(value, key)
+    const record = readJsonRecord(value, key)
+    if (record) return record
+    if (typeof candidate !== 'string' || !candidate.trim()) return undefined
+    try {
+        const parsed = JSON.parse(candidate)
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? (parsed as Record<string, any>)
+            : undefined
+    } catch {
+        return undefined
+    }
+}
+
+function dateString(value: unknown) {
+    if (value instanceof Date) return value.toISOString()
+    if (typeof value !== 'string' || !value.trim()) return ''
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
 function normalizeOptionalString(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
@@ -1142,16 +1424,9 @@ function pruneUndefined<T extends Record<string, unknown>>(value: T): T {
     return Object.fromEntries(Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)) as T
 }
 
-/** Check whether a middleware runtime needs a per-invocation workspace facade. */
-function hasRuntimeWorkspaceScope(scope: AgentMiddlewareRuntimeScope) {
-    return Boolean(
-        normalizeOptionalString(scope.tenantId) ||
-        normalizeOptionalString(scope.userId) ||
-        normalizeOptionalString(scope.projectId) ||
-        normalizeOptionalString(scope.xpertId) ||
-        normalizeOptionalString(scope.workspaceRoot) ||
-        normalizeOptionalString(scope.workspacePath)
-    )
+/** Workspace capabilities are safe only when the host binds a concrete data owner. */
+function hasBoundRuntimeWorkspaceScope(scope: AgentMiddlewareRuntimeScope) {
+    return Boolean(normalizeOptionalString(scope.projectId) || normalizeOptionalString(scope.xpertId))
 }
 
 function mapConversationStatusToTaskStatus(

@@ -15,7 +15,23 @@ const mockVolumeSubtreeClient = jest.fn().mockImplementation(() => ({
 }))
 
 jest.mock('../shared/volume', () => ({
-    VolumeSubtreeClient: mockVolumeSubtreeClient
+    VolumeSubtreeClient: mockVolumeSubtreeClient,
+    resolveXpertDataVolumeScope: jest.fn((input) =>
+        input.workspaceDataScope === 'user'
+            ? {
+                  tenantId: input.tenantId,
+                  catalog: 'user-xperts',
+                  userId: input.userId,
+                  xpertId: input.xpertId
+              }
+            : {
+                  tenantId: input.tenantId,
+                  catalog: 'xperts',
+                  userId: input.userId,
+                  xpertId: input.xpertId,
+                  isolateByUser: false
+              }
+    )
 }))
 
 import { TFile } from '@xpert-ai/contracts'
@@ -41,7 +57,9 @@ describe('FileMemoryFacade memory files', () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
         scopeResolver.resolve.mockResolvedValue({
             id: 'xpert-1',
-            tenantId: 'tenant-1'
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            workspaceDataScope: 'shared'
         })
 
         facade = new FileMemoryFacade(
@@ -61,6 +79,7 @@ describe('FileMemoryFacade memory files', () => {
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
+            userId: 'user-1',
             xpertId: 'xpert-1',
             isolateByUser: false
         })
@@ -68,6 +87,25 @@ describe('FileMemoryFacade memory files', () => {
         expect(mockList).toHaveBeenCalledWith('.xpert/memory', {
             path: 'docs',
             deepth: 2
+        })
+    })
+
+    it('uses the current user leaf for a user-isolated xpert memory workspace', async () => {
+        scopeResolver.resolve.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            workspaceDataScope: 'user'
+        })
+        mockList.mockResolvedValue([])
+
+        await facade.getMemoryFiles('xpert-1')
+
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'user-xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1'
         })
     })
 
@@ -82,6 +120,7 @@ describe('FileMemoryFacade memory files', () => {
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
+            userId: 'user-1',
             xpertId: 'xpert-1',
             isolateByUser: false
         })
@@ -100,6 +139,7 @@ describe('FileMemoryFacade memory files', () => {
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
             catalog: 'xperts',
+            userId: 'user-1',
             xpertId: 'xpert-1',
             isolateByUser: false
         })
@@ -119,7 +159,9 @@ describe('FileMemoryFacade memory files', () => {
         expect(mockWriteMemory).toHaveBeenCalledWith(
             {
                 id: 'xpert-1',
-                tenantId: 'tenant-1'
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                workspaceDataScope: 'shared'
             },
             expect.objectContaining({
                 type: 'project',

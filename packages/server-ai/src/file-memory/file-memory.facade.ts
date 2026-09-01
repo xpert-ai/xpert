@@ -3,7 +3,12 @@ import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { FileMemoryDreamService } from './dream.service'
-import { FileMemoryGetInput, FileMemorySearchInput, FileMemoryService, FileMemoryWriteInput } from './file-memory.service'
+import {
+    FileMemoryGetInput,
+    FileMemorySearchInput,
+    FileMemoryService,
+    FileMemoryWriteInput
+} from './file-memory.service'
 import { getXpertFileMemoryVolumeScope, getXpertFileMemoryWorkspacePath } from './paths'
 import { FileMemoryXpertScopeResolver } from './ports'
 import { FileMemoryDreamConfig, FileMemoryDreamRequest } from './types'
@@ -20,26 +25,20 @@ export class FileMemoryFacade {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.scopeResolver.resolve(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).list(
-            getXpertFileMemoryWorkspacePath(xpert.id),
-            {
-                path,
-                deepth
-            }
-        )
+        return this.createWorkspaceVolumeClient(xpert).list(getXpertFileMemoryWorkspacePath(xpert.id), {
+            path,
+            deepth
+        })
     }
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.scopeResolver.resolve(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).readFile(
-            getXpertFileMemoryWorkspacePath(xpert.id),
-            filePath
-        )
+        return this.createWorkspaceVolumeClient(xpert).readFile(getXpertFileMemoryWorkspacePath(xpert.id), filePath)
     }
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.scopeResolver.resolve(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).saveFile(
+        return this.createWorkspaceVolumeClient(xpert).saveFile(
             getXpertFileMemoryWorkspacePath(xpert.id),
             filePath,
             content
@@ -52,7 +51,7 @@ export class FileMemoryFacade {
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
         const xpert = await this.scopeResolver.resolve(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).uploadFile(
+        return this.createWorkspaceVolumeClient(xpert).uploadFile(
             getXpertFileMemoryWorkspacePath(xpert.id),
             folderPath,
             file
@@ -61,10 +60,7 @@ export class FileMemoryFacade {
 
     async deleteMemoryFile(id: string, filePath: string): Promise<void> {
         const xpert = await this.scopeResolver.resolve(id)
-        await this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).deleteFile(
-            getXpertFileMemoryWorkspacePath(xpert.id),
-            filePath
-        )
+        await this.createWorkspaceVolumeClient(xpert).deleteFile(getXpertFileMemoryWorkspacePath(xpert.id), filePath)
     }
 
     async writeFileMemory(id: string, input: FileMemoryWriteInput) {
@@ -112,9 +108,17 @@ export class FileMemoryFacade {
         return this.fileMemoryDreamService.cancelRun(xpert, runId)
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, _userId: string, xpertId: string) {
-        return new VolumeSubtreeClient(this.volumeClient.resolve(getXpertFileMemoryVolumeScope(tenantId, xpertId)), {
-            allowRootWorkspace: true
-        })
+    private createWorkspaceVolumeClient(xpert: Awaited<ReturnType<FileMemoryXpertScopeResolver['resolve']>>) {
+        return new VolumeSubtreeClient(
+            this.volumeClient.resolve(
+                getXpertFileMemoryVolumeScope(
+                    xpert.tenantId,
+                    xpert.id,
+                    xpert.userId ?? RequestContext.currentUserId(),
+                    xpert.workspaceDataScope
+                )
+            ),
+            { allowRootWorkspace: true }
+        )
     }
 }

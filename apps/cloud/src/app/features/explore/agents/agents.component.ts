@@ -11,6 +11,8 @@ import {
   IXpertWorkspace,
   injectToastr,
   OrderTypeEnum,
+  PluginApplicationService,
+  PluginApplicationStatusSummary,
   TXpertTemplate,
   XpertAPIService,
   XpertTemplateService,
@@ -37,6 +39,7 @@ export class ExploreAgentsComponent {
   readonly workspace = input<IXpertWorkspace | null>(null)
 
   readonly #templateService = inject(XpertTemplateService)
+  readonly #applicationService = inject(PluginApplicationService)
   readonly #xpertService = inject(XpertAPIService)
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
@@ -45,6 +48,7 @@ export class ExploreAgentsComponent {
   readonly loadingTemplates = signal(true)
   readonly loadingMine = signal(false)
   readonly templateItems = signal<TXpertTemplate[]>([])
+  readonly applicationStatuses = signal<PluginApplicationStatusSummary[]>([])
   readonly mineItems = signal<IXpert[]>([])
 
   readonly items = computed(() => {
@@ -112,6 +116,11 @@ export class ExploreAgentsComponent {
     try {
       const result = await firstValueFrom(this.#templateService.getAll())
       this.templateItems.set(result?.recommendedApps ?? [])
+      try {
+        this.applicationStatuses.set(await firstValueFrom(this.#applicationService.getStatuses()))
+      } catch {
+        this.applicationStatuses.set([])
+      }
     } catch (error) {
       this.templateItems.set([])
       this.#toastr.error(getErrorMessage(error))
@@ -159,6 +168,17 @@ export class ExploreAgentsComponent {
   }
 
   install(item: TXpertTemplate) {
+    if (item.application) {
+      const status = this.applicationStatus(item)
+      if (status?.status === 'ready' && status.assistantSlug) {
+        void this.#router.navigate(['/chat/x', status.assistantSlug, 'c'])
+        return
+      }
+      void this.#router.navigate(['/explore/apps', item.application.appName], {
+        queryParams: { plugin: item.application.pluginName, setup: 1 }
+      })
+      return
+    }
     if (item.type === XpertTypeEnum.Agent || item.type === XpertTypeEnum.Copilot) {
       this.#dialog
         .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
@@ -188,6 +208,20 @@ export class ExploreAgentsComponent {
           }
         })
     }
+  }
+
+  openTemplate(item: TXpertTemplate) {
+    if (item.application) {
+      void this.#router.navigate(['/explore/apps', item.application.appName], {
+        queryParams: { plugin: item.application.pluginName }
+      })
+    }
+  }
+
+  applicationStatus(item: TXpertTemplate) {
+    return item.application
+      ? (this.applicationStatuses().find((status) => status.appId === item.application?.id) ?? null)
+      : null
   }
 
   openMineItem(item: IXpert) {

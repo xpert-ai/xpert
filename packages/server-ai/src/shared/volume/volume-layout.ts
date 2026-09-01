@@ -3,6 +3,7 @@ import path from 'path'
 
 const LEGACY_PUBLIC_VOLUME_PREFIX =
     /^(?:(user|project|knowledges|skills)\/[0-9a-fA-F-]{36}\/|xpert\/[0-9a-fA-F-]{36}\/(?:user\/[0-9a-fA-F-]{36}\/)?)/
+const LEGACY_FLAT_SANDBOX_VOLUME_LAYOUT = 'legacy-flat'
 
 export function getLocalSandboxDataRoot() {
     const homeDir = process.env.HOME || process.env.USERPROFILE || ''
@@ -27,8 +28,15 @@ export function hasConfiguredSandboxVolume() {
     return Boolean(getConfiguredSandboxVolume())
 }
 
-export function usesFlattenedSandboxVolumeLayout() {
+function usesLocalSandboxDataRoot() {
     return environment.envName === 'dev' && !hasConfiguredSandboxVolume()
+}
+
+export function usesFlattenedSandboxVolumeLayout() {
+    const configuredLayout = `${environment.env?.SANDBOX_VOLUME_LAYOUT ?? process.env.SANDBOX_VOLUME_LAYOUT ?? ''}`
+        .trim()
+        .toLowerCase()
+    return usesLocalSandboxDataRoot() && configuredLayout === LEGACY_FLAT_SANDBOX_VOLUME_LAYOUT
 }
 
 export function runsInsideDockerApiContainer() {
@@ -44,6 +52,10 @@ export function getApiContainerSandboxVolumeRootPath(tenantId?: string) {
         return tenantId ? `/sandbox/${tenantId}` : '/sandbox'
     }
 
+    if (usesLocalSandboxDataRoot()) {
+        return path.join(getLocalSandboxDataRoot(), tenantId ?? '')
+    }
+
     if (environment.envName === 'dev') {
         return getConfiguredDockerHostSandboxVolumeRootPath(tenantId)!
     }
@@ -56,7 +68,16 @@ export function getDockerHostSandboxVolumeRootPath(tenantId?: string) {
         return getLocalSandboxDataRoot()
     }
 
-    return getConfiguredDockerHostSandboxVolumeRootPath(tenantId) ?? getApiContainerSandboxVolumeRootPath(tenantId)
+    const configuredRoot = getConfiguredDockerHostSandboxVolumeRootPath(tenantId)
+    if (configuredRoot) {
+        return configuredRoot
+    }
+
+    if (usesLocalSandboxDataRoot() && !runsInsideDockerApiContainer()) {
+        return path.join(getLocalSandboxDataRoot(), tenantId ?? '')
+    }
+
+    return getApiContainerSandboxVolumeRootPath(tenantId)
 }
 
 export const getSandboxVolumeRootPath = getApiContainerSandboxVolumeRootPath
@@ -67,4 +88,22 @@ export function normalizeSandboxPublicVolumeSubpath(subpath: string) {
     }
 
     return subpath.replace(LEGACY_PUBLIC_VOLUME_PREFIX, '')
+}
+
+export function normalizeSandboxVolumeRequestSubpath(subpath: string): string | null {
+    const unixPath = subpath.replace(/\\/g, '/')
+    if (!unixPath || unixPath.includes('\0') || path.posix.isAbsolute(unixPath)) {
+        return null
+    }
+
+    const segments = unixPath.split('/').filter((segment) => segment && segment !== '.')
+    if (!segments.length || segments.some((segment) => segment === '..')) {
+        return null
+    }
+
+    const normalized = path.posix.normalize(segments.join('/'))
+    if (!normalized || normalized === '.' || normalized.startsWith('../') || path.posix.isAbsolute(normalized)) {
+        return null
+    }
+    return normalized
 }

@@ -1,5 +1,10 @@
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { GetChatConversationQuery } from '../../../chat-conversation'
+import {
+    AssertChatConversationAccessQuery,
+    ChatConversationThreadService,
+    GetChatConversationQuery
+} from '../../../chat-conversation'
+import { Optional } from '@nestjs/common'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { ThreadDTO } from '../../dto'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
@@ -7,13 +12,22 @@ import { FindThreadQuery } from '../thread-find.query'
 
 @QueryHandler(FindThreadQuery)
 export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
-    constructor(private readonly queryBus: QueryBus) {}
+    constructor(
+        private readonly queryBus: QueryBus,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+    ) {}
 
     public async execute(command: FindThreadQuery): Promise<ThreadDTO> {
-        const chatConversation = await this.queryBus.execute(
-            new GetChatConversationQuery({ threadId: command.threadId }, command.relations)
-        )
-        assertPublicXpertSessionConversationAccess(chatConversation)
+        const thread = this.conversationThreadService
+            ? await this.conversationThreadService.requireByThreadId(command.threadId)
+            : null
+        const chatConversation =
+            thread?.conversation ??
+            (await this.queryBus.execute(
+                new GetChatConversationQuery({ threadId: command.threadId }, command.relations)
+            ))
+        await this.queryBus.execute(new AssertChatConversationAccessQuery({ id: chatConversation.id }))
+        await assertPublicXpertSessionConversationAccess(chatConversation, this.queryBus)
 
         const tuple = await this.queryBus.execute(
             new CopilotCheckpointGetTupleQuery({
@@ -22,6 +36,6 @@ export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
             })
         )
 
-        return new ThreadDTO(chatConversation, tuple?.checkpoint.channel_values ?? {})
+        return new ThreadDTO(chatConversation, tuple?.checkpoint.channel_values ?? {}, thread ?? undefined)
     }
 }

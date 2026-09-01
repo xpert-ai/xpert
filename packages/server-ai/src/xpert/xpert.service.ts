@@ -1,6 +1,7 @@
 import {
     ChecklistItem,
     convertToUrlPath,
+    DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     ICopilotStore,
     IUser,
     IXpertPrincipalReference,
@@ -18,9 +19,18 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { OptionParams, PaginationParams, RequestContext, transformWhere, UserGroupService } from '@xpert-ai/server-core'
-import { ForbiddenException, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    HttpException,
+    HttpStatus,
+    Inject,
+    Injectable,
+    NotFoundException
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
+import { t } from 'i18next'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
@@ -29,7 +39,7 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { MyXpertWorkspaceQuery, XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import type { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertPublishCommand } from './commands'
@@ -72,7 +82,18 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async updateXpert(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
-        assign(_entity, entity)
+        const { workspaceDataScope, ...mutableEntity } = entity
+        if (
+            workspaceDataScope !== undefined &&
+            workspaceDataScope !== (_entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE)
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.XpertWorkspaceDataScopeImmutable', {
+                    defaultValue: 'Workspace data isolation cannot be changed after the Xpert is created.'
+                })
+            )
+        }
+        assign(_entity, mutableEntity)
         return await super.save(_entity)
     }
 
@@ -111,6 +132,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return await super.create(
             {
                 ...entity,
+                workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
             },
             ...options
@@ -360,6 +382,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             nodes: normalizeMiddlewareNodes(draft.nodes),
             team: {
                 ...draft.team,
+                workspaceDataScope: xpert.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }
@@ -385,6 +408,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             team: {
                 ...(currentDraft.team ?? {}),
                 ...(draft.team ?? {}),
+                workspaceDataScope: xpert.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
                 updatedAt: new Date(),
                 updatedById: RequestContext.currentUserId()
             }
@@ -439,7 +463,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     async publish(
         id: string,
         newVersion: boolean,
-        environmentId: string,
+        environmentId: string | null | undefined,
         notes: string,
         marketplace?: TXpertPublishMarketplaceInput,
         businessAreaId?: string | null
@@ -734,7 +758,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).list(
+        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).list(
             XPERT_MEMORY_WORKSPACE_PATH,
             {
                 path,
@@ -745,7 +769,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).readFile(
+        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).readFile(
             XPERT_MEMORY_WORKSPACE_PATH,
             filePath
         )
@@ -753,7 +777,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).saveFile(
+        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).saveFile(
             XPERT_MEMORY_WORKSPACE_PATH,
             filePath,
             content
@@ -766,7 +790,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).uploadFile(
+        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).uploadFile(
             XPERT_MEMORY_WORKSPACE_PATH,
             folderPath,
             file
@@ -775,7 +799,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async deleteMemoryFile(id: string, filePath: string): Promise<void> {
         const xpert = await this.findOne(id)
-        await this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId(), xpert.id).deleteFile(
+        await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).deleteFile(
             XPERT_MEMORY_WORKSPACE_PATH,
             filePath
         )
@@ -791,18 +815,20 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return this.sandboxService.listProviders()
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, _userId: string, xpertId: string) {
-        return new VolumeSubtreeClient(this.createVolumeHandle(tenantId, xpertId), {
+    private createWorkspaceVolumeClient(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
+        return new VolumeSubtreeClient(this.createVolumeHandle(xpert, userId), {
             allowRootWorkspace: true
         })
     }
 
-    private createVolumeHandle(tenantId: string, xpertId: string) {
-        return this.volumeClient.resolve({
-            tenantId,
-            catalog: 'xperts',
-            xpertId,
-            isolateByUser: false
-        })
+    private createVolumeHandle(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
+        return this.volumeClient.resolve(
+            resolveXpertDataVolumeScope({
+                tenantId: xpert.tenantId,
+                userId,
+                xpertId: xpert.id,
+                workspaceDataScope: xpert.workspaceDataScope
+            })
+        )
     }
 }

@@ -589,4 +589,79 @@ describe('KnowledgeDocumentConsumer', () => {
         )
         expect(finishUpdate?.[1]).toEqual(expect.objectContaining({ contentHash: 'new-content-hash' }))
     })
+
+    it('applies the embedding context guard before incrementally persisting oversized chunks', async () => {
+        const document = {
+            id: 'doc-bom',
+            name: '24J0708AN839 BOM.xls',
+            knowledgebaseId: 'knowledgebase-id',
+            status: KBDocumentStatusEnum.RUNNING,
+            metadata: {},
+            parserId: 'default',
+            parserConfig: {},
+            type: 'xls',
+            filePath: '24J0708AN839 BOM.xls'
+        } satisfies Partial<IKnowledgeDocument>
+        const oversizedChunk = {
+            pageContent: Array.from(
+                { length: 100 },
+                (_, index) => `- Row ${index}: ${'84350022-01A-R '.repeat(8)}\n`
+            ).join(''),
+            metadata: { chunkId: 'bom-sheet-1', spreadsheetInterpretation: 'form_document' }
+        }
+        const vectorStore = { embeddingModel: 'text-embedding-v4', addKnowledgeDocument: jest.fn() }
+        const knowledgebaseService = { getActiveVectorStore: jest.fn(async () => vectorStore) }
+        const documentService = {
+            findOne: jest.fn(async () => document),
+            findAllEmbeddingNodes: jest.fn(async () => []),
+            syncChunksIncrementally: jest.fn(async (input: IKnowledgeDocument) => ({
+                chunks: input.chunks,
+                embeddingChunks: [],
+                removedChunks: [],
+                contentHash: 'guarded-content-hash',
+                contentChanged: false,
+                statistics: {
+                    total: input.chunks.length,
+                    skipped: input.chunks.length,
+                    added: 0,
+                    updated: 0,
+                    deleted: 0
+                }
+            })),
+            update: jest.fn()
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) =>
+                command instanceof KnowledgeDocLoadCommand ? { chunks: [oversizedChunk] } : {}
+            )
+        }
+        const consumer = new KnowledgeDocumentConsumer(
+            null,
+            knowledgebaseService as unknown as KnowledgebaseService,
+            documentService as unknown as KnowledgeDocumentService,
+            {} as unknown as UserService,
+            commandBus as unknown as CommandBus
+        )
+        const job = {
+            id: 'job-bom',
+            data: { userId: 'user-id', docs: [document] }
+        } as unknown as Job<{ userId: string; docs: IKnowledgeDocument[] }>
+
+        await consumer._processJob(
+            {
+                id: 'knowledgebase-id',
+                tenantId: 'tenant-id',
+                organizationId: 'organization-id',
+                copilotModel: { options: { context_size: 256 }, copilot: { id: 'copilot-id' } }
+            } as unknown as IKnowledgebase,
+            [document as unknown as IKnowledgeDocument],
+            job
+        )
+
+        const guardedChunks = documentService.syncChunksIncrementally.mock.calls[0][0].chunks
+        expect(guardedChunks.length).toBeGreaterThan(1)
+        expect(
+            guardedChunks.every((chunk: { pageContent: string }) => Array.from(chunk.pageContent).length <= 192)
+        ).toBe(true)
+    })
 })

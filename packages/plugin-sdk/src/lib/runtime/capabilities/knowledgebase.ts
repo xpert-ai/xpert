@@ -47,6 +47,7 @@ export type KnowledgebaseListItem = {
   id: string
   name?: string
   description?: string | null
+  applicationTags?: string[]
   type?: string | null
   status?: string | null
   permission?: string | null

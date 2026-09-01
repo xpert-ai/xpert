@@ -19,9 +19,15 @@ jest.mock('@xpert-ai/contracts', () => {
 })
 
 import { of, lastValueFrom, toArray } from 'rxjs'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import {
+    ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum,
+    type TChatRequest,
+    XpertAgentExecutionStatusEnum
+} from '@xpert-ai/contracts'
 import { UploadFileCommand } from '@xpert-ai/server-core'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import type { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
@@ -29,7 +35,8 @@ import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/quer
 import {
     AttachFileToConversationCommand,
     CreateFileAssetCommand,
-    EnqueueFileParseCommand
+    EnqueueFileParseCommand,
+    ResolveAuthorizedFileAssetQuery
 } from '../../../file-understanding'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import type { TRuntimeCapabilitiesSelection } from '../../../shared/agent/runtime-capabilities'
@@ -52,7 +59,9 @@ describe('XpertChatHandler', () => {
     let goalService: Pick<ChatConversationGoalService, 'getByConversationId'>
     let redisSseStreamService: { wrapChatStream: jest.Mock }
     let projectService: { assertRuntimeAccess: jest.Mock }
+    let publishedXpertAccessService: { getAccessiblePublishedXpertFamilyIds: jest.Mock }
     let handler: XpertChatHandler
+    let currentUserIdSpy: jest.SpyInstance
 
     const xpert = {
         id: 'xpert-1',
@@ -64,6 +73,14 @@ describe('XpertChatHandler', () => {
         features: {},
         agentConfig: {}
     } as any
+
+    beforeAll(() => {
+        currentUserIdSpy = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+    })
+
+    afterAll(() => {
+        currentUserIdSpy.mockRestore()
+    })
 
     beforeEach(() => {
         xpertService = {
@@ -108,6 +125,9 @@ describe('XpertChatHandler', () => {
         projectService = {
             assertRuntimeAccess: jest.fn().mockResolvedValue({ id: 'project-1' })
         }
+        publishedXpertAccessService = {
+            getAccessiblePublishedXpertFamilyIds: jest.fn(async (id: string) => [id])
+        }
 
         handler = new XpertChatHandler(
             xpertService as any,
@@ -115,6 +135,7 @@ describe('XpertChatHandler', () => {
             commandBus as any,
             queryBus as any,
             goalService as unknown as ChatConversationGoalService,
+            publishedXpertAccessService as any,
             redisSseStreamService as any,
             projectService as any
         )
@@ -333,6 +354,85 @@ describe('XpertChatHandler', () => {
                 }
             }
         })
+    })
+
+    it('streams successfully from a Nest forwardRef placeholder populated with Object.assign', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
+                    ? { id: 'execution-1', threadId: 'thread-1' }
+                    : command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    ...(command.entity.role === 'human'
+                        ? { id: 'human-1' }
+                        : command.entity.role === 'ai' && command.entity.status === 'thinking'
+                          ? { id: 'ai-1' }
+                          : {}),
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+        const nestPlaceholder = Object.assign(Object.create(XpertChatHandler.prototype) as XpertChatHandler, handler)
+
+        const stream = await nestPlaceholder.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-forward-ref',
+                        input: { input: 'Hello from the placeholder' }
+                    }
+                },
+                { xpertId: 'xpert-1' } as XpertChatCommandOptions
+            )
+        )
+
+        await expect(lastValueFrom(stream.pipe(toArray()))).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({ event: ChatMessageEventTypeEnum.ON_CONVERSATION_END })
+                })
+            ])
+        )
     })
 
     it('persists the active goal objective for marked internal goal runs', async () => {
@@ -672,6 +772,18 @@ describe('XpertChatHandler', () => {
             originalName: 'contract.docx',
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                return {
+                    asset: {
+                        ...workspaceFile,
+                        status: 'ready',
+                        capabilities: []
+                    }
+                }
+            }
+            return null
+        })
 
         const stream = await handler.execute(
             new XpertChatCommand(
@@ -710,9 +822,9 @@ describe('XpertChatHandler', () => {
             conversationId: 'conversation-1',
             threadId: 'thread-1',
             xpertId: 'xpert-1',
+            projectId: 'project-1',
             sandboxEnvironmentId: 'environment-1'
         })
-        expect(attachCommand.input.projectId).toBeUndefined()
         expect(attachCommand.input.storageFileId).toBeUndefined()
     })
 
@@ -1478,10 +1590,170 @@ describe('XpertChatHandler', () => {
         expect(projectService.assertRuntimeAccess).toHaveBeenCalledWith('project-1', 'xpert-1')
     })
 
+    it.each<TChatRequest>([
+        {
+            action: 'send',
+            conversationId: 'conversation-1',
+            message: { input: { input: 'Unauthorized send' } }
+        },
+        {
+            action: 'retry',
+            conversationId: 'conversation-1',
+            source: {}
+        },
+        {
+            action: 'resume',
+            conversationId: 'conversation-1',
+            target: { executionId: 'execution-1' },
+            decision: { type: 'confirm' }
+        },
+        {
+            action: 'follow_up',
+            conversationId: 'conversation-1',
+            mode: 'queue',
+            message: { input: { input: 'Unauthorized follow-up' } }
+        }
+    ])('checks the actor before any $action mutation of an existing personal conversation', async (request) => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-2',
+            xpertId: 'xpert-1',
+            projectId: null,
+            messages: []
+        })
+
+        await expect(handler.execute(new XpertChatCommand(request, { xpertId: 'xpert-1' }))).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertService.findOneForRuntime).not.toHaveBeenCalled()
+    })
+
+    it('checks persisted Project runtime access before any conversation mutation', async () => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-1',
+            xpertId: 'xpert-1',
+            projectId: 'project-1',
+            messages: []
+        })
+        projectService.assertRuntimeAccess.mockRejectedValue(new ForbiddenException())
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        conversationId: 'conversation-1',
+                        message: { input: { input: 'Unauthorized Project send' } }
+                    },
+                    { xpertId: 'xpert-1' }
+                )
+            )
+        ).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(projectService.assertRuntimeAccess).toHaveBeenCalledWith('project-1', 'xpert-1')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertService.findOneForRuntime).not.toHaveBeenCalled()
+    })
+
+    it('rejects an Xpert that differs from the persisted conversation before mutation', async () => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-1',
+            xpertId: 'xpert-1',
+            projectId: 'project-1',
+            messages: []
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        conversationId: 'conversation-1',
+                        message: { input: { input: 'Mismatched Xpert' } }
+                    },
+                    { xpertId: 'xpert-2', projectId: 'project-1' }
+                )
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(projectService.assertRuntimeAccess).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertService.findOneForRuntime).not.toHaveBeenCalled()
+    })
+
+    it('accepts an existing conversation from another published version in the same Xpert family', async () => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-1',
+            xpertId: 'xpert-v1',
+            projectId: 'project-1',
+            messages: []
+        })
+        publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds.mockResolvedValue(['xpert-v1', 'xpert-v2'])
+        const runtimeAccessError = new ForbiddenException('stop after family check')
+        projectService.assertRuntimeAccess.mockRejectedValue(runtimeAccessError)
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        conversationId: 'conversation-1',
+                        message: { input: { input: 'Continue conversation' } }
+                    },
+                    { xpertId: 'xpert-v2', projectId: 'project-1' }
+                )
+            )
+        ).rejects.toBe(runtimeAccessError)
+
+        expect(publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds).toHaveBeenCalledWith('xpert-v2')
+        expect(projectService.assertRuntimeAccess).toHaveBeenCalledWith('project-1', 'xpert-v1')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('rejects a request Project that differs from the persisted binding even when options match', async () => {
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            threadId: 'thread-1',
+            createdById: 'user-1',
+            xpertId: 'xpert-1',
+            projectId: 'project-1',
+            messages: []
+        })
+
+        await expect(
+            handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        conversationId: 'conversation-1',
+                        projectId: 'project-2',
+                        message: { input: { input: 'Mismatched Project' } }
+                    },
+                    { xpertId: 'xpert-1', projectId: 'project-1' }
+                )
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(projectService.assertRuntimeAccess).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertService.findOneForRuntime).not.toHaveBeenCalled()
+    })
+
     it('persists steer follow-ups while an interrupted conversation has a waiting operation', async () => {
         const commands: any[] = []
         const conversation = {
             id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
             threadId: 'thread-1',
             status: 'interrupted',
             operation: {
@@ -1505,6 +1777,7 @@ describe('XpertChatHandler', () => {
             if (query instanceof XpertAgentExecutionOneQuery) {
                 return {
                     id: query.id,
+                    threadId: 'thread-1',
                     status: XpertAgentExecutionStatusEnum.INTERRUPTED
                 }
             }
@@ -1573,6 +1846,8 @@ describe('XpertChatHandler', () => {
         const commands: unknown[] = []
         const conversation = {
             id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
             threadId: 'thread-1',
             status: 'busy',
             operation: null,
@@ -1595,6 +1870,7 @@ describe('XpertChatHandler', () => {
             if (query instanceof XpertAgentExecutionOneQuery) {
                 return {
                     id: query.id,
+                    threadId: 'thread-1',
                     status: XpertAgentExecutionStatusEnum.RUNNING
                 }
             }
@@ -1654,6 +1930,8 @@ describe('XpertChatHandler', () => {
         const commands: unknown[] = []
         const conversation = {
             id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
             threadId: 'thread-1',
             status: 'busy',
             operation: null,
@@ -1670,6 +1948,7 @@ describe('XpertChatHandler', () => {
             if (query instanceof XpertAgentExecutionOneQuery) {
                 return {
                     id: query.id,
+                    threadId: 'thread-1',
                     status: XpertAgentExecutionStatusEnum.SUCCESS
                 }
             }
@@ -1721,6 +2000,7 @@ describe('XpertChatHandler', () => {
                 executionRead += 1
                 return {
                     id: query.id,
+                    threadId: 'thread-1',
                     status:
                         executionRead === 1
                             ? XpertAgentExecutionStatusEnum.RUNNING
@@ -1729,6 +2009,8 @@ describe('XpertChatHandler', () => {
             }
             return {
                 id: 'conversation-1',
+                xpertId: 'xpert-1',
+                createdById: 'user-1',
                 threadId: 'thread-1',
                 status: 'busy',
                 operation: null,
@@ -1769,6 +2051,8 @@ describe('XpertChatHandler', () => {
             }
             return {
                 id: 'conversation-1',
+                xpertId: 'xpert-1',
+                createdById: 'user-1',
                 threadId: 'thread-1',
                 status: 'busy',
                 operation: null,
@@ -1812,6 +2096,8 @@ describe('XpertChatHandler', () => {
         const commands: unknown[] = []
         const conversation = {
             id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
             threadId: 'thread-1',
             status: 'busy',
             operation: null,
@@ -1842,6 +2128,7 @@ describe('XpertChatHandler', () => {
             if (query instanceof XpertAgentExecutionOneQuery) {
                 return {
                     id: query.id,
+                    threadId: 'thread-1',
                     status: XpertAgentExecutionStatusEnum.RUNNING
                 }
             }
@@ -1903,6 +2190,8 @@ describe('XpertChatHandler', () => {
     it('rejects interrupted follow-ups when there is no waiting operation', async () => {
         queryBus.execute.mockResolvedValue({
             id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
             threadId: 'thread-1',
             status: 'interrupted',
             operation: null,
@@ -1945,6 +2234,8 @@ describe('XpertChatHandler', () => {
     it('rejects queue follow-ups while interrupted even when an operation is waiting', async () => {
         queryBus.execute.mockResolvedValue({
             id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
             threadId: 'thread-1',
             status: 'interrupted',
             operation: {
@@ -2002,6 +2293,8 @@ describe('XpertChatHandler', () => {
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
+                    xpertId: 'xpert-1',
+                    createdById: 'user-1',
                     threadId: 'thread-1',
                     messages: [
                         {
@@ -2117,6 +2410,8 @@ describe('XpertChatHandler', () => {
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
+                    xpertId: 'xpert-1',
+                    createdById: 'user-1',
                     threadId: 'thread-1',
                     messages: [
                         {
@@ -2536,9 +2831,17 @@ describe('XpertChatHandler', () => {
     it('reuses the interrupted ai message and execution for resume', async () => {
         const commands: any[] = []
         queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: 'execution-1',
+                    threadId: 'thread-1'
+                }
+            }
             if ('conditions' in query || 'params' in query) {
                 return {
                     id: 'conversation-1',
+                    xpertId: 'xpert-1',
+                    createdById: 'user-1',
                     threadId: 'thread-1',
                     messages: [
                         {
@@ -2651,6 +2954,7 @@ describe('XpertChatHandler', () => {
             if (query instanceof XpertAgentExecutionOneQuery) {
                 return {
                     id: 'execution-1',
+                    threadId: 'thread-1',
                     inputs: {
                         human: {
                             input: 'Plan this change',
@@ -2662,6 +2966,8 @@ describe('XpertChatHandler', () => {
             if ('conditions' in query || 'params' in query) {
                 return {
                     id: 'conversation-1',
+                    xpertId: 'xpert-1',
+                    createdById: 'user-1',
                     threadId: 'thread-1',
                     messages: [
                         {

@@ -5,6 +5,9 @@ import { AIV1Controller } from './ai-v1.controller'
 
 describe('AIV1Controller ChatKit sessions', () => {
     function createController() {
+        const commandBus = {
+            execute: jest.fn()
+        }
         const secretTokenService = {
             create: jest.fn().mockResolvedValue(undefined)
         }
@@ -16,16 +19,37 @@ describe('AIV1Controller ChatKit sessions', () => {
                 workspaceId: 'workspace-1'
             })
         }
+        const projectAccessService = {
+            assertCanUseXpert: jest.fn().mockResolvedValue({ project: { id: 'project-1' }, role: 'member' })
+        }
+        const workbenchNavigationService = {
+            resolve: jest.fn().mockResolvedValue({
+                conversationId: 'conversation-1',
+                threadId: 'thread-1',
+                xpertId: 'external-assistant-1',
+                projectId: 'project-1',
+                isExternalAssistant: true
+            })
+        }
         const controller = new AIV1Controller(
             {} as never,
-            {} as never,
+            commandBus as never,
             {} as never,
             {} as never,
             secretTokenService as never,
-            publishedXpertAccessService as never
+            publishedXpertAccessService as never,
+            projectAccessService as never,
+            workbenchNavigationService as never
         )
 
-        return { controller, secretTokenService, publishedXpertAccessService }
+        return {
+            controller,
+            commandBus,
+            secretTokenService,
+            publishedXpertAccessService,
+            projectAccessService,
+            workbenchNavigationService
+        }
     }
 
     afterEach(() => {
@@ -80,6 +104,111 @@ describe('AIV1Controller ChatKit sessions', () => {
         expect(secretTokenService.create).not.toHaveBeenCalled()
     })
 
+    it('uses Project membership and the exact Project Assistant binding for a delegated session', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1'
+        } as never)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const { controller, projectAccessService, publishedXpertAccessService, secretTokenService } = createController()
+
+        await controller.createChatkitSession(undefined as never, {
+            assistant: { id: 'external-assistant-1' },
+            project: { id: 'project-1' }
+        })
+
+        expect(projectAccessService.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'external-assistant-1')
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        expect(secretTokenService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                entityId: 'external-assistant-1',
+                type: SecretTokenBindingType.USER_XPERT,
+                createdById: 'user-1'
+            })
+        )
+    })
+
+    it('uses an authorized Workbench conversation to issue an external Assistant session', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1'
+        } as never)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const {
+            controller,
+            workbenchNavigationService,
+            projectAccessService,
+            publishedXpertAccessService,
+            secretTokenService
+        } = createController()
+
+        await controller.createChatkitSession(undefined as never, {
+            assistant: { id: 'external-assistant-1' },
+            project: { id: 'project-1' },
+            conversation: {
+                id: 'conversation-1',
+                requesterXpertId: 'orchestrator-1'
+            }
+        })
+
+        expect(workbenchNavigationService.resolve).toHaveBeenCalledWith('conversation-1', 'orchestrator-1')
+        expect(projectAccessService.assertCanUseXpert).not.toHaveBeenCalled()
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        expect(secretTokenService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                entityId: 'external-assistant-1',
+                type: SecretTokenBindingType.USER_XPERT
+            })
+        )
+    })
+
+    it('rejects a Workbench conversation resolved to another Assistant', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1'
+        } as never)
+        const { controller, workbenchNavigationService, secretTokenService } = createController()
+        workbenchNavigationService.resolve.mockResolvedValue({
+            conversationId: 'conversation-1',
+            threadId: 'thread-1',
+            xpertId: 'different-assistant',
+            projectId: 'project-1',
+            isExternalAssistant: true
+        })
+
+        await expect(
+            controller.createChatkitSession(undefined as never, {
+                assistant: { id: 'external-assistant-1' },
+                project: { id: 'project-1' },
+                conversation: {
+                    id: 'conversation-1',
+                    requesterXpertId: 'orchestrator-1'
+                }
+            })
+        ).rejects.toThrow('does not match the requested Assistant scope')
+
+        expect(secretTokenService.create).not.toHaveBeenCalled()
+    })
+
+    it('rejects an empty Project id instead of falling back to catalog access', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1'
+        } as never)
+        const { controller, projectAccessService, publishedXpertAccessService, secretTokenService } = createController()
+
+        await expect(
+            controller.createChatkitSession(undefined as never, {
+                assistant: { id: 'external-assistant-1' },
+                project: { id: '   ' }
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(projectAccessService.assertCanUseXpert).not.toHaveBeenCalled()
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        expect(secretTokenService.create).not.toHaveBeenCalled()
+    })
+
     it('caps user session lifetime at one hour', async () => {
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
             id: 'user-1',
@@ -118,5 +247,29 @@ describe('AIV1Controller ChatKit sessions', () => {
             })
         )
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+    })
+
+    it('rejects a client-controlled legacy upload target before dispatch', async () => {
+        const { controller, commandBus } = createController()
+        const file = {
+            originalname: 'file.txt',
+            mimetype: 'text/plain',
+            size: 4,
+            buffer: Buffer.from('test')
+        } as Express.Multer.File
+
+        await expect(
+            controller.create(
+                file,
+                JSON.stringify({
+                    kind: 'volume',
+                    catalog: 'users',
+                    tenantId: 'victim-tenant',
+                    userId: 'victim-user'
+                })
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(commandBus.execute).not.toHaveBeenCalled()
     })
 })

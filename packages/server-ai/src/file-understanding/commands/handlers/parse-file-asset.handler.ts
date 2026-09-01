@@ -1,7 +1,6 @@
-import { IStorageFile } from '@xpert-ai/contracts'
-import { FileStorage, GetStorageFileQuery } from '@xpert-ai/server-core'
-import { Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { FileStorage, StorageFile } from '@xpert-ai/server-core'
+import { Inject, Logger } from '@nestjs/common'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'crypto'
 import fsPromises from 'node:fs/promises'
@@ -13,7 +12,12 @@ import {
     readWorkspaceProvider
 } from '../../domain/page-image-artifact'
 import { ParsedFileArtifact } from '../../domain/types'
+import {
+    resolveFileAssetWorkspaceRelativePath,
+    resolveFileAssetWorkspaceVolumeScope
+} from '../../domain/workspace-file'
 import { FileArtifact, FileAsset, FileChunk } from '../../entities'
+import { FileAssetAccessService } from '../../file-asset-access.service'
 import { FileWorkspaceProjectionService } from '../../file-workspace-projection.service'
 import {
     FileUnderstandingVectorIndexError,
@@ -21,6 +25,7 @@ import {
 } from '../../file-understanding-vector.service'
 import { FileParserRegistry } from '../../parsers'
 import { normalizeRelativePath } from '../../../shared/file-upload-targets/utils'
+import { createVolumeFileSnapshot, VOLUME_CLIENT, VolumeClient, type VolumeFileSnapshot } from '../../../shared/volume'
 import { IndexFileChunksCommand } from '../index-file-chunks.command'
 import { ParseFileAssetCommand } from '../parse-file-asset.command'
 
@@ -39,13 +44,19 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
         @InjectRepository(FileArtifact)
         private readonly fileArtifactRepository: Repository<FileArtifact>,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus,
         private readonly parserRegistry: FileParserRegistry,
-        private readonly workspaceProjectionService: FileWorkspaceProjectionService
+        private readonly workspaceProjectionService: FileWorkspaceProjectionService,
+        private readonly fileAssetAccessService: FileAssetAccessService,
+        @Inject(VOLUME_CLIENT)
+        private readonly volumeClient: Pick<VolumeClient, 'resolve'>
     ) {}
 
     async execute(command: ParseFileAssetCommand) {
-        const asset = await this.fileAssetRepository.findOneByOrFail({ id: command.fileAssetId })
+        const { asset, storageFile } = await this.fileAssetAccessService.resolve({
+            locator: { fileAssetId: command.fileAssetId },
+            authority: { kind: 'current-owner' },
+            operation: 'parse'
+        })
         if (asset.parseMode === 'none') {
             asset.status = 'ready'
             asset.parsedAt = new Date()
@@ -56,13 +67,14 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
         asset.error = null
         await this.fileAssetRepository.save(asset)
 
+        let workspaceSnapshot: VolumeFileSnapshot | null = null
         try {
-            const storageFile = await this.resolveStorageFile(asset.storageFileId)
-            const workspaceSource = this.resolveWorkspaceSource(asset)
-            if (!storageFile && !workspaceSource?.absolutePath) {
+            const workspaceSource = storageFile ? null : await this.createWorkspaceSource(asset)
+            workspaceSnapshot = workspaceSource?.snapshot ?? null
+            if (!storageFile && !workspaceSource) {
                 throw new Error(`File asset "${asset.id}" does not have a readable storage or workspace source`)
             }
-            const filePath = storageFile ? this.resolveStorageFilePath(storageFile) : workspaceSource!.absolutePath
+            const filePath = storageFile ? this.resolveStorageFilePath(storageFile) : workspaceSource.snapshot.filePath
             const parseRunId = randomUUID()
             const stalePageImages = await this.listStalePageImages(asset.id)
             const source = {
@@ -118,39 +130,38 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
             }
             asset.failedAt = new Date()
             return this.fileAssetRepository.save(asset)
+        } finally {
+            await workspaceSnapshot?.dispose().catch((error) => {
+                this.#logger.warn(
+                    `Failed to clean workspace parser snapshot for ${asset.id}: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                )
+            })
         }
     }
 
-    private async resolveStorageFile(storageFileId?: string) {
-        if (!storageFileId) {
-            return null
-        }
-        const files = await this.queryBus.execute<GetStorageFileQuery, IStorageFile[]>(
-            new GetStorageFileQuery([storageFileId])
-        )
-        return files[0] ?? null
-    }
-
-    private resolveStorageFilePath(storageFile: IStorageFile) {
+    private resolveStorageFilePath(storageFile: StorageFile) {
         const provider = new FileStorage().getProvider(storageFile.storageProvider)
         return provider.path(storageFile.file)
     }
 
-    private resolveWorkspaceSource(asset: FileAsset) {
-        const workspace = asset.metadata?.workspace
-        if (!workspace || typeof workspace !== 'object' || Array.isArray(workspace)) {
+    private async createWorkspaceSource(asset: FileAsset) {
+        const volumeScope = resolveFileAssetWorkspaceVolumeScope(asset)
+        const relativePath = resolveFileAssetWorkspaceRelativePath(asset)
+        if (!volumeScope || !relativePath) {
             return null
         }
-        const record = workspace as Record<string, unknown>
-        const absolutePath = readString(record.absolutePath)
-        if (!absolutePath) {
-            return null
-        }
+        const snapshot = await createVolumeFileSnapshot(
+            this.volumeClient.resolve(volumeScope),
+            relativePath,
+            asset.originalName
+        )
         return {
-            absolutePath,
-            originalName: readString(record.originalName) ?? asset.originalName,
-            mimeType: readString(record.mimeType) ?? asset.mimeType,
-            size: readNumber(record.size) ?? asset.size
+            snapshot,
+            originalName: asset.originalName,
+            mimeType: asset.mimeType,
+            size: asset.size
         }
     }
 
@@ -194,7 +205,8 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
                 threadId: asset.threadId,
                 projectId: asset.projectId,
                 xpertId: asset.xpertId,
-                sandboxProvider: readWorkspaceProvider(asset.metadata)
+                sandboxProvider: readWorkspaceProvider(asset.metadata),
+                operation: 'parse'
             })
             .catch((error) => {
                 this.#logger.warn(
@@ -281,12 +293,4 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
             )
         )
     }
-}
-
-function readString(value: unknown) {
-    return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
-function readNumber(value: unknown) {
-    return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }

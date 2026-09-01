@@ -1,6 +1,9 @@
 const mockEnvironment = {
     envName: 'dev',
     baseUrl: 'http://localhost:3000',
+    env: {
+        SANDBOX_VOLUME_LAYOUT: undefined as string | undefined
+    },
     sandboxConfig: {
         volume: ''
     }
@@ -20,6 +23,7 @@ describe('resolveVolumeTarget', () => {
 
     beforeEach(() => {
         mockEnvironment.envName = 'dev'
+        mockEnvironment.env.SANDBOX_VOLUME_LAYOUT = undefined
         mockEnvironment.sandboxConfig = {
             volume: ''
         }
@@ -32,7 +36,7 @@ describe('resolveVolumeTarget', () => {
         process.env.USERPROFILE = originalUserProfile
     })
 
-    it('writes to the flattened local root when sandbox volume is not configured', () => {
+    it('writes to the selected project subtree when sandbox volume is not configured', () => {
         const volume = resolveVolumeTarget(
             createRuntimeVolumeClient(),
             {
@@ -43,7 +47,7 @@ describe('resolveVolumeTarget', () => {
             { tenantId: 'tenant-1', userId: 'user-1' }
         )
 
-        expect(volume.serverRoot).toBe('/Users/tester/data')
+        expect(volume.serverRoot).toBe('/Users/tester/data/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
         expect(volume.publicBaseUrl).toBe(
             'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
         )
@@ -65,7 +69,7 @@ describe('resolveVolumeTarget', () => {
         expect(volume.serverRoot).toBe('/tmp/sandbox/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
     })
 
-    it('falls back to the flattened local root when sandboxConfig is missing', () => {
+    it('falls back to the selected project subtree when sandboxConfig is missing', () => {
         delete mockEnvironment.sandboxConfig
 
         const volume = resolveVolumeTarget(
@@ -78,13 +82,13 @@ describe('resolveVolumeTarget', () => {
             { tenantId: 'tenant-1', userId: 'user-1' }
         )
 
-        expect(volume.serverRoot).toBe('/Users/tester/data')
+        expect(volume.serverRoot).toBe('/Users/tester/data/tenant-1/project/123e4567-e89b-12d3-a456-426614174000')
         expect(volume.publicBaseUrl).toBe(
             'http://localhost:3000/api/sandbox/volume/project/123e4567-e89b-12d3-a456-426614174000'
         )
     })
 
-    it('resolves user-isolated xpert volumes under the shared xpert workspace root', () => {
+    it('resolves user-isolated xpert volumes under the selected tenant and xpert leaf', () => {
         const volume = resolveVolumeTarget(
             createRuntimeVolumeClient(),
             {
@@ -95,10 +99,28 @@ describe('resolveVolumeTarget', () => {
             { tenantId: 'tenant-1', userId: '123e4567-e89b-12d3-a456-426614174002' }
         )
 
-        expect(volume.serverRoot).toBe('/Users/tester/data')
-        expect(volume.publicBaseUrl).toBe(
-            'http://localhost:3000/api/sandbox/volume/user/123e4567-e89b-12d3-a456-426614174002'
+        expect(volume.serverRoot).toBe(
+            '/Users/tester/data/tenant-1/xpert/123e4567-e89b-12d3-a456-426614174001/user/123e4567-e89b-12d3-a456-426614174002'
         )
+        expect(volume.publicBaseUrl).toBe(
+            'http://localhost:3000/api/sandbox/volume/xpert/123e4567-e89b-12d3-a456-426614174001/user/123e4567-e89b-12d3-a456-426614174002'
+        )
+    })
+
+    it('keeps the old flat project upload target only with the explicit legacy opt-in', () => {
+        mockEnvironment.env.SANDBOX_VOLUME_LAYOUT = 'legacy-flat'
+
+        const volume = resolveVolumeTarget(
+            createRuntimeVolumeClient(),
+            {
+                kind: 'volume',
+                catalog: 'projects',
+                projectId: '123e4567-e89b-12d3-a456-426614174000'
+            } satisfies IUploadFileVolumeTarget,
+            { tenantId: 'tenant-1', userId: 'user-1' }
+        )
+
+        expect(volume.serverRoot).toBe('/Users/tester/data')
     })
 
     it('resolves shared xpert volumes without user isolation when requested', () => {

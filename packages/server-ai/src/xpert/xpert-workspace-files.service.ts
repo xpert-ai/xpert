@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'node:crypto'
 import { WorkspaceFilesRuntimeCapabilityService } from '../shared/runtime/workspace-files-runtime-capability.service'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { XpertService } from './xpert.service'
 
 @Injectable()
@@ -52,13 +52,11 @@ export class XpertWorkspaceFilesService {
     }
 
     async upload(xpertId: string, file: Express.Multer.File): Promise<IArtifactWorkspaceFileReference> {
-        const xpert = await this.xpertService.findOne(xpertId)
+        const scope = await this.resolveScope(xpertId)
         const contentSha256 = createHash('sha256').update(file.buffer).digest('hex')
         const scopedFiles = this.workspaceFiles.createScopedApi({
-            tenantId: xpert.tenantId,
-            userId: RequestContext.currentUserId(),
-            xpertId: xpert.id,
-            isolateByUser: false
+            ...scope,
+            scopeId: scope.xpertId
         })
         const written = await scopedFiles.writeRuntimeBuffer({
             folder: `uploads/${contentSha256}`,
@@ -73,14 +71,17 @@ export class XpertWorkspaceFilesService {
     }
 
     private async createClient(xpertId: string) {
+        const volume = await this.volumeClient.resolve(await this.resolveScope(xpertId)).ensureRoot()
+        return new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
+    }
+
+    private async resolveScope(xpertId: string) {
         const xpert = await this.xpertService.findOne(xpertId)
-        const volume = this.volumeClient.resolve({
+        return resolveXpertDataVolumeScope({
             tenantId: xpert.tenantId,
-            catalog: 'xperts',
             userId: RequestContext.currentUserId(),
             xpertId: xpert.id,
-            isolateByUser: false
+            workspaceDataScope: xpert.workspaceDataScope
         })
-        return new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
     }
 }

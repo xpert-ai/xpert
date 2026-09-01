@@ -18,6 +18,7 @@ import {
 import { z } from 'zod/v3'
 import { FileMemoryService } from './file-memory.service'
 import { FileMemoryWritebackRunner } from './file-memory.writeback-runner'
+import { FileMemoryXpertScope } from './ports'
 import { FileMemoryRecallPlanner } from './recall-planner'
 import { FileMemoryHeader, FileMemoryType, ICON } from './types'
 import { assertFileMemoryType } from './taxonomy'
@@ -502,12 +503,15 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
 
         return {
             tenantId: context.tenantId,
-            id: context.xpertId
+            id: context.xpertId,
+            projectId: context.projectId,
+            userId: context.userId,
+            workspaceDataScope: context.workspaceDataScope
         }
     }
 
     private async prepareRecall(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         query: string,
         params: {
             options: FileMemoryMiddlewareOptions
@@ -556,7 +560,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
     }
 
     private async searchMemoryWithSelector(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         input: {
             query: string
             types?: FileMemoryType[]
@@ -610,7 +614,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
     }
 
     private async buildDetailBlock(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         headers: FileMemoryHeader[],
         surfacedPaths: Set<string>,
         options: { perTurnBytes: number; remainingSessionBytes: number; conversationId?: string }

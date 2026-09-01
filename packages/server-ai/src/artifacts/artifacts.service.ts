@@ -46,10 +46,10 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { sign, verify } from 'jsonwebtoken'
 import { DataSource, EntityManager, Repository } from 'typeorm'
-import { resolveWorkspaceVolumeScope } from '../file-understanding'
+import { resolveWorkspaceVolumeScope } from '../file-understanding/domain/workspace-file'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
-import { XpertWorkspaceAccessService } from '../xpert-workspace'
+import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { Artifact, ArtifactAccessLog, ArtifactLink, ArtifactVersion } from './entities'
 
 const SIGNED_PREVIEW_QUERY_PARAM = 'xpert_artifact_preview'

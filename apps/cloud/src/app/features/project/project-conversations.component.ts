@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import type { IChatConversation } from '@xpert-ai/contracts'
 import { ZardBadgeComponent, ZardButtonComponent, ZardCardImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { XpertProjectApiService } from './project-api.service'
@@ -39,7 +40,11 @@ import { XpertProjectApiService } from './project-api.service'
               <a
                 class="flex items-center justify-between gap-3 border-b border-divider-subtle px-5 py-4 last:border-0 hover:bg-background-default-subtle"
                 [routerLink]="['/project', projectId]"
-                [queryParams]="{ chat: 'open', threadId: conversation.id }"
+                [queryParams]="{
+                  chat: 'open',
+                  threadId: conversation.threadId,
+                  xpert: conversation.xpertId
+                }"
                 ><div class="flex min-w-0 items-center gap-3">
                   <span class="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary"
                     ><i class="ri-chat-3-line"></i
@@ -75,7 +80,7 @@ export class XpertProjectConversationsComponent implements OnInit {
   readonly #api = inject(XpertProjectApiService)
   readonly #route = inject(ActivatedRoute)
   readonly projectId = this.#route.parent?.snapshot.paramMap.get('id') ?? ''
-  readonly conversations = signal<Array<{ id: string; title?: string; updatedAt?: string }>>([])
+  readonly conversations = signal<IChatConversation[]>([])
   readonly loading = signal(false)
   ngOnInit() {
     const id = this.#route.parent?.snapshot.paramMap.get('id') ?? ''

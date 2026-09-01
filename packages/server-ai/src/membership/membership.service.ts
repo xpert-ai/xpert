@@ -72,6 +72,11 @@ const DEFAULT_ORGANIZATION_PLAN_GRANT_REASON = 'Organization membership initiali
 const USAGE_HOUR_FORMAT = 'yyyy-MM-dd HH'
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
+export enum XpertBillingPayer {
+    RuntimeUser = 'runtime_user',
+    Creator = 'xpert_creator'
+}
+
 type RecordUsageInput = {
     tenantId: string
     organizationId?: string | null
@@ -105,7 +110,9 @@ export type RecordGatewayUsageResult = {
     ledger: MembershipPointLedger | null
 }
 
-type BillableUserInput = Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId'>
+type BillableUserInput = Pick<RecordUsageInput, 'tenantId' | 'userId' | 'xpertId'> & {
+    xpertBillingPayer?: XpertBillingPayer
+}
 
 type MembershipWithPlan = UserMembership & { plan: IMembershipPlan }
 type MembershipAdminUserRow = User & { membership?: UserMembership | null }
@@ -3006,7 +3013,7 @@ export class MembershipService {
 
     async resolveBillableUserId(input: BillableUserInput, manager?: EntityManager): Promise<string> {
         const xpertId = input.xpertId?.trim()
-        if (!xpertId) {
+        if (!xpertId || input.xpertBillingPayer === XpertBillingPayer.RuntimeUser) {
             return input.userId
         }
 

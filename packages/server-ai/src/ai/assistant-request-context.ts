@@ -84,11 +84,14 @@ export function applyAssistantScope(xpert: IXpert) {
     applyAssistantPrincipalToCurrentRequest(apiKey, xpert.user ?? null)
 }
 
-export function assertConversationAssistantBinding(
+export async function assertConversationAssistantBinding(
     conversation: Pick<IChatConversation, 'xpertId'>,
-    assistantId: string
+    xpert: IXpert,
+    publishedXpertAccessService: Pick<PublishedXpertAccessService, 'isPublishedXpertInFamily'>
 ) {
-    if (conversation.xpertId && conversation.xpertId !== assistantId) {
+    if (!conversation.xpertId || conversation.xpertId === xpert.id) return
+
+    if (!(await publishedXpertAccessService.isPublishedXpertInFamily(conversation.xpertId, xpert))) {
         throw new ForbiddenException()
     }
 }
@@ -96,15 +99,16 @@ export function assertConversationAssistantBinding(
 export async function bindConversationAssistantIfUnbound(
     commandBus: CommandBus,
     conversation: IChatConversation,
-    assistantId: string
+    xpert: IXpert,
+    publishedXpertAccessService: Pick<PublishedXpertAccessService, 'isPublishedXpertInFamily'>
 ): Promise<IChatConversation> {
-    assertConversationAssistantBinding(conversation, assistantId)
+    await assertConversationAssistantBinding(conversation, xpert, publishedXpertAccessService)
     if (conversation.xpertId) {
         return conversation
     }
 
-    const persisted = await commandBus.execute(new ChatConversationBindXpertCommand(conversation.id, assistantId))
-    assertConversationAssistantBinding(persisted, assistantId)
+    const persisted = await commandBus.execute(new ChatConversationBindXpertCommand(conversation.id, xpert.id))
+    await assertConversationAssistantBinding(persisted, xpert, publishedXpertAccessService)
     return persisted
 }
 

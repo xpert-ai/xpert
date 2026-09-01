@@ -1,9 +1,10 @@
 import { DOCUMENT } from '@angular/common'
+import { HttpClient } from '@angular/common/http'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
-import { createChatKit } from '@xpert-ai/chatkit-angular'
+import { createChatKit, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import { of } from 'rxjs'
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
@@ -148,9 +149,26 @@ describe('assistant chatkit runtime helpers', () => {
       maxWidth: '960px'
     }
     const workbench = {
-      enabled: true
+      enabled: true,
+      sideChat: {
+        enabled: true
+      }
     }
+    const displayMode = signal<CreateChatKitOptions['displayMode']>('pet')
+    const rightHeaderAction = jest.fn()
+    const header = signal<CreateChatKitOptions['header']>({
+      rightAction: {
+        icon: 'sidebar-right',
+        onClick: rightHeaderAction
+      }
+    })
+    const onProjectChange = jest.fn()
+    const assistantId = signal('assistant-1')
     const projectId = signal('project-1')
+    const composer = signal({
+      projects: { enabled: false },
+      connectors: { enabled: true }
+    })
 
     TestBed.configureTestingModule({
       providers: [
@@ -193,14 +211,17 @@ describe('assistant chatkit runtime helpers', () => {
     TestBed.runInInjectionContext(() => {
       injectHostedAssistantChatkitControl({
         identity: signal('xpert_shared'),
-        assistantId: signal('assistant-1'),
+        assistantId,
         projectId,
         frameUrl: signal('/chatkit'),
         requestContext,
-        displayMode: 'pet',
+        displayMode,
+        header,
         layout,
         pet,
         workbench,
+        composer,
+        onProjectChange,
         titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
       })
@@ -210,6 +231,12 @@ describe('assistant chatkit runtime helpers', () => {
     expect(createChatKitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
+        header: expect.objectContaining({
+          rightAction: {
+            icon: 'sidebar-right',
+            onClick: rightHeaderAction
+          }
+        }),
         layout,
         pet,
         workbench,
@@ -220,6 +247,13 @@ describe('assistant chatkit runtime helpers', () => {
         messageNavigation: {
           enabled: true
         },
+        onProjectChange,
+        composer: expect.objectContaining({
+          projects: { enabled: false },
+          connectors: { enabled: true },
+          attachments: expect.objectContaining({ enabled: true }),
+          tools: []
+        }),
         request: {
           context: {
             env: {
@@ -230,6 +264,32 @@ describe('assistant chatkit runtime helpers', () => {
       })
     )
 
+    setOptions.mockClear()
+    displayMode.set('chat')
+    header.set(undefined)
+    flushAngularEffects()
+
+    expect(setOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        displayMode: 'chat',
+        header: {
+          title: {
+            text: 'Assistant'
+          }
+        }
+      })
+    )
+
+    displayMode.set('pet')
+    header.set({
+      rightAction: {
+        icon: 'sidebar-right',
+        onClick: rightHeaderAction
+      }
+    })
+
+    createChatKitMock.mockClear()
+    setOptions.mockClear()
     requestContext.set({
       env: {
         workspaceId: 'workspace-2',
@@ -245,6 +305,11 @@ describe('assistant chatkit runtime helpers', () => {
     projectId.set('project-2')
     flushAngularEffects()
 
+    // A Project change must replace the hosted control instead of updating the
+    // existing instance, so draft, attachments and runtime capabilities cannot
+    // leak from the previous Project scope.
+    expect(createChatKitMock).toHaveBeenCalledTimes(1)
+    expect(setOptions).not.toHaveBeenCalled()
     expect(createChatKitMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
@@ -272,6 +337,24 @@ describe('assistant chatkit runtime helpers', () => {
             }
           }
         }
+      })
+    )
+
+    createChatKitMock.mockClear()
+    setOptions.mockClear()
+    assistantId.set('role-assistant-1')
+    flushAngularEffects()
+
+    // An Assistant change must rotate the delegated session/control before a
+    // foreign persisted thread is selected.
+    expect(createChatKitMock).toHaveBeenCalledTimes(1)
+    expect(setOptions).not.toHaveBeenCalled()
+    expect(createChatKitMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        api: expect.objectContaining({
+          xpertId: 'role-assistant-1',
+          projectId: 'project-2'
+        })
       })
     )
   })
@@ -459,6 +542,67 @@ describe('assistant chatkit runtime helpers', () => {
       organizationId: 'org-custom'
     })
     expect(options.header.title.text).toBe('Public Assistant')
+  })
+
+  it('exchanges the platform login for a refreshable assistant-scoped ChatKit session', async () => {
+    const createChatKitMock = createChatKit as jest.Mock
+    const post = jest.fn(() => of({ client_secret: 'cs-x-session-1' }))
+    createChatKitMock.mockReturnValue({ setOptions: jest.fn() })
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: DOCUMENT, useValue: document },
+        { provide: HttpClient, useValue: { post } },
+        {
+          provide: TranslateService,
+          useValue: {
+            currentLang: 'en',
+            instant: (_key: string, params?: { Default?: string }) => params?.Default ?? _key
+          }
+        },
+        { provide: ToastrService, useValue: { error: jest.fn() } },
+        { provide: AppService, useValue: { lang: signal('en'), theme$: signal({ primary: 'light' }) } },
+        {
+          provide: Store,
+          useValue: {
+            token: 'platform-token-1',
+            token$: of('platform-token-1'),
+            organizationId: 'org-1',
+            selectOrganizationId: () => of('org-1')
+          }
+        }
+      ]
+    })
+
+    TestBed.runInInjectionContext(() => {
+      injectHostedAssistantChatkitControl({
+        identity: signal('assistant-1'),
+        assistantId: signal('assistant-1'),
+        projectId: signal('project-1'),
+        delegatedConversation: signal({
+          conversationId: 'conversation-1',
+          requesterXpertId: 'orchestrator-1'
+        }),
+        frameUrl: signal('/chatkit'),
+        titleKey: 'XP.Xpert.Assistant',
+        titleDefault: 'Assistant'
+      })
+    })
+    flushAngularEffects()
+
+    const options = createChatKitMock.mock.calls[0][0]
+    await expect(options.api.getClientSecret('expired-secret')).resolves.toEqual({
+      secret: 'cs-x-session-1',
+      organizationId: 'org-1'
+    })
+    expect(post).toHaveBeenCalledWith('http://localhost:3000/api/ai/v1/chatkit/sessions', {
+      assistant: { id: 'assistant-1' },
+      project: { id: 'project-1' },
+      conversation: {
+        id: 'conversation-1',
+        requesterXpertId: 'orchestrator-1'
+      }
+    })
   })
 
   it('resolves tool-output images through a fixed ArtifactVersion preview', async () => {

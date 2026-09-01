@@ -33,7 +33,7 @@ async function setup(options?: { skillsFail?: boolean }) {
     getAllInOrg: jest.fn(() => new BehaviorSubject({ items: createItems(1) }))
   }
   const toolsetService = { getAllByWorkspace: jest.fn(() => of({ items: createItems(2) })) }
-  const knowledgebaseService = { getAllByWorkspace: jest.fn(() => of({ items: createItems(4) })) }
+  const knowledgebaseService = { getAllByWorkspaceOnly: jest.fn(() => of({ items: createItems(4) })) }
 
   TestBed.resetTestingModule()
   await TestBed.configureTestingModule({
@@ -95,7 +95,7 @@ describe('XpertWorkspaceSettingsPageComponent', () => {
       where: { category: 'mcp' },
       take: 1000
     })
-    expect(knowledgebaseService.getAllByWorkspace).toHaveBeenCalledWith('workspace-1', { take: 1000 })
+    expect(knowledgebaseService.getAllByWorkspaceOnly).toHaveBeenCalledWith('workspace-1', { take: 1000 })
 
     fixture.destroy()
   })

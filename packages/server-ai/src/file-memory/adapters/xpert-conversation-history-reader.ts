@@ -17,12 +17,20 @@ export class XpertConversationHistoryReader implements FileMemoryConversationHis
         if (!input.conversationIds.length) {
             return []
         }
+        if (input.xpert.workspaceDataScope === 'user' && !input.xpert.projectId && !input.xpert.userId) {
+            return []
+        }
 
         const conversations = await this.conversationRepository.find({
             where: input.conversationIds.map((id) => ({
                 id,
                 xpertId: input.xpert.id,
-                tenantId: input.xpert.tenantId
+                tenantId: input.xpert.tenantId,
+                ...(input.xpert.projectId
+                    ? { projectId: input.xpert.projectId }
+                    : input.xpert.workspaceDataScope === 'user'
+                      ? { createdById: input.xpert.userId }
+                      : {})
             })),
             select: ['id', 'threadId', 'title', 'xpertId', 'tenantId']
         })

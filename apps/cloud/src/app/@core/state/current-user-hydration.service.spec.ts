@@ -378,6 +378,10 @@ describe('CurrentUserHydrationService', () => {
         }
       }
     ]
+    storeState.activeScope = {
+      level: RequestScopeLevel.ORGANIZATION,
+      organizationId: 'org-2'
+    }
     storeState.featureOrganizations = [orgFeature]
     usersService.getMe.mockResolvedValue(hydrationUser)
 
@@ -385,6 +389,34 @@ describe('CurrentUserHydrationService', () => {
 
     expect(storeState.selectedOrganization?.id).toBe('org-2')
     expect(storeState.featureOrganizations).toEqual([org2Feature])
+  })
+
+  it('keeps the active organization when feature hydration only contains another membership', async () => {
+    const activeOrganizationFeature = {
+      ...orgFeature,
+      id: 'org-2-feature',
+      organizationId: 'org-2',
+      featureId: 'feature-org-2',
+      feature: { id: 'feature-org-2', code: 'org-2-feature' }
+    } as IFeatureOrganization
+    const activeOrganization = {
+      ...createBootstrapUser().organizations[0].organization,
+      id: 'org-2',
+      name: 'Org 2',
+      featureOrganizations: [activeOrganizationFeature]
+    }
+    storeState.activeScope = {
+      level: RequestScopeLevel.ORGANIZATION,
+      organizationId: activeOrganization.id
+    }
+    storeState.selectedOrganization = activeOrganization
+    storeState.featureOrganizations = [activeOrganizationFeature]
+    usersService.getMe.mockResolvedValue(createHydrationUser())
+
+    await service.getFeatureHydration()
+
+    expect(storeState.selectedOrganization).toEqual(activeOrganization)
+    expect(storeState.featureOrganizations).toEqual([activeOrganizationFeature])
   })
 
   it('does not restore a selected organization while hydrating tenant scope', async () => {

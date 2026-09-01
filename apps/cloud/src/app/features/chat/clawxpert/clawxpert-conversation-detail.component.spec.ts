@@ -149,6 +149,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
   class ClawXpertConversationFilesComponent {
     @Input() conversationId?: string | null
     @Input() xpertId?: string | null
+    @Input() projectId?: string | null
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
     @Output() referenceRequest = new EventEmitter()
@@ -238,6 +239,8 @@ jest.mock('../../../@shared/view-extension', () => {
     @Input() viewKey?: string | null
     @Input() query?: object | null
     @Input() fillAvailableHeight?: boolean
+    @Input() runtimeScope?: object | null
+    @Input() runtimeUserId?: string | null
   }
 
   return {
@@ -254,11 +257,14 @@ import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
+import type { CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
   type IconDefinition,
+  type TXpertProjectAccessSummary,
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
@@ -279,9 +285,13 @@ import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-fi
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertSkillTrialIntentService } from './clawxpert-skill-trial-intent.service'
-import { getClawXpertWorkbenchLayoutStorageKey } from './clawxpert-workbench-layout-storage.service'
+import {
+  getClawXpertChatkitPetStorageKey,
+  getClawXpertWorkbenchLayoutStorageKey
+} from './clawxpert-workbench-layout-storage.service'
 import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import { ClawXpertFacade } from './clawxpert.facade'
+import { XpertProjectApiService } from '../../project/project-api.service'
 
 const TEST_LAYOUT_ICON = {
   type: 'font',
@@ -308,8 +318,21 @@ function clearWorkbenchLayoutTestStorage() {
   WORKBENCH_LAYOUT_TEST_USER_IDS.forEach((userId) => {
     WORKBENCH_LAYOUT_TEST_ASSISTANT_IDS.forEach((assistantId) => {
       localStorage.removeItem(getClawXpertWorkbenchLayoutStorageKey(userId, assistantId))
+      localStorage.removeItem(getClawXpertChatkitPetStorageKey(userId, assistantId))
     })
   })
+}
+
+function projectAccess(role: TXpertProjectAccessSummary['role'], canEdit: boolean): TXpertProjectAccessSummary {
+  return {
+    role,
+    capabilities: {
+      canRead: true,
+      canEdit,
+      canManage: role === 'owner' || role === 'manager',
+      canUse: true
+    }
+  }
 }
 
 jest.mock('../../assistant/assistant-chatkit.runtime', () => {
@@ -333,15 +356,18 @@ type MockChatKitEvent = {
 }
 
 type MockChatKitRuntimeInput = {
+  assistantId?: () => string | null
+  displayMode?: () => CreateChatKitOptions['displayMode']
+  header?: () => CreateChatKitOptions['header']
   initialThread?: () => string | null
-  layout?: {
-    maxWidth?: number | string
-  }
-  taskSummary?: {
-    enabled?: boolean
-  }
+  projectId?: () => string | null
+  composer?: () => { projects?: { enabled?: boolean } }
+  layout?: CreateChatKitOptions['layout']
+  taskSummary?: CreateChatKitOptions['taskSummary']
+  workbench?: CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
+  onProjectChange?: (event: { projectId: string | null }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
   onEffect?: (event: MockChatKitEvent) => void
@@ -360,10 +386,11 @@ type WorkspaceTabTestComponent = ClawXpertConversationDetailComponent & {
 }
 
 async function settle(fixture: { detectChanges: () => void; whenStable: () => Promise<unknown> }) {
-  fixture.detectChanges()
-  await fixture.whenStable()
-  await Promise.resolve()
-  await Promise.resolve()
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await Promise.resolve()
+  }
   fixture.detectChanges()
 }
 
@@ -429,12 +456,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     initialLayout: ReturnType<typeof signal<XpertWorkbenchInitialLayoutEnum | null>>
     defaultViewKey: ReturnType<typeof signal<string | null>>
     currentWorkspaceId: ReturnType<typeof signal<string | null>>
+    projectId: ReturnType<typeof signal<string | null>>
+    projectAccess: ReturnType<typeof signal<TXpertProjectAccessSummary | null>>
     chatkitFrameUrl: ReturnType<typeof signal<string | null>>
     threadId: ReturnType<typeof signal<string | null>>
     suppressAutoResume: ReturnType<typeof signal<boolean>>
     pendingConversationStartId: ReturnType<typeof signal<number>>
     activeConversation: ReturnType<typeof signal<IChatConversation | null>>
     onChatThreadChange: jest.Mock
+    onChatProjectChange: jest.Mock
     beginPendingConversation: jest.Mock
     ensureConversationEntry: jest.Mock
     navigateToOverview: jest.Mock
@@ -448,8 +478,10 @@ describe('ClawXpertConversationDetailComponent', () => {
   let conversationService: {
     getByThreadId: jest.Mock
     getById: jest.Mock
+    resolveWorkbenchNavigation: jest.Mock
     markRead: jest.Mock
     getFile: jest.Mock
+    downloadFile: jest.Mock
   }
   let artifactService: {
     createSignedPreviewLink: jest.Mock
@@ -465,9 +497,12 @@ describe('ClawXpertConversationDetailComponent', () => {
   }
   let workbenchViewUrlState: {
     viewKey: ReturnType<typeof signal<string | null>>
+    viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
     setViewKey: jest.Mock
+    setViewState: jest.Mock
   }
   let hostEvents: ViewHostEventBus
+  let projectApi: { availableForXpert: jest.Mock; create: jest.Mock }
 
   beforeEach(async () => {
     clearWorkbenchLayoutTestStorage()
@@ -478,10 +513,18 @@ describe('ClawXpertConversationDetailComponent', () => {
       clear: jest.fn()
     }
     const viewKey = signal<string | null>(null)
+    const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
       viewKey,
+      viewQuery,
       setViewKey: jest.fn((nextViewKey: string | null) => {
         viewKey.set(nextViewKey)
+        if (!nextViewKey) viewQuery.set(null)
+        return Promise.resolve(true)
+      }),
+      setViewState: jest.fn((nextViewKey: string | null, nextViewQuery: XpertViewQuery | null) => {
+        viewKey.set(nextViewKey)
+        viewQuery.set(nextViewKey ? nextViewQuery : null)
         return Promise.resolve(true)
       })
     }
@@ -502,12 +545,15 @@ describe('ClawXpertConversationDetailComponent', () => {
       initialLayout: signal(null),
       defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
+      projectId: signal<string | null>(null),
+      projectAccess: signal<TXpertProjectAccessSummary | null>(null),
       chatkitFrameUrl: signal('https://frame.example.com'),
       threadId: signal('thread-1'),
       suppressAutoResume: signal(false),
       pendingConversationStartId: signal(0),
       activeConversation,
       onChatThreadChange: jest.fn(),
+      onChatProjectChange: jest.fn(),
       beginPendingConversation: jest.fn(),
       ensureConversationEntry: jest.fn(),
       navigateToOverview: jest.fn(),
@@ -554,6 +600,15 @@ describe('ClawXpertConversationDetailComponent', () => {
           messages: []
         } as IChatConversation)
       ),
+      resolveWorkbenchNavigation: jest.fn(() =>
+        of({
+          conversationId: 'conversation-1',
+          threadId: 'thread-1',
+          xpertId: 'assistant-1',
+          projectId: null,
+          isExternalAssistant: false
+        })
+      ),
       markRead: jest.fn(() => of({})),
       getFile: jest.fn(() =>
         of({
@@ -562,7 +617,8 @@ describe('ClawXpertConversationDetailComponent', () => {
           mimeType: 'application/pdf',
           size: 2 * 1024 * 1024
         })
-      )
+      ),
+      downloadFile: jest.fn(() => of(new Blob(['private report'], { type: 'application/pdf' })))
     }
     artifactService = {
       createSignedPreviewLink: jest.fn(() =>
@@ -576,6 +632,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     }
     viewExtensionApi = {
       getSlotViews: jest.fn(() => of([]))
+    }
+    projectApi = {
+      availableForXpert: jest.fn(() => of({ items: [], total: 0 })),
+      create: jest.fn(() => of({ id: 'project-created', name: 'Launch project' }))
     }
 
     TestBed.resetTestingModule()
@@ -603,6 +663,10 @@ describe('ClawXpertConversationDetailComponent', () => {
           useValue: viewExtensionApi
         },
         {
+          provide: XpertProjectApiService,
+          useValue: projectApi
+        },
+        {
           provide: ClawXpertSkillTrialIntentService,
           useValue: skillTrialIntent
         },
@@ -627,10 +691,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed')
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: { projectId: null, conversationId: 'conversation-1' }
+    })
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
+    expect(getRuntimeInput().workbench).toEqual({
+      sideChat: {
+        enabled: true
+      }
+    })
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
@@ -638,16 +709,39 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.workspaceTabs().some((tab) => tab.kind === 'files')).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
-    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
+    const layoutModeButton = fixture.nativeElement.querySelector(
+      '[data-chatkit-layout-mode-toggle]'
+    ) as HTMLButtonElement
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    layoutModeButton.click()
     await settle(fixture)
 
-    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
-    expect(fixture.componentInstance.detailPanelContentClasses()).toContain('opacity-0')
-    ;(fixture.nativeElement.querySelector('[data-toggle-detail-panel]') as HTMLButtonElement).click()
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    layoutModeButton.click()
     await settle(fixture)
 
+    expect(fixture.componentInstance.overlayDialog()).toBe(false)
+    expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(true)
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+  })
+
+  it('resolves Project workspace views from the selected Project before a conversation exists', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: {
+        projectId: 'project-1',
+        conversationId: null
+      }
+    })
   })
 
   it('keeps the Workbench open when switching conversations within the same xpert', async () => {
@@ -737,11 +831,95 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
   })
 
+  it('forwards ChatKit Project changes to the workbench facade', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().projectId?.()).toBe('project-1')
+    getRuntimeInput().onProjectChange?.({ projectId: 'project-2' })
+
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2')
+  })
+
+  it('hides Project selection after a conversation starts', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+  })
+
+  it('keeps Project selection available before the first message, including after a Project is selected', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(true)
+
+    facade.projectId.set('project-1')
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+    expect(getRuntimeInput().composer?.().projects?.createEnabled).toBe(true)
+  })
+
   it('enables the task summary only for the ClawXpert ChatKit runtime', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
     expect(getRuntimeInput().taskSummary).toEqual({ enabled: true })
+  })
+
+  it('hides the entire Project selector rail for an existing conversation', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+    expect(projectApi.availableForXpert).not.toHaveBeenCalled()
+  })
+
+  it('shows the Project selector rail for a new conversation even without existing Projects', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(projectApi.availableForXpert).not.toHaveBeenCalled()
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
+  })
+
+  it('creates a Project with the current digital expert and switches the workbench to it', async () => {
+    facade.threadId.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    getRuntimeInput().onEffect?.({
+      name: 'project.create',
+      data: { name: '  Launch project  ' }
+    })
+    await settle(fixture)
+
+    expect(projectApi.create).toHaveBeenCalledWith({
+      name: 'Launch project',
+      xpertIds: ['assistant-1']
+    })
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-created')
+  })
+
+  it('keeps the Project selector rail available after selecting a Project in a new conversation', async () => {
+    facade.threadId.set(null)
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(projectApi.availableForXpert).not.toHaveBeenCalled()
+    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
 
   it('opens task summary workspace files with the existing file preview', async () => {
@@ -778,6 +956,68 @@ describe('ClawXpertConversationDetailComponent', () => {
         url: 'https://files.example.com/report.pdf'
       })
     )
+  })
+
+  it('downloads task summary workspace files with authentication when no public preview URL is available', async () => {
+    const originalCreateObjectURL = URL.createObjectURL
+    const originalRevokeObjectURL = URL.revokeObjectURL
+    const createObjectURL = jest.fn(() => 'blob:private-report')
+    const revokeObjectURL = jest.fn()
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL })
+    ;(conversationService.getFile as jest.Mock).mockReturnValueOnce(
+      of({
+        filePath: '/workspace/report.pdf',
+        mimeType: 'application/pdf',
+        size: 128
+      })
+    )
+    ;(filePreviewModule.openWorkbenchFilePreviewDialog as jest.Mock).mockReturnValueOnce({
+      closed: of(undefined)
+    })
+
+    try {
+      const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+      await settle(fixture)
+
+      getRuntimeInput().onEffect?.({
+        name: 'task_summary.open_resource',
+        data: {
+          conversationId: 'conversation-1',
+          title: 'Private report',
+          resource: {
+            type: 'workspace_file',
+            workspacePath: '/workspace/report.pdf',
+            fileAssetId: 'file-1'
+          }
+        }
+      })
+      await settle(fixture)
+
+      expect(conversationService.downloadFile).toHaveBeenCalledWith('conversation-1', '/workspace/report.pdf')
+      expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+      expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          id: 'file-1',
+          name: 'Private report',
+          url: 'blob:private-report',
+          previewUrl: 'blob:private-report'
+        })
+      )
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:private-report')
+    } finally {
+      if (originalCreateObjectURL) {
+        Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
+      } else {
+        Reflect.deleteProperty(URL, 'createObjectURL')
+      }
+      if (originalRevokeObjectURL) {
+        Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectURL })
+      } else {
+        Reflect.deleteProperty(URL, 'revokeObjectURL')
+      }
+    }
   })
 
   it('creates an artifact signed preview only when the task summary item is clicked', async () => {
@@ -913,6 +1153,55 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
   })
 
+  it('clears fixed-view request context when the Project scope changes', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'personal-doc-1',
+          docxEditorWorkspaceFilePath: 'files/docx-editor/documents/personal-doc-1/document.docx'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'personal-doc-1',
+            title: 'Personal document',
+            workspaceFilePath: 'files/docx-editor/documents/personal-doc-1/document.docx'
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        docxEditor: expect.any(Object)
+      })
+    )
+
+    fixture.componentInstance.resolvedConversation.set(null)
+    fixture.componentInstance.resolvedConversationId.set(null)
+    facade.projectId.set('project-2')
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual({
+      env: {
+        workspaceId: 'workspace-1',
+        xpertId: 'assistant-1'
+      }
+    })
+  })
+
   it('filters and orders fixed view menu items from the current bound xpert', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(
       of([
@@ -998,6 +1287,70 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-panel-button="files"]')).toBeNull()
   })
 
+  it('keeps the fixed DOCX view while clearing its request context after a Project switch', async () => {
+    facade.threadId.set(null)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('docx-editor')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const docxTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'docx-editor')
+    expect(docxTab).toBeDefined()
+    const mountedDocxView = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance
+    expect(mountedDocxView.runtimeScope).toEqual({ projectId: null, conversationId: null })
+    expect(mountedDocxView.runtimeUserId).toBe('user-1')
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    await registry.execute(
+      'assistant.context.set',
+      {
+        key: 'docxEditor',
+        env: {
+          docxEditorDocumentId: 'personal-doc-1'
+        },
+        context: {
+          currentDocument: {
+            documentId: 'personal-doc-1',
+            title: 'Personal document'
+          }
+        }
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'docx-editor',
+        manifest: buildFixedViewManifest('docx-editor')
+      }
+    )
+    await settle(fixture)
+
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        docxEditor: expect.any(Object)
+      })
+    )
+    const fixedViewLoadCount = viewExtensionApi.getSlotViews.mock.calls.length
+
+    facade.projectId.set('project-2')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.fixedViewTabs()).toContainEqual(docxTab)
+    expect(viewExtensionApi.getSlotViews.mock.calls.length).toBeGreaterThan(fixedViewLoadCount)
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: { projectId: 'project-2', conversationId: null }
+    })
+    const updatedDocxView = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance
+    expect(updatedDocxView).toBe(mountedDocxView)
+    expect(updatedDocxView.runtimeScope).toEqual({ projectId: 'project-2', conversationId: null })
+    expect(updatedDocxView.runtimeUserId).toBe('user-1')
+    expect(getRuntimeInput().requestContext?.()).toEqual({
+      env: {
+        workspaceId: 'workspace-1',
+        xpertId: 'assistant-1'
+      }
+    })
+  })
+
   it('selects the extension view requested by the view query parameter before the configured default', async () => {
     facade.defaultViewKey.set('review')
     workbenchViewUrlState.viewKey.set('metrics')
@@ -1042,6 +1395,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
     workbenchViewUrlState.setViewKey.mockClear()
+    workbenchViewUrlState.setViewState.mockClear()
 
     const metricsTab = fixture.componentInstance.fixedViewTabs().find((tab) => tab.viewKey === 'metrics')
     expect(metricsTab).toBeDefined()
@@ -1053,7 +1407,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(workbenchViewUrlState.viewKey()).toBe('metrics')
-    expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith('metrics', { replaceUrl: false })
+    expect(workbenchViewUrlState.setViewState).toHaveBeenLastCalledWith('metrics', null, { replaceUrl: false })
 
     const filesTab = fixture.componentInstance.addWorkspaceTab('files')
     await settle(fixture)
@@ -1062,8 +1416,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(workbenchViewUrlState.setViewKey).toHaveBeenLastCalledWith(null, { replaceUrl: false })
 
     workbenchViewUrlState.viewKey.set('review')
+    workbenchViewUrlState.viewQuery.set({ selectionId: 'project-2', parameters: { section: 'history' } })
     await settle(fixture)
-    expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('review')
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'review',
+        query: { selectionId: 'project-2', parameters: { section: 'history' } }
+      })
+    )
+
+    workbenchViewUrlState.viewQuery.set(null)
+    await settle(fixture)
+    expect(fixture.componentInstance.activeFixedViewTab()?.query).toBeNull()
 
     workbenchViewUrlState.viewKey.set('metrics')
     await settle(fixture)
@@ -1139,6 +1503,33 @@ describe('ClawXpertConversationDetailComponent', () => {
       selectionId: 'record-1',
       parameters: { section: 'features' }
     })
+    expect(workbenchViewUrlState.setViewState).toHaveBeenLastCalledWith(
+      'bom_document_intake_provider__bom_document_intake__review',
+      { selectionId: 'record-1', parameters: { section: 'features' } },
+      { replaceUrl: false }
+    )
+  })
+
+  it('restores the active fixed view query from the URL', async () => {
+    workbenchViewUrlState.viewKey.set('bid.studio')
+    workbenchViewUrlState.viewQuery.set({
+      selectionId: 'bid-project-1',
+      parameters: { view: 'workflow', projectId: 'bid-project-1', mode: 'score', section: 'outline' }
+    })
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('bid.studio')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.activeFixedViewTab()).toEqual(
+      expect.objectContaining({
+        viewKey: 'bid.studio',
+        query: {
+          selectionId: 'bid-project-1',
+          parameters: { view: 'workflow', projectId: 'bid-project-1', mode: 'score', section: 'outline' }
+        }
+      })
+    )
   })
 
   it('opens a provider-composed knowledge workbench view at the cited document chunk', async () => {
@@ -1508,18 +1899,22 @@ describe('ClawXpertConversationDetailComponent', () => {
         focusComposer: jest.fn()
       })
     )
-    conversationService.getById.mockReturnValue(
+    facade.projectId.set('case-project-1')
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
       of({
-        id: 'job-conversation-1',
-        threadId: 'persisted-thread-1',
-        status: 'busy',
-        messages: []
-      } as IChatConversation)
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        xpertId: 'role-assistant-current',
+        projectId: 'case-project-1',
+        isExternalAssistant: true
+      })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    const primaryChatkitElement = fixture.nativeElement.querySelector('xpert-chatkit')
 
     facade.onChatThreadChange.mockClear()
+    facade.setActiveConversation.mockClear()
     conversationService.markRead.mockClear()
     const registry = TestBed.inject(ViewClientCommandRegistry)
     const result = await registry.execute(
@@ -1528,7 +1923,9 @@ describe('ClawXpertConversationDetailComponent', () => {
         target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
         conversationId: 'job-conversation-1',
         threadId: 'job-thread-1',
-        executionId: 'job-execution-1'
+        executionId: 'job-execution-1',
+        xpertId: 'spoofed-role-assistant',
+        projectId: 'case-project-1'
       },
       {
         hostType: 'agent',
@@ -1545,15 +1942,128 @@ describe('ClawXpertConversationDetailComponent', () => {
       target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
       conversationId: 'job-conversation-1',
       threadId: 'job-thread-1',
-      executionId: 'job-execution-1'
+      executionId: 'job-execution-1',
+      xpertId: 'role-assistant-current',
+      projectId: 'case-project-1',
+      isExternalAssistant: true
     })
-    expect(conversationService.getById).toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
-    expect(setThreadId).toHaveBeenCalledWith('job-thread-1')
-    expect(facade.onChatThreadChange).toHaveBeenCalledWith('job-thread-1')
-    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: 'job-conversation-1', threadId: 'job-thread-1' })
+    expect(conversationService.resolveWorkbenchNavigation).toHaveBeenCalledWith('job-conversation-1', 'assistant-1')
+    expect(conversationService.getById).not.toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
+    expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
+    expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
+    expect(getRuntimeInput().initialThread?.()).toBe('job-thread-1')
+    expect(getRuntimeInput().delegatedConversation?.()).toEqual({
+      conversationId: 'job-conversation-1',
+      requesterXpertId: 'assistant-1'
+    })
+    expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBe(primaryChatkitElement)
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({ env: expect.objectContaining({ xpertId: 'role-assistant-current' }) })
     )
+    expect(setThreadId).not.toHaveBeenCalledWith('job-thread-1')
+    expect(facade.onChatThreadChange).not.toHaveBeenCalled()
+    expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
+
+    const runtimeInput = getRuntimeInput()
+    runtimeInput.onThreadChange?.({ threadId: 'role-thread-2' })
+    runtimeInput.onProjectChange?.({ projectId: 'other-project' })
+    expect(facade.onChatThreadChange).not.toHaveBeenCalled()
+    expect(facade.onChatProjectChange).not.toHaveBeenCalled()
+  })
+
+  it('rejects a stale thread hint before rebuilding ChatKit', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
+      of({
+        conversationId: 'job-conversation-1',
+        threadId: 'canonical-thread-1',
+        xpertId: 'role-assistant-current',
+        projectId: 'case-project-1',
+        isExternalAssistant: true
+      })
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    await expect(
+      fixture.componentInstance.openWorkbenchAssistantConversation({
+        conversationId: 'job-conversation-1',
+        threadId: 'stale-thread-1'
+      })
+    ).rejects.toThrow('does not match the authorized Assistant conversation')
+
+    expect(getRuntimeInput().assistantId?.()).toBe('assistant-1')
+    expect(setThreadId).not.toHaveBeenCalledWith('canonical-thread-1')
+  })
+
+  it('restores the primary Assistant ChatKit when the host route changes', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    facade.projectId.set('case-project-1')
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
+      of({
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        xpertId: 'role-assistant-current',
+        projectId: 'case-project-1',
+        isExternalAssistant: true
+      })
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    await fixture.componentInstance.openWorkbenchAssistantConversation({ conversationId: 'job-conversation-1' })
+    await settle(fixture)
+    expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
+
+    facade.threadId.set('orchestrator-thread-2')
+    await settle(fixture)
+
+    expect(getRuntimeInput().assistantId?.()).toBe('assistant-1')
+    expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
+    expect(getRuntimeInput().initialThread?.()).toBe('orchestrator-thread-2')
+  })
+
+  it('switches the embedded Workbench to the requested Assistant Project', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+        projectId: 'case-project-1'
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'factory-operations-center',
+        manifest: buildFixedViewManifest('factory-operations-center')
+      }
+    )
+
+    expect(result).toEqual({
+      success: true,
+      status: 'opened',
+      target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+      projectId: 'case-project-1'
+    })
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('case-project-1')
   })
 
   it('restores the embedded ChatKit from pet mode before opening assistant conversation client commands', async () => {
@@ -1572,6 +2082,15 @@ describe('ClawXpertConversationDetailComponent', () => {
         status: 'busy',
         messages: []
       } as IChatConversation)
+    )
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
+      of({
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        xpertId: 'assistant-1',
+        projectId: null,
+        isExternalAssistant: false
+      })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -1596,6 +2115,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(localStorage.getItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'))).toBe('true')
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
 
     facade.onChatThreadChange.mockClear()
@@ -1622,7 +2142,9 @@ describe('ClawXpertConversationDetailComponent', () => {
       status: 'opened',
       target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
       conversationId: 'job-conversation-1',
-      threadId: 'job-thread-1'
+      threadId: 'job-thread-1',
+      xpertId: 'assistant-1',
+      isExternalAssistant: false
     })
     expect(restorePet).toHaveBeenCalledTimes(1)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
@@ -1831,6 +2353,155 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBeNull()
   })
 
+  it('opens the configured overlay dialog, restores it from the pet, and pins it into the right column', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.OverlayDialog)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('review')]))
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) {
+      throw new Error('Expected xpert-chatkit to render')
+    }
+
+    const shadowRoot = chatkit.shadowRoot ?? chatkit.attachShadow({ mode: 'open' })
+    const wrapper = document.createElement('div')
+    wrapper.className = 'ck-wrapper'
+    jest.spyOn(wrapper, 'getBoundingClientRect').mockImplementation(() => {
+      const width = Number.parseFloat(wrapper.style.width) || 420
+      const height = 480
+      const left = Number.parseFloat(wrapper.style.left) || 100
+      const top = Number.parseFloat(wrapper.style.top) || 100
+      return {
+        x: left,
+        y: top,
+        top,
+        right: left + width,
+        bottom: top + height,
+        left,
+        width,
+        height,
+        toJSON: () => undefined
+      } as DOMRect
+    })
+    const launcherCloseButton = document.createElement('button')
+    launcherCloseButton.className = 'ck-launcher-close'
+    launcherCloseButton.setAttribute('aria-label', 'Close chat')
+    wrapper.appendChild(launcherCloseButton)
+    const petButton = document.createElement('button')
+    const activatePet = jest.fn(() => {
+      delete chatkit.dataset.chatMinimizedToPet
+      chatkit.dataset.chatOpen = 'true'
+    })
+    petButton.setAttribute('data-chatkit-host-pet', '')
+    petButton.addEventListener('click', activatePet)
+    shadowRoot.append(wrapper, petButton)
+    chatkit.dataset.displayMode = 'pet'
+    await settle(fixture)
+
+    const runtimeInput = getRuntimeInput()
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+    expect(runtimeInput.displayMode?.()).toBe('pet')
+    expect(runtimeInput.header?.()).toBeUndefined()
+    expect(activatePet).toHaveBeenCalledTimes(1)
+    expect(chatkit.dataset.chatOpen).toBe('true')
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).toBeNull()
+
+    const dragBar = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-drag-bar]')
+    const resizeHandle = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-resize-handle]')
+    const controlsStyle = shadowRoot.querySelector<HTMLStyleElement>('[data-chatkit-overlay-controls-style]')
+    const layoutModeButton = fixture.nativeElement.querySelector(
+      '[data-chatkit-layout-mode-toggle]'
+    ) as HTMLButtonElement
+    expect(dragBar).not.toBeNull()
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.PinOverlayDialog')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-layout-right-line')
+    expect(resizeHandle).not.toBeNull()
+    expect(resizeHandle?.getAttribute('role')).toBe('separator')
+    expect(controlsStyle?.textContent).toContain('top: 1px')
+    expect(controlsStyle?.textContent).toContain('background: transparent')
+    expect(controlsStyle?.textContent).toContain('linear-gradient')
+    expect(controlsStyle?.textContent).not.toContain('top: -16px')
+    expect(controlsStyle?.textContent).toContain('right: 1px')
+    expect(launcherCloseButton.style.getPropertyValue('display')).toBe('none')
+    expect(launcherCloseButton.style.getPropertyPriority('display')).toBe('important')
+    expect(launcherCloseButton.getAttribute('aria-hidden')).toBe('true')
+
+    dragBar?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 200, clientY: 120 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 250, clientY: 180 }))
+    window.dispatchEvent(new MouseEvent('pointerup'))
+
+    expect(wrapper.style.left).toBe('150px')
+    expect(wrapper.style.top).toBe('160px')
+    expect(wrapper.style.right).toBe('auto')
+    expect(wrapper.style.bottom).toBe('auto')
+
+    resizeHandle?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 150, clientY: 300 }))
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 90, clientY: 300 }))
+    window.dispatchEvent(new MouseEvent('pointerup'))
+
+    expect(wrapper.style.width).toBe('480px')
+    expect(wrapper.style.left).toBe('90px')
+    expect(resizeHandle?.getAttribute('aria-valuenow')).toBe('480')
+    expect(document.body.style.cursor).toBe('')
+
+    chatkit.dataset.chatMinimizedToPet = 'true'
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pet')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-restart-line')
+    layoutModeButton.click()
+    await settle(fixture)
+
+    expect(activatePet).toHaveBeenCalledTimes(2)
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+
+    layoutModeButton.click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.overlayDialog()).toBe(false)
+    expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(true)
+    expect(runtimeInput.displayMode?.()).toBe('chat')
+    expect(runtimeInput.header?.()).toBeUndefined()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).toBeNull()
+    expect(shadowRoot.querySelector('[data-chatkit-overlay-resize-handle]')).toBeNull()
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.SwitchToOverlayDialog')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-picture-in-picture-2-line')
+    expect(wrapper.style.left).toBe('')
+    expect(wrapper.style.top).toBe('')
+    expect(wrapper.style.right).toBe('')
+    expect(wrapper.style.bottom).toBe('')
+    expect(wrapper.style.width).toBe('')
+    expect(launcherCloseButton.style.getPropertyValue('display')).toBe('')
+    expect(launcherCloseButton.getAttribute('aria-hidden')).toBeNull()
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
+    )
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
+
+    layoutModeButton.click()
+    await settle(fixture)
+
+    expect(fixture.componentInstance.overlayDialog()).toBe(true)
+    expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(false)
+    expect(runtimeInput.displayMode?.()).toBe('pet')
+    expect(runtimeInput.header?.()).toBeUndefined()
+    expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).not.toBeNull()
+    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(launcherCloseButton.style.getPropertyValue('display')).toBe('none')
+    expect(launcherCloseButton.getAttribute('aria-hidden')).toBe('true')
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('overlay')
+  })
+
   it('opens the configured extension view as the initial Workbench tab', async () => {
     facade.defaultViewKey.set('metrics')
     viewExtensionApi.getSlotViews.mockReturnValue(
@@ -1999,25 +2670,28 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workbenchMaximized()).toBe(true)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
-    expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).toBeNull()
+    const petLayoutModeButton = fixture.nativeElement.querySelector(
+      '[data-chatkit-layout-mode-toggle]'
+    ) as HTMLButtonElement | null
+    expect(petLayoutModeButton).not.toBeNull()
+    expect(petLayoutModeButton?.dataset.chatkitLayoutMode).toBe('pet')
+    expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-restart-line')
     const petMaximizeButton = fixture.nativeElement.querySelector(
       '[data-toggle-workspace-maximized]'
     ) as HTMLElement | null
-    const petMaximizeButtonIcon = petMaximizeButton?.querySelector('i') as HTMLElement | null
-    expect(petMaximizeButton).not.toBeNull()
-    expect(petMaximizeButton?.className).toContain('bg-hover-bg')
-    expect(petMaximizeButtonIcon?.className).toContain('ri-fullscreen-exit-line')
+    expect(petMaximizeButton).toBeNull()
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
-    petMaximizeButton?.click()
+    petLayoutModeButton?.click()
     await settle(fixture)
 
     expect(activatePet).toHaveBeenCalledTimes(1)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
+    expect(localStorage.getItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'))).toBe('false')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workbenchMaximized()).toBe(false)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
@@ -2027,6 +2701,34 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.chatSurfaceClasses()).toContain('border-l')
+  })
+
+  it('restores the saved ChatKit pet state when reopening the same assistant', async () => {
+    localStorage.setItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'), 'true')
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    fixture.detectChanges()
+
+    const chatkit = fixture.nativeElement.querySelector('xpert-chatkit') as HTMLElement | null
+    expect(chatkit).not.toBeNull()
+    if (!chatkit) throw new Error('Expected xpert-chatkit to render')
+    const shadowRoot = chatkit.shadowRoot ?? chatkit.attachShadow({ mode: 'open' })
+    chatkit.dataset.displayMode = 'pet'
+    chatkit.dataset.chatOpen = 'true'
+    const closeButton = document.createElement('button')
+    closeButton.className = 'ck-launcher-close'
+    closeButton.addEventListener('click', () => {
+      delete chatkit.dataset.chatOpen
+    })
+    shadowRoot.appendChild(closeButton)
+
+    await fixture.whenStable()
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    await settle(fixture)
+
+    expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
+    expect(chatkit.dataset.chatOpen).toBeUndefined()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(localStorage.getItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'))).toBe('true')
   })
 
   it('allows the embedded chatkit to shrink within compact viewport heights', async () => {
@@ -2095,6 +2797,25 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).conversationId).toBe('conversation-1')
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).xpertId).toBe('assistant-1')
+  })
+
+  it.each([
+    ['personal scope', null, null, 'editable'],
+    ['pending Project access', 'project-1', null, 'readonly'],
+    ['Project member access', 'project-1', projectAccess('member', false), 'readonly'],
+    ['Project editor access', 'project-1', projectAccess('editor', true), 'editable']
+  ] as const)('uses %s workspace file mode', async (_case, projectId, access, expectedMode) => {
+    facade.projectId.set(projectId)
+    facade.projectAccess.set(access)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    fixture.componentInstance.addWorkspaceTab('files')
+    await settle(fixture)
+
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    const files = filesPanel.componentInstance as ClawXpertConversationFilesComponent
+    expect(files.projectId).toBe(projectId)
+    expect(files.mode).toBe(expectedMode)
   })
 
   it('clears the shared active conversation when the thread is reset or the component is destroyed', async () => {
@@ -2483,6 +3204,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         receivedAt: expect.any(String),
         hostType: 'agent',
         hostId: 'assistant-1',
+        dataScopeKey: 'user:user-1:personal:agent:assistant-1',
         threadId: 'thread-1',
         toolName: 'excalidraw_patch_scene',
         toolCallId: 'call-1',

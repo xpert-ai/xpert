@@ -18,6 +18,31 @@
     [(title)]="title"
     [(copilotModel)]="copilotModel"
   />
+  @if (showWorkspaceDataScope) {
+    <div class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4">
+      <div class="min-w-0">
+        <div class="text-sm font-medium text-text-primary">
+          {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
+        </div>
+        <div class="mt-1 text-xs leading-5 text-text-secondary">
+          {{
+            'XP.Xpert.IsolateWorkspaceDataByUserHint'
+              | translate
+                : {
+                    Default:
+                      'When enabled, each user gets a separate workspace. When disabled, all users who can run this Xpert share its files.'
+                  }
+          }}
+        </div>
+      </div>
+      <z-switch
+        zSize="sm"
+        class="shrink-0"
+        [ngModel]="formGroup.controls.isolateWorkspaceData.value"
+        (ngModelChange)="formGroup.controls.isolateWorkspaceData.setValue($event)"
+      />
+    </div>
+  }
 </div>
 
 <div class="flex flex-row-reverse">

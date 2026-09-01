@@ -1,6 +1,19 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core'
 import { FormControl, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
+import { getConnectorAuthMethods, getConnectorAuthorizationModes } from '@xpert-ai/plugin-sdk/connector'
+import type {
+  ConnectorAppCredentialField,
+  ConnectorAuthMethodDefinition,
+  ConnectorAuthorizationMode,
+  ConnectorBinding,
+  ConnectorCredentialFormDefinition,
+  ConnectorInstance,
+  ConnectorStrategyDefinition
+} from '@xpert-ai/plugin-sdk/connector'
 import {
+  XpI18nPipe,
+  XpSpinComponent,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardFormImports,
@@ -8,18 +21,7 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
-import { getConnectorAuthMethods } from '@xpert-ai/plugin-sdk/connector'
-import type {
-  ConnectorAppCredentialField,
-  ConnectorAuthMethodDefinition,
-  ConnectorCredentialFormDefinition,
-  ConnectorInstance,
-  ConnectorStrategyDefinition
-} from '@xpert-ai/plugin-sdk/connector'
-import { AlertCircle, Cable, Link2Off, LoaderCircle, RefreshCw, Unplug } from 'lucide-angular'
+import { AlertCircle, Cable, LoaderCircle, RefreshCw, Trash2 } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
@@ -58,25 +60,25 @@ export class XpertConnectorsComponent {
   readonly canManageWorkspace = computed(() => this.#workspaceService.canManage(this.workspace()))
 
   readonly definitions = signal<ConnectorStrategyDefinition[]>([])
-  readonly connectors = signal<ConnectorInstance[]>([])
+  readonly bindings = signal<ConnectorBinding[]>([])
   readonly loading = signal(false)
   readonly errorMessage = signal<string | null>(null)
-  readonly connectingProvider = signal<string | null>(null)
-  readonly pollingConnectorId = signal<string | null>(null)
-  readonly disconnectingConnectorId = signal<string | null>(null)
+  readonly connectingBindingId = signal<string | null>(null)
+  readonly deletingBindingId = signal<string | null>(null)
+  readonly creatingProvider = signal<string | null>(null)
   readonly pendingAuthorizationUrls = signal<Record<string, string>>({})
+  readonly selectedModes = signal<Record<string, ConnectorAuthorizationMode>>({})
   readonly reloadKey = signal(0)
   readonly skeletonCards = [0, 1, 2, 3]
   readonly connectorIcon = Cable
   readonly refreshIcon = RefreshCw
-  readonly disconnectActionIcon = Unplug
+  readonly deleteIcon = Trash2
   readonly errorIcon = AlertCircle
   readonly loadingIcon = LoaderCircle
-  readonly disconnectIcon = Link2Off
-  #authorizationPollTimer: ReturnType<typeof setTimeout> | null = null
+  readonly #connectorForms = new Map<string, FormRecord<FormControl<string>>>()
+  readonly #authorizationPollTimers = new Map<string, ReturnType<typeof setTimeout>>()
   #authorizationPopup: Window | null = null
   #currentWorkspaceId: string | null = null
-  readonly #connectorForms = new Map<string, FormRecord<FormControl<string>>>()
 
   constructor() {
     this.#destroyRef.onDestroy(() => this.clearAuthorizationPolling())
@@ -88,6 +90,7 @@ export class XpertConnectorsComponent {
         this.#currentWorkspaceId = workspaceId ?? null
         this.clearAuthorizationPolling()
         this.pendingAuthorizationUrls.set({})
+        this.#connectorForms.clear()
       }
       if (workspaceId) {
         void this.load(workspaceId)
@@ -99,15 +102,19 @@ export class XpertConnectorsComponent {
     this.loading.set(true)
     this.errorMessage.set(null)
     try {
-      const [definitions, connectors] = await Promise.all([
-        firstValueFrom(this.#connectorService.definitions(workspaceId)),
-        firstValueFrom(this.#connectorService.list(workspaceId))
+      const [definitions, bindings] = await Promise.all([
+        firstValueFrom(this.#connectorService.scopedDefinitions('workspace', workspaceId)),
+        firstValueFrom(this.#connectorService.listBindings('workspace', workspaceId))
       ])
+      if (this.workspaceId() && this.workspaceId() !== workspaceId) {
+        return
+      }
 
       this.definitions.set(definitions)
-      this.connectors.set(connectors)
-      this.prepareConnectorForms(definitions, connectors)
-      await this.recoverPendingAuthorizations(workspaceId, connectors)
+      this.bindings.set(bindings)
+      this.prepareConnectorForms(definitions, bindings)
+      this.alignSelectedModes(definitions)
+      await this.recoverPendingAuthorizations(workspaceId, bindings)
     } catch (error) {
       const message = getErrorMessage(error)
       this.errorMessage.set(message)
@@ -123,17 +130,92 @@ export class XpertConnectorsComponent {
     }
   }
 
-  async connect(definition: ConnectorStrategyDefinition) {
+  bindingFor(definition: ConnectorStrategyDefinition) {
+    return this.bindings().find((binding) => binding.provider === definition.provider) ?? null
+  }
+
+  authorizationModesFor(definition: ConnectorStrategyDefinition) {
+    return getConnectorAuthorizationModes(definition)
+  }
+
+  selectedModeFor(definition: ConnectorStrategyDefinition): ConnectorAuthorizationMode {
+    const supportedModes = this.authorizationModesFor(definition)
+    const selected = this.selectedModes()[definition.provider]
+    return selected && supportedModes.includes(selected) ? selected : (supportedModes[0] ?? 'shared')
+  }
+
+  selectMode(definition: ConnectorStrategyDefinition, value: unknown) {
+    const mode = normalizeAuthorizationMode(value)
+    if (!mode || !this.authorizationModesFor(definition).includes(mode)) {
+      return
+    }
+    this.selectedModes.update((modes) => ({ ...modes, [definition.provider]: mode }))
+  }
+
+  async createBinding(definition: ConnectorStrategyDefinition) {
     const workspaceId = this.workspaceId()
-    if (!workspaceId || !definition || !this.canManageWorkspace()) {
+    if (!workspaceId || !this.canManageWorkspace() || this.bindingFor(definition)) {
       return
     }
 
-    if (this.connectorFor(definition)?.status === 'active') {
+    this.creatingProvider.set(definition.provider)
+    try {
+      await firstValueFrom(
+        this.#connectorService.createBinding({
+          scope: { type: 'workspace', workspaceId },
+          provider: definition.provider,
+          authorizationMode: this.selectedModeFor(definition)
+        })
+      )
+      await this.load(workspaceId)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.creatingProvider.set(null)
+    }
+  }
+
+  async deleteBinding(binding: ConnectorBinding) {
+    if (!this.canManageWorkspace()) {
       return
     }
 
-    const form = this.formFor(definition)
+    this.deletingBindingId.set(binding.id)
+    try {
+      await firstValueFrom(this.#connectorService.deleteBinding(binding.id))
+      this.clearPendingAuthorization(binding.id)
+      this.bindings.update((bindings) => bindings.filter((item) => item.id !== binding.id))
+      this.#connectorForms.delete(binding.id)
+      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.deletingBindingId.set(null)
+    }
+  }
+
+  async consent(binding: ConnectorBinding) {
+    if (binding.authorizationMode !== 'personal') {
+      return
+    }
+    this.connectingBindingId.set(binding.id)
+    try {
+      const updated = await firstValueFrom(this.#connectorService.consentToBinding(binding.id))
+      this.upsertBinding(updated)
+      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.connectingBindingId.set(null)
+    }
+  }
+
+  async connect(binding: ConnectorBinding, definition: ConnectorStrategyDefinition) {
+    if (!this.canConnect(binding)) {
+      return
+    }
+
+    const form = this.formFor(binding, definition)
     form.markAllAsTouched()
     if (form.invalid) {
       this.#toastr.error('XP.Xpert.ConnectorCredentialsRequired', 'XP.TOASTR.TITLE.ERROR', {
@@ -142,89 +224,66 @@ export class XpertConnectorsComponent {
       return
     }
 
-    const authMethod = this.selectedAuthMethod(definition)
+    const authMethod = this.selectedAuthMethod(binding, definition)
     if (!authMethod) {
       return
     }
 
     const hasAuthorizationPopup = !!this.#authorizationPopup && !this.#authorizationPopup.closed
     const reservedPopup = authMethod.type === 'oauth2' && !hasAuthorizationPopup ? this.openAuthorizationPopup() : null
-    this.connectingProvider.set(definition.provider)
+    this.connectingBindingId.set(binding.id)
     try {
-      const values = this.connectorValues(definition, authMethod)
+      const values = this.connectorValues(binding, definition, authMethod)
       const response = await firstValueFrom(
-        this.#connectorService.connect(workspaceId, definition.provider, {
+        this.#connectorService.connectBinding(binding.id, {
           authMethodId: authMethod.id,
           ...(values ? { values } : {})
         })
       )
-      this.upsertConnector(response.connector)
+      this.upsertBindingState(binding, response.connector)
       if (response.status === 'active') {
         this.closeReservedAuthorizationPopup(reservedPopup)
-        this.reloadKey.update((value) => value + 1)
+        await this.reloadCurrentWorkspace()
         return
       }
 
       if (response.authorizationUrl) {
         this.openAuthorizationUrl(response.authorizationUrl)
-      }
-      if (response.connector?.id && response.authorizationUrl) {
-        this.setPendingAuthorizationUrl(response.connector.id, response.authorizationUrl)
-        this.startAuthorizationPolling(workspaceId, response.connector.id, response.pollIntervalSeconds ?? 5)
+        this.setPendingAuthorizationUrl(binding.id, response.authorizationUrl)
+        this.startAuthorizationPolling(binding.id, response.pollIntervalSeconds ?? 5)
       }
     } catch (error) {
       this.closeReservedAuthorizationPopup(reservedPopup)
       this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.connectingProvider.set(null)
+      this.connectingBindingId.set(null)
     }
   }
 
-  async disconnect(connector: ConnectorInstance) {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId || !connector || !this.canManageWorkspace()) {
-      return
-    }
-
-    this.disconnectingConnectorId.set(connector.id)
-    try {
-      await firstValueFrom(this.#connectorService.disconnect(workspaceId, connector.id))
-      this.clearPendingAuthorizationUrl(connector.id)
-      this.reloadKey.update((value) => value + 1)
-      this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
-    } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
-    } finally {
-      this.disconnectingConnectorId.set(null)
-    }
-  }
-
-  connectorFor(definition: ConnectorStrategyDefinition) {
-    return (
-      this.connectors().find((item) => item.provider === definition.provider && item.status !== 'disconnected') ?? null
-    )
+  canConnect(binding: ConnectorBinding) {
+    return binding.authorizationMode === 'personal' || this.canManageWorkspace()
   }
 
   authMethodsFor(definition: ConnectorStrategyDefinition): ConnectorAuthMethodDefinition[] {
     return getConnectorAuthMethods(definition)
   }
 
-  formFor(definition: ConnectorStrategyDefinition) {
-    let form = this.#connectorForms.get(definition.provider)
+  formFor(binding: ConnectorBinding, definition: ConnectorStrategyDefinition) {
+    let form = this.#connectorForms.get(binding.id)
     if (!form) {
-      form = this.createConnectorForm(definition, this.connectorFor(definition))
-      this.#connectorForms.set(definition.provider, form)
+      form = this.createConnectorForm(definition, binding)
+      this.#connectorForms.set(binding.id, form)
     }
     return form
   }
 
-  selectedAuthMethod(definition: ConnectorStrategyDefinition) {
-    const authMethodId = this.formFor(definition).controls.authMethodId?.value
+  selectedAuthMethod(binding: ConnectorBinding, definition: ConnectorStrategyDefinition) {
+    const authMethodId = this.formFor(binding, definition).controls.authMethodId?.value
     return this.authMethodsFor(definition).find((method) => method.id === authMethodId) ?? null
   }
 
-  selectAuthMethod(definition: ConnectorStrategyDefinition, value: unknown) {
-    const authMethodId = typeof value === 'string' ? value : null
+  selectAuthMethod(binding: ConnectorBinding, definition: ConnectorStrategyDefinition, value: unknown) {
+    const authMethodId = normalizeSelection(value)
     if (!authMethodId) {
       return
     }
@@ -232,7 +291,7 @@ export class XpertConnectorsComponent {
     if (!method) {
       return
     }
-    const form = this.formFor(definition)
+    const form = this.formFor(binding, definition)
     form.controls.authMethodId?.setValue(authMethodId)
     this.configureCredentialControls(form, method)
   }
@@ -248,16 +307,16 @@ export class XpertConnectorsComponent {
     return this.credentialFormFor(method)?.fields ?? []
   }
 
-  fieldControl(definition: ConnectorStrategyDefinition, field: ConnectorAppCredentialField) {
-    return this.formFor(definition).controls[field.name]
+  fieldControl(binding: ConnectorBinding, definition: ConnectorStrategyDefinition, field: ConnectorAppCredentialField) {
+    return this.formFor(binding, definition).controls[field.name]
   }
 
-  statusLabelFor(connector?: ConnectorInstance | null) {
-    return connectorStatusLabel(connector)
+  statusLabelFor(binding?: ConnectorBinding | null) {
+    return connectorStatusLabel(binding)
   }
 
-  statusBadgeType(connector?: ConnectorInstance | null) {
-    switch (connector?.status) {
+  statusBadgeType(binding?: ConnectorBinding | null) {
+    switch (binding?.status) {
       case 'active':
         return 'default'
       case 'error':
@@ -270,6 +329,16 @@ export class XpertConnectorsComponent {
     }
   }
 
+  modeLabel(mode: ConnectorAuthorizationMode) {
+    return mode === 'personal' ? 'XP.Xpert.ConnectorPersonalAuthorization' : 'XP.Xpert.ConnectorSharedAuthorization'
+  }
+
+  modeDescription(mode: ConnectorAuthorizationMode) {
+    return mode === 'personal'
+      ? 'XP.Xpert.ConnectorPersonalAuthorizationDescription'
+      : 'XP.Xpert.ConnectorSharedAuthorizationDescription'
+  }
+
   iconImageUrl(definition: ConnectorStrategyDefinition) {
     return definition.icon?.type === 'image' && typeof definition.icon.value === 'string' ? definition.icon.value : null
   }
@@ -278,29 +347,33 @@ export class XpertConnectorsComponent {
     return definition.description ?? definition.provider
   }
 
-  profileLabel(connector: ConnectorInstance) {
-    const profile = connector.profile
-    return profile?.name || profile?.email || profile?.openId || connector.id
+  profileLabel(binding: ConnectorBinding) {
+    const profile = binding.profile
+    return profile?.name || profile?.email || profile?.openId || binding.id
   }
 
-  isConnecting(definition: ConnectorStrategyDefinition) {
-    return this.connectingProvider() === definition.provider
+  isConnecting(binding: ConnectorBinding) {
+    return this.connectingBindingId() === binding.id
   }
 
-  isPolling(connector?: ConnectorInstance | null) {
-    return !!connector?.id && this.pollingConnectorId() === connector.id
+  isCreating(definition: ConnectorStrategyDefinition) {
+    return this.creatingProvider() === definition.provider
   }
 
-  isDisconnecting(connector: ConnectorInstance) {
-    return this.disconnectingConnectorId() === connector.id
+  isDeleting(binding: ConnectorBinding) {
+    return this.deletingBindingId() === binding.id
   }
 
-  pendingAuthorizationUrl(connector?: ConnectorInstance | null) {
-    return connector?.id ? this.pendingAuthorizationUrls()[connector.id] : ''
+  isPolling(binding?: ConnectorBinding | null) {
+    return !!binding?.id && this.#authorizationPollTimers.has(binding.id)
   }
 
-  openPendingAuthorizationUrl(connector: ConnectorInstance) {
-    const authorizationUrl = this.pendingAuthorizationUrl(connector)
+  pendingAuthorizationUrl(binding?: ConnectorBinding | null) {
+    return binding?.id ? this.pendingAuthorizationUrls()[binding.id] : ''
+  }
+
+  openPendingAuthorizationUrl(binding: ConnectorBinding) {
+    const authorizationUrl = this.pendingAuthorizationUrl(binding)
     if (authorizationUrl) {
       this.openAuthorizationUrl(authorizationUrl)
     }
@@ -308,7 +381,6 @@ export class XpertConnectorsComponent {
 
   private openAuthorizationUrl(authorizationUrl: string) {
     if (!authorizationUrl) {
-      this.reloadKey.update((value) => value + 1)
       return
     }
 
@@ -324,17 +396,19 @@ export class XpertConnectorsComponent {
     })
   }
 
-  private prepareConnectorForms(definitions: ConnectorStrategyDefinition[], connectors: ConnectorInstance[]) {
+  private prepareConnectorForms(definitions: ConnectorStrategyDefinition[], bindings: ConnectorBinding[]) {
     this.#connectorForms.clear()
-    for (const definition of definitions) {
-      const connector = connectors.find((item) => item.provider === definition.provider) ?? null
-      this.#connectorForms.set(definition.provider, this.createConnectorForm(definition, connector))
+    for (const binding of bindings) {
+      const definition = definitions.find((item) => item.provider === binding.provider)
+      if (definition) {
+        this.#connectorForms.set(binding.id, this.createConnectorForm(definition, binding))
+      }
     }
   }
 
-  private createConnectorForm(definition: ConnectorStrategyDefinition, connector?: ConnectorInstance | null) {
+  private createConnectorForm(definition: ConnectorStrategyDefinition, binding: ConnectorBinding) {
     const methods = this.authMethodsFor(definition)
-    const selectedMethod = methods.find((method) => method.id === connector?.authMethodId) ?? methods[0]
+    const selectedMethod = methods.find((method) => method.id === binding.authMethodId) ?? methods[0]
     const form = new FormRecord<FormControl<string>>({
       authMethodId: new FormControl(selectedMethod?.id ?? '', {
         nonNullable: true,
@@ -356,7 +430,7 @@ export class XpertConnectorsComponent {
 
     const credentialForm = this.credentialFormFor(method)
     for (const field of credentialForm?.fields ?? []) {
-      const defaultValue = credentialForm?.defaultValues?.[field.name]
+      const defaultValue = credentialForm.defaultValues?.[field.name]
       form.addControl(
         field.name,
         new FormControl(defaultValue == null ? '' : String(defaultValue), {
@@ -367,10 +441,14 @@ export class XpertConnectorsComponent {
     }
   }
 
-  private connectorValues(definition: ConnectorStrategyDefinition, method: ConnectorAuthMethodDefinition) {
+  private connectorValues(
+    binding: ConnectorBinding,
+    definition: ConnectorStrategyDefinition,
+    method: ConnectorAuthMethodDefinition
+  ) {
     const values: Record<string, unknown> = {}
     for (const field of this.credentialFieldsFor(method)) {
-      const value = this.formFor(definition).controls[field.name]?.value
+      const value = this.formFor(binding, definition).controls[field.name]?.value
       if (value !== undefined && value !== '') {
         values[field.name] = value
       }
@@ -388,7 +466,6 @@ export class XpertConnectorsComponent {
       this.#authorizationPopup = popup
       popup.opener = null
     }
-
     return popup
   }
 
@@ -396,115 +473,140 @@ export class XpertConnectorsComponent {
     if (!popup || this.#authorizationPopup !== popup) {
       return
     }
-
     if (!popup.closed) {
       popup.close()
     }
     this.#authorizationPopup = null
   }
 
-  private startAuthorizationPolling(workspaceId: string, connectorId: string, intervalSeconds: number) {
-    this.clearAuthorizationPolling()
-    this.pollingConnectorId.set(connectorId)
-    this.#authorizationPollTimer = setTimeout(
-      () => void this.pollAuthorization(workspaceId, connectorId),
-      Math.max(2_000, intervalSeconds * 1_000)
+  private startAuthorizationPolling(bindingId: string, intervalSeconds: number) {
+    const current = this.#authorizationPollTimers.get(bindingId)
+    if (current) {
+      clearTimeout(current)
+    }
+    this.#authorizationPollTimers.set(
+      bindingId,
+      setTimeout(() => void this.pollAuthorization(bindingId), Math.max(2_000, intervalSeconds * 1_000))
     )
   }
 
-  private async pollAuthorization(workspaceId: string, connectorId: string) {
+  private async pollAuthorization(bindingId: string) {
+    const binding = this.bindings().find((item) => item.id === bindingId)
+    if (!binding || (binding.authorizationMode === 'shared' && !this.canManageWorkspace())) {
+      this.clearPendingAuthorization(bindingId)
+      return
+    }
+
     try {
-      const response = await firstValueFrom(this.#connectorService.pollAuthorization(workspaceId, connectorId))
-      this.upsertConnector(response.connector)
+      const response = await firstValueFrom(this.#connectorService.bindingAuthorizationStatus(bindingId))
+      this.upsertBindingState(binding, response.connector)
       if (response.authorizationUrl) {
-        const currentAuthorizationUrl = this.pendingAuthorizationUrls()[connectorId]
-        this.setPendingAuthorizationUrl(connectorId, response.authorizationUrl)
+        const currentAuthorizationUrl = this.pendingAuthorizationUrls()[bindingId]
+        this.setPendingAuthorizationUrl(bindingId, response.authorizationUrl)
         if (response.authorizationUrl !== currentAuthorizationUrl) {
           this.openAuthorizationUrl(response.authorizationUrl)
         }
       }
 
       if (response.connector.status === 'pending') {
-        this.startAuthorizationPolling(workspaceId, connectorId, response.pollIntervalSeconds ?? 5)
+        this.startAuthorizationPolling(bindingId, response.pollIntervalSeconds ?? 5)
         return
       }
 
-      this.clearAuthorizationPolling()
-      this.clearPendingAuthorizationUrl(connectorId)
-      this.reloadKey.update((value) => value + 1)
+      this.clearPendingAuthorization(bindingId)
+      await this.reloadCurrentWorkspace()
     } catch (error) {
-      this.clearAuthorizationPolling()
+      this.clearPendingAuthorization(bindingId)
       this.#toastr.error(getErrorMessage(error))
     }
   }
 
-  private async recoverPendingAuthorizations(workspaceId: string, connectors: ConnectorInstance[]) {
-    if (!this.canManageWorkspace()) {
-      return
+  private async recoverPendingAuthorizations(workspaceId: string, bindings: ConnectorBinding[]) {
+    const pendingBinding = bindings.find(
+      (binding) =>
+        binding.status === 'pending' &&
+        (binding.authorizationMode === 'personal' || this.canManageWorkspace()) &&
+        !this.#authorizationPollTimers.has(binding.id)
+    )
+    if (pendingBinding && this.workspaceId() === workspaceId) {
+      await this.pollAuthorization(pendingBinding.id)
     }
-
-    const pendingConnector = connectors.find((connector) => connector.status === 'pending')
-    if (!pendingConnector?.id || this.pollingConnectorId() === pendingConnector.id) {
-      return
-    }
-
-    await this.pollAuthorization(workspaceId, pendingConnector.id)
   }
 
   private clearAuthorizationPolling() {
-    if (this.#authorizationPollTimer) {
-      clearTimeout(this.#authorizationPollTimer)
-      this.#authorizationPollTimer = null
+    for (const timer of this.#authorizationPollTimers.values()) {
+      clearTimeout(timer)
     }
-    this.pollingConnectorId.set(null)
+    this.#authorizationPollTimers.clear()
   }
 
-  private setPendingAuthorizationUrl(connectorId: string, authorizationUrl: string) {
-    if (!authorizationUrl) {
-      return
+  private clearPendingAuthorization(bindingId: string) {
+    const timer = this.#authorizationPollTimers.get(bindingId)
+    if (timer) {
+      clearTimeout(timer)
+      this.#authorizationPollTimers.delete(bindingId)
     }
-    this.pendingAuthorizationUrls.update((urls) => ({ ...urls, [connectorId]: authorizationUrl }))
-  }
-
-  private clearPendingAuthorizationUrl(connectorId: string) {
     this.pendingAuthorizationUrls.update((urls) => {
-      const { [connectorId]: _removed, ...rest } = urls
-      return rest
+      const next = { ...urls }
+      delete next[bindingId]
+      return next
     })
   }
 
-  private upsertConnector(connector: ConnectorInstance) {
-    this.connectors.update((connectors) => {
-      const index = connectors.findIndex((item) => item.id === connector.id)
-      if (index < 0) {
-        return [...connectors, connector]
-      }
-      return connectors.map((item) => (item.id === connector.id ? connector : item))
+  private setPendingAuthorizationUrl(bindingId: string, authorizationUrl: string) {
+    if (authorizationUrl) {
+      this.pendingAuthorizationUrls.update((urls) => ({ ...urls, [bindingId]: authorizationUrl }))
+    }
+  }
+
+  private upsertBinding(binding: ConnectorBinding) {
+    this.bindings.update((bindings) => {
+      const index = bindings.findIndex((item) => item.id === binding.id)
+      return index < 0 ? [...bindings, binding] : bindings.map((item) => (item.id === binding.id ? binding : item))
     })
+  }
+
+  private upsertBindingState(binding: ConnectorBinding, connector: ConnectorInstance) {
+    this.upsertBinding({
+      ...binding,
+      ...connector,
+      scopeType: binding.scopeType,
+      scope: binding.scope,
+      authorizationMode: binding.authorizationMode
+    })
+  }
+
+  private alignSelectedModes(definitions: ConnectorStrategyDefinition[]) {
+    this.selectedModes.update((selectedModes) => {
+      const next = { ...selectedModes }
+      for (const definition of definitions) {
+        const supportedModes = this.authorizationModesFor(definition)
+        if (!next[definition.provider] || !supportedModes.includes(next[definition.provider])) {
+          next[definition.provider] = supportedModes[0] ?? 'shared'
+        }
+      }
+      return next
+    })
+  }
+
+  private async reloadCurrentWorkspace() {
+    const workspaceId = this.workspaceId()
+    if (workspaceId) {
+      await this.load(workspaceId)
+    }
   }
 }
 
 @Component({
   selector: 'xpert-clawxpert-connectors',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    TranslateModule,
-    XpI18nPipe,
-    XpSpinComponent,
-    ZardBadgeComponent,
-    ZardButtonComponent,
-    ZardIconComponent,
-    ZardInputDirective,
-    ...ZardFormImports,
-    ...ZardSelectImports
-  ],
+  imports: [XpertConnectorsComponent],
   templateUrl: './connectors.component.html'
 })
-export class ClawXpertConnectorsComponent extends XpertConnectorsComponent {}
+export class ClawXpertConnectorsComponent {}
 
-function connectorStatusLabel(connector?: ConnectorInstance | null): ConnectorStatusLabel {
-  switch (connector?.status) {
+function connectorStatusLabel(binding?: ConnectorBinding | null): ConnectorStatusLabel {
+  switch (binding?.status) {
     case 'active':
       return { key: 'XP.Xpert.ConnectorStatusConnected', defaultLabel: 'Connected' }
     case 'pending':
@@ -516,6 +618,16 @@ function connectorStatusLabel(connector?: ConnectorInstance | null): ConnectorSt
     case 'disconnected':
       return { key: 'XP.Xpert.ConnectorStatusDisconnected', defaultLabel: 'Disconnected' }
     default:
-      return { key: 'XP.Xpert.ConnectorStatusNotConnected', defaultLabel: 'Not connected' }
+      return { key: 'XP.Xpert.ConnectorStatusNotConnected', defaultLabel: 'Not configured' }
   }
+}
+
+function normalizeSelection(value: unknown) {
+  const selected = Array.isArray(value) ? value[0] : value
+  return typeof selected === 'string' || typeof selected === 'number' ? String(selected) : ''
+}
+
+function normalizeAuthorizationMode(value: unknown): ConnectorAuthorizationMode | null {
+  const normalized = normalizeSelection(value)
+  return normalized === 'personal' || normalized === 'shared' ? normalized : null
 }

@@ -19,16 +19,19 @@ import {
     KnowledgebaseListDocumentsResult,
     KnowledgebaseMoveDocumentResult,
     KnowledgebaseUploadedFile,
-    DocumentTransformerRegistry
+    KnowledgebaseReadImageResult,
+    DocumentTransformerRegistry,
+    WORKSPACE_FILES_SOURCE
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
-import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
+import { getFileAssetDestination, RequestContext, UploadFileCommand } from '@xpert-ai/server-core'
 import * as tar from 'tar'
 import { ILike, In, IsNull, Not, Raw } from 'typeorm'
 import unzipper from 'unzipper'
-import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowledge-document'
+import { buildLogicalFolderPath, KnowledgeDocumentService } from '../../../knowledge-document/document.service'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
-import { KnowledgeWorkAreaResolver } from '../../../shared'
+import { VolumeSubtreeClient } from '../../../shared/volume/volume-subtree'
+import { KnowledgeWorkAreaResolver } from '../../../shared/volume/work-area'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import {
     CreateKnowledgebaseDocumentsCommand,
@@ -38,8 +41,10 @@ import {
     ImportKnowledgebaseArchiveCommand,
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
-    UploadKnowledgebaseDocumentFileCommand
+    UploadKnowledgebaseDocumentFileCommand,
+    ReadKnowledgebaseDocumentImageCommand
 } from '../knowledgebase-documents.command'
 
 const DEFAULT_MAX_ARCHIVE_ENTRIES = 500
@@ -93,7 +98,7 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
         if (!knowledgebaseId) {
             throw new BadRequestException('knowledgebaseId is required')
         }
-        await this.knowledgebaseService.findOne(knowledgebaseId)
+        await this.knowledgebaseService.findOneByIdString(knowledgebaseId, { select: { id: true } })
         const page = normalizePositiveInteger(command.input.page, 1)
         const pageSize = Math.min(normalizePositiveInteger(command.input.pageSize, 20), 100)
         const search = command.input.search?.trim().slice(0, 120)
@@ -156,6 +161,7 @@ export class CreateKnowledgebaseFolderHandler implements ICommandHandler<CreateK
         const knowledgebaseId = command.input.knowledgebaseId?.trim()
         const name = normalizeFolderName(command.input.name)
         if (!knowledgebaseId) throw new BadRequestException('knowledgebaseId is required')
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
         await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
         const parent = command.input.parentId
             ? await this.documentService.findOne(command.input.parentId, { relations: ['parent'] })
@@ -195,6 +201,10 @@ export class MoveKnowledgebaseDocumentHandler implements ICommandHandler<MoveKno
     constructor(private readonly documentService: KnowledgeDocumentService) {}
 
     async execute(command: MoveKnowledgebaseDocumentCommand): Promise<KnowledgebaseMoveDocumentResult> {
+        await this.documentService.assertDocumentsWriteAccessInKnowledgebase(
+            [command.input.documentId],
+            command.input.knowledgebaseId
+        )
         const result = await this.documentService.moveDocument({
             knowledgebaseId: command.input.knowledgebaseId,
             documentId: command.input.documentId,
@@ -361,52 +371,77 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
 export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<CreateKnowledgebaseDocumentsCommand> {
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
-        private readonly documentService: KnowledgeDocumentService
+        private readonly documentService: KnowledgeDocumentService,
+        private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
     ) {}
 
     async execute(command: CreateKnowledgebaseDocumentsCommand) {
         const input = command.input
+        const knowledgebase = await this.knowledgebaseService.assertKnowledgebaseWriteAccess(input.knowledgebaseId, {
+            select: { id: true, tenantId: true }
+        })
         await this.knowledgebaseService.assertNotRebuilding(input.knowledgebaseId)
+        const hasManagedFileInput = input.documents.some((document) => document.filePath || document.fileUrl)
+        const filesPath = this.knowledgeWorkAreaResolver.getFilesPath()
+        const files = hasManagedFileInput
+            ? new VolumeSubtreeClient(
+                  (
+                      await this.knowledgeWorkAreaResolver.resolve({
+                          tenantId: knowledgebase.tenantId,
+                          userId: RequestContext.currentUserId(),
+                          knowledgebaseId: knowledgebase.id
+                      })
+                  ).volume
+              )
+            : null
         const drafts = await Promise.all(
             input.documents.map(async (document) => {
-                const parent = document.parentId
-                    ? await this.documentService.findOne(document.parentId, { relations: ['parent'] })
-                    : null
-                if (
-                    parent &&
-                    (parent.knowledgebaseId !== input.knowledgebaseId ||
-                        parent.sourceType !== KDocumentSourceType.FOLDER)
-                ) {
-                    throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
-                }
-                const { parentId: _parentId, ...documentDraft } = document
+                const parentAncestors = document.parentId
+                    ? await this.knowledgebaseService.resolveKnowledgebaseFolderAncestors(
+                          input.knowledgebaseId,
+                          document.parentId
+                      )
+                    : []
+                const parent = parentAncestors.at(-1) ?? null
+                const managedFile = await resolveRuntimeKnowledgebaseDocumentFile(
+                    files,
+                    filesPath,
+                    document.filePath,
+                    document.fileUrl
+                )
                 const type = normalizeDocumentType(
-                    documentDraft.type,
-                    documentDraft.name ?? documentDraft.filePath,
-                    documentDraft.mimeType
+                    document.type,
+                    document.name ?? managedFile.filePath,
+                    managedFile.mimeType ?? document.mimeType
                 )
                 const category =
-                    (documentDraft.category as IKnowledgeDocument['category']) ??
+                    (document.category as IKnowledgeDocument['category']) ??
                     classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>)
                 return {
-                    ...documentDraft,
                     knowledgebaseId: input.knowledgebaseId,
                     parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : null,
-                    sourceType: (documentDraft.sourceType ??
+                    sourceType: (document.sourceType ??
                         DocumentSourceProviderCategoryEnum.LocalFile) as IKnowledgeDocument['sourceType'],
-                    name: documentDraft.name ?? path.posix.basename(documentDraft.filePath ?? 'knowledge-document'),
+                    sourceConfig: document.sourceConfig,
+                    name: document.name ?? path.posix.basename(managedFile.filePath ?? 'knowledge-document'),
                     type,
                     category,
+                    ...managedFile,
                     parserConfig: resolveKnowledgeDocumentParserConfig({
                         type,
                         category,
-                        parserConfig: documentDraft.parserConfig ?? input.parserConfig
+                        parserConfig: document.parserConfig ?? input.parserConfig
                     }),
                     metadata: {
                         ...(input.metadata ?? {}),
-                        ...(documentDraft.metadata ?? {})
+                        ...(document.metadata ?? {})
                     },
-                    size: documentDraft.size == null ? undefined : String(documentDraft.size)
+                    size:
+                        managedFile.size == null
+                            ? document.size == null
+                                ? undefined
+                                : String(document.size)
+                            : String(managedFile.size)
                 } satisfies Partial<IKnowledgeDocument>
             })
         )
@@ -424,6 +459,53 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
     }
 }
 
+type RuntimeKnowledgebaseManagedFile = {
+    filePath?: string
+    fileUrl?: string
+    mimeType?: string
+    size?: number
+}
+
+async function resolveRuntimeKnowledgebaseDocumentFile(
+    files: VolumeSubtreeClient | null,
+    filesPath: string,
+    filePath: string | undefined,
+    fileUrl: string | undefined
+): Promise<RuntimeKnowledgebaseManagedFile> {
+    const normalizedPath = filePath?.trim().replace(/\\/g, '/')
+    if (!normalizedPath) {
+        if (fileUrl?.trim()) {
+            throw new BadRequestException('fileUrl requires a managed knowledgebase filePath')
+        }
+        return {}
+    }
+    if (!files) {
+        throw new BadRequestException('Managed knowledgebase file access is unavailable')
+    }
+
+    const prefix = `${filesPath}/`
+    if (normalizedPath.includes('\0') || path.posix.isAbsolute(normalizedPath) || !normalizedPath.startsWith(prefix)) {
+        throw new BadRequestException('filePath must point to a managed file in the selected knowledgebase')
+    }
+    const relativePath = path.posix.normalize(normalizedPath.slice(prefix.length))
+    if (
+        !relativePath ||
+        relativePath === '.' ||
+        relativePath.startsWith('../') ||
+        path.posix.isAbsolute(relativePath)
+    ) {
+        throw new BadRequestException('filePath must point to a managed file in the selected knowledgebase')
+    }
+
+    const authorizedFile = await files.readFile(filesPath, relativePath, { metadataOnly: true })
+    return {
+        filePath: path.posix.join(filesPath, authorizedFile.filePath),
+        ...(authorizedFile.fileUrl ? { fileUrl: authorizedFile.fileUrl } : {}),
+        ...(authorizedFile.mimeType ? { mimeType: authorizedFile.mimeType } : {}),
+        ...(authorizedFile.size == null ? {} : { size: authorizedFile.size })
+    }
+}
+
 @Injectable()
 @CommandHandler(StartKnowledgebaseDocumentsProcessingCommand)
 export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHandler<StartKnowledgebaseDocumentsProcessingCommand> {
@@ -433,12 +515,69 @@ export class StartKnowledgebaseDocumentsProcessingHandler implements ICommandHan
     ) {}
 
     async execute(command: StartKnowledgebaseDocumentsProcessingCommand): Promise<KnowledgebaseDocumentStatusResult> {
+        if (command.input.knowledgebaseId) {
+            await this.documentService.assertDocumentsWriteAccessInKnowledgebase(
+                command.input.documentIds,
+                command.input.knowledgebaseId
+            )
+        } else {
+            await this.documentService.assertDocumentsWriteAccess(command.input.documentIds)
+        }
         const docs = await this.documentService.startProcessing(
             command.input.documentIds,
             command.input.knowledgebaseId
         )
         return {
             documents: docs.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
+        }
+    }
+}
+
+/**
+ * Reprocesses documents only after resolving every id inside the requested
+ * Knowledge base. Replacing parser configuration here lets a plugin upgrade a
+ * processing strategy without gaining access to another scope or file path.
+ */
+@Injectable()
+@CommandHandler(ReprocessKnowledgebaseDocumentsCommand)
+export class ReprocessKnowledgebaseDocumentsHandler implements ICommandHandler<ReprocessKnowledgebaseDocumentsCommand> {
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService,
+        @Optional() private readonly transformerRegistry?: DocumentTransformerRegistry
+    ) {}
+
+    async execute(command: ReprocessKnowledgebaseDocumentsCommand): Promise<KnowledgebaseDocumentStatusResult> {
+        const knowledgebaseId = command.input.knowledgebaseId?.trim()
+        const documentIds = uniqueStrings(command.input.documentIds)
+        if (!knowledgebaseId) throw new BadRequestException('knowledgebaseId is required')
+        if (!documentIds.length) throw new BadRequestException('documentIds is required')
+        await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
+        const { items } = await this.documentService.findAll({
+            where: { knowledgebaseId, id: In(documentIds) }
+        })
+        if (items.length !== documentIds.length) {
+            throw new BadRequestException('Every document must belong to the selected knowledgebase')
+        }
+        const invalidatedAt = new Date().toISOString()
+        for (const document of items) {
+            document.parserConfig = resolveKnowledgeDocumentParserConfig({
+                ...document,
+                parserConfig: command.input.parserConfig
+            })
+            // An explicit reprocess request must not be short-circuited by the
+            // worker's unchanged-processing-hash optimization. The worker will
+            // compute and persist the new hash when this run begins.
+            document.processingHash = null
+            document.metadata = {
+                ...(document.metadata ?? {}),
+                imageUnderstandingInvalidatedAt: invalidatedAt
+            }
+        }
+        await this.documentService.save(items)
+        const documents = await this.documentService.startProcessing(documentIds, knowledgebaseId, 'full')
+        return {
+            documents: documents.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry))
         }
     }
 }
@@ -453,6 +592,11 @@ export class GetKnowledgebaseDocumentStatusHandler implements ICommandHandler<Ge
 
     async execute(command: GetKnowledgebaseDocumentStatusCommand): Promise<KnowledgebaseDocumentStatusResult> {
         const ids = command.input.documentIds.filter(Boolean)
+        if (command.input.knowledgebaseId) {
+            await this.documentService.assertDocumentsReadAccessInKnowledgebase(ids, command.input.knowledgebaseId)
+        } else {
+            await this.documentService.assertDocumentsReadAccess(ids)
+        }
         if (!ids.length) {
             return { documents: [] }
         }
@@ -468,6 +612,54 @@ export class GetKnowledgebaseDocumentStatusHandler implements ICommandHandler<Ge
     }
 }
 
+/**
+ * Reads an independent Knowledge image through the existing Knowledge and
+ * document access services. The cross-check prevents a caller from combining
+ * an authorized Knowledge ID with a document ID from another Knowledge base.
+ */
+@Injectable()
+@CommandHandler(ReadKnowledgebaseDocumentImageCommand)
+export class ReadKnowledgebaseDocumentImageHandler implements ICommandHandler<ReadKnowledgebaseDocumentImageCommand> {
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly documentService: KnowledgeDocumentService
+    ) {}
+
+    async execute(command: ReadKnowledgebaseDocumentImageCommand): Promise<KnowledgebaseReadImageResult> {
+        const { knowledgebaseId, documentId } = command.input
+        await this.knowledgebaseService.findOne(knowledgebaseId)
+        const document = await this.documentService.findOne(documentId)
+        if (document.knowledgebaseId !== knowledgebaseId || !document.mimeType?.startsWith('image/')) {
+            throw new BadRequestException('The selected Knowledge document is not an image in this knowledgebase')
+        }
+        const downloads = await this.documentService.getOriginalFileDownloads([documentId])
+        const download = downloads[0]
+        if (!download) throw new BadRequestException('The Knowledge image file is unavailable')
+        return {
+            knowledgebaseId,
+            documentId,
+            name: document.name || download.fileName,
+            mimeType: document.mimeType || download.mimeType,
+            size: download.content.length,
+            sourceHash: document.sourceHash,
+            reference: {
+                source: WORKSPACE_FILES_SOURCE,
+                tenantId: document.tenantId,
+                catalog: 'knowledges',
+                scopeId: knowledgebaseId,
+                knowledgeId: knowledgebaseId,
+                filePath: document.filePath,
+                workspacePath: document.filePath,
+                originalName: document.name || download.fileName,
+                name: document.name || download.fileName,
+                mimeType: document.mimeType || download.mimeType,
+                size: download.content.length
+            },
+            buffer: download.content
+        }
+    }
+}
+
 @Injectable()
 @CommandHandler(DeleteKnowledgebaseDocumentsCommand)
 export class DeleteKnowledgebaseDocumentsHandler implements ICommandHandler<DeleteKnowledgebaseDocumentsCommand> {
@@ -477,6 +669,14 @@ export class DeleteKnowledgebaseDocumentsHandler implements ICommandHandler<Dele
         const documentIds = uniqueStrings(command.input.documentIds)
         if (!documentIds.length) {
             throw new BadRequestException('documentIds is required')
+        }
+        if (command.input.knowledgebaseId) {
+            await this.documentService.assertDocumentsWriteAccessInKnowledgebase(
+                documentIds,
+                command.input.knowledgebaseId
+            )
+        } else {
+            await this.documentService.assertDocumentsWriteAccess(documentIds)
         }
         const { items } = await this.documentService.findAll({
             where: {
@@ -511,11 +711,15 @@ async function uploadKnowledgebaseFile(
     if (!input.file?.buffer?.length) {
         throw new BadRequestException('file buffer is required')
     }
+    await deps.knowledgebaseService.assertKnowledgebaseWriteAccess(input.knowledgebaseId, { select: { id: true } })
     await deps.knowledgebaseService.assertNotRebuilding(input.knowledgebaseId)
 
     let parentFolder = ''
     if (input.parentId) {
-        const parents = await deps.documentService.findAncestors(input.parentId)
+        const parents = await deps.knowledgebaseService.resolveKnowledgebaseFolderAncestors(
+            input.knowledgebaseId,
+            input.parentId
+        )
         parentFolder = buildLogicalFolderPath(parents)
     }
     const fileName = buildUniqueFileName(normalizeKnowledgebaseUploadedFileName(input.file.originalname))

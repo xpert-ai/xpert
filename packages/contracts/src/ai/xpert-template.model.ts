@@ -4,7 +4,12 @@ import { TCopilotModel } from './copilot-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
 import type { TPromptWorkflow } from './prompt-workflow.model'
-import { PluginTargetApp, PluginTargetAppMeta, XpertTemplatePluginDependencies } from '../plugin'
+import {
+  PluginTargetApp,
+  PluginTargetAppMeta,
+  PluginTemplateApplicationSummary,
+  XpertTemplatePluginDependencies
+} from '../plugin'
 
 export interface IXpertTemplate extends IBasePerTenantEntityModel {
   key: string
@@ -107,6 +112,8 @@ export type TTemplate = {
   releaseNotes?: string
   xpertName?: string
   dependencies?: XpertTemplatePluginDependencies
+  /** Trusted plugin App explicitly linked to this Assistant template. */
+  application?: PluginTemplateApplicationSummary
 }
 
 export type TXpertTemplate = TTemplate & {

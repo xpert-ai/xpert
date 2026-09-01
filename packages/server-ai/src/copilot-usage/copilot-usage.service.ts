@@ -8,6 +8,9 @@ import {
     IModelUsageLedger,
     IPagination,
     MembershipLedgerSourceEnum,
+    ModelUsageAccountSummary,
+    ModelUsageBreakdownDimension,
+    ModelUsageBreakdownSummary,
     ModelUsageLedgerQuery,
     ModelUsageLedgerTotals,
     ModelUsagePricingSnapshot,
@@ -23,7 +26,7 @@ import {
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OrganizationPublicDTO, RequestContext, User, UserPublicDTO } from '@xpert-ai/server-core'
-import { FindOptionsWhere, IsNull, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm'
+import { FindOptionsWhere, IsNull, ObjectLiteral, Repository } from 'typeorm'
 import { CopilotOrganization } from '../copilot-organization/copilot-organization.entity'
 import { CopilotUser } from '../copilot-user/copilot-user.entity'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
@@ -137,6 +140,21 @@ export class CopilotUsageService {
         return this.modelUsageLedger.findPage(query, options)
     }
 
+    findModelUsageAccountPage(
+        query: ModelUsageLedgerQuery,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<ModelUsageAccountSummary>> {
+        return this.modelUsageLedger.findAccountPage(query, options)
+    }
+
+    findModelUsageBreakdownPage(
+        query: ModelUsageLedgerQuery,
+        dimension: ModelUsageBreakdownDimension,
+        options?: { take?: number; skip?: number }
+    ): Promise<IPagination<ModelUsageBreakdownSummary>> {
+        return this.modelUsageLedger.findBreakdownPage(query, dimension, options)
+    }
+
     findModelUsageTotals(query: ModelUsageLedgerQuery): Promise<ModelUsageLedgerTotals[]> {
         return this.modelUsageLedger.totals(query)
     }
@@ -170,7 +188,6 @@ export class CopilotUsageService {
             .where('usage.tenantId = :tenantId', { tenantId: scope.tenantId })
             .groupBy("COALESCE(usage.currency, '')")
 
-        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyUsageFilters(qb, 'usage', query)
 
@@ -330,7 +347,6 @@ export class CopilotUsageService {
             .orderBy('usage.updatedAt', OrderTypeEnum.DESC)
             .take(DETAIL_LIMIT)
 
-        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyGroupKeyFilters(qb, 'usage', { ...groupKey, dimension })
 
@@ -339,7 +355,6 @@ export class CopilotUsageService {
 
     async adjustQuota(input: TCopilotQuotaAdjustInput): Promise<ICopilotUsageSummary | null> {
         const dimension = this.normalizeQuotaDimension(input.dimension)
-        this.assertQuotaDimensionManageable(dimension)
         const records = await this.findQuotaRecords(dimension, input.groupKey, true)
         const tokenLimit = this.calculateAdjustedLimit(
             records.map((record) => record.tokenLimit),
@@ -367,7 +382,6 @@ export class CopilotUsageService {
 
     async renewQuota(input: TCopilotQuotaRenewInput): Promise<ICopilotUsageSummary | null> {
         const dimension = this.normalizeQuotaDimension(input.dimension)
-        this.assertQuotaDimensionManageable(dimension)
         const records = await this.findQuotaRecords(dimension, input.groupKey, true)
 
         for (const record of records) {
@@ -461,12 +475,12 @@ export class CopilotUsageService {
         options?: { take?: number; skip?: number; order?: { updatedAt?: unknown } }
     ): Promise<IPagination<ICopilotUsageSummary>> {
         const scope = this.resolveScope(query.organizationId)
-        const ownerUserIdSql = this.usageOwnerUserIdSql('usage')
+        const billedUserIdSql = this.billedUserIdSql('usage')
         const qb = this.baseUsageSummaryQuery(scope, query, options)
-            .leftJoin(User, 'usage_user', `"usage_user"."id"::text = ${ownerUserIdSql}`)
+            .leftJoin(User, 'usage_user', `"usage_user"."id"::text = ${billedUserIdSql}`)
             .leftJoin('usage.organization', 'usage_organization')
             .leftJoin('usage.org', 'usage_org')
-            .addSelect(ownerUserIdSql, 'userId')
+            .addSelect(billedUserIdSql, 'userId')
             .addSelect('usage.orgId', 'orgId')
             .addSelect('COUNT(DISTINCT "usage"."userId")', 'runtimeUserCount')
             .addSelect('COUNT(DISTINCT "usage"."xpertId")', 'xpertCount')
@@ -482,7 +496,7 @@ export class CopilotUsageService {
             .addSelect('usage_org.id', 'orgRelationId')
             .addSelect('usage_org.name', 'orgName')
             .addSelect('usage_org.imageUrl', 'orgImageUrl')
-            .addGroupBy(ownerUserIdSql)
+            .addGroupBy(billedUserIdSql)
             .addGroupBy('usage.orgId')
             .addGroupBy('"usage_user"."id"')
             .addGroupBy('"usage_user"."firstName"')
@@ -571,7 +585,6 @@ export class CopilotUsageService {
             .take(take)
             .skip(skip)
 
-        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyUsageFilters(qb, 'usage', query)
 
@@ -627,7 +640,6 @@ export class CopilotUsageService {
             .take(take)
             .skip(skip)
 
-        this.leftJoinUsageXpert(qb, 'usage')
         this.applyScope(qb, 'usage', scope)
         this.applyUsageFilters(qb, 'usage', query)
 
@@ -820,7 +832,7 @@ export class CopilotUsageService {
             qb.andWhere(`${alias}.currency = :currency`, { currency: query.currency })
         }
         if (!options?.skipUser && query.userId) {
-            qb.andWhere(`${this.usageOwnerUserIdSql(alias)} = :filterUserId`, { filterUserId: query.userId })
+            qb.andWhere(`${this.billedUserIdSql(alias)} = :filterUserId`, { filterUserId: query.userId })
         }
         if (!options?.skipTime) {
             const start = this.toUsageHour(query.start)
@@ -839,7 +851,7 @@ export class CopilotUsageService {
             if (!groupKey.userId) {
                 throw new BadRequestException('Missing required user usage group fields.')
             }
-            qb.andWhere(`${this.usageOwnerUserIdSql(alias)} = :groupUserId`, { groupUserId: groupKey.userId })
+            qb.andWhere(`${this.billedUserIdSql(alias)} = :groupUserId`, { groupUserId: groupKey.userId })
             if (groupKey.orgId) {
                 qb.andWhere(`${alias}.orgId = :groupOrgId`, { groupOrgId: groupKey.orgId })
             } else {
@@ -905,19 +917,6 @@ export class CopilotUsageService {
             return dimension
         }
         throw new BadRequestException('Quota changes are only supported for user or organization dimensions.')
-    }
-
-    private assertQuotaDimensionManageable(dimension: 'user' | 'organization') {
-        if (dimension === 'user') {
-            throw new BadRequestException(
-                'Creator-aggregated user usage quota changes are not supported. Use copilot user usage endpoints for runtime-user quota management.'
-            )
-        }
-    }
-
-    private leftJoinUsageXpert(qb: SelectQueryBuilder<CopilotUser>, alias: string) {
-        const xpertAlias = this.usageXpertAlias(alias)
-        qb.leftJoin('xpert', xpertAlias, `"${xpertAlias}"."id"::text = "${alias}"."xpertId"`)
     }
 
     private async withMembershipPoints(
@@ -1082,13 +1081,8 @@ export class CopilotUsageService {
         }
     }
 
-    private usageOwnerUserIdSql(alias: string) {
-        const xpertAlias = this.usageXpertAlias(alias)
-        return `COALESCE("${xpertAlias}"."createdById"::text, "${alias}"."userId"::text)`
-    }
-
-    private usageXpertAlias(alias: string) {
-        return `${alias}_xpert`
+    private billedUserIdSql(alias: string) {
+        return `"${alias}"."userId"::text`
     }
 
     private calculateAdjustedLimit(

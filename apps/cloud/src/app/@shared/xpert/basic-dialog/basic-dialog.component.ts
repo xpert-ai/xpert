@@ -5,8 +5,15 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ICopilotModel, injectToastr, TAvatar, XpertAPIService } from 'apps/cloud/src/app/@core'
+import {
+  ICopilotModel,
+  injectToastr,
+  TAvatar,
+  XpertAPIService,
+  XpertWorkspaceDataScope
+} from 'apps/cloud/src/app/@core'
 import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -16,8 +23,9 @@ import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
     TranslateModule,
     RouterModule,
     DragDropModule,
-    XpertBasicFormComponent
-],
+    XpertBasicFormComponent,
+    ZardSwitchComponent
+  ],
   selector: 'xpert-basic-dialog',
   templateUrl: 'basic-dialog.component.html',
   styleUrl: 'basic-dialog.component.scss',
@@ -25,13 +33,29 @@ import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
   providers: []
 })
 export class XpertBasicDialogComponent {
-  readonly #data = inject<{ name: string; avatar: TAvatar; description: string; title: string; copilotModel: ICopilotModel }>(DIALOG_DATA)
+  readonly #data = inject<{
+    name: string
+    avatar: TAvatar
+    description: string
+    title: string
+    copilotModel: ICopilotModel
+    workspaceDataScope?: XpertWorkspaceDataScope
+    showWorkspaceDataScope?: boolean
+  }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
   readonly xpertService = inject(XpertAPIService)
   readonly #fb = inject(FormBuilder)
   readonly #toastr = injectToastr()
+  readonly showWorkspaceDataScope = this.#data.showWorkspaceDataScope !== false
 
-  readonly formGroup = this.#fb.group(this.#data)
+  readonly formGroup = this.#fb.group({
+    name: this.#data.name,
+    avatar: this.#data.avatar,
+    description: this.#data.description,
+    title: this.#data.title,
+    copilotModel: this.#data.copilotModel,
+    isolateWorkspaceData: this.#data.workspaceDataScope === 'user'
+  })
 
   get name() {
     return this.formGroup.value.name
@@ -73,6 +97,10 @@ export class XpertBasicDialogComponent {
   }
 
   apply() {
-    this.#dialogRef.close(this.formGroup.value)
+    const { isolateWorkspaceData, ...basic } = this.formGroup.getRawValue()
+    this.#dialogRef.close({
+      ...basic,
+      workspaceDataScope: isolateWorkspaceData ? 'user' : 'shared'
+    })
   }
 }

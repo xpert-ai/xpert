@@ -42,19 +42,22 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import fs from 'fs'
+import { t } from 'i18next'
 import { I18nService } from 'nestjs-i18n'
-import { isAbsolute, join, relative } from 'path'
+import { isAbsolute, relative } from 'path'
 import { Observable } from 'rxjs'
-import {
-    VOLUME_CLIENT,
-    VolumeClient,
-    VolumeHandle,
-    getMediaTypeWithCharset,
-    resolveHttpByteRange,
-    WorkspacePathMapperFactory
-} from '../shared'
+import { getMediaTypeWithCharset } from '../shared/utils/utils'
+import { resolveHttpByteRange } from '../shared/utils/http-byte-range'
+import { VOLUME_CLIENT, VolumeClient, VolumeHandle, assertValidVolumeScopeId } from '../shared/volume/volume'
+import { isProjectGovernedContentPath } from '../shared/volume/project-content-path'
+import { WorkspacePathMapperFactory } from '../shared/volume/workspace-path-mapper.factory'
+import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { SuperAdminOrganizationScopeService } from '../shared/super-admin-organization-scope.service'
-import { normalizeSandboxPublicVolumeSubpath } from '../shared/volume/volume-layout'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
+import {
+    normalizeSandboxPublicVolumeSubpath,
+    normalizeSandboxVolumeRequestSubpath
+} from '../shared/volume/volume-layout'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxPreviewAuthGuard } from './sandbox-preview-auth.guard'
 import { SandboxPreviewSessionService } from './sandbox-preview-session.service'
@@ -76,20 +79,97 @@ export class SandboxController {
         private readonly sandboxPreviewSessionService: SandboxPreviewSessionService,
         private readonly organizationScopeService: SuperAdminOrganizationScopeService,
         private readonly workspaceMappers: WorkspacePathMapperFactory,
+        private readonly projectAccessService: XpertProjectAccessService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
+
+    @Get('volume/project/:projectId/*path')
+    async getProjectVolumeFile(
+        @Param('projectId') projectId: string,
+        @Param('path') paths: string[],
+        @Query('tenant') requestedTenantId: unknown,
+        @Query('download') download: unknown,
+        @Req() req: Request,
+        @Res() res: Response
+    ) {
+        projectId = this.normalizeVolumeScopeIdentifier(projectId, 'projectId')
+        const requestedTenant = this.normalizeOptionalVolumeQueryString(requestedTenantId, 'tenant')
+        const normalizedDownload = this.normalizeOptionalVolumeQueryString(download, 'download')
+        const { project } = await this.projectAccessService.assertCanRead(projectId)
+        const tenantId = this.normalizeVolumeScopeIdentifier(project.tenantId, 'tenantId')
+        if (requestedTenant && requestedTenant !== tenantId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectVolumeCrossTenant', {
+                    defaultValue: 'Project files cannot be read from another tenant'
+                })
+            )
+        }
+
+        const volume = this.volumeClient.resolve({ tenantId, catalog: 'projects', projectId })
+        const subpath = this.normalizeVolumeRequestSubpath(paths)
+        return this.serveVolumeFile(volume.serverRoot, subpath, normalizedDownload, req, res)
+    }
+
+    @Get('volume/user/:userId/xpert/:xpertId/*path')
+    async getUserXpertVolumeFile(
+        @Param('userId') userId: string,
+        @Param('xpertId') xpertId: string,
+        @Param('path') paths: string[],
+        @Query('tenant') requestedTenantId: unknown,
+        @Query('download') download: unknown,
+        @Req() req: Request,
+        @Res() res: Response
+    ) {
+        return this.servePrivateXpertVolumeFile(
+            { catalog: 'user-xperts', userId, xpertId },
+            paths,
+            requestedTenantId,
+            download,
+            req,
+            res
+        )
+    }
+
+    @Get('volume/xpert/:xpertId/user/:userId/*path')
+    async getLegacyUserXpertVolumeFile(
+        @Param('xpertId') xpertId: string,
+        @Param('userId') userId: string,
+        @Param('path') paths: string[],
+        @Query('tenant') requestedTenantId: unknown,
+        @Query('download') download: unknown,
+        @Req() req: Request,
+        @Res() res: Response
+    ) {
+        return this.servePrivateXpertVolumeFile(
+            { catalog: 'xperts', userId, xpertId, isolateByUser: true },
+            paths,
+            requestedTenantId,
+            download,
+            req,
+            res
+        )
+    }
 
     @Public()
     @Get('volume/*path')
     async getVolumeFile(
         @Param('path') paths: string[],
-        @Query('tenant') tenant: string,
-        @Query('download') download: string,
+        @Query('tenant') requestedTenant: unknown,
+        @Query('download') requestedDownload: unknown,
         @Req() req: Request,
         @Res() res: Response
     ) {
-        let subpath = paths.join('/')
+        let subpath = this.normalizeVolumeRequestSubpath(paths)
+        let tenant = this.normalizeOptionalVolumeQueryString(requestedTenant, 'tenant')
+        const download = this.normalizeOptionalVolumeQueryString(requestedDownload, 'download')
+        if (isProtectedVolumeSubpath(subpath)) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProtectedVolumeAuthenticationRequired', {
+                    defaultValue: 'Project and user-isolated Xpert files require authenticated access'
+                })
+            )
+        }
         if (!tenant) {
             tenant = RequestContext.currentTenantId()
         }
@@ -97,23 +177,144 @@ export class SandboxController {
             const _tenant = await this.queryBus.execute(new GetDefaultTenantQuery())
             tenant = _tenant?.id
         }
+        tenant = this.normalizeVolumeScopeIdentifier(tenant, 'tenantId')
         const volume = VolumeClient.getApiContainerSandboxVolumeRoot(tenant)
 
         if (environment.envName === 'dev') {
             subpath = normalizeSandboxPublicVolumeSubpath(subpath)
         }
+        if (isProtectedVolumeSubpath(subpath)) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProtectedVolumeAuthenticationRequired', {
+                    defaultValue: 'Project and user-isolated Xpert files require authenticated access'
+                })
+            )
+        }
 
-        const filePath = join(volume, subpath)
+        return this.serveVolumeFile(volume, subpath, download, req, res, { rejectProtectedPaths: true })
+    }
+
+    private async servePrivateXpertVolumeFile(
+        scope: {
+            catalog: 'user-xperts' | 'xperts'
+            userId: string
+            xpertId: string
+            isolateByUser?: true
+        },
+        paths: string[],
+        requestedTenant: unknown,
+        requestedDownload: unknown,
+        req: Request,
+        res: Response
+    ) {
+        const requestedTenantId = this.normalizeOptionalVolumeQueryString(requestedTenant, 'tenant')
+        const download = this.normalizeOptionalVolumeQueryString(requestedDownload, 'download')
+        const userId = this.normalizeVolumeScopeIdentifier(scope.userId, 'userId')
+        const xpertId = this.normalizeVolumeScopeIdentifier(scope.xpertId, 'xpertId')
+        const tenantId = RequestContext.currentTenantId()
+        const currentUserId = RequestContext.currentUserId()
+        if (!tenantId || !currentUserId || currentUserId !== userId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.UserXpertVolumePrivate', {
+                    defaultValue: 'User-isolated Xpert files are private to the current user'
+                })
+            )
+        }
+        if (requestedTenantId && requestedTenantId !== tenantId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.UserXpertVolumeCrossTenant', {
+                    defaultValue: 'User-isolated Xpert files cannot be read from another tenant'
+                })
+            )
+        }
+
+        const volume = this.volumeClient.resolve({ ...scope, userId, xpertId, tenantId })
+        const subpath = this.normalizeVolumeRequestSubpath(paths)
+        return this.serveVolumeFile(volume.serverRoot, subpath, download, req, res)
+    }
+
+    private normalizeOptionalVolumeQueryString(value: unknown, field: string) {
+        if (value === undefined || value === null || value === '') {
+            return undefined
+        }
+        if (typeof value !== 'string') {
+            throw new BadRequestException(
+                t('server-ai:Error.SandboxVolumeQueryParameterInvalid', {
+                    field,
+                    defaultValue: 'Sandbox volume query parameter {{field}} must be a single string value'
+                })
+            )
+        }
+        return value
+    }
+
+    private normalizeVolumeScopeIdentifier(value: unknown, field: string) {
+        try {
+            if (typeof value !== 'string') {
+                throw new Error('Invalid volume scope identifier')
+            }
+            return assertValidVolumeScopeId(value, field)
+        } catch {
+            throw new BadRequestException(
+                t('server-ai:Error.VolumeScopeIdentifierInvalid', {
+                    field,
+                    defaultValue: 'Volume scope identifier {{field}} must be a single path segment'
+                })
+            )
+        }
+    }
+
+    private normalizeVolumeRequestSubpath(paths: string[]) {
+        const subpath = normalizeSandboxVolumeRequestSubpath(paths.join('/'))
+        if (!subpath) {
+            throw new BadRequestException(
+                t('server-ai:Error.SandboxVolumeInvalidPath', {
+                    defaultValue: 'Invalid sandbox volume path'
+                })
+            )
+        }
+        return subpath
+    }
+
+    private async serveVolumeFile(
+        volumeRoot: string,
+        subpath: string,
+        download: string | undefined,
+        req: Request,
+        res: Response,
+        options?: { rejectProtectedPaths?: boolean }
+    ) {
         // Extract the file extension
         const fileName = subpath.split('?')[0].split('/').pop() || ''
+        let filePath = VolumeHandle.resolvePath(volumeRoot, subpath)
         let fileStat: fs.Stats
+        let fileHandle: fs.promises.FileHandle
         try {
-            fileStat = await fs.promises.stat(filePath)
+            const openedFile = await VolumeHandle.openExistingFile(volumeRoot, subpath)
+            fileHandle = openedFile.fileHandle
+            filePath = openedFile.filePath
+            fileStat = openedFile.fileStat
+            if (options?.rejectProtectedPaths && isProtectedVolumeSubpath(openedFile.volumeRelativePath)) {
+                await fileHandle.close()
+                throw new ForbiddenException(
+                    t('server-ai:Error.ProtectedVolumeAuthenticationRequired', {
+                        defaultValue: 'Project and user-isolated Xpert files require authenticated access'
+                    })
+                )
+            }
             if (!fileStat.isFile()) {
+                await fileHandle.close()
                 res.status(404).send('File not found')
                 return
             }
+            if (res.destroyed || res.writableEnded) {
+                await fileHandle.close()
+                return
+            }
         } catch (err) {
+            if (err instanceof ForbiddenException) {
+                throw err
+            }
             this.#logger.error(`Error reading file ${filePath}:`, err)
             res.status(404).send('File not found')
             return
@@ -146,6 +347,7 @@ export class SandboxController {
         res.setHeader('Accept-Ranges', 'bytes')
         const range = resolveHttpByteRange(req.headers.range, fileStat.size)
         if (range.kind === 'unsatisfiable') {
+            await fileHandle.close()
             res.setHeader('Content-Range', `bytes */${fileStat.size}`)
             res.status(416).end()
             return
@@ -157,10 +359,10 @@ export class SandboxController {
             res.status(206)
             res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${fileStat.size}`)
             res.setHeader('Content-Length', contentLength)
-            fileStream = fs.createReadStream(filePath, { start: range.start, end: range.end })
+            fileStream = fileHandle.createReadStream({ start: range.start, end: range.end })
         } else {
             res.setHeader('Content-Length', fileStat.size)
-            fileStream = fs.createReadStream(filePath)
+            fileStream = fileHandle.createReadStream()
         }
 
         fileStream.on('error', (err) => {
@@ -171,6 +373,7 @@ export class SandboxController {
                 res.destroy(err)
             }
         })
+        res.once('close', () => fileStream.destroy())
         fileStream.pipe(res)
         res.on('error', (err) => {
             this.#logger.error(`Error sending file ${filePath}:`, err)
@@ -199,6 +402,7 @@ export class SandboxController {
             })
             const volume = this.volumeClient.resolve(resolved.volumeScope)
             const workspacePath = this.resolveUploadWorkspacePath(resolved, volume, workspace)
+            this.assertProjectUploadAllowed(resolved, volume, workspacePath, folderPath, file.originalname)
             const workspaceUrl = this.resolveWorkspacePublicUrl(volume, workspacePath)
 
             const asset = await this.commandBus.execute(
@@ -212,6 +416,8 @@ export class SandboxController {
                             kind: 'sandbox',
                             mode: 'mounted_workspace',
                             workspacePath,
+                            workspaceBoundaryPath: volume.serverRoot,
+                            projectContentReadOnly: !!resolved.effectiveProjectId,
                             workspaceUrl,
                             folder: folderPath || ''
                         }
@@ -256,7 +462,30 @@ export class SandboxController {
         if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
             throw new BadRequestException('Invalid sandbox workspace path')
         }
-        return volume.publicUrl(relativePath === '.' ? '' : relativePath)
+        return volume.exposesDirectFileUrls() ? volume.publicUrl(relativePath === '.' ? '' : relativePath) : undefined
+    }
+
+    private assertProjectUploadAllowed(
+        resolved: Awaited<ReturnType<SandboxConversationContextService['resolveConversationSandbox']>>,
+        volume: VolumeHandle,
+        workspacePath: string,
+        folderPath: string | undefined,
+        originalName: string
+    ) {
+        if (!resolved.effectiveProjectId) return
+        const workspaceRelativePath = relative(volume.serverRoot, workspacePath).replace(/\\/g, '/')
+        const filePath = normalizeRelativePath(
+            workspaceRelativePath === '.' ? '' : workspaceRelativePath,
+            folderPath,
+            normalizeFileName(originalName)
+        )
+        if (isProjectGovernedContentPath(filePath)) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectContentGenericWriteForbidden', {
+                    defaultValue: 'Project instructions and skills must be changed from Project configuration'
+                })
+            )
+        }
     }
 
     @Header('content-type', 'text/event-stream')
@@ -649,4 +878,33 @@ export class SandboxController {
             message: error instanceof Error ? error.message : String(error)
         })
     }
+}
+
+function isUserXpertVolumeSubpath(value: string) {
+    const normalized = value.replace(/\\/g, '/')
+    return (
+        /^\/?user\/[^/]+\/xpert\/[^/]+(?:\/|$)/.test(normalized) ||
+        /^\/?xpert\/[^/]+\/user\/[^/]+(?:\/|$)/.test(normalized)
+    )
+}
+
+function isProjectVolumeSubpath(value: string) {
+    return /^\/?project\/[^/]+(?:\/|$)/.test(value.replace(/\\/g, '/'))
+}
+
+function isRuntimeJobVolumeSubpath(value: string) {
+    const segments: string[] = []
+    for (const segment of value.replace(/\\/g, '/').split('/')) {
+        if (!segment || segment === '.') continue
+        if (segment === '..') {
+            segments.pop()
+            continue
+        }
+        segments.push(segment)
+    }
+    return segments[0]?.toLowerCase() === 'runtime-jobs'
+}
+
+function isProtectedVolumeSubpath(value: string) {
+    return isProjectVolumeSubpath(value) || isUserXpertVolumeSubpath(value) || isRuntimeJobVolumeSubpath(value)
 }

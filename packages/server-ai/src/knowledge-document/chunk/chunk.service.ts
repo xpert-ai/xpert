@@ -2,12 +2,16 @@ import { IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, ConflictException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, Repository, UpdateResult } from 'typeorm'
 import { KnowledgeDocumentChunk } from './chunk.entity'
 import { TDocChunkMetadata } from '../types'
 
 type ShallowKnowledgeDocumentChunkUpdater = {
     update(id: string, entity: Partial<IKnowledgeDocumentChunk>): Promise<unknown>
+}
+
+type VersionedKnowledgeDocumentChunkUpdater = {
+    update(criteria: { id: string; version: number }, entity: Partial<IKnowledgeDocumentChunk>): Promise<UpdateResult>
 }
 
 function assertExpectedVersion(version: number | null | undefined): asserts version is number {
@@ -55,7 +59,8 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
             id,
             updatedById: RequestContext.currentUserId()
         }
-        const result = await this.repository.update({ id, version: expectedVersion }, patch)
+        const repository = this.repository as unknown as VersionedKnowledgeDocumentChunkUpdater
+        const result = await repository.update({ id, version: expectedVersion }, patch)
         if (!result.affected) {
             throw new ConflictException('Knowledge document chunk has been modified. Refresh and try again.')
         }

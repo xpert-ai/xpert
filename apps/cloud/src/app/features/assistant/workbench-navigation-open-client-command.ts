@@ -122,19 +122,31 @@ export function registerWorkbenchNavigationOpenCommand(
 
       const threadId = getString(payload, 'threadId')
       const executionId = getString(payload, 'executionId')
-      await options.openAssistantConversation({
+      const xpertId = getString(payload, 'xpertId')
+      const projectId = getString(payload, 'projectId')
+      const opened = await options.openAssistantConversation({
         conversationId: resourceId,
         ...(threadId ? { threadId } : {}),
-        ...(executionId ? { executionId } : {})
+        ...(executionId ? { executionId } : {}),
+        ...(xpertId ? { xpertId } : {}),
+        ...(projectId ? { projectId } : {})
       })
+      const canonicalConversationId = getString(opened, 'conversationId') ?? resourceId
+      const canonicalThreadId = getString(opened, 'threadId') ?? threadId
+      const canonicalXpertId = getString(opened, 'xpertId') ?? xpertId
+      const canonicalProjectId = getString(opened, 'projectId') ?? projectId
+      const isExternalAssistant = getBoolean(opened, 'isExternalAssistant')
 
       return {
         success: true,
         status: 'opened',
         target,
-        conversationId: resourceId,
-        ...(threadId ? { threadId } : {}),
-        ...(executionId ? { executionId } : {})
+        conversationId: canonicalConversationId,
+        ...(canonicalThreadId ? { threadId: canonicalThreadId } : {}),
+        ...(executionId ? { executionId } : {}),
+        ...(canonicalXpertId ? { xpertId: canonicalXpertId } : {}),
+        ...(canonicalProjectId ? { projectId: canonicalProjectId } : {}),
+        ...(isExternalAssistant !== null ? { isExternalAssistant } : {})
       }
     }
 
@@ -226,6 +238,12 @@ function getScalarParameters(
     else if (Array.isArray(item) && item.every(isScalar)) parameters[parameterKey] = item
   }
   return Object.keys(parameters).length ? parameters : undefined
+}
+
+function getBoolean(payload: unknown, key: string): boolean | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
+  const value = (payload as Record<string, unknown>)[key]
+  return typeof value === 'boolean' ? value : null
 }
 
 function isScalar(value: unknown): value is XpertViewScalar {

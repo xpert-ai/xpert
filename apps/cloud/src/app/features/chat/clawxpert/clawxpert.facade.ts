@@ -1005,7 +1005,11 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       return
     }
 
-    void this.#router.navigate(['/chat/clawxpert', 'c', threadId])
+    // A thread switch can originate from an extension view (for example, an
+    // execution-history record opening its ChatKit conversation). Keep the
+    // active fixed-view state in the URL so the workbench does not fall back
+    // to its default view while ChatKit changes threads.
+    void this.#router.navigate(['/chat/clawxpert', 'c', threadId], { queryParamsHandling: 'preserve' })
   }
 
   async beginPendingConversation(startId: number, control: ChatKitControl) {

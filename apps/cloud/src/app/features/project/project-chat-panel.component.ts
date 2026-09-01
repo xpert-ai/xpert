@@ -1,19 +1,27 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
-import type { IXpertProject } from '@xpert-ai/contracts'
+import type { IXpert, IXpertProject } from '@xpert-ai/contracts'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '../assistant/assistant-chatkit.runtime'
-import { isProjectAssistant } from './project-assistant.constants'
 
 @Component({
   standalone: true,
   selector: 'xp-project-chat-panel',
-  imports: [CommonModule, DragDropModule, RouterLink, TranslateModule, ChatKit, ZardButtonComponent],
+  imports: [
+    CommonModule,
+    DragDropModule,
+    RouterLink,
+    TranslateModule,
+    ChatKit,
+    ZardButtonComponent,
+    EmojiAvatarComponent
+  ],
   template: `
     <section
       #panel
@@ -27,7 +35,7 @@ import { isProjectAssistant } from './project-assistant.constants'
         role="separator"
         tabindex="0"
         aria-orientation="vertical"
-        [attr.aria-label]="'XP.XProject.ResizeProjectAssistant' | translate"
+        [attr.aria-label]="'XP.XProject.ResizeProjectExpert' | translate"
         [attr.aria-valuemin]="resizeMinWidth()"
         [attr.aria-valuemax]="resizeMaxWidth()"
         [attr.aria-valuenow]="resizeWidth()"
@@ -46,7 +54,7 @@ import { isProjectAssistant } from './project-assistant.constants'
           </span>
           <div class="min-w-0">
             <h2 class="truncate text-sm font-semibold text-text-primary">
-              {{ 'XP.XProject.ProjectAssistant' | translate }}
+              {{ 'XP.XProject.ProjectExperts' | translate }}
             </h2>
             <p class="truncate text-xs text-text-tertiary">
               {{ project()?.name || ('XP.XProject.ProjectFallback' | translate) }}
@@ -57,6 +65,18 @@ import { isProjectAssistant } from './project-assistant.constants'
           </div>
         </div>
         <div class="flex shrink-0 items-center gap-1">
+          @if (assistant()) {
+            <button
+              z-button
+              zType="ghost"
+              zSize="sm"
+              type="button"
+              [title]="'XP.XProject.ChangeProjectExpert' | translate"
+              (click)="chooseAssistant(null)"
+            >
+              {{ 'XP.XProject.ChangeProjectExpert' | translate }}
+            </button>
+          }
           <a
             z-button
             zType="ghost"
@@ -89,23 +109,41 @@ import { isProjectAssistant } from './project-assistant.constants'
       <div class="min-h-0 flex-1">
         @if (!assistantId()) {
           <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-            <i class="ri-chat-off-line text-3xl text-text-tertiary"></i>
+            <i class="ri-team-line text-3xl text-text-tertiary"></i>
             <p class="mt-3 text-sm font-medium text-text-primary">
-              {{ 'XP.XProject.ProjectChatUnavailable' | translate }}
+              {{ 'XP.XProject.SelectProjectExpertToChat' | translate }}
             </p>
             <p class="mt-1 max-w-xs text-xs text-text-secondary">
-              {{ 'XP.XProject.ProjectChatUnavailableDesc' | translate }}
+              {{ 'XP.XProject.SelectProjectExpertToChatDesc' | translate }}
             </p>
-            <a
-              z-button
-              zType="outline"
-              zSize="sm"
-              [routerLink]="['/project', projectId(), 'config']"
-              [queryParams]="{ chat: 'open' }"
-              queryParamsHandling="merge"
-            >
-              {{ 'XP.XProject.GoToProjectConfiguration' | translate }}
-            </a>
+            @if (eligibleAssistants().length > 0) {
+              <div class="mt-4 grid w-full max-w-sm gap-2">
+                @for (xpert of eligibleAssistants(); track xpert.id) {
+                  <button
+                    z-button
+                    zType="outline"
+                    type="button"
+                    class="h-auto justify-start px-3 py-2 text-left"
+                    (click)="chooseAssistant(xpert.id)"
+                  >
+                    <emoji-avatar
+                      [avatar]="xpert.avatar"
+                      [fallbackLabel]="xpert.title || xpert.name"
+                      xs
+                      class="size-7 shrink-0 overflow-hidden rounded-md"
+                    />
+                    <span class="min-w-0">
+                      <span class="block truncate text-sm font-medium">{{ xpert.title || xpert.name }}</span>
+                      <span class="block truncate text-xs text-text-tertiary">{{ xpert.slug }}</span>
+                    </span>
+                  </button>
+                }
+              </div>
+            } @else {
+              <a z-button zType="outline" zSize="sm" class="mt-4" [routerLink]="['/project', projectId(), 'config']">
+                {{ 'XP.XProject.GoToProjectConfiguration' | translate }}
+              </a>
+            }
           </div>
         } @else if (control(); as chatkitControl) {
           <xpert-chatkit class="block h-full min-h-0" [control]="chatkitControl" />
@@ -128,26 +166,33 @@ export class XpertProjectChatPanelComponent {
   readonly resizeMaxWidth = input(640)
   readonly resizeWidth = input(512)
   readonly assistantKey = input<string | null>(null)
+  readonly eligibleAssistantIds = input<readonly string[] | null>(null)
   readonly initialThreadId = input<string | null>(null)
   readonly closed = output<void>()
   readonly threadChanged = output<string | null>()
+  readonly expertChanged = output<string | null>()
   readonly resizeStart = output<{ event: PointerEvent; panel: HTMLElement; handle: HTMLElement }>()
   readonly resizeLost = output<void>()
   readonly resizeKeydown = output<KeyboardEvent>()
 
-  readonly assistant = computed(() => {
+  readonly selectedAssistantId = signal<string | null>(null)
+
+  readonly eligibleAssistants = computed(() => {
     const xperts = this.project()?.xperts ?? []
-    const key = this.assistantKey()?.trim()
-    const configuredId = this.project()?.settings?.projectAssistantId?.trim()
-    return (
-      (key ? xperts.find((xpert) => xpert.id === key || xpert.slug === key) : null) ??
-      (configuredId ? xperts.find((xpert) => xpert.id === configuredId || xpert.slug === configuredId) : null) ??
-      xperts.find((xpert) => isProjectAssistant(xpert)) ??
-      xperts.find((xpert) => xpert.latest !== false) ??
-      null
-    )
+    const eligibleIds = this.eligibleAssistantIds()
+    if (!eligibleIds?.length) return xperts
+    const allowed = new Set(eligibleIds)
+    return xperts.filter((xpert) => allowed.has(xpert.id))
   })
-  readonly assistantId = computed(() => this.assistant()?.id ?? null)
+
+  readonly assistant = computed(() => {
+    const xperts = this.eligibleAssistants()
+    const key = this.selectedAssistantId()
+    return key ? (xperts.find((xpert) => xpert.id === key || xpert.slug === key) ?? null) : null
+  })
+  readonly assistantId = computed(
+    () => this.assistant()?.id ?? (this.initialThreadId()?.trim() ? this.selectedAssistantId() : null)
+  )
   readonly identity = computed(() => {
     const projectId = this.projectId().trim()
     const assistantId = this.assistantId()
@@ -155,11 +200,9 @@ export class XpertProjectChatPanelComponent {
   })
   readonly requestContext = computed(() => {
     const projectId = this.projectId().trim()
-    const instruction = this.project()?.settings?.instruction?.trim()
     return {
       env: {
-        ...(projectId ? { projectId } : {}),
-        ...(instruction ? { projectInstruction: instruction } : {})
+        ...(projectId ? { projectId } : {})
       }
     }
   })
@@ -170,16 +213,48 @@ export class XpertProjectChatPanelComponent {
     projectId: computed(() => this.projectId().trim() || null),
     frameUrl: this.chatkitFrameUrl,
     requestContext: this.requestContext,
+    composer: computed(() => ({
+      projects: {
+        enabled: true,
+        locked: true,
+        label: this.project()?.name || this.projectId()
+      },
+      connectors: { enabled: true }
+    })),
     initialThread: this.initialThreadId,
     layout: { maxWidth: '100%' },
-    titleKey: 'XP.XProject.ProjectAssistant',
-    titleDefault: 'Project assistant',
+    titleKey: 'XP.XProject.ProjectExpert',
+    titleDefault: 'Project expert',
     onThreadChange: ({ threadId }) => this.threadChanged.emit(threadId)
   })
+
+  constructor() {
+    effect(() => {
+      const xperts = this.eligibleAssistants()
+      this.selectedAssistantId.set(resolveProjectChatAssistantId(xperts, this.assistantKey(), this.initialThreadId()))
+    })
+  }
+
+  chooseAssistant(id: string | null) {
+    this.selectedAssistantId.set(id)
+    this.expertChanged.emit(id)
+  }
 
   onResizePointerDown(event: PointerEvent, panel: HTMLElement) {
     const handle = event.currentTarget
     if (!(handle instanceof HTMLElement)) return
     this.resizeStart.emit({ event, panel, handle })
   }
+}
+
+export function resolveProjectChatAssistantId(
+  xperts: IXpert[],
+  requestedKey?: string | null,
+  threadId?: string | null
+) {
+  const key = requestedKey?.trim()
+  if (!key) return null
+  const current = xperts.find((xpert) => xpert.id === key || xpert.slug === key)
+  if (current?.id) return current.id
+  return threadId?.trim() ? key : null
 }

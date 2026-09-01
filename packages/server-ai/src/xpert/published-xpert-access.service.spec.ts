@@ -56,6 +56,43 @@ describe('PublishedXpertAccessService', () => {
         ;(RequestContext.isTenantScope as jest.Mock).mockReturnValue(false)
     })
 
+    it('returns every published version id in the accessible Xpert family', async () => {
+        const xpert = {
+            id: 'xpert-current',
+            tenantId: 'tenant-1',
+            organizationId: 'org-requested',
+            workspaceId: 'workspace-1',
+            createdById: 'user-1',
+            type: XpertTypeEnum.Agent,
+            slug: 'demo',
+            publishAt: new Date()
+        }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(xpert),
+            find: jest.fn().mockResolvedValue([{ id: 'xpert-current' }, { id: 'xpert-v1' }]),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpertFamilyIds('xpert-current')).resolves.toEqual([
+            'xpert-current',
+            'xpert-v1'
+        ])
+
+        expect(repository.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                select: { id: true },
+                where: expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-requested',
+                    workspaceId: 'workspace-1',
+                    type: XpertTypeEnum.Agent,
+                    slug: 'demo'
+                })
+            })
+        )
+    })
+
     it('uses requestedOrganizationId when authorizing assistant access', async () => {
         const qb = createQueryBuilderMock({ count: 1 })
         const repository = {
@@ -300,6 +337,37 @@ describe('PublishedXpertAccessService', () => {
 
         await expect(service.getAccessiblePublishedXpert('xpert-user-2')).rejects.toThrow(ForbiddenException)
         expect(repository.findOne).not.toHaveBeenCalled()
+    })
+
+    it('accepts the exact Assistant audience of a delegated user session without repeating catalog access', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            requestedOrganizationId: 'org-requested',
+            requestedUserId: 'user-1',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-user-1'
+            }
+        })
+
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-user-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-requested',
+                publishAt: new Date()
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpert('xpert-user-1')).resolves.toMatchObject({
+            id: 'xpert-user-1'
+        })
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
     })
 
     it('allows workspace members to access a published xpert without a user-group grant', async () => {
@@ -685,6 +753,27 @@ describe('PublishedXpertAccessService', () => {
         })
 
         expect(qb.addSelect).toHaveBeenCalledWith('xpert.createdAt', 'order_createdAt')
+    })
+
+    it('applies an exact Organization filter before pagination and counting', async () => {
+        const qb = createQueryBuilderMock({ rows: [] })
+        const repository = {
+            find: jest.fn().mockResolvedValue([]),
+            createQueryBuilder: jest.fn().mockReturnValue(qb)
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await service.findAccessiblePublishedXperts({
+            where: { organizationId: 'org-requested' },
+            skip: 10,
+            take: 20
+        })
+
+        expect(qb.andWhere).toHaveBeenCalledWith('xpert.organizationId = :whereOrganizationId', {
+            whereOrganizationId: 'org-requested'
+        })
+        expect(qb.skip).toHaveBeenCalledWith(10)
+        expect(qb.take).toHaveBeenCalledWith(20)
     })
 
     it('rejects access when none of creator, workspace membership, or user-group membership grants access', async () => {

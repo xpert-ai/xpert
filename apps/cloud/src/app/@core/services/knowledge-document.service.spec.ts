@@ -55,4 +55,17 @@ describe('KnowledgeDocumentService analysis preview', () => {
       withCredentials: true
     })
   })
+
+  it('loads the protected original file as a blob for rich document previews', () => {
+    const expected = new Blob(['docx'], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    })
+
+    service.getOriginalFilePreviewBlob('doc-1').subscribe((blob) => expect(blob).toBe(expected))
+
+    const request = httpMock.expectOne('/api/knowledge-document/doc-1/original-file/preview')
+    expect(request.request.method).toBe('GET')
+    expect(request.request.responseType).toBe('blob')
+    request.flush(expected)
+  })
 })

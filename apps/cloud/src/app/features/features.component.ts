@@ -22,6 +22,7 @@ import {
   RouterOutlet
 } from '@angular/router'
 import {
+  type ActiveScope,
   CurrentUserHydrationService,
   CURRENT_USER_BOOTSTRAP_RELATIONS,
   CURRENT_USER_BOOTSTRAP_SELECT,
@@ -212,6 +213,7 @@ export class FeaturesComponent implements OnInit {
   #sidebarResizePointerId: number | null = null
   #sidebarResizeHandle: HTMLElement | null = null
   #sidebarResizeAbortController: AbortController | null = null
+  #sidebarDefaultApplied = false
 
   constructor() {
     this.#router.events
@@ -262,6 +264,7 @@ export class FeaturesComponent implements OnInit {
       )
       .subscribe(([, , org, scope]) => {
         this.organization = org
+        this.applySidebarDefault(org, scope)
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
         void this.maybeOpenEntryOnboardingGuide()
@@ -311,7 +314,7 @@ export class FeaturesComponent implements OnInit {
     const organizations = memberships.map(({ organization }) => organization)
     const preferredOrganizationId = memberships.find((membership) => membership.isDefault)?.organizationId ?? null
 
-    this.#scopeService.initializeEntryScope(organizations, preferredOrganizationId)
+    await this.#scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
     //tenant enabled/disabled features for relatives organizations
     const { tenant, role } = this.user
@@ -447,6 +450,21 @@ export class FeaturesComponent implements OnInit {
 
   onCollapsedChange(collapsed: boolean) {
     this.sidebarCollapsed.set(collapsed)
+  }
+
+  private applySidebarDefault(organization: IOrganization | null | undefined, scope: ActiveScope) {
+    if (this.#sidebarDefaultApplied) {
+      return
+    }
+
+    if (scope.level === RequestScopeLevel.ORGANIZATION && organization?.id !== scope.organizationId) {
+      return
+    }
+
+    this.#sidebarDefaultApplied = true
+    this.sidebarCollapsed.set(
+      scope.level !== RequestScopeLevel.ORGANIZATION || organization?.sidebarExpandedByDefault !== true
+    )
   }
 
   startSidebarResize(event: PointerEvent) {

@@ -175,7 +175,8 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
         target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
         conversationId: 'conversation-1',
         threadId: 'thread-1',
-        executionId: 'execution-1'
+        executionId: 'execution-1',
+        xpertId: 'role-assistant-1'
       },
       context
     )
@@ -184,7 +185,8 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     expect(openAssistantConversation).toHaveBeenCalledWith({
       conversationId: 'conversation-1',
       threadId: 'thread-1',
-      executionId: 'execution-1'
+      executionId: 'execution-1',
+      xpertId: 'role-assistant-1'
     })
     expect(result).toEqual({
       success: true,
@@ -192,7 +194,49 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
       conversationId: 'conversation-1',
       threadId: 'thread-1',
-      executionId: 'execution-1'
+      executionId: 'execution-1',
+      xpertId: 'role-assistant-1'
+    })
+  })
+
+  it('returns the canonical Assistant conversation scope resolved by the host', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantConversation = jest.fn(async () => ({
+      conversationId: 'conversation-1',
+      threadId: 'canonical-thread-1',
+      xpertId: 'role-assistant-current',
+      projectId: 'case-project-1',
+      isExternalAssistant: true
+    }))
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantConversation })
+
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+        conversationId: 'conversation-1',
+        threadId: 'canonical-thread-1',
+        xpertId: 'spoofed-role-assistant',
+        projectId: 'case-project-1'
+      },
+      context
+    )
+
+    expect(openAssistantConversation).toHaveBeenCalledWith({
+      conversationId: 'conversation-1',
+      threadId: 'canonical-thread-1',
+      xpertId: 'spoofed-role-assistant',
+      projectId: 'case-project-1'
+    })
+    expect(result).toEqual({
+      success: true,
+      status: 'opened',
+      target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+      conversationId: 'conversation-1',
+      threadId: 'canonical-thread-1',
+      xpertId: 'role-assistant-current',
+      projectId: 'case-project-1',
+      isExternalAssistant: true
     })
   })
 

@@ -1,6 +1,7 @@
 {
   "plugins": {
     "@tailwindcss/postcss": {},
-    "autoprefixer": {}
+    "autoprefixer": {},
+    "./postcss/scope-univer-styles.cjs": {}
   }
 }

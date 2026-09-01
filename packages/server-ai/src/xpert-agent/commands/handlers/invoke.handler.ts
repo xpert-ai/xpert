@@ -58,6 +58,7 @@ import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../kn
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { applicationTracing } from '../../../tracing'
+import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -139,6 +140,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             userId,
             provider: sandboxFeature?.provider,
             xpertId: workspaceXpertId,
+            workspaceDataScope: latestXpert.workspaceDataScope,
             projectId: options.projectId,
             conversationId: options.conversationId,
             environmentId: sandboxEnvironmentId
@@ -224,7 +226,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
 
         const team = agent.team
-        const copilotModel = agent.copilotModel ?? team.copilotModel
+        const copilotModel = resolveEffectiveCopilotModel(team, agent, options)
 
         // Unmutes
         xpertGraph.nodes
@@ -446,7 +448,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         // Has bugs
                         console.error(`Interrupting for tool calls:`, state.tasks)
                         const operation = await this.queryBus.execute(
-                            new CompleteToolCallsQuery(xpert.id, state.tasks, state.values, options.isDraft)
+                            new CompleteToolCallsQuery(
+                                xpert.id,
+                                state.tasks,
+                                state.values,
+                                options.isDraft,
+                                options.projectId
+                            )
                         )
                         subscriber.next({
                             data: {

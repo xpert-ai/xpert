@@ -107,6 +107,9 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly required = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly clearable = input<boolean, boolean | string>(true, {
+    transform: booleanAttribute
+  })
 
   readonly label = input<string | I18nObject>()
 

@@ -53,6 +53,31 @@ describe('ViewExtensionApiService', () => {
     request.flush({ sessionId: 'session-1', expiresAt: '2026-07-17T04:00:00.000Z' })
   })
 
+  it('binds a view file session to the current Project runtime scope', () => {
+    service
+      .createViewFileAccessSession('agent', 'assistant-1', 'docx-editor', {
+        projectId: 'project-1',
+        conversationId: 'conversation-1'
+      })
+      .subscribe()
+
+    const request = httpMock.expectOne('http://localhost:3000/api/workspace-files/view-sessions')
+    expect(request.request.method).toBe('POST')
+    expect(request.request.withCredentials).toBe(true)
+    expect(request.request.headers.get('X-Xpert-View-Project-Id')).toBe('project-1')
+    expect(request.request.headers.get('X-Xpert-View-Conversation-Id')).toBe('conversation-1')
+    expect(request.request.body).toEqual({
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      viewKey: 'docx-editor',
+      runtimeScope: {
+        projectId: 'project-1',
+        conversationId: 'conversation-1'
+      }
+    })
+    request.flush({ sessionId: 'session-1', expiresAt: '2026-07-17T04:00:00.000Z' })
+  })
+
   it('sends the view file session cookie when revoking a session', () => {
     service.revokeViewFileAccessSession('session/1').subscribe()
 

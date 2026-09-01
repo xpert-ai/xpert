@@ -51,11 +51,22 @@ import { XpertTemplateWorkspaceInitializer } from './template-workspace-initiali
 import { ModelAccessModule } from '../model-access'
 import { XpertModelAccessValidator } from './model-access-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
+import { AssistantUserPreference } from './assistant-user-preference.entity'
+import { AssistantUserPreferenceService } from './assistant-user-preference.service'
+import { AssistantModelSelectionService } from './assistant-model-selection.service'
+import { XpertProjectModule } from '../xpert-project/project.module'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
-        TypeOrmModule.forFeature([Xpert, BusinessArea, ChatConversation, ChatMessage, XpertFrequentQuestionCache]),
+        TypeOrmModule.forFeature([
+            Xpert,
+            BusinessArea,
+            ChatConversation,
+            ChatMessage,
+            XpertFrequentQuestionCache,
+            AssistantUserPreference
+        ]),
         DiscoveryModule,
         TenantModule,
         SecretTokenModule,
@@ -78,8 +89,9 @@ import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
         CopilotStoreModule,
         CopilotUsageModule,
         HandoffQueueModule,
-        ChatConversationModule,
-        SseStreamModule
+        forwardRef(() => ChatConversationModule),
+        SseStreamModule,
+        forwardRef(() => XpertProjectModule)
     ],
     controllers: [XpertController, XpertAccessController],
     providers: [
@@ -98,10 +110,19 @@ import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
         XpertTemplateWorkspaceInitializer,
         XpertModelAccessValidator,
         XpertWorkspaceFilesService,
+        AssistantUserPreferenceService,
+        AssistantModelSelectionService,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [XpertService, XpertPrincipalService, PublishedXpertAccessService, XpertTemplateWorkspaceInitializer]
+    exports: [
+        XpertService,
+        XpertPrincipalService,
+        PublishedXpertAccessService,
+        XpertTemplateWorkspaceInitializer,
+        AssistantUserPreferenceService,
+        AssistantModelSelectionService
+    ]
 })
 export class XpertModule {}

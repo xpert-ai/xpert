@@ -20,7 +20,8 @@ import {
   XpertViewFileAccessSessionResult,
   XpertViewHostEventSubscription,
   XpertViewParameterDefinition,
-  XpertViewQuery
+  XpertViewQuery,
+  XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import { SafePipe } from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
@@ -28,6 +29,7 @@ import { environment } from '@cloud/environments/environment'
 import { XpThemeService } from '@xpert-ai/headless-ui'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 import {
+  resolveViewRuntimeDataScopeKey,
   ViewHostEventBus,
   type XpertRemoteViewHostEventMessage,
   type XpertViewHostEventMessage
@@ -91,6 +93,8 @@ export class RemoteComponentRendererComponent {
   readonly query = input<XpertViewQuery>({})
   readonly active = input<boolean>(true)
   readonly fillAvailableHeight = input(false)
+  readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
+  readonly runtimeUserId = input<string | null>(null)
 
   readonly #api = injectViewExtensionApi()
   readonly #toastr = injectToastr()
@@ -154,11 +158,12 @@ export class RemoteComponentRendererComponent {
       const manifest = this.manifest()
       const hostType = this.hostType()
       const hostId = this.hostId()
+      const runtimeScope = this.runtimeScope()
       if (!active || manifest.view.type !== 'remote_component') {
         return
       }
 
-      void untracked(() => this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key))
+      void untracked(() => this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key, runtimeScope))
     })
 
     effect(() => {
@@ -173,7 +178,13 @@ export class RemoteComponentRendererComponent {
     })
   }
 
-  private async loadEntry(requestId: number, hostType: string, hostId: string, viewKey: string) {
+  private async loadEntry(
+    requestId: number,
+    hostType: string,
+    hostId: string,
+    viewKey: string,
+    runtimeScope: XpertViewRuntimeScopeInput | null
+  ) {
     this.error.set(null)
     this.clearEntryUrl()
     this.requestedHeight.set(520)
@@ -183,7 +194,9 @@ export class RemoteComponentRendererComponent {
     this.resetFileAccessSession()
 
     try {
-      const html = await firstValueFrom(this.#api.getRemoteComponentEntry(hostType, hostId, viewKey))
+      const html = await firstValueFrom(
+        this.#api.getRemoteComponentEntry(hostType, hostId, viewKey, runtimeScope ?? undefined)
+      )
       if (requestId !== this.#entryRequestId) {
         return
       }
@@ -250,7 +263,13 @@ export class RemoteComponentRendererComponent {
       case 'requestData':
         void this.handleRequest(message, 'data', () =>
           firstValueFrom(
-            this.#api.getViewData(this.hostType(), this.hostId(), this.manifest().key, toQuery(message.query))
+            this.#api.getViewData(
+              this.hostType(),
+              this.hostId(),
+              this.manifest().key,
+              toQuery(message.query),
+              this.runtimeScope() ?? undefined
+            )
           )
         )
         return
@@ -298,7 +317,8 @@ export class RemoteComponentRendererComponent {
         this.hostId(),
         this.manifest().key,
         parameterKey,
-        toParameterOptionsQuery(message.query)
+        toParameterOptionsQuery(message.query),
+        this.runtimeScope() ?? undefined
       )
     )
   }
@@ -309,13 +329,22 @@ export class RemoteComponentRendererComponent {
     if (!action || (action.transport ?? 'json') !== 'json') {
       throw new Error(`Action '${actionKey || ''}' is not available`)
     }
-    return firstValueFrom(
-      this.#api.executeAction(this.hostType(), this.hostId(), this.manifest().key, action.key, {
-        targetId: getString(message.targetId),
-        input: toRecordOrNull(message.input),
-        parameters: toRecord(message.parameters)
-      })
+    const result = await firstValueFrom(
+      this.#api.executeAction(
+        this.hostType(),
+        this.hostId(),
+        this.manifest().key,
+        action.key,
+        {
+          targetId: getString(message.targetId),
+          input: toRecordOrNull(message.input),
+          parameters: toRecord(message.parameters)
+        },
+        this.runtimeScope() ?? undefined
+      )
     )
+    this.publishDataChanged(action)
+    return result
   }
 
   private async handleFileActionRequest(message: RemoteComponentMessage) {
@@ -328,14 +357,50 @@ export class RemoteComponentRendererComponent {
     if (!file) {
       throw new Error('file is required')
     }
-    return firstValueFrom(
-      this.#api.executeFileAction(this.hostType(), this.hostId(), this.manifest().key, action.key, {
-        targetId: getString(message.targetId),
-        input: toRecordOrNull(message.input),
-        parameters: toRecord(message.parameters),
-        file
-      })
+    const result = await firstValueFrom(
+      this.#api.executeFileAction(
+        this.hostType(),
+        this.hostId(),
+        this.manifest().key,
+        action.key,
+        {
+          targetId: getString(message.targetId),
+          input: toRecordOrNull(message.input),
+          parameters: toRecord(message.parameters),
+          file
+        },
+        this.runtimeScope() ?? undefined
+      )
     )
+    this.publishDataChanged(action)
+    return result
+  }
+
+  private publishDataChanged(action: XpertViewActionDefinition) {
+    if (action.requiredHostAccess !== 'edit' && action.requiredHostAccess !== 'manage') {
+      return
+    }
+    const runtimeScope = this.runtimeScope()
+    const dataScopeKey = resolveViewRuntimeDataScopeKey(
+      runtimeScope,
+      this.runtimeUserId(),
+      this.hostType(),
+      this.hostId()
+    )
+    if (runtimeScope && !dataScopeKey) {
+      return
+    }
+    this.#hostEvents.publish({
+      id: crypto.randomUUID(),
+      type: 'view.data.changed',
+      source: 'view-extension',
+      receivedAt: new Date().toISOString(),
+      hostType: this.hostType(),
+      hostId: this.hostId(),
+      ...(dataScopeKey ? { dataScopeKey } : {}),
+      data: { actionKey: action.key, originInstanceId: this.instanceId() },
+      visualization: { viewKey: this.manifest().key }
+    })
   }
 
   private async handleFileAccessRequest(message: RemoteComponentMessage) {
@@ -369,7 +434,12 @@ export class RemoteComponentRendererComponent {
 
     const epoch = this.#fileAccessEpoch
     const promise = firstValueFrom(
-      this.#api.createViewFileAccessSession(this.hostType(), this.hostId(), this.manifest().key)
+      this.#api.createViewFileAccessSession(
+        this.hostType(),
+        this.hostId(),
+        this.manifest().key,
+        this.runtimeScope() ?? undefined
+      )
     ).then(async (session) => {
       if (epoch !== this.#fileAccessEpoch) {
         await firstValueFrom(this.#api.revokeViewFileAccessSession(session.sessionId)).catch(() => undefined)
@@ -433,7 +503,20 @@ export class RemoteComponentRendererComponent {
   }
 
   private handleHostEvent(event: XpertViewHostEventMessage) {
-    if (!this.active() || !matchesHost(event, this.hostType(), this.hostId())) {
+    if (event.data?.['originInstanceId'] === this.instanceId()) {
+      return
+    }
+    const runtimeScope = this.runtimeScope()
+    if (
+      !this.active() ||
+      !matchesHost(
+        event,
+        this.hostType(),
+        this.hostId(),
+        resolveViewRuntimeDataScopeKey(runtimeScope, this.runtimeUserId(), this.hostType(), this.hostId()),
+        runtimeScope !== null
+      )
+    ) {
       return
     }
 
@@ -584,6 +667,7 @@ export class RemoteComponentRendererComponent {
       manifest: this.manifest(),
       payload: {},
       initialQuery: this.query(),
+      runtimeScope: this.runtimeScope(),
       locale: this.#document.documentElement.lang,
       theme: this.getRemoteTheme(),
       debug: this.getRemoteDebugState()
@@ -612,7 +696,20 @@ function isRemoteComponentMessage(value: unknown): value is RemoteComponentMessa
   )
 }
 
-function matchesHost(event: XpertViewHostEventMessage, hostType: string, hostId: string) {
+function matchesHost(
+  event: XpertViewHostEventMessage,
+  hostType: string,
+  hostId: string,
+  dataScopeKey: string | undefined,
+  requiresDataScopeKey: boolean
+) {
+  const eventDataScopeKey = event.dataScopeKey?.trim() || undefined
+  if (requiresDataScopeKey) {
+    return Boolean(eventDataScopeKey && dataScopeKey && eventDataScopeKey === dataScopeKey)
+  }
+  if (eventDataScopeKey || dataScopeKey) {
+    return eventDataScopeKey === dataScopeKey
+  }
   if (event.hostType && event.hostType !== hostType) {
     return false
   }
@@ -645,7 +742,7 @@ function matchesOptionalFilter(values: string[] | undefined, actual: string | un
 }
 
 function createRemoteHostEvent(event: XpertViewHostEventMessage): XpertRemoteViewHostEventMessage {
-  const { hostType: _hostType, hostId: _hostId, ...remoteEvent } = event
+  const { hostType: _hostType, hostId: _hostId, dataScopeKey: _dataScopeKey, ...remoteEvent } = event
   return remoteEvent
 }
 

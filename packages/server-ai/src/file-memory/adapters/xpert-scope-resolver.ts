@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/server-core'
 import { XpertService } from '../../xpert/xpert.service'
 import { FileMemoryXpertScope, FileMemoryXpertScopeResolver } from '../ports'
 
@@ -13,7 +14,9 @@ export class XpertFileMemoryScopeResolver implements FileMemoryXpertScopeResolve
         }
         return {
             id: xpert.id,
-            tenantId: xpert.tenantId
+            tenantId: xpert.tenantId,
+            userId: RequestContext.currentUserId(),
+            workspaceDataScope: xpert.workspaceDataScope
         }
     }
 }

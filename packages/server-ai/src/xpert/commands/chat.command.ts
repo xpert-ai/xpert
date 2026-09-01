@@ -16,6 +16,10 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
         public readonly options?: TChatOptions &
             TChatSourceAuditOptions & {
                 xpertId?: string
+                /** Runtime branch id; defaults to the conversation's primary thread. */
+                threadId?: string
+                /** True when `threadId` is not the conversation's compatibility root. */
+                isDerivedThread?: boolean
                 /**
                  * Start this chat run at a specific Agent in the Assistant graph.
                  * When omitted, the published Assistant's primary Agent is used.

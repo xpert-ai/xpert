@@ -1,15 +1,16 @@
-import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
-import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { IsDirty } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { TCopilotModel } from '@xpert-ai/contracts'
 import {
   AiModelTypeEnum,
   getErrorMessage,
@@ -25,9 +26,6 @@ import {
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
-import { derivedFrom } from 'ngxtension/derived-from'
-import { of, pipe, switchMap, tap } from 'rxjs'
-import { injectGetXpertTeam } from '../../utils'
 import { XpertComponent } from '../xpert.component'
 import { XpertService } from '../xpert.service'
 
@@ -93,6 +91,7 @@ export class XpertBasicComponent implements IsDirty {
     return null
   })
   readonly type = computed(() => this.xpert()?.type)
+  readonly workspaceDataScope = computed(() => this.xpert()?.workspaceDataScope ?? 'shared')
   readonly team = computed(() => (this.type() === XpertTypeEnum.Agent ? this.draft()?.team : this.xpert()))
 
   readonly isExpanded = model<boolean>(false)
@@ -103,7 +102,8 @@ export class XpertBasicComponent implements IsDirty {
     description: this.#fb.control(null),
     avatar: this.#fb.control(null),
     tags: this.#fb.control(null),
-    copilotModel: this.#fb.control(null)
+    copilotModel: this.#fb.control<TCopilotModel | null>(null, Validators.required),
+    allowedModels: this.#fb.array<FormControl<TCopilotModel | null>>([])
     // starters: this.#fb.array([
     //   this.#fb.control(null),
     //   this.#fb.control(null),
@@ -129,6 +129,9 @@ export class XpertBasicComponent implements IsDirty {
   get copilotModel() {
     return this.form.get('copilotModel') as FormControl
   }
+  get allowedModels() {
+    return this.form.get('allowedModels') as FormArray<FormControl<TCopilotModel | null>>
+  }
   // get starters() {
   //   return this.form.get('starters') as FormArray
   // }
@@ -136,7 +139,19 @@ export class XpertBasicComponent implements IsDirty {
   constructor() {
     effect(() => {
       if (this.team()) {
-        this.form.patchValue(this.team())
+        const team = this.team()
+        this.form.patchValue(team)
+        this.form.setControl(
+          'allowedModels',
+          this.#fb.array(
+            (team.options?.modelSelection?.allowedModels ?? []).map((model) =>
+              this.#fb.control<TCopilotModel | null>(
+                { ...model, options: model.options ? { ...model.options } : undefined },
+                Validators.required
+              )
+            )
+          )
+        )
         this.form.markAsPristine()
       }
     })
@@ -150,15 +165,66 @@ export class XpertBasicComponent implements IsDirty {
     this.isExpanded.update((state) => !state)
   }
 
+  addAllowedModel() {
+    this.allowedModels.push(this.#fb.control<TCopilotModel | null>(null, Validators.required))
+    this.allowedModels.markAsDirty()
+  }
+
+  removeAllowedModel(index: number) {
+    this.allowedModels.removeAt(index)
+    this.allowedModels.markAsDirty()
+  }
+
+  moveAllowedModel(index: number, offset: -1 | 1) {
+    const nextIndex = index + offset
+    if (nextIndex < 0 || nextIndex >= this.allowedModels.length) {
+      return
+    }
+    const control = this.allowedModels.at(index)
+    this.allowedModels.removeAt(index)
+    this.allowedModels.insert(nextIndex, control)
+    this.allowedModels.markAsDirty()
+  }
+
+  dropAllowedModel(event: CdkDragDrop<FormControl<TCopilotModel | null>[]>) {
+    if (event.previousIndex === event.currentIndex) {
+      return
+    }
+    const control = this.allowedModels.at(event.previousIndex)
+    this.allowedModels.removeAt(event.previousIndex)
+    this.allowedModels.insert(event.currentIndex, control)
+    this.allowedModels.markAsDirty()
+  }
+
+  updateAllowedModel(index: number, model: TCopilotModel | null) {
+    if (model && this.isDuplicateModel(model, index)) {
+      this.#toastr.error('XP.Xpert.ModelSelection.Duplicate', '', {
+        Default: 'The Primary model and selectable models must be unique.'
+      })
+      this.allowedModels.at(index).setValue(null)
+      return
+    }
+    this.allowedModels.at(index).setValue(model)
+    this.allowedModels.at(index).markAsDirty()
+  }
+
   saveDraft() {
     this.loading.set(true)
+    const { allowedModels, ...basicValue } = this.form.getRawValue()
+    const options = {
+      ...(this.team()?.options ?? {}),
+      modelSelection: {
+        allowedModels: this.normalizeAllowedModels(allowedModels)
+      }
+    }
     if (this.type() === XpertTypeEnum.Agent) {
       this.xpertAPI
         .upadteDraft(this.xpertId(), {
           team: {
             ...omitXpertRelations(this.xpert()),
             ...(this.draft()?.team ?? {}),
-            ...this.form.value
+            ...basicValue,
+            options
           }
         } as TXpertTeamDraft)
         .subscribe({
@@ -178,7 +244,8 @@ export class XpertBasicComponent implements IsDirty {
     } else {
       this.xpertAPI
         .update(this.xpertId(), {
-          ...this.form.value
+          ...basicValue,
+          options
         })
         .subscribe({
           next: (value) => {
@@ -199,5 +266,40 @@ export class XpertBasicComponent implements IsDirty {
 
   close() {
     this.#dialogRef.close()
+  }
+
+  private normalizeAllowedModels(models: Array<TCopilotModel | null>): TCopilotModel[] {
+    const primaryIdentity = this.modelIdentity(this.copilotModel.value)
+    const identities = new Set<string>()
+    return models.filter((model): model is TCopilotModel => {
+      const identity = this.modelIdentity(model)
+      if (!identity || identity === primaryIdentity || identities.has(identity)) {
+        return false
+      }
+      identities.add(identity)
+      return true
+    })
+  }
+
+  private isDuplicateModel(model: TCopilotModel, currentIndex: number): boolean {
+    const identity = this.modelIdentity(model)
+    if (!identity) {
+      return false
+    }
+    if (identity === this.modelIdentity(this.copilotModel.value)) {
+      return true
+    }
+    return this.allowedModels.controls.some(
+      (control, index) => index !== currentIndex && this.modelIdentity(control.value) === identity
+    )
+  }
+
+  private modelIdentity(model: TCopilotModel | null | undefined): string | null {
+    const copilotId = model?.copilotId?.trim()
+    const modelName = model?.model?.trim()
+    if (!copilotId || !modelName) {
+      return null
+    }
+    return `${copilotId}\u0000${model.modelType ?? AiModelTypeEnum.LLM}\u0000${modelName}`
   }
 }

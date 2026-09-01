@@ -6,9 +6,15 @@ import { XpertProjectOverviewComponent } from './project-overview.component'
 import { XpertProjectPlanComponent } from './project-plan.component'
 import { XpertProjectShellComponent } from './project-shell.component'
 import { XpertProjectTasksComponent } from './project-tasks.component'
+import { XpertProjectInvitationAcceptComponent } from './project-invitation-accept.component'
 
 export const routes: Routes = [
   { path: '', component: XpertProjectListComponent, data: { title: 'Projects' } },
+  {
+    path: 'invitations/accept',
+    component: XpertProjectInvitationAcceptComponent,
+    data: { title: 'Project invitation' }
+  },
   {
     path: ':id',
     component: XpertProjectShellComponent,

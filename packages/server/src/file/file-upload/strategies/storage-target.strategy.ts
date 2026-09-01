@@ -23,9 +23,14 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 		context: TFileUploadContext
 	): Promise<IFileAssetDestination> {
 		const provider = new FileStorage().getProvider(target.provider)
-		const fileName = target.fileName || this.createStoredFileName(source.originalName, target.prefix || 'file')
+		const fileName = this.normalizeFileName(
+			target.fileName || this.createStoredFileName(source.originalName, target.prefix || 'file')
+		)
 		const directory = this.normalizeRelativePath(target.directory || 'files')
-		const key = this.joinRelativePath(directory, context.request.tenantId, fileName)
+		const tenantId = this.normalizePathSegment(context.request.tenantId, 'tenant')
+		const tenantDirectory = this.joinRelativePath(directory, tenantId)
+		const key = this.joinRelativePath(tenantDirectory, fileName)
+		this.assertContainedInTenantDirectory(tenantDirectory, key)
 		const uploadedFile = (await provider.putFile(source.buffer, key)) as TStorageUploadedFile
 		const storageProvider = this.normalizeProvider(provider.name)
 
@@ -55,6 +60,31 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 	private createStoredFileName(originalName: string, prefix: string) {
 		const extension = path.extname(originalName)
 		return `${prefix}-${Date.now()}-${randomBytes(3).toString('hex')}${extension}`
+	}
+
+	private normalizeFileName(fileName: string) {
+		return this.normalizePathSegment(fileName, 'file name')
+	}
+
+	private normalizePathSegment(value: string | undefined, label: string) {
+		const normalized = `${value ?? ''}`.trim()
+		if (
+			!normalized ||
+			normalized === '.' ||
+			normalized === '..' ||
+			normalized.includes('/') ||
+			normalized.includes('\\')
+		) {
+			throw new Error(`Invalid ${label}`)
+		}
+		return normalized
+	}
+
+	private assertContainedInTenantDirectory(tenantDirectory: string, key: string) {
+		const relative = path.posix.relative(tenantDirectory, key)
+		if (!relative || relative === '..' || relative.startsWith('../') || path.posix.isAbsolute(relative)) {
+			throw new Error('Storage key must remain inside the tenant directory')
+		}
 	}
 
 	private normalizeProvider(provider?: string) {

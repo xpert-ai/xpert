@@ -35,6 +35,7 @@ import {
 import { applyFileMemorySignalToUsage, calculateFileMemoryUsefulnessScore, createDefaultFileMemoryUsage } from './usage'
 import { calculateDreamCandidateScore, classifyDreamCandidateScore } from './scoring'
 import { FileMemoryStore } from './sandbox-memory.store'
+import { createFileMemoryScopeKey, FileMemoryXpertScope } from './ports'
 
 export type FileMemoryWriteInput = {
     type: FileMemoryType
@@ -106,11 +107,7 @@ export class FileMemoryService {
         private readonly volumeClient: VolumeClient
     ) {}
 
-    async writeMemory(
-        xpert: { tenantId: string; id: string },
-        input: FileMemoryWriteInput,
-        runtime: FileMemoryRuntime = {}
-    ) {
+    async writeMemory(xpert: FileMemoryXpertScope, input: FileMemoryWriteInput, runtime: FileMemoryRuntime = {}) {
         const now = new Date().toISOString()
         const existing = input.memoryId
             ? await this.findTopicRecordByMemoryId(xpert, input.memoryId, runtime).catch(() => null)
@@ -169,7 +166,7 @@ export class FileMemoryService {
     }
 
     async archiveMemory(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         input: {
             memoryId?: string
             relativePath?: string
@@ -207,7 +204,7 @@ export class FileMemoryService {
     }
 
     async searchMemory(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         input: FileMemorySearchInput,
         runtime: FileMemoryRuntime = {}
     ): Promise<FileMemorySearchResult[]> {
@@ -265,7 +262,7 @@ export class FileMemoryService {
     }
 
     async recordRecallHits(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         input: FileMemoryRecallHitInput,
         runtime: FileMemoryRuntime = {}
     ) {
@@ -293,11 +290,7 @@ export class FileMemoryService {
         await this.writeScorecardIndex(xpert, runtime)
     }
 
-    async getMemory(
-        xpert: { tenantId: string; id: string },
-        input: FileMemoryGetInput,
-        runtime: FileMemoryRuntime = {}
-    ) {
+    async getMemory(xpert: FileMemoryXpertScope, input: FileMemoryGetInput, runtime: FileMemoryRuntime = {}) {
         const record = await this.resolveTopicRecord(xpert, input, runtime)
         const signal = createFileMemorySignal({
             type: 'detail_read',
@@ -320,7 +313,7 @@ export class FileMemoryService {
     }
 
     async recordWritebackCandidate(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         input: FileMemoryWritebackCandidateInput,
         runtime: FileMemoryRuntime = {}
     ) {
@@ -336,7 +329,7 @@ export class FileMemoryService {
         return signal
     }
 
-    async listMemoryHeaders(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    async listMemoryHeaders(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const rootMtimeMs = await this.getRootMtimeMs(xpert, runtime)
         const cacheKey = createScopeKey(xpert, runtime)
         const cached = this.headerManifestCache.get(cacheKey)
@@ -348,7 +341,7 @@ export class FileMemoryService {
         return headers
     }
 
-    async readManagedIndex(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    async readManagedIndex(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const rootMtimeMs = await this.getRootMtimeMs(xpert, runtime)
         const cacheKey = createScopeKey(xpert, runtime)
         const cached = this.indexCache.get(cacheKey)
@@ -360,7 +353,7 @@ export class FileMemoryService {
         return content
     }
 
-    async refreshManagedIndex(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    async refreshManagedIndex(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const headers = (await this.listMemoryHeaders(xpert, runtime)).filter((header) => header.status !== 'archived')
         const byType = new Map<FileMemoryType, FileMemoryHeader[]>()
         for (const type of FILE_MEMORY_TYPES) {
@@ -398,7 +391,7 @@ export class FileMemoryService {
         await this.invalidateCaches(xpert, runtime)
     }
 
-    async listTopicRecords(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    async listTopicRecords(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const root = await this.ensureMemoryRoot(xpert, runtime)
         const records: FileMemoryTopicRecord[] = []
 
@@ -428,12 +421,12 @@ export class FileMemoryService {
         return records
     }
 
-    async getMemoryRootPath(xpert: { tenantId: string; id: string }) {
+    async getMemoryRootPath(xpert: FileMemoryXpertScope) {
         return this.ensureMemoryRoot(xpert)
     }
 
     private async resolveTopicRecord(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         input: FileMemoryGetInput,
         runtime: FileMemoryRuntime = {}
     ) {
@@ -456,7 +449,7 @@ export class FileMemoryService {
     }
 
     private async findTopicRecordByMemoryId(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         memoryId?: string | null,
         runtime: FileMemoryRuntime = {}
     ) {
@@ -474,7 +467,7 @@ export class FileMemoryService {
     }
 
     private async allocateTopicPath(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         type: FileMemoryType,
         title: string,
         memoryId: string,
@@ -491,7 +484,7 @@ export class FileMemoryService {
     }
 
     private async updateTopicUsage(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         record: FileMemoryTopicRecord,
         signal: Parameters<typeof applyFileMemorySignalToUsage>[1],
         runtime: FileMemoryRuntime = {}
@@ -519,7 +512,7 @@ export class FileMemoryService {
     }
 
     private async appendSignal(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         signal: ReturnType<typeof createFileMemorySignal>,
         runtime: FileMemoryRuntime = {}
     ) {
@@ -536,7 +529,7 @@ export class FileMemoryService {
         await fsPromises.appendFile(absolutePath, `${serializeFileMemorySignal(signal)}\n`, 'utf8')
     }
 
-    private async writeScorecardIndex(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    private async writeScorecardIndex(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const records = await this.listTopicRecords(xpert, runtime)
         const signals = await this.readSignals(xpert, runtime)
         const signalsByMemory = groupSignalsByMemory(signals)
@@ -567,7 +560,7 @@ export class FileMemoryService {
         )
     }
 
-    private async readSignals(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    private async readSignals(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         if (runtime.store) {
             const relativePaths = await runtime.store
                 .listFiles(path.posix.join(FILE_MEMORY_DREAM_DIR, 'signals'), '*.jsonl')
@@ -612,7 +605,7 @@ export class FileMemoryService {
     }
 
     private async writeJsonFile(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         relativePath: string,
         value: unknown,
         runtime: FileMemoryRuntime = {}
@@ -620,7 +613,7 @@ export class FileMemoryService {
         await this.writeTextFile(xpert, relativePath, `${JSON.stringify(value, null, 2)}\n`, runtime)
     }
 
-    private async ensureMemoryRoot(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    private async ensureMemoryRoot(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         if (runtime.store) {
             await runtime.store.ensureRoot([...FILE_MEMORY_TYPES], FILE_MEMORY_DREAM_DIR)
             return runtime.store.rootPath
@@ -636,11 +629,7 @@ export class FileMemoryService {
         return root
     }
 
-    private async readTextFile(
-        xpert: { tenantId: string; id: string },
-        relativePath: string,
-        runtime: FileMemoryRuntime = {}
-    ) {
+    private async readTextFile(xpert: FileMemoryXpertScope, relativePath: string, runtime: FileMemoryRuntime = {}) {
         if (runtime.store) {
             return runtime.store.readFile(relativePath)
         }
@@ -648,7 +637,7 @@ export class FileMemoryService {
     }
 
     private async writeTextFile(
-        xpert: { tenantId: string; id: string },
+        xpert: FileMemoryXpertScope,
         relativePath: string,
         content: string,
         runtime: FileMemoryRuntime = {}
@@ -662,7 +651,7 @@ export class FileMemoryService {
         await fsPromises.writeFile(absolutePath, content, 'utf8')
     }
 
-    private resolveAbsolutePath(xpert: { tenantId: string; id: string }, relativePath: string) {
+    private resolveAbsolutePath(xpert: FileMemoryXpertScope, relativePath: string) {
         const normalized = normalizeFileMemoryRelativePath(relativePath)
         if (
             inferFileMemoryTypeFromPath(normalized) === null &&
@@ -674,20 +663,36 @@ export class FileMemoryService {
         return path.join(this.resolveMemoryRoot(xpert), normalized)
     }
 
-    private resolveMemoryRoot(xpert: { tenantId: string; id: string }) {
+    private resolveMemoryRoot(xpert: FileMemoryXpertScope) {
         return this.volumeClient
-            .resolve(getXpertFileMemoryVolumeScope(xpert.tenantId, xpert.id))
-            .path(getXpertFileMemoryWorkspacePath(xpert.id))
+            .resolve(
+                getXpertFileMemoryVolumeScope(
+                    xpert.tenantId,
+                    xpert.id,
+                    xpert.userId,
+                    xpert.workspaceDataScope,
+                    xpert.projectId
+                )
+            )
+            .path(getXpertFileMemoryWorkspacePath(xpert.id, xpert.projectId))
     }
 
-    private async migrateLegacyMemoryRoot(xpert: { tenantId: string; id: string }, root: string) {
-        const cacheKey = `${xpert.tenantId}:${xpert.id}`
+    private async migrateLegacyMemoryRoot(xpert: FileMemoryXpertScope, root: string) {
+        const cacheKey = createScopeKey(xpert)
         if (this.migratedLegacyRoots.has(cacheKey)) {
             return
         }
 
         const legacyRoot = this.volumeClient
-            .resolve(getXpertFileMemoryVolumeScope(xpert.tenantId, xpert.id))
+            .resolve(
+                getXpertFileMemoryVolumeScope(
+                    xpert.tenantId,
+                    xpert.id,
+                    xpert.userId,
+                    xpert.workspaceDataScope,
+                    xpert.projectId
+                )
+            )
             .path(getLegacyXpertFileMemoryWorkspacePath(xpert.id))
         const legacyStat = await fsPromises.stat(legacyRoot).catch(() => null)
         if (!legacyStat?.isDirectory()) {
@@ -756,7 +761,7 @@ export class FileMemoryService {
         this.migratedLegacyRoots.add(cacheKey)
     }
 
-    private async getRootMtimeMs(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    private async getRootMtimeMs(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const root = await this.ensureMemoryRoot(xpert, runtime)
         if (runtime.store) {
             const paths = [
@@ -788,7 +793,7 @@ export class FileMemoryService {
         return Math.max(latest, indexStat?.mtimeMs ?? 0)
     }
 
-    private async invalidateCaches(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
+    private async invalidateCaches(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
         const cacheKey = createScopeKey(xpert, runtime)
         this.headerManifestCache.delete(cacheKey)
         this.indexCache.delete(cacheKey)
@@ -827,8 +832,8 @@ async function collectLegacyMemoryFiles(root: string): Promise<string[]> {
     return files
 }
 
-function createScopeKey(xpert: { tenantId: string; id: string }, runtime: FileMemoryRuntime = {}) {
-    return runtime.store?.cacheKey ?? `${xpert.tenantId}:${xpert.id}`
+function createScopeKey(xpert: FileMemoryXpertScope, runtime: FileMemoryRuntime = {}) {
+    return runtime.store?.cacheKey ?? createFileMemoryScopeKey(xpert)
 }
 
 function mergeTags(existing?: string[], additions?: string[]) {

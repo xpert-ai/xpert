@@ -30,6 +30,7 @@ import { EventName_XpertPublished } from '../../types'
 import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
 import { t } from 'i18next'
+import { normalizeAssistantAllowedModels } from '../../assistant-model-selection.util'
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -156,8 +157,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.releaseNotes ??= ''
         xpert.releaseNotes += (xpert.releaseNotes ? '\n\n' : '') + notes
 
-        // Env
-        xpert.environmentId = environmentId
+        // An environment binding is optional. Normalize legacy blank values so
+        // nullable UUID columns never receive an empty string.
+        xpert.environmentId = normalizeEnvironmentId(environmentId)
 
         if (businessArea !== undefined) {
             xpert.businessAreaId = businessArea?.id ?? null
@@ -221,6 +223,13 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         const previousGraph = xpert.graph
 
         const xpertOptions = draft.team?.options ?? xpert.options ?? {}
+        if (xpertOptions.modelSelection) {
+            const primaryModel = resolveDraftPrimaryCopilotModel(xpert, draft)
+            xpertOptions.modelSelection.allowedModels = normalizeAssistantAllowedModels(
+                primaryModel,
+                xpertOptions.modelSelection.allowedModels ?? []
+            )
+        }
 
         const oldAgents = xpert.agents
 
@@ -445,6 +454,25 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             }
         }
     }
+}
+
+function resolveDraftPrimaryCopilotModel(xpert: Xpert, draft: TXpertTeamDraft) {
+    const primaryKey = draft.team?.agent?.key ?? xpert.agent?.key
+    const primaryNode = draft.nodes?.find(
+        (node) => node.type === 'agent' && (node.key === primaryKey || node.entity?.key === primaryKey)
+    )
+    return (
+        (primaryNode?.type === 'agent' ? primaryNode.entity.copilotModel : null) ??
+        draft.team?.agent?.copilotModel ??
+        xpert.agent?.copilotModel ??
+        draft.team?.copilotModel ??
+        xpert.copilotModel
+    )
+}
+
+function normalizeEnvironmentId(environmentId: string | null | undefined): string | null {
+    const normalized = environmentId?.trim()
+    return normalized || null
 }
 
 /**

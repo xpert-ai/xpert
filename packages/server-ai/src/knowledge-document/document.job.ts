@@ -21,6 +21,7 @@ import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/i
 import { KnowledgeDocLoadCommand } from './commands'
 import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
 import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
+import { guardEmbeddingInputDocuments } from './embedding-input-guard'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 
@@ -29,6 +30,11 @@ type KnowledgeDocumentJobData = {
     userId: string
     docs: IKnowledgeDocument[]
     mode?: KnowledgeDocumentProcessingMode
+}
+
+/** Shallow update signature avoids TypeORM recursive type expansion in ts-jest. */
+type KnowledgeDocumentMetadataUpdater = {
+    update: (documentId: string, updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>) => Promise<unknown>
 }
 
 @Processor({
@@ -173,6 +179,11 @@ export class KnowledgeDocumentConsumer {
                 let embeddingTokenUsed = 0
                 let syncResult: IncrementalChunkSyncResult | null = null
                 if (chunks) {
+                    chunks = guardEmbeddingInputDocuments(
+                        chunks,
+                        knowledgebase.copilotModel?.options?.context_size ??
+                            knowledgebase.copilotModel?.referencedModel?.options?.context_size
+                    )
                     this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
                     syncResult = await this.documentService.syncChunksIncrementally(
                         { ...document, chunks },
@@ -345,12 +356,13 @@ export class KnowledgeDocumentConsumer {
         updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>,
         metadataPatch?: Partial<KnowledgeDocumentMetadata>
     ) {
+        const updater = this.documentService as unknown as KnowledgeDocumentMetadataUpdater
         if (!metadataPatch) {
-            return await this.documentService.update(documentId, updates)
+            return await updater.update(documentId, updates)
         }
 
         const current = await this.documentService.findOne(documentId, { select: { id: true, metadata: true } })
-        return await this.documentService.update(documentId, {
+        return await updater.update(documentId, {
             ...updates,
             metadata: {
                 ...(current.metadata ?? {}),

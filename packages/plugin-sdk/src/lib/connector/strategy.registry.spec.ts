@@ -7,7 +7,8 @@ import {
   ConnectorRuntimeCapability,
   ConnectorStrategyKey,
   ConnectorStrategyRegistry,
-  getConnectorAuthMethods
+  getConnectorAuthMethods,
+  getConnectorAuthorizationModes
 } from './index'
 import type { ConnectorMultiAuthDefinition, ConnectorMultiAuthStrategy, ConnectorStrategy } from './index'
 
@@ -89,6 +90,43 @@ describe('ConnectorStrategyRegistry', () => {
     expect(registry.list()).toEqual([])
   })
 
+  it('preserves the optional provider credential revocation hook', async () => {
+    @ConnectorStrategyKey('revocable')
+    class RevocableConnectorStrategy implements ConnectorMultiAuthStrategy {
+      readonly definition: ConnectorMultiAuthDefinition = {
+        provider: 'revocable',
+        label: 'Revocable Connector',
+        authMethods: [{ id: 'token', type: 'api_key', label: 'Token', credentials: {} }]
+      }
+
+      async connect() {
+        return {
+          status: 'active' as const,
+          credential: { data: { token: 'secret' } }
+        }
+      }
+
+      async revokeCredential() {}
+    }
+
+    const registry = createRegistry()
+    const strategy = new RevocableConnectorStrategy()
+    const revokeCredential = jest.spyOn(strategy, 'revokeCredential')
+    registry.upsert(strategy)
+
+    await registry.getRuntime('revocable').revokeCredential?.({
+      authMethodId: 'token',
+      credential: { data: { token: 'secret' } },
+      reason: 'delete'
+    })
+
+    expect(revokeCredential).toHaveBeenCalledWith({
+      authMethodId: 'token',
+      credential: { data: { token: 'secret' } },
+      reason: 'delete'
+    })
+  })
+
   it('normalizes a legacy single OAuth definition', () => {
     expect(
       getConnectorAuthMethods({
@@ -102,6 +140,48 @@ describe('ConnectorStrategyRegistry', () => {
         type: 'oauth2'
       })
     ])
+  })
+
+  it('defaults providers without an authorization mode declaration to shared credentials', () => {
+    expect(
+      getConnectorAuthorizationModes({
+        provider: 'legacy',
+        label: 'Legacy',
+        auth: { type: 'oauth2' }
+      })
+    ).toEqual(['shared'])
+  })
+
+  it('accepts explicit personal and shared authorization modes', () => {
+    const definition = {
+      provider: 'scoped',
+      label: 'Scoped',
+      authorizationModes: ['personal', 'shared'] as const,
+      auth: { type: 'oauth2' as const }
+    }
+
+    expect(() => assertConnectorDefinition(definition)).not.toThrow()
+    expect(getConnectorAuthorizationModes(definition)).toEqual(['personal', 'shared'])
+  })
+
+  it('rejects invalid or duplicate authorization modes', () => {
+    expect(() =>
+      assertConnectorDefinition({
+        provider: 'invalid-mode',
+        label: 'Invalid mode',
+        authorizationModes: ['personal', 'personal'],
+        auth: { type: 'oauth2' }
+      })
+    ).toThrow('duplicate authorization mode')
+
+    expect(() =>
+      assertConnectorDefinition({
+        provider: 'unknown-mode',
+        label: 'Unknown mode',
+        authorizationModes: ['tenant'],
+        auth: { type: 'oauth2' }
+      })
+    ).toThrow('unsupported authorization mode')
   })
 
   it('rejects duplicate authentication method ids', () => {
@@ -125,6 +205,52 @@ describe('ConnectorStrategyRegistry', () => {
     }
 
     expect(() => assertConnectorDefinition(definition)).toThrow('unsupported authentication method type')
+  })
+
+  it('accepts plugin-owned embedded QR authorization presentation', () => {
+    expect(() =>
+      assertConnectorDefinition({
+        provider: 'qr-provider',
+        label: 'QR Provider',
+        authMethods: [
+          {
+            id: 'qr',
+            type: 'oauth2',
+            label: 'QR authorization',
+            authorizationPresentation: {
+              mode: 'embedded_qr',
+              title: 'Connect QR provider',
+              description: 'Scan the QR code to authorize.',
+              ariaLabel: 'Authorization QR code',
+              completionHint: 'This dialog closes after authorization.',
+              cancelLabel: 'Cancel authorization',
+              copyLinkLabel: 'Copy link',
+              copyLinkError: 'Could not copy authorization link.'
+            }
+          }
+        ]
+      })
+    ).not.toThrow()
+  })
+
+  it('rejects incomplete embedded QR authorization presentation', () => {
+    expect(() =>
+      assertConnectorDefinition({
+        provider: 'qr-provider',
+        label: 'QR Provider',
+        authMethods: [
+          {
+            id: 'qr',
+            type: 'oauth2',
+            label: 'QR authorization',
+            authorizationPresentation: {
+              mode: 'embedded_qr',
+              title: 'Connect QR provider'
+            }
+          }
+        ]
+      })
+    ).toThrow("authorization presentation must declare 'description'")
   })
 
   it('validates decorated function providers', () => {

@@ -485,7 +485,15 @@ export class AssistantBindingService
     }
 
     private async backfillLegacyUserBindings() {
-        if (!(await this.tableExists('assistant_user_preference'))) {
+        if (
+            !(await this.tableHasColumns('assistant_user_preference', [
+                'tenantId',
+                'organizationId',
+                'userId',
+                'code',
+                'assistantId'
+            ]))
+        ) {
             return
         }
 
@@ -542,6 +550,21 @@ export class AssistantBindingService
         ])) as Array<{ name: string | null }>
 
         return !!result[0]?.name
+    }
+
+    private async tableHasColumns(tableName: string, columnNames: string[]) {
+        const result = (await this.dataSource.query(
+            `
+        SELECT COUNT(*)::int as "count"
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = $1
+          AND column_name = ANY($2::text[])
+      `,
+            [tableName, columnNames]
+        )) as Array<{ count: number }>
+
+        return result[0]?.count === columnNames.length
     }
 
     private async saveBinding(existing: AssistantBinding | null, input: IAssistantBinding, userScoped: boolean) {

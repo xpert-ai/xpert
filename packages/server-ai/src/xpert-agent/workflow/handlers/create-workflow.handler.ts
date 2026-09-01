@@ -212,6 +212,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
                     commandBus: this.commandBus,
                     queryBus: this.queryBus,
                     xpertId,
+                    workspaceDataScope: xpert?.workspaceDataScope,
                     workspaceId: xpert?.workspaceId,
                     environment: options.environment,
                     conversationId: options.conversationId

@@ -97,12 +97,19 @@ function createBuses(toolset: WorkflowTestToolset) {
     return { commandBus, queryBus }
 }
 
-async function invokeWorkflowToolNode(toolset: WorkflowTestToolset, node = createNode()) {
+async function invokeWorkflowToolNode(
+    toolset: WorkflowTestToolset,
+    node = createNode(),
+    runtime: { projectId?: string; userId?: string; workspaceDataScope?: 'shared' | 'user' } = {
+        projectId: 'project-1'
+    }
+) {
     const { commandBus, queryBus } = createBuses(toolset)
     const workflow = createToolNode(createGraph(node), node, {
         commandBus: commandBus as unknown as CommandBus,
         queryBus: queryBus as unknown as QueryBus,
         xpertId: 'xpert-1',
+        workspaceDataScope: runtime.workspaceDataScope,
         workspaceId: 'workspace-1',
         environment: {
             name: 'Test',
@@ -119,7 +126,10 @@ async function invokeWorkflowToolNode(toolset: WorkflowTestToolset, node = creat
                 checkpoint_ns: 'checkpoint-ns',
                 checkpoint_id: 'checkpoint-1',
                 executionId: 'parent-execution-1',
-                projectId: 'project-1',
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1',
+                userId: runtime.userId ?? 'user-1',
+                projectId: runtime.projectId,
                 agentKey: 'agent-1'
             }
         }
@@ -156,6 +166,48 @@ describe('workflow tool node cleanup', () => {
             ([command]) => command instanceof ToolsetGetToolsCommand
         )?.[0] as ToolsetGetToolsCommand
         expect(getToolsCommand.environment.getExecutionId()).toBe('execution-1')
+    })
+
+    it('carries the host-bound Project scope into workflow tool loading', async () => {
+        const toolset = new WorkflowTestToolset(createTool(async () => '{"ok":true}'))
+
+        const { commandBus } = await invokeWorkflowToolNode(toolset)
+        const getToolsCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof ToolsetGetToolsCommand
+        )?.[0] as ToolsetGetToolsCommand
+
+        expect(getToolsCommand.environment).toEqual(
+            expect.objectContaining({
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                workspaceDataScope: undefined
+            })
+        )
+        expect(getToolsCommand.environment).not.toHaveProperty('catalog')
+        expect(getToolsCommand.environment).not.toHaveProperty('scopeId')
+        expect(getToolsCommand.environment).not.toHaveProperty('isolateByUser')
+    })
+
+    it('carries the host-bound user-Xpert scope into workflow tool loading', async () => {
+        const toolset = new WorkflowTestToolset(createTool(async () => '{"ok":true}'))
+
+        const { commandBus } = await invokeWorkflowToolNode(toolset, createNode(), {
+            userId: 'user-a',
+            workspaceDataScope: 'user'
+        })
+        const getToolsCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof ToolsetGetToolsCommand
+        )?.[0] as ToolsetGetToolsCommand
+
+        expect(getToolsCommand.environment).toEqual(
+            expect.objectContaining({
+                xpertId: 'xpert-1',
+                workspaceDataScope: 'user'
+            })
+        )
+        expect(getToolsCommand.environment).not.toHaveProperty('catalog')
+        expect(getToolsCommand.environment).not.toHaveProperty('scopeId')
+        expect(getToolsCommand.environment).not.toHaveProperty('isolateByUser')
     })
 
     it('closes the toolset when tool errors are handled with a default value', async () => {

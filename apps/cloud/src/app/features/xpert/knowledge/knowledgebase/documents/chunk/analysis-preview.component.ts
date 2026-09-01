@@ -27,12 +27,15 @@ import { MarkdownModule } from 'ngx-markdown'
 import { getDocument, type PDFDocumentLoadingTask, type PDFDocumentProxy, type RenderTask } from 'pdfjs-dist'
 import { finalize, Subscription } from 'rxjs'
 import { KnowledgeDocumentService } from '../../../../../../@core'
+import { FileDocxPreviewComponent } from '../../../../../../@shared/files/preview/file-docx-preview.component'
+import { renderDocxAnalysisOverlays } from './analysis-preview-docx-overlay'
 import {
   analysisScrollTopForLocation,
   resolveAnalysisScrollLocation,
   type AnalysisPageMetric,
   type AnalysisScrollLocation
 } from './analysis-preview-scroll'
+import { isDocxAnalysisSource } from './analysis-preview-source'
 
 type AvailableAnalysisPreview = Extract<KnowledgeDocumentAnalysisPreview, { available: true }>
 type AnalysisTab = 'markdown' | 'structure' | 'tables' | 'images' | 'json'
@@ -120,7 +123,8 @@ export class KnowledgeDocumentAnalysisAssetComponent {
     MarkdownModule,
     NgxJsonViewerModule,
     XpSpinComponent,
-    KnowledgeDocumentAnalysisAssetComponent
+    KnowledgeDocumentAnalysisAssetComponent,
+    FileDocxPreviewComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -143,6 +147,10 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
   readonly enabledTypes = signal<Set<DocumentAnalysisBlockType>>(new Set())
   readonly pdfLoading = signal(false)
   readonly pdfError = signal<string | null>(null)
+  readonly docxLoading = signal(false)
+  readonly docxError = signal<string | null>(null)
+  readonly docxBlob = signal<Blob | null>(null)
+  readonly docxRenderedRevision = signal(0)
   readonly viewportWidth = signal(0)
   readonly splitPercent = signal(50)
   readonly mobilePane = signal<MobilePane>('source')
@@ -171,6 +179,12 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
   })
   readonly isPdf = computed(
     () => this.preview().sourceType?.toLowerCase() === 'pdf' || this.preview().sourceMimeType === 'application/pdf'
+  )
+  readonly isDocx = computed(() =>
+    isDocxAnalysisSource(this.preview().sourceType, this.preview().sourceMimeType, this.fileName())
+  )
+  readonly sourceFileIcon = computed(() =>
+    this.isDocx() ? 'ri-file-word-2-line text-text-tertiary' : 'ri-file-pdf-2-line text-text-tertiary'
   )
 
   private readonly viewerHost = viewChild<ElementRef<HTMLElement>>('viewerHost')
@@ -223,6 +237,70 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
     onCleanup(() => observer.disconnect())
   })
 
+  readonly #loadDocxEffect = effect((onCleanup) => {
+    const documentId = this.documentId()
+    if (!this.isDocx()) {
+      this.docxBlob.set(null)
+      this.docxError.set(null)
+      this.docxLoading.set(false)
+      return
+    }
+
+    let active = true
+    this.docxBlob.set(null)
+    this.docxError.set(null)
+    this.docxLoading.set(true)
+    const subscription = this.#service
+      .getOriginalFilePreviewBlob(documentId)
+      .pipe(finalize(() => (active ? this.docxLoading.set(false) : undefined)))
+      .subscribe({
+        next: (blob) => {
+          if (active) this.docxBlob.set(blob)
+        },
+        error: (error) => {
+          if (!active) return
+          this.docxError.set(
+            error instanceof Error
+              ? error.message
+              : this.#translate.instant(`${ANALYSIS_PREVIEW_I18N}.DocxFileLoadFailed`)
+          )
+        }
+      })
+
+    onCleanup(() => {
+      active = false
+      subscription.unsubscribe()
+    })
+  })
+
+  readonly #docxOverlayEffect = effect((onCleanup) => {
+    const host = this.viewerHost()?.nativeElement
+    const renderedRevision = this.docxRenderedRevision()
+    const pages = this.pageDataByPage()
+    const enabledTypes = this.enabledTypes()
+    const selectedBlockId = this.selectedBlockId()
+    const selectedBlockPage = this.selectedBlockPage()
+    if (!this.isDocx() || !host || !renderedRevision) return
+
+    let removeOverlays: (() => void) | null = null
+    const frame = requestAnimationFrame(() => {
+      removeOverlays = renderDocxAnalysisOverlays({
+        host,
+        pages,
+        enabledTypes,
+        selectedBlockId,
+        selectedBlockPage,
+        blockAriaLabel: (block) => this.blockAriaLabel(block),
+        onSelect: (block, page) => this.selectBlock(block, page)
+      })
+    })
+
+    onCleanup(() => {
+      cancelAnimationFrame(frame)
+      removeOverlays?.()
+    })
+  })
+
   readonly #renderEffect = effect(() => {
     const host = this.viewerHost()?.nativeElement
     const pageData = this.pageDataByPage()
@@ -257,6 +335,7 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
       document
         .getElementById(`analysis-result-${blockPage}-${blockId}`)
         ?.scrollIntoView({ behavior: this.prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' })
+      if (this.isDocx()) this.scrollDocxBlockIntoView(blockId, blockPage)
     })
   })
 
@@ -372,6 +451,26 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
   setMobilePane(pane: MobilePane) {
     this.mobilePane.set(pane)
     requestAnimationFrame(() => this.scrollPaneToPage(pane, this.page(), 0))
+  }
+
+  onDocxRendered() {
+    const host = this.viewerHost()?.nativeElement
+    if (!host) return
+    const pages = this.preview().pages
+    const sections = Array.from(host.querySelectorAll<HTMLElement>('xp-file-docx-preview section.docx'))
+    sections.forEach((section, index) => {
+      const page = pages[index]
+      if (page == null) {
+        section.removeAttribute('data-analysis-page')
+        section.classList.remove('current-page')
+        return
+      }
+      section.dataset['analysisPage'] = `${page}`
+      section.classList.toggle('current-page', page === this.page())
+      section.setAttribute('aria-label', this.#translate.instant(`${ANALYSIS_PREVIEW_I18N}.PageLabel`, { page }))
+    })
+    this.docxRenderedRevision.update((revision) => revision + 1)
+    requestAnimationFrame(() => this.scrollBothToPage(this.page()))
   }
 
   onPaneScroll(pane: ScrollPane, event: Event) {
@@ -492,6 +591,7 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
       this.selectedBlockId.set(null)
       this.selectedBlockPage.set(null)
     }
+    if (this.isDocx()) this.updateDocxCurrentPage(page)
     this.loadAround(page)
     if (this.tab() === 'json') this.loadRawPage(page)
     if (!changed) return
@@ -501,6 +601,33 @@ export class KnowledgeDocumentAnalysisPreviewComponent {
       queryParamsHandling: 'merge',
       replaceUrl: true
     })
+  }
+
+  private updateDocxCurrentPage(page: number) {
+    this.viewerHost()
+      ?.nativeElement.querySelectorAll<HTMLElement>('xp-file-docx-preview section.docx[data-analysis-page]')
+      .forEach((section) => section.classList.toggle('current-page', Number(section.dataset['analysisPage']) === page))
+  }
+
+  private scrollDocxBlockIntoView(blockId: string, page: number) {
+    const host = this.viewerHost()?.nativeElement
+    if (!host) return
+    const pageSection = Array.from(
+      host.querySelectorAll<HTMLElement>('xp-file-docx-preview section.docx[data-analysis-page]')
+    ).find((section) => Number(section.dataset['analysisPage']) === page)
+    const shape = Array.from(pageSection?.querySelectorAll<SVGElement>('[data-analysis-docx-block-id]') ?? []).find(
+      (element) => element.dataset['analysisDocxBlockId'] === blockId
+    )
+    if (!shape) {
+      this.scrollPaneToPage('source', page, 0)
+      return
+    }
+
+    const hostBounds = host.getBoundingClientRect()
+    const shapeBounds = shape.getBoundingClientRect()
+    const targetTop =
+      host.scrollTop + shapeBounds.top - hostBounds.top - (host.clientHeight - Math.max(1, shapeBounds.height)) / 2
+    this.setPaneScrollTop('source', host, targetTop)
   }
 
   private loadAround(page: number) {

@@ -120,25 +120,27 @@ export class ProjectInstallXpertComponent {
     }
     const dsl = this.xpertDraft()
     this.#dialog
-      .open<{ name: string }>(XpertBasicDialogComponent, {
+      .open<Partial<IXpert>>(XpertBasicDialogComponent, {
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,
           description: dsl.team.description,
           title: dsl.team.title,
-          copilotModel: dsl.team.copilotModel
+          copilotModel: dsl.team.copilotModel,
+          showWorkspaceDataScope: false
         }
       })
       .closed.pipe(
         switchMap((basic) => {
           if (basic) {
             this.loading.set(true)
+            const { workspaceDataScope: _workspaceDataScope, ...portableBasic } = basic
             return this.xpertService
               .importDSL({
                 ...dsl,
                 team: {
                   ...dsl.team,
-                  ...basic,
+                  ...portableBasic,
                   workspaceId: this.workspaceId()
                 }
               })

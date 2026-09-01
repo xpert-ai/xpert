@@ -160,6 +160,49 @@ describe('XpertWorkspaceAccessService', () => {
         })
     })
 
+    it('allows current organization members to author organization-shared App workspaces', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-app',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId: 'owner-1',
+            settings: {
+                access: { visibility: 'organization-shared' },
+                system: { kind: 'plugin-app', pluginName: '@acme/plugin-example-app', appName: 'example-app' }
+            },
+            members: []
+        })
+
+        await expect(service.getCapabilities(workspace)).resolves.toEqual({
+            canRead: true,
+            canRun: true,
+            canWrite: true,
+            canManage: false
+        })
+    })
+
+    it('allows organization admins to manage organization-shared App workspaces', async () => {
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue({
+            id: 'admin-1',
+            tenantId: 'tenant-1',
+            role: { name: RolesEnum.ADMIN }
+        })
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-app',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId: 'owner-1',
+            settings: { access: { visibility: 'organization-shared' } },
+            members: []
+        })
+
+        await expect(service.getCapabilities(workspace)).resolves.toMatchObject({
+            canRead: true,
+            canWrite: true,
+            canManage: true
+        })
+    })
+
     it('keeps tenant-private workspaces hidden from organization scope users', async () => {
         const workspace = Object.assign(new XpertWorkspace(), {
             id: 'workspace-1',

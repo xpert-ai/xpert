@@ -2,7 +2,6 @@ import {
     IApiKey,
     IFileAssetDestination,
     IStorageFile,
-    IUploadFileTarget,
     SecretTokenBindingType,
     TChatOptions,
     TChatRequest
@@ -34,7 +33,8 @@ import {
     Sse,
     UploadedFile,
     UseGuards,
-    UseInterceptors
+    UseInterceptors,
+    ForbiddenException
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
@@ -48,6 +48,9 @@ import { KnowledgebaseOwnerGuard } from './guards/knowledgebase'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgeDocument } from '../core/entities/internal'
 import { PublishedXpertAccessService } from '../xpert'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
+import { WorkbenchAssistantConversationNavigationService } from '../chat-conversation/workbench-assistant-conversation-navigation.service'
+import { resolveExternalStorageUploadTarget } from './external-upload-target'
 
 const DEFAULT_CHATKIT_SESSION_EXPIRES_AFTER = 600
 const MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER = 3600
@@ -66,7 +69,9 @@ export class AIV1Controller {
         private readonly kbService: KnowledgebaseService,
         private readonly docService: KnowledgeDocumentService,
         private readonly secretTokenService: SecretTokenService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
+        private readonly projectAccessService: XpertProjectAccessService,
+        private readonly workbenchNavigationService: WorkbenchAssistantConversationNavigationService
     ) {}
 
     @Header('content-type', 'text/event-stream')
@@ -107,12 +112,14 @@ export class AIV1Controller {
         description: 'Knowledgebase'
     })
     async updateKnowledgebase(@Param('id') id: string, @Body() body: CreateKnowledgebaseDTO) {
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
         return this.kbService.updateKnowledgebase(id, body)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Delete('kb/:id')
     async deleteKnowledgebase(@Param('id') id: string, @ApiKeyDecorator() apiKey: IApiKey) {
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
         return this.kbService.delete(id)
     }
 
@@ -123,22 +130,28 @@ export class AIV1Controller {
         description: 'Knowledge documents'
     })
     async createDocBulk(@Param('id') id: string, @Body() entities: KnowledgeDocument[]) {
-        return await this.docService.createBulk(entities?.map((entity) => ({ ...entity, knowledgebaseId: id })))
+        await this.kbService.assertKnowledgebaseWriteAccess(id)
+        const documents = (entities ?? []).map((entity) => ({ ...entity, knowledgebaseId: id }))
+        await this.docService.assertOwnedStorageFiles(documents.map((document) => document.storageFileId))
+        await this.docService.prepareExternalDocumentInputs(documents)
+        return await this.docService.createBulk(documents)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Post('kb/:id/process')
     async start(@Param('id') id: string, @Body() ids: string[]) {
+        await this.docService.assertDocumentsWriteAccessInKnowledgebase(ids, id)
         return this.docService.startProcessing(ids, id)
     }
 
     @UseGuards(KnowledgebaseOwnerGuard)
     @Get('kb/:id/status')
-    async getStatus(@Query('ids') _ids: string) {
+    async getStatus(@Param('id') knowledgebaseId: string, @Query('ids') _ids: string) {
         const ids = _ids.split(',').map((id) => id.trim())
+        await this.docService.assertDocumentsReadAccessInKnowledgebase(ids, knowledgebaseId)
         const { items } = await this.docService.findAll({
             select: ['id', 'status', 'progress', 'processMsg'],
-            where: { id: In(ids) }
+            where: { id: In(ids), knowledgebaseId }
         })
         return items
     }
@@ -172,7 +185,11 @@ export class AIV1Controller {
         @UploadedFile() file: Express.Multer.File,
         @Body('target') targetValue?: string
     ): Promise<IStorageFile | IFileAssetDestination> {
-        const target = this.resolveUploadTarget(targetValue)
+        const target = resolveExternalStorageUploadTarget(targetValue, {
+            kind: 'storage',
+            directory: 'files',
+            prefix: 'files'
+        })
         const asset = await this.commandBus.execute(
             new UploadFileCommand({
                 source: {
@@ -205,6 +222,8 @@ export class AIV1Controller {
         @Body()
         body: {
             assistant?: { id?: string }
+            project?: { id?: string }
+            conversation?: { id?: string; requesterXpertId?: string }
             user?: string
             /**
              * Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.
@@ -241,17 +260,46 @@ export class AIV1Controller {
         } else {
             const currentUser = RequestContext.currentUser()
             const assistantId = body?.assistant?.id?.trim()
+            const projectId = body?.project?.id?.trim()
+            const conversationId = body?.conversation?.id?.trim()
+            const requesterXpertId = body?.conversation?.requesterXpertId?.trim()
             if (!currentUser?.id || !currentUser.tenantId) {
                 throw new BadRequestException('Current user context is required to create a ChatKit session.')
             }
             if (!assistantId) {
                 throw new BadRequestException('assistant.id is required to create a user ChatKit session.')
             }
+            if (body?.project && !projectId) {
+                throw new BadRequestException('project.id must be a non-empty Project id when provided.')
+            }
+            if (body?.conversation && (!conversationId || !requesterXpertId)) {
+                throw new BadRequestException(
+                    'conversation.id and conversation.requesterXpertId are required when conversation is provided.'
+                )
+            }
             if (body?.user?.trim() && body.user.trim() !== currentUser.id) {
                 throw new BadRequestException('ChatKit session user must match the authenticated user.')
             }
 
-            await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId)
+            if (conversationId && requesterXpertId) {
+                const resolution = await this.workbenchNavigationService.resolve(conversationId, requesterXpertId)
+                if (
+                    resolution.xpertId !== assistantId ||
+                    (projectId !== undefined && resolution.projectId !== projectId)
+                ) {
+                    throw new ForbiddenException(
+                        'The delegated conversation does not match the requested Assistant scope.'
+                    )
+                }
+            } else if (projectId) {
+                // A Project-bound external Assistant may intentionally not be
+                // visible through the user's ordinary Assistant catalog. The
+                // Project membership plus its exact Assistant binding is the
+                // authority for this short-lived interactive session.
+                await this.projectAccessService.assertCanUseXpert(projectId, assistantId)
+            } else {
+                await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId)
+            }
             await this.secretTokenService.create({
                 // USER_XPERT makes entityId an assistant audience and makes
                 // createdById the acting user. createdById alone is not enough
@@ -270,40 +318,6 @@ export class AIV1Controller {
             client_secret: token,
             expires_at: validUntil,
             expires_after: expires_after
-        }
-    }
-
-    private resolveUploadTarget(targetValue?: string): IUploadFileTarget {
-        const defaultTarget: IUploadFileTarget = {
-            kind: 'storage',
-            directory: 'files',
-            prefix: 'files'
-        }
-
-        if (!targetValue) {
-            return defaultTarget
-        }
-
-        const target = this.parseJson<IUploadFileTarget>(targetValue, 'target')
-        if (!target || Array.isArray(target) || !target.kind) {
-            throw new BadRequestException('Invalid target payload')
-        }
-
-        if (target.kind === 'storage') {
-            return {
-                ...defaultTarget,
-                ...target
-            }
-        }
-
-        return target
-    }
-
-    private parseJson<T>(value: string, field: string): T {
-        try {
-            return JSON.parse(value) as T
-        } catch {
-            throw new BadRequestException(`Invalid ${field} JSON`)
         }
     }
 }

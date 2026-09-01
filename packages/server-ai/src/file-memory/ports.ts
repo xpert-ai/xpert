@@ -1,11 +1,25 @@
+import { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { FileMemoryDreamConfig } from './types'
 
 export type FileMemoryXpertScope = {
     tenantId: string
     id: string
+    projectId?: string | null
+    userId?: string | null
+    workspaceDataScope?: XpertWorkspaceDataScope | null
 }
 
-export type ResolvedFileMemoryDreamerConfig = Required<Pick<FileMemoryDreamConfig, 'dreamerXpertId' | 'dreamerAgentKey'>>
+export function createFileMemoryScopeKey(xpert: FileMemoryXpertScope) {
+    if (xpert.projectId) {
+        return `${xpert.tenantId}:project:${xpert.projectId}:xpert:${xpert.id}`
+    }
+    const userScopeKey = xpert.workspaceDataScope === 'user' ? `:${xpert.userId ?? 'missing-user'}` : ''
+    return `${xpert.tenantId}:${xpert.id}${userScopeKey}`
+}
+
+export type ResolvedFileMemoryDreamerConfig = Required<
+    Pick<FileMemoryDreamConfig, 'dreamerXpertId' | 'dreamerAgentKey'>
+>
 
 export type FileMemoryDreamerRunInput = {
     runId: string

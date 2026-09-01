@@ -1,5 +1,6 @@
 import { type I18nObject, JSONValue } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
+import type { WorkspacePortableFileReference } from './workspace-files'
 
 export type KnowledgebaseDocumentFile = {
   buffer: Buffer
@@ -168,6 +169,17 @@ export type KnowledgebaseStartProcessingInput = {
   documentIds: string[]
 }
 
+/**
+ * Re-runs authorized Knowledge documents with a replacement parser contract.
+ * The host resolves tenant and organization scope from the current runtime;
+ * callers cannot move documents between Knowledge bases through this API.
+ */
+export type KnowledgebaseReprocessDocumentsInput = {
+  knowledgebaseId: string
+  documentIds: string[]
+  parserConfig: KnowledgebaseDocumentParserConfig
+}
+
 export type KnowledgebaseDocumentStatusInput = {
   knowledgebaseId?: string
   documentIds: string[]
@@ -189,6 +201,31 @@ export type KnowledgebaseDeleteDocumentsResult = {
   missingDocumentIds?: string[]
 }
 
+/** Identifies one standalone image document inside an already authorized Knowledge base. */
+export type KnowledgebaseReadImageInput = {
+  knowledgebaseId: string
+  documentId: string
+}
+
+/**
+ * Server-only image payload for plugin middleware.
+ *
+ * The `reference` is suitable for governed file flows, while `buffer` exists
+ * only for server-side validation or copying. Never expose either value
+ * directly to a model or iframe.
+ */
+export type KnowledgebaseReadImageResult = {
+  knowledgebaseId: string
+  documentId: string
+  name: string
+  mimeType: string
+  size: number
+  sourceHash?: string | null
+  /** Scoped browser/file resolver reference. Never expose it to a model. */
+  reference: WorkspacePortableFileReference
+  buffer: Buffer
+}
+
 export interface KnowledgebaseDocumentsApi {
   listDocuments(input: KnowledgebaseListDocumentsInput): Promise<KnowledgebaseListDocumentsResult>
 
@@ -204,14 +241,19 @@ export interface KnowledgebaseDocumentsApi {
 
   startProcessing(input: KnowledgebaseStartProcessingInput): Promise<KnowledgebaseDocumentStatusResult>
 
+  reprocessDocuments(input: KnowledgebaseReprocessDocumentsInput): Promise<KnowledgebaseDocumentStatusResult>
+
   getDocumentStatus(input: KnowledgebaseDocumentStatusInput): Promise<KnowledgebaseDocumentStatusResult>
 
   deleteDocuments(input: KnowledgebaseDeleteDocumentsInput): Promise<KnowledgebaseDeleteDocumentsResult>
+
+  /** Reads original bytes after the host revalidates Knowledge and document scope. */
+  readImage(input: KnowledgebaseReadImageInput): Promise<KnowledgebaseReadImageResult>
 }
 
 export const KnowledgebaseDocumentsRuntimeCapability = createRuntimeCapability<KnowledgebaseDocumentsApi>(
   'platform.knowledgebase.documents',
   {
-    description: 'Upload, import, create, process, inspect, and delete persistent knowledgebase documents.'
+    description: 'Upload, import, create, process, reprocess, inspect, and delete persistent knowledgebase documents.'
   }
 )

@@ -51,6 +51,9 @@ describe('ChatTaskSummaryService', () => {
                 }
                 return Promise.resolve({ items: messages, total: messages.length })
             }),
+            filterAuthorizedFileRelations: jest.fn((message) =>
+                Promise.resolve({ ...message, attachments: [], fileAssets: [] })
+            ),
             save: jest.fn((message) => Promise.resolve(message))
         }
         const goalService = {
@@ -124,6 +127,10 @@ describe('ChatTaskSummaryService', () => {
                 id: 'legacy-1',
                 taskSummary: expect.objectContaining({ version: 1 })
             })
+        )
+        expect(messageService.filterAuthorizedFileRelations).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'legacy-1' }),
+            'conversation-1'
         )
         expect(result.outputs.items).toHaveLength(3)
         expect(result.outputs.total).toBe(4)

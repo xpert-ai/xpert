@@ -7,6 +7,7 @@ describe('ChatMessageDTO', () => {
             role: 'human',
             content: 'Try this',
             thirdPartyMessage: {
+                model: 'mdl_primary',
                 runtimeCapabilities: {
                     mode: 'allowlist',
                     skills: {
@@ -56,5 +57,6 @@ describe('ChatMessageDTO', () => {
                 }
             }
         })
+        expect(dto.model).toBe('mdl_primary')
     })
 })

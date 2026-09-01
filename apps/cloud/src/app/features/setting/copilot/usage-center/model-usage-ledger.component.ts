@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   IModelUsageLedger,
+  ModelUsageAccountSummary,
+  ModelUsageBreakdownSummary,
   ModelUsageLedgerModality,
   ModelUsageLedgerQuery,
   ModelUsageMetric,
@@ -19,8 +20,13 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardTableImports
+  type ZardPageEvent,
+  ZardPaginatorComponent,
+  ZardTableImports,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
+import { forkJoin } from 'rxjs'
 import { startWith } from 'rxjs/operators'
 import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { CopilotUsageService, DateRelativePipe, RequestScopeLevel, Store, ToastrService } from '../../../../@core'
@@ -33,12 +39,14 @@ import { CopilotUsageService, DateRelativePipe, RequestScopeLevel, Store, Toastr
     CommonModule,
     FormsModule,
     TranslateModule,
-    WaIntersectionObserver,
     XpSelectComponent,
     XpSpinComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
+    ZardPaginatorComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     ...ZardTableImports,
     DateRelativePipe
   ]
@@ -64,11 +72,14 @@ export class ModelUsageLedgerComponent {
   readonly pricingStatusFilter = model<ModelUsagePricingStatus | ''>('')
 
   readonly items = signal<IModelUsageLedger[]>([])
-  readonly expandedAccountKeys = signal<Set<string>>(new Set())
+  readonly accountGroups = signal<ModelUsageAccountRow[]>([])
+  readonly selectedAccount = signal<ModelUsageAccountRow | null>(null)
+  readonly detailDimension = signal<ModelUsageDetailDimension>('model')
   readonly loading = signal(false)
-  readonly currentPage = signal(0)
-  readonly done = signal(false)
-  readonly pageSize = 30
+  readonly loadFailed = signal(false)
+  readonly pageIndex = signal(0)
+  readonly pageSize = signal(30)
+  readonly total = signal(0)
 
   readonly timeRanges = computed(() => {
     this.languageChange()
@@ -119,12 +130,15 @@ export class ModelUsageLedgerComponent {
       this.selectedOrganization()?.name ||
       this.translate.instant('XP.Scope.OrganizationEyebrow', { Default: 'Organization Scope' })
   )
-  readonly accountGroups = computed(() => groupUsageByAccount(this.items()))
+  readonly detailInvocations = computed(() => groupUsageInvocations(this.items()))
+  readonly modelGroups = signal<ModelUsageModelGroup[]>([])
+  readonly providerGroups = signal<ModelUsageProviderGroup[]>([])
 
   constructor() {
     effect(
       () => {
         this.activeScope()
+        this.selectedAccount.set(null)
         if (!this.isTenantScope() && untracked(() => this.organizationFilter())) this.organizationFilter.set('')
         untracked(() => this.reload())
       },
@@ -133,34 +147,64 @@ export class ModelUsageLedgerComponent {
   }
 
   reload() {
-    const version = ++this.#loadVersion
-    this.currentPage.set(0)
-    this.done.set(false)
-    this.items.set([])
-    this.expandedAccountKeys.set(new Set())
-    this.loading.set(false)
-    this.loadMore(version)
+    this.loadPage(0, this.pageSize())
   }
 
-  loadMore(version = this.#loadVersion) {
-    if (this.loading() || this.done()) return
+  loadPage(pageIndex = this.pageIndex(), pageSize = this.pageSize()) {
+    const version = ++this.#loadVersion
     this.loading.set(true)
-    this.usageService
-      .getModelUsageLedger({
-        ...this.query(),
-        take: this.pageSize,
-        skip: this.currentPage() * this.pageSize
-      })
-      .subscribe({
-        next: ({ items, total }) => {
+    this.loadFailed.set(false)
+    const query = this.query()
+    const params = {
+      ...query,
+      take: pageSize,
+      skip: pageIndex * pageSize
+    }
+    const selectedAccount = this.selectedAccount()
+    const detailDimension = this.detailDimension()
+    if (selectedAccount && detailDimension !== 'invocation') {
+      forkJoin({
+        account: this.usageService.getModelUsageAccounts({ ...query, take: 1, skip: 0 }),
+        breakdown: this.usageService.getModelUsageBreakdown(detailDimension, params)
+      }).subscribe({
+        next: ({ account, breakdown: { items, total } }) => {
           if (version !== this.#loadVersion) return
-          this.items.update((state) => [...state, ...items])
-          this.currentPage.update((page) => page + 1)
-          if (this.currentPage() * this.pageSize >= total) this.done.set(true)
-          this.loading.set(false)
+          this.items.set([])
+          if (detailDimension === 'model') this.modelGroups.set(items.map(toModelGroup))
+          else this.providerGroups.set(items.map(toProviderGroup))
+          this.acceptSelectedAccount(account.items[0])
+          this.acceptPage(pageIndex, pageSize, total)
         },
         error: (error) => this.handleError(error, version)
       })
+    } else if (selectedAccount) {
+      forkJoin({
+        account: this.usageService.getModelUsageAccounts({ ...query, take: 1, skip: 0 }),
+        ledger: this.usageService.getModelUsageLedger(params)
+      }).subscribe({
+        next: ({ account, ledger: { items, total } }) => {
+          if (version !== this.#loadVersion) return
+          this.items.set(items)
+          this.acceptSelectedAccount(account.items[0])
+          this.acceptPage(pageIndex, pageSize, total)
+        },
+        error: (error) => this.handleError(error, version)
+      })
+    } else {
+      this.usageService.getModelUsageAccounts(params).subscribe({
+        next: ({ items, total }) => {
+          if (version !== this.#loadVersion) return
+          this.items.set([])
+          this.accountGroups.set(items.map(toAccountRow))
+          this.acceptPage(pageIndex, pageSize, total)
+        },
+        error: (error) => this.handleError(error, version)
+      })
+    }
+  }
+
+  onPage(event: ZardPageEvent) {
+    this.loadPage(event.pageIndex, event.pageSize)
   }
 
   pricingLabel(status: ModelUsagePricingStatus) {
@@ -214,28 +258,46 @@ export class ModelUsageLedgerComponent {
     return `${this.modalityLabel(modality)} · ${this.unitLabel(unit)}`
   }
 
-  isAccountExpanded(group: ModelUsageAccountGroup) {
-    return this.expandedAccountKeys().has(group.key)
+  usageQuantity(group: ModelUsageAccountRow, modality: ModelUsageLedgerModality, unit: ModelUsageMetric['unit']) {
+    return group.usages.find((usage) => usage.modality === modality && usage.unit === unit)?.quantity ?? 0
   }
 
-  toggleAccount(group: ModelUsageAccountGroup) {
-    this.expandedAccountKeys.update((state) => {
-      const next = new Set(state)
-      if (next.has(group.key)) next.delete(group.key)
-      else next.add(group.key)
-      return next
-    })
+  selectAccount(group: ModelUsageAccountRow) {
+    this.selectedAccount.set(group)
+    this.detailDimension.set('model')
+    this.reload()
+  }
+
+  backToAccounts() {
+    if (!this.selectedAccount()) return
+    this.selectedAccount.set(null)
+    this.reload()
+  }
+
+  changeDetailDimension(value: unknown) {
+    if (value === 'model' || value === 'provider' || value === 'invocation') {
+      if (value === this.detailDimension()) return
+      this.detailDimension.set(value)
+      this.reload()
+    }
+  }
+
+  changeTimeRange(value: TimeRangeEnum | null) {
+    this.timeRangeValue.set(value ?? TimeRangeEnum.All)
+    this.reload()
   }
 
   private query(): ModelUsageLedgerQuery {
     const [start, end] = calcTimeRange(this.timeRangeValue())
+    const selectedAccount = this.selectedAccount()
     return {
       start,
       end,
       unit: this.unitFilter() || undefined,
       provider: clean(this.providerFilter()),
       model: clean(this.modelFilter()),
-      userId: clean(this.userFilter()),
+      userId: selectedAccount ? (selectedAccount.userId ?? undefined) : clean(this.userFilter()),
+      userIdentity: selectedAccount?.userId === null ? 'unidentified' : undefined,
       organizationId: this.isTenantScope() ? clean(this.organizationFilter()) : this.currentOrganizationId(),
       currency: clean(this.currencyFilter()),
       modality: this.modalityFilter() || undefined,
@@ -246,7 +308,29 @@ export class ModelUsageLedgerComponent {
   private handleError(error: unknown, version: number) {
     if (version !== this.#loadVersion) return
     this.loading.set(false)
+    this.loadFailed.set(true)
     this.toastr.error(error, this.translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
+  }
+
+  private acceptSelectedAccount(summary?: ModelUsageAccountSummary) {
+    const current = this.selectedAccount()
+    if (!current) return
+    this.selectedAccount.set(
+      summary
+        ? toAccountRow(summary)
+        : {
+            ...current,
+            usages: [],
+            pricedAmounts: { llm: 0, video: 0, total: 0 }
+          }
+    )
+  }
+
+  private acceptPage(pageIndex: number, pageSize: number, total: number) {
+    this.pageIndex.set(pageIndex)
+    this.pageSize.set(pageSize)
+    this.total.set(total)
+    this.loading.set(false)
   }
 }
 
@@ -255,71 +339,54 @@ function clean(value: string | null | undefined) {
   return normalized || undefined
 }
 
-export type ModelUsageAccountGroup = {
+type ModelUsageAccountRow = Omit<ModelUsageAccountSummary, 'usages'> & {
   key: string
-  userId: string | null
-  userName: string | null
-  items: ModelUsageInvocation[]
-  lastUsedAt: Date
-  usages: Array<{
-    key: string
-    modality: ModelUsageLedgerModality
-    unit: ModelUsageMetric['unit']
-    quantity: number
-  }>
-  pricedAmounts: {
-    llm: number
-    video: number
-    total: number
+  usages: ModelUsageDisplayUsage[]
+}
+
+type ModelUsageDetailDimension = 'model' | 'provider' | 'invocation'
+
+function toAccountRow(summary: ModelUsageAccountSummary): ModelUsageAccountRow {
+  return {
+    ...summary,
+    key: summary.userId ?? '__unknown_account__',
+    usages: summary.usages.map((usage) => ({
+      ...usage,
+      key: usageCategoryKey(usage.modality, usage.unit)
+    }))
   }
 }
 
-export function groupUsageByAccount(items: IModelUsageLedger[]): ModelUsageAccountGroup[] {
-  const groups = new Map<string, Omit<ModelUsageAccountGroup, 'items'> & { ledgerItems: IModelUsageLedger[] }>()
-  for (const item of items) {
-    const userId = clean(item.userId) ?? null
-    const key = userId ?? '__unknown_account__'
-    let group = groups.get(key)
-    if (!group) {
-      group = {
-        key,
-        userId,
-        userName: clean(item.userName) ?? null,
-        ledgerItems: [],
-        lastUsedAt: item.recordedAt,
-        usages: [],
-        pricedAmounts: { llm: 0, video: 0, total: 0 }
-      }
-      groups.set(key, group)
-    }
-    group.ledgerItems.push(item)
-    if (!group.userName && item.userName) group.userName = item.userName
-    if (new Date(item.recordedAt).getTime() > new Date(group.lastUsedAt).getTime()) {
-      group.lastUsedAt = item.recordedAt
-    }
-
-    const usageKey = usageCategoryKey(item.modality, item.unit)
-    const usage = group.usages.find((item) => item.key === usageKey)
-    const quantity = Number(item.unit === 'token' ? item.totalTokens : item.quantity) || 0
-    if (usage) usage.quantity += quantity
-    else group.usages.push({ key: usageKey, modality: item.modality, unit: item.unit, quantity })
-
-    const settlementAmount = item.charge?.settlementAmount
-    if (
-      item.charge?.pricingStatus === 'priced' &&
-      settlementAmount !== null &&
-      settlementAmount !== undefined &&
-      Number.isFinite(Number(settlementAmount))
-    ) {
-      const amount = Number(settlementAmount)
-      group.pricedAmounts.total += amount
-      if (item.modality === 'text') group.pricedAmounts.llm += amount
-      if (item.modality === 'video') group.pricedAmounts.video += amount
-    }
+function toModelGroup(summary: ModelUsageBreakdownSummary): ModelUsageModelGroup {
+  return {
+    key: summary.key,
+    provider: summary.provider,
+    model: summary.model,
+    usages: withUsageKeys(summary),
+    calls: summary.calls,
+    lastUsedAt: summary.lastUsedAt,
+    pricingStatus: summary.pricingStatus,
+    settlementAmount: summary.settlementAmount
   }
-  return [...groups.values()].map(({ ledgerItems, ...group }) => ({
-    ...group,
-    items: groupUsageInvocations(ledgerItems)
+}
+
+function toProviderGroup(summary: ModelUsageBreakdownSummary): ModelUsageProviderGroup {
+  return {
+    key: summary.key,
+    provider: summary.provider,
+    models: summary.models,
+    usages: withUsageKeys(summary),
+    calls: summary.calls,
+    lastUsedAt: summary.lastUsedAt,
+    pricingStatus: summary.pricingStatus,
+    settlementAmount: summary.settlementAmount
+  }
+}
+
+function withUsageKeys(summary: Pick<ModelUsageBreakdownSummary, 'usages'>): ModelUsageDisplayUsage[] {
+  return summary.usages.map((usage) => ({
+    ...usage,
+    key: usageCategoryKey(usage.modality, usage.unit)
   }))
 }
 
@@ -346,7 +413,7 @@ type ModelUsageInvocation = {
   exchangeRates: number[]
 }
 
-function groupUsageInvocations(items: IModelUsageLedger[]): ModelUsageInvocation[] {
+export function groupUsageInvocations(items: IModelUsageLedger[]): ModelUsageInvocation[] {
   const invocations = new Map<string, ModelUsageInvocation>()
   for (const item of items) {
     const key = `${item.providerScopeId}:${item.requestId}`
@@ -403,6 +470,25 @@ function groupUsageInvocations(items: IModelUsageLedger[]): ModelUsageInvocation
     }
   }
   return [...invocations.values()]
+}
+
+type ModelUsageBreakdown = {
+  key: string
+  usages: ModelUsageDisplayUsage[]
+  calls: number
+  lastUsedAt: Date
+  pricingStatus: ModelUsagePricingStatus
+  settlementAmount: number
+}
+
+type ModelUsageModelGroup = ModelUsageBreakdown & {
+  provider: string
+  model: string | null
+}
+
+type ModelUsageProviderGroup = ModelUsageBreakdown & {
+  provider: string
+  models: string[]
 }
 
 function addCurrencyAmount(amounts: Array<{ currency: string; amount: number }>, currency: string, amount: number) {

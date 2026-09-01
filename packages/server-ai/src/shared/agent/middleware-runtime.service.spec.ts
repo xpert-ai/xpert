@@ -94,7 +94,8 @@ import {
     WorkspaceFilesRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { ConnectorRuntimeCapability } from '@xpert-ai/plugin-sdk'
-import { GetStorageFileQuery, UploadFileCommand } from '@xpert-ai/server-core'
+import { ForbiddenException } from '@nestjs/common'
+import { UploadFileCommand } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
 import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
@@ -104,7 +105,11 @@ import { ExceedingLimitException } from '../../core/errors'
 import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
 import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
-import { CreateWorkspaceFileAssetCommand, GetFileAssetQuery } from '../../file-understanding'
+import {
+    CreateWorkspaceFileAssetCommand,
+    GetOwnedStorageFileQuery,
+    ResolveAuthorizedFileAssetQuery
+} from '../../file-understanding'
 import {
     CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
@@ -113,6 +118,7 @@ import {
     ImportKnowledgebaseArchiveCommand,
     ListKnowledgebaseDocumentsCommand,
     MoveKnowledgebaseDocumentCommand,
+    ReprocessKnowledgebaseDocumentsCommand,
     EnsureKnowledgebasesCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
@@ -121,7 +127,9 @@ import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
+import { FindAgentExecutionsQuery } from '../../xpert-agent-execution/queries/find.query'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { FindXpertQuery } from '../../xpert/queries/get-one.query'
 import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
 import { CollaborationService } from '../../collaboration'
 import { CopilotService } from '../../copilot/copilot.service'
@@ -137,6 +145,10 @@ describe('AgentMiddlewareRuntimeService', () => {
     let volumeClient: { resolve: jest.Mock }
     let volumeRoot: string
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
+    let connectors: {
+        createScopedRuntimeApi: jest.Mock
+        resolveSelectedRuntimeBindings: jest.Mock
+    }
     let artifacts: { createScopedApi: jest.Mock }
     let collaboration: CollaborationService
     let copilotService: CopilotService
@@ -159,7 +171,16 @@ describe('AgentMiddlewareRuntimeService', () => {
         volumeClient = {
             resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
         }
-        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient)
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, {
+            assertCanEdit: jest.fn().mockResolvedValue({})
+        })
+        connectors = {
+            createScopedRuntimeApi: jest.fn(() => ({
+                getConnector: jest.fn().mockResolvedValue(undefined),
+                getConnectorCredential: jest.fn().mockResolvedValue(undefined)
+            })),
+            resolveSelectedRuntimeBindings: jest.fn().mockResolvedValue([])
+        }
         artifacts = {
             createScopedApi: jest.fn((defaults) => ({
                 createArtifact: jest.fn(),
@@ -212,10 +233,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             {
                 t: jest.fn().mockReturnValue('AI model not found')
             } as any,
-            {
-                getRuntimeConnector: jest.fn().mockResolvedValue(undefined),
-                getRuntimeConnectorCredential: jest.fn().mockResolvedValue(undefined)
-            } as any,
+            connectors as unknown as ConstructorParameters<typeof AgentMiddlewareRuntimeService>[3],
             workspaceFiles,
             artifacts as any,
             collaboration,
@@ -270,8 +288,8 @@ describe('AgentMiddlewareRuntimeService', () => {
         const commands: unknown[] = []
         const selectedSkillRefs = [
             {
-                pluginName: '@xpert-ai/plugin-bid',
-                componentKey: 'bid-outline-planning'
+                pluginName: '@acme/plugin-example-app',
+                componentKey: 'outline-planning'
             }
         ]
         jest.spyOn(service as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
@@ -294,7 +312,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         await service.startAssistantTask({
             xpertId: 'xpert-1',
-            agentKey: 'Agent_BidOutline',
+            agentKey: 'Agent_Outline',
             taskId: 'task-1',
             prompt: 'Plan this outline.',
             selectedSkillRefs
@@ -302,7 +320,7 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         expect((service as any).resolveAssistantTaskSkillSelection).toHaveBeenCalledWith(
             'xpert-1',
-            'Agent_BidOutline',
+            'Agent_Outline',
             selectedSkillRefs
         )
         const chatCommand = commands.find((command) => command instanceof XpertChatCommand) as XpertChatCommand
@@ -316,7 +334,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         const xpert = {
             id: 'xpert-1',
             workspaceId: 'workspace-1',
-            agent: { key: 'Agent_BidOutline' },
+            agent: { key: 'Agent_Outline' },
             agents: [],
             graph: {
                 nodes: [
@@ -333,7 +351,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connections: [
                     {
                         type: 'workflow',
-                        from: 'Agent_BidOutline',
+                        from: 'Agent_Outline',
                         to: 'Middleware_Skills'
                     }
                 ]
@@ -344,7 +362,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 return [
                     {
                         id: 'skill-outline-1',
-                        sharedSkillId: 'plugin:@xpert-ai/plugin-bid:skill:bid-outline-planning'
+                        sharedSkillId: 'plugin:@acme/plugin-example-app:skill:outline-planning'
                     }
                 ]
             }
@@ -352,13 +370,13 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         await expect(
-            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_BidOutline', [
-                { pluginName: '@xpert-ai/plugin-bid', componentKey: 'bid-outline-planning' }
+            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
+                { pluginName: '@acme/plugin-example-app', componentKey: 'outline-planning' }
             ])
         ).resolves.toEqual({ workspaceId: 'workspace-1', skillIds: ['skill-outline-1'] })
         await expect(
-            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_BidOutline', [
-                { pluginName: '@xpert-ai/plugin-bid', componentKey: 'bid-service' }
+            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
+                { pluginName: '@acme/plugin-example-app', componentKey: 'service' }
             ])
         ).rejects.toThrow(/not directly connected/)
     })
@@ -380,6 +398,29 @@ describe('AgentMiddlewareRuntimeService', () => {
                 connectorId: 'connector-1'
             })
         ).resolves.toBeUndefined()
+    })
+
+    it('uses the exact invocation scope for Connector preflight and runtime credentials', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            connectorBindingIds: ['binding-1']
+        }
+        const scopedConnectorApi = {
+            getConnector: jest.fn().mockResolvedValue({ id: 'binding-1' }),
+            getConnectorCredential: jest.fn().mockResolvedValue({ token: 'scoped-token' })
+        }
+        connectors.createScopedRuntimeApi.mockReturnValueOnce(scopedConnectorApi)
+
+        await service.resolveSelectedConnectorRuntimeBindings(scope)
+        const runtime = service.createScopedApi(scope)
+
+        expect(connectors.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(['binding-1'], scope)
+        expect(connectors.createScopedRuntimeApi).toHaveBeenCalledWith(scope)
+        expect(runtime.capabilities?.require(ConnectorRuntimeCapability)).toBe(scopedConnectorApi)
     })
 
     it('registers the execution-scoped KnowledgeDocument visual assets capability', async () => {
@@ -417,6 +458,12 @@ describe('AgentMiddlewareRuntimeService', () => {
                 writeRuntimeBuffer: expect.any(Function)
             })
         })
+    })
+
+    it('does not expose workspace or visual-asset capabilities from the unbound global runtime', () => {
+        expect(service.api.capabilities?.has(WorkspaceFilesRuntimeCapability)).toBe(false)
+        expect(service.api.capabilities?.has(KnowledgeDocumentVisualAssetsRuntimeCapability)).toBe(false)
+        expect(visualAssetsRuntime.createScopedApi).not.toHaveBeenCalled()
     })
 
     it('resolves the organization model provider connection before the tenant provider', async () => {
@@ -1518,6 +1565,31 @@ describe('AgentMiddlewareRuntimeService', () => {
         )
     })
 
+    it('reprocesses scoped knowledge documents with a replacement parser contract', async () => {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ReprocessKnowledgebaseDocumentsCommand) {
+                return { documents: [{ id: 'doc-1', status: 'running', knowledgebaseId: 'kb-1' }] }
+            }
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities
+            ?.require(KnowledgebaseDocumentsRuntimeCapability)
+            .reprocessDocuments({
+                knowledgebaseId: 'kb-1',
+                documentIds: ['doc-1'],
+                parserConfig: { imageUnderstandingType: 'image-policy-v2' }
+            })
+
+        expect(result?.documents[0]?.status).toBe('running')
+        const command = commandBus.execute.mock.calls[0][0] as ReprocessKnowledgebaseDocumentsCommand
+        expect(command.input).toEqual({
+            knowledgebaseId: 'kb-1',
+            documentIds: ['doc-1'],
+            parserConfig: { imageUnderstandingType: 'image-policy-v2' }
+        })
+    })
+
     it('exposes knowledgebase document deletion through the runtime facade', async () => {
         commandBus.execute.mockImplementation(async (command: unknown) => {
             if (command instanceof DeleteKnowledgebaseDocumentsCommand) {
@@ -1571,7 +1643,15 @@ describe('AgentMiddlewareRuntimeService', () => {
             throw new Error(`Unexpected command: ${command?.constructor?.name}`)
         })
 
-        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).uploadBuffer({
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
+        const result = await runtime.capabilities?.require(WorkspaceFilesRuntimeCapability).uploadBuffer({
             tenantId: 'tenant-1',
             userId: 'user-1',
             catalog: 'xperts',
@@ -1636,7 +1716,15 @@ describe('AgentMiddlewareRuntimeService', () => {
             throw new Error(`Unexpected command: ${command?.constructor?.name}`)
         })
 
-        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).understandFile({
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
+        const result = await runtime.capabilities?.require(WorkspaceFilesRuntimeCapability).understandFile({
             tenantId: 'tenant-1',
             userId: 'user-1',
             catalog: 'xperts',
@@ -1685,7 +1773,16 @@ describe('AgentMiddlewareRuntimeService', () => {
         mkdirSync(join(volumeRoot, 'files/docx-editor/documents/doc-1/versions'), { recursive: true })
         writeFileSync(join(volumeRoot, relativePath), Buffer.from([0x50, 0x4b, 0x03, 0x04]))
 
-        const result = await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).readBuffer({
+        const runtime = service.createScopedApi({
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            catalog: 'xperts',
+            scopeId: 'xpert-1',
+            isolateByUser: false
+        })
+        const files = runtime.capabilities!.require(WorkspaceFilesRuntimeCapability)
+        const result = await files.readBuffer({
             tenantId: 'tenant-1',
             catalog: 'xperts',
             xpertId: 'xpert-1',
@@ -1703,7 +1800,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             })
         )
 
-        await service.api.capabilities?.require(WorkspaceFilesRuntimeCapability).deleteFile({
+        await files.deleteFile({
             tenantId: 'tenant-1',
             catalog: 'xperts',
             xpertId: 'xpert-1',
@@ -1849,19 +1946,16 @@ describe('AgentMiddlewareRuntimeService', () => {
 
     it('resolves file asset references through the runtime facade', async () => {
         queryBus.execute.mockImplementation(async (query: unknown) => {
-            if (query instanceof GetFileAssetQuery) {
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
                 return {
-                    id: 'file-asset-1',
-                    storageFileId: 'storage-1',
-                    originalName: '合同.pdf',
-                    mimeType: 'application/pdf',
-                    size: 1024
-                }
-            }
-
-            if (query instanceof GetStorageFileQuery) {
-                return [
-                    {
+                    asset: {
+                        id: 'file-asset-1',
+                        storageFileId: 'storage-1',
+                        originalName: '合同.pdf',
+                        mimeType: 'application/pdf',
+                        size: 1024
+                    },
+                    storageFile: {
                         id: 'storage-1',
                         file: 'files/tenant-1/contract.pdf',
                         fileUrl: 'https://files.example/contract.pdf',
@@ -1869,15 +1963,20 @@ describe('AgentMiddlewareRuntimeService', () => {
                         mimetype: 'application/pdf',
                         size: 1024
                     }
-                ]
+                }
             }
 
             throw new Error(`Unexpected query: ${query?.constructor?.name}`)
         })
 
-        const file = await service.api.capabilities?.require(FileRuntimeCapability).resolveFile({
-            fileAssetId: 'file-asset-1'
-        })
+        const file = await service
+            .createScopedApi({ conversationId: 'conversation-1' })
+            .capabilities?.require(FileRuntimeCapability)
+            .resolveFile({
+                fileAssetId: 'file-asset-1',
+                storageFileId: 'storage-1',
+                url: 'https://attacker.example/forged.pdf'
+            })
 
         expect(file).toEqual(
             expect.objectContaining({
@@ -1890,6 +1989,58 @@ describe('AgentMiddlewareRuntimeService', () => {
                 url: 'https://files.example/contract.pdf',
                 previewUrl: 'https://files.example/contract.pdf'
             })
+        )
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: {
+                    locator: { fileAssetId: 'file-asset-1', storageFileId: 'storage-1' },
+                    authority: { kind: 'conversation', conversationId: 'conversation-1' },
+                    operation: 'read'
+                }
+            })
+        )
+    })
+
+    it('resolves legacy storage references only through the owner-authorized fallback', async () => {
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof ResolveAuthorizedFileAssetQuery) {
+                throw new ForbiddenException()
+            }
+            if (query instanceof GetOwnedStorageFileQuery) {
+                return {
+                    id: 'storage-legacy-1',
+                    file: 'files/tenant-1/legacy.pdf',
+                    fileUrl: 'https://files.example/legacy.pdf',
+                    originalName: 'legacy.pdf',
+                    mimetype: 'application/pdf',
+                    size: 256
+                }
+            }
+
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const file = await service
+            .createScopedApi({ conversationId: 'conversation-1' })
+            .capabilities?.require(FileRuntimeCapability)
+            .resolveFile({
+                storageFileId: 'storage-legacy-1',
+                url: 'https://attacker.example/forged.pdf'
+            })
+
+        expect(file).toEqual(
+            expect.objectContaining({
+                id: 'storage-legacy-1',
+                storageFileId: 'storage-legacy-1',
+                name: 'legacy.pdf',
+                mimeType: 'application/pdf',
+                url: 'https://files.example/legacy.pdf',
+                previewUrl: 'https://files.example/legacy.pdf'
+            })
+        )
+        expect(queryBus.execute).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ storageFileId: 'storage-legacy-1' })
         )
     })
 
@@ -1940,7 +2091,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             taskId: 'task-1',
             conversationId: 'conversation-1',
             threadId: 'thread-1',
-            executionId: 'execution-1'
+            executionId: 'execution-1',
+            executorXpertId: 'assistant-1',
+            executorAgentKey: 'agent-main'
         })
         const command = commandBus.execute.mock.calls[2][0] as XpertChatCommand
         expect(command.request).toEqual(
@@ -2000,6 +2153,204 @@ describe('AgentMiddlewareRuntimeService', () => {
                 threadId: 'thread-1'
             })
         )
+    })
+
+    it('starts a workbench task on the one directly bound official external Assistant', async () => {
+        const requester = orchestratorFixture(['bom-assistant-1'])
+        const executor = roleAssistantFixture('bom-assistant-1')
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof FindXpertQuery) {
+                return query.conditions.id === requester.id ? requester : executor
+            }
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof ChatConversationUpsertCommand) {
+                return { ...command.entity, threadId: 'thread-external' }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) return command.execution
+            if (command instanceof XpertChatCommand) return of({ data: { event: 'done' } } as MessageEvent)
+            throw new Error(`Unexpected command: ${command?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+            xpertId: requester.id,
+            agentKey: 'Agent_BomEngineer',
+            target: {
+                kind: 'external_assistant',
+                requesterXpertId: requester.id,
+                requesterAgentKey: 'Agent_LifecycleOrchestrator',
+                expectation: {
+                    pluginName: '@xpert-ai/plugin-bom-lifecycle',
+                    templateKey: 'bom-lifecycle-bom-engineer',
+                    agentKey: 'Agent_BomEngineer'
+                }
+            },
+            prompt: '执行技术 BOM 草稿节点',
+            correlation: {
+                namespace: 'bom_lifecycle.flow_node',
+                operationId: 'operation-1',
+                subjectId: 'case-1',
+                attributes: { nodeKey: 'technical-bom-draft' }
+            }
+        })
+
+        expect(result).toMatchObject({
+            status: 'running',
+            executorXpertId: executor.id,
+            executorAgentKey: 'Agent_BomEngineer',
+            executorAssistantTemplateKey: 'bom-lifecycle-bom-engineer',
+            executorAssistantTitle: 'BOM 工程助手（组织实例）',
+            executorPublishedVersion: '10'
+        })
+        const conversation = commandBus.execute.mock.calls[0][0] as ChatConversationUpsertCommand
+        expect(conversation.entity.xpertId).toBe(executor.id)
+        const execution = commandBus.execute.mock.calls[1][0] as XpertAgentExecutionUpsertCommand
+        expect(execution.execution).toEqual(
+            expect.objectContaining({
+                xpertId: executor.id,
+                agentKey: 'Agent_BomEngineer',
+                metadata: expect.objectContaining({
+                    requesterXpertId: requester.id,
+                    correlation: expect.objectContaining({ operationId: 'operation-1', subjectId: 'case-1' })
+                })
+            })
+        )
+        const chat = commandBus.execute.mock.calls[2][0] as XpertChatCommand
+        expect(chat.options).toEqual(expect.objectContaining({ xpertId: executor.id, agentKey: 'Agent_BomEngineer' }))
+    })
+
+    it.each([
+        ['assistant_binding_missing', [], []],
+        [
+            'assistant_binding_ambiguous',
+            ['bom-assistant-1', 'bom-assistant-2'],
+            [roleAssistantFixture('bom-assistant-1'), roleAssistantFixture('bom-assistant-2')]
+        ],
+        [
+            'assistant_binding_incompatible',
+            ['bom-assistant-1'],
+            [roleAssistantFixture('bom-assistant-1', { templateKey: 'bom-lifecycle-commercial-engineer' })]
+        ],
+        ['assistant_unpublished', ['bom-assistant-1'], [roleAssistantFixture('bom-assistant-1', { published: false })]],
+        [
+            'assistant_binding_incompatible',
+            ['bom-assistant-1'],
+            [roleAssistantFixture('bom-assistant-1', { organizationId: 'org-2' })]
+        ]
+    ])('rejects external Assistant target with %s', async (expectedCode, targetIds, candidates) => {
+        const requester = orchestratorFixture(targetIds)
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (!(query instanceof FindXpertQuery)) throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+            if (query.conditions.id === requester.id) return requester
+            const candidate = candidates.find((value) => value.id === query.conditions.id)
+            if (!candidate) throw new Error('not found')
+            return candidate
+        })
+
+        await expect(
+            service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
+                xpertId: requester.id,
+                agentKey: 'Agent_BomEngineer',
+                target: {
+                    kind: 'external_assistant',
+                    requesterXpertId: requester.id,
+                    requesterAgentKey: 'Agent_LifecycleOrchestrator',
+                    expectation: {
+                        pluginName: '@xpert-ai/plugin-bom-lifecycle',
+                        templateKey: 'bom-lifecycle-bom-engineer',
+                        agentKey: 'Agent_BomEngineer'
+                    }
+                },
+                prompt: '执行节点'
+            })
+        ).rejects.toThrow(expectedCode)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('lists only correlated executions from currently bound external Assistants', async () => {
+        const requester = orchestratorFixture(['bom-assistant-1'])
+        const executor = roleAssistantFixture('bom-assistant-1')
+        queryBus.execute.mockImplementation(async (query: unknown) => {
+            if (query instanceof FindXpertQuery) {
+                return query.conditions.id === requester.id ? requester : executor
+            }
+            if (query instanceof FindAgentExecutionsQuery) {
+                return {
+                    items: [
+                        {
+                            id: 'execution-correlated',
+                            xpertId: executor.id,
+                            agentKey: undefined,
+                            parentId: 'execution-parent',
+                            threadId: 'thread-correlated',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            createdAt: new Date('2026-08-28T08:00:00Z'),
+                            updatedAt: new Date('2026-08-28T08:05:00Z'),
+                            inputs: {
+                                flowExecution: JSON.stringify({
+                                    contractVersion: 'flow-node-execution@1',
+                                    caseId: 'case-1',
+                                    flowTemplateKey: 'full_lifecycle',
+                                    flowTemplateVersion: 3,
+                                    nodeKey: 'technical-bom-draft',
+                                    expectedCaseRevision: 4,
+                                    flowRouteRevision: 1,
+                                    operationId: 'operation-correlated'
+                                }),
+                                executionCorrelation: JSON.stringify({
+                                    namespace: 'bom_lifecycle.flow_node',
+                                    operationId: 'operation-correlated',
+                                    subjectId: 'case-1'
+                                })
+                            },
+                            metadata: {
+                                requesterXpertId: requester.id
+                            }
+                        },
+                        {
+                            id: 'execution-unrelated',
+                            xpertId: executor.id,
+                            status: XpertAgentExecutionStatusEnum.SUCCESS,
+                            metadata: { requesterXpertId: 'other-orchestrator' }
+                        }
+                    ]
+                }
+            }
+            throw new Error(`Unexpected query: ${query?.constructor?.name}`)
+        })
+
+        const result = await service.api.capabilities
+            ?.require(AssistantTaskRuntimeCapability)
+            .listCorrelatedExecutions?.({
+                requesterXpertId: requester.id,
+                requesterAgentKey: 'Agent_LifecycleOrchestrator',
+                namespace: 'bom_lifecycle.flow_node',
+                subjectId: 'case-1'
+            })
+
+        expect(result).toEqual([
+            expect.objectContaining({
+                operationId: 'operation-correlated',
+                subjectId: 'case-1',
+                status: 'succeeded',
+                executionId: 'execution-correlated',
+                parentExecutionId: 'execution-parent',
+                executorXpertId: executor.id,
+                executorAgentKey: 'Agent_BomEngineer',
+                executorAssistantTemplateKey: 'bom-lifecycle-bom-engineer',
+                executorAssistantTitle: 'BOM 工程助手（组织实例）',
+                executorPublishedVersion: '10',
+                attributes: expect.objectContaining({
+                    contractVersion: 'flow-node-execution@1',
+                    flowTemplateKey: 'full_lifecycle',
+                    flowTemplateVersion: 3,
+                    nodeKey: 'technical-bom-draft',
+                    expectedCaseRevision: 4,
+                    flowRouteRevision: 1
+                })
+            })
+        ])
     })
 
     it('does not write a generated assistant task id into chat conversation taskId', async () => {
@@ -2139,6 +2490,54 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
     })
 })
+
+function orchestratorFixture(targetIds: string[]) {
+    return {
+        id: 'orchestrator-1',
+        name: 'orchestrator',
+        title: 'BOM 全流程协同助手',
+        organizationId: 'org-1',
+        active: true,
+        version: '40',
+        agent: { key: 'Agent_LifecycleOrchestrator' },
+        graph: {
+            nodes: [
+                { type: 'agent', key: 'Agent_LifecycleOrchestrator' },
+                ...targetIds.map((key) => ({ type: 'xpert', key }))
+            ],
+            connections: targetIds.map((to) => ({
+                type: 'xpert',
+                from: 'Agent_LifecycleOrchestrator',
+                to,
+                required: true
+            }))
+        }
+    } as any
+}
+
+function roleAssistantFixture(
+    id: string,
+    overrides: { templateKey?: string; published?: boolean; organizationId?: string } = {}
+) {
+    const templateKey = overrides.templateKey ?? 'bom-lifecycle-bom-engineer'
+    return {
+        id,
+        name: templateKey,
+        title: 'BOM 工程助手（组织实例）',
+        organizationId: overrides.organizationId ?? 'org-1',
+        active: true,
+        version: '10',
+        agent: { key: 'Agent_BomEngineer' },
+        graph: overrides.published === false ? null : { nodes: [], connections: [] },
+        options: {
+            templateSource: {
+                templateId: `@xpert-ai/plugin-bom-lifecycle:${templateKey}`,
+                templateKey,
+                pluginName: '@xpert-ai/plugin-bom-lifecycle'
+            }
+        }
+    } as any
+}
 
 function createTestVolumeHandle(scope: Record<string, unknown>, root: string) {
     return {

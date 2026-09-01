@@ -39,6 +39,16 @@ describe('AgentViewHostDefinition', () => {
                             }
                         },
                         {
+                            key: 'Agent_BomEngineer',
+                            type: 'agent',
+                            entity: {
+                                id: 'internal-agent-node-id',
+                                key: 'Agent_BomEngineer',
+                                title: 'BOM Engineer',
+                                description: 'BOM engineering role'
+                            }
+                        },
+                        {
                             key: 'Middleware_BOM',
                             type: 'workflow',
                             entity: {
@@ -69,6 +79,9 @@ describe('AgentViewHostDefinition', () => {
             xpertService as any,
             {} as any,
             middlewareRegistry as any,
+            {} as any,
+            {} as any,
+            {} as any,
             {} as any
         )
 
@@ -78,12 +91,24 @@ describe('AgentViewHostDefinition', () => {
             relations: ['agent']
         })
         expect(middlewareRegistry.get).toHaveBeenCalledWith('BomDocumentIntakeMiddleware', 'org-1')
-        expect(resolved?.context).toEqual({
+        expect(resolved?.context).toMatchObject({
             capabilities: {
                 features: ['bom_document_intake', 'sandbox']
             },
             hostState: {
                 agent: {
+                    availableAgents: [
+                        {
+                            key: 'Agent_BomEngineer',
+                            role: 'BOM engineering role',
+                            title: 'BOM Engineer'
+                        },
+                        {
+                            key: 'Agent_BusinessAssistant',
+                            role: 'CEO Assistant',
+                            title: 'CEO Assistant'
+                        }
+                    ],
                     connections: [
                         {
                             id: 'kb-1',
@@ -97,6 +122,190 @@ describe('AgentViewHostDefinition', () => {
             }
         })
         expect((resolved?.hostSnapshot as any).agent.key).toBe('Agent_BusinessAssistant')
+        expect(JSON.stringify((resolved?.context.hostState as any).agent.availableAgents)).not.toContain(
+            'internal-agent-node-id'
+        )
+        expect((resolved?.context.hostState as any).agent.availableAgents[0]).not.toHaveProperty('id')
+    })
+
+    it('uses the canonical Xpert id for a user-isolated workspace scope', async () => {
+        const currentUser = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        const xpertService = {
+            findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+                id: 'agent-host-1',
+                type: XpertTypeEnum.Agent,
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                workspaceDataScope: 'user',
+                name: 'Personal Assistant',
+                active: true,
+                agent: { key: 'Agent_Personal' },
+                graph: { nodes: [], connections: [] }
+            })
+        }
+        const definition = new AgentViewHostDefinition(
+            xpertService as never,
+            {} as never,
+            { get: jest.fn() } as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+
+        try {
+            const resolved = await definition.resolve('agent-host-1')
+
+            expect(resolved?.context.runtimeScope).toMatchObject({
+                dataScopeKey: 'user-xperts:user-1:agent-host-1',
+                workspaceFiles: {
+                    catalog: 'user-xperts',
+                    scopeId: 'agent-host-1',
+                    xpertId: 'agent-host-1',
+                    userId: 'user-1',
+                    isolateByUser: true
+                }
+            })
+        } finally {
+            currentUser.mockRestore()
+        }
+    })
+
+    it.each([
+        ['member', false],
+        ['editor', true]
+    ] as const)('resolves %s Project access into the agent runtime scope', async (role, canEdit) => {
+        const xpert = {
+            id: 'agent-host-1',
+            type: XpertTypeEnum.Agent,
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            workspaceDataScope: 'user',
+            name: 'Project Assistant',
+            active: true,
+            agent: { key: 'Agent_Project' },
+            graph: { nodes: [], connections: [] }
+        }
+        const projectAccessService = {
+            assertCanUseXpert: jest.fn().mockResolvedValue({
+                role,
+                project: { id: 'project-1', name: 'Project 1', status: 'active' }
+            })
+        }
+        const definition = new AgentViewHostDefinition(
+            { findOneByIdWithinTenant: jest.fn().mockResolvedValue(xpert) } as never,
+            {} as never,
+            { get: jest.fn() } as never,
+            {} as never,
+            projectAccessService as never,
+            {} as never,
+            {} as never
+        )
+
+        const resolved = await definition.resolve('agent-host-1', {
+            runtimeScope: { projectId: 'project-1' }
+        })
+
+        expect(projectAccessService.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'agent-host-1')
+        expect(resolved?.context.runtimeScope).toMatchObject({
+            projectId: 'project-1',
+            dataScopeKey: 'project:project-1',
+            projectAccess: {
+                role,
+                canRead: true,
+                canEdit,
+                canManage: false,
+                canUse: true
+            },
+            workspaceFiles: {
+                catalog: 'projects',
+                scopeId: 'project-1',
+                projectId: 'project-1'
+            }
+        })
+    })
+
+    it('projects only safe direct external Assistant binding metadata into host state', async () => {
+        const requester = {
+            id: 'orchestrator-1',
+            type: XpertTypeEnum.Agent,
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: 'orchestrator',
+            title: 'BOM 全流程协同助手',
+            active: true,
+            agent: { key: 'Agent_LifecycleOrchestrator' },
+            graph: {
+                nodes: [
+                    {
+                        key: 'Agent_LifecycleOrchestrator',
+                        type: 'agent',
+                        entity: { key: 'Agent_LifecycleOrchestrator' }
+                    },
+                    { key: 'bom-assistant-1', type: 'xpert', entity: { key: 'bom-assistant-1' } }
+                ],
+                connections: [
+                    {
+                        key: 'orchestrator/bom',
+                        type: 'xpert',
+                        from: 'Agent_LifecycleOrchestrator',
+                        to: 'bom-assistant-1',
+                        required: true
+                    }
+                ]
+            }
+        }
+        const executor = {
+            id: 'bom-assistant-1',
+            type: XpertTypeEnum.Agent,
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            name: 'bom-engineer',
+            title: 'BOM 工程助手（组织实例）',
+            avatar: { emoji: '🧱', background: '#eef2ff' },
+            active: true,
+            version: '10',
+            agent: { key: 'Agent_BomEngineer' },
+            graph: { nodes: [], connections: [] },
+            options: {
+                templateSource: {
+                    templateId: '@xpert-ai/plugin-bom-lifecycle:bom-lifecycle-bom-engineer',
+                    templateKey: 'bom-lifecycle-bom-engineer',
+                    pluginName: '@xpert-ai/plugin-bom-lifecycle'
+                }
+            }
+        }
+        const xpertService = {
+            findOneByIdWithinTenant: jest.fn(async (id: string) => (id === requester.id ? requester : executor))
+        }
+        const definition = new AgentViewHostDefinition(
+            xpertService as any,
+            {} as any,
+            { get: jest.fn() } as any,
+            {} as any,
+            {} as any,
+            {} as any,
+            {} as any
+        )
+
+        const resolved = await definition.resolve(requester.id)
+        const externalAssistants = (resolved?.context.hostState as any).agent.externalAssistants
+
+        expect(externalAssistants).toEqual([
+            expect.objectContaining({
+                title: 'BOM 工程助手（组织实例）',
+                avatar: { emoji: '🧱', background: '#eef2ff' },
+                primaryAgentKey: 'Agent_BomEngineer',
+                publishedVersion: '10',
+                status: 'available',
+                templateSource: expect.objectContaining({ templateKey: 'bom-lifecycle-bom-engineer' })
+            })
+        ])
+        expect(JSON.stringify(externalAssistants)).not.toContain('bom-assistant-1')
+        expect(JSON.stringify(externalAssistants)).not.toContain('org-1')
+        expect(JSON.stringify(externalAssistants)).not.toContain('tenant-1')
     })
 
     it('derives view capabilities from the draft graph only when draft resolution is requested', async () => {
@@ -172,7 +381,10 @@ describe('AgentViewHostDefinition', () => {
             xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[1],
             middlewareRegistry as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[2],
-            {} as ConstructorParameters<typeof AgentViewHostDefinition>[3]
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[3],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[4],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[5],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[6]
         )
 
         const published = await definition.resolve('agent-host-1')
@@ -209,7 +421,10 @@ describe('AgentViewHostDefinition', () => {
             xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
             publishedXpertAccessService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[1],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[2],
-            {} as ConstructorParameters<typeof AgentViewHostDefinition>[3]
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[3],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[4],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[5],
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[6]
         )
         const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         const context = { hostId: 'agent-host-1' } as XpertViewHostContext
@@ -251,7 +466,21 @@ describe('AgentViewHostDefinition', () => {
                 )
             )
         }
-        const definition = new AgentViewHostDefinition({} as any, {} as any, {} as any, volumeClient as any)
+        const xpertService = {
+            findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+                id: 'agent-host-1',
+                workspaceDataScope: 'shared'
+            })
+        }
+        const definition = new AgentViewHostDefinition(
+            xpertService as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            volumeClient as never
+        )
 
         try {
             const expectedFileName = '\u552e\u540e\u6570\u636e\u5206\u6790\u5de5\u5177\u9700\u6c42v0.1.xlsx'
@@ -283,7 +512,8 @@ describe('AgentViewHostDefinition', () => {
                 tenantId: 'tenant-1',
                 catalog: 'xperts',
                 xpertId: 'agent-host-1',
-                isolateByUser: false
+                isolateByUser: false,
+                userId: 'user-1'
             })
             expect(prepared.input).toMatchObject({
                 workspaceUploadPath: 'fdd/documents',

@@ -43,6 +43,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 RUNNER_HOST = os.environ.get("XPERT_NSJAIL_RUNNER_HOST", "0.0.0.0")
 RUNNER_PORT = int(os.environ.get("XPERT_NSJAIL_RUNNER_PORT", "8090"))
 RUNNER_TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "").strip()
+RUNNER_PROTOCOL_VERSION = 2
 WORKSPACE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_WORKSPACE_ROOT", "/sandbox")).resolve()
 ROOTFS = pathlib.Path(os.environ.get("XPERT_NSJAIL_ROOTFS", "/opt/xpert-rootfs")).resolve()
 STATE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_STATE_ROOT", "/var/lib/xpert-nsjail")).resolve()
@@ -103,6 +104,14 @@ BASE_ENV = {
     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     "TERM": "xterm-256color",
 }
+
+
+def health_response() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "protocolVersion": RUNNER_PROTOCOL_VERSION,
+        "capabilities": {"projectContentReadOnly": True},
+    }
 
 
 class RunnerError(Exception):
@@ -344,6 +353,66 @@ def validate_runtime_id(value: Any) -> str:
     return value
 
 
+def validate_protect_project_content(value: Any) -> bool:
+    if value is None:
+        return False
+    if value is not True:
+        raise RunnerError("protectProjectContent must be true when provided")
+    return True
+
+
+def validate_project_skills_tree(skills_root: pathlib.Path) -> None:
+    for current_root, directories, files in os.walk(skills_root, followlinks=False):
+        current_path = pathlib.Path(current_root)
+        for entry_name in (*directories, *files):
+            entry = current_path / entry_name
+            entry_stat = entry.lstat()
+            relative_entry = entry.relative_to(skills_root)
+            if stat.S_ISLNK(entry_stat.st_mode):
+                raise RunnerError(
+                    f"Protected Project Content path skills/{relative_entry} must not be a symbolic link"
+                )
+            if stat.S_ISDIR(entry_stat.st_mode):
+                continue
+            if not stat.S_ISREG(entry_stat.st_mode):
+                raise RunnerError(f"Protected Project Content path skills/{relative_entry} must be a regular file")
+            if entry_stat.st_nlink != 1:
+                raise RunnerError(
+                    f"Protected Project Content path skills/{relative_entry} must have exactly one hard link"
+                )
+
+
+def project_content_mounts(workspace_path: pathlib.Path) -> tuple[tuple[pathlib.Path, str], ...]:
+    mounts = (
+        (workspace_path / "project.md", "/workspace/project.md", stat.S_ISREG),
+        (workspace_path / "skills", "/workspace/skills", stat.S_ISDIR),
+    )
+    validated: list[tuple[pathlib.Path, str]] = []
+    for source, target, expected_type in mounts:
+        name = source.name
+        try:
+            source_stat = source.lstat()
+        except FileNotFoundError as error:
+            raise RunnerError(f"Protected Project Content path is missing: {name}") from error
+        if stat.S_ISLNK(source_stat.st_mode):
+            raise RunnerError(f"Protected Project Content path {name} must not be a symbolic link")
+        if not expected_type(source_stat.st_mode):
+            expected = "a regular file" if name == "project.md" else "a directory"
+            raise RunnerError(f"Protected Project Content path {name} must be {expected}")
+        if name == "project.md" and source_stat.st_nlink != 1:
+            raise RunnerError("Protected Project Content path project.md must have exactly one hard link")
+        try:
+            resolved = source.resolve(strict=True)
+        except OSError as error:
+            raise RunnerError(f"Unable to resolve protected Project Content path: {name}") from error
+        if resolved != source or not is_within(workspace_path, resolved):
+            raise RunnerError(f"Protected Project Content path escapes the workspace: {name}")
+        if name == "skills":
+            validate_project_skills_tree(resolved)
+        validated.append((resolved, target))
+    return tuple(validated)
+
+
 def validate_service_id(value: Any) -> str:
     if not isinstance(value, str) or not SERVICE_ID_PATTERN.fullmatch(value):
         raise RunnerError("Invalid serviceId")
@@ -442,36 +511,43 @@ def nsjail_args(
         f"{JAIL_GID}:{JAIL_GID}:1",
         "--bindmount",
         f"{runtime.workspace_path}:/workspace",
-        "--bindmount",
-        "/dev/null:/dev/null",
-        "--bindmount",
-        "/dev/zero:/dev/zero",
-        "--bindmount",
-        "/dev/random:/dev/random",
-        "--bindmount",
-        "/dev/urandom:/dev/urandom",
-        "--tmpfsmount",
-        "/tmp",
-        "--tmpfsmount",
-        "/run",
-        "--rlimit_as",
-        str(RLIMIT_AS_MB),
-        "--rlimit_cpu",
-        "max",
-        "--rlimit_fsize",
-        str(RLIMIT_FSIZE_MB),
-        "--rlimit_nofile",
-        str(RLIMIT_NOFILE),
-        "--rlimit_nproc",
-        "max" if USE_CGROUP_V2 else str(PIDS_LIMIT),
-        "--max_cpus",
-        "2",
-        "--time_limit",
-        str(time_limit_seconds),
-        "--seccomp_policy",
-        SECCOMP_POLICY,
-        "--forward_signals",
     ]
+    if runtime.protect_project_content:
+        for source, target in project_content_mounts(runtime.workspace_path):
+            args.extend(["--bindmount_ro", f"{source}:{target}"])
+    args.extend(
+        [
+            "--bindmount",
+            "/dev/null:/dev/null",
+            "--bindmount",
+            "/dev/zero:/dev/zero",
+            "--bindmount",
+            "/dev/random:/dev/random",
+            "--bindmount",
+            "/dev/urandom:/dev/urandom",
+            "--tmpfsmount",
+            "/tmp",
+            "--tmpfsmount",
+            "/run",
+            "--rlimit_as",
+            str(RLIMIT_AS_MB),
+            "--rlimit_cpu",
+            "max",
+            "--rlimit_fsize",
+            str(RLIMIT_FSIZE_MB),
+            "--rlimit_nofile",
+            str(RLIMIT_NOFILE),
+            "--rlimit_nproc",
+            "max" if USE_CGROUP_V2 else str(PIDS_LIMIT),
+            "--max_cpus",
+            "2",
+            "--time_limit",
+            str(time_limit_seconds),
+            "--seccomp_policy",
+            SECCOMP_POLICY,
+            "--forward_signals",
+        ]
+    )
     if interactive:
         args.append("--skip_setsid")
     if USE_CGROUP_V2:
@@ -669,6 +745,10 @@ def workspace_parts(path_value: Any, *, allow_root: bool = False) -> list[str]:
     return [part for part in relative.split("/") if part]
 
 
+def is_protected_project_content_path(runtime: Runtime, parts: list[str]) -> bool:
+    return runtime.protect_project_content and bool(parts) and parts[0] in ("project.md", "skills")
+
+
 def open_parent_dir(runtime: Runtime, parts: list[str], *, create: bool) -> tuple[int, str]:
     if not parts:
         raise RunnerError("Sandbox path must identify a file")
@@ -720,6 +800,8 @@ def upload_file(runtime: Runtime, path_value: Any, content_value: Any) -> dict[s
     original_path = str(path_value)
     try:
         parts = workspace_parts(path_value)
+        if is_protected_project_content_path(runtime, parts):
+            raise OSError(errno.EPERM, "Project Content is read-only in this runtime")
         if not isinstance(content_value, str):
             raise RunnerError("File content must be base64 encoded")
         content = base64.b64decode(content_value, validate=True)
@@ -996,6 +1078,7 @@ class Runtime:
     runtime_id: str
     workspace_path: pathlib.Path
     working_directory: str
+    protect_project_content: bool = False
     services: dict[str, Service] = field(default_factory=dict)
     starting_service_ids: set[str] = field(default_factory=set)
     starting_terminal_ids: set[str] = field(default_factory=set)
@@ -1088,6 +1171,9 @@ def create_runtime(payload: Any) -> Runtime:
     runtime_id = validate_runtime_id(payload.get("runtimeId"))
     workspace_path = validate_workspace_path(payload.get("workspacePath"))
     working_directory = validate_working_directory(payload.get("workingDirectory"))
+    protect_project_content = validate_protect_project_content(payload.get("protectProjectContent"))
+    if protect_project_content:
+        project_content_mounts(workspace_path)
     relative_working_directory = validate_sandbox_path(working_directory)
     host_working_directory = workspace_path.joinpath(*relative_working_directory.split("/"))
     if not host_working_directory.is_dir():
@@ -1096,13 +1182,17 @@ def create_runtime(payload: Any) -> Runtime:
     with RUNTIMES_LOCK:
         existing = RUNTIMES.get(runtime_id)
         if existing:
-            if existing.workspace_path != workspace_path or existing.working_directory != working_directory:
-                raise RunnerError("runtimeId is already bound to a different workspace", HTTPStatus.CONFLICT)
+            if (
+                existing.workspace_path != workspace_path
+                or existing.working_directory != working_directory
+                or existing.protect_project_content != protect_project_content
+            ):
+                raise RunnerError("runtimeId is already bound to a different configuration", HTTPStatus.CONFLICT)
             existing.touch()
             return existing
         if len(RUNTIMES) >= MAX_RUNTIMES:
             raise RunnerError("NsJail Runner runtime limit reached", HTTPStatus.TOO_MANY_REQUESTS)
-        runtime = Runtime(runtime_id, workspace_path, working_directory)
+        runtime = Runtime(runtime_id, workspace_path, working_directory, protect_project_content)
         RUNTIMES[runtime_id] = runtime
         return runtime
 
@@ -1480,7 +1570,7 @@ class RunnerHandler(BaseHTTPRequestHandler):
             parts = [unquote(part) for part in parsed.path.strip("/").split("/") if part]
             if parts == ["health"] and method == "GET":
                 self._authorize()
-                self._write_json({"status": "ok"})
+                self._write_json(health_response())
                 return
             self._authorize()
             payload = self._read_json() if method == "POST" else None

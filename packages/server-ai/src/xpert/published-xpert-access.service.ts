@@ -1,6 +1,7 @@
 import {
     ApiKeyBindingType,
     IApiPrincipal,
+    IXpert,
     isTenantSharedXpertWorkspace,
     SecretTokenBindingType
 } from '@xpert-ai/contracts'
@@ -21,11 +22,14 @@ import { Xpert } from './xpert.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
+import { isSameXpertFamily } from './xpert-family'
 
 const TENANT_SHARED_WORKSPACE_FILTER = `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'tenant-shared'`
 
 type PublishedXpertQueryOptions = {
-    where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>>
+    where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>> & {
+        organizationId?: string | null
+    }
     relations?: string[]
     search?: string
     order?: Record<string, 'ASC' | 'DESC' | 'asc' | 'desc'>
@@ -91,9 +95,11 @@ export class PublishedXpertAccessService {
 
     /**
      * Return the assistant audience carried by a delegated user client secret.
-     * The user still goes through normal tenant/organization access checks, and
-     * this additional audience check prevents reusing the secret for another
-     * assistant in the same scope.
+     * The short-lived secret is minted only after ordinary Assistant access or
+     * Project membership plus an exact Project-Assistant binding is verified.
+     * Requests authenticated by it are therefore limited to this one audience
+     * and must not repeat catalog visibility checks that Project delegation is
+     * intentionally allowed to bypass.
      */
     private currentUserXpertId() {
         const apiPrincipal = this.currentApiPrincipal() as IApiPrincipal | null
@@ -176,6 +182,13 @@ export class PublishedXpertAccessService {
         }
         if (where.version != null) {
             qb.andWhere('xpert.version = :version', { version: where.version })
+        }
+        if (where.organizationId === null) {
+            qb.andWhere('xpert.organizationId IS NULL')
+        } else if (where.organizationId) {
+            qb.andWhere('xpert.organizationId = :whereOrganizationId', {
+                whereOrganizationId: where.organizationId
+            })
         }
 
         return qb
@@ -537,6 +550,45 @@ export class PublishedXpertAccessService {
         )
     }
 
+    async getAccessiblePublishedXpertFamilyIds(id: string) {
+        const xpert = await this.getAccessiblePublishedXpert(id)
+        const family = await this.repository.find({
+            select: { id: true },
+            where: {
+                tenantId: xpert.tenantId,
+                organizationId: xpert.organizationId ?? IsNull(),
+                workspaceId: xpert.workspaceId ?? IsNull(),
+                type: xpert.type,
+                slug: xpert.slug,
+                publishAt: Not(IsNull())
+            }
+        })
+
+        return uniq([xpert.id, ...family.map((item) => item.id)])
+    }
+
+    async isPublishedXpertInFamily(candidateId: string, xpert: IXpert) {
+        if (candidateId === xpert.id) return true
+
+        const candidate = await this.repository.findOne({
+            select: {
+                id: true,
+                tenantId: true,
+                organizationId: true,
+                workspaceId: true,
+                type: true,
+                slug: true
+            },
+            where: {
+                id: candidateId,
+                tenantId: xpert.tenantId,
+                publishAt: Not(IsNull())
+            }
+        })
+
+        return !!candidate && isSameXpertFamily(candidate, xpert)
+    }
+
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {
         const publicXpertId = this.currentPublicXpertId()
         if (publicXpertId) {
@@ -568,6 +620,12 @@ export class PublishedXpertAccessService {
         }
 
         const xpert = await this.getPublishedXpertInTenant(id, options)
+        if (userXpertId) {
+            // SecretTokenStrategy restores the issuing user and the immutable
+            // tenant/organization scope. Matching the exact token audience is
+            // the capability grant used by ChatKit metadata and runtime reads.
+            return xpert
+        }
         const workspaceId = this.currentWorkspaceApiKeyWorkspaceId()
 
         if (workspaceId) {

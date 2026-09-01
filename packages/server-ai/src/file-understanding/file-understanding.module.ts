@@ -1,5 +1,5 @@
 import { StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -14,6 +14,10 @@ import { QueryHandlers } from './queries/handlers'
 import { RagVStoreModule } from '../rag-vstore'
 import { VolumeModule } from '../shared/volume'
 import { XpertProject } from '../xpert-project/entities/project.entity'
+import { FileAssetAccessService } from './file-asset-access.service'
+import { ChatConversationModule } from '../chat-conversation'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
+import { XpertModule } from '../xpert/xpert.module'
 
 @Module({
     imports: [
@@ -31,6 +35,9 @@ import { XpertProject } from '../xpert-project/entities/project.entity'
         TenantModule,
         UserModule,
         StorageFileModule,
+        forwardRef(() => ChatConversationModule),
+        XpertProjectAccessModule,
+        forwardRef(() => XpertModule),
         RagVStoreModule,
         VolumeModule
     ],
@@ -38,11 +45,12 @@ import { XpertProject } from '../xpert-project/entities/project.entity'
     providers: [
         FileUnderstandingVectorService,
         FileWorkspaceProjectionService,
+        FileAssetAccessService,
         FileUnderstandingMiddleware,
         ...FileParsers,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [TypeOrmModule, FileUnderstandingVectorService, FileWorkspaceProjectionService]
+    exports: [TypeOrmModule, FileUnderstandingVectorService, FileWorkspaceProjectionService, FileAssetAccessService]
 })
 export class FileUnderstandingModule {}

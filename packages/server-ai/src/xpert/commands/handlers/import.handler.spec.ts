@@ -11,6 +11,7 @@ jest.mock('@xpert-ai/contracts', () => ({
     AiProviderRole: {
         Primary: 'primary'
     },
+    DEFAULT_XPERT_WORKSPACE_DATA_SCOPE: 'shared',
     FetchFrom: {
         CUSTOMIZABLE_MODEL: 'customizable-model'
     },
@@ -222,7 +223,8 @@ describe('XpertImportHandler', () => {
 
         expect(xpertService.create).toHaveBeenCalledWith(
             expect.objectContaining({
-                name: 'Imported Expert'
+                name: 'Imported Expert',
+                workspaceDataScope: 'shared'
             })
         )
         expect(xpertService.saveDraft).toHaveBeenCalledWith(
@@ -243,6 +245,35 @@ describe('XpertImportHandler', () => {
             ]
         })
         expect(result.id).toBe('new-xpert')
+    })
+
+    it('uses only the local creation option to select user-isolated workspace data', async () => {
+        const { handler, xpertService } = buildHandler()
+        const draft: Partial<XpertDraftDslDTO> = {
+            team: {
+                name: 'Imported Expert',
+                type: XpertTypeEnum.Agent,
+                workspaceDataScope: 'shared',
+                agent: { key: 'Agent_imported' }
+            },
+            nodes: [
+                {
+                    type: 'agent',
+                    key: 'Agent_imported',
+                    position: { x: 0, y: 0 },
+                    entity: { key: 'Agent_imported', name: 'Imported Expert' }
+                }
+            ],
+            connections: []
+        }
+
+        await handler.execute(new XpertImportCommand(draft, { workspaceDataScope: 'user' }))
+
+        expect(xpertService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                workspaceDataScope: 'user'
+            })
+        )
     })
 
     it('records template lineage when creating a xpert from a template', async () => {
@@ -429,6 +460,7 @@ describe('XpertImportHandler', () => {
             slug: 'support-expert',
             type: 'agent',
             workspaceId: 'workspace-1',
+            workspaceDataScope: 'user',
             agent: {
                 id: 'agent-1',
                 key: 'Agent_current',
@@ -442,6 +474,7 @@ describe('XpertImportHandler', () => {
                     name: 'Support Expert',
                     title: 'Support Expert',
                     workspaceId: 'workspace-1',
+                    workspaceDataScope: 'user',
                     type: 'agent',
                     agent: {
                         key: 'Agent_current'
@@ -466,6 +499,7 @@ describe('XpertImportHandler', () => {
                         description: 'New description',
                         type: 'agent',
                         workspaceId: 'workspace-2',
+                        workspaceDataScope: 'shared',
                         agent: {
                             key: 'Agent_imported'
                         }
@@ -508,6 +542,7 @@ describe('XpertImportHandler', () => {
                 team: expect.objectContaining({
                     id: 'xpert-1',
                     workspaceId: 'workspace-1',
+                    workspaceDataScope: 'user',
                     name: 'Support Expert',
                     title: 'Updated Expert',
                     description: 'New description',

@@ -21,6 +21,7 @@ import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import type { FUniver, IDisposable, Univer } from '@univerjs/presets'
 import { firstValueFrom } from 'rxjs'
 import { exportSpreadsheetFile, importSpreadsheetFile } from './spreadsheet-file.utils'
+import { ensureUniverStylesheet } from './univer-styles'
 
 @Component({
   standalone: true,
@@ -96,7 +97,10 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
     this.disposeUniver()
 
     try {
-      const blob = await firstValueFrom(this.#httpClient.get(this.sourceUrl(), { responseType: 'blob' }))
+      const [blob] = await Promise.all([
+        firstValueFrom(this.#httpClient.get(this.sourceUrl(), { responseType: 'blob' })),
+        ensureUniverStylesheet()
+      ])
       const workbookData = await importSpreadsheetFile(blob, this.fileName())
       const [{ createUniver, LocaleType, mergeLocales, CommandType }, { UniverSheetsCorePreset }, locale] =
         await Promise.all([

@@ -13,7 +13,8 @@ import {
     XpertTypeEnum,
     XpertViewHostCapabilities,
     XpertViewHostState,
-    XpertViewSlot
+    XpertViewSlot,
+    XpertViewRuntimeScope
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import {
@@ -26,9 +27,19 @@ import {
 } from '@xpert-ai/server-core'
 import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
-import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
+import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
+import {
+    describeExternalAssistantBinding,
+    directExternalAssistantIds,
+    safeExternalAssistantBinding
+} from '../../xpert/external-assistant-binding'
+import { ChatConversation } from '../../chat-conversation/conversation.entity'
+import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
+import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 
 export const AGENT_WORKBENCH_MAIN_SLOT = 'agent.workbench.main'
 export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
@@ -57,6 +68,10 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         private readonly xpertService: XpertService,
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
+        @InjectRepository(ChatConversation)
+        private readonly conversationRepository: Repository<ChatConversation>,
+        private readonly projectAccessService: XpertProjectAccessService,
+        private readonly xpertBindingService: XpertProjectXpertBindingService,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
@@ -70,7 +85,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         }
 
         const runtimeXpert = resolveRuntimeXpert(xpert as IXpert, options?.isDraft === true)
-        const agentContext = this.resolveAgentContext(runtimeXpert)
+        const agentContext = await this.resolveAgentContext(runtimeXpert)
+        const runtimeScope = await this.resolveRuntimeScope(runtimeXpert, options)
 
         return {
             workspaceId: runtimeXpert.workspaceId ?? null,
@@ -88,7 +104,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             },
             context: {
                 capabilities: agentContext.capabilities,
-                hostState: agentContext.hostState
+                hostState: agentContext.hostState,
+                runtimeScope
             }
         }
     }
@@ -140,7 +157,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                     getNonEmptyString(input.name) ??
                     file.originalname
             ) ?? 'upload'
-        const uploaded = await this.createWorkspaceVolumeClient(context.tenantId, context.hostId).uploadFile(
+        const xpert = await this.xpertService.findOneByIdWithinTenant(context.hostId)
+        const uploaded = await this.createWorkspaceVolumeClient(context, xpert.workspaceDataScope).uploadFile(
             '',
             workspaceUploadPath,
             normalizeWorkspaceUploadFile(file, uploadFileName)
@@ -166,31 +184,118 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         }
     }
 
-    private createWorkspaceVolumeClient(tenantId: string, xpertId: string) {
+    private createWorkspaceVolumeClient(
+        context: XpertResolvedViewHostContext,
+        workspaceDataScope?: IXpert['workspaceDataScope']
+    ) {
+        const projectId = context.runtimeScope?.projectId
         return new VolumeSubtreeClient(
-            this.volumeClient.resolve({
-                tenantId,
-                catalog: 'xperts',
-                xpertId,
-                isolateByUser: false
-            }),
+            this.volumeClient.resolve(
+                projectId
+                    ? { tenantId: context.tenantId, catalog: 'projects', projectId }
+                    : resolveXpertDataVolumeScope({
+                          tenantId: context.tenantId,
+                          userId: context.userId,
+                          xpertId: context.hostId,
+                          workspaceDataScope
+                      })
+            ),
             {
                 allowRootWorkspace: true
             }
         )
     }
 
-    private resolveAgentContext(xpert: IXpert): {
+    private async resolveRuntimeScope(
+        xpert: IXpert,
+        options?: ViewHostResolutionOptions
+    ): Promise<XpertViewRuntimeScope> {
+        const requestedProjectId = options?.runtimeScope?.projectId ?? null
+        const conversationId = options?.runtimeScope?.conversationId ?? null
+        let projectId = requestedProjectId
+
+        if (conversationId) {
+            const conversation = await this.conversationRepository.findOne({
+                where: {
+                    id: conversationId,
+                    tenantId: RequestContext.currentTenantId(),
+                    organizationId: RequestContext.getOrganizationId() ?? IsNull()
+                },
+                relations: ['xpert']
+            })
+            if (!conversation) throw new NotFoundException('The requested conversation was not found')
+            if (requestedProjectId && requestedProjectId !== (conversation.projectId ?? null)) {
+                throw new ForbiddenException('The requested Project does not match the conversation Project')
+            }
+            if (!conversation.xpert || !this.xpertBindingService.isSameXpert(conversation.xpert, xpert)) {
+                throw new ForbiddenException('The conversation does not belong to this Xpert')
+            }
+            projectId = conversation.projectId ?? null
+        }
+
+        if (projectId) {
+            const access = conversationId
+                ? await this.projectAccessService.assertCanReadXpert(projectId, xpert.id)
+                : await this.projectAccessService.assertCanUseXpert(projectId, xpert.id)
+            return {
+                projectId,
+                conversationId,
+                dataScopeKey: `project:${projectId}`,
+                project: { id: access.project.id, name: access.project.name, status: access.project.status },
+                projectAccess: toProjectViewAccess(access.role, access.project.status),
+                workspaceFiles: { catalog: 'projects', scopeId: projectId, projectId }
+            }
+        }
+
+        const fileScope = resolveXpertDataVolumeScope({
+            tenantId: xpert.tenantId,
+            userId: RequestContext.currentUserId(),
+            xpertId: xpert.id,
+            workspaceDataScope: xpert.workspaceDataScope
+        })
+        const scopeId = xpert.id
+        const dataScopeKey =
+            fileScope.catalog === 'user-xperts'
+                ? `${fileScope.catalog}:${fileScope.userId}:${scopeId}`
+                : `${fileScope.catalog}:${scopeId}`
+        return {
+            projectId: null,
+            conversationId,
+            dataScopeKey,
+            project: null,
+            projectAccess: null,
+            workspaceFiles: {
+                catalog: fileScope.catalog,
+                scopeId,
+                xpertId: xpert.id,
+                userId: fileScope.userId ?? null,
+                isolateByUser: fileScope.catalog === 'xperts' ? fileScope.isolateByUser : true
+            }
+        }
+    }
+
+    private async resolveAgentContext(xpert: IXpert): Promise<{
         agentKey: string | null
         capabilities: XpertViewHostCapabilities
         hostState: XpertViewHostState
-    } {
+    }> {
         const features = new Set<string>(this.getEnabledXpertFeatures(xpert.features))
         const middlewareProviders = new Set<string>()
         const middlewareNodeKeys = new Set<string>()
         const graph = xpert.graph
         const agentKey = xpert.agent?.key ?? this.findPrimaryAgentKey(graph)
+        const availableAgents = (graph?.nodes ?? [])
+            .filter((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
+            .map((node) => ({
+                key: node.entity?.key ?? node.key,
+                title: node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key,
+                role:
+                    node.entity?.description ?? node.entity?.title ?? node.entity?.name ?? node.entity?.key ?? node.key
+            }))
+            .filter((agent) => Boolean(agent.key))
+            .sort((left, right) => left.key.localeCompare(right.key))
         const knowledgebaseIds = xpert.agent?.knowledgebaseIds ?? []
+        const externalAssistants = agentKey ? await this.resolveExternalAssistants(xpert, agentKey) : []
 
         if (graph && agentKey) {
             for (const node of getAgentMiddlewareNodes(graph, agentKey)) {
@@ -227,6 +332,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             hostState: {
                 agent: {
                     key: agentKey,
+                    availableAgents,
+                    ...(externalAssistants.length ? { externalAssistants } : {}),
                     middlewareProviders: Array.from(middlewareProviders).sort(),
                     middlewareNodeKeys: Array.from(middlewareNodeKeys).sort(),
                     connections: knowledgebaseIds.map((id) => ({
@@ -236,6 +343,23 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }
             }
         }
+    }
+
+    /** Resolve required direct bindings and strip internal identifiers before projecting host state. */
+    private async resolveExternalAssistants(xpert: IXpert, agentKey: string) {
+        const targetIds = directExternalAssistantIds(xpert, agentKey)
+        const candidates = await Promise.all(
+            targetIds.map(async (id) => {
+                try {
+                    return await this.xpertService.findOneByIdWithinTenant(id, { relations: ['agent'] })
+                } catch {
+                    return null
+                }
+            })
+        )
+        return candidates
+            .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
+            .map((candidate) => safeExternalAssistantBinding(describeExternalAssistantBinding(xpert, candidate)))
     }
 
     private getEnabledXpertFeatures(features?: TXpertFeatures | null): string[] {
@@ -251,6 +375,17 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     private findPrimaryAgentKey(graph?: IXpert['graph'] | null): string | null {
         const agentNode = graph?.nodes?.find((node): node is TXpertTeamNode<'agent'> => node.type === 'agent')
         return agentNode?.key ?? agentNode?.entity?.key ?? null
+    }
+}
+
+function toProjectViewAccess(role: 'owner' | 'manager' | 'editor' | 'member', status?: string | null) {
+    const writable = status !== 'archived'
+    return {
+        role,
+        canRead: true,
+        canEdit: writable && role !== 'member',
+        canManage: writable && (role === 'owner' || role === 'manager'),
+        canUse: writable
     }
 }
 

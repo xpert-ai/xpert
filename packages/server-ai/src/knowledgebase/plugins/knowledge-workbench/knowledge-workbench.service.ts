@@ -710,6 +710,7 @@ export class KnowledgeWorkbenchService {
             input.knowledgebaseId,
             input.allowedKnowledgebaseIds
         )
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
         await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
         const parent = input.parentId ? await this.findDocumentInScope(input.parentId, [knowledgebaseId]) : null
         if (parent && !isFolderDocument(parent)) {
@@ -769,6 +770,7 @@ export class KnowledgeWorkbenchService {
             input.knowledgebaseId,
             input.allowedKnowledgebaseIds
         )
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
         await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
         const name = input.name?.trim()
         if (!name) {
@@ -800,6 +802,7 @@ export class KnowledgeWorkbenchService {
             input.knowledgebaseId,
             input.allowedKnowledgebaseIds
         )
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
         const documentIds = uniqueStrings(input.documentIds)
         if (!documentIds.length) {
             throw new BadRequestException('documentIds is required')

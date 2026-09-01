@@ -4,7 +4,8 @@ jest.mock('../assistant-binding', () => ({
     AssistantBindingService: class {}
 }))
 jest.mock('../xpert', () => ({
-    PublishedXpertAccessService: class {}
+    PublishedXpertAccessService: class {},
+    AssistantModelSelectionService: class {}
 }))
 jest.mock('../skill-package', () => ({
     SkillPackageService: class {}
@@ -35,11 +36,43 @@ function createController(
 
     return new AssistantsController(
         publishedXpertAccessService as ConstructorParameters<typeof AssistantsController>[0],
-        runtimeCapabilitiesService as ConstructorParameters<typeof AssistantsController>[1]
+        runtimeCapabilitiesService as ConstructorParameters<typeof AssistantsController>[1],
+        {
+            getModels: jest.fn(),
+            setPreference: jest.fn()
+        } as unknown as ConstructorParameters<typeof AssistantsController>[2]
     )
 }
 
 describe('AssistantsController', () => {
+    it('forwards Project scope when loading runtime capabilities', async () => {
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn(async () => ({
+                id: 'assistant-1',
+                workspaceId: 'workspace-1',
+                graph: { nodes: [], connections: [] }
+            }))
+        }
+        const runtimeCapabilitiesService = {
+            getRuntimeCapabilities: jest.fn(async () => ({ skills: [], plugins: [] }))
+        }
+        const controller = new AssistantsController(
+            publishedXpertAccessService as ConstructorParameters<typeof AssistantsController>[0],
+            runtimeCapabilitiesService as unknown as ConstructorParameters<typeof AssistantsController>[1],
+            { getModels: jest.fn(), setPreference: jest.fn() } as unknown as ConstructorParameters<
+                typeof AssistantsController
+            >[2]
+        )
+
+        await controller.getRuntimeCapabilities('assistant-1', undefined, 'project-1')
+
+        expect(runtimeCapabilitiesService.getRuntimeCapabilities).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'assistant-1' }),
+            'assistant-1',
+            'project-1'
+        )
+    })
+
     it('hides required middleware nodes from runtime plugin capabilities', async () => {
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn(async () => ({

@@ -13,13 +13,15 @@ import {
   signal
 } from '@angular/core'
 import { Router } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
   getErrorMessage,
   injectToastr,
   IXpertMarketplaceItem,
   IXpertWorkspace,
+  PluginApplicationService,
+  PluginApplicationStatusSummary,
   TXpertMarketplaceBusinessCategory,
   TXpertMarketplaceCollaborationMode,
   TXpertMarketplaceTechnicalCategory,
@@ -39,6 +41,7 @@ import { AgentSquareReviewRequestsDialogComponent } from './review-requests-dial
 
 type AgentSquareSort = 'match' | 'hot' | 'updated'
 
+/** Discriminates installable templates from already published marketplace Assistants. */
 type AgentSquareDisplayItem =
   | { kind: 'template'; id: string; template: TXpertTemplate }
   | { kind: 'published'; id: string; published: IXpertMarketplaceItem }
@@ -65,10 +68,12 @@ export class ExploreAgentSquareComponent {
   readonly workspace = input<IXpertWorkspace | null>(null)
 
   readonly #service = inject(XpertMarketplaceService)
+  readonly #applicationService = inject(PluginApplicationService)
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
   readonly #destroyRef = inject(DestroyRef)
+  readonly #translate = inject(TranslateService)
 
   readonly businessCategories = XpertMarketplaceBusinessCategories
   readonly collaborationModes = XpertMarketplaceCollaborationModes
@@ -82,6 +87,7 @@ export class ExploreAgentSquareComponent {
 
   readonly items = signal<IXpertMarketplaceItem[]>([])
   readonly recommendedTemplates = signal<TXpertTemplate[]>([])
+  readonly applicationStatuses = signal<PluginApplicationStatusSummary[]>([])
   readonly total = signal(0)
   readonly reviewableCount = signal(0)
   readonly loading = signal(false)
@@ -150,18 +156,27 @@ export class ExploreAgentSquareComponent {
     this.#destroyRef.onDestroy(() => this.pauseHeroCarousel())
   }
 
+  /**
+   * Loads marketplace content and App installation state as one versioned UI
+   * transaction. The version guard prevents a slower previous filter request
+   * from replacing newer results while its status request is still pending.
+   */
   async loadMarketplace(query = this.currentQuery()) {
     const version = ++this.#queryVersion
     this.loading.set(true)
 
     try {
-      const result = await firstValueFrom(this.#service.findMarketplace(query))
+      const [result, applicationStatuses] = await Promise.all([
+        firstValueFrom(this.#service.findMarketplace(query)),
+        firstValueFrom(this.#applicationService.getStatuses()).catch(() => [])
+      ])
       if (version !== this.#queryVersion) {
         return
       }
 
       this.items.set(result.items ?? [])
       this.recommendedTemplates.set(result.recommendedTemplates ?? [])
+      this.applicationStatuses.set(applicationStatuses)
       this.featuredIndex.set(0)
       this.restartHeroCarousel()
       this.total.set(result.total ?? 0)
@@ -236,6 +251,17 @@ export class ExploreAgentSquareComponent {
   async handlePrimaryAction(item: AgentSquareDisplayItem, event?: Event) {
     event?.stopPropagation()
     if (item.kind === 'template') {
+      if (item.template.application) {
+        const status = this.applicationStatus(item.template)
+        if (status?.status === 'ready' && status.assistantSlug) {
+          void this.#router.navigate(['/chat/x', status.assistantSlug, 'c'])
+        } else {
+          void this.#router.navigate(['/explore/apps', item.template.application.appName], {
+            queryParams: { plugin: item.template.application.pluginName, setup: 1 }
+          })
+        }
+        return
+      }
       this.openTemplateWizard(item.template)
       return
     }
@@ -306,6 +332,57 @@ export class ExploreAgentSquareComponent {
 
   isTemplate(item: AgentSquareDisplayItem) {
     return item.kind === 'template'
+  }
+
+  applicationStatus(template: TXpertTemplate) {
+    return template.application
+      ? (this.applicationStatuses().find((status) => status.appId === template.application?.id) ?? null)
+      : null
+  }
+
+  templateActionLabel(item: AgentSquareDisplayItem) {
+    if (item.kind !== 'template' || !item.template.application) {
+      return this.#translate.instant('XP.Explore.AgentSquare.UseNow', { Default: 'Use now' })
+    }
+    const status = this.applicationStatus(item.template)
+    if (status?.status !== 'ready') {
+      if (status?.initializationAccess === 'role_required') {
+        return this.#translate.instant('XP.Explore.Application.Action.ContactAdministrator', {
+          Default: 'Contact administrator'
+        })
+      }
+      if (status?.initializationAccess === 'organization_required') {
+        return this.#translate.instant('XP.Explore.Application.Action.SwitchOrganization', {
+          Default: 'Switch organization'
+        })
+      }
+      if (status?.initializationAccess === 'unsupported') {
+        return this.#translate.instant('XP.Explore.Application.Action.NotSupported', { Default: 'Not supported yet' })
+      }
+    }
+    switch (status?.status) {
+      case 'ready':
+        return this.#translate.instant('XP.Explore.Application.Action.Open', { Default: 'Open application' })
+      case 'initializing':
+        return this.#translate.instant('XP.Explore.Application.Action.Initializing', { Default: 'Initializing…' })
+      case 'degraded':
+        return this.#translate.instant('XP.Explore.Application.Action.Repair', { Default: 'Repair application' })
+      default:
+        return this.#translate.instant('XP.Explore.Application.Action.ApplyToOrganization', {
+          Default: 'Apply to current organization'
+        })
+    }
+  }
+
+  applicationScreenshot(item: AgentSquareDisplayItem | null) {
+    return item?.kind === 'template' ? (item.template.application?.config.presentation?.screenshots?.[0] ?? null) : null
+  }
+
+  applicationScreenshotAlt(item: AgentSquareDisplayItem | null) {
+    return this.#translate.instant('XP.Explore.Application.ScreenshotAlt', {
+      Default: 'Screenshot of {{app}}',
+      app: this.title(item)
+    })
   }
 
   title(item: AgentSquareDisplayItem | null) {

@@ -1,4 +1,14 @@
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    RequestContext,
+    type SandboxJobRunInput,
+    type SandboxRuntimeCreateOptions,
+    type SandboxRuntimeInstance
+} from '@xpert-ai/plugin-sdk'
+import { createHash } from 'node:crypto'
+import { access, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { VolumeHandle } from '../../shared/volume'
 import {
     classifyRunnerFailure,
     SandboxJobRuntimeCapabilityService,
@@ -181,6 +191,78 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
 
         expect(readBuffer).not.toHaveBeenCalled()
         expect(uploadFiles).toHaveBeenCalledWith([['/workspace/input/job.json', expect.any(Buffer)]])
+    })
+
+    it('executes against a stable seekable-input snapshot outside the mounted Job workspace', async () => {
+        const harness = await createExecuteHarness()
+        try {
+            harness.runtime.execute.mockImplementation(async () => {
+                const readOnlyFile = harness.createOptions?.readOnlyFiles?.[0]
+                if (!readOnlyFile) throw new Error('Provider did not receive a read-only input snapshot')
+                const snapshotStat = await stat(readOnlyFile.source.serverPath)
+                expect(snapshotStat.mode & 0o222).toBe(0)
+                expect(snapshotStat.nlink).toBe(1)
+                await writeFile(harness.sourcePath, Buffer.from('mutated after Provider creation'))
+                await expect(readFile(readOnlyFile.source.serverPath)).resolves.toEqual(harness.sourceBuffer)
+                return successfulExecution()
+            })
+
+            await expect(harness.execute()).resolves.toMatchObject({ status: 'succeeded' })
+
+            const options = harness.createOptions
+            expect(options?.volume).toEqual({
+                serverRoot: path.join(harness.jobRoot, 'workspace'),
+                hostRoot: path.join(harness.hostRoot, 'workspace')
+            })
+            const snapshot = options?.readOnlyFiles?.[0].source
+            if (!snapshot) throw new Error('Provider did not receive a read-only input snapshot')
+            expect(snapshot.serverPath).not.toBe(harness.sourcePath)
+            expect(snapshot.serverPath).toEqual(expect.stringContaining(path.join('.platform', 'inputs')))
+            expect(path.relative(path.join(harness.jobRoot, 'workspace'), snapshot.serverPath)).toMatch(/^\.\./)
+            expect(harness.provider.destroy).toHaveBeenCalledTimes(1)
+            await expect(access(harness.jobRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('rejects a seekable input whose copied bytes do not match the declared digest and cleans the Job volume', async () => {
+        const harness = await createExecuteHarness({ declaredSha256: '0'.repeat(64) })
+        try {
+            await expect(harness.execute()).rejects.toMatchObject({
+                code: 'EXPORT_INPUT_INVALID',
+                retryable: false
+            })
+
+            expect(harness.provider.create).not.toHaveBeenCalled()
+            expect(harness.provider.destroy).toHaveBeenCalledTimes(1)
+            await expect(access(harness.jobRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('cleans the isolated snapshot and workspace when Runtime execution fails', async () => {
+        const harness = await createExecuteHarness()
+        try {
+            harness.runtime.execute.mockResolvedValue({
+                output: 'EXPORT_MEDIA_FAILED: deterministic decoder failure',
+                exitCode: 1,
+                timedOut: false,
+                truncated: false
+            })
+
+            await expect(harness.execute()).rejects.toMatchObject({
+                code: 'EXPORT_MEDIA_FAILED',
+                retryable: false
+            })
+
+            expect(harness.provider.create).toHaveBeenCalledTimes(1)
+            expect(harness.provider.destroy).toHaveBeenCalledTimes(1)
+            await expect(access(harness.jobRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+        } finally {
+            await harness.dispose()
+        }
     })
 
     it('re-resolves a refreshed local Action before failing the current Job', async () => {
@@ -383,5 +465,192 @@ function sandboxJob(overrides: object) {
         outputs: [],
         createdAt: new Date(),
         ...overrides
+    }
+}
+
+async function createExecuteHarness(options: { declaredSha256?: string } = {}) {
+    const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'xpert-sandbox-job-execute-'))
+    const sourcePath = path.join(temporaryRoot, 'source.mov')
+    const sourceBuffer = Buffer.from('stable seekable media')
+    await writeFile(sourcePath, sourceBuffer)
+    const sourceStat = await stat(sourcePath)
+    const canonicalSourcePath = await realpath(sourcePath)
+    const jobRoot = path.join(temporaryRoot, 'runtime-job')
+    const hostRoot = path.join('/host/runtime-jobs', 'job-1')
+    const volume = await new VolumeHandle(
+        { tenantId: 'tenant-1', catalog: 'runtime-jobs', jobId: 'job-1' },
+        jobRoot,
+        hostRoot,
+        'http://localhost/volume/runtime-jobs/job-1'
+    ).ensureRoot()
+    const repository = {
+        save: jest.fn().mockImplementation(async (value) => value),
+        findOne: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue(undefined)
+    }
+    const workspaceFiles = {
+        resolveReadOnlyFileSource: jest.fn().mockResolvedValue({
+            serverPath: canonicalSourcePath,
+            hostPath: sourcePath,
+            size: sourceStat.size,
+            mtimeMs: sourceStat.mtimeMs,
+            device: sourceStat.dev,
+            inode: sourceStat.ino
+        }),
+        uploadBuffer: jest.fn().mockResolvedValue({
+            filePath: 'exports/result.txt',
+            workspacePath: '/workspace/exports/result.txt',
+            catalog: 'users',
+            size: 6
+        })
+    }
+    const runtime = {
+        id: 'runtime-1',
+        workspaceRoot: '/workspace',
+        uploadFiles: jest
+            .fn()
+            .mockImplementation(async (files: Array<[string, Uint8Array]>) =>
+                files.map(([filePath]) => ({ path: filePath, error: null }))
+            ),
+        downloadFiles: jest
+            .fn()
+            .mockImplementation(async (paths: string[]) =>
+                paths.map((filePath) => ({ path: filePath, content: Buffer.from('output'), error: null }))
+            ),
+        execute: jest.fn().mockResolvedValue(successfulExecution())
+    } satisfies SandboxRuntimeInstance & {
+        uploadFiles: jest.Mock
+        downloadFiles: jest.Mock
+        execute: jest.Mock
+    }
+    let createOptions: SandboxRuntimeCreateOptions | undefined
+    const provider = {
+        type: 'fake-runtime',
+        version: '1.0.0',
+        capabilities: {
+            isolation: 'hardened',
+            ephemeral: true,
+            resourceLimits: true,
+            networkPolicy: true,
+            readOnlyRootFilesystem: true,
+            readOnlyFileMounts: true
+        },
+        listBindings: jest.fn().mockReturnValue([]),
+        getBindingHealth: jest.fn(),
+        create: jest.fn().mockImplementation(async (value: SandboxRuntimeCreateOptions) => {
+            createOptions = value
+            return runtime
+        }),
+        destroy: jest.fn().mockResolvedValue(undefined)
+    }
+    const service = createServiceForExecute(repository, workspaceFiles, volume, provider)
+    const definition = new SandboxRuntimeDefinitionRegistry().require(PROFILE)
+    const action = {
+        pluginName: '@acme/plugin-document-export',
+        name: ACTION,
+        version: ACTION_VERSION,
+        runtimeProfile: PROFILE,
+        runtimeContractVersion: '1',
+        playwrightVersion: '1.61.0',
+        bundleSha256: 'c'.repeat(64),
+        bundleRoot: '/plugin/action',
+        entrypoint: 'runner.mjs',
+        files: []
+    }
+    const input: SandboxJobRunInput = {
+        action: ACTION,
+        actionVersion: ACTION_VERSION,
+        idempotencyKey: 'document-export:export-1:snapshot',
+        scope: scope(),
+        payload: {},
+        files: [
+            {
+                ...inputFile('media/source.mov'),
+                access: 'read-only-seekable',
+                size: sourceBuffer.length,
+                sha256: options.declaredSha256 ?? createHash('sha256').update(sourceBuffer).digest('hex')
+            }
+        ],
+        outputs: [
+            {
+                path: 'result.txt',
+                originalName: 'result.txt',
+                mimeType: 'text/plain',
+                destination: { tenantId: 'tenant-1', userId: 'user-1', catalog: 'users', folder: 'exports' }
+            }
+        ]
+    }
+    const job = sandboxJob({
+        status: 'waiting',
+        progress: null,
+        provider: 'fake-runtime',
+        runtimeRef: null,
+        cleanupPending: false
+    })
+    const resolution = {
+        provider,
+        binding: {
+            id: 'fake-binding',
+            provider: 'fake-runtime',
+            runtimeProfile: PROFILE,
+            priority: 0,
+            artifact: {
+                kind: 'oci-image',
+                reference: `fake-image@sha256:${'b'.repeat(64)}`,
+                digest: `sha256:${'b'.repeat(64)}`
+            }
+        }
+    }
+
+    return {
+        sourcePath: canonicalSourcePath,
+        sourceBuffer,
+        jobRoot,
+        hostRoot,
+        runtime,
+        provider,
+        get createOptions() {
+            return createOptions
+        },
+        execute: () =>
+            (
+                service as unknown as {
+                    execute: (
+                        job: object,
+                        input: SandboxJobRunInput,
+                        action: object,
+                        definition: object,
+                        resolution: object
+                    ) => Promise<unknown>
+                }
+            ).execute(job, input, action, definition, resolution),
+        dispose: () => rm(temporaryRoot, { recursive: true, force: true })
+    }
+}
+
+function createServiceForExecute(repository: object, workspaceFiles: object, volume: VolumeHandle, provider: object) {
+    const actions = {
+        get: jest.fn(),
+        getCachedBundle: jest.fn().mockResolvedValue([])
+    }
+    return new SandboxJobRuntimeCapabilityService(
+        repository as never,
+        new SandboxRuntimeDefinitionRegistry(),
+        actions as never,
+        { get: jest.fn().mockReturnValue(provider) } as never,
+        { require: jest.fn() } as never,
+        { getProfileHealth: jest.fn() } as never,
+        workspaceFiles as never,
+        {} as never,
+        { resolve: jest.fn().mockReturnValue(volume) } as never
+    )
+}
+
+function successfulExecution() {
+    return {
+        output: '',
+        exitCode: 0,
+        timedOut: false,
+        truncated: false
     }
 }

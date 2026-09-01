@@ -216,27 +216,32 @@ export class XpertWorkspaceXpertsComponent {
 
   handleImportedDSL(dsl: TXpertTeamDraft) {
     this.dialog
-      .open<{ name: string }>(XpertBasicDialogComponent, {
+      .open<Partial<IXpert>>(XpertBasicDialogComponent, {
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,
           description: dsl.team.description,
           title: dsl.team.title,
-          copilotModel: dsl.team.copilotModel
+          copilotModel: dsl.team.copilotModel,
+          workspaceDataScope: 'shared'
         }
       })
       .closed.pipe(
         switchMap((basic) => {
           if (basic) {
             this.#loading.set(true)
-            return this.xpertService.importDSL({
-              ...dsl,
-              team: {
-                ...dsl.team,
-                ...basic,
-                workspaceId: this.workspace().id
-              }
-            })
+            const { workspaceDataScope, ...portableBasic } = basic
+            return this.xpertService.importDSL(
+              {
+                ...dsl,
+                team: {
+                  ...dsl.team,
+                  ...portableBasic,
+                  workspaceId: this.workspace().id
+                }
+              },
+              { workspaceDataScope: workspaceDataScope ?? 'shared' }
+            )
           }
           return EMPTY
         })

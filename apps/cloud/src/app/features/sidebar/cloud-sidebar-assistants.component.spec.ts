@@ -377,6 +377,7 @@ describe('CloudSidebarAssistantsComponent', () => {
           {
             key: 'sales-orders',
             title: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
+            icon: { type: 'emoji', value: '📦' },
             hostType: 'agent',
             slot: 'agent.workbench.fixed',
             source: { type: 'builtin' },
@@ -1103,6 +1104,7 @@ describe('CloudSidebarAssistantsComponent', () => {
 
     const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
     expect(child.textContent).toContain('未清销售订单')
+    expect(child.querySelector('.icon-emoji')?.textContent).toContain('📦')
     child.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'], {
@@ -1112,6 +1114,33 @@ describe('CloudSidebarAssistantsComponent', () => {
     toggle.click()
     fixture.detectChanges()
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
+  })
+
+  it('marks the assistant menu item matching the current view query as active', async () => {
+    const router = TestBed.inject(Router)
+    await router.navigateByUrl('/chat/x/other-assistant/c?view=sales-orders')
+
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.componentRef.setInput('embedded', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
+    toggle.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
+    expect(child.classList.contains('is-active')).toBe(true)
+    expect(child.getAttribute('aria-current')).toBe('page')
+
+    await router.navigateByUrl('/chat/x/other-assistant/c?view=another-view')
+    fixture.detectChanges()
+
+    expect(child.classList.contains('is-active')).toBe(false)
+    expect(child.hasAttribute('aria-current')).toBe(false)
   })
 
   it('loads recent assistant conversations in pages of ten and opens older conversations', async () => {

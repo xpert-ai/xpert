@@ -120,6 +120,12 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.get(this.analysisPreviewAssetUrl(id, assetId), { responseType: 'blob' })
   }
 
+  getOriginalFilePreviewBlob(id: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/original-file/preview`, {
+      responseType: 'blob'
+    })
+  }
+
   analysisPreviewAssetUrl(id: string, assetId: string) {
     return this.apiBaseUrl + `/${id}/analysis-preview/assets/${encodeURIComponent(assetId)}`
   }

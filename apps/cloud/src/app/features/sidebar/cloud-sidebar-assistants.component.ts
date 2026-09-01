@@ -27,6 +27,7 @@ import {
   ViewExtensionApiService
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/emoji-avatar/avatar.component'
+import { IconComponent } from '../../@shared/avatar/icon/icon.component'
 import { groupConversations } from '../../xpert/types'
 import { getAssistantRegistryItem } from '../assistant/assistant.registry'
 import {
@@ -110,6 +111,7 @@ const EMPTY_ASSISTANT_CONVERSATION_STATE: AssistantConversationState = {
     DragDropModule,
     TranslateModule,
     EmojiAvatarComponent,
+    IconComponent,
     ZardIconComponent,
     ...ZardTooltipImports
   ],
@@ -198,6 +200,15 @@ export class CloudSidebarAssistantsComponent {
       distinctUntilChanged()
     ),
     { initialValue: normalizeChatPath(this.#router.url) }
+  )
+  readonly currentViewKey = toSignal(
+    this.#router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => readViewKey(this.#router)),
+      distinctUntilChanged()
+    ),
+    { initialValue: readViewKey(this.#router) }
   )
   readonly isCurrentCardMode = computed(() => this.mode() === 'current-card')
   readonly request = computed(() => {
@@ -618,6 +629,10 @@ export class CloudSidebarAssistantsComponent {
     return isAssistantRouteActive(this.currentUrl(), xpert)
   }
 
+  isAssistantMenuItemActive(xpert: IXpert, item: AssistantMenuItem) {
+    return this.isActive(xpert) && viewKeysMatch(item.viewKey, this.currentViewKey())
+  }
+
   hasAssistantUnread(xpert: IXpert) {
     return this.hasUnread(xpert.id)
   }
@@ -919,6 +934,26 @@ function normalizeChatPath(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function readViewKey(router: Router) {
+  const viewKey = router.parseUrl(router.url).queryParamMap.get('view')?.trim()
+  return viewKey || null
+}
+
+function viewKeysMatch(menuViewKey: string, currentViewKey: string | null | undefined) {
+  const normalizedMenuViewKey = menuViewKey.trim()
+  const normalizedCurrentViewKey = currentViewKey?.trim()
+
+  if (!normalizedMenuViewKey || !normalizedCurrentViewKey) {
+    return false
+  }
+
+  return (
+    normalizedMenuViewKey === normalizedCurrentViewKey ||
+    normalizedMenuViewKey.endsWith(`__${normalizedCurrentViewKey}`) ||
+    normalizedCurrentViewKey.endsWith(`__${normalizedMenuViewKey}`)
+  )
 }
 
 function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {

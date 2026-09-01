@@ -97,24 +97,42 @@
 }
 
 .page-field {
-  display: flex;
+  display: grid;
+  grid-template-columns: 4ch auto auto;
   height: 30px;
   align-items: center;
-  gap: 5px;
+  column-gap: 5px;
   border: 1px solid var(--color-divider-regular);
   border-radius: 8px;
   padding: 0 8px;
   color: var(--color-text-tertiary);
   font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .page-field input {
-  width: 42px;
+  appearance: none;
+  box-sizing: border-box;
+  width: 4ch;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
   border: 0;
+  padding: 0;
   outline: 0;
   background: transparent;
   color: var(--color-text-primary);
+  font: inherit;
+  line-height: 20px;
   text-align: right;
+}
+
+.page-field-separator,
+.page-field-total {
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .type-filter {
@@ -201,6 +219,12 @@
 
 .pdf-document-flow {
   min-width: max-content;
+}
+
+.docx-document-flow {
+  display: block;
+  min-width: 100%;
+  min-height: 100%;
 }
 
 .pdf-page-slot {

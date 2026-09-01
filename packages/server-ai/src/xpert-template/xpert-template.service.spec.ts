@@ -576,7 +576,25 @@ describe('XpertTemplateService', () => {
                             targetApps: ['data-xpert'],
                             targetAppMeta: {
                                 'data-xpert': {
-                                    types: ['business-assistant']
+                                    types: ['business-assistant'],
+                                    marketplace: {
+                                        contents: [
+                                            {
+                                                type: 'app',
+                                                name: 'demo-studio',
+                                                displayName: 'Demo Studio',
+                                                appConfig: {
+                                                    scope: 'organization',
+                                                    assistantTemplateKey: 'business',
+                                                    workspace: {
+                                                        mode: 'dedicated',
+                                                        name: 'Demo Workspace',
+                                                        sharing: 'organization'
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
                                 }
                             }
                         },
@@ -654,7 +672,15 @@ describe('XpertTemplateService', () => {
                     template: 'Create a presentation from {{args}}.',
                     visibility: 'team'
                 }
-            ]
+            ],
+            application: {
+                id: '@xpert-ai/plugin-demo:demo-studio',
+                pluginName: '@xpert-ai/plugin-demo',
+                appName: 'demo-studio',
+                displayName: 'Demo Studio',
+                scope: 'organization',
+                assistantTemplateKey: 'business'
+            }
         })
         expect(chineseDetail.description).toBe('中文插件描述')
         expect(legacyVersionedDetail.id).toBe('@xpert-ai/plugin-demo:business')

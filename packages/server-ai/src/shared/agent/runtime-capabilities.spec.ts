@@ -1,5 +1,7 @@
 import {
     getRecommendedRuntimeSkillSelection,
+    getRuntimeConnectorBindingIds,
+    isRuntimeCapabilitiesAllowlist,
     mergeRuntimeCapabilitiesSelection,
     normalizeRuntimeCapabilitiesSelection
 } from './runtime-capabilities'
@@ -31,6 +33,41 @@ describe('runtime capabilities selection', () => {
         ).toMatchObject({
             subAgents: { nodeKeys: ['sub-agent'] }
         })
+    })
+
+    it('normalizes the selected Connector binding allow-list', () => {
+        expect(
+            normalizeRuntimeCapabilitiesSelection({
+                mode: 'allowlist',
+                skills: { ids: [] },
+                plugins: { nodeKeys: [] },
+                connectors: { bindingIds: [' binding-1 ', 'binding-1', 'binding-2', null] }
+            })
+        ).toMatchObject({
+            connectors: { bindingIds: ['binding-1', 'binding-2'] }
+        })
+        expect(
+            getRuntimeConnectorBindingIds({
+                mode: 'allowlist',
+                skills: { ids: [] },
+                plugins: { nodeKeys: [] },
+                connectors: { bindingIds: [' binding-1 ', 'binding-1'] }
+            })
+        ).toEqual(['binding-1'])
+    })
+
+    it('keeps Connector-only selections out of the global capability allow-list', () => {
+        const selection = {
+            mode: 'allowlist',
+            inheritUnselected: true,
+            skills: { ids: [] },
+            plugins: { nodeKeys: [] },
+            connectors: { bindingIds: ['binding-1'] }
+        }
+
+        expect(normalizeRuntimeCapabilitiesSelection(selection)).toMatchObject({ inheritUnselected: true })
+        expect(isRuntimeCapabilitiesAllowlist(selection)).toBe(false)
+        expect(getRuntimeConnectorBindingIds(selection)).toEqual(['binding-1'])
     })
 
     it('normalizes recommended selections and merges them into the allow-list', () => {
@@ -108,13 +145,15 @@ describe('runtime capabilities selection', () => {
                     mode: 'allowlist',
                     skills: { workspaceId: 'workspace-1', ids: ['skill-available'] },
                     plugins: { nodeKeys: [] },
-                    subAgents: { nodeKeys: [] }
+                    subAgents: { nodeKeys: [] },
+                    connectors: { bindingIds: ['binding-1'] }
                 }),
                 normalizeRuntimeCapabilitiesSelection({
                     mode: 'allowlist',
                     skills: { workspaceId: 'workspace-1', ids: [] },
                     plugins: { nodeKeys: [] },
                     subAgents: { nodeKeys: [] },
+                    connectors: { bindingIds: ['binding-2'] },
                     recommended: {
                         skills: { ids: ['skill-recommended'] },
                         plugins: { nodeKeys: ['middleware-recommended'] },
@@ -133,6 +172,9 @@ describe('runtime capabilities selection', () => {
             },
             subAgents: {
                 nodeKeys: []
+            },
+            connectors: {
+                bindingIds: ['binding-1', 'binding-2']
             },
             recommended: {
                 skills: {

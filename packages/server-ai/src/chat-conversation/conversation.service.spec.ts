@@ -20,6 +20,10 @@ jest.mock('@xpert-ai/server-core', () => ({
         findAll() {
             return Promise.resolve({ items: [], total: 0 })
         }
+
+        findOneInOrganizationOrTenant(): Promise<T> {
+            return Promise.resolve(null)
+        }
     }
 }))
 
@@ -36,6 +40,10 @@ jest.mock('../xpert-agent-execution/queries', () => ({
     XpertAgentExecutionStateQuery: class XpertAgentExecutionStateQuery {}
 }))
 
+jest.mock('../xpert-project/services/project-access.service', () => ({
+    XpertProjectAccessService: class XpertProjectAccessService {}
+}))
+
 jest.mock('./conversation.entity', () => ({
     ChatConversation: class ChatConversation {}
 }))
@@ -50,16 +58,17 @@ jest.mock('./dto', () => ({
 
 import { TFile } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
-import { GetFileAssetQuery } from '../file-understanding/queries'
+import { ResolveAuthorizedFileAssetQuery } from '../file-understanding/queries'
 import { VolumeClient } from '../shared/volume'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 
 describe('ChatConversationService workspace files', () => {
     let repository: { findOne: jest.Mock; query: jest.Mock }
@@ -78,6 +87,11 @@ describe('ChatConversationService workspace files', () => {
     }
     let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
     let queryBus: { execute: jest.Mock }
+    let projectAccessService: {
+        assertCanRead: jest.Mock
+        assertCanUse: jest.Mock
+        assertCanEdit: jest.Mock
+    }
     let service: ChatConversationService
     const conversation = {
         id: 'conversation-1',
@@ -137,6 +151,11 @@ describe('ChatConversationService workspace files', () => {
         queryBus = {
             execute: jest.fn()
         }
+        projectAccessService = {
+            assertCanRead: jest.fn().mockResolvedValue({ role: 'member' }),
+            assertCanUse: jest.fn().mockResolvedValue({ role: 'member' }),
+            assertCanEdit: jest.fn().mockResolvedValue({ role: 'editor' })
+        }
 
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
@@ -145,12 +164,48 @@ describe('ChatConversationService workspace files', () => {
             {} as CommandBus,
             queryBus as unknown as QueryBus,
             {} as Queue,
-            volumeClient
+            volumeClient,
+            projectAccessService as unknown as XpertProjectAccessService
         )
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue(conversation as ChatConversation)
     })
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('rejects access to another user non-Project conversation', async () => {
+        await expect(
+            service.assertAccess({
+                ...conversation,
+                createdById: 'user-2'
+            } as ChatConversation)
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('uses Project membership for contribution access', async () => {
+        await service.assertAccess(
+            {
+                ...conversation,
+                createdById: 'user-2',
+                projectId: 'project-1'
+            } as ChatConversation,
+            'contribute'
+        )
+
+        expect(projectAccessService.assertCanUse).toHaveBeenCalledWith('project-1')
+    })
+
+    it('revokes Project conversation access even for its creator after membership is removed', async () => {
+        projectAccessService.assertCanRead.mockRejectedValue(new ForbiddenException())
+        projectAccessService.assertCanUse.mockRejectedValue(new ForbiddenException())
+        const projectConversation = {
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation
+
+        await expect(service.assertAccess(projectConversation)).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(service.assertAccess(projectConversation, 'contribute')).rejects.toBeInstanceOf(ForbiddenException)
     })
 
     it('lists files inside the current conversation workspace', async () => {
@@ -159,7 +214,7 @@ describe('ChatConversationService workspace files', () => {
 
         await service.getWorkspaceFiles('conversation-1', 'docs', 2)
 
-        expect(findConversation).toHaveBeenCalledWith('conversation-1')
+        expect(findConversation).toHaveBeenCalledWith('conversation-1', { relations: ['xpert'] })
         expect(listWorkspace).toHaveBeenCalledWith('', {
             path: 'docs',
             deepth: 2
@@ -366,22 +421,26 @@ describe('ChatConversationService workspace files', () => {
         expect(sql).not.toContain('ON CONFLICT ("tenantId", "conversationId", "userId")')
     })
 
-    it('uses the sandbox environment workspace when the conversation has a sandbox environment id', async () => {
-        jest.spyOn(service, 'findOne').mockResolvedValue({
+    it('uses the Project workspace when the conversation also has a sandbox environment id', async () => {
+        const projectConversation = {
             ...conversation,
             projectId: 'project-1',
             options: {
                 sandboxEnvironmentId: 'sandbox-env-1'
             }
-        } as ChatConversation)
+        } as ChatConversation
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue(projectConversation)
+        jest.spyOn(service, 'findOne').mockResolvedValue(projectConversation)
         jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
 
         await service.getWorkspaceFiles('conversation-1', '/4567', 1)
 
+        expect(projectAccessService.assertCanRead).toHaveBeenCalledWith('project-1')
+
         expect(volumeClient.resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
-            catalog: 'environment',
-            environmentId: 'sandbox-env-1',
+            catalog: 'projects',
+            projectId: 'project-1',
             userId: 'user-1'
         })
     })
@@ -394,19 +453,21 @@ describe('ChatConversationService workspace files', () => {
 
         await service.readWorkspaceFile('conversation-1', 'README.md')
 
-        expect(findConversation).toHaveBeenCalledWith('conversation-1')
+        expect(findConversation).toHaveBeenCalledWith('conversation-1', { relations: ['xpert'] })
         expect(readWorkspaceFile).toHaveBeenCalledWith('', 'README.md')
     })
 
     it('resolves agent-visible file paths through file asset workspace metadata', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         queryBus.execute.mockResolvedValue({
-            id: 'file-asset-1',
-            conversationId: 'conversation-1',
-            workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/report.pdf',
-            metadata: {
-                workspace: {
-                    relativePath: 'sessions/conversation-1/files/file-asset-1/report.pdf'
+            asset: {
+                id: 'file-asset-1',
+                conversationId: 'mutable-wrong-value',
+                workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/report.pdf',
+                metadata: {
+                    workspace: {
+                        relativePath: 'sessions/conversation-1/files/file-asset-1/report.pdf'
+                    }
                 }
             }
         })
@@ -420,7 +481,16 @@ describe('ChatConversationService workspace files', () => {
             'file-asset-1'
         )
 
-        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(GetFileAssetQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ResolveAuthorizedFileAssetQuery))
+        expect(queryBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: {
+                    locator: { fileAssetId: 'file-asset-1' },
+                    authority: { kind: 'conversation', conversationId: 'conversation-1' },
+                    operation: 'read'
+                }
+            })
+        )
         expect(readWorkspaceFile).toHaveBeenCalledWith('', 'sessions/conversation-1/files/file-asset-1/report.pdf')
     })
 
@@ -450,15 +520,7 @@ describe('ChatConversationService workspace files', () => {
 
     it('rejects file assets that belong to another conversation', async () => {
         jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
-        queryBus.execute.mockResolvedValue({
-            id: 'file-asset-1',
-            conversationId: 'conversation-2',
-            metadata: {
-                workspace: {
-                    relativePath: 'sessions/conversation-2/files/file-asset-1/report.pdf'
-                }
-            }
-        })
+        queryBus.execute.mockRejectedValue(new ForbiddenException())
         const readWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'readFile')
 
         await expect(
@@ -470,7 +532,10 @@ describe('ChatConversationService workspace files', () => {
     it('returns download targets inside the current conversation workspace', async () => {
         const findConversation = jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
         const getDownloadTarget = jest.spyOn(VolumeSubtreeClient.prototype, 'getDownloadTarget').mockResolvedValue({
-            absolutePath: '/workspace/root/docs',
+            directoryHandle: {} as never,
+            entries: (async function* () {
+                yield* [] as never[]
+            })(),
             fileName: 'docs.zip',
             mimeType: 'application/zip',
             type: 'directory'
@@ -478,7 +543,7 @@ describe('ChatConversationService workspace files', () => {
 
         await service.getWorkspaceFileDownload('conversation-1', 'docs')
 
-        expect(findConversation).toHaveBeenCalledWith('conversation-1')
+        expect(findConversation).toHaveBeenCalledWith('conversation-1', { relations: ['xpert'] })
         expect(getDownloadTarget).toHaveBeenCalledWith('', 'docs')
     })
 
@@ -491,8 +556,92 @@ describe('ChatConversationService workspace files', () => {
 
         await service.saveWorkspaceFile('conversation-1', 'README.md', '# Updated\n')
 
-        expect(findConversation).toHaveBeenCalledWith('conversation-1')
+        expect(findConversation).toHaveBeenCalledWith('conversation-1', { relations: ['xpert'] })
         expect(saveWorkspaceFile).toHaveBeenCalledWith('', 'README.md', '# Updated\n')
+    })
+
+    it('rejects generic writes to Project instructions and skills', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        const saveWorkspaceFile = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile')
+
+        await expect(
+            service.saveWorkspaceFile('conversation-1', '/workspace/project.md', '# forged')
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            service.uploadWorkspaceFile('conversation-1', 'skills/pdf', {
+                originalname: 'SKILL.md',
+                buffer: Buffer.from('# forged')
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+        expect(saveWorkspaceFile).not.toHaveBeenCalled()
+    })
+
+    it('rejects a non-member before resolving any conversation workspace volume', async () => {
+        jest.spyOn(service, 'assertAccess').mockRejectedValueOnce(new ForbiddenException())
+
+        await expect(service.getWorkspaceFiles('conversation-1')).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
+    })
+
+    it('allows a Project member to read shared files without requiring edit access', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
+
+        await service.getWorkspaceFiles('conversation-1')
+
+        expect(projectAccessService.assertCanEdit).not.toHaveBeenCalled()
+        expect(volumeClient.resolve).toHaveBeenCalledWith(
+            expect.objectContaining({ catalog: 'projects', projectId: 'project-1' })
+        )
+    })
+
+    it('rejects a read-only Project member before saving shared bytes', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        projectAccessService.assertCanEdit.mockRejectedValueOnce(
+            new ForbiddenException('Project editor access required')
+        )
+        const saveFile = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile')
+
+        await expect(service.saveWorkspaceFile('conversation-1', 'README.md', 'changed')).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+
+        expect(projectAccessService.assertCanEdit).toHaveBeenCalledWith('project-1')
+        expect(saveFile).not.toHaveBeenCalled()
+    })
+
+    it('uses a personal Xpert volume for the conversation owner and rejects another user before resolution', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            xpert: { id: 'xpert-1', workspaceDataScope: 'user' }
+        } as ChatConversation)
+        jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
+
+        await service.getWorkspaceFiles('conversation-1')
+        expect(volumeClient.resolve).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            catalog: 'user-xperts',
+            userId: 'user-1',
+            xpertId: 'xpert-1'
+        })
+
+        volumeClient.resolve.mockClear()
+        jest.spyOn(service, 'assertAccess').mockRejectedValueOnce(new ForbiddenException())
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-2')
+        await expect(service.getWorkspaceFiles('conversation-1')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
     })
 
     it('rejects non-project workspace access when the conversation is not bound to an xpert', async () => {

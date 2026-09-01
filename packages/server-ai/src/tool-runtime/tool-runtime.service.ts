@@ -1,6 +1,11 @@
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import { BaseStore } from '@langchain/langgraph'
-import { JSONValue, McpCapabilityDescriptor, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import {
+    JSONValue,
+    McpCapabilityDescriptor,
+    XpertToolsetCategoryEnum,
+    type XpertWorkspaceDataScope
+} from '@xpert-ai/contracts'
 import {
     MANAGED_QUEUE_SERVICE_TOKEN,
     AnyXpertToolDefinition,
@@ -15,7 +20,10 @@ import {
     ToolPrincipal,
     WorkspaceFilesRuntimeCapability,
     XpertToolContent,
-    XpertToolResult
+    XpertToolResult,
+    type RuntimeCapabilityKey,
+    type RuntimeCapabilityResolver,
+    type WorkspaceFilesApi
 } from '@xpert-ai/plugin-sdk'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -33,11 +41,14 @@ import { OpenAPIToolset } from '../xpert-toolset/provider/openapi/openapi-toolse
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { McpCapabilityCatalog } from '../mcp-publication/entities/mcp-capability-catalog.entity'
 import { McpSubscriptionService } from '../mcp-publication/mcp-subscription.service'
+import { resolveToolRuntimeScope } from './workspace-scope'
 
 export interface ToolRuntimeEnvironment {
     projectId?: string | null
     conversationId?: string
     xpertId?: string | null
+    /** Persisted Xpert storage policy; derived catalog fields are never accepted from callers. */
+    workspaceDataScope?: XpertWorkspaceDataScope | null
     agentKey?: string
     executionId?: string
     signal?: AbortSignal
@@ -175,18 +186,28 @@ export class ToolRuntimeService {
         const runtimeEntries = await Promise.all(
             toolsets.map(async (toolset) => {
                 const effectiveWorkspaceId = toolsetWorkspaceId(request, toolset)
-                const scopedModelRuntime = this.modelRuntime.createScopedApi({
-                    tenantId: request.tenantId,
-                    organizationId: request.organizationId ?? undefined,
-                    userId: request.principal.userId,
-                    workspaceId: effectiveWorkspaceId,
-                    projectId: request.projectId,
-                    xpertId: request.xpertId,
-                    conversationId: request.conversationId,
-                    agentKey: request.agentKey,
-                    executionId: request.executionId,
-                    usageCallback: usageRecorder?.usageCallback
-                })
+                const runtimeScope = resolveToolRuntimeScope(
+                    {
+                        tenantId: request.tenantId,
+                        organizationId: request.organizationId ?? undefined,
+                        userId: request.principal.userId,
+                        workspaceId: effectiveWorkspaceId,
+                        projectId: request.projectId,
+                        xpertId: request.xpertId,
+                        conversationId: request.conversationId,
+                        agentKey: request.agentKey,
+                        executionId: request.executionId,
+                        usageCallback: usageRecorder?.usageCallback
+                    },
+                    request.workspaceDataScope
+                )
+                const scopedModelRuntime = this.modelRuntime.createScopedApi(runtimeScope)
+                const hasWorkspaceScope = Boolean(runtimeScope.catalog && runtimeScope.scopeId)
+                const runtimeCapabilities = createExecutionRuntimeCapabilities(
+                    scopedModelRuntime.capabilities,
+                    request.host?.files,
+                    hasWorkspaceScope
+                )
                 const context: TBuiltinToolsetParams = {
                     ...baseContext,
                     env: {
@@ -197,7 +218,9 @@ export class ToolRuntimeService {
                         createModelClient: scopedModelRuntime.createModelClient,
                         getModelProvider: scopedModelRuntime.getModelProvider,
                         reportUsage: usageRecorder?.reportUsage
-                    }
+                    },
+                    runtimeCapabilities,
+                    runtimeScope
                 }
                 let runtime: _BaseToolset<StructuredToolInterface>
                 switch (toolset.category) {
@@ -220,14 +243,16 @@ export class ToolRuntimeService {
                     default:
                         throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)
                 }
-                return { runtime, scopedModelRuntime }
+                return { runtime, scopedModelRuntime, hasWorkspaceScope }
             })
         )
-        for (const [index, { runtime, scopedModelRuntime }] of runtimeEntries.entries()) {
-            const workspaceFiles =
-                request.host?.files ?? scopedModelRuntime.capabilities?.get(WorkspaceFilesRuntimeCapability)
+        for (const [index, { runtime, scopedModelRuntime, hasWorkspaceScope }] of runtimeEntries.entries()) {
+            const { files: _unboundFiles, ...requestHost } = request.host ?? {}
+            const workspaceFiles = hasWorkspaceScope
+                ? (request.host?.files ?? scopedModelRuntime.capabilities?.get(WorkspaceFilesRuntimeCapability))
+                : undefined
             const defaultHost: ToolHostApi = {
-                ...(request.host ?? {}),
+                ...requestHost,
                 ...(workspaceFiles ? { files: workspaceFiles } : {}),
                 credentials: createToolCredentialsApi(toolsets[index].credentials),
                 events: this.subscriptions.eventsApiForToolset(toolsets[index].id, request.host?.events),
@@ -878,4 +903,23 @@ function isJsonValue(value: unknown): value is JSONValue {
     }
     if (Array.isArray(value)) return value.every(isJsonValue)
     return isObject(value) && Object.values(value).every(isJsonValue)
+}
+
+function createExecutionRuntimeCapabilities(
+    capabilities: RuntimeCapabilityResolver | undefined,
+    hostFiles: WorkspaceFilesApi | undefined,
+    hasWorkspaceScope: boolean
+): RuntimeCapabilityResolver | undefined {
+    if (hasWorkspaceScope && !hostFiles) return capabilities
+    if (!capabilities && !hostFiles) return undefined
+    return {
+        get<T>(key: RuntimeCapabilityKey<T> | string): T | undefined {
+            const id = typeof key === 'string' ? key : key.id
+            if (id === WorkspaceFilesRuntimeCapability.id) {
+                if (!hasWorkspaceScope) return undefined
+                return hostFiles ? (hostFiles as T) : capabilities?.get(key)
+            }
+            return capabilities?.get(key)
+        }
+    }
 }

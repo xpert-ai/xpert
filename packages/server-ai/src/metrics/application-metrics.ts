@@ -230,6 +230,14 @@ export class ApplicationMetricsRegistry {
         'xpert_agent_execution_duration_seconds',
         'Xpert agent execution duration.'
     )
+    private readonly assistantModelSelections = new CounterMetric(
+        'xpert_assistant_model_selections_total',
+        'Total Assistant Primary model selections by source.'
+    )
+    private readonly invalidAssistantModelPreferences = new CounterMetric(
+        'xpert_assistant_model_invalid_preferences_total',
+        'Total stale Assistant model preferences removed at runtime.'
+    )
     private readonly llmTokens = new CounterMetric('xpert_llm_tokens_total', 'Total Xpert LLM tokens.')
     private readonly llmCost = new CounterMetric('xpert_llm_cost_total', 'Total Xpert LLM cost.')
     private readonly llmResponseLatency = new HistogramMetric(
@@ -275,6 +283,8 @@ export class ApplicationMetricsRegistry {
         this.chatDuration.reset()
         this.agentExecutions.reset()
         this.agentExecutionDuration.reset()
+        this.assistantModelSelections.reset()
+        this.invalidAssistantModelPreferences.reset()
         this.llmTokens.reset()
         this.llmCost.reset()
         this.llmResponseLatency.reset()
@@ -319,6 +329,14 @@ export class ApplicationMetricsRegistry {
         }
         this.agentExecutions.inc(labels)
         this.observeDuration(this.agentExecutionDuration, labels, input.durationMs)
+    }
+
+    recordAssistantModelSelection(source: MetricLabelValue) {
+        this.assistantModelSelections.inc({ source: labelValue(source) })
+    }
+
+    recordInvalidAssistantModelPreference(reason: MetricLabelValue) {
+        this.invalidAssistantModelPreferences.inc({ reason: labelValue(reason) })
     }
 
     recordLlmUsage(input: LlmUsageMetricInput) {
@@ -480,6 +498,8 @@ export class ApplicationMetricsRegistry {
                 this.chatDuration.render(),
                 this.agentExecutions.render(),
                 this.agentExecutionDuration.render(),
+                this.assistantModelSelections.render(),
+                this.invalidAssistantModelPreferences.render(),
                 this.llmTokens.render(),
                 this.llmCost.render(),
                 this.llmResponseLatency.render(),

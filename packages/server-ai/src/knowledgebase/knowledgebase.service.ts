@@ -31,6 +31,7 @@ import {
     TCopilotModel,
     KnowledgeDocumentMetadata,
     KnowledgeDocumentProcessingMode,
+    KDocumentSourceType,
     IUser,
     IModelAccessResolution,
     TKBRetrievalSettings,
@@ -46,6 +47,7 @@ import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/
 import { InjectQueue } from '@nestjs/bull'
 import {
     BadRequestException,
+    ForbiddenException,
     Inject,
     Injectable,
     InternalServerErrorException,
@@ -65,16 +67,19 @@ import {
 import { t } from 'i18next'
 import { assign } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
+import path from 'node:path'
 import {
     DataSource,
     DeleteResult,
     FindOptionsSelect,
+    FindOneOptions,
     FindOptionsWhere,
     In,
     IsNull,
     Not,
     QueryFailedError,
-    Repository
+    Repository,
+    SaveOptions
 } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import {
@@ -99,7 +104,8 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeSearchResult } from './queries/knowledge-search.query'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore, TEmbeddingVectorMetadata } from './vector-store'
-import { KnowledgeWorkAreaResolver } from '../shared'
+import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
+import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity'
 import { TDocChunkMetadata } from '../knowledge-document/types'
@@ -109,6 +115,7 @@ import { XpertEnqueueTriggerDispatchCommand, XpertPublishTriggersCommand } from 
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
 import { KnowledgebaseDetailDTO } from './dto'
 import { KnowledgeFilterFieldDefinition } from './filter'
+import { AssertChatConversationAccessQuery } from '../chat-conversation/queries'
 
 type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
 type TKnowledgebaseModelContext = {
@@ -121,6 +128,39 @@ function escapeKnowledgeFilterOptionLike(value: string) {
 }
 
 const KNOWLEDGEBASE_DETAIL_RELATIONS = ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline']
+
+const KNOWLEDGEBASE_SAFE_READ_RELATIONS = new Set(['createdBy'])
+
+const KNOWLEDGEBASE_TASK_RELATIONS = new Set(['documents'])
+
+function knowledgebaseTaskAccessDenied() {
+    return new ForbiddenException(
+        t('server-ai:Error.KnowledgebaseTaskAccessDenied', {
+            defaultValue: 'You do not have access to this knowledgebase task'
+        })
+    )
+}
+
+function knowledgebaseAccessDenied() {
+    return new ForbiddenException(
+        t('server-ai:Error.KnowledgebaseAccessDenied', {
+            defaultValue: 'You do not have access to this knowledgebase'
+        })
+    )
+}
+
+function assertSafeKnowledgebaseTaskRelations(relations: unknown): asserts relations is string[] | undefined {
+    if (relations === undefined) {
+        return
+    }
+
+    if (
+        !Array.isArray(relations) ||
+        relations.some((relation) => typeof relation !== 'string' || !KNOWLEDGEBASE_TASK_RELATIONS.has(relation))
+    ) {
+        throw knowledgebaseTaskAccessDenied()
+    }
+}
 
 const KNOWLEDGEBASE_MODEL_DETAIL_SELECT = {
     id: true,
@@ -139,6 +179,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     language: true,
     avatar: true,
     description: true,
+    applicationTags: true,
     permission: true,
     copilotModelId: true,
     chatModelId: true,
@@ -317,9 +358,23 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async create(entity: Partial<IKnowledgebase>) {
+        const input = { ...entity }
+        delete input.id
+        delete input.createdById
+        delete input.createdBy
+        delete input.updatedById
+        delete input.updatedBy
+        delete input.tenantId
+        delete input.tenant
+        delete input.organizationId
+        delete input.organization
+        delete input.createdAt
+        delete input.updatedAt
+        delete input.deletedAt
+
         // Check name
         const exist = await super.findOneOrFailByOptions({
-            where: { name: entity.name }
+            where: { name: input.name }
         })
         if (exist.success) {
             throw new BadRequestException(
@@ -329,14 +384,39 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             )
         }
 
-        if (Object.prototype.hasOwnProperty.call(entity, 'metadataSchema')) {
-            entity.metadataSchema = this.validateAndNormalizeMetadataSchema(entity.metadataSchema)
+        if (Object.prototype.hasOwnProperty.call(input, 'metadataSchema')) {
+            input.metadataSchema = this.validateAndNormalizeMetadataSchema(input.metadataSchema)
         }
-        return await super.create(entity)
+        if (Object.prototype.hasOwnProperty.call(input, 'applicationTags')) {
+            input.applicationTags = this.normalizeApplicationTags(input.applicationTags)
+        }
+        return await super.create(input)
+    }
+
+    async findOneByIdString(id: string, options?: FindOneOptions<Knowledgebase>): Promise<Knowledgebase> {
+        const accessSelect = addKnowledgebaseAccessSelect(options)
+        const knowledgebase = await super.findOneByIdString(id, accessSelect.options)
+        this.assertKnowledgebaseCrudReadAccess(knowledgebase)
+        return stripKnowledgebaseAccessSelect(knowledgebase, accessSelect)
+    }
+
+    getSafeReadRelations(relations: unknown): string[] | undefined {
+        if (relations === undefined) {
+            return undefined
+        }
+        if (
+            !Array.isArray(relations) ||
+            relations.some(
+                (relation) => typeof relation !== 'string' || !KNOWLEDGEBASE_SAFE_READ_RELATIONS.has(relation)
+            )
+        ) {
+            throw knowledgebaseAccessDenied()
+        }
+        return relations
     }
 
     async findOneDetail(id: string) {
-        const knowledgebase = await this.findOne(id, {
+        const knowledgebase = await this.findOneByIdString(id, {
             relations: KNOWLEDGEBASE_DETAIL_RELATIONS,
             select: KNOWLEDGEBASE_DETAIL_SELECT
         })
@@ -349,15 +429,29 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             return super.delete(criteria)
         }
 
-        const knowledgebase = await this.findOneByIdString(criteria, {
+        const knowledgebase = await this.assertKnowledgebaseWriteAccess(criteria, {
             relations: ['pipeline']
         })
-        if (knowledgebase.workspaceId) {
-            await this.assertWorkspaceWriteAccess(knowledgebase.workspaceId)
-        }
         await this.cleanupPipelineBeforeDelete(knowledgebase)
 
         return super.delete(criteria)
+    }
+
+    async softDelete(criteria: string | number | FindOptionsWhere<Knowledgebase>) {
+        if (typeof criteria === 'string') {
+            await this.assertKnowledgebaseWriteAccess(criteria)
+        }
+        return super.softDelete(criteria)
+    }
+
+    async softRemove(id: Knowledgebase['id'], options?: FindOneOptions<Knowledgebase>, saveOptions?: SaveOptions) {
+        await this.assertKnowledgebaseWriteAccess(id, options)
+        return super.softRemove(id, options, saveOptions)
+    }
+
+    async softRecover(id: Knowledgebase['id'], options?: FindOneOptions<Knowledgebase>, saveOptions?: SaveOptions) {
+        await this.assertKnowledgebaseWriteAccess(id, options)
+        return super.softRecover(id, options, saveOptions)
     }
 
     private async cleanupPipelineBeforeDelete(knowledgebase: Knowledgebase): Promise<void> {
@@ -446,7 +540,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async updateKnowledgebase(id: string, entity: Partial<Knowledgebase>) {
-        const _entity = await super.findOne(id, {
+        const _entity = await this.assertKnowledgebaseWriteAccess(id, {
             relations: [
                 'copilotModel',
                 'copilotModel.copilot',
@@ -459,9 +553,33 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 'pendingCopilotModel.copilot.modelProvider'
             ]
         })
+        const changes = { ...entity }
+        delete changes.id
+        delete changes.tenantId
+        delete changes.tenant
+        delete changes.organizationId
+        delete changes.organization
+        delete changes.createdById
+        delete changes.createdBy
+        delete changes.updatedById
+        delete changes.updatedBy
+        delete changes.createdAt
+        delete changes.updatedAt
+        delete changes.deletedAt
+        if (changes.workspaceId && changes.workspaceId !== _entity.workspaceId) {
+            throw new BadRequestException('workspaceId cannot be changed after a knowledgebase is created')
+        }
+        delete changes.workspaceId
+        if (
+            Object.prototype.hasOwnProperty.call(changes, 'workspace') &&
+            (changes.workspace?.id ?? null) !== (_entity.workspaceId ?? null)
+        ) {
+            throw new BadRequestException('workspace cannot be changed after a knowledgebase is created')
+        }
+        delete changes.workspace
 
         // Check name uniqueness if name is being changed
-        if (entity.name && entity.name !== _entity.name) {
+        if (changes.name && changes.name !== _entity.name) {
             const tenantId = RequestContext.currentTenantId()
             const organizationId = RequestContext.getOrganizationId()
 
@@ -470,7 +588,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 where: {
                     tenantId,
                     organizationId,
-                    name: entity.name,
+                    name: changes.name,
                     id: Not(id) // Exclude current knowledgebase
                 }
             })
@@ -485,8 +603,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
 
         try {
-            if (Object.prototype.hasOwnProperty.call(entity, 'metadataSchema')) {
-                entity.metadataSchema = this.validateAndNormalizeMetadataSchema(entity.metadataSchema)
+            if (Object.prototype.hasOwnProperty.call(changes, 'metadataSchema')) {
+                changes.metadataSchema = this.validateAndNormalizeMetadataSchema(changes.metadataSchema)
+            }
+            if (Object.prototype.hasOwnProperty.call(entity, 'applicationTags')) {
+                entity.applicationTags = this.normalizeApplicationTags(entity.applicationTags)
             }
             const hasCopilotModel = Object.prototype.hasOwnProperty.call(entity, 'copilotModel')
             const hasCopilotModelId = Object.prototype.hasOwnProperty.call(entity, 'copilotModelId')
@@ -496,30 +617,31 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 if (_entity.status === KnowledgebaseStatusEnum.REBUILDING) {
                     throw new BadRequestException('Embedding rebuild is running')
                 }
-                if (!hasCopilotModel && entity.copilotModelId !== _entity.copilotModelId) {
+                if (!hasCopilotModel && changes.copilotModelId !== _entity.copilotModelId) {
                     throw new BadRequestException('copilotModel is required when changing embedding model')
                 }
                 if (hasCopilotModel) {
                     const target = await this.resolveEmbeddingModelTarget(
                         id,
-                        entity.copilotModel ?? null,
-                        entity.copilotModelId ?? null
+                        changes.copilotModel ?? null,
+                        changes.copilotModelId ?? null
                     )
                     embeddingPatch = resolveEmbeddingModelUpdateState(_entity, target) as Partial<Knowledgebase>
                 }
             }
-            if (Object.prototype.hasOwnProperty.call(entity, 'graphRag')) {
-                const nextGraphEnabled = entity.graphRag?.enabled === true
+            if (Object.prototype.hasOwnProperty.call(changes, 'graphRag')) {
+                const nextGraphEnabled = changes.graphRag?.enabled === true
                 const currentGraphEnabled = _entity.graphRag?.enabled === true
                 if (!nextGraphEnabled) {
-                    entity.graphStatus = KnowledgeGraphStatus.DISABLED
-                    entity.graphIndexError = null
+                    changes.graphStatus = KnowledgeGraphStatus.DISABLED
+                    changes.graphIndexError = null
                 } else if (!currentGraphEnabled || _entity.graphStatus === KnowledgeGraphStatus.DISABLED) {
-                    entity.graphStatus = KnowledgeGraphStatus.REBUILD_REQUIRED
-                    entity.graphIndexError = null
+                    changes.graphStatus = KnowledgeGraphStatus.REBUILD_REQUIRED
+                    changes.graphIndexError = null
                 }
             }
-            assign(_entity, entity, embeddingPatch)
+            assign(_entity, changes, embeddingPatch)
+            _entity.updatedById = RequestContext.currentUserId()
             const saved = await super.save(_entity)
             if (embeddingPatch.status === KnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                 return await this.startEmbeddingRebuild(id)
@@ -548,6 +670,23 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             // Re-throw other errors
             throw error
         }
+    }
+
+    /**
+     * Normalizes machine-readable application classifications at the write
+     * boundary. Limits prevent unbounded JSON metadata while preserving stable
+     * exact-match tags for plugin discovery.
+     */
+    private normalizeApplicationTags(value: unknown): string[] {
+        if (!Array.isArray(value)) return []
+        return [
+            ...new Set(
+                value
+                    .filter((item): item is string => typeof item === 'string')
+                    .map((item) => item.trim())
+                    .filter(Boolean)
+            )
+        ].slice(0, 32)
     }
 
     private validateAndNormalizeMetadataSchema(schema?: KBMetadataFieldDef[] | null): KBMetadataFieldDef[] {
@@ -1006,7 +1145,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async cancelPendingEmbeddingModel(id: string) {
-        const knowledgebase = await this.findOne(id, {
+        const knowledgebase = await this.assertKnowledgebaseWriteAccess(id, {
             relations: this.getPendingVectorStoreRelations()
         })
         if (knowledgebase.status === KnowledgebaseStatusEnum.REBUILDING) {
@@ -1021,7 +1160,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async startEmbeddingRebuild(id: string) {
-        const knowledgebase = await this.findOne(id, {
+        const knowledgebase = await this.assertKnowledgebaseWriteAccess(id, {
             relations: [
                 'copilotModel',
                 'copilotModel.copilot',
@@ -1252,7 +1391,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
      * @returns
      */
     async createPipeline(id: string) {
-        const knowledgebase = await this.findOne(id)
+        const knowledgebase = await this.assertKnowledgebaseWriteAccess(id)
         const sourceKey = genPipelineSourceKey()
         const knowledgebaseKey = genPipelineKnowledgeBaseKey()
         const triggerKey = genXpertTriggerKey()
@@ -1695,10 +1834,36 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
      * If the task status is running, start immediately.
      */
     async createTask(knowledgebaseId: string, task: Partial<IKnowledgebaseTask>) {
+        const knowledgebase = await this.assertKnowledgebaseTaskWriteAccess(knowledgebaseId)
         if (task.status === 'running') {
-            await this.assertNotRebuilding(knowledgebaseId)
+            if (knowledgebase.status === KnowledgebaseStatusEnum.REBUILDING) {
+                throw new BadRequestException('Embedding rebuild is running')
+            }
         }
-        const { id } = await this.taskService.createTask(knowledgebaseId, task)
+
+        if (task.conversationId) {
+            const conversation = await this.queryBus.execute(
+                new AssertChatConversationAccessQuery({ id: task.conversationId }, 'contribute')
+            )
+            if (
+                conversation.tenantId !== knowledgebase.tenantId ||
+                (conversation.organizationId ?? null) !== (knowledgebase.organizationId ?? null)
+            ) {
+                throw knowledgebaseTaskAccessDenied()
+            }
+        }
+
+        const documents = await this.resolveKnowledgebaseTaskDocuments(knowledgebaseId, task.documents)
+        const context = await this.resolveKnowledgebaseTaskContext(knowledgebase, task.context)
+        const safeTask: Partial<IKnowledgebaseTask> = {
+            taskType: task.taskType,
+            status: task.status,
+            context,
+            conversationId: task.conversationId,
+            documents
+        }
+
+        const { id } = await this.taskService.createTask(knowledgebaseId, safeTask)
         const _task = await this.taskService.findOne(id, { relations: ['documents'] })
         if (task.status === 'running') {
             _task.documents.forEach((doc) => {
@@ -1726,10 +1891,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     }
 
     async getTask(knowledgebaseId: string, taskId: string, params?: PaginationParams<KnowledgebaseTask>) {
+        await this.assertKnowledgebaseTaskReadAccess(knowledgebaseId)
+        assertSafeKnowledgebaseTaskRelations(params?.relations)
         const where = { ...(params?.where ?? {}), id: taskId, knowledgebaseId } as FindOptionsWhere<KnowledgebaseTask>
 
         return this.taskService.findOneByOptions({
-            ...(params ?? {}),
+            relations: params?.relations,
             where
         })
     }
@@ -1748,8 +1915,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             isDraft?: boolean
         }
     ) {
-        await this.assertNotRebuilding(knowledgebaseId)
-        const kb = await this.findOne(knowledgebaseId, { relations: ['pipeline'] })
+        const kb = await this.assertKnowledgebaseTaskWriteAccess(knowledgebaseId, { relations: ['pipeline'] })
+        if (kb.status === KnowledgebaseStatusEnum.REBUILDING) {
+            throw new BadRequestException('Embedding rebuild is running')
+        }
+        const task = await this.taskService.findOneByOptions({
+            where: { id: taskId, knowledgebaseId },
+            relations: ['documents']
+        })
+        this.assertKnowledgebaseTaskSources(task, inputs.sources)
         const execution = await this.commandBus.execute(
             new XpertAgentExecutionUpsertCommand({
                 // threadId: conversation.threadId,
@@ -1788,8 +1962,209 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         )
     }
 
+    private async assertKnowledgebaseTaskReadAccess(
+        knowledgebaseId: string,
+        options?: FindOneOptions<Knowledgebase>
+    ): Promise<Knowledgebase> {
+        const knowledgebase = await this.findOne(knowledgebaseId, options)
+        if (
+            !knowledgebase.workspaceId &&
+            (knowledgebase.permission ?? KnowledgebasePermission.Private) === KnowledgebasePermission.Private &&
+            knowledgebase.createdById !== RequestContext.currentUserId()
+        ) {
+            throw knowledgebaseTaskAccessDenied()
+        }
+        return knowledgebase
+    }
+
+    async assertKnowledgebaseWriteAccess(
+        knowledgebaseId: string,
+        options?: FindOneOptions<Knowledgebase>
+    ): Promise<Knowledgebase> {
+        return this.assertKnowledgebaseWriteAccessWithError(knowledgebaseId, options, knowledgebaseAccessDenied)
+    }
+
+    async assertKnowledgebaseTaskWriteAccess(
+        knowledgebaseId: string,
+        options?: FindOneOptions<Knowledgebase>
+    ): Promise<Knowledgebase> {
+        return this.assertKnowledgebaseWriteAccessWithError(knowledgebaseId, options, knowledgebaseTaskAccessDenied)
+    }
+
+    private async assertKnowledgebaseWriteAccessWithError(
+        knowledgebaseId: string,
+        options: FindOneOptions<Knowledgebase> | undefined,
+        accessDenied: () => ForbiddenException
+    ): Promise<Knowledgebase> {
+        // Write authorization needs the parent workspace or legacy owner even
+        // when callers request a narrow projection such as `{ id: true }`.
+        // Mark these fields as explicitly selected so WorkspaceBaseService does
+        // not remove its temporary access fields before this second boundary.
+        const accessSelect = addKnowledgebaseWriteAccessSelect(options)
+        const knowledgebase = await this.findOne(knowledgebaseId, accessSelect.options)
+        if (knowledgebase.workspaceId) {
+            await this.assertWorkspaceWriteAccess(knowledgebase.workspaceId)
+        } else if (!RequestContext.currentUserId() || knowledgebase.createdById !== RequestContext.currentUserId()) {
+            throw accessDenied()
+        }
+        return stripKnowledgebaseWriteAccessSelect(knowledgebase, accessSelect)
+    }
+
+    async resolveKnowledgebaseFolderAncestors(knowledgebaseId: string, parentId: string) {
+        const parent = await this.documentService.findOne(parentId)
+        if (parent.knowledgebaseId !== knowledgebaseId || parent.sourceType !== KDocumentSourceType.FOLDER) {
+            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+        }
+
+        const ancestors = await this.documentService.findAncestors(parent.id)
+        if (ancestors.some((ancestor) => ancestor.knowledgebaseId !== knowledgebaseId)) {
+            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
+        }
+        return ancestors
+    }
+
+    private assertKnowledgebaseCrudReadAccess(knowledgebase: Knowledgebase): void {
+        if (
+            !knowledgebase.workspaceId &&
+            (knowledgebase.permission ?? KnowledgebasePermission.Private) === KnowledgebasePermission.Private &&
+            knowledgebase.createdById !== RequestContext.currentUserId()
+        ) {
+            throw knowledgebaseAccessDenied()
+        }
+    }
+
+    private async resolveKnowledgebaseTaskContext(
+        knowledgebase: Knowledgebase,
+        context: IKnowledgebaseTask['context']
+    ): Promise<IKnowledgebaseTask['context']> {
+        if (!context) {
+            return undefined
+        }
+
+        const documents = context.documents
+            ? await this.resolveKnowledgebaseTaskContextDocuments(knowledgebase, context.documents)
+            : undefined
+        return {
+            ...(documents ? { documents } : {}),
+            ...(context.processingMode ? { processingMode: context.processingMode } : {})
+        }
+    }
+
+    private async resolveKnowledgebaseTaskContextDocuments(
+        knowledgebase: Knowledgebase,
+        documents: Partial<IKnowledgeDocument>[]
+    ): Promise<Partial<IKnowledgeDocument>[]> {
+        const filesPath = this.knowledgeWorkAreaResolver.getFilesPath()
+        const relativePaths = documents.map((document) =>
+            resolveKnowledgebaseTaskFilePath(filesPath, document.filePath)
+        )
+        const workArea = await this.knowledgeWorkAreaResolver.resolve({
+            tenantId: knowledgebase.tenantId,
+            userId: RequestContext.currentUserId(),
+            knowledgebaseId: knowledgebase.id
+        })
+        const files = new VolumeSubtreeClient(workArea.volume)
+
+        return Promise.all(
+            documents.map(async (document, index) => {
+                const relativePath = relativePaths[index]
+                const authorizedFile = await files.readFile(filesPath, relativePath, { metadataOnly: true })
+                const parent = await this.resolveKnowledgebaseTaskDocumentParent(knowledgebase.id, document.parent)
+
+                return {
+                    id: document.id,
+                    name: document.name,
+                    type: document.type,
+                    size: document.size,
+                    category: document.category,
+                    parserId: document.parserId,
+                    parserConfig: document.parserConfig,
+                    thumbnail: document.thumbnail,
+                    options: document.options,
+                    metadata: document.metadata,
+                    ...(parent !== undefined ? { parent } : {}),
+                    filePath: path.posix.join(filesPath, authorizedFile.filePath),
+                    ...(authorizedFile.fileUrl ? { fileUrl: authorizedFile.fileUrl } : {}),
+                    ...(authorizedFile.mimeType ? { mimeType: authorizedFile.mimeType } : {})
+                }
+            })
+        )
+    }
+
+    private async resolveKnowledgebaseTaskDocumentParent(
+        knowledgebaseId: string,
+        parent: IKnowledgeDocument['parent']
+    ) {
+        if (parent === null || parent === undefined) {
+            return parent
+        }
+        if (!parent.id) {
+            throw knowledgebaseTaskAccessDenied()
+        }
+
+        const ancestors = await this.resolveKnowledgebaseFolderAncestors(knowledgebaseId, parent.id)
+        const authorizedParent = ancestors[ancestors.length - 1]
+        return { id: authorizedParent.id } as IKnowledgeDocument
+    }
+
+    private async resolveKnowledgebaseTaskDocuments(
+        knowledgebaseId: string,
+        documents: IKnowledgebaseTask['documents']
+    ): Promise<IKnowledgebaseTask['documents']> {
+        if (!documents?.length) {
+            return undefined
+        }
+
+        const documentIds = [
+            ...new Set(
+                documents
+                    .map((document) => document.id)
+                    .filter((documentId): documentId is string => typeof documentId === 'string' && !!documentId)
+            )
+        ]
+        if (documentIds.length !== documents.length) {
+            throw knowledgebaseTaskAccessDenied()
+        }
+
+        const result = await this.documentService.findAll({
+            where: {
+                id: In(documentIds),
+                knowledgebaseId
+            }
+        })
+        if (result.items.length !== documentIds.length) {
+            throw knowledgebaseTaskAccessDenied()
+        }
+
+        return result.items
+    }
+
+    private assertKnowledgebaseTaskSources(
+        task: KnowledgebaseTask,
+        sources: { [key: string]: { documents: string[] } } | undefined
+    ): void {
+        if (!sources) {
+            return
+        }
+
+        const allowedDocumentIds = new Set([
+            ...(task.documents ?? [])
+                .map((document) => document.id)
+                .filter((documentId): documentId is string => typeof documentId === 'string' && !!documentId),
+            ...(task.context?.documents ?? [])
+                .map((document) => document.id)
+                .filter((documentId): documentId is string => typeof documentId === 'string' && !!documentId)
+        ])
+        const requestedDocumentIds = Object.values(sources).flatMap((source) => source.documents ?? [])
+        if (requestedDocumentIds.some((documentId) => !allowedDocumentIds.has(documentId))) {
+            throw knowledgebaseTaskAccessDenied()
+        }
+    }
+
     async previewFile(id: string, filePath: string) {
-        const extension = filePath.split('.').pop().toLowerCase()
+        const knowledgebase = await this.assertKnowledgebaseTaskReadAccess(id)
+        const [document] = await this.resolveKnowledgebaseTaskContextDocuments(knowledgebase, [{ filePath }])
+        const extension = document.filePath.split('.').pop().toLowerCase()
         try {
             const results = await this.transformDocuments(
                 id,
@@ -1797,8 +2172,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 false,
                 [
                     {
-                        filePath,
-                        name: filePath.split('/').pop(),
+                        filePath: document.filePath,
+                        fileUrl: document.fileUrl,
+                        mimeType: document.mimeType,
+                        name: document.filePath.split('/').pop(),
                         type: extension,
                         category: classificateDocumentCategory({ type: extension })
                     }
@@ -1846,4 +2223,153 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
         return results
     }
+}
+
+function resolveKnowledgebaseTaskFilePath(filesPath: string, filePath: string | undefined): string {
+    if (typeof filePath !== 'string') {
+        throw knowledgebaseTaskAccessDenied()
+    }
+
+    const normalizedPath = filePath.trim().replace(/\\/g, '/')
+    const prefix = `${filesPath}/`
+    if (
+        !normalizedPath ||
+        normalizedPath.includes('\0') ||
+        path.posix.isAbsolute(normalizedPath) ||
+        !normalizedPath.startsWith(prefix)
+    ) {
+        throw knowledgebaseTaskAccessDenied()
+    }
+
+    const relativePath = normalizedPath.slice(prefix.length)
+    if (!relativePath) {
+        throw knowledgebaseTaskAccessDenied()
+    }
+    return relativePath
+}
+
+type KnowledgebaseAccessSelect = {
+    options?: FindOneOptions<Knowledgebase>
+    addedCreatedById: boolean
+    addedPermission: boolean
+}
+
+type KnowledgebaseWriteAccessSelect = {
+    options?: FindOneOptions<Knowledgebase>
+    addedWorkspaceId: boolean
+    addedCreatedById: boolean
+}
+
+function addKnowledgebaseWriteAccessSelect(options?: FindOneOptions<Knowledgebase>): KnowledgebaseWriteAccessSelect {
+    if (!options?.select) {
+        return { options, addedWorkspaceId: false, addedCreatedById: false }
+    }
+
+    if (Array.isArray(options.select)) {
+        const selectedFields = options.select as string[]
+        const addedWorkspaceId = !selectedFields.includes('workspaceId')
+        const addedCreatedById = !selectedFields.includes('createdById')
+        return {
+            options: {
+                ...options,
+                select: [
+                    ...selectedFields,
+                    ...(addedWorkspaceId ? ['workspaceId'] : []),
+                    ...(addedCreatedById ? ['createdById'] : [])
+                ] as FindOneOptions<Knowledgebase>['select']
+            },
+            addedWorkspaceId,
+            addedCreatedById
+        }
+    }
+
+    const addedWorkspaceId = options.select.workspaceId !== true
+    const addedCreatedById = options.select.createdById !== true
+    return {
+        options: {
+            ...options,
+            select: {
+                ...options.select,
+                workspaceId: true,
+                createdById: true
+            }
+        },
+        addedWorkspaceId,
+        addedCreatedById
+    }
+}
+
+function stripKnowledgebaseWriteAccessSelect(
+    knowledgebase: Knowledgebase,
+    accessSelect: KnowledgebaseWriteAccessSelect
+): Knowledgebase {
+    if (!accessSelect.addedWorkspaceId && !accessSelect.addedCreatedById) {
+        return knowledgebase
+    }
+
+    const result = { ...knowledgebase }
+    if (accessSelect.addedWorkspaceId) {
+        delete result.workspaceId
+    }
+    if (accessSelect.addedCreatedById) {
+        delete result.createdById
+    }
+    return result
+}
+
+function addKnowledgebaseAccessSelect(options?: FindOneOptions<Knowledgebase>): KnowledgebaseAccessSelect {
+    if (!options?.select) {
+        return { options, addedCreatedById: false, addedPermission: false }
+    }
+
+    if (Array.isArray(options.select)) {
+        const selectedFields = options.select as string[]
+        const addedCreatedById = !selectedFields.includes('createdById')
+        const addedPermission = !selectedFields.includes('permission')
+        return {
+            options: {
+                ...options,
+                select: [
+                    ...selectedFields,
+                    ...(addedCreatedById ? ['createdById'] : []),
+                    ...(addedPermission ? ['permission'] : [])
+                ] as FindOneOptions<Knowledgebase>['select']
+            },
+            addedCreatedById,
+            addedPermission
+        }
+    }
+
+    const addedCreatedById = options.select.createdById !== true
+    const addedPermission = options.select.permission !== true
+    return {
+        options: {
+            ...options,
+            select: {
+                ...options.select,
+                createdById: true,
+                permission: true
+            }
+        },
+        addedCreatedById,
+        addedPermission
+    }
+}
+
+function stripKnowledgebaseAccessSelect(
+    knowledgebase: Knowledgebase,
+    accessSelect: KnowledgebaseAccessSelect
+): Knowledgebase {
+    if (!accessSelect.addedCreatedById && !accessSelect.addedPermission) {
+        return knowledgebase
+    }
+
+    const result = { ...knowledgebase }
+    if (accessSelect.addedCreatedById) {
+        delete result.createdById
+    }
+    if (accessSelect.addedPermission) {
+        delete result.permission
+    }
+    return result
 }

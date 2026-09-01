@@ -46,7 +46,7 @@ export const createCreateTasksTool = ({
                 } as IXpertProjectTask)
                 tasks.push(task)
                 const assignedXpertId = task.assigneeXpertId || currentXpertId || undefined
-                const delegatedToAnotherAssistant = Boolean(
+                const delegatedToAnotherExpert = Boolean(
                     taskInput.assigneeXpertId && taskInput.assigneeXpertId !== currentXpertId
                 )
                 const execution = await service.createExecution(projectId, task.id, {
@@ -55,8 +55,8 @@ export const createCreateTasksTool = ({
                     agentExecutionId: executionId,
                     xpertId: assignedXpertId,
                     agentKey: currentAgentKey,
-                    status: delegatedToAnotherAssistant ? 'queued' : 'running',
-                    inputSummary: 'Started by the project assistant',
+                    status: delegatedToAnotherExpert ? 'queued' : 'running',
+                    inputSummary: 'Started by a project expert',
                     startedAt: new Date()
                 })
                 if (conversationId) {
@@ -96,7 +96,7 @@ export const createCreateTasksTool = ({
                             assigneeXpertId: z
                                 .string()
                                 .optional()
-                                .describe('Project Assistant id responsible for execution'),
+                                .describe('Project expert id responsible for execution'),
                             status: z
                                 .enum(['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled'])
                                 .optional(),

@@ -1,5 +1,6 @@
 import { Document } from '@langchain/core/documents'
 import type { DocumentSpreadsheetParserConfig } from '@xpert-ai/contracts'
+import { countTokensSafe } from '@xpert-ai/plugin-sdk'
 import type { LoadedSpreadsheetSheet, LoadedSpreadsheetWorkbook } from '@xpert-ai/server-common'
 import { v4 as uuid } from 'uuid'
 
@@ -192,11 +193,5 @@ function escapeInline(value: string) {
 }
 
 function estimateSpreadsheetTokens(value: string) {
-    let cjkCharacters = 0
-    let otherCharacters = 0
-    for (const character of value) {
-        if (/\p{Script=Han}/u.test(character)) cjkCharacters += 1
-        else otherCharacters += 1
-    }
-    return Math.ceil(cjkCharacters / 1.5 + otherCharacters / 4)
+    return countTokensSafe(value)
 }

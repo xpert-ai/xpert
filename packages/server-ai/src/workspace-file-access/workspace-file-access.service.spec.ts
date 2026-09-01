@@ -110,14 +110,64 @@ describe('WorkspaceFileAccessService', () => {
         expect(() =>
             service.assertRequestOrigin(authorization.session, { headers: { origin: 'https://attacker.example' } })
         ).toThrow()
+        expect(
+            service.assertRequestOrigin(authorization.session, {
+                headers: { referer: 'http://localhost:3000/api/xpert-view/entry' }
+            })
+        ).toBe('http://localhost:3000')
+        expect(
+            service.assertRequestOrigin(
+                authorization.session,
+                {
+                    headers: {
+                        'sec-fetch-site': 'same-site',
+                        'sec-fetch-mode': 'no-cors',
+                        'sec-fetch-dest': 'image'
+                    }
+                },
+                'preview'
+            )
+        ).toBeNull()
+        expect(
+            service.assertRequestOrigin(
+                authorization.session,
+                {
+                    headers: {
+                        'sec-fetch-site': 'same-origin',
+                        'sec-fetch-mode': 'no-cors',
+                        'sec-fetch-dest': 'image'
+                    }
+                },
+                'preview'
+            )
+        ).toBeNull()
+        expect(() =>
+            service.assertRequestOrigin(
+                authorization.session,
+                {
+                    headers: {
+                        'sec-fetch-site': 'cross-site',
+                        'sec-fetch-mode': 'no-cors',
+                        'sec-fetch-dest': 'image'
+                    }
+                },
+                'preview'
+            )
+        ).toThrow()
         expect(service.assertRequestOrigin(authorization.session, { headers: {} }, 'download')).toBeNull()
         expect(() => service.assertRequestOrigin(authorization.session, { headers: {} }, 'preview')).toThrow()
         expect(cache.set).toHaveBeenCalledTimes(2)
-        expect(viewExtensions.resolveViewFileResource).toHaveBeenCalledWith('agent', 'assistant-1', 'cut__workbench', {
-            fileKey: 'asset-1',
-            targetId: 'project-1',
-            purpose: 'preview'
-        })
+        expect(viewExtensions.resolveViewFileResource).toHaveBeenCalledWith(
+            'agent',
+            'assistant-1',
+            'cut__workbench',
+            {
+                fileKey: 'asset-1',
+                targetId: 'project-1',
+                purpose: 'preview'
+            },
+            { runtimeScope: { projectId: null, conversationId: null } }
+        )
     })
 
     it('does not allow a session to be reused across users or organizations', async () => {
@@ -132,6 +182,59 @@ describe('WorkspaceFileAccessService', () => {
             service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
         ).rejects.toMatchObject({ status: 404 })
         expect(viewExtensions.resolveViewFileResource).not.toHaveBeenCalled()
+    })
+
+    it('does not allow a session to be reused across Project data scopes', async () => {
+        const { service, viewExtensions } = createService()
+        viewExtensions.resolveViewFileAccessContext.mockResolvedValueOnce({
+            context: {
+                ...context,
+                runtimeScope: {
+                    projectId: 'project-1',
+                    conversationId: null,
+                    dataScopeKey: 'project:project-1'
+                }
+            },
+            manifest
+        } as never)
+        const session = await service.createSession(
+            {
+                hostType: 'agent',
+                hostId: 'assistant-1',
+                viewKey: 'cut__workbench',
+                runtimeScope: { projectId: 'project-1' }
+            },
+            { headers: {}, secure: true }
+        )
+        viewExtensions.resolveViewFileResource.mockResolvedValueOnce({
+            context: {
+                ...context,
+                runtimeScope: {
+                    projectId: 'project-2',
+                    conversationId: null,
+                    dataScopeKey: 'project:project-2'
+                }
+            },
+            manifest,
+            resource: {
+                reference: {
+                    source: 'platform.workspace.files',
+                    filePath: '/tenant-1/projects/project-2/video.mp4',
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    catalog: 'projects',
+                    scopeId: 'project-2',
+                    projectId: 'project-2'
+                },
+                fileName: 'video.mp4',
+                mimeType: 'video/mp4',
+                size: 4096
+            }
+        } as never)
+
+        await expect(
+            service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
+        ).rejects.toMatchObject({ status: 404 })
     })
 
     it('rejects provider resources outside the session tenant', async () => {

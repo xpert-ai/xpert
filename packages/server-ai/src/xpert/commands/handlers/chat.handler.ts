@@ -16,6 +16,7 @@ import {
     IAssistantBindingToolPreferences,
     IChatConversation,
     IChatMessage,
+    IXpertAgentExecution,
     IXpert,
     LongTermMemoryTypeEnum,
     shortTitle,
@@ -24,6 +25,7 @@ import {
     STATE_VARIABLE_SYS,
     TChatConversationStatus,
     TChatRequest,
+    TAssistantPrimaryModelSelection,
     TFollowUpConsumedEvent,
     TChatRequestHuman,
     TSensitiveOperation,
@@ -33,7 +35,15 @@ import {
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { BadRequestException, Logger, NotFoundException, Optional } from '@nestjs/common'
+import {
+    BadRequestException,
+    ForbiddenException,
+    forwardRef,
+    Inject,
+    Logger,
+    NotFoundException,
+    Optional
+} from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING, RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
@@ -43,12 +53,16 @@ import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/can
 import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/schedule-summary.command'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationGoalService } from '../../../chat-conversation/goal'
+import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { appendMessageSteps, sanitizeMessageContentForPersistence } from '../../../chat-message'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertService } from '../../xpert.service'
+import { AssistantModelSelectionService } from '../../assistant-model-selection.service'
+import { sanitizeAssistantModelSnapshot } from '../../assistant-model-selection.util'
+import { PublishedXpertAccessService } from '../../published-xpert-access.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
@@ -62,17 +76,20 @@ import { normalizeChatState } from '../../../shared/agent/utils'
 import {
     getRuntimeCapabilitiesFromState,
     hasExplicitRuntimeCapabilities,
+    isRuntimeCapabilitiesAllowlist,
     normalizeRuntimeCapabilitiesSelection,
     TRuntimeCapabilitiesSelection
 } from '../../../shared/agent/runtime-capabilities'
 import { buildChatConversationSourceAudit, buildChatSourceExecutionMetadata } from '../../../shared/agent/source-audit'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
+import { assertExecutionBelongsToThread } from '../../../xpert-agent-execution/execution-access'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
 import { RedisSseStreamService } from '../../../shared/stream'
 import { applicationMetrics } from '../../../metrics'
 import { applicationTracing } from '../../../tracing'
 import { XpertProjectService } from '../../../xpert-project/project.service'
+import { XpertProjectContentService } from '../../../xpert-project/services/project-content.service'
 import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
@@ -121,7 +138,7 @@ function resolveVisibleConversationTitle(
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
-    readonly #logger = new Logger(XpertChatHandler.name)
+    private readonly logger = new Logger(XpertChatHandler.name)
 
     constructor(
         private readonly xpertService: XpertService,
@@ -129,8 +146,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly goalService: ChatConversationGoalService,
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly redisSseStreamService?: RedisSseStreamService,
-        @Optional() private readonly projectService?: XpertProjectService
+        @Optional()
+        @Inject(forwardRef(() => XpertProjectService))
+        private readonly projectService?: XpertProjectService,
+        @Optional()
+        @Inject(forwardRef(() => XpertProjectContentService))
+        private readonly projectContentService?: XpertProjectContentService,
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService
     ) {}
 
     /**
@@ -202,6 +227,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             throw new BadRequestException('Invalid send request: message.input is required')
         }
 
+        const existingConversation = request.conversationId
+            ? await this.queryBus.execute(
+                  new GetChatConversationQuery({ id: request.conversationId }, messageRelations())
+              )
+            : null
+        if (existingConversation) {
+            await this.assertExistingConversationMutationAccess(existingConversation, xpertId, request, options)
+        }
+
         let rawSendInput = request.action === 'send' ? sendInput : null
         const isGoalRun = isInternalGoalRunInput(rawSendInput)
         const titleInput =
@@ -221,14 +255,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                   : hydratedFollowUpRequest
                     ? normalizeChatState(hydratedFollowUpRequest.state, hydratedFollowUpRequest.message.input)
                     : normalizeChatState(request.state)
+        let projectInstruction: string | null = null
 
         if (request.action === 'follow_up') {
-            const conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, messageRelations())
-            )
+            const conversation = existingConversation
             if (!conversation) {
                 throw new BadRequestException(`Conversation "${request.conversationId}" not found`)
             }
+            const activeThreadId = options?.threadId?.trim() || conversation.threadId
+            await this.conversationThreadService?.hydrateConversationMessages(conversation, activeThreadId)
             const followUpSandboxScope = resolveAgentSandboxScope(request, conversation, options)
             const hasInterruptedWaitList =
                 Array.isArray(conversation.operation?.tasks) && conversation.operation.tasks.length > 0
@@ -247,10 +282,31 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             const targetExecutionId =
                 targetMessage?.executionId ?? request.target?.executionId ?? options?.execution?.id ?? null
             if (request.mode === 'steer') {
-                await this.assertSteerTargetIsActive(targetExecutionId, canPersistInterruptedSteerFollowUp)
+                await this.assertSteerTargetIsActive(
+                    targetExecutionId,
+                    canPersistInterruptedSteerFollowUp,
+                    conversation.threadId
+                )
             }
 
             let followUpInput = request.message.input
+            const followUpXpert = xpertId
+                ? await this.xpertService
+                      .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
+                      .catch(() => null)
+                : null
+            if (request.mode === 'queue' && this.assistantModelSelectionService && xpertId) {
+                if (followUpXpert) {
+                    const runtimeXpert = figureOutXpert(followUpXpert, options?.isDraft)
+                    const selection = await this.assistantModelSelectionService.resolveSelection(runtimeXpert, {
+                        explicitModelId: followUpInput.model
+                    })
+                    followUpInput = {
+                        ...followUpInput,
+                        model: selection.id
+                    }
+                }
+            }
             // Follow-ups are persisted immediately as pending human messages, so
             // normalize files before deriving message.fileAssets or attachments.
             const normalizedFollowUpInput = await normalizeChatHumanInputFiles(followUpInput, {
@@ -258,9 +314,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 queryBus: this.queryBus,
                 context: {
                     conversationId: conversation.id,
-                    threadId: conversation.threadId,
+                    threadId: activeThreadId,
                     projectId: options.projectId ?? conversation.projectId,
-                    xpertId
+                    xpertId,
+                    workspaceDataScope: followUpXpert?.workspaceDataScope
                 }
             })
             if (normalizedFollowUpInput.changed && normalizedFollowUpInput.input) {
@@ -275,7 +332,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 queryBus: this.queryBus,
                 context: {
                     conversationId: conversation.id,
-                    threadId: conversation.threadId,
+                    threadId: activeThreadId,
                     projectId: options.projectId ?? conversation.projectId,
                     xpertId
                 }
@@ -308,6 +365,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     role: 'human',
                     content: followUpInput.input,
                     conversationId: conversation.id,
+                    createdInThreadId: activeThreadId,
                     ...(references.length
                         ? {
                               references
@@ -330,6 +388,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     visibleAt: null,
                     thirdPartyMessage: {
                         followUpInput,
+                        ...(request.mode === 'queue' && followUpInput.model ? { model: followUpInput.model } : {}),
                         followUpClientMessageId: request.message.clientMessageId ?? null
                     }
                 })
@@ -339,11 +398,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             // the channel can safely resend with the same clientMessageId. If it happens
             // after this check, the execution's completion drain sees the inserted row.
             if (request.mode === 'steer') {
-                await this.assertSteerTargetIsActive(targetExecutionId, canPersistInterruptedSteerFollowUp)
+                await this.assertSteerTargetIsActive(
+                    targetExecutionId,
+                    canPersistInterruptedSteerFollowUp,
+                    conversation.threadId
+                )
             }
-            const followUpXpert = xpertId
-                ? await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent'] }).catch(() => null)
-                : null
             await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpFiles, {
                 xpertId: followUpXpert?.id ?? xpertId,
                 projectId: followUpSandboxScope.projectId,
@@ -365,7 +425,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const timeStart = Date.now()
 
         // Published assistant execution can be granted by UserGroup without workspace read membership.
-        const xpert = await this.xpertService.findOneForRuntime(xpertId, { relations: ['agent', 'knowledgebase'] })
+        const xpert = await this.xpertService.findOneForRuntime(xpertId, {
+            relations: ['agent', 'agent.copilotModel', 'copilotModel', 'knowledgebase']
+        })
         const [userPreference, clawXpertBinding] = await Promise.all([
             this.assistantBindingService.getUserPreferenceByAssistantId(xpertId),
             this.assistantBindingService.getBinding(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
@@ -409,13 +471,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let queueFollowUpConsumedEvent: TFollowUpConsumedEvent | null = null
         let goalRunVisibleInput: string | null = null
         let createdConversationForRequest = false
+        let activeThreadId: string
+        let isDerivedThread = Boolean(options?.isDerivedThread)
+        let sourceModelExecution: IXpertAgentExecution | null = null
+        let primaryModelSelection: TAssistantPrimaryModelSelection | null = null
         const requestedSandboxEnvironmentId = resolveRequestSandboxEnvironmentId(request)
         // Resume continues an interrupted AI turn in place by reusing the existing
         // conversation, target AI message, and execution instead of creating a new run.
         if (request.action === 'resume') {
-            conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, messageRelations())
-            )
+            if (!existingConversation) {
+                throw new BadRequestException(`Conversation "${request.conversationId}" not found`)
+            }
+            conversation = existingConversation
+            activeThreadId = options?.threadId?.trim() || conversation.threadId
+            isDerivedThread ||= activeThreadId !== conversation.threadId
+            await this.conversationThreadService?.hydrateConversationMessages(conversation, activeThreadId)
             conversation.status = 'busy'
             const targetMessage = resolveResumeTargetMessage(request, conversation.messages)
             if (!targetMessage) {
@@ -430,8 +500,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 throw new BadRequestException('Missing resume target execution')
             }
             state ??= normalizeChatState()
+            sourceModelExecution = assertExecutionBelongsToThread(
+                await this.queryBus.execute(new XpertAgentExecutionOneQuery(executionId)),
+                activeThreadId
+            )
             if (!hasExplicitPlanModeFlag(state) || !hasExplicitRuntimeCapabilities(state)) {
-                const targetExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(executionId))
+                const targetExecution = sourceModelExecution
                 const inheritedRuntimeCapabilities = !hasExplicitRuntimeCapabilities(state)
                     ? getRuntimeCapabilitiesFromState(targetExecution?.inputs)
                     : null
@@ -451,22 +525,28 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             // Cancel summary job
-            if (memory?.enabled && memory.profile?.enabled) {
+            if (!isDerivedThread && memory?.enabled && memory.profile?.enabled) {
                 await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
             }
         } else {
             // New message in conversation
             if (request.conversationId) {
-                conversation = await this.commandBus.execute(
-                    new ChatConversationUpsertCommand(
-                        {
-                            id: request.conversationId,
-                            status: 'busy',
-                            error: null
-                        },
-                        ['messages']
-                    )
-                )
+                conversation = options?.isDerivedThread
+                    ? await this.queryBus.execute(
+                          new GetChatConversationQuery({ id: request.conversationId }, messageRelations())
+                      )
+                    : await this.commandBus.execute(
+                          new ChatConversationUpsertCommand(
+                              {
+                                  id: request.conversationId,
+                                  status: 'busy',
+                                  error: null
+                              },
+                              messageRelations()
+                          )
+                      )
+                activeThreadId = options?.threadId?.trim() || conversation.threadId
+                isDerivedThread ||= activeThreadId !== conversation.threadId
 
                 if (conversationSourceAudit) {
                     conversation = await this.commandBus.execute(
@@ -502,7 +582,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
 
                 // Cancel summary job
-                if (memory?.enabled && memory.profile?.enabled) {
+                if (!isDerivedThread && memory?.enabled && memory.profile?.enabled) {
                     await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
                 }
             } else {
@@ -533,6 +613,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     )
                 )
                 createdConversationForRequest = true
+                const primaryThread = await this.conversationThreadService?.ensurePrimary(conversation)
+                activeThreadId = primaryThread?.threadId ?? conversation.threadId
 
                 // Remember
                 if (memory?.enabled && memory.profile?.enabled && memoryStore) {
@@ -540,17 +622,33 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             }
 
+            activeThreadId ??= options?.threadId?.trim() || conversation.threadId
+            await this.conversationThreadService?.hydrateConversationMessages(conversation, activeThreadId)
+
             // Once created, conversation.projectId is the trusted runtime scope;
             // reject any transient route/job value that attempts to cross it.
             const requestedProjectId = options.projectId ?? resolveRequestProjectId(request)
             if (conversation.projectId && requestedProjectId && conversation.projectId !== requestedProjectId) {
-                throw new BadRequestException('The requested Project does not match the conversation Project')
+                throw new BadRequestException(
+                    t('server-ai:Error.RequestedProjectConversationMismatch', {
+                        defaultValue: 'The requested Project does not match the conversation Project'
+                    })
+                )
             }
             if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
-                throw new BadRequestException('This Assistant requires a Project workspace')
+                throw new BadRequestException(
+                    t('server-ai:Error.XpertProjectRequired', {
+                        defaultValue: 'This Assistant requires a Project workspace'
+                    })
+                )
             }
             if (conversation.projectId && this.projectService) {
                 await this.projectService.assertRuntimeAccess(conversation.projectId, xpert.id)
+                if (this.projectContentService) {
+                    projectInstruction = await this.projectContentService.readRuntimeInstructions(
+                        conversation.projectId
+                    )
+                }
             }
 
             const attachmentSandboxScope = resolveAgentSandboxScope(request, conversation, options)
@@ -562,9 +660,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     queryBus: this.queryBus,
                     context: {
                         conversationId: conversation.id,
-                        threadId: conversation.threadId,
+                        threadId: activeThreadId,
                         projectId: options.projectId ?? resolveRequestProjectId(request) ?? conversation.projectId,
-                        xpertId: xpert.id
+                        xpertId: xpert.id,
+                        workspaceDataScope: xpert.workspaceDataScope
                     }
                 })
                 if (normalizedInput.changed && normalizedInput.input) {
@@ -598,7 +697,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         conversation = {
                             ...conversation,
                             ...updatedConversation,
-                            threadId: updatedConversation.threadId ?? conversation.threadId,
+                            threadId: activeThreadId,
                             messages: updatedConversation.messages ?? conversation.messages
                         }
                     }
@@ -606,7 +705,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             if (isGoalRun) {
-                const goal = await this.goalService.getByConversationId(conversation.id)
+                const goal = isDerivedThread
+                    ? await this.goalService.getByConversationId(conversation.id, activeThreadId)
+                    : await this.goalService.getByConversationId(conversation.id)
                 goalRunVisibleInput = goal?.objective?.trim() || null
             }
 
@@ -627,14 +728,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 if (!sourceExecutionId) {
                     throw new BadRequestException('Retry source execution not found')
                 }
-                const sourceExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(sourceExecutionId))
-                if (!sourceExecution) {
-                    throw new BadRequestException(`Retry source execution "${sourceExecutionId}" not found`)
-                }
+                const sourceExecution = assertExecutionBelongsToThread(
+                    await this.queryBus.execute(new XpertAgentExecutionOneQuery(sourceExecutionId)),
+                    activeThreadId
+                )
+                sourceModelExecution = sourceExecution
                 checkpointId = request.checkpointId
                     ? request.checkpointId
                     : await this.resolveRetryInputCheckpointId(
-                          sourceExecution.threadId ?? conversation.threadId,
+                          sourceExecution.threadId ?? activeThreadId,
                           sourceExecution.checkpointNs,
                           sourceExecution.checkpointId
                       )
@@ -693,8 +795,36 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 })
             }
 
+            // Resolve once at the root execution boundary. The audited snapshot is
+            // then reused by resume/retry, so later preference or authoring changes
+            // cannot silently switch the model inside an existing run.
+            primaryModelSelection = await this.resolvePrimaryModelSelection({
+                request,
+                xpert: latestXpert,
+                runtimeAgentKey,
+                input,
+                sourceExecution: sourceModelExecution
+            })
+            if (primaryModelSelection) {
+                applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
+            }
+            if (primaryModelSelection && input) {
+                input = { ...input, model: primaryModelSelection.id }
+                state = normalizeChatState({
+                    ...(state ?? {}),
+                    [STATE_VARIABLE_HUMAN]: input
+                })
+            }
+
             // New execution (Run) in thread
             const executionMetadata = buildChatSourceExecutionMetadata(options)
+            const primaryModelMetadata = primaryModelSelection
+                ? {
+                      primaryModelId: primaryModelSelection.id,
+                      primaryModelSource: primaryModelSelection.source,
+                      primaryModelSnapshot: sanitizeAssistantModelSnapshot(primaryModelSelection.model)
+                  }
+                : null
             execution = await this.commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
                     ...(execution ?? {}),
@@ -702,8 +832,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     agentKey: runtimeAgentKey,
                     inputs: input,
                     status: XpertAgentExecutionStatusEnum.RUNNING,
-                    threadId: conversation.threadId,
-                    ...(executionMetadata ? { metadata: executionMetadata } : {})
+                    threadId: activeThreadId,
+                    ...(executionMetadata || primaryModelMetadata
+                        ? {
+                              metadata: {
+                                  ...(execution?.metadata ?? {}),
+                                  ...(executionMetadata ?? {}),
+                                  ...(primaryModelMetadata ?? {})
+                              }
+                          }
+                        : {})
                 })
             )
             executionId = execution.id
@@ -721,7 +859,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         queryBus: this.queryBus,
                         context: {
                             conversationId: conversation.id,
-                            threadId: conversation.threadId,
+                            threadId: activeThreadId,
                             projectId: options.projectId ?? resolveRequestProjectId(request) ?? conversation.projectId,
                             xpertId: xpert.id
                         }
@@ -736,7 +874,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const fileAssets = toChatFileAssetReferences(persistedFiles)
                     const legacyAttachments = toLegacyChatStorageFileAttachments(persistedFiles)
                     const thirdPartyMessage =
-                        persistedRuntimeCapabilities || persistedInput?.commandSource || isGoalRun
+                        persistedRuntimeCapabilities ||
+                        persistedInput?.commandSource ||
+                        isGoalRun ||
+                        primaryModelSelection
                             ? {
                                   ...(isGoalRun
                                       ? {
@@ -752,7 +893,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                       ? {
                                             commandSource: persistedInput.commandSource
                                         }
-                                      : {})
+                                      : {}),
+                                  ...(primaryModelSelection ? { model: primaryModelSelection.id } : {})
                               }
                             : null
                     const _humanMessage: Partial<IChatMessage> = {
@@ -760,6 +902,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         role: 'human',
                         content: visibleInput,
                         conversationId: conversation.id,
+                        createdInThreadId: activeThreadId,
                         ...(references.length
                             ? {
                                   references
@@ -784,6 +927,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand(_humanMessage))
                     await attachChatFileAssetsToConversation(this.commandBus, conversation, persistedFiles, {
                         xpertId: xpert.id,
+                        workspaceDataScope: xpert.workspaceDataScope,
                         projectId: attachmentSandboxScope.projectId,
                         sandboxEnvironmentId: attachmentSandboxScope.sandboxEnvironmentId,
                         sandboxProvider: figureOutXpert(xpert as IXpert, Boolean(options?.isDraft)).features?.sandbox
@@ -799,9 +943,30 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     content: ``,
                     executionId,
                     conversationId: conversation.id,
+                    createdInThreadId: activeThreadId,
                     status: 'thinking'
                 })
             )
+            await this.conversationThreadService?.advanceHead(activeThreadId, aiMessage.id)
+        }
+        if (request.action === 'resume') {
+            primaryModelSelection = await this.resolvePrimaryModelSelection({
+                request,
+                xpert: latestXpert,
+                runtimeAgentKey,
+                input,
+                sourceExecution: sourceModelExecution
+            })
+            if (primaryModelSelection) {
+                applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
+            }
+            if (primaryModelSelection && input) {
+                input = { ...input, model: primaryModelSelection.id }
+                state = normalizeChatState({
+                    ...(state ?? {}),
+                    [STATE_VARIABLE_HUMAN]: input
+                })
+            }
         }
         const preparedAgentChatState = prepareAgentChatState({
             state,
@@ -813,9 +978,17 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             assistantTaskSkillSelection: options?.assistantTaskSkillSelection
         })
         state = preparedAgentChatState.state
+        state = {
+            ...state,
+            [STATE_VARIABLE_SYS]: {
+                ...(state[STATE_VARIABLE_SYS] ?? {}),
+                project_instruction: projectInstruction
+            }
+        }
         input = preparedAgentChatState.input
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
         const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
+        const logger = this.logger
 
         const stream = new Observable<MessageEvent>((subscriber) => {
             let chatMetricsFinished = false
@@ -871,7 +1044,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             } as MessageEvent)
 
-            const logger = this.#logger
             RunnableLambda.from(async (input: TChatRequestHuman) => {
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
@@ -910,6 +1082,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     >(
                         new XpertAgentChatCommand(state, runtimeAgentKey, xpert, {
                             ...(options ?? {}),
+                            ...(primaryModelSelection
+                                ? {
+                                      primaryCopilotModel: primaryModelSelection.model,
+                                      primaryModelId: primaryModelSelection.id,
+                                      primaryAgentKey: latestXpert.agent?.key,
+                                      primaryModelSource: primaryModelSelection.source
+                                  }
+                                : {}),
+                            thread_id: activeThreadId,
                             projectId: sandboxProjectId,
                             sandboxEnvironmentId,
                             store: memoryStore,
@@ -947,9 +1128,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         content: ``,
                                         executionId,
                                         conversationId: conversation.id,
+                                        createdInThreadId: activeThreadId,
                                         status: 'thinking'
                                     })
                                 )
+                                await this.conversationThreadService?.advanceHead(activeThreadId, aiMessage.id)
                                 pendingSteerAssistantParentId = null
 
                                 subscriber.next({
@@ -1077,7 +1260,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
                                 // Update conversation
                                 let convStatus: TChatConversationStatus = 'idle'
-                                if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
+                                if (
+                                    _execution?.status === XpertAgentExecutionStatusEnum.ERROR ||
+                                    status === XpertAgentExecutionStatusEnum.ERROR
+                                ) {
                                     convStatus = 'error'
                                 } else if (_execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
                                     convStatus = 'interrupted'
@@ -1089,24 +1275,43 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         : _execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED
                                           ? 'interrupted'
                                           : 'success'
-                                const _conversation = await this.commandBus.execute(
-                                    new ChatConversationUpsertCommand({
-                                        id: conversation.id,
-                                        status: convStatus,
-                                        title: resolveVisibleConversationTitle(
-                                            conversation.title,
-                                            _execution?.title,
-                                            visibleConversationTitleInput,
-                                            isGoalRun ? titleInput : null
-                                        ),
-                                        operation,
-                                        error: _execution?.error,
-                                        options: conversation.options
-                                    })
+                                const resolvedTitle = resolveVisibleConversationTitle(
+                                    conversation.title,
+                                    _execution?.title,
+                                    visibleConversationTitleInput,
+                                    isGoalRun ? titleInput : null
                                 )
+                                await this.conversationThreadService?.updateRuntimeState(
+                                    activeThreadId,
+                                    convStatus,
+                                    _execution?.error || error,
+                                    operation
+                                )
+                                const _conversation = !isDerivedThread
+                                    ? await this.commandBus.execute(
+                                          new ChatConversationUpsertCommand({
+                                              id: conversation.id,
+                                              status: convStatus,
+                                              title: resolvedTitle,
+                                              operation,
+                                              error: _execution?.error || error,
+                                              options: conversation.options
+                                          })
+                                      )
+                                    : {
+                                          ...conversation,
+                                          status: convStatus,
+                                          operation,
+                                          error: _execution?.error || error
+                                      }
 
                                 // Schedule summary job
-                                if (memory?.enabled && memory.profile?.enabled && convStatus === 'idle') {
+                                if (
+                                    !isDerivedThread &&
+                                    memory?.enabled &&
+                                    memory.profile?.enabled &&
+                                    convStatus === 'idle'
+                                ) {
                                     await this.commandBus.execute(
                                         new ScheduleSummaryJobCommand(conversation.id, userId, memory)
                                     )
@@ -1129,7 +1334,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 } as MessageEvent
                             } catch (err) {
                                 finishChatMetrics('error')
-                                this.#logger.warn(err)
+                                logger.warn(err)
                                 subscriber.error(err)
                             }
                         })
@@ -1141,7 +1346,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                              * This function is triggered when the stream is unsubscribed
                              */
                             unsubscribe: async () => {
-                                this.#logger.debug(`Canceled by client!`)
+                                logger.debug(`Canceled by client!`)
                                 try {
                                     // Record Execution
                                     const timeEnd = Date.now()
@@ -1165,23 +1370,26 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                         })
                                     )
 
-                                    await this.commandBus.execute(
-                                        new ChatConversationUpsertCommand({
-                                            id: conversation.id,
-                                            status: 'idle',
-                                            title: resolveVisibleConversationTitle(
-                                                conversation.title,
-                                                _execution?.title,
-                                                visibleConversationTitleInput,
-                                                isGoalRun ? titleInput : null
-                                            ),
-                                            options: conversation.options
-                                        })
-                                    )
+                                    await this.conversationThreadService?.updateRuntimeState(activeThreadId, 'idle')
+                                    if (!isDerivedThread) {
+                                        await this.commandBus.execute(
+                                            new ChatConversationUpsertCommand({
+                                                id: conversation.id,
+                                                status: 'idle',
+                                                title: resolveVisibleConversationTitle(
+                                                    conversation.title,
+                                                    _execution?.title,
+                                                    visibleConversationTitleInput,
+                                                    isGoalRun ? titleInput : null
+                                                ),
+                                                options: conversation.options
+                                            })
+                                        )
+                                    }
                                     finishChatMetrics('aborted')
                                 } catch (err) {
                                     finishChatMetrics('error')
-                                    this.#logger.error(err)
+                                    logger.error(err)
                                 }
                             }
                         })
@@ -1235,7 +1443,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const persistedStream =
             this.redisSseStreamService?.wrapChatStream(stream, {
                 target: options?.streamPersistence,
-                threadId: conversation.threadId,
+                threadId: activeThreadId,
                 runId: executionId
             }) ?? stream
 
@@ -1243,18 +1451,119 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             'xpert.chat.action': request.action,
             'xpert.chat.from': from,
             'conversation.id': conversation.id,
-            'thread.id': conversation.threadId,
+            'thread.id': activeThreadId,
             'execution.id': executionId,
             'xpert.id': xpert.id,
             'project.id': options.projectId
         })
     }
 
+    private async resolvePrimaryModelSelection({
+        request,
+        xpert,
+        runtimeAgentKey,
+        input,
+        sourceExecution
+    }: {
+        request: TChatRequest
+        xpert: Partial<IXpert>
+        runtimeAgentKey: string
+        input: TChatRequestHuman | null
+        sourceExecution: IXpertAgentExecution | null
+    }): Promise<TAssistantPrimaryModelSelection | null> {
+        const primaryAgentKey = xpert.agent?.key
+        if (!this.assistantModelSelectionService || !primaryAgentKey || runtimeAgentKey !== primaryAgentKey) {
+            return null
+        }
+
+        const metadata = sourceExecution?.metadata
+        if (request.action === 'resume') {
+            return this.assistantModelSelectionService.resolveSelection(xpert, {
+                continuationModelId: metadata?.primaryModelId,
+                continuationModelSnapshot: metadata?.primaryModelSnapshot,
+                continuationSource: metadata?.primaryModelSource,
+                ignorePreference: !metadata?.primaryModelId
+            })
+        }
+        if (request.action === 'retry') {
+            return this.assistantModelSelectionService.resolveSelection(xpert, {
+                retryModelId: metadata?.primaryModelId,
+                retryModelSnapshot: metadata?.primaryModelSnapshot,
+                ignorePreference: !metadata?.primaryModelId
+            })
+        }
+        return this.assistantModelSelectionService.resolveSelection(xpert, {
+            explicitModelId: typeof input?.model === 'string' ? input.model : undefined
+        })
+    }
+
+    private async assertExistingConversationMutationAccess(
+        conversation: IChatConversation,
+        requestedXpertId: string | null | undefined,
+        request: TChatRequest,
+        options?: XpertChatCommand['options']
+    ) {
+        const persistedXpertId = conversation.xpertId?.trim() || undefined
+        const normalizedRequestedXpertId = requestedXpertId?.trim() || undefined
+        const sameXpertFamily =
+            persistedXpertId && normalizedRequestedXpertId
+                ? persistedXpertId === normalizedRequestedXpertId ||
+                  (
+                      await this.publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds(
+                          normalizedRequestedXpertId
+                      )
+                  ).includes(persistedXpertId)
+                : false
+        if (!sameXpertFamily) {
+            throw new BadRequestException(
+                t('server-ai:Error.RequestedXpertConversationMismatch', {
+                    defaultValue: 'The requested Xpert does not match the conversation Xpert'
+                })
+            )
+        }
+
+        const persistedProjectId = conversation.projectId?.trim() || undefined
+        const optionProjectId = options?.projectId?.trim() || undefined
+        const requestProjectId = resolveRequestProjectId(request)
+        if (
+            (optionProjectId && optionProjectId !== persistedProjectId) ||
+            (requestProjectId && requestProjectId !== persistedProjectId)
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.RequestedProjectConversationMismatch', {
+                    defaultValue: 'The requested Project does not match the conversation Project'
+                })
+            )
+        }
+
+        if (persistedProjectId) {
+            if (!this.projectService) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
+            await this.projectService.assertRuntimeAccess(persistedProjectId, persistedXpertId)
+            return
+        }
+
+        const actorUserId = RequestContext.currentUserId()
+        if (!actorUserId || conversation.createdById !== actorUserId) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ConversationAccessDenied', {
+                    defaultValue: 'You do not have access to this conversation'
+                })
+            )
+        }
+    }
+
     private async assertSteerTargetIsActive(
         targetExecutionId: string | null,
-        allowInterrupted: boolean
+        allowInterrupted: boolean,
+        threadId: string
     ): Promise<void> {
-        let targetExecution: { status?: XpertAgentExecutionStatusEnum } | null = null
+        let targetExecution: { status?: XpertAgentExecutionStatusEnum; threadId?: string } | null = null
         if (targetExecutionId) {
             try {
                 targetExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(targetExecutionId))
@@ -1263,6 +1572,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     throw error
                 }
             }
+        }
+        if (targetExecution) {
+            targetExecution = assertExecutionBelongsToThread(targetExecution, threadId)
         }
         const active =
             targetExecution?.status === XpertAgentExecutionStatusEnum.RUNNING ||
@@ -1437,7 +1749,7 @@ function filterRuntimeCapabilitiesBySkillPreference(
     workspaceId?: string | null,
     toolPreferences?: IAssistantBindingToolPreferences | null
 ) {
-    if (runtimeCapabilities?.mode !== 'allowlist') {
+    if (!isRuntimeCapabilitiesAllowlist(runtimeCapabilities)) {
         return runtimeCapabilities
     }
 
@@ -1472,7 +1784,7 @@ function withPreferenceSkillState(
 ): TXpertChatState {
     const normalizedWorkspaceId = runtimeCapabilities?.skills?.workspaceId?.trim() || workspaceId?.trim() || undefined
 
-    if (runtimeCapabilities?.mode === 'allowlist') {
+    if (isRuntimeCapabilitiesAllowlist(runtimeCapabilities)) {
         const disabledSkillIds = normalizedWorkspaceId
             ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences)
             : []
@@ -1605,11 +1917,10 @@ function resolveAgentSandboxScope(
 
     return {
         sandboxEnvironmentId,
-        projectId: sandboxEnvironmentId
-            ? undefined
-            : options?.projectId?.trim() ||
-              resolveRequestProjectId(request) ||
-              conversation.projectId?.trim() ||
-              undefined
+        projectId:
+            options?.projectId?.trim() ||
+            resolveRequestProjectId(request) ||
+            conversation.projectId?.trim() ||
+            undefined
     }
 }

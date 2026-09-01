@@ -20,18 +20,17 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { DeleteFileAssetCommand, RetryFileParseCommand } from './commands'
 import {
-    GetFileAssetQuery,
     GetFileParseStatusQuery,
     GetFilePreviewQuery,
     ListConversationFilesQuery,
     ReadFileChunkQuery,
     SearchFileChunksQuery
 } from './queries'
-import { GetChatConversationQuery } from '../chat-conversation/queries/conversation-get.query'
 import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
 } from '../ai/public-xpert-principal'
+import { FileAssetAccessService, type FileAssetOperation } from './file-asset-access.service'
 
 @ApiTags('AI/Files')
 @ApiBearerAuth()
@@ -43,64 +42,84 @@ import {
 export class FileUnderstandingController {
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly fileAssetAccessService: FileAssetAccessService
     ) {}
 
     @Get('files/:fileId')
     async getFile(@Param('fileId') fileId: string) {
-        return this.ensurePublicFileAccess(fileId)
+        return this.authorizeFile(fileId, 'read')
     }
 
     @Get('files/:fileId/status')
     async getFileStatus(@Param('fileId') fileId: string) {
-        await this.ensurePublicFileAccess(fileId)
-        return this.queryBus.execute(new GetFileParseStatusQuery(fileId))
+        const fileAsset = await this.authorizeFile(fileId, 'read')
+        return this.queryBus.execute(new GetFileParseStatusQuery(fileAsset.id))
     }
 
     @Post('files/:fileId/parse/retry')
     async retryParse(@Param('fileId') fileId: string) {
-        await this.ensurePublicFileAccess(fileId)
-        return this.commandBus.execute(new RetryFileParseCommand(fileId))
+        const fileAsset = await this.authorizeFile(fileId, 'parse')
+        return this.commandBus.execute(new RetryFileParseCommand(fileAsset.id))
     }
 
     @Post('files/:fileId/search')
     async searchFile(@Param('fileId') fileId: string, @Body() body: { query?: string; limit?: number }) {
-        await this.ensurePublicFileAccess(fileId)
-        return this.queryBus.execute(new SearchFileChunksQuery({ fileId, query: body?.query, limit: body?.limit }))
+        const fileAsset = await this.authorizeFile(fileId, 'read')
+        return this.queryBus.execute(
+            new SearchFileChunksQuery({ fileId: fileAsset.id, query: body?.query, limit: body?.limit })
+        )
     }
 
     @Get('files/:fileId/preview')
     async getPreview(@Param('fileId') fileId: string) {
-        await this.ensurePublicFileAccess(fileId)
-        return this.queryBus.execute(new GetFilePreviewQuery(fileId))
+        const fileAsset = await this.authorizeFile(fileId, 'read')
+        return this.queryBus.execute(new GetFilePreviewQuery(fileAsset.id))
     }
 
     @Post('files/:fileId/read')
     async readFile(@Param('fileId') fileId: string, @Body() body: { chunkId?: string; orderNo?: number }) {
-        await this.ensurePublicFileAccess(fileId)
-        return this.queryBus.execute(new ReadFileChunkQuery({ fileId, chunkId: body?.chunkId, orderNo: body?.orderNo }))
+        const fileAsset = await this.authorizeFile(fileId, 'read')
+        return this.queryBus.execute(
+            new ReadFileChunkQuery({ fileId: fileAsset.id, chunkId: body?.chunkId, orderNo: body?.orderNo })
+        )
     }
 
     @Get('conversations/:conversationId/files')
     async listConversationFiles(@Param('conversationId') conversationId: string) {
+        const conversation = await this.fileAssetAccessService.assertConversationAccess(
+            { kind: 'conversation', conversationId },
+            'read'
+        )
         if (getPublicXpertSessionConversationScope()) {
-            const conversation = await this.queryBus.execute(new GetChatConversationQuery({ id: conversationId }))
-            assertPublicXpertSessionConversationAccess(conversation)
+            await assertPublicXpertSessionConversationAccess(conversation, this.queryBus)
         }
-        return this.queryBus.execute(new ListConversationFilesQuery(conversationId))
+        return this.queryBus.execute(new ListConversationFilesQuery(conversation.id))
     }
 
     @Delete('files/:fileId')
     async deleteFile(@Param('fileId') fileId: string) {
-        await this.ensurePublicFileAccess(fileId)
-        return this.commandBus.execute(new DeleteFileAssetCommand(fileId))
+        const fileAsset = await this.authorizeFile(fileId, 'delete')
+        return this.commandBus.execute(new DeleteFileAssetCommand(fileAsset.id))
     }
 
-    private async ensurePublicFileAccess(fileId: string) {
-        const fileAsset = await this.queryBus.execute(new GetFileAssetQuery(fileId))
+    private async authorizeFile(fileId: string, operation: FileAssetOperation) {
+        const { asset: fileAsset } = await this.fileAssetAccessService.resolve({
+            locator: { fileAssetId: fileId },
+            authority: { kind: 'current-owner' },
+            operation
+        })
         const scope = getPublicXpertSessionConversationScope()
-        if (scope && (!fileAsset || fileAsset.userId !== scope.createdById || fileAsset.xpertId !== scope.xpertId)) {
-            throw new ForbiddenException()
+        if (scope) {
+            if (!fileAsset || fileAsset.userId !== scope.createdById) {
+                throw new ForbiddenException()
+            }
+            await (
+                assertPublicXpertSessionConversationAccess as unknown as (
+                    conversation: { createdById?: string; xpertId?: string },
+                    queryBus: QueryBus
+                ) => Promise<void> | void
+            )({ createdById: fileAsset.userId, xpertId: fileAsset.xpertId }, this.queryBus)
         }
         return fileAsset
     }

@@ -31,6 +31,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
 import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { SseStreamModule } from '../shared/stream'
 import { XpertProjectModule } from '../xpert-project'
+import { FileUnderstandingModule } from '../file-understanding'
 
 @Module({
     imports: [
@@ -59,6 +60,7 @@ import { XpertProjectModule } from '../xpert-project'
         forwardRef(() => ChatConversationModule),
         forwardRef(() => ChatMessageModule),
         forwardRef(() => ChatMessageFeedbackModule),
+        forwardRef(() => FileUnderstandingModule),
         SseStreamModule,
         XpertProjectModule
     ],

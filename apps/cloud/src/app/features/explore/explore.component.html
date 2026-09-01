@@ -17,15 +17,17 @@
     <div class="flex flex-col gap-3 px-6 py-3 xl:px-10">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <nav
-          class="flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border/70 bg-muted/50 p-1"
+          class="flex w-fit max-w-full items-center gap-1 overflow-x-auto"
           aria-label="{{ 'XP.Explore.NavigationLabel' | translate: { Default: 'Marketplace navigation' } }}"
         >
           <button
             type="button"
-            class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
-            [class.bg-background]="tab() === 'agent-square'"
-            [class.text-foreground]="tab() === 'agent-square'"
-            [class.text-muted-foreground]="tab() !== 'agent-square'"
+            class="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-base font-semibold transition-colors enabled:hover:bg-muted enabled:hover:text-foreground"
+            [class]="
+              tab() === 'agent-square'
+                ? 'bg-primary text-primary-foreground enabled:hover:bg-primary/90 enabled:hover:text-primary-foreground'
+                : 'text-muted-foreground'
+            "
             [class.cursor-not-allowed]="!agentMarketplaceEnabled()"
             [class.cursor-pointer]="agentMarketplaceEnabled()"
             [class.opacity-50]="!agentMarketplaceEnabled()"
@@ -38,10 +40,12 @@
           </button>
           <button
             type="button"
-            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors"
-            [class.bg-background]="tab() === 'skills'"
-            [class.text-foreground]="tab() === 'skills'"
-            [class.text-muted-foreground]="tab() !== 'skills'"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground"
+            [class]="
+              tab() === 'skills'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : 'text-muted-foreground'
+            "
             [attr.aria-pressed]="tab() === 'skills'"
             (click)="setTab('skills')"
           >
@@ -50,9 +54,12 @@
           </button>
           <button
             type="button"
-            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors"
-            [class.bg-background]="tab() === 'connectors'"
-            [class.text-foreground]="tab() === 'connectors'"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground"
+            [class]="
+              tab() === 'connectors'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : 'text-muted-foreground'
+            "
             [attr.aria-pressed]="tab() === 'connectors'"
             (click)="setTab('connectors')"
           >

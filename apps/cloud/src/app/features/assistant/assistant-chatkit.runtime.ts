@@ -1,9 +1,15 @@
 import { DOCUMENT } from '@angular/common'
-import { computed, effect, inject, signal, Signal, untracked } from '@angular/core'
+import { HttpClient } from '@angular/common/http'
+import { computed, effect, inject, isSignal, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
-import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/chatkit-angular'
-import type { ChatKitMessageNavigationOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
+import {
+  ChatKitControl,
+  ChatKitEventHandlers,
+  createChatKit,
+  type CreateChatKitOptions
+} from '@xpert-ai/chatkit-angular'
+import type { ChatKitClientSecretResult, ChatKitMcpAppsOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
 import { catchError, firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -23,64 +29,29 @@ import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantChatKitEventHandlers = ChatKitEventHandlers
-type AssistantMcpAppsOptions = {
-  sandboxProxyUrl?: string
-  allowedDomains?: string[]
-}
-type AssistantChatKitOptions = ChatKitOptions & {
-  messageNavigation?: ChatKitMessageNavigationOptions
-  mcpApps?: AssistantMcpAppsOptions
-} & AssistantChatKitEventHandlers
-type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
-type AssistantHostedClientSecret =
-  | string
-  | {
-      secret: string
-      organizationId?: string
-      xpertId?: string
-      assistantId?: string
-    }
-type AssistantChatKitWorkbenchOptions = {
-  enabled?: boolean
-  onClientCommand?: (request: {
-    commandKey: string
-    payload?: unknown
-    hostType: 'agent'
-    hostId: string
-    viewKey: string
-  }) => unknown | Promise<unknown>
-}
-type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api' | 'workbench'> &
-  AssistantChatKitEventHandlers & {
-    api: {
-      apiUrl: string
-      xpertId?: string
-      /** Pins every hosted ChatKit conversation and run to one Chat Project. */
-      projectId?: string
-      getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
-    }
-    workbench?: AssistantChatKitWorkbenchOptions
-  }
+type AssistantTheme = NonNullable<ChatKitOptions['theme']>
+type ReactiveChatKitOption<T> = T | Signal<T>
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
   requestContext?: Signal<Record<string, unknown> | null>
-  displayMode?: AssistantHostedChatKitOptions['displayMode']
-  history?: AssistantHostedChatKitOptions['history']
+  displayMode?: ReactiveChatKitOption<CreateChatKitOptions['displayMode']>
+  history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
-  layout?: AssistantHostedChatKitOptions['layout']
-  pet?: AssistantHostedChatKitOptions['pet']
+  layout?: CreateChatKitOptions['layout']
+  composer?: Signal<CreateChatKitOptions['composer'] | null>
+  pet?: CreateChatKitOptions['pet']
   titleKey: string
   titleDefault: string
-  onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
-  onEffect?: NonNullable<AssistantChatKitEventHandlers['onEffect']>
-  onLog?: NonNullable<AssistantChatKitEventHandlers['onLog']>
-  onResponseStart?: NonNullable<AssistantChatKitEventHandlers['onResponseStart']>
-  onResponseEnd?: NonNullable<AssistantChatKitEventHandlers['onResponseEnd']>
-  onThreadChange?: NonNullable<AssistantChatKitEventHandlers['onThreadChange']>
-  onThreadLoadStart?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadStart']>
-  onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
+  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
+  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onProjectChange?: NonNullable<ChatKitEventHandlers['onProjectChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 type AssistantBindingRuntimeInput = {
@@ -92,28 +63,36 @@ type AssistantHostedRuntimeInput = {
   assistantId: Signal<string | null>
   /** Reactive Project scope; changing it recreates the hosted ChatKit binding. */
   projectId?: Signal<string | null>
+  /** Server-authorized Workbench record used to mint a delegated external Assistant session. */
+  delegatedConversation?: Signal<{
+    conversationId: string
+    requesterXpertId: string
+  } | null>
   frameUrl: Signal<string | null>
-  getClientSecret?: AssistantHostedChatKitOptions['api']['getClientSecret']
+  getClientSecret?: (currentClientSecret: string | null) => Promise<ChatKitClientSecretResult>
   requestContext?: Signal<Record<string, unknown> | null>
-  displayMode?: AssistantHostedChatKitOptions['displayMode']
-  history?: AssistantHostedChatKitOptions['history']
+  displayMode?: ReactiveChatKitOption<CreateChatKitOptions['displayMode']>
+  header?: ReactiveChatKitOption<CreateChatKitOptions['header']>
+  history?: CreateChatKitOptions['history']
   initialThread?: Signal<string | null>
-  layout?: AssistantHostedChatKitOptions['layout']
-  pet?: AssistantHostedChatKitOptions['pet']
-  taskSummary?: AssistantHostedChatKitOptions['taskSummary']
-  workbench?: AssistantHostedChatKitOptions['workbench']
-  startScreen?: Signal<AssistantHostedChatKitOptions['startScreen'] | null>
+  layout?: CreateChatKitOptions['layout']
+  composer?: Signal<CreateChatKitOptions['composer'] | null>
+  pet?: CreateChatKitOptions['pet']
+  taskSummary?: CreateChatKitOptions['taskSummary']
+  workbench?: CreateChatKitOptions['workbench']
+  startScreen?: Signal<CreateChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
   titleKey: string
   titleDefault: string
-  onReady?: NonNullable<AssistantChatKitEventHandlers['onReady']>
-  onEffect?: NonNullable<AssistantChatKitEventHandlers['onEffect']>
-  onLog?: NonNullable<AssistantChatKitEventHandlers['onLog']>
-  onResponseStart?: NonNullable<AssistantChatKitEventHandlers['onResponseStart']>
-  onResponseEnd?: NonNullable<AssistantChatKitEventHandlers['onResponseEnd']>
-  onThreadChange?: NonNullable<AssistantChatKitEventHandlers['onThreadChange']>
-  onThreadLoadStart?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadStart']>
-  onThreadLoadEnd?: NonNullable<AssistantChatKitEventHandlers['onThreadLoadEnd']>
+  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
+  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onProjectChange?: NonNullable<ChatKitEventHandlers['onProjectChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
@@ -132,6 +111,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     history: input.history,
     initialThread: input.initialThread,
     layout: input.layout,
+    composer: input.composer,
     pet: input.pet,
     titleKey: input.titleKey,
     titleDefault: input.titleDefault,
@@ -141,6 +121,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     onResponseStart: input.onResponseStart,
     onResponseEnd: input.onResponseEnd,
     onThreadChange: input.onThreadChange,
+    onProjectChange: input.onProjectChange,
     onThreadLoadStart: input.onThreadLoadStart,
     onThreadLoadEnd: input.onThreadLoadEnd
   })
@@ -257,6 +238,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   const appService = inject(AppService)
   const store = inject(Store)
   const artifactService = inject(ArtifactService, { optional: true })
+  const httpClient = inject(HttpClient, { optional: true })
 
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
@@ -288,6 +270,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const assistantId = input.assistantId()
     const frameUrl = input.frameUrl()
     const projectId = input.projectId?.() ?? null
+    const delegatedConversation = input.delegatedConversation?.() ?? null
 
     if (!identity || !assistantId || !frameUrl) {
       return null
@@ -299,6 +282,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       identity,
       assistantId,
       projectId ?? '',
+      delegatedConversation?.conversationId ?? '',
+      delegatedConversation?.requesterXpertId ?? '',
       frameUrl,
       fixedApiUrl,
       authToken() ?? '',
@@ -319,8 +304,12 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const initialThread = untracked(() => input.initialThread?.() ?? null)
     const requestContext = input.requestContext?.() ?? null
     const projectId = input.projectId?.() ?? null
+    const delegatedConversation = input.delegatedConversation?.() ?? null
+    const composer = input.composer?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
+    const displayMode = readReactiveChatKitOption(input.displayMode)
+    const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())
     const currentRuntimeKey = untracked(() => activeRuntimeKey())
     const mcpApps = resolveAssistantMcpAppsOptions(
@@ -343,11 +332,19 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         getClientSecret: async (currentClientSecret) =>
           input.getClientSecret
             ? input.getClientSecret(currentClientSecret)
-            : buildAssistantClientSecret(currentToken, currentOrganizationId)
+            : createAssistantChatkitSession(
+                httpClient,
+                fixedApiUrl,
+                assistantId,
+                projectId,
+                delegatedConversation,
+                currentToken,
+                currentOrganizationId
+              )
       },
       locale: currentLocale,
       theme: currentTheme,
-      displayMode: input.displayMode,
+      displayMode,
       layout: input.layout,
       pet: input.pet,
       taskSummary: input.taskSummary,
@@ -379,19 +376,23 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       },
       initialThread,
       header: {
+        ...header,
         title: {
+          ...header?.title,
           text: title
         }
       },
       history: input.history,
       startScreen,
       composer: {
+        ...composer,
         attachments: {
           enabled: true,
           maxCount: 5,
-          maxSize: 10 * 1024 * 1024
+          maxSize: 10 * 1024 * 1024,
+          ...composer?.attachments
         },
-        tools: []
+        tools: composer?.tools ?? []
       },
       request: {
         context: requestContext ?? {}
@@ -402,23 +403,28 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       onResponseStart: input.onResponseStart,
       onResponseEnd: input.onResponseEnd,
       onThreadChange: input.onThreadChange,
+      onProjectChange: input.onProjectChange,
       onThreadLoadStart: input.onThreadLoadStart,
       onThreadLoadEnd: input.onThreadLoadEnd,
       onError: (event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
       }
-    } satisfies AssistantHostedChatKitOptions
+    } satisfies CreateChatKitOptions
 
     if (!currentControl || currentRuntimeKey !== key) {
-      control.set(createChatKit(options as AssistantChatKitOptions))
+      control.set(createChatKit(options))
       activeRuntimeKey.set(key)
       return
     }
 
-    currentControl.setOptions(options as AssistantChatKitOptions)
+    currentControl.setOptions(options)
   })
 
   return control
+}
+
+function readReactiveChatKitOption<T>(option: ReactiveChatKitOption<T> | undefined): T | undefined {
+  return isSignal(option) ? option() : option
 }
 
 function toIsoDate(value: string | Date) {
@@ -437,7 +443,7 @@ export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
 export function resolveAssistantMcpAppsOptions(
   sandboxProxyUrl?: string | null,
   allowedDomains?: string | null
-): AssistantMcpAppsOptions | null {
+): ChatKitMcpAppsOptions | null {
   const normalizedUrl = sandboxProxyUrl?.trim()
   if (!normalizedUrl || normalizedUrl.startsWith('DOCKER_')) {
     return null
@@ -557,7 +563,47 @@ function buildAssistantApiUrl(baseUrl?: string | null) {
   return `${resolveAbsoluteApiBaseUrl(baseUrl)}/api/ai`
 }
 
-function buildAssistantClientSecret(secret: string, organizationId?: string | null): AssistantHostedClientSecret {
+type AssistantChatkitSessionResponse = {
+  client_secret: string
+}
+
+async function createAssistantChatkitSession(
+  httpClient: HttpClient | null,
+  apiUrl: string,
+  assistantId: string,
+  projectId: string | null,
+  delegatedConversation: { conversationId: string; requesterXpertId: string } | null,
+  fallbackSecret: string,
+  organizationId?: string | null
+): Promise<ChatKitClientSecretResult> {
+  // HttpClient keeps the platform login session fresh. The returned short-lived
+  // token is what direct iframe requests can safely refresh after a 401.
+  if (httpClient) {
+    const session = await firstValueFrom(
+      httpClient.post<AssistantChatkitSessionResponse>(`${apiUrl}/v1/chatkit/sessions`, {
+        assistant: { id: assistantId },
+        ...(projectId ? { project: { id: projectId } } : {}),
+        ...(delegatedConversation
+          ? {
+              conversation: {
+                id: delegatedConversation.conversationId,
+                requesterXpertId: delegatedConversation.requesterXpertId
+              }
+            }
+          : {})
+      })
+    )
+    const secret = session.client_secret?.trim()
+    if (!secret) {
+      throw new Error('Missing client_secret in ChatKit session response.')
+    }
+    return buildAssistantClientSecret(secret, organizationId)
+  }
+
+  return buildAssistantClientSecret(fallbackSecret, organizationId)
+}
+
+function buildAssistantClientSecret(secret: string, organizationId?: string | null): ChatKitClientSecretResult {
   if (!organizationId) {
     return secret
   }

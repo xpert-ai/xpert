@@ -1,24 +1,29 @@
 import { RequestContext } from '@xpert-ai/server-core'
 import type { CommandBus } from '@nestjs/cqrs'
-import type { ChatConversationService } from '../chat-conversation'
-import type { XpertWorkAreaResolver } from '../shared'
+import type { Repository } from 'typeorm'
+import type { ChatConversation } from '../chat-conversation/conversation.entity'
+import type { XpertWorkAreaResolver } from '../shared/volume/work-area'
+import type { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
+import { BadRequestException } from '@nestjs/common'
 
-jest.mock('../chat-conversation', () => ({
-    ChatConversationService: class ChatConversationService {}
+jest.mock('../xpert-project/services/project-access.service', () => ({
+    XpertProjectAccessService: class XpertProjectAccessService {}
 }))
 
-jest.mock('../shared', () => ({
-    VOLUME_CLIENT: 'VOLUME_CLIENT',
-    VolumeClient: class VolumeClient {},
-    WorkspacePathMapperFactory: class WorkspacePathMapperFactory {},
+jest.mock('../chat-conversation/conversation.entity', () => ({
+    ChatConversation: class ChatConversation {}
+}))
+
+jest.mock('../shared/volume/work-area', () => ({
     XpertWorkAreaResolver: class XpertWorkAreaResolver {}
 }))
 
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
-        currentUserId: jest.fn()
+        currentUserId: jest.fn(),
+        currentUser: jest.fn()
     }
 }))
 
@@ -32,17 +37,21 @@ describe('SandboxConversationContextService', () => {
     let commandBus: {
         execute: jest.Mock
     }
-    let conversationService: {
+    let conversationRepository: {
         findOne: jest.Mock
     }
     let workAreaResolver: {
         resolve: jest.Mock
     }
+    let projectAccessService: {
+        assertCanUseXpert: jest.Mock
+    }
     let service: SandboxConversationContextService
 
     beforeEach(() => {
-        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue(undefined)
-        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue(undefined)
+        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' })
 
         commandBus = {
             execute: jest.fn(async (command) => ({
@@ -53,17 +62,21 @@ describe('SandboxConversationContextService', () => {
                 workingDirectory: command.params?.workingDirectory
             }))
         }
-        conversationService = {
+        conversationRepository = {
             findOne: jest.fn()
         }
         workAreaResolver = {
             resolve: jest.fn((input) => createWorkArea(input))
         }
+        projectAccessService = {
+            assertCanUseXpert: jest.fn().mockResolvedValue({})
+        }
 
         service = new SandboxConversationContextService(
             commandBus as unknown as CommandBus,
-            conversationService as unknown as ChatConversationService,
-            workAreaResolver as unknown as XpertWorkAreaResolver
+            conversationRepository as unknown as Repository<ChatConversation>,
+            workAreaResolver as unknown as XpertWorkAreaResolver,
+            projectAccessService as unknown as XpertProjectAccessService
         )
     })
 
@@ -71,8 +84,8 @@ describe('SandboxConversationContextService', () => {
         jest.clearAllMocks()
     })
 
-    it('falls back to the conversation owner when websocket request context has no user id', async () => {
-        conversationService.findOne.mockResolvedValue({
+    it('uses the authenticated actor for a personal conversation sandbox', async () => {
+        conversationRepository.findOne.mockResolvedValue({
             createdById: 'user-conversation-owner',
             id: 'conversation-1',
             projectId: null,
@@ -89,10 +102,12 @@ describe('SandboxConversationContextService', () => {
         })
 
         const resolved = await service.resolveConversationSandbox({
+            actor: { id: 'user-conversation-owner', tenantId: 'tenant-from-conversation' },
             conversationId: 'conversation-1'
         })
 
-        expect(conversationService.findOne).toHaveBeenCalledWith('conversation-1', {
+        expect(conversationRepository.findOne).toHaveBeenCalledWith({
+            where: { id: 'conversation-1' },
             relations: ['xpert']
         })
         expect(workAreaResolver.resolve).toHaveBeenCalledWith({
@@ -123,8 +138,8 @@ describe('SandboxConversationContextService', () => {
         expect(resolved.workingDirectory).toBe('/workspace/root')
     })
 
-    it('prefers the persisted sandbox environment over project scope for terminal sessions', async () => {
-        conversationService.findOne.mockResolvedValue({
+    it('rejects a client Project override that differs from the persisted conversation', async () => {
+        conversationRepository.findOne.mockResolvedValue({
             createdById: 'user-1',
             id: 'conversation-1',
             options: {
@@ -143,42 +158,18 @@ describe('SandboxConversationContextService', () => {
             xpertId: 'xpert-1'
         })
 
-        const resolved = await service.resolveConversationSandbox({
-            conversationId: 'conversation-1',
-            projectId: 'project-override'
-        })
-
-        expect(conversationService.findOne).toHaveBeenCalledWith('conversation-1', {
-            relations: ['xpert']
-        })
-        expect(workAreaResolver.resolve).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
-            userId: 'user-1',
-            provider: 'local-shell-sandbox',
-            xpertId: 'xpert-1',
-            projectId: null,
-            conversationId: 'conversation-1',
-            environmentId: 'sandbox-env-1'
-        })
-        expect(commandBus.execute).toHaveBeenCalledWith(
-            expect.objectContaining({
-                params: expect.objectContaining({
-                    provider: 'local-shell-sandbox',
-                    tenantId: 'tenant-1',
-                    workFor: {
-                        type: 'environment',
-                        id: 'sandbox-env-1'
-                    },
-                    workingDirectory: '/workspace/root'
-                })
+        await expect(
+            service.resolveConversationSandbox({
+                conversationId: 'conversation-1',
+                projectId: 'project-override'
             })
-        )
-        expect(resolved.effectiveProjectId).toBeNull()
-        expect(resolved.effectiveSandboxEnvironmentId).toBe('sandbox-env-1')
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
     })
 
     it('uses the project workspace root as the default terminal cwd', async () => {
-        conversationService.findOne.mockResolvedValue({
+        conversationRepository.findOne.mockResolvedValue({
             createdById: 'user-1',
             id: 'conversation-1',
             projectId: 'project-1',
@@ -218,6 +209,11 @@ describe('SandboxConversationContextService', () => {
                 })
             })
         )
+        expect(projectAccessService.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1', {
+            tenantId: 'tenant-1',
+            organizationId: undefined,
+            userId: 'user-1'
+        })
         expect(resolved.workingDirectory).toBe('/workspace/root')
     })
 })

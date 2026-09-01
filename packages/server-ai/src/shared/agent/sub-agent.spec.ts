@@ -1,3 +1,5 @@
+import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import type { TXpertGraph } from '@xpert-ai/contracts'
 import {
     getRuntimeEnabledSubAgentConnections,
     getSubAgentConnectionTargetKey,
@@ -30,6 +32,29 @@ describe('sub-agent runtime selection', () => {
         expect(
             getRuntimeEnabledSubAgentConnections(graph, { key: 'agent-1' }).map(getSubAgentConnectionTargetKey)
         ).toEqual(['required-agent', 'optional-agent', 'optional-xpert'])
+    })
+
+    it('keeps all sub-agents for an independent Connector-only selection', () => {
+        const graph: TXpertGraph = {
+            nodes: [],
+            connections: [
+                { key: 'agent-1/optional-agent', type: 'agent', from: 'agent-1', to: 'optional-agent' },
+                { key: 'agent-1/optional-xpert', type: 'xpert', from: 'agent-1', to: 'optional-xpert' }
+            ]
+        }
+        const runtimeCapabilities: RuntimeCapabilitiesSelection & { inheritUnselected: true } = {
+            mode: 'allowlist',
+            inheritUnselected: true,
+            skills: { ids: [] },
+            plugins: { nodeKeys: [] },
+            subAgents: { nodeKeys: [] }
+        }
+
+        expect(
+            getRuntimeEnabledSubAgentConnections(graph, { key: 'agent-1' }, { runtimeCapabilities }).map(
+                getSubAgentConnectionTargetKey
+            )
+        ).toEqual(['optional-agent', 'optional-xpert'])
     })
 
     it('keeps required and selected optional sub-agent connections for runtime allow-lists', () => {

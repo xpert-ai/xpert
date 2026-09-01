@@ -10,7 +10,10 @@ import type {
 
 export type TXpertFollowUpMode = FollowUpBehavior
 
-export type TXpertChatRequestHuman = ChatKitRequestHuman
+export type TXpertChatRequestHuman = ChatKitRequestHuman & {
+  /** Opaque Assistant model option id for this run. */
+  model?: string
+}
 
 export type TXpertChatSource = {
   aiMessageId?: string

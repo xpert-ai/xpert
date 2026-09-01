@@ -322,7 +322,8 @@ export class XpertBasicManageComponent {
           avatar: xpert.avatar,
           title: xpert.title,
           description: xpert.description,
-          copilotModel: xpert.copilotModel
+          copilotModel: xpert.copilotModel,
+          workspaceDataScope: xpert.workspaceDataScope ?? 'shared'
         }
       })
       .closed.pipe(

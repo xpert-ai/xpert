@@ -7,6 +7,7 @@ import {
     SandboxTerminalServerEvent
 } from '@xpert-ai/contracts'
 import type {
+    IUser,
     SandboxTerminalCloseRequest,
     SandboxTerminalErrorEvent,
     SandboxTerminalInputRequest,
@@ -56,9 +57,11 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         const pendingOpen = this.registerPendingOpen(client.id, data.requestId)
 
         try {
+            const actor = readAuthenticatedSocketUser(client)
             const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
                 conversationId: data.conversationId,
-                projectId: data.projectId
+                projectId: data.projectId,
+                ...(actor ? { actor } : {})
             })
             if (pendingOpen.canceled) {
                 return
@@ -436,4 +439,21 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
     private hasResponsePayload(value: unknown): value is { getResponse(): unknown } {
         return typeof value === 'object' && value !== null && typeof Reflect.get(value, 'getResponse') === 'function'
     }
+}
+
+function readAuthenticatedSocketUser(client: Socket): IUser | undefined {
+    const handshake: unknown = client.handshake
+    if (typeof handshake !== 'object' || handshake === null) {
+        return undefined
+    }
+    const value: unknown = Reflect.get(handshake, 'user')
+    if (
+        typeof value !== 'object' ||
+        value === null ||
+        typeof Reflect.get(value, 'id') !== 'string' ||
+        typeof Reflect.get(value, 'tenantId') !== 'string'
+    ) {
+        return undefined
+    }
+    return value as IUser
 }

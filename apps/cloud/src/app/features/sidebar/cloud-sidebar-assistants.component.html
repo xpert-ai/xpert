@@ -17,6 +17,7 @@
         >
           <emoji-avatar
             class="cloud-sidebar-assistants__current-avatar"
+            xs
             [avatar]="currentAssistantAvatar()"
             [alt]="currentAssistantLabel()"
             [fallbackLabel]="currentAssistantLabel()"
@@ -33,6 +34,7 @@
             >
               <emoji-avatar
                 class="cloud-sidebar-assistants__current-avatar"
+                xs
                 [avatar]="currentAssistantAvatar()"
                 [alt]="currentAssistantLabel()"
                 [fallbackLabel]="currentAssistantLabel()"
@@ -211,19 +213,21 @@
                 [zTooltip]="assistantLabel(xpert)"
                 zPosition="right"
                 [zDisabled]="!collapsed()"
+                (click)="openAssistant($event, xpert)"
               >
                 @if (!collapsed()) {
                   <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
                 <div class="cloud-sidebar-assistants__item-layout">
-                  <button
+                  <!-- <button
                     type="button"
                     class="cloud-sidebar-assistants__item-main"
                     [attr.aria-label]="assistantLabel(xpert)"
                     (click)="openAssistant($event, xpert)"
-                  ></button>
+                  ></button> -->
 
                   <emoji-avatar
+                    xs
                     class="cloud-sidebar-assistants__avatar"
                     [avatar]="xpert.avatar"
                     [alt]="assistantLabel(xpert)"
@@ -278,8 +282,8 @@
                   @if (canEditAssistant(xpert)) {
                     <button
                       type="button"
-                      class="cloud-sidebar-assistants__settings absolute right-1 bg-components-card-bg"
-                      [attr.aria-label]="'XP.Assistant.OpenStudio' | translate: { Default: '编排助手' }"
+                      class="cloud-sidebar-assistants__settings absolute right-1"
+                      [attr.aria-label]="'XP.Assistant.OpenStudio' | translate: { Default: 'Edit' }"
                       (click)="openAssistantSettings($event, xpert)"
                     >
                       <i class="ri-equalizer-2-line"></i>
@@ -324,11 +328,25 @@
                     @for (item of assistantMenuState(xpert).items; track item.viewKey) {
                       <button
                         type="button"
-                        class="cloud-sidebar-assistants__child-item"
+                        [class]="
+                          isAssistantMenuItemActive(xpert, item)
+                            ? 'cloud-sidebar-assistants__child-item is-active'
+                            : 'cloud-sidebar-assistants__child-item'
+                        "
                         [attr.aria-label]="item.title"
+                        [attr.aria-current]="isAssistantMenuItemActive(xpert, item) ? 'page' : null"
                         (click)="openAssistantMenuItem($event, xpert, item)"
                       >
-                        <i class="ri-file-list-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
+                        @if (item.icon) {
+                          <xp-icon
+                            class="cloud-sidebar-assistants__child-icon flex items-center justify-center"
+                            [icon]="item.icon"
+                            [size]="14"
+                            aria-hidden="true"
+                          />
+                        } @else {
+                          <i class="ri-file-list-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
+                        }
                         <span>{{ item.title }}</span>
                       </button>
                     }

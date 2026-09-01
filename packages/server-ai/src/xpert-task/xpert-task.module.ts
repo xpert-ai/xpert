@@ -1,4 +1,4 @@
-import { ActorTokenModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
+import { ActorTokenModule, RedisModule, TenantModule, User } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { BullModule } from '@nestjs/bull'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -18,6 +18,8 @@ import { AutoTaskTemplate } from './auto-task-template.entity'
 import { XpertTaskTemplate } from './xpert-task-template.entity'
 import { ScheduledTaskExecution } from './scheduled-task-execution.entity'
 import { XpertModule } from '../xpert/xpert.module'
+import { XpertProjectModule } from '../xpert-project/project.module'
+import { ConnectorModule } from '../connector/connector.module'
 
 @Module({
     imports: [
@@ -29,7 +31,8 @@ import { XpertModule } from '../xpert/xpert.module'
             AutoTask,
             AutoTaskTemplate,
             XpertTaskTemplate,
-            ScheduledTaskExecution
+            ScheduledTaskExecution,
+            User
         ]),
         TenantModule,
         RedisModule,
@@ -37,6 +40,8 @@ import { XpertModule } from '../xpert/xpert.module'
         CqrsModule,
         forwardRef(() => XpertAgentModule),
         forwardRef(() => XpertModule),
+        forwardRef(() => XpertProjectModule),
+        ConnectorModule,
 
         BullModule.registerQueue({
             name: 'xpert-task-scheduler'

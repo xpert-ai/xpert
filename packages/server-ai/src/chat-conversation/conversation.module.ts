@@ -19,11 +19,27 @@ import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 import { ChatTaskSummaryService } from './task-summary.service'
 import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
+import { ChatConversationThread } from './conversation-thread.entity'
+import { ChatConversationThreadService } from './conversation-thread.service'
+import { ChatMessage } from '../chat-message/chat-message.entity'
+import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
+import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
+import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
+import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
-        TypeOrmModule.forFeature([ChatConversation, ChatConversationGoal, ChatConversationReadState, XpertAgent]),
+        TypeOrmModule.forFeature([
+            ChatConversation,
+            ChatConversationThread,
+            ChatConversationGoal,
+            ChatConversationReadState,
+            ChatMessage,
+            CopilotCheckpoint,
+            CopilotCheckpointWrites,
+            XpertAgent
+        ]),
         SharedModule,
         CqrsModule,
 
@@ -35,17 +51,26 @@ import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
         ExecutionCancelModule,
         SuperAdminOrganizationScopeModule,
         XpertAgentExecutionModule,
-        SseStreamModule
+        SseStreamModule,
+        XpertProjectAccessModule
     ],
     controllers: [ChatConversationController],
     providers: [
         ChatConversationService,
+        ChatConversationThreadService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
+        WorkbenchAssistantConversationNavigationService,
         ConversationSummaryProcessor,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [ChatConversationService, ChatConversationGoalService, ChatTaskSummaryService]
+    exports: [
+        ChatConversationService,
+        ChatConversationThreadService,
+        ChatConversationGoalService,
+        ChatTaskSummaryService,
+        WorkbenchAssistantConversationNavigationService
+    ]
 })
 export class ChatConversationModule {}

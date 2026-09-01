@@ -1,18 +1,22 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
-import type {
-  IChatConversation,
-  IXpertProject,
-  IXpertProjectCreateInput,
-  IXpertProjectActivity,
-  IXpertProjectAsset,
-  IXpertProjectAutomation,
-  IXpertProjectMilestone,
-  IXpertProjectPlan,
-  IXpertProjectSprint,
-  IXpertProjectTask
+import {
+  OrderTypeEnum,
+  type IChatConversation,
+  type IXpertProject,
+  type IXpertProjectCreateInput,
+  type IXpertProjectActivity,
+  type IXpertProjectAsset,
+  type IXpertProjectAutomation,
+  type IXpertProjectMilestone,
+  type IXpertProjectPlan,
+  type IXpertProjectSprint,
+  type IXpertProjectTask,
+  type IXpertTask,
+  type TXpertProjectAccessSummary,
+  type TXpertProjectSkillSummary
 } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
-import { getErrorMessage } from '@cloud/app/@core'
+import { getErrorMessage, XpertTaskService } from '@cloud/app/@core'
 import { XpertProjectApiService, XpertProjectOverview, XpertProjectTaskRelations } from './project-api.service'
 
 const itemsOf = <T>(value: T[] | { items: T[]; total: number } | undefined) =>
@@ -21,6 +25,7 @@ const itemsOf = <T>(value: T[] | { items: T[]; total: number } | undefined) =>
 @Injectable({ providedIn: 'root' })
 export class XpertProjectFacade {
   readonly #api = inject(XpertProjectApiService)
+  readonly #taskService = inject(XpertTaskService)
   readonly project = signal<IXpertProject | null>(null)
   readonly projects = signal<IXpertProject[]>([])
   readonly plans = signal<IXpertProjectPlan[]>([])
@@ -35,25 +40,34 @@ export class XpertProjectFacade {
   readonly assetsError = signal<string | null>(null)
   readonly activities = signal<IXpertProjectActivity[]>([])
   readonly automations = signal<IXpertProjectAutomation[]>([])
+  readonly scheduledTasks = signal<IXpertTask[]>([])
+  readonly projectInstruction = signal('')
+  readonly projectSkills = signal<TXpertProjectSkillSummary[]>([])
+  readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
+  readonly projectContentError = signal<string | null>(null)
   readonly loading = signal(false)
   readonly error = signal<string | null>(null)
   readonly projectLoading = signal(false)
   readonly projectError = signal<string | null>(null)
   readonly hasProject = computed(() => Boolean(this.project()))
+  #projectsLoadSequence = 0
   #projectLoadSequence = 0
 
   async loadProjects(query: { search?: string; status?: string } = {}) {
+    const sequence = ++this.#projectsLoadSequence
     this.loading.set(true)
     this.error.set(null)
     try {
       const response = await firstValueFrom(this.#api.list(query))
+      if (sequence !== this.#projectsLoadSequence) return this.projects()
       this.projects.set(response.items ?? [])
       return response.items ?? []
     } catch (error) {
+      if (sequence !== this.#projectsLoadSequence) return this.projects()
       this.error.set(getErrorMessage(error) || 'Failed to load projects')
       return []
     } finally {
-      this.loading.set(false)
+      if (sequence === this.#projectsLoadSequence) this.loading.set(false)
     }
   }
 
@@ -65,11 +79,29 @@ export class XpertProjectFacade {
     this.error.set(null)
     this.conversations.set([])
     this.conversationsError.set(null)
+    this.plans.set([])
+    this.tasks.set([])
+    this.assets.set([])
+    this.assetsTotal.set(0)
+    this.assetCount.set(0)
+    this.activities.set([])
+    this.automations.set([])
+    this.projectInstruction.set('')
+    this.projectSkills.set([])
+    this.projectAccess.set(null)
+    this.projectContentError.set(null)
+    this.scheduledTasks.set([])
     try {
-      const overview = await firstValueFrom(this.#api.overview(id))
+      const project = await firstValueFrom(this.#api.get(id))
       if (sequence !== this.#projectLoadSequence) return null
-      this.setOverview(overview)
-      return overview
+      this.project.set(project)
+      this.projectLoading.set(false)
+      this.loading.set(false)
+      void this.loadProjectOverview(id, sequence)
+      void this.loadProjectContent(id, sequence)
+      void this.loadProjectAccess(id, sequence)
+      void this.loadScheduledTasks(id, sequence)
+      return project
     } catch (error) {
       if (sequence !== this.#projectLoadSequence) return null
       const message = getErrorMessage(error) || 'Failed to load project'
@@ -109,8 +141,10 @@ export class XpertProjectFacade {
 
   async createProject(input: IXpertProjectCreateInput) {
     const project = await firstValueFrom(this.#api.create(input))
+    ++this.#projectsLoadSequence
+    this.loading.set(false)
     this.project.set(project)
-    this.projects.update((items) => [project, ...items])
+    this.projects.update((items) => [project, ...items.filter((item) => item.id !== project.id)])
     return project
   }
 
@@ -123,22 +157,32 @@ export class XpertProjectFacade {
     return updated
   }
 
-  async bindWorkspace(workspaceId: string) {
-    const project = this.project()
-    if (!project || !workspaceId) return null
-    const updated = await firstValueFrom(this.#api.bindWorkspace(project.id, workspaceId))
-    this.project.set({ ...project, ...updated })
-    this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
-    return updated
+  async saveProjectInstructions(content: string) {
+    const projectId = this.project()?.id
+    if (!projectId) return null
+    const response = await firstValueFrom(this.#api.updateInstructions(projectId, content))
+    this.projectInstruction.set(response.content)
+    return response
   }
 
-  async bindXpert(xpertId: string) {
-    const project = this.project()
-    if (!project || !xpertId) return null
-    const updated = await firstValueFrom(this.#api.setAssistant(project.id, xpertId))
-    this.project.set({ ...project, ...updated })
-    this.projects.update((items) => items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
-    return updated
+  async reloadScheduledTasks(projectId = this.project()?.id) {
+    const id = projectId?.trim()
+    if (!id) {
+      this.scheduledTasks.set([])
+      return []
+    }
+    return this.loadScheduledTasks(id, this.#projectLoadSequence)
+  }
+
+  async reloadProjectContent(projectId = this.project()?.id) {
+    const id = projectId?.trim()
+    if (!id) {
+      this.projectInstruction.set('')
+      this.projectSkills.set([])
+      return []
+    }
+    await this.loadProjectContent(id, this.#projectLoadSequence)
+    return this.projectSkills()
   }
 
   async addXpert(xpertId: string) {
@@ -318,6 +362,65 @@ export class XpertProjectFacade {
     this.assetCount.set(overview.assetTotal ?? totalOf(overview.assets))
     this.activities.set(itemsOf(overview.activities))
     this.automations.set(itemsOf(overview.automations))
+  }
+
+  private async loadProjectOverview(projectId: string, sequence: number) {
+    try {
+      const overview = await firstValueFrom(this.#api.overview(projectId))
+      if (sequence === this.#projectLoadSequence) this.setOverview(overview)
+    } catch {
+      // The project shell remains usable when optional overview data is unavailable.
+    }
+  }
+
+  private async loadProjectContent(projectId: string, sequence: number) {
+    this.projectContentError.set(null)
+    const [instructions, skills] = await Promise.allSettled([
+      firstValueFrom(this.#api.instructions(projectId)),
+      firstValueFrom(this.#api.skills(projectId))
+    ])
+    if (sequence !== this.#projectLoadSequence) return
+
+    if (instructions.status === 'fulfilled') {
+      this.projectInstruction.set(instructions.value.content)
+    } else {
+      this.projectInstruction.set('')
+      this.projectContentError.set(getErrorMessage(instructions.reason) || 'Failed to load project instructions')
+    }
+    if (skills.status === 'fulfilled') {
+      this.projectSkills.set(skills.value.items ?? [])
+    } else {
+      this.projectSkills.set([])
+      this.projectContentError.set(
+        this.projectContentError() || getErrorMessage(skills.reason) || 'Failed to load project skills'
+      )
+    }
+  }
+
+  private async loadProjectAccess(projectId: string, sequence: number) {
+    try {
+      const access = await firstValueFrom(this.#api.access(projectId))
+      if (sequence === this.#projectLoadSequence) this.projectAccess.set(access)
+    } catch {
+      if (sequence === this.#projectLoadSequence) this.projectAccess.set(null)
+    }
+  }
+
+  private async loadScheduledTasks(projectId: string, sequence: number) {
+    try {
+      const response = await firstValueFrom(
+        this.#taskService.getAll({
+          where: { projectId },
+          order: { createdAt: OrderTypeEnum.DESC },
+          take: 50
+        })
+      )
+      if (sequence === this.#projectLoadSequence) this.scheduledTasks.set(response.items ?? [])
+      return response.items ?? []
+    } catch {
+      if (sequence === this.#projectLoadSequence) this.scheduledTasks.set([])
+      return []
+    }
   }
 }
 

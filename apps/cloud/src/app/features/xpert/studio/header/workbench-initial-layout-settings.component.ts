@@ -53,7 +53,7 @@ type WorkbenchViewOption = {
       </div>
 
       <z-radio-group
-        class="mt-3 grid grid-cols-3 gap-2"
+        class="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4"
         displayDensity="cosy"
         [ngModel]="initialLayout()"
         (ngModelChange)="setInitialLayout($event)"
@@ -73,6 +73,30 @@ type WorkbenchViewOption = {
             </span>
             <span class="mt-1 block text-xs leading-5 text-text-secondary">
               {{ 'XP.Xpert.TwoColumnLayoutTip' | translate: { Default: 'Show Workbench and ChatKit side by side.' } }}
+            </span>
+          </z-radio>
+        </div>
+
+        <div
+          class="rounded-lg border p-3 transition-colors"
+          [class]="
+            initialLayout() === eInitialLayout.OverlayDialog
+              ? 'border-primary bg-components-card-bg'
+              : 'border-divider-regular bg-components-card-bg hover:bg-components-panel-bg'
+          "
+        >
+          <z-radio class="w-full" [value]="eInitialLayout.OverlayDialog">
+            <span class="block font-medium text-text-primary">
+              {{ 'XP.Xpert.OverlayDialog' | translate: { Default: 'Overlay dialog' } }}
+            </span>
+            <span class="mt-1 block text-xs leading-5 text-text-secondary">
+              {{
+                'XP.Xpert.OverlayDialogTip'
+                  | translate
+                    : {
+                        Default: 'Float ChatKit above the Workbench. Minimize it to the pet, or pin it to the right.'
+                      }
+              }}
             </span>
           </z-radio>
         </div>

@@ -1,16 +1,22 @@
-import { IStorageFile } from '@xpert-ai/contracts'
-import { FileStorage, RequestContext, StorageFileService } from '@xpert-ai/server-core'
+import { FileStorage, RequestContext, StorageFile } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import { Repository } from 'typeorm'
-import { VOLUME_CLIENT, VolumeClient } from '../shared/volume'
+import {
+    isProjectGovernedContentPath,
+    VOLUME_CLIENT,
+    VolumeClient,
+    VolumeHandle,
+    VolumeSubtreeClient
+} from '../shared/volume'
 import { XpertWorkAreaResolver } from '../shared/volume/work-area'
 import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { readPageImageFileName, readPageImageStorageKey, readWorkspaceProvider } from './domain/page-image-artifact'
 import { resolveFileAssetWorkspaceRelativePath, resolveFileAssetWorkspaceVolumeScope } from './domain/workspace-file'
 import { FileArtifact, FileAsset } from './entities'
+import { FileAssetAccessService, FileAssetAuthority } from './file-asset-access.service'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 
 export type ProjectFileAssetToWorkspaceInput = {
     fileAssetId: string
@@ -22,6 +28,7 @@ export type ProjectFileAssetToWorkspaceInput = {
     environmentId?: string
     sandboxProvider?: string | null
     buffer?: Buffer
+    operation?: 'attach' | 'parse'
 }
 
 @Injectable()
@@ -33,7 +40,9 @@ export class FileWorkspaceProjectionService {
         private readonly fileAssetRepository: Repository<FileAsset>,
         @InjectRepository(FileArtifact)
         private readonly fileArtifactRepository: Repository<FileArtifact>,
-        private readonly storageFileService: StorageFileService,
+        private readonly fileAssetAccessService: FileAssetAccessService,
+        @Inject(XpertProjectAccessService)
+        private readonly projectAccessService: Pick<XpertProjectAccessService, 'assertCanEdit'>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
         private readonly workAreaResolver: XpertWorkAreaResolver
@@ -44,20 +53,28 @@ export class FileWorkspaceProjectionService {
      * with sandbox_file or shell tools can read the original bytes by path.
      */
     async projectFileAsset(input: ProjectFileAssetToWorkspaceInput) {
-        const asset = await this.fileAssetRepository.findOne({ where: { id: input.fileAssetId } })
-        if (!asset) {
-            return null
+        const authority = resolveProjectionAuthority(input)
+        const authorized = await this.fileAssetAccessService.resolve({
+            locator: {
+                fileAssetId: input.fileAssetId,
+                ...(input.storageFileId ? { storageFileId: input.storageFileId } : {})
+            },
+            authority,
+            operation: input.operation ?? (authority.kind === 'conversation' ? 'attach' : 'parse')
+        })
+        const { asset, conversation, storageFile } = authorized
+        const conversationId = conversation?.id ?? asset.conversationId
+        const xpertId = conversation ? conversation.xpertId : asset.xpertId
+        const projectId = conversation ? conversation.projectId : asset.projectId
+        if (projectId) {
+            await this.projectAccessService.assertCanEdit(projectId)
         }
-
-        const conversationId = input.conversationId ?? asset.conversationId
-        const xpertId = input.xpertId ?? asset.xpertId
-        const projectId = input.projectId ?? asset.projectId
         if (!conversationId || (!input.environmentId && !projectId && !xpertId)) {
             return asset
         }
 
-        const tenantId = RequestContext.currentTenantId() ?? asset.tenantId
-        const userId = RequestContext.currentUserId() ?? asset.userId
+        const tenantId = conversation?.tenantId ?? asset.tenantId
+        const userId = conversation?.createdById ?? asset.userId ?? asset.createdById ?? RequestContext.currentUserId()
         if (!tenantId || !userId) {
             return asset
         }
@@ -71,13 +88,17 @@ export class FileWorkspaceProjectionService {
                 xpertId,
                 projectId,
                 conversationId,
-                environmentId: input.environmentId
+                environmentId: input.environmentId,
+                workspaceDataScope:
+                    conversation?.xpert?.workspaceDataScope ??
+                    (resolveFileAssetWorkspaceVolumeScope(asset, { tenantId, userId })?.catalog === 'user-xperts'
+                        ? 'user'
+                        : undefined)
             })
             // Store paths in the workspace namespace visible to agent tools, not
             // the backend server path used to write the projected file.
             const baseRelativePath =
                 workArea.sessionPath?.relativePath ?? normalizeRelativePath('sessions', conversationId)
-            const storageFile = await this.resolveStorageFile(input.storageFileId ?? asset.storageFileId)
             let projectedAsset = asset
             let assetFolderRelativePath = normalizeRelativePath(baseRelativePath, 'files', asset.id)
             const projectionScope = resolveProjectionScope(workArea.volumeScope)
@@ -87,8 +108,9 @@ export class FileWorkspaceProjectionService {
                 existingProjection.scopeId === projectionScope.scopeId
                     ? normalizeWorkspaceRelativePath(existingProjection.relativePath)
                     : null
-            const existingServerPath = existingRelativePath ? workArea.volume.path(existingRelativePath) : null
-            const hasCurrentProjection = existingServerPath ? await pathExists(existingServerPath) : false
+            const hasCurrentProjection = existingRelativePath
+                ? await volumeFileExists(workArea.volume, existingRelativePath)
+                : false
 
             if (!hasCurrentProjection) {
                 const existingFileName =
@@ -97,32 +119,25 @@ export class FileWorkspaceProjectionService {
                         : asset.id
                 const fileName = normalizeFileName(storageFile?.originalName ?? asset.originalName ?? existingFileName)
                 const relativePath = normalizeRelativePath(assetFolderRelativePath, fileName)
-                const serverPath = workArea.volume.path(relativePath)
                 const buffer =
                     input.buffer ??
                     (storageFile
                         ? await this.readStorageFile(storageFile)
-                        : await this.readExistingWorkspaceFile(asset, tenantId, userId))
+                        : await this.readExistingWorkspaceFile(asset, tenantId, userId, conversation?.projectId))
                 if (!buffer) {
                     return asset
                 }
 
-                await fsPromises.mkdir(path.dirname(serverPath), { recursive: true })
-                await fsPromises.writeFile(serverPath, buffer)
+                await writeProjectedVolumeFile(workArea.volume, relativePath, buffer)
 
                 const workspacePath = path.posix.join(workArea.workspaceRoot, relativePath)
                 asset.workspacePath = workspacePath
-                asset.conversationId = conversationId
-                asset.threadId = input.threadId ?? asset.threadId
-                asset.projectId = projectId ?? asset.projectId
-                asset.xpertId = xpertId ?? asset.xpertId
                 asset.capabilities = Array.from(new Set([...(asset.capabilities ?? []), 'workspace']))
                 asset.metadata = {
                     ...(asset.metadata ?? {}),
                     workspace: {
                         relativePath,
                         workspacePath,
-                        absolutePath: serverPath,
                         catalog: projectionScope.catalog,
                         scopeId: projectionScope.scopeId,
                         provider: sandboxProvider ?? null,
@@ -133,16 +148,8 @@ export class FileWorkspaceProjectionService {
             } else if (hasCurrentProjection && existingRelativePath) {
                 assetFolderRelativePath = path.posix.dirname(existingRelativePath)
                 const patch: Partial<FileAsset> = {
-                    conversationId,
-                    threadId: input.threadId ?? asset.threadId,
-                    projectId: projectId ?? asset.projectId,
-                    xpertId: xpertId ?? asset.xpertId,
                     capabilities: Array.from(new Set([...(asset.capabilities ?? []), 'workspace']))
                 }
-                asset.conversationId = patch.conversationId
-                asset.threadId = patch.threadId
-                asset.projectId = patch.projectId
-                asset.xpertId = patch.xpertId
                 asset.capabilities = patch.capabilities
                 asset.workspacePath = path.posix.join(workArea.workspaceRoot, existingRelativePath)
                 projectedAsset = await this.fileAssetRepository.save(asset)
@@ -153,7 +160,7 @@ export class FileWorkspaceProjectionService {
                 storageProvider: storageFile?.storageProvider,
                 assetFolderRelativePath,
                 workspaceRoot: workArea.workspaceRoot,
-                resolveServerPath: (relativePath) => workArea.volume.path(relativePath)
+                volume: workArea.volume
             })
             return projectedAsset
         } catch (error) {
@@ -166,26 +173,34 @@ export class FileWorkspaceProjectionService {
         }
     }
 
-    private async resolveStorageFile(storageFileId?: string): Promise<IStorageFile | null> {
-        if (!storageFileId) {
-            return null
-        }
-        return (await this.storageFileService.findOne(storageFileId)) ?? null
-    }
-
-    private async readStorageFile(storageFile: IStorageFile) {
+    private async readStorageFile(storageFile: StorageFile) {
         const provider = new FileStorage().getProvider(storageFile.storageProvider)
         return await provider.getFile(storageFile.file)
     }
 
-    private async readExistingWorkspaceFile(asset: FileAsset, tenantId: string, userId: string) {
-        const sourceScope = resolveFileAssetWorkspaceVolumeScope(asset, { tenantId, userId })
+    private async readExistingWorkspaceFile(
+        asset: FileAsset,
+        tenantId: string,
+        userId: string,
+        authorizedProjectId?: string
+    ) {
+        const projection = readWorkspaceProjection(asset.metadata)
+        const sourceScope =
+            resolveFileAssetWorkspaceVolumeScope(asset, { tenantId, userId }) ??
+            (authorizedProjectId && projection?.catalog === 'projects' && projection.scopeId === authorizedProjectId
+                ? {
+                      tenantId,
+                      userId,
+                      catalog: 'projects' as const,
+                      projectId: authorizedProjectId
+                  }
+                : null)
         const relativePath = resolveFileAssetWorkspaceRelativePath(asset)
         if (!sourceScope || !relativePath) {
             return null
         }
         const sourceVolume = await this.volumeClient.resolve(sourceScope).ensureRoot()
-        return await fsPromises.readFile(sourceVolume.path(relativePath))
+        return await new VolumeSubtreeClient(sourceVolume, { allowRootWorkspace: true }).readBuffer('', relativePath)
     }
 
     private async projectPageImageArtifacts(input: {
@@ -193,7 +208,7 @@ export class FileWorkspaceProjectionService {
         storageProvider?: string
         assetFolderRelativePath: string
         workspaceRoot: string
-        resolveServerPath: (relativePath: string) => string
+        volume: VolumeHandle
     }) {
         const artifacts = await this.fileArtifactRepository.find({
             where: {
@@ -226,13 +241,11 @@ export class FileWorkspaceProjectionService {
                 typeof page === 'number' ? `page-${String(page).padStart(4, '0')}.png` : `${artifact.id}.png`
             const fileName = normalizeFileName(readPageImageFileName(artifact.metadata) ?? fallbackFileName)
             const relativePath = normalizeRelativePath(input.assetFolderRelativePath, 'pages', fileName)
-            const serverPath = input.resolveServerPath(relativePath)
             const workspacePath = path.posix.join(input.workspaceRoot, relativePath)
 
             try {
                 const buffer = await storageProvider.getFile(storageKey)
-                await fsPromises.mkdir(path.dirname(serverPath), { recursive: true })
-                await fsPromises.writeFile(serverPath, buffer)
+                await writeProjectedVolumeFile(input.volume, relativePath, buffer)
                 artifact.metadata = {
                     ...(artifact.metadata ?? {}),
                     workspacePath,
@@ -253,6 +266,17 @@ export class FileWorkspaceProjectionService {
             await this.fileArtifactRepository.save(projectedArtifacts)
         }
     }
+}
+
+function resolveProjectionAuthority(input: ProjectFileAssetToWorkspaceInput): FileAssetAuthority {
+    if (input.conversationId || input.threadId) {
+        return {
+            kind: 'conversation',
+            ...(input.conversationId ? { conversationId: input.conversationId } : {}),
+            ...(input.threadId ? { threadId: input.threadId } : {})
+        }
+    }
+    return { kind: 'current-owner' }
 }
 
 type WorkspaceProjectionMetadata = {
@@ -291,13 +315,32 @@ function resolveProjectionScope(scope: {
     }
 }
 
-async function pathExists(filePath: string) {
+async function volumeFileExists(volume: VolumeHandle, relativePath: string) {
+    let openedFile: Awaited<ReturnType<typeof VolumeHandle.openExistingFile>> | null = null
     try {
-        await fsPromises.access(filePath)
-        return true
+        openedFile = await VolumeHandle.openExistingFile(volume.serverRoot, relativePath, {
+            boundaryRoot: volume.serverRoot
+        })
+        return openedFile.fileStat.isFile()
     } catch {
         return false
+    } finally {
+        await openedFile?.fileHandle.close()
     }
+}
+
+async function writeProjectedVolumeFile(volume: VolumeHandle, relativePath: string, buffer: Buffer) {
+    await VolumeHandle.writeFile(volume.serverRoot, relativePath, buffer, {
+        boundaryRoot: volume.serverRoot,
+        assertCanWrite: (canonicalRelativePath, fileStat) => {
+            if (
+                volume.scope.catalog === 'projects' &&
+                (isProjectGovernedContentPath(canonicalRelativePath) || (fileStat && fileStat.nlink !== 1))
+            ) {
+                throw new Error('Project instructions and skills are read-only for generic file projection')
+            }
+        }
+    })
 }
 
 function normalizeWorkspaceRelativePath(value: unknown) {

@@ -40,6 +40,8 @@
     "plugin:reinstall:local": "node tools/scripts/reinstall-local-plugin.mjs",
     "plugin:deploy:local": "node tools/scripts/deploy-local-plugin.mjs",
     "test:plugin:deploy:local": "node --test tools/scripts/deploy-local-plugin.test.mjs",
+    "assistant:suite:init": "node tools/scripts/init-assistant-suite.mjs",
+    "test:assistant:suite:init": "node --test tools/scripts/init-assistant-suite.test.mjs",
     "remote-view:preview": "node tools/remote-view-preview/cli.mjs",
     "test:remote-view-preview": "node --test tools/remote-view-preview/preview-host.test.mjs",
     "format:fix": "prettier --write --ignore-unknown",

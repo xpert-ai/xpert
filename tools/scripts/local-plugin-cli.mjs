@@ -355,13 +355,14 @@ export function resolveLoginEndpoint(args) {
   return `${input}/api/auth/login`
 }
 
-export async function postJson(url, headers, body) {
+/** Sends a JSON request and returns a normalized response without logging credentials or payload secrets. */
+export async function requestJson(method, url, headers, body) {
   let response
   try {
     response = await fetch(url, {
-      method: 'POST',
+      method,
       headers,
-      body: JSON.stringify(body)
+      ...(body === undefined ? {} : { body: JSON.stringify(body) })
     })
   } catch (error) {
     throw new LocalPluginCliError(
@@ -379,6 +380,16 @@ export async function postJson(url, headers, body) {
     }
   }
   return { body: responseBody, ok: response.ok, status: response.status }
+}
+
+/** Reads JSON from a platform endpoint. */
+export async function getJson(url, headers) {
+  return requestJson('GET', url, headers)
+}
+
+/** Posts JSON to a platform endpoint. */
+export async function postJson(url, headers, body) {
+  return requestJson('POST', url, headers, body)
 }
 
 export function readResponseMessage(body) {
@@ -428,6 +439,10 @@ export function summarizePluginResponse(body) {
     'currentVersion',
     'source',
     'status',
+    'loadStatus',
+    'loadError',
+    'configurationStatus',
+    'level',
     'scopeKey',
     'restartRequired'
   ]) {

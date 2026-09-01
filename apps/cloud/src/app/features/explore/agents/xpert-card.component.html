@@ -1,7 +1,7 @@
 <article
   [class]="'relative group ' + articleClass()"
-  [attr.role]="isMine() ? 'button' : null"
-  [attr.tabindex]="isMine() ? '0' : null"
+  [attr.role]="isMine() || application() ? 'button' : null"
+  [attr.tabindex]="isMine() || application() ? '0' : null"
   (click)="handleCardClick()"
   (keydown)="handleCardKeydown($event)"
 >
@@ -48,6 +48,27 @@
           >
             {{ 'XP.Explore.InMyWorkspace' | translate: { Default: 'In Workspace' } }}
           </span>
+        } @else if (application()) {
+          <span class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
+            {{ 'XP.Explore.Application.AppTemplate' | translate: { Default: 'App template' } }}
+          </span>
+          <span
+            class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary"
+            >{{ applicationScopeLabel() }}</span
+          >
+          @if (applicationStatus()?.status === 'ready') {
+            <span
+              class="inline-flex items-center rounded-full bg-state-success-hover/20 px-2.5 py-1 font-medium text-text-success"
+            >
+              {{ 'XP.Explore.Application.Status.Ready' | translate: { Default: 'Enabled' } }}
+            </span>
+          } @else if (applicationStatus()?.status === 'degraded') {
+            <span
+              class="inline-flex items-center rounded-full bg-state-warning-hover/20 px-2.5 py-1 font-medium text-text-warning"
+            >
+              {{ 'XP.Explore.Application.Status.Degraded' | translate: { Default: 'Needs repair' } }}
+            </span>
+          }
         } @else if (category()) {
           <span
             class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary"
@@ -60,6 +81,16 @@
   </div>
 
   <div class="flex flex-1 flex-col px-5 py-4">
+    @if (applicationScreenshot(); as screenshot) {
+      <div class="-mx-5 -mt-4 mb-4 overflow-hidden border-b border-divider-regular bg-background-default-subtle">
+        <img
+          class="aspect-[16/9] w-full object-contain"
+          [src]="screenshot"
+          [alt]="applicationScreenshotAlt()"
+          loading="lazy"
+        />
+      </div>
+    }
     <div
       class="line-clamp-4 min-h-[88px] text-sm leading-6 text-text-tertiary"
       [title]="description()"
@@ -103,7 +134,11 @@
         <div class="flex-1 mt-auto text-sm text-text-secondary">
           <div class="flex items-center justify-between gap-3">
             <div class="text-text-tertiary">
-              {{ 'XP.Explore.TemplateReady' | translate: { Default: 'Ready to Install in a Workspace' } }}
+              @if (application()) {
+                {{ applicationScopeDescription() }} · {{ applicationInitializationLabel() }}
+              } @else {
+                {{ 'XP.Explore.TemplateReady' | translate: { Default: 'Ready to Install in a Workspace' } }}
+              }
             </div>
             <button
               z-button
@@ -112,7 +147,9 @@
               class="shrink-0 cursor-pointer rounded-lg"
               (click)="handleActionClick($event)"
             >
-              @if (templateItem()?.type === 'project') {
+              @if (application()) {
+                {{ applicationActionLabel() }}
+              } @else if (templateItem()?.type === 'project') {
                 {{ 'XP.Xpert.Install' | translate: { Default: 'Install' } }}
               } @else {
                 {{ 'XP.Xpert.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}

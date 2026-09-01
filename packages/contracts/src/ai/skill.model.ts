@@ -16,6 +16,57 @@ import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 
 export type SkillId = string
 
+export type TRuntimeSkillSource =
+  | {
+      type: 'xpert'
+      ownerId: string
+      label: string
+      skillId: string
+    }
+  | {
+      type: 'project'
+      ownerId: string
+      label: string
+      skillId: string
+    }
+
+const RUNTIME_SKILL_CAPABILITY_ID_PREFIX = 'runtime-skill/v1'
+
+export function createRuntimeSkillCapabilityId(
+  source: Pick<TRuntimeSkillSource, 'type' | 'ownerId' | 'skillId'>
+): string {
+  return [
+    RUNTIME_SKILL_CAPABILITY_ID_PREFIX,
+    source.type,
+    encodeURIComponent(source.ownerId),
+    encodeURIComponent(source.skillId)
+  ].join('/')
+}
+
+export function parseRuntimeSkillCapabilityId(
+  id: string
+): Pick<TRuntimeSkillSource, 'type' | 'ownerId' | 'skillId'> | null {
+  const [prefix, version, type, encodedOwnerId, encodedSkillId, ...rest] = id.split('/')
+  if (
+    prefix !== 'runtime-skill' ||
+    version !== 'v1' ||
+    (type !== 'xpert' && type !== 'project') ||
+    !encodedOwnerId ||
+    !encodedSkillId ||
+    rest.length
+  ) {
+    return null
+  }
+
+  try {
+    const ownerId = decodeURIComponent(encodedOwnerId).trim()
+    const skillId = decodeURIComponent(encodedSkillId).trim()
+    return ownerId && skillId ? { type, ownerId, skillId } : null
+  } catch {
+    return null
+  }
+}
+
 export const WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER = 'workspace-public'
 export const WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME = 'Workspace Shared Skills'
 

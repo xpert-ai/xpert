@@ -18,6 +18,7 @@ import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { EnvironmentService } from '../../environment'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertDraftDslDTO } from '../../xpert/dto'
@@ -46,6 +47,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         private readonly workspaceAccess: XpertWorkspaceAccessService,
         private readonly xpertTemplateService: XpertTemplateService,
         private readonly templateWorkspaceInitializer: XpertTemplateWorkspaceInitializer,
+        private readonly environmentService: EnvironmentService,
         private readonly commandBus: CommandBus,
         private readonly xpertService: XpertService,
         @InjectRepository(XpertToolset)
@@ -64,7 +66,8 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 language: command.language,
                 templateId: command.templateId,
                 sourceTemplateId: template.id,
-                templateSource: createXpertTemplateSource(template)
+                templateSource: createXpertTemplateSource(template),
+                workspaceDataScope: command.basic?.workspaceDataScope
             })
         )
 
@@ -86,9 +89,12 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 xpert.workspaceId ?? command.workspaceId,
                 command.language
             )
+            const environment = command.publish
+                ? await this.environmentService.getDefaultByWorkspace(xpert.workspaceId ?? command.workspaceId)
+                : null
             const installedXpert = command.publish
                 ? await this.commandBus.execute<XpertPublishCommand, IXpert>(
-                      new XpertPublishCommand(xpert.id, false, '', 'Installed from template')
+                      new XpertPublishCommand(xpert.id, false, environment?.id ?? null, 'Installed from template')
                   )
                 : xpert
             return {
@@ -119,10 +125,11 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
 
         const team = teamValue as TXpertTeamDraft['team']
         const features = normalizeTemplateSandboxFeatures(team.features, sandboxProviders)
+        const { workspaceDataScope: _workspaceDataScope, ...portableBasic } = basic ?? {}
         return new XpertDraftDslDTO({
             team: {
                 ...team,
-                ...basic,
+                ...portableBasic,
                 ...(features ? { features } : {}),
                 workspaceId
             },

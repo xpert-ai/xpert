@@ -2,6 +2,7 @@ import {
 	XpertResolvedViewHostContext,
 	XpertViewActionRequest,
 	XpertViewHostContext,
+	XpertViewRuntimeScopeInput,
 	XpertViewSlot
 } from '@xpert-ai/contracts'
 
@@ -20,6 +21,7 @@ export interface ViewHostResolution {
 
 export interface ViewHostResolutionOptions {
 	isDraft?: boolean
+	runtimeScope?: XpertViewRuntimeScopeInput
 }
 
 export interface ViewHostDefinitionContract {

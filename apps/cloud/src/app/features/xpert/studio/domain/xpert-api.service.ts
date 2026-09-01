@@ -788,10 +788,7 @@ export class XpertStudioApiService {
   private readonly knowledgebases = new Map<string, Observable<IKnowledgebase>>()
   getKnowledgebase(id: string) {
     if (!this.knowledgebases.get(id)) {
-      this.knowledgebases.set(
-        id,
-        this.knowledgebaseService.getOneById(id, { relations: ['tools'] }).pipe(shareReplay(1))
-      )
+      this.knowledgebases.set(id, this.knowledgebaseService.getDetail(id).pipe(shareReplay(1)))
     }
     return this.knowledgebases.get(id)
   }

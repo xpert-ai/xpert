@@ -1,6 +1,7 @@
 @reference "../../../styles/tailwind-reference.css";
 
 :host {
+  --menu-border-radius: 0.5rem;
   display: block;
 }
 
@@ -76,7 +77,7 @@
   min-height: 2.25rem;
   align-items: center;
   gap: 0.625rem;
-  border-radius: 0.5rem;
+  border-radius: var(--menu-border-radius);
   padding: 0.375rem 0.625rem;
 }
 
@@ -128,7 +129,8 @@
 .cloud-sidebar-menu__icon z-icon {
   width: 1.25rem;
   height: 1.25rem;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
+  font-weight: 400;
 }
 
 .cloud-sidebar-menu__content {

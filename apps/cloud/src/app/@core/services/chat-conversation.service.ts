@@ -2,8 +2,10 @@ import { Injectable } from '@angular/core'
 import {
   API_PREFIX,
   IChatConversation,
+  IChatMessage,
   IChatConversationReadState,
   IChatConversationUnreadXpertSummary,
+  WorkbenchAssistantConversationResolution,
   IStorageFile,
   OrganizationBaseCrudService,
   PaginationParams,
@@ -68,10 +70,31 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  resolveWorkbenchNavigation(conversationId: string, requesterXpertId: string, organizationId?: string) {
+    return this.httpClient.get<WorkbenchAssistantConversationResolution>(
+      this.apiBaseUrl + `/${conversationId}/workbench-navigation`,
+      {
+        params: createOptionalQueryParams({
+          requesterXpertId,
+          organizationId
+        })
+      }
+    )
+  }
+
   getAttachments(id: string, organizationId?: string) {
     return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`, {
       params: appendOrganizationIdQueryParam(null, organizationId)
     })
+  }
+
+  getMessages(id: string, organizationId?: string) {
+    return this.httpClient.get<{ items: IChatMessage[]; total: number }>(
+      API_PREFIX + `/ai/conversations/${id}/messages`,
+      {
+        params: appendOrganizationIdQueryParam(null, organizationId)
+      }
+    )
   }
 
   cancelConversation(id: string, organizationId?: string) {

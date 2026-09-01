@@ -8,7 +8,7 @@ import {
 } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
-import { DynamicStructuredTool, StructuredToolInterface, tool } from '@langchain/core/tools'
+import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
     Annotation,
     BaseStore,
@@ -57,13 +57,13 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage, pick } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
-import { Inject, Logger } from '@nestjs/common'
+import { ForbiddenException, Inject, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { isUUID } from 'class-validator'
 import { format } from 'date-fns/format'
-import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
+import { t } from 'i18next'
 import { isNil } from 'lodash'
 import { EMPTY, Observable, Subscriber, tap } from 'rxjs'
-import z from 'zod'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import {
     appendMessageSteps,
@@ -73,20 +73,24 @@ import {
 import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
-import {
-    formatKnowledgebaseRetrievalToolOutput,
-    KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION
-} from '../../../knowledgebase/citation'
-import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
+import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
 import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
     assignExecutionUsage,
+    assertExecutionBelongsToThread,
     XpertAgentExecutionOneQuery,
     XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
 import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
+import {
+    attachChatFileAssetsToConversation,
+    getChatMessageFiles,
+    normalizeChatHumanInputFiles,
+    toChatFileAssetReferences,
+    toLegacyChatStorageFileAttachments
+} from '../../../xpert/commands/handlers/chat-file-assets'
 import {
     Instruction,
     isChatModelWithBindTools,
@@ -97,14 +101,10 @@ import {
     PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
 import { prepareMessagesForModel } from '../../../copilot-model/model-capabilities'
-import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
 import {
     CONFIG_KEY_CREDENTIALS,
-    _BaseToolset,
     AgentStateAnnotation,
-    BaseTool,
     createHumanMessage,
     CreateMemoryStoreCommand,
     collectPendingFollowUpsByClientMessageId,
@@ -145,7 +145,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         const { tenantId, organizationId, user, from: chatFrom } = command.options
         const userId = RequestContext.currentUserId()
         const languageCode = command.options.language || user.preferredLanguage || 'en-US'
-        const rawSendInput = request.action === 'send' ? request.message.input : null
+        let rawSendInput = request.action === 'send' ? request.message.input : null
         let input: TChatRequestHuman | null = hydratedRequest.action === 'send' ? hydratedRequest.message.input : null
         let projectId = request.action === 'send' ? request.projectId : undefined
         let checkpointId: string | undefined
@@ -155,15 +155,33 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
         if (request.action === 'follow_up') {
             const conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, ['messages', 'messages.attachments'])
+                new GetChatConversationQuery({ id: request.conversationId }, [
+                    'messages',
+                    'messages.attachments',
+                    'messages.fileAssets'
+                ])
             )
             if (!conversation) {
                 throw new Error(`Conversation "${request.conversationId}" not found`)
             }
 
-            const followUpInput = request.message.input
-            const hydratedFollowUpInput =
-                hydratedRequest.action === 'follow_up' ? hydratedRequest.message.input : followUpInput
+            let followUpInput = request.message.input
+            const normalizedFollowUp = await normalizeChatHumanInputFiles(followUpInput, {
+                commandBus: this.commandBus,
+                queryBus: this.queryBus,
+                context: {
+                    conversationId: conversation.id,
+                    threadId: conversation.threadId,
+                    projectId: conversation.projectId
+                }
+            })
+            if (normalizedFollowUp.changed && normalizedFollowUp.input) {
+                followUpInput = normalizedFollowUp.input
+            }
+            const hydratedFollowUpInput = hydrateHumanInput(followUpInput)
+            const followUpFiles = Array.isArray(followUpInput?.files) ? followUpInput.files : []
+            const followUpFileAssets = toChatFileAssetReferences(followUpFiles)
+            const followUpAttachments = toLegacyChatStorageFileAttachments(followUpFiles)
             const targetExecutionId =
                 request.target?.executionId ??
                 [...(conversation.messages ?? [])].reverse().find((message) => message.role === 'ai')?.executionId ??
@@ -188,11 +206,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                               references
                           }
                         : {}),
-                    ...(followUpInput?.files
+                    ...(followUpAttachments.length
                         ? {
-                              attachments: followUpInput.files as IStorageFile[]
+                              attachments: followUpAttachments
                           }
                         : {}),
+                    ...(followUpFileAssets.length ? { fileAssets: followUpFileAssets } : {}),
                     executionId: targetExecutionId ?? undefined,
                     followUpMode: request.mode,
                     followUpStatus: 'pending',
@@ -204,6 +223,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     }
                 })
             )
+            await attachChatFileAssetsToConversation(this.commandBus, conversation, followUpFiles, {
+                projectId: conversation.projectId
+            })
 
             return EMPTY
         }
@@ -220,7 +242,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 throw new Error('Conversation ID is required for confirm or reject operation')
             }
             conversation = await this.queryBus.execute(
-                new GetChatConversationQuery({ id: request.conversationId }, ['messages', 'messages.attachments'])
+                new GetChatConversationQuery({ id: request.conversationId }, [
+                    'messages',
+                    'messages.attachments',
+                    'messages.fileAssets'
+                ])
             )
             if (!conversation) {
                 throw new Error(`Conversation "${request.conversationId}" not found`)
@@ -239,10 +265,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             if (!executionId) {
                 throw new Error('Execution ID is required for resume operation')
             }
-            const execution = await this.queryBus.execute<IXpertAgentExecution | null>(
-                new XpertAgentExecutionOneQuery(executionId)
+            const execution = assertExecutionBelongsToThread(
+                await this.queryBus.execute<IXpertAgentExecution | null>(new XpertAgentExecutionOneQuery(executionId)),
+                conversation.threadId
             )
-            executionInputs = execution?.inputs
+            executionInputs = execution.inputs
         } else {
             if (isNil(request.conversationId)) {
                 if (retry) {
@@ -257,7 +284,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     })
                     .ensureRoot()
                 const workspacePath = volume.serverRoot
-                const workspaceUrl = volume.publicBaseUrl
+                const workspaceUrl = volume.exposesDirectFileUrls() ? volume.publicBaseUrl : undefined
                 conversation = await this.commandBus.execute(
                     new ChatConversationUpsertCommand({
                         tenantId,
@@ -281,10 +308,30 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             status: 'busy',
                             error: null
                         },
-                        ['messages', 'messages.attachments']
+                        ['messages', 'messages.attachments', 'messages.fileAssets']
                     )
                 )
                 projectId ??= conversation.projectId
+            }
+
+            if (request.action === 'send' && input) {
+                const normalizedInput = await normalizeChatHumanInputFiles(input, {
+                    commandBus: this.commandBus,
+                    queryBus: this.queryBus,
+                    context: {
+                        conversationId: conversation.id,
+                        threadId: conversation.threadId,
+                        projectId: conversation.projectId ?? projectId
+                    }
+                })
+                if (normalizedInput.changed && normalizedInput.input) {
+                    input = normalizedInput.input
+                    rawSendInput = {
+                        ...(rawSendInput ?? {}),
+                        files: input.files
+                    } as TChatRequestHuman
+                    executionInputs = input
+                }
             }
 
             const persistedPendingFollowUpGroup =
@@ -305,12 +352,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 if (!sourceExecutionId) {
                     throw new Error('Retry source execution not found')
                 }
-                const sourceExecution = await this.queryBus.execute<IXpertAgentExecution | null>(
-                    new XpertAgentExecutionOneQuery(sourceExecutionId)
+                const sourceExecution = assertExecutionBelongsToThread(
+                    await this.queryBus.execute<IXpertAgentExecution | null>(
+                        new XpertAgentExecutionOneQuery(sourceExecutionId)
+                    ),
+                    conversation.threadId
                 )
-                if (!sourceExecution) {
-                    throw new Error(`Retry source execution "${sourceExecutionId}" not found`)
-                }
                 executionInputs = sourceExecution.inputs
                 if (sourceExecution.checkpointId) {
                     const { checkpoint } = await this.checkpointSaver.getCopilotCheckpoint({
@@ -334,9 +381,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                               references: userMessage.references
                           }
                         : {}),
-                    ...(userMessage.attachments?.length
+                    ...(getChatMessageFiles(userMessage).length
                         ? {
-                              files: userMessage.attachments
+                              files: getChatMessageFiles(userMessage)
                           }
                         : {})
                 } as TChatRequestHuman
@@ -378,6 +425,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 } else {
                     const persistedInput = rawSendInput ?? input
                     const references = normalizeReferences(persistedInput?.references)
+                    const persistedFiles = Array.isArray(persistedInput?.files) ? persistedInput.files : []
+                    const fileAssets = toChatFileAssetReferences(persistedFiles)
+                    const legacyAttachments = toLegacyChatStorageFileAttachments(persistedFiles)
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
                             role: 'human',
@@ -388,9 +438,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                                       references
                                   }
                                 : {}),
-                            attachments: persistedInput?.files as IStorageFile[]
+                            ...(legacyAttachments.length ? { attachments: legacyAttachments } : {}),
+                            ...(fileAssets.length ? { fileAssets } : {})
                         })
                     )
+                    await attachChatFileAssetsToConversation(this.commandBus, conversation, persistedFiles, {
+                        projectId: conversation.projectId ?? projectId
+                    })
                 }
             }
         }
@@ -525,7 +579,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                                     datetime: new Date().toLocaleString(),
                                     thread_id: conversation.threadId,
                                     workspace_path: conversation.options?.workspacePath,
-                                    workspace_url: conversation.options?.workspaceUrl
+                                    workspace_url: conversation.projectId
+                                        ? undefined
+                                        : conversation.options?.workspaceUrl
                                 }
                             }
                         }
@@ -811,11 +867,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         const projectId = project?.id
         const { tenantId, organizationId } = command.options
 
-        // Env
-        let environment: IEnvironment
-        if (project?.workspace?.environments?.length > 0) {
-            environment = project.workspace.environments.find((_) => _.isDefault)
-        }
         // Long-term memory store
         const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(
             new CreateMemoryStoreCommand(tenantId, organizationId, null, {
@@ -864,74 +915,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             })
         }
 
-        // Custom toolsets
-        if (project?.toolsets.length > 0) {
-            const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset<BaseTool>[]>(
-                new ToolsetGetToolsCommand(
-                    project.toolsets.map(({ id }) => id),
-                    {
-                        projectId: project.id,
-                        workspaceId: project.workspaceId,
-                        conversationId,
-                        xpertId: null,
-                        signal: abortController.signal,
-                        env: toEnvState(environment),
-                        store: memoryStore,
-                        executionId: execution.id,
-                        getExecutionId: () => execution.id
-                    }
-                )
-            )
-            abortController.signal.addEventListener('abort', () => {
-                for (const toolset of toolsets) {
-                    toolset.close().catch((err) => this.#logger.debug(err))
-                }
-            })
-            // const interruptBefore: string[] = []
-            for await (const toolset of toolsets) {
-                const items = await toolset.initTools()
-                const _variables = await toolset.getVariables()
-                toolsetVarirables.push(...(_variables ?? []))
-                items.forEach((tool) => {
-                    // const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
-                    toolsTitleMap[tool.name] = translate(toolset.getToolTitle(tool.name))
-                    toolsetsMap[tool.name] = {
-                        provider: toolset.providerName,
-                        toolsetId: toolset.getId()
-                    }
-                    tools.push(tool)
-                })
-            }
-        }
-
         this.#logger.debug(
             `Project general agent use tools:\n${[...tools].map((_, i) => `${i + 1}. ` + _.name + ': ' + _.description).join('\n')}`
         )
-
-        // Custom Knowledgebases
-        if (project?.knowledges?.length) {
-            const retrievers = project.knowledges.map(({ id }) => createKnowledgeRetriever(this.queryBus, id))
-            const retriever = new EnsembleRetriever({
-                retrievers: retrievers,
-                weights: retrievers.map(() => 0.5)
-            })
-            const knowledgeToolName = 'knowledge_retriever'
-            toolsTitleMap[knowledgeToolName] = translate({ zh_Hans: '知识检索', en_US: 'Knowledge Retrieval' })
-            toolsetsMap[knowledgeToolName] = { provider: 'knowledge', toolsetId: null }
-            tools.push(
-                tool(
-                    async (query) => {
-                        const chunks = await retriever.invoke(query)
-                        return formatKnowledgebaseRetrievalToolOutput(chunks)
-                    },
-                    {
-                        name: knowledgeToolName,
-                        description: `Get information about question. The result includes chunks and citations. ${KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION}`,
-                        schema: z.string()
-                    }
-                ) as any
-            )
-        }
 
         stateVariables.push(...toolsetVarirables)
         // Find an available copilot
@@ -969,8 +955,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     supervisorName,
                     mute,
                     store: memoryStore,
-                    isDraft: false,
-                    environment
+                    isDraft: false
                 })
                 const tool = createHandoffTool({
                     agentName: agent.name,
@@ -988,7 +973,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             xpertId: xpert.id,
                             agentKey: xpert.agent?.key || agent.name,
                             status: 'queued',
-                            inputSummary: 'Delegated by the project assistant'
+                            inputSummary: 'Delegated by a project expert'
                         })
                         if (conversationId) {
                             await this.projectService.linkTaskConversation(project.id, taskId, {
@@ -1409,6 +1394,57 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             })
         }
         return null
+    }
+
+    private async resolveLegacyStorageFileAttachments(
+        files: IStorageFile[] | undefined
+    ): Promise<IStorageFile[] | undefined> {
+        if (!files) {
+            return undefined
+        }
+
+        return Promise.all(
+            files.map(async (file) => {
+                const explicitStorageFileId =
+                    'storageFileId' in file && typeof file.storageFileId === 'string'
+                        ? file.storageFileId.trim()
+                        : undefined
+                const submittedId = typeof file.id === 'string' ? file.id.trim() : undefined
+                const fileAssetId =
+                    'fileAssetId' in file && typeof file.fileAssetId === 'string' ? file.fileAssetId.trim() : undefined
+                const fileId = 'fileId' in file && typeof file.fileId === 'string' ? file.fileId.trim() : undefined
+                const submittedIdIsFileAsset =
+                    Boolean(submittedId) && (submittedId === fileAssetId || submittedId === fileId)
+                const explicitStorageFileUuid =
+                    explicitStorageFileId && isUUID(explicitStorageFileId) ? explicitStorageFileId : undefined
+                const submittedUuid = submittedId && isUUID(submittedId) ? submittedId : undefined
+
+                if (
+                    explicitStorageFileUuid &&
+                    submittedUuid &&
+                    explicitStorageFileUuid !== submittedUuid &&
+                    !submittedIdIsFileAsset
+                ) {
+                    throw new ForbiddenException(
+                        t('server-ai:Error.FileAssetAccessDenied', {
+                            defaultValue: 'You do not have access to this file'
+                        })
+                    )
+                }
+
+                // `storageFileId` is authoritative for AgentFile inputs, whose
+                // `id`/`fileId` belongs to FileAsset. Otherwise the relation is
+                // driven by `id`, so a non-UUID alias must not mask a UUID id.
+                const storageFileId = explicitStorageFileUuid ?? submittedUuid
+                if (!storageFileId) {
+                    return file
+                }
+
+                return this.queryBus.execute<GetOwnedStorageFileQuery, IStorageFile>(
+                    new GetOwnedStorageFileQuery(storageFileId)
+                )
+            })
+        )
     }
 }
 

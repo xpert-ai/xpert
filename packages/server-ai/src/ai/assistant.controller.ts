@@ -4,7 +4,8 @@ import {
     IXpert,
     ModelPropertyKey,
     resolveRuntimeXpert,
-    SecretTokenBindingType
+    SecretTokenBindingType,
+    TAssistantModelPreferenceInput
 } from '@xpert-ai/contracts'
 import {
     AllowClientSecretBindings,
@@ -12,12 +13,26 @@ import {
     Public,
     TransformInterceptor
 } from '@xpert-ai/server-core'
-import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    UseGuards,
+    UseInterceptors
+} from '@nestjs/common'
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
 import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
-import { PublishedXpertAccessService } from '../xpert'
+import { t } from 'i18next'
+import { AssistantModelSelectionService, PublishedXpertAccessService } from '../xpert'
+import { applyAssistantScope } from './assistant-request-context'
 import {
     getRuntimePrimaryAgentKey,
     RUNTIME_CAPABILITY_XPERT_RELATIONS,
@@ -38,7 +53,8 @@ export class AssistantsController {
 
     constructor(
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
-        private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService
+        private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
+        private readonly assistantModelSelectionService: AssistantModelSelectionService
     ) {}
 
     @Post('search')
@@ -73,12 +89,51 @@ export class AssistantsController {
 
     @Get(':id/runtime-capabilities')
     @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
-    async getRuntimeCapabilities(@Param('id') id: string, @Query('isDraft') isDraft?: string | boolean | string[]) {
+    @ApiQuery({ name: 'projectId', required: false, type: String })
+    async getRuntimeCapabilities(
+        @Param('id') id: string,
+        @Query('isDraft') isDraft?: string | boolean | string[],
+        @Query('projectId') projectId?: string
+    ) {
         const sourceXpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
         })
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
-        return this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+        return projectId
+            ? this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id, projectId)
+            : this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+    }
+
+    @Get(':id/models')
+    async getModels(@Param('id') id: string) {
+        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
+            relations: ASSISTANT_RELATIONS
+        })
+        applyAssistantScope(xpert)
+        return this.assistantModelSelectionService.getModels(xpert)
+    }
+
+    @Put(':id/model-preference')
+    async setModelPreference(@Param('id') id: string, @Body() input: TAssistantModelPreferenceInput) {
+        if (!input || !Object.prototype.hasOwnProperty.call(input, 'model_id')) {
+            throw new BadRequestException(
+                t('server-ai:Error.AssistantModelPreferenceInputRequired', {
+                    defaultValue: 'model_id is required and must be a model id or null.'
+                })
+            )
+        }
+        if (input.model_id !== null && typeof input.model_id !== 'string') {
+            throw new BadRequestException(
+                t('server-ai:Error.AssistantModelPreferenceInputInvalid', {
+                    defaultValue: 'model_id must be a model id or null.'
+                })
+            )
+        }
+        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
+            relations: ASSISTANT_RELATIONS
+        })
+        applyAssistantScope(xpert)
+        return this.assistantModelSelectionService.setPreference(xpert, input?.model_id ?? null)
     }
 }
 
