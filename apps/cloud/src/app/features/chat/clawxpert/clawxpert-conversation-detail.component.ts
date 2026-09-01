@@ -12,6 +12,7 @@ import type {
   TChatElementReference,
   TChatFileElementReference,
   XpertExtensionViewManifest,
+  WorkbenchAssistantConversationResolution,
   XpertViewQuery,
   XpertViewHostEventMessage,
   XpertViewRuntimeScopeInput
@@ -126,6 +127,10 @@ const DEFAULT_FIXED_VIEW_ICON = {
 } satisfies IconDefinition
 
 type AssistantWorkbenchRequestContext = Omit<AssistantContextSetPayload, 'key' | 'clear'>
+type WorkbenchConversationChatkitScope = WorkbenchAssistantConversationResolution & {
+  hostRouteKey: string
+  requesterXpertId: string
+}
 type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
 type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
 type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
@@ -722,7 +727,9 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
                   </div>
                 }
                 @case ('ready') {
-                  <xpert-chatkit #chatkitHost class="block h-full min-h-0" [control]="control()!" />
+                  @for (runtime of chatkitMountEntries(); track runtime.key) {
+                    <xpert-chatkit #chatkitHost class="block h-full min-h-0" [control]="runtime.control" />
+                  }
                 }
                 @default {
                   <div
@@ -792,6 +799,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #activeChatkitControl: ChatKitControl | null = null
   #lastSyncedRoutedThreadId: string | null = null
   #chatkitOriginThreadId: string | null = null
+  readonly #workbenchConversationScope = signal<WorkbenchConversationChatkitScope | null>(null)
   #chatkitThreadSync = Promise.resolve()
   #projectCreatePending = false
 
@@ -808,24 +816,58 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.facade.projectId ? this.projectId() : (this.resolvedConversation()?.projectId ?? null)
   )
   readonly #projectSelectionEnabled = computed(
-    () => Boolean(this.facade.assistantId()?.trim()) && !this.facade.threadId()?.trim()
+    () =>
+      !this.#workbenchConversationScope() &&
+      Boolean(this.facade.assistantId()?.trim()) &&
+      !this.facade.threadId()?.trim()
+  )
+  readonly #hostChatRouteKey = computed(() =>
+    JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
       workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
-      xpertId: this.facade.xpertId(),
+      xpertId: this.#workbenchConversationScope()?.xpertId ?? this.facade.xpertId(),
       contexts: this.#assistantWorkbenchContexts()
     })
+  )
+  readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
+  readonly chatkitProjectId = computed(() => {
+    const scope = this.#workbenchConversationScope()
+    return scope ? scope.projectId : this.projectId()
+  })
+  readonly chatkitInitialThread = computed(() => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId())
+  readonly chatkitDelegatedConversation = computed(() => {
+    const scope = this.#workbenchConversationScope()
+    return scope
+      ? {
+          conversationId: scope.conversationId,
+          requesterXpertId: scope.requesterXpertId
+        }
+      : null
+  })
+  readonly chatkitMountKey = computed(() => {
+    const delegatedConversation = this.chatkitDelegatedConversation()
+    return JSON.stringify([
+      this.chatkitAssistantId(),
+      this.chatkitProjectId(),
+      delegatedConversation?.conversationId ?? null,
+      delegatedConversation?.requesterXpertId ?? null
+    ])
+  })
+  readonly activeChatkitThreadId = computed(
+    () => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId()
   )
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
-    assistantId: this.facade.assistantId,
+    assistantId: this.chatkitAssistantId,
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
-    projectId: this.projectId,
+    projectId: this.chatkitProjectId,
+    delegatedConversation: this.chatkitDelegatedConversation,
     composer: computed(() => ({
       projects: {
         enabled: this.#projectSelectionEnabled(),
@@ -833,7 +875,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       },
       connectors: { enabled: true }
     })),
-    initialThread: this.facade.threadId,
+    initialThread: this.chatkitInitialThread,
     displayMode: this.chatkitDisplayMode,
     layout: {
       maxWidth: CLAWXPERT_CHATKIT_MAX_WIDTH
@@ -849,10 +891,22 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleKey: this.facade.definition.titleKey,
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
-      this.#chatkitOriginThreadId = normalizeConversationThreadId(threadId)
+      const normalizedThreadId = normalizeConversationThreadId(threadId)
+      if (this.#workbenchConversationScope()) {
+        if (normalizedThreadId) {
+          this.#workbenchConversationScope.update((scope) =>
+            scope ? { ...scope, threadId: normalizedThreadId } : null
+          )
+        }
+        return
+      }
+      this.#chatkitOriginThreadId = normalizedThreadId
       this.facade.onChatThreadChange(threadId)
     },
     onProjectChange: ({ projectId }) => {
+      if (this.#workbenchConversationScope()) {
+        return
+      }
       this.facade.onChatProjectChange?.(projectId)
     },
     onThreadLoadEnd: ({ threadId }) => {
@@ -872,16 +926,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
-        threadId: this.facade.threadId()
+        threadId: this.activeChatkitThreadId()
       })
       if (citationEvent) {
         this.publishKnowledgebaseCitationEvent(citationEvent)
       }
-      if (this.facade.threadId() && shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
+      if (this.activeChatkitThreadId() && shouldRefreshWorkspaceFilesFromEffectEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
       const previewTarget = getSandboxPreviewTargetFromEffectEvent(event)
-      if (this.facade.threadId() && previewTarget) {
+      if (this.activeChatkitThreadId() && previewTarget) {
         this.openBrowserTabFromSandboxEvent(previewTarget)
       }
     },
@@ -889,7 +943,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const toolCompletedEvent = createAssistantToolCompletedHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
-        threadId: this.facade.threadId(),
+        threadId: this.activeChatkitThreadId(),
         runtimeScope: this.viewRuntimeScope(),
         userId: this.facade.userId()
       })
@@ -902,24 +956,29 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         })
         this.#hostEvents.publish(toolCompletedEvent)
       }
-      if (this.facade.threadId() && shouldRefreshWorkspaceFilesFromLogEvent(event)) {
+      if (this.activeChatkitThreadId() && shouldRefreshWorkspaceFilesFromLogEvent(event)) {
         this.scheduleWorkspaceFileListRefresh()
       }
       const previewTarget = getSandboxPreviewTargetFromLogEvent(event)
-      if (this.facade.threadId() && previewTarget) {
+      if (this.activeChatkitThreadId() && previewTarget) {
         this.openBrowserTabFromSandboxEvent(previewTarget)
       }
     },
     onResponseStart: () => {
       this.#responseActive.set(true)
-      this.facade.patchActiveConversationStatus('busy')
+      if (!this.#workbenchConversationScope()) {
+        this.facade.patchActiveConversationStatus('busy')
+      }
     },
     onResponseEnd: () => {
       this.#responseActive.set(false)
-      this.facade.patchActiveConversationStatus('idle')
-      this.markChatkitThreadRead(this.facade.threadId() ?? this.resolvedConversation()?.threadId)
+      if (!this.#workbenchConversationScope()) {
+        this.facade.patchActiveConversationStatus('idle')
+      }
+      this.markChatkitThreadRead(this.activeChatkitThreadId() ?? this.resolvedConversation()?.threadId)
     }
   })
+  readonly chatkitMountEntries = computed(() => [{ key: this.chatkitMountKey(), control: this.control()! }])
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([])
   readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
@@ -1138,7 +1197,18 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
+      openAssistantProject: ({ projectId }) => this.facade.onChatProjectChange?.(projectId),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
+    })
+
+    effect(() => {
+      const scope = this.#workbenchConversationScope()
+      if (scope && scope.hostRouteKey !== this.#hostChatRouteKey()) {
+        // The user navigated the primary Workbench while an external record was
+        // open. Restore the primary Assistant runtime instead of carrying the
+        // role Assistant's delegated session into the new host route.
+        this.#workbenchConversationScope.set(null)
+      }
     })
 
     effect(() => {
@@ -1919,11 +1989,36 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   async openWorkbenchAssistantConversation(request: WorkbenchAssistantConversationOpenRequest) {
-    const conversation = await this.loadConversationDetail(request.conversationId)
-    const threadId = normalizeConversationThreadId(request.threadId ?? conversation?.threadId)
-    if (!threadId) {
-      throw new Error('This assistant conversation has no ChatKit thread.')
+    const requesterXpertId = this.facade.assistantId()?.trim() || this.facade.xpertId()?.trim()
+    if (!requesterXpertId) {
+      throw new Error('The current Workbench Assistant is not available.')
     }
+
+    const resolution = await firstValueFrom(
+      this.#conversationService.resolveWorkbenchNavigation(request.conversationId, requesterXpertId)
+    )
+    assertWorkbenchConversationHint('conversation', request.conversationId, resolution.conversationId)
+    assertWorkbenchConversationHint('thread', request.threadId, resolution.threadId)
+    assertWorkbenchConversationHint('Project', request.projectId, resolution.projectId)
+
+    const currentAssistantId = this.facade.assistantId()?.trim() || null
+    const requiresScopedRuntime =
+      resolution.isExternalAssistant ||
+      resolution.xpertId !== currentAssistantId ||
+      resolution.projectId !== this.projectId()
+    this.#workbenchConversationScope.set(
+      requiresScopedRuntime
+        ? {
+            ...resolution,
+            requesterXpertId,
+            hostRouteKey: this.#hostChatRouteKey()
+          }
+        : null
+    )
+    // assistantId/projectId are part of the hosted runtime key. Yield so the
+    // old delegated client secret and control are replaced before targeting
+    // the canonical persisted thread.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
     const control = this.control()
     if (!control) {
@@ -1931,16 +2026,22 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     this.revealChatkitForConversationOpen()
-    if (conversation) {
-      this.syncResolvedConversation(request.conversationId, {
-        ...conversation,
-        id: conversation.id ?? request.conversationId,
-        threadId
-      })
+    if (!requiresScopedRuntime) {
+      const conversation = await this.loadConversationDetail(resolution.conversationId)
+      if (conversation) {
+        this.syncResolvedConversation(resolution.conversationId, {
+          ...conversation,
+          id: resolution.conversationId,
+          threadId: resolution.threadId
+        })
+      }
     }
-    await control.setThreadId(threadId)
-    this.facade.onChatThreadChange(threadId)
-    this.markConversationRead(request.conversationId)
+    if (!requiresScopedRuntime) {
+      await control.setThreadId(resolution.threadId)
+      this.facade.onChatThreadChange(resolution.threadId)
+    }
+    this.markConversationRead(resolution.conversationId)
+    return resolution
   }
 
   private revealChatkitForConversationOpen() {
@@ -2638,6 +2739,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 function resolveConversationId(metadata?: { id?: string }) {
   const conversationId = metadata?.id
   return typeof conversationId === 'string' && conversationId.trim() ? conversationId : null
+}
+
+function assertWorkbenchConversationHint(label: string, hint: string | undefined, canonical: string | null) {
+  const normalizedHint = hint?.trim()
+  if (normalizedHint && normalizedHint !== canonical) {
+    throw new Error(`The requested ${label} does not match the authorized Assistant conversation.`)
+  }
 }
 
 function clampChatkitWidth(width: number) {

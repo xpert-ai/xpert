@@ -49,6 +49,7 @@ import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
 import { CancelConversationCommand, ChatConversationBindXpertCommand } from './commands'
 import { ChatConversationGoalService } from './goal'
 import { assertSafeChatConversationRelations } from './conversation-relations'
+import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
@@ -62,7 +63,8 @@ export class ChatConversationController {
         private readonly goalService: ChatConversationGoalService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        private readonly organizationScopeService: SuperAdminOrganizationScopeService
+        private readonly organizationScopeService: SuperAdminOrganizationScopeService,
+        private readonly workbenchNavigationService: WorkbenchAssistantConversationNavigationService
     ) {}
 
     @ApiOperation({ summary: 'find my all' })
@@ -136,6 +138,17 @@ export class ChatConversationController {
             assertSafeChatConversationRelations(relations)
             return this.service.findOneDetail(id, { select, relations })
         })
+    }
+
+    @Get(':id/workbench-navigation')
+    async resolveWorkbenchNavigation(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('requesterXpertId') requesterXpertId: string,
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.organizationScopeService.run(organizationId, () =>
+            this.workbenchNavigationService.resolve(id, requesterXpertId)
+        )
     }
 
     @Put(':id')

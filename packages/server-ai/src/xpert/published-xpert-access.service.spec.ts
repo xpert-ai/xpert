@@ -339,6 +339,37 @@ describe('PublishedXpertAccessService', () => {
         expect(repository.findOne).not.toHaveBeenCalled()
     })
 
+    it('accepts the exact Assistant audience of a delegated user session without repeating catalog access', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            requestedOrganizationId: 'org-requested',
+            requestedUserId: 'user-1',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            apiKey: {
+                type: ApiKeyBindingType.ASSISTANT,
+                entityId: 'xpert-user-1'
+            }
+        })
+
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-user-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-requested',
+                publishAt: new Date()
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+
+        await expect(service.getAccessiblePublishedXpert('xpert-user-1')).resolves.toMatchObject({
+            id: 'xpert-user-1'
+        })
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
     it('allows workspace members to access a published xpert without a user-group grant', async () => {
         const repository = {
             findOne: jest.fn().mockResolvedValue({

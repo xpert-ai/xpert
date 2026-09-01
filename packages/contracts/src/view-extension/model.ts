@@ -466,6 +466,8 @@ export interface WorkbenchNavigationOpenPayload {
   conversationId?: string
   threadId?: string
   executionId?: string
+  /** Untrusted Assistant hint; the host resolves the canonical owner from `conversationId`. */
+  xpertId?: string
   /** Platform Chat Project selected for Project-scoped Assistant navigation. */
   projectId?: string
   viewKey?: string
@@ -477,6 +479,19 @@ export interface WorkbenchAssistantConversationOpenRequest {
   conversationId: string
   threadId?: string
   executionId?: string
+  /** Untrusted hint; the host must resolve the canonical Assistant from `conversationId`. */
+  xpertId?: string
+  /** Untrusted hint; the host must resolve the canonical Project from `conversationId`. */
+  projectId?: string
+}
+
+/** Server-authorized runtime scope used to rebuild ChatKit for one persisted Assistant conversation. */
+export interface WorkbenchAssistantConversationResolution {
+  conversationId: string
+  threadId: string
+  xpertId: string
+  projectId: string | null
+  isExternalAssistant: boolean
 }
 
 export interface WorkbenchAssistantProjectOpenRequest {

@@ -25,6 +25,7 @@ import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
+import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
 
 @Module({
     imports: [
@@ -59,6 +60,7 @@ import { XpertProjectAccessModule } from '../xpert-project/project-access.module
         ChatConversationThreadService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
+        WorkbenchAssistantConversationNavigationService,
         ConversationSummaryProcessor,
         ...CommandHandlers,
         ...QueryHandlers
@@ -67,7 +69,8 @@ import { XpertProjectAccessModule } from '../xpert-project/project-access.module
         ChatConversationService,
         ChatConversationThreadService,
         ChatConversationGoalService,
-        ChatTaskSummaryService
+        ChatTaskSummaryService,
+        WorkbenchAssistantConversationNavigationService
     ]
 })
 export class ChatConversationModule {}

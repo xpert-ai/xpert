@@ -163,6 +163,7 @@ describe('assistant chatkit runtime helpers', () => {
       }
     })
     const onProjectChange = jest.fn()
+    const assistantId = signal('assistant-1')
     const projectId = signal('project-1')
     const composer = signal({
       projects: { enabled: false },
@@ -210,7 +211,7 @@ describe('assistant chatkit runtime helpers', () => {
     TestBed.runInInjectionContext(() => {
       injectHostedAssistantChatkitControl({
         identity: signal('xpert_shared'),
-        assistantId: signal('assistant-1'),
+        assistantId,
         projectId,
         frameUrl: signal('/chatkit'),
         requestContext,
@@ -336,6 +337,24 @@ describe('assistant chatkit runtime helpers', () => {
             }
           }
         }
+      })
+    )
+
+    createChatKitMock.mockClear()
+    setOptions.mockClear()
+    assistantId.set('role-assistant-1')
+    flushAngularEffects()
+
+    // An Assistant change must rotate the delegated session/control before a
+    // foreign persisted thread is selected.
+    expect(createChatKitMock).toHaveBeenCalledTimes(1)
+    expect(setOptions).not.toHaveBeenCalled()
+    expect(createChatKitMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        api: expect.objectContaining({
+          xpertId: 'role-assistant-1',
+          projectId: 'project-2'
+        })
       })
     )
   })
@@ -559,6 +578,11 @@ describe('assistant chatkit runtime helpers', () => {
       injectHostedAssistantChatkitControl({
         identity: signal('assistant-1'),
         assistantId: signal('assistant-1'),
+        projectId: signal('project-1'),
+        delegatedConversation: signal({
+          conversationId: 'conversation-1',
+          requesterXpertId: 'orchestrator-1'
+        }),
         frameUrl: signal('/chatkit'),
         titleKey: 'XP.Xpert.Assistant',
         titleDefault: 'Assistant'
@@ -572,7 +596,12 @@ describe('assistant chatkit runtime helpers', () => {
       organizationId: 'org-1'
     })
     expect(post).toHaveBeenCalledWith('http://localhost:3000/api/ai/v1/chatkit/sessions', {
-      assistant: { id: 'assistant-1' }
+      assistant: { id: 'assistant-1' },
+      project: { id: 'project-1' },
+      conversation: {
+        id: 'conversation-1',
+        requesterXpertId: 'orchestrator-1'
+      }
     })
   })
 

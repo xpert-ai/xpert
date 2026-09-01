@@ -11,6 +11,7 @@ import { ChatConversationService } from './conversation.service'
 import { ChatConversationGoalService } from './goal'
 import { ChatConversationBindXpertCommand } from './commands'
 import { FindXpertQuery } from '../xpert'
+import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
 
 describe('ChatConversationController goal routes', () => {
     let controller: ChatConversationController
@@ -34,6 +35,8 @@ describe('ChatConversationController goal routes', () => {
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let loggerWarn: jest.SpyInstance
+    let workbenchNavigationService: WorkbenchAssistantConversationNavigationService
+    let resolveWorkbenchNavigation: jest.Mock
 
     beforeEach(() => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
@@ -73,14 +76,41 @@ describe('ChatConversationController goal routes', () => {
         queryBus = {
             execute: jest.fn().mockResolvedValue({ id: 'xpert-1' })
         }
+        resolveWorkbenchNavigation = jest.fn().mockResolvedValue({
+            conversationId: 'scoped-conversation-1',
+            threadId: 'thread-1',
+            xpertId: 'xpert-2',
+            projectId: 'project-1',
+            isExternalAssistant: true
+        })
+        workbenchNavigationService = Object.assign(
+            Object.create(WorkbenchAssistantConversationNavigationService.prototype),
+            { resolve: resolveWorkbenchNavigation }
+        )
 
         controller = new ChatConversationController(
             service as unknown as ChatConversationService,
             goalService as unknown as ChatConversationGoalService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus,
-            organizationScopeService as unknown as SuperAdminOrganizationScopeService
+            organizationScopeService as unknown as SuperAdminOrganizationScopeService,
+            workbenchNavigationService
         )
+    })
+
+    it('resolves Workbench conversation navigation inside the requested organization scope', async () => {
+        await expect(
+            controller.resolveWorkbenchNavigation('conversation-1', 'requester-xpert-1', 'organization-1')
+        ).resolves.toEqual({
+            conversationId: 'scoped-conversation-1',
+            threadId: 'thread-1',
+            xpertId: 'xpert-2',
+            projectId: 'project-1',
+            isExternalAssistant: true
+        })
+
+        expect(organizationScopeService.run).toHaveBeenCalledWith('organization-1', expect.any(Function))
+        expect(resolveWorkbenchNavigation).toHaveBeenCalledWith('conversation-1', 'requester-xpert-1')
     })
 
     afterEach(() => {

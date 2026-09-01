@@ -260,6 +260,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import type { CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_NAVIGATION_OPEN_COMMAND,
   KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
   type IconDefinition,
@@ -355,6 +356,7 @@ type MockChatKitEvent = {
 }
 
 type MockChatKitRuntimeInput = {
+  assistantId?: () => string | null
   displayMode?: () => CreateChatKitOptions['displayMode']
   header?: () => CreateChatKitOptions['header']
   initialThread?: () => string | null
@@ -476,6 +478,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   let conversationService: {
     getByThreadId: jest.Mock
     getById: jest.Mock
+    resolveWorkbenchNavigation: jest.Mock
     markRead: jest.Mock
     getFile: jest.Mock
     downloadFile: jest.Mock
@@ -596,6 +599,15 @@ describe('ClawXpertConversationDetailComponent', () => {
           status: 'idle',
           messages: []
         } as IChatConversation)
+      ),
+      resolveWorkbenchNavigation: jest.fn(() =>
+        of({
+          conversationId: 'conversation-1',
+          threadId: 'thread-1',
+          xpertId: 'assistant-1',
+          projectId: null,
+          isExternalAssistant: false
+        })
       ),
       markRead: jest.fn(() => of({})),
       getFile: jest.fn(() =>
@@ -724,17 +736,12 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith(
-      'agent',
-      'assistant-1',
-      'agent.workbench.fixed',
-      {
-        runtimeScope: {
-          projectId: 'project-1',
-          conversationId: null
-        }
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: {
+        projectId: 'project-1',
+        conversationId: null
       }
-    )
+    })
   })
 
   it('keeps the Workbench open when switching conversations within the same xpert', async () => {
@@ -1892,18 +1899,22 @@ describe('ClawXpertConversationDetailComponent', () => {
         focusComposer: jest.fn()
       })
     )
-    conversationService.getById.mockReturnValue(
+    facade.projectId.set('case-project-1')
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
       of({
-        id: 'job-conversation-1',
-        threadId: 'persisted-thread-1',
-        status: 'busy',
-        messages: []
-      } as IChatConversation)
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        xpertId: 'role-assistant-current',
+        projectId: 'case-project-1',
+        isExternalAssistant: true
+      })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    const primaryChatkitElement = fixture.nativeElement.querySelector('xpert-chatkit')
 
     facade.onChatThreadChange.mockClear()
+    facade.setActiveConversation.mockClear()
     conversationService.markRead.mockClear()
     const registry = TestBed.inject(ViewClientCommandRegistry)
     const result = await registry.execute(
@@ -1912,7 +1923,9 @@ describe('ClawXpertConversationDetailComponent', () => {
         target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
         conversationId: 'job-conversation-1',
         threadId: 'job-thread-1',
-        executionId: 'job-execution-1'
+        executionId: 'job-execution-1',
+        xpertId: 'spoofed-role-assistant',
+        projectId: 'case-project-1'
       },
       {
         hostType: 'agent',
@@ -1929,15 +1942,128 @@ describe('ClawXpertConversationDetailComponent', () => {
       target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
       conversationId: 'job-conversation-1',
       threadId: 'job-thread-1',
-      executionId: 'job-execution-1'
+      executionId: 'job-execution-1',
+      xpertId: 'role-assistant-current',
+      projectId: 'case-project-1',
+      isExternalAssistant: true
     })
-    expect(conversationService.getById).toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
-    expect(setThreadId).toHaveBeenCalledWith('job-thread-1')
-    expect(facade.onChatThreadChange).toHaveBeenCalledWith('job-thread-1')
-    expect(facade.setActiveConversation).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: 'job-conversation-1', threadId: 'job-thread-1' })
+    expect(conversationService.resolveWorkbenchNavigation).toHaveBeenCalledWith('job-conversation-1', 'assistant-1')
+    expect(conversationService.getById).not.toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
+    expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
+    expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
+    expect(getRuntimeInput().initialThread?.()).toBe('job-thread-1')
+    expect(getRuntimeInput().delegatedConversation?.()).toEqual({
+      conversationId: 'job-conversation-1',
+      requesterXpertId: 'assistant-1'
+    })
+    expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBe(primaryChatkitElement)
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({ env: expect.objectContaining({ xpertId: 'role-assistant-current' }) })
     )
+    expect(setThreadId).not.toHaveBeenCalledWith('job-thread-1')
+    expect(facade.onChatThreadChange).not.toHaveBeenCalled()
+    expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
+
+    const runtimeInput = getRuntimeInput()
+    runtimeInput.onThreadChange?.({ threadId: 'role-thread-2' })
+    runtimeInput.onProjectChange?.({ projectId: 'other-project' })
+    expect(facade.onChatThreadChange).not.toHaveBeenCalled()
+    expect(facade.onChatProjectChange).not.toHaveBeenCalled()
+  })
+
+  it('rejects a stale thread hint before rebuilding ChatKit', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
+      of({
+        conversationId: 'job-conversation-1',
+        threadId: 'canonical-thread-1',
+        xpertId: 'role-assistant-current',
+        projectId: 'case-project-1',
+        isExternalAssistant: true
+      })
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    await expect(
+      fixture.componentInstance.openWorkbenchAssistantConversation({
+        conversationId: 'job-conversation-1',
+        threadId: 'stale-thread-1'
+      })
+    ).rejects.toThrow('does not match the authorized Assistant conversation')
+
+    expect(getRuntimeInput().assistantId?.()).toBe('assistant-1')
+    expect(setThreadId).not.toHaveBeenCalledWith('canonical-thread-1')
+  })
+
+  it('restores the primary Assistant ChatKit when the host route changes', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
+      signal({
+        element: {},
+        setThreadId,
+        focusComposer: jest.fn()
+      })
+    )
+    facade.projectId.set('case-project-1')
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
+      of({
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        xpertId: 'role-assistant-current',
+        projectId: 'case-project-1',
+        isExternalAssistant: true
+      })
+    )
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    await fixture.componentInstance.openWorkbenchAssistantConversation({ conversationId: 'job-conversation-1' })
+    await settle(fixture)
+    expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
+
+    facade.threadId.set('orchestrator-thread-2')
+    await settle(fixture)
+
+    expect(getRuntimeInput().assistantId?.()).toBe('assistant-1')
+    expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
+    expect(getRuntimeInput().initialThread?.()).toBe('orchestrator-thread-2')
+  })
+
+  it('switches the embedded Workbench to the requested Assistant Project', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const registry = TestBed.inject(ViewClientCommandRegistry)
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+        projectId: 'case-project-1'
+      },
+      {
+        hostType: 'agent',
+        hostId: 'assistant-1',
+        viewKey: 'factory-operations-center',
+        manifest: buildFixedViewManifest('factory-operations-center')
+      }
+    )
+
+    expect(result).toEqual({
+      success: true,
+      status: 'opened',
+      target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+      projectId: 'case-project-1'
+    })
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('case-project-1')
   })
 
   it('restores the embedded ChatKit from pet mode before opening assistant conversation client commands', async () => {
@@ -1956,6 +2082,15 @@ describe('ClawXpertConversationDetailComponent', () => {
         status: 'busy',
         messages: []
       } as IChatConversation)
+    )
+    conversationService.resolveWorkbenchNavigation.mockReturnValue(
+      of({
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        xpertId: 'assistant-1',
+        projectId: null,
+        isExternalAssistant: false
+      })
     )
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -2007,7 +2142,9 @@ describe('ClawXpertConversationDetailComponent', () => {
       status: 'opened',
       target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
       conversationId: 'job-conversation-1',
-      threadId: 'job-thread-1'
+      threadId: 'job-thread-1',
+      xpertId: 'assistant-1',
+      isExternalAssistant: false
     })
     expect(restorePet).toHaveBeenCalledTimes(1)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)

@@ -63,6 +63,11 @@ type AssistantHostedRuntimeInput = {
   assistantId: Signal<string | null>
   /** Reactive Project scope; changing it recreates the hosted ChatKit binding. */
   projectId?: Signal<string | null>
+  /** Server-authorized Workbench record used to mint a delegated external Assistant session. */
+  delegatedConversation?: Signal<{
+    conversationId: string
+    requesterXpertId: string
+  } | null>
   frameUrl: Signal<string | null>
   getClientSecret?: (currentClientSecret: string | null) => Promise<ChatKitClientSecretResult>
   requestContext?: Signal<Record<string, unknown> | null>
@@ -265,6 +270,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const assistantId = input.assistantId()
     const frameUrl = input.frameUrl()
     const projectId = input.projectId?.() ?? null
+    const delegatedConversation = input.delegatedConversation?.() ?? null
 
     if (!identity || !assistantId || !frameUrl) {
       return null
@@ -276,6 +282,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       identity,
       assistantId,
       projectId ?? '',
+      delegatedConversation?.conversationId ?? '',
+      delegatedConversation?.requesterXpertId ?? '',
       frameUrl,
       fixedApiUrl,
       authToken() ?? '',
@@ -296,6 +304,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const initialThread = untracked(() => input.initialThread?.() ?? null)
     const requestContext = input.requestContext?.() ?? null
     const projectId = input.projectId?.() ?? null
+    const delegatedConversation = input.delegatedConversation?.() ?? null
     const composer = input.composer?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
@@ -323,7 +332,15 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         getClientSecret: async (currentClientSecret) =>
           input.getClientSecret
             ? input.getClientSecret(currentClientSecret)
-            : createAssistantChatkitSession(httpClient, fixedApiUrl, assistantId, currentToken, currentOrganizationId)
+            : createAssistantChatkitSession(
+                httpClient,
+                fixedApiUrl,
+                assistantId,
+                projectId,
+                delegatedConversation,
+                currentToken,
+                currentOrganizationId
+              )
       },
       locale: currentLocale,
       theme: currentTheme,
@@ -554,6 +571,8 @@ async function createAssistantChatkitSession(
   httpClient: HttpClient | null,
   apiUrl: string,
   assistantId: string,
+  projectId: string | null,
+  delegatedConversation: { conversationId: string; requesterXpertId: string } | null,
   fallbackSecret: string,
   organizationId?: string | null
 ): Promise<ChatKitClientSecretResult> {
@@ -562,7 +581,16 @@ async function createAssistantChatkitSession(
   if (httpClient) {
     const session = await firstValueFrom(
       httpClient.post<AssistantChatkitSessionResponse>(`${apiUrl}/v1/chatkit/sessions`, {
-        assistant: { id: assistantId }
+        assistant: { id: assistantId },
+        ...(projectId ? { project: { id: projectId } } : {}),
+        ...(delegatedConversation
+          ? {
+              conversation: {
+                id: delegatedConversation.conversationId,
+                requesterXpertId: delegatedConversation.requesterXpertId
+              }
+            }
+          : {})
       })
     )
     const secret = session.client_secret?.trim()

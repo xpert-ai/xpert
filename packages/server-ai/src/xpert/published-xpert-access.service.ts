@@ -95,9 +95,11 @@ export class PublishedXpertAccessService {
 
     /**
      * Return the assistant audience carried by a delegated user client secret.
-     * The user still goes through normal tenant/organization access checks, and
-     * this additional audience check prevents reusing the secret for another
-     * assistant in the same scope.
+     * The short-lived secret is minted only after ordinary Assistant access or
+     * Project membership plus an exact Project-Assistant binding is verified.
+     * Requests authenticated by it are therefore limited to this one audience
+     * and must not repeat catalog visibility checks that Project delegation is
+     * intentionally allowed to bypass.
      */
     private currentUserXpertId() {
         const apiPrincipal = this.currentApiPrincipal() as IApiPrincipal | null
@@ -618,6 +620,12 @@ export class PublishedXpertAccessService {
         }
 
         const xpert = await this.getPublishedXpertInTenant(id, options)
+        if (userXpertId) {
+            // SecretTokenStrategy restores the issuing user and the immutable
+            // tenant/organization scope. Matching the exact token audience is
+            // the capability grant used by ChatKit metadata and runtime reads.
+            return xpert
+        }
         const workspaceId = this.currentWorkspaceApiKeyWorkspaceId()
 
         if (workspaceId) {
