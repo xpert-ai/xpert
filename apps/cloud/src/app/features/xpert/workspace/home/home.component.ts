@@ -50,6 +50,7 @@ import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CustomConnectorsDialogComponent } from '../connectors/custom-connectors-dialog.component'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -383,6 +384,22 @@ export class XpertWorkspaceHomeComponent {
           //
         }
       })
+  }
+
+  openCustomConnectors() {
+    const workspaceId = this.workspace()?.id
+    if (!workspaceId) {
+      return
+    }
+
+    this.#dialog.open(CustomConnectorsDialogComponent, {
+      backdropClass: 'backdrop-blur-lg-white',
+      disableClose: true,
+      data: {
+        workspaceId,
+        canManage: this.canManageWorkspace()
+      }
+    })
   }
 
   private async syncWorkspaceRoute(workspace: IXpertWorkspace) {
