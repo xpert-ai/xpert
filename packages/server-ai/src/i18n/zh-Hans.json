@@ -655,6 +655,7 @@
     },
     "ChatTaskSummary": {
         "Agent": "智能体",
+        "PendingUserInput": "等待你的输入",
         "PendingSteeringMessage": "待处理的引导消息",
         "PendingFollowUpMessage": "待处理的追问消息",
         "ConversationNeedsInput": "会话需要输入"
