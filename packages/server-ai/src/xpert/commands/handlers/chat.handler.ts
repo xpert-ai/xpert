@@ -32,7 +32,8 @@ import {
     TXpertChatState,
     TXpertChatResumeRequest,
     TXpertChatRetryRequest,
-    XpertAgentExecutionStatusEnum
+    XpertAgentExecutionStatusEnum,
+    XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
@@ -119,6 +120,10 @@ function isInternalGoalRunInput(input: TChatRequestHuman | null | undefined): bo
         readBooleanMarker(metadata, 'internal') ||
         readBooleanMarker(metadata, 'xpertInternalGoalRun')
     )
+}
+
+function supportsAssistantPrimaryModelSelection(xpert: Partial<IXpert> | null | undefined): boolean {
+    return xpert?.type !== XpertTypeEnum.Knowledge
 }
 
 const STEER_FOLLOW_UP_TARGET_NOT_RUNNING_ERROR = 'Steer follow-up target execution is no longer running'
@@ -295,7 +300,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                       .findOneForRuntime(xpertId, { relations: ['agent', 'agent.copilotModel', 'copilotModel'] })
                       .catch(() => null)
                 : null
-            if (request.mode === 'queue' && this.assistantModelSelectionService && xpertId) {
+            if (
+                request.mode === 'queue' &&
+                this.assistantModelSelectionService &&
+                xpertId &&
+                supportsAssistantPrimaryModelSelection(followUpXpert)
+            ) {
                 if (followUpXpert) {
                     const runtimeXpert = figureOutXpert(followUpXpert, options?.isDraft)
                     const selection = await this.assistantModelSelectionService.resolveSelection(runtimeXpert, {
@@ -1472,7 +1482,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         sourceExecution: IXpertAgentExecution | null
     }): Promise<TAssistantPrimaryModelSelection | null> {
         const primaryAgentKey = xpert.agent?.key
-        if (!this.assistantModelSelectionService || !primaryAgentKey || runtimeAgentKey !== primaryAgentKey) {
+        if (
+            !this.assistantModelSelectionService ||
+            !supportsAssistantPrimaryModelSelection(xpert) ||
+            !primaryAgentKey ||
+            runtimeAgentKey !== primaryAgentKey
+        ) {
             return null
         }
 
