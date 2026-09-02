@@ -98,7 +98,7 @@ export const PARAMETER_RULE_TEMPLATE: Record<DefaultParameterName, ParameterRule
             zh_Hans: "指定生成结果长度的上限。如果生成结果截断，可以调大该参数。",
         },
         required: false,
-        default: 64,
+        default: 2048,
         min: 1,
         max: 2048,
         precision: 0,
