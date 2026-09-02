@@ -3,10 +3,10 @@
     [class]="
       embedded()
         ? 'flex h-full min-h-0 w-full flex-col gap-4'
-        : 'flex h-full min-h-0 w-full flex-col gap-6 px-8 py-6 xl:px-12'
+        : 'flex h-full min-h-0 w-full flex-col gap-4 px-8 py-4 xl:px-12'
     "
   >
-    <header class="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-4">
+    <header class="flex min-h-9 shrink-0 flex-wrap items-center justify-between gap-3">
       @if (batchManaging() && view() === 'tasks') {
         <div class="flex flex-wrap items-center gap-3">
           <button
@@ -56,49 +56,49 @@
         </button>
       } @else {
         <nav
-          class="flex items-center gap-1 rounded-lg bg-background-default-subtle p-1"
+          class="flex w-fit max-w-full items-center gap-1 overflow-x-auto"
           [attr.aria-label]="'XP.Chat.Automation.PageViews' | translate: { Default: 'Scheduled task views' }"
         >
           <button
             type="button"
-            class="flex h-11 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:gap-2 sm:px-5 sm:text-base"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             [class]="
               view() === 'tasks'
-                ? 'bg-components-card-bg text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : 'text-muted-foreground'
             "
             [attr.aria-current]="view() === 'tasks' ? 'page' : null"
             (click)="setView('tasks')"
           >
-            <i class="ri-alarm-line text-lg sm:text-xl" aria-hidden="true"></i>
+            <i class="ri-alarm-line text-base" aria-hidden="true"></i>
             {{ 'XP.Chat.Automation.ScheduledTasks' | translate: { Default: 'Scheduled tasks' } }}
           </button>
           <button
             type="button"
-            class="flex h-11 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:gap-2 sm:px-5 sm:text-base"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             [class]="
               view() === 'history'
-                ? 'bg-components-card-bg text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : 'text-muted-foreground'
             "
             [attr.aria-current]="view() === 'history' ? 'page' : null"
             (click)="setView('history')"
           >
-            <i class="ri-calendar-check-line text-lg sm:text-xl" aria-hidden="true"></i>
+            <i class="ri-calendar-check-line text-base" aria-hidden="true"></i>
             {{ 'XP.Chat.Automation.RunHistory' | translate: { Default: 'Run history' } }}
           </button>
           <button
             type="button"
-            class="flex h-11 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:gap-2 sm:px-5 sm:text-base"
+            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg px-3 text-base font-semibold transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             [class]="
               view() === 'archived'
-                ? 'bg-components-card-bg text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                : 'text-muted-foreground'
             "
             [attr.aria-current]="view() === 'archived' ? 'page' : null"
             (click)="setView('archived')"
           >
-            <i class="ri-archive-line text-lg sm:text-xl" aria-hidden="true"></i>
+            <i class="ri-archive-line text-base" aria-hidden="true"></i>
             {{ 'XP.Chat.Automation.ArchivedTasks' | translate: { Default: 'Archived tasks' } }}
             @if (archivedTaskCount()) {
               <span class="rounded-full bg-background-default px-2 py-0.5 text-xs text-text-tertiary">
@@ -110,20 +110,13 @@
 
         @if (view() === 'tasks' && currentTaskCount()) {
           <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
-            <label
-              class="flex h-12 min-w-52 max-w-md flex-1 items-center gap-2 rounded-lg border border-input-border bg-components-card-bg px-4 text-text-secondary focus-within:ring-1 focus-within:ring-ring"
-            >
-              <i class="ri-search-line text-lg" aria-hidden="true"></i>
-              <input
-                type="search"
-                class="min-w-0 flex-1 bg-transparent text-base text-text-primary outline-none placeholder:text-text-tertiary"
-                [placeholder]="
-                  'XP.Chat.Automation.SearchPlaceholder' | translate: { Default: 'Search tasks or records' }
-                "
-                [ngModel]="searchQuery()"
-                (ngModelChange)="searchQuery.set($event)"
-              />
-            </label>
+            <z-search-input
+              class="min-w-52 max-w-md flex-1"
+              [placeholder]="'XP.Chat.Automation.SearchPlaceholder' | translate: { Default: 'Search tasks or records' }"
+              [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+            />
             <button
               z-button
               type="button"
@@ -147,18 +140,13 @@
             </button>
           </div>
         } @else if (view() !== 'tasks') {
-          <label
-            class="flex h-12 w-full max-w-md items-center gap-2 rounded-lg border border-input-border bg-components-card-bg px-4 text-text-secondary focus-within:ring-1 focus-within:ring-ring"
-          >
-            <i class="ri-search-line text-lg" aria-hidden="true"></i>
-            <input
-              type="search"
-              class="min-w-0 flex-1 bg-transparent text-base text-text-primary outline-none placeholder:text-text-tertiary"
-              [placeholder]="'XP.Chat.Automation.SearchPlaceholder' | translate: { Default: 'Search tasks or records' }"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
-            />
-          </label>
+          <z-search-input
+            class="w-full max-w-md"
+            [placeholder]="'XP.Chat.Automation.SearchPlaceholder' | translate: { Default: 'Search tasks or records' }"
+            [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          />
         }
       }
     </header>
@@ -200,10 +188,10 @@
               </section>
             } @else {
               <section>
-                <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-1 pb-4">
+                <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-1 py-1">
                   <button
                     type="button"
-                    class="flex h-11 cursor-pointer items-center gap-2 rounded-lg px-3 text-base font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    class="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     [cdkMenuTriggerFor]="currentFilterMenu"
                   >
                     @switch (currentTaskFilter()) {
@@ -232,7 +220,7 @@
                   <div class="divide-y divide-divider-regular">
                     @for (task of visibleCurrentTasks(); track task.id) {
                       <div
-                        class="group flex min-h-24 items-center gap-4 px-3 py-5 transition-colors hover:bg-hover-bg"
+                        class="group flex min-h-14 items-center gap-3 px-3 py-2 transition-colors hover:bg-hover-bg"
                         [class.bg-hover-bg]="taskId() === task.id"
                       >
                         @if (batchManaging()) {
@@ -246,7 +234,7 @@
                           />
                         } @else {
                           <span
-                            class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
                           >
                             <ng-container
                               *ngTemplateOutlet="statusIconTempl; context: { status: task.status }"
@@ -256,23 +244,26 @@
 
                         <button
                           type="button"
-                          class="flex min-w-0 flex-1 cursor-pointer items-center gap-5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          class="grid min-w-0 flex-1 cursor-pointer grid-cols-[minmax(0,1fr)] items-center gap-x-5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_minmax(10rem,18rem)] md:grid-cols-[minmax(10rem,1fr)_minmax(8rem,0.7fr)_minmax(10rem,18rem)]"
                           (click)="openTask(task)"
                         >
-                          <span class="min-w-0 flex-1">
+                          <span class="min-w-0">
                             <span class="flex min-w-0 items-center gap-2">
-                              <span class="truncate text-lg font-medium text-text-primary">
+                              <span class="truncate text-sm font-medium text-text-primary">
                                 {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
                               </span>
                               <ng-container
                                 *ngTemplateOutlet="statusBadgeTempl; context: { status: task.status }"
                               ></ng-container>
                             </span>
-                            <span class="mt-1 block truncate text-sm text-text-tertiary">
+                            <span class="mt-0.5 block truncate text-xs text-text-tertiary md:hidden">
                               {{ task.prompt || ('XP.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
                             </span>
                           </span>
-                          <span class="hidden max-w-[38%] shrink-0 text-right sm:block">
+                          <span class="hidden min-w-0 truncate text-sm text-text-tertiary md:block">
+                            {{ task.prompt || ('XP.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
+                          </span>
+                          <span class="hidden min-w-0 text-right sm:block">
                             <span class="block truncate text-sm text-text-secondary">
                               {{ task.scheduleDescription || task.schedule }}
                             </span>
@@ -291,11 +282,11 @@
                               type="button"
                               zType="ghost"
                               zSize="icon"
-                              class="size-10 cursor-pointer"
+                              class="cursor-pointer"
                               [zTooltip]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
                               (click)="editTask(task)"
                             >
-                              <i class="ri-pencil-line text-xl" aria-hidden="true"></i>
+                              <i class="ri-pencil-line text-lg" aria-hidden="true"></i>
                             </button>
                             @if (task.status === eXpertTaskStatus.SCHEDULED) {
                               <button
@@ -303,11 +294,11 @@
                                 type="button"
                                 zType="ghost"
                                 zSize="icon"
-                                class="size-10 cursor-pointer"
+                                class="cursor-pointer"
                                 [zTooltip]="'XP.ACTIONS.Pause' | translate: { Default: 'Pause' }"
                                 (click)="pauseTask(task)"
                               >
-                                <i class="ri-pause-circle-line text-xl" aria-hidden="true"></i>
+                                <i class="ri-pause-circle-line text-lg" aria-hidden="true"></i>
                               </button>
                             } @else {
                               <button
@@ -315,11 +306,11 @@
                                 type="button"
                                 zType="ghost"
                                 zSize="icon"
-                                class="size-10 cursor-pointer"
+                                class="cursor-pointer"
                                 [zTooltip]="'XP.Xpert.Schedule' | translate: { Default: 'Schedule' }"
                                 (click)="scheduleTask(task)"
                               >
-                                <i class="ri-play-circle-line text-xl" aria-hidden="true"></i>
+                                <i class="ri-play-circle-line text-lg" aria-hidden="true"></i>
                               </button>
                             }
                             <button
@@ -327,22 +318,22 @@
                               type="button"
                               zType="ghost"
                               zSize="icon"
-                              class="size-10 cursor-pointer"
+                              class="cursor-pointer"
                               [zTooltip]="'XP.Xpert.Archive' | translate: { Default: 'Archive' }"
                               (click)="archiveTask(task)"
                             >
-                              <i class="ri-archive-line text-xl" aria-hidden="true"></i>
+                              <i class="ri-archive-line text-lg" aria-hidden="true"></i>
                             </button>
                             <button
                               z-button
                               type="button"
                               zType="ghost"
                               zSize="icon"
-                              class="size-10 cursor-pointer text-text-secondary hover:text-destructive"
+                              class="cursor-pointer text-text-secondary hover:text-destructive"
                               [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                               (click)="deleteTask(task)"
                             >
-                              <i class="ri-delete-bin-line text-xl" aria-hidden="true"></i>
+                              <i class="ri-delete-bin-line text-lg" aria-hidden="true"></i>
                             </button>
                           </div>
                         }
@@ -368,12 +359,12 @@
           }
           @case ('history') {
             <section>
-              <div class="flex items-center justify-between border-b border-divider-regular px-1 pb-4">
-                <div>
-                  <h1 class="text-lg font-semibold text-text-primary">
+              <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-1 py-2">
+                <div class="flex min-w-0 items-baseline gap-3">
+                  <h1 class="shrink-0 text-sm font-semibold text-text-primary">
                     {{ 'XP.Chat.Automation.RunHistory' | translate: { Default: 'Run history' } }}
                   </h1>
-                  <p class="mt-1 text-sm text-text-secondary">
+                  <p class="truncate text-xs text-text-secondary">
                     {{
                       'XP.Chat.Automation.RunHistoryDescription'
                         | translate: { Default: 'Review execution results from all scheduled tasks.' }
@@ -388,11 +379,11 @@
                   @for (record of visibleExecutionRecords(); track record.id) {
                     <button
                       type="button"
-                      class="group flex min-h-20 w-full cursor-pointer items-center gap-4 px-3 py-4 text-left transition-colors hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+                      class="group flex min-h-14 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
                       (click)="openExecutionRecord(record)"
                     >
                       <span
-                        class="flex size-10 shrink-0 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg"
+                        class="flex size-9 shrink-0 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg"
                       >
                         @if (record.conversation.status === 'busy') {
                           <xp-spin class="size-4" />
@@ -404,7 +395,7 @@
                       </span>
                       <span class="min-w-0 flex-1">
                         <span class="flex min-w-0 items-center gap-2">
-                          <span class="truncate text-base font-medium text-text-primary">
+                          <span class="truncate text-sm font-medium text-text-primary">
                             {{ record.task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
                           </span>
                           <span class="truncate text-sm text-text-tertiary">
@@ -416,7 +407,7 @@
                           </span>
                         </span>
                         <span
-                          class="mt-1 block truncate text-sm"
+                          class="mt-0.5 block truncate text-xs"
                           [class]="record.conversation.status === 'error' ? 'text-text-danger' : 'text-text-secondary'"
                         >
                           @if (record.conversation.status === 'error') {
@@ -426,11 +417,11 @@
                           }
                         </span>
                       </span>
-                      <span class="shrink-0 text-sm text-text-tertiary">
+                      <span class="shrink-0 text-xs text-text-tertiary">
                         {{ record.conversation.createdAt | relative }}
                       </span>
                       <i
-                        class="ri-arrow-right-s-line text-xl text-text-tertiary transition-transform group-hover:translate-x-0.5"
+                        class="ri-arrow-right-s-line text-lg text-text-tertiary transition-transform group-hover:translate-x-0.5"
                         aria-hidden="true"
                       ></i>
                     </button>
@@ -454,12 +445,12 @@
           }
           @case ('archived') {
             <section>
-              <div class="flex items-center justify-between border-b border-divider-regular px-1 pb-4">
-                <div>
-                  <h1 class="text-lg font-semibold text-text-primary">
+              <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-1 py-2">
+                <div class="flex min-w-0 items-baseline gap-3">
+                  <h1 class="shrink-0 text-sm font-semibold text-text-primary">
                     {{ 'XP.Chat.Automation.ArchivedTasks' | translate: { Default: 'Archived tasks' } }}
                   </h1>
-                  <p class="mt-1 text-sm text-text-secondary">
+                  <p class="truncate text-xs text-text-secondary">
                     {{
                       'XP.Chat.Automation.ArchivedDescription'
                         | translate: { Default: 'Archived tasks are paused and can be restored at any time.' }
@@ -472,43 +463,49 @@
               @if (visibleArchivedTasks().length) {
                 <div class="divide-y divide-divider-regular">
                   @for (task of visibleArchivedTasks(); track task.id) {
-                    <div class="group flex min-h-20 items-center gap-4 px-3 py-4 transition-colors hover:bg-hover-bg">
+                    <div class="group flex min-h-14 items-center gap-3 px-3 py-2 transition-colors hover:bg-hover-bg">
                       <span
-                        class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-tertiary"
+                        class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-tertiary"
                       >
                         <i class="ri-archive-line text-xl" aria-hidden="true"></i>
                       </span>
                       <button
                         type="button"
-                        class="min-w-0 flex-1 cursor-pointer text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        class="grid min-w-0 flex-1 cursor-pointer grid-cols-[minmax(0,1fr)] items-center gap-x-5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_minmax(10rem,18rem)] md:grid-cols-[minmax(10rem,1fr)_minmax(8rem,0.7fr)_minmax(10rem,18rem)]"
                         (click)="openTask(task)"
                       >
-                        <span class="block truncate text-base font-medium text-text-primary">
-                          {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
+                        <span class="min-w-0">
+                          <span class="block truncate text-sm font-medium text-text-primary">
+                            {{ task.name || ('XP.Chat.UntitledTask' | translate: { Default: 'Untitled task' }) }}
+                          </span>
+                          <span class="mt-0.5 block truncate text-xs text-text-tertiary md:hidden">
+                            {{ task.prompt || ('XP.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
+                          </span>
                         </span>
-                        <span class="mt-1 block truncate text-sm text-text-tertiary">
+                        <span class="hidden min-w-0 truncate text-sm text-text-tertiary md:block">
                           {{ task.prompt || ('XP.Chat.NoInstruction' | translate: { Default: 'No instruction' }) }}
                         </span>
+                        <span class="hidden min-w-0 text-right sm:block">
+                          <span class="block truncate text-sm text-text-secondary">
+                            {{ task.scheduleDescription || task.schedule }}
+                          </span>
+                          <span class="mt-1 block text-xs text-text-tertiary">
+                            {{ task.updatedAt || task.createdAt | relative }}
+                          </span>
+                        </span>
                       </button>
-                      <span class="hidden max-w-[34%] shrink-0 text-right sm:block">
-                        <span class="block truncate text-sm text-text-secondary">
-                          {{ task.scheduleDescription || task.schedule }}
-                        </span>
-                        <span class="mt-1 block text-xs text-text-tertiary">
-                          {{ task.updatedAt || task.createdAt | relative }}
-                        </span>
-                      </span>
                       <button
                         z-button
                         type="button"
-                        zType="outline"
-                        zSize="sm"
+                        zType="ghost"
+                        zSize="icon"
                         class="shrink-0 cursor-pointer"
                         data-task-unarchive
+                        [attr.aria-label]="'XP.Xpert.Unarchive' | translate: { Default: 'Unarchive' }"
+                        [zTooltip]="'XP.Xpert.Unarchive' | translate: { Default: 'Unarchive' }"
                         (click)="unarchiveTask(task)"
                       >
-                        <i class="ri-inbox-unarchive-line" aria-hidden="true"></i>
-                        {{ 'XP.Xpert.Unarchive' | translate: { Default: 'Unarchive' } }}
+                        <i class="ri-inbox-unarchive-line text-lg" aria-hidden="true"></i>
                       </button>
                     </div>
                   }
