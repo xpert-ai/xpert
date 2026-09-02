@@ -2226,6 +2226,7 @@
         "Title": "ClawXpert",
         "Shell": "ClawXpert Shell",
         "Change": "Change ClawXpert",
+        "OpenOrchestration": "Open ClawXpert orchestration",
         "Clear": "Clear ClawXpert",
         "MoreActions": "More actions",
         "Loading": "Preparing ClawXpert…",
