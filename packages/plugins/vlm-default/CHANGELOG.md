@@ -1,5 +1,16 @@
 # @xpert-ai/plugin-vlm-default
 
+## 11.0.0
+
+### Patch Changes
+
+- Updated dependencies [477b711]
+- Updated dependencies [dad112d]
+- Updated dependencies [8e63a8b]
+- Updated dependencies [1c71b75]
+- Updated dependencies [d45a0c8]
+  - @xpert-ai/plugin-sdk@3.18.0
+
 ## 10.0.6
 
 ### Patch Changes

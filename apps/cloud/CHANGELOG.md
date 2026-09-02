@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.18.0
+
+### Minor Changes
+
+- 8e63a8b: Release Xpert 3.18.0.
+
 ## 3.17.6
 
 ### Patch Changes
