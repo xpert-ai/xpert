@@ -503,6 +503,7 @@
         "ConnectorOAuthBrowserBindingInvalid": "This connector authorization was started in another browser session or has expired.",
         "ConnectorOAuthStartInvalid": "Connector '{{provider}}' did not start an OAuth authorization.",
         "ConnectorAuthorizationStartFailed": "Connector authorization could not be started.",
+        "ConnectorAuthorizationNotPending": "Connector authorization is not pending.",
         "ConnectorOAuthCallbackCredentialPayloadRejected": "Connector OAuth callback does not accept credential payloads.",
         "ConnectorOAuthCallbackCodeRequired": "Connector OAuth callback requires an authorization code.",
         "ConnectorOAuthStateInvalid": "Invalid connector OAuth state.",

@@ -503,6 +503,7 @@
         "ConnectorOAuthBrowserBindingInvalid": "此连接器授权由另一个浏览器会话发起，或已过期。",
         "ConnectorOAuthStartInvalid": "连接器“{{provider}}”未能启动 OAuth 授权。",
         "ConnectorAuthorizationStartFailed": "无法启动连接器授权。",
+        "ConnectorAuthorizationNotPending": "连接器当前没有待处理的授权。",
         "ConnectorOAuthCallbackCredentialPayloadRejected": "连接器 OAuth 回调不接受凭据内容。",
         "ConnectorOAuthCallbackCodeRequired": "连接器 OAuth 回调缺少授权码。",
         "ConnectorOAuthStateInvalid": "连接器 OAuth 状态无效。",
