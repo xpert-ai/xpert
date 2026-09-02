@@ -1362,7 +1362,12 @@
       "Loading": "加載中",
       "Enabled": "啟用",
       "NoTools": "無工具",
-      "NoFields": "暫無欄位"
+      "NoFields": "暫無欄位",
+      "ErrorState": {
+        "Title": "發生錯誤",
+        "TechnicalDetails": "技術詳細資料",
+        "Retry": "重試"
+      }
     },
     "XProject": {
       "NoRecentFiles": "沒有最近的文件",
@@ -5385,6 +5390,8 @@
       "Search": "搜索",
       "NoData": "暫無數據",
       "Total": "總數",
+      "RemoteComponentLoadFailed": "無法載入此檢視",
+      "RemoteComponentLoadFailedHint": "遠端元件未能啟動。請重試，或查看技術詳細資料。",
       "Errors": {
         "QueryParameters": "此視圖不支持查詢參數",
         "Pagination": "此視圖不支持分頁",

@@ -1933,7 +1933,12 @@
       "Enabled": "启用",
       "NoTools": "无工具",
       "Reset": "重置",
-      "NoFields": "暂无字段"
+      "NoFields": "暂无字段",
+      "ErrorState": {
+        "Title": "出现错误",
+        "TechnicalDetails": "技术详情",
+        "Retry": "重试"
+      }
     },
     "Assistant": {
       "SettingsEyebrow": "统一助手配置",
@@ -6984,6 +6989,8 @@
       "Search": "搜索",
       "NoData": "暂无数据",
       "Total": "总数",
+      "RemoteComponentLoadFailed": "无法加载此视图",
+      "RemoteComponentLoadFailedHint": "远程组件未能启动。请重试，或查看技术详情。",
       "Errors": {
         "QueryParameters": "此视图不支持查询参数",
         "Pagination": "此视图不支持分页",

@@ -36,6 +36,10 @@
   },
   "XP": {
     "Title": "元数分析云",
+    "ViewExtension": {
+      "RemoteComponentLoadFailed": "无法加载此视图",
+      "RemoteComponentLoadFailedHint": "远程组件未能启动。请重试，或查看技术详情。"
+    },
     "Referral": {
       "CopyCode": "复制邀请码",
       "Copied": "已复制",
@@ -549,7 +553,12 @@
       "Loading": "加载中",
       "Enabled": "启用",
       "NoTools": "无工具",
-      "NoFields": "暂无字段"
+      "NoFields": "暂无字段",
+      "ErrorState": {
+        "Title": "出现错误",
+        "TechnicalDetails": "技术详情",
+        "Retry": "重试"
+      }
     },
     "MCP": {
       "CreateFromJson": "从 JSON 创建",

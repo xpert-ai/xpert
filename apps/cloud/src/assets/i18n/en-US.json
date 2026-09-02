@@ -42,6 +42,10 @@
   },
   "XP": {
     "Title": "Metad Analytics Cloud",
+    "ViewExtension": {
+      "RemoteComponentLoadFailed": "Unable to load this view",
+      "RemoteComponentLoadFailedHint": "The remote component did not start. Try again or review the technical details."
+    },
     "Explore": {
       "Application": {
         "AppTemplate": "App template",
@@ -1062,7 +1066,12 @@
       "Tools": "Tools",
       "Loading": "Loading...",
       "Enabled": "Enabled",
-      "NoTools": "No tools"
+      "NoTools": "No tools",
+      "ErrorState": {
+        "Title": "Something went wrong",
+        "TechnicalDetails": "Technical details",
+        "Retry": "Try again"
+      }
     },
     "Feature": {
       "EnableFeature": "Enable feature",
