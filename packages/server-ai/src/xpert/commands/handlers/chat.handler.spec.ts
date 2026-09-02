@@ -23,7 +23,8 @@ import {
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     type TChatRequest,
-    XpertAgentExecutionStatusEnum
+    XpertAgentExecutionStatusEnum,
+    XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { UploadFileCommand } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -139,6 +140,169 @@ describe('XpertChatHandler', () => {
             redisSseStreamService as any,
             projectService as any
         )
+    })
+
+    function createHandlerWithModelSelection(assistantModelSelectionService: { resolveSelection: jest.Mock }) {
+        return new XpertChatHandler(
+            xpertService as never,
+            assistantBindingService as never,
+            commandBus as never,
+            queryBus as never,
+            goalService as unknown as ChatConversationGoalService,
+            publishedXpertAccessService as never,
+            redisSseStreamService as never,
+            projectService as never,
+            undefined,
+            undefined,
+            assistantModelSelectionService as never
+        )
+    }
+
+    function mockSuccessfulSendCommands() {
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return !command.entity.id
+                    ? {
+                          id: 'conversation-1',
+                          threadId: 'thread-1',
+                          messages: [],
+                          status: command.entity.status,
+                          title: null,
+                          options: command.entity.options
+                      }
+                    : command.entity
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return command.execution.status === XpertAgentExecutionStatusEnum.RUNNING
+                    ? { id: 'execution-1', threadId: 'thread-1' }
+                    : command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                return {
+                    ...(command.entity.role === 'human'
+                        ? { id: 'human-1' }
+                        : command.entity.role === 'ai' && command.entity.status === 'thinking'
+                          ? { id: 'ai-1' }
+                          : {}),
+                    ...command.entity
+                }
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+    }
+
+    async function executeQueuedFollowUp(
+        xpertType: XpertTypeEnum,
+        assistantModelSelectionService: { resolveSelection: jest.Mock }
+    ) {
+        xpertService.findOneForRuntime.mockResolvedValue({
+            ...xpert,
+            type: xpertType
+        })
+        queryBus.execute.mockResolvedValue({
+            id: 'conversation-1',
+            xpertId: 'xpert-1',
+            createdById: 'user-1',
+            threadId: 'thread-1',
+            status: XpertAgentExecutionStatusEnum.RUNNING,
+            messages: []
+        })
+        commandBus.execute.mockImplementation(async (command: unknown) =>
+            command instanceof ChatMessageUpsertCommand ? command.entity : null
+        )
+        handler = createHandlerWithModelSelection(assistantModelSelectionService)
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'follow_up',
+                    conversationId: 'conversation-1',
+                    mode: 'queue',
+                    message: {
+                        clientMessageId: 'follow-up-1',
+                        input: { input: 'Continue later' }
+                    }
+                },
+                { xpertId: 'xpert-1' } as XpertChatCommandOptions
+            )
+        )
+
+        return lastValueFrom(stream.pipe(toArray()))
+    }
+
+    it('does not require an Assistant primary model for a knowledge pipeline run', async () => {
+        const assistantModelSelectionService = {
+            resolveSelection: jest.fn().mockRejectedValue(new Error('Assistant primary model is not configured'))
+        }
+        xpertService.findOneForRuntime.mockResolvedValue({
+            ...xpert,
+            type: XpertTypeEnum.Knowledge
+        })
+        handler = createHandlerWithModelSelection(assistantModelSelectionService)
+        mockSuccessfulSendCommands()
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'knowledge-run-1',
+                        input: { input: 'Process the knowledge document' }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1',
+                    from: 'knowledge'
+                } as XpertChatCommandOptions
+            )
+        )
+
+        await expect(lastValueFrom(stream.pipe(toArray()))).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({ event: ChatMessageEventTypeEnum.ON_CONVERSATION_END })
+                })
+            ])
+        )
+        expect(assistantModelSelectionService.resolveSelection).not.toHaveBeenCalled()
+    })
+
+    it('keeps resolving the Assistant primary model for queued Agent follow-ups', async () => {
+        const assistantModelSelectionService = {
+            resolveSelection: jest.fn().mockResolvedValue({ id: 'model-1' })
+        }
+
+        await expect(executeQueuedFollowUp(XpertTypeEnum.Agent, assistantModelSelectionService)).resolves.toEqual([])
+        expect(assistantModelSelectionService.resolveSelection).toHaveBeenCalledWith(
+            expect.objectContaining({ type: XpertTypeEnum.Agent }),
+            { explicitModelId: undefined }
+        )
+    })
+
+    it('does not require an Assistant primary model for queued knowledge pipeline follow-ups', async () => {
+        const assistantModelSelectionService = {
+            resolveSelection: jest.fn().mockRejectedValue(new Error('Assistant primary model is not configured'))
+        }
+
+        await expect(executeQueuedFollowUp(XpertTypeEnum.Knowledge, assistantModelSelectionService)).resolves.toEqual(
+            []
+        )
+        expect(assistantModelSelectionService.resolveSelection).not.toHaveBeenCalled()
     })
 
     it('creates a new conversation, human message, ai placeholder and execution for send', async () => {
