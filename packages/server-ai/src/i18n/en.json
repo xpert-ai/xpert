@@ -655,6 +655,7 @@
     },
     "ChatTaskSummary": {
         "Agent": "Agent",
+        "PendingUserInput": "Waiting for your input",
         "PendingSteeringMessage": "Pending steering message",
         "PendingFollowUpMessage": "Pending follow-up message",
         "ConversationNeedsInput": "Conversation needs input"

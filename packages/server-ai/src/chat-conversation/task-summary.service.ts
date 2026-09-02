@@ -14,7 +14,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
-import { extractChatMessageTaskSummary } from '../chat-message/task-summary'
+import { extractChatMessageTaskSummary, isCompletedOpenableTaskSummaryOutput } from '../chat-message/task-summary'
 import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
 import { XpertAgentExecutionService } from '../xpert-agent-execution'
 import { ChatConversation } from './conversation.entity'
@@ -106,7 +106,17 @@ export class ChatTaskSummaryService {
             }),
             this.executionService.findAllInOrganizationOrTenant({
                 where: { threadId: conversation.threadId },
-                select: ['id', 'parentId', 'agentKey', 'title', 'status', 'elapsedTime', 'error', 'updatedAt'],
+                select: [
+                    'id',
+                    'parentId',
+                    'category',
+                    'agentKey',
+                    'title',
+                    'status',
+                    'elapsedTime',
+                    'error',
+                    'updatedAt'
+                ],
                 order: { updatedAt: 'DESC' }
             }),
             conversation.xpertId
@@ -120,25 +130,33 @@ export class ChatTaskSummaryService {
         const messages = messageResult.items
         const contributions = messages.flatMap((message) => {
             const persisted = message.taskSummary?.version === TASK_SUMMARY_VERSION ? message.taskSummary : undefined
+            const extracted = extractChatMessageTaskSummary(message)
             if (!persisted) {
-                const extracted = extractChatMessageTaskSummary(message)
-                return extracted.outputs?.length ? [extracted] : []
+                return extracted.outputs?.length || extracted.sources?.length ? [extracted] : []
             }
-            const extractedOutputs = extractChatMessageTaskSummary(message).outputs
             const existingOutputIds = new Set(persisted.outputs?.map((output) => output.id) ?? [])
-            const additionalOutputs = extractedOutputs?.filter((output) => !existingOutputIds.has(output.id)) ?? []
+            const additionalOutputs = extracted.outputs?.filter((output) => !existingOutputIds.has(output.id)) ?? []
+            const existingSourceIds = new Set(persisted.sources?.map((source) => source.id) ?? [])
+            const additionalSources = extracted.sources?.filter((source) => !existingSourceIds.has(source.id)) ?? []
             return [
                 {
                     ...persisted,
                     ...(additionalOutputs.length
                         ? { outputs: [...(persisted.outputs ?? []), ...additionalOutputs] }
+                        : {}),
+                    ...(additionalSources.length
+                        ? { sources: [...(persisted.sources ?? []), ...additionalSources] }
                         : {})
                 }
             ]
         })
         const plan = this.latestItem(contributions.flatMap((contribution) => contribution.plan ?? []))
         const todos = this.latestItem(contributions.flatMap((contribution) => contribution.todos ?? []))
-        const outputs = this.mergeLatest(contributions.flatMap((contribution) => contribution.outputs ?? []))
+        const outputs = this.mergeLatest(
+            contributions
+                .flatMap((contribution) => contribution.outputs ?? [])
+                .filter(isCompletedOpenableTaskSummaryOutput)
+        )
         const sources = this.mergeLatest(
             contributions
                 .flatMap((contribution) => contribution.sources ?? [])
@@ -153,7 +171,7 @@ export class ChatTaskSummaryService {
         )
         const agents = this.mergeAgents(
             executionResult.items
-                .filter((execution) => Boolean(execution.parentId))
+                .filter((execution) => execution.category === 'agent' && Boolean(execution.parentId))
                 .map((execution) => ({
                     id: execution.id,
                     parentId: execution.parentId,
@@ -224,17 +242,30 @@ export class ChatTaskSummaryService {
             createdAt?: Date
         }>
     ) {
-        const operationItems = (conversation.operation?.tasks ?? []).map((task, index) => ({
-            id: `operation:${task.name}:${index}`,
-            kind:
-                task.name === 'request_user_input' || task.info?.name === 'request_user_input'
-                    ? ('user_input' as const)
-                    : ('approval' as const),
-            title: task.info?.title?.trim() || task.info?.name?.trim() || task.name,
-            description: task.info?.description ? this.compact(task.info.description, 160) : undefined,
-            messageId: conversation.operation?.messageId,
-            createdAt: this.toIso(conversation.updatedAt)
-        }))
+        const operationItems = (conversation.status === 'interrupted' ? (conversation.operation?.tasks ?? []) : []).map(
+            (task, index) => {
+                const isUserInput = task.name === 'request_user_input' || task.info?.name === 'request_user_input'
+                const userInputCopy = isUserInput ? this.requestUserInputCopy(task) : null
+                return {
+                    id: `operation:${task.name}:${index}`,
+                    kind: isUserInput ? ('user_input' as const) : ('approval' as const),
+                    title:
+                        userInputCopy?.title ||
+                        task.info?.title?.trim() ||
+                        task.info?.name?.trim() ||
+                        (isUserInput
+                            ? t('server-ai:ChatTaskSummary.PendingUserInput', {
+                                  defaultValue: 'Waiting for your input'
+                              })
+                            : task.name),
+                    description:
+                        userInputCopy?.description ||
+                        (task.info?.description ? this.compact(task.info.description, 160) : undefined),
+                    messageId: conversation.operation?.messageId,
+                    createdAt: this.toIso(conversation.updatedAt)
+                }
+            }
+        )
         const followUps = messages.flatMap((message) =>
             message.id && message.followUpStatus === 'pending'
                 ? [
@@ -269,6 +300,42 @@ export class ChatTaskSummaryService {
                   ]
                 : []
         return [...operationItems, ...followUps, ...interrupted]
+    }
+
+    private requestUserInputCopy(task: NonNullable<NonNullable<ChatConversation['operation']>['tasks']>[number]) {
+        for (const interrupt of task.interrupts ?? []) {
+            if (!interrupt.value || typeof interrupt.value !== 'object' || Array.isArray(interrupt.value)) {
+                continue
+            }
+            const calls = (interrupt.value as { clientToolCalls?: unknown }).clientToolCalls
+            if (!Array.isArray(calls)) continue
+            for (const call of calls) {
+                if (!call || typeof call !== 'object' || Array.isArray(call)) continue
+                const candidate = call as { name?: unknown; args?: unknown }
+                if (candidate.name !== 'request_user_input') continue
+                if (!candidate.args || typeof candidate.args !== 'object' || Array.isArray(candidate.args)) continue
+                const questions = (candidate.args as { questions?: unknown }).questions
+                if (!Array.isArray(questions)) continue
+                const questionTexts = questions.flatMap((question) => {
+                    if (!question || typeof question !== 'object' || Array.isArray(question)) return []
+                    const candidateQuestion = question as { question?: unknown; header?: unknown }
+                    const questionText =
+                        typeof candidateQuestion.question === 'string' && candidateQuestion.question.trim()
+                            ? candidateQuestion.question.trim()
+                            : typeof candidateQuestion.header === 'string'
+                              ? candidateQuestion.header.trim()
+                              : ''
+                    return questionText ? [questionText] : []
+                })
+                if (!questionTexts.length) continue
+                return {
+                    title: this.compact(questionTexts[0], 160),
+                    description:
+                        questionTexts.length > 1 ? this.compact(questionTexts.slice(1).join(' · '), 160) : undefined
+                }
+            }
+        }
+        return null
     }
 
     private mergeLatest<T extends { id: string; updatedAt?: string }>(items: T[]) {

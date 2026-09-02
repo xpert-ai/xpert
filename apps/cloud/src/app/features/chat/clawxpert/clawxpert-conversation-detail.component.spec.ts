@@ -827,7 +827,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(getRuntimeInput().layout).toEqual({
-      maxWidth: '960px'
+      maxWidth: '840px'
     })
   })
 

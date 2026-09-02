@@ -60,6 +60,18 @@ describe('extractChatMessageTaskSummary', () => {
                                         title: 'Report',
                                         resource: { type: 'artifact', artifactId: 'artifact-1' }
                                     },
+                                    {
+                                        id: 'pending-output',
+                                        kind: 'document',
+                                        title: 'Pending report',
+                                        status: 'pending',
+                                        resource: { type: 'artifact', artifactId: 'artifact-pending' }
+                                    },
+                                    {
+                                        id: 'closed-output',
+                                        kind: 'document',
+                                        title: 'No resource'
+                                    },
                                     { id: 'unknown-1', kind: 'shell', title: 'Raw shell output', raw: 'secret' }
                                 ]
                             },
@@ -71,6 +83,11 @@ describe('extractChatMessageTaskSummary', () => {
                             artifactLink: {
                                 artifactId: 'artifact-3',
                                 title: 'Linked artifact'
+                            },
+                            file: {
+                                artifactId: 'artifact-pending',
+                                title: 'Pending artifact',
+                                status: 'running'
                             }
                         }
                     },
@@ -86,8 +103,7 @@ describe('extractChatMessageTaskSummary', () => {
             'artifact:artifact-2',
             'artifact:artifact-3',
             'image:https://example.com/result.png',
-            'url:https://example.com/site',
-            'mcp-app:app-1'
+            'url:https://example.com/site'
         ])
         expect(summary.outputs?.find((output) => output.id === 'output-1')?.resource).toEqual({
             type: 'artifact',
@@ -159,6 +175,61 @@ describe('extractChatMessageTaskSummary', () => {
         expect(JSON.stringify(summary)).not.toContain('token=secret')
     })
 
+    it('keeps only completed outputs and hides files from an incomplete parent artifact', () => {
+        const summary = extractChatMessageTaskSummary(
+            message({
+                content: [
+                    {
+                        type: 'component',
+                        data: {
+                            taskSummary: {
+                                version: 1,
+                                outputs: [
+                                    {
+                                        id: 'successful-report',
+                                        kind: 'document',
+                                        title: 'Successful report',
+                                        status: 'success',
+                                        resource: { type: 'artifact', artifactId: 'artifact-success' }
+                                    },
+                                    {
+                                        id: 'legacy-report',
+                                        kind: 'document',
+                                        title: 'Legacy report',
+                                        resource: { type: 'artifact', artifactId: 'artifact-legacy' }
+                                    },
+                                    {
+                                        id: 'processing-report',
+                                        kind: 'document',
+                                        title: 'Processing report',
+                                        status: 'processing',
+                                        resource: { type: 'artifact', artifactId: 'artifact-processing' }
+                                    }
+                                ]
+                            },
+                            artifact: {
+                                status: 'running',
+                                files: [
+                                    {
+                                        fileName: 'unfinished.pdf',
+                                        workspacePath: 'files/unfinished.pdf'
+                                    }
+                                ]
+                            },
+                            artifactLink: {
+                                artifactId: 'artifact-cancelled',
+                                title: 'Cancelled report',
+                                status: 'cancelled'
+                            }
+                        }
+                    }
+                ]
+            })
+        )
+
+        expect(summary.outputs?.map((output) => output.id)).toEqual(['successful-report', 'legacy-report'])
+    })
+
     it('extracts structured artifacts returned by tools through output text', () => {
         const summary = extractChatMessageTaskSummary(
             message({
@@ -210,7 +281,81 @@ describe('extractChatMessageTaskSummary', () => {
         expect(JSON.stringify(summary)).not.toContain('example.com/artifacts/share/secret')
     })
 
-    it('preserves element and file_element references and capability sources', () => {
+    it('projects successful sandbox files and web search results from program components', () => {
+        const summary = extractChatMessageTaskSummary(
+            message({
+                content: [
+                    {
+                        type: 'component',
+                        data: {
+                            tool: 'web_search',
+                            status: 'success',
+                            output: [
+                                'Title: Stanford AI Index 2026',
+                                'URL: https://hai.stanford.edu/ai-index/2026-ai-index-report',
+                                'Published: 2026-04-01',
+                                'Highlights: Research findings',
+                                '',
+                                'Title: N/A',
+                                'URL: https://example.com/research/report.pdf',
+                                'Published: 2026-03-01'
+                            ].join('\n')
+                        }
+                    },
+                    {
+                        type: 'component',
+                        data: {
+                            tool: 'sandbox_write_file',
+                            status: 'success',
+                            input: { file_path: 'reports/AI_Industry_Trends_Report_2026.md' },
+                            output: JSON.stringify({
+                                path: '/workspace/reports/AI_Industry_Trends_Report_2026.md',
+                                filesUpdate: null
+                            })
+                        }
+                    }
+                ]
+            })
+        )
+
+        expect(summary.outputs).toEqual([
+            {
+                id: 'workspace-file:reports/AI_Industry_Trends_Report_2026.md',
+                kind: 'document',
+                title: 'AI_Industry_Trends_Report_2026.md',
+                status: 'success',
+                resource: {
+                    type: 'workspace_file',
+                    workspacePath: 'reports/AI_Industry_Trends_Report_2026.md'
+                },
+                messageId: 'message-1',
+                updatedAt: '2026-07-13T01:00:00.000Z'
+            }
+        ])
+        expect(summary.sources).toEqual([
+            {
+                id: 'web:https://hai.stanford.edu/ai-index/2026-ai-index-report',
+                kind: 'web_page',
+                title: 'Stanford AI Index 2026',
+                description: 'https://hai.stanford.edu/ai-index/2026-ai-index-report',
+                resource: { type: 'url', url: 'https://hai.stanford.edu/ai-index/2026-ai-index-report' },
+                messageId: 'message-1',
+                updatedAt: '2026-07-13T01:00:00.000Z'
+            },
+            {
+                id: 'web:https://example.com/research/report.pdf',
+                kind: 'web_page',
+                title: 'example.com',
+                description: 'https://example.com/research/report.pdf',
+                resource: { type: 'url', url: 'https://example.com/research/report.pdf' },
+                messageId: 'message-1',
+                updatedAt: '2026-07-13T01:00:00.000Z'
+            }
+        ])
+        expect(JSON.stringify(summary)).not.toContain('/workspace/')
+    })
+
+    it('preserves reference sources without treating configured capabilities as sources', () => {
         const summary = extractChatMessageTaskSummary(
             message({
                 references: [
@@ -255,9 +400,7 @@ describe('extractChatMessageTaskSummary', () => {
         expect(summary.sources?.map((source) => source.id)).toEqual([
             'element-1',
             'file-element-1',
-            'attachment:file-1',
-            'skill:slides',
-            'plugin:github'
+            'attachment:file-1'
         ])
         expect(summary.sources?.[0]?.resource).toEqual({
             type: 'browser',
