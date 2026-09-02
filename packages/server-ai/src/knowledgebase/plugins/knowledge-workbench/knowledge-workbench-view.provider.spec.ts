@@ -164,11 +164,11 @@ describe('KnowledgeWorkbenchViewProvider', () => {
         ])
     })
 
-    it('uses the colocated remote component asset path outside production', () => {
+    it('uses the server-ai source asset path outside production', () => {
         expect(
             getKnowledgeWorkbenchRemoteAssetPath('app.js', {
                 nodeEnv: 'development',
-                moduleDir: '/workspace/packages/server-ai/src/knowledgebase/plugins/knowledge-workbench',
+                moduleDir: '/workspace/dist/apps/api',
                 cwd: '/workspace'
             })
         ).toBe(
@@ -176,20 +176,8 @@ describe('KnowledgeWorkbenchViewProvider', () => {
         )
     })
 
-    it('uses the production server-ai package asset path', () => {
-        expect(
-            getKnowledgeWorkbenchRemoteAssetPath('app.js', {
-                nodeEnv: 'production',
-                moduleDir: '/srv/xpert',
-                cwd: '/srv/xpert'
-            })
-        ).toBe(
-            '/srv/xpert/packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components/knowledge-workbench/app.js'
-        )
-    })
-
-    it('reads remote component assets from the production server-ai package path', async () => {
-        const tempRoot = await mkdtemp(join(tmpdir(), 'knowledge-workbench-assets-'))
+    it('uses the workspace source asset when the API module directory is a webpack build output', async () => {
+        const tempRoot = await mkdtemp(join(tmpdir(), 'knowledge-workbench-webpack-assets-'))
 
         try {
             const assetDir = join(
@@ -199,10 +187,44 @@ describe('KnowledgeWorkbenchViewProvider', () => {
             await mkdir(assetDir, { recursive: true })
             await writeFile(join(assetDir, 'app.js'), 'window.__knowledge_workbench = true;', 'utf8')
 
+            const options = {
+                cwd: tempRoot,
+                moduleDir: join(tempRoot, 'dist/apps/api'),
+                nodeEnv: 'development'
+            }
+
+            expect(getKnowledgeWorkbenchRemoteAssetPath('app.js', options)).toBe(join(assetDir, 'app.js'))
+            await expect(readKnowledgeWorkbenchRemoteAssetFile('app.js', options)).resolves.toBe(
+                'window.__knowledge_workbench = true;'
+            )
+        } finally {
+            await rm(tempRoot, { recursive: true, force: true })
+        }
+    })
+
+    it('uses the API build asset path in production', () => {
+        expect(
+            getKnowledgeWorkbenchRemoteAssetPath('app.js', {
+                nodeEnv: 'production',
+                moduleDir: '/srv/xpert/dist/apps/api',
+                cwd: '/srv/xpert'
+            })
+        ).toBe('/srv/xpert/dist/apps/api/remote-components/knowledge-workbench/app.js')
+    })
+
+    it('reads remote component assets from the production API build path', async () => {
+        const tempRoot = await mkdtemp(join(tmpdir(), 'knowledge-workbench-assets-'))
+
+        try {
+            const moduleDir = join(tempRoot, 'dist/apps/api')
+            const assetDir = join(moduleDir, 'remote-components/knowledge-workbench')
+            await mkdir(assetDir, { recursive: true })
+            await writeFile(join(assetDir, 'app.js'), 'window.__knowledge_workbench = true;', 'utf8')
+
             await expect(
                 readKnowledgeWorkbenchRemoteAssetFile('app.js', {
                     cwd: tempRoot,
-                    moduleDir: join(tempRoot, 'bundle-root'),
+                    moduleDir,
                     nodeEnv: 'production'
                 })
             ).resolves.toBe('window.__knowledge_workbench = true;')
