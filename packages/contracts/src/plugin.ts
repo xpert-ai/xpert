@@ -273,6 +273,22 @@ export interface PluginApplicationStatusSummary {
   errorMessage?: string | null
 }
 
+/** Marketplace metadata paired with a trusted plugin App contribution. */
+export interface PluginApplicationCatalogMetadata {
+  category?: PluginMarketplaceCategory
+  subcategory?: string
+  featured?: boolean
+  tags: string[]
+  updatedAt?: string
+}
+
+/** Card-sized App definition and scoped runtime status for marketplace discovery. */
+export interface PluginApplicationCatalogItem {
+  application: PluginTemplateApplicationSummary
+  status: PluginApplicationStatusSummary
+  marketplace: PluginApplicationCatalogMetadata
+}
+
 /**
  * Server-computed initialization readiness. Clients may select only model IDs
  * returned here and cannot provide tenant, organization, or workspace scope.
