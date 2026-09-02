@@ -61,7 +61,13 @@ type ProjectConnectorsDialogData = {
                 {{ 'XP.XProject.AddProjectConnectorDescription' | translate }}
               </p>
             </div>
-            <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
+            <div
+              [class]="
+                canSelectAuthorizationMode()
+                  ? 'grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto]'
+                  : 'grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]'
+              "
+            >
               <z-select
                 [zValue]="selectedProvider()"
                 [zDisabled]="busy() || !availableDefinitions().length"
@@ -72,11 +78,13 @@ type ProjectConnectorsDialogData = {
                   <z-select-item [zValue]="definition.provider">{{ definition.label | i18n }}</z-select-item>
                 }
               </z-select>
-              <z-select [zValue]="selectedMode()" [zDisabled]="busy()" (zSelectionChange)="selectMode($event)">
-                @for (mode of selectedDefinitionModes(); track mode) {
-                  <z-select-item [zValue]="mode">{{ modeLabel(mode) | translate }}</z-select-item>
-                }
-              </z-select>
+              @if (canSelectAuthorizationMode()) {
+                <z-select [zValue]="selectedMode()" [zDisabled]="busy()" (zSelectionChange)="selectMode($event)">
+                  @for (mode of selectedDefinitionModes(); track mode) {
+                    <z-select-item [zValue]="mode">{{ modeLabel(mode) | translate }}</z-select-item>
+                  }
+                </z-select>
+              }
               <button
                 z-button
                 zType="default"
@@ -87,7 +95,9 @@ type ProjectConnectorsDialogData = {
                 {{ 'XP.XProject.AddConnector' | translate }}
               </button>
             </div>
-            <p class="text-xs text-text-tertiary">{{ modeDescription(selectedMode()) | translate }}</p>
+            @if (canSelectAuthorizationMode()) {
+              <p class="text-xs text-text-tertiary">{{ modeDescription(selectedMode()) | translate }}</p>
+            }
           </section>
         }
 
@@ -237,6 +247,7 @@ export class XpertProjectConnectorsDialogComponent {
     const definition = this.definitionFor(this.selectedProvider())
     return definition ? getConnectorAuthorizationModes(definition) : (['shared'] as ConnectorAuthorizationMode[])
   })
+  readonly canSelectAuthorizationMode = computed(() => this.selectedDefinitionModes().length > 1)
   readonly #forms = new Map<string, FormRecord<FormControl<string>>>()
   readonly #pollTimers = new Map<string, ReturnType<typeof setTimeout>>()
 

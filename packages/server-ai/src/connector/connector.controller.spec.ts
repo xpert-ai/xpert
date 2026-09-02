@@ -311,6 +311,16 @@ describe('ConnectorController', () => {
         await expect(controller.cancelAuthorization('workspace-1', 'connector-1')).resolves.toBeNull()
         expect(service.cancelAuthorization).toHaveBeenCalledWith('workspace-1', 'connector-1')
     })
+
+    it('delegates scoped binding authorization cancellation to the service', async () => {
+        const service: Pick<ConnectorService, 'cancelBindingAuthorization'> = {
+            cancelBindingAuthorization: jest.fn().mockResolvedValue(null)
+        }
+        const controller = new ConnectorController(service as ConnectorService)
+
+        await expect(controller.cancelBindingAuthorization('binding-1', { xpertId: 'xpert-1' })).resolves.toBeNull()
+        expect(service.cancelBindingAuthorization).toHaveBeenCalledWith('binding-1', 'xpert-1')
+    })
 })
 
 function htmlResponse() {
