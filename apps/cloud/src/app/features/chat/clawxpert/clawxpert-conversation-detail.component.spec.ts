@@ -542,7 +542,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       xpertId: signal('assistant-1'),
-      initialLayout: signal(null),
+      initialLayout: signal<XpertWorkbenchInitialLayoutEnum | null>(XpertWorkbenchInitialLayoutEnum.TwoColumns),
       defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
       projectId: signal<string | null>(null),
@@ -687,7 +687,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('uses the default two-column layout without opening the files tab while resolving conversation context', async () => {
+  it('uses the configured two-column layout without opening the files tab while resolving conversation context', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -727,6 +727,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+  })
+
+  it('uses ChatKit maximized when no initial layout is configured', async () => {
+    facade.initialLayout.set(null)
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBeNull()
   })
 
   it('resolves Project workspace views from the selected Project before a conversation exists', async () => {
@@ -2258,60 +2270,62 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(addTabButton?.className).toContain('rounded-xl')
   })
 
-  it('maximizes the workspace by hiding ChatKit and restores it from the header button', async () => {
+  it('maximizes ChatKit by minimizing the Workbench from the header button', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
     fixture.componentInstance.openDetailPanel()
     await settle(fixture)
 
-    const maximizeButton = fixture.nativeElement.querySelector(
-      '[data-toggle-workspace-maximized]'
+    const maximizeChatkitButton = fixture.nativeElement.querySelector(
+      '[data-toggle-chatkit-maximized]'
     ) as HTMLButtonElement | null
-    const resizeHandle = fixture.nativeElement.querySelector('[data-chatkit-resize-handle]') as HTMLElement | null
 
-    expect(maximizeButton).not.toBeNull()
-    expect(resizeHandle).not.toBeNull()
-    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(maximizeChatkitButton).not.toBeNull()
+    expect(maximizeChatkitButton?.getAttribute('aria-label')).toBeTruthy()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
 
-    maximizeButton?.click()
+    maximizeChatkitButton?.click()
     await settle(fixture)
 
-    expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
-    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('pointer-events-none')
-    expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
-    expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).toBeNull()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('minimized')
 
-    maximizeButton?.click()
+    const showWorkbenchButton = fixture.nativeElement.querySelector(
+      '[data-show-workbench-panel]'
+    ) as HTMLButtonElement | null
+
+    expect(showWorkbenchButton).not.toBeNull()
+    expect(showWorkbenchButton?.getAttribute('aria-label')).toBeTruthy()
+
+    showWorkbenchButton?.click()
     await settle(fixture)
 
-    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
-    expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
-    expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).not.toBeNull()
   })
 
-  it('persists and restores the workspace layout independently for each user and assistant', async () => {
+  it('persists and restores the minimized Workbench independently for each user and assistant', async () => {
     const userOneAssistantOneKey = getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1')
     const firstFixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(firstFixture)
 
     firstFixture.componentInstance.openDetailPanel()
-    firstFixture.componentInstance.toggleWorkspaceMaximized()
+    firstFixture.componentInstance.closeDetailPanel()
     await settle(firstFixture)
 
-    expect(localStorage.getItem(userOneAssistantOneKey)).toBe('maximized')
+    expect(localStorage.getItem(userOneAssistantOneKey)).toBe('minimized')
     firstFixture.destroy()
 
     const reopenedFixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(reopenedFixture)
 
-    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(true)
+    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(false)
 
     facade.userId.set('user-2')
     await settle(reopenedFixture)
@@ -2326,8 +2340,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     facade.userId.set('user-1')
     await settle(reopenedFixture)
 
-    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(true)
+    expect(reopenedFixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(reopenedFixture.componentInstance.workspaceMaximized()).toBe(false)
 
     facade.assistantId.set('assistant-2')
     facade.xpertId.set('assistant-2')
@@ -2676,10 +2690,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(petLayoutModeButton).not.toBeNull()
     expect(petLayoutModeButton?.dataset.chatkitLayoutMode).toBe('pet')
     expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-restart-line')
-    const petMaximizeButton = fixture.nativeElement.querySelector(
-      '[data-toggle-workspace-maximized]'
+    const maximizeChatkitButton = fixture.nativeElement.querySelector(
+      '[data-toggle-chatkit-maximized]'
     ) as HTMLElement | null
-    expect(petMaximizeButton).toBeNull()
+    expect(maximizeChatkitButton).toBeNull()
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')

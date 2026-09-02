@@ -4614,7 +4614,7 @@
         "ScrollTabsRight": "向右捲動標籤",
         "ShowDetailPanel": "顯示工作區面板",
         "HideDetailPanel": "隱藏工作區面板",
-        "MaximizeWorkspace": "最大化工作區",
+        "MaximizeChatkit": "最大化 ChatKit",
         "RestoreChatkit": "恢復 ChatKit",
         "ResizeChatkit": "調整 ChatKit 寬度",
         "MoveOverlayDialog": "移動 ChatKit 浮窗",

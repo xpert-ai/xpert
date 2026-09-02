@@ -1263,7 +1263,7 @@
         "ScrollTabsRight": "Scroll tabs right",
         "ShowDetailPanel": "Show workspace panel",
         "HideDetailPanel": "Hide workspace panel",
-        "MaximizeWorkspace": "Maximize workspace",
+        "MaximizeChatkit": "Maximize ChatKit",
         "RestoreChatkit": "Restore ChatKit",
         "ResizeChatkit": "Resize ChatKit",
         "MoveOverlayDialog": "Move ChatKit dialog",
