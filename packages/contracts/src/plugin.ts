@@ -993,6 +993,13 @@ export interface IPluginMcpServerActivationResult {
   }
 }
 
+/** A retrievable MCP client credential scoped to the requesting administrator and organization. */
+export interface IPluginMcpServerCredentialResult {
+  connectionInfo: IPluginMcpServerConnectionInfo
+  apiKey: Omit<IMcpApiKey, 'keyHash'>
+  secret: string
+}
+
 export interface PluginResourceComponentSelector {
   componentType?: PluginComponentType
   componentKey: string

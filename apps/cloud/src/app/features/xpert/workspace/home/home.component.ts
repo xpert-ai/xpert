@@ -393,7 +393,8 @@ export class XpertWorkspaceHomeComponent {
     }
 
     this.#dialog.open(CustomConnectorsDialogComponent, {
-      backdropClass: 'backdrop-blur-lg-white',
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
       disableClose: true,
       data: {
         workspaceId,

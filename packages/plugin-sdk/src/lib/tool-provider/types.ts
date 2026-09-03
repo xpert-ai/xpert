@@ -10,8 +10,9 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 import type { ZodTypeAny, infer as ZodInfer } from 'zod/v3'
 import type { AgentMiddleware } from '../agent/middleware/types'
 import type { IAgentMiddlewareContext } from '../agent/middleware/strategy.interface'
+import type { McpAppDefinition } from '../mcp/app'
 import type { ToolExecutionContext, ToolHostApi, ToolPrincipal } from '../toolset/tool-execution-context'
-import type { XpertToolVisibility } from '../toolset/define-tool'
+import type { XpertToolAppBinding, XpertToolVisibility } from '../toolset/define-tool'
 import type { PromiseOrValue } from '../types'
 
 export type XpertBusinessToolSurface = 'middleware' | 'mcp'
@@ -43,12 +44,16 @@ export interface XpertToolProviderOptions {
   configSchema?: JsonSchemaObjectType
   defaultMiddleware?: string
   middlewares?: readonly XpertToolProviderMiddlewareDefinition[]
+  /** Static MCP App bundles published with this host-native Provider. */
+  apps?: readonly McpAppDefinition[]
 }
 
 export interface XpertMcpToolOptions {
   behavior: McpToolBehavior
   requiredContext: readonly McpRequiredContext[]
   visibility?: readonly XpertToolVisibility[]
+  /** Associates this Tool with one App declared by the owning Provider. */
+  app?: XpertToolAppBinding
 }
 
 export interface XpertToolOptions<

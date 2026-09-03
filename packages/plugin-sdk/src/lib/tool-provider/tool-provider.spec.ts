@@ -14,11 +14,19 @@ const mcp = {
   requiredContext: ['tenant', 'organization', 'principal', 'execution'] as const,
   visibility: ['model'] as const
 }
+const dashboardApp = {
+  key: 'decorated_dashboard',
+  entry: 'dist/mcp-apps/dashboard/index.html',
+  title: 'Decorated dashboard',
+  description: 'Interactive result for the decorated test Tool.',
+  csp: { connectDomains: [], resourceDomains: [] }
+}
 
 @XpertToolProvider({
   provider: 'decorated_test',
   componentKey: 'decorated-test',
   name: 'Decorated test',
+  apps: [dashboardApp],
   defaultMiddleware: 'default_group',
   middlewares: [
     { provider: 'default_group', meta: middlewareMeta('default_group') },
@@ -35,7 +43,11 @@ class DecoratedTestProvider {
     inputSchema,
     outputSchema,
     middleware: true,
-    mcp
+    mcp: {
+      ...mcp,
+      visibility: ['model', 'app'],
+      app: { resourceKey: dashboardApp.key }
+    }
   })
   executeDefault(input: { value: string }, context: Parameters<DecoratedTestProvider['record']>[1]) {
     return this.record(input, context)
@@ -112,6 +124,9 @@ describe('decorated business Tool adapters', () => {
     )
 
     expect(result?.structuredContent).toEqual({ value: 'mcp-value', surface: 'mcp' })
+    expect(definition?.app).toEqual({ resourceKey: dashboardApp.key })
+    expect(definition?.visibility).toEqual(['model', 'app'])
+    expect(toolset.getMcpCapabilityDefinitions()?.apps).toEqual([dashboardApp])
     expect(provider.contexts).toEqual([
       {
         surface: 'mcp',
@@ -175,6 +190,46 @@ describe('decorated business Tool adapters', () => {
     }
 
     expect(() => describeXpertToolProvider(new InvalidOutputProvider())).toThrow(/output schema must be a strict/)
+  })
+
+  it('rejects missing App declarations and bindings without app visibility', () => {
+    @XpertToolProvider({ provider: 'missing_app', componentKey: 'missing-app', name: 'Missing App' })
+    class MissingAppProvider {
+      @XpertTool({
+        name: 'missing_app_tool',
+        description: 'References an App that is not declared by the Provider.',
+        inputSchema,
+        outputSchema,
+        middleware: false,
+        mcp: { ...mcp, visibility: ['model', 'app'], app: { resourceKey: 'not_declared' } }
+      })
+      execute(input: { value: string }) {
+        return { value: input.value, surface: 'mcp' as const }
+      }
+    }
+
+    @XpertToolProvider({
+      provider: 'hidden_app',
+      componentKey: 'hidden-app',
+      name: 'Hidden App',
+      apps: [dashboardApp]
+    })
+    class HiddenAppProvider {
+      @XpertTool({
+        name: 'hidden_app_tool',
+        description: 'Incorrectly omits app visibility.',
+        inputSchema,
+        outputSchema,
+        middleware: false,
+        mcp: { ...mcp, app: { resourceKey: dashboardApp.key } }
+      })
+      execute(input: { value: string }) {
+        return { value: input.value, surface: 'mcp' as const }
+      }
+    }
+
+    expect(() => describeXpertToolProvider(new MissingAppProvider())).toThrow(/undeclared App 'not_declared'/)
+    expect(() => describeXpertToolProvider(new HiddenAppProvider())).toThrow(/must include app visibility/)
   })
 
   it('rejects component and Tool claims that conflict in the same runtime scope', () => {

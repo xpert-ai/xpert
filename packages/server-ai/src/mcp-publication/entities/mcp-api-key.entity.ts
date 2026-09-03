@@ -26,6 +26,10 @@ export class McpApiKey extends TenantOrganizationBaseEntity implements IMcpApiKe
     @Column({ type: 'char', length: 64, select: false })
     keyHash: string
 
+    @Exclude({ toPlainOnly: true })
+    @Column({ type: 'text', nullable: true, select: false })
+    encryptedSecret?: string | null
+
     @Column({ type: 'varchar', length: 24 })
     subjectType: McpApiKeySubjectType
 

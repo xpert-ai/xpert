@@ -41,6 +41,7 @@ import { OpenAPIToolset } from '../xpert-toolset/provider/openapi/openapi-toolse
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { McpCapabilityCatalog } from '../mcp-publication/entities/mcp-capability-catalog.entity'
 import { McpSubscriptionService } from '../mcp-publication/mcp-subscription.service'
+import { persistedToolsetWhere } from './toolset-scope'
 import { resolveToolRuntimeScope } from './workspace-scope'
 
 export interface ToolRuntimeEnvironment {
@@ -433,14 +434,7 @@ export class ToolRuntimeService {
         const persistedIds = requestedIds.filter((id) => !snapshotById.has(id))
         const persisted = persistedIds.length
             ? await this.toolsetRepository.find({
-                  where: {
-                      id: In(persistedIds),
-                      ...(request.tenantId ? { tenantId: request.tenantId } : {}),
-                      ...(request.organizationId !== undefined
-                          ? { organizationId: request.organizationId ?? IsNull() }
-                          : {}),
-                      ...(workspaceId ? { workspaceId } : request.source === 'mcp' ? { workspaceId: IsNull() } : {})
-                  },
+                  where: persistedToolsetWhere(request, workspaceId, persistedIds),
                   relations: ['tools']
               })
             : []

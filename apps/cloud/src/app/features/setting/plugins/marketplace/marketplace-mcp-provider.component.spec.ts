@@ -15,6 +15,7 @@ jest.mock('@cloud/app/@core', () => {
 })
 
 import { TestBed } from '@angular/core/testing'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { ToastrService } from '@cloud/app/@core'
 import {
   IPluginComponentDefinition,
@@ -96,15 +97,29 @@ async function createComponent(active = false, publicationScope: 'tenant' | 'org
         endpoint: 'http://localhost:3000/api/mcp/p/decorated-native',
         authorization: 'Bearer'
       })
+    ),
+    getPluginMcpServerCredential: jest.fn(() =>
+      of({
+        connectionInfo: {
+          protocolVersion: '2026-07-28',
+          transport: 'streamable-http',
+          endpoint: 'http://localhost:3000/api/mcp/p/decorated-native',
+          authorization: 'Bearer'
+        },
+        apiKey: { id: 'key-1' },
+        secret: 'repeatable-secret'
+      })
     )
   }
   const reload = jest.fn()
   const success = jest.fn()
+  const copy = jest.fn(() => true)
 
   await TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), PluginMarketplaceMcpProviderComponent],
     providers: [
       { provide: PluginAPIService, useValue: pluginAPI },
+      { provide: Clipboard, useValue: { copy } },
       { provide: ToastrService, useValue: { success } }
     ]
   }).compileComponents()
@@ -117,7 +132,7 @@ async function createComponent(active = false, publicationScope: 'tenant' | 'org
   await fixture.whenStable()
   fixture.detectChanges()
 
-  return { component: fixture.componentInstance, fixture, pluginAPI, reload, success }
+  return { component: fixture.componentInstance, fixture, pluginAPI, reload, success, copy }
 }
 
 describe('PluginMarketplaceMcpProviderComponent', () => {
@@ -144,14 +159,49 @@ describe('PluginMarketplaceMcpProviderComponent', () => {
     expect(reload).toHaveBeenCalled()
   })
 
-  it('shows existing active connection data without revealing an API key secret', async () => {
+  it('prefetches existing active connection credentials without revealing the secret', async () => {
     const { component, fixture } = await createComponent(true)
 
     expect(component.isActive()).toBe(true)
-    expect(component.connection()?.apiKeySecret).toBeUndefined()
+    expect(component.connection()?.apiKeySecret).toBe('repeatable-secret')
+    expect(component.credentialVisible()).toBe(false)
     expect(component.clientConfiguration()).toContain('decorated_native')
     expect(fixture.nativeElement.textContent).toContain('http://localhost:3000/api/mcp/p/decorated-native')
     expect(fixture.nativeElement.textContent).not.toContain('one-time-secret')
+  })
+
+  it('retrieves, hides, and shows the current administrator credential repeatedly', async () => {
+    const { component, fixture, pluginAPI } = await createComponent(true)
+
+    await component.toggleCredential()
+    fixture.detectChanges()
+
+    expect(pluginAPI.getPluginMcpServerCredential).toHaveBeenCalledWith(pluginName, 'decorated-native')
+    expect(component.connection()?.apiKeySecret).toBe('repeatable-secret')
+    expect(fixture.nativeElement.textContent).toContain('repeatable-secret')
+
+    await component.toggleCredential()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).not.toContain('repeatable-secret')
+
+    await component.toggleCredential()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('repeatable-secret')
+    expect(pluginAPI.getPluginMcpServerCredential).toHaveBeenCalledTimes(1)
+  })
+
+  it('copies a ready-to-use client configuration without revealing the credential in the page', async () => {
+    const { component, fixture, pluginAPI, copy } = await createComponent(true)
+
+    await component.copyClientConfiguration()
+    fixture.detectChanges()
+
+    expect(pluginAPI.getPluginMcpServerCredential).toHaveBeenCalledWith(pluginName, 'decorated-native')
+    expect(copy).toHaveBeenCalledTimes(1)
+    expect(copy.mock.calls[0][0]).toContain('Bearer repeatable-secret')
+    expect(copy.mock.calls[0][0]).not.toContain('${XPERT_MCP_API_KEY}')
+    expect(component.credentialVisible()).toBe(false)
+    expect(fixture.nativeElement.textContent).not.toContain('repeatable-secret')
   })
 
   it('disables the Provider from the inline marketplace panel', async () => {
@@ -163,6 +213,19 @@ describe('PluginMarketplaceMcpProviderComponent', () => {
     expect(component.isActive()).toBe(false)
     expect(component.connection()).toBeNull()
     expect(reload).toHaveBeenCalled()
+  })
+
+  it('renders as a flat accordion panel without a nested card surface', async () => {
+    const { fixture } = await createComponent(true)
+    fixture.componentRef.setInput('surface', 'flat')
+    fixture.detectChanges()
+
+    const surface = fixture.nativeElement.querySelector(
+      '[data-testid="plugin-marketplace-mcp-provider"]'
+    ) as HTMLElement
+    expect(surface.classList).not.toContain('border-t')
+    expect(surface.classList).not.toContain('rounded-xl')
+    expect(surface.classList).not.toContain('bg-components-panel-bg')
   })
 
   it('does not link organization users to shared tenant Publication settings', async () => {
@@ -187,6 +250,9 @@ describe('PluginMarketplaceMcpProviderComponent', () => {
       'AdvancedMcpSettings',
       'ShowConnectionInfo',
       'McpApiKeyOneTime',
+      'McpApiKeyProtected',
+      'ShowMcpApiKey',
+      'HideMcpApiKey',
       'McpClientConfiguration',
       'McpServerEnabledToast',
       'McpServerDisabledToast',

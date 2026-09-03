@@ -1,4 +1,5 @@
-import { RequestContext } from '@xpert-ai/server-core'
+import { environment } from '@xpert-ai/server-config'
+import { decryptSecret, RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { Test, type TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -25,11 +26,14 @@ describe('McpApiKeyService', () => {
         getManaged = jest.fn().mockResolvedValue(publication())
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('11111111-1111-4111-8111-111111111111')
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
         const queryBuilder = {
             addSelect: jest.fn().mockReturnThis(),
             where,
             andWhere: jest.fn().mockReturnThis(),
-            getOne: jest.fn(async () => (selectedKey?.revokedAt ? undefined : selectedKey))
+            orderBy: jest.fn().mockReturnThis(),
+            getOne: jest.fn(async () => (selectedKey?.revokedAt ? undefined : selectedKey)),
+            getMany: jest.fn(async () => stored.filter((key) => !key.revokedAt))
         }
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -74,15 +78,56 @@ describe('McpApiKeyService', () => {
 
     afterEach(() => jest.restoreAllMocks())
 
-    it('returns the secret once while persisting only its hash', async () => {
+    it('returns a one-time public secret while persisting only its authentication hash', async () => {
         const created = await service.create('publication-1', { name: 'Codex' })
 
         expect(created.secret).toMatch(/^xpert_mcp_/)
         expect(created.apiKey).not.toHaveProperty('keyHash')
+        expect(created.apiKey).not.toHaveProperty('encryptedSecret')
         expect(stored[0].keyHash).toMatch(/^[a-f0-9]{64}$/)
         expect(stored[0].keyHash).not.toContain(created.secret)
+        expect(stored[0].encryptedSecret).toBeNull()
         expect(stored[0].keyPrefix).toBe(created.secret.slice(0, 24))
         expect(stored[0].scopes).toEqual(['tools:list', 'tools:call'])
+    })
+
+    it('returns the same revealable credential for the same administrator and organization', async () => {
+        const targetPublication = publication()
+        const first = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+
+        const second = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+
+        expect(second.secret).toBe(first.secret)
+        expect(second.apiKey.id).toBe(first.apiKey.id)
+        expect(stored).toHaveLength(1)
+        const encryptedSecret = stored[0].encryptedSecret ?? ''
+        expect(encryptedSecret).not.toContain(first.secret)
+        expect(decryptSecret(encryptedSecret, environment.secretsEncryptionKey)).toBe(first.secret)
+    })
+
+    it('creates a new revealable credential when the requested MCP client scopes change', async () => {
+        const targetPublication = publication()
+        const toolsOnly = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+        const appEnabled = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
+        const reused = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
+
+        expect(appEnabled.apiKey.id).not.toBe(toolsOnly.apiKey.id)
+        expect(appEnabled.apiKey.scopes).toEqual(['tools:list', 'tools:call', 'resources:list', 'resources:read'])
+        expect(reused.apiKey.id).toBe(appEnabled.apiKey.id)
+        expect(reused.secret).toBe(appEnabled.secret)
+        expect(stored).toHaveLength(2)
     })
 
     it('authenticates a valid bearer key only for its publication and updates last use', async () => {
@@ -128,7 +173,7 @@ describe('McpApiKeyService', () => {
     it('manages only current-organization keys for an admitted tenant Publication', async () => {
         const sharedPublication = Object.assign(publication(), { organizationId: null })
         getManaged.mockResolvedValue(sharedPublication)
-        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue('organization-1')
         await service.createForOrganization(sharedPublication, 'organization-2', { name: 'Other organization' })
         const current = await service.create(sharedPublication.id, { name: 'Current organization' })
 

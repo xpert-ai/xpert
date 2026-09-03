@@ -34,6 +34,7 @@ import {
 import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
 import { PluginMarketplaceMcpProviderComponent } from './marketplace-mcp-provider.component'
 import { PluginSkillTrialLauncherService } from './plugin-skill-trial-launcher.service'
+import { isRuntimeNativeMcp, runtimeMcpProviderDescription, runtimeMcpProviderName } from './runtime-mcp-provider.util'
 
 type TAppSetupAction =
   | { type: 'install-app'; resource: TPluginResourceContribution }
@@ -643,15 +644,9 @@ function readString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function isRuntimeNativeMcp(component: Pick<IPluginComponentDefinition, 'metadata'>) {
-  return (
-    readMetadataBoolean(component.metadata, 'runtimeDiscovered') && readMetadataBoolean(component.metadata, 'nativeMcp')
-  )
-}
-
 function runtimeMcpContribution(component: IPluginComponentDefinition): TPluginMarketplaceContribution {
-  const name = readConfigString(component.config, 'name') ?? component.componentKey
-  const description = readConfigString(component.config, 'description')
+  const name = runtimeMcpProviderName(component)
+  const description = runtimeMcpProviderDescription(component)
   const provider = readConfigString(component.config, 'provider')
   return {
     type: 'mcp',
@@ -664,10 +659,6 @@ function runtimeMcpContribution(component: IPluginComponentDefinition): TPluginM
       ...(provider ? { provider } : {})
     }
   }
-}
-
-function readMetadataBoolean(value: unknown, key: string) {
-  return !!value && typeof value === 'object' && Reflect.get(value, key) === true
 }
 
 function readConfigString(value: unknown, key: string) {

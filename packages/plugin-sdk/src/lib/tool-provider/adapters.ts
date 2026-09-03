@@ -100,7 +100,8 @@ class DecoratedBuiltinToolset extends BuiltinToolset<StructuredToolInterface, Re
     this.tools = []
     this.#definitions = {
       instructions: descriptor.options.instructions,
-      tools: descriptor.tools.filter((item) => !!item.options.mcp).map((item) => createMcpTool(instance, item))
+      tools: descriptor.tools.filter((item) => !!item.options.mcp).map((item) => createMcpTool(instance, item)),
+      ...(descriptor.options.apps?.length ? { apps: [...descriptor.options.apps] } : {})
     }
   }
 
@@ -167,7 +168,8 @@ function createMcpTool(
     exposure: { mcp: { eligible: true } },
     behavior: mcp.behavior,
     requiredContext: [...mcp.requiredContext],
-    visibility: [...(mcp.visibility ?? ['model'])],
+    visibility: [...(mcp.visibility ?? (mcp.app ? ['model', 'app'] : ['model']))],
+    ...(mcp.app ? { app: { resourceKey: mcp.app.resourceKey } } : {}),
     execute: async (input: unknown, context: ToolExecutionContext) => {
       const parsedInput = await descriptor.options.inputSchema.parseAsync(input)
       const output = await invoke(parsedInput, mcpExecutionContext(context))
