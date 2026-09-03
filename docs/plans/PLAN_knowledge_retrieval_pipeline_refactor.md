@@ -1,11 +1,37 @@
-# 知识库 Retriever 与 Fusion 第一阶段重构方案
+# 知识库 Retriever 与 Fusion 分阶段实施方案
 
 ## Summary
 
 - 先把内置知识库当前的 Vector 与 GraphRAG 检索分支抽成两个内部 Retriever adapter。
 - 把 Hybrid 模式已有的去重、加权和排序逻辑抽成纯计算的 `LegacyWeightedFusion`。
-- 本阶段只调整 `xpert-develop` 的 `server-ai` 内部实现，不修改公共配置、数据库、Cloud UI、Plugin SDK、外部知识库协议或最终 `Document[]` 输出。
-- 第一阶段不实现 Keyword 或 RRF；Phase 2 已实现纯计算的 N 路 Weighted RRF，但尚未接入 Handler。Keyword Retriever 仍留待后续阶段实现。
+- Phase 1 只调整 `xpert-develop` 的 `server-ai` 内部实现，不修改公共配置、数据库、Cloud UI、Plugin SDK、外部知识库协议或最终 `Document[]` 输出。
+- Phase 1 的 Retriever/Fusion 重构与 Phase 2 的纯计算 Weighted RRF 已合并到 `develop`。
+- 当前 Phase 3/4 增加 Keyword Retriever，并只在显式启用 `weighted_rrf` 时将 Vector、Graph、Keyword 三路接入 RRF；旧配置仍默认走 Legacy Fusion。
+
+## 当前 Phase 3/4 实现
+
+- Keyword Retriever 使用 PostgreSQL `simple` 全文检索与 `pg_trgm` 子串检索，覆盖正文、文档名、中文关键词和精确编号。
+- 单个关键词达到 3 个 Unicode 字符时才启用 `%keyword%` trigram 子串匹配；`AI`、`退款` 等短词只走全文匹配和正文精确匹配，避免短通配符在大知识库中扫描大量 chunk。真实 PostgreSQL 测试会用 10,000 个干扰 chunk 和 `EXPLAIN ANALYZE` 验证短词命中全文索引。
+- Keyword、Vector、Graph 共用 tenant、organization、knowledgebase、prepared filter 和 disabled 文档/chunk 边界。
+- PostgreSQL 会在文档新增、更新、删除及 chunk 重建时自动维护 GIN 索引，不增加应用层双写逻辑。
+- 应用只检查索引状态，不负责创建或声明这些 PostgreSQL 自定义索引。部署升级时由运维在 TypeORM schema sync 完成后，向目标 PostgreSQL 数据库手动依次执行以下 SQL；每条 `CREATE INDEX CONCURRENTLY` 必须在事务外单独执行。后续再次执行 schema sync 时也应重新检查并按需执行：
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_content_fts"
+ON "knowledge_document_chunk" USING gin (to_tsvector('simple', COALESCE("pageContent", '')));
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_content_trgm"
+ON "knowledge_document_chunk" USING gin ("pageContent" gin_trgm_ops);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_name_trgm"
+ON "knowledge_document" USING gin ("name" gin_trgm_ops);
+```
+
+- 缺少或创建失败的索引会令 Keyword batch 明确失败，RRF 不会静默退化，也不会在未建索引时执行正文全表扫描。
+- `recall.fusion.mode` 缺失或为 `legacy` 时，Handler 不执行 Keyword Retriever；只有 Hybrid + `weighted_rrf` 才启用三路 RRF。
+- RRF 分数不是向量相似度，因此 RRF 模式不应用旧的 similarity threshold；配置界面会禁用该控件并显示说明。
 
 ## Problem
 
@@ -21,7 +47,7 @@
 
 Vector、Graph 和融合算法缺少可替换 seam。直接在 handler 中加入 Keyword 会继续扩大条件分支，并迫使 BM25/全文分数与 Vector/Graph 分数进入同一段硬编码逻辑。
 
-## Scope
+## Phase 1 Scope
 
 ### In Scope
 
@@ -258,7 +284,7 @@ Fusion 必须是纯计算：不访问数据库、不调用模型、不写日志�
 
 完成标准：`WeightedRrfFusion` 的固定候选单测通过，当前 Handler/Legacy Fusion 回归测试继续通过，生产配置中没有启用入口。
 
-### Phase 3：再实现 Keyword Retriever
+### Phase 3：实现 Keyword Retriever（当前分支已完成）
 
 目标：增加独立的 `KeywordKnowledgeCandidateRetriever` 和全文索引生命周期，先单独证明关键词召回有效，不立即参与生产融合。
 
@@ -272,7 +298,7 @@ Fusion 必须是纯计算：不访问数据库、不调用模型、不写日志�
 
 完成标准：Keyword 单路召回测试和真实知识库质量样例通过，但默认 Vector/Graph/Hybrid 行为仍不改变。
 
-### Phase 4：通过 RRF 接入并开放配置
+### Phase 4：通过 RRF 接入并开放配置（当前分支已完成 opt-in）
 
 - 将 Vector、Graph、Keyword 的候选列表交给 `WeightedRrfFusion`，不混合三种原始分数。
 - 新模式先显式 opt-in；旧配置继续走 `LegacyWeightedFusion`。

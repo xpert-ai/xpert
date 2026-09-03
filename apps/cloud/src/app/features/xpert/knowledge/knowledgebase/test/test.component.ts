@@ -1,6 +1,6 @@
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { OverlayModule } from '@angular/cdk/overlay'
 import { RouterModule } from '@angular/router'
 import {
   KnowledgeChunkComponent,
@@ -42,7 +42,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     FormsModule,
     TranslateModule,
-    CdkMenuModule,
+    OverlayModule,
     ...ZardTooltipImports,
     XpCommonModule,
     DateRelativePipe,
@@ -66,8 +66,8 @@ export class KnowledgeTestComponent {
   readonly recall = computed(() => this.knowledgebase()?.recall)
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
-  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'graph', 'hybrid']
-  readonly retrievalMode = model<GraphRagRetrievalMode>('vector')
+  readonly retrievalMode = computed<GraphRagRetrievalMode>(() => this.knowledgebase()?.graphRag?.mode ?? 'vector')
+  readonly retrievalSettingsOpen = signal(false)
   readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
     const graphRag = this.knowledgebase()?.graphRag
     return {
@@ -75,7 +75,8 @@ export class KnowledgeTestComponent {
       entityTopK: graphRag?.entityTopK,
       neighborHops: graphRag?.neighborHops,
       graphWeight: graphRag?.graphWeight,
-      communityTopK: graphRag?.communityTopK
+      communityTopK: graphRag?.communityTopK,
+      fusion: this.knowledgebase()?.recall?.fusion
     }
   })
 
@@ -170,7 +171,19 @@ export class KnowledgeTestComponent {
     this.results.set(null)
   }
 
+  toggleRetrievalSettings() {
+    this.retrievalSettingsOpen.update((open) => !open)
+  }
+
+  onRetrievalSettingsOverlayKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      this.onClose(false)
+    }
+  }
+
   onClose(reload?: boolean | void) {
+    this.retrievalSettingsOpen.set(false)
     if (reload) {
       this.knowledgebaseComponent.refresh()
     }

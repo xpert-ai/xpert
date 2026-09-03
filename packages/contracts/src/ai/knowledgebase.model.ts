@@ -215,6 +215,30 @@ export type TKBRecallParams = {
    * Weight in EnsembleRetriever
    */
   weight?: number
+
+  /**
+   * Candidate fusion strategy. Missing configuration keeps the legacy behavior.
+   */
+  fusion?: TKBFusionConfig
+}
+
+export type KnowledgeFusionMode = 'legacy' | 'weighted_rrf'
+
+export const DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT = 60
+export const DEFAULT_KNOWLEDGE_RRF_WEIGHTS = {
+  vector: 0.65,
+  graph: 0.35,
+  keyword: 0.3
+} as const
+
+export type TKBFusionConfig = {
+  mode?: KnowledgeFusionMode
+  rankConstant?: number
+  weights?: {
+    vector?: number
+    graph?: number
+    keyword?: number
+  }
 }
 
 export type DocumentMetadata = IDocChunkMetadata & {

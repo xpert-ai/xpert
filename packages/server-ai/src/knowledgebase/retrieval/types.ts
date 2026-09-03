@@ -1,5 +1,11 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { DocumentMetadata, IKnowledgebase, KnowledgeFilterDiagnostics, TKBRetrievalSettings } from '@xpert-ai/contracts'
+import {
+    DocumentMetadata,
+    IKnowledgebase,
+    KnowledgeFilterDiagnostics,
+    KnowledgeFilterErrorCode,
+    TKBRetrievalSettings
+} from '@xpert-ai/contracts'
 import { PreparedKnowledgeFilter } from '../filter'
 
 export type KnowledgeRetrieverSource = 'vector' | 'graph' | 'keyword'
@@ -31,6 +37,19 @@ export type KnowledgeRetrievalBatch = {
     diagnostics: KnowledgeFilterDiagnostics
     failed?: boolean
     error?: string
+}
+
+export class KnowledgeRetrievalFailure extends Error {
+    readonly name = 'KnowledgeRetrievalFailure'
+
+    constructor(
+        readonly source: KnowledgeRetrieverSource,
+        readonly errorCode: KnowledgeFilterErrorCode,
+        readonly diagnostics: KnowledgeFilterDiagnostics,
+        message: string
+    ) {
+        super(message)
+    }
 }
 
 export interface KnowledgeCandidateRetriever {
