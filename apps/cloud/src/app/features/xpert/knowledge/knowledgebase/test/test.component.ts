@@ -66,8 +66,7 @@ export class KnowledgeTestComponent {
   readonly recall = computed(() => this.knowledgebase()?.recall)
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
-  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'graph', 'hybrid']
-  readonly retrievalMode = model<GraphRagRetrievalMode>('vector')
+  readonly retrievalMode = computed<GraphRagRetrievalMode>(() => this.knowledgebase()?.graphRag?.mode ?? 'vector')
   readonly retrievalSettingsOpen = signal(false)
   readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
     const graphRag = this.knowledgebase()?.graphRag
@@ -76,7 +75,8 @@ export class KnowledgeTestComponent {
       entityTopK: graphRag?.entityTopK,
       neighborHops: graphRag?.neighborHops,
       graphWeight: graphRag?.graphWeight,
-      communityTopK: graphRag?.communityTopK
+      communityTopK: graphRag?.communityTopK,
+      fusion: this.knowledgebase()?.recall?.fusion
     }
   })
 

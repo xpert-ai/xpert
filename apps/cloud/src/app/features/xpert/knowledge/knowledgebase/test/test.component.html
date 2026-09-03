@@ -18,31 +18,6 @@
           {{ 'XP.Knowledgebase.SourceText' | translate: { Default: 'Source text' } }}
         </span>
         <div class="flex items-center gap-1">
-          <div class="flex rounded-lg bg-components-input-bg-normal p-0.5">
-            @for (modeOption of retrievalModes; track modeOption) {
-              <button
-                type="button"
-                [class]="
-                  retrievalMode() === modeOption
-                    ? 'h-7 rounded-md bg-components-button-secondary-bg px-2 text-xs font-semibold uppercase text-text-primary shadow-xs'
-                    : 'h-7 rounded-md px-2 text-xs font-semibold uppercase text-text-tertiary hover:text-text-secondary'
-                "
-                (click)="retrievalMode.set(modeOption)"
-              >
-                @switch (modeOption) {
-                  @case ('vector') {
-                    {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
-                  }
-                  @case ('graph') {
-                    {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
-                  }
-                  @case ('hybrid') {
-                    {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
-                  }
-                }
-              </button>
-            }
-          </div>
           <button
             type="button"
             class="flex h-7 cursor-pointer items-center space-x-0.5 rounded-lg border-[0.5px] border-components-button-secondary-bg bg-components-button-secondary-bg px-1.5 shadow-xs backdrop-blur-[5px] hover:bg-components-button-secondary-bg-hover"

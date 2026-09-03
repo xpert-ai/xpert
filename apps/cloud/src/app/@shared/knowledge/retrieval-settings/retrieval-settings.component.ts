@@ -8,8 +8,15 @@ import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { AiModelTypeEnum, GraphRagRetrievalMode, IKnowledgebase, TKBRetrievalSettings } from '../../../@core/types'
-import { CopilotModelSelectComponent } from '../../copilot'
+import {
+  AiModelTypeEnum,
+  DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT,
+  DEFAULT_KNOWLEDGE_RRF_WEIGHTS,
+  GraphRagRetrievalMode,
+  IKnowledgebase,
+  TKBRetrievalSettings
+} from '../../../@core/types'
+import { CopilotModelSelectComponent } from '../../copilot/copilot-model-select'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
@@ -53,6 +60,22 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly recall = attrModel(this.knowledgebase, 'recall')
   readonly score = attrModel(this.recall, 'score', null)
   readonly topK = attrModel(this.recall, 'topK', null)
+  readonly fusion = attrModel(this.recall, 'fusion', {})
+  readonly fusionWeights = attrModel(this.fusion, 'weights', {})
+  readonly rrfEnabled = linkedModel<boolean>({
+    initialValue: false,
+    compute: () => this.fusion()?.mode === 'weighted_rrf',
+    update: (enabled) => {
+      this.fusion.update((state) => ({
+        ...(state ?? {}),
+        mode: enabled ? 'weighted_rrf' : 'legacy'
+      }))
+    }
+  })
+  readonly rrfRankConstant = attrModel(this.fusion, 'rankConstant', DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT)
+  readonly rrfVectorWeight = attrModel(this.fusionWeights, 'vector', DEFAULT_KNOWLEDGE_RRF_WEIGHTS.vector)
+  readonly rrfGraphWeight = attrModel(this.fusionWeights, 'graph', DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph)
+  readonly rrfKeywordWeight = attrModel(this.fusionWeights, 'keyword', DEFAULT_KNOWLEDGE_RRF_WEIGHTS.keyword)
   readonly graphRag = attrModel(this.knowledgebase, 'graphRag', {})
   readonly mode = linkedModel<GraphRagRetrievalMode>({
     initialValue: 'vector',
@@ -69,6 +92,14 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly neighborHops = attrModel(this.graphRag, 'neighborHops', 1)
   readonly graphWeight = attrModel(this.graphRag, 'graphWeight', 0.35)
   readonly graphControlsVisible = computed(() => this.graphEnabled() || this.mode() !== 'vector')
+  readonly rrfActive = computed(() => this.mode() === 'hybrid' && this.rrfEnabled())
+  readonly rrfHasEnabledRetriever = computed(
+    () =>
+      !this.rrfActive() ||
+      [this.rrfVectorWeight(), this.rrfGraphWeight(), this.rrfKeywordWeight()].some(
+        (weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0
+      )
+  )
   readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'graph', 'hybrid']
   readonly useScore = linkedModel({
     initialValue: false,
@@ -89,6 +120,13 @@ export class KnowledgeRetrievalSettingsComponent {
   })
 
   saveRetrievalSettings() {
+    if (!this.rrfHasEnabledRetriever()) {
+      this.#toastrService.error('XP.Knowledgebase.RRFPositiveWeightRequired', '', {
+        Default: 'RRF requires at least one retrieval source with a positive weight.'
+      })
+      return
+    }
+
     this.loading.set(true)
     this.knowledgebaseAPI
       .update(this.knowledgebase().id, {
