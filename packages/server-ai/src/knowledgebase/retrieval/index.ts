@@ -1,5 +1,6 @@
 export * from './types'
 export * from './document'
 export * from './legacy-weighted.fusion'
+export * from './weighted-rrf.fusion'
 export * from './vector-knowledge-candidate.retriever'
 export * from './graph-knowledge-candidate.retriever'
