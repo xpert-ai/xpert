@@ -75,23 +75,20 @@
         <z-icon zType="center_focus_strong" />
         <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}</span>
       </a>
-      <a
-        z-tab-link
-        [routerLink]="['./', 'configuration']"
-        queryParamsHandling="preserve"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive=""
-        #configurationActive="routerLinkActive"
-        [active]="configurationActive.isActive"
-      >
-        <z-icon zType="tune" />
-        <span class="hidden lg:inline">{{
-          'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' }
-        }}</span>
-      </a>
     </nav>
 
     <div class="flex shrink-0 items-center gap-1.5">
+      <button
+        type="button"
+        z-button
+        zType="outline"
+        [disabled]="loading()"
+        (click)="openConfiguration()"
+        [attr.aria-label]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
+      >
+        <z-icon zType="tune" />
+        <span class="hidden xl:inline">{{ 'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}</span>
+      </button>
       <button type="button" z-button zType="outline" (click)="back()">
         <z-icon zType="arrow-left" />
         <span class="hidden xl:inline">{{ 'XP.ACTIONS.Back' | translate: { Default: 'Back' } }}</span>

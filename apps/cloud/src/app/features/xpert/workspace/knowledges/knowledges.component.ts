@@ -109,6 +109,11 @@ export class XpertWorkspaceKnowledgesComponent {
 
     this.#dialog
       .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+        width: 'min(96vw, 72rem)',
+        height: 'min(90vh, 52rem)',
+        maxWidth: 'calc(100vw - 1.5rem)',
+        maxHeight: 'calc(100vh - 1.5rem)',
+        panelClass: 'xp-overlay-pane-card',
         data: {
           workspaceId: this.workspaceId()
         }
@@ -129,9 +134,25 @@ export class XpertWorkspaceKnowledgesComponent {
       return
     }
 
-    this.#router.navigate(['/xpert/knowledges', item.id, 'configuration'], {
-      queryParams: { returnTo: this.workspaceReturnTo() }
-    })
+    this.#dialog
+      .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+        width: 'min(96vw, 72rem)',
+        height: 'min(90vh, 52rem)',
+        maxWidth: 'calc(100vw - 1.5rem)',
+        maxHeight: 'calc(100vh - 1.5rem)',
+        panelClass: 'xp-overlay-pane-card',
+        data: {
+          workspaceId: this.workspaceId(),
+          knowledgebase: item
+        }
+      })
+      .closed.subscribe({
+        next: (updated) => {
+          if (updated) {
+            this.refresh()
+          }
+        }
+      })
   }
 
   remove(item: IKnowledgebase) {
