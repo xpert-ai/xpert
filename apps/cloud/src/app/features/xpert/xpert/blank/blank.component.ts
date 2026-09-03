@@ -43,6 +43,7 @@ import {
   ICopilot,
   ICopilotModel,
   ICopilotWithProvider,
+  IWFNMiddleware,
   isUserAddableAgentMiddleware,
   ISkillPackage,
   ISkillRepositoryIndex,
@@ -175,6 +176,13 @@ type BlankSkillState = {
 type BlankTemplatePluginSkillDependencyGroup = {
   pluginName: string
   components: PluginResourceComponentSelector[]
+}
+
+type BlankTemplatePluginSkillBinding = {
+  pluginName: string
+  componentKey: string
+  runtimeId: string
+  targetAgentKey?: string
 }
 
 type BlankTemplateToolsetDependency = {
@@ -423,6 +431,7 @@ export class XpertNewBlankComponent {
   readonly templateLoading = signal(false)
   readonly templateLoadError = signal<string | null>(null)
   readonly templatePluginSkillInstallError = signal<string | null>(null)
+  readonly templatePluginSkillBindings = signal<BlankTemplatePluginSkillBinding[]>([])
   readonly templateToolsetInstallError = signal<string | null>(null)
   readonly agentTemplateCatalogLoading = signal(true)
   readonly agentTemplateCatalogError = signal<string | null>(null)
@@ -1269,7 +1278,9 @@ export class XpertNewBlankComponent {
       this.getSelectedMiddlewareDefinitions()
     )
     const nextDraft = this.withInitialPrimaryAgentPromptInDraft(
-      this.buildTemplateImportDraftWithTemplateToolsets(draft, defaultSandboxProvider),
+      this.applyTemplatePluginSkillBindings(
+        this.buildTemplateImportDraftWithTemplateToolsets(draft, defaultSandboxProvider)
+      ),
       primaryAgentPrompt
     )
     const xpert = await firstValueFrom(
@@ -1986,6 +1997,11 @@ export class XpertNewBlankComponent {
   private clearWorkspaceScopedAgentSelections() {
     this.initializedWorkspaceSkillDefaultWorkspaces.set(new Set())
     this.templatePluginSkillInstallError.set(null)
+    // Installation runtime IDs are workspace-owned. Discard both the bindings
+    // and their idempotency keys so switching back to a workspace refreshes
+    // the IDs instead of reusing bindings resolved for another workspace.
+    this.templatePluginSkillBindings.set([])
+    this.preparedTemplatePluginSkillDependencies.set(new Set())
     this.clearTemplateToolsetSelections()
     this.applyAgentSkillSelections({
       skills: [],
@@ -2121,6 +2137,7 @@ export class XpertNewBlankComponent {
     const groups = this.templatePluginSkillDependencyGroups()
     if (!groups.length) {
       this.templatePluginSkillInstallError.set(null)
+      this.templatePluginSkillBindings.set([])
       return true
     }
 
@@ -2138,7 +2155,9 @@ export class XpertNewBlankComponent {
     this.templatePluginSkillInstallError.set(null)
 
     try {
-      const skillPackageIds: string[] = []
+      const primaryAgentKey = this.selectedTemplateDraft()?.team?.agent?.key
+      const primarySkillPackageIds: string[] = []
+      const skillBindings: BlankTemplatePluginSkillBinding[] = []
       for (const group of groups) {
         const result = await firstValueFrom(
           this.#pluginAPI
@@ -2170,12 +2189,32 @@ export class XpertNewBlankComponent {
           )
         }
 
-        skillPackageIds.push(...skillInstallations.map((installation) => installation.runtimeId as string))
+        for (const component of group.components) {
+          const installation = skillInstallations.find((item) => item.componentKey === component.componentKey)
+          if (!installation?.runtimeId) {
+            continue
+          }
+          skillBindings.push({
+            pluginName: group.pluginName,
+            componentKey: component.componentKey,
+            runtimeId: installation.runtimeId,
+            ...(component.targetAgentKey ? { targetAgentKey: component.targetAgentKey } : {})
+          })
+          // selectedExplicitSkills configures the primary Agent. Keep an
+          // explicitly targeted specialist skill out of that primary grant;
+          // applyTemplatePluginSkillBindings authorizes its target instead.
+          if (!component.targetAgentKey || component.targetAgentKey === primaryAgentKey) {
+            primarySkillPackageIds.push(installation.runtimeId)
+          }
+        }
       }
 
-      if (skillPackageIds.length) {
-        this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...skillPackageIds])))
+      if (primarySkillPackageIds.length) {
+        this.selectedExplicitSkills.set(
+          Array.from(new Set([...this.selectedExplicitSkills(), ...primarySkillPackageIds]))
+        )
       }
+      this.templatePluginSkillBindings.set(skillBindings)
 
       this.preparedTemplatePluginSkillDependencies.update((value) => new Set([...value, dependencyKey]))
       this.refreshAgentSkillMiddlewareSelections()
@@ -2195,6 +2234,59 @@ export class XpertNewBlankComponent {
     } finally {
       this.installingSkillPackage.set(false)
     }
+  }
+
+  /**
+   * Workspace installation makes a portable skill package selectable. The
+   * imported Xpert draft must additionally bind that package to the Skills
+   * Middleware directly connected to each dependency target Agent so governed
+   * Assistant Tasks can resolve the selected skill at runtime.
+   */
+  private applyTemplatePluginSkillBindings(draft: TXpertTeamDraft) {
+    const nextDraft = draft
+
+    for (const binding of this.templatePluginSkillBindings()) {
+      if (!binding.targetAgentKey) {
+        continue
+      }
+      const connectedMiddlewareKeys = new Set(
+        nextDraft.connections
+          .filter(
+            (connection) =>
+              connection.type === 'workflow' &&
+              (connection.from === binding.targetAgentKey || connection.to === binding.targetAgentKey)
+          )
+          .map((connection) =>
+            connection.from === binding.targetAgentKey ? String(connection.to) : String(connection.from)
+          )
+      )
+      const skillsMiddlewares = nextDraft.nodes.filter((node) => {
+        if (node.type !== 'workflow' || !connectedMiddlewareKeys.has(node.key)) {
+          return false
+        }
+        const entity = node.entity as IWFNMiddleware
+        return (
+          entity.type === WorkflowNodeTypeEnum.MIDDLEWARE && entity.provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+        )
+      })
+      if (skillsMiddlewares.length !== 1) {
+        throw new Error(
+          `Template skill '${binding.pluginName}/${binding.componentKey}' requires exactly one Skills Middleware directly connected to Agent '${binding.targetAgentKey}'.`
+        )
+      }
+
+      const middleware = skillsMiddlewares[0].entity as IWFNMiddleware
+      const options = middleware.options && typeof middleware.options === 'object' ? middleware.options : {}
+      const configuredSkills = Array.isArray(Reflect.get(options, 'skills'))
+        ? (Reflect.get(options, 'skills') as unknown[]).filter((item): item is string => typeof item === 'string')
+        : []
+      middleware.options = {
+        ...options,
+        skills: Array.from(new Set([...configuredSkills, binding.runtimeId]))
+      }
+    }
+
+    return nextDraft
   }
 
   private async prepareTemplateToolsetsForCurrentWorkspace() {

@@ -8,6 +8,7 @@ import {
 } from '@xpert-ai/contracts'
 import { AIModel } from './ai-model'
 import { ModelProvider } from './abstract-provider'
+import { DefaultParameterName, PARAMETER_RULE_TEMPLATE } from './entities'
 
 class TestProvider extends ModelProvider {
   getAuthorization(): string {
@@ -70,5 +71,11 @@ describe('AIModel model profile', () => {
 
   it('returns null when the model schema is unavailable', () => {
     expect(new TestAIModel(null).getModelProfile('missing-model', {})).toBeNull()
+  })
+})
+
+describe('AIModel parameter rule templates', () => {
+  it('uses 2048 tokens as the default output limit', () => {
+    expect(PARAMETER_RULE_TEMPLATE[DefaultParameterName.MAX_TOKENS].default).toBe(2_048)
   })
 })

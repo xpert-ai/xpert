@@ -82,6 +82,12 @@ export class XpertConnectorService {
     })
   }
 
+  cancelBindingAuthorization(bindingId: string, xpertId?: string) {
+    return this.#http.post<void>(`${API_CONNECTOR}/bindings/${bindingId}/cancel-authorization`, {
+      ...(xpertId ? { xpertId } : {})
+    })
+  }
+
   consentToBinding(bindingId: string, xpertId?: string) {
     return this.#http.post<ConnectorBinding>(`${API_CONNECTOR}/bindings/${bindingId}/consent`, {
       ...(xpertId ? { xpertId } : {})

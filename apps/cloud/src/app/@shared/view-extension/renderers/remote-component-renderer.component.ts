@@ -141,7 +141,7 @@ export class RemoteComponentRendererComponent {
     }
     return this.viewportBound() ? Math.min(requested, this.viewportHeight()) : requested
   })
-  readonly #instanceNonce = signal(createInstanceNonce())
+  readonly #instanceNonce = signal(createBrowserId())
   readonly instanceId = computed(() => `${this.manifest().key}:${this.#instanceNonce()}`)
   readonly remoteThemeMode = computed<RemoteComponentThemeMode>(() =>
     this.#themeService.themeClass() === 'dark' ? 'dark' : 'light'
@@ -223,7 +223,7 @@ export class RemoteComponentRendererComponent {
     this.requestedHeight.set(520)
     this.viewportBound.set(false)
     this.updateViewportHeight()
-    this.#instanceNonce.set(createInstanceNonce())
+    this.#instanceNonce.set(createBrowserId())
     this.resetFileAccessSession()
 
     try {
@@ -424,7 +424,7 @@ export class RemoteComponentRendererComponent {
       return
     }
     this.#hostEvents.publish({
-      id: crypto.randomUUID(),
+      id: createBrowserId(),
       type: 'view.data.changed',
       source: 'view-extension',
       receivedAt: new Date().toISOString(),
@@ -819,9 +819,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-function createInstanceNonce() {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
+function createBrowserId() {
+  return typeof globalThis.crypto?.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 

@@ -104,9 +104,10 @@ const CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE = 'data-chatkit-overlay-controls-
 const CLAWXPERT_CHATKIT_MIN_WIDTH_PX = 384
 const CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX = 460
 const CLAWXPERT_CHATKIT_MAX_WIDTH_PX = 960
+const CLAWXPERT_CHAT_COLUMN_MAX_WIDTH_PX = 840
 const CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX = 8
 const CLAWXPERT_OVERLAY_MIN_TOP_PX = 16
-const CLAWXPERT_CHATKIT_MAX_WIDTH = `${CLAWXPERT_CHATKIT_MAX_WIDTH_PX}px`
+const CLAWXPERT_CHAT_COLUMN_MAX_WIDTH = `${CLAWXPERT_CHAT_COLUMN_MAX_WIDTH_PX}px`
 const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
   'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
 const CHAT_SHELL_TRANSITION_CLASSES =
@@ -871,7 +872,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     initialThread: this.chatkitInitialThread,
     displayMode: this.chatkitDisplayMode,
     layout: {
-      maxWidth: CLAWXPERT_CHATKIT_MAX_WIDTH
+      maxWidth: CLAWXPERT_CHAT_COLUMN_MAX_WIDTH
     },
     taskSummary: {
       enabled: true

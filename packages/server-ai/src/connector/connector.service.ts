@@ -434,6 +434,7 @@ export class ConnectorService {
             projectId: null,
             provider,
             authorizationMode: 'shared',
+            status: existing?.status ?? 'disconnected',
             updatedById: userId,
             createdById: existing?.createdById ?? userId
         })
@@ -1436,14 +1437,69 @@ export class ConnectorService {
     async cancelAuthorization(workspaceId: string, connectorId: string) {
         await this.workspaceAccessService.assertCanManage(workspaceId)
         const connector = await this.requireConnector({ workspaceId, connectorId, authorizationMode: 'shared' })
-        if (connector.status !== 'pending') {
-            throw new BadRequestException('Connector authorization is not pending')
+        await this.cancelPendingAuthorization({ binding: connector, owner: connector, ownerKind: 'shared' })
+        return null
+    }
+
+    async cancelBindingAuthorization(connectorId: string, xpertId?: string) {
+        const binding = await this.requireBinding(connectorId)
+        const authorizationMode = connectorAuthorizationMode(binding)
+        let connection: BindingConnection
+        if (authorizationMode === 'shared') {
+            await this.assertBindingManage(binding)
+            connection = { binding, owner: binding, ownerKind: 'shared' }
+        } else {
+            await this.assertBindingUse(binding, xpertId)
+            const account = await this.findPersonalAccount(binding.provider, RequestContext.currentUserId())
+            if (!account) {
+                throw connectorAuthorizationNotPendingError()
+            }
+            connection = { binding, owner: account, ownerKind: 'personal' }
         }
 
-        Object.assign(connector, disconnectedCredentialState())
-        await this.connectorRepository.save(connector)
-        await this.consumeSupersededSessions(connector)
+        await this.cancelPendingAuthorization(connection)
         return null
+    }
+
+    private async cancelPendingAuthorization(connection: BindingConnection) {
+        const sessions = await this.sessionRepository.find({
+            where: {
+                tenantId: connection.binding.tenantId,
+                connectorId: connection.binding.id,
+                provider: connection.binding.provider,
+                authorizationMode: connectorAuthorizationMode(connection.binding),
+                ...(connection.ownerKind === 'personal'
+                    ? {
+                          personalAccountId: connection.owner.id,
+                          actorUserId: RequestContext.currentUserId()
+                      }
+                    : {})
+            }
+        })
+        const openSessions = sessions.filter((candidate) => !candidate.consumedAt)
+        const personalSession =
+            connection.ownerKind === 'personal'
+                ? openSessions.find((candidate) => this.isCurrentSession(candidate, connection.owner))
+                : null
+        if (connection.ownerKind === 'personal' && !personalSession) {
+            throw connectorAuthorizationNotPendingError()
+        }
+        const updated = await this.updatePendingCredentialOwner(
+            connection,
+            connection.owner.connectionAttemptId ?? undefined,
+            {
+                ...disconnectedCredentialState(),
+                updatedById: RequestContext.currentUserId()
+            }
+        )
+        if (!updated) {
+            throw connectorAuthorizationNotPendingError()
+        }
+        if (connection.ownerKind === 'shared') {
+            await Promise.all(openSessions.map((session) => this.consumeOAuthSession(session)))
+        } else if (personalSession) {
+            await this.consumeOAuthSession(personalSession)
+        }
     }
 
     createScopedRuntimeApi(scope: AgentMiddlewareRuntimeScope): ConnectorRuntimeApi {
@@ -2357,6 +2413,15 @@ function disconnectedCredentialState(): CredentialOwnerUpdate {
         disconnectedAt: new Date(),
         lastError: null
     }
+}
+
+function connectorAuthorizationNotPendingError() {
+    const defaultValue = 'Connector authorization is not pending'
+    return new BadRequestException(
+        t('server-ai:Error.ConnectorAuthorizationNotPending', {
+            defaultValue
+        }) || defaultValue
+    )
 }
 
 function isPersonalCredentialOwner(owner: CredentialOwner): owner is ConnectorPersonalAccount {

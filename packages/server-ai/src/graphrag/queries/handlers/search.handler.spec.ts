@@ -95,11 +95,10 @@ describe('KnowledgeGraphSearchHandler', () => {
             })
         )
 
-        expect(knowledgebaseService.getGraphEntityVectorStore).toHaveBeenCalledWith(
-            expect.objectContaining({ id: 'kb-1' }),
-            true,
-            { xpertId: 'xpert-1', threadId: 'thread-1' }
-        )
+        expect(knowledgebaseService.getGraphEntityVectorStore).toHaveBeenCalledWith('kb-1', true, {
+            xpertId: 'xpert-1',
+            threadId: 'thread-1'
+        })
         expect(vectorStore.similaritySearchWithScore.mock.calls.map((call) => call[1])).toEqual([4, 8])
         expect(graphFilterScopeService.filterSeedEntities).toHaveBeenCalledTimes(2)
         expect(result.docs).toEqual([

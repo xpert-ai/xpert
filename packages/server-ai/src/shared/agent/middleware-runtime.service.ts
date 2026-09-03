@@ -15,6 +15,7 @@ import {
     TChatConversationStatus,
     TChatRequest,
     XpertAgentExecutionStatusEnum,
+    createRuntimeSkillCapabilityId,
     mapTranslationLanguage,
     figureOutXpert,
     getAgentMiddlewareNodes,
@@ -839,11 +840,25 @@ export class AgentMiddlewareRuntimeService {
 
         // Resolve portable plugin skill references before creating any task rows.
         // This keeps invalid or cross-Agent selections from leaving partial runs.
-        const assistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
+        const resolvedAssistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
             xpertId,
             agentKey,
             input.selectedSkillRefs
         )
+        const projectId = normalizeOptionalString(input.projectId)
+        // Project-bound runs use source-aware runtime capability IDs so the
+        // Skills Middleware can distinguish Assistant-owned workspace skills
+        // from skills installed directly in the Project. Portable plugin refs
+        // always resolve through the target Assistant's Skills Middleware.
+        const assistantTaskSkillSelection =
+            resolvedAssistantTaskSkillSelection && projectId
+                ? {
+                      ...resolvedAssistantTaskSkillSelection,
+                      skillIds: resolvedAssistantTaskSkillSelection.skillIds.map((skillId) =>
+                          createRuntimeSkillCapabilityId({ type: 'xpert', ownerId: xpertId, skillId })
+                      )
+                  }
+                : resolvedAssistantTaskSkillSelection
 
         const requestedTaskId = normalizeOptionalString(input.taskId)
         const taskId = requestedTaskId ?? randomUUID()
@@ -856,7 +871,7 @@ export class AgentMiddlewareRuntimeService {
                 status: 'busy',
                 xpertId,
                 from: 'job',
-                projectId: normalizeOptionalString(input.projectId),
+                projectId,
                 options: {
                     parameters: {
                         input: prompt
@@ -882,9 +897,7 @@ export class AgentMiddlewareRuntimeService {
         const request: TChatRequest = {
             action: 'send',
             conversationId: conversation.id,
-            ...(normalizeOptionalString(input.projectId)
-                ? { projectId: normalizeOptionalString(input.projectId) }
-                : {}),
+            ...(projectId ? { projectId } : {}),
             message: {
                 clientMessageId: normalizeOptionalString(input.clientMessageId) ?? `assistant-task:${taskId}`,
                 input: {
@@ -901,7 +914,7 @@ export class AgentMiddlewareRuntimeService {
                 agentKey,
                 from: 'job',
                 ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
-                projectId: normalizeOptionalString(input.projectId) ?? undefined,
+                projectId: projectId ?? undefined,
                 context: input.context,
                 ...(assistantTaskSkillSelection ? { assistantTaskSkillSelection } : {}),
                 execution: { id: execution.id },

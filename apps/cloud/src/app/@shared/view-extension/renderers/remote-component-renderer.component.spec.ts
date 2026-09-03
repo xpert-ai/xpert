@@ -275,6 +275,56 @@ describe('RemoteComponentRendererComponent', () => {
     expect(fixture.nativeElement.querySelector('iframe')).not.toBeNull()
   })
 
+  it('publishes data changes when browser crypto.randomUUID is unavailable', async () => {
+    api.executeAction.mockReturnValue(of({ success: true, data: { id: 'document-1' } }))
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      actions: [
+        {
+          key: 'create_document',
+          label: { en_US: 'New document' },
+          actionType: 'invoke',
+          requiredHostAccess: 'edit'
+        }
+      ]
+    })
+    await flushRemoteEntry(fixture)
+
+    const component = fixture.componentInstance as unknown as {
+      handleActionRequest(message: Record<string, unknown>): Promise<unknown>
+    }
+    const publish = jest.spyOn(hostEvents, 'publish')
+    const randomUuidDescriptor = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID')
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      configurable: true,
+      value: undefined
+    })
+
+    try {
+      await expect(component.handleActionRequest({ actionKey: 'create_document' })).resolves.toEqual({
+        success: true,
+        data: { id: 'document-1' }
+      })
+      expect(publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringMatching(/^\d+-[0-9a-f]+$/),
+          type: 'view.data.changed',
+          data: expect.objectContaining({ actionKey: 'create_document' })
+        })
+      )
+    } finally {
+      if (randomUuidDescriptor) {
+        Object.defineProperty(globalThis.crypto, 'randomUUID', randomUuidDescriptor)
+      } else {
+        Reflect.deleteProperty(globalThis.crypto, 'randomUUID')
+      }
+    }
+  })
+
   it('allows same-origin access inside sandboxed remote component iframes', async () => {
     const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
     fixture.componentRef.setInput('hostType', 'agent')

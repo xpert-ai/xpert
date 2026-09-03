@@ -189,6 +189,11 @@ export class ConnectorController {
         return this.service.authorizationStatusBinding(connectorId, xpertId)
     }
 
+    @Post('bindings/:connectorId/cancel-authorization')
+    cancelBindingAuthorization(@Param('connectorId') connectorId: string, @Body() body?: { xpertId?: string }) {
+        return this.service.cancelBindingAuthorization(connectorId, body?.xpertId)
+    }
+
     @Post('bindings/:connectorId/consent')
     consentBinding(@Param('connectorId') connectorId: string, @Body() body?: { xpertId?: string }) {
         return this.service.consentPersonalBinding(connectorId, body?.xpertId)

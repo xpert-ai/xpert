@@ -1,5 +1,24 @@
 # @xpert-ai/plugin-draft
 
+## 12.0.1
+
+### Patch Changes
+
+- Updated dependencies [a86016e]
+  - @xpert-ai/plugin-sdk@3.18.1
+
+## 12.0.0
+
+### Patch Changes
+
+- Updated dependencies [477b711]
+- Updated dependencies [dad112d]
+- Updated dependencies [8e63a8b]
+- Updated dependencies [1c71b75]
+- Updated dependencies [d45a0c8]
+  - @xpert-ai/plugin-sdk@3.18.0
+  - @xpert-ai/contracts@3.18.0
+
 ## 11.0.6
 
 ### Patch Changes

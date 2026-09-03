@@ -83,5 +83,7 @@ Thumbs.db
 /packages/**/.env
 .nx/cache
 .volumes/
+# Local scratch data created by sandbox-backed runtime executions.
+/sandbox/
 
 docker/volumes/

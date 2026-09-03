@@ -1,49 +1,71 @@
-# Agent Square application-card density and hover action — design QA
+# Bid Studio 初始化抽屉设计 QA
 
-## Evidence
+## Comparison target
 
-- Source visual truth: `/var/folders/zr/dr3n4hcx5h1fr9c63_gncck40000gn/T/codex-clipboard-8ef794b1-f57a-4270-8960-9d3dc8dc8115.png` at 1164 × 860 pixels.
-- Browser implementation, default state: `/tmp/xpert-agent-square-application-card-compact.png` at a 1440 × 1100 CSS/pixel viewport, device density 1.
-- Browser implementation, card-hover state: `/tmp/xpert-agent-square-application-card-hover.png` at a 1440 × 1100 CSS/pixel viewport, device density 1.
-- Side-by-side full and focused comparison: `/tmp/xpert-agent-square-application-card-comparison.png`.
-- Responsive evidence: live browser capture at 390 × 844 CSS pixels.
-- State: light theme, signed-in organization, Applications catalog selected, Factory Operations application visible.
+- Source visual truth: user-provided annotated initialization-drawer reference.
+- Rendered implementation: `design-qa-app-detail.png`
+- Route: `http://localhost:4200/explore/apps/bid?plugin=%40xpert-ai%2Fplugin-bid&setup=1`
+- State: authenticated organization context, Bid Studio already enabled, initialization drawer open, both required models preselected.
 
-## Findings
+## Viewport and normalization
 
-- No remaining actionable P0, P1, or P2 mismatch.
-- The unnecessary fixed-height metadata region, minimum description height, forced tag-row height, and full-width action footer have been removed.
-- Screenshot-backed cards retain the 400 px media frame, while the lower glass panel now takes only its natural content height.
-- The `lg` primary action is anchored at the card's lower-right corner, hidden by default, and shown when the card is hovered or receives keyboard focus. Non-hover pointer devices keep the action visible.
-- Cards without screenshots now use natural content height instead of inheriting an empty 400 px body.
+- Source pixels: `1050 × 1726`; the source is a tall drawer-only annotated crop.
+- Implementation pixels: `1280 × 720`.
+- Implementation CSS viewport: `1280 × 720`; browser device pixel ratio: `2`; the in-app browser capture is normalized to CSS-pixel dimensions.
+- The source and implementation are not the same outer crop. Comparison therefore focuses on the visible 520px initialization drawer regions named by the annotations and does not claim pixel-precise equality for unrelated vertical spacing.
+
+## Full-view comparison evidence
+
+- The rendered drawer preserves the source hierarchy: title, app icon, initialization summary, three resource steps, model configuration, data-scope notice, and persistent footer.
+- The model configuration is no longer wrapped in an additional bordered card.
+- The primary and secondary footer actions share one two-column row and remain fully visible at the bottom of the drawer.
+- The implementation uses the product's existing foreground, border, muted-background, radius, and button tokens; the app icon remains the plugin-provided Bid Studio asset.
+
+## Focused region comparison evidence
+
+- Model configuration: both fields render through the shared `copilot-model-select` component. The Embedding selector is constrained to `TEXT_EMBEDDING`; the visual selector is constrained to `LLM` models with the `VISION` feature. The opened Embedding menu showed provider grouping, search, capabilities, and the expected `multimodal-embedding-v1` option.
+- Footer: “打开应用/应用到当前组织” and “取消” render at equal width in one row. Cancel closes the drawer, and “查看初始化详情” reopens it.
+- A separate cropped image was not required because the complete model and footer regions are legible in the full implementation capture and were compared together with the source in the same visual input.
 
 ## Required fidelity surfaces
 
-- Typography: existing card title, developer, description, status, and tag type styles remain unchanged; title metadata spacing is reduced without altering hierarchy.
-- Spacing and layout: panel padding is reduced from 20 px to 16 px, metadata gaps are reduced, description is clamped to two lines, and the action no longer reserves a full footer row.
-- Colors and visual tokens: existing background, border, status, and glass-panel tokens are preserved; the action uses the existing primary button treatment and elevation.
-- Image quality and asset fidelity: the real plugin screenshot remains full-bleed, uncropped beyond the existing `object-cover` frame, and visually dominates the card.
-- Copy and content: application name, developer, summary, scope, tags, status, and primary action remain present.
+- Fonts and typography: hierarchy, weights, line wrapping, and compact control text are consistent with the existing Xpert design system; no actionable mismatch.
+- Spacing and layout rhythm: removed the redundant model card, retained clear 20px field rhythm, and changed the footer to an equal two-column layout; no overflow or hidden persistent controls.
+- Colors and visual tokens: existing semantic background, border, foreground, muted, and primary button tokens are used throughout.
+- Image quality and asset fidelity: the plugin-provided Bid Studio icon is preserved with no placeholder, emoji, or reconstructed asset.
+- Copy and content: source labels, initialization summary, steps, model labels, data-scope copy, and actions are preserved. The enabled-instance primary label correctly resolves to “打开应用”.
 
-## Interaction and responsive checks
+## Findings
 
-- Browser default-state capture confirms the primary action is not shown until interaction.
-- Browser pointer-state capture confirms the `打开应用` action appears at the lower-right without changing card dimensions or obscuring metadata.
-- The action is `zSize="lg"`, remains keyboard-reachable through the card focus-within state, and is forced visible for devices matching `hover: none`.
-- At 390 px, the page and featured content remain within the viewport with no new horizontal overflow.
-- The Angular development build completed successfully and the browser showed no visible runtime error state.
+- No actionable P0, P1, or P2 findings.
+- Acceptable product-system difference: `copilot-model-select` is visually denser than the legacy native select shown under the source annotation, because the requested shared component also exposes provider identity, clearing, capabilities, and parameter controls.
+
+## Open questions
+
+- None for the requested adjustment.
 
 ## Comparison history
 
-- Initial P1: the application card reserved large blank blocks between summary, tags, and a full-width footer action.
-- Initial P2: the always-visible full-width action competed with the screenshot and metadata hierarchy.
-- Fixes: switched the information panel to natural height, tightened inner rhythm, removed minimum heights and `mt-auto`, and converted the action to a lower-right hover/focus affordance.
-- Post-fix evidence: the focused comparison shows a compact default card and the same card with the lower-right action visible, without layout shift.
+- Iteration 1: compared the annotated source and browser-rendered implementation together. No P0/P1/P2 differences were found, so no post-comparison visual fix iteration was required.
 
-## Verification
+## Primary interactions and runtime checks
 
-- Focused Angular/Jest suite: 19/19 passed.
-- Prettier and ESLint for the touched Agent Square files: passed.
-- Cloud development build and Contracts dependency build: passed.
+- Opened the Embedding Copilot model menu and verified filtered model choices.
+- Closed and reopened the initialization drawer.
+- Reloaded the final `localhost` route and confirmed no new console errors. Two retained errors in the browser log came from an earlier failed `127.0.0.1` origin check and were not reproduced on the final route.
+- Targeted model-ID contract tests: 3 passed.
+- Cloud development build: passed.
+
+## Implementation checklist
+
+- [x] Remove the redundant model-area card.
+- [x] Reuse `copilot-model-select` for Embedding and visual models.
+- [x] Preserve the existing initialization API model-ID contract.
+- [x] Put primary and secondary footer actions in one row.
+- [x] Verify selector, drawer, console, test, and build behavior.
+
+## Follow-up polish
+
+- None required for this change.
 
 final result: passed

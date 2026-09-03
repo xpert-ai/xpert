@@ -330,6 +330,47 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
     })
 
+    it('namespaces Assistant-owned skills for project-bound Assistant Task runs', async () => {
+        const commands: unknown[] = []
+        const selectedSkillRefs = [
+            {
+                pluginName: '@acme/plugin-example-app',
+                componentKey: 'chapter-authoring'
+            }
+        ]
+        jest.spyOn(service as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
+            workspaceId: 'workspace-1',
+            skillIds: ['skill-authoring-1']
+        })
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+            if (command instanceof ChatConversationUpsertCommand) {
+                return { id: command.entity.id, threadId: 'thread-1' }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                return { ...command.execution, id: command.execution.id, threadId: 'thread-1' }
+            }
+            if (command instanceof XpertChatCommand) {
+                return of()
+            }
+            return null
+        })
+
+        await service.startAssistantTask({
+            xpertId: 'xpert-1',
+            agentKey: 'Agent_Authoring',
+            projectId: 'project-1',
+            prompt: 'Write this chapter.',
+            selectedSkillRefs
+        })
+
+        const chatCommand = commands.find((command) => command instanceof XpertChatCommand) as XpertChatCommand
+        expect(chatCommand.options.assistantTaskSkillSelection).toEqual({
+            workspaceId: 'workspace-1',
+            skillIds: ['runtime-skill/v1/xpert/xpert-1/skill-authoring-1']
+        })
+    })
+
     it('resolves portable plugin skills only through the target Agent direct Skills Middleware', async () => {
         const xpert = {
             id: 'xpert-1',
