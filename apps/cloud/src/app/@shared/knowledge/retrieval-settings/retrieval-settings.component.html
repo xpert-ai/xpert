@@ -115,7 +115,7 @@
               class="block w-full min-w-0"
               [label]="'XP.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
               color="accent"
-              [disabled]="!useScore()"
+              [disabled]="!useScore() || rrfActive()"
               [(ngModel)]="score"
               [min]="0"
               [max]="1"
@@ -124,6 +124,7 @@
               <z-switch
                 class="inline-flex ml-1"
                 [(ngModel)]="useScore"
+                [disabled]="rrfActive()"
                 [zTooltip]="
                   'XP.Knowledgebase.SimilarityThresholdInfo'
                     | translate
@@ -162,7 +163,9 @@
           </div>
 
           @if (graphControlsVisible()) {
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div
+              [class]="rrfActive() ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : 'grid grid-cols-1 gap-4 md:grid-cols-3'"
+            >
               <xp-slider-input
                 class="block min-w-0"
                 [label]="'XP.Knowledgebase.EntityTopK' | translate: { Default: 'Entity Top K' }"
@@ -183,17 +186,121 @@
                 [max]="2"
                 [step]="1"
               />
+              @if (!rrfActive()) {
+                <xp-slider-input
+                  class="block min-w-0"
+                  [label]="'XP.Knowledgebase.GraphWeight' | translate: { Default: 'Graph Weight' }"
+                  color="accent"
+                  [disabled]="!graphEnabled()"
+                  [(ngModel)]="graphWeight"
+                  [min]="0"
+                  [max]="1"
+                  [step]="0.05"
+                />
+              }
+            </div>
+          }
+        </div>
+        <div class="mt-4 rounded-lg border border-divider-subtle bg-components-card-bg p-3">
+          <div class="flex items-start justify-between gap-x-3">
+            <div>
+              <div class="flex items-center">
+                <span class="system-sm-semibold mr-0.5 text-text-secondary">{{
+                  'XP.Knowledgebase.WeightedRRF' | translate: { Default: 'Weighted RRF' }
+                }}</span>
+                <div
+                  class="h-3.5 w-3.5 shrink-0 p-[1px] flex items-center text-text-tertiary hover:text-text-primary"
+                  [zTooltip]="
+                    'XP.Knowledgebase.WeightedRRFInfo'
+                      | translate
+                        : {
+                            Default:
+                              'In Hybrid mode, merge Vector, Graph, and Keyword candidates by rank. Leave it off to keep the existing weighted fusion behavior.'
+                          }
+                  "
+                  zPosition="top"
+                >
+                  <i class="ri-information-2-line"></i>
+                </div>
+              </div>
+              <div class="mt-1 system-xs-regular text-text-tertiary">
+                @if (mode() === 'hybrid') {
+                  {{
+                    'XP.Knowledgebase.WeightedRRFDesc'
+                      | translate: { Default: 'Adds exact keyword recall and combines all three candidate lists.' }
+                  }}
+                } @else {
+                  {{
+                    'XP.Knowledgebase.WeightedRRFHybridOnly'
+                      | translate: { Default: 'Select Hybrid retrieval mode to enable RRF.' }
+                  }}
+                }
+              </div>
+            </div>
+            <z-switch [(ngModel)]="rrfEnabled" [disabled]="mode() !== 'hybrid'" />
+          </div>
+
+          @if (rrfActive()) {
+            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <xp-slider-input
                 class="block min-w-0"
-                [label]="'XP.Knowledgebase.GraphWeight' | translate: { Default: 'Graph Weight' }"
+                [label]="'XP.Knowledgebase.RRFRankConstant' | translate: { Default: 'Rank Constant' }"
                 color="accent"
-                [disabled]="!graphEnabled()"
-                [(ngModel)]="graphWeight"
+                [(ngModel)]="rrfRankConstant"
+                [min]="0"
+                [max]="100"
+                [step]="1"
+              />
+              <xp-slider-input
+                class="block min-w-0"
+                [label]="'XP.Knowledgebase.RRFVectorWeight' | translate: { Default: 'Vector Weight' }"
+                color="accent"
+                [(ngModel)]="rrfVectorWeight"
+                [min]="0"
+                [max]="1"
+                [step]="0.05"
+              />
+              <xp-slider-input
+                class="block min-w-0"
+                [label]="'XP.Knowledgebase.RRFGraphWeight' | translate: { Default: 'Graph Weight' }"
+                color="accent"
+                [(ngModel)]="rrfGraphWeight"
+                [min]="0"
+                [max]="1"
+                [step]="0.05"
+              />
+              <xp-slider-input
+                class="block min-w-0"
+                [label]="'XP.Knowledgebase.RRFKeywordWeight' | translate: { Default: 'Keyword Weight' }"
+                color="accent"
+                [(ngModel)]="rrfKeywordWeight"
                 [min]="0"
                 [max]="1"
                 [step]="0.05"
               />
             </div>
+            @if (useScore()) {
+              <div class="mt-3 flex items-start gap-x-2 system-xs-regular text-text-warning">
+                <i class="ri-information-line mt-0.5"></i>
+                <span>{{
+                  'XP.Knowledgebase.RRFThresholdIgnored'
+                    | translate
+                      : {
+                          Default:
+                            'Similarity Threshold is ignored by RRF because rank-fusion scores are not vector similarity scores.'
+                        }
+                }}</span>
+              </div>
+            }
+            @if (!rrfHasEnabledRetriever()) {
+              <div class="mt-3 flex items-start gap-x-2 system-xs-regular text-text-warning">
+                <i class="ri-error-warning-line mt-0.5"></i>
+                <span>{{
+                  'XP.Knowledgebase.RRFPositiveWeightRequired'
+                    | translate: { Default: 'Set at least one retrieval source weight greater than zero.' }
+                }}</span>
+              </div>
+            }
           }
         </div>
       </div>
@@ -213,6 +320,7 @@
     <button
       type="button"
       class="btn disabled:btn-disabled btn-primary btn-medium shrink-0"
+      [disabled]="!rrfHasEnabledRetriever()"
       (click)="saveRetrievalSettings()"
     >
       {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
