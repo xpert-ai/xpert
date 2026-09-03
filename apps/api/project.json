@@ -15,7 +15,14 @@
         "outputPath": "dist/apps/api",
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",
-        "assets": ["apps/api/src/assets"],
+        "assets": [
+          "apps/api/src/assets",
+          {
+            "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components",
+            "output": "remote-components"
+          }
+        ],
         "webpackConfig": "apps/api/config/webpack.config.js"
       },
       "configurations": {

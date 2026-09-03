@@ -196,7 +196,11 @@ export class KnowledgeGraphSearchHandler implements IQueryHandler<KnowledgeGraph
         let entityScores: Array<{ entityId: string; score: number }> = []
         let exhausted = false
         let continueScanning: boolean
-        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(knowledgebase, true, modelContext)
+        const vectorStore = await this.knowledgebaseService.getGraphEntityVectorStore(
+            knowledgebase.id,
+            true,
+            modelContext
+        )
 
         do {
             rounds += 1

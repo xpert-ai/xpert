@@ -19,6 +19,7 @@ import {
 import { QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PluginResourceInstallComponent, PluginResourceInstallerService } from './plugin-resource-installer.service'
+import { PluginMcpServerService } from './plugin-mcp-server.service'
 import { ListPluginResourceComponentStatesQuery } from './queries'
 
 @ApiTags('PluginResources')
@@ -28,6 +29,7 @@ import { ListPluginResourceComponentStatesQuery } from './queries'
 export class PluginResourceController {
     constructor(
         private readonly installer: PluginResourceInstallerService,
+        private readonly mcpServers: PluginMcpServerService,
         private readonly queryBus: QueryBus
     ) {}
 
@@ -57,6 +59,34 @@ export class PluginResourceController {
     async installXpert(@Param('name') name: string, @Body() body: unknown) {
         const input = parseXpertInstallInput(body)
         return this.installer.installToXpert(name, input.xpertId, input.components, input.agentKey)
+    }
+
+    @Post('mcp/:componentKey/enable')
+    @UseGuards(RoleGuard)
+    @Roles(RolesEnum.SUPER_ADMIN)
+    enableMcpServer(@Param('name') name: string, @Param('componentKey') componentKey: string) {
+        return this.mcpServers.enable(name, componentKey)
+    }
+
+    @Post('mcp/:componentKey/disable')
+    @UseGuards(RoleGuard)
+    @Roles(RolesEnum.SUPER_ADMIN)
+    disableMcpServer(@Param('name') name: string, @Param('componentKey') componentKey: string) {
+        return this.mcpServers.disable(name, componentKey)
+    }
+
+    @Get('mcp/:componentKey/connection-info')
+    @UseGuards(RoleGuard)
+    @Roles(RolesEnum.SUPER_ADMIN)
+    mcpServerConnectionInfo(@Param('name') name: string, @Param('componentKey') componentKey: string) {
+        return this.mcpServers.connectionInfo(name, componentKey)
+    }
+
+    @Post('mcp/:componentKey/credential')
+    @UseGuards(RoleGuard)
+    @Roles(RolesEnum.SUPER_ADMIN)
+    mcpServerCredential(@Param('name') name: string, @Param('componentKey') componentKey: string) {
+        return this.mcpServers.credential(name, componentKey)
     }
 }
 

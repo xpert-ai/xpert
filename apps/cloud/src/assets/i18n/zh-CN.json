@@ -36,6 +36,16 @@
   },
   "XP": {
     "Title": "元数分析云",
+    "ViewExtension": {
+      "RemoteComponentLoadFailed": "无法加载此视图",
+      "RemoteComponentLoadFailedHint": "远程组件未能启动。请重试，或查看技术详情。"
+    },
+    "Explore": {
+      "Application": {
+        "McpProviders": "MCP 服务提供方",
+        "McpProvidersDescription": "将外部 MCP 客户端连接到此应用插件提供的服务。"
+      }
+    },
     "Referral": {
       "CopyCode": "复制邀请码",
       "Copied": "已复制",
@@ -184,6 +194,25 @@
       "Refresh": "刷新",
       "InstallPlugin": "安装插件",
       "SetupPlugin": "初始化",
+      "CheckingMcpState": "正在检查 MCP 状态...",
+      "McpStateUnavailable": "无法加载 MCP 状态。请刷新插件详情后重试。",
+      "McpLastSyncFailed": "上一次 MCP 同步失败。",
+      "McpToolCount": "{{count}} 个工具",
+      "McpTransportStreamableHttp": "Streamable HTTP",
+      "McpServerStatusActive": "已启用",
+      "McpServerStatusDisabled": "已停用",
+      "DisableMcpServer": "停用",
+      "EnableMcpServer": "启用 MCP 服务",
+      "AdvancedMcpSettings": "高级设置",
+      "ShowConnectionInfo": "查看连接信息",
+      "McpApiKeyOneTime": "请立即复制此 API 密钥，之后将不再显示。",
+      "McpApiKeyProtected": "请妥善保管此 API Token，它可用于访问该 MCP 服务。",
+      "ShowMcpApiKey": "显示 Token",
+      "HideMcpApiKey": "隐藏 Token",
+      "McpClientConfiguration": "MCP 客户端配置",
+      "McpServerEnabledToast": "插件 MCP 服务已启用。",
+      "McpServerDisabledToast": "插件 MCP 服务已停用。",
+      "CopySucceeded": "已复制。",
       "InstallToOrganization": "安装到组织",
       "InstallToOrganizationDesc": "注册宿主原生 MCP 能力，不绑定任何工作空间。",
       "OrganizationResources": "组织级能力",
@@ -549,7 +578,12 @@
       "Loading": "加载中",
       "Enabled": "启用",
       "NoTools": "无工具",
-      "NoFields": "暂无字段"
+      "NoFields": "暂无字段",
+      "ErrorState": {
+        "Title": "出现错误",
+        "TechnicalDetails": "技术详情",
+        "Retry": "重试"
+      }
     },
     "MCP": {
       "CreateFromJson": "从 JSON 创建",
@@ -676,7 +710,7 @@
         "ScrollTabsRight": "向右滚动标签",
         "ShowDetailPanel": "显示工作区面板",
         "HideDetailPanel": "隐藏工作区面板",
-        "MaximizeWorkspace": "最大化工作区",
+        "MaximizeChatkit": "最大化 ChatKit",
         "RestoreChatkit": "恢复 ChatKit",
         "ResizeChatkit": "调整 ChatKit 宽度",
         "MoveOverlayDialog": "移动 ChatKit 浮窗",

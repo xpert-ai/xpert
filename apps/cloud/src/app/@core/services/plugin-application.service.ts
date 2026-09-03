@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
+  PluginApplicationCatalogItem,
   PluginApplicationDetail,
   PluginApplicationInitializeInput,
   PluginApplicationStatusSummary
@@ -14,6 +15,10 @@ export class PluginApplicationService {
 
   getStatuses() {
     return this.#http.get<PluginApplicationStatusSummary[]>(`${API_PREFIX}/plugin-applications/status`)
+  }
+
+  getCatalog() {
+    return this.#http.get<PluginApplicationCatalogItem[]>(`${API_PREFIX}/plugin-applications/catalog`)
   }
 
   getDetail(pluginName: string, appName: string) {

@@ -427,10 +427,10 @@ export function getKnowledgeWorkbenchRemoteAssetPath(
     const moduleDir = options.moduleDir ?? __dirname
 
     if ((options.nodeEnv ?? process.env.NODE_ENV) === 'production') {
-        return join(cwd, 'packages', 'server-ai', KNOWLEDGE_WORKBENCH_REMOTE_ASSET_SUBPATH, fileName)
+        return join(moduleDir, 'remote-components', KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY, fileName)
     }
 
-    return join(moduleDir, 'remote-components', KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY, fileName)
+    return join(cwd, 'packages', 'server-ai', KNOWLEDGE_WORKBENCH_REMOTE_ASSET_SUBPATH, fileName)
 }
 
 async function readPackageFile(packageName: string, relativePath: string) {

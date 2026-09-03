@@ -1,4 +1,6 @@
-import { RequestContext } from '@xpert-ai/server-core'
+import { environment } from '@xpert-ai/server-config'
+import { decryptSecret, RequestContext } from '@xpert-ai/server-core'
+import { BadRequestException } from '@nestjs/common'
 import { Test, type TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { McpApiKey, McpPublication } from './entities'
@@ -13,6 +15,7 @@ describe('McpApiKeyService', () => {
     let update: jest.Mock
     let where: jest.Mock
     let publishAccessInvalidated: jest.Mock
+    let getManaged: jest.Mock
 
     beforeEach(async () => {
         stored = []
@@ -20,12 +23,17 @@ describe('McpApiKeyService', () => {
         update = jest.fn().mockResolvedValue(undefined)
         where = jest.fn().mockReturnThis()
         publishAccessInvalidated = jest.fn()
+        getManaged = jest.fn().mockResolvedValue(publication())
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('11111111-1111-4111-8111-111111111111')
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
         const queryBuilder = {
             addSelect: jest.fn().mockReturnThis(),
             where,
             andWhere: jest.fn().mockReturnThis(),
-            getOne: jest.fn(async () => (selectedKey?.revokedAt ? undefined : selectedKey))
+            orderBy: jest.fn().mockReturnThis(),
+            getOne: jest.fn(async () => (selectedKey?.revokedAt ? undefined : selectedKey)),
+            getMany: jest.fn(async () => stored.filter((key) => !key.revokedAt))
         }
         const module: TestingModule = await Test.createTestingModule({
             providers: [
@@ -41,7 +49,15 @@ describe('McpApiKeyService', () => {
                             else stored[index] = key
                             return key
                         }),
-                        find: jest.fn(async () => stored),
+                        find: jest.fn(async ({ where: condition }) =>
+                            stored.filter(
+                                (key) =>
+                                    key.publicationId === condition.publicationId &&
+                                    key.tenantId === condition.tenantId &&
+                                    (condition.organizationId === undefined ||
+                                        key.organizationId === condition.organizationId)
+                            )
+                        ),
                         findOne: jest.fn(async ({ where: condition }) => stored.find((key) => key.id === condition.id)),
                         createQueryBuilder: jest.fn(() => queryBuilder),
                         update
@@ -49,7 +65,7 @@ describe('McpApiKeyService', () => {
                 },
                 {
                     provide: McpPublicationService,
-                    useValue: { getManaged: jest.fn().mockResolvedValue(publication()) }
+                    useValue: { getManaged }
                 },
                 {
                     provide: McpSubscriptionService,
@@ -62,15 +78,56 @@ describe('McpApiKeyService', () => {
 
     afterEach(() => jest.restoreAllMocks())
 
-    it('returns the secret once while persisting only its hash', async () => {
+    it('returns a one-time public secret while persisting only its authentication hash', async () => {
         const created = await service.create('publication-1', { name: 'Codex' })
 
         expect(created.secret).toMatch(/^xpert_mcp_/)
         expect(created.apiKey).not.toHaveProperty('keyHash')
+        expect(created.apiKey).not.toHaveProperty('encryptedSecret')
         expect(stored[0].keyHash).toMatch(/^[a-f0-9]{64}$/)
         expect(stored[0].keyHash).not.toContain(created.secret)
+        expect(stored[0].encryptedSecret).toBeNull()
         expect(stored[0].keyPrefix).toBe(created.secret.slice(0, 24))
         expect(stored[0].scopes).toEqual(['tools:list', 'tools:call'])
+    })
+
+    it('returns the same revealable credential for the same administrator and organization', async () => {
+        const targetPublication = publication()
+        const first = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+
+        const second = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+
+        expect(second.secret).toBe(first.secret)
+        expect(second.apiKey.id).toBe(first.apiKey.id)
+        expect(stored).toHaveLength(1)
+        const encryptedSecret = stored[0].encryptedSecret ?? ''
+        expect(encryptedSecret).not.toContain(first.secret)
+        expect(decryptSecret(encryptedSecret, environment.secretsEncryptionKey)).toBe(first.secret)
+    })
+
+    it('creates a new revealable credential when the requested MCP client scopes change', async () => {
+        const targetPublication = publication()
+        const toolsOnly = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+        const appEnabled = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
+        const reused = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
+
+        expect(appEnabled.apiKey.id).not.toBe(toolsOnly.apiKey.id)
+        expect(appEnabled.apiKey.scopes).toEqual(['tools:list', 'tools:call', 'resources:list', 'resources:read'])
+        expect(reused.apiKey.id).toBe(appEnabled.apiKey.id)
+        expect(reused.secret).toBe(appEnabled.secret)
+        expect(stored).toHaveLength(2)
     })
 
     it('authenticates a valid bearer key only for its publication and updates last use', async () => {
@@ -92,6 +149,39 @@ describe('McpApiKeyService', () => {
         })
         expect(JSON.stringify(principal)).not.toContain(created.secret)
         expect(update).toHaveBeenCalledWith('key-1', { lastUsedAt: expect.any(Date) })
+    })
+
+    it('binds a shared tenant Publication key to the admitted organization', async () => {
+        const sharedPublication = Object.assign(publication(), { organizationId: null })
+        const created = await service.createForOrganization(sharedPublication, 'organization-2', {
+            name: 'Organization client'
+        })
+        selectedKey = stored[0]
+
+        await expect(service.authenticate(sharedPublication, `Bearer ${created.secret}`)).resolves.toEqual(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'organization-2',
+                publicationId: 'publication-1'
+            })
+        )
+
+        const rotated = await service.rotate(stored[0].id)
+        expect(rotated.apiKey.organizationId).toBe('organization-2')
+    })
+
+    it('manages only current-organization keys for an admitted tenant Publication', async () => {
+        const sharedPublication = Object.assign(publication(), { organizationId: null })
+        getManaged.mockResolvedValue(sharedPublication)
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue('organization-1')
+        await service.createForOrganization(sharedPublication, 'organization-2', { name: 'Other organization' })
+        const current = await service.create(sharedPublication.id, { name: 'Current organization' })
+
+        await expect(service.list(sharedPublication.id)).resolves.toEqual([
+            expect.objectContaining({ id: current.apiKey.id, organizationId: 'organization-1' })
+        ])
+        await expect(service.revoke(stored[0].id)).rejects.toBeInstanceOf(BadRequestException)
+        expect(stored[0].revokedAt).toBeUndefined()
     })
 
     it('rejects expired, revoked, malformed, and cross-publication credentials', async () => {

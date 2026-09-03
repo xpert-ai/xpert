@@ -629,6 +629,53 @@ describe('blank template util', () => {
     expect(result.team.agent?.options?.middlewares?.order).toEqual(middlewareNodes.map((node) => node.key))
   })
 
+  it('preserves shared primary middleware connections for specialist Agents', () => {
+    const draft = createAgentTemplateDraft()
+    draft.nodes.push({
+      type: 'agent',
+      key: 'Agent_specialist',
+      position: { x: 760, y: 220 },
+      entity: { key: 'Agent_specialist' } as any
+    })
+    draft.connections.push({
+      key: 'Agent_specialist/Middleware_guard',
+      type: 'workflow',
+      from: 'Agent_specialist',
+      to: 'Middleware_guard',
+      required: true
+    })
+
+    const state = extractAgentTemplateWizardState(draft)
+    const result = applyAgentTemplateWizardState(draft, state.selections)
+    const guardNodes = result.nodes.filter(
+      (node) =>
+        node.type === 'workflow' &&
+        node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE &&
+        (node.entity as IWFNMiddleware).provider === 'guard'
+    )
+
+    expect(guardNodes).toHaveLength(2)
+    expect(result.connections).toContainEqual({
+      key: 'Agent_specialist/Middleware_guard',
+      type: 'workflow',
+      from: 'Agent_specialist',
+      to: 'Middleware_guard',
+      required: true
+    })
+    expect(
+      result.connections.some(
+        (connection) => connection.from === 'Agent_primary' && connection.to === 'Middleware_guard'
+      )
+    ).toBe(false)
+    expect(
+      result.connections.some(
+        (connection) =>
+          connection.from === 'Agent_primary' &&
+          guardNodes.some((node) => node.key === connection.to && node.key !== 'Middleware_guard')
+      )
+    ).toBe(true)
+  })
+
   it('applies middleware always-load overrides back onto the template', () => {
     const result = applyAgentTemplateWizardState(createAgentTemplateDraft(), {
       skills: [],

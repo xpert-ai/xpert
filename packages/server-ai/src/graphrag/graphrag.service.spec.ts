@@ -1,7 +1,7 @@
 import { Queue } from 'bull'
 import { QueryBus } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
-import { AiModelTypeEnum, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, KnowledgebaseTypeEnum, KnowledgeGraphIndexJobStatus } from '@xpert-ai/contracts'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
@@ -14,7 +14,12 @@ import {
     KnowledgeGraphMention,
     KnowledgeGraphRelation
 } from './entities'
-import { GraphragService, normalizeKnowledgeGraphName, normalizeKnowledgeGraphType } from './graphrag.service'
+import {
+    GraphragService,
+    normalizeKnowledgeGraphName,
+    normalizeKnowledgeGraphType,
+    validateKnowledgeGraphExtractionEvidence
+} from './graphrag.service'
 import { TKnowledgeGraphIndexQueueJob } from './types'
 
 function repositoryMock<T>() {
@@ -52,6 +57,68 @@ describe('GraphRAG service', () => {
     it('normalizes entity names and types with stable explicit keys', () => {
         expect(normalizeKnowledgeGraphName('  OpenAI   Platform  ')).toBe('openai platform')
         expect(normalizeKnowledgeGraphType('Product Area')).toBe('product_area')
+    })
+
+    it('requires extracted graph items to reference evidence from the current chunks', () => {
+        expect(() =>
+            validateKnowledgeGraphExtractionEvidence(
+                {
+                    entities: [],
+                    relations: []
+                },
+                new Set(['chunk-1'])
+            )
+        ).toThrow('valid source evidence')
+
+        expect(() =>
+            validateKnowledgeGraphExtractionEvidence(
+                {
+                    entities: [
+                        {
+                            name: 'User-Centered Design',
+                            type: 'concept'
+                        }
+                    ],
+                    relations: []
+                },
+                new Set(['chunk-1'])
+            )
+        ).toThrow('valid source evidence')
+
+        expect(() =>
+            validateKnowledgeGraphExtractionEvidence(
+                {
+                    entities: [],
+                    relations: [
+                        {
+                            sourceName: 'Designer',
+                            sourceType: 'role',
+                            targetName: 'Prototype',
+                            targetType: 'artifact',
+                            type: 'creates',
+                            evidence: [{ chunkId: 'missing-chunk' }]
+                        }
+                    ]
+                },
+                new Set(['chunk-1'])
+            )
+        ).toThrow('valid source evidence')
+
+        expect(() =>
+            validateKnowledgeGraphExtractionEvidence(
+                {
+                    entities: [
+                        {
+                            name: 'User-Centered Design',
+                            type: 'concept',
+                            evidence: [{ chunkId: 'chunk-1' }]
+                        }
+                    ],
+                    relations: []
+                },
+                new Set(['chunk-1'])
+            )
+        ).not.toThrow()
     })
 
     it('does not enqueue graph jobs when GraphRAG is disabled', async () => {
@@ -103,12 +170,30 @@ describe('GraphRAG service', () => {
         expect(queue.add).not.toHaveBeenCalled()
     })
 
-    it('uses the configured knowledgebase chat model for extraction before primary copilot', async () => {
+    it('uses the configured knowledgebase chat model and extracts chunks in default-sized batches', async () => {
         const structuredModel = {
-            invoke: jest.fn(async () => ({
-                entities: [],
-                relations: []
-            }))
+            invoke: jest
+                .fn()
+                .mockResolvedValueOnce({
+                    entities: [
+                        {
+                            name: 'Alice',
+                            type: 'person',
+                            evidence: [{ chunkId: 'chunk-1' }]
+                        }
+                    ],
+                    relations: []
+                })
+                .mockResolvedValueOnce({
+                    entities: [
+                        {
+                            name: 'Bob',
+                            type: 'person',
+                            evidence: [{ chunkId: 'chunk-5' }]
+                        }
+                    ],
+                    relations: []
+                })
         }
         const chatModel = {
             withStructuredOutput: jest.fn(() => structuredModel)
@@ -149,20 +234,17 @@ describe('GraphRAG service', () => {
 
         await (service as any).extractDocumentGraph(
             knowledgebase,
-            [
-                {
-                    id: 'chunk-1',
-                    documentId: 'doc-1',
-                    pageContent: 'Alice works with Bob.',
-                    metadata: {
-                        chunkId: 'chunk-1'
-                    }
+            Array.from({ length: 5 }, (_, index) => ({
+                id: `chunk-${index + 1}`,
+                documentId: 'doc-1',
+                pageContent: `Chunk ${index + 1} content.`,
+                metadata: {
+                    chunkId: `chunk-${index + 1}`
                 }
-            ],
+            })),
             {
                 enabled: true,
-                extractionBatchSize: 1,
-                extractionMaxCharacters: 500
+                extractionMaxCharacters: 5000
             }
         )
 
@@ -171,7 +253,130 @@ describe('GraphRAG service', () => {
         expect(queryBus.execute.mock.calls[0][0].copilot).toBeNull()
         expect(queryBus.execute.mock.calls[0][0].copilotModel).toBe(knowledgebase.chatModel)
         expect(chatModel.withStructuredOutput).toHaveBeenCalled()
-        expect(structuredModel.invoke).toHaveBeenCalled()
+        expect(structuredModel.invoke).toHaveBeenCalledTimes(2)
+        expect(jobRepository.update).toHaveBeenNthCalledWith(
+            1,
+            {
+                knowledgebaseId: knowledgebase.id,
+                documentId: 'doc-1',
+                status: KnowledgeGraphIndexJobStatus.RUNNING
+            },
+            { processedChunks: 4 }
+        )
+        expect(jobRepository.update).toHaveBeenNthCalledWith(
+            2,
+            {
+                knowledgebaseId: knowledgebase.id,
+                documentId: 'doc-1',
+                status: KnowledgeGraphIndexJobStatus.RUNNING
+            },
+            { processedChunks: 5 }
+        )
+    })
+
+    it('fails an index job when extracted graph items have no source evidence', async () => {
+        const entityVectorQuery = {
+            where: jest.fn(),
+            andWhere: jest.fn(),
+            orderBy: jest.fn(),
+            getMany: jest.fn(async () => [])
+        }
+        entityVectorQuery.where.mockReturnValue(entityVectorQuery)
+        entityVectorQuery.andWhere.mockReturnValue(entityVectorQuery)
+        entityVectorQuery.orderBy.mockReturnValue(entityVectorQuery)
+
+        const knowledgebase = Object.assign(new Knowledgebase(), enabledKnowledgebase(), {
+            chatModel: {
+                copilotId: 'chat-copilot',
+                modelType: AiModelTypeEnum.LLM,
+                model: 'qwen3.7-plus'
+            }
+        })
+        const graphJob = Object.assign(new KnowledgeGraphIndexJob(), {
+            id: 'job-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            knowledgebaseId: 'kb-1',
+            documentId: 'doc-1',
+            revision: 4,
+            knowledgebase
+        })
+        const jobRepository = {
+            findOne: jest.fn(async () => graphJob),
+            update: jest.fn(async () => undefined),
+            count: jest.fn(async (options: { where: { status: KnowledgeGraphIndexJobStatus } }) =>
+                options.where.status === KnowledgeGraphIndexJobStatus.FAILED ? 1 : 0
+            )
+        }
+        const entityRepository = {
+            createQueryBuilder: jest.fn(() => entityVectorQuery)
+        }
+        const mentionRepository = {
+            find: jest.fn(async () => []),
+            delete: jest.fn(async () => undefined),
+            save: jest.fn()
+        }
+        const knowledgebaseRepository = {
+            update: jest.fn(async () => undefined)
+        }
+        const vectorStore = {
+            clear: jest.fn(async () => undefined)
+        }
+        const knowledgebaseService = {
+            findOne: jest.fn(async () => knowledgebase),
+            getGraphEntityVectorStore: jest.fn(async () => vectorStore)
+        }
+        const chunkService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'chunk-row-1',
+                        documentId: 'doc-1',
+                        pageContent: 'User-centered design reduces operational cost.',
+                        metadata: { chunkId: 'chunk-1' }
+                    }
+                ]
+            }))
+        }
+        const structuredModel = {
+            invoke: jest.fn(async () => ({
+                entities: [{ name: 'User-Centered Design', type: 'concept' }],
+                relations: []
+            }))
+        }
+        const queryBus = {
+            execute: jest.fn(async () => ({
+                withStructuredOutput: jest.fn(() => structuredModel)
+            }))
+        }
+        const service = new GraphragService(
+            entityRepository as unknown as Repository<KnowledgeGraphEntity>,
+            repositoryMock<KnowledgeGraphRelation>(),
+            mentionRepository as unknown as Repository<KnowledgeGraphMention>,
+            repositoryMock<KnowledgeGraphCommunity>(),
+            jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
+            knowledgebaseRepository as unknown as Repository<Knowledgebase>,
+            knowledgebaseService as unknown as KnowledgebaseService,
+            {} as unknown as KnowledgeDocumentService,
+            chunkService as unknown as KnowledgeDocumentChunkService,
+            queryBus as unknown as QueryBus,
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+        )
+
+        await service.processIndexJob('job-1')
+
+        expect(jobRepository.update).toHaveBeenCalledWith(
+            'job-1',
+            expect.objectContaining({
+                status: KnowledgeGraphIndexJobStatus.FAILED,
+                error: expect.stringContaining('valid source evidence')
+            })
+        )
+        expect(jobRepository.update).not.toHaveBeenCalledWith(
+            'job-1',
+            expect.objectContaining({ status: KnowledgeGraphIndexJobStatus.SUCCESS })
+        )
+        expect(mentionRepository.save).not.toHaveBeenCalled()
     })
 
     it('creates manual graph entities and syncs active entity vectors', async () => {

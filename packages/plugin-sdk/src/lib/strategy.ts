@@ -34,6 +34,7 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
   // Map<scopeKey, Map<type, strategy>>
   protected strategies = new Map<string, Map<string, S>>()
   protected pluginStrategies = new Map<string, Set<string>>()
+  private readonly explicitSources = new WeakMap<object, StrategySource>()
 
   constructor(
     protected readonly strategyKey: string,
@@ -68,22 +69,46 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
     const type = this.reflector.get<string>(this.strategyKey, target)
     if (type) {
       const source = this.getSource(instance as S)
-      const pluginName = source.kind === 'plugin' ? source.pluginName : undefined
-      const organizationId = source.scopeKey
-      const orgMap = this.strategies.get(organizationId) ?? new Map<string, S>()
-      orgMap.set(type, instance as S)
-      this.strategies.set(organizationId, orgMap)
-      this.logger.debug(`Registered strategy of type ${type} for scope ${organizationId} from plugin ${pluginName}`)
-      if (pluginName) {
-        const pluginStrategies = this.pluginStrategies.get(pluginName) ?? new Set<string>()
-        pluginStrategies.add(type)
-        this.pluginStrategies.set(pluginName, pluginStrategies)
-      }
+      this.store(type, instance as S, source, false)
     }
+  }
+
+  /** Registers a host-generated adapter without mutating shared class metadata. */
+  register(type: string, instance: S, source: StrategySource) {
+    if ((typeof instance !== 'object' || instance === null) && typeof instance !== 'function') {
+      throw new Error(`Cannot register non-object strategy '${type}'.`)
+    }
+    this.assertCanRegister(type, instance, source)
+    this.explicitSources.set(instance as object, source)
+    return this.store(type, instance, source, false)
+  }
+
+  /** Preflights adapter batches so a provider is expanded atomically across registries. */
+  assertCanRegister(type: string, instance: S, source: StrategySource) {
+    const existing = this.strategies.get(source.scopeKey)?.get(type)
+    if (!existing || existing === instance) return
+    const existingSource = this.getSource(existing)
+    const samePlugin =
+      existingSource.kind === 'plugin' && source.kind === 'plugin' && existingSource.pluginName === source.pluginName
+    if (!samePlugin) {
+      throw new Error(`Strategy '${type}' is already registered for scope '${source.scopeKey}'.`)
+    }
+  }
+
+  /** Removes one exact programmatic registration without affecting fallback scopes. */
+  unregister(type: string, source: StrategySource, expected?: S) {
+    const orgMap = this.strategies.get(source.scopeKey)
+    const current = orgMap?.get(type)
+    if (expected !== undefined && current !== expected) return false
+    return orgMap?.delete(type) ?? false
   }
 
   /** Returns the explicit registry provenance attached by the plugin loader. */
   getSource(instance: S): StrategySource {
+    if ((typeof instance === 'object' && instance !== null) || typeof instance === 'function') {
+      const explicit = this.explicitSources.get(instance as object)
+      if (explicit) return explicit
+    }
     const target = resolveStrategyMetadataTarget(instance)
     if (!target) {
       return {
@@ -191,6 +216,57 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
     }
 
     return Array.from(effective.values())
+  }
+
+  listRegistrations(organizationId?: string): Array<{ type: string; strategy: S; source: StrategySource }> {
+    organizationId ??= RequestContext.getOrganizationId()
+    const effective = new Map<string, S>()
+    for (const scopeKey of this.resolveStrategyScopeKeys(organizationId)) {
+      for (const [type, strategy] of this.strategies.get(scopeKey)?.entries() ?? []) {
+        if (!effective.has(type)) effective.set(type, strategy)
+      }
+    }
+    return Array.from(effective, ([type, strategy]) => ({ type, strategy, source: this.getSource(strategy) }))
+  }
+
+  /** Returns every direct registration without applying request-scope fallback rules. */
+  listAllRegistrations(): Array<{ type: string; strategy: S; source: StrategySource }> {
+    const registrations: Array<{ type: string; strategy: S; source: StrategySource }> = []
+    for (const [scopeKey, strategies] of this.strategies) {
+      for (const [type, strategy] of strategies) {
+        const source = this.getSource(strategy)
+        registrations.push({
+          type,
+          strategy,
+          source: source.scopeKey === scopeKey ? source : { ...source, scopeKey }
+        })
+      }
+    }
+    return registrations
+  }
+
+  private store(type: string, instance: S, source: StrategySource, rejectCrossPluginConflict: boolean) {
+    const pluginName = source.kind === 'plugin' ? source.pluginName : undefined
+    const organizationId = source.scopeKey
+    const orgMap = this.strategies.get(organizationId) ?? new Map<string, S>()
+    const existing = orgMap.get(type)
+    if (rejectCrossPluginConflict && existing && existing !== instance) {
+      const existingSource = this.getSource(existing)
+      const samePlugin =
+        existingSource.kind === 'plugin' && source.kind === 'plugin' && existingSource.pluginName === source.pluginName
+      if (!samePlugin) {
+        throw new Error(`Strategy '${type}' is already registered for scope '${organizationId}'.`)
+      }
+    }
+    orgMap.set(type, instance)
+    this.strategies.set(organizationId, orgMap)
+    this.logger.debug(`Registered strategy of type ${type} for scope ${organizationId} from plugin ${pluginName}`)
+    if (pluginName) {
+      const pluginStrategies = this.pluginStrategies.get(pluginName) ?? new Set<string>()
+      pluginStrategies.add(type)
+      this.pluginStrategies.set(pluginName, pluginStrategies)
+    }
+    return existing
   }
 }
 

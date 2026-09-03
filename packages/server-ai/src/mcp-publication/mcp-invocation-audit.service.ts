@@ -27,7 +27,7 @@ export class McpInvocationAuditService {
             this.auditRepository.create({
                 publicationId: input.publication.id,
                 tenantId: input.publication.tenantId,
-                organizationId: input.publication.organizationId ?? null,
+                organizationId: input.principal.organizationId ?? input.publication.organizationId ?? null,
                 capabilityId: capability?.id ?? null,
                 toolsetId: capability?.toolsetId ?? null,
                 capabilityKey: capability?.capabilityKey ?? null,
@@ -57,12 +57,16 @@ export class McpInvocationAuditService {
         return this.auditRepository.save(audit)
     }
 
-    async search(publicationId: string, skip = 0, take = 10) {
+    async search(publicationId: string, skip = 0, take = 10, organizationId?: string) {
         const normalizedSkip = Number.isFinite(skip) ? Math.max(Math.trunc(skip), 0) : 0
         const normalizedTake = Number.isFinite(take) ? Math.min(Math.max(Math.trunc(take), 1), 500) : 10
-        const [items, total] = await this.auditRepository
+        const query = this.auditRepository
             .createQueryBuilder('audit')
             .where('audit.publicationId = :publicationId', { publicationId })
+        if (organizationId) {
+            query.andWhere('audit.organizationId = :organizationId', { organizationId })
+        }
+        const [items, total] = await query
             .orderBy('audit.createdAt', 'DESC')
             .skip(normalizedSkip)
             .take(normalizedTake)

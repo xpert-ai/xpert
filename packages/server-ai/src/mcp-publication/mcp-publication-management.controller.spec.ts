@@ -1,11 +1,11 @@
 import { ForbiddenException } from '@nestjs/common'
-import { ConfigService, environment } from '@xpert-ai/server-config'
-import { McpApiKeyService } from './mcp-api-key.service'
-import { McpCapabilityCatalogService } from './mcp-capability-catalog.service'
-import { McpInvocationAuditService } from './mcp-invocation-audit.service'
-import { McpOAuthService } from './mcp-oauth.service'
+import { environment, type ConfigService } from '@xpert-ai/server-config'
+import type { McpApiKeyService } from './mcp-api-key.service'
+import type { McpCapabilityCatalogService } from './mcp-capability-catalog.service'
+import type { McpInvocationAuditService } from './mcp-invocation-audit.service'
+import type { McpOAuthService } from './mcp-oauth.service'
 import { McpPublicationManagementController } from './mcp-publication-management.controller'
-import { McpPublicationService } from './mcp-publication.service'
+import type { McpPublicationService } from './mcp-publication.service'
 
 describe('McpPublicationManagementController', () => {
     const defaultMcpOAuthEnabled = environment.mcpOAuthEnabled
@@ -109,6 +109,6 @@ describe('McpPublicationManagementController', () => {
 
         await expect(controller.auditLog('publication-1', '10', '20')).resolves.toEqual({ items: [], total: 21 })
         expect(publications.getManaged).toHaveBeenCalledWith('publication-1')
-        expect(audit.search).toHaveBeenCalledWith('publication-1', 20, 10)
+        expect(audit.search).toHaveBeenCalledWith('publication-1', 20, 10, undefined)
     })
 })

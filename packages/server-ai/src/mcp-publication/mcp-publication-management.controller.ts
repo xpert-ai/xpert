@@ -18,7 +18,7 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { ConfigService } from '@xpert-ai/server-config'
 import { RolesEnum } from '@xpert-ai/contracts'
-import { RoleGuard, Roles } from '@xpert-ai/server-core'
+import { RequestContext, RoleGuard, Roles } from '@xpert-ai/server-core'
 import { McpApiKeyService } from './mcp-api-key.service'
 import {
     CreateMcpApiKeyInput,
@@ -63,7 +63,7 @@ export class McpPublicationManagementController {
 
     @Get('mcp-publications/:id')
     get(@Param('id') id: string) {
-        return this.publications.getManaged(id, ['capabilities'])
+        return this.publications.getManagementView(id, ['capabilities'])
     }
 
     @Patch('mcp-publications/:id')
@@ -165,8 +165,14 @@ export class McpPublicationManagementController {
 
     @Get('mcp-publications/:id/audit')
     async auditLog(@Param('id') id: string, @Query('take') take?: string, @Query('skip') skip?: string) {
-        await this.publications.getManaged(id)
-        return this.audit.search(id, Number(skip), Number(take))
+        const publication = await this.publications.getManaged(id)
+        const organizationId = RequestContext.getOrganizationId()
+        return this.audit.search(
+            id,
+            Number(skip),
+            Number(take),
+            organizationId && !publication.organizationId ? organizationId : undefined
+        )
     }
 
     @Post('mcp-publications/:id/test')

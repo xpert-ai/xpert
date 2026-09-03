@@ -1,3 +1,5 @@
+jest.mock('../tool-runtime', () => ({ ToolRuntimeService: class ToolRuntimeService {} }))
+
 import {
     BAGGAGE_META_KEY,
     CLIENT_CAPABILITIES_META_KEY,
@@ -34,7 +36,7 @@ import { McpSubscriptionService } from './mcp-subscription.service'
 import { McpTaskService } from './mcp-task.service'
 import { McpPublicationAuthorizationService } from './mcp-publication-authorization.service'
 
-const WORKBUDDY_PROTOCOL_VERSION = '2025-03-26'
+const LEGACY_MCP_PROTOCOL_VERSION = '2025-03-26'
 
 describe('McpPublicationRuntimeService protocol', () => {
     let runtime: McpPublicationRuntimeService
@@ -252,13 +254,13 @@ describe('McpPublicationRuntimeService protocol', () => {
         ])
     })
 
-    it('serves WorkBuddy-compatible 2025-era initialize, tool listing, and tool calls', async () => {
+    it('serves 2025-era MCP initialize, tool listing, and tool calls', async () => {
         const initialized = await legacyRequest(
             'initialize',
             {
-                protocolVersion: WORKBUDDY_PROTOCOL_VERSION,
+                protocolVersion: LEGACY_MCP_PROTOCOL_VERSION,
                 capabilities: {},
-                clientInfo: { name: 'workbuddy', version: '1.0.0' }
+                clientInfo: { name: 'generic-mcp-client', version: '1.0.0' }
             },
             101
         )
@@ -266,7 +268,7 @@ describe('McpPublicationRuntimeService protocol', () => {
         expect(initialized.status).toBe(200)
         expect(initialized.body.result).toEqual(
             expect.objectContaining({
-                protocolVersion: WORKBUDDY_PROTOCOL_VERSION,
+                protocolVersion: LEGACY_MCP_PROTOCOL_VERSION,
                 serverInfo: expect.objectContaining({ name: 'generic' })
             })
         )
@@ -1079,7 +1081,7 @@ function legacyNodeRequest(method: string) {
         'content-type': 'application/json',
         'mcp-method': method
     }
-    if (method !== 'initialize') requestHeaders['mcp-protocol-version'] = WORKBUDDY_PROTOCOL_VERSION
+    if (method !== 'initialize') requestHeaders['mcp-protocol-version'] = LEGACY_MCP_PROTOCOL_VERSION
     return {
         method: 'POST',
         url: '/api/mcp/p/generic',

@@ -1,22 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { Subject } from 'rxjs';
-import { StrategyEntry } from './types';
+import { Injectable } from '@nestjs/common'
+import { Subject } from 'rxjs'
+import { StrategyEntry } from './types'
 
 export type StrategyBusEvent<S = any> =
   | { type: 'UPSERT'; strategyType: string; entry: StrategyEntry<S> }
-  | { type: 'REMOVE'; strategyType?: string; pluginName: string; orgId: string };
+  | { type: 'REMOVE'; strategyType?: string; pluginName: string; orgId: string; cause?: 'refresh' | 'uninstall' }
 
 @Injectable()
 export class StrategyBus {
-  private readonly subject = new Subject<StrategyBusEvent>();
+  private readonly subject = new Subject<StrategyBusEvent>()
 
-  readonly events$ = this.subject.asObservable();
+  readonly events$ = this.subject.asObservable()
 
   upsert<S>(strategyType: string, entry: StrategyEntry<S>) {
-    this.subject.next({ type: 'UPSERT', strategyType, entry });
+    this.subject.next({ type: 'UPSERT', strategyType, entry })
   }
 
-  remove(orgId: string, pluginName: string) {
-    this.subject.next({ type: 'REMOVE', orgId, pluginName });
+  remove(orgId: string, pluginName: string, cause?: 'refresh' | 'uninstall') {
+    this.subject.next({ type: 'REMOVE', orgId, pluginName, ...(cause ? { cause } : {}) })
   }
 }

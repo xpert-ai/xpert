@@ -212,7 +212,8 @@ export class XpertWorkbenchInitialLayoutSettingsComponent {
   #viewLoadRequestId = 0
 
   readonly initialLayout = computed(
-    () => this.#apiService.xpert()?.options?.workbench?.initialLayout ?? XpertWorkbenchInitialLayoutEnum.TwoColumns
+    () =>
+      this.#apiService.xpert()?.options?.workbench?.initialLayout ?? XpertWorkbenchInitialLayoutEnum.ChatkitMaximized
   )
   readonly defaultViewKey = computed(() => this.#apiService.xpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly xpertId = computed(() => this.#apiService.xpert()?.id?.trim() || null)
@@ -233,7 +234,7 @@ export class XpertWorkbenchInitialLayoutSettingsComponent {
 
   setInitialLayout(initialLayout: XpertWorkbenchInitialLayoutEnum) {
     const workbench = this.#apiService.xpert()?.options?.workbench
-    const currentLayout = workbench?.initialLayout ?? XpertWorkbenchInitialLayoutEnum.TwoColumns
+    const currentLayout = workbench?.initialLayout ?? XpertWorkbenchInitialLayoutEnum.ChatkitMaximized
     if (currentLayout === initialLayout) {
       return
     }

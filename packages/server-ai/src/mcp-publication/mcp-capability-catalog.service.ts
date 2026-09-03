@@ -51,6 +51,62 @@ export class McpCapabilityCatalogService {
     ) {}
 
     async discoverAndReplaceMcpToolset(toolsetId: string) {
+        const entities = await this.discoverMcpToolsetCapabilities(toolsetId)
+        return this.replacePreparedToolsetCapabilities(toolsetId, entities)
+    }
+
+    async getToolsetCapabilitySnapshot(toolsetId: string) {
+        await this.assertToolsetInCurrentScope(toolsetId)
+        return this.repository.find({ where: { toolsetId }, order: { capabilityType: 'ASC', capabilityKey: 'ASC' } })
+    }
+
+    async restoreToolsetCapabilitySnapshot(toolsetId: string, snapshot: McpCapabilityCatalog[]) {
+        await this.assertToolsetInCurrentScope(toolsetId)
+        if (snapshot.some((item) => item.toolsetId !== toolsetId)) {
+            throw new BadRequestException('MCP capability snapshot does not belong to the target toolset.')
+        }
+        return this.replacePreparedToolsetCapabilities(
+            toolsetId,
+            snapshot.map((item) => this.repository.create({ ...item }))
+        )
+    }
+
+    /** Discovers and validates native/external capabilities without changing the current catalog. */
+    async discoverMcpToolsetCapabilities(toolsetId: string) {
+        const toolset = await this.assertToolsetInCurrentScope(toolsetId)
+        if (!toolset.category || toolset.category === XpertToolsetCategoryEnum.MCP) {
+            if (!toolset.workspaceId) {
+                throw new BadRequestException(
+                    t('server-ai:Error.McpConsumerWorkspaceRequired', {
+                        defaultValue: 'An external MCP connection must belong to a workspace.'
+                    })
+                )
+            }
+            const servers = await this.consumerCapabilities.discover(toolset.workspaceId, toolsetId)
+            return this.prepareToolsetCapabilities({
+                tenantId: toolset.tenantId,
+                organizationId: toolset.organizationId,
+                toolsetId,
+                capabilities: externalMcpDeclarations(servers)
+            })
+        }
+        const declared = await this.discoverDeclaredCapabilities(
+            toolset.tenantId,
+            toolset.organizationId,
+            toolset.workspaceId,
+            toolsetId
+        )
+        return this.prepareToolsetCapabilities({
+            tenantId: toolset.tenantId,
+            organizationId: toolset.organizationId,
+            toolsetId,
+            pluginName: declared.source.pluginName,
+            pluginVersion: declared.source.pluginVersion,
+            capabilities: nativeMcpDeclarations(declared.definitions)
+        })
+    }
+
+    private async assertToolsetInCurrentScope(toolsetId: string) {
         const scope = RequestContext.getScope()
         const toolset = await this.toolsets.findOne(toolsetId)
         if (
@@ -64,36 +120,7 @@ export class McpCapabilityCatalogService {
                 })
             )
         }
-        if (!toolset.category || toolset.category === XpertToolsetCategoryEnum.MCP) {
-            if (!toolset.workspaceId) {
-                throw new BadRequestException(
-                    t('server-ai:Error.McpConsumerWorkspaceRequired', {
-                        defaultValue: 'An external MCP connection must belong to a workspace.'
-                    })
-                )
-            }
-            const servers = await this.consumerCapabilities.discover(toolset.workspaceId, toolsetId)
-            return this.replaceToolsetCapabilities({
-                tenantId: toolset.tenantId,
-                organizationId: toolset.organizationId,
-                toolsetId,
-                capabilities: externalMcpDeclarations(servers)
-            })
-        }
-        const declared = await this.discoverDeclaredCapabilities(
-            toolset.tenantId,
-            toolset.organizationId,
-            toolset.workspaceId,
-            toolsetId
-        )
-        return this.replaceToolsetCapabilities({
-            tenantId: toolset.tenantId,
-            organizationId: toolset.organizationId,
-            toolsetId,
-            pluginName: declared.source.pluginName,
-            pluginVersion: declared.source.pluginVersion,
-            capabilities: nativeMcpDeclarations(declared.definitions)
-        })
+        return toolset
     }
 
     private async discoverDeclaredCapabilities(
@@ -132,10 +159,14 @@ export class McpCapabilityCatalogService {
     }
 
     async replaceToolsetCapabilities(input: ReplaceMcpCapabilityCatalogInput) {
+        const entities = this.prepareToolsetCapabilities(input)
+        return this.replacePreparedToolsetCapabilities(input.toolsetId, entities)
+    }
+
+    private prepareToolsetCapabilities(input: ReplaceMcpCapabilityCatalogInput) {
         if (input.capabilities.length > 1_000) {
             throw new BadRequestException('An MCP toolset cannot declare more than 1000 capabilities')
         }
-        const publications = await this.bindingRepository.find({ where: { toolsetId: input.toolsetId } })
         const descriptors = input.capabilities.map((capability) => bindCapability(capability, input))
         const descriptorKeys = new Set<string>()
         try {
@@ -159,7 +190,7 @@ export class McpCapabilityCatalogService {
         } catch (error) {
             throw new BadRequestException(error instanceof Error ? error.message : String(error))
         }
-        const entities = descriptors.map((descriptor) =>
+        return descriptors.map((descriptor) =>
             this.repository.create({
                 tenantId: input.tenantId,
                 organizationId: input.organizationId ?? null,
@@ -171,8 +202,12 @@ export class McpCapabilityCatalogService {
                 enabled: true
             })
         )
+    }
+
+    private async replacePreparedToolsetCapabilities(toolsetId: string, entities: McpCapabilityCatalog[]) {
+        const publications = await this.bindingRepository.find({ where: { toolsetId } })
         await this.repository.manager.transaction(async (manager) => {
-            await manager.delete(McpCapabilityCatalog, { toolsetId: input.toolsetId })
+            await manager.delete(McpCapabilityCatalog, { toolsetId })
             if (entities.length) {
                 await manager.save(McpCapabilityCatalog, entities)
             }

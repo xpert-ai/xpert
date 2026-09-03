@@ -397,24 +397,15 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
                   type="button"
                   zType="ghost"
                   zSize="icon"
-                  data-toggle-workspace-maximized
-                  [class]="workspaceMaximizeButtonClasses()"
-                  [title]="
-                    workbenchMaximized()
-                      ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
-                      : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
-                  "
-                  [zTooltip]="
-                    workbenchMaximized()
-                      ? ('XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' })
-                      : ('XP.Chat.ClawXpert.MaximizeWorkspace' | translate: { Default: 'Maximize workspace' })
-                  "
+                  data-toggle-chatkit-maximized
+                  class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+                  [attr.aria-label]="'XP.Chat.ClawXpert.MaximizeChatkit' | translate: { Default: 'Maximize ChatKit' }"
+                  [title]="'XP.Chat.ClawXpert.MaximizeChatkit' | translate: { Default: 'Maximize ChatKit' }"
+                  [zTooltip]="'XP.Chat.ClawXpert.MaximizeChatkit' | translate: { Default: 'Maximize ChatKit' }"
                   zPosition="bottom"
-                  (click)="toggleWorkspaceMaximized()"
+                  (click)="closeDetailPanel()"
                 >
-                  <i
-                    [class]="workbenchMaximized() ? 'ri-fullscreen-exit-line text-lg' : 'ri-fullscreen-line text-lg'"
-                  ></i>
+                  <i class="ri-expand-left-line text-lg"></i>
                 </button>
               }
               <button
@@ -651,7 +642,9 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
             zType="ghost"
             zSize="icon"
             data-toggle-detail-panel
+            data-show-workbench-panel
             class="absolute left-3 top-3 z-20 flex !h-9 !w-9 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg/90 text-text-secondary shadow-sm backdrop-blur transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+            [attr.aria-label]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
             [title]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
             [zTooltip]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
             zPosition="bottom"
@@ -1087,11 +1080,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitMaxWidth = CLAWXPERT_CHATKIT_MAX_WIDTH_PX
   readonly chatkitWidthStyle = computed(() => `${this.chatkitWidthPx()}px`)
   readonly workbenchMaximized = computed(() => this.workspaceMaximized() || this.isChatMinimizedToPet())
-  readonly workspaceMaximizeButtonClasses = computed(() =>
-    this.workbenchMaximized()
-      ? 'flex !h-9 !w-9 items-center justify-center rounded-xl bg-hover-bg text-text-primary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary'
-      : 'flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary'
-  )
   readonly chatkitResizeGripClasses = computed(() =>
     this.isResizingChatkit()
       ? 'h-14 w-1 rounded-full bg-border opacity-100 transition-opacity'
@@ -1743,20 +1731,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (chatkitHost) {
       this.openInitialOverlayDialog(resolveEmbeddedChatkitElement(chatkitHost))
     }
-  }
-
-  toggleWorkspaceMaximized() {
-    if (this.isChatMinimizedToPet()) {
-      this.workspaceMaximized.set(false)
-      this.restoreChatkitFromPet()
-      return
-    }
-
-    if (!this.showDetailPanel()) {
-      this.openDetailPanel()
-    }
-
-    this.workspaceMaximized.update((maximized) => !maximized)
   }
 
   private restoreChatkitFromPet() {
@@ -2756,7 +2730,10 @@ function clampChatkitWidth(width: number) {
 function toConfiguredWorkbenchLayoutState(
   layout: XpertWorkbenchInitialLayoutEnum | null
 ): ClawXpertWorkbenchLayoutState | null {
-  if (layout === null || layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
+  if (layout === null) {
+    return 'minimized'
+  }
+  if (layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
     return 'normal'
   }
   if (layout === XpertWorkbenchInitialLayoutEnum.OverlayDialog) {

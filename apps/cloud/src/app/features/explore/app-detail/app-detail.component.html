@@ -19,9 +19,12 @@
 
     <div class="relative mx-auto max-w-[1500px] px-6 py-8 lg:px-10">
       <nav class="flex items-center gap-2 text-sm text-muted-foreground">
-        <a routerLink="/explore" [queryParams]="{ tab: 'agent-square' }" class="transition hover:text-foreground">{{
-          'XP.Explore.Application.Marketplace' | translate: { Default: 'Application marketplace' }
-        }}</a>
+        <a
+          routerLink="/explore"
+          [queryParams]="{ tab: 'agent-square', catalog: 'applications' }"
+          class="transition hover:text-foreground"
+          >{{ 'XP.Explore.Application.Marketplace' | translate: { Default: 'Application marketplace' } }}</a
+        >
         <z-icon zType="chevron-right" zSize="sm" />
         <span class="text-foreground">{{ appDetail.application.displayName | i18n }}</span>
       </nav>
@@ -63,12 +66,12 @@
             </div>
           </header>
 
-          <section class="mt-12 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <section class="mt-12 max-h-[560px] overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             @if (presentation()?.screenshots?.length) {
               <div class="grid gap-4 p-5" [class.md:grid-cols-2]="(presentation()?.screenshots?.length ?? 0) > 1">
                 @for (screenshot of presentation()?.screenshots ?? []; track screenshot) {
                   <img
-                    class="w-full rounded-xl border border-border object-cover"
+                    class="max-h-[520px] w-full rounded-xl border border-border bg-muted/30 object-cover object-top"
                     [src]="screenshot"
                     [alt]="screenshotAlt(appDetail.application.displayName | i18n)"
                   />
@@ -111,10 +114,88 @@
               </article>
             }
           </section>
+
+          @if (mcpProviders().length) {
+            <section class="mt-12 border-t border-border pt-8">
+              <div class="flex items-start gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <z-icon zType="terminal" />
+                </div>
+                <div>
+                  <h2 class="text-xl font-semibold text-foreground">
+                    {{ 'XP.Explore.Application.McpProviders' | translate: { Default: 'MCP Providers' } }}
+                  </h2>
+                  <p class="mt-1 text-sm leading-6 text-muted-foreground">
+                    {{
+                      'XP.Explore.Application.McpProvidersDescription'
+                        | translate
+                          : {
+                              Default:
+                                'Connect external MCP clients to the servers provided by this application plugin.'
+                            }
+                    }}
+                  </p>
+                </div>
+              </div>
+
+              <z-accordion
+                class="mt-5 overflow-hidden rounded-2xl border border-border bg-card"
+                displayMode="flat"
+                displayDensity="cosy"
+                [zDefaultValue]="mcpProviders()[0]?.componentKey ?? ''"
+              >
+                @for (provider of mcpProviders(); track provider.componentKey) {
+                  <z-accordion-item
+                    [zValue]="provider.componentKey"
+                    class="border-b border-border last:border-b-0 [&_[data-slot=accordion-body]>div]:px-0 [&_[data-slot=accordion-body]>div]:pb-0"
+                  >
+                    <z-accordion-header class="items-start px-5 py-4 hover:bg-muted/40">
+                      <z-accordion-title class="items-start overflow-visible">
+                        <div class="min-w-0 text-left">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="font-semibold text-foreground">{{ mcpProviderName(provider) }}</h3>
+                            <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                              >MCP</span
+                            >
+                          </div>
+                          @if (mcpProviderDescription(provider); as description) {
+                            <p class="mt-1 text-sm font-normal leading-6 text-muted-foreground">{{ description }}</p>
+                          }
+                        </div>
+                      </z-accordion-title>
+                      <z-accordion-description class="!flex-none flex-col items-end gap-1 sm:flex-row sm:items-center">
+                        <span class="whitespace-nowrap text-xs text-muted-foreground">
+                          {{
+                            'XP.Plugin.McpToolCount'
+                              | translate
+                                : {
+                                    count: mcpProviderToolCount(provider),
+                                    Default: mcpProviderToolCount(provider) + ' tools'
+                                  }
+                          }}
+                        </span>
+                        <code class="max-w-56 truncate rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">{{
+                          mcpProviderKey(provider)
+                        }}</code>
+                      </z-accordion-description>
+                    </z-accordion-header>
+                    <ng-template zAccordionContent>
+                      <xp-plugin-marketplace-mcp-provider
+                        [pluginName]="appDetail.application.pluginName"
+                        [component]="provider"
+                        surface="flat"
+                        [reload]="reloadMcpProviders"
+                      />
+                    </ng-template>
+                  </z-accordion-item>
+                }
+              </z-accordion>
+            </section>
+          }
         </div>
 
-        <aside class="h-fit rounded-2xl border border-border bg-card p-6 xl:sticky xl:top-8">
-          <h2 class="text-lg font-semibold text-foreground">
+        <aside class="h-fit xl:sticky xl:top-8">
+          <h2 class="border-b border-border pb-4 text-lg font-semibold text-foreground">
             {{ 'XP.Explore.Application.Includes' | translate: { Default: 'Included with this application' } }}
           </h2>
           <div class="mt-5 space-y-3">

@@ -1,630 +1,699 @@
-<section class="space-y-8">
-  @if (reviewableCount() > 0) {
-    <div
-      class="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div>
-        <div class="text-sm font-semibold text-foreground">
-          {{ 'XP.Explore.AgentSquare.ReviewTitle' | translate: { Default: 'Requests to review' } }}
-        </div>
-        <div class="mt-1 text-sm text-muted-foreground">
-          {{
-            'XP.Explore.AgentSquare.ReviewSubtitle'
-              | translate: { Default: 'Approve or reject pending agent access requests.' }
-          }}
-        </div>
-      </div>
-      <button z-button zSize="sm" zType="outline" type="button" class="w-fit" (click)="openReviewDialog()">
-        <z-icon zType="inbox" zSize="sm" />
-        {{ 'XP.Explore.AgentSquare.ReviewEntry' | translate: { Default: 'Review' } }}
-        <span class="ml-1 rounded-md bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">{{
-          reviewableCount()
-        }}</span>
-      </button>
-    </div>
-  }
-
-  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-    <section
-      class="relative min-h-[360px] overflow-hidden rounded-lg border border-border bg-card px-6 py-8 md:px-8 md:py-10"
-      (mouseenter)="pauseHeroCarousel()"
-      (mouseleave)="resumeHeroCarousel()"
-      (focusin)="pauseHeroCarousel()"
-      (focusout)="resumeHeroCarousel()"
-    >
-      <div
-        aria-hidden="true"
-        class="pointer-events-none absolute inset-0 opacity-90"
-        style="
-          background-image:
-            linear-gradient(115deg, color-mix(in oklab, var(--primary) 10%, transparent) 0%, transparent 42%),
-            linear-gradient(160deg, transparent 0%, color-mix(in oklab, var(--muted) 80%, transparent) 100%),
-            repeating-linear-gradient(
-              90deg,
-              color-mix(in oklab, var(--border) 40%, transparent) 0,
-              color-mix(in oklab, var(--border) 40%, transparent) 1px,
-              transparent 1px,
-              transparent 56px
-            ),
-            repeating-linear-gradient(
-              0deg,
-              color-mix(in oklab, var(--border) 28%, transparent) 0,
-              color-mix(in oklab, var(--border) 28%, transparent) 1px,
-              transparent 1px,
-              transparent 56px
-            );
+<section class="space-y-6">
+  <ng-template #catalogNavigation>
+    <header class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <nav
+        class="flex min-w-0 flex-1 items-center gap-6 overflow-x-auto"
+        [attr.aria-label]="
+          'XP.Explore.AgentSquare.Catalog.NavigationLabel' | translate: { Default: 'Expert marketplace sections' }
         "
-      ></div>
-
-      <svg
-        aria-hidden="true"
-        class="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[62%] text-primary/30 lg:block"
-        viewBox="0 0 720 320"
-        preserveAspectRatio="none"
       >
-        <path d="M60 236 C190 140 260 260 390 150 S560 82 690 138" fill="none" stroke="currentColor" stroke-width="2" />
-        <path
-          d="M160 78 C260 130 306 66 420 106 S594 190 702 96"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          opacity=".55"
-        />
-        <path
-          d="M220 288 C310 220 410 252 506 184 S622 120 704 176"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          opacity=".42"
-        />
-      </svg>
+        <button
+          type="button"
+          [class]="
+            catalog() === 'experts'
+              ? 'inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-2xl font-semibold tracking-tight text-foreground transition-colors focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              : 'inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 text-2xl font-semibold tracking-tight text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          "
+          [attr.aria-current]="catalog() === 'experts' ? 'page' : null"
+          (click)="setCatalog('experts')"
+        >
+          {{ 'XP.Explore.AgentSquare.Catalog.Experts' | translate: { Default: 'Experts' } }}
+          <span class="text-lg font-normal leading-none tracking-normal text-muted-foreground">{{
+            expertTotal()
+          }}</span>
+        </button>
+        <button
+          type="button"
+          [class]="
+            catalog() === 'applications'
+              ? 'inline-flex h-11 shrink-0 cursor-pointer items-center text-2xl font-semibold tracking-tight text-foreground transition-colors focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              : 'inline-flex h-11 shrink-0 cursor-pointer items-center text-2xl font-semibold tracking-tight text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          "
+          [attr.aria-current]="catalog() === 'applications' ? 'page' : null"
+          (click)="setCatalog('applications')"
+        >
+          {{ 'XP.Explore.AgentSquare.Catalog.Applications' | translate: { Default: 'Applications' } }}
+        </button>
+        <button
+          type="button"
+          [class]="
+            catalog() === 'templates'
+              ? 'inline-flex h-11 shrink-0 cursor-pointer items-center text-2xl font-semibold tracking-tight text-foreground transition-colors focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              : 'inline-flex h-11 shrink-0 cursor-pointer items-center text-2xl font-semibold tracking-tight text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          "
+          [attr.aria-current]="catalog() === 'templates' ? 'page' : null"
+          (click)="setCatalog('templates')"
+        >
+          {{ 'XP.Explore.AgentSquare.Catalog.Templates' | translate: { Default: 'Agent templates' } }}
+        </button>
+      </nav>
 
-      <div
-        class="relative z-10 grid min-h-[288px] items-center gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(320px,440px)]"
-      >
-        <div class="max-w-2xl">
-          <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {{ 'XP.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured agent' } }}
-          </div>
-          <h2 class="mt-3 text-3xl font-semibold leading-tight text-foreground md:text-4xl">
-            {{
-              'XP.Explore.AgentSquare.HeroTitle' | translate: { Default: 'Find the right agent for the current task' }
-            }}
-          </h2>
-          <p class="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
-            {{
-              'XP.Explore.AgentSquare.HeroSubtitle'
-                | translate
-                  : {
-                      Default:
-                        'Browse published agents by scenario, collaboration mode, and technical capabilities. Request access before using protected agents.'
-                    }
-            }}
-          </p>
-
-          @if (featuredItem(); as item) {
-            <button z-button type="button" class="mt-6 w-fit" (click)="handlePrimaryAction(item)">
-              {{ 'XP.Explore.AgentSquare.ViewCurrentPick' | translate: { Default: 'View current pick' } }}
-              <z-icon zType="arrow-right" zSize="sm" />
-            </button>
-          }
-        </div>
-
-        @if (featuredItem(); as item) {
-          <div
-            class="relative w-full max-w-[440px] pt-10 sm:pl-12 lg:justify-self-end"
-            role="region"
-            aria-roledescription="carousel"
-            [attr.aria-label]="
-              'XP.Explore.AgentSquare.HeroCarouselLabel' | translate: { Default: 'Weekly recommended agents' }
-            "
-          >
-            <div
-              aria-hidden="true"
-              class="absolute right-2 top-0 flex h-32 w-36 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground text-background shadow-2xl"
-            >
-              <span
-                class="flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-xl font-semibold text-primary-foreground"
-              >
-                {{ initials(item) }}
-              </span>
-            </div>
-
-            <article class="relative z-10 rounded-xl border border-border bg-background/95 p-5 shadow-xl backdrop-blur">
-              @if (applicationScreenshot(item); as screenshot) {
-                <div class="-mx-5 -mt-5 mb-5 overflow-hidden rounded-t-xl border-b border-border bg-muted/30">
-                  <img
-                    class="aspect-[16/9] w-full object-contain"
-                    [src]="screenshot"
-                    [alt]="applicationScreenshotAlt(item)"
-                  />
-                </div>
-              }
-              <div
-                class="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.14em] text-muted-foreground"
-              >
-                <span>{{ 'XP.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured agent' } }}</span>
-                <span>{{ featuredIndex() + 1 }} / {{ recommendedItems().length }}</span>
-              </div>
-
-              <div class="mt-4 flex min-w-0 items-start gap-3">
-                <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
-                >
-                  {{ initials(item) }}
-                </div>
-                <div class="min-w-0">
-                  <h3 class="truncate text-base font-semibold text-foreground">{{ title(item) }}</h3>
-                  <p class="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{{ summary(item) }}</p>
-                </div>
-              </div>
-
-              <div class="mt-4 flex items-end justify-between gap-4 border-t border-border pt-4">
-                <div class="flex min-w-0 flex-wrap gap-2">
-                  @for (tag of capabilityTags(item).slice(0, 2); track tag) {
-                    <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{
-                      tag
-                    }}</span>
-                  }
-                </div>
-                <span class="shrink-0 text-xs font-semibold text-primary">
-                  {{ 'XP.Explore.AgentSquare.MatchScore' | translate: { Default: 'Match' } }} {{ matchScore(item) }}%
-                </span>
-              </div>
-            </article>
-          </div>
-        }
-      </div>
-
-      @if (recommendedItems().length > 1) {
-        <div class="relative z-10 mt-6 flex items-center gap-2 lg:absolute lg:bottom-6 lg:left-8 lg:mt-0">
-          @for (recommendation of recommendedItems(); track recommendation.id; let index = $index) {
-            <button
-              type="button"
-              [class]="
-                featuredIndex() === index
-                  ? 'h-1.5 w-8 rounded-full bg-primary transition-all'
-                  : 'h-1.5 w-5 rounded-full bg-muted-foreground/25 transition-all hover:bg-muted-foreground/50'
-              "
-              (click)="showHeroItem(index)"
-              [attr.aria-label]="title(recommendation)"
-              [attr.aria-current]="featuredIndex() === index ? 'true' : null"
-            ></button>
-          }
-        </div>
-      }
-    </section>
-
-    <aside class="rounded-lg border border-border bg-card p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-semibold text-foreground">
-          {{ 'XP.Explore.AgentSquare.WeeklyRecommended' | translate: { Default: 'Weekly picks' } }}
-        </h3>
-      </div>
-      <div class="mt-4 space-y-3">
-        @for (item of recommendedItems(); track item.id) {
-          <button
-            type="button"
-            [class]="
-              featuredItem()?.id === item.id
-                ? 'flex w-full items-center gap-3 rounded-lg border border-primary bg-primary/5 p-3 text-left transition'
-                : 'flex w-full items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition hover:border-primary/60'
-            "
-            (click)="selectItem(item)"
-          >
-            <div
-              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
-            >
-              {{ matchScore(item) }}
-            </div>
-            <div class="min-w-0">
-              <div class="truncate text-sm font-semibold text-foreground">{{ title(item) }}</div>
-              <div class="truncate text-xs text-muted-foreground">{{ summary(item) }}</div>
-            </div>
+      <div class="flex w-fit shrink-0 items-center gap-2">
+        @if (activeExpertFilterCount()) {
+          <button z-button zType="ghost" zSize="sm" type="button" class="cursor-pointer" (click)="resetExpertFilters()">
+            {{ 'XP.Explore.AgentSquare.ResetFilters' | translate: { Default: 'Reset' } }}
+            <span class="rounded-md bg-muted px-1.5 py-0.5 text-xs">{{ activeExpertFilterCount() }}</span>
           </button>
         }
-        @if (!recommendedItems().length && !loading()) {
-          <div class="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-            {{ 'XP.Explore.AgentSquare.NoRecommendations' | translate: { Default: 'No recommendations yet.' } }}
-          </div>
-        }
-      </div>
-    </aside>
-  </div>
-
-  <div class="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
-    <aside class="overflow-hidden rounded-lg border border-border bg-card xl:sticky xl:top-24 xl:self-start">
-      <div class="border-b border-border bg-muted/30 p-5">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <h3 class="text-base font-semibold text-foreground">
-              {{ 'XP.Explore.AgentSquare.FilterTitle' | translate: { Default: 'Filter agents' } }}
-            </h3>
-            <p class="mt-1 text-xs leading-5 text-muted-foreground">
-              {{
-                'XP.Explore.AgentSquare.FilterHint'
-                  | translate
-                    : {
-                        Default:
-                          'A group with no selection does not restrict results. Combine filters to narrow the library.'
-                      }
-              }}
-            </p>
-          </div>
+        @if (reviewableCount() > 0) {
           <button
             z-button
-            zType="ghost"
+            zType="outline"
             zSize="sm"
             type="button"
-            class="shrink-0"
-            [disabled]="activeFilterCount() === 0"
-            (click)="resetFilters()"
+            class="w-fit cursor-pointer"
+            (click)="openReviewDialog()"
           >
-            {{ 'XP.Explore.AgentSquare.ResetFilters' | translate: { Default: 'Reset' } }}
+            <z-icon zType="inbox" zSize="sm" />
+            {{ 'XP.Explore.AgentSquare.ReviewEntry' | translate: { Default: 'Review' } }}
+            <span class="ml-1 rounded-md bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+              {{ reviewableCount() }}
+            </span>
           </button>
-        </div>
-      </div>
-
-      <div class="divide-y divide-border">
-        <section class="p-4">
-          <div class="flex items-center gap-2">
-            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {{ 'XP.Explore.AgentSquare.BusinessScenario' | translate: { Default: 'Marketplace category' } }}
-            </h4>
-            @if (selectedBusinessCategories().length) {
-              <span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                {{ selectedBusinessCategories().length }}
-              </span>
-            }
-          </div>
-          <div
-            class="mt-3 flex flex-wrap gap-2"
-            [attr.aria-label]="
-              'XP.Explore.AgentSquare.BusinessScenario' | translate: { Default: 'Marketplace category' }
-            "
-          >
-            @for (category of businessCategories; track category) {
-              <button
-                type="button"
-                [class]="
-                  selectedBusinessCategories().includes(category)
-                    ? 'rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary'
-                    : 'rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/60 hover:text-foreground'
-                "
-                [attr.aria-pressed]="selectedBusinessCategories().includes(category)"
-                (click)="toggleBusinessCategory(category)"
-              >
-                {{ businessLabelKey(category) | translate }}
-              </button>
-            }
-          </div>
-        </section>
-
-        <section class="p-4">
-          <div class="flex items-center gap-2">
-            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {{ 'XP.Explore.AgentSquare.CollaborationMode' | translate: { Default: 'Collaboration' } }}
-            </h4>
-            @if (selectedCollaborationModes().length) {
-              <span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                {{ selectedCollaborationModes().length }}
-              </span>
-            }
-          </div>
-          <div class="mt-3 space-y-3">
-            @for (mode of collaborationModes; track mode) {
-              <z-checkbox
-                displayDensity="compact"
-                class="w-full"
-                [ngModel]="selectedCollaborationModes().includes(mode)"
-                (ngModelChange)="toggleCollaborationMode(mode)"
-              >
-                <span class="text-sm text-foreground">{{ collaborationLabelKey(mode) | translate }}</span>
-              </z-checkbox>
-            }
-          </div>
-        </section>
-
-        <section class="p-4">
-          <div class="flex items-center gap-2">
-            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {{ 'XP.Explore.AgentSquare.TechnicalCapability' | translate: { Default: 'Technical capability' } }}
-            </h4>
-            @if (selectedTechnicalCategories().length) {
-              <span class="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                {{ selectedTechnicalCategories().length }}
-              </span>
-            }
-          </div>
-          <div class="mt-3 flex flex-wrap gap-2">
-            @for (category of technicalCategories; track category) {
-              <button
-                type="button"
-                [class]="
-                  selectedTechnicalCategories().includes(category)
-                    ? 'rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary'
-                    : 'rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/60 hover:text-foreground'
-                "
-                [attr.aria-pressed]="selectedTechnicalCategories().includes(category)"
-                (click)="toggleTechnicalCategory(category)"
-              >
-                {{ technicalLabelKey(category) | translate }}
-              </button>
-            }
-          </div>
-        </section>
-      </div>
-    </aside>
-
-    <section class="min-w-0">
-      <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <h3 class="text-xl font-semibold text-foreground">
-          {{ 'XP.Explore.AgentSquare.AgentList' | translate: { Default: 'Agent library' } }}
-          <span class="text-muted-foreground">{{ total() }}</span>
-        </h3>
-        <div class="inline-flex w-fit rounded-lg border border-border bg-card p-1">
-          @for (option of sortOptions; track option) {
+        }
+        <div class="inline-flex rounded-lg bg-muted p-1">
+          @for (option of expertSortOptions; track option) {
             <button
               type="button"
               [class]="
-                sort() === option
-                  ? 'rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground'
-                  : 'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground'
+                expertSort() === option
+                  ? 'cursor-pointer rounded-md bg-background px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  : 'cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
               "
-              (click)="setSort(option)"
+              [attr.aria-pressed]="expertSort() === option"
+              (click)="setExpertSort(option)"
             >
               {{ 'XP.Explore.AgentSquare.Sort.' + option | translate }}
             </button>
           }
         </div>
       </div>
+    </header>
+  </ng-template>
 
-      @if (loading()) {
-        <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-          @for (placeholder of [1, 2, 3, 4]; track placeholder) {
-            <div class="h-52 animate-pulse rounded-lg border border-border bg-card"></div>
-          }
-        </div>
-      } @else if (!displayItems().length) {
+  @if (loadingFeatured() && !featuredExperts().length) {
+    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="h-[360px] animate-pulse rounded-xl border border-border bg-card"></div>
+      <div class="h-[360px] animate-pulse rounded-xl border border-border bg-card"></div>
+    </div>
+  } @else if (featuredItem(); as featured) {
+    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <section
+        class="relative min-h-[360px] min-w-0 overflow-hidden rounded-xl border border-border bg-card px-5 py-8 md:px-8 md:py-10"
+        (mouseenter)="pauseHeroCarousel()"
+        (mouseleave)="resumeHeroCarousel()"
+        (focusin)="pauseHeroCarousel()"
+        (focusout)="resumeHeroCarousel()"
+      >
         <div
-          class="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 text-center"
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-0 opacity-90"
+          style="
+            background-image:
+              linear-gradient(115deg, color-mix(in oklab, var(--primary) 10%, transparent) 0%, transparent 42%),
+              linear-gradient(160deg, transparent 0%, color-mix(in oklab, var(--muted) 80%, transparent) 100%),
+              repeating-linear-gradient(
+                90deg,
+                color-mix(in oklab, var(--border) 40%, transparent) 0,
+                color-mix(in oklab, var(--border) 40%, transparent) 1px,
+                transparent 1px,
+                transparent 56px
+              ),
+              repeating-linear-gradient(
+                0deg,
+                color-mix(in oklab, var(--border) 28%, transparent) 0,
+                color-mix(in oklab, var(--border) 28%, transparent) 1px,
+                transparent 1px,
+                transparent 56px
+              );
+          "
+        ></div>
+
+        <svg
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[58%] text-primary/25 lg:block"
+          viewBox="0 0 720 320"
+          preserveAspectRatio="none"
         >
-          <div>
-            <z-icon zType="bot" class="text-4xl text-muted-foreground" />
-            <h4 class="mt-4 text-lg font-semibold text-foreground">
-              {{ 'XP.Explore.AgentSquare.EmptyTitle' | translate: { Default: 'No matching agents' } }}
-            </h4>
-            <p class="mt-2 text-sm text-muted-foreground">
+          <path
+            d="M60 236 C190 140 260 260 390 150 S560 82 690 138"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          />
+          <path
+            d="M160 78 C260 130 306 66 420 106 S594 190 702 96"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            opacity=".55"
+          />
+        </svg>
+
+        <div
+          class="relative z-10 grid min-h-[276px] min-w-0 items-center gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(300px,420px)]"
+        >
+          <div class="min-w-0 max-w-2xl">
+            <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              {{ 'XP.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured expert' } }}
+            </div>
+            <h2 class="mt-3 break-words text-3xl font-semibold leading-tight text-foreground md:text-4xl">
               {{
-                'XP.Explore.AgentSquare.EmptyHint'
-                  | translate: { Default: 'Try a different search or filter combination.' }
+                'XP.Explore.AgentSquare.HeroTitle'
+                  | translate: { Default: 'Find the right expert for the current task' }
+              }}
+            </h2>
+            <p class="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+              {{
+                'XP.Explore.AgentSquare.HeroSubtitle'
+                  | translate
+                    : {
+                        Default:
+                          'Browse published experts by scenario, collaboration mode, and technical capability. Protected experts require approval before use.'
+                      }
               }}
             </p>
-          </div>
-        </div>
-      } @else {
-        <div class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-          @for (item of displayItems(); track item.id) {
-            <article
-              role="button"
-              tabindex="0"
-              [class]="
-                selectedItem()?.id === item.id
-                  ? 'rounded-lg border border-primary bg-card p-5 shadow-sm outline-none'
-                  : 'rounded-lg border border-border bg-card p-5 shadow-sm outline-none transition hover:border-primary/60'
-              "
-              (click)="selectItem(item)"
-              (keydown.enter)="selectItem(item)"
+            <button
+              z-button
+              type="button"
+              class="mt-6 w-fit cursor-pointer"
+              [disabled]="featured.accessStatus === 'requested'"
+              (click)="handleExpertAction(featured)"
             >
-              <div class="flex items-start justify-between gap-4">
-                <div class="flex min-w-0 gap-4">
-                  <emoji-avatar
-                    large
-                    class="shrink-0 overflow-hidden rounded-lg shadow-sm"
-                    [avatar]="workspaceAvatar(item)"
-                    [alt]="title(item)"
-                    [fallbackLabel]="title(item)"
-                  />
-                  <div class="min-w-0">
-                    <h4 class="truncate text-lg font-semibold text-foreground">{{ title(item) }}</h4>
-                    <p class="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{{ summary(item) }}</p>
-                  </div>
-                </div>
-                <span class="shrink-0 text-sm font-semibold text-primary">
-                  {{ 'XP.Explore.AgentSquare.MatchScore' | translate: { Default: 'Match' } }} {{ matchScore(item) }}%
-                </span>
-              </div>
+              {{ expertActionLabel(featured) }}
+              <z-icon zType="arrow-right" zSize="sm" />
+            </button>
+          </div>
 
-              <div class="mt-5 flex flex-wrap gap-2">
-                @for (tag of capabilityTags(item).slice(0, 4); track tag) {
-                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
-                }
-                @for (category of itemTechnicalCategories(item).slice(0, 3); track category) {
-                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                    {{ technicalLabelKey(category) | translate }}
+          <article
+            class="relative h-[320px] max-h-[320px] min-w-0 overflow-hidden rounded-xl border border-border bg-background shadow-xl md:h-[300px] md:max-h-[300px]"
+          >
+            @let preview = featuredApplicationPreview();
+            @if (preview) {
+              <button
+                type="button"
+                class="group/screenshot absolute inset-0 block size-full cursor-pointer overflow-hidden bg-muted/40 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                [attr.aria-label]="applicationScreenshotAlt(preview.application)"
+                (click)="openApplicationDetails(preview.application)"
+              >
+                <img
+                  data-featured-application-screenshot
+                  class="size-full object-cover transition-transform duration-300 group-hover/screenshot:scale-[1.015]"
+                  [src]="preview.screenshot"
+                  [alt]="applicationScreenshotAlt(preview.application)"
+                  loading="lazy"
+                  decoding="async"
+                />
+                @if (applicationScreenshots(preview.application).length > 1) {
+                  <span
+                    class="absolute right-3 top-3 rounded-md border border-border/70 bg-popover/90 px-2 py-1 text-[11px] font-medium text-popover-foreground shadow-sm backdrop-blur-sm"
+                    aria-hidden="true"
+                  >
+                    1 / {{ applicationScreenshots(preview.application).length }}
                   </span>
                 }
-              </div>
+              </button>
+            }
 
-              <div class="mt-5">
-                <button
-                  z-button
-                  zSize="sm"
-                  type="button"
-                  [disabled]="isPending(item)"
-                  [class]="
-                    canUse(item)
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      : 'bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60'
-                  "
-                  (click)="handlePrimaryAction(item, $event)"
-                >
-                  @if (isTemplate(item)) {
-                    {{ templateActionLabel(item) }}
-                  } @else if (canUse(item)) {
-                    {{ 'XP.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
-                  } @else if (isPending(item)) {
-                    {{ 'XP.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}
-                  } @else {
-                    {{ 'XP.Explore.AgentSquare.RequestAccess' | translate: { Default: 'Request access' } }}
-                  }
-                </button>
+            <div
+              data-featured-expert-content
+              [class]="
+                preview
+                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[68%] overflow-hidden border-t border-border/60 bg-background/55 p-4 shadow-xl backdrop-blur-2xl supports-[backdrop-filter]:bg-background/45 md:p-5'
+                  : 'relative z-10 flex h-full flex-col p-5'
+              "
+            >
+              <div
+                class="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.14em] text-muted-foreground"
+              >
+                <span>{{ 'XP.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured expert' } }}</span>
+                <span>{{ featuredIndex() + 1 }} / {{ featuredExperts().length }}</span>
               </div>
-            </article>
+              <div class="mt-3 flex min-w-0 items-start gap-3">
+                <emoji-avatar
+                  large
+                  class="shrink-0 overflow-hidden rounded-xl shadow-sm"
+                  [avatar]="featured.xpert.avatar"
+                  [alt]="expertTitle(featured)"
+                  [fallbackLabel]="expertTitle(featured)"
+                />
+                <div class="min-w-0">
+                  <h3 class="truncate text-lg font-semibold text-foreground">{{ expertTitle(featured) }}</h3>
+                  <p class="mt-1 text-xs text-muted-foreground">{{ expertCreator(featured) }}</p>
+                </div>
+              </div>
+              <p class="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                {{ expertSummary(featured) }}
+              </p>
+              <div class="mt-auto flex flex-wrap gap-2 border-t border-border/80 pt-3">
+                @for (tag of expertTags(featured).slice(0, 3); track tag) {
+                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
+                }
+              </div>
+            </div>
+          </article>
+        </div>
+
+        @if (featuredExperts().length > 1) {
+          <div class="relative z-10 mt-6 flex items-center gap-2 lg:absolute lg:bottom-6 lg:left-8 lg:mt-0">
+            @for (item of featuredExperts(); track item.xpert.id; let index = $index) {
+              <button
+                type="button"
+                [class]="
+                  featuredIndex() === index
+                    ? 'h-1.5 w-8 cursor-pointer rounded-full bg-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                    : 'h-1.5 w-5 cursor-pointer rounded-full bg-muted-foreground/25 transition-all hover:bg-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                "
+                (click)="showHeroItem(index)"
+                [attr.aria-label]="expertTitle(item)"
+                [attr.aria-current]="featuredIndex() === index ? 'true' : null"
+              ></button>
+            }
+          </div>
+        }
+      </section>
+
+      <aside class="min-w-0 rounded-xl border border-border bg-card p-5">
+        <h3 class="text-base font-semibold text-foreground">
+          {{ 'XP.Explore.AgentSquare.WeeklyRecommended' | translate: { Default: 'Weekly picks' } }}
+        </h3>
+        <div class="mt-4 space-y-3">
+          @for (item of featuredExperts(); track item.xpert.id; let index = $index) {
+            <button
+              type="button"
+              [class]="
+                featuredIndex() === index
+                  ? 'flex w-full cursor-pointer items-center gap-3 rounded-lg border border-primary bg-primary/5 p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  : 'flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              "
+              (click)="showHeroItem(index)"
+            >
+              <emoji-avatar
+                class="shrink-0 overflow-hidden rounded-lg"
+                [avatar]="item.xpert.avatar"
+                [alt]="expertTitle(item)"
+                [fallbackLabel]="expertTitle(item)"
+              />
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-semibold text-foreground">{{ expertTitle(item) }}</span>
+                <span class="mt-1 block truncate text-xs text-muted-foreground">{{ expertSummary(item) }}</span>
+              </span>
+            </button>
           }
         </div>
-      }
+      </aside>
+    </div>
+  }
+
+  <ng-container [ngTemplateOutlet]="catalogNavigation" />
+
+  <div class="min-w-0 space-y-5 bg-background">
+    <section class="min-w-0 space-y-5">
+      <div class="flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          [class]="
+            selectedBusinessCategories().length === 0
+              ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          "
+          [attr.aria-pressed]="selectedBusinessCategories().length === 0"
+          (click)="selectedBusinessCategories.set([])"
+        >
+          {{ 'XP.Explore.AgentSquare.All' | translate: { Default: 'All' } }}
+        </button>
+        @for (category of businessCategories; track category) {
+          <button
+            type="button"
+            [class]="
+              selectedBusinessCategories().includes(category)
+                ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            "
+            [attr.aria-pressed]="selectedBusinessCategories().includes(category)"
+            (click)="toggleBusinessCategory(category)"
+          >
+            {{ businessLabelKey(category) | translate }}
+          </button>
+        }
+      </div>
     </section>
 
-    <aside class="rounded-lg border border-border bg-card p-5 xl:sticky xl:top-24 xl:self-start">
-      @if (selectedItem(); as item) {
-        @if (applicationScreenshot(item); as screenshot) {
-          <div class="mb-5 overflow-hidden rounded-lg border border-border bg-muted/30">
-            <img
-              class="aspect-[16/9] w-full object-contain"
-              [src]="screenshot"
-              [alt]="applicationScreenshotAlt(item)"
-            />
+    @switch (catalog()) {
+      @case ('experts') {
+        @if (loadingExperts()) {
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (placeholder of [1, 2, 3, 4, 5, 6, 7, 8]; track placeholder) {
+              <div class="h-60 animate-pulse rounded-2xl border border-border bg-card"></div>
+            }
           </div>
-        }
-        @if (isTemplate(item)) {
+        } @else if (experts().length) {
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (item of experts(); track item.xpert.id) {
+              <article
+                role="button"
+                class="group flex min-h-60 flex-col rounded-2xl border border-border bg-card p-6 outline-none transition-colors duration-200 hover:border-foreground/20 hover:bg-accent/20 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                [class.cursor-pointer]="item.accessStatus !== 'requested'"
+                [class.cursor-not-allowed]="item.accessStatus === 'requested'"
+                [attr.tabindex]="item.accessStatus === 'requested' ? -1 : 0"
+                [attr.aria-disabled]="item.accessStatus === 'requested' ? 'true' : null"
+                [attr.aria-label]="expertActionLabel(item) + ': ' + expertTitle(item)"
+                (click)="handleExpertAction(item)"
+                (keydown.enter)="handleExpertAction(item)"
+                (keydown.space)="handleExpertAction(item); $event.preventDefault()"
+              >
+                <div class="flex min-w-0 items-center gap-4">
+                  <emoji-avatar
+                    large
+                    class="shrink-0 overflow-hidden rounded-full shadow-sm"
+                    [avatar]="item.xpert.avatar"
+                    [alt]="expertTitle(item)"
+                    [fallbackLabel]="expertTitle(item)"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <h4 class="truncate text-lg font-semibold text-foreground" [title]="expertTitle(item)">
+                        {{ expertTitle(item) }}
+                      </h4>
+                      <span
+                        class="shrink-0 rounded-md px-2 py-0.5 text-xs font-medium"
+                        [ngClass]="expertStatusClasses(item)"
+                      >
+                        {{ expertAccessLabel(item) }}
+                      </span>
+                    </div>
+                    <p class="mt-1 truncate text-sm text-muted-foreground">{{ expertCreator(item) }}</p>
+                  </div>
+                </div>
+
+                <p class="mt-6 line-clamp-2 min-h-12 text-sm leading-6 text-muted-foreground">
+                  {{ expertSummary(item) }}
+                </p>
+                <div class="mt-auto flex min-h-7 flex-wrap gap-2 pt-5">
+                  @for (tag of expertTags(item).slice(0, 3); track tag) {
+                    <span class="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{{
+                      tag
+                    }}</span>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        } @else if (expertLoadError(); as error) {
           <div
-            class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground"
+            class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"
           >
-            {{ initials(item) }}
+            <div class="max-w-md">
+              <z-icon zType="triangle-alert" class="text-4xl text-destructive" />
+              <h4 class="mt-4 text-lg font-semibold text-foreground">
+                {{ 'XP.Explore.AgentSquare.LoadFailed' | translate: { Default: 'Unable to load this catalog' } }}
+              </h4>
+              <p class="mt-2 break-words text-sm text-muted-foreground">{{ error }}</p>
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                class="mt-5 cursor-pointer"
+                (click)="loadExperts()"
+              >
+                <z-icon zType="refresh-cw" zSize="sm" />
+                {{ 'XP.Explore.AgentSquare.TryAgain' | translate: { Default: 'Try again' } }}
+              </button>
+            </div>
           </div>
         } @else {
-          <emoji-avatar
-            large
-            class="overflow-hidden rounded-lg shadow-sm"
-            [avatar]="workspaceAvatar(item)"
-            [alt]="title(item)"
-            [fallbackLabel]="title(item)"
-          />
-        }
-        <h3 class="mt-5 text-xl font-semibold text-foreground">{{ title(item) }}</h3>
-        <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ summary(item) }}</p>
-
-        <div class="mt-5 flex flex-wrap gap-2">
-          @for (tag of capabilityTags(item); track tag) {
-            <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
-          }
-        </div>
-
-        <div class="my-5 border-t border-border" [class.hidden]="isTemplate(item)"></div>
-
-        <section [class.hidden]="isTemplate(item)">
-          <h4 class="text-sm font-semibold text-foreground">
-            {{ 'XP.Explore.AgentSquare.CoreCapabilities' | translate: { Default: 'Core capabilities' } }}
-          </h4>
-          <div class="mt-4 space-y-3">
-            <div>
-              <div class="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>{{
-                  'XP.Explore.AgentSquare.KnowledgeUnderstanding' | translate: { Default: 'Knowledge understanding' }
-                }}</span>
-              </div>
-              <div class="h-2 rounded-full bg-muted">
-                <div class="h-2 rounded-full bg-primary" [style.width.%]="capabilityWidth(item, 'knowledge')"></div>
-              </div>
-            </div>
-            <div>
-              <div class="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>{{ 'XP.Explore.AgentSquare.ToolCalling' | translate: { Default: 'Tool calling' } }}</span>
-              </div>
-              <div class="h-2 rounded-full bg-muted">
-                <div class="h-2 rounded-full bg-primary" [style.width.%]="capabilityWidth(item, 'tools')"></div>
-              </div>
-            </div>
-            <div>
-              <div class="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>{{ 'XP.Explore.AgentSquare.TaskExecution' | translate: { Default: 'Task execution' } }}</span>
-              </div>
-              <div class="h-2 rounded-full bg-muted">
-                <div class="h-2 rounded-full bg-primary" [style.width.%]="capabilityWidth(item, 'execution')"></div>
-              </div>
+          <div
+            class="flex min-h-80 items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 text-center"
+          >
+            <div class="max-w-md">
+              <z-icon zType="users" class="text-4xl text-muted-foreground" />
+              <h4 class="mt-4 text-lg font-semibold text-foreground">
+                {{ 'XP.Explore.AgentSquare.EmptyTitle' | translate: { Default: 'No matching experts' } }}
+              </h4>
+              <p class="mt-2 text-sm text-muted-foreground">
+                {{
+                  'XP.Explore.AgentSquare.EmptyHint'
+                    | translate: { Default: 'Try a different search or filter combination.' }
+                }}
+              </p>
             </div>
           </div>
-        </section>
-
-        <section class="mt-6" [class.hidden]="isTemplate(item)">
-          <h4 class="text-sm font-semibold text-foreground">
-            {{ 'XP.Explore.AgentSquare.ExecutionProfile' | translate: { Default: 'Execution profile' } }}
-          </h4>
-          <ol class="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li class="flex gap-2">
-              <span
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-foreground"
-                >1</span
-              >
-              {{ 'XP.Explore.AgentSquare.ProfileAgents' | translate: { Default: 'Agents' } }}:
-              {{ profileCount(item, 'agentCount') }}
-            </li>
-            <li class="flex gap-2">
-              <span
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-foreground"
-                >2</span
-              >
-              {{ 'XP.Explore.AgentSquare.ProfileTools' | translate: { Default: 'Toolsets' } }}:
-              {{ profileCount(item, 'toolsetCount') }}
-            </li>
-            <li class="flex gap-2">
-              <span
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-foreground"
-                >3</span
-              >
-              {{ 'XP.Explore.AgentSquare.ProfileWorkflow' | translate: { Default: 'Workflow nodes' } }}:
-              {{ profileCount(item, 'workflowNodeCount') }}
-            </li>
-          </ol>
-        </section>
-
-        <div class="mt-6 grid grid-cols-1 gap-2">
-          <button
-            z-button
-            type="button"
-            class="bg-primary text-primary-foreground hover:bg-primary/90"
-            [disabled]="isPending(item)"
-            (click)="handlePrimaryAction(item)"
-          >
-            @if (isTemplate(item)) {
-              {{ templateActionLabel(item) }}
-            } @else if (canUse(item)) {
-              {{ 'XP.Explore.AgentSquare.UseNow' | translate: { Default: 'Use now' } }}
-            } @else if (isPending(item)) {
-              {{ 'XP.Explore.AgentSquare.Pending' | translate: { Default: 'Pending approval' } }}
-            } @else {
-              {{ 'XP.Explore.AgentSquare.RequestAccess' | translate: { Default: 'Request access' } }}
-            }
-          </button>
-        </div>
-      } @else {
-        <div class="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
-          {{ 'XP.Explore.AgentSquare.SelectAgentHint' | translate: { Default: 'Select an agent to view details.' } }}
-        </div>
+        }
       }
-    </aside>
-  </div>
 
-  <section class="space-y-4">
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h3 class="text-xl font-semibold text-foreground">
-          {{ 'XP.Explore.AgentSquare.TemplateAgents' | translate: { Default: 'Agent templates' } }}
-        </h3>
-        <p class="mt-1 text-sm text-muted-foreground">
-          {{
-            'XP.Explore.AgentSquare.TemplateAgentsHint'
-              | translate
-                : {
-                    Default:
-                      'Reusable agent and project templates live here now. Install a template first, then publish it when it is ready for governed access.'
+      @case ('applications') {
+        @if (loadingApplications()) {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (placeholder of [1, 2, 3, 4, 5, 6, 7, 8]; track placeholder) {
+              <div class="h-[400px] animate-pulse rounded-xl border border-border bg-card"></div>
+            }
+          </div>
+        } @else if (filteredApplications().length) {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (item of filteredApplications(); track item.application.id) {
+              @let screenshots = applicationScreenshots(item);
+              @let screenshot = screenshots[0];
+              <article
+                data-application-card
+                [class]="
+                  screenshot
+                    ? 'group/application relative h-[400px] max-h-[400px] overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors duration-200 hover:border-primary/60'
+                    : 'group/application relative self-start overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors duration-200 hover:border-primary/60'
+                "
+              >
+                @if (screenshot) {
+                  <button
+                    type="button"
+                    class="group/screenshot absolute inset-0 block size-full cursor-pointer overflow-hidden bg-muted/40 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    [attr.aria-label]="applicationScreenshotAlt(item)"
+                    (click)="openApplicationDetails(item)"
+                  >
+                    <img
+                      data-application-screenshot
+                      class="size-full object-cover transition-transform duration-300 group-hover/screenshot:scale-[1.015]"
+                      [src]="screenshot"
+                      [alt]="applicationScreenshotAlt(item)"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    @if (screenshots.length > 1) {
+                      <span
+                        class="absolute right-3 top-3 rounded-md border border-border/70 bg-popover/90 px-2 py-1 text-[11px] font-medium text-popover-foreground shadow-sm backdrop-blur-sm"
+                        aria-hidden="true"
+                      >
+                        1 / {{ screenshots.length }}
+                      </span>
+                    }
+                  </button>
+                }
+
+                <div
+                  data-application-card-content
+                  [class]="
+                    screenshot
+                      ? 'absolute inset-x-0 bottom-0 z-10 flex flex-col border-t border-border/60 bg-background/55 p-4 shadow-xl backdrop-blur-2xl supports-[backdrop-filter]:bg-background/45'
+                      : 'relative z-10 flex flex-col p-4'
+                  "
+                >
+                  <div class="flex items-start justify-between gap-2.5">
+                    <button
+                      type="button"
+                      class="flex min-w-0 cursor-pointer items-center gap-2.5 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      (click)="openApplicationDetails(item)"
+                    >
+                      <span
+                        class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted"
+                      >
+                        <xp-icon [icon]="item.application.icon ?? null" [size]="24" />
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block truncate text-base font-semibold text-foreground">{{
+                          applicationTitle(item)
+                        }}</span>
+                        <span class="mt-0.5 block truncate text-xs text-muted-foreground">{{
+                          applicationDeveloper(item)
+                        }}</span>
+                      </span>
+                    </button>
+                    <span
+                      class="shrink-0 rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                    >
+                      {{ applicationStatusLabelKey(item.status.status) | translate }}
+                    </span>
+                  </div>
+                  <p class="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                    {{ applicationSummary(item) }}
+                  </p>
+                  <div class="mt-3 flex flex-wrap gap-2 pr-32">
+                    <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                      {{ applicationScopeLabelKey(item.application.scope) | translate }}
+                    </span>
+                    @for (tag of item.marketplace.tags.slice(0, 3); track tag) {
+                      <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{
+                        tag
+                      }}</span>
+                    }
+                  </div>
+                  <button
+                    data-application-action
+                    z-button
+                    zSize="lg"
+                    type="button"
+                    class="pointer-events-none absolute bottom-4 right-4 z-20 w-auto max-w-[calc(100%-2rem)] translate-y-1 cursor-pointer opacity-0 shadow-lg transition-all duration-200 group-hover/application:pointer-events-auto group-hover/application:translate-y-0 group-hover/application:opacity-100 group-focus-within/application:pointer-events-auto group-focus-within/application:translate-y-0 group-focus-within/application:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+                    [disabled]="applicationActionDisabled(item)"
+                    (click)="handleApplicationAction(item, $event)"
+                  >
+                    {{ applicationActionLabel(item) }}
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else if (applicationLoadError(); as error) {
+          <div
+            class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"
+          >
+            <div class="max-w-md">
+              <z-icon zType="triangle-alert" class="text-4xl text-destructive" />
+              <h4 class="mt-4 text-lg font-semibold text-foreground">
+                {{ 'XP.Explore.AgentSquare.LoadFailed' | translate: { Default: 'Unable to load this catalog' } }}
+              </h4>
+              <p class="mt-2 break-words text-sm text-muted-foreground">{{ error }}</p>
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                class="mt-5 cursor-pointer"
+                (click)="loadApplications()"
+              >
+                <z-icon zType="refresh-cw" zSize="sm" />
+                {{ 'XP.Explore.AgentSquare.TryAgain' | translate: { Default: 'Try again' } }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div
+            class="flex min-h-80 items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 text-center"
+          >
+            <div class="max-w-md">
+              <z-icon zType="puzzle" class="text-4xl text-muted-foreground" />
+              <h4 class="mt-4 text-lg font-semibold text-foreground">
+                {{ 'XP.Explore.AgentSquare.EmptyApplications' | translate: { Default: 'No matching applications' } }}
+              </h4>
+              <p class="mt-2 text-sm text-muted-foreground">
+                {{
+                  'XP.Explore.AgentSquare.EmptyApplicationsHint'
+                    | translate: { Default: 'Try another search or filter, or install a plugin that provides an App.' }
+                }}
+              </p>
+            </div>
+          </div>
+        }
+      }
+
+      @case ('templates') {
+        @if (loadingTemplates()) {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (placeholder of [1, 2, 3, 4, 5, 6, 7, 8]; track placeholder) {
+              <div class="h-64 animate-pulse rounded-xl border border-border bg-card"></div>
+            }
+          </div>
+        } @else if (filteredTemplates().length) {
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (template of filteredTemplates(); track template.id) {
+              <article
+                class="flex min-h-64 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
+              >
+                <div class="flex min-w-0 items-center gap-3">
+                  <emoji-avatar
+                    class="shrink-0 overflow-hidden rounded-xl shadow-sm"
+                    [avatar]="template.avatar"
+                    [alt]="templateTitle(template)"
+                    [fallbackLabel]="templateTitle(template)"
+                  />
+                  <div class="min-w-0">
+                    <h4 class="truncate text-base font-semibold text-foreground" [title]="templateTitle(template)">
+                      {{ templateTitle(template) }}
+                    </h4>
+                    <p class="mt-1 truncate text-xs text-muted-foreground">
+                      {{ templateProvider(template) }}
+                    </p>
+                  </div>
+                </div>
+                <p class="mt-4 line-clamp-3 min-h-[60px] text-sm leading-5 text-muted-foreground">
+                  {{ templateSummary(template) }}
+                </p>
+                <div class="mt-4 flex min-h-7 flex-wrap gap-2">
+                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    {{ 'XP.Explore.AgentSquare.TemplateSource.' + templateSource(template) | translate }}
+                  </span>
+                  <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    {{ 'XP.Explore.AgentSquare.TemplateType.' + template.type | translate }}
+                  </span>
+                  @if (template.category) {
+                    <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                      {{ 'XP.Xpert.Categories.' + template.category | translate: { Default: template.category } }}
+                    </span>
                   }
-          }}
-        </p>
-      </div>
-    </div>
-
-    <xp-explore-agents mode="square" [search]="search()" [workspace]="workspace()" />
-  </section>
+                </div>
+                <div class="mt-auto pt-5">
+                  <button
+                    z-button
+                    zSize="sm"
+                    type="button"
+                    class="w-full cursor-pointer"
+                    (click)="openTemplate(template, $event)"
+                  >
+                    {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else if (templateLoadError(); as error) {
+          <div
+            class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"
+          >
+            <div class="max-w-md">
+              <z-icon zType="triangle-alert" class="text-4xl text-destructive" />
+              <h4 class="mt-4 text-lg font-semibold text-foreground">
+                {{ 'XP.Explore.AgentSquare.LoadFailed' | translate: { Default: 'Unable to load this catalog' } }}
+              </h4>
+              <p class="mt-2 break-words text-sm text-muted-foreground">{{ error }}</p>
+              <button
+                z-button
+                zType="outline"
+                zSize="sm"
+                type="button"
+                class="mt-5 cursor-pointer"
+                (click)="loadTemplates()"
+              >
+                <z-icon zType="refresh-cw" zSize="sm" />
+                {{ 'XP.Explore.AgentSquare.TryAgain' | translate: { Default: 'Try again' } }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div
+            class="flex min-h-80 items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 text-center"
+          >
+            <div class="max-w-md">
+              <z-icon zType="square-library" class="text-4xl text-muted-foreground" />
+              <h4 class="mt-4 text-lg font-semibold text-foreground">
+                {{ 'XP.Explore.AgentSquare.EmptyTemplates' | translate: { Default: 'No matching agent templates' } }}
+              </h4>
+              <p class="mt-2 text-sm text-muted-foreground">
+                {{
+                  'XP.Explore.AgentSquare.EmptyTemplatesHint'
+                    | translate: { Default: 'Try another search, category, source, or Assistant type.' }
+                }}
+              </p>
+            </div>
+          </div>
+        }
+      }
+    }
+  </div>
 </section>

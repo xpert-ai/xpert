@@ -17,9 +17,12 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
+import { createHash } from 'node:crypto'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 import {
 	IPluginConfiguration,
 	type IPluginComponentDocument,
+	type IPluginComponentDefinition,
 	IPluginDescriptor,
 	IPluginLatestVersionStatus,
 	PLUGIN_COMPONENT_TYPE,
@@ -35,6 +38,8 @@ import {
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
 	SYSTEM_GLOBAL_SCOPE,
+	XpertToolProviderRegistry,
+	describeXpertToolProvider,
 	resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
@@ -84,6 +89,7 @@ export class PluginController {
 		private readonly pluginInstanceService: PluginInstanceService,
 		private readonly pluginMarketplaceService: PluginMarketplaceService,
 		private readonly pluginManagementService: PluginManagementService,
+		private readonly toolProviderRegistry: XpertToolProviderRegistry,
 		private readonly queryBus: QueryBus,
 		private readonly commandBus: CommandBus
 	) {}
@@ -104,8 +110,43 @@ export class PluginController {
 			throw new NotFoundException('plugin was not found')
 		}
 		return {
-			items: this.pluginManagementService.readLoadedPluginBundleComponents(loadedPlugin)
+			items: this.mergeRuntimeToolProviderComponents(
+				name,
+				organizationId,
+				this.pluginManagementService.readLoadedPluginBundleComponents(loadedPlugin)
+			)
 		}
+	}
+
+	private mergeRuntimeToolProviderComponents(
+		pluginName: string,
+		organizationId: string,
+		components: IPluginComponentDefinition[]
+	) {
+		const normalizedPluginName = normalizePluginName(pluginName)
+		const runtimeComponents = this.toolProviderRegistry
+			.listRegistrations(organizationId)
+			.filter(
+				({ source }) =>
+					source.kind === 'plugin' && normalizePluginName(source.pluginName) === normalizedPluginName
+			)
+			.map(({ strategy }) => runtimeToolProviderComponent(strategy))
+		const runtimeByKey = new Map(runtimeComponents.map((component) => [componentIdentity(component), component]))
+		for (const component of components) {
+			const runtime = runtimeByKey.get(componentIdentity(component))
+			if (!runtime) continue
+			const manifestProvider = readJsonString(component.config, 'provider')
+			const runtimeProvider = readJsonString(runtime.config, 'provider')
+			if (manifestProvider && manifestProvider !== runtimeProvider) {
+				throw new BadRequestException(
+					`Runtime MCP provider '${runtimeProvider}' conflicts with manifest provider '${manifestProvider}' for '${component.componentKey}'.`
+				)
+			}
+		}
+		return [
+			...components.filter((component) => !runtimeByKey.has(componentIdentity(component))),
+			...runtimeComponents
+		]
 	}
 
 	@Get(':name/components/skill/:componentKey/document')
@@ -485,7 +526,11 @@ export class PluginController {
 			loadedScopeStates
 		)
 		const componentSummary = summarizePluginComponents(
-			this.pluginManagementService.readLoadedPluginBundleComponents(plugin)
+			this.mergeRuntimeToolProviderComponents(
+				plugin.packageName ?? plugin.instance?.meta?.name ?? plugin.name,
+				organizationId,
+				this.pluginManagementService.readLoadedPluginBundleComponents(plugin)
+			)
 		)
 		const meta = plugin.instance.meta
 
@@ -767,6 +812,69 @@ function summarizePluginComponents(components: Array<{ componentType: PluginComp
 	}
 	summary.total = summary.skills + summary.mcpServers + summary.toolsets + summary.apps + summary.hooks
 	return summary
+}
+
+function runtimeToolProviderComponent(provider: object): IPluginComponentDefinition {
+	const descriptor = describeXpertToolProvider(provider)
+	const options = descriptor.options
+	const toolDescriptors = descriptor.tools.map((tool) => ({
+		name: tool.options.name,
+		title: tool.options.title,
+		description: tool.options.description,
+		middleware: tool.middlewareProvider,
+		mcp: tool.options.mcp
+			? {
+					behavior: tool.options.mcp.behavior,
+					requiredContext: [...tool.options.mcp.requiredContext],
+					visibility: [...(tool.options.mcp.visibility ?? ['model'])],
+					inputSchema: JSON.parse(JSON.stringify(zodToJsonSchema(tool.options.inputSchema))),
+					outputSchema: tool.options.outputSchema
+						? JSON.parse(JSON.stringify(zodToJsonSchema(tool.options.outputSchema)))
+						: null
+				}
+			: null
+	}))
+	const config = {
+		provider: options.provider,
+		name: options.name,
+		description: options.description ?? null,
+		instructions: options.instructions ?? null,
+		runtimeDiscovered: true,
+		nativeMcp: true,
+		toolCount: toolDescriptors.filter((tool) => !!tool.mcp).length
+	}
+	const metadata = {
+		runtimeDiscovered: true,
+		nativeMcp: true,
+		toolNames: toolDescriptors.filter((tool) => !!tool.mcp).map((tool) => tool.name)
+	}
+	return {
+		componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+		componentKey: options.componentKey,
+		config,
+		metadata,
+		definitionHash: createHash('sha256')
+			.update(stableJson({ config, metadata, tools: toolDescriptors }))
+			.digest('hex')
+	}
+}
+
+function componentIdentity(component: Pick<IPluginComponentDefinition, 'componentType' | 'componentKey'>) {
+	return `${component.componentType}:${component.componentKey}`
+}
+
+function readJsonString(value: unknown, key: string) {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+	const field = Reflect.get(value, key)
+	return typeof field === 'string' && field ? field : undefined
+}
+
+function stableJson(value: unknown): string {
+	if (value === undefined) return 'null'
+	if (value === null || typeof value !== 'object') return JSON.stringify(value)
+	if (Array.isArray(value)) return `[${value.map((item) => stableJson(item)).join(',')}]`
+	const entries = Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
+	return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`
 }
 
 /**

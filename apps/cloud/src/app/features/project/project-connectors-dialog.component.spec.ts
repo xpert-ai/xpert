@@ -12,6 +12,12 @@ const sharedDefinition = {
   authorizationModes: ['shared', 'personal']
 } satisfies ConnectorStrategyDefinition
 
+const legacyDefinition = {
+  provider: 'legacy-provider',
+  label: { en_US: 'Legacy provider' },
+  auth: { type: 'oauth2' }
+} satisfies ConnectorStrategyDefinition
+
 const personalBinding = {
   id: 'personal-binding',
   provider: 'shared-provider',
@@ -60,6 +66,20 @@ describe('XpertProjectConnectorsDialogComponent', () => {
       provider: sharedDefinition.provider,
       authorizationMode: 'personal'
     })
+  })
+
+  it('only offers an authorization mode choice for providers that support multiple modes', async () => {
+    const { component } = await createComponent({
+      canManage: true,
+      definitions: [legacyDefinition, sharedDefinition],
+      bindings: []
+    })
+
+    component.selectProvider(legacyDefinition.provider)
+    expect(component.canSelectAuthorizationMode()).toBe(false)
+
+    component.selectProvider(sharedDefinition.provider)
+    expect(component.canSelectAuthorizationMode()).toBe(true)
   })
 
   it('keeps binding administration manager-only while allowing a member to consent personally', async () => {

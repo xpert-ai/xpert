@@ -10,6 +10,8 @@ import {
     ModelFeature,
     PLUGIN_APPLICATION_INSTALLATION_STATUS,
     PLUGIN_APPLICATION_SCOPE,
+    PluginApplicationCatalogItem,
+    PluginApplicationCatalogMetadata,
     PluginApplicationDetail,
     PluginApplicationInitializeInput,
     PluginApplicationModelOption,
@@ -51,6 +53,7 @@ import { resolvePluginApplicationConfigAssets } from './plugin-application-asset
 /** Trusted App definition paired with the exact plugin template/version to install. */
 type ResolvedApplication = {
     application: PluginTemplateApplicationSummary
+    marketplace: PluginApplicationCatalogMetadata
     pluginVersion: string | null
     templateId: string
     templateVersion: string | null
@@ -118,6 +121,17 @@ export class PluginApplicationService {
     async getStatuses(): Promise<PluginApplicationStatusSummary[]> {
         return Promise.all(
             this.loadedApplications().map(({ application }) => this.getStatusForApplication(application))
+        )
+    }
+
+    /** Returns trusted App card metadata with status for the current request scope. */
+    async getCatalog(): Promise<PluginApplicationCatalogItem[]> {
+        return Promise.all(
+            this.loadedApplications().map(async ({ application, marketplace }) => ({
+                application,
+                marketplace,
+                status: await this.getStatusForApplication(application)
+            }))
         )
     }
 
@@ -356,33 +370,47 @@ export class PluginApplicationService {
             const pluginName = normalizePluginName(plugin.packageName ?? plugin.name ?? meta?.name ?? '')
             if (!meta || !pluginName) continue
             const metadataEntries = Object.values(meta.targetAppMeta ?? {}) as Array<{
-                marketplace?: { contents?: PluginMarketplaceContribution[] }
+                marketplace?: {
+                    contents?: PluginMarketplaceContribution[]
+                    category?: PluginApplicationCatalogMetadata['category']
+                    subcategory?: string
+                    featured?: boolean
+                    updatedAt?: string
+                }
             }>
-            const contributions = metadataEntries.flatMap((metadata) =>
-                Array.isArray(metadata?.marketplace?.contents) ? metadata.marketplace.contents : []
-            )
-            for (const app of contributions) {
-                if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
-                const id = `${pluginName}:${app.name}`
-                if (applications.has(id)) continue
-                const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
-                applications.set(id, {
-                    application: {
-                        id,
-                        pluginName,
-                        appName: app.name,
-                        displayName: app.displayName ?? app.name,
-                        description: app.description,
-                        icon: app.icon ?? meta.icon,
-                        color: app.color,
-                        scope: appConfig.scope,
-                        assistantTemplateKey: appConfig.assistantTemplateKey,
-                        config: appConfig
-                    },
-                    pluginVersion: meta.version ?? null,
-                    templateId: `${pluginName}:${app.appConfig.assistantTemplateKey}`,
-                    templateVersion: meta.version ?? null
-                })
+            for (const metadata of metadataEntries) {
+                const marketplace = metadata?.marketplace
+                const contributions = Array.isArray(marketplace?.contents) ? marketplace.contents : []
+                for (const app of contributions) {
+                    if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
+                    const id = `${pluginName}:${app.name}`
+                    if (applications.has(id)) continue
+                    const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    applications.set(id, {
+                        application: {
+                            id,
+                            pluginName,
+                            appName: app.name,
+                            displayName: app.displayName ?? app.name,
+                            description: app.description,
+                            icon: app.icon ?? meta.icon,
+                            color: app.color,
+                            scope: appConfig.scope,
+                            assistantTemplateKey: appConfig.assistantTemplateKey,
+                            config: appConfig
+                        },
+                        marketplace: {
+                            category: marketplace?.category,
+                            subcategory: marketplace?.subcategory,
+                            featured: marketplace?.featured,
+                            tags: [...(app.tags ?? [])],
+                            updatedAt: marketplace?.updatedAt
+                        },
+                        pluginVersion: meta.version ?? null,
+                        templateId: `${pluginName}:${app.appConfig.assistantTemplateKey}`,
+                        templateVersion: meta.version ?? null
+                    })
+                }
             }
         }
         return [...applications.values()]

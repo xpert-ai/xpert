@@ -3,6 +3,8 @@ import type { AiModelTypeEnum } from './agent'
 import { JsonSchemaObjectType } from './ai/types'
 import type { IXpert, XpertWorkspaceDataScope } from './ai/xpert.model'
 import type { TMcpStdioRuntimePolicy } from './ai/xpert-tool-mcp.model'
+import type { IMcpApiKey } from './ai/mcp-auth.model'
+import type { IMcpPublication, McpPublicationStatus } from './ai/mcp-publication.model'
 import type { JSONValue } from './core.model'
 import type { IPluginRuntimeConvergence, IRuntimePluginRequirement } from './runtime-control'
 import { IconDefinition, I18nObject } from './types'
@@ -271,6 +273,22 @@ export interface PluginApplicationStatusSummary {
   assistantSlug?: string | null
   errorCode?: string | null
   errorMessage?: string | null
+}
+
+/** Marketplace metadata paired with a trusted plugin App contribution. */
+export interface PluginApplicationCatalogMetadata {
+  category?: PluginMarketplaceCategory
+  subcategory?: string
+  featured?: boolean
+  tags: string[]
+  updatedAt?: string
+}
+
+/** Card-sized App definition and scoped runtime status for marketplace discovery. */
+export interface PluginApplicationCatalogItem {
+  application: PluginTemplateApplicationSummary
+  status: PluginApplicationStatusSummary
+  marketplace: PluginApplicationCatalogMetadata
 }
 
 /**
@@ -939,6 +957,47 @@ export interface IPluginResourceComponentState {
   runtimeId?: string | null
   status?: PluginResourceInstallationStatus | null
   installation?: IPluginResourceInstallation | null
+  mcpServer?: IPluginMcpServerState | null
+}
+
+export interface IPluginMcpServerState {
+  publicationId?: string | null
+  /** Publication ownership follows the contributing plugin level. */
+  publicationScope?: 'tenant' | 'organization' | null
+  /** Organization admission state for a tenant-scoped Publication. */
+  accessEnabled?: boolean | null
+  status?: McpPublicationStatus | null
+  endpoint?: string | null
+  protocolVersion?: string | null
+  transport?: 'streamable-http' | null
+  apiKeyCount?: number
+  syncError?: string | null
+  syncFailedAt?: string | null
+}
+
+export interface IPluginMcpServerConnectionInfo {
+  protocolVersion: string
+  transport: 'streamable-http'
+  endpoint: string
+  authorization: 'Bearer'
+  serverInstructions?: string
+}
+
+export interface IPluginMcpServerActivationResult {
+  installation: IPluginResourceInstallation
+  publication: IMcpPublication
+  connectionInfo: IPluginMcpServerConnectionInfo
+  createdApiKey?: {
+    apiKey: Omit<IMcpApiKey, 'keyHash'>
+    secret: string
+  }
+}
+
+/** A retrievable MCP client credential scoped to the requesting administrator and organization. */
+export interface IPluginMcpServerCredentialResult {
+  connectionInfo: IPluginMcpServerConnectionInfo
+  apiKey: Omit<IMcpApiKey, 'keyHash'>
+  secret: string
 }
 
 export interface PluginResourceComponentSelector {

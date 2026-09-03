@@ -52,11 +52,24 @@ export interface IMcpPublication extends IBasePerTenantAndOrganizationEntityMode
   reviewedById?: string | null
 }
 
+/** Organization admission to a tenant-scoped MCP Publication. */
+export interface IMcpPublicationAccess extends IBasePerTenantAndOrganizationEntityModel {
+  publicationId: string
+  enabled: boolean
+  enabledById?: string | null
+  disabledAt?: Date | null
+  disabledById?: string | null
+}
+
 /** Management-list projection used to render publication health without per-card follow-up requests. */
 export interface IMcpPublicationSummary extends IMcpPublication {
   capabilityCount: number
   apiKeyCount: number
   oauthEnabled: boolean
+  /** Scope that owns the underlying Publication. Shared tenant Publications may be managed from an admitted organization. */
+  publicationScope?: 'tenant' | 'organization'
+  /** Effective access state for the current organization when managing a shared tenant Publication. */
+  organizationAccessEnabled?: boolean
   recentInvocationAt?: Date | null
   recentErrorAt?: Date | null
 }

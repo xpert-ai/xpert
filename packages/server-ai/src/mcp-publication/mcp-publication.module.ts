@@ -19,6 +19,7 @@ import { McpOAuthMetadataController } from './mcp-oauth-metadata.controller'
 import { McpElicitationService } from './mcp-elicitation.service'
 import { McpTaskService } from './mcp-task.service'
 import { McpTaskProcessor } from './mcp-task.processor'
+import { McpPublicationAccessService } from './mcp-publication-access.service'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 
 @Module({
@@ -32,6 +33,7 @@ import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
         McpPublicationService,
         McpApiKeyService,
         McpPublicationAuthorizationService,
+        McpPublicationAccessService,
         McpRateLimitService,
         McpInvocationAuditService,
         McpCapabilityCatalogService,
@@ -50,7 +52,8 @@ import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
         McpOAuthService,
         McpInvocationAuditService,
         McpTaskService,
-        McpCapabilityCatalogService
+        McpCapabilityCatalogService,
+        McpPublicationAccessService
     ]
 })
 export class McpPublicationModule {}

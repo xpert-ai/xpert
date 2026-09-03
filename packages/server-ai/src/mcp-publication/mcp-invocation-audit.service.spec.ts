@@ -28,6 +28,7 @@ describe('McpInvocationAuditService', () => {
                 subjectId: 'user-1',
                 userId: 'user-1',
                 tenantId: 'tenant-1',
+                organizationId: 'organization-1',
                 publicationId: 'publication-1',
                 scopes: ['tools:call']
             },
@@ -46,6 +47,7 @@ describe('McpInvocationAuditService', () => {
             bytes: expect.any(Number)
         })
         expect(saved[0].clientName).toBe(secret.slice(0, 24))
+        expect(saved[0].organizationId).toBe('organization-1')
         expect(JSON.stringify(saved[0])).not.toContain(secret)
         expect(saved[0]).not.toHaveProperty('authorization')
     })
@@ -67,6 +69,7 @@ describe('McpInvocationAuditService', () => {
         const items = [Object.assign(new McpInvocationAudit(), { id: 'audit-11' })]
         const queryBuilder = {
             where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
             orderBy: jest.fn().mockReturnThis(),
             skip: jest.fn().mockReturnThis(),
             take: jest.fn().mockReturnThis(),
@@ -80,5 +83,25 @@ describe('McpInvocationAuditService', () => {
         await expect(service.search('publication-1', 10, 10)).resolves.toEqual({ items, total: 23 })
         expect(queryBuilder.skip).toHaveBeenCalledWith(10)
         expect(queryBuilder.take).toHaveBeenCalledWith(10)
+    })
+
+    it('limits shared Publication audit history to the current organization', async () => {
+        const queryBuilder = {
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+        }
+        const service = new McpInvocationAuditService({
+            createQueryBuilder: jest.fn().mockReturnValue(queryBuilder)
+        } as unknown as Repository<McpInvocationAudit>)
+
+        await service.search('publication-1', 0, 10, 'organization-1')
+
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith('audit.organizationId = :organizationId', {
+            organizationId: 'organization-1'
+        })
     })
 })

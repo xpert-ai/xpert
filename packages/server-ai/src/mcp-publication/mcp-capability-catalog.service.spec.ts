@@ -150,6 +150,8 @@ describe('McpCapabilityCatalogService', () => {
             exposure: { mcp: { eligible: true } },
             behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
             requiredContext: ['workspace', 'principal', 'execution'],
+            visibility: ['model', 'app'],
+            app: { resourceKey: 'document_browser' },
             async execute() {
                 return { structuredContent: { count: 1 } }
             }
@@ -222,6 +224,8 @@ describe('McpCapabilityCatalogService', () => {
                 inputSchema: expect.objectContaining({ type: 'object' }),
                 outputSchema: expect.objectContaining({ type: 'object' }),
                 behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
+                appResourceKey: 'document_browser',
+                visibility: ['model', 'app'],
                 providerInstructions: 'Prefer document resources before search tools.',
                 source: {
                     toolsetId: 'toolset-1',

@@ -2,36 +2,37 @@ import { Document, DocumentInterface } from '@langchain/core/documents'
 import {
     DocumentMetadata,
     IKnowledgebase,
-    IKnowledgeDocumentChunk,
     KnowledgeFilterErrorCode,
     KnowledgeFilterDiagnostics,
     KnowledgeFilterSources,
     KnowledgebaseTypeEnum,
-    TKBRetrievalSettings,
-    VectorTypeEnum
+    TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { getErrorMessage, getPythonErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, Inject, InternalServerErrorException, Logger } from '@nestjs/common'
-import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { ChunkMetadata, RequestContext } from '@xpert-ai/plugin-sdk'
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { isNil, sortBy } from 'lodash'
-import { In, IsNull, Not, Raw } from 'typeorm'
+import { In, IsNull, Not } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery, KnowledgeSearchResult } from '../knowledge-search.query'
 import { KnowledgeRetrievalLogService } from '../../logs'
-import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
-import { KnowledgeGraphSearchQuery } from '../../../graphrag/queries'
-import { TKnowledgeGraphSearchResult } from '../../../graphrag/types'
 import { environment } from '@xpert-ai/server-config'
+import { KnowledgeFilterValidationError, prepareKnowledgeFilter } from '../../filter'
 import {
-    compileKnowledgeFilterToMilvus,
-    compileKnowledgeFilterToPostgres,
-    createKnowledgeGraphFilterScope,
-    KnowledgeFilterValidationError,
-    PreparedKnowledgeFilter,
-    prepareKnowledgeFilter
-} from '../../filter'
+    GraphKnowledgeCandidateRetriever,
+    KnowledgeCandidateRetriever,
+    KnowledgeRetrievalBatch,
+    KnowledgeRetrievalRequest,
+    LegacyWeightedFusion,
+    VectorKnowledgeCandidateRetriever,
+    withKnowledgeDocumentMetadata
+} from '../../retrieval'
+
+function getBatchDocuments(batch: KnowledgeRetrievalBatch): DocumentInterface<DocumentMetadata>[] {
+    return batch.candidates.map(({ document }) => document)
+}
 
 @QueryHandler(KnowledgeSearchQuery)
 export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearchQuery> {
@@ -40,12 +41,13 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
     @Inject(KnowledgeRetrievalLogService)
     private readonly retrievalLogService: KnowledgeRetrievalLogService
 
-    @Inject(KnowledgeDocumentChunkService)
-    private readonly chunkService: KnowledgeDocumentChunkService
-
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
-        private readonly queryBus: QueryBus
+        @Inject(VectorKnowledgeCandidateRetriever)
+        private readonly vectorRetriever: KnowledgeCandidateRetriever,
+        @Inject(GraphKnowledgeCandidateRetriever)
+        private readonly graphRetriever: KnowledgeCandidateRetriever,
+        private readonly legacyWeightedFusion: LegacyWeightedFusion
     ) {}
 
     public async execute(command: KnowledgeSearchQuery): Promise<KnowledgeSearchResult> {
@@ -77,7 +79,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             )
                         }
                         const { chunks } = await this.knowledgebaseService.searchExternalKnowledgebase(kb, query, topK)
-                        docs = chunks.map(([doc, score]) => this.withDocumentMetadata(new Document(doc), { score }))
+                        docs = chunks.map(([doc, score]) => withKnowledgeDocumentMetadata(new Document(doc), { score }))
                         filterDiagnostics = {
                             filterVersion: 2,
                             filterStatus: 'not_applied',
@@ -246,30 +248,23 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         })
         prepared.diagnostics.filterLatency = Date.now() - filterStartedAt
         const mode = retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'
-        const graphFilterScope = createKnowledgeGraphFilterScope({
-            tenantId: context.tenantId,
-            organizationId: context.organizationId,
-            knowledgebaseId: kb.id,
-            prepared
-        })
-        const modelContext = {
-            xpertId: context.xpertId,
-            threadId: context.threadId
+        const request: KnowledgeRetrievalRequest = {
+            knowledgebase: kb,
+            query,
+            k,
+            retrieval,
+            scope: {
+                tenantId: context.tenantId,
+                organizationId: context.organizationId
+            },
+            modelContext: {
+                xpertId: context.xpertId,
+                threadId: context.threadId
+            },
+            preparedFilter: prepared
         }
         if (mode === 'graph') {
-            const result = await this.queryBus.execute<KnowledgeGraphSearchQuery, TKnowledgeGraphSearchResult>(
-                new KnowledgeGraphSearchQuery({
-                    tenantId: context.tenantId,
-                    organizationId: context.organizationId,
-                    knowledgebase: kb,
-                    query,
-                    k,
-                    retrieval,
-                    graphRag: kb.graphRag,
-                    filterScope: graphFilterScope,
-                    ...modelContext
-                })
-            )
+            const result = await this.graphRetriever.retrieve(request)
             if (result.failed) {
                 throw new InternalServerErrorException(
                     result.error ??
@@ -278,60 +273,38 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                         })
                 )
             }
+            const graphDocuments = getBatchDocuments(result)
             Object.assign(prepared.diagnostics, result.diagnostics, {
-                graphBranchHitCount: result.docs.length
+                graphBranchHitCount: graphDocuments.length
             })
-            prepared.diagnostics.hitCount = result.docs.length
-            return { documents: result.docs, diagnostics: prepared.diagnostics }
+            prepared.diagnostics.hitCount = graphDocuments.length
+            return { documents: graphDocuments, diagnostics: prepared.diagnostics }
         }
 
-        const vectorResult = await this.similaritySearchWithScore(
-            kb,
-            query,
-            k,
-            prepared,
-            !!prepared.effective,
-            modelContext
-        )
-        const vectorDocs = vectorResult.documents
+        const vectorResult = await this.vectorRetriever.retrieve(request)
+        const vectorDocs = getBatchDocuments(vectorResult)
         if (mode !== 'hybrid') {
-            return vectorResult
+            return { documents: vectorDocs, diagnostics: vectorResult.diagnostics }
         }
         vectorResult.diagnostics.vectorBranchHitCount = vectorDocs.length
 
-        const graphResult = await this.queryBus.execute<KnowledgeGraphSearchQuery, TKnowledgeGraphSearchResult>(
-            new KnowledgeGraphSearchQuery({
-                tenantId: context.tenantId,
-                organizationId: context.organizationId,
-                knowledgebase: kb,
-                query,
-                k,
-                retrieval,
-                graphRag: kb.graphRag,
-                filterScope: graphFilterScope,
-                ...modelContext
-            })
-        )
+        const graphResult = await this.graphRetriever.retrieve(request)
         if (graphResult.failed) {
             this.logger.warn(`Hybrid GraphRAG failed for knowledgebase '${kb.id}', falling back to vector results`)
             Object.assign(vectorResult.diagnostics, graphResult.diagnostics)
             vectorResult.diagnostics.graphBranchHitCount = 0
             vectorResult.diagnostics.hybridGraphFallbackReason = graphResult.error ?? 'graph_search_failed'
-            return vectorResult
+            return { documents: vectorDocs, diagnostics: vectorResult.diagnostics }
         }
+        const graphDocuments = getBatchDocuments(graphResult)
         Object.assign(vectorResult.diagnostics, graphResult.diagnostics, {
-            graphBranchHitCount: graphResult.docs.length
+            graphBranchHitCount: graphDocuments.length
         })
 
-        const documents = await this.mergeHybridResults(
-            kb,
-            query,
-            vectorDocs,
-            graphResult.docs,
-            k,
-            retrieval?.graphWeight ?? kb.graphRag?.graphWeight ?? 0.35,
-            modelContext
-        )
+        const merged = this.legacyWeightedFusion.fuse([vectorResult, graphResult], {
+            graphWeight: retrieval?.graphWeight ?? kb.graphRag?.graphWeight ?? 0.35
+        })
+        const documents = await this.finalizeHybridResults(kb, query, merged, k, request.modelContext)
         vectorResult.diagnostics.hitCount = documents.length
         return { documents, diagnostics: vectorResult.diagnostics }
     }
@@ -346,66 +319,16 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         )
     }
 
-    private async mergeHybridResults(
+    private async finalizeHybridResults(
         kb: IKnowledgebase,
         query: string,
-        vectorDocs: DocumentInterface<DocumentMetadata>[],
-        graphDocs: DocumentInterface<DocumentMetadata>[],
+        merged: DocumentInterface<DocumentMetadata>[],
         k?: number,
-        graphWeight = 0.35,
         modelContext?: {
             xpertId?: string
             threadId?: string
         }
     ) {
-        const weight = Math.min(1, Math.max(0, graphWeight))
-        const byChunkId = new Map<
-            string,
-            {
-                doc: DocumentInterface<DocumentMetadata>
-                vectorScore: number
-                graphScore: number
-            }
-        >()
-
-        const upsert = (doc: DocumentInterface<DocumentMetadata>, source: 'vector' | 'graph') => {
-            const chunkId = this.resolveChunkId(doc)
-            const current = byChunkId.get(chunkId)
-            const vectorScore = source === 'vector' ? this.resolveVectorScore(doc) : (current?.vectorScore ?? 0)
-            const graphScore = source === 'graph' ? this.resolveGraphScore(doc) : (current?.graphScore ?? 0)
-            byChunkId.set(chunkId, {
-                doc: this.withDocumentMetadata({
-                    ...(current?.doc ?? doc),
-                    ...doc,
-                    metadata: {
-                        ...(current?.doc.metadata ?? {}),
-                        ...(doc.metadata ?? {})
-                    }
-                }),
-                vectorScore,
-                graphScore
-            })
-        }
-
-        vectorDocs.forEach((doc) => upsert(doc, 'vector'))
-        graphDocs.forEach((doc) => upsert(doc, 'graph'))
-
-        const merged = [...byChunkId.values()]
-            .map(({ doc, vectorScore, graphScore }) => {
-                const relevanceScore = vectorScore * (1 - weight) + graphScore * weight
-                return this.withDocumentMetadata({
-                    ...doc,
-                    metadata: {
-                        ...(doc.metadata ?? {}),
-                        vectorScore,
-                        graphScore,
-                        score: relevanceScore,
-                        relevanceScore
-                    }
-                })
-            })
-            .sort((left, right) => (right.metadata.relevanceScore ?? 0) - (left.metadata.relevanceScore ?? 0))
-
         if (kb.rerankModelId && merged.length > 0) {
             try {
                 const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, modelContext)
@@ -425,236 +348,5 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         }
 
         return merged.slice(0, k ?? kb.recall?.topK)
-    }
-
-    private withDocumentMetadata(
-        doc: DocumentInterface,
-        metadataPatch: Partial<DocumentMetadata> = {}
-    ): DocumentInterface<DocumentMetadata> {
-        const chunkId = this.resolveChunkId(doc)
-        const metadata: DocumentMetadata = {
-            ...(doc.metadata ?? {}),
-            ...metadataPatch,
-            chunkId
-        }
-        return {
-            ...doc,
-            metadata
-        }
-    }
-
-    private resolveChunkId(doc: DocumentInterface) {
-        const chunkId = doc.metadata?.chunkId
-        if (typeof chunkId === 'string' && chunkId) {
-            return chunkId
-        }
-        if ('id' in doc && typeof doc.id === 'string' && doc.id) {
-            return doc.id
-        }
-        return doc.pageContent
-    }
-
-    private resolveVectorScore(doc: DocumentInterface<DocumentMetadata>) {
-        if (typeof doc.metadata?.relevanceScore === 'number') {
-            return doc.metadata.relevanceScore
-        }
-        if (typeof doc.metadata?.score === 'number') {
-            return doc.metadata.score
-        }
-        return 0
-    }
-
-    private resolveGraphScore(doc: DocumentInterface<DocumentMetadata>) {
-        if (typeof doc.metadata?.graphScore === 'number') {
-            return doc.metadata.graphScore
-        }
-        if (typeof doc.metadata?.score === 'number') {
-            return doc.metadata.score
-        }
-        return 0
-    }
-
-    /**
-     * Built-in knowledge base vector search
-     *
-     * @param kb Knowledgebase entity
-     * @param query User question
-     * @param k Client requested top K
-     * @param prepared Validated fixed/request/dynamic filter sources
-     */
-    async similaritySearchWithScore(
-        kb: IKnowledgebase,
-        query: string,
-        k?: number,
-        prepared?: PreparedKnowledgeFilter,
-        filterConfigured = false,
-        modelContext?: {
-            xpertId?: string
-            threadId?: string
-        }
-    ): Promise<{ documents: DocumentInterface<DocumentMetadata>[]; diagnostics: KnowledgeFilterDiagnostics }> {
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, modelContext)
-        const vectorTopK = k ?? kb.recall?.topK ?? 10
-        const diagnostics = prepared?.diagnostics ?? {
-            filterVersion: 2,
-            filterStatus: 'not_applied' as const,
-            hitCount: 0,
-            vectorBackend: environment.vectorStore
-        }
-        this.logger.debug(
-            `SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
-        )
-        let items: [DocumentInterface, number][]
-        const vectorStartedAt = Date.now()
-        if (environment.vectorStore === VectorTypeEnum.PGVECTOR) {
-            const compiled = prepared?.effective
-                ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
-                : { sql: 'TRUE', parameters: [] }
-            const result = await vectorStore.structuredSimilaritySearchWithScore(query, vectorTopK, {
-                postgres: {
-                    ...compiled,
-                    knowledgebaseId: kb.id
-                }
-            })
-            items = result.items
-            diagnostics.candidateDocumentCount = result.candidateDocumentCount
-            diagnostics.candidateChunkCount = result.candidateChunkCount
-        } else if (environment.vectorStore === VectorTypeEnum.MILVUS) {
-            const compiled = prepared?.effective
-                ? compileKnowledgeFilterToMilvus(prepared.effective, prepared.registry)
-                : { expression: '', values: {} }
-            const relationalCompiled = prepared?.effective
-                ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
-                : { sql: 'TRUE', parameters: [] }
-            const mandatory = 'enabled == true and filterAttributes["document"]["disabled"] == false'
-            const [result, candidates] = await Promise.all([
-                vectorStore.structuredSimilaritySearchWithScore(query, vectorTopK, {
-                    milvus: {
-                        expression: compiled.expression ? `${mandatory} and (${compiled.expression})` : mandatory,
-                        values: compiled.values
-                    }
-                }),
-                this.knowledgebaseService.countStructuredFilterCandidates(kb.id, relationalCompiled)
-            ])
-            items = result.items
-            diagnostics.candidateDocumentCount = candidates.candidateDocumentCount
-            diagnostics.candidateChunkCount = candidates.candidateChunkCount
-        } else if (filterConfigured) {
-            throw new BadRequestException(
-                `Vector store '${environment.vectorStore}' does not support knowledge filter v2.`
-            )
-        } else {
-            items = await vectorStore.similaritySearchWithScore(query, vectorTopK)
-        }
-        diagnostics.vectorLatency = Date.now() - vectorStartedAt
-        const chunkMap = new Map<string, Document<ChunkMetadata>>()
-        // Split into parent and child chunks
-        const parentChunkIds = new Set<string>()
-        const chunkIds: string[] = []
-        // Parent chunks
-        items.forEach(([doc, score]) => {
-            doc.metadata.score = 1 - score
-            chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
-            if (doc.metadata.parentId) {
-                parentChunkIds.add(doc.metadata.parentId)
-            }
-        })
-        // Leaf chunks
-        items.forEach(([doc, score]) => {
-            if (!doc.metadata.parentId && !parentChunkIds.has(doc.metadata.chunkId)) {
-                chunkIds.push(doc.metadata.chunkId)
-            }
-        })
-        const docs: IKnowledgeDocumentChunk<ChunkMetadata>[] = []
-        if (chunkIds.length > 0) {
-            const { items: chunks } = await this.chunkService.findAll({
-                where: {
-                    knowledgebaseId: kb.id,
-                    metadata: Raw((alias) => `${alias} ->> 'chunkId' = ANY(:ids)`, {
-                        ids: Array.from(chunkIds)
-                    })
-                },
-                relations: ['document'],
-                select: {
-                    document: {
-                        id: true,
-                        name: true,
-                        sourceType: true,
-                        type: true,
-                        category: true,
-                        fileUrl: true,
-                        disabled: true
-                    }
-                }
-            })
-            chunks.forEach((chunk) => {
-                if (chunk.metadata?.enabled === false || chunk.document?.disabled) return
-                const doc = chunkMap.get(chunk.metadata.chunkId)
-                if (doc) {
-                    chunk.metadata.score = doc.metadata.score
-                    chunk.metadata.tokens = doc.metadata.tokens
-                }
-                docs.push(chunk)
-            })
-        }
-        if (parentChunkIds.size > 0) {
-            const { items: chunks } = await this.chunkService.findAll({
-                where: {
-                    knowledgebaseId: kb.id,
-                    metadata: Raw((alias) => `${alias} ->> 'chunkId' = ANY(:ids)`, {
-                        ids: Array.from(parentChunkIds)
-                    })
-                },
-                relations: ['children', 'document'],
-                select: {
-                    document: {
-                        id: true,
-                        name: true,
-                        sourceType: true,
-                        type: true,
-                        category: true,
-                        fileUrl: true,
-                        disabled: true
-                    }
-                }
-            })
-            chunks.forEach((chunk) => {
-                chunk.children = chunk.children.filter((child) => {
-                    if (child.metadata?.enabled === false) return false
-                    const doc = chunkMap.get(child.metadata.chunkId)
-                    if (!doc) return false
-                    child.metadata.score = doc.metadata.score
-                    child.metadata.tokens = doc.metadata.tokens
-                    if (!chunk.metadata.score || chunk.metadata.score < doc.metadata.score) {
-                        chunk.metadata.score = doc.metadata.score
-                    }
-                    return true
-                })
-                if (chunk.metadata?.enabled === false || chunk.document?.disabled || !chunk.children.length) return
-                docs.push(chunk)
-            })
-        }
-
-        const documents = docs.map((doc) => this.withDocumentMetadata(doc))
-        // Rerank the documents if a rerank model is set
-        if (kb.rerankModelId && documents.length > 0) {
-            try {
-                const rerankedDocs = await vectorStore.rerank(documents, query, {
-                    topN: Math.min(documents.length, k ?? kb.recall?.topK)
-                })
-                const reranked = rerankedDocs.map(({ index, relevanceScore }) => {
-                    return this.withDocumentMetadata(documents[index], { relevanceScore })
-                })
-                diagnostics.hitCount = reranked.length
-                diagnostics.retryableWithoutDynamic = reranked.length === 0 && !!prepared?.sources.dynamic
-                return { documents: reranked, diagnostics }
-            } catch (error) {
-                throw new InternalServerErrorException(getPythonErrorMessage(error))
-            }
-        }
-
-        diagnostics.hitCount = documents.length
-        diagnostics.retryableWithoutDynamic = documents.length === 0 && !!prepared?.sources.dynamic
-        return { documents, diagnostics }
     }
 }
