@@ -134,14 +134,15 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     @Get('by-workspace/:workspaceId')
     async getAllByWorkspace(
         @Param('workspaceId') workspaceId: string,
-        @Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>,
+        @Query('data', ParseJsonPipe) data?: PaginationParams<Knowledgebase>,
         @Query('published') published?: boolean
     ) {
+        const { relations, ...rest } = data ?? {}
         const result = await this.service.getAllByWorkspace(
             workspaceId,
             {
-                ...data,
-                relations: this.service.getSafeReadRelations(data.relations)
+                ...rest,
+                relations: this.service.getSafeReadRelations(relations)
             },
             published,
             RequestContext.currentUser()
