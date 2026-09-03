@@ -12,6 +12,7 @@ import {
   viewChild
 } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
   XpertExtensionViewManifest,
@@ -25,6 +26,7 @@ import {
 } from '@xpert-ai/contracts'
 import { SafePipe } from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectToastr, injectViewExtensionApi } from '@cloud/app/@core'
+import { ErrorStateComponent } from '@cloud/app/@shared/common'
 import { environment } from '@cloud/environments/environment'
 import { XpThemeService } from '@xpert-ai/headless-ui'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
@@ -62,11 +64,33 @@ type RemoteComponentMessage = {
 @Component({
   standalone: true,
   selector: 'xp-remote-component-renderer',
-  imports: [CommonModule, SafePipe],
+  imports: [CommonModule, SafePipe, TranslateModule, ErrorStateComponent],
   template: `
     @if (error()) {
-      <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
-        {{ error() }}
+      <div
+        data-remote-component-error
+        [class]="fillAvailableHeight() ? 'h-full min-h-0 overflow-y-auto' : 'overflow-y-auto'"
+      >
+        <div
+          [class]="
+            fillAvailableHeight()
+              ? 'flex min-h-full w-full items-center justify-center px-4 py-6 sm:px-6'
+              : 'flex min-h-[32rem] w-full items-center justify-center px-4 py-6 sm:px-6'
+          "
+        >
+          <xp-error-state
+            class="w-full max-w-2xl mb-8"
+            [error]="error()"
+            [title]="'XP.ViewExtension.RemoteComponentLoadFailed' | translate: { Default: 'Unable to load this view' }"
+            [description]="
+              'XP.ViewExtension.RemoteComponentLoadFailedHint'
+                | translate
+                  : { Default: 'The remote component did not start. Try again or review the technical details.' }
+            "
+            [retryable]="true"
+            (retry)="retryEntry()"
+          />
+        </div>
       </div>
     } @else {
       @if (entryUrl()) {
@@ -117,7 +141,7 @@ export class RemoteComponentRendererComponent {
     }
     return this.viewportBound() ? Math.min(requested, this.viewportHeight()) : requested
   })
-  readonly #instanceNonce = signal(createInstanceNonce())
+  readonly #instanceNonce = signal(createBrowserId())
   readonly instanceId = computed(() => `${this.manifest().key}:${this.#instanceNonce()}`)
   readonly remoteThemeMode = computed<RemoteComponentThemeMode>(() =>
     this.#themeService.themeClass() === 'dark' ? 'dark' : 'light'
@@ -178,6 +202,15 @@ export class RemoteComponentRendererComponent {
     })
   }
 
+  retryEntry() {
+    const manifest = this.manifest()
+    if (!this.active() || manifest.view.type !== 'remote_component') {
+      return
+    }
+
+    void this.loadEntry(++this.#entryRequestId, this.hostType(), this.hostId(), manifest.key, this.runtimeScope())
+  }
+
   private async loadEntry(
     requestId: number,
     hostType: string,
@@ -190,7 +223,7 @@ export class RemoteComponentRendererComponent {
     this.requestedHeight.set(520)
     this.viewportBound.set(false)
     this.updateViewportHeight()
-    this.#instanceNonce.set(createInstanceNonce())
+    this.#instanceNonce.set(createBrowserId())
     this.resetFileAccessSession()
 
     try {
@@ -391,7 +424,7 @@ export class RemoteComponentRendererComponent {
       return
     }
     this.#hostEvents.publish({
-      id: crypto.randomUUID(),
+      id: createBrowserId(),
       type: 'view.data.changed',
       source: 'view-extension',
       receivedAt: new Date().toISOString(),
@@ -786,9 +819,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-function createInstanceNonce() {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
+function createBrowserId() {
+  return typeof globalThis.crypto?.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 

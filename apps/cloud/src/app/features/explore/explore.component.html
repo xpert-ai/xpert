@@ -14,7 +14,7 @@
   "
 >
   <header class="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur-xl">
-    <div class="flex flex-col gap-3 px-6 py-3 xl:px-10">
+    <div class="flex flex-col gap-3 px-3 py-3 sm:px-6 xl:px-10">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <nav
           class="flex w-fit max-w-full items-center gap-1 overflow-x-auto"
@@ -78,8 +78,8 @@
                 tab() === 'skills'
                   ? ('XP.Explore.SkillSearchPlaceholder'
                     | translate: { Default: 'Search skill name, description, or tags' })
-                  : ('XP.Explore.AgentSquare.SearchPlaceholder'
-                    | translate: { Default: 'Search agents, scenarios, capabilities, or templates' })
+                  : ('XP.Explore.AgentSquare.SearchExpertsPlaceholder'
+                    | translate: { Default: 'Search experts, scenarios, or capabilities' })
               "
               [(ngModel)]="search"
             />
@@ -151,7 +151,7 @@
     </div>
   </ng-template>
 
-  <main class="block px-6 pb-8 pt-5 xl:px-10">
+  <main class="block px-3 pb-8 pt-5 sm:px-6 xl:px-10">
     @switch (tab()) {
       @case ('agent-square') {
         @if (agentMarketplaceEnabled()) {

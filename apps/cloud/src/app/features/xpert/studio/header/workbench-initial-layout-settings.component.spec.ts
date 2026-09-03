@@ -101,11 +101,15 @@ describe('XpertWorkbenchInitialLayoutSettingsComponent', () => {
     expect(apiService.updateXpertOptions).not.toHaveBeenCalled()
   })
 
-  it('uses the two-column layout when the xpert has no explicit initial layout', () => {
+  it('uses the ChatKit-maximized layout when the xpert has no explicit initial layout', () => {
     xpert.set({ id: 'xpert-1', options: { workbench: {} } })
     const fixture = TestBed.createComponent(XpertWorkbenchInitialLayoutSettingsComponent)
 
-    expect(fixture.componentInstance.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.TwoColumns)
+    expect(fixture.componentInstance.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
+
+    fixture.componentInstance.setInitialLayout(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
+
+    expect(apiService.updateXpertOptions).not.toHaveBeenCalled()
   })
 
   it('loads selectable extension views and writes the selected default view key', async () => {

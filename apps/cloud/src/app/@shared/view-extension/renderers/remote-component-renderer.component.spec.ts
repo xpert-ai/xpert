@@ -14,6 +14,7 @@ jest.mock('@cloud/app/@core', () => {
 })
 
 import { TestBed } from '@angular/core/testing'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
@@ -122,7 +123,7 @@ describe('RemoteComponentRendererComponent', () => {
 
     TestBed.resetTestingModule()
     await TestBed.configureTestingModule({
-      imports: [RemoteComponentRendererComponent],
+      imports: [TranslateModule.forRoot(), RemoteComponentRendererComponent],
       providers: [
         {
           provide: ViewExtensionApiService,
@@ -138,6 +139,24 @@ describe('RemoteComponentRendererComponent', () => {
         ViewClientCommandRegistry
       ]
     }).compileComponents()
+
+    const translate = TestBed.inject(TranslateService)
+    translate.setTranslation('en', {
+      XP: {
+        ViewExtension: {
+          RemoteComponentLoadFailed: 'Unable to load this view',
+          RemoteComponentLoadFailedHint:
+            'The remote component did not start. Try again or review the technical details.'
+        },
+        Common: {
+          ErrorState: {
+            TechnicalDetails: 'Technical details',
+            Retry: 'Try again'
+          }
+        }
+      }
+    })
+    translate.use('en')
 
     registry = TestBed.inject(ViewClientCommandRegistry)
     hostEvents = TestBed.inject(ViewHostEventBus)
@@ -208,6 +227,102 @@ describe('RemoteComponentRendererComponent', () => {
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
     expect(frame.getAttribute('src')).toBe('blob:remote-component-entry-1')
     expect(api.getRemoteComponentEntry).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders the shared error state centered in a full-height workbench', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.componentRef.setInput('fillAvailableHeight', true)
+    await flushRemoteEntry(fixture)
+    fixture.componentInstance.error.set('{"statusCode":500,"message":"Internal server error","requestId":"req-1"}')
+    fixture.detectChanges()
+
+    const errorContainer = fixture.nativeElement.querySelector('[data-remote-component-error]') as HTMLElement
+    const errorPlacement = errorContainer.firstElementChild as HTMLElement
+    const alert = fixture.nativeElement.querySelector('[data-error-state]') as HTMLElement
+
+    expect(alert.getAttribute('role')).toBe('alert')
+    expect(alert.textContent).toContain('Unable to load this view')
+    expect(errorContainer.className).toContain('h-full')
+    expect(errorContainer.className).toContain('overflow-y-auto')
+    expect(errorPlacement.className).toContain('min-h-full')
+    expect(errorPlacement.className).toContain('items-center')
+    expect(errorPlacement.className).toContain('justify-center')
+    expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
+  })
+
+  it('retries loading the remote component from the error state', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    await flushRemoteEntry(fixture)
+    fixture.componentInstance.error.set('Connection unavailable')
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('[data-error-state-message]').textContent.trim()).toBe(
+      'Connection unavailable'
+    )
+
+    const retryButton = fixture.nativeElement.querySelector('[data-error-state-retry]') as HTMLButtonElement
+    retryButton.click()
+    await flushRemoteEntry(fixture)
+
+    expect(api.getRemoteComponentEntry).toHaveBeenCalledTimes(2)
+    expect(fixture.nativeElement.querySelector('[data-remote-component-error]')).toBeNull()
+    expect(fixture.nativeElement.querySelector('iframe')).not.toBeNull()
+  })
+
+  it('publishes data changes when browser crypto.randomUUID is unavailable', async () => {
+    api.executeAction.mockReturnValue(of({ success: true, data: { id: 'document-1' } }))
+
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', {
+      ...manifest,
+      actions: [
+        {
+          key: 'create_document',
+          label: { en_US: 'New document' },
+          actionType: 'invoke',
+          requiredHostAccess: 'edit'
+        }
+      ]
+    })
+    await flushRemoteEntry(fixture)
+
+    const component = fixture.componentInstance as unknown as {
+      handleActionRequest(message: Record<string, unknown>): Promise<unknown>
+    }
+    const publish = jest.spyOn(hostEvents, 'publish')
+    const randomUuidDescriptor = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID')
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      configurable: true,
+      value: undefined
+    })
+
+    try {
+      await expect(component.handleActionRequest({ actionKey: 'create_document' })).resolves.toEqual({
+        success: true,
+        data: { id: 'document-1' }
+      })
+      expect(publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringMatching(/^\d+-[0-9a-f]+$/),
+          type: 'view.data.changed',
+          data: expect.objectContaining({ actionKey: 'create_document' })
+        })
+      )
+    } finally {
+      if (randomUuidDescriptor) {
+        Object.defineProperty(globalThis.crypto, 'randomUUID', randomUuidDescriptor)
+      } else {
+        Reflect.deleteProperty(globalThis.crypto, 'randomUUID')
+      }
+    }
   })
 
   it('allows same-origin access inside sandboxed remote component iframes', async () => {

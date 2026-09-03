@@ -23,6 +23,7 @@ import {
   XpCommonModule,
   ZardBadgeComponent,
   ZardButtonComponent,
+  ZardSearchInputComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -56,6 +57,7 @@ export type TasksPageView = 'tasks' | 'history' | 'archived'
     ...ZardTooltipImports,
     ZardBadgeComponent,
     ZardButtonComponent,
+    ZardSearchInputComponent,
     XpCommonModule,
     EmojiAvatarComponent,
     DateRelativePipe,

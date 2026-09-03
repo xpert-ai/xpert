@@ -16,13 +16,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom } from 'rxjs'
 import { ExploreAgentSquareComponent } from './agent-square/agent-square.component'
+import { DEFAULT_EXPLORE_TAB, normalizeExploreTab, type ExploreTab } from './explore-route-state'
 import { ExploreSkillsComponent } from './skills/skills.component'
 
 type ExploreMode = 'square' | 'mine'
-type ExploreTab = 'skills' | 'agent-square' | 'connectors'
 
 const DEFAULT_MODE: ExploreMode = 'square'
-const DEFAULT_TAB: ExploreTab = 'skills'
 
 @Component({
   standalone: true,
@@ -77,11 +76,11 @@ export class ExploreComponent {
   })
 
   readonly tab = linkedModel<ExploreTab>({
-    initialValue: DEFAULT_TAB,
-    compute: () => normalizeTab(this.#queryTab(), this.agentMarketplaceEnabled()),
+    initialValue: DEFAULT_EXPLORE_TAB,
+    compute: () => normalizeExploreTab(this.#queryTab(), this.agentMarketplaceEnabled()),
     update: (tab) => {
       this.navigate({
-        tab: tab === DEFAULT_TAB ? null : tab
+        tab: tab === DEFAULT_EXPLORE_TAB ? null : tab
       })
     }
   })
@@ -171,14 +170,4 @@ export class ExploreComponent {
 
 function normalizeMode(value: string | null | undefined): ExploreMode {
   return value === 'mine' ? 'mine' : DEFAULT_MODE
-}
-
-function normalizeTab(value: string | null | undefined, agentMarketplaceEnabled: boolean): ExploreTab {
-  if (agentMarketplaceEnabled && (value === 'agent-square' || value === 'agents')) {
-    return 'agent-square'
-  }
-  if (value === 'connectors') {
-    return 'connectors'
-  }
-  return DEFAULT_TAB
 }

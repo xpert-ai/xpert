@@ -17,6 +17,11 @@ export class PluginApplicationController {
         return this.applications.getStatuses()
     }
 
+    @Get('catalog')
+    getCatalog() {
+        return this.applications.getCatalog()
+    }
+
     @Get('detail')
     getDetail(@Query('pluginName') pluginName: string, @Query('appName') appName: string) {
         if (!pluginName?.trim() || !appName?.trim()) {

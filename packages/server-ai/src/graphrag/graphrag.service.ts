@@ -31,6 +31,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
+import { t } from 'i18next'
 import { compact, uniq } from 'lodash'
 import { Brackets, FindOptionsWhere, In, IsNull, Not, Raw, Repository, SelectQueryBuilder } from 'typeorm'
 import { z } from 'zod'
@@ -64,7 +65,7 @@ const DEFAULT_GRAPH_RAG_CONFIG: Required<GraphRagConfig> = {
     neighborHops: 1,
     communityTopK: 0,
     graphWeight: 0.35,
-    extractionBatchSize: 8,
+    extractionBatchSize: 4,
     extractionMaxCharacters: 12000
 }
 
@@ -119,8 +120,7 @@ const graphExtractionSchema = z.object({
                             confidence: z.number().min(0).max(1).optional().nullable()
                         })
                     )
-                    .optional()
-                    .nullable()
+                    .min(1)
             })
         )
         .default([]),
@@ -142,8 +142,7 @@ const graphExtractionSchema = z.object({
                             confidence: z.number().min(0).max(1).optional().nullable()
                         })
                     )
-                    .optional()
-                    .nullable()
+                    .min(1)
             })
         )
         .default([])
@@ -170,6 +169,20 @@ export function normalizeKnowledgeGraphName(value: string) {
 
 export function normalizeKnowledgeGraphType(value: string) {
     return value.trim().replace(/\s+/g, '_').toLowerCase()
+}
+
+export function validateKnowledgeGraphExtractionEvidence(
+    extraction: TKnowledgeGraphExtraction,
+    validChunkIds: ReadonlySet<string>
+) {
+    const graphItems = [...extraction.entities, ...extraction.relations]
+    const hasInvalidEvidence = graphItems.some(
+        (item) => !item.evidence?.length || item.evidence.some(({ chunkId }) => !validChunkIds.has(chunkId))
+    )
+    if (!graphItems.length || hasInvalidEvidence) {
+        const defaultValue = 'GraphRAG extraction did not return valid source evidence for every graph item.'
+        throw new Error(t('server-ai:Error.GraphExtractionEvidenceInvalid', { defaultValue }) || defaultValue)
+    }
 }
 
 function isGraphOrigin(value: unknown): value is KnowledgeGraphItemOrigin {
@@ -1219,7 +1232,8 @@ export class GraphragService {
                         'Extract a small knowledge graph from the provided chunks.',
                         'Use only explicit machine-readable fields in the output schema.',
                         'Every entity and relation must include a stable type. Do not infer missing types from names.',
-                        'Use chunkId values exactly as provided for evidence.'
+                        'Every entity and relation must include a non-empty evidence array.',
+                        'Every evidence item must use a chunkId exactly as provided in the input chunks.'
                     ].join('\n')
                 ),
                 new HumanMessage(`Knowledgebase: ${knowledgebase.name ?? knowledgebase.id}\n\n${input}`)
@@ -1237,6 +1251,14 @@ export class GraphragService {
                 }
             )
         }
+        validateKnowledgeGraphExtractionEvidence(
+            merged,
+            new Set(
+                chunks
+                    .map((chunk) => chunk.metadata?.chunkId ?? chunk.id)
+                    .filter((chunkId): chunkId is string => typeof chunkId === 'string' && chunkId.length > 0)
+            )
+        )
         return merged
     }
 

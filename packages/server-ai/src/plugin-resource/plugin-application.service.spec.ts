@@ -17,7 +17,12 @@ describe('PluginApplicationService', () => {
         jest.restoreAllMocks()
     })
 
-    function createService(contents: unknown[], scopeKey = SYSTEM_GLOBAL_SCOPE, queryBus: object = {}) {
+    function createService(
+        contents: unknown[],
+        scopeKey = SYSTEM_GLOBAL_SCOPE,
+        queryBus: object = {},
+        marketplace: object = {}
+    ) {
         return new PluginApplicationService(
             {} as never,
             {} as never,
@@ -38,7 +43,7 @@ describe('PluginApplicationService', () => {
                             name: '@acme/plugin-example-app',
                             version: '0.2.2',
                             targetAppMeta: {
-                                xpert: { marketplace: { contents } }
+                                xpert: { marketplace: { ...marketplace, contents } }
                             }
                         }
                     }
@@ -80,6 +85,59 @@ describe('PluginApplicationService', () => {
                 assistantTemplateKey: 'example-assistant'
             }
         })
+    })
+
+    it('returns trusted App configuration, marketplace metadata and scoped status in the catalog', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const service = createService(
+            [
+                {
+                    type: 'app',
+                    name: 'example-app',
+                    displayName: 'Example App',
+                    tags: ['business-operations', 'multi-agent'],
+                    appConfig: {
+                        scope: 'organization',
+                        assistantTemplateKey: 'example-assistant',
+                        workspace: {
+                            mode: 'dedicated',
+                            name: 'Example App Workspace',
+                            sharing: 'organization'
+                        }
+                    }
+                }
+            ],
+            SYSTEM_GLOBAL_SCOPE,
+            {},
+            {
+                category: 'business-operations',
+                subcategory: 'factory',
+                featured: true,
+                updatedAt: '2026-08-30T00:00:00.000Z'
+            }
+        )
+
+        await expect(service.getCatalog()).resolves.toEqual([
+            expect.objectContaining({
+                application: expect.objectContaining({
+                    id: '@acme/plugin-example-app:example-app',
+                    assistantTemplateKey: 'example-assistant'
+                }),
+                marketplace: {
+                    category: 'business-operations',
+                    subcategory: 'factory',
+                    featured: true,
+                    tags: ['business-operations', 'multi-agent'],
+                    updatedAt: '2026-08-30T00:00:00.000Z'
+                },
+                status: expect.objectContaining({
+                    appId: '@acme/plugin-example-app:example-app',
+                    status: 'not_installed',
+                    initializationAccess: 'organization_required'
+                })
+            })
+        ])
     })
 
     it('does not infer an App configuration from names or an Assistant template alone', () => {
