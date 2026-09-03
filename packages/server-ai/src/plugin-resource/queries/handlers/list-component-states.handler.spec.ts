@@ -10,7 +10,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
         getScope: jest.fn(() => ({ tenantId: 'tenant-1' })),
         currentTenantId: jest.fn(() => 'tenant-1')
     },
-    resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) => `global:${tenantId ?? 'default'}`)
+    resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) => `global:${tenantId ?? 'default'}`),
+    describeXpertToolProvider: jest.fn((strategy: object) => Reflect.get(strategy, 'descriptor'))
 }))
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -31,6 +32,14 @@ jest.mock('../../../xpert/xpert.service', () => ({
 
 jest.mock('../../../xpert-workspace', () => ({
     XpertWorkspaceAccessService: class XpertWorkspaceAccessService {}
+}))
+
+jest.mock('../../../mcp-publication/entities/mcp-publication.entity', () => ({
+    McpPublication: class McpPublication {}
+}))
+
+jest.mock('../../../mcp-publication/entities/mcp-publication-access.entity', () => ({
+    McpPublicationAccess: class McpPublicationAccess {}
 }))
 
 jest.mock('../../plugin-resource-installation.entity', () => ({
@@ -217,23 +226,136 @@ describe('ListPluginResourceComponentStatesHandler', () => {
             })
         ])
     })
+
+    it('shows a tenant Provider as disabled until the current organization has an access grant', async () => {
+        jest.mocked(collectPluginBundleComponents).mockReturnValue([
+            {
+                componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                componentKey: 'factory-operations',
+                definitionHash: 'manifest-hash'
+            }
+        ] as never)
+        const tenantInstallation = {
+            workspaceId: null,
+            pluginName: '@xpert-ai/plugin-factory',
+            componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+            componentKey: 'factory-operations',
+            runtimeType: PLUGIN_RESOURCE_RUNTIME_TYPE.TOOLSET,
+            runtimeId: 'toolset-factory',
+            definitionHash: 'runtime-hash',
+            status: PLUGIN_RESOURCE_INSTALLATION_STATUS.READY,
+            config: {
+                publicationId: 'publication-tenant',
+                publicationScope: 'tenant',
+                syncError: 'descriptor validation failed',
+                syncFailedAt: '2026-09-03T01:00:00.000Z'
+            }
+        }
+        const runtimeProvider = {
+            descriptor: {
+                options: {
+                    provider: 'factory_ops',
+                    componentKey: 'factory-operations',
+                    name: 'Factory Operations'
+                },
+                tools: []
+            }
+        }
+        const { handler, installationRepo } = createHandler({
+            installations: [],
+            tenantInstallations: [tenantInstallation],
+            publications: [
+                {
+                    id: 'publication-tenant',
+                    slug: 'factory-ops-t-scopehash',
+                    status: 'active'
+                }
+            ],
+            accesses: [],
+            runtimeRegistrations: [
+                {
+                    strategy: runtimeProvider,
+                    source: {
+                        kind: 'plugin',
+                        pluginName: '@xpert-ai/plugin-factory',
+                        scopeKey: 'global:tenant-1'
+                    }
+                }
+            ],
+            loadedPlugins: [
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'global',
+                    scopeKey: 'global:tenant-1',
+                    name: '@xpert-ai/plugin-factory',
+                    level: 'tenant',
+                    instance: { meta: { level: 'tenant' } }
+                }
+            ]
+        })
+
+        const states = await handler.execute(
+            new ListPluginResourceComponentStatesQuery('@xpert-ai/plugin-factory', {
+                target: 'organization'
+            })
+        )
+
+        expect(installationRepo.createQueryBuilder).toHaveBeenCalledTimes(2)
+        expect(states).toEqual([
+            expect.objectContaining({
+                installed: true,
+                mcpServer: expect.objectContaining({
+                    publicationId: 'publication-tenant',
+                    publicationScope: 'tenant',
+                    accessEnabled: false,
+                    status: 'disabled',
+                    syncError: 'descriptor validation failed',
+                    syncFailedAt: '2026-09-03T01:00:00.000Z'
+                })
+            })
+        ])
+    })
 })
 
-function createHandler(options?: { installations?: any[]; skillPackages?: any[] }) {
+function createHandler(options?: {
+    installations?: object[]
+    tenantInstallations?: object[]
+    skillPackages?: object[]
+    publications?: object[]
+    accesses?: object[]
+    runtimeRegistrations?: object[]
+    loadedPlugins?: object[]
+}) {
+    let installationQueryCount = 0
     const installationRepo = {
-        createQueryBuilder: jest.fn(() => createInstallationQueryBuilder(options?.installations ?? []))
+        createQueryBuilder: jest.fn(() => {
+            const items =
+                installationQueryCount++ === 0
+                    ? (options?.installations ?? [])
+                    : (options?.tenantInstallations ?? options?.installations ?? [])
+            return createInstallationQueryBuilder(items)
+        })
     }
     const skillPackageRepo = {
-        find: jest.fn((query?: any) => {
+        find: jest.fn((query?: object) => {
             const skillPackages = options?.skillPackages ?? []
-            const ids = query?.where?.id?._value ?? query?.where?.id?._multipleParameters
+            const where = query ? Reflect.get(query, 'where') : undefined
+            const idFilter = where ? Reflect.get(where, 'id') : undefined
+            const ids = idFilter
+                ? (Reflect.get(idFilter, '_value') ?? Reflect.get(idFilter, '_multipleParameters'))
+                : null
             if (Array.isArray(ids)) {
-                return Promise.resolve(skillPackages.filter((item) => ids.includes(item.id)))
+                return Promise.resolve(skillPackages.filter((item) => ids.includes(Reflect.get(item, 'id'))))
             }
-            const sharedSkillIds =
-                query?.where?.sharedSkillId?._value ?? query?.where?.sharedSkillId?._multipleParameters
+            const sharedSkillIdFilter = where ? Reflect.get(where, 'sharedSkillId') : undefined
+            const sharedSkillIds = sharedSkillIdFilter
+                ? (Reflect.get(sharedSkillIdFilter, '_value') ??
+                  Reflect.get(sharedSkillIdFilter, '_multipleParameters'))
+                : null
             if (Array.isArray(sharedSkillIds)) {
-                return Promise.resolve(skillPackages.filter((item) => sharedSkillIds.includes(item.sharedSkillId)))
+                return Promise.resolve(
+                    skillPackages.filter((item) => sharedSkillIds.includes(Reflect.get(item, 'sharedSkillId')))
+                )
             }
             return Promise.resolve(skillPackages)
         })
@@ -242,17 +364,21 @@ function createHandler(options?: { installations?: any[]; skillPackages?: any[] 
         assertCanAuthor: jest.fn(() => Promise.resolve(null))
     }
     const handler = new ListPluginResourceComponentStatesHandler(
-        installationRepo as any,
-        skillPackageRepo as any,
-        workspaceAccess as any,
+        installationRepo as never,
+        skillPackageRepo as never,
+        { find: jest.fn(() => Promise.resolve(options?.publications ?? [])) } as never,
+        { find: jest.fn(() => Promise.resolve(options?.accesses ?? [])) } as never,
+        workspaceAccess as never,
         {
             getTeam: jest.fn(() => Promise.resolve(null))
-        } as any,
-        [
+        } as never,
+        { listRegistrations: jest.fn(() => options?.runtimeRegistrations ?? []) } as never,
+        { get: jest.fn() } as never,
+        (options?.loadedPlugins ?? [
             { name: '@xpert-ai/plugin-documents', scopeKey: 'org-1' },
             { name: '@xpert-ai/plugin-cut', scopeKey: 'org-1' },
             { name: '@xpert-ai/plugin-cut', scopeKey: 'global:tenant-1' }
-        ] as never
+        ]) as never
     )
 
     return {
@@ -263,7 +389,7 @@ function createHandler(options?: { installations?: any[]; skillPackages?: any[] 
     }
 }
 
-function createInstallationQueryBuilder(items: any[]) {
+function createInstallationQueryBuilder(items: object[]) {
     const builder = {
         where: jest.fn(() => builder),
         andWhere: jest.fn(() => builder),

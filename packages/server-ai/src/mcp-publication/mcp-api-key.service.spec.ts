@@ -1,4 +1,5 @@
 import { RequestContext } from '@xpert-ai/server-core'
+import { BadRequestException } from '@nestjs/common'
 import { Test, type TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { McpApiKey, McpPublication } from './entities'
@@ -13,6 +14,7 @@ describe('McpApiKeyService', () => {
     let update: jest.Mock
     let where: jest.Mock
     let publishAccessInvalidated: jest.Mock
+    let getManaged: jest.Mock
 
     beforeEach(async () => {
         stored = []
@@ -20,7 +22,9 @@ describe('McpApiKeyService', () => {
         update = jest.fn().mockResolvedValue(undefined)
         where = jest.fn().mockReturnThis()
         publishAccessInvalidated = jest.fn()
+        getManaged = jest.fn().mockResolvedValue(publication())
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('11111111-1111-4111-8111-111111111111')
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         const queryBuilder = {
             addSelect: jest.fn().mockReturnThis(),
             where,
@@ -41,7 +45,15 @@ describe('McpApiKeyService', () => {
                             else stored[index] = key
                             return key
                         }),
-                        find: jest.fn(async () => stored),
+                        find: jest.fn(async ({ where: condition }) =>
+                            stored.filter(
+                                (key) =>
+                                    key.publicationId === condition.publicationId &&
+                                    key.tenantId === condition.tenantId &&
+                                    (condition.organizationId === undefined ||
+                                        key.organizationId === condition.organizationId)
+                            )
+                        ),
                         findOne: jest.fn(async ({ where: condition }) => stored.find((key) => key.id === condition.id)),
                         createQueryBuilder: jest.fn(() => queryBuilder),
                         update
@@ -49,7 +61,7 @@ describe('McpApiKeyService', () => {
                 },
                 {
                     provide: McpPublicationService,
-                    useValue: { getManaged: jest.fn().mockResolvedValue(publication()) }
+                    useValue: { getManaged }
                 },
                 {
                     provide: McpSubscriptionService,
@@ -92,6 +104,39 @@ describe('McpApiKeyService', () => {
         })
         expect(JSON.stringify(principal)).not.toContain(created.secret)
         expect(update).toHaveBeenCalledWith('key-1', { lastUsedAt: expect.any(Date) })
+    })
+
+    it('binds a shared tenant Publication key to the admitted organization', async () => {
+        const sharedPublication = Object.assign(publication(), { organizationId: null })
+        const created = await service.createForOrganization(sharedPublication, 'organization-2', {
+            name: 'Organization client'
+        })
+        selectedKey = stored[0]
+
+        await expect(service.authenticate(sharedPublication, `Bearer ${created.secret}`)).resolves.toEqual(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'organization-2',
+                publicationId: 'publication-1'
+            })
+        )
+
+        const rotated = await service.rotate(stored[0].id)
+        expect(rotated.apiKey.organizationId).toBe('organization-2')
+    })
+
+    it('manages only current-organization keys for an admitted tenant Publication', async () => {
+        const sharedPublication = Object.assign(publication(), { organizationId: null })
+        getManaged.mockResolvedValue(sharedPublication)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
+        await service.createForOrganization(sharedPublication, 'organization-2', { name: 'Other organization' })
+        const current = await service.create(sharedPublication.id, { name: 'Current organization' })
+
+        await expect(service.list(sharedPublication.id)).resolves.toEqual([
+            expect.objectContaining({ id: current.apiKey.id, organizationId: 'organization-1' })
+        ])
+        await expect(service.revoke(stored[0].id)).rejects.toBeInstanceOf(BadRequestException)
+        expect(stored[0].revokedAt).toBeUndefined()
     })
 
     it('rejects expired, revoked, malformed, and cross-publication credentials', async () => {

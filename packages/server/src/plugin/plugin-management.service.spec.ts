@@ -873,7 +873,8 @@ describe('PluginManagementService', () => {
 			'__global__',
 			'@xpert-ai/plugin-tenant-global',
 			{
-				scopeKey: 'tenant:tenant-other:global'
+				scopeKey: 'tenant:tenant-other:global',
+				cause: 'refresh'
 			}
 		)
 		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
@@ -1409,7 +1410,8 @@ describe('PluginManagementService', () => {
 			'org-1',
 			'@xpert-ai/plugin-future-demo',
 			{
-				scopeKey: 'org-1'
+				scopeKey: 'org-1',
+				cause: 'refresh'
 			}
 		)
 		expect(registerPluginsAsync).toHaveBeenCalled()
@@ -1433,7 +1435,7 @@ describe('PluginManagementService', () => {
 			'tenant-1',
 			'__global__',
 			['@xpert-ai/plugin-global-demo'],
-			{ scopeKey: '__global__' }
+			{ scopeKey: '__global__', cause: 'uninstall' }
 		)
 	})
 

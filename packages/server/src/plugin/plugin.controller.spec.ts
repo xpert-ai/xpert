@@ -19,6 +19,7 @@ jest.mock('@xpert-ai/contracts', () => ({
 	},
 	PLUGIN_COMPONENT_TYPE: {
 		SKILL: 'skill',
+		TOOLSET: 'toolset',
 		MCP_SERVER: 'mcp_server',
 		APP: 'app',
 		HOOK: 'hook',
@@ -44,12 +45,17 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
 		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
 	),
+	describeXpertToolProvider: jest.fn(),
 	RequestContext: {
 		getOrganizationId: jest.fn(),
 		currentTenantId: jest.fn(),
 		getScope: jest.fn(),
 		hasRole: jest.fn()
 	}
+}))
+
+jest.mock('zod-to-json-schema', () => ({
+	zodToJsonSchema: jest.fn(() => ({ type: 'object' }))
 }))
 
 jest.mock('./config', () => ({
@@ -88,9 +94,11 @@ const {
 	GLOBAL_ORGANIZATION_SCOPE,
 	SYSTEM_GLOBAL_SCOPE,
 	RequestContext,
-	resolveTenantGlobalScopeKey
+	resolveTenantGlobalScopeKey,
+	describeXpertToolProvider
 } = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
+const { zodToJsonSchema } = require('zod-to-json-schema')
 const { resolvePluginConfigSchema } = require('./plugin-config-schema')
 const { findPluginLoadFailure } = require('./plugin.helper')
 const { resolvePluginLevel } = require('./plugin-instance.entity')
@@ -137,6 +145,9 @@ describe('PluginController', () => {
 	const commandBus = {
 		execute: jest.fn()
 	}
+	const toolProviderRegistry = {
+		listRegistrations: jest.fn(() => [])
+	}
 
 	const loadedPlugins: Array<any> = []
 
@@ -159,9 +170,12 @@ describe('PluginController', () => {
 		)
 		;(resolvePluginConfigSchema as jest.Mock).mockReturnValue(undefined)
 		;(findPluginLoadFailure as jest.Mock).mockReturnValue(undefined)
+		zodToJsonSchema.mockReturnValue({ type: 'object' })
 		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([])
 		;(pluginInstanceService as any).getDefaultTenantId.mockResolvedValue('default-tenant')
 		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([])
+		toolProviderRegistry.listRegistrations.mockReturnValue([])
+		describeXpertToolProvider.mockReset()
 		;(queryBus as any).execute.mockImplementation((query: unknown) => {
 			if (query instanceof GetPluginSkillDocumentQuery) {
 				return new GetPluginSkillDocumentHandler(pluginManagementService).execute(query)
@@ -173,6 +187,7 @@ describe('PluginController', () => {
 			pluginInstanceService,
 			pluginMarketplaceService as any,
 			pluginManagementService,
+			toolProviderRegistry as any,
 			queryBus as any,
 			commandBus as any
 		)
@@ -307,6 +322,115 @@ describe('PluginController', () => {
 		})
 
 		expect(pluginManagementService.readLoadedPluginBundleComponents).toHaveBeenCalledWith(loadedPlugin)
+	})
+
+	it('merges a runtime-discovered decorated MCP Provider without manifest toolsets', async () => {
+		const provider = {}
+		;(pluginManagementService as any).findLoadedPlugin.mockReturnValue({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-decorated',
+			instance: { meta: { name: '@xpert-ai/plugin-decorated' } }
+		})
+		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([])
+		toolProviderRegistry.listRegistrations.mockReturnValue([
+			{
+				type: 'decorated',
+				strategy: provider,
+				source: { kind: 'plugin', pluginName: '@xpert-ai/plugin-decorated', scopeKey: 'org-1' }
+			}
+		])
+		describeXpertToolProvider.mockReturnValue({
+			options: {
+				provider: 'decorated',
+				componentKey: 'decorated-tools',
+				name: 'Decorated tools',
+				slug: 'decorated-tools'
+			},
+			tools: [
+				{
+					methodName: 'read',
+					options: {
+						name: 'decorated_read',
+						description: 'Read data.',
+						inputSchema: {},
+						outputSchema: {},
+						mcp: {
+							behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
+							requiredContext: ['tenant'],
+							visibility: ['model']
+						}
+					}
+				}
+			]
+		})
+
+		await expect(controller.getPluginComponents('@xpert-ai/plugin-decorated')).resolves.toEqual({
+			items: [
+				expect.objectContaining({
+					componentType: 'toolset',
+					componentKey: 'decorated-tools',
+					metadata: expect.objectContaining({ runtimeDiscovered: true, nativeMcp: true })
+				})
+			]
+		})
+	})
+
+	it('includes runtime-discovered MCP Providers in the installed plugin card summary', async () => {
+		const provider = {}
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-decorated',
+			packageName: '@xpert-ai/plugin-decorated',
+			source: 'env',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-decorated',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				},
+				config: { defaults: {} }
+			},
+			ctx: {}
+		})
+		toolProviderRegistry.listRegistrations.mockReturnValue([
+			{
+				type: 'decorated',
+				strategy: provider,
+				source: { kind: 'plugin', pluginName: '@xpert-ai/plugin-decorated', scopeKey: 'org-1' }
+			}
+		])
+		describeXpertToolProvider.mockReturnValue({
+			options: {
+				provider: 'decorated',
+				componentKey: 'decorated-tools',
+				name: 'Decorated tools',
+				slug: 'decorated-tools-mcp'
+			},
+			tools: [
+				{
+					methodName: 'read',
+					options: {
+						name: 'decorated_read',
+						description: 'Read data.',
+						inputSchema: {},
+						outputSchema: {},
+						mcp: {
+							behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
+							requiredContext: ['tenant'],
+							visibility: ['model']
+						}
+					}
+				}
+			]
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-decorated',
+				componentSummary: expect.objectContaining({ total: 1, toolsets: 1 })
+			})
+		])
 	})
 
 	it('returns a registered skill component SKILL.md document from the loaded plugin bundle', async () => {

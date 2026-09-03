@@ -108,7 +108,7 @@ export class SettingsPluginComponent {
         plugin: this.plugin(),
         showActions: !this.publicCatalog()
       },
-      backdropClass: 'backdrop-blur-sm-black'
+      backdropClass: 'backdrop-blur-xs-black'
     })
   }
 }

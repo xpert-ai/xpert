@@ -29,15 +29,40 @@ export class McpApiKeyService {
 
     async create(publicationId: string, input: CreateMcpApiKeyInput): Promise<CreatedMcpApiKey> {
         const publication = await this.publications.getManaged(publicationId)
+        const organizationId = this.sharedPublicationOrganization(publication)
+        if (organizationId) return this.createForOrganization(publication, organizationId, input)
         return this.createForPublication(publication, input)
     }
 
     async list(publicationId: string) {
         const publication = await this.publications.getManaged(publicationId)
+        const organizationId = this.sharedPublicationOrganization(publication)
+        if (organizationId) return this.listForOrganization(publication, organizationId)
         return this.keyRepository.find({
             where: { publicationId: publication.id, tenantId: publication.tenantId },
             order: { createdAt: 'DESC' }
         })
+    }
+
+    async listForOrganization(publication: McpPublication, organizationId: string) {
+        this.assertCurrentTenant(publication)
+        return this.keyRepository.find({
+            where: {
+                publicationId: publication.id,
+                tenantId: publication.tenantId,
+                organizationId
+            },
+            order: { createdAt: 'DESC' }
+        })
+    }
+
+    async createForOrganization(
+        publication: McpPublication,
+        organizationId: string,
+        input: CreateMcpApiKeyInput
+    ): Promise<CreatedMcpApiKey> {
+        this.assertCurrentTenant(publication)
+        return this.createForPublication(publication, input, organizationId)
     }
 
     async revoke(keyId: string) {
@@ -47,7 +72,8 @@ export class McpApiKeyService {
                 t('server-ai:Error.McpApiKeyNotFound', { defaultValue: 'MCP API key was not found.' })
             )
         }
-        await this.publications.getManaged(key.publicationId)
+        const publication = await this.publications.getManaged(key.publicationId)
+        this.assertKeyInManagementScope(key, publication)
         key.revokedAt = new Date()
         key.revokedById = RequestContext.currentUserId()
         const saved = await this.keyRepository.save(key)
@@ -63,17 +89,22 @@ export class McpApiKeyService {
             )
         }
         const publication = await this.publications.getManaged(key.publicationId)
+        this.assertKeyInManagementScope(key, publication)
         key.revokedAt = new Date()
         key.revokedById = RequestContext.currentUserId()
         await this.keyRepository.save(key)
         this.subscriptions.publishAccessInvalidated(key.publicationId)
-        return this.createForPublication(publication, {
-            name: key.name,
-            subjectType: key.subjectType,
-            subjectId: key.subjectId,
-            scopes: key.scopes,
-            expiresAt: key.expiresAt
-        })
+        return this.createForPublication(
+            publication,
+            {
+                name: key.name,
+                subjectType: key.subjectType,
+                subjectId: key.subjectId,
+                scopes: key.scopes,
+                expiresAt: key.expiresAt
+            },
+            key.organizationId ?? publication.organizationId ?? null
+        )
     }
 
     async authenticate(publication: McpPublication, authorization?: string): Promise<McpPrincipal> {
@@ -103,7 +134,7 @@ export class McpApiKeyService {
             subjectId: key.subjectId,
             ...(key.subjectType === 'user' ? { userId: key.subjectId } : { clientId: key.subjectId }),
             tenantId: publication.tenantId,
-            organizationId: publication.organizationId ?? undefined,
+            organizationId: key.organizationId ?? undefined,
             publicationId: publication.id,
             scopes: key.scopes
         }
@@ -111,7 +142,8 @@ export class McpApiKeyService {
 
     private async createForPublication(
         publication: McpPublication,
-        input: CreateMcpApiKeyInput
+        input: CreateMcpApiKeyInput,
+        organizationId = publication.organizationId ?? null
     ): Promise<CreatedMcpApiKey> {
         const currentUserId = RequestContext.currentUserId()
         const subjectType = input.subjectType ?? 'user'
@@ -136,7 +168,7 @@ export class McpApiKeyService {
             this.keyRepository.create({
                 publicationId: publication.id,
                 tenantId: publication.tenantId,
-                organizationId: publication.organizationId ?? null,
+                organizationId,
                 name: input.name.trim(),
                 keyPrefix: secret.slice(0, STORED_PREFIX_LENGTH),
                 keyHash: hashSecret(secret),
@@ -151,6 +183,25 @@ export class McpApiKeyService {
         const { keyHash, ...apiKey } = entity
         void keyHash
         return { apiKey, secret }
+    }
+
+    private assertCurrentTenant(publication: McpPublication) {
+        if (publication.tenantId !== RequestContext.currentTenantId()) {
+            throw this.unauthorized()
+        }
+    }
+
+    private sharedPublicationOrganization(publication: McpPublication) {
+        return publication.organizationId ? null : (RequestContext.getOrganizationId() ?? null)
+    }
+
+    private assertKeyInManagementScope(key: McpApiKey, publication: McpPublication) {
+        const organizationId = this.sharedPublicationOrganization(publication)
+        if (organizationId && key.organizationId !== organizationId) {
+            throw new BadRequestException(
+                t('server-ai:Error.McpApiKeyNotFound', { defaultValue: 'MCP API key was not found.' })
+            )
+        }
     }
 
     private unauthorized() {

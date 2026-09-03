@@ -27,6 +27,9 @@ import { PluginResourceInstallation } from './plugin-resource-installation.entit
 import { PluginResourceInstallerService } from './plugin-resource-installer.service'
 import { QueryHandlers } from './queries/handlers'
 import { McpPublicationModule } from '../mcp-publication'
+import { McpPublication } from '../mcp-publication/entities/mcp-publication.entity'
+import { McpPublicationAccess } from '../mcp-publication/entities/mcp-publication-access.entity'
+import { PluginMcpServerService } from './plugin-mcp-server.service'
 
 @Module({
     imports: [
@@ -38,7 +41,9 @@ import { McpPublicationModule } from '../mcp-publication'
             XpertTool,
             XpertWorkspace,
             Knowledgebase,
-            Xpert
+            Xpert,
+            McpPublication,
+            McpPublicationAccess
         ]),
         TenantModule,
         CqrsModule,
@@ -55,12 +60,13 @@ import { McpPublicationModule } from '../mcp-publication'
     controllers: [PluginResourceController, PluginApplicationController],
     providers: [
         PluginResourceInstallerService,
+        PluginMcpServerService,
         PluginApplicationService,
         PluginHooksMiddleware,
         PluginTemplateInstallHandler,
         PluginTemplateSyncDependenciesHandler,
         ...QueryHandlers
     ],
-    exports: [PluginResourceInstallerService, PluginApplicationService]
+    exports: [PluginResourceInstallerService, PluginMcpServerService, PluginApplicationService]
 })
 export class PluginResourceModule {}

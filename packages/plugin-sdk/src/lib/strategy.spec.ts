@@ -307,4 +307,34 @@ describe('BaseStrategyRegistry', () => {
       scopeKey: 'org-1'
     })
   })
+
+  it('lists every direct registration without request-scope fallback filtering', () => {
+    class TenantOneStrategy {}
+    class TenantTwoStrategy {}
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'shared', TenantOneStrategy)
+    Reflect.defineMetadata(TEST_STRATEGY_KEY, 'shared', TenantTwoStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/tenant-one', TenantOneStrategy)
+    Reflect.defineMetadata(PLUGIN_METADATA_KEY, '@xpert/tenant-two', TenantTwoStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, 'tenant:one:global', TenantOneStrategy)
+    Reflect.defineMetadata(ORGANIZATION_METADATA_KEY, 'tenant:two:global', TenantTwoStrategy)
+
+    const registry = new TestStrategyRegistry<object>()
+    const tenantOne = new TenantOneStrategy()
+    const tenantTwo = new TenantTwoStrategy()
+    registry.upsert(tenantOne)
+    registry.upsert(tenantTwo)
+
+    expect(registry.listAllRegistrations()).toEqual([
+      {
+        type: 'shared',
+        strategy: tenantOne,
+        source: { kind: 'plugin', pluginName: '@xpert/tenant-one', scopeKey: 'tenant:one:global' }
+      },
+      {
+        type: 'shared',
+        strategy: tenantTwo,
+        source: { kind: 'plugin', pluginName: '@xpert/tenant-two', scopeKey: 'tenant:two:global' }
+      }
+    ])
+  })
 })

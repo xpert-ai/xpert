@@ -1,9 +1,7 @@
 /* eslint-disable */
 import { readFileSync } from 'fs'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-const currentDirectory = dirname(fileURLToPath(import.meta.url))
+const currentDirectory = __dirname
 
 // Reading the SWC compilation config and remove the "exclude"
 // for the test files to be compiled by SWC

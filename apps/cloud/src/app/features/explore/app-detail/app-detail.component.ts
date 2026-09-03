@@ -28,7 +28,7 @@ import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from '
   ],
   templateUrl: './app-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block min-h-full bg-background' }
+  host: { class: 'block w-full min-h-full bg-background' }
 })
 export class ApplicationDetailComponent {
   readonly #route = inject(ActivatedRoute)

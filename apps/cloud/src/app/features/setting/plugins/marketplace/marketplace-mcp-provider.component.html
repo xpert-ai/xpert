@@ -1,0 +1,134 @@
+<div
+  data-testid="plugin-marketplace-mcp-provider"
+  class="mt-3 rounded-xl border border-divider-regular bg-components-panel-bg p-3"
+>
+  @if (stateLoading()) {
+    <div class="mb-3 flex items-center gap-2 text-xs text-text-tertiary">
+      <xp-spin small />
+      <span>{{ 'XP.Plugin.CheckingMcpState' | translate: { Default: 'Checking MCP status...' } }}</span>
+    </div>
+  }
+
+  @if (stateError()) {
+    <div
+      class="mb-3 rounded-lg border border-state-warning-hover bg-state-warning-hover/10 px-3 py-2 text-xs text-text-warning"
+    >
+      {{
+        'XP.Plugin.McpStateUnavailable'
+          | translate: { Default: 'MCP status could not be loaded. Refresh this plugin detail and try again.' }
+      }}
+    </div>
+  }
+
+  @if (syncError(); as error) {
+    <div
+      class="mb-3 rounded-lg border border-state-warning-hover bg-state-warning-hover/10 px-3 py-2 text-xs text-text-warning"
+    >
+      <div>{{ 'XP.Plugin.McpLastSyncFailed' | translate: { Default: 'The last MCP synchronization failed.' } }}</div>
+      <code class="mt-1 block break-all">{{ error }}</code>
+    </div>
+  }
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2 text-xs text-text-secondary">
+      <span
+        class="h-2.5 w-2.5 shrink-0 rounded-full"
+        [class]="isActive() ? 'bg-text-success' : 'bg-text-tertiary'"
+      ></span>
+      <span>
+        {{ 'XP.Plugin.McpToolCount' | translate: { count: toolCount(), Default: toolCount() + ' tools' } }}
+      </span>
+      <span aria-hidden="true">·</span>
+      <span>{{ 'XP.Plugin.McpTransportStreamableHttp' | translate: { Default: 'Streamable HTTP' } }}</span>
+      <span aria-hidden="true">·</span>
+      <span>
+        {{
+          (isActive() ? 'XP.Plugin.McpServerStatusActive' : 'XP.Plugin.McpServerStatusDisabled')
+            | translate: { Default: isActive() ? 'Enabled' : 'Disabled' }
+        }}
+      </span>
+      @if (actionPending()) {
+        <xp-spin small />
+      }
+    </div>
+
+    @if (canManage()) {
+      <div class="flex flex-wrap items-center gap-2">
+        @if (isActive()) {
+          <button type="button" class="btn btn-secondary btn-small" [disabled]="actionPending()" (click)="disable()">
+            {{ 'XP.Plugin.DisableMcpServer' | translate: { Default: 'Disable' } }}
+          </button>
+        } @else {
+          <button type="button" class="btn btn-primary btn-small" [disabled]="actionPending()" (click)="enable()">
+            {{ 'XP.Plugin.EnableMcpServer' | translate: { Default: 'Enable MCP server' } }}
+          </button>
+        }
+        @if (canOpenAdvancedSettings()) {
+          <a class="btn btn-ghost btn-small" href="/operations">
+            {{ 'XP.Plugin.AdvancedMcpSettings' | translate: { Default: 'Advanced settings' } }}
+          </a>
+        }
+      </div>
+    }
+  </div>
+
+  @if (isActive() && !connection() && canManage()) {
+    <button type="button" class="btn btn-ghost btn-small mt-3" [disabled]="actionPending()" (click)="loadConnection()">
+      {{ 'XP.Plugin.ShowConnectionInfo' | translate: { Default: 'Show connection info' } }}
+    </button>
+  }
+
+  @if (connection(); as currentConnection) {
+    <div class="mt-3 grid gap-3">
+      <div class="break-all font-mono text-xs text-text-secondary">
+        {{ currentConnection.connectionInfo.endpoint }}
+      </div>
+
+      @if (currentConnection.apiKeySecret) {
+        <div class="rounded-lg border border-state-warning-hover bg-state-warning-hover/10 p-3">
+          <div class="text-xs font-medium text-text-warning">
+            {{
+              'XP.Plugin.McpApiKeyOneTime'
+                | translate: { Default: 'Copy this API key now. It will not be shown again.' }
+            }}
+          </div>
+          <div class="mt-2 flex items-start gap-2">
+            <code class="min-w-0 flex-1 break-all text-xs text-text-primary">{{ currentConnection.apiKeySecret }}</code>
+            <button
+              type="button"
+              class="btn btn-secondary btn-small"
+              (click)="copyText(currentConnection.apiKeySecret)"
+            >
+              {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (clientConfiguration(); as config) {
+        <div>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <span class="text-xs font-medium text-text-primary">
+              {{ 'XP.Plugin.McpClientConfiguration' | translate: { Default: 'MCP client configuration' } }}
+            </span>
+            <button type="button" class="btn btn-secondary btn-small" (click)="copyText(config)">
+              {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+            </button>
+          </div>
+          <pre
+            class="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-background-default-subtle p-3 text-xs text-text-secondary"
+            >{{ config }}</pre
+          >
+        </div>
+      }
+    </div>
+  }
+
+  @if (actionError()) {
+    <div
+      class="mt-3 rounded-lg border border-status-error-bg bg-status-error-bg/10 px-3 py-2 text-xs text-text-destructive"
+    >
+      {{ actionError() }}
+    </div>
+  }
+</div>

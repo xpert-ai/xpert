@@ -205,13 +205,17 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		tenantId: string | null,
 		organizationId: string,
 		names: string[],
-		options: { scopeKey?: string | null } = {}
+		options: { scopeKey?: string | null; cause?: 'refresh' | 'uninstall' } = {}
 	) {
 		const normalizedNames = names.map((name) => normalizePluginName(name))
 		await this.deactivate(tenantId, organizationId, normalizedNames, options)
 		const defaultTenantId = await this.getDefaultTenantId()
 		const scope = resolvePluginScope({ tenantId, organizationId, defaultTenantId, scopeKey: options.scopeKey })
-		await this.removePlugins(organizationId, normalizedNames, { tenantId, scopeKey: scope.scopeKey })
+		await this.removePlugins(organizationId, normalizedNames, {
+			tenantId,
+			scopeKey: scope.scopeKey,
+			cause: options.cause
+		})
 	}
 
 	/**
@@ -223,7 +227,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		tenantId: string | null,
 		organizationId: string,
 		names: string[],
-		options: { scopeKey?: string | null } = {}
+		options: { scopeKey?: string | null; cause?: 'refresh' | 'uninstall' } = {}
 	) {
 		const normalizedNames = names.map((name) => normalizePluginName(name))
 		const defaultTenantId = await this.getDefaultTenantId()
@@ -255,7 +259,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		tenantId: string | null,
 		organizationId: string,
 		packageName: string,
-		options: { scopeKey?: string | null } = {}
+		options: { scopeKey?: string | null; cause?: 'refresh' | 'uninstall' } = {}
 	) {
 		const normalized = normalizePluginName(packageName)
 		const candidates = normalized === packageName ? [packageName] : [packageName, normalized]
@@ -293,18 +297,30 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		})
 
 		if (!items.length) {
-			await this.removePlugins(organizationId, [packageName], { tenantId, scopeKey: scope.scopeKey })
+			await this.removePlugins(organizationId, [packageName], {
+				tenantId,
+				scopeKey: scope.scopeKey,
+				cause: options.cause
+			})
 			return
 		}
 
 		const names = items.map((item) => item.pluginName)
-		await this.uninstall(tenantId, organizationId, names, { scopeKey: scope.scopeKey })
+		await this.uninstall(tenantId, organizationId, names, {
+			scopeKey: scope.scopeKey,
+			cause: options.cause
+		})
 	}
 
 	async removePlugins(
 		organizationId: string,
 		names: string[],
-		options: { tenantId?: string | null; defaultTenantId?: string | null; scopeKey?: string | null } = {}
+		options: {
+			tenantId?: string | null
+			defaultTenantId?: string | null
+			scopeKey?: string | null
+			cause?: 'refresh' | 'uninstall'
+		} = {}
 	) {
 		const tenantId = options.tenantId ?? this.getCurrentTenantId()
 		const defaultTenantId = options.defaultTenantId ?? (await this.getDefaultTenantId())
@@ -315,7 +331,11 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		const normalizedTargets = new Set(names.map((item) => normalizePluginName(item)))
 		clearPluginLoadFailure(scope.scopeKey, ...Array.from(normalizedTargets))
 		for (const pluginName of normalizedTargets) {
-			this.strategyBus.remove(scope.scopeKey, pluginName)
+			if (options.cause) {
+				this.strategyBus.remove(scope.scopeKey, pluginName, options.cause)
+			} else {
+				this.strategyBus.remove(scope.scopeKey, pluginName)
+			}
 			const pluginIndex = this.loadedPlugins.findIndex(
 				(plugin) =>
 					(plugin.scopeKey ?? plugin.organizationId) === scope.scopeKey &&

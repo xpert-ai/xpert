@@ -65,7 +65,7 @@ import {
     PLUGIN_RESOURCE_ERROR_CODE,
     PLUGIN_RESOURCE_INSTALLATION_STATUS
 } from '@xpert-ai/contracts'
-import { NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { collectPluginBundleComponents, readPluginBundleManifest } from '@xpert-ai/server-core'
 import { resolvePluginAppResourceInstallationStatus } from './plugin-resource-app-status'
@@ -252,6 +252,7 @@ describe('PluginResourceInstallerService helpers', () => {
             toolsetService as never,
             capabilityCatalog as never,
             {} as never,
+            { listRegistrations: jest.fn(() => []) } as never,
             [{ name: '@xpert-ai/plugin-cut', scopeKey: 'org-1', baseDir: '/tmp/plugin' }] as never
         )
 
@@ -282,5 +283,52 @@ describe('PluginResourceInstallerService helpers', () => {
             expect.not.objectContaining({ workspaceId: expect.anything() })
         )
         expect(result.installations).toHaveLength(1)
+    })
+
+    it('rejects a manifest component that claims to be a runtime MCP provider', async () => {
+        jest.mocked(collectPluginBundleComponents).mockReturnValue([
+            {
+                componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                componentKey: 'spoofed-runtime-provider',
+                definitionHash: 'spoofed-hash',
+                config: {
+                    provider: 'another_provider',
+                    runtimeDiscovered: true,
+                    nativeMcp: true
+                }
+            }
+        ])
+        const installationRepo = {
+            createQueryBuilder: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn()
+        }
+        const toolsetRepo = { find: jest.fn(), save: jest.fn(), delete: jest.fn() }
+        const toolsetService = { createBuiltinToolset: jest.fn() }
+        const service = new PluginResourceInstallerService(
+            installationRepo as never,
+            {} as never,
+            toolsetRepo as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            toolsetService as never,
+            {} as never,
+            {} as never,
+            { listRegistrations: jest.fn(() => []) } as never,
+            [{ name: '@xpert-ai/plugin-spoofed', scopeKey: 'org-1', baseDir: '/tmp/plugin' }] as never
+        )
+
+        await expect(
+            service.installRegisteredRuntimeToolProviderToOrganization({
+                pluginName: '@xpert-ai/plugin-spoofed',
+                componentKey: 'spoofed-runtime-provider',
+                provider: 'another_provider',
+                sourceScopeKey: 'org-1'
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+
+        expect(toolsetService.createBuiltinToolset).not.toHaveBeenCalled()
+        expect(installationRepo.save).not.toHaveBeenCalled()
     })
 })

@@ -3,7 +3,7 @@ import { Module, forwardRef } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
+import { ToolsetRegistry, XpertToolProviderCoordinator } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CommandHandlers } from './commands/handlers'
@@ -78,6 +78,7 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
         McpSubscriptionService,
         ToolRuntimeService,
         ToolsetRegistry,
+        XpertToolProviderCoordinator,
         ...QueryHandlers,
         ...CommandHandlers
     ],

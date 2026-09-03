@@ -52,6 +52,10 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 Rationale: keep simple cases concise, and complex cases structured and maintainable.
 
+### Dialog Styling
+
+- Golden rule: Angular CDK Dialogs use `backdropClass: 'backdrop-blur-xs-black'` and `panelClass: 'xp-overlay-pane-dialog'`; do not repeat their surface utilities at call sites, and introduce another semantic panel class only for a genuinely different treatment.
+
 ## API Endpoints
 
 - Server skill repositories: `POST /skill-repository` to register, `GET /skill-repository` list, indexes at `/skill-repository/indexes` with `POST /sync/:repositoryId`.

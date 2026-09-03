@@ -492,7 +492,8 @@ export class PluginManagementService {
 				targetOrganizationId,
 				packageName,
 				allowSystemPlugins,
-				scope.scopeKey
+				scope.scopeKey,
+				'refresh'
 			)
 			shouldCleanupPlugin = true
 			shouldPersistFailureState = true
@@ -844,6 +845,7 @@ export class PluginManagementService {
 		}
 		if (scopeKey === SYSTEM_GLOBAL_SCOPE || loadedRestartRequiredLevel === PLUGIN_LEVEL.TENANT) {
 			await this.pluginInstanceService.deactivate(tenantId, organizationId, names, { scopeKey })
+			for (const name of names) this.strategyBus.remove(scopeKey, normalizePluginName(name), 'uninstall')
 			this.logger.log(
 				`Deactivated persisted registrations for ${loadedRestartRequiredLevel ?? 'system'}-level plugins ${names.join(', ')}; API restart required for unload`
 			)
@@ -856,7 +858,10 @@ export class PluginManagementService {
 				}))
 			}
 		}
-		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, { scopeKey })
+		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, {
+			scopeKey,
+			cause: 'uninstall'
+		})
 		return {}
 	}
 
@@ -984,14 +989,16 @@ export class PluginManagementService {
 		organizationId: string,
 		packageName: string,
 		allowSystemPlugins = false,
-		scopeKey?: string | null
+		scopeKey?: string | null,
+		cause?: 'refresh' | 'uninstall'
 	) {
 		const resolvedScopeKey =
 			scopeKey ??
 			(organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId)
 		this.assertNoSystemPlugins([packageName], allowSystemPlugins, resolvedScopeKey)
 		await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName, {
-			scopeKey: resolvedScopeKey
+			scopeKey: resolvedScopeKey,
+			cause
 		})
 	}
 }

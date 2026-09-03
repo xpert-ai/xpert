@@ -7,6 +7,8 @@ import {
   IPluginComponentDefinition,
   IPluginComponentDocument,
   IPluginResourceComponentState,
+  IPluginMcpServerActivationResult,
+  IPluginMcpServerConnectionInfo,
   IPluginResourceInstallResult,
   IPluginDescriptor,
   IPluginInstallInput,
@@ -115,6 +117,26 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     return this.httpClient.post<IPluginResourceInstallResult>(
       `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/install-xpert`,
       input
+    )
+  }
+
+  enablePluginMcpServer(pluginName: string, componentKey: string) {
+    return this.httpClient.post<IPluginMcpServerActivationResult>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/mcp/${encodeURIComponent(componentKey)}/enable`,
+      {}
+    )
+  }
+
+  disablePluginMcpServer(pluginName: string, componentKey: string) {
+    return this.httpClient.post<IPluginResourceComponentState['installation']>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/mcp/${encodeURIComponent(componentKey)}/disable`,
+      {}
+    )
+  }
+
+  getPluginMcpServerConnectionInfo(pluginName: string, componentKey: string) {
+    return this.httpClient.get<IPluginMcpServerConnectionInfo>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/mcp/${encodeURIComponent(componentKey)}/connection-info`
     )
   }
 

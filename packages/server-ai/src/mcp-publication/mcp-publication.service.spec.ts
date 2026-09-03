@@ -12,6 +12,7 @@ import {
     McpPublicationCapability
 } from './entities'
 import { McpPublicationService } from './mcp-publication.service'
+import { McpPublicationAccessService } from './mcp-publication-access.service'
 import { McpSubscriptionService } from './mcp-subscription.service'
 
 const defaultMcpOAuthEnabled = environment.mcpOAuthEnabled
@@ -53,7 +54,8 @@ describe('McpPublicationService list summaries', () => {
                 find: jest.fn().mockResolvedValue([{ publicationId: publication.id, enabled: true }])
             }),
             repository<McpInvocationAudit>({ createQueryBuilder: jest.fn(() => auditBuilder) }),
-            {} as unknown as McpSubscriptionService
+            {} as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.list()).resolves.toEqual([
@@ -84,11 +86,133 @@ describe('McpPublicationService list summaries', () => {
             repository<McpApiKey>(),
             repository<McpOAuthPolicy>(),
             repository<McpInvocationAudit>(),
-            {} as unknown as McpSubscriptionService
+            {} as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.list()).resolves.toEqual([])
         expect(capabilityRepository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it('includes admitted tenant Publications in an organization scope with organization-local health', async () => {
+        jest.spyOn(RequestContext, 'getScope').mockReturnValue({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1'
+        } as ReturnType<typeof RequestContext.getScope>)
+        const organizationPublication = Object.assign(new McpPublication(), {
+            id: '10000000-0000-4000-8000-000000000001',
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            name: 'Organization MCP',
+            slug: 'organization-mcp',
+            status: 'active'
+        })
+        const sharedPublication = Object.assign(new McpPublication(), {
+            id: '10000000-0000-4000-8000-000000000002',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            name: 'Plugin MCP',
+            slug: 'plugin-mcp',
+            status: 'active'
+        })
+        const find = jest
+            .fn()
+            .mockResolvedValueOnce([organizationPublication])
+            .mockResolvedValueOnce([sharedPublication])
+        const capabilityBuilder = rawBuilder([
+            { publicationId: organizationPublication.id, count: '1' },
+            { publicationId: sharedPublication.id, count: '5' }
+        ])
+        const apiKeyBuilder = rawBuilder([{ publicationId: sharedPublication.id, count: '1' }])
+        const auditBuilder = rawBuilder([])
+        const service = new McpPublicationService(
+            repository<McpPublication>({ find }),
+            repository<McpPublicationCapability>({ createQueryBuilder: jest.fn(() => capabilityBuilder) }),
+            repository<McpCapabilityCatalog>(),
+            repository<XpertToolset>(),
+            repository<McpApiKey>({ createQueryBuilder: jest.fn(() => apiKeyBuilder) }),
+            repository<McpOAuthPolicy>({ find: jest.fn().mockResolvedValue([]) }),
+            repository<McpInvocationAudit>({ createQueryBuilder: jest.fn(() => auditBuilder) }),
+            {} as unknown as McpSubscriptionService,
+            accessService({
+                listConfigured: jest.fn().mockResolvedValue([
+                    {
+                        publicationId: sharedPublication.id,
+                        tenantId: 'tenant-1',
+                        organizationId: 'organization-1',
+                        enabled: true
+                    }
+                ])
+            })
+        )
+
+        await expect(service.list()).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: sharedPublication.id,
+                    status: 'active',
+                    publicationScope: 'tenant',
+                    organizationAccessEnabled: true,
+                    capabilityCount: 5,
+                    apiKeyCount: 1
+                })
+            ])
+        )
+        expect(apiKeyBuilder.andWhere).toHaveBeenCalledWith('apiKey.organizationId = :organizationId', {
+            organizationId: 'organization-1'
+        })
+        expect(auditBuilder.andWhere).toHaveBeenCalledWith('audit.organizationId = :organizationId', {
+            organizationId: 'organization-1'
+        })
+    })
+})
+
+describe('McpPublicationService shared organization management', () => {
+    it('resolves an admitted tenant Publication and toggles only the current organization access', async () => {
+        jest.spyOn(RequestContext, 'getScope').mockReturnValue({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1'
+        } as ReturnType<typeof RequestContext.getScope>)
+        const publication = Object.assign(new McpPublication(), {
+            id: '10000000-0000-4000-8000-000000000002',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            name: 'Plugin MCP',
+            slug: 'plugin-mcp',
+            status: 'active',
+            reviewStatus: 'current',
+            authMethods: ['api_key']
+        })
+        const publicationRepository = repository<McpPublication>({
+            findOne: jest.fn().mockResolvedValueOnce(null).mockResolvedValue(publication),
+            save: jest.fn(async (value) => value)
+        })
+        const enable = jest.fn().mockResolvedValue({ enabled: true })
+        const disable = jest.fn().mockResolvedValue({ enabled: false })
+        const service = new McpPublicationService(
+            publicationRepository,
+            repository<McpPublicationCapability>({ count: jest.fn().mockResolvedValue(5) }),
+            repository<McpCapabilityCatalog>(),
+            repository<XpertToolset>(),
+            repository<McpApiKey>(),
+            repository<McpOAuthPolicy>(),
+            repository<McpInvocationAudit>(),
+            {} as unknown as McpSubscriptionService,
+            accessService({
+                findConfigured: jest.fn().mockResolvedValue({ enabled: true }),
+                enable,
+                disable
+            })
+        )
+
+        await expect(service.getManaged(publication.id)).resolves.toBe(publication)
+        await expect(service.disable(publication.id)).resolves.toEqual(expect.objectContaining({ status: 'disabled' }))
+        await expect(service.enable(publication.id)).resolves.toEqual(expect.objectContaining({ status: 'active' }))
+
+        expect(disable).toHaveBeenCalledWith(publication, 'organization-1')
+        expect(enable).toHaveBeenCalledWith(publication, 'organization-1')
+        expect(publicationRepository.save).not.toHaveBeenCalled()
+        expect(publication.status).toBe('active')
     })
 })
 
@@ -112,7 +236,8 @@ describe('McpPublicationService policy enforcement', () => {
             repository<McpApiKey>(),
             repository<McpOAuthPolicy>(),
             repository<McpInvocationAudit>(),
-            {} as unknown as McpSubscriptionService
+            {} as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.update(publication.id, { authMethods: ['api_key', 'oauth'] })).rejects.toBeInstanceOf(
@@ -145,13 +270,44 @@ describe('McpPublicationService policy enforcement', () => {
             repository<McpApiKey>(),
             repository<McpOAuthPolicy>(),
             repository<McpInvocationAudit>(),
-            {} as unknown as McpSubscriptionService
+            {} as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.update(publication.id, { slug: 'renamed-service' })).rejects.toBeInstanceOf(
             BadRequestException
         )
         expect(publication.slug).toBe('generic-mcp')
+    })
+
+    it('lets the owning plugin synchronize an automatically managed Publication slug', async () => {
+        const publication = Object.assign(new McpPublication(), {
+            id: 'publication-1',
+            tenantId: 'tenant-1',
+            organizationId: null,
+            name: 'Generic MCP',
+            slug: 'legacy-client-specific-slug'
+        })
+        const findOne = jest.fn(async ({ where }: { where: { id?: string; slug?: string } }) =>
+            where.id === publication.id ? publication : null
+        )
+        const save = jest.fn(async (value) => value)
+        const service = new McpPublicationService(
+            repository<McpPublication>({ findOne, save }),
+            repository<McpPublicationCapability>(),
+            repository<McpCapabilityCatalog>(),
+            repository<XpertToolset>(),
+            repository<McpApiKey>(),
+            repository<McpOAuthPolicy>(),
+            repository<McpInvocationAudit>(),
+            {} as unknown as McpSubscriptionService,
+            accessService()
+        )
+
+        await expect(service.synchronizeManagedSlug(publication.id, 'generic-mcp')).resolves.toBe(publication)
+
+        expect(publication.slug).toBe('generic-mcp')
+        expect(save).toHaveBeenCalledWith(publication)
     })
 
     it('requires an enabled OAuth policy before enabling an OAuth Publication', async () => {
@@ -178,7 +334,8 @@ describe('McpPublicationService policy enforcement', () => {
             repository<McpApiKey>(),
             repository<McpOAuthPolicy>({ findOne: findOAuthPolicy }),
             repository<McpInvocationAudit>(),
-            { publishCatalogChanged: jest.fn() } as unknown as McpSubscriptionService
+            { publishCatalogChanged: jest.fn() } as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.enable(publication.id)).rejects.toBeInstanceOf(BadRequestException)
@@ -241,6 +398,96 @@ describe('McpPublicationService policy enforcement', () => {
 })
 
 describe('McpPublicationService capability reconciliation', () => {
+    it('replaces the discovered catalog and auto-managed bindings in one transaction', async () => {
+        const publication = Object.assign(new McpPublication(), {
+            id: 'publication-1',
+            tenantId: 'tenant-1',
+            organizationId: null
+        })
+        const toolsetId = '10000000-0000-4000-8000-000000000004'
+        const descriptor = {
+            descriptorVersion: 1 as const,
+            capabilityType: 'tool' as const,
+            capabilityKey: 'factory_cases_search',
+            source: { toolsetId },
+            requiredContext: ['organization'] as const,
+            visibility: ['model'] as const,
+            inputSchema: { type: 'object' },
+            behavior: { risk: 'read' as const, sideEffect: 'none' as const, idempotency: 'safe' as const }
+        }
+        const catalogItem = Object.assign(new McpCapabilityCatalog(), {
+            id: 'catalog-1',
+            tenantId: publication.tenantId,
+            organizationId: publication.organizationId,
+            toolsetId,
+            capabilityType: descriptor.capabilityType,
+            capabilityKey: descriptor.capabilityKey,
+            descriptorHash: 'descriptor-hash',
+            descriptor,
+            enabled: true
+        })
+        const manager = {
+            delete: jest.fn().mockResolvedValue(undefined),
+            save: jest.fn(async (_entity, values) => values),
+            update: jest.fn().mockResolvedValue(undefined)
+        }
+        const transaction = jest.fn(async (callback) => callback(manager))
+        const bindingRepository = repository<McpPublicationCapability>({
+            create: jest.fn((value) => Object.assign(new McpPublicationCapability(), value)),
+            find: jest.fn().mockResolvedValue([]),
+            manager: { transaction }
+        })
+        const publishCatalogChanged = jest.fn()
+        const service = new McpPublicationService(
+            repository<McpPublication>({ findOne: jest.fn().mockResolvedValue(publication) }),
+            bindingRepository,
+            repository<McpCapabilityCatalog>(),
+            repository<XpertToolset>({ find: jest.fn().mockResolvedValue([{ id: toolsetId }]) }),
+            repository<McpApiKey>(),
+            repository<McpOAuthPolicy>(),
+            repository<McpInvocationAudit>(),
+            { publishCatalogChanged } as unknown as McpSubscriptionService,
+            accessService()
+        )
+
+        await service.replaceCapabilitiesWithCatalog(
+            publication.id,
+            [catalogItem],
+            [
+                {
+                    toolsetId,
+                    capabilityType: 'tool',
+                    capabilityKey: descriptor.capabilityKey,
+                    publicName: descriptor.capabilityKey,
+                    enabled: true
+                }
+            ]
+        )
+
+        expect(transaction).toHaveBeenCalledTimes(1)
+        expect(manager.delete).toHaveBeenNthCalledWith(1, McpCapabilityCatalog, { toolsetId: In([toolsetId]) })
+        expect(manager.save).toHaveBeenNthCalledWith(1, McpCapabilityCatalog, [catalogItem])
+        expect(manager.delete).toHaveBeenNthCalledWith(2, McpPublicationCapability, {
+            publicationId: publication.id
+        })
+        expect(manager.save).toHaveBeenNthCalledWith(
+            2,
+            McpPublicationCapability,
+            expect.arrayContaining([
+                expect.objectContaining({
+                    publicationId: publication.id,
+                    toolsetId,
+                    capabilityKey: descriptor.capabilityKey
+                })
+            ])
+        )
+        expect(manager.update).toHaveBeenCalledWith(
+            McpPublication,
+            { id: publication.id },
+            expect.objectContaining({ reviewStatus: 'current', reviewReason: null })
+        )
+    })
+
     it('lists every scoped toolset that has selectable catalog capabilities', async () => {
         const publication = Object.assign(new McpPublication(), {
             id: 'publication-1',
@@ -268,7 +515,8 @@ describe('McpPublicationService capability reconciliation', () => {
             repository<McpApiKey>(),
             repository<McpOAuthPolicy>(),
             repository<McpInvocationAudit>(),
-            {} as unknown as McpSubscriptionService
+            {} as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.availableCapabilitySources(publication.id)).resolves.toEqual([
@@ -308,7 +556,8 @@ describe('McpPublicationService capability reconciliation', () => {
             repository<McpApiKey>(),
             repository<McpOAuthPolicy>(),
             repository<McpInvocationAudit>(),
-            {} as unknown as McpSubscriptionService
+            {} as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await expect(service.availableCapabilities(publication.id, toolsetId)).resolves.toEqual([])
@@ -402,7 +651,8 @@ describe('McpPublicationService capability reconciliation', () => {
             {
                 publishCatalogChanged: jest.fn(),
                 publishAccessInvalidated
-            } as unknown as McpSubscriptionService
+            } as unknown as McpSubscriptionService,
+            accessService()
         )
 
         await service.disable(publication.id)
@@ -484,7 +734,8 @@ function policyService(options?: { conflictingBinding?: McpPublicationCapability
         repository<McpApiKey>(),
         repository<McpOAuthPolicy>(),
         repository<McpInvocationAudit>(),
-        { publishCatalogChanged: jest.fn() } as unknown as McpSubscriptionService
+        { publishCatalogChanged: jest.fn() } as unknown as McpSubscriptionService,
+        accessService()
     )
     return { service }
 }
@@ -540,7 +791,8 @@ function reconciliationService(
         repository<McpApiKey>(),
         repository<McpOAuthPolicy>(),
         repository<McpInvocationAudit>(),
-        { publishCatalogChanged: jest.fn() } as unknown as McpSubscriptionService
+        { publishCatalogChanged: jest.fn() } as unknown as McpSubscriptionService,
+        accessService()
     )
     return { service, publication, publicationRepository }
 }
@@ -581,7 +833,8 @@ function baseService(publicationRepository: Repository<McpPublication>) {
         repository<McpApiKey>(),
         repository<McpOAuthPolicy>(),
         repository<McpInvocationAudit>(),
-        {} as McpSubscriptionService
+        {} as McpSubscriptionService,
+        accessService()
     )
 }
 
@@ -600,4 +853,8 @@ function rawBuilder<T>(rows: T[]) {
     builder.andWhere.mockReturnValue(builder)
     builder.groupBy.mockReturnValue(builder)
     return builder
+}
+
+function accessService(methods: Partial<McpPublicationAccessService> = {}) {
+    return methods as McpPublicationAccessService
 }

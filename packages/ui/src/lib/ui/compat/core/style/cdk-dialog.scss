@@ -80,6 +80,11 @@ z-dialog {
   @apply bg-components-card-bg rounded-2xl p-4;
 }
 
+.cdk-overlay-backdrop.backdrop-blur-xs-black {
+  @apply backdrop-blur-xs transition-all duration-100 ease-in;
+  background-color: color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+
 .cdk-overlay-backdrop.backdrop-blur-sm-black {
   @apply backdrop-blur-sm transition-all duration-100 ease-in bg-black/10;
 }
@@ -136,4 +141,14 @@ z-dialog.xp-overlay-pane-share-sheet {
 z-dialog.xp-overlay-pane-card {
   @apply overflow-hidden rounded-3xl border-[0.5px] border-solid bg-components-card-bg text-text-primary shadow-lg;
   border-color: var(--color-divider-regular);
+}
+
+.cdk-overlay-pane.xp-overlay-pane-dialog {
+  .cdk-dialog-container {
+    @apply overflow-hidden rounded-xl bg-popover text-popover-foreground ring-1 ring-foreground/10 outline-none;
+  }
+}
+
+z-dialog.xp-overlay-pane-dialog {
+  @apply overflow-hidden rounded-xl bg-popover text-popover-foreground ring-1 ring-foreground/10 outline-none;
 }

@@ -62,6 +62,13 @@ const components: IPluginComponentDefinition[] = [
     definitionHash: 'native-hash'
   },
   {
+    componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+    componentKey: 'decorated-native',
+    definitionHash: 'decorated-native-hash',
+    config: { provider: 'decorated_native', toolCount: 2, runtimeDiscovered: true, nativeMcp: true },
+    metadata: { runtimeDiscovered: true, nativeMcp: true }
+  },
+  {
     componentType: PLUGIN_COMPONENT_TYPE.SKILL,
     componentKey: 'browser-research',
     definitionHash: 'skill-hash'
@@ -275,6 +282,16 @@ describe('PluginResourcesComponent', () => {
         }
       ]
     })
+  })
+
+  it('keeps runtime-discovered MCP Providers out of the generic resource installer', async () => {
+    const { component } = await createComponent([], {
+      initialInstallMode: 'organization',
+      allowedInstallModes: ['organization']
+    })
+
+    expect(component.targetComponents().map((item) => item.componentKey)).toEqual(['browser-native'])
+    expect(component.installableComponents().map((item) => item.componentKey)).toEqual(['browser-native'])
   })
 
   it('closes with the install result when closeOnSuccess is enabled', async () => {
