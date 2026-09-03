@@ -8,7 +8,12 @@
       <i class="ri-arrow-left-line mr-1"></i>
       {{ 'XP.Knowledgebase.PrevStep' | translate: { Default: 'Previous' } }}
     </button>
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-auto" (click)="saveAndProcess()">
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-medium ml-auto"
+      [disabled]="loading()"
+      (click)="saveAndProcess()"
+    >
       {{ 'XP.Knowledgebase.SaveProcess' | translate: { Default: 'Save and process' } }}
     </button>
   </div>
