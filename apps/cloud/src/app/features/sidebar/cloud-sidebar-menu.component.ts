@@ -9,6 +9,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 import { CloudSidebarAssistantsComponent } from './cloud-sidebar-assistants.component'
 import { CloudSidebarRecentTasksComponent } from './cloud-sidebar-recent-tasks.component'
+import { CloudSidebarProjectsComponent } from './cloud-sidebar-projects.component'
+import { CloudSidebarWorkspacesComponent } from './cloud-sidebar-workspaces.component'
 import { ClawXpertConversationStartIntentService } from '../chat/clawxpert/clawxpert-conversation-start-intent.service'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import {
@@ -41,6 +43,8 @@ import {
     ZardIconComponent,
     CloudSidebarAssistantsComponent,
     CloudSidebarRecentTasksComponent,
+    CloudSidebarProjectsComponent,
+    CloudSidebarWorkspacesComponent,
     ...ZardMenuImports,
     ...ZardTooltipImports
   ],

@@ -274,6 +274,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Project',
+        sidebarSection: 'projects',
         featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_PROJECT],
         permissionKeys: [AIPermissionsEnum.XPERT_PROJECT_VIEW]
       }
@@ -298,6 +299,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Workspace',
+        sidebarSection: 'workspaces',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
         onboardingTarget: 'workspace'

@@ -1,8 +1,9 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, switchMap } from 'rxjs'
+import { BehaviorSubject, Observable, combineLatest, distinctUntilChanged, map, of, shareReplay, switchMap } from 'rxjs'
 import { API_XPERT_WORKSPACE } from '../constants/app.constants'
 import { IUser, IXpertWorkspace, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '../types'
 
@@ -15,21 +16,41 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
   readonly #logger = inject(NGXLogger)
 
   readonly #refresh = new BehaviorSubject<void>(null)
+  readonly #myWorkspaceRequests = new Map<string, Observable<{ items: IXpertWorkspace[] }>>()
+  readonly #workspaceScope = combineLatest([this.store.user$, this.selectOrganizationId()]).pipe(
+    map(([user, organizationId]) => ({ userId: user?.id ?? null, organizationId: organizationId ?? null })),
+    distinctUntilChanged(
+      (previous, current) => previous.userId === current.userId && previous.organizationId === current.organizationId
+    )
+  )
 
   constructor() {
     super(API_XPERT_WORKSPACE)
+    this.#workspaceScope.pipe(takeUntilDestroyed()).subscribe(() => this.#myWorkspaceRequests.clear())
   }
 
   getAllMy(params?: PaginationParams<IXpertWorkspace>, options?: XpertWorkspaceRequestOptions) {
-    return this.selectOrganizationId().pipe(
-      switchMap(() =>
-        this.#refresh.pipe(
-          switchMap(() =>
-            this.httpClient.get<{ items: IXpertWorkspace[] }>(this.apiBaseUrl + `/my`, {
-              params: appendWorkspaceRequestOptions(toHttpParams(params), options)
-            })
-          )
-        )
+    const httpParams = appendWorkspaceRequestOptions(toHttpParams(params), options)
+    const key = httpParams.toString()
+    return this.#workspaceScope.pipe(
+      switchMap(({ userId }) =>
+        userId
+          ? this.#refresh.pipe(
+              switchMap(() => {
+                let request = this.#myWorkspaceRequests.get(key)
+                if (!request) {
+                  // The sidebar and routed workspace pages share the same request and result.
+                  request = this.httpClient
+                    .get<{ items: IXpertWorkspace[] }>(this.apiBaseUrl + '/my', {
+                      params: httpParams
+                    })
+                    .pipe(shareReplay({ bufferSize: 1, refCount: true }))
+                  this.#myWorkspaceRequests.set(key, request)
+                }
+                return request
+              })
+            )
+          : of({ items: [] })
       )
     )
   }
@@ -85,6 +106,7 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
   }
 
   refresh() {
+    this.#myWorkspaceRequests.clear()
     this.#refresh.next()
   }
 }

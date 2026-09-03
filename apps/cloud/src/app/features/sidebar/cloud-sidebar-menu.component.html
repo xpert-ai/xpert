@@ -17,7 +17,19 @@
             "
           >
             @if (entry.item; as item) {
-              @if (collapsed() && visibleChildren(item).length) {
+              @if (item.data.sidebarSection === 'projects') {
+                <xp-cloud-sidebar-projects
+                  [collapsed]="collapsed()"
+                  [active]="isActive(item)"
+                  (clicked)="clicked.emit()"
+                />
+              } @else if (item.data.sidebarSection === 'workspaces') {
+                <xp-cloud-sidebar-workspaces
+                  [collapsed]="collapsed()"
+                  [active]="isActive(item)"
+                  (clicked)="clicked.emit()"
+                />
+              } @else if (collapsed() && visibleChildren(item).length) {
                 <button
                   type="button"
                   class="cloud-sidebar-menu__item"
