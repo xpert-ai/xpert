@@ -167,6 +167,7 @@
         "KBReqVisionModel": "知识库需要视觉模型来处理图像",
         "GraphSearchScopeRequired": "GraphRAG 检索需要租户和组织范围。",
         "GraphSearchFailed": "GraphRAG 检索失败。",
+        "GraphExtractionEvidenceInvalid": "GraphRAG 提取结果没有为每个图谱项返回有效的原文依据。",
         "IntegrationNotFound": "未找到系统集成‘{{id}}’",
         "InvalidDocumentProcessingMode": "文档处理模式必须是 full 或 rechunk。",
         "TransformSnapshotMissing": "没有可用的转换结果快照，请先完整执行一次转换器。",
