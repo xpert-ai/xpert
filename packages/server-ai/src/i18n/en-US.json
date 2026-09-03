@@ -210,6 +210,8 @@
         "AssistantModelSelectionInvalidList": "Assistant selectable models must be an array.",
         "AssistantModelSelectionInvalidModel": "Selectable model at position {{position}} must identify an available LLM model and contain valid options.",
         "AssistantModelPreferenceForbidden": "This authentication principal cannot persist an Assistant model preference.",
+        "InvalidConversationSidebarState": "Conversation pin and archive values must be booleans.",
+        "ConversationSidebarOwnerRequired": "Only your own conversations can be managed in the sidebar.",
         "AssistantUserPreferenceUserRequired": "A user context is required to persist Assistant preferences.",
         "AssistantModelPreferenceInputRequired": "model_id is required and must be a model id or null.",
         "AssistantModelPreferenceInputInvalid": "model_id must be a model id or null.",

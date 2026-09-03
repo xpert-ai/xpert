@@ -26,12 +26,16 @@ import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.enti
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
+import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
+import { ChatConversationSidebarController } from './conversation-sidebar.controller'
+import { ChatConversationSidebarService } from './conversation-sidebar.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
         TypeOrmModule.forFeature([
             ChatConversation,
+            AssistantUserPreference,
             ChatConversationThread,
             ChatConversationGoal,
             ChatConversationReadState,
@@ -54,9 +58,10 @@ import { WorkbenchAssistantConversationNavigationService } from './workbench-ass
         SseStreamModule,
         XpertProjectAccessModule
     ],
-    controllers: [ChatConversationController],
+    controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
         ChatConversationService,
+        ChatConversationSidebarService,
         ChatConversationThreadService,
         ChatConversationGoalService,
         ChatTaskSummaryService,

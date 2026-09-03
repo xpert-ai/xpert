@@ -1,3 +1,5 @@
+import type { IChatConversation, IChatConversationUnreadXpertSummary } from '@xpert-ai/contracts'
+
 export interface AssistantXpertLike {
   id?: string | null
   createdAt?: Date | string | null
@@ -141,11 +143,132 @@ function normalizeAssistantTagValue(value: string) {
   return value.trim().toLowerCase()
 }
 
-function normalizeChatPath(url: string) {
+export function normalizeChatPath(url: string) {
   const [pathname] = (url || '/chat').split('?')
   if (!pathname || pathname === '/') {
     return '/chat'
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+export function viewKeysMatch(menuViewKey: string, currentViewKey: string | null | undefined) {
+  const normalizedMenuViewKey = menuViewKey.trim()
+  const normalizedCurrentViewKey = currentViewKey?.trim()
+
+  if (!normalizedMenuViewKey || !normalizedCurrentViewKey) {
+    return false
+  }
+
+  return (
+    normalizedMenuViewKey === normalizedCurrentViewKey ||
+    normalizedMenuViewKey.endsWith(`__${normalizedCurrentViewKey}`) ||
+    normalizedCurrentViewKey.endsWith(`__${normalizedMenuViewKey}`)
+  )
+}
+
+export function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {
+  if (Array.isArray(value)) {
+    return value.filter(isUnreadSummary)
+  }
+
+  if (value && typeof value === 'object' && Array.isArray((value as { items?: unknown }).items)) {
+    return (value as { items: unknown[] }).items.filter(isUnreadSummary)
+  }
+
+  return []
+}
+
+export function mergeConversations(current: IChatConversation[], incoming: IChatConversation[]) {
+  const conversations = new Map<string, IChatConversation>()
+
+  for (const conversation of [...current, ...incoming]) {
+    const key = conversation.id?.trim() || conversation.threadId?.trim()
+    if (key) {
+      conversations.set(key, conversation)
+    }
+  }
+
+  return Array.from(conversations.values()).sort(
+    (left, right) =>
+      Number(!!right.sidebar?.pinned) - Number(!!left.sidebar?.pinned) ||
+      toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt)
+  )
+}
+
+function toTimestamp(value: Date | string | number | null | undefined) {
+  const timestamp = value instanceof Date ? value.getTime() : value ? new Date(value).getTime() : 0
+  return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+export function formatConversationUpdatedAt(value: Date | string | number | null | undefined) {
+  if (value === null || value === undefined || value === '') {
+    return ''
+  }
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hour}:${minute}`
+}
+
+function isUnreadSummary(value: unknown): value is IChatConversationUnreadXpertSummary {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as IChatConversationUnreadXpertSummary).xpertId === 'string' &&
+    typeof (value as IChatConversationUnreadXpertSummary).unreadMessages === 'number'
+  )
+}
+
+export function readAssistantOrder(storageKey: string) {
+  const storage = getLocalStorage()
+  if (!storage) {
+    return []
+  }
+
+  let value: unknown
+  try {
+    const storedValue = storage.getItem(storageKey)
+    value = storedValue ? JSON.parse(storedValue) : []
+  } catch {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const orderedIds = value.filter((id): id is string => typeof id === 'string' && !!id.trim()).map((id) => id.trim())
+
+  return Array.from(new Set(orderedIds))
+}
+
+export function writeAssistantOrder(storageKey: string, orderedIds: string[]) {
+  const storage = getLocalStorage()
+  if (!storage) {
+    return
+  }
+
+  try {
+    storage.setItem(storageKey, JSON.stringify(orderedIds))
+  } catch {
+    return
+  }
+}
+
+function getLocalStorage() {
+  try {
+    return globalThis.localStorage ?? null
+  } catch {
+    return null
+  }
 }

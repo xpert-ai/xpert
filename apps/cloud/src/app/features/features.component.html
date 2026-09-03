@@ -66,7 +66,7 @@
   <z-sidebar
     [class]="
       sidebarResizing()
-        ? 'xp-features__sidenav is-resizing flex flex-col p-0!'
+        ? 'xp-features__sidenav transition-none flex flex-col p-0!'
         : 'xp-features__sidenav flex flex-col p-0!'
     "
     [zWidth]="sidebarWidth()"
@@ -93,7 +93,7 @@
         type="button"
         role="separator"
         aria-orientation="vertical"
-        class="group absolute inset-y-0 left-0 flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none justify-center bg-transparent p-0 outline-none"
+        class="group absolute inset-y-0 -left-[1px] flex w-3 -translate-x-1/2 cursor-col-resize touch-none select-none justify-center bg-transparent p-0 outline-none"
         [attr.aria-label]="'XP.Sidebar.Resize' | translate: { Default: 'Resize sidebar' }"
         [attr.aria-valuemin]="sidebarMinWidth"
         [attr.aria-valuemax]="sidebarMaxWidth"
