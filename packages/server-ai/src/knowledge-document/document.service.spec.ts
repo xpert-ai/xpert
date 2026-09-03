@@ -4,18 +4,22 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     TextSplitterRegistry: class TextSplitterRegistry {},
     mergeParentChildChunks: jest.fn((_pages, chunks) => chunks)
 }))
-jest.mock('../knowledgebase', () => ({
+jest.mock('../knowledgebase/knowledgebase.service', () => ({
     KnowledgebaseService: class KnowledgebaseService {}
 }))
-jest.mock('../shared', () => ({
-    KnowledgeWorkAreaResolver: class KnowledgeWorkAreaResolver {},
+jest.mock('../shared/volume/work-area', () => ({
+    KnowledgeWorkAreaResolver: class KnowledgeWorkAreaResolver {}
+}))
+jest.mock('../shared/volume/volume-subtree', () => ({
     VolumeSubtreeClient: class VolumeSubtreeClient {
         constructor(private readonly volume: { readFile: (...args: unknown[]) => Promise<unknown> }) {}
 
         readFile(...args: unknown[]) {
             return this.volume.readFile(...args)
         }
-    },
+    }
+}))
+jest.mock('../shared/commands/load-storage-file.command', () => ({
     LoadStorageFileCommand: class LoadStorageFileCommand {
         constructor(public readonly input: unknown) {}
     }
@@ -295,6 +299,28 @@ describe('KnowledgeDocumentService access boundaries', () => {
         await expect(
             service.prepareExternalDocumentInputs([{ fileUrl: 'http://127.0.0.1/internal' }])
         ).rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    it('replaces a client file URL with the canonical managed file URL', async () => {
+        const readFile = jest.fn().mockResolvedValue({
+            filePath: 'reports/summary.pdf',
+            fileUrl: 'https://files.example.test/reports/summary.pdf'
+        })
+        const service = createService([], {
+            knowledgeWorkAreaResolver: {
+                resolve: jest.fn(async () => ({ volume: { readFile } }))
+            }
+        })
+        const document = {
+            knowledgebaseId: 'kb-owner',
+            filePath: 'files/reports/summary.pdf',
+            fileUrl: 'http://127.0.0.1/internal'
+        }
+
+        await service.prepareExternalDocumentInputs([document])
+
+        expect(readFile).toHaveBeenCalledWith('files', 'reports/summary.pdf', { metadataOnly: true })
+        expect(document.fileUrl).toBe('https://files.example.test/reports/summary.pdf')
     })
 
     it('replaces a client file URL with the canonical owned StorageFile URL', async () => {

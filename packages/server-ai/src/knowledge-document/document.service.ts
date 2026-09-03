@@ -457,6 +457,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 continue
             }
 
+            if (typeof document.filePath === 'string' && document.filePath.trim()) {
+                delete document.fileUrl
+                await this.canonicalizeExternalManagedFile(document, options?.resolveDocumentIds === true)
+                continue
+            }
+
             if (typeof document.fileUrl === 'string' && document.fileUrl.trim()) {
                 throw new BadRequestException(
                     'Remote fileUrl cannot be submitted directly. Upload the file first and use storageFileId.'

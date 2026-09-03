@@ -1,7 +1,17 @@
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { SandboxFileMiddleware } from './sandbox-file.middleware'
 
+jest.mock('@langchain/core/callbacks/dispatch', () => ({
+    dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
+}))
+
 jest.mock('@xpert-ai/contracts', () => ({
+    ChatMessageEventTypeEnum: {
+        ON_TOOL_MESSAGE: 'ON_TOOL_MESSAGE'
+    },
+    ChatMessageStepCategory: {
+        Program: 'Program'
+    },
     WorkflowNodeTypeEnum: {
         MIDDLEWARE: 'middleware'
     },
@@ -97,5 +107,49 @@ describe('SandboxFileMiddleware', () => {
             'sandbox_multi_edit_file',
             'sandbox_list_dir'
         ])
+    })
+
+    it('returns the caller workspace path instead of the provider absolute path after writing', async () => {
+        const middleware = new SandboxFileMiddleware()
+        const agentMiddleware = await Promise.resolve(
+            middleware.createMiddleware(
+                {},
+                {
+                    tenantId: 'tenant-1',
+                    userId: 'user-1',
+                    xpertFeatures: createXpertFeatures(),
+                    node: {
+                        id: 'middleware-1',
+                        key: 'middleware-1',
+                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                        provider: 'sandbox-file'
+                    },
+                    runtime: {} as never,
+                    tools: new Map()
+                }
+            )
+        )
+        const writeTool = agentMiddleware.tools.find((tool) => tool.name === 'sandbox_write_file')
+        const backend = {
+            workingDirectory: '/workspace',
+            write: jest.fn().mockResolvedValue({
+                path: '/workspace/reports/report.md',
+                filesUpdate: null
+            })
+        }
+
+        const result = await writeTool?.invoke(
+            { file_path: 'reports/report.md', content: '# Report' },
+            {
+                configurable: { sandbox: { backend } },
+                metadata: { tool_call_id: 'tool-call-1' }
+            }
+        )
+
+        expect(backend.write).toHaveBeenCalledWith('/workspace/reports/report.md', '# Report')
+        expect(JSON.parse(result as string)).toEqual({
+            path: 'reports/report.md',
+            filesUpdate: null
+        })
     })
 })

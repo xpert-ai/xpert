@@ -1,5 +1,11 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.1
+
+### Patch Changes
+
+- a86016e: Increase the default maximum output token limit to 2048.
+
 ## 3.18.0
 
 ### Minor Changes
