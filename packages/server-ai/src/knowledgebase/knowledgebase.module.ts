@@ -31,6 +31,7 @@ import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
 import { KnowledgeFilterV2MigrationService } from './migration'
 import { KnowledgeGraphFilterScopeService } from './filter'
+import { GraphKnowledgeCandidateRetriever, LegacyWeightedFusion, VectorKnowledgeCandidateRetriever } from './retrieval'
 
 @Module({
     imports: [
@@ -66,6 +67,9 @@ import { KnowledgeGraphFilterScopeService } from './filter'
         KnowledgebaseWriterMiddleware,
         KnowledgeFilterV2MigrationService,
         KnowledgeGraphFilterScopeService,
+        VectorKnowledgeCandidateRetriever,
+        GraphKnowledgeCandidateRetriever,
+        LegacyWeightedFusion,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,
         ...QueryHandlers,

@@ -4,6 +4,13 @@ import { DocumentMetadata, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeGraphSearchQuery } from '../../../graphrag/queries'
+import { KnowledgeDocumentChunkService } from '../../../knowledge-document/chunk/chunk.service'
+import {
+    GraphKnowledgeCandidateRetriever,
+    KnowledgeRetrievalBatch,
+    LegacyWeightedFusion,
+    VectorKnowledgeCandidateRetriever
+} from '../../retrieval'
 import { KnowledgeSearchQueryHandler } from './knowledge-search.handler'
 
 function chunk(chunkId: string, metadata: Partial<DocumentMetadata> = {}): DocumentInterface<DocumentMetadata> {
@@ -16,11 +23,38 @@ function chunk(chunkId: string, metadata: Partial<DocumentMetadata> = {}): Docum
     }
 }
 
-const diagnostics = { filterVersion: 2 as const, filterStatus: 'not_applied' as const, hitCount: 0 }
+function createDiagnostics() {
+    return { filterVersion: 2 as const, filterStatus: 'not_applied' as const, hitCount: 0 }
+}
 
-function attachHandlerServices(handler: KnowledgeSearchQueryHandler) {
+function vectorBatch(
+    documents: DocumentInterface<DocumentMetadata>[],
+    diagnostics: KnowledgeRetrievalBatch['diagnostics'] = createDiagnostics()
+): KnowledgeRetrievalBatch {
+    return {
+        source: 'vector',
+        candidates: documents.map((document, index) => ({ document, rank: index + 1 })),
+        diagnostics
+    }
+}
+
+function createHandler(
+    knowledgebaseService: KnowledgebaseService,
+    queryBus: QueryBus,
+    chunkService: KnowledgeDocumentChunkService = {
+        findAll: jest.fn(async () => ({ items: [] }))
+    } as unknown as KnowledgeDocumentChunkService
+) {
+    const vectorRetriever = new VectorKnowledgeCandidateRetriever(knowledgebaseService, chunkService)
+    const graphRetriever = new GraphKnowledgeCandidateRetriever(queryBus)
+    const handler = new KnowledgeSearchQueryHandler(
+        knowledgebaseService,
+        vectorRetriever,
+        graphRetriever,
+        new LegacyWeightedFusion()
+    )
     Object.defineProperty(handler, 'retrievalLogService', { value: { create: jest.fn() } })
-    Object.defineProperty(handler, 'chunkService', { value: { findAll: jest.fn(async () => ({ items: [] })) } })
+    return { handler, vectorRetriever }
 }
 
 describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
@@ -33,14 +67,11 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         const knowledgebaseService = {
             findAll: jest.fn(async () => ({ items: [knowledgebase] }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             { execute: jest.fn() } as unknown as QueryBus
         )
-        attachHandlerServices(handler)
-        const vectorSearch = jest
-            .spyOn(handler, 'similaritySearchWithScore')
-            .mockResolvedValue({ documents: [], diagnostics })
+        const vectorSearch = jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(vectorBatch([]))
 
         await handler.execute(
             new KnowledgeSearchQuery({
@@ -55,15 +86,15 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         )
 
         expect(vectorSearch).toHaveBeenCalledWith(
-            knowledgebase,
-            'quality requirements',
-            undefined,
-            expect.any(Object),
-            false,
-            {
-                xpertId: 'xpert-1',
-                threadId: 'thread-1'
-            }
+            expect.objectContaining({
+                knowledgebase,
+                query: 'quality requirements',
+                k: undefined,
+                modelContext: {
+                    xpertId: 'xpert-1',
+                    threadId: 'thread-1'
+                }
+            })
         )
     })
 
@@ -84,12 +115,11 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        attachHandlerServices(handler)
-        const vectorSearch = jest.spyOn(handler, 'similaritySearchWithScore')
+        const vectorSearch = jest.spyOn(vectorRetriever, 'retrieve')
 
         const results = await handler.execute(
             new KnowledgeSearchQuery({
@@ -138,15 +168,13 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        attachHandlerServices(handler)
-        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue({
-            documents: [chunk('chunk-1', { score: 0.8 }), chunk('chunk-2', { score: 0.6 })],
-            diagnostics
-        })
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(
+            vectorBatch([chunk('chunk-1', { score: 0.8 }), chunk('chunk-2', { score: 0.6 })])
+        )
 
         const results = await handler.execute(
             new KnowledgeSearchQuery({
@@ -196,15 +224,17 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        attachHandlerServices(handler)
-        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue({
-            documents: [chunk('filtered-vector', { score: 0.8 })],
-            diagnostics: { filterVersion: 2, filterStatus: 'applied', hitCount: 1 }
-        })
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(
+            vectorBatch([chunk('filtered-vector', { score: 0.8 })], {
+                filterVersion: 2,
+                filterStatus: 'applied',
+                hitCount: 1
+            })
+        )
 
         const result = await handler.execute(
             new KnowledgeSearchQuery({
@@ -234,6 +264,145 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         })
     })
 
+    it('fails graph-only retrieval when graph search fails', async () => {
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 },
+                        graphRag: { enabled: true }
+                    }
+                ]
+            }))
+        }
+        const { handler } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            {
+                execute: jest.fn(async () => ({ docs: [], failed: true, error: 'graph backend unavailable' }))
+            } as unknown as QueryBus
+        )
+
+        await expect(
+            handler.execute(
+                new KnowledgeSearchQuery({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    knowledgebases: ['kb-1'],
+                    query: 'who owns the platform?',
+                    source: 'spec',
+                    retrieval: { mode: 'graph' }
+                })
+            )
+        ).rejects.toThrow('graph backend unavailable')
+    })
+
+    it('does not renormalize vector weight when graph retrieval succeeds without hits', async () => {
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 },
+                        graphRag: { enabled: true, graphWeight: 0.25 }
+                    }
+                ]
+            }))
+        }
+        const { handler, vectorRetriever } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            { execute: jest.fn(async () => ({ docs: [] })) } as unknown as QueryBus
+        )
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(vectorBatch([chunk('vector-only', { score: 0.8 })]))
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: 'who owns the platform?',
+                source: 'spec',
+                retrieval: { mode: 'hybrid' }
+            })
+        )
+
+        expect(result.documents).toHaveLength(1)
+        expect(result.documents[0].metadata).toEqual(
+            expect.objectContaining({
+                vectorScore: 0.8,
+                graphScore: 0
+            })
+        )
+        expect(result.documents[0].metadata.score).toBeCloseTo(0.6)
+        expect(result.documents[0].metadata.relevanceScore).toBeCloseTo(0.6)
+    })
+
+    it('reranks the vector branch and the fused results in hybrid mode', async () => {
+        const vectorStore = {
+            embeddingModel: 'embedding-model',
+            structuredSimilaritySearchWithScore: jest.fn(async () => ({
+                items: [[chunk('vector-1'), 0.2]],
+                candidateDocumentCount: 1,
+                candidateChunkCount: 1
+            })),
+            rerank: jest.fn(async (documents: DocumentInterface<DocumentMetadata>[]) =>
+                documents.map((_document, index) => ({ index, relevanceScore: 0.9 - index * 0.1 }))
+            )
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        name: 'Knowledgebase',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 },
+                        rerankModelId: 'rerank-model',
+                        graphRag: { enabled: true, graphWeight: 0.25 }
+                    }
+                ]
+            })),
+            getActiveVectorStore: jest.fn(async () => vectorStore)
+        }
+        const { handler } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            {
+                execute: jest.fn(async () => ({
+                    docs: [chunk('graph-1', { graphScore: 0.7, score: 0.7 })]
+                }))
+            } as unknown as QueryBus,
+            {
+                findAll: jest.fn(async () => ({
+                    items: [
+                        {
+                            id: 'chunk-row-1',
+                            pageContent: 'content-vector-1',
+                            metadata: { chunkId: 'vector-1' },
+                            document: { id: 'document-1', disabled: false }
+                        }
+                    ]
+                }))
+            } as unknown as KnowledgeDocumentChunkService
+        )
+
+        await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: 'who owns the platform?',
+                source: 'spec',
+                retrieval: { mode: 'hybrid' }
+            })
+        )
+
+        expect(vectorStore.rerank).toHaveBeenCalledTimes(2)
+        expect(vectorStore.rerank.mock.calls[0][0]).toHaveLength(1)
+        expect(vectorStore.rerank.mock.calls[1][0]).toHaveLength(2)
+    })
+
     it('uses the knowledgebase retrieval mode when the request does not override it', async () => {
         const queryBus = {
             execute: jest.fn(async () => ({
@@ -252,14 +421,13 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        attachHandlerServices(handler)
         const vectorSearch = jest
-            .spyOn(handler, 'similaritySearchWithScore')
-            .mockResolvedValue({ documents: [chunk('chunk-1', { score: 0.8 })], diagnostics })
+            .spyOn(vectorRetriever, 'retrieve')
+            .mockResolvedValue(vectorBatch([chunk('chunk-1', { score: 0.8 })]))
 
         const results = await handler.execute(
             new KnowledgeSearchQuery({
@@ -292,11 +460,10 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             queryBus as unknown as QueryBus
         )
-        attachHandlerServices(handler)
 
         const result = await handler.execute(
             new KnowledgeSearchQuery({
@@ -347,14 +514,12 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             }))
         }
-        const handler = new KnowledgeSearchQueryHandler(
+        const { handler, vectorRetriever } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             { execute: jest.fn() } as unknown as QueryBus
         )
-        attachHandlerServices(handler)
-        jest.spyOn(handler, 'similaritySearchWithScore').mockResolvedValue({
-            documents: [chunk('chunk-1', { score: 0.7 })],
-            diagnostics: {
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(
+            vectorBatch([chunk('chunk-1', { score: 0.7, relevanceScore: 0.95 })], {
                 filterVersion: 2,
                 filterStatus: 'applied',
                 dynamicFilter: {
@@ -364,8 +529,8 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                     value: { kind: 'literal', value: 'pdf' }
                 },
                 hitCount: 1
-            }
-        })
+            })
+        )
 
         const result = await handler.execute(
             new KnowledgeSearchQuery({

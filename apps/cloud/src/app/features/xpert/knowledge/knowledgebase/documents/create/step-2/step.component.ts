@@ -7,7 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, finalize } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgeDocument,
@@ -112,6 +112,11 @@ export class KnowledgeDocumentCreateStep2Component {
   readonly parserConfig = this.createComponent.parserConfig
 
   saveAndProcess() {
+    if (this.loading()) {
+      return
+    }
+
+    this.loading.set(true)
     this.knowledgeDocumentService
       .createBulk(
         this.documents().map((doc) => {
@@ -122,6 +127,7 @@ export class KnowledgeDocumentCreateStep2Component {
         }),
         true
       )
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (docs) => {
           this.createComponent.documents.set(docs)
