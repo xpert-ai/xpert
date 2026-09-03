@@ -109,6 +109,27 @@ describe('McpApiKeyService', () => {
         expect(decryptSecret(encryptedSecret, environment.secretsEncryptionKey)).toBe(first.secret)
     })
 
+    it('creates a new revealable credential when the requested MCP client scopes change', async () => {
+        const targetPublication = publication()
+        const toolsOnly = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client'
+        })
+        const appEnabled = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
+        const reused = await service.getOrCreateRevealableCredential(targetPublication, 'organization-1', {
+            name: 'MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
+
+        expect(appEnabled.apiKey.id).not.toBe(toolsOnly.apiKey.id)
+        expect(appEnabled.apiKey.scopes).toEqual(['tools:list', 'tools:call', 'resources:list', 'resources:read'])
+        expect(reused.apiKey.id).toBe(appEnabled.apiKey.id)
+        expect(reused.secret).toBe(appEnabled.secret)
+        expect(stored).toHaveLength(2)
+    })
+
     it('authenticates a valid bearer key only for its publication and updates last use', async () => {
         const created = await service.create('publication-1', { name: 'Codex', scopes: ['tools:list'] })
         selectedKey = stored[0]

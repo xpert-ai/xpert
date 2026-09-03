@@ -121,7 +121,7 @@ export class McpApiKeyService {
             (key) =>
                 !!key.encryptedSecret &&
                 (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now()) &&
-                hasMcpClientScopes(key.scopes)
+                hasRequestedScopes(key.scopes, input.scopes)
         )
         if (reusable?.encryptedSecret) {
             return {
@@ -310,8 +310,11 @@ function normalizeScopes(scopes?: string[]) {
     return normalized
 }
 
-function hasMcpClientScopes(scopes: readonly string[]) {
-    return scopes.length === 2 && scopes.includes('tools:list') && scopes.includes('tools:call')
+function hasRequestedScopes(scopes: readonly string[], requested?: readonly string[]) {
+    const expected = requested?.length
+        ? [...new Set(requested.map((scope) => scope.trim()))]
+        : ['tools:list', 'tools:call']
+    return scopes.length === expected.length && expected.every((scope) => scopes.includes(scope))
 }
 
 function toPublicApiKey(key: McpApiKey): Omit<McpApiKey, 'keyHash' | 'encryptedSecret'> {

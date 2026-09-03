@@ -229,23 +229,24 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             const activeKeys = accessOrganizationId
                 ? await this.apiKeys.listForOrganization(activated.publication, accessOrganizationId)
                 : await this.runInProviderScope(ownership, () => this.apiKeys.list(activated.publication.id))
+            const clientScopes = activated.clientScopes
             const reusableKey = activeKeys.find(
                 (key) =>
                     !key.revokedAt &&
                     (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now()) &&
-                    hasMcpClientScopes(key.scopes)
+                    hasMcpClientScopes(key.scopes, clientScopes)
             )
             const createdApiKey = reusableKey
                 ? undefined
                 : accessOrganizationId
                   ? await this.apiKeys.createRevealableForOrganization(activated.publication, accessOrganizationId, {
                         name: `${activated.name} MCP client`,
-                        scopes: ['tools:list', 'tools:call']
+                        scopes: clientScopes
                     })
                   : await this.runInProviderScope(ownership, () =>
                         this.apiKeys.createRevealable(activated.publication.id, {
                             name: `${activated.name} MCP client`,
-                            scopes: ['tools:list', 'tools:call']
+                            scopes: clientScopes
                         })
                     )
             await this.retireLegacyOrganizationPublicationSafely(ownership, requestingOrganizationId)
@@ -349,6 +350,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
                 installation: savedInstallation,
                 publication: enabledPublication,
                 name: readConfigString(installation.config, 'name') ?? ownership.componentKey,
+                clientScopes: managedMcpClientScopes(capabilities),
                 rollback,
                 restoreOnConsumerSetupFailure:
                     !prepared.previousInstallation?.enabled || publicationSnapshot.state.status !== 'active'
@@ -449,9 +451,13 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         const connectionInfo = await this.runInProviderScope(ownership, () =>
             this.connectionInfoFor(resolved.publication.id)
         )
+        const clientScopes = await this.runInProviderScope(ownership, async () => {
+            const publication = await this.publications.getManaged(resolved.publication.id, ['capabilities'])
+            return managedMcpClientScopes(await this.publications.resolveRuntimeCapabilities(publication))
+        })
         const credential = await this.apiKeys.getOrCreateRevealableCredential(resolved.publication, organizationId, {
             name: `${readConfigString(resolved.installation.config, 'name') ?? componentKey} MCP client`,
-            scopes: ['tools:list', 'tools:call']
+            scopes: clientScopes
         })
         return {
             connectionInfo,
@@ -821,8 +827,18 @@ function safeErrorMessage(error: unknown) {
     return (error instanceof Error ? error.message : String(error)).slice(0, 500)
 }
 
-function hasMcpClientScopes(scopes: readonly string[]) {
-    return scopes.length === 2 && scopes.includes('tools:list') && scopes.includes('tools:call')
+function managedMcpClientScopes(capabilities: readonly { capabilityType: string }[]) {
+    const scopes = ['tools:list', 'tools:call']
+    // MCP App HTML is fetched through the same authenticated MCP Publication.
+    // Add Resource permissions only when this Provider actually publishes an App.
+    if (capabilities.some(({ capabilityType }) => capabilityType === 'app')) {
+        scopes.push('resources:list', 'resources:read')
+    }
+    return scopes
+}
+
+function hasMcpClientScopes(scopes: readonly string[], required: readonly string[]) {
+    return scopes.length === required.length && required.every((scope) => scopes.includes(scope))
 }
 
 function toCapabilityBindingInput(

@@ -31,6 +31,7 @@ export function describeXpertToolProvider(instance: object): XpertToolProviderDe
   const methods = collectDecoratedMethods(instance)
   const names = new Set<string>()
   const middlewareProviders = new Set((options.middlewares ?? []).map(({ provider }) => provider))
+  const appKeys = new Set((options.apps ?? []).map(({ key }) => key))
   const tools = methods.map(({ methodName, options: toolOptions }) => {
     validateToolOptions(toolOptions, methodName)
     if (names.has(toolOptions.name)) {
@@ -43,6 +44,10 @@ export function describeXpertToolProvider(instance: object): XpertToolProviderDe
     }
     if (middlewareProvider && !middlewareProviders.has(middlewareProvider)) {
       throw new Error(`Tool '${toolOptions.name}' references undeclared Middleware provider '${middlewareProvider}'.`)
+    }
+    const appKey = toolOptions.mcp && toolOptions.mcp.app?.resourceKey
+    if (appKey && !appKeys.has(appKey)) {
+      throw new Error(`MCP Tool '${toolOptions.name}' references undeclared App '${appKey}'.`)
     }
     return Object.freeze({ methodName, middlewareProvider, options: toolOptions })
   })
@@ -101,6 +106,19 @@ function validateProviderOptions(options: XpertToolProviderOptions) {
   if (options.defaultMiddleware && !middlewareProviders.has(options.defaultMiddleware)) {
     throw new Error(`Default Middleware provider '${options.defaultMiddleware}' is not declared.`)
   }
+  const appKeys = new Set<string>()
+  for (const app of options.apps ?? []) {
+    if (!TOOL_NAME_PATTERN.test(app.key) || app.key.length > 191) {
+      throw new Error(`MCP App key '${app.key}' is invalid.`)
+    }
+    if (appKeys.has(app.key)) {
+      throw new Error(`MCP App '${app.key}' is declared more than once.`)
+    }
+    if (!isRelativeHtmlEntry(app.entry)) {
+      throw new Error(`MCP App '${app.key}' entry must be a relative HTML path inside the plugin bundle.`)
+    }
+    appKeys.add(app.key)
+  }
 }
 
 function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: string) {
@@ -142,7 +160,15 @@ function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: st
     ) {
       throw new Error(`MCP Tool '${options.name}' declares invalid visibility.`)
     }
+    if (options.mcp.app && options.mcp.visibility && !options.mcp.visibility.includes('app')) {
+      throw new Error(`MCP Tool '${options.name}' with an App binding must include app visibility.`)
+    }
   }
+}
+
+function isRelativeHtmlEntry(entry: string) {
+  if (!entry || !entry.endsWith('.html') || entry.startsWith('/') || entry.includes('\\')) return false
+  return entry.split('/').every((segment) => segment !== '.' && segment !== '..' && segment.length > 0)
 }
 
 function assertStrictObjectSchema(schema: ZodTypeAny, toolName: string, role: 'input' | 'output') {
