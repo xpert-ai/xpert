@@ -43,26 +43,14 @@
               </button>
             }
           </div>
-          <div
+          <button
+            type="button"
             class="flex h-7 cursor-pointer items-center space-x-0.5 rounded-lg border-[0.5px] border-components-button-secondary-bg bg-components-button-secondary-bg px-1.5 shadow-xs backdrop-blur-[5px] hover:bg-components-button-secondary-bg-hover"
-            [cdkMenuTriggerFor]="vectorMenu"
-            [cdkMenuPosition]="[
-              {
-                originX: 'end',
-                originY: 'bottom',
-                overlayX: 'end',
-                overlayY: 'top',
-                offsetY: 8
-              },
-              {
-                originX: 'end',
-                originY: 'top',
-                overlayX: 'end',
-                overlayY: 'bottom',
-                offsetY: -8
-              }
-            ]"
-            #cdkMenu="cdkMenuTriggerFor"
+            cdkOverlayOrigin
+            #retrievalSettingsTrigger="cdkOverlayOrigin"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="retrievalSettingsOpen()"
+            (click)="toggleRetrievalSettings()"
           >
             <i class="ri-focus-mode mr-1"></i>
             <div class="text-xs font-medium uppercase select-none text-text-secondary">
@@ -79,7 +67,7 @@
               }
             </div>
             <i class="ri-equalizer-2-line"></i>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -228,14 +216,45 @@
   }
 </div>
 
-<ng-template #vectorMenu>
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="retrievalSettingsTrigger"
+  [cdkConnectedOverlayOpen]="retrievalSettingsOpen()"
+  [cdkConnectedOverlayPositions]="[
+    {
+      originX: 'end',
+      originY: 'bottom',
+      overlayX: 'end',
+      overlayY: 'top',
+      offsetY: 8
+    },
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'end',
+      overlayY: 'bottom',
+      offsetY: -8
+    }
+  ]"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  [cdkConnectedOverlayFlexibleDimensions]="false"
+  [cdkConnectedOverlayPush]="true"
+  (backdropClick)="onClose(false)"
+  (detach)="retrievalSettingsOpen.set(false)"
+  (overlayKeydown)="onRetrievalSettingsOverlayKeydown($event)"
+>
   <div
-    cdkMenu
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="retrieval-settings-title"
     class="w-[min(720px,calc(100vw-32px))] bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3"
   >
     <div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
       <div class="text-base font-semibold text-text-primary">
-        <div>{{ 'XP.Knowledgebase.RetrievalSetting' | translate: { Default: 'Retrieval Setting' } }}</div>
+        <div id="retrieval-settings-title">
+          {{ 'XP.Knowledgebase.RetrievalSetting' | translate: { Default: 'Retrieval Setting' } }}
+        </div>
         <div class="text-xs font-normal leading-[18px] font-body text-text-tertiary">
           <a target="_blank" rel="noopener noreferrer" [href]="helpUrl()" class="text-text-accent">{{
             'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' }
@@ -246,12 +265,12 @@
       <div class="flex">
         <div
           class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-hover-bg"
-          (click)="onClose(false); cdkMenu.close()"
+          (click)="onClose(false)"
         >
           <i class="ri-close-line"></i>
         </div>
       </div>
     </div>
-    <xp-knowledge-retrieval-settings savable [ngModel]="knowledgebase()" (close)="onClose($event); cdkMenu.close()" />
+    <xp-knowledge-retrieval-settings savable [ngModel]="knowledgebase()" (close)="onClose($event)" />
   </div>
 </ng-template>
