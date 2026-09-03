@@ -167,6 +167,7 @@
         "KBReqVisionModel": "Knowledgebase requires vision model to process images",
         "GraphSearchScopeRequired": "GraphRAG search requires tenant and organization scope.",
         "GraphSearchFailed": "GraphRAG search failed.",
+        "GraphExtractionEvidenceInvalid": "GraphRAG extraction did not return valid source evidence for every graph item.",
         "IntegrationNotFound": "Integration '{{id}}' not found",
         "InvalidDocumentProcessingMode": "Document processing mode must be full or rechunk.",
         "TransformSnapshotMissing": "No saved conversion result is available. Run the converter once before re-chunking.",
