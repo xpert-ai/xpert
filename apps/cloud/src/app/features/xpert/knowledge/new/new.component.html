@@ -1,16 +1,18 @@
 <div class="kb-create-dialog" cdkDrag cdkDragRootElement=".cdk-overlay-pane">
-  <button type="button" class="kb-close-button" aria-label="关闭" (click)="close()">
+  <button type="button" class="kb-close-button" [attr.aria-label]="i18nPrefix + '.Close' | translate" (click)="close()">
     <i class="ri-close-line"></i>
   </button>
 
   <div class="kb-settings-container">
-    <aside class="kb-create-sidebar" aria-label="知识库设置导航">
+    <aside class="kb-create-sidebar" [attr.aria-label]="i18nPrefix + '.NavigationLabel' | translate">
       <div class="kb-sidebar-header" cdkDragHandle>
-        <div class="kb-create-title">{{ isEditMode() ? '知识库设置' : '新建知识库' }}</div>
+        <div class="kb-create-title">
+          {{ i18nPrefix + (isEditMode() ? '.EditTitle' : '.CreateTitle') | translate }}
+        </div>
       </div>
       @for (group of groupedSections(); track group.group) {
         <div class="kb-sidebar-group">
-          <div class="kb-sidebar-group-title">{{ group.group }}</div>
+          <div class="kb-sidebar-group-title">{{ i18nPrefix + '.Groups.' + group.group | translate }}</div>
           <nav class="kb-sidebar-nav">
             @for (section of group.items; track section.key) {
               <button
@@ -21,9 +23,9 @@
                 (click)="selectSection(section.key)"
               >
                 <i [class]="section.icon"></i>
-                <span>{{ section.label }}</span>
+                <span>{{ i18nPrefix + '.' + section.labelKey | translate }}</span>
                 @if (section.status !== 'supported') {
-                  <span class="kb-sidebar-dot" [attr.title]="sectionStatusLabel(section.status)"></span>
+                  <span class="kb-sidebar-dot" [attr.title]="sectionStatusKey(section.status) | translate"></span>
                 }
               </button>
             }
@@ -38,12 +40,14 @@
           @case ('basic') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>基本信息</h1>
-                <p>设置知识库的类型、索引策略和基本信息</p>
+                <h1>{{ i18nPrefix + '.Sections.Basic' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Basic.Description' | translate }}</p>
               </div>
 
               <div class="kb-field">
-                <label class="kb-label">知识库类型 <span class="kb-required">*</span></label>
+                <label class="kb-label"
+                  >{{ i18nPrefix + '.Basic.KnowledgebaseType' | translate }} <span class="kb-required">*</span></label
+                >
                 <div class="kb-segmented-control">
                   <button
                     type="button"
@@ -51,18 +55,20 @@
                     [class.kb-segmented-option-active]="type() === KnowledgebaseTypeEnum.Standard"
                     (click)="type.set(KnowledgebaseTypeEnum.Standard)"
                   >
-                    文档
+                    {{ i18nPrefix + '.Basic.Document' | translate }}
                   </button>
                   <button type="button" class="kb-segmented-option kb-segmented-option-disabled" disabled>
-                    问答
-                    <span class="kb-mini-badge">预览</span>
+                    {{ i18nPrefix + '.Basic.QandA' | translate }}
+                    <span class="kb-mini-badge">{{ i18nPrefix + '.Statuses.Preview' | translate }}</span>
                   </button>
                 </div>
-                <p class="kb-help-text">Xpert 当前支持标准文档知识库，问答知识库将在后续版本接入。</p>
+                <p class="kb-help-text">{{ i18nPrefix + '.Basic.KnowledgebaseTypeHelp' | translate }}</p>
               </div>
 
               <div class="kb-field">
-                <label class="kb-label">索引策略 <span class="kb-required">*</span></label>
+                <label class="kb-label"
+                  >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
+                >
                 <div class="kb-choice-grid">
                   <button
                     type="button"
@@ -71,32 +77,42 @@
                     (click)="indexStrategy.set('rag')"
                   >
                     <span class="kb-choice-check"><i class="ri-check-line"></i></span>
-                    <span class="kb-choice-card-title">RAG 检索</span>
-                    <span class="kb-choice-card-description"
-                      >对文档进行分块、向量化和检索，支持向量、图谱和混合模式。</span
-                    >
+                    <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
+                    <span class="kb-choice-card-description">{{
+                      i18nPrefix + '.Basic.RagSearchDescription' | translate
+                    }}</span>
                   </button>
                   <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
                     <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
-                    <span class="kb-choice-card-title">Wiki 知识库 <span class="kb-new-badge">NEW</span></span>
-                    <span class="kb-choice-card-description"
-                      >自动生成关联的 Wiki 页面，当前 Xpert 暂无对应索引浏览器。</span
+                    <span class="kb-choice-card-title"
+                      >{{ i18nPrefix + '.Basic.WikiKnowledgebase' | translate }}
+                      <span class="kb-new-badge">{{ i18nPrefix + '.Basic.New' | translate }}</span></span
                     >
+                    <span class="kb-choice-card-description">{{
+                      i18nPrefix + '.Basic.WikiDescription' | translate
+                    }}</span>
                   </button>
                 </div>
               </div>
 
               <div class="kb-field">
-                <label class="kb-label">知识库名称 <span class="kb-required">*</span></label>
-                <input class="kb-input" [(ngModel)]="name" placeholder="请输入知识库名称" maxlength="80" />
+                <label class="kb-label"
+                  >{{ i18nPrefix + '.Basic.Name' | translate }} <span class="kb-required">*</span></label
+                >
+                <input
+                  class="kb-input"
+                  [(ngModel)]="name"
+                  [placeholder]="i18nPrefix + '.Basic.NamePlaceholder' | translate"
+                  maxlength="80"
+                />
               </div>
 
               <div class="kb-field">
-                <label class="kb-label">知识库描述</label>
+                <label class="kb-label">{{ i18nPrefix + '.Basic.KnowledgebaseDescription' | translate }}</label>
                 <textarea
                   class="kb-textarea"
                   [(ngModel)]="description"
-                  placeholder="请输入知识库描述（可选）"
+                  [placeholder]="i18nPrefix + '.Basic.DescriptionPlaceholder' | translate"
                   maxlength="200"
                 ></textarea>
                 <div class="kb-counter">{{ description().length }}/200</div>
@@ -107,15 +123,17 @@
           @case ('models') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>模型配置</h1>
-                <p>为知识库选择合适的 AI 模型</p>
+                <h1>{{ i18nPrefix + '.Sections.Models' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Models.Description' | translate }}</p>
               </div>
 
               <div class="kb-weknora-form">
                 <div class="kb-model-row">
                   <div class="kb-model-row-copy">
-                    <div class="kb-model-row-title">LLM 大语言模型 <span class="kb-required">*</span></div>
-                    <p>用于总结和摘要的大语言模型</p>
+                    <div class="kb-model-row-title">
+                      {{ i18nPrefix + '.Models.LargeLanguageModel' | translate }} <span class="kb-required">*</span>
+                    </div>
+                    <p>{{ i18nPrefix + '.Models.LargeLanguageModelDescription' | translate }}</p>
                   </div>
                   <copilot-model-select
                     class="kb-model-row-select"
@@ -129,8 +147,10 @@
 
                 <div class="kb-model-row">
                   <div class="kb-model-row-copy">
-                    <div class="kb-model-row-title">Embedding 嵌入模型 <span class="kb-required">*</span></div>
-                    <p>用于文本向量化的嵌入模型</p>
+                    <div class="kb-model-row-title">
+                      {{ i18nPrefix + '.Models.EmbeddingModel' | translate }} <span class="kb-required">*</span>
+                    </div>
+                    <p>{{ i18nPrefix + '.Models.EmbeddingModelDescription' | translate }}</p>
                   </div>
                   <copilot-model-select
                     class="kb-model-row-select"
@@ -147,24 +167,24 @@
           @case ('vector') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>向量检索</h1>
-                <p>配置查询向量、候选数量和相似度筛选策略。</p>
+                <h1>{{ i18nPrefix + '.Sections.Vector' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Vector.Description' | translate }}</p>
               </div>
               <div class="kb-panel kb-vector-search-panel">
                 <div class="kb-vector-search-heading">
                   <div class="kb-vector-search-title">
                     <i class="ri-focus-2-line"></i>
-                    <span>向量搜索</span>
+                    <span>{{ i18nPrefix + '.Vector.Search' | translate }}</span>
                   </div>
-                  <p class="kb-panel-description">生成查询嵌入并搜索与其向量表示最相似的文本块。</p>
+                  <p class="kb-panel-description">{{ i18nPrefix + '.Vector.SearchDescription' | translate }}</p>
                 </div>
 
                 <div class="kb-divider"></div>
 
                 <div class="kb-vector-rerank-row">
                   <div>
-                    <div class="kb-field-title">重新排序模型</div>
-                    <p class="kb-help-text">使用重排模型对候选文本块重新排序，提升结果相关性。</p>
+                    <div class="kb-field-title">{{ i18nPrefix + '.Vector.RerankModel' | translate }}</div>
+                    <p class="kb-help-text">{{ i18nPrefix + '.Vector.RerankDescription' | translate }}</p>
                   </div>
                   <z-switch class="kb-primary-switch" [(ngModel)]="rerankEnabled" />
                 </div>
@@ -178,17 +198,17 @@
                 <div class="kb-vector-metric-grid">
                   <div class="kb-vector-metric-card">
                     <div class="kb-vector-metric-label">
-                      <span class="kb-field-title">前多少</span>
+                      <span class="kb-field-title">{{ i18nPrefix + '.Vector.TopK' | translate }}</span>
                       <strong>{{ vectorTopK() }}</strong>
                     </div>
-                    <p class="kb-help-text">返回候选文本块的数量（1–100）。</p>
+                    <p class="kb-help-text">{{ i18nPrefix + '.Vector.TopKDescription' | translate }}</p>
                     <input
                       class="kb-range"
                       type="range"
                       min="1"
                       max="100"
                       step="1"
-                      [attr.aria-label]="'前多少'"
+                      [attr.aria-label]="i18nPrefix + '.Vector.TopK' | translate"
                       [attr.style]="'--range-progress: ' + vectorTopKPercent()"
                       [(ngModel)]="vectorTopK"
                     />
@@ -197,11 +217,11 @@
 
                   <div class="kb-vector-metric-card">
                     <div class="kb-vector-metric-label">
-                      <span class="kb-field-title">相似度阈值</span>
+                      <span class="kb-field-title">{{ i18nPrefix + '.Vector.ScoreThreshold' | translate }}</span>
                       <z-switch class="kb-primary-switch" [(ngModel)]="vectorScoreEnabled" />
                       <strong>{{ vectorScore() | number: '1.2-2' }}</strong>
                     </div>
-                    <p class="kb-help-text">低于阈值的文本块会被过滤，关闭后不限制最低相似度。</p>
+                    <p class="kb-help-text">{{ i18nPrefix + '.Vector.ScoreThresholdDescription' | translate }}</p>
                     <input
                       class="kb-range"
                       type="range"
@@ -209,7 +229,7 @@
                       max="1"
                       step="0.01"
                       [disabled]="!vectorScoreEnabled()"
-                      [attr.aria-label]="'相似度阈值'"
+                      [attr.aria-label]="i18nPrefix + '.Vector.ScoreThreshold' | translate"
                       [attr.style]="'--range-progress: ' + vectorScorePercent()"
                       [(ngModel)]="vectorScore"
                     />
@@ -219,7 +239,7 @@
 
                 <div class="kb-inline-notice">
                   <i class="ri-information-line"></i>
-                  <span>向量存储由 Xpert 平台统一管理，此处只配置检索行为。</span>
+                  <span>{{ i18nPrefix + '.Vector.StorageNotice' | translate }}</span>
                 </div>
               </div>
             </section>
@@ -228,15 +248,17 @@
           @case ('parser') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>解析引擎</h1>
-                <p>为不同文件类型选择文档解析引擎。未配置的文件类型将使用内置解析引擎。</p>
+                <h1>{{ i18nPrefix + '.Sections.Parser' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Parser.Description' | translate }}</p>
               </div>
 
               <div class="kb-parser-engine-list">
                 @for (row of parserEngineRows; track row.key) {
                   <div class="kb-parser-engine-row">
                     <div class="kb-parser-engine-copy">
-                      <div class="kb-parser-engine-title"><i [class]="row.icon"></i>{{ row.label }}</div>
+                      <div class="kb-parser-engine-title">
+                        <i [class]="row.icon"></i>{{ i18nPrefix + '.' + row.labelKey | translate }}
+                      </div>
                       <div class="kb-extension-list">
                         @for (extension of row.extensions; track extension) {
                           <span class="kb-extension-chip">{{ extension }}</span>
@@ -250,13 +272,13 @@
                         (ngModelChange)="updateParserEngine(row.key, $event)"
                       >
                         @for (option of row.options; track option.value) {
-                          <option [value]="option.value">{{ option.label }}</option>
+                          <option [value]="option.value">{{ i18nPrefix + '.' + option.labelKey | translate }}</option>
                         }
                       </select>
                       @if (row.hasHeaderToggle) {
                         <label class="kb-checkbox-row">
                           <input type="checkbox" [(ngModel)]="excelHeaderRow" />
-                          <span>将首行作为列标题，并保留在每行上下文中</span>
+                          <span>{{ i18nPrefix + '.Parser.ExcelHeaderRow' | translate }}</span>
                         </label>
                       }
                     </div>
@@ -269,40 +291,45 @@
           @case ('chunk') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>分块设置</h1>
-                <p>控制上传文档在嵌入前的切分方式。默认值适用于大多数场景，仅在检索质量异常时调整。</p>
+                <h1>{{ i18nPrefix + '.Sections.Chunk' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Chunk.Description' | translate }}</p>
               </div>
 
               <div class="kb-chunk-strategy-row">
                 <div class="kb-chunk-copy">
-                  <div class="kb-field-title">分块策略</div>
-                  <p>选择文档的分块方式。自动模式会分析每个文档的结构并选择最佳策略。</p>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Strategy' | translate }}</div>
+                  <p>{{ i18nPrefix + '.Chunk.StrategyDescription' | translate }}</p>
                 </div>
                 <div class="kb-chunk-strategy-control">
                   <select class="kb-native-select" [(ngModel)]="chunkStrategy">
-                    <option value="auto">自动</option>
-                    <option value="title">按标题切分</option>
-                    <option value="structure">结构感知</option>
-                    <option value="length">按长度切分</option>
+                    <option value="auto">{{ i18nPrefix + '.Chunk.Strategies.Auto' | translate }}</option>
+                    <option value="title">{{ i18nPrefix + '.Chunk.Strategies.Title' | translate }}</option>
+                    <option value="structure">{{ i18nPrefix + '.Chunk.Strategies.Structure' | translate }}</option>
+                    <option value="length">{{ i18nPrefix + '.Chunk.Strategies.Length' | translate }}</option>
                   </select>
-                  <button type="button" class="kb-test-chunk-button" title="测试分块效果">
-                    <i class="ri-play-circle-line"></i><span>测试分块效果</span>
+                  <button
+                    type="button"
+                    class="kb-test-chunk-button"
+                    [attr.title]="i18nPrefix + '.Chunk.Test' | translate"
+                  >
+                    <i class="ri-play-circle-line"></i><span>{{ i18nPrefix + '.Chunk.Test' | translate }}</span>
                   </button>
                 </div>
               </div>
 
               @if (chunkStrategy() === 'auto') {
                 <div class="kb-chunk-auto-note">
-                  <strong>自动:</strong> 文档分析器根据内容结构自动在「按标题切分」「结构感知」「按长度切分」之间选择。
+                  <strong>{{ i18nPrefix + '.Chunk.AutoNoteLabel' | translate }}:</strong>
+                  {{ i18nPrefix + '.Chunk.AutoNote' | translate }}
                 </div>
               }
 
               <div class="kb-chunk-setting-row">
                 <div class="kb-chunk-copy">
-                  <div class="kb-field-title">分块大小</div>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Size' | translate }}</div>
                   <p>
-                    每个分块的最大字符数（100–4000）。默认 512<br />≈ 中文 300 tokens / 英文 100–130 tokens。FAQ 用
-                    200–400，叙述性长文档用 1000–2000。
+                    {{ i18nPrefix + '.Chunk.SizeDescription' | translate }}<br />
+                    {{ i18nPrefix + '.Chunk.SizeRecommendation' | translate }}
                   </p>
                 </div>
                 <div class="kb-range-control">
@@ -316,17 +343,14 @@
                     [(ngModel)]="chunkSize"
                   />
                   <div class="kb-range-ticks"><span>100</span><span>1000</span><span>2000</span><span>4000</span></div>
-                  <strong>{{ chunkSize() ?? 512 }} 字符</strong>
+                  <strong>{{ i18nPrefix + '.Chunk.CharacterCount' | translate: { count: chunkSize() ?? 512 } }}</strong>
                 </div>
               </div>
 
               <div class="kb-chunk-setting-row">
                 <div class="kb-chunk-copy">
-                  <div class="kb-field-title">分块重叠</div>
-                  <p>
-                    相邻分块之间共享的字符数（0–500）。默认 80 ≈ 分块大小的 15%，符合当前研究推荐。FAQ/结构化数据用
-                    0，长篇叙述用 150–200。
-                  </p>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Overlap' | translate }}</div>
+                  <p>{{ i18nPrefix + '.Chunk.OverlapDescription' | translate }}</p>
                 </div>
                 <div class="kb-range-control">
                   <input
@@ -339,33 +363,39 @@
                     [(ngModel)]="chunkOverlap"
                   />
                   <div class="kb-range-ticks"><span>0</span><span>250</span><span>500</span></div>
-                  <strong>{{ chunkOverlap() ?? 80 }} 字符</strong>
+                  <strong>{{
+                    i18nPrefix + '.Chunk.CharacterCount' | translate: { count: chunkOverlap() ?? 80 }
+                  }}</strong>
                 </div>
               </div>
 
               <div class="kb-chunk-setting-row kb-separator-row">
                 <div class="kb-chunk-copy">
-                  <div class="kb-field-title">分隔符</div>
-                  <p>切分时优先使用的字符或字符串。优先级高的分隔符先尝试；默认顺序优先段落 → 句子 → 标点。</p>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Separators' | translate }}</div>
+                  <p>{{ i18nPrefix + '.Chunk.SeparatorsDescription' | translate }}</p>
                 </div>
                 <div class="kb-separator-control">
                   <div class="kb-chip-control">
                     @for (separator of separators(); track separator) {
                       <span class="kb-separator-chip"
-                        >{{ separatorLabel(separator)
-                        }}<button type="button" (click)="removeSeparator(separator)" aria-label="移除分隔符">
+                        >{{ separatorLabelKey(separator) | translate
+                        }}<button
+                          type="button"
+                          (click)="removeSeparator(separator)"
+                          [attr.aria-label]="i18nPrefix + '.Chunk.RemoveSeparator' | translate"
+                        >
                           ×
                         </button></span
                       >
                     }
                     <select
                       class="kb-separator-add"
-                      aria-label="添加分隔符"
+                      [attr.aria-label]="i18nPrefix + '.Chunk.AddSeparator' | translate"
                       (change)="addSeparator($any($event.target).value); $any($event.target).value = ''"
                     >
-                      <option value="">添加</option>
+                      <option value="">{{ i18nPrefix + '.Chunk.Add' | translate }}</option>
                       @for (option of separatorOptions; track option.value) {
-                        <option [value]="option.value">{{ option.label }}</option>
+                        <option [value]="option.value">{{ i18nPrefix + '.' + option.labelKey | translate }}</option>
                       }
                     </select>
                   </div>
@@ -377,14 +407,14 @@
           @case ('image') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>图像处理</h1>
-                <p>配置图片理解策略，帮助知识库提取图片中的文字和语义。</p>
+                <h1>{{ i18nPrefix + '.Sections.Image' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Image.Description' | translate }}</p>
               </div>
               <div class="kb-panel kb-panel-post-create">
                 <div class="kb-field kb-field-inline">
                   <div>
-                    <label class="kb-label">启用图片理解</label>
-                    <p class="kb-help-text">图片文档将在导入时调用视觉理解模型。</p>
+                    <label class="kb-label">{{ i18nPrefix + '.Image.Enable' | translate }}</label>
+                    <p class="kb-help-text">{{ i18nPrefix + '.Image.EnableDescription' | translate }}</p>
                   </div>
                   <z-switch
                     class="kb-primary-switch"
@@ -395,13 +425,13 @@
                 <div class="kb-divider"></div>
                 <copilot-model-select
                   class="block"
-                  [label]="'Vision 模型'"
+                  [label]="i18nPrefix + '.Image.VisionModel' | translate"
                   [modelType]="eAiModelTypeEnum.LLM"
                   [features]="[eModelFeature.VISION]"
                   [(ngModel)]="visionModel"
                 />
                 <p class="kb-inline-notice">
-                  <i class="ri-information-line"></i> 图片理解配置将在知识库创建后从文档导入设置中保存。
+                  <i class="ri-information-line"></i> {{ i18nPrefix + '.Image.PostCreateNotice' | translate }}
                 </p>
               </div>
             </section>
@@ -410,23 +440,25 @@
           @case ('audio') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>音频处理</h1>
-                <p>为音频文件选择语音识别引擎。</p>
+                <h1>{{ i18nPrefix + '.Sections.Audio' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Audio.Description' | translate }}</p>
               </div>
               <div class="kb-placeholder-card">
                 <div class="kb-placeholder-icon"><i class="ri-volume-up-line"></i></div>
                 <div>
-                  <div class="kb-panel-title">语音转文本（ASR）</div>
+                  <div class="kb-panel-title">{{ i18nPrefix + '.Audio.SpeechToText' | translate }}</div>
                   <p class="kb-panel-description">
-                    Xpert 文档模型已支持 Audio 类型，但当前知识库创建接口还没有 ASR 引擎字段。
+                    {{ i18nPrefix + '.Audio.UnavailableDescription' | translate }}
                   </p>
                 </div>
-                <span class="kb-status-badge kb-status-preview">前端预览</span>
+                <span class="kb-status-badge kb-status-preview">{{
+                  i18nPrefix + '.Audio.FrontendPreview' | translate
+                }}</span>
               </div>
               <div class="kb-field mt-5">
-                <label class="kb-label">解析引擎</label>
+                <label class="kb-label">{{ i18nPrefix + '.Audio.ParserEngine' | translate }}</label>
                 <select class="kb-native-select" disabled>
-                  <option>暂未接入</option>
+                  <option>{{ i18nPrefix + '.Audio.NotConnected' | translate }}</option>
                 </select>
               </div>
             </section>
@@ -435,14 +467,14 @@
           @case ('graph') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>知识图谱</h1>
-                <p>配置 GraphRAG，从文档中抽取实体和关系并参与知识检索。</p>
+                <h1>{{ i18nPrefix + '.Sections.Graph' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Graph.Description' | translate }}</p>
               </div>
               <div class="kb-panel kb-graph-settings-panel">
                 <div class="kb-field-inline">
                   <div>
-                    <div class="kb-panel-title">启用 GraphRAG</div>
-                    <p class="kb-panel-description">解析文档时抽取实体、关系和证据，供图谱检索与混合检索使用。</p>
+                    <div class="kb-panel-title">{{ i18nPrefix + '.Graph.Enable' | translate }}</div>
+                    <p class="kb-panel-description">{{ i18nPrefix + '.Graph.EnableDescription' | translate }}</p>
                   </div>
                   <z-switch
                     class="kb-primary-switch"
@@ -454,7 +486,7 @@
                 <div class="kb-divider"></div>
 
                 <div class="kb-graph-mode-row">
-                  <div class="kb-field-title">检索模式</div>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Graph.RetrievalMode' | translate }}</div>
                   <div class="kb-segmented-control">
                     @for (option of graphModeOptions; track option.value) {
                       <button
@@ -464,26 +496,26 @@
                         [disabled]="!graphEnabled() && option.value !== 'vector'"
                         (click)="setGraphMode(option.value)"
                       >
-                        {{ option.label }}
+                        {{ i18nPrefix + '.' + option.labelKey | translate }}
                       </button>
                     }
                   </div>
-                  <p class="kb-help-text">{{ graphModeDescription() }}</p>
+                  <p class="kb-help-text">{{ graphModeDescriptionKey() | translate }}</p>
                 </div>
 
                 <div class="kb-graph-settings-heading">
-                  <div class="kb-field-title">图谱检索参数</div>
-                  <p class="kb-help-text">与 Xpert 检索设置保持一致，关闭 GraphRAG 时保留当前配置。</p>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Graph.Parameters' | translate }}</div>
+                  <p class="kb-help-text">{{ i18nPrefix + '.Graph.ParametersDescription' | translate }}</p>
                 </div>
 
                 <div class="kb-graph-setting-list" [class.kb-graph-setting-list-disabled]="!graphEnabled()">
                   <div class="kb-graph-setting-row">
                     <div class="kb-graph-setting-copy">
                       <div class="kb-graph-setting-label">
-                        <div class="kb-field-title">实体 Top K</div>
+                        <div class="kb-field-title">{{ i18nPrefix + '.Graph.EntityTopK' | translate }}</div>
                         <strong>{{ graphEntityTopK() }}</strong>
                       </div>
-                      <p class="kb-help-text">每次查询用于扩展图谱的候选实体数量。</p>
+                      <p class="kb-help-text">{{ i18nPrefix + '.Graph.EntityTopKDescription' | translate }}</p>
                     </div>
                     <div class="kb-graph-range-control">
                       <input
@@ -493,7 +525,7 @@
                         max="50"
                         step="1"
                         [disabled]="!graphEnabled()"
-                        [attr.aria-label]="'实体 Top K'"
+                        [attr.aria-label]="i18nPrefix + '.Graph.EntityTopK' | translate"
                         [attr.style]="'--range-progress: ' + (graphEntityTopK() / 50) * 100 + '%'"
                         [ngModel]="graphEntityTopK()"
                         (ngModelChange)="graphEntityTopK.set(+$event)"
@@ -505,10 +537,10 @@
                   <div class="kb-graph-setting-row">
                     <div class="kb-graph-setting-copy">
                       <div class="kb-graph-setting-label">
-                        <div class="kb-field-title">邻居跳数</div>
+                        <div class="kb-field-title">{{ i18nPrefix + '.Graph.NeighborHops' | translate }}</div>
                         <strong>{{ graphNeighborHops() }}</strong>
                       </div>
-                      <p class="kb-help-text">沿实体关系扩展的层数，最多支持两跳。</p>
+                      <p class="kb-help-text">{{ i18nPrefix + '.Graph.NeighborHopsDescription' | translate }}</p>
                     </div>
                     <div class="kb-graph-range-control">
                       <input
@@ -518,7 +550,7 @@
                         max="2"
                         step="1"
                         [disabled]="!graphEnabled()"
-                        [attr.aria-label]="'邻居跳数'"
+                        [attr.aria-label]="i18nPrefix + '.Graph.NeighborHops' | translate"
                         [attr.style]="'--range-progress: ' + (graphNeighborHops() - 1) * 100 + '%'"
                         [ngModel]="graphNeighborHops()"
                         (ngModelChange)="graphNeighborHops.set(+$event)"
@@ -530,10 +562,10 @@
                   <div class="kb-graph-setting-row">
                     <div class="kb-graph-setting-copy">
                       <div class="kb-graph-setting-label">
-                        <div class="kb-field-title">图谱权重</div>
+                        <div class="kb-field-title">{{ i18nPrefix + '.Graph.Weight' | translate }}</div>
                         <strong>{{ graphWeight() | number: '1.2-2' }}</strong>
                       </div>
-                      <p class="kb-help-text">混合检索时图谱结果在最终排序中的权重。</p>
+                      <p class="kb-help-text">{{ i18nPrefix + '.Graph.WeightDescription' | translate }}</p>
                     </div>
                     <div class="kb-graph-range-control">
                       <input
@@ -543,7 +575,7 @@
                         max="1"
                         step="0.05"
                         [disabled]="!graphEnabled()"
-                        [attr.aria-label]="'图谱权重'"
+                        [attr.aria-label]="i18nPrefix + '.Graph.Weight' | translate"
                         [attr.style]="'--range-progress: ' + graphWeight() * 100 + '%'"
                         [ngModel]="graphWeight()"
                         (ngModelChange)="graphWeight.set(+$event)"
@@ -555,7 +587,7 @@
 
                 <div class="kb-inline-notice">
                   <i class="ri-information-line"></i>
-                  <span>创建后可在知识库配置中重建图谱；已存在的文档需要重新解析才会生成图谱数据。</span>
+                  <span>{{ i18nPrefix + '.Graph.PostCreateNotice' | translate }}</span>
                 </div>
               </div>
             </section>
@@ -564,14 +596,14 @@
           @case ('advanced') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>高级设置</h1>
-                <p>配置问题生成等高级功能</p>
+                <h1>{{ i18nPrefix + '.Sections.Advanced' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Advanced.Description' | translate }}</p>
               </div>
 
               <div class="kb-advanced-switch-row">
                 <div>
-                  <div class="kb-field-title">AI 问题生成</div>
-                  <p>解析文档时调用大模型为每个分块生成相关问题，提高检索召回率。启用后会增加文档解析耗时。</p>
+                  <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}</div>
+                  <p>{{ i18nPrefix + '.Advanced.QuestionGenerationDescription' | translate }}</p>
                 </div>
                 <z-switch class="kb-primary-switch" [(ngModel)]="questionGenerationEnabled" />
               </div>
@@ -580,8 +612,8 @@
                 <div class="kb-advanced-emphasis">
                   <div class="kb-advanced-field kb-advanced-count-row">
                     <div>
-                      <div class="kb-field-title">生成问题数量</div>
-                      <p>每个文档分块生成的问题数量（1–10）</p>
+                      <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionCount' | translate }}</div>
+                      <p>{{ i18nPrefix + '.Advanced.QuestionCountDescription' | translate }}</p>
                     </div>
                     <input
                       class="kb-input kb-number-input"
@@ -592,13 +624,13 @@
                     />
                   </div>
                   <div class="kb-advanced-field">
-                    <div class="kb-field-title">问题生成要求</div>
-                    <p>指定问题面向的人群、场景和表达方式，系统仍维持稳定输出格式</p>
+                    <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionRequirements' | translate }}</div>
+                    <p>{{ i18nPrefix + '.Advanced.QuestionRequirementsDescription' | translate }}</p>
                     <textarea
                       class="kb-textarea kb-advanced-textarea"
                       maxlength="4000"
                       [(ngModel)]="questionRequirements"
-                      placeholder="例如：生成客服用户常问的自然语言问题，避免考试题式表达..."
+                      [placeholder]="i18nPrefix + '.Advanced.QuestionRequirementsPlaceholder' | translate"
                     ></textarea>
                     <div class="kb-counter">{{ questionRequirements().length }}/4000</div>
                   </div>
@@ -606,13 +638,13 @@
               }
 
               <div class="kb-advanced-field kb-table-metadata-field">
-                <div class="kb-field-title">表格元数据生成要求</div>
-                <p>为 CSV/Excel 摘要补充业务背景和字段语义，帮助后续检索理解表格内容</p>
+                <div class="kb-field-title">{{ i18nPrefix + '.Advanced.TableMetadataRequirements' | translate }}</div>
+                <p>{{ i18nPrefix + '.Advanced.TableMetadataRequirementsDescription' | translate }}</p>
                 <textarea
                   class="kb-textarea kb-advanced-textarea"
                   maxlength="4000"
                   [(ngModel)]="tableMetadataRequirements"
-                  placeholder="例如：这是销售订单表，金额单位为元，status 字段值使用公司内部状态码..."
+                  [placeholder]="i18nPrefix + '.Advanced.TableMetadataRequirementsPlaceholder' | translate"
                 ></textarea>
                 <div class="kb-counter">{{ tableMetadataRequirements().length }}/4000</div>
               </div>
@@ -622,18 +654,20 @@
           @case ('storage') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>存储引擎</h1>
-                <p>配置原始文件和处理结果的存储方式。</p>
+                <h1>{{ i18nPrefix + '.Sections.Storage' | translate }}</h1>
+                <p>{{ i18nPrefix + '.Storage.Description' | translate }}</p>
               </div>
               <div class="kb-placeholder-card">
                 <div class="kb-placeholder-icon"><i class="ri-hard-drive-3-line"></i></div>
                 <div>
-                  <div class="kb-panel-title">平台默认存储</div>
+                  <div class="kb-panel-title">{{ i18nPrefix + '.Storage.PlatformDefault' | translate }}</div>
                   <p class="kb-panel-description">
-                    当前 Xpert 统一使用工作空间存储服务，知识库创建时不单独选择存储引擎。
+                    {{ i18nPrefix + '.Storage.PlatformDefaultDescription' | translate }}
                   </p>
                 </div>
-                <span class="kb-status-badge kb-status-preview">暂不支持切换</span>
+                <span class="kb-status-badge kb-status-preview">{{
+                  i18nPrefix + '.Storage.SwitchUnsupported' | translate
+                }}</span>
               </div>
             </section>
           }
@@ -647,7 +681,7 @@
           [disabled]="loading()"
           (click)="close()"
         >
-          取消
+          {{ i18nPrefix + '.Actions.Cancel' | translate }}
         </button>
         <button
           type="button"
@@ -658,7 +692,7 @@
           @if (loading()) {
             <i class="ri-loader-4-line kb-spin"></i>
           }
-          {{ isEditMode() ? '保存配置' : '创建知识库' }}
+          {{ i18nPrefix + (isEditMode() ? '.Actions.Save' : '.Actions.Create') | translate }}
         </button>
       </footer>
     </section>

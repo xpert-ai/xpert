@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
@@ -37,8 +37,8 @@ type SectionStatus = 'supported' | 'post-create' | 'preview'
 
 type CreateSection = {
   key: SectionKey
-  group: '基础' | '索引与解析' | '存储与数据'
-  label: string
+  group: 'Basic' | 'Indexing' | 'Storage'
+  labelKey: string
   icon: string
   status: SectionStatus
 }
@@ -54,7 +54,7 @@ type ParserPreviewState = {
 
 type ParserEngineOption = {
   value: string
-  label: string
+  labelKey: string
 }
 
 type KnowledgeDialogData = {
@@ -82,11 +82,13 @@ export class XpertNewKnowledgeComponent {
   readonly #dialogData = inject<KnowledgeDialogData>(DIALOG_DATA)
   readonly #initialKnowledgebase = this.#dialogData?.knowledgebase ?? null
   readonly #toastr = inject(ToastrService)
+  readonly #translate = inject(TranslateService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
 
   readonly eAiModelTypeEnum = AiModelTypeEnum
   readonly eModelFeature = ModelFeature
   readonly KnowledgebaseTypeEnum = KnowledgebaseTypeEnum
+  readonly i18nPrefix = 'XP.Knowledgebase.WorkspaceConfiguration'
 
   readonly existingKnowledgebase = signal<IKnowledgebase | null>(this.#initialKnowledgebase)
   readonly isEditMode = computed(() => !!this.existingKnowledgebase()?.id)
@@ -94,21 +96,27 @@ export class XpertNewKnowledgeComponent {
   readonly activeSection = signal<SectionKey>('basic')
 
   readonly sections: CreateSection[] = [
-    { key: 'basic', group: '基础', label: '基本信息', icon: 'ri-information-line', status: 'supported' },
-    { key: 'models', group: '基础', label: '模型配置', icon: 'ri-box-3-line', status: 'supported' },
-    { key: 'vector', group: '基础', label: '向量检索', icon: 'ri-focus-2-line', status: 'supported' },
-    { key: 'parser', group: '索引与解析', label: '解析引擎', icon: 'ri-file-search-line', status: 'supported' },
-    { key: 'chunk', group: '索引与解析', label: '分块设置', icon: 'ri-file-copy-2-line', status: 'supported' },
-    { key: 'image', group: '索引与解析', label: '图像处理', icon: 'ri-image-line', status: 'post-create' },
-    { key: 'audio', group: '索引与解析', label: '音频处理', icon: 'ri-volume-up-line', status: 'preview' },
-    { key: 'graph', group: '索引与解析', label: '知识图谱', icon: 'ri-node-tree', status: 'supported' },
-    { key: 'advanced', group: '索引与解析', label: '高级设置', icon: 'ri-settings-3-line', status: 'supported' },
-    { key: 'storage', group: '存储与数据', label: '存储引擎', icon: 'ri-hard-drive-3-line', status: 'preview' }
+    { key: 'basic', group: 'Basic', labelKey: 'Sections.Basic', icon: 'ri-information-line', status: 'supported' },
+    { key: 'models', group: 'Basic', labelKey: 'Sections.Models', icon: 'ri-box-3-line', status: 'supported' },
+    { key: 'vector', group: 'Basic', labelKey: 'Sections.Vector', icon: 'ri-focus-2-line', status: 'supported' },
+    { key: 'parser', group: 'Indexing', labelKey: 'Sections.Parser', icon: 'ri-file-search-line', status: 'supported' },
+    { key: 'chunk', group: 'Indexing', labelKey: 'Sections.Chunk', icon: 'ri-file-copy-2-line', status: 'supported' },
+    { key: 'image', group: 'Indexing', labelKey: 'Sections.Image', icon: 'ri-image-line', status: 'post-create' },
+    { key: 'audio', group: 'Indexing', labelKey: 'Sections.Audio', icon: 'ri-volume-up-line', status: 'preview' },
+    { key: 'graph', group: 'Indexing', labelKey: 'Sections.Graph', icon: 'ri-node-tree', status: 'supported' },
+    {
+      key: 'advanced',
+      group: 'Indexing',
+      labelKey: 'Sections.Advanced',
+      icon: 'ri-settings-3-line',
+      status: 'supported'
+    },
+    { key: 'storage', group: 'Storage', labelKey: 'Sections.Storage', icon: 'ri-hard-drive-3-line', status: 'preview' }
   ]
 
   readonly parserEngineRows: Array<{
     key: string
-    label: string
+    labelKey: string
     extensions: string[]
     icon: string
     engine: string
@@ -117,81 +125,81 @@ export class XpertNewKnowledgeComponent {
   }> = [
     {
       key: 'pdf',
-      label: 'PDF 文档',
+      labelKey: 'Parser.FileTypes.Pdf',
       extensions: ['.pdf'],
       icon: 'ri-file-pdf-2-line',
       engine: 'builtin',
       options: [
-        { value: 'builtin', label: '内置（默认）' },
-        { value: 'markitdown', label: 'MarkItDown' },
-        { value: 'mineru', label: 'MinerU' }
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' },
+        { value: 'mineru', labelKey: 'Parser.Engines.MinerU' }
       ]
     },
     {
       key: 'word',
-      label: 'Word 文档',
+      labelKey: 'Parser.FileTypes.Word',
       extensions: ['.docx', '.doc'],
       icon: 'ri-file-word-2-line',
       engine: 'builtin',
       options: [
-        { value: 'builtin', label: '内置（默认）' },
-        { value: 'markitdown', label: 'MarkItDown' }
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ]
     },
     {
       key: 'presentation',
-      label: '演示文稿',
+      labelKey: 'Parser.FileTypes.Presentation',
       extensions: ['.pptx', '.ppt'],
       icon: 'ri-file-ppt-2-line',
       engine: 'markitdown',
       options: [
-        { value: 'markitdown', label: 'MarkItDown（默认）' },
-        { value: 'builtin', label: '内置' }
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDownDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
       ]
     },
     {
       key: 'excel',
-      label: 'Excel 表格',
+      labelKey: 'Parser.FileTypes.Excel',
       extensions: ['.xlsx', '.xls'],
       icon: 'ri-file-excel-2-line',
       engine: 'builtin',
       options: [
-        { value: 'builtin', label: '内置（默认）' },
-        { value: 'markitdown', label: 'MarkItDown' }
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ],
       hasHeaderToggle: true
     },
     {
       key: 'epub',
-      label: '电子书',
+      labelKey: 'Parser.FileTypes.Ebook',
       extensions: ['.epub'],
       icon: 'ri-book-2-line',
       engine: 'builtin',
       options: [
-        { value: 'builtin', label: '内置（默认）' },
-        { value: 'markitdown', label: 'MarkItDown' }
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ]
     },
     {
       key: 'mhtml',
-      label: '网页归档',
+      labelKey: 'Parser.FileTypes.WebArchive',
       extensions: ['.mhtml'],
       icon: 'ri-file-code-line',
       engine: 'builtin',
       options: [
-        { value: 'builtin', label: '内置（默认）' },
-        { value: 'markitdown', label: 'MarkItDown' }
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ]
     },
     {
       key: 'csv',
-      label: 'CSV 文件',
+      labelKey: 'Parser.FileTypes.Csv',
       extensions: ['.csv'],
       icon: 'ri-file-excel-2-line',
       engine: 'simple',
       options: [
-        { value: 'simple', label: 'Simple（默认）' },
-        { value: 'builtin', label: '内置' }
+        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
       ]
     }
   ]
@@ -221,13 +229,13 @@ export class XpertNewKnowledgeComponent {
   readonly chunkOverlapPercent = computed(() => `${((this.chunkOverlap() ?? 80) / 500) * 100}%`)
 
   readonly separatorOptions = [
-    { value: '\\n\\n', label: '双换行 (\\n\\n)' },
-    { value: '\\n', label: '单换行 (\\n)' },
-    { value: '。', label: '中文句号 (。)' },
-    { value: '！', label: '感叹号 (！)' },
-    { value: '？', label: '问号 (？)' },
-    { value: '；', label: '中文分号 (；)' },
-    { value: ';', label: '英文分号 (;)' }
+    { value: '\\n\\n', labelKey: 'Chunk.SeparatorLabels.DoubleNewline' },
+    { value: '\\n', labelKey: 'Chunk.SeparatorLabels.SingleNewline' },
+    { value: '。', labelKey: 'Chunk.SeparatorLabels.ChinesePeriod' },
+    { value: '！', labelKey: 'Chunk.SeparatorLabels.Exclamation' },
+    { value: '？', labelKey: 'Chunk.SeparatorLabels.Question' },
+    { value: '；', labelKey: 'Chunk.SeparatorLabels.ChineseSemicolon' },
+    { value: ';', labelKey: 'Chunk.SeparatorLabels.EnglishSemicolon' }
   ]
 
   // UI-only until the create DTO accepts WeKnora's advanced generation fields.
@@ -273,12 +281,12 @@ export class XpertNewKnowledgeComponent {
 
   readonly graphModeOptions: Array<{
     value: GraphRagRetrievalMode
-    label: string
-    description: string
+    labelKey: string
+    descriptionKey: string
   }> = [
-    { value: 'vector', label: '向量', description: '使用文本向量进行语义检索。' },
-    { value: 'graph', label: '图谱', description: '优先召回实体关系及其关联文档片段。' },
-    { value: 'hybrid', label: '混合', description: '融合向量检索与图谱召回，按权重合并结果。' }
+    { value: 'vector', labelKey: 'Graph.Modes.Vector', descriptionKey: 'Graph.Modes.VectorDescription' },
+    { value: 'graph', labelKey: 'Graph.Modes.Graph', descriptionKey: 'Graph.Modes.GraphDescription' },
+    { value: 'hybrid', labelKey: 'Graph.Modes.Hybrid', descriptionKey: 'Graph.Modes.HybridDescription' }
   ]
 
   // Document-level parser options are shown here for parity with WeKnora and
@@ -296,7 +304,7 @@ export class XpertNewKnowledgeComponent {
   readonly invalid = computed(() => !this.name().trim())
 
   readonly groupedSections = computed(() => {
-    const groups: CreateSection['group'][] = ['基础', '索引与解析', '存储与数据']
+    const groups: CreateSection['group'][] = ['Basic', 'Indexing', 'Storage']
     return groups.map((group) => ({ group, items: this.sections.filter((section) => section.group === group) }))
   })
 
@@ -304,14 +312,14 @@ export class XpertNewKnowledgeComponent {
     this.activeSection.set(section)
   }
 
-  sectionStatusLabel(status: SectionStatus) {
+  sectionStatusKey(status: SectionStatus) {
     switch (status) {
       case 'supported':
-        return '已支持'
+        return `${this.i18nPrefix}.Statuses.Supported`
       case 'post-create':
-        return '创建后配置'
+        return `${this.i18nPrefix}.Statuses.PostCreate`
       default:
-        return '预览'
+        return `${this.i18nPrefix}.Statuses.Preview`
     }
   }
 
@@ -337,8 +345,9 @@ export class XpertNewKnowledgeComponent {
     }
   }
 
-  graphModeDescription() {
-    return this.graphModeOptions.find((option) => option.value === this.graphMode())?.description ?? ''
+  graphModeDescriptionKey() {
+    const key = this.graphModeOptions.find((option) => option.value === this.graphMode())?.descriptionKey
+    return key ? `${this.i18nPrefix}.${key}` : ''
   }
 
   addSeparator(value: string) {
@@ -354,8 +363,9 @@ export class XpertNewKnowledgeComponent {
     this.delimiter.set(this.separators()[0] || '\n\n')
   }
 
-  separatorLabel(value: string) {
-    return this.separatorOptions.find((option) => option.value === value)?.label ?? value
+  separatorLabelKey(value: string) {
+    const key = this.separatorOptions.find((option) => option.value === value)?.labelKey
+    return key ? `${this.i18nPrefix}.${key}` : value
   }
 
   submit() {
@@ -414,13 +424,13 @@ export class XpertNewKnowledgeComponent {
 
     if (this.invalid()) {
       this.activeSection.set('basic')
-      this.#toastr.error('请输入知识库名称')
+      this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.NameRequired`))
       return false
     }
 
     if (!this.copilotModel()) {
       this.activeSection.set('models')
-      this.#toastr.error('请选择 Embedding 模型')
+      this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.EmbeddingModelRequired`))
       return false
     }
 
