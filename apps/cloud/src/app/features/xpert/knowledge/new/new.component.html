@@ -1,80 +1,456 @@
-<div
-  class="flex justify-between items-center px-6 py-4 cursor-move"
-  cdkDrag
-  cdkDragRootElement=".cdk-overlay-pane"
-  cdkDragHandle
->
-  <div class="text-xl font-semibold text-text-primary">
-    {{ 'XP.Knowledgebase.CreateKnowledgebase' | translate: { Default: 'Create Knowledgebase' } }}
-  </div>
-
-  <button
-    type="button"
-    class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-    (click)="close()"
-  >
+<div class="kb-create-dialog" cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+  <button type="button" class="kb-close-button" aria-label="关闭" (click)="close()">
     <i class="ri-close-line"></i>
   </button>
-</div>
-<div class="px-6 pb-4">
-  <div class="text-sm text-text-secondary">
-    {{
-      'XP.Knowledgebase.CreateKnowledgebaseDesc'
-        | translate
-          : {
-              Default:
-                'There are no documents in an empty knowledge base yet. You can upload documents to this knowledge base at any time in the future.'
+
+  <div class="kb-settings-container">
+    <aside class="kb-create-sidebar" aria-label="知识库设置导航">
+      <div class="kb-sidebar-header" cdkDragHandle>
+        <div class="kb-create-title">{{ isEditMode() ? '知识库设置' : '新建知识库' }}</div>
+      </div>
+      @for (group of groupedSections(); track group.group) {
+        <div class="kb-sidebar-group">
+          <div class="kb-sidebar-group-title">{{ group.group }}</div>
+          <nav class="kb-sidebar-nav">
+            @for (section of group.items; track section.key) {
+              <button
+                type="button"
+                class="kb-sidebar-item"
+                [class.kb-sidebar-item-active]="activeSection() === section.key"
+                [class.kb-sidebar-item-preview]="section.status !== 'supported'"
+                (click)="selectSection(section.key)"
+              >
+                <i [class]="section.icon"></i>
+                <span>{{ section.label }}</span>
+                @if (section.status !== 'supported') {
+                  <span class="kb-sidebar-dot" [attr.title]="sectionStatusLabel(section.status)"></span>
+                }
+              </button>
             }
-    }}
+          </nav>
+        </div>
+      }
+    </aside>
+
+    <section class="kb-settings-content">
+      <main class="kb-create-content">
+        @switch (activeSection()) {
+          @case ('basic') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>基本信息</h1>
+                <p>设置知识库的类型、索引策略和基本信息</p>
+              </div>
+
+              <div class="kb-field">
+                <label class="kb-label">知识库类型 <span class="kb-required">*</span></label>
+                <div class="kb-segmented-control">
+                  <button
+                    type="button"
+                    class="kb-segmented-option"
+                    [class.kb-segmented-option-active]="type() === KnowledgebaseTypeEnum.Standard"
+                    (click)="type.set(KnowledgebaseTypeEnum.Standard)"
+                  >
+                    文档
+                  </button>
+                  <button type="button" class="kb-segmented-option kb-segmented-option-disabled" disabled>
+                    问答
+                    <span class="kb-mini-badge">预览</span>
+                  </button>
+                </div>
+                <p class="kb-help-text">Xpert 当前支持标准文档知识库，问答知识库将在后续版本接入。</p>
+              </div>
+
+              <div class="kb-field">
+                <label class="kb-label">索引策略 <span class="kb-required">*</span></label>
+                <div class="kb-choice-grid">
+                  <button
+                    type="button"
+                    class="kb-choice-card"
+                    [class.kb-choice-card-selected]="indexStrategy() === 'rag'"
+                    (click)="indexStrategy.set('rag')"
+                  >
+                    <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                    <span class="kb-choice-card-title">RAG 检索</span>
+                    <span class="kb-choice-card-description"
+                      >对文档进行分块、向量化和检索，支持向量、图谱和混合模式。</span
+                    >
+                  </button>
+                  <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
+                    <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
+                    <span class="kb-choice-card-title">Wiki 知识库 <span class="kb-new-badge">NEW</span></span>
+                    <span class="kb-choice-card-description"
+                      >自动生成关联的 Wiki 页面，当前 Xpert 暂无对应索引浏览器。</span
+                    >
+                  </button>
+                </div>
+              </div>
+
+              <div class="kb-field">
+                <label class="kb-label">知识库名称 <span class="kb-required">*</span></label>
+                <input class="kb-input" [(ngModel)]="name" placeholder="请输入知识库名称" maxlength="80" />
+              </div>
+
+              <div class="kb-field">
+                <label class="kb-label">知识库描述</label>
+                <textarea
+                  class="kb-textarea"
+                  [(ngModel)]="description"
+                  placeholder="请输入知识库描述（可选）"
+                  maxlength="200"
+                ></textarea>
+                <div class="kb-counter">{{ description().length }}/200</div>
+              </div>
+            </section>
+          }
+
+          @case ('models') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>模型配置</h1>
+                <p>为知识库选择合适的 AI 模型</p>
+              </div>
+
+              <div class="kb-weknora-form">
+                <div class="kb-model-row">
+                  <div class="kb-model-row-copy">
+                    <div class="kb-model-row-title">LLM 大语言模型 <span class="kb-required">*</span></div>
+                    <p>用于总结和摘要的大语言模型</p>
+                  </div>
+                  <copilot-model-select
+                    class="kb-model-row-select"
+                    hiddenLabel
+                    [modelType]="eAiModelTypeEnum.LLM"
+                    [(ngModel)]="chatModel"
+                  />
+                </div>
+
+                <div class="kb-divider"></div>
+
+                <div class="kb-model-row">
+                  <div class="kb-model-row-copy">
+                    <div class="kb-model-row-title">Embedding 嵌入模型 <span class="kb-required">*</span></div>
+                    <p>用于文本向量化的嵌入模型</p>
+                  </div>
+                  <copilot-model-select
+                    class="kb-model-row-select"
+                    hiddenLabel
+                    required
+                    [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
+                    [(ngModel)]="copilotModel"
+                  />
+                </div>
+              </div>
+            </section>
+          }
+
+          @case ('parser') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>解析引擎</h1>
+                <p>为不同文件类型选择文档解析引擎。未配置的文件类型将使用内置解析引擎。</p>
+              </div>
+
+              <div class="kb-parser-engine-list">
+                @for (row of parserEngineRows; track row.key) {
+                  <div class="kb-parser-engine-row">
+                    <div class="kb-parser-engine-copy">
+                      <div class="kb-parser-engine-title"><i [class]="row.icon"></i>{{ row.label }}</div>
+                      <div class="kb-extension-list">
+                        @for (extension of row.extensions; track extension) {
+                          <span class="kb-extension-chip">{{ extension }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="kb-parser-engine-control">
+                      <select
+                        class="kb-native-select kb-parser-engine-select"
+                        [ngModel]="parserEngineSelections()[row.key]"
+                        (ngModelChange)="updateParserEngine(row.key, $event)"
+                      >
+                        @for (option of row.options; track option.value) {
+                          <option [value]="option.value">{{ option.label }}</option>
+                        }
+                      </select>
+                      @if (row.hasHeaderToggle) {
+                        <label class="kb-checkbox-row">
+                          <input type="checkbox" [(ngModel)]="excelHeaderRow" />
+                          <span>将首行作为列标题，并保留在每行上下文中</span>
+                        </label>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          @case ('chunk') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>分块设置</h1>
+                <p>控制上传文档在嵌入前的切分方式。默认值适用于大多数场景，仅在检索质量异常时调整。</p>
+              </div>
+
+              <div class="kb-chunk-strategy-row">
+                <div class="kb-chunk-copy">
+                  <div class="kb-field-title">分块策略</div>
+                  <p>选择文档的分块方式。自动模式会分析每个文档的结构并选择最佳策略。</p>
+                </div>
+                <div class="kb-chunk-strategy-control">
+                  <select class="kb-native-select" [(ngModel)]="chunkStrategy">
+                    <option value="auto">自动</option>
+                    <option value="title">按标题切分</option>
+                    <option value="structure">结构感知</option>
+                    <option value="length">按长度切分</option>
+                  </select>
+                  <button type="button" class="kb-test-chunk-button" title="测试分块效果">
+                    <i class="ri-play-circle-line"></i><span>测试分块效果</span>
+                  </button>
+                </div>
+              </div>
+
+              @if (chunkStrategy() === 'auto') {
+                <div class="kb-chunk-auto-note">
+                  <strong>自动:</strong> 文档分析器根据内容结构自动在「按标题切分」「结构感知」「按长度切分」之间选择。
+                </div>
+              }
+
+              <div class="kb-chunk-setting-row">
+                <div class="kb-chunk-copy">
+                  <div class="kb-field-title">分块大小</div>
+                  <p>
+                    每个分块的最大字符数（100–4000）。默认 512<br />≈ 中文 300 tokens / 英文 100–130 tokens。FAQ 用
+                    200–400，叙述性长文档用 1000–2000。
+                  </p>
+                </div>
+                <div class="kb-range-control">
+                  <input
+                    class="kb-range"
+                    type="range"
+                    min="100"
+                    max="4000"
+                    step="1"
+                    [attr.style]="'--range-progress: ' + chunkSizePercent()"
+                    [(ngModel)]="chunkSize"
+                  />
+                  <div class="kb-range-ticks"><span>100</span><span>1000</span><span>2000</span><span>4000</span></div>
+                  <strong>{{ chunkSize() ?? 512 }} 字符</strong>
+                </div>
+              </div>
+
+              <div class="kb-chunk-setting-row">
+                <div class="kb-chunk-copy">
+                  <div class="kb-field-title">分块重叠</div>
+                  <p>
+                    相邻分块之间共享的字符数（0–500）。默认 80 ≈ 分块大小的 15%，符合当前研究推荐。FAQ/结构化数据用
+                    0，长篇叙述用 150–200。
+                  </p>
+                </div>
+                <div class="kb-range-control">
+                  <input
+                    class="kb-range"
+                    type="range"
+                    min="0"
+                    max="500"
+                    step="1"
+                    [attr.style]="'--range-progress: ' + chunkOverlapPercent()"
+                    [(ngModel)]="chunkOverlap"
+                  />
+                  <div class="kb-range-ticks"><span>0</span><span>250</span><span>500</span></div>
+                  <strong>{{ chunkOverlap() ?? 80 }} 字符</strong>
+                </div>
+              </div>
+
+              <div class="kb-chunk-setting-row kb-separator-row">
+                <div class="kb-chunk-copy">
+                  <div class="kb-field-title">分隔符</div>
+                  <p>切分时优先使用的字符或字符串。优先级高的分隔符先尝试；默认顺序优先段落 → 句子 → 标点。</p>
+                </div>
+                <div class="kb-separator-control">
+                  <div class="kb-chip-control">
+                    @for (separator of separators(); track separator) {
+                      <span class="kb-separator-chip"
+                        >{{ separatorLabel(separator)
+                        }}<button type="button" (click)="removeSeparator(separator)" aria-label="移除分隔符">
+                          ×
+                        </button></span
+                      >
+                    }
+                    <select
+                      class="kb-separator-add"
+                      aria-label="添加分隔符"
+                      (change)="addSeparator($any($event.target).value); $any($event.target).value = ''"
+                    >
+                      <option value="">添加</option>
+                      @for (option of separatorOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </section>
+          }
+
+          @case ('image') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>图像处理</h1>
+                <p>配置图片理解策略，帮助知识库提取图片中的文字和语义。</p>
+              </div>
+              <div class="kb-panel kb-panel-post-create">
+                <div class="kb-field kb-field-inline">
+                  <div>
+                    <label class="kb-label">启用图片理解</label>
+                    <p class="kb-help-text">图片文档将在导入时调用视觉理解模型。</p>
+                  </div>
+                  <z-switch
+                    class="kb-primary-switch"
+                    [ngModel]="parserPreview().imageUnderstanding"
+                    (ngModelChange)="updateParserPreview('imageUnderstanding', $event)"
+                  />
+                </div>
+                <div class="kb-divider"></div>
+                <copilot-model-select
+                  class="block"
+                  [label]="'Vision 模型'"
+                  [modelType]="eAiModelTypeEnum.LLM"
+                  [features]="[eModelFeature.VISION]"
+                  [(ngModel)]="visionModel"
+                />
+                <p class="kb-inline-notice">
+                  <i class="ri-information-line"></i> 图片理解配置将在知识库创建后从文档导入设置中保存。
+                </p>
+              </div>
+            </section>
+          }
+
+          @case ('audio') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>音频处理</h1>
+                <p>为音频文件选择语音识别引擎。</p>
+              </div>
+              <div class="kb-placeholder-card">
+                <div class="kb-placeholder-icon"><i class="ri-volume-up-line"></i></div>
+                <div>
+                  <div class="kb-panel-title">语音转文本（ASR）</div>
+                  <p class="kb-panel-description">
+                    Xpert 文档模型已支持 Audio 类型，但当前知识库创建接口还没有 ASR 引擎字段。
+                  </p>
+                </div>
+                <span class="kb-status-badge kb-status-preview">前端预览</span>
+              </div>
+              <div class="kb-field mt-5">
+                <label class="kb-label">解析引擎</label>
+                <select class="kb-native-select" disabled>
+                  <option>暂未接入</option>
+                </select>
+              </div>
+            </section>
+          }
+
+          @case ('advanced') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>高级设置</h1>
+                <p>配置问题生成等高级功能</p>
+              </div>
+
+              <div class="kb-advanced-switch-row">
+                <div>
+                  <div class="kb-field-title">AI 问题生成</div>
+                  <p>解析文档时调用大模型为每个分块生成相关问题，提高检索召回率。启用后会增加文档解析耗时。</p>
+                </div>
+                <z-switch class="kb-primary-switch" [(ngModel)]="questionGenerationEnabled" />
+              </div>
+
+              @if (questionGenerationEnabled()) {
+                <div class="kb-advanced-emphasis">
+                  <div class="kb-advanced-field kb-advanced-count-row">
+                    <div>
+                      <div class="kb-field-title">生成问题数量</div>
+                      <p>每个文档分块生成的问题数量（1–10）</p>
+                    </div>
+                    <input
+                      class="kb-input kb-number-input"
+                      type="number"
+                      min="1"
+                      max="10"
+                      [(ngModel)]="questionCount"
+                    />
+                  </div>
+                  <div class="kb-advanced-field">
+                    <div class="kb-field-title">问题生成要求</div>
+                    <p>指定问题面向的人群、场景和表达方式，系统仍维持稳定输出格式</p>
+                    <textarea
+                      class="kb-textarea kb-advanced-textarea"
+                      maxlength="4000"
+                      [(ngModel)]="questionRequirements"
+                      placeholder="例如：生成客服用户常问的自然语言问题，避免考试题式表达..."
+                    ></textarea>
+                    <div class="kb-counter">{{ questionRequirements().length }}/4000</div>
+                  </div>
+                </div>
+              }
+
+              <div class="kb-advanced-field kb-table-metadata-field">
+                <div class="kb-field-title">表格元数据生成要求</div>
+                <p>为 CSV/Excel 摘要补充业务背景和字段语义，帮助后续检索理解表格内容</p>
+                <textarea
+                  class="kb-textarea kb-advanced-textarea"
+                  maxlength="4000"
+                  [(ngModel)]="tableMetadataRequirements"
+                  placeholder="例如：这是销售订单表，金额单位为元，status 字段值使用公司内部状态码..."
+                ></textarea>
+                <div class="kb-counter">{{ tableMetadataRequirements().length }}/4000</div>
+              </div>
+            </section>
+          }
+
+          @case ('storage') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>存储引擎</h1>
+                <p>配置原始文件和处理结果的存储方式。</p>
+              </div>
+              <div class="kb-placeholder-card">
+                <div class="kb-placeholder-icon"><i class="ri-hard-drive-3-line"></i></div>
+                <div>
+                  <div class="kb-panel-title">平台默认存储</div>
+                  <p class="kb-panel-description">
+                    当前 Xpert 统一使用工作空间存储服务，知识库创建时不单独选择存储引擎。
+                  </p>
+                </div>
+                <span class="kb-status-badge kb-status-preview">暂不支持切换</span>
+              </div>
+            </section>
+          }
+        }
+      </main>
+
+      <footer class="kb-create-footer">
+        <button
+          type="button"
+          class="btn btn-secondary btn-large kb-footer-button"
+          [disabled]="loading()"
+          (click)="close()"
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-large kb-footer-button kb-footer-primary"
+          [disabled]="loading()"
+          (click)="submit()"
+        >
+          @if (loading()) {
+            <i class="ri-loader-4-line kb-spin"></i>
+          }
+          {{ isEditMode() ? '保存配置' : '创建知识库' }}
+        </button>
+      </footer>
+    </section>
   </div>
-  <div class="my-4">
-    <div class="text-text-secondary font-semibold">
-      {{ 'XP.Knowledgebase.KnowledgebaseName' | translate: { Default: 'Knowledgebase Name' } }}
-      <span class="mx-1 text-text-destructive">*</span>
-    </div>
-    <div class="relative w-full">
-      <input class="xp-input w-full" [(ngModel)]="name" />
-    </div>
-  </div>
-
-  <copilot-model-select
-    class="block mb-4"
-    required
-    [label]="'XP.Knowledgebase.EmbeddingModel' | translate: { Default: 'Embedding Model' }"
-    [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
-    [(ngModel)]="copilotModel"
-  />
-
-  <copilot-model-select
-    class="block mb-4"
-    [label]="'XP.Knowledgebase.ChatModel' | translate: { Default: 'Chat Model' }"
-    [modelType]="eAiModelTypeEnum.LLM"
-    [(ngModel)]="chatModel"
-  />
-
-  <copilot-model-select
-    class="block mb-4"
-    [label]="'XP.Knowledgebase.RerankModel' | translate: { Default: 'Rerank Model' }"
-    [modelType]="eAiModelTypeEnum.RERANK"
-    [(ngModel)]="rerankModel"
-  />
-</div>
-
-<div class="flex justify-end gap-2 p-6">
-  <button
-    type="button"
-    class="btn disabled:btn-disabled btn-secondary btn-large justify-center w-24"
-    [disabled]="loading()"
-    (click)="close()"
-  >
-    {{ 'XP.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
-  </button>
-  <button
-    type="button"
-    class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24"
-    [disabled]="invalid() || loading()"
-    (click)="create()"
-  >
-    {{ 'XP.Xpert.Create' | translate: { Default: 'Create' } }}
-  </button>
 </div>
