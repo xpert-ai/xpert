@@ -14,6 +14,13 @@ const SUMMARY_VERSION = 1 as const
 const PLAN_EXCERPT_LENGTH = 160
 const PLAN_PATTERN = /<proposed_plan>\s*([\s\S]*?)\s*<\/proposed_plan>/i
 const MARKDOWN_LINK_PATTERN = /\[[^\]]*\]\((xpert:\/\/knowledgebase\/chunk\?[^)]+)\)/g
+const WEB_SEARCH_RESULT_PATTERN = /^Title:\s*(.+?)\r?\nURL:\s*(https?:\/\/\S+)\s*$/gim
+const SANDBOX_FILE_OUTPUT_TOOLS = new Set([
+    'sandbox_write_file',
+    'sandbox_append_file',
+    'sandbox_edit_file',
+    'sandbox_multi_edit_file'
+])
 
 type MessageContentPart = {
     id?: unknown
@@ -36,6 +43,7 @@ type ComponentData = {
     input?: unknown
     tool?: unknown
     output?: unknown
+    status?: unknown
     url?: unknown
 }
 
@@ -49,6 +57,7 @@ type ArtifactCandidate = {
     kind?: unknown
     title?: unknown
     description?: unknown
+    status?: unknown
     files?: unknown
     workspacePath?: unknown
     filePath?: unknown
@@ -125,6 +134,10 @@ type TodoCandidate = {
     status?: unknown
 }
 
+type SandboxFileInputCandidate = {
+    file_path?: unknown
+}
+
 type FileAssetCandidate = {
     id?: unknown
     fileAssetId?: unknown
@@ -133,20 +146,6 @@ type FileAssetCandidate = {
     originalName?: unknown
     name?: unknown
     fileName?: unknown
-}
-
-type RuntimeCapabilitiesMetadata = {
-    runtimeCapabilities?: unknown
-}
-
-type RuntimeCapabilitiesCandidate = {
-    skills?: unknown
-    plugins?: unknown
-}
-
-type CapabilityIdsCandidate = {
-    ids?: unknown
-    nodeKeys?: unknown
 }
 
 function isObjectValue(value: unknown): value is object {
@@ -280,10 +279,6 @@ function isSourceKind(value: unknown): value is ChatTaskSummarySourceKind {
     )
 }
 
-function isOutputStatus(value: unknown): value is ChatTaskSummaryOutput['status'] {
-    return value === 'pending' || value === 'running' || value === 'success' || value === 'error'
-}
-
 function normalizeResource(value: unknown): ChatTaskSummaryOutput['resource'] | undefined {
     if (!isObjectValue(value)) {
         return undefined
@@ -377,7 +372,16 @@ function normalizeOutput(value: unknown, messageId?: string, updatedAt?: string)
     const output = value as TaskSummaryOutputCandidate
     const id = readString(output.id)
     const title = readString(output.title)
-    if (!id || !title || !isOutputKind(output.kind)) {
+    const rawStatus = readString(output.status)?.toLowerCase()
+    const status = rawStatus === 'success' ? rawStatus : undefined
+    const resource = normalizeResource(output.resource)
+    if (
+        !id ||
+        !title ||
+        !isOutputKind(output.kind) ||
+        (rawStatus !== undefined && rawStatus !== 'success') ||
+        !isOpenableOutputResource(resource)
+    ) {
         return undefined
     }
     return {
@@ -385,11 +389,21 @@ function normalizeOutput(value: unknown, messageId?: string, updatedAt?: string)
         kind: output.kind,
         title: compactText(title, 160),
         description: readString(output.description),
-        status: isOutputStatus(output.status) ? output.status : undefined,
-        resource: normalizeResource(output.resource),
+        status,
+        resource,
         messageId: readString(output.messageId) ?? messageId,
         updatedAt: toIsoString(output.updatedAt) ?? updatedAt
     }
+}
+
+export function isCompletedOpenableTaskSummaryOutput(output: ChatTaskSummaryOutput) {
+    return (output.status === undefined || output.status === 'success') && isOpenableOutputResource(output.resource)
+}
+
+function isOpenableOutputResource(
+    resource: ChatTaskSummaryOutput['resource']
+): resource is NonNullable<ChatTaskSummaryOutput['resource']> {
+    return resource?.type === 'workspace_file' || resource?.type === 'artifact' || resource?.type === 'url'
 }
 
 function normalizeSource(value: unknown, messageId?: string, updatedAt?: string): ChatTaskSummarySource | undefined {
@@ -459,6 +473,9 @@ function artifactOutput(value: unknown, messageId?: string, updatedAt?: string):
         return undefined
     }
     const artifact = value as ArtifactCandidate
+    if (!isCompletedOutputStatus(artifact.status)) {
+        return undefined
+    }
     const artifactId = readString(artifact.artifactId) ?? readString(artifact.id)
     const workspacePath = readString(artifact.workspacePath) ?? readString(artifact.filePath)
     const fileId = readString(artifact.fileAssetId) ?? readString(artifact.storageFileId)
@@ -502,11 +519,19 @@ function artifactOutputs(value: unknown, messageId?: string, updatedAt?: string)
         return []
     }
     const artifact = value as ArtifactCandidate
+    if (!isCompletedOutputStatus(artifact.status)) {
+        return []
+    }
     const output = artifactOutput(value, messageId, updatedAt)
     const files = Array.isArray(artifact.files)
         ? artifact.files.flatMap((file) => artifactOutput(file, messageId, updatedAt) ?? [])
         : []
     return [...(output ? [output] : []), ...files]
+}
+
+function isCompletedOutputStatus(value: unknown) {
+    const status = readString(value)?.toLowerCase()
+    return status === undefined || status === 'success'
 }
 
 function parseStructuredOutput(value: unknown): Record<string, unknown> | undefined {
@@ -525,6 +550,11 @@ function parseStructuredOutput(value: unknown): Record<string, unknown> | undefi
 }
 
 function structuredToolOutputs(data: ComponentData, messageId?: string, updatedAt?: string) {
+    const sandboxOutput = sandboxFileOutput(data, messageId, updatedAt)
+    if (sandboxOutput) {
+        return [sandboxOutput]
+    }
+
     const payload = parseStructuredOutput(data.output)
     if (!payload) {
         return []
@@ -553,6 +583,47 @@ function structuredToolOutputs(data: ComponentData, messageId?: string, updatedA
         outputs.push(...artifactOutputs(payload.file, messageId, updatedAt))
     }
     return outputs
+}
+
+function sandboxFileOutput(
+    data: ComponentData,
+    messageId?: string,
+    updatedAt?: string
+): ChatTaskSummaryOutput | undefined {
+    const tool = readString(data.tool)
+    const status = readString(data.status)?.toLowerCase()
+    if (!tool || !SANDBOX_FILE_OUTPUT_TOOLS.has(tool) || status !== 'success' || !isObjectValue(data.input)) {
+        return undefined
+    }
+    const workspacePath = portableWorkspacePath((data.input as SandboxFileInputCandidate).file_path)
+    if (!workspacePath) {
+        return undefined
+    }
+    return {
+        id: `workspace-file:${workspacePath}`,
+        kind: artifactKind({ fileName: workspacePath }),
+        title: fileNameFromPath(workspacePath) ?? workspacePath,
+        status: 'success',
+        resource: { type: 'workspace_file', workspacePath },
+        ...(messageId ? { messageId } : {}),
+        ...(updatedAt ? { updatedAt } : {})
+    }
+}
+
+function portableWorkspacePath(value: unknown) {
+    const path = readString(value)
+        ?.replace(/\\/g, '/')
+        .replace(/^\.\/+/, '')
+        .replace(/\/{2,}/g, '/')
+    if (
+        !path ||
+        path.startsWith('/') ||
+        /^[a-z]:\//i.test(path) ||
+        path.split('/').some((segment) => segment === '..')
+    ) {
+        return undefined
+    }
+    return path
 }
 
 function artifactKind(artifact: ArtifactCandidate): ChatTaskSummaryOutputKind {
@@ -678,16 +749,6 @@ function partOutputs(part: MessageContentPart, messageId?: string, updatedAt?: s
     const data = part.data as ComponentData
     const explicit = readExplicitContribution(data, messageId, updatedAt)
     outputs.push(...(explicit?.outputs ?? []))
-    if (data.type === 'McpApp') {
-        outputs.push({
-            id: `mcp-app:${readString(part.id) ?? messageId ?? 'message'}`,
-            kind: 'mcp_app',
-            title: readString(data.title) ?? 'MCP App',
-            resource: messageId ? { type: 'message', messageId } : undefined,
-            ...(messageId ? { messageId } : {}),
-            ...(updatedAt ? { updatedAt } : {})
-        })
-    }
     outputs.push(...artifactOutputs(data.artifact, messageId, updatedAt))
     outputs.push(...artifactOutputs(data.artifactLink, messageId, updatedAt))
     outputs.push(...artifactOutputs(data.file, messageId, updatedAt))
@@ -769,42 +830,6 @@ function fileSource(value: unknown, messageId?: string, updatedAt?: string): Cha
     }
 }
 
-function capabilitySources(value: unknown, messageId?: string, updatedAt?: string) {
-    if (!isObjectValue(value)) {
-        return []
-    }
-    const metadata = value as RuntimeCapabilitiesMetadata
-    if (!isObjectValue(metadata.runtimeCapabilities)) {
-        return []
-    }
-    const capabilities = metadata.runtimeCapabilities as RuntimeCapabilitiesCandidate
-    const groups: Array<{ kind: ChatTaskSummarySourceKind; prefix: string; value: unknown }> = [
-        { kind: 'skill', prefix: 'skill', value: capabilities.skills },
-        { kind: 'plugin', prefix: 'plugin', value: capabilities.plugins }
-    ]
-    return groups.flatMap(({ kind, prefix, value: groupValue }) => {
-        if (!isObjectValue(groupValue)) {
-            return []
-        }
-        const group = groupValue as CapabilityIdsCandidate
-        const ids = Array.isArray(group.ids) ? group.ids : Array.isArray(group.nodeKeys) ? group.nodeKeys : []
-        return ids.flatMap((entry) => {
-            const id = readString(entry)
-            return id
-                ? [
-                      {
-                          id: `${prefix}:${id}`,
-                          kind,
-                          title: id,
-                          ...(messageId ? { messageId } : {}),
-                          ...(updatedAt ? { updatedAt } : {})
-                      } satisfies ChatTaskSummarySource
-                  ]
-                : []
-        })
-    })
-}
-
 function knowledgeSources(content: unknown, messageId?: string, updatedAt?: string) {
     const text = readMessageText(content)
     const sources: ChatTaskSummarySource[] = []
@@ -833,6 +858,52 @@ function knowledgeSources(content: unknown, messageId?: string, updatedAt?: stri
         }
     }
     return sources
+}
+
+function webSearchSources(part: MessageContentPart, messageId?: string, updatedAt?: string) {
+    if (part.type !== 'component' || !isObjectValue(part.data)) {
+        return []
+    }
+    const data = part.data as ComponentData
+    if (data.tool !== 'web_search' || readString(data.status)?.toLowerCase() !== 'success') {
+        return []
+    }
+    const output = readString(data.output)
+    if (!output) {
+        return []
+    }
+    const sources: ChatTaskSummarySource[] = []
+    for (const match of output.matchAll(WEB_SEARCH_RESULT_PATTERN)) {
+        const rawTitle = readString(match[1])
+        const url = httpUrl(match[2])
+        if (!url) {
+            continue
+        }
+        const title = rawTitle && rawTitle.toLowerCase() !== 'n/a' ? rawTitle : new URL(url).hostname
+        sources.push({
+            id: `web:${url}`,
+            kind: 'web_page',
+            title: compactText(title, 160),
+            description: url,
+            resource: { type: 'url', url },
+            ...(messageId ? { messageId } : {}),
+            ...(updatedAt ? { updatedAt } : {})
+        })
+    }
+    return sources
+}
+
+function httpUrl(value: unknown) {
+    const url = readString(value)
+    if (!url) {
+        return undefined
+    }
+    try {
+        const parsed = new URL(url)
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : undefined
+    } catch {
+        return undefined
+    }
 }
 
 function dedupeById<T extends { id: string }>(items: T[]) {
@@ -883,7 +954,7 @@ export function extractChatMessageTaskSummary(
         ...(message.references ?? []).map((reference) => referenceSource(reference, messageId, updatedAt)),
         ...(message.fileAssets ?? []).flatMap((file) => fileSource(file, messageId, updatedAt) ?? []),
         ...(message.attachments ?? []).flatMap((file) => fileSource(file, messageId, updatedAt) ?? []),
-        ...capabilitySources(message.thirdPartyMessage, messageId, updatedAt),
+        ...parts.flatMap((part) => webSearchSources(part, messageId, updatedAt)),
         ...knowledgeSources(message.content, messageId, updatedAt)
     ])
 

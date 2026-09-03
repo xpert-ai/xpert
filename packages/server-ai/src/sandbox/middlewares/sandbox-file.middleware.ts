@@ -149,6 +149,12 @@ function resolveSandboxPath(config: any, fileOrDirPath?: string): string {
     return isAbsolute(fileOrDirPath) ? fileOrDirPath : resolve(workingDirectory, fileOrDirPath)
 }
 
+function stringifyPortableFileResult(result: unknown, filePath: string) {
+    const portableResult =
+        typeof result === 'object' && result !== null && !Array.isArray(result) ? { ...result, path: filePath } : result
+    return JSON.stringify(portableResult, null, 2)
+}
+
 @Injectable()
 @AgentMiddlewareStrategy(SANDBOX_FILE_MIDDLEWARE_NAME)
 export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
@@ -239,7 +245,7 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                     { file_path },
                     async () => {
                         const result = await backend.edit(resolvedFilePath, old_string, new_string, replace_all)
-                        return JSON.stringify(result, null, 2)
+                        return stringifyPortableFileResult(result, file_path)
                     }
                 )
             },
@@ -263,7 +269,7 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                     async () => {
                         const normalizedContent = Array.isArray(content) ? content.join('') : content
                         const result = await backend.write(resolvedFilePath, normalizedContent)
-                        return JSON.stringify(result, null, 2)
+                        return stringifyPortableFileResult(result, file_path)
                     }
                 )
             },
@@ -283,7 +289,7 @@ CRITICAL FORMAT REQUIREMENTS:
 
 CORRECT format:
 {
-  "file_path": "/path/to/file.js",
+  "file_path": "path/to/file.js",
   "content": "const x = 1;\\nconst y = 2;\\nconsole.log(x + y);"
 }
 
@@ -308,7 +314,7 @@ INCORRECT format (DO NOT USE):
                     async () => {
                         const normalizedContent = Array.isArray(content) ? content.join('') : content
                         const result = await backend.append(resolvedFilePath, normalizedContent)
-                        return JSON.stringify(result, null, 2)
+                        return stringifyPortableFileResult(result, file_path)
                     }
                 )
             },
@@ -342,7 +348,7 @@ CRITICAL FORMAT REQUIREMENTS:
                     { file_path },
                     async () => {
                         const result = await backend.multiEdit(resolvedFilePath, edits as EditOperation[])
-                        return JSON.stringify(result, null, 2)
+                        return stringifyPortableFileResult(result, file_path)
                     }
                 )
             },

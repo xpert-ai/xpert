@@ -22,6 +22,7 @@ describe('ChatTaskSummaryService', () => {
                         id: `output-${index + 1}`,
                         kind: 'document' as const,
                         title: `Output ${index + 1}`,
+                        resource: { type: 'artifact' as const, artifactId: `artifact-${index + 1}` },
                         updatedAt: `2026-07-13T0${index + 1}:00:00.000Z`
                     })),
                     sources: [
@@ -65,6 +66,7 @@ describe('ChatTaskSummaryService', () => {
                     items: [
                         {
                             id: 'root-agent',
+                            category: 'agent',
                             agentKey: 'Agent_primary',
                             title: 'Primary agent',
                             status: 'running',
@@ -73,6 +75,7 @@ describe('ChatTaskSummaryService', () => {
                         {
                             id: 'agent-1',
                             parentId: 'root-agent',
+                            category: 'agent',
                             agentKey: 'Agent_researcher',
                             title: 'Researcher',
                             status: 'error',
@@ -81,6 +84,7 @@ describe('ChatTaskSummaryService', () => {
                         {
                             id: 'agent-2',
                             parentId: 'root-agent',
+                            category: 'agent',
                             agentKey: 'Agent_researcher',
                             title: 'Researcher',
                             status: 'success',
@@ -89,10 +93,20 @@ describe('ChatTaskSummaryService', () => {
                         {
                             id: 'agent-3',
                             parentId: 'root-agent',
+                            category: 'agent',
                             agentKey: 'Agent_writer',
                             title: 'Writer',
                             status: 'success',
                             updatedAt: new Date('2026-07-13T03:30:00.000Z')
+                        },
+                        {
+                            id: 'workflow-1',
+                            parentId: 'root-agent',
+                            category: 'workflow',
+                            agentKey: 'Agent_writer',
+                            title: 'Workflow step',
+                            status: 'running',
+                            updatedAt: new Date('2026-07-13T05:30:00.000Z')
                         }
                     ],
                     total: 1
@@ -146,6 +160,7 @@ describe('ChatTaskSummaryService', () => {
             total: 2
         })
         expect(result.agents.items).not.toContainEqual(expect.objectContaining({ id: 'root-agent' }))
+        expect(result.agents.items).not.toContainEqual(expect.objectContaining({ id: 'workflow-1' }))
         expect(result.pending.items[0]).toMatchObject({
             id: 'follow-up:message-2',
             kind: 'follow_up',
@@ -158,12 +173,14 @@ describe('ChatTaskSummaryService', () => {
             id: `output-${index}`,
             kind: 'document' as const,
             title: `Output ${index}`,
+            resource: { type: 'artifact' as const, artifactId: `artifact-${index}` },
             updatedAt: `2026-07-13T01:${String(index).padStart(2, '0')}:00.000Z`
         }))
         outputs.push({
             id: 'output-1',
             kind: 'document',
             title: 'Newest output',
+            resource: { type: 'artifact', artifactId: 'artifact-1' },
             updatedAt: '2026-07-13T03:00:00.000Z'
         })
         const messageService = {
@@ -195,7 +212,7 @@ describe('ChatTaskSummaryService', () => {
         expect(page.items[0]).toMatchObject({ id: 'output-1', title: 'Newest output' })
     })
 
-    it('re-extracts outputs from messages with an incomplete persisted summary', async () => {
+    it('re-extracts outputs and sources from messages with an incomplete persisted summary', async () => {
         const messageService = {
             findAllInOrganizationOrTenant: jest
                 .fn()
@@ -218,6 +235,18 @@ describe('ChatTaskSummaryService', () => {
                                                 }
                                             ]
                                         }
+                                    }
+                                },
+                                {
+                                    type: 'component',
+                                    data: {
+                                        tool: 'web_search',
+                                        status: 'success',
+                                        output: [
+                                            'Title: Research report',
+                                            'URL: https://example.com/research-report',
+                                            'Published: 2026-07-13'
+                                        ].join('\n')
                                     }
                                 }
                             ],
@@ -251,8 +280,88 @@ describe('ChatTaskSummaryService', () => {
             ],
             total: 1
         })
+        expect(result.sources).toEqual({
+            items: [
+                expect.objectContaining({
+                    id: 'web:https://example.com/research-report',
+                    title: 'Research report',
+                    resource: { type: 'url', url: 'https://example.com/research-report' }
+                })
+            ],
+            total: 1
+        })
+    })
+
+    it('uses the request_user_input question for interrupted pending items', async () => {
+        const service = createEmptyService()
+        const interruptedConversation = conversation()
+        interruptedConversation.status = 'interrupted'
+        interruptedConversation.operation = {
+            tasks: [
+                {
+                    name: 'request_user_input',
+                    interrupts: [
+                        {
+                            value: {
+                                clientToolCalls: [
+                                    {
+                                        name: 'request_user_input',
+                                        args: {
+                                            questions: [
+                                                {
+                                                    id: 'implement_plan',
+                                                    header: '确认',
+                                                    question: '实施这个学习计划？',
+                                                    options: []
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+        const result = await service.getSnapshot(interruptedConversation)
+
+        expect(result.pending).toEqual({
+            items: [
+                expect.objectContaining({
+                    kind: 'user_input',
+                    title: '实施这个学习计划？'
+                })
+            ],
+            total: 1
+        })
+    })
+
+    it('does not expose stale operation tasks after the conversation becomes idle', async () => {
+        const service = createEmptyService()
+        const idleConversation = conversation()
+        idleConversation.operation = {
+            tasks: [{ name: 'request_user_input', interrupts: [] }]
+        }
+
+        const result = await service.getSnapshot(idleConversation)
+
+        expect(result.pending).toEqual({ items: [], total: 0 })
     })
 })
+
+function createEmptyService() {
+    return new ChatTaskSummaryService(
+        {
+            findAllInOrganizationOrTenant: jest.fn(() => Promise.resolve({ items: [], total: 0 })),
+            save: jest.fn()
+        } as never,
+        { getByConversationId: jest.fn(() => Promise.resolve(null)) } as never,
+        { findAllInOrganizationOrTenant: jest.fn(() => Promise.resolve({ items: [], total: 0 })) } as never,
+        { find: jest.fn(() => Promise.resolve([])) } as never
+    )
+}
 
 function conversation(): ChatConversation {
     return {
