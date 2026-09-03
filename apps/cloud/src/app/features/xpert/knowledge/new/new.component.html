@@ -144,6 +144,87 @@
             </section>
           }
 
+          @case ('vector') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>向量检索</h1>
+                <p>配置查询向量、候选数量和相似度筛选策略。</p>
+              </div>
+              <div class="kb-panel kb-vector-search-panel">
+                <div class="kb-vector-search-heading">
+                  <div class="kb-vector-search-title">
+                    <i class="ri-focus-2-line"></i>
+                    <span>向量搜索</span>
+                  </div>
+                  <p class="kb-panel-description">生成查询嵌入并搜索与其向量表示最相似的文本块。</p>
+                </div>
+
+                <div class="kb-divider"></div>
+
+                <div class="kb-vector-rerank-row">
+                  <div>
+                    <div class="kb-field-title">重新排序模型</div>
+                    <p class="kb-help-text">使用重排模型对候选文本块重新排序，提升结果相关性。</p>
+                  </div>
+                  <z-switch class="kb-primary-switch" [(ngModel)]="rerankEnabled" />
+                </div>
+
+                @if (rerankEnabled()) {
+                  <div class="kb-vector-rerank-model">
+                    <copilot-model-select hiddenLabel [modelType]="eAiModelTypeEnum.RERANK" [(ngModel)]="rerankModel" />
+                  </div>
+                }
+
+                <div class="kb-vector-metric-grid">
+                  <div class="kb-vector-metric-card">
+                    <div class="kb-vector-metric-label">
+                      <span class="kb-field-title">前多少</span>
+                      <strong>{{ vectorTopK() }}</strong>
+                    </div>
+                    <p class="kb-help-text">返回候选文本块的数量（1–100）。</p>
+                    <input
+                      class="kb-range"
+                      type="range"
+                      min="1"
+                      max="100"
+                      step="1"
+                      [attr.aria-label]="'前多少'"
+                      [attr.style]="'--range-progress: ' + vectorTopKPercent()"
+                      [(ngModel)]="vectorTopK"
+                    />
+                    <div class="kb-range-ticks"><span>1</span><span>50</span><span>100</span></div>
+                  </div>
+
+                  <div class="kb-vector-metric-card">
+                    <div class="kb-vector-metric-label">
+                      <span class="kb-field-title">相似度阈值</span>
+                      <z-switch class="kb-primary-switch" [(ngModel)]="vectorScoreEnabled" />
+                      <strong>{{ vectorScore() | number: '1.2-2' }}</strong>
+                    </div>
+                    <p class="kb-help-text">低于阈值的文本块会被过滤，关闭后不限制最低相似度。</p>
+                    <input
+                      class="kb-range"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      [disabled]="!vectorScoreEnabled()"
+                      [attr.aria-label]="'相似度阈值'"
+                      [attr.style]="'--range-progress: ' + vectorScorePercent()"
+                      [(ngModel)]="vectorScore"
+                    />
+                    <div class="kb-range-ticks"><span>0</span><span>0.5</span><span>1</span></div>
+                  </div>
+                </div>
+
+                <div class="kb-inline-notice">
+                  <i class="ri-information-line"></i>
+                  <span>向量存储由 Xpert 平台统一管理，此处只配置检索行为。</span>
+                </div>
+              </div>
+            </section>
+          }
+
           @case ('parser') {
             <section class="kb-section">
               <div class="kb-section-heading">
@@ -347,6 +428,135 @@
                 <select class="kb-native-select" disabled>
                   <option>暂未接入</option>
                 </select>
+              </div>
+            </section>
+          }
+
+          @case ('graph') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>知识图谱</h1>
+                <p>配置 GraphRAG，从文档中抽取实体和关系并参与知识检索。</p>
+              </div>
+              <div class="kb-panel kb-graph-settings-panel">
+                <div class="kb-field-inline">
+                  <div>
+                    <div class="kb-panel-title">启用 GraphRAG</div>
+                    <p class="kb-panel-description">解析文档时抽取实体、关系和证据，供图谱检索与混合检索使用。</p>
+                  </div>
+                  <z-switch
+                    class="kb-primary-switch"
+                    [ngModel]="graphEnabled()"
+                    (ngModelChange)="setGraphEnabled($event)"
+                  />
+                </div>
+
+                <div class="kb-divider"></div>
+
+                <div class="kb-graph-mode-row">
+                  <div class="kb-field-title">检索模式</div>
+                  <div class="kb-segmented-control">
+                    @for (option of graphModeOptions; track option.value) {
+                      <button
+                        type="button"
+                        class="kb-segmented-option"
+                        [class.kb-segmented-option-active]="graphMode() === option.value"
+                        [disabled]="!graphEnabled() && option.value !== 'vector'"
+                        (click)="setGraphMode(option.value)"
+                      >
+                        {{ option.label }}
+                      </button>
+                    }
+                  </div>
+                  <p class="kb-help-text">{{ graphModeDescription() }}</p>
+                </div>
+
+                <div class="kb-graph-settings-heading">
+                  <div class="kb-field-title">图谱检索参数</div>
+                  <p class="kb-help-text">与 Xpert 检索设置保持一致，关闭 GraphRAG 时保留当前配置。</p>
+                </div>
+
+                <div class="kb-graph-setting-list" [class.kb-graph-setting-list-disabled]="!graphEnabled()">
+                  <div class="kb-graph-setting-row">
+                    <div class="kb-graph-setting-copy">
+                      <div class="kb-graph-setting-label">
+                        <div class="kb-field-title">实体 Top K</div>
+                        <strong>{{ graphEntityTopK() }}</strong>
+                      </div>
+                      <p class="kb-help-text">每次查询用于扩展图谱的候选实体数量。</p>
+                    </div>
+                    <div class="kb-graph-range-control">
+                      <input
+                        class="kb-range"
+                        type="range"
+                        min="1"
+                        max="50"
+                        step="1"
+                        [disabled]="!graphEnabled()"
+                        [attr.aria-label]="'实体 Top K'"
+                        [attr.style]="'--range-progress: ' + (graphEntityTopK() / 50) * 100 + '%'"
+                        [ngModel]="graphEntityTopK()"
+                        (ngModelChange)="graphEntityTopK.set(+$event)"
+                      />
+                      <div class="kb-range-ticks"><span>1</span><span>25</span><span>50</span></div>
+                    </div>
+                  </div>
+
+                  <div class="kb-graph-setting-row">
+                    <div class="kb-graph-setting-copy">
+                      <div class="kb-graph-setting-label">
+                        <div class="kb-field-title">邻居跳数</div>
+                        <strong>{{ graphNeighborHops() }}</strong>
+                      </div>
+                      <p class="kb-help-text">沿实体关系扩展的层数，最多支持两跳。</p>
+                    </div>
+                    <div class="kb-graph-range-control">
+                      <input
+                        class="kb-range"
+                        type="range"
+                        min="1"
+                        max="2"
+                        step="1"
+                        [disabled]="!graphEnabled()"
+                        [attr.aria-label]="'邻居跳数'"
+                        [attr.style]="'--range-progress: ' + (graphNeighborHops() - 1) * 100 + '%'"
+                        [ngModel]="graphNeighborHops()"
+                        (ngModelChange)="graphNeighborHops.set(+$event)"
+                      />
+                      <div class="kb-range-ticks"><span>1</span><span>2</span></div>
+                    </div>
+                  </div>
+
+                  <div class="kb-graph-setting-row">
+                    <div class="kb-graph-setting-copy">
+                      <div class="kb-graph-setting-label">
+                        <div class="kb-field-title">图谱权重</div>
+                        <strong>{{ graphWeight() | number: '1.2-2' }}</strong>
+                      </div>
+                      <p class="kb-help-text">混合检索时图谱结果在最终排序中的权重。</p>
+                    </div>
+                    <div class="kb-graph-range-control">
+                      <input
+                        class="kb-range"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        [disabled]="!graphEnabled()"
+                        [attr.aria-label]="'图谱权重'"
+                        [attr.style]="'--range-progress: ' + graphWeight() * 100 + '%'"
+                        [ngModel]="graphWeight()"
+                        (ngModelChange)="graphWeight.set(+$event)"
+                      />
+                      <div class="kb-range-ticks"><span>0</span><span>0.5</span><span>1</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="kb-inline-notice">
+                  <i class="ri-information-line"></i>
+                  <span>创建后可在知识库配置中重建图谱；已存在的文档需要重新解析才会生成图谱数据。</span>
+                </div>
               </div>
             </section>
           }

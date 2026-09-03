@@ -264,6 +264,50 @@
   @apply mt-1 text-xs leading-5 text-text-tertiary;
 }
 
+.kb-vector-search-panel {
+  @apply bg-components-card-bg;
+}
+
+.kb-vector-search-heading {
+  @apply flex flex-col gap-1;
+}
+
+.kb-vector-search-title {
+  @apply flex items-center gap-2 text-lg font-semibold text-text-primary;
+}
+
+.kb-vector-search-title i {
+  @apply text-xl text-text-accent;
+}
+
+.kb-vector-rerank-row {
+  @apply flex items-start justify-between gap-6;
+}
+
+.kb-vector-rerank-model {
+  @apply mt-4;
+}
+
+.kb-vector-metric-grid {
+  @apply mt-5 grid grid-cols-1 gap-3 md:grid-cols-2;
+}
+
+.kb-vector-metric-card {
+  @apply flex min-w-0 flex-col gap-3 rounded-lg border border-divider-subtle bg-components-panel-bg p-4;
+}
+
+.kb-vector-metric-label {
+  @apply flex items-center gap-2;
+}
+
+.kb-vector-metric-label .kb-field-title {
+  @apply min-w-0 flex-1;
+}
+
+.kb-vector-metric-label > strong {
+  @apply shrink-0 text-base font-semibold text-text-primary;
+}
+
 .kb-status-post-create {
   @apply shrink-0 bg-background-default-subtle text-text-warning;
 }
@@ -544,6 +588,54 @@
   @apply text-text-primary;
 }
 
+.kb-graph-settings-panel {
+  @apply border-divider-subtle;
+}
+
+.kb-graph-mode-row {
+  @apply border-b border-divider-subtle pb-5;
+}
+
+.kb-graph-mode-row .kb-segmented-control {
+  @apply mt-3;
+}
+
+.kb-graph-settings-heading {
+  @apply mt-5 mb-3;
+}
+
+.kb-graph-setting-list {
+  @apply grid grid-cols-1 gap-3 md:grid-cols-3;
+}
+
+.kb-graph-setting-list-disabled {
+  @apply opacity-60;
+}
+
+.kb-graph-setting-row {
+  @apply flex min-w-0 flex-col justify-between gap-4 rounded-lg border border-divider-subtle bg-components-panel-bg p-4;
+}
+
+.kb-graph-setting-copy {
+  @apply min-w-0;
+}
+
+.kb-graph-setting-label {
+  @apply flex items-center justify-between gap-3;
+}
+
+.kb-graph-setting-label > strong {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.kb-graph-range-control {
+  @apply relative flex w-full min-w-0 flex-col items-stretch gap-1;
+}
+
+.kb-range:disabled {
+  @apply cursor-not-allowed;
+}
+
 .kb-create-footer {
   @apply flex shrink-0 justify-end gap-3 border-t border-divider-subtle bg-components-card-bg px-6 py-4;
 }
@@ -596,7 +688,8 @@
   .kb-model-row,
   .kb-parser-engine-row,
   .kb-chunk-strategy-row,
-  .kb-chunk-setting-row {
+  .kb-chunk-setting-row,
+  .kb-graph-setting-row {
     @apply gap-5;
   }
 
@@ -604,6 +697,7 @@
   .kb-parser-engine-control,
   .kb-chunk-strategy-control,
   .kb-range-control,
+  .kb-graph-range-control,
   .kb-separator-control {
     @apply w-2/5;
   }
@@ -657,7 +751,9 @@
   .kb-model-row,
   .kb-parser-engine-row,
   .kb-chunk-strategy-row,
-  .kb-chunk-setting-row {
+  .kb-chunk-setting-row,
+  .kb-graph-setting-row,
+  .kb-vector-rerank-row {
     @apply flex-col gap-4;
   }
 
@@ -665,6 +761,7 @@
   .kb-parser-engine-control,
   .kb-chunk-strategy-control,
   .kb-range-control,
+  .kb-graph-range-control,
   .kb-separator-control {
     @apply w-full;
   }
