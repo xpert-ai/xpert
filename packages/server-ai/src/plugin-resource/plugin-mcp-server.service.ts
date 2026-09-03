@@ -5,6 +5,7 @@ import {
     PLUGIN_RESOURCE_INSTALLATION_STATUS,
     type IPluginMcpServerActivationResult,
     type IPluginMcpServerConnectionInfo,
+    type IPluginMcpServerCredentialResult,
     type JSONValue,
     type PluginLevel
 } from '@xpert-ai/contracts'
@@ -237,12 +238,12 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             const createdApiKey = reusableKey
                 ? undefined
                 : accessOrganizationId
-                  ? await this.apiKeys.createForOrganization(activated.publication, accessOrganizationId, {
+                  ? await this.apiKeys.createRevealableForOrganization(activated.publication, accessOrganizationId, {
                         name: `${activated.name} MCP client`,
                         scopes: ['tools:list', 'tools:call']
                     })
                   : await this.runInProviderScope(ownership, () =>
-                        this.apiKeys.create(activated.publication.id, {
+                        this.apiKeys.createRevealable(activated.publication.id, {
                             name: `${activated.name} MCP client`,
                             scopes: ['tools:list', 'tools:call']
                         })
@@ -429,6 +430,34 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             throw new NotFoundException(`MCP Server '${componentKey}' has not been enabled.`)
         }
         return this.runInProviderScope(ownership, () => this.connectionInfoFor(resolved.publication.id))
+    }
+
+    async credential(pluginName: string, componentKey: string): Promise<IPluginMcpServerCredentialResult> {
+        const ownership = this.resolveProviderOwnership(pluginName, componentKey)
+        const requestingOrganizationId = RequestContext.getOrganizationId() ?? null
+        const resolved = await this.runInProviderScope(ownership, () =>
+            this.requireProviderPublication(pluginName, componentKey)
+        )
+        if (ownership.level !== PLUGIN_LEVEL.ORGANIZATION && requestingOrganizationId) {
+            await this.publicationAccess.assertEnabled(resolved.publication, requestingOrganizationId)
+        }
+        if (resolved.publication.status !== 'active') {
+            throw new NotFoundException(`MCP Server '${componentKey}' has not been enabled.`)
+        }
+        const organizationId =
+            ownership.level === PLUGIN_LEVEL.ORGANIZATION ? ownership.organizationId : requestingOrganizationId
+        const connectionInfo = await this.runInProviderScope(ownership, () =>
+            this.connectionInfoFor(resolved.publication.id)
+        )
+        const credential = await this.apiKeys.getOrCreateRevealableCredential(resolved.publication, organizationId, {
+            name: `${readConfigString(resolved.installation.config, 'name') ?? componentKey} MCP client`,
+            scopes: ['tools:list', 'tools:call']
+        })
+        return {
+            connectionInfo,
+            apiKey: credential.apiKey,
+            secret: credential.secret
+        }
     }
 
     async synchronizeEnabled(

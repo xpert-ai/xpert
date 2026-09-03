@@ -1,5 +1,6 @@
 import { McpPrincipal } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { environment } from '@xpert-ai/server-config'
+import { decryptSecret, encryptSecret, RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
@@ -14,7 +15,7 @@ const API_KEY_PREFIX = 'xpert_mcp_'
 const STORED_PREFIX_LENGTH = 24
 
 export interface CreatedMcpApiKey {
-    apiKey: Omit<McpApiKey, 'keyHash'>
+    apiKey: Omit<McpApiKey, 'keyHash' | 'encryptedSecret'>
     secret: string
 }
 
@@ -63,6 +64,72 @@ export class McpApiKeyService {
     ): Promise<CreatedMcpApiKey> {
         this.assertCurrentTenant(publication)
         return this.createForPublication(publication, input, organizationId)
+    }
+
+    async createRevealable(publicationId: string, input: CreateMcpApiKeyInput): Promise<CreatedMcpApiKey> {
+        const publication = await this.publications.getManaged(publicationId)
+        const organizationId = this.sharedPublicationOrganization(publication)
+        return this.createForPublication(publication, input, organizationId, true)
+    }
+
+    async createRevealableForOrganization(
+        publication: McpPublication,
+        organizationId: string,
+        input: CreateMcpApiKeyInput
+    ): Promise<CreatedMcpApiKey> {
+        this.assertCurrentTenant(publication)
+        return this.createForPublication(publication, input, organizationId, true)
+    }
+
+    /**
+     * Returns the current administrator's revealable client credential, or creates
+     * one when only legacy hash-only keys exist. The encrypted secret never leaves
+     * this service except through an explicitly authorized credential response.
+     */
+    async getOrCreateRevealableCredential(
+        publication: McpPublication,
+        organizationId: string | null,
+        input: CreateMcpApiKeyInput
+    ): Promise<CreatedMcpApiKey> {
+        this.assertCurrentTenant(publication)
+        const currentUserId = RequestContext.currentUserId()
+        const currentOrganizationId = RequestContext.getOrganizationId() ?? null
+        if (
+            !currentUserId ||
+            currentOrganizationId !== organizationId ||
+            (!!publication.organizationId && publication.organizationId !== organizationId)
+        ) {
+            throw this.unauthorized()
+        }
+        const name = input.name.trim()
+        const keys = await this.keyRepository
+            .createQueryBuilder('apiKey')
+            .addSelect('apiKey.encryptedSecret')
+            .where('apiKey.publicationId = :publicationId', { publicationId: publication.id })
+            .andWhere('apiKey.tenantId = :tenantId', { tenantId: publication.tenantId })
+            .andWhere(
+                organizationId ? 'apiKey.organizationId = :organizationId' : 'apiKey.organizationId IS NULL',
+                organizationId ? { organizationId } : {}
+            )
+            .andWhere('apiKey.subjectType = :subjectType', { subjectType: 'user' })
+            .andWhere('apiKey.subjectId = :subjectId', { subjectId: currentUserId })
+            .andWhere('apiKey.name = :name', { name })
+            .andWhere('apiKey.revokedAt IS NULL')
+            .orderBy('apiKey.createdAt', 'DESC')
+            .getMany()
+        const reusable = keys.find(
+            (key) =>
+                !!key.encryptedSecret &&
+                (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now()) &&
+                hasMcpClientScopes(key.scopes)
+        )
+        if (reusable?.encryptedSecret) {
+            return {
+                apiKey: toPublicApiKey(reusable),
+                secret: decryptSecret(reusable.encryptedSecret, environment.secretsEncryptionKey)
+            }
+        }
+        return this.createForPublication(publication, input, organizationId, true)
     }
 
     async revoke(keyId: string) {
@@ -143,7 +210,8 @@ export class McpApiKeyService {
     private async createForPublication(
         publication: McpPublication,
         input: CreateMcpApiKeyInput,
-        organizationId = publication.organizationId ?? null
+        organizationId = publication.organizationId ?? null,
+        revealable = false
     ): Promise<CreatedMcpApiKey> {
         const currentUserId = RequestContext.currentUserId()
         const subjectType = input.subjectType ?? 'user'
@@ -172,6 +240,7 @@ export class McpApiKeyService {
                 name: input.name.trim(),
                 keyPrefix: secret.slice(0, STORED_PREFIX_LENGTH),
                 keyHash: hashSecret(secret),
+                encryptedSecret: revealable ? encryptSecret(secret, environment.secretsEncryptionKey) : null,
                 subjectType,
                 subjectId,
                 scopes: normalizeScopes(input.scopes),
@@ -180,8 +249,9 @@ export class McpApiKeyService {
                 updatedById: currentUserId
             })
         )
-        const { keyHash, ...apiKey } = entity
+        const { keyHash, encryptedSecret, ...apiKey } = entity
         void keyHash
+        void encryptedSecret
         return { apiKey, secret }
     }
 
@@ -238,4 +308,15 @@ function normalizeScopes(scopes?: string[]) {
         )
     }
     return normalized
+}
+
+function hasMcpClientScopes(scopes: readonly string[]) {
+    return scopes.length === 2 && scopes.includes('tools:list') && scopes.includes('tools:call')
+}
+
+function toPublicApiKey(key: McpApiKey): Omit<McpApiKey, 'keyHash' | 'encryptedSecret'> {
+    const { keyHash, encryptedSecret, ...apiKey } = key
+    void keyHash
+    void encryptedSecret
+    return apiKey
 }

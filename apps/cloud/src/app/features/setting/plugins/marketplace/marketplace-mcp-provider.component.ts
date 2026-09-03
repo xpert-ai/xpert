@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input, signal } from '@angular/core'
+import { Clipboard } from '@angular/cdk/clipboard'
+import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { getErrorMessage, injectToastr, injectUser } from '@cloud/app/@core'
 import {
   injectPluginAPI,
@@ -32,16 +33,20 @@ export class PluginMarketplaceMcpProviderComponent {
   private readonly pluginAPI = injectPluginAPI()
   private readonly toastr = injectToastr()
   private readonly currentUser = injectUser()
+  private readonly clipboard = inject(Clipboard)
 
   readonly pluginName = input('')
   readonly component = input<IPluginComponentDefinition | null>(null)
   readonly showActions = input(true)
+  readonly surface = input<'card' | 'flat'>('card')
   readonly reload = input<() => void>(() => undefined)
 
   readonly actionPending = signal(false)
   readonly actionError = signal<string | null>(null)
   readonly connectionOverride = signal<NativeMcpConnectionState | null>(null)
   readonly activeOverride = signal<boolean | null>(null)
+  readonly credentialVisible = signal(false)
+  readonly #credentialPrefetchRequested = signal(false)
 
   readonly #componentState = myRxResource<NativeMcpStateRequest | null, IPluginResourceComponentState | null>({
     request: () => {
@@ -100,7 +105,29 @@ export class PluginMarketplaceMcpProviderComponent {
     }
   })
   readonly toolCount = computed(() => readConfigNumber(this.component()?.config, 'toolCount') ?? 0)
-  readonly clientConfiguration = computed(() => {
+  readonly clientConfiguration = computed(() => this.buildClientConfiguration('${XPERT_MCP_API_KEY}'))
+
+  constructor() {
+    effect(() => {
+      const pluginName = this.pluginName()
+      const component = this.component()
+      const connection = this.connection()
+      if (
+        pluginName &&
+        component &&
+        this.canManage() &&
+        this.isActive() &&
+        connection &&
+        !connection.apiKeySecret &&
+        !this.#credentialPrefetchRequested()
+      ) {
+        this.#credentialPrefetchRequested.set(true)
+        void this.retrieveCredential(false)
+      }
+    })
+  }
+
+  private buildClientConfiguration(apiKey: string) {
     const component = this.component()
     const endpoint = this.connection()?.connectionInfo.endpoint
     if (!component || !endpoint) return ''
@@ -111,14 +138,14 @@ export class PluginMarketplaceMcpProviderComponent {
           [serverName]: {
             type: 'streamableHttp',
             url: endpoint,
-            headers: { Authorization: 'Bearer ${XPERT_MCP_API_KEY}' }
+            headers: { Authorization: `Bearer ${apiKey}` }
           }
         }
       },
       null,
       2
     )
-  })
+  }
 
   async enable() {
     const pluginName = this.pluginName()
@@ -132,6 +159,7 @@ export class PluginMarketplaceMcpProviderComponent {
         connectionInfo: result.connectionInfo,
         ...(result.createdApiKey?.secret ? { apiKeySecret: result.createdApiKey.secret } : {})
       })
+      this.credentialVisible.set(!!result.createdApiKey?.secret)
       this.activeOverride.set(true)
       this.#componentState.reload()
       this.reload()()
@@ -152,6 +180,8 @@ export class PluginMarketplaceMcpProviderComponent {
     try {
       await firstValueFrom(this.pluginAPI.disablePluginMcpServer(pluginName, component.componentKey))
       this.connectionOverride.set(null)
+      this.credentialVisible.set(false)
+      this.#credentialPrefetchRequested.set(false)
       this.activeOverride.set(false)
       this.#componentState.reload()
       this.reload()()
@@ -181,12 +211,79 @@ export class PluginMarketplaceMcpProviderComponent {
     }
   }
 
-  async copyText(value: string) {
+  async toggleCredential() {
+    const current = this.connection()?.apiKeySecret
+    if (current) {
+      this.credentialVisible.update((visible) => !visible)
+      return
+    }
+    await this.retrieveCredential(true)
+  }
+
+  async copyClientConfiguration() {
+    const placeholderConfiguration = this.clientConfiguration()
+    if (!placeholderConfiguration || this.actionPending()) return
+
+    if (!this.canManage()) {
+      await this.copyText(placeholderConfiguration)
+      return
+    }
+
+    const existingSecret = this.connection()?.apiKeySecret
+    if (existingSecret) {
+      await this.copyText(this.buildClientConfiguration(existingSecret))
+      return
+    }
+
+    const pluginName = this.pluginName()
+    const component = this.component()
+    if (!pluginName || !component) return
+
+    this.actionPending.set(true)
+    this.actionError.set(null)
     try {
-      await navigator.clipboard.writeText(value)
-      this.toastr.success('XP.Plugin.CopySucceeded', { Default: 'Copied.' })
+      const credential = await firstValueFrom(
+        this.pluginAPI.getPluginMcpServerCredential(pluginName, component.componentKey)
+      )
+      this.connectionOverride.set({
+        connectionInfo: credential.connectionInfo,
+        apiKeySecret: credential.secret
+      })
+      await this.copyText(this.buildClientConfiguration(credential.secret))
     } catch (error) {
       this.actionError.set(getErrorMessage(error))
+    } finally {
+      this.actionPending.set(false)
+    }
+  }
+
+  copyText(value: string) {
+    if (this.clipboard.copy(value)) {
+      this.toastr.success('XP.Plugin.CopySucceeded', { Default: 'Copied.' })
+    } else {
+      this.toastr.error('XP.Messages.CopyFailed', 'XP.TOASTR.TITLE.ERROR', { Default: 'Could not copy.' })
+    }
+  }
+
+  private async retrieveCredential(reveal: boolean) {
+    const pluginName = this.pluginName()
+    const component = this.component()
+    if (!pluginName || !component || !this.canManage() || this.actionPending()) return
+    this.actionPending.set(true)
+    this.actionError.set(null)
+    try {
+      const credential = await firstValueFrom(
+        this.pluginAPI.getPluginMcpServerCredential(pluginName, component.componentKey)
+      )
+      this.connectionOverride.set({
+        connectionInfo: credential.connectionInfo,
+        apiKeySecret: credential.secret
+      })
+      this.credentialVisible.set(reveal)
+    } catch (error) {
+      this.actionError.set(getErrorMessage(error))
+    } finally {
+      this.actionPending.set(false)
     }
   }
 }

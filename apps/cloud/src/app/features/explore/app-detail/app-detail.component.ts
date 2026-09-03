@@ -7,8 +7,17 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AiModelTypeEnum, ICopilotModel, ModelFeature } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, PluginApplicationDetail, PluginApplicationService } from '@cloud/app/@core'
+import { injectPluginAPI, IPluginComponentDefinition } from '@cloud/app/@core/state'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { XpI18nPipe, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, ZardAccordionImports, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { PluginMarketplaceMcpProviderComponent } from '../../setting/plugins/marketplace/marketplace-mcp-provider.component'
+import {
+  isRuntimeNativeMcp,
+  runtimeMcpProviderDescription,
+  runtimeMcpProviderKey,
+  runtimeMcpProviderName,
+  runtimeMcpProviderToolCount
+} from '../../setting/plugins/marketplace/runtime-mcp-provider.util'
 import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from './app-detail-model.util'
 
 /** Marketplace detail and governed initialization surface for a trusted plugin App. */
@@ -23,8 +32,10 @@ import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from '
     IconComponent,
     CopilotModelSelectComponent,
     XpI18nPipe,
+    ...ZardAccordionImports,
     ZardButtonComponent,
-    ZardIconComponent
+    ZardIconComponent,
+    PluginMarketplaceMcpProviderComponent
   ],
   templateUrl: './app-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,12 +45,14 @@ export class ApplicationDetailComponent {
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #applications = inject(PluginApplicationService)
+  readonly #pluginAPI = injectPluginAPI()
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
 
   readonly loading = signal(true)
   readonly initializing = signal(false)
   readonly detail = signal<PluginApplicationDetail | null>(null)
+  readonly mcpProviders = signal<IPluginComponentDefinition[]>([])
   readonly setupOpen = signal(this.#route.snapshot.queryParamMap.get('setup') === '1')
   readonly embeddingModel = model<Partial<ICopilotModel> | null>(null)
   readonly visionModel = model<Partial<ICopilotModel> | null>(null)
@@ -83,6 +96,7 @@ export class ApplicationDetailComponent {
     try {
       const detail = await firstValueFrom(this.#applications.getDetail(pluginName, appName))
       this.detail.set(detail)
+      await this.loadMcpProviders(pluginName)
       this.embeddingModel.set(
         pluginApplicationDefaultCopilotModel(
           detail.preflight.embeddingModels,
@@ -99,10 +113,41 @@ export class ApplicationDetailComponent {
       )
     } catch (error) {
       this.detail.set(null)
+      this.mcpProviders.set([])
       this.#toastr.error(getErrorMessage(error))
     } finally {
       this.loading.set(false)
     }
+  }
+
+  readonly reloadMcpProviders = () => {
+    const pluginName = this.application()?.pluginName
+    if (pluginName) void this.loadMcpProviders(pluginName)
+  }
+
+  async loadMcpProviders(pluginName: string) {
+    try {
+      const result = await firstValueFrom(this.#pluginAPI.getPluginComponents(pluginName))
+      this.mcpProviders.set((result.items ?? []).filter(isRuntimeNativeMcp))
+    } catch {
+      this.mcpProviders.set([])
+    }
+  }
+
+  mcpProviderName(component: IPluginComponentDefinition) {
+    return runtimeMcpProviderName(component)
+  }
+
+  mcpProviderDescription(component: IPluginComponentDefinition) {
+    return runtimeMcpProviderDescription(component)
+  }
+
+  mcpProviderKey(component: IPluginComponentDefinition) {
+    return runtimeMcpProviderKey(component)
+  }
+
+  mcpProviderToolCount(component: IPluginComponentDefinition) {
+    return runtimeMcpProviderToolCount(component)
   }
 
   primaryAction() {
