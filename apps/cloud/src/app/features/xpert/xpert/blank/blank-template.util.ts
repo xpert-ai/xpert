@@ -162,6 +162,21 @@ export function applyAgentTemplateWizardState(
       )
     })
   )
+  // The blank wizard edits only the primary Agent's selectable middleware.
+  // A template may intentionally share one of those middleware nodes with
+  // specialist Agents. Keep that original node and its non-primary
+  // connections while rebuilding a primary-only instance below; otherwise
+  // the import silently removes the specialist tools from the published graph.
+  const sharedPrimaryMiddlewareKeys = new Set(
+    primaryAgentMiddlewareNodes
+      .filter((node) =>
+        nextDraft.connections.some(
+          (connection) =>
+            connectionTouchesKey(connection, node.key) && !connectionTouchesKey(connection, primaryAgentNode.key)
+        )
+      )
+      .map((node) => node.key)
+  )
 
   const {
     nodes: managedNodes,
@@ -169,9 +184,21 @@ export function applyAgentTemplateWizardState(
     middlewareNodes
   } = buildBlankXpertSelectionGraph(primaryAgentNode, selections, options)
 
-  nextDraft.nodes = [...nextDraft.nodes.filter((node) => !managedNodeKeys.has(node.key)), ...managedNodes]
+  nextDraft.nodes = [
+    ...nextDraft.nodes.filter((node) => !managedNodeKeys.has(node.key) || sharedPrimaryMiddlewareKeys.has(node.key)),
+    ...managedNodes
+  ]
   nextDraft.connections = [
-    ...nextDraft.connections.filter((connection) => !connectionTouchesKeys(connection, managedNodeKeys)),
+    ...nextDraft.connections.filter((connection) => {
+      if (!connectionTouchesKeys(connection, managedNodeKeys)) {
+        return true
+      }
+
+      return (
+        connectionTouchesKeys(connection, sharedPrimaryMiddlewareKeys) &&
+        !connectionTouchesKey(connection, primaryAgentNode.key)
+      )
+    }),
     ...managedConnections
   ]
   nextDraft.team = {
@@ -696,6 +723,10 @@ function uniqueConnections(connections: TXpertTeamConnection[]) {
 
 function connectionTouchesKeys(connection: TXpertTeamConnection, keys: Set<string>) {
   return keys.has(normalizeConnectionEndpoint(connection.from)) || keys.has(normalizeConnectionEndpoint(connection.to))
+}
+
+function connectionTouchesKey(connection: TXpertTeamConnection, key: string) {
+  return normalizeConnectionEndpoint(connection.from) === key || normalizeConnectionEndpoint(connection.to) === key
 }
 
 function normalizeConnectionEndpoint(endpoint: string) {

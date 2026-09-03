@@ -443,6 +443,50 @@ function createPluginSkillTemplateDetail(overrides?: Record<string, any>) {
   }
 }
 
+function createWorkerPluginSkillTemplateDetail() {
+  const workerNodes = `
+  - type: agent
+    key: Agent_worker
+    position:
+      x: 720
+      y: 220
+    entity:
+      key: Agent_worker
+  - type: workflow
+    key: Middleware_worker_skills
+    position:
+      x: 720
+      y: 580
+    entity:
+      key: Middleware_worker_skills
+      type: middleware
+      provider: ${BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER}
+      title: Worker Skills Middleware
+      options:
+        skills: []
+`
+  const workerConnection = `
+  - key: Agent_worker/Middleware_worker_skills
+    type: workflow
+    from: Agent_worker
+    to: Middleware_worker_skills
+`
+  const exportData = `${createAgentTemplateYaml().replace('\nconnections:\n', `${workerNodes}connections:\n`).trimEnd()}${workerConnection}`
+
+  return {
+    export_data: exportData,
+    pluginName: '@xpert-ai/plugin-canvas',
+    dependencies: {
+      skills: [
+        {
+          componentKey: 'canvas-agent-skill',
+          targetAgentKey: 'Agent_worker'
+        }
+      ]
+    }
+  }
+}
+
 function createPluginToolsetTemplateDetail(overrides?: Record<string, any>) {
   return createPluginSkillTemplateDetail({
     export_data: createAgentTemplateYamlWithToolset(),
@@ -475,6 +519,7 @@ function createPluginSkillInstallResult(runtimeId = 'skill-package-canvas') {
         componentType: 'skill',
         componentKey: 'canvas-agent-skill',
         workspaceId: 'workspace-1',
+        agentKey: 'Agent_primary',
         runtimeType: 'skill_package',
         runtimeId,
         definitionHash: 'hash-canvas-skill',
@@ -1316,7 +1361,7 @@ describe('XpertNewBlankComponent', () => {
     )
   })
 
-  it('installs plugin template skills in the Skills step and imports their runtime package ids', async () => {
+  it('installs plugin template skills in the workspace and attaches them to their target Agents', async () => {
     const { component, fixture, pluginAPI, xpertService } = await createComponent(
       {
         allowWorkspaceSelection: true,
@@ -1361,6 +1406,36 @@ describe('XpertNewBlankComponent', () => {
     expect(skillsMiddleware.entity.options.skills).toEqual(expect.arrayContaining(['writer', 'skill-package-canvas']))
   })
 
+  it('binds a plugin template skill to a non-primary Agent Skills Middleware', async () => {
+    const { component, xpertService } = await createComponent(
+      {
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent],
+        completionMode: 'create',
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        type: XpertTypeEnum.Agent
+      },
+      {
+        agentTemplateDetail: createWorkerPluginSkillTemplateDetail(),
+        pluginSkillInstallResult: createPluginSkillInstallResult('skill-package-canvas'),
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+    await component.create()
+
+    const importedDraft = xpertService.importDSL.mock.calls[0][0]
+    const workerSkillsMiddleware = importedDraft.nodes.find((node: any) => node.key === 'Middleware_worker_skills')
+    const primarySkillsMiddleware = importedDraft.nodes.find((node: any) => node.key === 'Middleware_skills')
+    expect(workerSkillsMiddleware.entity.options.skills).toEqual(['skill-package-canvas'])
+    expect(primarySkillsMiddleware?.entity.options.skills ?? []).not.toContain('skill-package-canvas')
+  })
+
   it('does not reinstall template plugin skills for the same workspace and dependency set', async () => {
     const { component, fixture, pluginAPI } = await createComponent(
       {
@@ -1402,6 +1477,18 @@ describe('XpertNewBlankComponent', () => {
         workspaceId: 'workspace-2'
       })
     )
+
+    pluginAPI.installResourcesToWorkspace.mockReturnValue(
+      of(createPluginSkillInstallResult('skill-package-workspace-1-refreshed'))
+    )
+    component.workspaceId.set('workspace-1')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await flushPromises()
+    await component.onAgentStepChange({ selectedIndex: component.agentSkillStepIndex() } as any)
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalledTimes(3)
+    expect(component.selectedExplicitSkills()).toContain('skill-package-workspace-1-refreshed')
   })
 
   it('blocks template creation when required plugin skills fail to initialize', async () => {
