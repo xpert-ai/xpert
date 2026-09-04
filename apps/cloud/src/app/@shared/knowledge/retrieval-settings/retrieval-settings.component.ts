@@ -1,10 +1,22 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
+import { NgTemplateOutlet } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
-import { XpCommonModule } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
+import {
+  attrModel,
+  linkedModel,
+  XpCommonModule,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardInputDirective,
+  ZardSliderComponent,
+  ZardSwitchComponent,
+  ZardTabsImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -17,7 +29,6 @@ import {
   TKBRetrievalSettings
 } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot/copilot-model-select'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
@@ -26,8 +37,15 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   imports: [
     CdkMenuModule,
     FormsModule,
+    NgTemplateOutlet,
     TranslateModule,
     ...ZardTooltipImports,
+    ...ZardTabsImports,
+    ...ZardCardImports,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardSliderComponent,
     ZardSwitchComponent,
     XpCommonModule,
     CopilotModelSelectComponent
@@ -91,8 +109,25 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly entityTopK = attrModel(this.graphRag, 'entityTopK', 8)
   readonly neighborHops = attrModel(this.graphRag, 'neighborHops', 1)
   readonly graphWeight = attrModel(this.graphRag, 'graphWeight', 0.35)
-  readonly graphControlsVisible = computed(() => this.graphEnabled() || this.mode() !== 'vector')
+  readonly graphControlsVisible = computed(
+    () => this.graphEnabled() || this.mode() === 'graph' || this.mode() === 'hybrid'
+  )
   readonly rrfActive = computed(() => this.mode() === 'hybrid' && this.rrfEnabled())
+  readonly vectorRetrieverActive = computed(
+    () =>
+      this.mode() === 'vector' ||
+      (this.mode() === 'hybrid' && (!this.rrfActive() || this.isPositiveWeight(this.rrfVectorWeight())))
+  )
+  readonly graphRetrieverActive = computed(
+    () =>
+      this.mode() === 'graph' ||
+      (this.mode() === 'hybrid' && (!this.rrfActive() || this.isPositiveWeight(this.rrfGraphWeight())))
+  )
+  readonly keywordRetrieverActive = computed(
+    () =>
+      this.mode() === 'keyword' ||
+      (this.mode() === 'hybrid' && this.rrfEnabled() && this.isPositiveWeight(this.rrfKeywordWeight()))
+  )
   readonly rrfHasEnabledRetriever = computed(
     () =>
       !this.rrfActive() ||
@@ -100,7 +135,7 @@ export class KnowledgeRetrievalSettingsComponent {
         (weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0
       )
   )
-  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'graph', 'hybrid']
+  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'keyword', 'graph', 'hybrid']
   readonly useScore = linkedModel({
     initialValue: false,
     compute: () => !isNil(this.score()),
@@ -149,5 +184,9 @@ export class KnowledgeRetrievalSettingsComponent {
 
   cancel() {
     this.close.emit()
+  }
+
+  private isPositiveWeight(value: unknown): boolean {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
   }
 }

@@ -1,6 +1,5 @@
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { OverlayModule } from '@angular/cdk/overlay'
 import { RouterModule } from '@angular/router'
 import {
   KnowledgeChunkComponent,
@@ -8,8 +7,7 @@ import {
   XpertKnowledgeFilterFormComponent
 } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
-import { XpCommonModule } from '@xpert-ai/headless-ui'
-import { myRxResource } from '@xpert-ai/headless-ui'
+import { myRxResource, XpCommonModule, ZardAccordionImports, type ZardAccordionItemLike } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -31,7 +29,6 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -42,8 +39,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     FormsModule,
     TranslateModule,
-    OverlayModule,
-    ...ZardTooltipImports,
+    ...ZardAccordionImports,
     XpCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
@@ -67,7 +63,6 @@ export class KnowledgeTestComponent {
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
   readonly retrievalMode = computed<GraphRagRetrievalMode>(() => this.knowledgebase()?.graphRag?.mode ?? 'vector')
-  readonly retrievalSettingsOpen = signal(false)
   readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
     const graphRag = this.knowledgebase()?.graphRag
     return {
@@ -171,19 +166,8 @@ export class KnowledgeTestComponent {
     this.results.set(null)
   }
 
-  toggleRetrievalSettings() {
-    this.retrievalSettingsOpen.update((open) => !open)
-  }
-
-  onRetrievalSettingsOverlayKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      this.onClose(false)
-    }
-  }
-
-  onClose(reload?: boolean | void) {
-    this.retrievalSettingsOpen.set(false)
+  onRetrievalSettingsClose(reload: boolean | void, panel: ZardAccordionItemLike) {
+    panel.close()
     if (reload) {
       this.knowledgebaseComponent.refresh()
     }
