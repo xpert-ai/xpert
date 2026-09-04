@@ -24,4 +24,34 @@ describe('XpertNewKnowledgeComponent FAQ type', () => {
     expect(source).toContain('payload.type = this.type()')
     expect(source).not.toContain('payload.type = KnowledgebaseTypeEnum.Standard')
   })
+
+  it('shows the FAQ retrieval section and hides document indexing strategy', () => {
+    expect(source).toContain("| 'faq'")
+    expect(source).toContain(
+      "const FAQ_SECTION_KEYS: readonly SectionKey[] = ['basic', 'models', 'vector-storage', 'retrieval', 'faq']"
+    )
+    expect(source).toContain('if (!this.retrievalConfigurationValid())')
+    expect(template).toContain('@if (!isFAQ())')
+    expect(template).toContain("@case ('faq')")
+    expect(template).toContain('[allowGraphRetrieval]="!isFAQ()"')
+    expect(template).toContain('[defaultMode]=' + "\"isFAQ() ? 'hybrid' : 'vector'\"")
+  })
+
+  it('shows vector storage as an independent settings section', () => {
+    expect(source).toContain("| 'vector-storage'")
+    expect(source).toContain("key: 'vector-storage'")
+    expect(source).toContain("labelKey: 'Sections.VectorStorage'")
+    expect(template).toContain("@case ('vector-storage')")
+    expect(template).toContain("'.VectorStorage.SystemDefault'")
+  })
+
+  it('persists FAQ configuration on creation and locks it after creation', () => {
+    expect(contracts).toContain('export type KnowledgebaseFAQConfig = {')
+    expect(contracts).toContain("negativeMatchMode: 'exact'")
+    expect(source).toContain('faqConfig: this.faqConfig()')
+    expect(source).toContain('readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())')
+    expect(template).toContain('[disabled]="faqConfigurationDisabled()"')
+    expect(template).toContain("updateFAQConfig('negativeMatchMode', $event)")
+    expect(template).toContain('value="semantic" [disabled]="true"')
+  })
 })

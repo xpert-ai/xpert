@@ -2396,6 +2396,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private focusKnowledgebaseWorkbenchTab(target: KnowledgebaseCitationTarget) {
+    if (target.faqId || !target.documentId) {
+      return false
+    }
     const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
     if (!menuItem) {
       return false
@@ -2414,6 +2417,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private openKnowledgebaseCitationFallback(target: KnowledgebaseCitationTarget) {
     if (!target.knowledgebaseId) {
+      return Promise.resolve(false)
+    }
+
+    if (target.faqId) {
+      return this.#router.navigate(['/xpert/knowledges', target.knowledgebaseId, 'faq'], {
+        queryParams: { faqId: target.faqId }
+      })
+    }
+
+    if (!target.documentId) {
       return Promise.resolve(false)
     }
 
@@ -2833,7 +2846,8 @@ function findResolvedViewByKey<T extends { viewKey: string }>(items: T[], viewKe
 
 type KnowledgebaseCitationTarget = {
   knowledgebaseId?: string
-  documentId: string
+  documentId?: string
+  faqId?: string
   chunkId?: string
   page?: number
   sourceBlockIds?: string[]
@@ -2846,7 +2860,8 @@ function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): Knowl
   }
 
   const documentId = getString(event.data['documentId'])
-  if (!documentId) {
+  const faqId = getString(event.data['faqId'])
+  if (!documentId && !faqId) {
     return null
   }
 
@@ -2866,7 +2881,8 @@ function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): Knowl
     : []
 
   return {
-    documentId,
+    ...(documentId ? { documentId } : {}),
+    ...(faqId ? { faqId } : {}),
     ...(knowledgebaseId ? { knowledgebaseId } : {}),
     ...(chunkId ? { chunkId } : {}),
     ...(page ? { page } : {}),

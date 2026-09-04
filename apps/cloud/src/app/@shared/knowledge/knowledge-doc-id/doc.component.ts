@@ -1,12 +1,12 @@
-import { Component, computed, effect, input } from '@angular/core'
+import { Component, computed, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgeDocument, KDocumentSourceType } from '../../../@core/types'
-import { XpCommonModule } from '@xpert-ai/headless-ui'
+import { IKnowledgeDocument, IKnowledgeFAQChunkMetadata, KDocumentSourceType } from '../../../@core/types'
+import { XpCommonModule, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { resolveKnowledgeDocumentFileKind } from '../document-file-kind'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, XpCommonModule],
+  imports: [TranslateModule, XpCommonModule, ZardIconComponent],
   selector: 'knowledge-doc-id',
   templateUrl: `doc.component.html`,
   styleUrl: `doc.component.scss`
@@ -17,6 +17,7 @@ export class KnowledgeDocIdComponent {
   // Inputs
   readonly doc = input<Partial<IKnowledgeDocument>>()
   readonly searchText = input<string | undefined>()
+  readonly contentKind = input<IKnowledgeFAQChunkMetadata['contentKind'] | undefined>()
 
   // States
   readonly sourceType = computed(() => this.doc().sourceType)

@@ -9,10 +9,10 @@ const EMBEDDING_INPUT_BUDGET_RATIO = 0.75
  * request can consume the model's entire input context. Text parent nodes are
  * kept intact because only their leaves are embedded by the knowledge store.
  */
-export function guardEmbeddingInputDocuments(
-    documents: Document<ChunkMetadata>[],
+export function guardEmbeddingInputDocuments<Metadata extends ChunkMetadata>(
+    documents: Document<Metadata>[],
     contextSize?: number
-): Document<ChunkMetadata>[] {
+): Document<Metadata>[] {
     const budget = resolveEmbeddingInputBudget(contextSize)
     const parentIds = new Set(documents.map((document) => String(document.metadata?.parentId ?? '')).filter(Boolean))
 

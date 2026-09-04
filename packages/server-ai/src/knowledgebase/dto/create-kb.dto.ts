@@ -1,15 +1,16 @@
 import {
     ICopilotModel,
     IKnowledgebase,
+    KnowledgebaseFAQConfig,
     KnowledgebaseParserConfig,
     KnowledgebasePermission,
     KnowledgebaseTypeEnum,
     TAvatar,
     TKBRecallParams
 } from '@xpert-ai/contracts'
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Expose } from 'class-transformer'
-import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator'
+import { IsBoolean, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'
 
 @Expose()
 export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
@@ -51,6 +52,14 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
         default: KnowledgebaseTypeEnum.Standard
     })
     type: KnowledgebaseTypeEnum
+
+    @ApiPropertyOptional({
+        type: () => Object,
+        description: 'Creation-time indexing configuration for FAQ knowledge bases'
+    })
+    @IsObject()
+    @IsOptional()
+    faqConfig?: KnowledgebaseFAQConfig
 
     @ApiProperty({
         type: () => Object,

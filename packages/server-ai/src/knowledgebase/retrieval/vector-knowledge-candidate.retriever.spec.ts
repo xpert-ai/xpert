@@ -189,6 +189,127 @@ describe('VectorKnowledgeCandidateRetriever', () => {
         expect(result.candidates.map(({ rank }) => rank)).toEqual([2, 1])
     })
 
+    it('oversamples FAQ vectors and keeps the best physical vector score per canonical FAQ', async () => {
+        environment.vectorStore = VectorTypeEnum.PGVECTOR
+        const knowledgebase = createKnowledgebase({
+            type: KnowledgebaseTypeEnum.FAQ,
+            recall: { topK: 2 }
+        })
+        const vectorStore = {
+            embeddingModel: 'embedding-model',
+            structuredSimilaritySearchWithScore: jest.fn(async () => ({
+                items: [
+                    [candidate('faq-1', { faqVectorId: 'faq-1::question:0' }), 0.1],
+                    [candidate('faq-2', { faqVectorId: 'faq-2::question:0' }), 0.2],
+                    [candidate('faq-1', { faqVectorId: 'faq-1::answer:0' }), 0.4],
+                    [candidate('faq-3', { faqVectorId: 'faq-3::question:0' }), 0.5]
+                ],
+                candidateDocumentCount: 3,
+                candidateChunkCount: 3
+            }))
+        }
+        const knowledgebaseService = {
+            getActiveVectorStore: jest.fn(async () => vectorStore)
+        }
+        const chunkService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    { pageContent: 'FAQ one', metadata: { chunkId: 'faq-1' }, document: { disabled: false } },
+                    { pageContent: 'FAQ two', metadata: { chunkId: 'faq-2' }, document: { disabled: false } },
+                    { pageContent: 'FAQ three', metadata: { chunkId: 'faq-3' }, document: { disabled: false } }
+                ]
+            }))
+        }
+        const retriever = new VectorKnowledgeCandidateRetriever(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            chunkService as unknown as KnowledgeDocumentChunkService
+        )
+        const preparedFilter = prepareKnowledgeFilter({
+            knowledgebase,
+            vectorBackend: VectorTypeEnum.PGVECTOR
+        })
+
+        const result = await retriever.retrieve(createRequest(knowledgebase, preparedFilter, { k: 2 }))
+
+        expect(vectorStore.structuredSimilaritySearchWithScore).toHaveBeenCalledWith(
+            'quality requirements',
+            32,
+            expect.any(Object)
+        )
+        expect(
+            result.candidates.map(({ document, rank }) => ({
+                id: document.metadata.chunkId,
+                score: document.metadata.score,
+                rank
+            }))
+        ).toEqual([
+            { id: 'faq-1', score: 0.9, rank: 1 },
+            { id: 'faq-2', score: 0.8, rank: 2 }
+        ])
+    })
+
+    it('expands FAQ vector search until enough canonical FAQs are available', async () => {
+        environment.vectorStore = VectorTypeEnum.PGVECTOR
+        const knowledgebase = createKnowledgebase({
+            type: KnowledgebaseTypeEnum.FAQ,
+            recall: { topK: 2 }
+        })
+        const firstFAQVectors = Array.from(
+            { length: 32 },
+            (_, index) =>
+                [candidate('faq-1', { faqVectorId: `faq-1::part:${index}` }), 0.01 + index / 1000] as [
+                    DocumentInterface<DocumentMetadata>,
+                    number
+                ]
+        )
+        const vectorStore = {
+            embeddingModel: 'embedding-model',
+            structuredSimilaritySearchWithScore: jest.fn(async (_query: string, topK: number) => ({
+                items:
+                    topK === 32
+                        ? firstFAQVectors
+                        : [...firstFAQVectors, [candidate('faq-2', { faqVectorId: 'faq-2::question:0' }), 0.2]],
+                candidateDocumentCount: 2,
+                candidateChunkCount: 2
+            }))
+        }
+        const knowledgebaseService = {
+            getActiveVectorStore: jest.fn(async () => vectorStore)
+        }
+        const chunkService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    { pageContent: 'FAQ one', metadata: { chunkId: 'faq-1' }, document: { disabled: false } },
+                    { pageContent: 'FAQ two', metadata: { chunkId: 'faq-2' }, document: { disabled: false } }
+                ]
+            }))
+        }
+        const retriever = new VectorKnowledgeCandidateRetriever(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            chunkService as unknown as KnowledgeDocumentChunkService
+        )
+        const preparedFilter = prepareKnowledgeFilter({
+            knowledgebase,
+            vectorBackend: VectorTypeEnum.PGVECTOR
+        })
+
+        const result = await retriever.retrieve(createRequest(knowledgebase, preparedFilter, { k: 2 }))
+
+        expect(vectorStore.structuredSimilaritySearchWithScore).toHaveBeenNthCalledWith(
+            1,
+            'quality requirements',
+            32,
+            expect.any(Object)
+        )
+        expect(vectorStore.structuredSimilaritySearchWithScore).toHaveBeenNthCalledWith(
+            2,
+            'quality requirements',
+            64,
+            expect.any(Object)
+        )
+        expect(result.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['faq-1', 'faq-2'])
+    })
+
     it('compiles effective filters for Milvus and keeps relational candidate diagnostics', async () => {
         environment.vectorStore = VectorTypeEnum.MILVUS
         const knowledgebase = createKnowledgebase()
