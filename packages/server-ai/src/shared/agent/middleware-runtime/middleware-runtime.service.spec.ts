@@ -1,4 +1,4 @@
-jest.mock('../../copilot-model/utils/context-size', () => ({
+jest.mock('../../../copilot-model/utils/context-size', () => ({
     ensureCopilotModelContextSize: jest.fn()
 }))
 
@@ -6,16 +6,16 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({
     dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
 }))
 
-jest.mock('../../metrics', () => ({
+jest.mock('../../../metrics', () => ({
     applicationMetrics: {
         recordLlmUsage: jest.fn()
     }
 }))
 
-jest.mock('./execution', () => {
+jest.mock('../execution', () => {
     const { XpertAgentExecutionStatusEnum } = require('@xpert-ai/contracts')
-    const { XpertAgentExecutionUpsertCommand } = require('../../xpert-agent-execution/commands/upsert.command')
-    const { XpertAgentExecutionOneQuery } = require('../../xpert-agent-execution/queries/get-one.query')
+    const { XpertAgentExecutionUpsertCommand } = require('../../../xpert-agent-execution/commands/upsert.command')
+    const { XpertAgentExecutionOneQuery } = require('../../../xpert-agent-execution/queries/get-one.query')
 
     return {
         wrapAgentExecution:
@@ -100,19 +100,19 @@ import { ConnectorRuntimeCapability } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException } from '@nestjs/common'
 import { UploadFileCommand } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
-import { AIModelGetProviderQuery } from '../../ai-model/queries/get-provider.query'
-import { GetCopilotProviderModelQuery } from '../../copilot-provider/queries/get-model.query'
-import { CopilotCheckLimitCommand } from '../../copilot-user/commands/check-limit.command'
-import { CopilotTokenRecordCommand } from '../../copilot-user/commands/token-record.command'
-import { ExceedingLimitException } from '../../core/errors'
-import { CopilotGetOneQuery } from '../../copilot/queries/get-one.query'
-import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
-import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
+import { AIModelGetProviderQuery } from '../../../ai-model/queries/get-provider.query'
+import { GetCopilotProviderModelQuery } from '../../../copilot-provider/queries/get-model.query'
+import { CopilotCheckLimitCommand } from '../../../copilot-user/commands/check-limit.command'
+import { CopilotTokenRecordCommand } from '../../../copilot-user/commands/token-record.command'
+import { ExceedingLimitException } from '../../../core/errors'
+import { CopilotGetOneQuery } from '../../../copilot/queries/get-one.query'
+import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
+import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import {
     CreateWorkspaceFileAssetCommand,
     GetOwnedStorageFileQuery,
     ResolveAuthorizedFileAssetQuery
-} from '../../file-understanding'
+} from '../../../file-understanding'
 import {
     CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
@@ -125,21 +125,25 @@ import {
     EnsureKnowledgebasesCommand,
     UploadKnowledgebaseDocumentFileCommand,
     WriteAgentKnowledgeChunkCommand
-} from '../../knowledgebase/commands'
-import { ConnectAgentKnowledgebasesCommand } from '../../xpert-agent/commands'
-import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../knowledgebase/queries'
-import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands/upsert.command'
-import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries/get-one.query'
-import { FindAgentExecutionsQuery } from '../../xpert-agent-execution/queries/find.query'
-import { XpertChatCommand } from '../../xpert/commands/chat.command'
-import { FindXpertQuery } from '../../xpert/queries/get-one.query'
-import { EnsureXpertProjectCommand } from '../../xpert-project/commands'
-import { CollaborationService } from '../../collaboration'
-import { CopilotService } from '../../copilot/copilot.service'
-import { applicationMetrics } from '../../metrics'
-import { WorkspaceFilesRuntimeCapabilityService } from '../runtime/workspace-files-runtime-capability.service'
-import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from '../../knowledge-document/visual-assets-runtime.token'
-import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
+} from '../../../knowledgebase/commands'
+import { ConnectAgentKnowledgebasesCommand } from '../../../xpert-agent/commands'
+import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../../../knowledgebase/queries'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
+import { FindAgentExecutionsQuery } from '../../../xpert-agent-execution/queries/find.query'
+import { XpertChatCommand } from '../../../xpert/commands/chat.command'
+import { FindXpertQuery } from '../../../xpert/queries/get-one.query'
+import { EnsureXpertProjectCommand } from '../../../xpert-project/commands'
+import { CollaborationService } from '../../../collaboration'
+import { CopilotService } from '../../../copilot/copilot.service'
+import { applicationMetrics } from '../../../metrics'
+import { WorkspaceFilesRuntimeCapabilityService } from '../../runtime/workspace-files-runtime-capability.service'
+import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from '../../../knowledge-document/visual-assets-runtime.token'
+import { ResolveRuntimeSkillPackagesQuery } from '../../../skill-package/queries/resolve-runtime-skill-packages.query'
+import { AgentMiddlewareAssistantTaskRuntimeService } from './assistant-task-runtime.service'
+import { AgentMiddlewareFileRuntimeService } from './file-runtime.service'
+import { AgentMiddlewareKnowledgeRuntimeService } from './knowledge-runtime.service'
+import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
@@ -161,6 +165,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let visualAssetsRuntime: { createScopedApi: jest.Mock }
     let moduleRef: { get: jest.Mock }
     let platformCapabilities: DefaultRuntimeCapabilityRegistry
+    let assistantTaskRuntime: AgentMiddlewareAssistantTaskRuntimeService
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -238,18 +243,27 @@ describe('AgentMiddlewareRuntimeService', () => {
             }))
         }
         moduleRef = { get: jest.fn(() => visualAssetsRuntime) }
-        service = new AgentMiddlewareRuntimeService(
+        const modelRuntime = new AgentMiddlewareModelRuntimeService(
             commandBus as any,
             queryBus as any,
             {
                 t: jest.fn().mockReturnValue('AI model not found')
             } as any,
-            connectors as unknown as ConstructorParameters<typeof AgentMiddlewareRuntimeService>[3],
+            copilotService,
+            copilotUsage as never
+        )
+        const knowledgeRuntime = new AgentMiddlewareKnowledgeRuntimeService(commandBus as any, queryBus as any)
+        const fileRuntime = new AgentMiddlewareFileRuntimeService(queryBus as any)
+        assistantTaskRuntime = new AgentMiddlewareAssistantTaskRuntimeService(commandBus as any, queryBus as any)
+        service = new AgentMiddlewareRuntimeService(
+            modelRuntime,
+            knowledgeRuntime,
+            fileRuntime,
+            assistantTaskRuntime,
+            connectors as unknown as ConstructorParameters<typeof AgentMiddlewareRuntimeService>[4],
             workspaceFiles,
             artifacts as any,
             collaboration,
-            copilotService,
-            copilotUsage as never,
             moduleRef as any,
             platformCapabilities,
             actorTokenProvider as any
@@ -313,7 +327,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 componentKey: 'outline-planning'
             }
         ]
-        jest.spyOn(service as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
+        jest.spyOn(assistantTaskRuntime as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
             workspaceId: 'workspace-1',
             skillIds: ['skill-outline-1']
         })
@@ -339,7 +353,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             selectedSkillRefs
         })
 
-        expect((service as any).resolveAssistantTaskSkillSelection).toHaveBeenCalledWith(
+        expect((assistantTaskRuntime as any).resolveAssistantTaskSkillSelection).toHaveBeenCalledWith(
             'xpert-1',
             'Agent_Outline',
             selectedSkillRefs
@@ -359,7 +373,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 componentKey: 'chapter-authoring'
             }
         ]
-        jest.spyOn(service as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
+        jest.spyOn(assistantTaskRuntime as any, 'resolveAssistantTaskSkillSelection').mockResolvedValue({
             workspaceId: 'workspace-1',
             skillIds: ['skill-authoring-1']
         })
@@ -432,12 +446,12 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
 
         await expect(
-            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
+            (assistantTaskRuntime as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
                 { pluginName: '@acme/plugin-example-app', componentKey: 'outline-planning' }
             ])
         ).resolves.toEqual({ workspaceId: 'workspace-1', skillIds: ['skill-outline-1'] })
         await expect(
-            (service as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
+            (assistantTaskRuntime as any).resolveAssistantTaskSkillSelection('xpert-1', 'Agent_Outline', [
                 { pluginName: '@acme/plugin-example-app', componentKey: 'service' }
             ])
         ).rejects.toThrow(/not directly connected/)

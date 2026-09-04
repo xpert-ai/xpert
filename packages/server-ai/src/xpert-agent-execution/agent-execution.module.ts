@@ -8,7 +8,7 @@ import { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
-import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/index'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 import { CopilotUsageModule } from '../copilot-usage'
 

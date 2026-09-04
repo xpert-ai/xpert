@@ -31,7 +31,7 @@ import { SandboxRuntimeBindingSelector } from './sandbox-job/sandbox-runtime-bin
 import { SandboxRuntimeHealthService } from './sandbox-job/sandbox-runtime-health.service'
 import { SandboxJobCapacityService } from './sandbox-job/sandbox-job-capacity.service'
 import { LocalBrowserRuntimeProvider } from './sandbox-job/local-browser-runtime.provider'
-import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/index'
 import { VolumeModule } from '../shared/volume'
 import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'

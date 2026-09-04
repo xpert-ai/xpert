@@ -135,7 +135,7 @@ import {
     isRuntimeCapabilitiesAllowlist
 } from '../../../shared'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
-import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime/index'
 import { AgenticWorkflowTypes } from '../../types'
 import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hook'
 import { parseXmlString } from './types'

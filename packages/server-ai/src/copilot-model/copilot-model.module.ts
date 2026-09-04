@@ -8,7 +8,7 @@ import { CopilotModel } from './copilot-model.entity'
 import { CopilotModelService } from './copilot-model.service'
 import { QueryHandlers } from './queries/handlers'
 import { CommandHandlers } from './commands'
-import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/index'
 
 @Module({
     imports: [
