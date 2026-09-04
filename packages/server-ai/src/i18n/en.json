@@ -178,7 +178,7 @@
         "RrfPositiveWeightRequired": "RRF requires at least one retrieval source with a positive weight.",
         "KeywordRetrievalPostgresRequired": "Keyword retrieval currently requires PostgreSQL.",
         "KeywordIndexPostgresRequired": "Knowledge keyword indexes currently require PostgreSQL.",
-        "KeywordIndexMissing": "Knowledge keyword indexes are missing. Create the required PostgreSQL indexes before enabling RRF.",
+        "KeywordIndexMissing": "Knowledge keyword indexes are missing. Create the required PostgreSQL indexes before enabling keyword retrieval.",
         "IntegrationNotFound": "Integration '{{id}}' not found",
         "InvalidDocumentProcessingMode": "Document processing mode must be full or rechunk.",
         "TransformSnapshotMissing": "No saved conversion result is available. Run the converter once before re-chunking.",

@@ -756,6 +756,28 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
   })
 
+  it('keeps the Project View runtime scope stable while switching inspected conversations', async () => {
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.viewRuntimeScope()).toEqual({
+      projectId: 'project-1',
+      conversationId: null
+    })
+    const fixedViewLoadCount = viewExtensionApi.getSlotViews.mock.calls.length
+
+    fixture.componentInstance.resolvedConversationId.set('conversation-2')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.viewRuntimeScope()).toEqual({
+      projectId: 'project-1',
+      conversationId: null
+    })
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledTimes(fixedViewLoadCount)
+  })
+
   it('keeps the Workbench open when switching conversations within the same xpert', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)

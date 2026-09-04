@@ -11,39 +11,44 @@
     </p>
   </div>
 
-  <div class="relative bg-gradient-to-r from-blue-500 to-orange-500 rounded-[12px] p-[2px] mb-4 shadow-xs">
+  <z-accordion
+    data-test-controls
+    class="mb-4 space-y-2"
+    displayDensity="compact"
+    togglePosition="before"
+    [multi]="true"
+  >
+    <z-accordion-item
+      zValue="knowledge-filters"
+      data-test-panel="filters"
+      class="rounded-xl border border-divider-subtle bg-components-card-bg"
+    >
+      <z-accordion-header>
+        <z-accordion-title class="text-text-secondary">
+          <i class="ri-filter-3-line shrink-0 text-text-accent"></i>
+          <span>{{ 'XP.Knowledgebase.KnowledgeFilters' | translate: { Default: 'Knowledge Filters' } }}</span>
+        </z-accordion-title>
+      </z-accordion-header>
+
+      <xp-knowledge-filter-form
+        class="block border-t border-divider-subtle pt-3"
+        [(filter)]="requestFilter"
+        [fields]="filterFields()"
+        [allowVariables]="false"
+        [folderOptions]="folderOptions()"
+      />
+    </z-accordion-item>
+  </z-accordion>
+
+  <div
+    data-test-query-input
+    class="relative mb-4 rounded-[12px] bg-gradient-to-r from-blue-500 to-orange-500 p-[2px] shadow-xs"
+  >
     <div class="relative rounded-t-xl bg-components-input-bg-normal pt-1.5">
-      <div class="flex h-8 items-center justify-between pb-1 pl-4 pr-1.5">
+      <div class="flex h-8 items-center pb-1 pl-4 pr-1.5">
         <span class="text-[13px] font-semibold uppercase leading-4 text-text-secondary">
           {{ 'XP.Knowledgebase.SourceText' | translate: { Default: 'Source text' } }}
         </span>
-        <div class="flex items-center gap-1">
-          <button
-            type="button"
-            class="flex h-7 cursor-pointer items-center space-x-0.5 rounded-lg border-[0.5px] border-components-button-secondary-bg bg-components-button-secondary-bg px-1.5 shadow-xs backdrop-blur-[5px] hover:bg-components-button-secondary-bg-hover"
-            cdkOverlayOrigin
-            #retrievalSettingsTrigger="cdkOverlayOrigin"
-            aria-haspopup="dialog"
-            [attr.aria-expanded]="retrievalSettingsOpen()"
-            (click)="toggleRetrievalSettings()"
-          >
-            <i class="ri-focus-mode mr-1"></i>
-            <div class="text-xs font-medium uppercase select-none text-text-secondary">
-              @switch (retrievalMode()) {
-                @case ('vector') {
-                  {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
-                }
-                @case ('graph') {
-                  {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
-                }
-                @case ('hybrid') {
-                  {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
-                }
-              }
-            </div>
-            <i class="ri-equalizer-2-line"></i>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -76,19 +81,6 @@
       </div>
     </div>
   </div>
-
-  <details class="mb-4 rounded-xl border border-divider-subtle bg-components-card-bg px-3 py-2">
-    <summary class="cursor-pointer text-sm font-medium text-text-secondary">
-      {{ 'XP.Knowledgebase.KnowledgeFilters' | translate: { Default: 'Knowledge Filters' } }}
-    </summary>
-    <xp-knowledge-filter-form
-      class="mt-3 block"
-      [(filter)]="requestFilter"
-      [fields]="filterFields()"
-      [allowVariables]="false"
-      [folderOptions]="folderOptions()"
-    />
-  </details>
 
   <div class="mb-3 mt-6 text-base font-semibold text-text-primary">
     {{ 'XP.Knowledgebase.TestRecords' | translate: { Default: 'Test Records' } }}
@@ -190,62 +182,3 @@
     </div>
   }
 </div>
-
-<ng-template
-  cdkConnectedOverlay
-  [cdkConnectedOverlayOrigin]="retrievalSettingsTrigger"
-  [cdkConnectedOverlayOpen]="retrievalSettingsOpen()"
-  [cdkConnectedOverlayPositions]="[
-    {
-      originX: 'end',
-      originY: 'bottom',
-      overlayX: 'end',
-      overlayY: 'top',
-      offsetY: 8
-    },
-    {
-      originX: 'end',
-      originY: 'top',
-      overlayX: 'end',
-      overlayY: 'bottom',
-      offsetY: -8
-    }
-  ]"
-  [cdkConnectedOverlayHasBackdrop]="true"
-  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
-  [cdkConnectedOverlayFlexibleDimensions]="false"
-  [cdkConnectedOverlayPush]="true"
-  (backdropClick)="onClose(false)"
-  (detach)="retrievalSettingsOpen.set(false)"
-  (overlayKeydown)="onRetrievalSettingsOverlayKeydown($event)"
->
-  <div
-    role="dialog"
-    aria-modal="false"
-    aria-labelledby="retrieval-settings-title"
-    class="w-[min(720px,calc(100vw-32px))] bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3"
-  >
-    <div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
-      <div class="text-base font-semibold text-text-primary">
-        <div id="retrieval-settings-title">
-          {{ 'XP.Knowledgebase.RetrievalSetting' | translate: { Default: 'Retrieval Setting' } }}
-        </div>
-        <div class="text-xs font-normal leading-[18px] font-body text-text-tertiary">
-          <a target="_blank" rel="noopener noreferrer" [href]="helpUrl()" class="text-text-accent">{{
-            'XP.KEY_WORDS.LearnMore' | translate: { Default: 'Learn more' }
-          }}</a>
-          {{ 'XP.Knowledgebase.AboutRetrievalMethod' | translate: { Default: ' about retrieval method.' } }}
-        </div>
-      </div>
-      <div class="flex">
-        <div
-          class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg hover:bg-hover-bg"
-          (click)="onClose(false)"
-        >
-          <i class="ri-close-line"></i>
-        </div>
-      </div>
-    </div>
-    <xp-knowledge-retrieval-settings savable [ngModel]="knowledgebase()" (close)="onClose($event)" />
-  </div>
-</ng-template>
