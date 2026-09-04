@@ -544,8 +544,10 @@
   @apply grid grid-cols-1 gap-3 md:grid-cols-3;
 }
 
+.kb-graph-setting-list:disabled,
 .kb-graph-setting-list-disabled {
-  @apply opacity-60;
+  @apply m-0 min-w-0 border-0 p-0;
+  @apply pointer-events-none opacity-60;
 }
 
 .kb-graph-setting-row {

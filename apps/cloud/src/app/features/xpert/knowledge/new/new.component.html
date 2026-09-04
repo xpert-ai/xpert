@@ -531,7 +531,11 @@
                   <p class="kb-help-text">{{ i18nPrefix + '.Graph.ParametersDescription' | translate }}</p>
                 </div>
 
-                <div class="kb-graph-setting-list" [class.kb-graph-setting-list-disabled]="!graphEnabled()">
+                <fieldset
+                  class="kb-graph-setting-list"
+                  [class.kb-graph-setting-list-disabled]="!graphEnabled()"
+                  [disabled]="!graphEnabled()"
+                >
                   <div class="kb-graph-setting-row">
                     <div class="kb-graph-setting-copy">
                       <div class="kb-graph-setting-label">
@@ -549,7 +553,7 @@
                         [disabledInput]="!graphEnabled()"
                         [attr.aria-label]="i18nPrefix + '.Graph.EntityTopK' | translate"
                         [ngModel]="graphEntityTopK()"
-                        (ngModelChange)="graphEntityTopK.set(+$event)"
+                        (ngModelChange)="graphEnabled() && graphEntityTopK.set(+$event)"
                       />
                       <div class="kb-range-ticks"><span>1</span><span>25</span><span>50</span></div>
                     </div>
@@ -572,7 +576,7 @@
                         [disabledInput]="!graphEnabled()"
                         [attr.aria-label]="i18nPrefix + '.Graph.NeighborHops' | translate"
                         [ngModel]="graphNeighborHops()"
-                        (ngModelChange)="graphNeighborHops.set(+$event)"
+                        (ngModelChange)="graphEnabled() && graphNeighborHops.set(+$event)"
                       />
                       <div class="kb-range-ticks"><span>1</span><span>2</span></div>
                     </div>
@@ -595,12 +599,12 @@
                         [disabledInput]="!graphEnabled()"
                         [attr.aria-label]="i18nPrefix + '.Graph.Weight' | translate"
                         [ngModel]="graphWeight()"
-                        (ngModelChange)="graphWeight.set(+$event)"
+                        (ngModelChange)="graphEnabled() && graphWeight.set(+$event)"
                       />
                       <div class="kb-range-ticks"><span>0</span><span>0.5</span><span>1</span></div>
                     </div>
                   </div>
-                </div>
+                </fieldset>
 
                 <div class="kb-inline-notice">
                   <i class="ri-information-line"></i>
