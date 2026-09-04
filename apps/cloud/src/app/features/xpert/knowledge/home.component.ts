@@ -4,8 +4,8 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
+import { injectConfirmDelete, ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { catchError, firstValueFrom, forkJoin, map, of, switchMap, take } from 'rxjs'
 import {
   getErrorMessage,
@@ -53,7 +53,7 @@ type KnowledgeScopeOption = {
   selector: 'xpert-workspace-knowledgebases',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
-  imports: [CommonModule, RouterModule, TranslateModule, CdkMenuModule, ...ZardTooltipImports],
+  imports: [CommonModule, RouterModule, TranslateModule, CdkMenuModule, ZardButtonComponent, ...ZardTooltipImports],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class KnowledgebaseHomeComponent implements OnDestroy {
@@ -66,16 +66,17 @@ export class KnowledgebaseHomeComponent implements OnDestroy {
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly #toastr = inject(ToastrService)
+  readonly #translate = inject(TranslateService)
   readonly #clawXpertBindingTargetService = inject(ClawXpertBindingTargetService)
   readonly #workspaceService = inject(XpertWorkspaceService)
   readonly confirmDelete = injectConfirmDelete()
 
   readonly scopeOptions: KnowledgeScopeOption[] = [
-    { key: 'all', label: '全部', icon: 'ri-stack-line' },
-    { key: 'favorites', label: '收藏', icon: 'ri-star-line' },
-    { key: 'recents', label: '最近', icon: 'ri-history-line' },
-    { key: 'personal', label: '个人', icon: 'ri-user-line' },
-    { key: 'team', label: '团队', icon: 'ri-team-line' }
+    { key: 'all', label: 'XP.Knowledgebase.ScopeAll', icon: 'ri-stack-line' },
+    { key: 'favorites', label: 'XP.Knowledgebase.ScopeFavorites', icon: 'ri-star-line' },
+    { key: 'recents', label: 'XP.Knowledgebase.ScopeRecents', icon: 'ri-history-line' },
+    { key: 'personal', label: 'XP.Knowledgebase.ScopePersonal', icon: 'ri-user-line' },
+    { key: 'team', label: 'XP.Knowledgebase.ScopeTeam', icon: 'ri-team-line' }
   ]
 
   readonly #clawXpertContext = toSignal(
@@ -165,33 +166,33 @@ export class KnowledgebaseHomeComponent implements OnDestroy {
 
   readonly regularSectionTitle = computed(() => {
     const labels: Record<KnowledgeScope, string> = {
-      all: '我创建的',
-      favorites: '我的收藏',
-      recents: '最近访问',
-      personal: '个人知识库',
-      team: '团队知识库'
+      all: 'XP.Knowledgebase.SectionCreated',
+      favorites: 'XP.Knowledgebase.SectionFavorites',
+      recents: 'XP.Knowledgebase.SectionRecents',
+      personal: 'XP.Knowledgebase.SectionPersonal',
+      team: 'XP.Knowledgebase.SectionTeam'
     }
     return labels[this.activeScope()]
   })
 
   readonly emptyTitle = computed(() => {
     const labels: Record<KnowledgeScope, string> = {
-      all: '还没有知识库',
-      favorites: '还没有收藏知识库',
-      recents: '还没有最近访问',
-      personal: '还没有个人知识库',
-      team: '还没有团队知识库'
+      all: 'XP.Knowledgebase.EmptyAllTitle',
+      favorites: 'XP.Knowledgebase.EmptyFavoritesTitle',
+      recents: 'XP.Knowledgebase.EmptyRecentsTitle',
+      personal: 'XP.Knowledgebase.EmptyPersonalTitle',
+      team: 'XP.Knowledgebase.EmptyTeamTitle'
     }
     return labels[this.activeScope()]
   })
 
   readonly emptyDescription = computed(() => {
     const labels: Record<KnowledgeScope, string> = {
-      all: '创建一个知识库，开始组织和检索团队知识。',
-      favorites: '在知识库卡片上点击星标，常用内容会集中显示在这里。',
-      recents: '打开过的知识库会按访问时间显示在这里。',
-      personal: '创建私有知识库，仅供自己使用。',
-      team: '创建组织或公开知识库，与团队成员共享。'
+      all: 'XP.Knowledgebase.EmptyAllDescription',
+      favorites: 'XP.Knowledgebase.EmptyFavoritesDescription',
+      recents: 'XP.Knowledgebase.EmptyRecentsDescription',
+      personal: 'XP.Knowledgebase.EmptyPersonalDescription',
+      team: 'XP.Knowledgebase.EmptyTeamDescription'
     }
     return labels[this.activeScope()]
   })
@@ -423,7 +424,9 @@ export class KnowledgebaseHomeComponent implements OnDestroy {
     this.confirmDelete(
       {
         value: item.name,
-        information: '删除后，该知识库中的文档和索引数据也会一并删除。'
+        information: this.#translate.instant('XP.Knowledgebase.DeleteInformation', {
+          Default: 'Deleting this knowledge base also removes its documents and index data.'
+        })
       },
       this.#knowledgebaseService.delete(String(item.id))
     ).subscribe({
@@ -463,7 +466,9 @@ export class KnowledgebaseHomeComponent implements OnDestroy {
     const id = String(item.id)
     this.pinnedIds.update((ids) => (ids.includes(id) ? ids.filter((value) => value !== id) : [id, ...ids]))
     this.persistPreferences()
-    this.#toastr.success(this.isPinned(item) ? '知识库已置顶' : '已取消置顶')
+    this.#toastr.success(this.isPinned(item) ? 'XP.Knowledgebase.PinnedSuccess' : 'XP.Knowledgebase.UnpinnedSuccess', {
+      Default: this.isPinned(item) ? 'Knowledge base pinned' : 'Knowledge base unpinned'
+    })
   }
 
   isPinned(item: IKnowledgebase) {
@@ -476,12 +481,12 @@ export class KnowledgebaseHomeComponent implements OnDestroy {
 
   permissionLabel(item: IKnowledgebase) {
     if (item.permission === KnowledgebasePermission.Public) {
-      return '公开'
+      return this.#translate.instant('XP.Knowledgebase.Permission_Public', { Default: 'Public' })
     }
     if (item.permission === KnowledgebasePermission.Organization) {
-      return '组织内'
+      return this.#translate.instant('XP.Knowledgebase.Permission_Organization', { Default: 'Organization' })
     }
-    return '私有'
+    return this.#translate.instant('XP.Knowledgebase.Permission_Private', { Default: 'Private' })
   }
 
   permissionIcon(item: IKnowledgebase) {

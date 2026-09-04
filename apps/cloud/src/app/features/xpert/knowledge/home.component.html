@@ -6,7 +6,10 @@
       [class.scope-rail-shell--expanded]="scopeRailWidth() >= scopeRailExpandedWidth"
       [class.scope-rail-shell--resizing]="scopeRailResizing()"
     >
-      <nav class="scope-rail" aria-label="知识库范围">
+      <nav
+        class="scope-rail"
+        [attr.aria-label]="'XP.Knowledgebase.ScopeNavigation' | translate: { Default: 'Knowledge base scope' }"
+      >
         @for (scope of scopeOptions; track scope.key) {
           <button
             type="button"
@@ -16,7 +19,7 @@
             [attr.aria-current]="activeScope() === scope.key ? 'page' : null"
           >
             <i [class]="scope.icon"></i>
-            <span>{{ scope.label }}</span>
+            <span>{{ scope.label | translate: { Default: scope.label } }}</span>
             @if (scopeCount(scope.key)) {
               <span class="scope-rail__count">{{ scopeCount(scope.key) }}</span>
             }
@@ -26,13 +29,13 @@
       <div
         class="scope-rail__resize-handle"
         role="separator"
-        aria-label="调整知识库范围侧栏宽度"
+        [attr.aria-label]="'XP.Knowledgebase.ResizeSidebar' | translate: { Default: 'Resize knowledge base sidebar' }"
         aria-orientation="vertical"
         [attr.aria-valuemin]="scopeRailMinWidth"
         [attr.aria-valuemax]="scopeRailMaxWidth"
         [attr.aria-valuenow]="scopeRailWidth()"
         tabindex="0"
-        title="拖动调整侧栏宽度"
+        [attr.title]="'XP.Knowledgebase.ResizeSidebarHint' | translate: { Default: 'Drag to resize sidebar' }"
         (pointerdown)="startScopeRailResize($event)"
         (keydown)="resizeScopeRailFromKeyboard($event)"
       ></div>
@@ -42,21 +45,28 @@
       <header class="knowledge-library__header">
         <div class="knowledge-library__heading">
           <div class="knowledge-library__title-row">
-            <h1>知识库</h1>
+            <h1>{{ 'XP.Knowledgebase.WorkbenchTitle' | translate: { Default: 'Knowledge base' } }}</h1>
             @if (canWriteWorkspace()) {
               <button
                 type="button"
                 class="header-action"
                 (click)="newKnowledgebase()"
-                aria-label="新建知识库"
-                zTooltip="新建知识库"
+                z-button
+                zType="ghost"
+                zSize="icon"
+                [attr.aria-label]="'XP.Knowledgebase.NewKnowledgebase' | translate: { Default: 'New knowledge base' }"
+                [zTooltip]="'XP.Knowledgebase.NewKnowledgebase' | translate: { Default: 'New knowledge base' }"
                 zPosition="bottom"
               >
                 <i class="ri-folder-add-line"></i>
               </button>
             }
           </div>
-          <p>管理和组织您的知识库，集中维护文档、检索配置和知识图谱。</p>
+          <p>
+            {{
+              'XP.Knowledgebase.WorkbenchDescription' | translate: { Default: 'Share, organize, and manage knowledge.' }
+            }}
+          </p>
         </div>
       </header>
 
@@ -64,12 +74,19 @@
         @if (loadError(); as error) {
           <div class="collection-state collection-state--error">
             <i class="ri-error-warning-line"></i>
-            <strong>知识库加载失败</strong>
+            <strong>{{
+              'XP.Knowledgebase.LoadFailed' | translate: { Default: 'Knowledge bases failed to load' }
+            }}</strong>
             <span>{{ error }}</span>
-            <button type="button" (click)="loadKnowledgebases()">重新加载</button>
+            <button z-button zType="outline" type="button" (click)="loadKnowledgebases()">
+              {{ 'XP.ACTIONS.Reload' | translate: { Default: 'Reload' } }}
+            </button>
           </div>
         } @else if (loading() && !knowledgebases().length) {
-          <section class="knowledge-grid" aria-label="正在加载知识库">
+          <section
+            class="knowledge-grid"
+            [attr.aria-label]="'XP.Knowledgebase.Loading' | translate: { Default: 'Loading knowledge bases' }"
+          >
             @for (item of [1, 2, 3, 4, 5, 6]; track item) {
               <div class="knowledge-card knowledge-card--skeleton" aria-hidden="true">
                 <span class="skeleton-line skeleton-line--title"></span>
@@ -94,7 +111,7 @@
                 >
                   <span class="collection-section__title" id="pinned-knowledgebases-heading">
                     <i class="ri-pushpin-line"></i>
-                    <span>置顶</span>
+                    <span>{{ 'XP.Knowledgebase.Pin' | translate: { Default: 'Pinned' } }}</span>
                     <span class="collection-section__count">{{ pinnedKnowledgebases().length }}</span>
                   </span>
                   <i
@@ -125,7 +142,7 @@
               >
                 <span class="collection-section__title" id="regular-knowledgebases-heading">
                   <i class="ri-user-line"></i>
-                  <span>{{ regularSectionTitle() }}</span>
+                  <span>{{ regularSectionTitle() | translate: { Default: 'Knowledge bases' } }}</span>
                   <span class="collection-section__count">{{ unpinnedKnowledgebases().length }}</span>
                 </span>
                 <i
@@ -156,12 +173,12 @@
                     : 'ri-folder-open-line'
               "
             ></i>
-            <strong>{{ emptyTitle() }}</strong>
-            <span>{{ emptyDescription() }}</span>
+            <strong>{{ emptyTitle() | translate: { Default: 'No knowledge bases yet' } }}</strong>
+            <span>{{ emptyDescription() | translate: { Default: 'Create a knowledge base to get started.' } }}</span>
             @if (canWriteWorkspace() && activeScope() !== 'favorites' && activeScope() !== 'recents') {
               <button type="button" (click)="newKnowledgebase()">
                 <i class="ri-add-line"></i>
-                新建知识库
+                {{ 'XP.Knowledgebase.NewKnowledgebase' | translate: { Default: 'New knowledge base' } }}
               </button>
             }
           </div>
@@ -187,8 +204,14 @@
         class="card-icon-action favorite-action"
         [class.active]="isFavorite(item)"
         [attr.aria-pressed]="isFavorite(item)"
-        [attr.aria-label]="isFavorite(item) ? '取消收藏' : '收藏知识库'"
-        [title]="isFavorite(item) ? '取消收藏' : '收藏知识库'"
+        [attr.aria-label]="
+          (isFavorite(item) ? 'XP.Knowledgebase.Unfavorite' : 'XP.Knowledgebase.Favorite')
+            | translate: { Default: isFavorite(item) ? 'Remove from favorites' : 'Add to favorites' }
+        "
+        [attr.title]="
+          (isFavorite(item) ? 'XP.Knowledgebase.Unfavorite' : 'XP.Knowledgebase.Favorite')
+            | translate: { Default: isFavorite(item) ? 'Remove from favorites' : 'Add to favorites' }
+        "
         (click)="toggleFavorite(item, $event)"
       >
         <i [class]="isFavorite(item) ? 'ri-star-fill' : 'ri-star-line'"></i>
@@ -197,8 +220,8 @@
       <button
         type="button"
         class="card-icon-action more-action"
-        aria-label="更多操作"
-        title="更多操作"
+        [attr.aria-label]="'XP.ACTIONS.More' | translate: { Default: 'More actions' }"
+        [attr.title]="'XP.ACTIONS.More' | translate: { Default: 'More actions' }"
         [cdkMenuTriggerFor]="knowledgebaseMenu"
         [cdkMenuTriggerData]="{ item: item }"
         (click)="$event.stopPropagation()"
@@ -210,7 +233,10 @@
     <div class="knowledge-card__header">
       <div class="knowledge-card__title-row">
         @if (isPinned(item)) {
-          <i class="ri-pushpin-fill knowledge-card__pin-icon" title="已置顶"></i>
+          <i
+            class="ri-pushpin-fill knowledge-card__pin-icon"
+            [attr.title]="'XP.Knowledgebase.Pinned' | translate: { Default: 'Pinned' }"
+          ></i>
         }
         @if (item.graphRag?.enabled) {
           <i class="ri-node-tree knowledge-card__type-icon"></i>
@@ -218,26 +244,40 @@
         <h2 [title]="item.name">{{ item.name }}</h2>
       </div>
       @if (item.status === KnowledgebaseStatusEnum.REBUILDING) {
-        <span class="processing-status"><i class="ri-loader-4-line animate-spin"></i>重建中</span>
+        <span class="processing-status"
+          ><i class="ri-loader-4-line animate-spin"></i
+          >{{ 'XP.Knowledgebase.Rebuilding' | translate: { Default: 'Rebuilding' } }}</span
+        >
       }
     </div>
 
     <p class="knowledge-card__description">
-      {{ item.description || '暂无知识库描述' }}
+      {{
+        item.description || ('XP.Knowledgebase.EmptyDescription' | translate: { Default: 'No description available' })
+      }}
     </p>
 
     <footer class="knowledge-card__footer">
       <div class="knowledge-card__features">
-        <span class="feature-badge" title="文件夹数量">
+        <span
+          class="feature-badge"
+          [attr.title]="'XP.Knowledgebase.FolderCount' | translate: { Default: 'Folder count' }"
+        >
           <i class="ri-folder-3-line"></i>
           {{ item.folderNum ?? '—' }}
         </span>
-        <span class="feature-badge" title="文档数量">
+        <span
+          class="feature-badge"
+          [attr.title]="'XP.Knowledgebase.DocumentCount' | translate: { Default: 'Document count' }"
+        >
           <i class="ri-file-list-3-line"></i>
           {{ item.documentNum ?? '—' }}
         </span>
         @if (item.graphRag?.enabled) {
-          <span class="feature-badge feature-badge--graph" title="已启用知识图谱">
+          <span
+            class="feature-badge feature-badge--graph"
+            [attr.title]="'XP.Knowledgebase.GraphEnabled' | translate: { Default: 'Knowledge graph enabled' }"
+          >
             <i class="ri-node-tree"></i>
           </span>
         }
@@ -254,17 +294,20 @@
   <div class="knowledgebase-menu" cdkMenu>
     <button cdkMenuItem type="button" (click)="togglePinned(item)">
       <i [class]="isPinned(item) ? 'ri-unpin-line' : 'ri-pushpin-line'"></i>
-      <span>{{ isPinned(item) ? '取消置顶' : '置顶' }}</span>
+      <span>{{
+        (isPinned(item) ? 'XP.Knowledgebase.Unpin' : 'XP.Knowledgebase.Pin')
+          | translate: { Default: isPinned(item) ? 'Unpin' : 'Pin' }
+      }}</span>
     </button>
     @if (canManage(item)) {
       <button cdkMenuItem type="button" (click)="editKnowledgebase(item)">
         <i class="ri-settings-3-line"></i>
-        <span>知识库设置</span>
+        <span>{{ 'XP.Knowledgebase.Settings' | translate: { Default: 'Knowledge base settings' } }}</span>
       </button>
       <div class="knowledgebase-menu__separator"></div>
       <button cdkMenuItem type="button" class="danger" (click)="deleteKnowledgebase(item)">
         <i class="ri-delete-bin-line"></i>
-        <span>删除知识库</span>
+        <span>{{ 'XP.Knowledgebase.Delete' | translate: { Default: 'Delete knowledge base' } }}</span>
       </button>
     }
   </div>
