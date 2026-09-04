@@ -115,7 +115,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                     }
 
                     const score = command.input.score ?? kb.recall?.score
-                    if (!isNil(score) && !this.usesWeightedRrf(kb, retrieval)) {
+                    const retrievalMode = retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'
+                    if (!isNil(score) && retrievalMode !== 'keyword' && !this.usesWeightedRrf(kb, retrieval)) {
                         docs = docs.filter((doc) => doc.metadata.score >= score)
                     }
                     filterDiagnostics.hitCount = docs.length
@@ -235,6 +236,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             return codes[error.code]
         }
         if (retrievalMode === 'graph') return 'graph_search_failed'
+        if (retrievalMode === 'keyword') return 'keyword_query_failed'
         const message = getErrorMessage(error).toLowerCase()
         return message.includes('vector mode') ? 'unsupported_retrieval_mode' : 'unsupported_backend'
     }
@@ -297,6 +299,28 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             })
             prepared.diagnostics.hitCount = graphDocuments.length
             return { documents: graphDocuments, diagnostics: prepared.diagnostics }
+        }
+
+        if (mode === 'keyword') {
+            const result = await this.keywordRetriever.retrieve(request)
+            const keywordDocuments = getBatchDocuments(result)
+            Object.assign(prepared.diagnostics, result.diagnostics, {
+                keywordBranchHitCount: keywordDocuments.length
+            })
+            if (result.failed) {
+                const errorCode = this.resolveRetrievalBatchErrorCode(result)
+                prepared.diagnostics.filterStatus = 'failed'
+                prepared.diagnostics.errorCode = errorCode
+                prepared.diagnostics.hitCount = 0
+                throw new KnowledgeRetrievalFailure(
+                    result.source,
+                    errorCode,
+                    prepared.diagnostics,
+                    result.error ?? 'Keyword retrieval failed.'
+                )
+            }
+            prepared.diagnostics.hitCount = keywordDocuments.length
+            return { documents: keywordDocuments, diagnostics: prepared.diagnostics }
         }
 
         if (mode === 'hybrid' && this.usesWeightedRrf(kb, retrieval)) {

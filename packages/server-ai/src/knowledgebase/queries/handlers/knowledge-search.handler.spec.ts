@@ -177,6 +177,121 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         expect(results.documents).toEqual(graphDocs)
     })
 
+    it('routes keyword mode to keyword retrieval without vector or graph search', async () => {
+        const keywordDocs = [chunk('keyword-1', { keywordScore: 8, score: 8 })]
+        const queryBus = { execute: jest.fn() }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5, score: 100 }
+                    }
+                ]
+            }))
+        }
+        const { handler, vectorRetriever, keywordRetriever } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            queryBus as unknown as QueryBus
+        )
+        const vectorSearch = jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(vectorBatch([]))
+        const keywordSearch = jest.spyOn(keywordRetriever, 'retrieve').mockResolvedValue(
+            keywordBatch(keywordDocs, {
+                ...createDiagnostics(),
+                keywordIndexStatus: 'ready',
+                keywordCandidateCount: 1
+            })
+        )
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-1'],
+                query: 'LSJWR4095RS105767',
+                source: 'spec',
+                retrieval: {
+                    mode: 'keyword'
+                }
+            })
+        )
+
+        expect(vectorSearch).not.toHaveBeenCalled()
+        expect(queryBus.execute).not.toHaveBeenCalled()
+        expect(keywordSearch).toHaveBeenCalledTimes(1)
+        expect(result.documents).toEqual(keywordDocs)
+        expect(result.diagnostics[0]).toEqual(
+            expect.objectContaining({
+                keywordIndexStatus: 'ready',
+                keywordCandidateCount: 1,
+                keywordBranchHitCount: 1,
+                hitCount: 1
+            })
+        )
+    })
+
+    it('preserves a missing-index failure when keyword mode runs alone', async () => {
+        const queryBus = { execute: jest.fn() }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-1',
+                        type: KnowledgebaseTypeEnum.Standard,
+                        recall: { topK: 5 }
+                    }
+                ]
+            }))
+        }
+        const { handler, vectorRetriever, keywordRetriever, retrievalLogService } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            queryBus as unknown as QueryBus
+        )
+        const vectorSearch = jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(vectorBatch([]))
+        jest.spyOn(keywordRetriever, 'retrieve').mockResolvedValue({
+            ...keywordBatch([]),
+            diagnostics: {
+                ...createDiagnostics(),
+                keywordIndexStatus: 'missing',
+                keywordCandidateCount: 0,
+                keywordFailureReason: 'knowledge keyword indexes are missing',
+                errors: ['knowledge keyword indexes are missing']
+            },
+            failed: true,
+            error: 'knowledge keyword indexes are missing'
+        })
+
+        await expect(
+            handler.execute(
+                new KnowledgeSearchQuery({
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    knowledgebases: ['kb-1'],
+                    query: 'LSJWR4095RS105767',
+                    source: 'spec',
+                    retrieval: {
+                        mode: 'keyword'
+                    }
+                })
+            )
+        ).rejects.toThrow('knowledge keyword indexes are missing')
+
+        expect(vectorSearch).not.toHaveBeenCalled()
+        expect(queryBus.execute).not.toHaveBeenCalled()
+        expect(retrievalLogService.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                errorCode: 'keyword_index_missing',
+                diagnostics: expect.objectContaining({
+                    filterStatus: 'failed',
+                    errorCode: 'keyword_index_missing',
+                    keywordIndexStatus: 'missing',
+                    keywordFailureReason: 'knowledge keyword indexes are missing'
+                })
+            })
+        )
+    })
+
     it('deduplicates and fuses vector and graph chunks in hybrid mode', async () => {
         const queryBus = {
             execute: jest.fn(async () => ({

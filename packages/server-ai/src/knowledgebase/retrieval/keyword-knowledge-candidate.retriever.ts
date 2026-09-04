@@ -139,7 +139,7 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             diagnostics.keywordIndexStatus = indexStatus.ready ? 'ready' : 'missing'
             if (!indexStatus.ready) {
                 const defaultValue =
-                    'Knowledge keyword indexes are missing. Create the required PostgreSQL indexes before enabling RRF.'
+                    'Knowledge keyword indexes are missing. Create the required PostgreSQL indexes before enabling keyword retrieval.'
                 const error =
                     t('server-ai:Error.KeywordIndexMissing', {
                         defaultValue
