@@ -4,18 +4,17 @@ import { join } from 'node:path'
 describe('KnowledgeTestComponent layout', () => {
   const template = readFileSync(join(__dirname, 'test.component.html'), 'utf8')
 
-  it('places retrieval settings and knowledge filters in Zard accordion panels above the query input', () => {
+  it('places the knowledge filter panel above the query input without duplicating retrieval settings', () => {
     const controlsIndex = template.indexOf('data-test-controls')
     const queryInputIndex = template.indexOf('data-test-query-input')
-    const retrievalPanelIndex = template.indexOf('data-test-panel="retrieval"')
     const filterPanelIndex = template.indexOf('data-test-panel="filters"')
 
     expect(controlsIndex).toBeGreaterThan(-1)
-    expect(retrievalPanelIndex).toBeGreaterThan(controlsIndex)
-    expect(filterPanelIndex).toBeGreaterThan(retrievalPanelIndex)
+    expect(filterPanelIndex).toBeGreaterThan(controlsIndex)
     expect(queryInputIndex).toBeGreaterThan(filterPanelIndex)
     expect(template.slice(controlsIndex, queryInputIndex)).toContain('<z-accordion')
-    expect(template.slice(retrievalPanelIndex, filterPanelIndex)).toContain('<xp-knowledge-retrieval-settings')
+    expect(template).not.toContain('data-test-panel="retrieval"')
+    expect(template).not.toContain('<xp-knowledge-retrieval-settings')
     expect(template.slice(filterPanelIndex, queryInputIndex)).toContain('<xp-knowledge-filter-form')
   })
 

@@ -2166,7 +2166,6 @@
       "RRFThresholdIgnored": "RRF 融合分数不是向量相似度，因此不会应用相似度阈值。",
       "RRFPositiveWeightRequired": "请至少将一路检索来源的权重设置为大于 0。",
       "RetrievalMode": "检索模式",
-      "RetrievalModeDesc": "选择知识库召回候选内容的方式。",
       "RetrievalMode_Vector": "向量",
       "RetrievalMode_Keyword": "关键词",
       "RetrievalMode_Graph": "图谱",
