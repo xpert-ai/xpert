@@ -1639,6 +1639,26 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
   })
 
+  it('opens FAQ citations in the FAQ manager instead of the hidden managed document', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const router = TestBed.inject(Router)
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    getRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-faq-1',
+        citationUrl: 'xpert://knowledgebase/faq?knowledgebaseId=kb-faq-1&faqId=faq-7'
+      }
+    })
+    await settle(fixture)
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-faq-1', 'faq'], {
+      queryParams: { faqId: 'faq-7' }
+    })
+  })
+
   it('keeps visited extension views mounted while switching workspace tabs', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(
       of([

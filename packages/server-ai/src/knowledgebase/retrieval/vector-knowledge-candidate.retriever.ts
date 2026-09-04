@@ -1,5 +1,10 @@
 import { Document, DocumentInterface } from '@langchain/core/documents'
-import { IKnowledgeDocumentChunk, VectorTypeEnum } from '@xpert-ai/contracts'
+import {
+    IKnowledgeDocumentChunk,
+    KNOWLEDGE_FAQ_MAX_LOGICAL_VECTOR_COUNT,
+    KnowledgebaseTypeEnum,
+    VectorTypeEnum
+} from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { getPythonErrorMessage } from '@xpert-ai/server-common'
 import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common'
@@ -11,6 +16,12 @@ import { KnowledgebaseService } from '../knowledgebase.service'
 import { compileKnowledgeFilterToMilvus, compileKnowledgeFilterToPostgres } from '../filter'
 import { withKnowledgeDocumentMetadata } from './document'
 import { KnowledgeCandidateRetriever, KnowledgeRetrievalBatch, KnowledgeRetrievalRequest } from './types'
+
+type VectorSearchResult = {
+    items: [DocumentInterface, number][]
+    candidateDocumentCount?: number
+    candidateChunkCount?: number
+}
 
 @Injectable()
 export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetriever {
@@ -26,53 +37,73 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
         const { knowledgebase: kb, query, k } = request
         const prepared = request.preparedFilter
         const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, request.modelContext)
-        const vectorTopK = k ?? kb.recall?.topK ?? 10
+        const requestedTopK = k ?? kb.recall?.topK ?? 10
+        const vectorTopK =
+            kb.type === KnowledgebaseTypeEnum.FAQ
+                ? requestedTopK * KNOWLEDGE_FAQ_MAX_LOGICAL_VECTOR_COUNT
+                : requestedTopK
         const diagnostics = prepared.diagnostics
         this.logger.debug(
             `SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
         )
-        let items: [DocumentInterface, number][]
         const vectorStartedAt = Date.now()
-        if (environment.vectorStore === VectorTypeEnum.PGVECTOR) {
-            const compiled = prepared.effective
-                ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
-                : { sql: 'TRUE', parameters: [] }
-            const result = await vectorStore.structuredSimilaritySearchWithScore(query, vectorTopK, {
-                postgres: {
-                    ...compiled,
-                    knowledgebaseId: kb.id
-                }
-            })
-            items = result.items
-            diagnostics.candidateDocumentCount = result.candidateDocumentCount
-            diagnostics.candidateChunkCount = result.candidateChunkCount
-        } else if (environment.vectorStore === VectorTypeEnum.MILVUS) {
-            const compiled = prepared.effective
-                ? compileKnowledgeFilterToMilvus(prepared.effective, prepared.registry)
-                : { expression: '', values: {} }
-            const relationalCompiled = prepared.effective
-                ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
-                : { sql: 'TRUE', parameters: [] }
-            const mandatory = 'enabled == true and filterAttributes["document"]["disabled"] == false'
-            const [result, candidates] = await Promise.all([
-                vectorStore.structuredSimilaritySearchWithScore(query, vectorTopK, {
-                    milvus: {
-                        expression: compiled.expression ? `${mandatory} and (${compiled.expression})` : mandatory,
-                        values: compiled.values
+        const search = async (topK: number): Promise<VectorSearchResult> => {
+            if (environment.vectorStore === VectorTypeEnum.PGVECTOR) {
+                const compiled = prepared.effective
+                    ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
+                    : { sql: 'TRUE', parameters: [] }
+                return vectorStore.structuredSimilaritySearchWithScore(query, topK, {
+                    postgres: {
+                        ...compiled,
+                        knowledgebaseId: kb.id
                     }
-                }),
-                this.knowledgebaseService.countStructuredFilterCandidates(kb.id, relationalCompiled)
-            ])
-            items = result.items
-            diagnostics.candidateDocumentCount = candidates.candidateDocumentCount
-            diagnostics.candidateChunkCount = candidates.candidateChunkCount
-        } else if (prepared.effective) {
-            throw new BadRequestException(
-                `Vector store '${environment.vectorStore}' does not support knowledge filter v2.`
-            )
-        } else {
-            items = await vectorStore.similaritySearchWithScore(query, vectorTopK)
+                })
+            }
+            if (environment.vectorStore === VectorTypeEnum.MILVUS) {
+                const compiled = prepared.effective
+                    ? compileKnowledgeFilterToMilvus(prepared.effective, prepared.registry)
+                    : { expression: '', values: {} }
+                const relationalCompiled = prepared.effective
+                    ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
+                    : { sql: 'TRUE', parameters: [] }
+                const mandatory = 'enabled == true and filterAttributes["document"]["disabled"] == false'
+                const [result, candidates] = await Promise.all([
+                    vectorStore.structuredSimilaritySearchWithScore(query, topK, {
+                        milvus: {
+                            expression: compiled.expression ? `${mandatory} and (${compiled.expression})` : mandatory,
+                            values: compiled.values
+                        }
+                    }),
+                    this.knowledgebaseService.countStructuredFilterCandidates(kb.id, relationalCompiled)
+                ])
+                return {
+                    items: result.items,
+                    candidateDocumentCount: candidates.candidateDocumentCount,
+                    candidateChunkCount: candidates.candidateChunkCount
+                }
+            }
+            if (prepared.effective) {
+                throw new BadRequestException(
+                    `Vector store '${environment.vectorStore}' does not support knowledge filter v2.`
+                )
+            }
+            return { items: await vectorStore.similaritySearchWithScore(query, topK) }
         }
+
+        let currentTopK = vectorTopK
+        let searchResult = await search(currentTopK)
+        if (kb.type === KnowledgebaseTypeEnum.FAQ) {
+            while (
+                searchResult.items.length === currentTopK &&
+                countDistinctChunkIds(searchResult.items) < requestedTopK
+            ) {
+                currentTopK *= 2
+                searchResult = await search(currentTopK)
+            }
+        }
+        const items = searchResult.items
+        diagnostics.candidateDocumentCount = searchResult.candidateDocumentCount
+        diagnostics.candidateChunkCount = searchResult.candidateChunkCount
         diagnostics.vectorLatency = Date.now() - vectorStartedAt
         const chunkMap = new Map<string, Document<ChunkMetadata>>()
         const vectorRankByChunkId = new Map<string, number>()
@@ -81,11 +112,11 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
         const chunkIds: string[] = []
         items.forEach(([doc, score], index) => {
             doc.metadata.score = 1 - score
-            chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
             const rank = index + 1
             const currentRank = vectorRankByChunkId.get(doc.metadata.chunkId)
             if (currentRank === undefined || rank < currentRank) {
                 vectorRankByChunkId.set(doc.metadata.chunkId, rank)
+                chunkMap.set(doc.metadata.chunkId, doc as Document<ChunkMetadata>)
             }
             if (doc.metadata.parentId) {
                 parentChunkIds.add(doc.metadata.parentId)
@@ -209,8 +240,16 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             }
         }
 
-        diagnostics.hitCount = documents.length
-        diagnostics.retryableWithoutDynamic = documents.length === 0 && !!prepared.sources.dynamic
-        return { source: this.source, candidates, diagnostics }
+        const resultCandidates =
+            kb.type === KnowledgebaseTypeEnum.FAQ
+                ? candidates.sort((left, right) => left.rank - right.rank).slice(0, requestedTopK)
+                : candidates
+        diagnostics.hitCount = resultCandidates.length
+        diagnostics.retryableWithoutDynamic = resultCandidates.length === 0 && !!prepared.sources.dynamic
+        return { source: this.source, candidates: resultCandidates, diagnostics }
     }
+}
+
+function countDistinctChunkIds(items: [DocumentInterface, number][]) {
+    return new Set(items.map(([document]) => document.metadata.chunkId)).size
 }

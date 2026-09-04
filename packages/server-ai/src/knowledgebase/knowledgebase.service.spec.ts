@@ -4,6 +4,7 @@ import {
     AiModelTypeEnum,
     KDocumentSourceType,
     KnowledgebasePermission,
+    KnowledgebaseTypeEnum,
     LanguagesEnum,
     RolesEnum,
     WorkflowNodeTypeEnum
@@ -292,6 +293,103 @@ describe('KnowledgebaseService', () => {
         )
         expect(result).not.toHaveProperty('id', 'client-id')
         expect(result).not.toHaveProperty('createdById', 'victim-user')
+    })
+
+    it('persists validated FAQ configuration when creating an FAQ knowledgebase', async () => {
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+            save: jest.fn().mockImplementation(async (entity) => entity)
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        const result = await runInRequestContext(() =>
+            service.create({
+                name: 'FAQ knowledgebase',
+                type: KnowledgebaseTypeEnum.FAQ,
+                faqConfig: {
+                    indexMode: 'question_answer',
+                    questionIndexMode: 'combined'
+                }
+            })
+        )
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                type: KnowledgebaseTypeEnum.FAQ,
+                faqConfig: {
+                    indexMode: 'question_answer',
+                    questionIndexMode: 'combined',
+                    negativeMatchMode: 'exact'
+                },
+                recall: {
+                    mode: 'hybrid',
+                    fusion: {
+                        mode: 'weighted_rrf',
+                        rankConstant: 60,
+                        weights: {
+                            vector: 0.7,
+                            keyword: 0.3,
+                            graph: 0
+                        }
+                    }
+                }
+            })
+        )
+    })
+
+    it('removes graph retrieval from FAQ recall configuration', async () => {
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+            save: jest.fn().mockImplementation(async (entity) => entity)
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        const result = await runInRequestContext(() =>
+            service.create({
+                name: 'FAQ without graph retrieval',
+                type: KnowledgebaseTypeEnum.FAQ,
+                faqConfig: {
+                    indexMode: 'question_only',
+                    questionIndexMode: 'separate'
+                },
+                recall: {
+                    mode: 'graph',
+                    fusion: {
+                        mode: 'weighted_rrf',
+                        weights: { vector: 0.4, keyword: 0.2, graph: 0.9 }
+                    }
+                },
+                graphRag: {
+                    enabled: true,
+                    mode: 'graph'
+                }
+            })
+        )
+
+        expect(result.recall).toEqual(
+            expect.objectContaining({
+                mode: 'hybrid',
+                fusion: expect.objectContaining({
+                    mode: 'weighted_rrf',
+                    weights: { vector: 0.4, keyword: 0.2, graph: 0 }
+                })
+            })
+        )
+        expect(result.graphRag).toEqual(expect.objectContaining({ enabled: false, mode: 'hybrid' }))
     })
 
     it('passes Xpert billing context to embedding and rerank models', async () => {
@@ -616,6 +714,88 @@ describe('KnowledgebaseService', () => {
         expect(save).toHaveBeenCalledTimes(1)
     })
 
+    it('rejects FAQ configuration changes after creation', async () => {
+        const knowledgebase = {
+            id: 'kb-faq',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-user',
+            permission: KnowledgebasePermission.Private,
+            type: KnowledgebaseTypeEnum.FAQ,
+            faqConfig: {
+                indexMode: 'question_only',
+                questionIndexMode: 'separate'
+            }
+        } as Knowledgebase
+        const save = jest.fn()
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(knowledgebase),
+            delete: jest.fn(),
+            save
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const workspaceAccessService: jest.Mocked<WorkspaceAccessServiceMock> = {
+            assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } })
+        }
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            workspaceAccessService
+        })
+
+        await expect(
+            runInRequestContext(
+                () =>
+                    service.update('kb-faq', {
+                        faqConfig: {
+                            indexMode: 'question_answer',
+                            questionIndexMode: 'combined'
+                        }
+                    }),
+                'owner-user',
+                RolesEnum.AI_BUILDER
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(save).not.toHaveBeenCalled()
+    })
+
+    it('rejects changing the knowledgebase type after creation', async () => {
+        const knowledgebase = {
+            id: 'kb-faq',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-user',
+            permission: KnowledgebasePermission.Private,
+            type: KnowledgebaseTypeEnum.FAQ
+        } as Knowledgebase
+        const save = jest.fn()
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(knowledgebase),
+            delete: jest.fn(),
+            save
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const workspaceAccessService: jest.Mocked<WorkspaceAccessServiceMock> = {
+            assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } })
+        }
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            workspaceAccessService
+        })
+
+        await expect(
+            runInRequestContext(
+                () => service.update('kb-faq', { type: KnowledgebaseTypeEnum.Standard }),
+                'owner-user',
+                RolesEnum.AI_BUILDER
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(save).not.toHaveBeenCalled()
+    })
+
     it('rejects moving an existing knowledgebase to another workspace', async () => {
         const knowledgebase = {
             id: 'kb-owner',
@@ -742,7 +922,11 @@ describe('KnowledgebaseService', () => {
             organizationId: 'org-1',
             workspaceId: 'workspace-1',
             name: 'Knowledgebase',
-            type: 'standard',
+            type: KnowledgebaseTypeEnum.FAQ,
+            faqConfig: {
+                indexMode: 'question_only',
+                questionIndexMode: 'separate'
+            },
             avatar: { emoji: 'K' },
             description: 'Detail description',
             permission: 'private',
@@ -847,6 +1031,7 @@ describe('KnowledgebaseService', () => {
                 select: expect.objectContaining({
                     id: true,
                     name: true,
+                    faqConfig: true,
                     apiEnabled: true,
                     workspaceId: true,
                     pipelineId: true
@@ -860,6 +1045,10 @@ describe('KnowledgebaseService', () => {
         expect(payload).toMatchObject({
             id: 'kb-1',
             name: 'Knowledgebase',
+            faqConfig: {
+                indexMode: 'question_only',
+                questionIndexMode: 'separate'
+            },
             apiEnabled: true,
             workspaceId: 'workspace-1',
             pipelineId: 'pipeline-1',

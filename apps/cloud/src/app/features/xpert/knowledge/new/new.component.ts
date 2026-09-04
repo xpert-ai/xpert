@@ -22,17 +22,33 @@ import {
 } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
+  DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
   getErrorMessage,
   ICopilotModel,
   IKnowledgebase,
+  KnowledgebaseFAQConfig,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
   ModelFeature,
+  normalizeKnowledgebaseFAQRecall,
   ToastrService,
   TKBRetrievalSettings
 } from '../../../../@core'
 
-type SectionKey = 'basic' | 'models' | 'retrieval' | 'parser' | 'chunk' | 'image' | 'audio' | 'advanced' | 'storage'
+type SectionKey =
+  | 'basic'
+  | 'models'
+  | 'vector-storage'
+  | 'retrieval'
+  | 'faq'
+  | 'parser'
+  | 'chunk'
+  | 'image'
+  | 'audio'
+  | 'advanced'
+  | 'storage'
+
+const FAQ_SECTION_KEYS: readonly SectionKey[] = ['basic', 'models', 'vector-storage', 'retrieval', 'faq']
 
 type SectionStatus = 'supported' | 'post-create' | 'preview'
 
@@ -110,12 +126,20 @@ export class XpertNewKnowledgeComponent {
     { key: 'basic', group: 'Basic', labelKey: 'Sections.Basic', icon: 'ri-information-line', status: 'supported' },
     { key: 'models', group: 'Basic', labelKey: 'Sections.Models', icon: 'ri-box-3-line', status: 'supported' },
     {
+      key: 'vector-storage',
+      group: 'Basic',
+      labelKey: 'Sections.VectorStorage',
+      icon: 'ri-database-2-line',
+      status: 'supported'
+    },
+    {
       key: 'retrieval',
       group: 'Basic',
       labelKey: 'Sections.Retrieval',
       icon: 'ri-focus-2-line',
       status: 'supported'
     },
+    { key: 'faq', group: 'Basic', labelKey: 'Sections.FAQ', icon: 'ri-question-line', status: 'supported' },
     { key: 'parser', group: 'Indexing', labelKey: 'Sections.Parser', icon: 'ri-file-search-line', status: 'supported' },
     { key: 'chunk', group: 'Indexing', labelKey: 'Sections.Chunk', icon: 'ri-file-copy-2-line', status: 'supported' },
     { key: 'image', group: 'Indexing', labelKey: 'Sections.Image', icon: 'ri-image-line', status: 'post-create' },
@@ -399,6 +423,12 @@ export class XpertNewKnowledgeComponent {
   readonly name = model<string>(this.#initialKnowledgebase?.name ?? '')
   readonly description = model<string>(this.#initialKnowledgebase?.description ?? '')
   readonly type = model<KnowledgebaseTypeEnum>(this.#initialKnowledgebase?.type ?? KnowledgebaseTypeEnum.Standard)
+  readonly isFAQ = computed(() => this.type() === KnowledgebaseTypeEnum.FAQ)
+  readonly faqConfig = model<KnowledgebaseFAQConfig>({
+    ...DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
+    ...(this.#initialKnowledgebase?.faqConfig ?? {})
+  })
+  readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())
   readonly indexStrategy = model<'rag' | 'wiki'>('rag')
   readonly excelHeaderRow = model(false)
 
@@ -443,23 +473,33 @@ export class XpertNewKnowledgeComponent {
   readonly imageParsingRequirements = model('')
 
   readonly retrieval = model<Partial<IKnowledgebase & TKBRetrievalSettings>>({
-    recall: {
-      ...(this.#initialKnowledgebase?.recall ?? {}),
-      topK: this.#initialKnowledgebase?.recall?.topK ?? 10,
-      score: this.#initialKnowledgebase ? (this.#initialKnowledgebase.recall?.score ?? null) : 0.5
-    },
+    recall: this.isFAQ()
+      ? normalizeKnowledgebaseFAQRecall({
+          ...(this.#initialKnowledgebase?.recall ?? {}),
+          topK: this.#initialKnowledgebase?.recall?.topK ?? 10,
+          score: this.#initialKnowledgebase ? (this.#initialKnowledgebase.recall?.score ?? null) : 0.5
+        })
+      : {
+          ...(this.#initialKnowledgebase?.recall ?? {}),
+          topK: this.#initialKnowledgebase?.recall?.topK ?? 10,
+          score: this.#initialKnowledgebase ? (this.#initialKnowledgebase.recall?.score ?? null) : 0.5
+        },
     rerankModel: this.#initialKnowledgebase?.rerankModel ?? null,
     rerankModelId: this.#initialKnowledgebase?.rerankModelId ?? null,
     graphRag: {
       ...(this.#initialKnowledgebase?.graphRag ?? {}),
       enabled: this.#initialKnowledgebase?.graphRag?.enabled ?? false,
-      mode: this.#initialKnowledgebase?.graphRag?.mode ?? 'vector',
+      mode: this.isFAQ()
+        ? normalizeKnowledgebaseFAQRecall(this.#initialKnowledgebase?.recall).mode
+        : (this.#initialKnowledgebase?.graphRag?.mode ?? 'vector'),
       entityTopK: this.#initialKnowledgebase?.graphRag?.entityTopK ?? 8,
       neighborHops: this.#initialKnowledgebase?.graphRag?.neighborHops ?? 1,
       graphWeight: this.#initialKnowledgebase?.graphRag?.graphWeight ?? 0.35
     }
   })
-  readonly retrievalConfigurationValid = computed(() => hasEnabledKnowledgeRetrievalSource(this.retrieval()))
+  readonly retrievalConfigurationValid = computed(() =>
+    hasEnabledKnowledgeRetrievalSource(this.retrieval(), !this.isFAQ())
+  )
 
   // Document-level parser options are shown here for parity with WeKnora and
   // will be applied from the document import flow until the KB create DTO grows.
@@ -477,7 +517,13 @@ export class XpertNewKnowledgeComponent {
 
   readonly groupedSections = computed(() => {
     const groups: CreateSection['group'][] = ['Basic', 'Indexing', 'Storage']
-    return groups.map((group) => ({ group, items: this.sections.filter((section) => section.group === group) }))
+    const visibleSections = this.isFAQ()
+      ? this.sections.filter((section) => FAQ_SECTION_KEYS.includes(section.key))
+      : this.sections.filter((section) => section.key !== 'faq')
+
+    return groups
+      .map((group) => ({ group, items: visibleSections.filter((section) => section.group === group) }))
+      .filter((group) => group.items.length)
   })
 
   selectSection(section: SectionKey) {
@@ -497,6 +543,13 @@ export class XpertNewKnowledgeComponent {
 
   updateParserPreview<K extends keyof ParserPreviewState>(key: K, value: ParserPreviewState[K]) {
     this.parserPreview.update((current) => ({ ...current, [key]: value }))
+  }
+
+  updateFAQConfig<K extends keyof KnowledgebaseFAQConfig>(key: K, value: KnowledgebaseFAQConfig[K]) {
+    if (this.faqConfigurationDisabled()) {
+      return
+    }
+    this.faqConfig.update((current) => ({ ...current, [key]: value }))
   }
 
   updateParserEngine(key: string, value: string) {
@@ -610,16 +663,24 @@ export class XpertNewKnowledgeComponent {
 
   private buildPayload(): Partial<IKnowledgebase> {
     const retrieval = this.retrieval()
+    const recall = this.isFAQ() ? normalizeKnowledgebaseFAQRecall(retrieval.recall) : retrieval.recall
+    const graphRag = this.isFAQ()
+      ? {
+          ...(retrieval.graphRag ?? {}),
+          enabled: false,
+          mode: recall.mode
+        }
+      : retrieval.graphRag
     const payload: Partial<IKnowledgebase> = {
       name: this.name().trim(),
       description: this.description().trim() || undefined,
       copilotModel: this.copilotModel(),
       chatModel: this.chatModel() ?? null,
       visionModel: this.visionModel() ?? null,
-      recall: retrieval.recall,
+      recall,
       rerankModel: retrieval.rerankModel ?? null,
       rerankModelId: retrieval.rerankModel?.id ?? retrieval.rerankModelId ?? null,
-      graphRag: retrieval.graphRag,
+      graphRag,
       parserConfig: {
         embeddingBatchSize: this.embeddingBatchSize() ?? undefined,
         chunkSize: this.chunkSize(),
@@ -632,6 +693,9 @@ export class XpertNewKnowledgeComponent {
     if (!this.isEditMode()) {
       payload.workspaceId = this.workspaceId()
       payload.type = this.type()
+      if (this.isFAQ()) {
+        Object.assign(payload, { faqConfig: this.faqConfig() })
+      }
     }
 
     return payload

@@ -11,6 +11,7 @@ import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component
 import { KnowledgeDocumentSettingsComponent } from './documents/settings/settings.component'
 import { KnowledgebasePipelineComponent } from './pipeline/pipeline.component'
 import { ExtensionHostViewPageComponent } from 'apps/cloud/src/app/@shared/view-extension'
+import { KnowledgeFAQComponent } from './faq/faq.component'
 
 export default [
   {
@@ -46,6 +47,10 @@ export default [
             component: KnowledgeDocumentSettingsComponent
           }
         ]
+      },
+      {
+        path: 'faq',
+        component: KnowledgeFAQComponent
       },
       {
         path: 'configuration',

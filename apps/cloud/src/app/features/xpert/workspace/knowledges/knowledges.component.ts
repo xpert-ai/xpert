@@ -14,6 +14,7 @@ import {
   injectTranslate,
   KnowledgebasePermission,
   KnowledgebaseService,
+  KnowledgebaseTypeEnum,
   OrderTypeEnum,
   routeAnimations,
   Store,
@@ -23,6 +24,7 @@ import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
+import { getKnowledgebaseDefaultRoute } from '../../knowledge/knowledgebase/knowledgebase-route'
 
 @Component({
   standalone: true,
@@ -121,9 +123,15 @@ export class XpertWorkspaceKnowledgesComponent {
       .closed.subscribe({
         next: (knowledgebase) => {
           if (knowledgebase) {
-            this.#router.navigate(['/xpert/knowledges', knowledgebase.id], {
-              queryParams: { returnTo: this.workspaceReturnTo() }
-            })
+            this.#router.navigate(
+              getKnowledgebaseDefaultRoute({
+                id: knowledgebase.id,
+                type: knowledgebase.type ?? KnowledgebaseTypeEnum.Standard
+              }),
+              {
+                queryParams: { returnTo: this.workspaceReturnTo() }
+              }
+            )
           }
         }
       })

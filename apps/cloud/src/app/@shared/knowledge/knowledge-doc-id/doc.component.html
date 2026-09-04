@@ -1,60 +1,64 @@
 <div class="shrink-0 flex justify-start items-center w-6">
-  @switch (sourceType()) {
-    @case (eKDocumentSourceType.LocalFile) {
-      @switch (fileKind()) {
-        @case ('word') {
-          <i class="ri-file-word-fill text-lg leading-4 text-primary-500"></i>
-        }
-        @case ('sheet') {
-          <i class="ri-file-excel-2-fill text-lg leading-4 text-text-accent"></i>
-        }
-        @case ('slide') {
-          <i class="ri-file-ppt-2-fill text-lg leading-4 text-text-secondary"></i>
-        }
-        @case ('markdown') {
-          <i class="ri-markdown-fill text-lg leading-4 text-text-tertiary"></i>
-        }
-        @case ('text') {
-          <i class="ri-file-text-fill text-lg leading-4 text-text-tertiary"></i>
-        }
-        @case ('pdf') {
-          <i class="ri-file-pdf-2-fill text-lg leading-4 text-primary-500"></i>
-        }
-        @case ('html') {
-          <i class="ri-html5-fill text-lg leading-4 text-text-secondary"></i>
-        }
-        @case ('image') {
-          <i class="ri-file-image-fill text-lg leading-4 text-text-accent"></i>
-        }
-        @case ('video') {
-          <i class="ri-file-video-fill text-lg leading-4 text-text-accent"></i>
-        }
-        @case ('audio') {
-          <i class="ri-file-audio-fill text-lg leading-4 text-text-accent"></i>
-        }
-        @default {
-          @switch (category()) {
-            @case ('image') {
-              <i class="ri-file-image-fill text-lg leading-4 text-text-accent"></i>
-            }
-            @case ('video') {
-              <i class="ri-file-video-fill text-lg leading-4 text-text-accent"></i>
-            }
-            @case ('audio') {
-              <i class="ri-file-audio-fill text-lg leading-4 text-text-accent"></i>
-            }
-            @default {
-              <i class="ri-file-text-fill text-lg leading-4"></i>
+  @if (contentKind() === 'faq') {
+    <z-icon zType="help_outline" class="size-4 text-text-tertiary" />
+  } @else {
+    @switch (sourceType()) {
+      @case (eKDocumentSourceType.LocalFile) {
+        @switch (fileKind()) {
+          @case ('word') {
+            <i class="ri-file-word-fill text-lg leading-4 text-primary-500"></i>
+          }
+          @case ('sheet') {
+            <i class="ri-file-excel-2-fill text-lg leading-4 text-text-accent"></i>
+          }
+          @case ('slide') {
+            <i class="ri-file-ppt-2-fill text-lg leading-4 text-text-secondary"></i>
+          }
+          @case ('markdown') {
+            <i class="ri-markdown-fill text-lg leading-4 text-text-tertiary"></i>
+          }
+          @case ('text') {
+            <i class="ri-file-text-fill text-lg leading-4 text-text-tertiary"></i>
+          }
+          @case ('pdf') {
+            <i class="ri-file-pdf-2-fill text-lg leading-4 text-primary-500"></i>
+          }
+          @case ('html') {
+            <i class="ri-html5-fill text-lg leading-4 text-text-secondary"></i>
+          }
+          @case ('image') {
+            <i class="ri-file-image-fill text-lg leading-4 text-text-accent"></i>
+          }
+          @case ('video') {
+            <i class="ri-file-video-fill text-lg leading-4 text-text-accent"></i>
+          }
+          @case ('audio') {
+            <i class="ri-file-audio-fill text-lg leading-4 text-text-accent"></i>
+          }
+          @default {
+            @switch (category()) {
+              @case ('image') {
+                <i class="ri-file-image-fill text-lg leading-4 text-text-accent"></i>
+              }
+              @case ('video') {
+                <i class="ri-file-video-fill text-lg leading-4 text-text-accent"></i>
+              }
+              @case ('audio') {
+                <i class="ri-file-audio-fill text-lg leading-4 text-text-accent"></i>
+              }
+              @default {
+                <i class="ri-file-text-fill text-lg leading-4"></i>
+              }
             }
           }
         }
       }
-    }
-    @case (eKDocumentSourceType.WebCrawl) {
-      <i class="ri-html5-line text-lg leading-4 text-text-secondary"></i>
-    }
-    @case (eKDocumentSourceType.FOLDER) {
-      <i class="ri-folder-2-fill text-lg leading-4 text-text-accent"></i>
+      @case (eKDocumentSourceType.WebCrawl) {
+        <i class="ri-html5-line text-lg leading-4 text-text-secondary"></i>
+      }
+      @case (eKDocumentSourceType.FOLDER) {
+        <i class="ri-folder-2-fill text-lg leading-4 text-text-accent"></i>
+      }
     }
   }
 </div>

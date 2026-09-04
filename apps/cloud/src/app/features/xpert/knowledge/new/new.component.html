@@ -52,7 +52,7 @@
             <section class="kb-section">
               <div class="kb-section-heading">
                 <h1>{{ i18nPrefix + '.Sections.Basic' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Basic.Description' | translate }}</p>
+                <p>{{ i18nPrefix + (isFAQ() ? '.Basic.FAQDescription' : '.Basic.Description') | translate }}</p>
               </div>
 
               <div class="kb-field">
@@ -74,35 +74,37 @@
                 <p class="kb-help-text">{{ i18nPrefix + '.Basic.KnowledgebaseTypeHelp' | translate }}</p>
               </div>
 
-              <div class="kb-field">
-                <label class="kb-label"
-                  >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
-                >
-                <div class="kb-choice-grid">
-                  <button
-                    type="button"
-                    class="kb-choice-card"
-                    [class.kb-choice-card-selected]="indexStrategy() === 'rag'"
-                    (click)="indexStrategy.set('rag')"
+              @if (!isFAQ()) {
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
                   >
-                    <span class="kb-choice-check"><i class="ri-check-line"></i></span>
-                    <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
-                    <span class="kb-choice-card-description">{{
-                      i18nPrefix + '.Basic.RagSearchDescription' | translate
-                    }}</span>
-                  </button>
-                  <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
-                    <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
-                    <span class="kb-choice-card-title"
-                      >{{ i18nPrefix + '.Basic.WikiKnowledgebase' | translate }}
-                      <span class="kb-new-badge">{{ i18nPrefix + '.Basic.New' | translate }}</span></span
+                  <div class="kb-choice-grid">
+                    <button
+                      type="button"
+                      class="kb-choice-card"
+                      [class.kb-choice-card-selected]="indexStrategy() === 'rag'"
+                      (click)="indexStrategy.set('rag')"
                     >
-                    <span class="kb-choice-card-description">{{
-                      i18nPrefix + '.Basic.WikiDescription' | translate
-                    }}</span>
-                  </button>
+                      <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                      <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
+                      <span class="kb-choice-card-description">{{
+                        i18nPrefix + '.Basic.RagSearchDescription' | translate
+                      }}</span>
+                    </button>
+                    <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
+                      <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
+                      <span class="kb-choice-card-title"
+                        >{{ i18nPrefix + '.Basic.WikiKnowledgebase' | translate }}
+                        <span class="kb-new-badge">{{ i18nPrefix + '.Basic.New' | translate }}</span></span
+                      >
+                      <span class="kb-choice-card-description">{{
+                        i18nPrefix + '.Basic.WikiDescription' | translate
+                      }}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              }
 
               <div class="kb-field">
                 <label class="kb-label"
@@ -176,12 +178,150 @@
             </section>
           }
 
+          @case ('vector-storage') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>{{ i18nPrefix + '.VectorStorage.Title' | translate }}</h1>
+                <p>{{ i18nPrefix + '.VectorStorage.Description' | translate }}</p>
+              </div>
+
+              <div class="kb-model-row">
+                <div class="kb-model-row-copy">
+                  <div class="kb-model-row-title">{{ i18nPrefix + '.VectorStorage.Label' | translate }}</div>
+                  <p>{{ i18nPrefix + '.VectorStorage.LabelDescription' | translate }}</p>
+                </div>
+                <div class="w-[min(100%,30rem)] shrink-0">
+                  <z-select class="w-full" zSize="lg" [ngModel]="'system'" [disabled]="true">
+                    <z-select-item zValue="system">{{
+                      i18nPrefix + '.VectorStorage.SystemDefault' | translate
+                    }}</z-select-item>
+                  </z-select>
+                  <p class="mt-2 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.VectorStorage.SystemDefaultHelp' | translate }}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="mt-5 flex items-start gap-2 rounded-lg border border-divider-subtle bg-components-input-bg-normal px-4 py-3 text-sm leading-6 text-text-tertiary"
+              >
+                <i class="ri-information-2-line mt-1 shrink-0 text-text-accent"></i>
+                <span>{{ i18nPrefix + '.VectorStorage.MigrationNotice' | translate }}</span>
+              </div>
+            </section>
+          }
+
           @case ('retrieval') {
             <section class="kb-section">
               <div class="kb-section-heading">
                 <h1>{{ i18nPrefix + '.Sections.Retrieval' | translate }}</h1>
               </div>
-              <xp-knowledge-retrieval-settings [(ngModel)]="retrieval" />
+              <xp-knowledge-retrieval-settings
+                [(ngModel)]="retrieval"
+                [allowGraphRetrieval]="!isFAQ()"
+                [defaultMode]="isFAQ() ? 'hybrid' : 'vector'"
+              />
+            </section>
+          }
+
+          @case ('faq') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>{{ i18nPrefix + '.FAQ.Title' | translate }}</h1>
+                <p>{{ i18nPrefix + '.FAQ.Description' | translate }}</p>
+              </div>
+
+              <fieldset
+                class="m-0 flex min-w-0 flex-col gap-6 border-0 p-0"
+                [class]="faqConfigurationDisabled() ? 'pointer-events-none opacity-60' : ''"
+                [disabled]="faqConfigurationDisabled()"
+              >
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.FAQ.IndexMode' | translate }} <span class="kb-required">*</span></label
+                  >
+                  <z-toggle-group
+                    class="w-fit"
+                    zType="outline"
+                    zSize="lg"
+                    [ngModel]="faqConfig().indexMode"
+                    (ngModelChange)="updateFAQConfig('indexMode', $event)"
+                  >
+                    <z-toggle-group-item class="min-w-40" value="question_only" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.QuestionOnly' | translate }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item
+                      class="min-w-40"
+                      value="question_answer"
+                      [disabled]="faqConfigurationDisabled()"
+                    >
+                      {{ i18nPrefix + '.FAQ.QuestionAnswer' | translate }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.IndexModeHelp' | translate }}</p>
+                </div>
+
+                <div class="border-t border-divider-subtle"></div>
+
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.FAQ.QuestionIndexMode' | translate }} <span class="kb-required">*</span></label
+                  >
+                  <z-toggle-group
+                    class="w-fit"
+                    zType="outline"
+                    zSize="lg"
+                    [ngModel]="faqConfig().questionIndexMode"
+                    (ngModelChange)="updateFAQConfig('questionIndexMode', $event)"
+                  >
+                    <z-toggle-group-item class="min-w-32" value="combined" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.Combined' | translate }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item class="min-w-32" value="separate" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.Separate' | translate }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.QuestionIndexModeHelp' | translate }}</p>
+                </div>
+
+                <div class="border-t border-divider-subtle"></div>
+
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.FAQ.NegativeMatchMode' | translate }} <span class="kb-required">*</span></label
+                  >
+                  <z-toggle-group
+                    class="w-fit"
+                    zType="outline"
+                    zSize="lg"
+                    [ngModel]="faqConfig().negativeMatchMode ?? 'exact'"
+                    (ngModelChange)="updateFAQConfig('negativeMatchMode', $event)"
+                  >
+                    <z-toggle-group-item class="min-w-32" value="exact" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.NegativeMatchExact' | translate }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item class="min-w-32" value="semantic" [disabled]="true">
+                      {{ i18nPrefix + '.FAQ.NegativeMatchSemantic' | translate }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.NegativeMatchModeHelp' | translate }}</p>
+                </div>
+              </fieldset>
+
+              @if (faqConfigurationDisabled()) {
+                <div
+                  class="flex items-center gap-2 rounded-lg border border-divider-subtle bg-components-input-bg-normal px-4 py-3 text-sm text-text-tertiary"
+                >
+                  <i class="ri-lock-line"></i>
+                  <span>{{ i18nPrefix + '.FAQ.Locked' | translate }}</span>
+                </div>
+              }
+
+              <div
+                class="rounded-lg border border-divider-subtle bg-components-input-bg-normal px-4 py-4 text-sm leading-6 text-text-tertiary"
+              >
+                {{ i18nPrefix + '.FAQ.Notice' | translate }}
+              </div>
             </section>
           }
 

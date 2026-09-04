@@ -96,6 +96,26 @@ describe('KnowledgeRetrievalSettingsComponent', () => {
     fixture.destroy()
   })
 
+  it('limits FAQ retrieval to vector, keyword, and their hybrid without rendering graph controls', async () => {
+    const { fixture } = await setup({ vector: 0.7, graph: 0.3, keyword: 0.3 })
+    fixture.componentRef.setInput('allowGraphRetrieval', false)
+    fixture.componentRef.setInput('defaultMode', 'hybrid')
+    fixture.detectChanges()
+
+    const retrievalModes = fixture.debugElement
+      .queryAll(By.css('[data-retrieval-mode]'))
+      .map((element) => element.attributes['data-retrieval-mode'])
+
+    expect(retrievalModes).toEqual(['vector', 'keyword', 'hybrid'])
+    expect(fixture.debugElement.query(By.css('[data-retrieval-mode="graph"]'))).toBeNull()
+    expect(fixture.debugElement.query(By.css('[data-retriever-card="graph"]'))).toBeNull()
+    expect(fixture.debugElement.query(By.css('[data-setting="rrf-graph-weight"]'))).toBeNull()
+    expect(fixture.debugElement.query(By.css('[data-setting="legacy-graph-weight"]'))).toBeNull()
+    expect(fixture.componentInstance.rrfActive()).toBe(true)
+
+    fixture.destroy()
+  })
+
   it('switches to keyword-only retrieval from the keyword mode tab', async () => {
     const { fixture } = await setup({ vector: 0.65, graph: 0.35, keyword: 0.3 })
     const keywordMode = fixture.debugElement.query(By.css('[data-retrieval-mode="keyword"]'))

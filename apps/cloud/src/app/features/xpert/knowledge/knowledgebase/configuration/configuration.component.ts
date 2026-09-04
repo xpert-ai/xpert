@@ -21,7 +21,9 @@ import {
   KnowledgebasePermission,
   KnowledgebaseService,
   KnowledgebaseStatusEnum,
+  KnowledgebaseTypeEnum,
   ModelFeature,
+  normalizeKnowledgebaseFAQRecall,
   Store,
   ToastrService,
   getErrorMessage,
@@ -77,6 +79,7 @@ export class KnowledgeConfigurationComponent {
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly isFAQ = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.FAQ)
   readonly rebuilding = computed(() => this.knowledgebase()?.status === KnowledgebaseStatusEnum.REBUILDING)
 
   readonly pristine = signal(true)
@@ -194,6 +197,14 @@ export class KnowledgeConfigurationComponent {
     const embeddingModelChanged = this.embeddingModelDraftChanged()
     this.loading.set(true)
     const payload = omit(this.knowledgebaseModel(), 'id') as Partial<IKnowledgebase>
+    if (this.isFAQ()) {
+      payload.recall = normalizeKnowledgebaseFAQRecall(payload.recall)
+      payload.graphRag = {
+        ...(payload.graphRag ?? {}),
+        enabled: false,
+        mode: payload.recall.mode
+      }
+    }
     if (embeddingModelChanged) {
       payload.copilotModel = this.toCopilotModelConfig(this.copilotModel())
       delete payload.copilotModelId
@@ -257,7 +268,7 @@ export class KnowledgeConfigurationComponent {
 
   refreshGraphStatus() {
     const knowledgebaseId = this.knowledgebase()?.id
-    if (!knowledgebaseId) {
+    if (!knowledgebaseId || this.isFAQ()) {
       return
     }
 
