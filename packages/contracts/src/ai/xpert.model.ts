@@ -815,7 +815,7 @@ export type TChatSourceAuditOptions = {
  * Knowledgebase retrieval settings
  */
 export type TKBRetrievalSettings = {
-  mode?: 'vector' | 'graph' | 'hybrid'
+  mode?: 'vector' | 'keyword' | 'graph' | 'hybrid'
   /** Overrides the knowledgebase candidate fusion strategy for this retrieval. */
   fusion?: TKBFusionConfig
   neighborHops?: number

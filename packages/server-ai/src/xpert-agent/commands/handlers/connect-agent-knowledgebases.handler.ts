@@ -135,7 +135,7 @@ function normalizeRetrievalPolicies(
         | Record<
               string,
               {
-                  mode?: 'vector' | 'graph' | 'hybrid'
+                  mode?: 'vector' | 'keyword' | 'graph' | 'hybrid'
                   neighborHops?: number
                   entityTopK?: number
                   communityTopK?: number
