@@ -6,7 +6,20 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardInputDirective,
+  ZardSegmentedComponent,
+  ZardSegmentedItemComponent,
+  ZardSelectImports,
+  type ZardSelectValue,
+  ZardSliderComponent,
+  ZardSwitchComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
   GraphRagConfig,
@@ -71,7 +84,16 @@ type KnowledgeDialogData = {
     DragDropModule,
     FormsModule,
     CopilotModelSelectComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardInputDirective,
+    ZardSegmentedComponent,
+    ZardSegmentedItemComponent,
+    ZardSliderComponent,
     ZardSwitchComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
+    ...ZardSelectImports,
     ...ZardTooltipImports
   ],
   templateUrl: './new.component.html',
@@ -225,8 +247,7 @@ export class XpertNewKnowledgeComponent {
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
   readonly chunkStrategy = model<'auto' | 'title' | 'structure' | 'length'>('auto')
   readonly separators = signal<string[]>(['\\n\\n', '\\n', '。', '！', '？', '；', ';'])
-  readonly chunkSizePercent = computed(() => `${(((this.chunkSize() ?? 512) - 100) / 3900) * 100}%`)
-  readonly chunkOverlapPercent = computed(() => `${((this.chunkOverlap() ?? 80) / 500) * 100}%`)
+  readonly separatorToAdd = model<ZardSelectValue>('')
 
   readonly separatorOptions = [
     { value: '\\n\\n', labelKey: 'Chunk.SeparatorLabels.DoubleNewline' },
@@ -253,8 +274,6 @@ export class XpertNewKnowledgeComponent {
     !!(this.#initialKnowledgebase?.rerankModel || this.#initialKnowledgebase?.rerankModelId)
   )
   readonly rerankModel = model<ICopilotModel | null>(this.#initialKnowledgebase?.rerankModel ?? null)
-  readonly vectorTopKPercent = computed(() => `${(((this.vectorTopK() - 1) / 99) * 100).toFixed(2)}%`)
-  readonly vectorScorePercent = computed(() => `${(this.vectorScore() * 100).toFixed(2)}%`)
 
   readonly retrieval = computed<Partial<IKnowledgebase & TKBRetrievalSettings>>(() => ({
     recall: {
@@ -356,6 +375,13 @@ export class XpertNewKnowledgeComponent {
     }
     this.separators.update((current) => [...current, value])
     this.delimiter.set(this.separators()[0] || '\n\n')
+  }
+
+  selectSeparator(value: ZardSelectValue | ZardSelectValue[]) {
+    if (typeof value === 'string' && value) {
+      this.addSeparator(value)
+    }
+    this.separatorToAdd.set('')
   }
 
   removeSeparator(value: string) {

@@ -25,6 +25,10 @@
   @apply shrink-0 border-b border-divider-subtle px-3.5 pb-3 pt-4;
 }
 
+.kb-sidebar-header + .kb-sidebar-group {
+  @apply mt-3;
+}
+
 .kb-create-sidebar {
   @apply flex w-52 shrink-0 flex-col overflow-y-auto border-r border-divider-subtle bg-background-default-subtle;
 }
@@ -34,7 +38,7 @@
 }
 
 .kb-sidebar-group-title {
-  @apply px-3 pb-2 text-xs font-semibold tracking-wide text-text-tertiary;
+  @apply px-3 pb-2 text-sm font-semibold leading-5 text-text-tertiary;
 }
 
 .kb-sidebar-nav {
@@ -42,7 +46,7 @@
 }
 
 .kb-sidebar-item {
-  @apply flex h-10 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-sm font-medium text-text-secondary transition hover:bg-components-card-bg hover:text-text-primary;
+  @apply flex h-10 w-full cursor-pointer items-center justify-start gap-3 rounded-lg px-3 text-left text-sm font-medium text-text-secondary transition hover:bg-components-card-bg hover:text-text-primary;
 }
 
 .kb-sidebar-item i {
@@ -109,51 +113,20 @@
   @apply mt-1 text-xs leading-5 text-text-tertiary;
 }
 
-.kb-input,
-.kb-textarea,
-.kb-native-select {
-  @apply w-full rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 text-sm text-text-primary outline-none transition placeholder:text-text-quaternary focus:border-components-input-border-active focus:ring-1 focus:ring-components-input-border-active;
-}
-
-.kb-input,
-.kb-native-select {
-  @apply h-10;
+.kb-input {
+  @apply w-full;
 }
 
 .kb-textarea {
-  @apply min-h-28 resize-y py-2.5;
-}
-
-.kb-native-select {
-  @apply appearance-auto;
+  @apply min-h-28 w-full resize-y;
 }
 
 .kb-counter {
   @apply absolute bottom-2 right-2 text-xs text-text-quaternary;
 }
 
-.kb-segmented-control {
-  @apply inline-flex overflow-hidden rounded-lg border border-divider-regular;
-}
-
-.kb-segmented-option {
-  @apply flex h-10 min-w-28 cursor-pointer items-center justify-center gap-1.5 bg-components-card-bg px-5 text-sm font-medium text-text-secondary transition hover:bg-hover-bg;
-}
-
-.kb-segmented-option + .kb-segmented-option {
-  @apply border-l border-divider-regular;
-}
-
-.kb-segmented-option-active {
-  @apply bg-components-button-primary-bg text-components-button-primary-text hover:bg-components-button-primary-bg hover:text-components-button-primary-text;
-}
-
-.kb-segmented-option:disabled {
-  @apply cursor-not-allowed bg-components-panel-bg text-text-quaternary opacity-60;
-}
-
-.kb-segmented-option-disabled {
-  @apply cursor-not-allowed bg-components-panel-bg text-text-quaternary;
+.kb-type-toggle {
+  @apply overflow-hidden rounded-md;
 }
 
 .kb-choice-grid {
@@ -381,16 +354,11 @@
 }
 
 .kb-parser-engine-select {
-  @apply h-11 bg-components-input-bg-normal text-sm;
+  @apply w-full;
 }
 
 .kb-checkbox-row {
-  @apply flex cursor-pointer items-center gap-2 text-sm leading-5 text-text-secondary;
-}
-
-.kb-checkbox-row input {
-  @apply h-4 w-4;
-  accent-color: var(--sys-primary);
+  @apply text-sm leading-5 text-text-secondary;
 }
 
 .kb-chunk-strategy-row,
@@ -424,12 +392,8 @@
   @apply flex w-[min(100%,28rem)] shrink-0 flex-col items-end gap-4;
 }
 
-.kb-chunk-strategy-control .kb-native-select {
-  @apply h-11;
-}
-
 .kb-test-chunk-button {
-  @apply flex cursor-pointer items-center gap-2 text-sm font-semibold text-text-primary transition hover:opacity-70;
+  @apply cursor-pointer self-end text-sm font-semibold text-text-primary;
 }
 
 .kb-test-chunk-button i {
@@ -453,35 +417,7 @@
 }
 
 .kb-range {
-  @apply h-2 w-full cursor-pointer appearance-none rounded-full;
-  accent-color: var(--sys-primary);
-  background: linear-gradient(
-    to right,
-    var(--sys-primary) 0%,
-    var(--sys-primary) var(--range-progress, 0%),
-    var(--color-divider-regular) var(--range-progress, 0%),
-    var(--color-divider-regular) 100%
-  );
-}
-
-.kb-range::-webkit-slider-runnable-track {
-  @apply h-2 rounded-full bg-transparent;
-}
-
-.kb-range::-webkit-slider-thumb {
-  @apply mt-[-5px] h-5 w-5 appearance-none rounded-full border-2 border-components-button-primary-border bg-components-card-bg shadow-sm;
-}
-
-.kb-range::-moz-range-track {
-  @apply h-2 rounded-full bg-divider-deep;
-}
-
-.kb-range::-moz-range-progress {
-  @apply h-2 rounded-full bg-components-button-primary-bg;
-}
-
-.kb-range::-moz-range-thumb {
-  @apply h-5 w-5 rounded-full border-2 border-components-button-primary-border bg-components-card-bg shadow-sm;
+  @apply w-full;
 }
 
 .kb-primary-switch ::ng-deep button[data-state='checked'] {
@@ -509,7 +445,7 @@
 }
 
 .kb-separator-add {
-  @apply h-8 min-w-20 cursor-pointer rounded-md border-0 bg-transparent px-2 text-xs text-text-tertiary outline-none;
+  @apply min-w-28 max-w-48;
 }
 
 .kb-advanced-switch-row {
@@ -596,7 +532,7 @@
   @apply border-b border-divider-subtle pb-5;
 }
 
-.kb-graph-mode-row .kb-segmented-control {
+.kb-graph-mode-control {
   @apply mt-3;
 }
 
@@ -632,10 +568,6 @@
   @apply relative flex w-full min-w-0 flex-col items-stretch gap-1;
 }
 
-.kb-range:disabled {
-  @apply cursor-not-allowed;
-}
-
 .kb-create-footer {
   @apply flex shrink-0 justify-end gap-3 border-t border-divider-subtle bg-components-card-bg px-6 py-4;
 }
@@ -645,11 +577,7 @@
 }
 
 .kb-footer-primary {
-  @apply min-w-36 bg-components-button-primary-bg text-components-button-primary-text hover:opacity-80;
-}
-
-.kb-spin {
-  @apply mr-1 animate-spin;
+  @apply min-w-36;
 }
 
 @media (max-width: 720px) {

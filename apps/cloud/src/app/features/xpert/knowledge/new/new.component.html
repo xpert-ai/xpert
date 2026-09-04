@@ -1,5 +1,13 @@
 <div class="kb-create-dialog" cdkDrag cdkDragRootElement=".cdk-overlay-pane">
-  <button type="button" class="kb-close-button" [attr.aria-label]="i18nPrefix + '.Close' | translate" (click)="close()">
+  <button
+    z-button
+    zType="secondary"
+    zSize="icon-lg"
+    type="button"
+    class="kb-close-button"
+    [attr.aria-label]="i18nPrefix + '.Close' | translate"
+    (click)="close()"
+  >
     <i class="ri-close-line"></i>
   </button>
 
@@ -16,6 +24,9 @@
           <nav class="kb-sidebar-nav">
             @for (section of group.items; track section.key) {
               <button
+                z-button
+                zType="ghost"
+                zSize="lg"
                 type="button"
                 class="kb-sidebar-item"
                 [class.kb-sidebar-item-active]="activeSection() === section.key"
@@ -48,20 +59,15 @@
                 <label class="kb-label"
                   >{{ i18nPrefix + '.Basic.KnowledgebaseType' | translate }} <span class="kb-required">*</span></label
                 >
-                <div class="kb-segmented-control">
-                  <button
-                    type="button"
-                    class="kb-segmented-option"
-                    [class.kb-segmented-option-active]="type() === KnowledgebaseTypeEnum.Standard"
-                    (click)="type.set(KnowledgebaseTypeEnum.Standard)"
-                  >
+                <z-toggle-group class="kb-type-toggle" zType="outline" zSize="lg" [(ngModel)]="type">
+                  <z-toggle-group-item class="min-w-28" [value]="KnowledgebaseTypeEnum.Standard">
                     {{ i18nPrefix + '.Basic.Document' | translate }}
-                  </button>
-                  <button type="button" class="kb-segmented-option kb-segmented-option-disabled" disabled>
+                  </z-toggle-group-item>
+                  <z-toggle-group-item class="min-w-28" value="qa" disabled>
                     {{ i18nPrefix + '.Basic.QandA' | translate }}
                     <span class="kb-mini-badge">{{ i18nPrefix + '.Statuses.Preview' | translate }}</span>
-                  </button>
-                </div>
+                  </z-toggle-group-item>
+                </z-toggle-group>
                 <p class="kb-help-text">{{ i18nPrefix + '.Basic.KnowledgebaseTypeHelp' | translate }}</p>
               </div>
 
@@ -100,6 +106,8 @@
                   >{{ i18nPrefix + '.Basic.Name' | translate }} <span class="kb-required">*</span></label
                 >
                 <input
+                  z-input
+                  zSize="lg"
                   class="kb-input"
                   [(ngModel)]="name"
                   [placeholder]="i18nPrefix + '.Basic.NamePlaceholder' | translate"
@@ -110,6 +118,7 @@
               <div class="kb-field">
                 <label class="kb-label">{{ i18nPrefix + '.Basic.KnowledgebaseDescription' | translate }}</label>
                 <textarea
+                  z-input
                   class="kb-textarea"
                   [(ngModel)]="description"
                   [placeholder]="i18nPrefix + '.Basic.DescriptionPlaceholder' | translate"
@@ -202,14 +211,12 @@
                       <strong>{{ vectorTopK() }}</strong>
                     </div>
                     <p class="kb-help-text">{{ i18nPrefix + '.Vector.TopKDescription' | translate }}</p>
-                    <input
+                    <z-slider
                       class="kb-range"
-                      type="range"
-                      min="1"
-                      max="100"
-                      step="1"
+                      [min]="1"
+                      [max]="100"
+                      [step]="1"
                       [attr.aria-label]="i18nPrefix + '.Vector.TopK' | translate"
-                      [attr.style]="'--range-progress: ' + vectorTopKPercent()"
                       [(ngModel)]="vectorTopK"
                     />
                     <div class="kb-range-ticks"><span>1</span><span>50</span><span>100</span></div>
@@ -222,15 +229,13 @@
                       <strong>{{ vectorScore() | number: '1.2-2' }}</strong>
                     </div>
                     <p class="kb-help-text">{{ i18nPrefix + '.Vector.ScoreThresholdDescription' | translate }}</p>
-                    <input
+                    <z-slider
                       class="kb-range"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      [disabled]="!vectorScoreEnabled()"
+                      [min]="0"
+                      [max]="1"
+                      [step]="0.01"
+                      [disabledInput]="!vectorScoreEnabled()"
                       [attr.aria-label]="i18nPrefix + '.Vector.ScoreThreshold' | translate"
-                      [attr.style]="'--range-progress: ' + vectorScorePercent()"
                       [(ngModel)]="vectorScore"
                     />
                     <div class="kb-range-ticks"><span>0</span><span>0.5</span><span>1</span></div>
@@ -266,20 +271,22 @@
                       </div>
                     </div>
                     <div class="kb-parser-engine-control">
-                      <select
-                        class="kb-native-select kb-parser-engine-select"
+                      <z-select
+                        class="kb-parser-engine-select"
+                        zSize="lg"
                         [ngModel]="parserEngineSelections()[row.key]"
                         (ngModelChange)="updateParserEngine(row.key, $event)"
                       >
                         @for (option of row.options; track option.value) {
-                          <option [value]="option.value">{{ i18nPrefix + '.' + option.labelKey | translate }}</option>
+                          <z-select-item [zValue]="option.value">{{
+                            i18nPrefix + '.' + option.labelKey | translate
+                          }}</z-select-item>
                         }
-                      </select>
+                      </z-select>
                       @if (row.hasHeaderToggle) {
-                        <label class="kb-checkbox-row">
-                          <input type="checkbox" [(ngModel)]="excelHeaderRow" />
-                          <span>{{ i18nPrefix + '.Parser.ExcelHeaderRow' | translate }}</span>
-                        </label>
+                        <z-checkbox class="kb-checkbox-row" [(ngModel)]="excelHeaderRow">
+                          {{ i18nPrefix + '.Parser.ExcelHeaderRow' | translate }}
+                        </z-checkbox>
                       }
                     </div>
                   </div>
@@ -301,13 +308,22 @@
                   <p>{{ i18nPrefix + '.Chunk.StrategyDescription' | translate }}</p>
                 </div>
                 <div class="kb-chunk-strategy-control">
-                  <select class="kb-native-select" [(ngModel)]="chunkStrategy">
-                    <option value="auto">{{ i18nPrefix + '.Chunk.Strategies.Auto' | translate }}</option>
-                    <option value="title">{{ i18nPrefix + '.Chunk.Strategies.Title' | translate }}</option>
-                    <option value="structure">{{ i18nPrefix + '.Chunk.Strategies.Structure' | translate }}</option>
-                    <option value="length">{{ i18nPrefix + '.Chunk.Strategies.Length' | translate }}</option>
-                  </select>
+                  <z-select zSize="lg" [(ngModel)]="chunkStrategy">
+                    <z-select-item zValue="auto">{{ i18nPrefix + '.Chunk.Strategies.Auto' | translate }}</z-select-item>
+                    <z-select-item zValue="title">{{
+                      i18nPrefix + '.Chunk.Strategies.Title' | translate
+                    }}</z-select-item>
+                    <z-select-item zValue="structure">{{
+                      i18nPrefix + '.Chunk.Strategies.Structure' | translate
+                    }}</z-select-item>
+                    <z-select-item zValue="length">{{
+                      i18nPrefix + '.Chunk.Strategies.Length' | translate
+                    }}</z-select-item>
+                  </z-select>
                   <button
+                    z-button
+                    zType="ghost"
+                    zSize="sm"
                     type="button"
                     class="kb-test-chunk-button"
                     [attr.title]="i18nPrefix + '.Chunk.Test' | translate"
@@ -333,13 +349,12 @@
                   </p>
                 </div>
                 <div class="kb-range-control">
-                  <input
+                  <z-slider
                     class="kb-range"
-                    type="range"
-                    min="100"
-                    max="4000"
-                    step="1"
-                    [attr.style]="'--range-progress: ' + chunkSizePercent()"
+                    [min]="100"
+                    [max]="4000"
+                    [step]="1"
+                    [attr.aria-label]="i18nPrefix + '.Chunk.Size' | translate"
                     [(ngModel)]="chunkSize"
                   />
                   <div class="kb-range-ticks"><span>100</span><span>1000</span><span>2000</span><span>4000</span></div>
@@ -353,13 +368,12 @@
                   <p>{{ i18nPrefix + '.Chunk.OverlapDescription' | translate }}</p>
                 </div>
                 <div class="kb-range-control">
-                  <input
+                  <z-slider
                     class="kb-range"
-                    type="range"
-                    min="0"
-                    max="500"
-                    step="1"
-                    [attr.style]="'--range-progress: ' + chunkOverlapPercent()"
+                    [min]="0"
+                    [max]="500"
+                    [step]="1"
+                    [attr.aria-label]="i18nPrefix + '.Chunk.Overlap' | translate"
                     [(ngModel)]="chunkOverlap"
                   />
                   <div class="kb-range-ticks"><span>0</span><span>250</span><span>500</span></div>
@@ -380,24 +394,30 @@
                       <span class="kb-separator-chip"
                         >{{ separatorLabelKey(separator) | translate
                         }}<button
+                          z-button
+                          zType="ghost"
+                          zSize="icon-xs"
                           type="button"
                           (click)="removeSeparator(separator)"
                           [attr.aria-label]="i18nPrefix + '.Chunk.RemoveSeparator' | translate"
                         >
-                          ×
-                        </button></span
-                      >
+                          <i class="ri-close-line"></i></button
+                      ></span>
                     }
-                    <select
+                    <z-select
                       class="kb-separator-add"
-                      [attr.aria-label]="i18nPrefix + '.Chunk.AddSeparator' | translate"
-                      (change)="addSeparator($any($event.target).value); $any($event.target).value = ''"
+                      zSize="sm"
+                      [zPlaceholder]="i18nPrefix + '.Chunk.Add' | translate"
+                      [zLabel]="i18nPrefix + '.Chunk.AddSeparator' | translate"
+                      [(ngModel)]="separatorToAdd"
+                      (ngModelChange)="selectSeparator($event)"
                     >
-                      <option value="">{{ i18nPrefix + '.Chunk.Add' | translate }}</option>
                       @for (option of separatorOptions; track option.value) {
-                        <option [value]="option.value">{{ i18nPrefix + '.' + option.labelKey | translate }}</option>
+                        <z-select-item [zValue]="option.value">{{
+                          i18nPrefix + '.' + option.labelKey | translate
+                        }}</z-select-item>
                       }
-                    </select>
+                    </z-select>
                   </div>
                 </div>
               </div>
@@ -457,9 +477,11 @@
               </div>
               <div class="kb-field mt-5">
                 <label class="kb-label">{{ i18nPrefix + '.Audio.ParserEngine' | translate }}</label>
-                <select class="kb-native-select" disabled>
-                  <option>{{ i18nPrefix + '.Audio.NotConnected' | translate }}</option>
-                </select>
+                <z-select zDisabled [zValue]="'unavailable'">
+                  <z-select-item zValue="unavailable">{{
+                    i18nPrefix + '.Audio.NotConnected' | translate
+                  }}</z-select-item>
+                </z-select>
               </div>
             </section>
           }
@@ -487,19 +509,20 @@
 
                 <div class="kb-graph-mode-row">
                   <div class="kb-field-title">{{ i18nPrefix + '.Graph.RetrievalMode' | translate }}</div>
-                  <div class="kb-segmented-control">
+                  <z-segmented
+                    class="kb-graph-mode-control"
+                    [ngModel]="graphMode()"
+                    (ngModelChange)="setGraphMode($event)"
+                    [zAriaLabel]="i18nPrefix + '.Graph.RetrievalMode' | translate"
+                  >
                     @for (option of graphModeOptions; track option.value) {
-                      <button
-                        type="button"
-                        class="kb-segmented-option"
-                        [class.kb-segmented-option-active]="graphMode() === option.value"
-                        [disabled]="!graphEnabled() && option.value !== 'vector'"
-                        (click)="setGraphMode(option.value)"
-                      >
-                        {{ i18nPrefix + '.' + option.labelKey | translate }}
-                      </button>
+                      <z-segmented-item
+                        [value]="option.value"
+                        [label]="i18nPrefix + '.' + option.labelKey | translate"
+                        [zDisabled]="!graphEnabled() && option.value !== 'vector'"
+                      />
                     }
-                  </div>
+                  </z-segmented>
                   <p class="kb-help-text">{{ graphModeDescriptionKey() | translate }}</p>
                 </div>
 
@@ -518,15 +541,13 @@
                       <p class="kb-help-text">{{ i18nPrefix + '.Graph.EntityTopKDescription' | translate }}</p>
                     </div>
                     <div class="kb-graph-range-control">
-                      <input
+                      <z-slider
                         class="kb-range"
-                        type="range"
-                        min="1"
-                        max="50"
-                        step="1"
-                        [disabled]="!graphEnabled()"
+                        [min]="1"
+                        [max]="50"
+                        [step]="1"
+                        [disabledInput]="!graphEnabled()"
                         [attr.aria-label]="i18nPrefix + '.Graph.EntityTopK' | translate"
-                        [attr.style]="'--range-progress: ' + (graphEntityTopK() / 50) * 100 + '%'"
                         [ngModel]="graphEntityTopK()"
                         (ngModelChange)="graphEntityTopK.set(+$event)"
                       />
@@ -543,15 +564,13 @@
                       <p class="kb-help-text">{{ i18nPrefix + '.Graph.NeighborHopsDescription' | translate }}</p>
                     </div>
                     <div class="kb-graph-range-control">
-                      <input
+                      <z-slider
                         class="kb-range"
-                        type="range"
-                        min="1"
-                        max="2"
-                        step="1"
-                        [disabled]="!graphEnabled()"
+                        [min]="1"
+                        [max]="2"
+                        [step]="1"
+                        [disabledInput]="!graphEnabled()"
                         [attr.aria-label]="i18nPrefix + '.Graph.NeighborHops' | translate"
-                        [attr.style]="'--range-progress: ' + (graphNeighborHops() - 1) * 100 + '%'"
                         [ngModel]="graphNeighborHops()"
                         (ngModelChange)="graphNeighborHops.set(+$event)"
                       />
@@ -568,15 +587,13 @@
                       <p class="kb-help-text">{{ i18nPrefix + '.Graph.WeightDescription' | translate }}</p>
                     </div>
                     <div class="kb-graph-range-control">
-                      <input
+                      <z-slider
                         class="kb-range"
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        [disabled]="!graphEnabled()"
+                        [min]="0"
+                        [max]="1"
+                        [step]="0.05"
+                        [disabledInput]="!graphEnabled()"
                         [attr.aria-label]="i18nPrefix + '.Graph.Weight' | translate"
-                        [attr.style]="'--range-progress: ' + graphWeight() * 100 + '%'"
                         [ngModel]="graphWeight()"
                         (ngModelChange)="graphWeight.set(+$event)"
                       />
@@ -616,6 +633,8 @@
                       <p>{{ i18nPrefix + '.Advanced.QuestionCountDescription' | translate }}</p>
                     </div>
                     <input
+                      z-input
+                      zSize="lg"
                       class="kb-input kb-number-input"
                       type="number"
                       min="1"
@@ -627,6 +646,7 @@
                     <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionRequirements' | translate }}</div>
                     <p>{{ i18nPrefix + '.Advanced.QuestionRequirementsDescription' | translate }}</p>
                     <textarea
+                      z-input
                       class="kb-textarea kb-advanced-textarea"
                       maxlength="4000"
                       [(ngModel)]="questionRequirements"
@@ -641,6 +661,7 @@
                 <div class="kb-field-title">{{ i18nPrefix + '.Advanced.TableMetadataRequirements' | translate }}</div>
                 <p>{{ i18nPrefix + '.Advanced.TableMetadataRequirementsDescription' | translate }}</p>
                 <textarea
+                  z-input
                   class="kb-textarea kb-advanced-textarea"
                   maxlength="4000"
                   [(ngModel)]="tableMetadataRequirements"
@@ -676,22 +697,27 @@
 
       <footer class="kb-create-footer">
         <button
+          z-button
+          zType="secondary"
+          zSize="lg"
           type="button"
-          class="btn btn-secondary btn-large kb-footer-button"
+          class="kb-footer-button"
           [disabled]="loading()"
           (click)="close()"
         >
           {{ i18nPrefix + '.Actions.Cancel' | translate }}
         </button>
         <button
+          z-button
+          zType="default"
+          zSize="lg"
           type="button"
-          class="btn btn-primary btn-large kb-footer-button kb-footer-primary"
+          class="kb-footer-button kb-footer-primary"
           [disabled]="loading()"
+          [zDisabled]="loading()"
+          [zLoading]="loading()"
           (click)="submit()"
         >
-          @if (loading()) {
-            <i class="ri-loader-4-line kb-spin"></i>
-          }
           {{ i18nPrefix + (isEditMode() ? '.Actions.Save' : '.Actions.Create') | translate }}
         </button>
       </footer>
