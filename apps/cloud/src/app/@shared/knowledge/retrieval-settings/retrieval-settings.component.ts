@@ -29,6 +29,22 @@ import {
   TKBRetrievalSettings
 } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot/copilot-model-select'
+
+export function hasEnabledKnowledgeRetrievalSource(
+  retrieval: Partial<IKnowledgebase & TKBRetrievalSettings> | null | undefined
+): boolean {
+  const mode = retrieval?.graphRag?.mode ?? retrieval?.mode ?? 'vector'
+  const fusion = retrieval?.recall?.fusion
+  if (mode !== 'hybrid' || fusion?.mode !== 'weighted_rrf') {
+    return true
+  }
+
+  const weights = fusion.weights
+  return [weights?.vector, weights?.graph, weights?.keyword].some(
+    (weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0
+  )
+}
+
 /**
  *
  */
@@ -128,13 +144,7 @@ export class KnowledgeRetrievalSettingsComponent {
       this.mode() === 'keyword' ||
       (this.mode() === 'hybrid' && this.rrfEnabled() && this.isPositiveWeight(this.rrfKeywordWeight()))
   )
-  readonly rrfHasEnabledRetriever = computed(
-    () =>
-      !this.rrfActive() ||
-      [this.rrfVectorWeight(), this.rrfGraphWeight(), this.rrfKeywordWeight()].some(
-        (weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0
-      )
-  )
+  readonly rrfHasEnabledRetriever = computed(() => hasEnabledKnowledgeRetrievalSource(this.knowledgebase()))
   readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'keyword', 'graph', 'hybrid']
   readonly useScore = linkedModel({
     initialValue: false,
@@ -144,12 +154,14 @@ export class KnowledgeRetrievalSettingsComponent {
     }
   })
   readonly rerankModel = attrModel(this.knowledgebase, 'rerankModel', null)
+  readonly rerankModelId = attrModel(this.knowledgebase, 'rerankModelId', null)
   readonly useRerank = linkedModel({
     initialValue: false,
-    compute: () => !!this.rerankModel(),
+    compute: () => !!(this.rerankModel() || this.rerankModelId()),
     update: (value) => {
       if (!value) {
         this.rerankModel.set(null)
+        this.rerankModelId.set(null)
       }
     }
   })

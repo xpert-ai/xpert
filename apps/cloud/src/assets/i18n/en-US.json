@@ -705,7 +705,6 @@
       "RRFThresholdIgnored": "Similarity Threshold is ignored by RRF because rank-fusion scores are not vector similarity scores.",
       "RRFPositiveWeightRequired": "Set at least one retrieval source weight greater than zero.",
       "RetrievalMode": "Retrieval mode",
-      "RetrievalModeDesc": "Choose how this knowledge base recalls candidate content.",
       "RetrievalMode_Vector": "Vector",
       "RetrievalMode_Keyword": "Keyword",
       "RetrievalMode_Graph": "Graph",

@@ -1,13 +1,9 @@
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import {
-  KnowledgeChunkComponent,
-  KnowledgeRetrievalSettingsComponent,
-  XpertKnowledgeFilterFormComponent
-} from '@cloud/app/@shared/knowledge'
+import { KnowledgeChunkComponent, XpertKnowledgeFilterFormComponent } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
-import { myRxResource, XpCommonModule, ZardAccordionImports, type ZardAccordionItemLike } from '@xpert-ai/headless-ui'
+import { myRxResource, XpCommonModule, ZardAccordionImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -25,7 +21,6 @@ import {
   TKBRetrievalSettings,
   ToastrService,
   getErrorMessage,
-  injectHelpWebsite,
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
@@ -43,7 +38,6 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     XpCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
-    KnowledgeRetrievalSettingsComponent,
     XpertKnowledgeFilterFormComponent
   ],
   animations: [routeAnimations]
@@ -55,7 +49,6 @@ export class KnowledgeTestComponent {
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
-  readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/retrieval')
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -164,13 +157,6 @@ export class KnowledgeTestComponent {
   selectLog(log: IKnowledgeRetrievalLog) {
     this.query.set(log.query)
     this.results.set(null)
-  }
-
-  onRetrievalSettingsClose(reload: boolean | void, panel: ZardAccordionItemLike) {
-    panel.close()
-    if (reload) {
-      this.knowledgebaseComponent.refresh()
-    }
   }
 }
 

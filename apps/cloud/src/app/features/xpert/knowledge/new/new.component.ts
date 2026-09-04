@@ -5,13 +5,13 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
+import { hasEnabledKnowledgeRetrievalSource, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  ZardAccordionImports,
   ZardButtonComponent,
   ZardCheckboxComponent,
   ZardInputDirective,
-  ZardSegmentedComponent,
-  ZardSegmentedItemComponent,
   ZardSelectImports,
   ZardSliderComponent,
   ZardSwitchComponent,
@@ -22,8 +22,6 @@ import {
 } from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
-  GraphRagConfig,
-  GraphRagRetrievalMode,
   getErrorMessage,
   ICopilotModel,
   IKnowledgebase,
@@ -34,17 +32,7 @@ import {
   TKBRetrievalSettings
 } from '../../../../@core'
 
-type SectionKey =
-  | 'basic'
-  | 'models'
-  | 'vector'
-  | 'parser'
-  | 'chunk'
-  | 'image'
-  | 'audio'
-  | 'graph'
-  | 'advanced'
-  | 'storage'
+type SectionKey = 'basic' | 'models' | 'retrieval' | 'parser' | 'chunk' | 'image' | 'audio' | 'advanced' | 'storage'
 
 type SectionStatus = 'supported' | 'post-create' | 'preview'
 
@@ -84,11 +72,11 @@ type KnowledgeDialogData = {
     DragDropModule,
     FormsModule,
     CopilotModelSelectComponent,
+    KnowledgeRetrievalSettingsComponent,
+    ...ZardAccordionImports,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardInputDirective,
-    ZardSegmentedComponent,
-    ZardSegmentedItemComponent,
     ZardSliderComponent,
     ZardSwitchComponent,
     ZardTagSelectComponent,
@@ -121,12 +109,17 @@ export class XpertNewKnowledgeComponent {
   readonly sections: CreateSection[] = [
     { key: 'basic', group: 'Basic', labelKey: 'Sections.Basic', icon: 'ri-information-line', status: 'supported' },
     { key: 'models', group: 'Basic', labelKey: 'Sections.Models', icon: 'ri-box-3-line', status: 'supported' },
-    { key: 'vector', group: 'Basic', labelKey: 'Sections.Vector', icon: 'ri-focus-2-line', status: 'supported' },
+    {
+      key: 'retrieval',
+      group: 'Basic',
+      labelKey: 'Sections.Retrieval',
+      icon: 'ri-focus-2-line',
+      status: 'supported'
+    },
     { key: 'parser', group: 'Indexing', labelKey: 'Sections.Parser', icon: 'ri-file-search-line', status: 'supported' },
     { key: 'chunk', group: 'Indexing', labelKey: 'Sections.Chunk', icon: 'ri-file-copy-2-line', status: 'supported' },
     { key: 'image', group: 'Indexing', labelKey: 'Sections.Image', icon: 'ri-image-line', status: 'post-create' },
     { key: 'audio', group: 'Indexing', labelKey: 'Sections.Audio', icon: 'ri-volume-up-line', status: 'preview' },
-    { key: 'graph', group: 'Indexing', labelKey: 'Sections.Graph', icon: 'ri-node-tree', status: 'supported' },
     {
       key: 'advanced',
       group: 'Indexing',
@@ -151,9 +144,10 @@ export class XpertNewKnowledgeComponent {
       labelKey: 'Parser.FileTypes.Pdf',
       extensions: ['.pdf'],
       icon: 'ri-file-pdf-2-line',
-      engine: 'builtin',
+      engine: 'anydoc',
       options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
         { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' },
         { value: 'mineru', labelKey: 'Parser.Engines.MinerU' }
       ]
@@ -163,9 +157,10 @@ export class XpertNewKnowledgeComponent {
       labelKey: 'Parser.FileTypes.Word',
       extensions: ['.docx', '.doc'],
       icon: 'ri-file-word-2-line',
-      engine: 'builtin',
+      engine: 'anydoc',
       options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
         { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ]
     },
@@ -174,10 +169,11 @@ export class XpertNewKnowledgeComponent {
       labelKey: 'Parser.FileTypes.Presentation',
       extensions: ['.pptx', '.ppt'],
       icon: 'ri-file-ppt-2-line',
-      engine: 'markitdown',
+      engine: 'anydoc',
       options: [
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDownDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ]
     },
     {
@@ -185,9 +181,10 @@ export class XpertNewKnowledgeComponent {
       labelKey: 'Parser.FileTypes.Excel',
       extensions: ['.xlsx', '.xls'],
       icon: 'ri-file-excel-2-line',
-      engine: 'builtin',
+      engine: 'anydoc',
       options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
         { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ],
       hasHeaderToggle: true
@@ -197,9 +194,10 @@ export class XpertNewKnowledgeComponent {
       labelKey: 'Parser.FileTypes.Ebook',
       extensions: ['.epub'],
       icon: 'ri-book-2-line',
-      engine: 'builtin',
+      engine: 'anydoc',
       options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
         { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
       ]
     },
@@ -224,9 +222,176 @@ export class XpertNewKnowledgeComponent {
         { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
         { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
       ]
+    },
+    {
+      key: 'markdown',
+      labelKey: 'Parser.FileTypes.Markdown',
+      extensions: ['.md', '.markdown'],
+      icon: 'ri-markdown-line',
+      engine: 'builtin',
+      options: [
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' },
+        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
+      ]
+    },
+    {
+      key: 'text',
+      labelKey: 'Parser.FileTypes.PlainText',
+      extensions: ['.txt'],
+      icon: 'ri-file-text-line',
+      engine: 'simple',
+      options: [
+        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'json',
+      labelKey: 'Parser.FileTypes.Json',
+      extensions: ['.json'],
+      icon: 'ri-braces-line',
+      engine: 'simple',
+      options: [
+        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'image',
+      labelKey: 'Parser.FileTypes.Image',
+      extensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'],
+      icon: 'ri-image-line',
+      engine: 'builtin',
+      options: [
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
+      ]
+    },
+    {
+      key: 'audio',
+      labelKey: 'Parser.FileTypes.Audio',
+      extensions: ['.mp3', '.wav', '.m4a', '.flac', '.ogg'],
+      icon: 'ri-volume-up-line',
+      engine: 'simple',
+      options: [
+        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'docm',
+      labelKey: 'Parser.FileTypes.Docm',
+      extensions: ['.docm'],
+      icon: 'ri-file-word-2-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'htm',
+      labelKey: 'Parser.FileTypes.Htm',
+      extensions: ['.htm'],
+      icon: 'ri-file-code-line',
+      engine: 'builtin',
+      options: [
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
+      ]
+    },
+    {
+      key: 'html',
+      labelKey: 'Parser.FileTypes.Html',
+      extensions: ['.html'],
+      icon: 'ri-file-code-line',
+      engine: 'builtin',
+      options: [
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
+      ]
+    },
+    {
+      key: 'odp',
+      labelKey: 'Parser.FileTypes.Odp',
+      extensions: ['.odp'],
+      icon: 'ri-file-ppt-2-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'ods',
+      labelKey: 'Parser.FileTypes.Ods',
+      extensions: ['.ods'],
+      icon: 'ri-file-excel-2-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'odt',
+      labelKey: 'Parser.FileTypes.Odt',
+      extensions: ['.odt'],
+      icon: 'ri-file-text-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'pptm',
+      labelKey: 'Parser.FileTypes.Pptm',
+      extensions: ['.pptm'],
+      icon: 'ri-file-ppt-2-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'rtf',
+      labelKey: 'Parser.FileTypes.Rtf',
+      extensions: ['.rtf'],
+      icon: 'ri-file-text-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'xlsm',
+      labelKey: 'Parser.FileTypes.Xlsm',
+      extensions: ['.xlsm'],
+      icon: 'ri-file-excel-2-line',
+      engine: 'anydoc',
+      options: [
+        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
+        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
+      ]
+    },
+    {
+      key: 'xmind',
+      labelKey: 'Parser.FileTypes.Xmind',
+      extensions: ['.xmind'],
+      icon: 'ri-mind-map',
+      engine: 'builtin',
+      options: [
+        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
+        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
+      ]
     }
   ]
 
+  // Reserved UI state until the knowledge base API supports per-file parser selection.
   readonly parserEngineSelections = signal<Record<string, string>>(
     Object.fromEntries(this.parserEngineRows.map((row) => [row.key, row.engine]))
   )
@@ -248,6 +413,10 @@ export class XpertNewKnowledgeComponent {
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
   readonly chunkStrategy = model<'auto' | 'title' | 'structure' | 'length'>('auto')
   readonly separators = signal<string[]>(['\\n\\n', '\\n', '。', '！', '？', '；', ';'])
+  // Reserved UI state until the knowledge base API exposes these chunking options.
+  readonly parentChildChunkingEnabled = model(false)
+  readonly maxChunkTokens = model<number | null>(0)
+  readonly chunkLanguageHint = model<'auto' | 'Chinese' | 'English'>('auto')
 
   readonly separatorOptions = [
     { value: '\\n\\n', labelKey: 'Chunk.SeparatorLabels.DoubleNewline' },
@@ -264,54 +433,33 @@ export class XpertNewKnowledgeComponent {
     label: this.#translate.instant(`${this.i18nPrefix}.${option.labelKey}`)
   }))
 
-  // UI-only until the create DTO accepts WeKnora's advanced generation fields.
+  // Reserved UI state until the knowledge base API exposes these generation and image options.
   readonly questionGenerationEnabled = model(true)
   readonly questionCount = model<number | null>(3)
   readonly questionRequirements = model('')
+  readonly automaticTaggingEnabled = model(false)
   readonly tableMetadataRequirements = model('')
+  readonly imageDescriptionLanguage = model<'auto' | 'Chinese' | 'English'>('auto')
+  readonly imageParsingRequirements = model('')
 
-  readonly vectorTopK = model(this.#initialKnowledgebase?.recall?.topK ?? 10)
-  readonly vectorScore = model(this.#initialKnowledgebase?.recall?.score ?? 0.5)
-  readonly vectorScoreEnabled = model(
-    this.#initialKnowledgebase ? this.#initialKnowledgebase.recall?.score != null : true
-  )
-  readonly rerankEnabled = model(
-    !!(this.#initialKnowledgebase?.rerankModel || this.#initialKnowledgebase?.rerankModelId)
-  )
-  readonly rerankModel = model<ICopilotModel | null>(this.#initialKnowledgebase?.rerankModel ?? null)
-
-  readonly retrieval = computed<Partial<IKnowledgebase & TKBRetrievalSettings>>(() => ({
+  readonly retrieval = model<Partial<IKnowledgebase & TKBRetrievalSettings>>({
     recall: {
-      topK: this.vectorTopK(),
-      score: this.vectorScoreEnabled() ? this.vectorScore() : null
+      ...(this.#initialKnowledgebase?.recall ?? {}),
+      topK: this.#initialKnowledgebase?.recall?.topK ?? 10,
+      score: this.#initialKnowledgebase ? (this.#initialKnowledgebase.recall?.score ?? null) : 0.5
     },
-    rerankModel: this.rerankEnabled() ? this.rerankModel() : null,
-    rerankModelId: this.rerankEnabled() ? this.rerankModel()?.id : null
-  }))
-
-  readonly graphEnabled = model(this.#initialKnowledgebase?.graphRag?.enabled ?? false)
-  readonly graphMode = model<GraphRagRetrievalMode>(this.#initialKnowledgebase?.graphRag?.mode ?? 'vector')
-  readonly graphEntityTopK = model(this.#initialKnowledgebase?.graphRag?.entityTopK ?? 8)
-  readonly graphNeighborHops = model(this.#initialKnowledgebase?.graphRag?.neighborHops ?? 1)
-  readonly graphWeight = model(this.#initialKnowledgebase?.graphRag?.graphWeight ?? 0.35)
-
-  readonly graphRag = computed<GraphRagConfig>(() => ({
-    enabled: this.graphEnabled(),
-    mode: this.graphMode(),
-    entityTopK: this.graphEntityTopK(),
-    neighborHops: this.graphNeighborHops(),
-    graphWeight: this.graphWeight()
-  }))
-
-  readonly graphModeOptions: Array<{
-    value: GraphRagRetrievalMode
-    labelKey: string
-    descriptionKey: string
-  }> = [
-    { value: 'vector', labelKey: 'Graph.Modes.Vector', descriptionKey: 'Graph.Modes.VectorDescription' },
-    { value: 'graph', labelKey: 'Graph.Modes.Graph', descriptionKey: 'Graph.Modes.GraphDescription' },
-    { value: 'hybrid', labelKey: 'Graph.Modes.Hybrid', descriptionKey: 'Graph.Modes.HybridDescription' }
-  ]
+    rerankModel: this.#initialKnowledgebase?.rerankModel ?? null,
+    rerankModelId: this.#initialKnowledgebase?.rerankModelId ?? null,
+    graphRag: {
+      ...(this.#initialKnowledgebase?.graphRag ?? {}),
+      enabled: this.#initialKnowledgebase?.graphRag?.enabled ?? false,
+      mode: this.#initialKnowledgebase?.graphRag?.mode ?? 'vector',
+      entityTopK: this.#initialKnowledgebase?.graphRag?.entityTopK ?? 8,
+      neighborHops: this.#initialKnowledgebase?.graphRag?.neighborHops ?? 1,
+      graphWeight: this.#initialKnowledgebase?.graphRag?.graphWeight ?? 0.35
+    }
+  })
+  readonly retrievalConfigurationValid = computed(() => hasEnabledKnowledgeRetrievalSource(this.retrieval()))
 
   // Document-level parser options are shown here for parity with WeKnora and
   // will be applied from the document import flow until the KB create DTO grows.
@@ -353,25 +501,6 @@ export class XpertNewKnowledgeComponent {
 
   updateParserEngine(key: string, value: string) {
     this.parserEngineSelections.update((current) => ({ ...current, [key]: value }))
-  }
-
-  setGraphEnabled(value: boolean) {
-    this.graphEnabled.set(value)
-    if (!value) {
-      this.graphMode.set('vector')
-    }
-  }
-
-  setGraphMode(value: GraphRagRetrievalMode) {
-    this.graphMode.set(value)
-    if (value !== 'vector') {
-      this.graphEnabled.set(true)
-    }
-  }
-
-  graphModeDescriptionKey() {
-    const key = this.graphModeOptions.find((option) => option.value === this.graphMode())?.descriptionKey
-    return key ? `${this.i18nPrefix}.${key}` : ''
   }
 
   addSeparator(value: string) {
@@ -468,22 +597,29 @@ export class XpertNewKnowledgeComponent {
       return false
     }
 
+    if (!this.retrievalConfigurationValid()) {
+      this.activeSection.set('retrieval')
+      this.#toastr.error('XP.Knowledgebase.RRFPositiveWeightRequired', '', {
+        Default: 'RRF requires at least one retrieval source with a positive weight.'
+      })
+      return false
+    }
+
     return true
   }
 
   private buildPayload(): Partial<IKnowledgebase> {
+    const retrieval = this.retrieval()
     const payload: Partial<IKnowledgebase> = {
       name: this.name().trim(),
       description: this.description().trim() || undefined,
       copilotModel: this.copilotModel(),
       chatModel: this.chatModel() ?? null,
       visionModel: this.visionModel() ?? null,
-      recall: this.retrieval().recall,
-      rerankModel: this.rerankEnabled() ? this.rerankModel() : null,
-      rerankModelId: this.rerankEnabled()
-        ? (this.rerankModel()?.id ?? this.#initialKnowledgebase?.rerankModelId)
-        : null,
-      graphRag: this.graphRag(),
+      recall: retrieval.recall,
+      rerankModel: retrieval.rerankModel ?? null,
+      rerankModelId: retrieval.rerankModel?.id ?? retrieval.rerankModelId ?? null,
+      graphRag: retrieval.graphRag,
       parserConfig: {
         embeddingBatchSize: this.embeddingBatchSize() ?? undefined,
         chunkSize: this.chunkSize(),
@@ -495,7 +631,7 @@ export class XpertNewKnowledgeComponent {
 
     if (!this.isEditMode()) {
       payload.workspaceId = this.workspaceId()
-      payload.type = KnowledgebaseTypeEnum.Standard
+      payload.type = this.type()
     }
 
     return payload

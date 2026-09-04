@@ -34,55 +34,39 @@
 </ng-template>
 
 <div class="@container/retrieval relative flex min-w-0 flex-col gap-3">
-  <div
-    class="flex flex-col gap-3 @[640px]/retrieval:flex-row @[640px]/retrieval:items-center @[640px]/retrieval:justify-between"
+  <nav
+    z-tab-nav-bar
+    zSize="sm"
+    [stretchTabs]="true"
+    class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5"
+    [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' }"
   >
-    <div class="min-w-0">
-      <div class="system-sm-semibold text-text-primary">
-        {{ 'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' } }}
-      </div>
-      <div class="mt-0.5 system-xs-regular text-text-tertiary">
-        {{
-          'XP.Knowledgebase.RetrievalModeDesc'
-            | translate: { Default: 'Choose how this knowledge base recalls candidate content.' }
-        }}
-      </div>
-    </div>
-
-    <nav
-      z-tab-nav-bar
-      zSize="sm"
-      [stretchTabs]="true"
-      class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5 @[640px]/retrieval:w-[360px]"
-      [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' }"
-    >
-      @for (modeOption of retrievalModes; track modeOption) {
-        <button
-          z-tab-link
-          type="button"
-          class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
-          [attr.data-retrieval-mode]="modeOption"
-          [active]="mode() === modeOption"
-          (click)="mode.set(modeOption)"
-        >
-          @switch (modeOption) {
-            @case ('vector') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
-            }
-            @case ('keyword') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate: { Default: 'Keyword' } }}
-            }
-            @case ('graph') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
-            }
-            @case ('hybrid') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
-            }
+    @for (modeOption of retrievalModes; track modeOption) {
+      <button
+        z-tab-link
+        type="button"
+        class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+        [attr.data-retrieval-mode]="modeOption"
+        [active]="mode() === modeOption"
+        (click)="mode.set(modeOption)"
+      >
+        @switch (modeOption) {
+          @case ('vector') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
           }
-        </button>
-      }
-    </nav>
-  </div>
+          @case ('keyword') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate: { Default: 'Keyword' } }}
+          }
+          @case ('graph') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
+          }
+          @case ('hybrid') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
+          }
+        }
+      </button>
+    }
+  </nav>
 
   <z-card data-retrieval-stage="recall" class="gap-0 border-divider-regular bg-components-panel-bg py-0 shadow-none">
     <z-card-header class="flex flex-row items-start gap-3 border-b border-divider-regular px-4 py-3">

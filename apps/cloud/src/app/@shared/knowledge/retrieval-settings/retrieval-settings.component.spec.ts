@@ -3,16 +3,20 @@ import { TestBed } from '@angular/core/testing'
 import { GraphRagRetrievalMode, KnowledgebaseService, ToastrService } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { of } from 'rxjs'
 import { KnowledgeRetrievalSettingsComponent } from './retrieval-settings.component'
 
 async function setup(
   weights: { vector: number; graph: number; keyword: number },
   mode: GraphRagRetrievalMode = 'hybrid',
-  fusionMode: 'legacy' | 'weighted_rrf' = 'weighted_rrf'
+  fusionMode: 'legacy' | 'weighted_rrf' = 'weighted_rrf',
+  options?: { rerankModelId?: string; emptyTemplate?: boolean }
 ) {
   const knowledgebase = {
     id: 'knowledgebase-1',
+    rerankModelId: options?.rerankModelId,
     recall: {
       fusion: {
         mode: fusionMode,
@@ -32,13 +36,17 @@ async function setup(
   }
 
   TestBed.resetTestingModule()
-  await TestBed.configureTestingModule({
+  const testingModule = TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), KnowledgeRetrievalSettingsComponent],
     providers: [
       { provide: KnowledgebaseService, useValue: knowledgebaseService },
       { provide: ToastrService, useValue: toastrService }
     ]
-  }).compileComponents()
+  })
+  if (options?.emptyTemplate) {
+    testingModule.overrideComponent(KnowledgeRetrievalSettingsComponent, { set: { template: '' } })
+  }
+  await testingModule.compileComponents()
 
   const fixture = TestBed.createComponent(KnowledgeRetrievalSettingsComponent)
   fixture.componentRef.setInput('savable', true)
@@ -52,7 +60,13 @@ async function setup(
 }
 
 describe('KnowledgeRetrievalSettingsComponent', () => {
+  const template = readFileSync(join(__dirname, 'retrieval-settings.component.html'), 'utf8')
+
   afterEach(() => TestBed.resetTestingModule())
+
+  it('shows the mode tabs without a redundant retrieval mode introduction', () => {
+    expect(template).not.toContain('RetrievalModeDesc')
+  })
 
   it('hides the legacy graph weight while weighted RRF is active', async () => {
     const { fixture } = await setup({ vector: 0.65, graph: 0.35, keyword: 0.3 })
@@ -157,6 +171,22 @@ describe('KnowledgeRetrievalSettingsComponent', () => {
 
     expect(keywordCard.query(By.css('.ri-information-line'))).toBeNull()
 
+    fixture.destroy()
+  })
+
+  it('preserves an existing rerank model id until reranking is disabled', async () => {
+    const { fixture } = await setup({ vector: 0.65, graph: 0.35, keyword: 0.3 }, 'hybrid', 'weighted_rrf', {
+      rerankModelId: 'rerank-model-1',
+      emptyTemplate: true
+    })
+    const component = fixture.componentInstance
+
+    expect(component.useRerank()).toBe(true)
+
+    component.useRerank.set(false)
+    fixture.detectChanges()
+
+    expect(component.knowledgebase().rerankModelId).toBeNull()
     fixture.destroy()
   })
 

@@ -17,6 +17,7 @@ export enum KnowledgeProviderEnum {
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
+  FAQ = 'faq',
   External = 'external'
 }
 
