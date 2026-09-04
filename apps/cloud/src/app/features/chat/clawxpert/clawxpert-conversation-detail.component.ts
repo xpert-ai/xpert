@@ -1011,10 +1011,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
-  readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => ({
-    projectId: this.runtimeProjectId(),
-    conversationId: this.resolvedConversationId()
-  }))
+  readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => {
+    const projectId = this.runtimeProjectId()
+    return {
+      projectId,
+      // Project-bound Workbench Views share one durable data scope. Switching
+      // the inspected ChatKit execution inside that Project must update ChatKit
+      // without invalidating and recreating the Remote View iframe.
+      conversationId: projectId ? null : this.resolvedConversationId()
+    }
+  })
   readonly conversationFilesMode = computed<'editable' | 'readonly'>(() => {
     if (!this.runtimeProjectId()) {
       return 'editable'
