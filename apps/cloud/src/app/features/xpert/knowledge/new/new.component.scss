@@ -432,20 +432,12 @@
   @apply w-[min(100%,28rem)] shrink-0;
 }
 
-.kb-chip-control {
-  @apply flex min-h-20 flex-wrap items-start gap-2 rounded-lg border border-divider-regular bg-components-input-bg-normal p-2;
+.kb-separator-select {
+  @apply block min-h-20 w-full;
 }
 
-.kb-separator-chip {
-  @apply inline-flex items-center gap-2 rounded-md bg-components-button-secondary-bg px-2.5 py-1.5 text-sm text-text-secondary;
-}
-
-.kb-separator-chip button {
-  @apply cursor-pointer text-base leading-none text-text-tertiary transition hover:text-text-primary;
-}
-
-.kb-separator-add {
-  @apply min-w-28 max-w-48;
+.kb-separator-select ::ng-deep z-tag-select-input-trigger > div {
+  @apply min-h-20 content-start rounded-lg border-divider-regular bg-components-input-bg-normal;
 }
 
 .kb-advanced-switch-row {

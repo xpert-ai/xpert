@@ -13,9 +13,9 @@ import {
   ZardSegmentedComponent,
   ZardSegmentedItemComponent,
   ZardSelectImports,
-  type ZardSelectValue,
   ZardSliderComponent,
   ZardSwitchComponent,
+  ZardTagSelectComponent,
   ZardToggleGroupComponent,
   ZardToggleGroupItemComponent,
   ZardTooltipImports
@@ -91,6 +91,7 @@ type KnowledgeDialogData = {
     ZardSegmentedItemComponent,
     ZardSliderComponent,
     ZardSwitchComponent,
+    ZardTagSelectComponent,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
     ...ZardSelectImports,
@@ -247,7 +248,6 @@ export class XpertNewKnowledgeComponent {
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
   readonly chunkStrategy = model<'auto' | 'title' | 'structure' | 'length'>('auto')
   readonly separators = signal<string[]>(['\\n\\n', '\\n', '。', '！', '？', '；', ';'])
-  readonly separatorToAdd = model<ZardSelectValue>('')
 
   readonly separatorOptions = [
     { value: '\\n\\n', labelKey: 'Chunk.SeparatorLabels.DoubleNewline' },
@@ -258,6 +258,11 @@ export class XpertNewKnowledgeComponent {
     { value: '；', labelKey: 'Chunk.SeparatorLabels.ChineseSemicolon' },
     { value: ';', labelKey: 'Chunk.SeparatorLabels.EnglishSemicolon' }
   ]
+
+  readonly separatorTagOptions = this.separatorOptions.map((option) => ({
+    value: option.value,
+    label: this.#translate.instant(`${this.i18nPrefix}.${option.labelKey}`)
+  }))
 
   // UI-only until the create DTO accepts WeKnora's advanced generation fields.
   readonly questionGenerationEnabled = model(true)
@@ -377,11 +382,14 @@ export class XpertNewKnowledgeComponent {
     this.delimiter.set(this.separators()[0] || '\n\n')
   }
 
-  selectSeparator(value: ZardSelectValue | ZardSelectValue[]) {
-    if (typeof value === 'string' && value) {
-      this.addSeparator(value)
+  updateSeparators(value: unknown) {
+    if (!Array.isArray(value)) {
+      return
     }
-    this.separatorToAdd.set('')
+
+    const nextSeparators = value.filter((separator): separator is string => typeof separator === 'string')
+    this.separators.set(nextSeparators)
+    this.delimiter.set(nextSeparators[0] || '\n\n')
   }
 
   removeSeparator(value: string) {

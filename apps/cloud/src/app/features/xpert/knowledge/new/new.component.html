@@ -389,36 +389,17 @@
                   <p>{{ i18nPrefix + '.Chunk.SeparatorsDescription' | translate }}</p>
                 </div>
                 <div class="kb-separator-control">
-                  <div class="kb-chip-control">
-                    @for (separator of separators(); track separator) {
-                      <span class="kb-separator-chip"
-                        >{{ separatorLabelKey(separator) | translate
-                        }}<button
-                          z-button
-                          zType="ghost"
-                          zSize="icon-xs"
-                          type="button"
-                          (click)="removeSeparator(separator)"
-                          [attr.aria-label]="i18nPrefix + '.Chunk.RemoveSeparator' | translate"
-                        >
-                          <i class="ri-close-line"></i></button
-                      ></span>
-                    }
-                    <z-select
-                      class="kb-separator-add"
-                      zSize="sm"
-                      [zPlaceholder]="i18nPrefix + '.Chunk.Add' | translate"
-                      [zLabel]="i18nPrefix + '.Chunk.AddSeparator' | translate"
-                      [(ngModel)]="separatorToAdd"
-                      (ngModelChange)="selectSeparator($event)"
-                    >
-                      @for (option of separatorOptions; track option.value) {
-                        <z-select-item [zValue]="option.value">{{
-                          i18nPrefix + '.' + option.labelKey | translate
-                        }}</z-select-item>
-                      }
-                    </z-select>
-                  </div>
+                  <z-tag-select
+                    class="kb-separator-select"
+                    mode="multiple"
+                    [options]="separatorTagOptions"
+                    [enableSuggestions]="true"
+                    [searchable]="false"
+                    [checkable]="true"
+                    [placeholder]="i18nPrefix + '.Chunk.AddSeparator' | translate"
+                    [value]="separators()"
+                    (valueChange)="updateSeparators($event)"
+                  />
                 </div>
               </div>
             </section>
