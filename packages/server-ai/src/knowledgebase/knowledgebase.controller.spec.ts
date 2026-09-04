@@ -11,6 +11,37 @@ describe('KnowledgebaseController generic CRUD access', () => {
         jest.restoreAllMocks()
     })
 
+    it('lists workspace knowledgebases when pagination data is omitted', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1' } as ReturnType<
+            typeof RequestContext.currentUser
+        >)
+        const service = {
+            getSafeReadRelations: jest.fn((relations: unknown) => relations),
+            getAllByWorkspace: jest.fn().mockResolvedValue({
+                items: [{ id: 'knowledgebase-1', name: 'Knowledgebase 1' }],
+                total: 1
+            })
+        }
+        const controller = new KnowledgebaseController(
+            service as unknown as KnowledgebaseService,
+            {} as CommandBus,
+            {} as QueryBus
+        )
+
+        await expect(controller.getAllByWorkspace('workspace-1')).resolves.toEqual({
+            items: [expect.objectContaining({ id: 'knowledgebase-1', name: 'Knowledgebase 1' })],
+            total: 1
+        })
+
+        expect(service.getSafeReadRelations).toHaveBeenCalledWith(undefined)
+        expect(service.getAllByWorkspace).toHaveBeenCalledWith(
+            'workspace-1',
+            { relations: undefined },
+            undefined,
+            expect.objectContaining({ id: 'user-1' })
+        )
+    })
+
     it('routes count and pagination through the same owner/shared visibility filter as the main list', async () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         const service = {

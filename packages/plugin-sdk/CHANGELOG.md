@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.2
+
+### Patch Changes
+
+- e260743: plugin mcp
+- Updated dependencies [e260743]
+  - @xpert-ai/contracts@3.18.1
+
 ## 3.18.1
 
 ### Patch Changes

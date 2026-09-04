@@ -283,7 +283,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
      */
     async getAllByWorkspace(
         workspaceId: string,
-        data: PaginationParams<Knowledgebase>,
+        data: Partial<PaginationParams<Knowledgebase>> | undefined,
         published: boolean,
         user: IUser
     ) {

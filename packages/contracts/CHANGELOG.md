@@ -1,5 +1,11 @@
 # @xpert-ai/contracts
 
+## 3.18.1
+
+### Patch Changes
+
+- e260743: plugin mcp
+
 ## 3.18.0
 
 ### Minor Changes
