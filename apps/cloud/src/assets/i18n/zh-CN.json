@@ -35,6 +35,25 @@
     "USERS": "用户"
   },
   "XP": {
+    "AssistantProfile": {
+      "Title": "Assistant 资料",
+      "Close": "关闭资料",
+      "Basic": "基本信息",
+      "Loading": "正在加载 Assistant…",
+      "LoadError": "无法加载此 Assistant。",
+      "Retry": "重试",
+      "NoDescription": "暂无简介。",
+      "Workspace": "工作空间",
+      "Creator": "创建者",
+      "PublishedAt": "发布时间",
+      "UpdatedAt": "更新时间",
+      "Skills": "技能",
+      "Tools": "工具",
+      "SubAgents": "子智能体",
+      "Conversations30d": "近30天对话",
+      "TabsError": "扩展视图暂时无法加载。",
+      "Open": "查看 Assistant 资料"
+    },
     "Title": "元数分析云",
     "ViewExtension": {
       "RemoteComponentLoadFailed": "无法加载此视图",

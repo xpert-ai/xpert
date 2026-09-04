@@ -28,6 +28,25 @@ import {
   orderAssistantXperts
 } from './cloud-sidebar-assistants.utils'
 
+jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', () => {
+  const { Directive, Input } = jest.requireActual('@angular/core')
+
+  @Directive({
+    standalone: true,
+    selector: '[xpAssistantProfile]',
+    exportAs: 'xpAssistantProfile',
+    host: { '[attr.data-assistant-profile-trigger]': 'instanceId' }
+  })
+  class AssistantProfileDirective {
+    @Input('xpAssistantProfile') instanceId?: string
+    @Input() summary?: unknown
+    @Input() zPlacement?: string
+    open = jest.fn()
+  }
+
+  return { AssistantProfileDirective }
+})
+
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
@@ -319,6 +338,21 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filters')).toBeNull()
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
+  })
+
+  it('attaches the Profile hover trigger only to the Assistant avatar', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const item = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item')
+    const avatar = item.querySelector('emoji-avatar')
+
+    expect(item.hasAttribute('data-assistant-profile-trigger')).toBe(false)
+    expect(avatar.getAttribute('data-assistant-profile-trigger')).toBe('other-xpert')
+    expect(fixture.nativeElement.querySelector('[aria-label="XP.AssistantProfile.Open"]')).toBeNull()
   })
 
   it('reloads available assistants after an xpert publish refresh event', async () => {

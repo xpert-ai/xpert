@@ -40,6 +40,25 @@
     "USERS": "用戶"
   },
   "XP": {
+    "AssistantProfile": {
+      "Title": "Assistant 資料",
+      "Close": "關閉資料",
+      "Basic": "基本資訊",
+      "Loading": "正在載入 Assistant…",
+      "LoadError": "無法載入此 Assistant。",
+      "Retry": "重試",
+      "NoDescription": "暫無簡介。",
+      "Workspace": "工作空間",
+      "Creator": "建立者",
+      "PublishedAt": "發佈時間",
+      "UpdatedAt": "更新時間",
+      "Skills": "技能",
+      "Tools": "工具",
+      "SubAgents": "子智能體",
+      "Conversations30d": "近 30 天對話",
+      "TabsError": "擴充視圖暫時無法載入。",
+      "Open": "查看 Assistant 資料"
+    },
     "Title": "元數分析雲",
     "Explore": {
       "Application": {

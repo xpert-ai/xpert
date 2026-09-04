@@ -28,6 +28,20 @@ import {
   orderAssistantXperts
 } from './cloud-sidebar-assistants.utils'
 
+jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', () => {
+  const { Directive, Input } = jest.requireActual('@angular/core')
+
+  @Directive({ standalone: true, selector: '[xpAssistantProfile]', exportAs: 'xpAssistantProfile' })
+  class AssistantProfileDirective {
+    @Input('xpAssistantProfile') instanceId?: string
+    @Input() summary?: unknown
+    @Input() zPlacement?: string
+    open = jest.fn()
+  }
+
+  return { AssistantProfileDirective }
+})
+
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 

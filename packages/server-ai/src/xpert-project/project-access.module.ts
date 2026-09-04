@@ -1,3 +1,5 @@
+import { ProjectAccessRuntimeService } from './services/project-access-runtime.service'
+import { ProjectAccessCapabilityRegistrationService } from './services/project-access-capability-registration.service'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { XpertProject } from './entities/project.entity'
@@ -8,7 +10,12 @@ import { XpertProjectXpertBindingService } from './services/project-xpert-bindin
 
 @Module({
     imports: [TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert])],
-    providers: [XpertProjectXpertBindingService, XpertProjectAccessService],
+    providers: [
+        ProjectAccessRuntimeService,
+        ProjectAccessCapabilityRegistrationService,
+        XpertProjectXpertBindingService,
+        XpertProjectAccessService
+    ],
     exports: [XpertProjectXpertBindingService, XpertProjectAccessService]
 })
 export class XpertProjectAccessModule {}

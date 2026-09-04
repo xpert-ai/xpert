@@ -41,6 +41,25 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "AssistantProfile": {
+      "Title": "Assistant profile",
+      "Close": "Close profile",
+      "Basic": "Basic information",
+      "Loading": "Loading assistant…",
+      "LoadError": "Unable to load this assistant.",
+      "Retry": "Retry",
+      "NoDescription": "No description provided.",
+      "Workspace": "Workspace",
+      "Creator": "Created by",
+      "PublishedAt": "Published",
+      "UpdatedAt": "Updated",
+      "Skills": "Skills",
+      "Tools": "Tools",
+      "SubAgents": "Sub-agents",
+      "Conversations30d": "30-day chats",
+      "TabsError": "Some extension views could not be loaded.",
+      "Open": "View assistant profile"
+    },
     "Title": "Metad Analytics Cloud",
     "ViewExtension": {
       "RemoteComponentLoadFailed": "Unable to load this view",

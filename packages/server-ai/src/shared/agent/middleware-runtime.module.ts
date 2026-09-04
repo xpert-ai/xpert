@@ -10,7 +10,6 @@ import { ArtifactsModule } from '../../artifacts/artifacts.module'
 import { CollaborationModule } from '../../collaboration/collaboration.module'
 import { CopilotModule } from '../../copilot/copilot.module'
 import { CopilotUsageModule } from '../../copilot-usage'
-import { XpertProjectAccessModule } from '../../xpert-project/project-access.module'
 
 @Global()
 @Module({
@@ -22,8 +21,7 @@ import { XpertProjectAccessModule } from '../../xpert-project/project-access.mod
         CollaborationModule,
         forwardRef(() => CopilotModule),
         CopilotUsageModule,
-        ActorTokenModule,
-        XpertProjectAccessModule
+        ActorTokenModule
     ],
     providers: [
         WorkspaceFilesRuntimeCapabilityService,

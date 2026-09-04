@@ -1,6 +1,11 @@
 import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
-import { ApiKeyBindingType, type IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
+import {
+	AGENT_PROFILE_TABS_SLOT,
+	ApiKeyBindingType,
+	type IApiPrincipal,
+	SecretTokenBindingType
+} from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
 
 describe('ViewExtensionService file actions', () => {
@@ -118,13 +123,53 @@ describe('ViewExtensionService file actions', () => {
 		)
 	})
 
+	it('rechecks Profile Feature activation for data and actions after discovery', async () => {
+		const { service, provider, hostDefinition } = createService()
+		Object.assign(hostDefinition.slots[0], {
+			key: AGENT_PROFILE_TABS_SLOT,
+			manifestPolicy: { requireFeatureActivation: true }
+		})
+		provider.getViewManifests.mockResolvedValue([
+			{
+				...manifest,
+				slot: AGENT_PROFILE_TABS_SLOT,
+				activation: { requiredFeatures: ['case-profile'] },
+				dataSource: { mode: 'platform', cache: { enabled: false } }
+			}
+		])
+		let features = ['case-profile']
+		hostDefinition.resolve.mockImplementation(async () => ({
+			workspaceId: 'workspace-1',
+			hostSnapshot: { id: 'assistant-1' },
+			context: { capabilities: { features } }
+		}))
+		provider.getViewData.mockResolvedValue({ items: [] })
+		expect(await service.listSlotViews('agent', 'assistant-1', AGENT_PROFILE_TABS_SLOT)).toHaveLength(1)
+		await expect(service.getViewData('agent', 'assistant-1', 'provider__review', {})).resolves.toEqual({
+			items: []
+		})
+		await expect(
+			service.executeAction('agent', 'assistant-1', 'provider__review', 'undeclared', {})
+		).rejects.toThrow("Action 'undeclared' was not found")
+		features = []
+		expect(await service.listSlotViews('agent', 'assistant-1', AGENT_PROFILE_TABS_SLOT)).toHaveLength(0)
+		await expect(service.getViewData('agent', 'assistant-1', 'provider__review', {})).rejects.toThrow(
+			'was not found'
+		)
+		await expect(
+			service.executeAction('agent', 'assistant-1', 'provider__review', 'json_action', {})
+		).rejects.toThrow('was not found')
+		expect(provider.getViewData).toHaveBeenCalledTimes(1)
+	})
+
 	it('returns only Project experts that provide every feature required by a view', async () => {
 		const { service, provider, hostDefinition } = createService()
 		provider.getViewManifests.mockResolvedValueOnce([
 			{
 				...manifest,
 				hostType: 'project',
-				activation: { requiredFeatures: ['office_editor', 'project_documents'] }
+				activation: { requiredFeatures: ['office_editor', 'project_documents'] },
+				runtime: { featureProviders: [{ xpertId: 'untrusted', name: 'Manifest value' }] }
 			}
 		])
 		hostDefinition.resolve.mockResolvedValueOnce({

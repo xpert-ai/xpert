@@ -72,6 +72,12 @@ export class DecoratedAgentMiddlewareStrategy implements IAgentMiddlewareStrateg
     this.meta = definition.meta
   }
 
+  getToolNames(): readonly string[] {
+    return this.descriptor.tools
+      .filter((item) => item.middlewareProvider === this.provider)
+      .map((item) => item.options.name)
+  }
+
   async createMiddleware(options: unknown, context: IAgentMiddlewareContext): Promise<AgentMiddleware> {
     const tools = this.descriptor.tools
       .filter((item) => item.middlewareProvider === this.provider)

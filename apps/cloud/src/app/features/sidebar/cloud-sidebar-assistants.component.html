@@ -11,12 +11,13 @@
           type="button"
           class="cloud-sidebar-assistants__current-compact"
           [attr.aria-label]="currentAssistantLabel()"
-          [zTooltip]="currentAssistantLabel()"
-          zPosition="right"
           (click)="openClawXpert($event)"
         >
           <emoji-avatar
             class="cloud-sidebar-assistants__current-avatar"
+            [xpAssistantProfile]="boundXpert()?.id || ''"
+            [summary]="boundXpert()"
+            zPlacement="right"
             xs
             [avatar]="currentAssistantAvatar()"
             [alt]="currentAssistantLabel()"
@@ -34,6 +35,9 @@
             >
               <emoji-avatar
                 class="cloud-sidebar-assistants__current-avatar"
+                [xpAssistantProfile]="boundXpert()?.id || ''"
+                [summary]="boundXpert()"
+                zPlacement="right"
                 xs
                 [avatar]="currentAssistantAvatar()"
                 [alt]="currentAssistantLabel()"
@@ -238,9 +242,6 @@
               <div
                 class="cloud-sidebar-assistants__item group relative"
                 [class.is-active]="isActive(xpert)"
-                [zTooltip]="assistantLabel(xpert)"
-                zPosition="right"
-                [zDisabled]="!collapsed()"
                 (click)="openAssistant($event, xpert)"
               >
                 @if (!collapsed()) {
@@ -250,6 +251,9 @@
                   <emoji-avatar
                     xs
                     class="cloud-sidebar-assistants__avatar"
+                    [xpAssistantProfile]="xpert.id"
+                    [summary]="xpert"
+                    zPlacement="right"
                     [avatar]="xpert.avatar"
                     [alt]="assistantLabel(xpert)"
                     [fallbackLabel]="assistantLabel(xpert)"

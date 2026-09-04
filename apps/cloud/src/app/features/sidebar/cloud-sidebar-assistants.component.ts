@@ -1,3 +1,4 @@
+import { AssistantProfileDirective } from '@cloud/app/@shared/xpert/assistant-profile/assistant-profile.directive'
 import { CommonModule } from '@angular/common'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, NgZone, computed, effect, inject, input, signal } from '@angular/core'
@@ -118,6 +119,7 @@ const EMPTY_ASSISTANT_CONVERSATION_STATE: AssistantConversationState = {
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
   imports: [
+    AssistantProfileDirective,
     CommonModule,
     DragDropModule,
     TranslateModule,

@@ -7,11 +7,13 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
   viewChild
 } from '@angular/core'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, type Observable } from 'rxjs'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
@@ -94,23 +96,40 @@ type RemoteComponentMessage = {
       </div>
     } @else {
       @if (entryUrl()) {
-        <iframe
-          #frame
-          class="block w-full border-0"
-          [class.h-full]="fillAvailableHeight()"
-          [class.min-h-full]="!fillAvailableHeight()"
-          [style.height.px]="fillAvailableHeight() ? null : height()"
-          [attr.title]="manifest().title.en_US"
-          [src]="entryUrl() | safe: 'resourceUrl'"
-          allow="autoplay"
-          sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
-          (load)="handleFrameLoad()"
-        ></iframe>
+        @if (isolatedOrigin()) {
+          <iframe
+            #frame
+            class="block w-full border-0"
+            [class.h-full]="fillAvailableHeight()"
+            [class.min-h-full]="!fillAvailableHeight()"
+            [style.height.px]="fillAvailableHeight() ? null : height()"
+            [attr.title]="manifest().title.en_US"
+            [src]="entryUrl() | safe: 'resourceUrl'"
+            allow="autoplay"
+            sandbox="allow-downloads allow-forms allow-popups allow-scripts"
+            (load)="handleFrameLoad()"
+          ></iframe>
+        } @else {
+          <iframe
+            #frame
+            class="block w-full border-0"
+            [class.h-full]="fillAvailableHeight()"
+            [class.min-h-full]="!fillAvailableHeight()"
+            [style.height.px]="fillAvailableHeight() ? null : height()"
+            [attr.title]="manifest().title.en_US"
+            [src]="entryUrl() | safe: 'resourceUrl'"
+            allow="autoplay"
+            sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+            (load)="handleFrameLoad()"
+          ></iframe>
+        }
       }
     }
   `
 })
 export class RemoteComponentRendererComponent {
+  readonly actionPending = output<boolean>()
+  readonly isolatedOrigin = input(false)
   readonly hostType = input.required<string>()
   readonly hostId = input.required<string>()
   readonly manifest = input.required<XpertExtensionViewManifest>()
@@ -148,6 +167,8 @@ export class RemoteComponentRendererComponent {
   )
 
   #entryRequestId = 0
+  #loadedEntryIdentity: string | null = null
+  #initializedInstanceId: string | null = null
   #entryObjectUrl: string | null = null
   // Keep the fetched HTML so the renderer can reuse the exact same payload if a blob iframe stays blank.
   #entryHtml: string | null = null
@@ -167,6 +188,7 @@ export class RemoteComponentRendererComponent {
     window.addEventListener('resize', onViewportChange)
     window.addEventListener('scroll', onViewportChange, true)
     this.#destroyRef.onDestroy(() => {
+      ++this.#entryRequestId
       hostEventSubscription.unsubscribe()
       window.removeEventListener('message', onMessage)
       window.removeEventListener('resize', onViewportChange)
@@ -187,6 +209,11 @@ export class RemoteComponentRendererComponent {
         return
       }
 
+      const entryIdentity = JSON.stringify([hostType, hostId, manifest.key, runtimeScope])
+      if (entryIdentity === this.#loadedEntryIdentity) {
+        return
+      }
+      this.#loadedEntryIdentity = entryIdentity
       void untracked(() => this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key, runtimeScope))
     })
 
@@ -198,7 +225,17 @@ export class RemoteComponentRendererComponent {
         return
       }
 
-      this.sendInitToFrame()
+      if (this.#initializedInstanceId === this.instanceId()) {
+        this.sendInitToFrame()
+      }
+    })
+
+    effect(() => {
+      const active = this.active()
+      if (!this.entryUrl() || this.#initializedInstanceId !== this.instanceId()) {
+        return
+      }
+      this.sendToFrame('viewActive', { active })
     })
   }
 
@@ -227,7 +264,7 @@ export class RemoteComponentRendererComponent {
     this.resetFileAccessSession()
 
     try {
-      const html = await firstValueFrom(
+      const html = await this.untilDestroyed(
         this.#api.getRemoteComponentEntry(hostType, hostId, viewKey, runtimeScope ?? undefined)
       )
       if (requestId !== this.#entryRequestId) {
@@ -257,6 +294,7 @@ export class RemoteComponentRendererComponent {
     const objectUrl = this.#entryObjectUrl
     this.#entryObjectUrl = null
     this.#entryHtml = null
+    this.#initializedInstanceId = null
     this.entryUrl.set(null)
     // Remove a previous fallback document before the next remote component entry is mounted.
     this.frame()?.nativeElement.removeAttribute('srcdoc')
@@ -275,6 +313,11 @@ export class RemoteComponentRendererComponent {
     }
 
     if (message.type === 'ready') {
+      this.cancelSrcdocFallbackCheck()
+      if (this.#initializedInstanceId === this.instanceId()) {
+        return
+      }
+      this.#initializedInstanceId = this.instanceId()
       this.sendInitToFrame()
       return
     }
@@ -295,7 +338,7 @@ export class RemoteComponentRendererComponent {
         return
       case 'requestData':
         void this.handleRequest(message, 'data', () =>
-          firstValueFrom(
+          this.untilDestroyed(
             this.#api.getViewData(
               this.hostType(),
               this.hostId(),
@@ -326,16 +369,27 @@ export class RemoteComponentRendererComponent {
     }
   }
 
+  private untilDestroyed<T>(source: Observable<T>): Promise<T> {
+    return firstValueFrom(source.pipe(takeUntilDestroyed(this.#destroyRef)))
+  }
+
   private async handleRequest(message: RemoteComponentMessage, responseType: string, run: () => Promise<unknown>) {
+    const instanceId = this.instanceId()
     const requestId = typeof message.requestId === 'string' ? message.requestId : undefined
+    const action = responseType === 'actionResult' || responseType === 'fileActionResult'
+    if (action) this.actionPending.emit(true)
     try {
       const result = await run()
+      if (this.#destroyRef.destroyed || instanceId !== this.instanceId()) return
       this.sendToFrame(responseType, { requestId, [responseType === 'data' ? 'data' : 'result']: result })
     } catch (error) {
+      if (this.#destroyRef.destroyed || instanceId !== this.instanceId()) return
       this.sendToFrame('error', {
         requestId,
         message: getErrorMessage(error)
       })
+    } finally {
+      if (action && !this.#destroyRef.destroyed) this.actionPending.emit(false)
     }
   }
 
@@ -344,7 +398,7 @@ export class RemoteComponentRendererComponent {
     if (!parameterKey || !this.findParameter(parameterKey)?.optionSource) {
       throw new Error(`Parameter '${parameterKey || ''}' is not available`)
     }
-    return firstValueFrom(
+    return this.untilDestroyed(
       this.#api.getViewParameterOptions(
         this.hostType(),
         this.hostId(),
@@ -362,7 +416,7 @@ export class RemoteComponentRendererComponent {
     if (!action || (action.transport ?? 'json') !== 'json') {
       throw new Error(`Action '${actionKey || ''}' is not available`)
     }
-    const result = await firstValueFrom(
+    const result = await this.untilDestroyed(
       this.#api.executeAction(
         this.hostType(),
         this.hostId(),
@@ -376,7 +430,7 @@ export class RemoteComponentRendererComponent {
         this.runtimeScope() ?? undefined
       )
     )
-    this.publishDataChanged(action)
+    if (!this.#destroyRef.destroyed && result.success) this.publishDataChanged(action)
     return result
   }
 
@@ -390,7 +444,7 @@ export class RemoteComponentRendererComponent {
     if (!file) {
       throw new Error('file is required')
     }
-    const result = await firstValueFrom(
+    const result = await this.untilDestroyed(
       this.#api.executeFileAction(
         this.hostType(),
         this.hostId(),
@@ -405,7 +459,7 @@ export class RemoteComponentRendererComponent {
         this.runtimeScope() ?? undefined
       )
     )
-    this.publishDataChanged(action)
+    if (!this.#destroyRef.destroyed && result.success) this.publishDataChanged(action)
     return result
   }
 
@@ -447,7 +501,7 @@ export class RemoteComponentRendererComponent {
     }
 
     const session = await this.ensureFileAccessSession()
-    return firstValueFrom(
+    return this.untilDestroyed(
       this.#api.createViewFileAccessGrant(session.sessionId, {
         fileKey,
         targetId: getString(message.targetId) ?? undefined,
@@ -466,7 +520,7 @@ export class RemoteComponentRendererComponent {
     }
 
     const epoch = this.#fileAccessEpoch
-    const promise = firstValueFrom(
+    const promise = this.untilDestroyed(
       this.#api.createViewFileAccessSession(
         this.hostType(),
         this.hostId(),
@@ -617,12 +671,11 @@ export class RemoteComponentRendererComponent {
   handleFrameLoad() {
     this.updateViewportHeight()
     this.scheduleViewportHeightUpdate()
-    this.sendInitToFrame()
     this.scheduleSrcdocFallbackCheck()
   }
 
   private scheduleSrcdocFallbackCheck() {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || this.#initializedInstanceId === this.instanceId()) {
       return
     }
     this.cancelSrcdocFallbackCheck()
@@ -703,7 +756,8 @@ export class RemoteComponentRendererComponent {
       runtimeScope: this.runtimeScope(),
       locale: this.#document.documentElement.lang,
       theme: this.getRemoteTheme(),
-      debug: this.getRemoteDebugState()
+      debug: this.getRemoteDebugState(),
+      active: this.active()
     })
   }
 

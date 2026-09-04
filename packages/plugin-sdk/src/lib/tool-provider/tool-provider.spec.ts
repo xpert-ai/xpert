@@ -90,17 +90,19 @@ describe('decorated business Tool adapters', () => {
     const descriptor = describeXpertToolProvider(provider)
     expect(descriptor.tools.map(({ options }) => options.name).sort()).toEqual(['alternate_tool', 'default_tool'])
 
-    const defaultMiddleware = await new DecoratedAgentMiddlewareStrategy(
-      provider,
-      descriptor,
-      'default_group'
-    ).createMiddleware({}, middlewareContext('tenant-a', 'org-a', 'user-a'))
-    const alternateMiddleware = await new DecoratedAgentMiddlewareStrategy(
-      provider,
-      descriptor,
-      'alternate_group'
-    ).createMiddleware({}, middlewareContext('tenant-b', 'org-b', 'user-b'))
+    const defaultStrategy = new DecoratedAgentMiddlewareStrategy(provider, descriptor, 'default_group')
+    const alternateStrategy = new DecoratedAgentMiddlewareStrategy(provider, descriptor, 'alternate_group')
+    const defaultMiddleware = await defaultStrategy.createMiddleware(
+      {},
+      middlewareContext('tenant-a', 'org-a', 'user-a')
+    )
+    const alternateMiddleware = await alternateStrategy.createMiddleware(
+      {},
+      middlewareContext('tenant-b', 'org-b', 'user-b')
+    )
 
+    expect(defaultStrategy.getToolNames()).toEqual(['default_tool'])
+    expect(alternateStrategy.getToolNames()).toEqual(['alternate_tool'])
     expect(defaultMiddleware.tools?.map((tool) => Reflect.get(tool, 'name'))).toEqual(['default_tool'])
     expect(alternateMiddleware.tools?.map((tool) => Reflect.get(tool, 'name'))).toEqual(['alternate_tool'])
     await defaultMiddleware.tools?.[0]?.invoke({ value: 'agent' })

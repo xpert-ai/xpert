@@ -20,6 +20,7 @@ import type { ChatConversationThread } from './conversation-thread.entity'
 
 @Entity('chat_conversation')
 @Index(['tenantId', 'organizationId', 'id'])
+@Index('IDX_chat_conversation_profile_activity', ['tenantId', 'organizationId', 'xpertId', 'createdAt'])
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
     @ApiProperty({ type: () => String })
     @IsString()
