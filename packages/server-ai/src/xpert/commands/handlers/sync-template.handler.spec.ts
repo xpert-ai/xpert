@@ -171,6 +171,120 @@ describe('XpertSyncTemplateHandler', () => {
         )
     })
 
+    it('preserves organization-installed external Xpert bindings across template synchronization', async () => {
+        const externalAssistant = {
+            id: 'bom-engineer-id',
+            name: 'bom-engineer',
+            type: 'agent',
+            agent: { key: 'Agent_BomEngineer' }
+        }
+        const xpert = {
+            id: 'xpert-1',
+            name: 'My Assistant',
+            agent: { key: 'Agent_LifecycleOrchestrator' },
+            options: {
+                templateSource: {
+                    templateId: '@xpert-ai/plugin-example:assistant',
+                    templateKey: 'assistant',
+                    pluginName: '@xpert-ai/plugin-example'
+                }
+            },
+            graph: {
+                nodes: [
+                    { key: 'Agent_LifecycleOrchestrator', type: 'agent', position: { x: 0, y: 0 } },
+                    {
+                        key: externalAssistant.id,
+                        type: 'xpert',
+                        position: { x: 260, y: 360 },
+                        entity: externalAssistant
+                    }
+                ],
+                connections: [
+                    {
+                        key: 'installed-binding-key',
+                        type: 'xpert',
+                        from: 'Agent_LifecycleOrchestrator',
+                        to: externalAssistant.id,
+                        required: true
+                    }
+                ]
+            }
+        }
+        const templateDsl = [
+            'team:',
+            '  name: template-name',
+            '  type: agent',
+            '  agent:',
+            '    key: Agent_LifecycleOrchestrator',
+            'nodes:',
+            '  - key: Agent_LifecycleOrchestrator',
+            '    type: agent',
+            '    position: { x: 40, y: 20 }',
+            '    entity:',
+            '      key: Agent_LifecycleOrchestrator',
+            'connections: []'
+        ].join('\n')
+        const { handler, commandBus } = buildHandler(xpert, { export_data: templateDsl })
+
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand.draft.nodes).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ key: 'Agent_LifecycleOrchestrator', type: 'agent' }),
+                expect.objectContaining({ key: externalAssistant.id, type: 'xpert', entity: externalAssistant })
+            ])
+        )
+        expect(importCommand.draft.connections).toContainEqual({
+            key: 'installed-binding-key',
+            type: 'xpert',
+            from: 'Agent_LifecycleOrchestrator',
+            to: externalAssistant.id,
+            required: true
+        })
+    })
+
+    it('uses the current draft rather than resurrecting an external binding from the last publication', async () => {
+        const xpert = {
+            id: 'xpert-1',
+            name: 'My Assistant',
+            options: {
+                templateSource: {
+                    templateId: '@xpert-ai/plugin-example:assistant',
+                    templateKey: 'assistant',
+                    pluginName: '@xpert-ai/plugin-example'
+                }
+            },
+            draft: { team: {}, nodes: [], connections: [] },
+            graph: {
+                nodes: [
+                    {
+                        key: 'removed-external-assistant',
+                        type: 'xpert',
+                        position: { x: 260, y: 360 },
+                        entity: { id: 'removed-external-assistant', name: 'removed', type: 'agent' }
+                    }
+                ],
+                connections: [
+                    {
+                        key: 'old-binding',
+                        type: 'xpert',
+                        from: 'Agent_template',
+                        to: 'removed-external-assistant',
+                        required: true
+                    }
+                ]
+            }
+        }
+        const { handler, commandBus } = buildHandler(xpert)
+
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+
+        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(importCommand.draft.nodes).toEqual([])
+        expect(importCommand.draft.connections).toEqual([])
+    })
+
     it('does not treat plugin prerequisites as portable resources during template sync', async () => {
         const { handler, commandBus } = buildHandler(
             {

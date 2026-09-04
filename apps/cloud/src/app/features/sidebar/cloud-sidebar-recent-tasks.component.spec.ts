@@ -20,12 +20,12 @@ describe('CloudSidebarRecentTasksComponent', () => {
   }
   const conversationService = {
     unreadRefresh$: conversationRefresh.asObservable(),
-    getMyInOrg: jest.fn(() => of({ items: [conversation], total: 1 }))
+    getSidebarConversations: jest.fn(() => of({ items: [conversation], total: 1 }))
   }
 
   beforeEach(() => {
     assistantBindingService.get.mockClear()
-    conversationService.getMyInOrg.mockClear()
+    conversationService.getSidebarConversations.mockClear()
 
     TestBed.configureTestingModule({
       imports: [CloudSidebarRecentTasksComponent],
@@ -47,18 +47,13 @@ describe('CloudSidebarRecentTasksComponent', () => {
     const component = fixture.componentInstance
     fixture.detectChanges()
 
-    expect(conversationService.getMyInOrg).toHaveBeenLastCalledWith({
-      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
-      order: { updatedAt: OrderTypeEnum.DESC },
-      take: 10,
-      where: { xpertId: 'claw-xpert' }
-    })
+    expect(conversationService.getSidebarConversations).toHaveBeenLastCalledWith('claw-xpert', 10)
     expect(component.conversations()).toEqual([conversation])
 
     conversationRefresh.next()
     routerEvents.next(new NavigationEnd(1, '/chat/clawxpert/c', '/chat/clawxpert/c/thread-1'))
 
-    expect(conversationService.getMyInOrg).toHaveBeenCalledTimes(3)
+    expect(conversationService.getSidebarConversations).toHaveBeenCalledTimes(3)
     expect(component.taskRoute(conversation)).toEqual(['/chat/clawxpert', 'c', 'thread-1'])
   })
 
@@ -81,7 +76,9 @@ describe('CloudSidebarRecentTasksComponent', () => {
       xpertId: 'claw-xpert',
       updatedAt: new Date(Date.UTC(2026, 0, index + 1))
     })) as IChatConversation[]
-    conversationService.getMyInOrg.mockReturnValue(of({ items: conversations, total: conversations.length }))
+    conversationService.getSidebarConversations.mockReturnValue(
+      of({ items: conversations, total: conversations.length })
+    )
 
     const fixture = TestBed.createComponent(CloudSidebarRecentTasksComponent)
     fixture.detectChanges()

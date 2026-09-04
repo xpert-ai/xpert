@@ -3,17 +3,18 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { catchError, filter, map, merge, of, startWith, switchMap } from 'rxjs'
 import {
   AssistantBindingScope,
   AssistantBindingService,
   AssistantCode,
   ChatConversationService,
-  DateRelativePipe,
-  IChatConversation,
-  OrderTypeEnum
+  IChatConversation
 } from '../../@core'
+
+import { CloudSidebarConversationComponent } from './cloud-sidebar-conversation.component'
+
+import { SidebarConversationArchiveButtonComponent } from './conversation-archive.component'
 
 const RECENT_TASK_LIMIT = 10
 
@@ -22,12 +23,19 @@ const RECENT_TASK_LIMIT = 10
   selector: 'xp-cloud-sidebar-recent-tasks',
   templateUrl: './cloud-sidebar-recent-tasks.component.html',
   styleUrl: './cloud-sidebar-recent-tasks.component.scss',
-  imports: [CommonModule, RouterModule, TranslateModule, DateRelativePipe, ...ZardTooltipImports],
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslateModule,
+    CloudSidebarConversationComponent,
+    SidebarConversationArchiveButtonComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CloudSidebarRecentTasksComponent {
   readonly collapsed = input(false)
   readonly expanded = signal(false)
+  readonly xpertId = signal<string | null>(null)
 
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
@@ -45,27 +53,23 @@ export class CloudSidebarRecentTasksComponent {
         this.#assistantBindingService.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER).pipe(
           switchMap((binding) => {
             const xpertId = binding?.assistantId?.trim()
+            this.xpertId.set(xpertId || null)
             if (!xpertId) {
               return of([] as IChatConversation[])
             }
 
-            return this.#conversationService
-              .getMyInOrg({
-                select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
-                order: { updatedAt: OrderTypeEnum.DESC },
-                take: RECENT_TASK_LIMIT,
-                where: {
-                  xpertId
-                }
-              })
-              .pipe(
-                map(({ items }) =>
-                  (items ?? [])
-                    .filter((conversation) => !!conversation?.threadId)
-                    .sort((left, right) => toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt))
-                    .slice(0, RECENT_TASK_LIMIT)
-                )
+            return this.#conversationService.getSidebarConversations(xpertId, RECENT_TASK_LIMIT).pipe(
+              map(({ items }) =>
+                (items ?? [])
+                  .filter((conversation) => !!conversation?.threadId)
+                  .sort(
+                    (left, right) =>
+                      Number(!!right.sidebar?.pinned) - Number(!!left.sidebar?.pinned) ||
+                      toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt)
+                  )
+                  .slice(0, RECENT_TASK_LIMIT)
               )
+            )
           }),
           catchError(() => of([] as IChatConversation[]))
         )
@@ -81,8 +85,8 @@ export class CloudSidebarRecentTasksComponent {
     this.expanded.update((expanded) => !expanded)
   }
 
-  taskTitle(conversation: IChatConversation) {
-    return conversation.title?.trim() || 'Untitled conversation'
+  isTaskActive(conversation: IChatConversation) {
+    return this.#router.url?.split('?')[0] === `/chat/clawxpert/c/${encodeURIComponent(conversation.threadId)}`
   }
 
   taskRoute(conversation: IChatConversation) {
