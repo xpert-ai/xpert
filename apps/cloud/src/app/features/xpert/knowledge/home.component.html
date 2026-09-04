@@ -1,332 +1,271 @@
-<input #uploadInput type="file" class="hidden" multiple (change)="uploadLocalDocuments($event)" />
-
-<div class="knowledge-home">
-  <header class="knowledge-home__header">
-    <div>
-      <h1>{{ 'XP.Knowledgebase.WorkbenchTitle' | translate: { Default: 'Knowledge base' } }}</h1>
-      <p>
-        {{ 'XP.Knowledgebase.WorkbenchDescription' | translate: { Default: 'Share, organize, and manage knowledge.' } }}
-      </p>
-    </div>
-  </header>
-
-  <div class="knowledge-home__body">
-    <aside class="knowledge-sidebar">
-      <button
-        type="button"
-        class="new-knowledgebase-link new-knowledgebase-link--top"
-        [cdkMenuTriggerFor]="newKnowledgebaseMenu"
-      >
-        <i class="ri-add-line"></i>
-        {{ 'XP.Knowledgebase.NewKnowledgebase' | translate: { Default: 'New knowledge base' } }}
-      </button>
-
-      <div class="knowledge-sidebar__section-title">
-        {{ 'XP.Knowledgebase.PersonalKnowledge' | translate: { Default: 'Personal knowledge bases' } }}
-      </div>
-      @for (knowledgebase of personalKnowledgebases(); track knowledgebase.id) {
-        <button
-          type="button"
-          class="knowledge-nav-item"
-          [class.active]="activeKnowledgebaseId() === knowledgebase.id"
-          (click)="selectKnowledgebase(knowledgebase.id)"
-        >
-          <emoji-avatar [avatar]="knowledgebase.avatar" small class="knowledge-nav-item__avatar" />
-          <span class="knowledge-nav-item__name">{{ knowledgebase.name }}</span>
-        </button>
-      } @empty {
-        <div class="knowledge-sidebar__empty">
-          {{ 'XP.Knowledgebase.NoPersonalKnowledge' | translate: { Default: 'No personal knowledge bases' } }}
-        </div>
-      }
-
-      <div class="knowledge-sidebar__section-heading">
-        <span>{{ 'XP.Knowledgebase.TeamKnowledge' | translate: { Default: 'Team knowledge bases' } }}</span>
-      </div>
-      @for (knowledgebase of teamKnowledgebases(); track knowledgebase.id) {
-        <button
-          type="button"
-          class="knowledge-nav-item"
-          [class.active]="activeKnowledgebaseId() === knowledgebase.id"
-          (click)="selectKnowledgebase(knowledgebase.id)"
-        >
-          <emoji-avatar [avatar]="knowledgebase.avatar" small class="knowledge-nav-item__avatar" />
-          <span class="knowledge-nav-item__name">{{ knowledgebase.name }}</span>
-          <span class="knowledge-nav-item__scope">
-            @if (knowledgebase.permission === KnowledgebasePermission.Public) {
-              <i class="ri-earth-line"></i>
-            } @else {
-              <i class="ri-team-line"></i>
+<div class="knowledge-library">
+  <div class="knowledge-library__body">
+    <aside
+      class="scope-rail-shell"
+      [style.width.px]="scopeRailWidth()"
+      [class.scope-rail-shell--expanded]="scopeRailWidth() >= scopeRailExpandedWidth"
+      [class.scope-rail-shell--resizing]="scopeRailResizing()"
+    >
+      <nav class="scope-rail" aria-label="知识库范围">
+        @for (scope of scopeOptions; track scope.key) {
+          <button
+            type="button"
+            class="scope-rail__item"
+            [class.active]="activeScope() === scope.key"
+            (click)="selectScope(scope.key)"
+            [attr.aria-current]="activeScope() === scope.key ? 'page' : null"
+          >
+            <i [class]="scope.icon"></i>
+            <span>{{ scope.label }}</span>
+            @if (scopeCount(scope.key)) {
+              <span class="scope-rail__count">{{ scopeCount(scope.key) }}</span>
             }
-          </span>
-        </button>
-      } @empty {
-        <div class="knowledge-sidebar__empty">
-          {{ 'XP.Knowledgebase.NoTeamKnowledge' | translate: { Default: 'No team knowledge bases' } }}
-        </div>
-      }
+          </button>
+        }
+      </nav>
+      <div
+        class="scope-rail__resize-handle"
+        role="separator"
+        aria-label="调整知识库范围侧栏宽度"
+        aria-orientation="vertical"
+        [attr.aria-valuemin]="scopeRailMinWidth"
+        [attr.aria-valuemax]="scopeRailMaxWidth"
+        [attr.aria-valuenow]="scopeRailWidth()"
+        tabindex="0"
+        title="拖动调整侧栏宽度"
+        (pointerdown)="startScopeRailResize($event)"
+        (keydown)="resizeScopeRailFromKeyboard($event)"
+      ></div>
     </aside>
 
-    <main class="knowledge-main">
-      @if (activeKnowledgebase(); as knowledgebase) {
-        <section class="knowledge-summary">
-          <div class="knowledge-summary__identity">
-            <emoji-avatar [avatar]="knowledgebase.avatar" class="knowledge-summary__avatar" />
-            <div class="min-w-0">
-              <div class="knowledge-summary__title-row">
-                <h2>{{ knowledgebase.name }}</h2>
-                @if (!knowledgebase.permission || knowledgebase.permission === KnowledgebasePermission.Private) {
-                  <span class="scope-badge"
-                    ><i class="ri-lock-line"></i
-                    >{{ 'XP.Knowledgebase.Permission_Private' | translate: { Default: 'Private' } }}</span
-                  >
-                } @else if (knowledgebase.permission === KnowledgebasePermission.Public) {
-                  <span class="scope-badge"
-                    ><i class="ri-earth-line"></i
-                    >{{ 'XP.Knowledgebase.Permission_Public' | translate: { Default: 'Public' } }}</span
-                  >
-                } @else {
-                  <span class="scope-badge"
-                    ><i class="ri-team-line"></i
-                    >{{ 'XP.Knowledgebase.Permission_Organization' | translate: { Default: 'Organization' } }}</span
-                  >
-                }
-              </div>
-              <p>
-                {{
-                  knowledgebase.description ||
-                    ('XP.Knowledgebase.WorkbenchEmptyDescription'
-                      | translate: { Default: 'Keep your files organized and searchable.' })
-                }}
-              </p>
-            </div>
-          </div>
-          <div class="knowledge-summary__actions">
-            <button
-              type="button"
-              class="icon-action"
-              [disabled]="vectorMutationLocked() || mutating() || !canWriteWorkspace()"
-              [cdkMenuTriggerFor]="createMenu"
-              [attr.aria-label]="'XP.ACTIONS.New' | translate: { Default: 'New' }"
-              [zTooltip]="'XP.ACTIONS.New' | translate: { Default: 'New' }"
-              zPosition="top"
-            >
-              <i class="ri-add-line"></i>
-            </button>
-            <button
-              type="button"
-              class="icon-action"
-              [disabled]="vectorMutationLocked() || mutating() || !canWriteWorkspace()"
-              (click)="openUploadPicker()"
-              [attr.aria-label]="'XP.ACTIONS.Upload' | translate: { Default: 'Upload' }"
-              [zTooltip]="'XP.ACTIONS.Upload' | translate: { Default: 'Upload' }"
-              zPosition="top"
-            >
-              <i class="ri-upload-2-line"></i>
-            </button>
-            <button
-              type="button"
-              class="icon-action"
-              [disabled]="vectorMutationLocked() || mutating() || !canWriteWorkspace()"
-              (click)="openConfiguration()"
-              [attr.aria-label]="'XP.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' }"
-              [zTooltip]="'XP.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' }"
-              zPosition="top"
-            >
-              <i class="ri-settings-3-line"></i>
-            </button>
-          </div>
-        </section>
-
-        <section class="knowledge-files">
-          <div class="knowledge-files__toolbar">
-            <div class="knowledge-files__heading">
-              <h3>{{ 'XP.Knowledgebase.AllKnowledge' | translate: { Default: 'All knowledge' } }}</h3>
-              <span>{{ documents().length }} {{ 'XP.Knowledgebase.Items' | translate: { Default: 'items' } }}</span>
-            </div>
-            <div class="knowledge-files__tools">
-              <label class="knowledge-search">
-                <i class="ri-search-line"></i>
-                <input
-                  type="search"
-                  [ngModel]="documentSearch()"
-                  (ngModelChange)="documentSearch.set($event)"
-                  [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-                />
-              </label>
+    <div class="knowledge-content">
+      <header class="knowledge-library__header">
+        <div class="knowledge-library__heading">
+          <div class="knowledge-library__title-row">
+            <h1>知识库</h1>
+            @if (canWriteWorkspace()) {
               <button
                 type="button"
-                class="icon-action icon-action--muted"
-                (click)="loadDocuments()"
-                [disabled]="loadingDocuments()"
-                [attr.aria-label]="'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' }"
+                class="header-action"
+                (click)="newKnowledgebase()"
+                aria-label="新建知识库"
+                zTooltip="新建知识库"
+                zPosition="bottom"
               >
-                <i class="ri-refresh-line" [class.animate-spin]="loadingDocuments()"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="knowledge-breadcrumbs">
-            <button type="button" [class.current]="!parentStack().length" (click)="openBreadcrumb(-1)">
-              {{ knowledgebase.name }}
-            </button>
-            @for (folder of parentStack(); track folder.id; let index = $index) {
-              <i class="ri-arrow-right-s-line"></i>
-              <button
-                type="button"
-                [class.current]="index === parentStack().length - 1"
-                (click)="openBreadcrumb(index)"
-              >
-                {{ folder.name }}
+                <i class="ri-folder-add-line"></i>
               </button>
             }
           </div>
-
-          @if (loadError(); as error) {
-            <div class="knowledge-state knowledge-state--error"><i class="ri-error-warning-line"></i>{{ error }}</div>
-          } @else if (loadingDocuments()) {
-            <div class="knowledge-state">
-              <i class="ri-loader-4-line animate-spin"></i
-              >{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
-            </div>
-          } @else if (!visibleDocuments().length) {
-            <div class="knowledge-state">
-              <i class="ri-file-3-line"></i
-              ><strong>{{ 'XP.Knowledgebase.NoKnowledgeFiles' | translate: { Default: 'No files here' } }}</strong
-              ><span>{{
-                'XP.Knowledgebase.NoKnowledgeFilesDescription'
-                  | translate: { Default: 'Create a document, upload a file, or add a folder to get started.' }
-              }}</span>
-            </div>
-          } @else {
-            <div class="knowledge-file-list">
-              <div class="knowledge-file-list__header">
-                <span>{{ 'XP.Knowledgebase.FileName' | translate: { Default: 'File name' } }}</span
-                ><span>{{ 'XP.Knowledgebase.UpdatedAt' | translate: { Default: 'Updated at' } }}</span>
-              </div>
-              @for (document of visibleDocuments(); track document.id) {
-                <button type="button" class="knowledge-file-row" (click)="openDocument(document)">
-                  <span class="knowledge-file-row__name"
-                    ><span class="file-icon" [class]="documentIconClass(document)"
-                      ><i [class]="documentIcon(document)"></i></span
-                    ><span class="truncate">{{ document.name }}</span></span
-                  >
-                  <span class="knowledge-file-row__updated">{{
-                    document.updatedAt || document.createdAt | date: 'yyyy-MM-dd HH:mm'
-                  }}</span>
-                </button>
-              }
-            </div>
-          }
-        </section>
-      } @else {
-        <div class="knowledge-empty-home">
-          <i class="ri-book-shelf-line"></i>
-          <h2>{{ 'XP.Knowledgebase.NoKnowledgebaseSelected' | translate: { Default: 'Select a knowledge base' } }}</h2>
-          <p>
-            {{
-              'XP.Knowledgebase.NoKnowledgebaseSelectedDescription'
-                | translate: { Default: 'Choose a personal or team knowledge base from the sidebar.' }
-            }}
-          </p>
+          <p>管理和组织您的知识库，集中维护文档、检索配置和知识图谱。</p>
         </div>
-      }
-    </main>
+      </header>
+
+      <main class="knowledge-collection">
+        @if (loadError(); as error) {
+          <div class="collection-state collection-state--error">
+            <i class="ri-error-warning-line"></i>
+            <strong>知识库加载失败</strong>
+            <span>{{ error }}</span>
+            <button type="button" (click)="loadKnowledgebases()">重新加载</button>
+          </div>
+        } @else if (loading() && !knowledgebases().length) {
+          <section class="knowledge-grid" aria-label="正在加载知识库">
+            @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+              <div class="knowledge-card knowledge-card--skeleton" aria-hidden="true">
+                <span class="skeleton-line skeleton-line--title"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line skeleton-line--short"></span>
+              </div>
+            }
+          </section>
+        } @else if (visibleKnowledgebases().length) {
+          <div class="collection-sections">
+            @if (pinnedKnowledgebases().length) {
+              <section
+                class="collection-section collection-section--pinned"
+                aria-labelledby="pinned-knowledgebases-heading"
+              >
+                <button
+                  type="button"
+                  class="collection-section__header"
+                  (click)="toggleSection('pinned')"
+                  [attr.aria-expanded]="sectionExpanded('pinned')"
+                  aria-controls="pinned-knowledgebases"
+                >
+                  <span class="collection-section__title" id="pinned-knowledgebases-heading">
+                    <i class="ri-pushpin-line"></i>
+                    <span>置顶</span>
+                    <span class="collection-section__count">{{ pinnedKnowledgebases().length }}</span>
+                  </span>
+                  <i
+                    class="ri-arrow-right-s-line collection-section__toggle"
+                    [class.expanded]="sectionExpanded('pinned')"
+                  ></i>
+                </button>
+                @if (sectionExpanded('pinned')) {
+                  <div id="pinned-knowledgebases" class="knowledge-grid">
+                    @for (item of pinnedKnowledgebases(); track item.id) {
+                      <ng-container
+                        [ngTemplateOutlet]="knowledgebaseCard"
+                        [ngTemplateOutletContext]="{ $implicit: item }"
+                      ></ng-container>
+                    }
+                  </div>
+                }
+              </section>
+            }
+
+            <section class="collection-section" aria-labelledby="regular-knowledgebases-heading">
+              <button
+                type="button"
+                class="collection-section__header"
+                (click)="toggleSection('regular')"
+                [attr.aria-expanded]="sectionExpanded('regular')"
+                aria-controls="regular-knowledgebases"
+              >
+                <span class="collection-section__title" id="regular-knowledgebases-heading">
+                  <i class="ri-user-line"></i>
+                  <span>{{ regularSectionTitle() }}</span>
+                  <span class="collection-section__count">{{ unpinnedKnowledgebases().length }}</span>
+                </span>
+                <i
+                  class="ri-arrow-right-s-line collection-section__toggle"
+                  [class.expanded]="sectionExpanded('regular')"
+                ></i>
+              </button>
+              @if (sectionExpanded('regular')) {
+                <div id="regular-knowledgebases" class="knowledge-grid">
+                  @for (item of unpinnedKnowledgebases(); track item.id) {
+                    <ng-container
+                      [ngTemplateOutlet]="knowledgebaseCard"
+                      [ngTemplateOutletContext]="{ $implicit: item }"
+                    ></ng-container>
+                  }
+                </div>
+              }
+            </section>
+          </div>
+        } @else {
+          <div class="collection-state collection-state--empty">
+            <i
+              [class]="
+                activeScope() === 'favorites'
+                  ? 'ri-star-line'
+                  : activeScope() === 'recents'
+                    ? 'ri-history-line'
+                    : 'ri-folder-open-line'
+              "
+            ></i>
+            <strong>{{ emptyTitle() }}</strong>
+            <span>{{ emptyDescription() }}</span>
+            @if (canWriteWorkspace() && activeScope() !== 'favorites' && activeScope() !== 'recents') {
+              <button type="button" (click)="newKnowledgebase()">
+                <i class="ri-add-line"></i>
+                新建知识库
+              </button>
+            }
+          </div>
+        }
+      </main>
+    </div>
   </div>
 </div>
 
-@if (editorDocument(); as document) {
-  <div class="knowledge-editor-overlay">
-    <section class="knowledge-editor">
-      <header class="knowledge-editor__header">
-        <div class="knowledge-editor__title">
-          <button
-            type="button"
-            class="icon-action"
-            (click)="closeEditor()"
-            [attr.aria-label]="'XP.KEY_WORDS.Close' | translate: { Default: 'Close' }"
-          >
-            <i class="ri-arrow-left-line"></i></button
-          ><span class="file-icon" [class]="documentIconClass(document)"><i [class]="documentIcon(document)"></i></span
-          ><strong>{{ document.name }}</strong>
-        </div>
-        <div class="knowledge-editor__actions">
-          <span class="editor-status">
-            @if (editorSaving()) {
-              {{ 'XP.Knowledgebase.Saving' | translate: { Default: 'Saving...' } }}
-            } @else if (editorDirty()) {
-              {{ 'XP.Knowledgebase.UnsavedChanges' | translate: { Default: 'Unsaved changes' } }}
-            } @else {
-              {{ 'XP.Knowledgebase.Saved' | translate: { Default: 'Saved' } }}
-            }</span
-          ><button
-            type="button"
-            class="primary-action"
-            [disabled]="editorSaving() || !editorDirty() || !canWriteWorkspace()"
-            (click)="saveEditor()"
-          >
-            <i class="ri-save-line"></i>{{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
-          </button>
-        </div>
-      </header>
-      <div class="knowledge-editor__body">
-        @if (editorLoading()) {
-          <div class="knowledge-state">
-            <i class="ri-loader-4-line animate-spin"></i
-            >{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}
-          </div>
-        } @else if (editorKind() === 'markdown') {
-          <xp-markdown-editor
-            class="knowledge-markdown-editor"
-            [content]="markdownContent()"
-            (contentChange)="updateMarkdownContent($event)"
-          />
-        } @else if (editorKind() === 'spreadsheet') {
-          <xp-spreadsheet-editor
-            class="knowledge-spreadsheet-editor"
-            [sourceUrl]="spreadsheetSourceUrl()"
-            [fileName]="document.name"
-            (dirtyChange)="editorDirty.set($event)"
-          />
-        } @else if (editorKind() === 'docx') {
-          <xp-docx-editor
-            class="knowledge-docx-editor"
-            [documentBuffer]="docxBuffer()"
-            [fileName]="document.name"
-            (dirtyChange)="editorDirty.set($event)"
-            (saveRequest)="saveEditorFile($event)"
-          />
+<ng-template #knowledgebaseCard let-item>
+  <article
+    class="knowledge-card"
+    [class.knowledge-card--team]="item.permission === KnowledgebasePermission.Organization"
+    [class.knowledge-card--public]="item.permission === KnowledgebasePermission.Public"
+    [class.knowledge-card--pinned]="isPinned(item)"
+    tabindex="0"
+    (click)="openKnowledgebase(item)"
+    (keydown.enter)="openKnowledgebaseFromKeyboard($event, item)"
+  >
+    <div class="knowledge-card__actions">
+      <button
+        type="button"
+        class="card-icon-action favorite-action"
+        [class.active]="isFavorite(item)"
+        [attr.aria-pressed]="isFavorite(item)"
+        [attr.aria-label]="isFavorite(item) ? '取消收藏' : '收藏知识库'"
+        [title]="isFavorite(item) ? '取消收藏' : '收藏知识库'"
+        (click)="toggleFavorite(item, $event)"
+      >
+        <i [class]="isFavorite(item) ? 'ri-star-fill' : 'ri-star-line'"></i>
+      </button>
+
+      <button
+        type="button"
+        class="card-icon-action more-action"
+        aria-label="更多操作"
+        title="更多操作"
+        [cdkMenuTriggerFor]="knowledgebaseMenu"
+        [cdkMenuTriggerData]="{ item: item }"
+        (click)="$event.stopPropagation()"
+      >
+        <i class="ri-more-2-fill"></i>
+      </button>
+    </div>
+
+    <div class="knowledge-card__header">
+      <div class="knowledge-card__title-row">
+        @if (isPinned(item)) {
+          <i class="ri-pushpin-fill knowledge-card__pin-icon" title="已置顶"></i>
+        }
+        @if (item.graphRag?.enabled) {
+          <i class="ri-node-tree knowledge-card__type-icon"></i>
+        }
+        <h2 [title]="item.name">{{ item.name }}</h2>
+      </div>
+      @if (item.status === KnowledgebaseStatusEnum.REBUILDING) {
+        <span class="processing-status"><i class="ri-loader-4-line animate-spin"></i>重建中</span>
+      }
+    </div>
+
+    <p class="knowledge-card__description">
+      {{ item.description || '暂无知识库描述' }}
+    </p>
+
+    <footer class="knowledge-card__footer">
+      <div class="knowledge-card__features">
+        <span class="feature-badge" title="文件夹数量">
+          <i class="ri-folder-3-line"></i>
+          {{ item.folderNum ?? '—' }}
+        </span>
+        <span class="feature-badge" title="文档数量">
+          <i class="ri-file-list-3-line"></i>
+          {{ item.documentNum ?? '—' }}
+        </span>
+        @if (item.graphRag?.enabled) {
+          <span class="feature-badge feature-badge--graph" title="已启用知识图谱">
+            <i class="ri-node-tree"></i>
+          </span>
         }
       </div>
-    </section>
-  </div>
-}
-
-<ng-template #createMenu>
-  <div cdkMenu class="knowledge-menu">
-    <button cdkMenuItem (click)="createOnlineDocument('document')">
-      <i class="ri-file-text-line"></i
-      >{{ 'XP.Knowledgebase.NewOnlineDocument' | translate: { Default: 'New document' } }}
-    </button>
-    <button cdkMenuItem (click)="createOnlineDocument('spreadsheet')">
-      <i class="ri-file-excel-2-line"></i
-      >{{ 'XP.Knowledgebase.NewSpreadsheet' | translate: { Default: 'New spreadsheet' } }}
-    </button>
-    <button cdkMenuItem (click)="createFolder()">
-      <i class="ri-folder-add-line"></i>{{ 'XP.Knowledgebase.NewFolder' | translate: { Default: 'New folder' } }}
-    </button>
-  </div>
+      <span class="permission-badge" [title]="creatorLabel(item)">
+        <i [class]="permissionIcon(item)"></i>
+        {{ permissionLabel(item) }}
+      </span>
+    </footer>
+  </article>
 </ng-template>
 
-<ng-template #newKnowledgebaseMenu>
-  <div cdkMenu class="knowledge-menu">
-    <button cdkMenuItem (click)="newKnowledgebase(KnowledgebasePermission.Private)">
-      <i class="ri-lock-line"></i
-      >{{ 'XP.Knowledgebase.NewPersonalKnowledge' | translate: { Default: 'Personal knowledge base' } }}
+<ng-template #knowledgebaseMenu let-item="item">
+  <div class="knowledgebase-menu" cdkMenu>
+    <button cdkMenuItem type="button" (click)="togglePinned(item)">
+      <i [class]="isPinned(item) ? 'ri-unpin-line' : 'ri-pushpin-line'"></i>
+      <span>{{ isPinned(item) ? '取消置顶' : '置顶' }}</span>
     </button>
-    <button cdkMenuItem (click)="newKnowledgebase(KnowledgebasePermission.Organization)">
-      <i class="ri-team-line"></i
-      >{{ 'XP.Knowledgebase.NewTeamKnowledge' | translate: { Default: 'Team knowledge base' } }}
-    </button>
+    @if (canManage(item)) {
+      <button cdkMenuItem type="button" (click)="editKnowledgebase(item)">
+        <i class="ri-settings-3-line"></i>
+        <span>知识库设置</span>
+      </button>
+      <div class="knowledgebase-menu__separator"></div>
+      <button cdkMenuItem type="button" class="danger" (click)="deleteKnowledgebase(item)">
+        <i class="ri-delete-bin-line"></i>
+        <span>删除知识库</span>
+      </button>
+    }
   </div>
 </ng-template>
