@@ -214,7 +214,9 @@ export class PluginResourcesComponent {
   readonly resourceError = computed(() => this.componentsError())
 
   readonly targetComponents = computed(() =>
-    this.components().filter((component) => this.isInstallableInMode(component, this.installMode()))
+    this.components().filter(
+      (component) => this.isInstallableInMode(component, this.installMode()) && !this.isRuntimeNativeMcp(component)
+    )
   )
   readonly installableComponents = computed(() =>
     this.targetComponents().filter((component) => !this.isInstalledCurrent(component))
@@ -489,6 +491,13 @@ export class PluginResourcesComponent {
     return component.installationState?.status === PLUGIN_RESOURCE_INSTALLATION_STATUS.PENDING_AUTH
   }
 
+  isRuntimeNativeMcp(component: Pick<IPluginComponentDefinition, 'metadata'>) {
+    return (
+      readMetadataBoolean(component.metadata, 'runtimeDiscovered') &&
+      readMetadataBoolean(component.metadata, 'nativeMcp')
+    )
+  }
+
   async submit() {
     const pluginName = this.plugin()?.name
     const workspaceId = this.selectedWorkspaceId()
@@ -645,4 +654,8 @@ function samePluginResourceStateRequest(a: PluginResourceStateRequest, b: Plugin
 
 function sameStringArray(a: string[], b: string[]) {
   return a.length === b.length && a.every((item, index) => item === b[index])
+}
+
+function readMetadataBoolean(value: unknown, key: string) {
+  return !!value && typeof value === 'object' && Reflect.get(value, key) === true
 }

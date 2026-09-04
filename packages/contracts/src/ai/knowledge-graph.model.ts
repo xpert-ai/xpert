@@ -21,7 +21,7 @@ export enum KnowledgeGraphIndexJobStatus {
 
 export type KnowledgeGraphIndexJobType = 'document' | 'rebuild'
 
-export type GraphRagRetrievalMode = 'vector' | 'graph' | 'hybrid'
+export type GraphRagRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
 export type KnowledgeGraphItemOrigin = 'extracted' | 'manual' | 'curated'
 

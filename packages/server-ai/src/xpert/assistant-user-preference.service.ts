@@ -30,10 +30,14 @@ export class AssistantUserPreferenceService {
         return this.repository.findOne({ where: this.preferenceWhere(scope, assistantId) })
     }
 
-    async getDomain<K extends TAssistantUserPreferenceDomain>(
+    getDomain<K extends TAssistantUserPreferenceDomain>(
         assistantId: string,
         domain: K
-    ): Promise<TAssistantUserPreferenceDomainMap[K] | null> {
+    ): Promise<TAssistantUserPreferenceDomainMap[K] | null>
+    async getDomain(
+        assistantId: string,
+        domain: TAssistantUserPreferenceDomain
+    ): Promise<TAssistantUserPreferenceDomainMap[TAssistantUserPreferenceDomain] | null> {
         const preference = await this.getPreferences(assistantId)
         return preference?.preferences?.[domain] ?? null
     }

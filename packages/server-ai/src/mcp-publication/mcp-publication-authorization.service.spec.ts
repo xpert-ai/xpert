@@ -7,11 +7,16 @@ import { McpPublicationAuthorizationService } from './mcp-publication-authorizat
 
 describe('McpPublicationAuthorizationService', () => {
     let findOne: jest.Mock
+    let assertEnabled: jest.Mock
     let service: McpPublicationAuthorizationService
 
     beforeEach(() => {
         findOne = jest.fn()
-        service = new McpPublicationAuthorizationService({ findOne } as unknown as Repository<User>)
+        assertEnabled = jest.fn().mockResolvedValue(undefined)
+        service = new McpPublicationAuthorizationService(
+            { findOne } as unknown as Repository<User>,
+            { assertEnabled } as never
+        )
     })
 
     it('checks current organization membership on every user request', async () => {
@@ -32,6 +37,18 @@ describe('McpPublicationAuthorizationService', () => {
             ForbiddenException
         )
         expect(findOne).not.toHaveBeenCalled()
+    })
+
+    it('requires an enabled organization grant for a tenant-scoped publication', async () => {
+        findOne.mockResolvedValue(user(true))
+        const tenantPublication = publication()
+        tenantPublication.organizationId = null
+
+        await expect(service.assertCanRun(tenantPublication, principal())).resolves.toBeUndefined()
+        expect(assertEnabled).toHaveBeenCalledWith(tenantPublication, principal().organizationId)
+
+        assertEnabled.mockRejectedValueOnce(new ForbiddenException())
+        await expect(service.assertCanRun(tenantPublication, principal())).rejects.toBeInstanceOf(ForbiddenException)
     })
 
     it('allows a service account already bound to the publication scope without a workspace lookup', async () => {

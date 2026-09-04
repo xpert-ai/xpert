@@ -32,7 +32,9 @@ import {
   TPluginWithDownloads
 } from '../types'
 import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
+import { PluginMarketplaceMcpProviderComponent } from './marketplace-mcp-provider.component'
 import { PluginSkillTrialLauncherService } from './plugin-skill-trial-launcher.service'
+import { isRuntimeNativeMcp, runtimeMcpProviderDescription, runtimeMcpProviderName } from './runtime-mcp-provider.util'
 
 type TAppSetupAction =
   | { type: 'install-app'; resource: TPluginResourceContribution }
@@ -53,6 +55,7 @@ type TTrialShortcutView = {
 export type PluginMarketplaceDetailDialogData = {
   plugin: TPluginWithDownloads
   showActions?: boolean
+  reload?: () => void
 }
 
 @Component({
@@ -64,7 +67,8 @@ export type PluginMarketplaceDetailDialogData = {
     XpSpinComponent,
     IconComponent,
     ZardBadgeComponent,
-    ZardButtonComponent
+    ZardButtonComponent,
+    PluginMarketplaceMcpProviderComponent
   ],
   selector: 'xp-plugin-marketplace-detail',
   templateUrl: './marketplace-detail.component.html',
@@ -81,9 +85,11 @@ export class PluginMarketplaceDetailComponent {
 
   readonly plugin = signal(this.#data.plugin)
   readonly showActions = this.#data.showActions !== false
+  readonly reload = this.#data.reload ?? (() => undefined)
+  readonly installedPluginName = computed(() => this.resolveInstalledPluginName())
   readonly marketplaceContents = computed(() => this.plugin()?.contributions ?? [])
   readonly appContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'app'))
-  readonly mcpContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'mcp'))
+  readonly declaredMcpContents = computed(() => this.marketplaceContents().filter((content) => content.type === 'mcp'))
   readonly assistantTemplateContents = computed(() =>
     this.marketplaceContents().filter((content) => this.isAssistantTemplate(content))
   )
@@ -105,6 +111,24 @@ export class PluginMarketplaceDetailComponent {
   })
 
   readonly componentDefinitions = computed(() => this.#components.value() ?? [])
+  readonly mcpContents = computed(() => {
+    const contents = new Map(
+      this.declaredMcpContents().map((content) => [
+        this.componentDefinitionKey(PLUGIN_COMPONENT_TYPE.TOOLSET, content.name),
+        content
+      ])
+    )
+    for (const component of this.componentDefinitions()) {
+      if (!isRuntimeNativeMcp(component)) {
+        continue
+      }
+      const key = this.componentDefinitionKey(component.componentType, component.componentKey)
+      if (!contents.has(key)) {
+        contents.set(key, runtimeMcpContribution(component))
+      }
+    }
+    return [...contents.values()]
+  })
   readonly componentDefinitionMap = computed(() => {
     const map = new Map<string, IPluginComponentDefinition>()
     for (const component of this.componentDefinitions()) {
@@ -170,6 +194,17 @@ export class PluginMarketplaceDetailComponent {
     }
 
     return component.componentType === declaredResource.componentType ? declaredResource : null
+  }
+
+  runtimeMcpComponent(content: TPluginMarketplaceContribution) {
+    const resource = this.declaredResourceContribution(content)
+    if (resource?.componentType !== PLUGIN_COMPONENT_TYPE.TOOLSET) {
+      return null
+    }
+    const component = this.componentDefinitionMap().get(
+      this.componentDefinitionKey(resource.componentType, resource.name)
+    )
+    return component && isRuntimeNativeMcp(component) ? component : null
   }
 
   initializeResource(content: TPluginResourceContribution, event?: MouseEvent) {
@@ -308,10 +343,24 @@ export class PluginMarketplaceDetailComponent {
         this.initializeAssistantTemplate(action.template, event)
         break
       case 'select-template':
-      case 'details':
         this.selectApp(app)
         break
+      case 'details':
+        this.openApplicationDetails(app)
+        break
     }
+  }
+
+  openApplicationDetails(app: TPluginMarketplaceContribution) {
+    const pluginName = this.resolveInstalledPluginName()
+    if (!pluginName) {
+      return
+    }
+
+    this.close()
+    void this.#router.navigate(['/explore/apps', app.name], {
+      queryParams: { plugin: pluginName }
+    })
   }
 
   async tryShortcut(shortcut: TTrialShortcutView, event?: MouseEvent) {
@@ -379,7 +428,7 @@ export class PluginMarketplaceDetailComponent {
       case 'tool':
         return 'h-5 border-accent/25 bg-accent/10 text-accent'
       case 'mcp':
-        return 'h-5 border-accent/25 bg-accent/10 text-accent'
+        return 'h-5 border-primary/25 bg-primary/10 text-text-primary'
       case 'middleware':
         return 'h-5 border-accent/25 bg-accent/10 text-accent'
       case 'hook':
@@ -593,6 +642,28 @@ export class PluginMarketplaceDetailComponent {
 
 function readString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function runtimeMcpContribution(component: IPluginComponentDefinition): TPluginMarketplaceContribution {
+  const name = runtimeMcpProviderName(component)
+  const description = runtimeMcpProviderDescription(component)
+  const provider = readConfigString(component.config, 'provider')
+  return {
+    type: 'mcp',
+    name: component.componentKey,
+    displayName: name,
+    ...(description ? { description } : {}),
+    metadata: {
+      protocol: 'native',
+      runtimeDiscovered: true,
+      ...(provider ? { provider } : {})
+    }
+  }
+}
+
+function readConfigString(value: unknown, key: string) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return readString(Reflect.get(value, key))
 }
 
 function readContributionColor(content: TPluginMarketplaceContribution) {

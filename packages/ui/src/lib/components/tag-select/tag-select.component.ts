@@ -100,6 +100,7 @@ export class ZardTagSelectComponent implements ControlValueAccessor {
   readonly compareWith = input<ZardTagSelectCompareWith<unknown> | null>(null)
   readonly displayWith = input<ZardTagSelectDisplayWith<unknown> | null>(null)
   readonly createValueFromInput = input<ZardTagSelectCreateValueFromInput<unknown> | null>(null)
+  readonly checkable = input(false, { transform: booleanAttribute })
   readonly zDisabled = input(false, { transform: booleanAttribute })
 
   readonly valueChange = output<unknown[]>()
@@ -142,11 +143,15 @@ export class ZardTagSelectComponent implements ControlValueAccessor {
     }))
   )
   protected readonly normalizedSearch = computed(() => normalizeTagSelectToken(this.inputValue()))
-  protected readonly availableOptions = computed(() =>
-    this.options().filter(
+  protected readonly availableOptions = computed(() => {
+    if (this.checkable()) {
+      return this.options()
+    }
+
+    return this.options().filter(
       (option) => !hasTagSelectValue(this.currentValues(), option.value, this.compareWith(), this.mode() === 'tags')
     )
-  )
+  })
   protected readonly visibleOptions = computed(() => {
     if (!this.enableSuggestions()) {
       return []
@@ -396,7 +401,12 @@ export class ZardTagSelectComponent implements ControlValueAccessor {
   }
 
   private selectOption(option: ZardTagSelectOption<unknown>): void {
-    const nextValues = addTagSelectValue(this.currentValues(), option.value, this.compareWith(), this.mode() === 'tags')
+    const currentValues = this.currentValues()
+    const isSelected = hasTagSelectValue(currentValues, option.value, this.compareWith(), this.mode() === 'tags')
+    const nextValues =
+      this.checkable() && this.mode() === 'multiple' && isSelected
+        ? removeTagSelectValue(currentValues, option.value, this.compareWith(), false)
+        : addTagSelectValue(currentValues, option.value, this.compareWith(), this.mode() === 'tags')
     this.emitValues(nextValues)
     this.setInputValue('')
     this.activeIndex.set(-1)

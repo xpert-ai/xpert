@@ -99,7 +99,7 @@
   } @else if (featuredItem(); as featured) {
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <section
-        class="relative min-h-[360px] min-w-0 overflow-hidden rounded-xl border border-border bg-card px-5 py-8 md:px-8 md:py-10"
+        class="relative min-h-[360px] min-w-0 overflow-hidden rounded-3xl border border-border bg-card px-5 py-8 md:px-8 md:py-10"
         (mouseenter)="pauseHeroCarousel()"
         (mouseleave)="resumeHeroCarousel()"
         (focusin)="pauseHeroCarousel()"
@@ -186,7 +186,7 @@
           </div>
 
           <article
-            class="relative h-[320px] max-h-[320px] min-w-0 overflow-hidden rounded-xl border border-border bg-background shadow-xl md:h-[300px] md:max-h-[300px]"
+            class="relative isolate h-[320px] max-h-[320px] min-w-0 overflow-hidden rounded-2xl border border-border bg-background shadow-xl md:h-[300px] md:max-h-[300px]"
           >
             @let preview = featuredApplicationPreview();
             @if (preview) {
@@ -219,7 +219,7 @@
               data-featured-expert-content
               [class]="
                 preview
-                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[68%] overflow-hidden border-t border-border/60 bg-background/55 p-4 shadow-xl backdrop-blur-2xl supports-[backdrop-filter]:bg-background/45 md:p-5'
+                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[68%] overflow-hidden rounded-b-[inherit] border-t border-border/60 bg-background/55 p-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/5 md:p-5'
                   : 'relative z-10 flex h-full flex-col p-5'
               "
             >
@@ -492,7 +492,7 @@
                   data-application-card-content
                   [class]="
                     screenshot
-                      ? 'absolute inset-x-0 bottom-0 z-10 flex flex-col border-t border-border/60 bg-background/55 p-4 shadow-xl backdrop-blur-2xl supports-[backdrop-filter]:bg-background/45'
+                      ? 'absolute inset-x-0 bottom-0 z-10 flex flex-col border-t border-border/60 bg-background/55 p-4 shadow-xl backdrop-blur-sm supports-[backdrop-filter]:bg-background/5'
                       : 'relative z-10 flex flex-col p-4'
                   "
                 >

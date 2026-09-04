@@ -35,6 +35,24 @@ jest.mock('../resources/resources.component', () => {
   return { PluginResourcesComponent }
 })
 
+jest.mock('./marketplace-mcp-provider.component', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+
+  @Component({
+    standalone: true,
+    selector: 'xp-plugin-marketplace-mcp-provider',
+    template: '<div data-testid="inline-mcp-provider"></div>'
+  })
+  class PluginMarketplaceMcpProviderComponent {
+    @Input() pluginName?: string
+    @Input() component?: unknown
+    @Input() showActions?: boolean
+    @Input() reload?: () => void
+  }
+
+  return { PluginMarketplaceMcpProviderComponent }
+})
+
 jest.mock('./marketplace-skill-detail-dialog.component', () => {
   const { Component } = jest.requireActual('@angular/core')
 
@@ -915,6 +933,31 @@ describe('PluginMarketplaceDetailComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('XP.Plugin.InstallApp')
   })
 
+  it('opens the application detail route with the contributing plugin package', async () => {
+    const { component, dialogRef, router } = await createComponent(
+      createPlugin({
+        name: '@xpert-ai/plugin-factory-operations',
+        packageName: '@xpert-ai/plugin-factory-operations',
+        contributions: [
+          {
+            type: 'app',
+            name: 'factory-operations',
+            displayName: 'Factory Operations'
+          }
+        ]
+      }),
+      []
+    )
+    const app = component.appContents()[0]
+
+    component.handleAppAction(app)
+
+    expect(dialogRef.close).toHaveBeenCalled()
+    expect(router.navigate).toHaveBeenCalledWith(['/explore/apps', 'factory-operations'], {
+      queryParams: { plugin: '@xpert-ai/plugin-factory-operations' }
+    })
+  })
+
   it('initializes the associated assistant template from an app without a real app component', async () => {
     const { component, dialog } = await createComponent(
       createPlugin({
@@ -1125,6 +1168,12 @@ describe('PluginMarketplaceDetailComponent', () => {
     )
   })
 
+  it('uses a readable foreground color for MCP badges', async () => {
+    const { component } = await createComponent(createPlugin(), [])
+    expect(component.contentTypeBadgeClass('mcp')).toContain('text-text-primary')
+    expect(component.contentTypeBadgeClass('mcp')).not.toContain('text-accent')
+  })
+
   it('shows declared standalone MCP resources before the plugin is installed', async () => {
     const { component } = await createComponent(
       createPlugin({
@@ -1149,8 +1198,8 @@ describe('PluginMarketplaceDetailComponent', () => {
     })
   })
 
-  it('installs MCP contributions backed by a native toolset at organization scope', async () => {
-    const { component, dialog } = await createComponent(
+  it('renders native MCP management inline instead of opening another resource dialog', async () => {
+    const { component, dialog, fixture } = await createComponent(
       createPlugin({
         contributions: [
           {
@@ -1164,34 +1213,99 @@ describe('PluginMarketplaceDetailComponent', () => {
         {
           componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
           componentKey: 'browser-lab-mcp',
-          definitionHash: 'mcp-hash'
+          definitionHash: 'mcp-hash',
+          config: { provider: 'browser_lab', toolCount: 3, runtimeDiscovered: true, nativeMcp: true },
+          metadata: { runtimeDiscovered: true, nativeMcp: true }
         }
       ]
     )
 
     const resource = component.resourceContribution(component.mcpContents()[0])
     expect(resource?.componentType).toBe('toolset')
+    expect(component.runtimeMcpComponent(component.mcpContents()[0])?.componentKey).toBe('browser-lab-mcp')
+    expect(fixture.nativeElement.querySelector('[data-testid="inline-mcp-provider"]')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Manage MCP')
+    expect(dialog.open).not.toHaveBeenCalled()
+  })
 
-    if (!resource) {
-      throw new Error('Expected MCP resource contribution')
-    }
-    component.initializeResource(resource)
+  it('renders a runtime MCP provider without a marketplace contribution', async () => {
+    const { component, fixture } = await createComponent(createPlugin({ contributions: [] }), [
+      {
+        componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+        componentKey: 'runtime-only-mcp',
+        definitionHash: 'runtime-only-hash',
+        config: {
+          provider: 'runtime_only',
+          name: 'Runtime-only MCP',
+          description: 'Discovered from the active plugin provider registry.',
+          toolCount: 4,
+          runtimeDiscovered: true,
+          nativeMcp: true
+        },
+        metadata: { runtimeDiscovered: true, nativeMcp: true }
+      }
+    ])
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      PluginResourcesComponent,
+    expect(component.marketplaceContents()).toEqual([])
+    expect(component.mcpContents()).toEqual([
       expect.objectContaining({
-        data: expect.objectContaining({
-          initialComponents: [
-            {
-              componentType: 'toolset',
-              componentKey: 'browser-lab-mcp'
-            }
-          ],
-          initialInstallMode: 'organization',
-          allowedInstallModes: ['organization']
-        })
+        type: 'mcp',
+        name: 'runtime-only-mcp',
+        displayName: 'Runtime-only MCP'
       })
+    ])
+    expect(component.runtimeMcpComponent(component.mcpContents()[0])?.componentKey).toBe('runtime-only-mcp')
+    expect(fixture.nativeElement.textContent).toContain('Runtime-only MCP')
+    expect(fixture.nativeElement.querySelector('[data-testid="inline-mcp-provider"]')).not.toBeNull()
+  })
+
+  it('renders multiple independently managed MCP Providers from one plugin', async () => {
+    const provider = (
+      componentKey: string,
+      providerKey: string,
+      name: string,
+      toolCount: number
+    ): IPluginComponentDefinition => ({
+      componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+      componentKey,
+      definitionHash: `${componentKey}-hash`,
+      config: {
+        provider: providerKey,
+        name,
+        toolCount,
+        runtimeDiscovered: true,
+        nativeMcp: true
+      },
+      metadata: { runtimeDiscovered: true, nativeMcp: true }
+    })
+    const { component, fixture } = await createComponent(
+      createPlugin({
+        contributions: [
+          {
+            type: 'mcp',
+            name: 'factory-operations',
+            displayName: 'Factory Recovery MCP Capabilities'
+          },
+          {
+            type: 'mcp',
+            name: 'factory-operations-insights',
+            displayName: 'Factory Operations Insights MCP'
+          }
+        ]
+      }),
+      [
+        provider('factory-operations', 'factory_ops', 'Factory Recovery MCP Capabilities', 7),
+        provider('factory-operations-insights', 'factory_ops_insights', 'Factory Operations Insights MCP', 5)
+      ]
     )
+
+    expect(component.mcpContents().map((content) => content.name)).toEqual([
+      'factory-operations',
+      'factory-operations-insights'
+    ])
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="inline-mcp-provider"]')).toHaveLength(2)
+    expect(fixture.nativeElement.textContent).toContain('Factory Recovery MCP Capabilities')
+    expect(fixture.nativeElement.textContent).toContain('Factory Operations Insights MCP')
   })
 
   it('folds view and middleware content into the selected app capabilities', async () => {

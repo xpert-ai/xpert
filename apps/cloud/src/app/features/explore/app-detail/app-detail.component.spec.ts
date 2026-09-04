@@ -1,4 +1,6 @@
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   pluginApplicationCopilotModel,
   pluginApplicationDefaultCopilotModel,
@@ -77,5 +79,27 @@ describe('ApplicationDetail model selection', () => {
   it('does not serialize an incomplete selection', () => {
     expect(pluginApplicationModelId(null)).toBeNull()
     expect(pluginApplicationModelId({ copilotId: 'copilot-1' })).toBeNull()
+  })
+
+  it('ships the MCP Provider section labels through every frontend locale catalog', () => {
+    for (const locale of ['en', 'en-US', 'zh-CN', 'zh-Hans', 'zh-Hant']) {
+      const messages = JSON.parse(readFileSync(join(__dirname, '../../../../assets/i18n', `${locale}.json`), 'utf8'))
+      expect(messages.XP?.Explore?.Application?.McpProviders).toEqual(expect.any(String))
+      expect(messages.XP?.Explore?.Application?.McpProvidersDescription).toEqual(expect.any(String))
+    }
+
+    const simplifiedChinese = JSON.parse(readFileSync(join(__dirname, '../../../../assets/i18n/zh-Hans.json'), 'utf8'))
+    const traditionalChinese = JSON.parse(readFileSync(join(__dirname, '../../../../assets/i18n/zh-Hant.json'), 'utf8'))
+    expect(simplifiedChinese.XP.Explore.Application.McpProviders).toBe('MCP 服务提供方')
+    expect(traditionalChinese.XP.Explore.Application.McpProviders).toBe('MCP 服務提供方')
+  })
+
+  it('composes MCP Providers as a lazy single-open accordion with flat provider details', () => {
+    const template = readFileSync(join(__dirname, 'app-detail.component.html'), 'utf8')
+
+    expect(template).toContain('<z-accordion')
+    expect(template).toContain('[zDefaultValue]="mcpProviders()[0]?.componentKey ?? \'\'"')
+    expect(template).toContain('<ng-template zAccordionContent>')
+    expect(template).toContain('surface="flat"')
   })
 })

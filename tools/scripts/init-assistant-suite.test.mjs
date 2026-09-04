@@ -104,12 +104,14 @@ function team({ id, name, title, templateKey, agentKey, draft, graph, version })
     name,
     title,
     version,
-    agent: { key: agentKey },
     options: {
       templateSource: { pluginName: '@xpert-ai/plugin-test-suite', templateKey }
     },
     ...(draft ? { draft } : {}),
-    ...(graph ? { graph } : {})
+    graph: graph ?? {
+      nodes: [{ key: agentKey, type: 'agent', entity: { key: agentKey, leaderKey: null } }],
+      connections: []
+    }
   }
 }
 
@@ -156,7 +158,7 @@ test('installs roles first and publishes an Orchestrator with one direct require
       return
     }
     if (request.method === 'GET' && request.url.startsWith('/api/xpert-template/')) {
-      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length)).split(':').at(-1)
+      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length))
       response.end(JSON.stringify({ pluginName: '@xpert-ai/plugin-test-suite', key: template }))
       return
     }
@@ -278,6 +280,156 @@ test('installs roles first and publishes an Orchestrator with one direct require
   assert.equal(receipt.readyForTesting, true)
 })
 
+test('refreshes an exact existing suite, restores required bindings, and republishes every Assistant', async (t) => {
+  const fixture = createProfile()
+  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
+  const requests = []
+  let savedDraft = null
+  let orchestratorPublished = false
+
+  const server = await listen(async (request, response) => {
+    const body = await readRequestBody(request)
+    requests.push({ body, method: request.method, path: request.url })
+    response.setHeader('content-type', 'application/json')
+
+    if (request.url === '/api/plugin/by-names') {
+      response.end(JSON.stringify([{ name: '@xpert-ai/plugin-test-suite', version: '1.2.3' }]))
+      return
+    }
+    if (request.method === 'GET' && request.url.startsWith('/api/xpert-template/')) {
+      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length))
+      response.end(JSON.stringify({ pluginName: '@xpert-ai/plugin-test-suite', key: template }))
+      return
+    }
+    if (request.method === 'GET' && request.url.startsWith('/api/xpert/by-workspace/')) {
+      const data = JSON.parse(new URL(request.url, server.url).searchParams.get('data'))
+      const isOrchestrator = data.where.name === 'test-orchestrator-refresh-01'
+      response.end(
+        JSON.stringify({
+          items: [{ id: isOrchestrator ? 'orchestrator-id' : 'role-id', name: data.where.name }]
+        })
+      )
+      return
+    }
+    if (request.method === 'POST' && request.url.endsWith('/sync-template')) {
+      response.end(JSON.stringify({ success: true }))
+      return
+    }
+    if (request.method === 'POST' && request.url === '/api/xpert/orchestrator-id/draft') {
+      savedDraft = body
+      response.end(JSON.stringify({ success: true }))
+      return
+    }
+    if (request.method === 'POST' && request.url.endsWith('/publish?newVersion=false')) {
+      if (request.url.startsWith('/api/xpert/orchestrator-id/')) orchestratorPublished = true
+      response.end(JSON.stringify({ success: true }))
+      return
+    }
+    if (request.method === 'GET' && request.url === '/api/xpert/role-id/team') {
+      response.end(
+        JSON.stringify(
+          team({
+            id: 'role-id',
+            name: 'test-bom-engineer-refresh-01',
+            title: 'Test BOM Engineer refresh-01',
+            templateKey: 'bom-engineer',
+            agentKey: 'Agent_BomEngineer',
+            version: 2
+          })
+        )
+      )
+      return
+    }
+    if (request.method === 'GET' && request.url === '/api/xpert/orchestrator-id/team') {
+      const draft = savedDraft ?? {
+        team: {
+          agent: { key: 'Agent_LifecycleOrchestrator' },
+          options: {
+            templateSource: { pluginName: '@xpert-ai/plugin-test-suite', templateKey: 'orchestrator' }
+          }
+        },
+        nodes: [{ key: 'Agent_LifecycleOrchestrator', type: 'agent' }],
+        connections: []
+      }
+      response.end(
+        JSON.stringify(
+          team({
+            id: 'orchestrator-id',
+            name: 'test-orchestrator-refresh-01',
+            title: 'Test Orchestrator refresh-01',
+            templateKey: 'orchestrator',
+            agentKey: 'Agent_LifecycleOrchestrator',
+            version: 2,
+            draft,
+            graph: orchestratorPublished ? { nodes: savedDraft.nodes, connections: savedDraft.connections } : undefined
+          })
+        )
+      )
+      return
+    }
+
+    response.statusCode = 404
+    response.end(JSON.stringify({ message: `Unhandled ${request.method} ${request.url}` }))
+  })
+  t.after(() => server.close())
+
+  const result = await runCli(
+    [
+      '--profile',
+      fixture.profilePath,
+      '--workspace-id',
+      'workspace-test',
+      '--org-id',
+      'org-test',
+      '--run-id',
+      'refresh-01',
+      '--api-url',
+      server.url,
+      '--refresh',
+      '--no-keychain'
+    ],
+    { XPERT_TOKEN: 'suite-secret-token' }
+  )
+
+  assert.equal(result.code, 0, result.stderr)
+  assert.match(result.stdout, /refresh exact existing batch/)
+  assert.equal(requests.filter((item) => item.path.endsWith('/sync-template')).length, 2)
+  assert.equal(requests.filter((item) => item.path.endsWith('/install')).length, 0)
+  assert.equal(requests.filter((item) => item.path.endsWith('/publish?newVersion=false')).length, 2)
+  assert.deepEqual(savedDraft.connections, [
+    {
+      key: 'Agent_LifecycleOrchestrator/role-id',
+      type: 'xpert',
+      from: 'Agent_LifecycleOrchestrator',
+      to: 'role-id',
+      required: true
+    }
+  ])
+})
+
+test('rejects using refresh as partial-run recovery', async (t) => {
+  const fixture = createProfile()
+  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
+
+  const result = await runCli([
+    '--profile',
+    fixture.profilePath,
+    '--workspace-id',
+    'workspace-test',
+    '--org-id',
+    'org-test',
+    '--run-id',
+    'refresh-02',
+    '--refresh',
+    '--resume',
+    '--dry-run',
+    '--no-keychain'
+  ])
+
+  assert.notEqual(result.code, 0)
+  assert.match(result.stderr, /--refresh and --resume are mutually exclusive/)
+})
+
 test('refuses to overwrite a colliding Assistant unless resume is explicit', async (t) => {
   const fixture = createProfile()
   t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
@@ -290,7 +442,7 @@ test('refuses to overwrite a colliding Assistant unless resume is explicit', asy
       return
     }
     if (request.method === 'GET' && request.url.startsWith('/api/xpert-template/')) {
-      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length)).split(':').at(-1)
+      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length))
       response.end(JSON.stringify({ pluginName: '@xpert-ai/plugin-test-suite', key: template }))
       return
     }

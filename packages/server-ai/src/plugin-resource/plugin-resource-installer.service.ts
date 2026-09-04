@@ -30,9 +30,17 @@ import {
     PluginBundleComponentRegistration,
     readPluginBundleManifest
 } from '@xpert-ai/server-core'
-import { BadRequestException, HttpStatus, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
+import {
+    BadRequestException,
+    HttpStatus,
+    Inject,
+    Injectable,
+    Logger,
+    NotFoundException,
+    Optional
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, XpertToolProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { mkdir, readFile, realpath } from 'node:fs/promises'
 import { t } from 'i18next'
@@ -49,6 +57,7 @@ import { PLUGIN_HOOKS_MIDDLEWARE_NAME } from './plugin-hooks.middleware'
 import { buildBlockedAppConfig, resolvePluginAppResourceInstallationStatus } from './plugin-resource-app-status'
 import {
     isPluginResourceInstallableForTarget,
+    listRuntimeToolProviderComponents,
     PluginResourceInstallTarget,
     readPluginResourceComponents,
     resolveLoadedPluginResourceRoot
@@ -85,6 +94,12 @@ export type RuntimeComponent = {
     policyOverrides?: XpertPluginMcpServerPolicy
     events?: string[]
     auth?: 'on_install' | 'on_first_use'
+}
+
+export type RegisteredRuntimeToolProviderInstallation = {
+    installation: PluginResourceInstallation
+    previousInstallation: PluginResourceInstallation | null
+    previousToolset: XpertToolset | null
 }
 
 export function selectPluginResourceComponents(
@@ -190,6 +205,8 @@ export function buildPluginManagedMcpToolsetEntity(
 
 @Injectable()
 export class PluginResourceInstallerService {
+    private readonly logger = new Logger(PluginResourceInstallerService.name)
+
     constructor(
         @InjectRepository(PluginResourceInstallation)
         private readonly installationRepo: Repository<PluginResourceInstallation>,
@@ -204,6 +221,7 @@ export class PluginResourceInstallerService {
         private readonly toolsetService: XpertToolsetService,
         private readonly capabilityCatalog: McpCapabilityCatalogService,
         private readonly xpertService: XpertService,
+        private readonly toolProviderRegistry: XpertToolProviderRegistry,
         @Optional()
         @Inject(LOADED_PLUGINS)
         private readonly loadedPlugins: LoadedPluginRecord[] = []
@@ -243,6 +261,124 @@ export class PluginResourceInstallerService {
             installations.push(await this.installRuntimeComponent(runtimeComponent, null, null))
         }
         return { installations, pendingAuth: [] }
+    }
+
+    /**
+     * Installs only a Provider proven to come from the runtime registry. Manifest
+     * metadata is deliberately excluded from this trust boundary.
+     */
+    async installRegisteredRuntimeToolProviderToOrganization(input: {
+        pluginName: string
+        componentKey: string
+        provider: string
+        sourceScopeKey: string
+    }): Promise<RegisteredRuntimeToolProviderInstallation> {
+        const pluginName = normalizePluginName(input.pluginName)
+        const registration = listRuntimeToolProviderComponents(
+            pluginName,
+            this.toolProviderRegistry,
+            input.sourceScopeKey
+        ).find(
+            ({ component, source }) =>
+                source.kind === 'plugin' &&
+                normalizePluginName(source.pluginName) === pluginName &&
+                source.scopeKey === input.sourceScopeKey &&
+                component.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET &&
+                component.componentKey === input.componentKey
+        )
+        if (!registration) {
+            throw new BadRequestException(
+                `Plugin component '${input.componentKey}' is not registered by '${pluginName}' in the active runtime scope.`
+            )
+        }
+        const config = registration.component.config
+        const provider = isObjectValue(config) ? readStringField(config, 'provider') : undefined
+        if (provider !== input.provider) {
+            throw new BadRequestException(
+                `Runtime MCP provider '${provider ?? ''}' does not match registered provider '${input.provider}'.`
+            )
+        }
+
+        const rootDir = resolveLoadedPluginResourceRoot(pluginName, this.loadedPlugins)
+        const runtimeComponent: RuntimeComponent = {
+            pluginName,
+            pluginVersion: registration.pluginVersion,
+            component: registration.component,
+            rootDir
+        }
+        const previousInstallation = await this.findInstallation(
+            null,
+            null,
+            null,
+            pluginName,
+            PLUGIN_COMPONENT_TYPE.TOOLSET,
+            input.componentKey
+        )
+        const previousToolset = await this.findNativeToolset(runtimeComponent)
+        const rollbackState = {
+            previousInstallation: previousInstallation
+                ? this.installationRepo.create({ ...previousInstallation })
+                : null,
+            previousToolset: previousToolset ? this.toolsetRepo.create({ ...previousToolset }) : null
+        }
+        try {
+            const installation = await this.installRuntimeComponent(runtimeComponent, null, null, null, false)
+            return {
+                installation,
+                ...rollbackState
+            }
+        } catch (error) {
+            await this.rollbackInterruptedRuntimeProviderInstall(runtimeComponent, rollbackState)
+            throw error
+        }
+    }
+
+    async rollbackRegisteredRuntimeToolProviderInstallation(prepared: RegisteredRuntimeToolProviderInstallation) {
+        if (prepared.previousInstallation) {
+            await this.installationRepo.save(prepared.previousInstallation)
+        } else if (prepared.installation.id) {
+            await this.installationRepo.delete(prepared.installation.id)
+        }
+
+        if (prepared.previousToolset) {
+            await this.toolsetRepo.save(prepared.previousToolset)
+        } else if (prepared.installation.runtimeId) {
+            await this.toolsetRepo.delete(prepared.installation.runtimeId)
+        }
+    }
+
+    private async rollbackInterruptedRuntimeProviderInstall(
+        runtimeComponent: RuntimeComponent,
+        rollbackState: Omit<RegisteredRuntimeToolProviderInstallation, 'installation'>
+    ) {
+        try {
+            const currentInstallation = await this.findInstallation(
+                null,
+                null,
+                null,
+                runtimeComponent.pluginName,
+                PLUGIN_COMPONENT_TYPE.TOOLSET,
+                runtimeComponent.component.componentKey
+            )
+            if (rollbackState.previousInstallation) {
+                await this.installationRepo.save(rollbackState.previousInstallation)
+            } else if (currentInstallation?.id) {
+                await this.installationRepo.delete(currentInstallation.id)
+            }
+        } catch (error) {
+            this.logger.error(`Failed to roll back an interrupted runtime Provider installation: ${safeMessage(error)}`)
+        }
+
+        try {
+            const currentToolset = await this.findNativeToolset(runtimeComponent)
+            if (rollbackState.previousToolset) {
+                await this.toolsetRepo.save(rollbackState.previousToolset)
+            } else if (currentToolset?.id) {
+                await this.toolsetRepo.delete(currentToolset.id)
+            }
+        } catch (error) {
+            this.logger.error(`Failed to roll back an interrupted runtime Provider Toolset: ${safeMessage(error)}`)
+        }
     }
 
     async installToXpert(
@@ -318,7 +454,16 @@ export class PluginResourceInstallerService {
         const normalizedPluginName = normalizePluginName(pluginName)
         const rootDir = resolveLoadedPluginResourceRoot(normalizedPluginName, this.loadedPlugins)
         const pluginVersion = readPluginBundleManifest(rootDir)?.manifest.version
-        const components = readPluginResourceComponents(normalizedPluginName, rootDir)
+        const manifestComponents = readPluginResourceComponents(normalizedPluginName, rootDir)
+        const runtimeComponents = listRuntimeToolProviderComponents(
+            normalizedPluginName,
+            this.toolProviderRegistry
+        ).map(({ component }) => component)
+        const runtimeKeys = new Set(runtimeComponents.map((component) => componentIdentity(component)))
+        const components = [
+            ...manifestComponents.filter((component) => !runtimeKeys.has(componentIdentity(component))),
+            ...runtimeComponents
+        ]
         const selected = selectors?.length
             ? selectPluginResourceComponents(components, selectors, normalizedPluginName)
             : components
@@ -357,10 +502,17 @@ export class PluginResourceInstallerService {
         runtimeComponent: RuntimeComponent,
         workspaceId: string | null,
         xpertId: string | null,
-        agentKey: string | null = null
+        agentKey: string | null = null,
+        replaceNativeCapabilityCatalog = true
     ) {
         const runtimeType = this.resolveRuntimeType(runtimeComponent.component.componentType)
-        const runtimeId = await this.ensureRuntime(runtimeComponent, workspaceId, xpertId, runtimeType)
+        const runtimeId = await this.ensureRuntime(
+            runtimeComponent,
+            workspaceId,
+            xpertId,
+            runtimeType,
+            replaceNativeCapabilityCatalog
+        )
         const status = this.resolveInstallationStatus(runtimeComponent)
         const config = this.buildInstallationConfig(runtimeComponent)
         const installation = await this.findInstallation(
@@ -388,7 +540,7 @@ export class PluginResourceInstallerService {
         next.runtimeId = runtimeId
         next.definitionHash = runtimeComponent.component.definitionHash
         next.status = status
-        next.config = config
+        next.config = preserveManagedMcpConfig(config, installation?.config)
         next.enabled = true
 
         return this.installationRepo.save(next)
@@ -398,10 +550,11 @@ export class PluginResourceInstallerService {
         runtimeComponent: RuntimeComponent,
         workspaceId: string | null,
         xpertId: string | null,
-        runtimeType: PluginResourceRuntimeType
+        runtimeType: PluginResourceRuntimeType,
+        replaceNativeCapabilityCatalog: boolean
     ) {
         if (runtimeComponent.component.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET) {
-            const toolset = await this.ensureNativeToolset(runtimeComponent)
+            const toolset = await this.ensureNativeToolset(runtimeComponent, replaceNativeCapabilityCatalog)
             return toolset.id ?? null
         }
         if (!workspaceId) {
@@ -834,7 +987,7 @@ export class PluginResourceInstallerService {
         return query.getOne()
     }
 
-    private async ensureNativeToolset(runtimeComponent: RuntimeComponent) {
+    private async findNativeToolset(runtimeComponent: RuntimeComponent) {
         const config = runtimeComponent.component.config
         if (!isObjectValue(config)) {
             throw new BadRequestException(
@@ -858,9 +1011,27 @@ export class PluginResourceInstallerService {
                 type: provider
             }
         })
-        const current = candidates.find((toolset) =>
-            isPluginNativeToolset(toolset, runtimeComponent.pluginName, runtimeComponent.component.componentKey)
+        return (
+            candidates.find((toolset) =>
+                isPluginNativeToolset(toolset, runtimeComponent.pluginName, runtimeComponent.component.componentKey)
+            ) ?? null
         )
+    }
+
+    private async ensureNativeToolset(runtimeComponent: RuntimeComponent, replaceCapabilityCatalog: boolean) {
+        const config = runtimeComponent.component.config
+        if (!isObjectValue(config)) {
+            throw new BadRequestException(
+                `Native toolset component '${runtimeComponent.component.componentKey}' has invalid config`
+            )
+        }
+        const provider = readStringField(config, 'provider')
+        if (!provider) {
+            throw new BadRequestException(
+                `Native toolset component '${runtimeComponent.component.componentKey}' requires provider`
+            )
+        }
+        const current = await this.findNativeToolset(runtimeComponent)
         const name = readStringField(config, 'name') ?? `${runtimeComponent.component.componentKey} MCP Capabilities`
         const description =
             readStringField(config, 'description') ?? `Host-native MCP capabilities from ${runtimeComponent.pluginName}`
@@ -879,7 +1050,9 @@ export class PluginResourceInstallerService {
         if (!toolset.id) {
             throw new Error('Persisted native plugin toolset is missing its identity')
         }
-        await this.capabilityCatalog.discoverAndReplaceMcpToolset(toolset.id)
+        if (replaceCapabilityCatalog) {
+            await this.capabilityCatalog.discoverAndReplaceMcpToolset(toolset.id)
+        }
         return toolset
     }
 
@@ -914,6 +1087,27 @@ export class PluginResourceInstallerService {
 
 function isObjectValue(value: unknown): value is object {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function safeMessage(error: unknown) {
+    return (error instanceof Error ? error.message : String(error)).slice(0, 500)
+}
+
+function componentIdentity(component: Pick<PluginBundleComponentRegistration, 'componentType' | 'componentKey'>) {
+    return `${component.componentType}:${component.componentKey}`
+}
+
+function preserveManagedMcpConfig(next: JSONValue | null, previous: JSONValue | null | undefined): JSONValue | null {
+    if (!isObjectValue(next) || Reflect.get(next, 'runtimeDiscovered') !== true || !isObjectValue(previous)) {
+        return next
+    }
+    const publicationId = readStringField(previous, 'publicationId')
+    const protocolVersion = readStringField(previous, 'protocolVersion')
+    return {
+        ...Object.fromEntries(Object.entries(next)),
+        ...(publicationId ? { publicationId } : {}),
+        ...(protocolVersion ? { protocolVersion } : {})
+    } as JSONValue
 }
 
 function readStringField(value: object, key: string): string | undefined {

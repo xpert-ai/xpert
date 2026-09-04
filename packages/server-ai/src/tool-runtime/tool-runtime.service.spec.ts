@@ -308,14 +308,57 @@ describe('ToolRuntimeService', () => {
         ).resolves.toEqual([runtime])
 
         expect(find).toHaveBeenCalledWith({
-            where: expect.objectContaining({
-                tenantId: 'tenant-1',
-                organizationId: 'organization-1',
-                workspaceId: expect.objectContaining({ _type: 'isNull' })
-            }),
+            where: [
+                expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    organizationId: 'organization-1',
+                    workspaceId: expect.objectContaining({ _type: 'isNull' })
+                }),
+                expect.objectContaining({
+                    tenantId: 'tenant-1',
+                    organizationId: expect.objectContaining({ _type: 'isNull' }),
+                    workspaceId: expect.objectContaining({ _type: 'isNull' })
+                })
+            ],
             relations: ['tools']
         })
         expect(createScopedApi).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: undefined }))
+    })
+
+    it('loads a tenant-scoped native toolset for an organization-bound MCP principal', async () => {
+        const runtime = new DeclaredTestToolset(declaredTool())
+        find.mockResolvedValue([
+            Object.assign(new XpertToolset(), {
+                id: 'toolset-1',
+                type: 'native-plugin',
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                tenantId: 'tenant-1',
+                organizationId: null,
+                workspaceId: null
+            })
+        ])
+        commandExecute.mockResolvedValue(runtime)
+
+        await expect(
+            service.loadToolsets({
+                source: 'mcp',
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1',
+                principal: { type: 'user', id: 'user-1', userId: 'user-1' },
+                toolsetIds: ['toolset-1']
+            })
+        ).resolves.toEqual([runtime])
+
+        expect(find).toHaveBeenCalledWith({
+            where: [
+                expect.objectContaining({ organizationId: 'organization-1' }),
+                expect.objectContaining({ organizationId: expect.objectContaining({ _type: 'isNull' }) })
+            ],
+            relations: ['tools']
+        })
+        expect(createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({ organizationId: 'organization-1', workspaceId: undefined })
+        )
     })
 
     it('closes the toolset after a successful invocation and normalizes the result', async () => {

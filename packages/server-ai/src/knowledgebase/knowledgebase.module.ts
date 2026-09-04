@@ -31,6 +31,14 @@ import { KnowledgebaseWriterMiddleware } from './knowledgebase-writer.middleware
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING } from './types'
 import { KnowledgeFilterV2MigrationService } from './migration'
 import { KnowledgeGraphFilterScopeService } from './filter'
+import {
+    GraphKnowledgeCandidateRetriever,
+    KeywordKnowledgeCandidateRetriever,
+    KnowledgeKeywordIndexService,
+    LegacyWeightedFusion,
+    VectorKnowledgeCandidateRetriever,
+    WeightedRrfFusion
+} from './retrieval'
 
 @Module({
     imports: [
@@ -66,6 +74,12 @@ import { KnowledgeGraphFilterScopeService } from './filter'
         KnowledgebaseWriterMiddleware,
         KnowledgeFilterV2MigrationService,
         KnowledgeGraphFilterScopeService,
+        VectorKnowledgeCandidateRetriever,
+        GraphKnowledgeCandidateRetriever,
+        KeywordKnowledgeCandidateRetriever,
+        KnowledgeKeywordIndexService,
+        LegacyWeightedFusion,
+        WeightedRrfFusion,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,
         ...QueryHandlers,
@@ -82,7 +96,8 @@ import { KnowledgeGraphFilterScopeService } from './filter'
         DocumentTransformerRegistry,
         ImageUnderstandingRegistry,
         KnowledgeFilterV2MigrationService,
-        KnowledgeGraphFilterScopeService
+        KnowledgeGraphFilterScopeService,
+        KnowledgeKeywordIndexService
     ]
 })
 export class KnowledgebaseModule {}

@@ -3,14 +3,20 @@
     <h2 id="cloud-sidebar-recent-tasks-label" class="cloud-sidebar-recent-tasks__heading">
       <button
         type="button"
-        class="cloud-sidebar-recent-tasks__trigger"
+        class="cloud-sidebar-recent-tasks__trigger flex h-9 w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-base font-normal leading-5 text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         [attr.aria-expanded]="expanded()"
         aria-controls="cloud-sidebar-recent-tasks-list"
         (click)="toggleExpanded()"
       >
-        <span>{{ 'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' } }}</span>
         <i
-          class="ri-arrow-down-s-line cloud-sidebar-recent-tasks__chevron"
+          class="ri-history-line inline-flex size-5 shrink-0 items-center justify-center text-xl leading-none"
+          aria-hidden="true"
+        ></i>
+        <span class="min-w-0 flex-1 truncate">{{
+          'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' }
+        }}</span>
+        <i
+          class="ri-arrow-right-s-line cloud-sidebar-recent-tasks__chevron"
           [class.is-open]="expanded()"
           aria-hidden="true"
         ></i>
@@ -24,17 +30,11 @@
             @for (conversation of conversations(); track conversation.id) {
               @if (taskRoute(conversation); as route) {
                 <li class="cloud-sidebar-recent-tasks__entry">
-                  <a
-                    class="cloud-sidebar-recent-tasks__item"
-                    [routerLink]="route"
-                    [attr.aria-label]="taskTitle(conversation)"
-                    [zTooltip]="taskTitle(conversation)"
-                    zPosition="right"
-                  >
-                    <i class="ri-file-text-line cloud-sidebar-recent-tasks__icon"></i>
-                    <span class="cloud-sidebar-recent-tasks__title">{{ taskTitle(conversation) }}</span>
-                    <span class="cloud-sidebar-recent-tasks__time">{{ conversation.updatedAt | relative }}</span>
-                  </a>
+                  <xp-sidebar-conversation
+                    [conversation]="conversation"
+                    [route]="route"
+                    [active]="isTaskActive(conversation)"
+                  />
                 </li>
               }
             }
@@ -43,6 +43,9 @@
           <p class="cloud-sidebar-recent-tasks__empty">
             {{ 'XP.Sidebar.NoRecentTasks' | translate: { Default: 'No recent tasks' } }}
           </p>
+        }
+        @if (xpertId(); as assistantId) {
+          <xp-sidebar-conversation-archive [xpertId]="assistantId" [routeBase]="['/chat/clawxpert', 'c']" />
         }
       </div>
     }

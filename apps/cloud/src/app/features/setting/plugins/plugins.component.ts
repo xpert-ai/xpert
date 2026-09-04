@@ -39,7 +39,6 @@ import {
   PluginMarketplaceCategory,
   RolesEnum
 } from '@xpert-ai/contracts'
-import { PluginResourcesComponent } from './resources/resources.component'
 import {
   marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
   developerToolSubcategoryOptionsFor,
@@ -450,9 +449,11 @@ export class PluginsComponent {
   openPluginDetails(plugin: TInstalledPlugin) {
     this.#dialog.open(PluginMarketplaceDetailComponent, {
       data: {
-        plugin: toPluginMarketplaceDetails(plugin)
+        plugin: toPluginMarketplaceDetails(plugin),
+        reload: this.reload.bind(this)
       },
-      backdropClass: 'backdrop-blur-sm-black'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
     })
   }
 
@@ -466,22 +467,7 @@ export class PluginsComponent {
       return
     }
 
-    if (this.hasInstallableMarketplaceContributions(plugin)) {
-      this.openPluginDetails(plugin)
-      return
-    }
-
-    this.initializeResources(plugin)
-  }
-
-  initializeResources(plugin: TInstalledPlugin) {
-    this.#dialog.open(PluginResourcesComponent, {
-      data: {
-        plugin,
-        reload: this.reload.bind(this)
-      },
-      backdropClass: 'backdrop-blur-sm-black'
-    })
+    this.openPluginDetails(plugin)
   }
 
   uninstall(plugin: TInstalledPlugin) {

@@ -262,7 +262,7 @@ export class XpertMcpPublicationsComponent {
     const endpoint = this.connectionInfo()?.endpoint ?? 'https://YOUR_XPERT_HOST/api/mcp/p/SERVICE_SLUG'
     return `[mcp_servers.xpert]\nurl = "${endpoint}"\nbearer_token_env_var = "XPERT_MCP_API_KEY"`
   })
-  readonly workBuddyConfiguration = computed(() => {
+  readonly jsonClientConfiguration = computed(() => {
     const endpoint = this.connectionInfo()?.endpoint ?? 'https://YOUR_XPERT_HOST/api/mcp/p/SERVICE_SLUG'
     return JSON.stringify(
       {

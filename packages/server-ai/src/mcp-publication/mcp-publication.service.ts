@@ -11,7 +11,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { In, IsNull, Repository } from 'typeorm'
-import { compareMcpCapabilityDescriptors } from '../tool-runtime'
+import { compareMcpCapabilityDescriptors } from '../tool-runtime/capability-descriptor'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import {
     McpApiKey,
@@ -29,6 +29,7 @@ import {
 } from './mcp-publication.dto'
 import { McpSubscriptionService } from './mcp-subscription.service'
 import { assertMcpOAuthEnabled, isMcpOAuthEnabled } from './mcp-oauth-feature'
+import { McpPublicationAccessService } from './mcp-publication-access.service'
 
 const PUBLICATION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PUBLIC_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/
@@ -55,7 +56,8 @@ export class McpPublicationService {
         private readonly oauthPolicyRepository: Repository<McpOAuthPolicy>,
         @InjectRepository(McpInvocationAudit)
         private readonly auditRepository: Repository<McpInvocationAudit>,
-        private readonly subscriptions: McpSubscriptionService
+        private readonly subscriptions: McpSubscriptionService,
+        private readonly publicationAccess: McpPublicationAccessService
     ) {}
 
     async create(input: CreateMcpPublicationInput) {
@@ -85,68 +87,104 @@ export class McpPublicationService {
 
     async list() {
         const scope = this.currentScope()
-        const publications = await this.publicationRepository.find({
+        const ownedPublications = await this.publicationRepository.find({
             where: {
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId ?? IsNull()
             },
             order: { createdAt: 'DESC' }
         })
+        const configuredAccesses = scope.organizationId
+            ? await this.publicationAccess.listConfigured(scope.tenantId, scope.organizationId)
+            : []
+        const sharedPublicationIds = configuredAccesses.map(({ publicationId }) => publicationId)
+        const sharedPublications = sharedPublicationIds.length
+            ? await this.publicationRepository.find({
+                  where: {
+                      id: In(sharedPublicationIds),
+                      tenantId: scope.tenantId,
+                      organizationId: IsNull()
+                  },
+                  order: { createdAt: 'DESC' }
+              })
+            : []
+        const publications = [...ownedPublications, ...sharedPublications]
+            .filter((publication, index, items) => items.findIndex(({ id }) => id === publication.id) === index)
+            .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
         if (!publications.length) {
             return []
         }
 
         const publicationIds = publications.map(({ id }) => id)
+        const capabilityQuery = this.bindingRepository
+            .createQueryBuilder('capability')
+            .select('capability.publicationId', 'publicationId')
+            .addSelect('COUNT(capability.id)', 'count')
+            .where('capability.tenantId = :tenantId', { tenantId: scope.tenantId })
+            .andWhere('capability.publicationId IN (:...publicationIds)', { publicationIds })
+            .andWhere('capability.enabled = :enabled', { enabled: true })
+            .groupBy('capability.publicationId')
+        const apiKeyQuery = this.apiKeyRepository
+            .createQueryBuilder('apiKey')
+            .select('apiKey.publicationId', 'publicationId')
+            .addSelect('COUNT(apiKey.id)', 'count')
+            .where('apiKey.tenantId = :tenantId', { tenantId: scope.tenantId })
+            .andWhere('apiKey.publicationId IN (:...publicationIds)', { publicationIds })
+            .andWhere('apiKey.revokedAt IS NULL')
+            .andWhere('(apiKey.expiresAt IS NULL OR apiKey.expiresAt > CURRENT_TIMESTAMP)')
+            .groupBy('apiKey.publicationId')
+        const auditQuery = this.auditRepository
+            .createQueryBuilder('audit')
+            .select('audit.publicationId', 'publicationId')
+            .addSelect('MAX(audit.createdAt)', 'recentInvocationAt')
+            .addSelect(
+                "MAX(CASE WHEN audit.status IN ('failed', 'denied') THEN audit.createdAt ELSE NULL END)",
+                'recentErrorAt'
+            )
+            .where('audit.tenantId = :tenantId', { tenantId: scope.tenantId })
+            .andWhere('audit.publicationId IN (:...publicationIds)', { publicationIds })
+            .groupBy('audit.publicationId')
+        if (scope.organizationId) {
+            apiKeyQuery.andWhere('apiKey.organizationId = :organizationId', {
+                organizationId: scope.organizationId
+            })
+            auditQuery.andWhere('audit.organizationId = :organizationId', {
+                organizationId: scope.organizationId
+            })
+        }
         const [capabilityRows, apiKeyRows, oauthPolicies, auditRows] = await Promise.all([
-            this.bindingRepository
-                .createQueryBuilder('capability')
-                .select('capability.publicationId', 'publicationId')
-                .addSelect('COUNT(capability.id)', 'count')
-                .where('capability.tenantId = :tenantId', { tenantId: scope.tenantId })
-                .andWhere('capability.publicationId IN (:...publicationIds)', { publicationIds })
-                .andWhere('capability.enabled = :enabled', { enabled: true })
-                .groupBy('capability.publicationId')
-                .getRawMany<{ publicationId: string; count: string }>(),
-            this.apiKeyRepository
-                .createQueryBuilder('apiKey')
-                .select('apiKey.publicationId', 'publicationId')
-                .addSelect('COUNT(apiKey.id)', 'count')
-                .where('apiKey.tenantId = :tenantId', { tenantId: scope.tenantId })
-                .andWhere('apiKey.publicationId IN (:...publicationIds)', { publicationIds })
-                .andWhere('apiKey.revokedAt IS NULL')
-                .andWhere('(apiKey.expiresAt IS NULL OR apiKey.expiresAt > CURRENT_TIMESTAMP)')
-                .groupBy('apiKey.publicationId')
-                .getRawMany<{ publicationId: string; count: string }>(),
+            capabilityQuery.getRawMany<{ publicationId: string; count: string }>(),
+            apiKeyQuery.getRawMany<{ publicationId: string; count: string }>(),
             this.oauthPolicyRepository.find({
                 select: { publicationId: true, enabled: true },
                 where: { tenantId: scope.tenantId, publicationId: In(publicationIds) }
             }),
-            this.auditRepository
-                .createQueryBuilder('audit')
-                .select('audit.publicationId', 'publicationId')
-                .addSelect('MAX(audit.createdAt)', 'recentInvocationAt')
-                .addSelect(
-                    "MAX(CASE WHEN audit.status IN ('failed', 'denied') THEN audit.createdAt ELSE NULL END)",
-                    'recentErrorAt'
-                )
-                .where('audit.tenantId = :tenantId', { tenantId: scope.tenantId })
-                .andWhere('audit.publicationId IN (:...publicationIds)', { publicationIds })
-                .groupBy('audit.publicationId')
-                .getRawMany<{
-                    publicationId: string
-                    recentInvocationAt: Date | null
-                    recentErrorAt: Date | null
-                }>()
+            auditQuery.getRawMany<{
+                publicationId: string
+                recentInvocationAt: Date | null
+                recentErrorAt: Date | null
+            }>()
         ])
         const capabilityCounts = new Map(capabilityRows.map((row) => [row.publicationId, Number(row.count)]))
         const apiKeyCounts = new Map(apiKeyRows.map((row) => [row.publicationId, Number(row.count)]))
         const oauthByPublication = new Map(oauthPolicies.map((policy) => [policy.publicationId, policy.enabled]))
         const auditByPublication = new Map(auditRows.map((row) => [row.publicationId, row]))
+        const accessByPublication = new Map(configuredAccesses.map((access) => [access.publicationId, access]))
 
         return publications.map((publication) => {
             const audit = auditByPublication.get(publication.id)
+            const organizationAccess = accessByPublication.get(publication.id)
+            const sharedInOrganization = !!scope.organizationId && !publication.organizationId
             return {
                 ...publication,
+                ...(sharedInOrganization
+                    ? {
+                          status:
+                              publication.status === 'active' && organizationAccess?.enabled ? 'active' : 'disabled',
+                          organizationAccessEnabled: organizationAccess?.enabled ?? false
+                      }
+                    : {}),
+                publicationScope: publication.organizationId ? 'organization' : 'tenant',
                 capabilityCount: capabilityCounts.get(publication.id) ?? 0,
                 apiKeyCount: apiKeyCounts.get(publication.id) ?? 0,
                 oauthEnabled: isMcpOAuthEnabled() && (oauthByPublication.get(publication.id) ?? false),
@@ -158,6 +196,62 @@ export class McpPublicationService {
 
     async getManaged(id: string, relations?: string[]) {
         return this.findCurrentScopeById(id, relations)
+    }
+
+    async getManagementView(id: string, relations?: string[]) {
+        const publication = await this.getManaged(id, relations)
+        const scope = this.currentScope()
+        if (!scope.organizationId || publication.organizationId) return publication
+        const access = await this.publicationAccess.findConfigured(publication.id, scope.tenantId, scope.organizationId)
+        return Object.assign(Object.create(Object.getPrototypeOf(publication)), publication, {
+            status: publication.status === 'active' && access?.enabled ? 'active' : 'disabled'
+        }) as McpPublication
+    }
+
+    async findManagedBySlug(slug: string, relations?: string[]) {
+        const scope = this.currentScope()
+        return this.publicationRepository.findOne({
+            where: {
+                slug,
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId ?? IsNull()
+            },
+            relations
+        })
+    }
+
+    /** Keeps an automatically managed plugin Publication aligned with its Provider-owned stable slug. */
+    async synchronizeManagedSlug(id: string, slug: string) {
+        const publication = await this.getManaged(id)
+        const normalized = slug.trim()
+        this.assertNameAndSlug(publication.name, normalized)
+        if (publication.slug === normalized) return publication
+        await this.assertSlugAvailable(normalized, publication.id)
+        publication.slug = normalized
+        publication.updatedById = RequestContext.currentUserId()
+        return this.publicationRepository.save(publication)
+    }
+
+    async restoreManagedState(
+        id: string,
+        state: Pick<McpPublication, 'slug' | 'status' | 'reviewStatus' | 'reviewReason' | 'reviewedAt' | 'reviewedById'>
+    ) {
+        const publication = await this.getManaged(id)
+        if (publication.slug !== state.slug) {
+            this.assertNameAndSlug(publication.name, state.slug)
+            await this.assertSlugAvailable(state.slug, publication.id)
+        }
+        Object.assign(publication, state, { updatedById: RequestContext.currentUserId() })
+        const saved = await this.publicationRepository.save(publication)
+        this.subscriptions.publishAccessInvalidated(publication.id)
+        return saved
+    }
+
+    /** Removes a Publication created by an activation that did not commit. */
+    async discardManaged(id: string) {
+        const publication = await this.getManaged(id)
+        await this.publicationRepository.remove(publication)
+        this.subscriptions.publishAccessInvalidated(publication.id)
     }
 
     async update(id: string, input: UpdateMcpPublicationInput) {
@@ -196,6 +290,18 @@ export class McpPublicationService {
     async enable(id: string) {
         const publication = await this.getManaged(id)
         await this.assertCanEnable(publication)
+        const scope = this.currentScope()
+        if (scope.organizationId && !publication.organizationId) {
+            if (publication.status !== 'active') {
+                throw new BadRequestException(
+                    t('server-ai:Error.McpSharedPublicationInactive', {
+                        defaultValue: 'The shared MCP service is not active at tenant scope.'
+                    })
+                )
+            }
+            await this.publicationAccess.enable(publication, scope.organizationId)
+            return Object.assign(Object.create(Object.getPrototypeOf(publication)), publication, { status: 'active' })
+        }
         publication.status = 'active'
         publication.updatedById = RequestContext.currentUserId()
         const saved = await this.publicationRepository.save(publication)
@@ -208,11 +314,17 @@ export class McpPublicationService {
     }
 
     async disable(id: string) {
-        return this.setStatus(id, 'disabled')
+        const publication = await this.getManaged(id)
+        const scope = this.currentScope()
+        if (scope.organizationId && !publication.organizationId) {
+            await this.publicationAccess.disable(publication, scope.organizationId)
+            return Object.assign(Object.create(Object.getPrototypeOf(publication)), publication, { status: 'disabled' })
+        }
+        return this.setStatus(id, 'disabled', publication)
     }
 
     async remove(id: string) {
-        return this.setStatus(id, 'disabled')
+        return this.disable(id)
     }
 
     async availableCapabilities(id: string, toolsetId?: string) {
@@ -362,8 +474,85 @@ export class McpPublicationService {
         const publication = await this.getManaged(id)
         const previous = await this.bindingRepository.find({ where: { publicationId: publication.id } })
         const catalog = await this.loadCatalogForBindings(publication, inputs)
+        const bindings = this.buildCapabilityBindings(publication, inputs, catalog)
+
+        await this.bindingRepository.manager.transaction(async (manager) => {
+            await manager.delete(McpPublicationCapability, { publicationId: publication.id })
+            if (bindings.length) {
+                await manager.save(McpPublicationCapability, bindings)
+            }
+            await this.markPublicationCapabilitiesCurrent(manager, publication.id)
+        })
+        const current = await this.bindingRepository.find({ where: { publicationId: publication.id } })
+        this.publishCapabilityChanges(publication.id, [...previous, ...current])
+        return current
+    }
+
+    /** Atomically replaces one Toolset catalog snapshot and an auto-managed Publication's bindings. */
+    async replaceCapabilitiesWithCatalog(
+        id: string,
+        catalogItems: McpCapabilityCatalog[],
+        inputs: McpCapabilityBindingInput[]
+    ) {
+        const publication = await this.getManaged(id)
+        const previous = await this.bindingRepository.find({ where: { publicationId: publication.id } })
+        const toolsetIds = [...new Set(catalogItems.map((item) => item.toolsetId))]
+        if (!toolsetIds.length || catalogItems.some((item) => !this.catalogItemMatchesPublication(item, publication))) {
+            throw new BadRequestException(
+                t('server-ai:Error.McpCapabilityNotAvailable', {
+                    defaultValue: 'The discovered MCP capabilities are not available in this MCP scope.'
+                })
+            )
+        }
+        const toolsets = await this.toolsetRepository.find({
+            select: { id: true },
+            where: {
+                id: In(toolsetIds),
+                tenantId: publication.tenantId,
+                organizationId: publication.organizationId ?? IsNull(),
+                workspaceId: IsNull()
+            }
+        })
+        if (toolsets.length !== toolsetIds.length) {
+            throw new BadRequestException(
+                t('server-ai:Error.McpCapabilityNotAvailable', {
+                    defaultValue: 'The discovered MCP capabilities are not available in this MCP scope.'
+                })
+            )
+        }
+        const catalog = new Map(
+            catalogItems.map((item) => [bindingKey(item.toolsetId, item.capabilityType, item.capabilityKey), item])
+        )
+        const bindings = this.buildCapabilityBindings(publication, inputs, catalog)
+        const affected = await this.bindingRepository.find({ where: { toolsetId: In(toolsetIds) } })
+
+        await this.bindingRepository.manager.transaction(async (manager) => {
+            await manager.delete(McpCapabilityCatalog, { toolsetId: In(toolsetIds) })
+            await manager.save(McpCapabilityCatalog, catalogItems)
+            await manager.delete(McpPublicationCapability, { publicationId: publication.id })
+            if (bindings.length) {
+                await manager.save(McpPublicationCapability, bindings)
+            }
+            await this.markPublicationCapabilitiesCurrent(manager, publication.id)
+        })
+        const current = await this.bindingRepository.find({ where: { publicationId: publication.id } })
+        const changes = new Map<string, McpPublicationCapability[]>()
+        for (const binding of [...affected, ...previous, ...current]) {
+            const items = changes.get(binding.publicationId) ?? []
+            items.push(binding)
+            changes.set(binding.publicationId, items)
+        }
+        for (const [publicationId, items] of changes) this.publishCapabilityChanges(publicationId, items)
+        return current
+    }
+
+    private buildCapabilityBindings(
+        publication: McpPublication,
+        inputs: McpCapabilityBindingInput[],
+        catalog: Map<string, McpCapabilityCatalog>
+    ) {
         const names = new Set<string>()
-        const bindings = inputs.map((input) => {
+        return inputs.map((input) => {
             this.assertPublicName(input.publicName)
             if (names.has(input.publicName)) {
                 throw new BadRequestException(
@@ -401,29 +590,34 @@ export class McpPublicationService {
                 updatedById: RequestContext.currentUserId()
             })
         })
+    }
 
-        await this.bindingRepository.manager.transaction(async (manager) => {
-            await manager.delete(McpPublicationCapability, { publicationId: publication.id })
-            if (bindings.length) {
-                await manager.save(McpPublicationCapability, bindings)
+    private markPublicationCapabilitiesCurrent(manager: Repository<McpPublication>['manager'], publicationId: string) {
+        return manager.update(
+            McpPublication,
+            { id: publicationId },
+            {
+                reviewStatus: 'current',
+                reviewReason: null,
+                reviewedAt: new Date(),
+                reviewedById: RequestContext.currentUserId()
             }
-            await manager.update(
-                McpPublication,
-                { id: publication.id },
-                {
-                    reviewStatus: 'current',
-                    reviewReason: null,
-                    reviewedAt: new Date(),
-                    reviewedById: RequestContext.currentUserId()
-                }
-            )
-        })
-        const current = await this.bindingRepository.find({ where: { publicationId: publication.id } })
-        this.subscriptions.publishCatalogChanged(
-            publication.id,
-            [...previous, ...current].map((binding) => binding.capabilityType)
         )
-        return current
+    }
+
+    private publishCapabilityChanges(publicationId: string, bindings: McpPublicationCapability[]) {
+        this.subscriptions.publishCatalogChanged(
+            publicationId,
+            bindings.map((binding) => binding.capabilityType)
+        )
+    }
+
+    private catalogItemMatchesPublication(item: McpCapabilityCatalog, publication: McpPublication) {
+        return (
+            item.tenantId === publication.tenantId &&
+            (item.organizationId ?? null) === (publication.organizationId ?? null) &&
+            item.enabled
+        )
     }
 
     async patchCapability(id: string, capabilityId: string, input: PatchMcpCapabilityBindingInput) {
@@ -552,8 +746,8 @@ export class McpPublicationService {
         return current
     }
 
-    private async setStatus(id: string, status: McpPublicationStatus) {
-        const publication = await this.getManaged(id)
+    private async setStatus(id: string, status: McpPublicationStatus, managed?: McpPublication) {
+        const publication = managed ?? (await this.getManaged(id))
         publication.status = status
         publication.updatedById = RequestContext.currentUserId()
         const saved = await this.publicationRepository.save(publication)
@@ -605,7 +799,7 @@ export class McpPublicationService {
 
     private async findCurrentScopeById(id: string, relations?: string[]) {
         const scope = this.currentScope()
-        const publication = await this.publicationRepository.findOne({
+        let publication = await this.publicationRepository.findOne({
             where: {
                 id,
                 tenantId: scope.tenantId,
@@ -613,6 +807,15 @@ export class McpPublicationService {
             },
             relations
         })
+        if (!publication && scope.organizationId) {
+            const access = await this.publicationAccess.findConfigured(id, scope.tenantId, scope.organizationId)
+            if (access) {
+                publication = await this.publicationRepository.findOne({
+                    where: { id, tenantId: scope.tenantId, organizationId: IsNull() },
+                    relations
+                })
+            }
+        }
         if (!publication) {
             throw new NotFoundException(
                 t('server-ai:Error.McpPublicationNotFound', {

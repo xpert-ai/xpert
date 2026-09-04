@@ -6,6 +6,7 @@ import {
     McpInvocationAudit,
     McpOAuthPolicy,
     McpPublication,
+    McpPublicationAccess,
     McpPublicationCapability,
     McpTask
 } from './index'
@@ -23,6 +24,7 @@ describe('MCP publication persistence entities', () => {
                 'mcp_publication',
                 'mcp_capability_catalog',
                 'mcp_publication_capability',
+                'mcp_publication_access',
                 'mcp_api_key',
                 'mcp_oauth_policy',
                 'mcp_invocation_audit',
@@ -39,7 +41,9 @@ describe('MCP publication persistence entities', () => {
         expect(column(McpPublication, 'authMethods')).toMatchObject({ type: 'json' })
         expect(column(McpCapabilityCatalog, 'descriptor')).toMatchObject({ type: 'json' })
         expect(column(McpPublicationCapability, 'descriptorSnapshot')).toMatchObject({ type: 'json' })
+        expect(column(McpPublicationAccess, 'enabled')).toMatchObject({ type: 'boolean', default: true })
         expect(column(McpApiKey, 'keyHash')).toMatchObject({ type: 'char', select: false })
+        expect(column(McpApiKey, 'encryptedSecret')).toMatchObject({ type: 'text', nullable: true, select: false })
         expect(column(McpOAuthPolicy, 'subjectMapping')).toMatchObject({ type: 'json' })
         expect(column(McpInvocationAudit, 'argumentSummary')).toMatchObject({ type: 'json', select: false })
         expect(column(McpTask, 'requestPayload')).toMatchObject({ type: 'json', select: false })

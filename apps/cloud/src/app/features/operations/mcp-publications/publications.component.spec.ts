@@ -216,7 +216,8 @@ describe('XpertMcpPublicationsComponent', () => {
       'CheckStatus.failed',
       'Ready',
       'NotReady',
-      'ConnectionConfigurations'
+      'ConnectionConfigurations',
+      'JsonClient'
     ]
 
     for (const locale of locales) {
@@ -281,6 +282,11 @@ describe('XpertMcpPublicationsComponent', () => {
     expect(template).toContain('(zSelectionChange)="selectOAuthScopes($event)"')
     expect(template).toContain('[disabled]="!oauthAvailable"')
     expect(template).toContain('(zSelectionChange)="selectApprovalMode(draft, $event)"')
+    expect(template).toContain('class="flex min-h-0 flex-col gap-3 p-1 xl:overflow-auto"')
+    expect(template.match(/border-state-success-hover bg-state-success-hover\/20 text-text-success/g)).toHaveLength(2)
+    expect(template).toContain(
+      'class="mt-3 grid grid-cols-2 gap-4 border-t border-divider-regular pt-3 text-xs text-text-tertiary"'
+    )
     expect(template).not.toContain('XP.McpPublication.ApiKeyScopesHint')
     expect(template).not.toContain('XP.McpPublication.ApprovalDescription.')
     expect(template.match(/\(click\)="copy\(revealed\.secret\)"/g)).toHaveLength(2)

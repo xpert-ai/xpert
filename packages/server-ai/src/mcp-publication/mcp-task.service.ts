@@ -146,7 +146,7 @@ export class McpTaskService {
             publicationId: input.publication.id,
             capabilityId: input.capability.id,
             tenantId: input.publication.tenantId,
-            organizationId: input.publication.organizationId ?? null,
+            organizationId: input.principal.organizationId ?? input.publication.organizationId ?? null,
             toolsetId: input.capability.toolsetId,
             capabilityKey: input.capability.capabilityKey,
             ...(input.capability.descriptorSnapshot.source.serverName
@@ -180,7 +180,7 @@ export class McpTaskService {
                     publicationId: input.publication.id,
                     capabilityId: input.capability.id,
                     tenantId: input.publication.tenantId,
-                    organizationId: input.publication.organizationId ?? null,
+                    organizationId: input.principal.organizationId ?? input.publication.organizationId ?? null,
                     executionId: input.executionId,
                     requestId: input.requestId.slice(0, 191),
                     toolName: input.capability.publicName,

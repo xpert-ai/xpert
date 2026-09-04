@@ -82,6 +82,28 @@ class MultipleObjectHostComponent {
   template: `
     <z-tag-select
       [formControl]="control"
+      mode="multiple"
+      [checkable]="true"
+      [enableSuggestions]="true"
+      [searchable]="false"
+      [options]="options"
+    />
+  `,
+})
+class CheckableMultipleHostComponent {
+  readonly control = new FormControl<string[]>(['alpha-id'], { nonNullable: true });
+  readonly options = [
+    { value: 'alpha-id', label: 'Alpha' },
+    { value: 'beta-id', label: 'Beta' },
+  ];
+}
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, ZardTagSelectComponent],
+  template: `
+    <z-tag-select
+      [formControl]="control"
       mode="tags"
       [allowCreate]="true"
       [enableSuggestions]="true"
@@ -294,6 +316,34 @@ describe('ZardTagSelectComponent', () => {
     const overlayText = overlayContainer.getContainerElement().textContent as string;
     expect(overlayText).not.toContain('Alice');
     expect(overlayText).toContain('Bob');
+  });
+
+  it('allows a checkable option to be unchecked and selected again', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [CheckableMultipleHostComponent],
+    }).createComponent(CheckableMultipleHostComponent);
+    const overlayContainer = TestBed.inject(OverlayContainer);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    input.focus();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const selectAlpha = () => {
+      const option = overlayContainer.getContainerElement().querySelector('[role="option"]') as HTMLElement;
+      option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      option.click();
+      fixture.detectChanges();
+    };
+
+    selectAlpha();
+    expect(fixture.componentInstance.control.value).toEqual([]);
+
+    selectAlpha();
+    expect(fixture.componentInstance.control.value).toEqual(['alpha-id']);
   });
 
   it('creates object values from input when createValueFromInput is provided', async () => {

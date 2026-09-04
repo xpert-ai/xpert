@@ -22,6 +22,8 @@ import { TDocChunkMetadata } from '../types'
 @Entity('knowledge_document_chunk')
 @Index('IDX_knowledge_document_chunk_doc_content_hash', ['documentId', 'contentHash'])
 @Index('IDX_knowledge_document_chunk_kb_document', ['knowledgebaseId', 'documentId'])
+@Index('IDX_knowledge_document_chunk_content_fts', { synchronize: false })
+@Index('IDX_knowledge_document_chunk_content_trgm', { synchronize: false })
 @Tree('closure-table')
 export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetadata>
     extends TenantOrganizationBaseEntity

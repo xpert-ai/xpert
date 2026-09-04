@@ -19,6 +19,7 @@ import {
   ApiKeyBindingType,
   getErrorMessage,
   injectHelpWebsite,
+  IKnowledgebase,
   IXpert,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
@@ -27,6 +28,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
+import { XpertNewKnowledgeComponent } from '../new/new.component'
 import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -210,6 +212,33 @@ export class KnowledgebaseComponent {
       })
       .closed.subscribe({
         next: () => {}
+      })
+  }
+
+  openConfiguration() {
+    const knowledgebase = this.knowledgebase()
+    if (!knowledgebase || this.loading()) {
+      return
+    }
+
+    this.#dialog
+      .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+        width: 'min(96vw, 72rem)',
+        height: 'min(90vh, 52rem)',
+        maxWidth: 'calc(100vw - 1.5rem)',
+        maxHeight: 'calc(100vh - 1.5rem)',
+        panelClass: 'xp-overlay-pane-card',
+        data: {
+          workspaceId: knowledgebase.workspaceId,
+          knowledgebase
+        }
+      })
+      .closed.subscribe({
+        next: (updated) => {
+          if (updated) {
+            this.refresh()
+          }
+        }
       })
   }
 }

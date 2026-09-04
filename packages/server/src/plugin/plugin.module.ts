@@ -1,6 +1,6 @@
 import { ConfigModule, ConfigService, getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { ModuleRef } from '@nestjs/core'
+import { DiscoveryModule, ModuleRef } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
@@ -12,6 +12,7 @@ import {
 	PluginLifecycleMethods,
 	SSO_BINDING_PERMISSION_SERVICE_TOKEN,
 	StrategyBus,
+	XpertToolProviderRegistry,
 	USER_PERMISSION_SERVICE_TOKEN
 } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
@@ -42,6 +43,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 @Module({
 	imports: [
 		ConfigModule,
+		DiscoveryModule,
 		RuntimeControlModule,
 		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
 		CqrsModule
@@ -49,6 +51,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 	controllers: [PluginController],
 	exports: [
 		StrategyBus,
+		XpertToolProviderRegistry,
 		PluginConfigResolver,
 		PluginManagementService,
 		PLUGIN_CONFIG_RESOLVER_TOKEN,
@@ -95,6 +98,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 		PluginUserPermissionService,
 		PluginRuntimeStateService,
 		StrategyBus,
+		XpertToolProviderRegistry,
 		...CommandHandlers,
 		...QueryHandlers
 	]

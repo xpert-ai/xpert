@@ -1,6 +1,7 @@
 import type { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import type { IUser } from '../user.model'
 import type { IXpert } from './xpert.model'
+import type { TChatConversationSidebarState } from './chat.model'
 
 export const ASSISTANT_USER_PREFERENCES_VERSION = 1 as const
 
@@ -15,6 +16,7 @@ export type TAssistantModelSelectionPreference = {
  */
 export type TAssistantUserPreferenceDomainMap = {
   modelSelection: TAssistantModelSelectionPreference
+  conversationSidebar: Record<string, TChatConversationSidebarState>
 }
 
 export type TAssistantUserPreferenceDomain = keyof TAssistantUserPreferenceDomainMap
