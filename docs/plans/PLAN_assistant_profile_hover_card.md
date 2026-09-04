@@ -154,9 +154,13 @@ approval continuation. Use portable paths and no credentials.
 - `agent.profile.tabs`, the whitelisted profile endpoint, version-family identity,
   scoped Project access runtime capability, active-tab teardown, opaque-origin
   Remote Views, and scoped interaction/close commands are implemented.
-- Project Access owns and registers its runtime capability through the shared Plugin
-  SDK registry token. The Agent middleware runtime exposes the registry abstraction
-  without importing Project modules or implementations.
+- Platform capability implementations declare their Plugin SDK key with the shared
+  `RuntimeCapabilityProvider` decorator. A dedicated global `RuntimeCapabilityModule`
+  owns the registry and discovers them; Project, Sandbox, and Evolution no longer need one-off
+  lifecycle registration services or composition-root wiring. Scoped Agent runtime
+  registries inherit the platform registry while retaining local overrides. The
+  Workspace Files authorizes Project mutations through the same capability port,
+  so the Agent runtime module has no dependency on the Project module.
 - Factory Operations 0.5.0 provides Recent cases and Needs attention, shared human
   approval governance, additive continuation storage, atomic outbox persistence,
   checkpointed Managed Queue execution, and real verification Assistant Tasks.

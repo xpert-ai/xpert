@@ -9,6 +9,7 @@ import pdfParse from 'pdf-parse'
 import { In, LessThan, Repository } from 'typeorm'
 import {
     SANDBOX_JOB_PROGRESS_PREFIX,
+    SandboxJobsRuntimeCapability,
     SandboxJobRuntimeError,
     SandboxRuntimeProviderRegistry,
     type SandboxJobErrorCode,
@@ -30,6 +31,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../../shared/volume'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
+import { RuntimeCapabilityProvider } from '../../shared/runtime'
 import { SandboxJobCapacityService, type SandboxJobCapacityLease } from './sandbox-job-capacity.service'
 import { SandboxJobEntity } from './sandbox-job.entity'
 import {
@@ -67,6 +69,7 @@ type ActiveSandbox = {
  * instance creation, cancellation, and orphan cleanup for every execution pool.
  */
 @Injectable()
+@RuntimeCapabilityProvider(SandboxJobsRuntimeCapability)
 export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(SandboxJobRuntimeCapabilityService.name)
     private readonly active = new Map<string, ActiveSandbox>()

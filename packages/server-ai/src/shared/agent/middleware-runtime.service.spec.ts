@@ -83,10 +83,13 @@ import {
     ActorTokenRuntimeCapability,
     AssistantTaskRuntimeCapability,
     CancelConversationCommand,
+    createRuntimeCapability,
+    DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     KnowledgebaseDocumentsRuntimeCapability,
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     KnowledgebaseProvisioningRuntimeCapability,
+    ProjectAccessRuntimeCapability,
     ProjectProvisioningRuntimeCapability,
     KnowledgebaseRuntimeCapability,
     RequestContext,
@@ -157,6 +160,7 @@ describe('AgentMiddlewareRuntimeService', () => {
     let actorTokenProvider: { mint: jest.Mock }
     let visualAssetsRuntime: { createScopedApi: jest.Mock }
     let moduleRef: { get: jest.Mock }
+    let platformCapabilities: DefaultRuntimeCapabilityRegistry
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -171,9 +175,16 @@ describe('AgentMiddlewareRuntimeService', () => {
         volumeClient = {
             resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
         }
-        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, {
-            assertCanEdit: jest.fn().mockResolvedValue({})
+        platformCapabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
+            listReadable: jest.fn().mockResolvedValue([]),
+            assertEdit: jest
+                .fn()
+                .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false }),
+            assertManage: jest
+                .fn()
+                .mockResolvedValue({ projectId: 'project-1', role: 'manager', canManage: true, archived: false })
         })
+        workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, platformCapabilities)
         connectors = {
             createScopedRuntimeApi: jest.fn(() => ({
                 getConnector: jest.fn().mockResolvedValue(undefined),
@@ -240,6 +251,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             copilotService,
             copilotUsage as never,
             moduleRef as any,
+            platformCapabilities,
             actorTokenProvider as any
         )
 
@@ -251,6 +263,15 @@ describe('AgentMiddlewareRuntimeService', () => {
     afterEach(() => {
         rmSync(volumeRoot, { recursive: true, force: true })
         jest.restoreAllMocks()
+    })
+
+    it('inherits platform capabilities in every scoped runtime', () => {
+        const capability = createRuntimeCapability<{ source: string }>('test.platform-capability')
+        const implementation = { source: 'platform' }
+        platformCapabilities.register(capability, implementation)
+
+        expect(service.api.capabilities?.require(capability)).toBe(implementation)
+        expect(service.createScopedApi({ tenantId: 'tenant-1' }).capabilities?.require(capability)).toBe(implementation)
     })
 
     it('emits middleware events as chat events without agent identity', async () => {

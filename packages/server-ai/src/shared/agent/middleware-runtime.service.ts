@@ -22,7 +22,7 @@ import {
     normalizeMiddlewareProvider
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
-import { ForbiddenException, Injectable, Logger, Optional } from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import {
@@ -100,7 +100,9 @@ import {
     ArtifactsRuntimeCapability,
     CancelConversationCommand,
     type WorkspaceFilesApi,
-    WorkspaceFilesRuntimeCapability
+    WorkspaceFilesRuntimeCapability,
+    type RuntimeCapabilityRegistry,
+    XPERT_RUNTIME_CAPABILITIES_TOKEN
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage, OutboundActorTokenProvider } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
@@ -1119,6 +1121,8 @@ export class AgentMiddlewareRuntimeService {
         private readonly copilotService: CopilotService,
         private readonly copilotUsage: CopilotUsageService,
         private readonly moduleRef: ModuleRef,
+        @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN)
+        private readonly platformCapabilities: RuntimeCapabilityRegistry,
         @Optional()
         private readonly outboundActorTokenProvider?: OutboundActorTokenProvider
     ) {
@@ -1147,68 +1151,71 @@ export class AgentMiddlewareRuntimeService {
         const collaborationApi = this.collaboration.createScopedApi(scope)
         const actorTokenApi = this.createActorTokenApi(scope)
         const connectorApi = this.connectors.createScopedRuntimeApi(scope)
-        const capabilities = new DefaultRuntimeCapabilityRegistry([
-            [ActorTokenRuntimeCapability, actorTokenApi],
+        const capabilities = new DefaultRuntimeCapabilityRegistry(
             [
-                KnowledgebaseRuntimeCapability,
-                {
-                    list: (input) => this.listKnowledgebases(input),
-                    search: (input) => this.searchKnowledgebase(input),
-                    writeChunk: (input) => this.writeKnowledgeChunk(input),
-                    deleteChunks: (input) => this.deleteKnowledgeChunks(input)
-                }
+                [ActorTokenRuntimeCapability, actorTokenApi],
+                [
+                    KnowledgebaseRuntimeCapability,
+                    {
+                        list: (input) => this.listKnowledgebases(input),
+                        search: (input) => this.searchKnowledgebase(input),
+                        writeChunk: (input) => this.writeKnowledgeChunk(input),
+                        deleteChunks: (input) => this.deleteKnowledgeChunks(input)
+                    }
+                ],
+                [
+                    KnowledgebaseDocumentsRuntimeCapability,
+                    {
+                        listDocuments: (input) => this.listKnowledgebaseDocuments(input),
+                        createFolder: (input) => this.createKnowledgebaseFolder(input),
+                        moveDocument: (input) => this.moveKnowledgebaseDocument(input),
+                        uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
+                        importArchive: (input) => this.importKnowledgebaseArchive(input),
+                        createDocuments: (input) => this.createKnowledgebaseDocuments(input),
+                        startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
+                        reprocessDocuments: (input) => this.reprocessKnowledgebaseDocuments(input),
+                        getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
+                        deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input),
+                        readImage: (input) => this.readKnowledgebaseDocumentImage(input)
+                    }
+                ],
+                [
+                    KnowledgebaseProvisioningRuntimeCapability,
+                    {
+                        ensure: (input) => this.ensureKnowledgebases(input),
+                        connectAgent: (input) => this.connectAgentKnowledgebases(input)
+                    }
+                ],
+                [
+                    AssistantTaskRuntimeCapability,
+                    {
+                        startTask: (input) => this.startAssistantTask(input),
+                        listExternalAssistantBindings: (input) => this.listExternalAssistantBindings(input),
+                        listCorrelatedExecutions: (input) => this.listCorrelatedAssistantExecutions(input),
+                        getTaskStatus: (input) => this.getAssistantTaskStatus(input),
+                        cancelTask: (input) => this.cancelAssistantTask(input)
+                    }
+                ],
+                [
+                    FileRuntimeCapability,
+                    {
+                        resolveFile: (input) => this.resolveFile(input, scope)
+                    }
+                ],
+                [ConnectorRuntimeCapability, connectorApi],
+                [ArtifactsRuntimeCapability, artifactsApi],
+                [CollaborationRuntimeCapability, collaborationApi],
+                // Provisioning is host-authorized and deliberately separate from
+                // Agent-visible tools; plugins access it through runtime capabilities.
+                [
+                    ProjectProvisioningRuntimeCapability,
+                    {
+                        ensure: (input) => this.ensureProject(input)
+                    }
+                ]
             ],
-            [
-                KnowledgebaseDocumentsRuntimeCapability,
-                {
-                    listDocuments: (input) => this.listKnowledgebaseDocuments(input),
-                    createFolder: (input) => this.createKnowledgebaseFolder(input),
-                    moveDocument: (input) => this.moveKnowledgebaseDocument(input),
-                    uploadFile: (input) => this.uploadKnowledgebaseDocumentFile(input),
-                    importArchive: (input) => this.importKnowledgebaseArchive(input),
-                    createDocuments: (input) => this.createKnowledgebaseDocuments(input),
-                    startProcessing: (input) => this.startKnowledgebaseDocumentsProcessing(input),
-                    reprocessDocuments: (input) => this.reprocessKnowledgebaseDocuments(input),
-                    getDocumentStatus: (input) => this.getKnowledgebaseDocumentStatus(input),
-                    deleteDocuments: (input) => this.deleteKnowledgebaseDocuments(input),
-                    readImage: (input) => this.readKnowledgebaseDocumentImage(input)
-                }
-            ],
-            [
-                KnowledgebaseProvisioningRuntimeCapability,
-                {
-                    ensure: (input) => this.ensureKnowledgebases(input),
-                    connectAgent: (input) => this.connectAgentKnowledgebases(input)
-                }
-            ],
-            [
-                AssistantTaskRuntimeCapability,
-                {
-                    startTask: (input) => this.startAssistantTask(input),
-                    listExternalAssistantBindings: (input) => this.listExternalAssistantBindings(input),
-                    listCorrelatedExecutions: (input) => this.listCorrelatedAssistantExecutions(input),
-                    getTaskStatus: (input) => this.getAssistantTaskStatus(input),
-                    cancelTask: (input) => this.cancelAssistantTask(input)
-                }
-            ],
-            [
-                FileRuntimeCapability,
-                {
-                    resolveFile: (input) => this.resolveFile(input, scope)
-                }
-            ],
-            [ConnectorRuntimeCapability, connectorApi],
-            [ArtifactsRuntimeCapability, artifactsApi],
-            [CollaborationRuntimeCapability, collaborationApi],
-            // Provisioning is host-authorized and deliberately separate from
-            // Agent-visible tools; plugins access it through runtime capabilities.
-            [
-                ProjectProvisioningRuntimeCapability,
-                {
-                    ensure: (input) => this.ensureProject(input)
-                }
-            ]
-        ])
+            this.platformCapabilities
+        )
         if (workspaceFilesApi) {
             capabilities.register(WorkspaceFilesRuntimeCapability, workspaceFilesApi)
             capabilities.register(

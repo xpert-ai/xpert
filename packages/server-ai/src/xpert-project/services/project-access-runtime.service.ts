@@ -1,12 +1,19 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import type { ProjectAccessApi, ProjectAccessActor, ProjectHumanAccess } from '@xpert-ai/plugin-sdk'
+import {
+    ProjectAccessRuntimeCapability,
+    type ProjectAccessApi,
+    type ProjectAccessActor,
+    type ProjectHumanAccess
+} from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
+import { RuntimeCapabilityProvider } from '../../shared/runtime'
 
 @Injectable()
+@RuntimeCapabilityProvider(ProjectAccessRuntimeCapability)
 export class ProjectAccessRuntimeService implements ProjectAccessApi {
     constructor(@InjectRepository(XpertProject) private readonly projects: Repository<XpertProject>) {}
 
@@ -58,6 +65,14 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
     async assertManage(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess> {
         const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
         if (!access?.canManage) throw new ForbiddenException(t('server-ai:Error.ProjectManagerRequired'))
+        return access
+    }
+
+    async assertEdit(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess> {
+        const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
+        if (!access || access.archived || !['owner', 'manager', 'editor'].includes(access.role)) {
+            throw new ForbiddenException(t('server-ai:Error.ProjectEditorRequired'))
+        }
         return access
     }
 }

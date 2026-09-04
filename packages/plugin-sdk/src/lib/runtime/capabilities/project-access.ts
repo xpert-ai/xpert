@@ -17,8 +17,9 @@ export interface ProjectHumanAccess {
 /** Human membership only. Assistant assignment and business authorization remain plugin-owned. */
 export interface ProjectAccessApi {
   listReadable(input: { actor: ProjectAccessActor; projectIds?: string[] }): Promise<ProjectHumanAccess[]>
+  assertEdit(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess>
   assertManage(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess>
 }
 export const ProjectAccessRuntimeCapability = createRuntimeCapability<ProjectAccessApi>('platform.project.access', {
-  description: 'Resolve human Project membership for plugin views and durable background actions.'
+  description: 'Resolve human Project membership for platform and plugin operations.'
 })
