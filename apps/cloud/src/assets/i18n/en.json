@@ -4507,6 +4507,191 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "WorkspaceConfiguration": {
+        "Close": "Close",
+        "NavigationLabel": "Knowledge base settings navigation",
+        "EditTitle": "Knowledge base settings",
+        "CreateTitle": "New knowledge base",
+        "Groups": {
+          "Basic": "Basics",
+          "Indexing": "Indexing and parsing",
+          "Storage": "Storage and data"
+        },
+        "Sections": {
+          "Basic": "Basic information",
+          "Models": "Model configuration",
+          "Vector": "Vector retrieval",
+          "Parser": "Parser engines",
+          "Chunk": "Chunk settings",
+          "Image": "Image processing",
+          "Audio": "Audio processing",
+          "Graph": "Knowledge graph",
+          "Advanced": "Advanced settings",
+          "Storage": "Storage engine"
+        },
+        "Statuses": {
+          "Supported": "Supported",
+          "PostCreate": "Configure after creation",
+          "Preview": "Preview"
+        },
+        "Basic": {
+          "Description": "Set the knowledge base type, indexing strategy, and basic information.",
+          "KnowledgebaseType": "Knowledge base type",
+          "Document": "Document",
+          "QandA": "Q&A",
+          "KnowledgebaseTypeHelp": "Xpert currently supports standard document knowledge bases. Q&A knowledge bases will be available in a future release.",
+          "IndexStrategy": "Indexing strategy",
+          "RagSearch": "RAG retrieval",
+          "RagSearchDescription": "Chunk, vectorize, and retrieve documents with vector, graph, and hybrid modes.",
+          "WikiKnowledgebase": "Wiki knowledge base",
+          "New": "NEW",
+          "WikiDescription": "Automatically generate connected Wiki pages. Xpert does not currently provide a corresponding index browser.",
+          "Name": "Knowledge base name",
+          "NamePlaceholder": "Enter a knowledge base name",
+          "KnowledgebaseDescription": "Knowledge base description",
+          "DescriptionPlaceholder": "Enter a knowledge base description (optional)"
+        },
+        "Models": {
+          "Description": "Select suitable AI models for the knowledge base.",
+          "LargeLanguageModel": "LLM",
+          "LargeLanguageModelDescription": "The large language model used for summaries and abstracts.",
+          "EmbeddingModel": "Embedding model",
+          "EmbeddingModelDescription": "The embedding model used to vectorize text."
+        },
+        "Vector": {
+          "Description": "Configure query vectors, candidate count, and similarity filtering.",
+          "Search": "Vector search",
+          "SearchDescription": "Generate a query embedding and find text chunks with the most similar vector representations.",
+          "RerankModel": "Rerank model",
+          "RerankDescription": "Rerank candidate text chunks to improve result relevance.",
+          "TopK": "Top K",
+          "TopKDescription": "Number of candidate text chunks to return (1-100).",
+          "ScoreThreshold": "Similarity threshold",
+          "ScoreThresholdDescription": "Text chunks below the threshold are filtered out. Turn this off to remove the minimum similarity requirement.",
+          "StorageNotice": "Vector storage is managed by Xpert. Only retrieval behavior is configured here."
+        },
+        "Parser": {
+          "Description": "Choose a document parser for each file type. File types without a selection use the built-in parser.",
+          "FileTypes": {
+            "Pdf": "PDF document",
+            "Word": "Word document",
+            "Presentation": "Presentation",
+            "Excel": "Excel spreadsheet",
+            "Ebook": "E-book",
+            "WebArchive": "Web archive",
+            "Csv": "CSV file"
+          },
+          "Engines": {
+            "BuiltinDefault": "Built-in (default)",
+            "MarkItDown": "MarkItDown",
+            "MinerU": "MinerU",
+            "MarkItDownDefault": "MarkItDown (default)",
+            "Builtin": "Built-in",
+            "SimpleDefault": "Simple (default)"
+          },
+          "ExcelHeaderRow": "Use the first row as column headers and retain it in each row's context."
+        },
+        "Chunk": {
+          "Description": "Control how uploaded documents are split before embedding. The defaults work for most cases; adjust them only when retrieval quality requires it.",
+          "Strategy": "Chunking strategy",
+          "StrategyDescription": "Choose how documents are chunked. Automatic mode analyzes each document's structure and selects the best strategy.",
+          "Strategies": {
+            "Auto": "Automatic",
+            "Title": "Split by heading",
+            "Structure": "Structure-aware",
+            "Length": "Split by length"
+          },
+          "Test": "Test chunking",
+          "AutoNoteLabel": "Automatic",
+          "AutoNote": "The parser selects split by heading, structure-aware, or split by length based on the document structure.",
+          "Size": "Chunk size",
+          "SizeDescription": "Maximum characters per chunk (100-4000). Default: 512.",
+          "SizeRecommendation": "About 300 Chinese tokens or 100-130 English tokens. Use 200-400 for FAQs and 1000-2000 for long-form text.",
+          "Overlap": "Chunk overlap",
+          "OverlapDescription": "Characters shared by adjacent chunks (0-500). Default: 80, about 15% of the chunk size. Use 0 for FAQs or structured data and 150-200 for long-form text.",
+          "CharacterCount": "{{count}} characters",
+          "Separators": "Separators",
+          "SeparatorsDescription": "Characters or strings preferred when splitting. Higher-priority separators are tried first; the default order is paragraph, sentence, then punctuation.",
+          "RemoveSeparator": "Remove separator",
+          "AddSeparator": "Add separator",
+          "Add": "Add",
+          "SeparatorLabels": {
+            "DoubleNewline": "Double newline (\\n\\n)",
+            "SingleNewline": "Single newline (\\n)",
+            "ChinesePeriod": "Chinese period (。)",
+            "Exclamation": "Exclamation mark (!)",
+            "Question": "Question mark (?)",
+            "ChineseSemicolon": "Chinese semicolon (；)",
+            "EnglishSemicolon": "English semicolon (;)"
+          }
+        },
+        "Image": {
+          "Description": "Configure image understanding to extract text and meaning from images.",
+          "Enable": "Enable image understanding",
+          "EnableDescription": "Image documents use the vision model during import.",
+          "VisionModel": "Vision model",
+          "PostCreateNotice": "Image understanding settings are saved from document import settings after the knowledge base is created."
+        },
+        "Audio": {
+          "Description": "Choose a speech recognition engine for audio files.",
+          "SpeechToText": "Speech to text (ASR)",
+          "UnavailableDescription": "Xpert document models support the Audio type, but the knowledge base creation API does not yet expose an ASR engine field.",
+          "FrontendPreview": "UI preview",
+          "ParserEngine": "Parser engine",
+          "NotConnected": "Not available yet"
+        },
+        "Graph": {
+          "Description": "Configure GraphRAG to extract entities and relationships from documents and use them in retrieval.",
+          "Enable": "Enable GraphRAG",
+          "EnableDescription": "Extract entities, relationships, and evidence during parsing for graph and hybrid retrieval.",
+          "RetrievalMode": "Retrieval mode",
+          "Parameters": "Graph retrieval parameters",
+          "ParametersDescription": "Aligned with Xpert retrieval settings. Current values are retained when GraphRAG is disabled.",
+          "EntityTopK": "Entity Top K",
+          "EntityTopKDescription": "Number of candidate entities used to expand the graph for each query.",
+          "NeighborHops": "Neighbor hops",
+          "NeighborHopsDescription": "Number of relationship levels to traverse, up to two hops.",
+          "Weight": "Graph weight",
+          "WeightDescription": "Weight of graph results in the final ranking for hybrid retrieval.",
+          "PostCreateNotice": "The graph can be rebuilt from knowledge base settings after creation. Existing documents must be parsed again to generate graph data.",
+          "Modes": {
+            "Vector": "Vector",
+            "VectorDescription": "Use text vectors for semantic retrieval.",
+            "Graph": "Graph",
+            "GraphDescription": "Prioritize entity relationships and their related document chunks.",
+            "Hybrid": "Hybrid",
+            "HybridDescription": "Combine vector and graph results using the configured weight."
+          }
+        },
+        "Advanced": {
+          "Description": "Configure question generation and other advanced features.",
+          "QuestionGeneration": "AI question generation",
+          "QuestionGenerationDescription": "Use a large language model to generate related questions for each chunk and improve recall. Enabling this increases parsing time.",
+          "QuestionCount": "Questions to generate",
+          "QuestionCountDescription": "Number of questions generated for each document chunk (1-10).",
+          "QuestionRequirements": "Question generation requirements",
+          "QuestionRequirementsDescription": "Specify the audience, scenario, and wording while the system maintains a stable output format.",
+          "QuestionRequirementsPlaceholder": "For example: Generate natural-language questions commonly asked by support customers and avoid exam-style wording...",
+          "TableMetadataRequirements": "Table metadata generation requirements",
+          "TableMetadataRequirementsDescription": "Add business context and field semantics to CSV/Excel summaries so retrieval can better understand the table.",
+          "TableMetadataRequirementsPlaceholder": "For example: This is a sales order table, amounts are in CNY, and the status field uses internal company codes..."
+        },
+        "Storage": {
+          "Description": "Configure storage for original files and processing results.",
+          "PlatformDefault": "Platform default storage",
+          "PlatformDefaultDescription": "Xpert currently uses the workspace storage service. A separate storage engine is not selected when creating a knowledge base.",
+          "SwitchUnsupported": "Switching is not supported"
+        },
+        "Actions": {
+          "Cancel": "Cancel",
+          "Save": "Save settings",
+          "Create": "Create knowledge base"
+        },
+        "Validation": {
+          "NameRequired": "Enter a knowledge base name",
+          "EmbeddingModelRequired": "Select an embedding model"
+        }
+      },
       "WorkbenchTitle": "Knowledge base",
       "WorkbenchDescription": "Share, organize, and manage knowledge.",
       "PersonalKnowledge": "Personal knowledge bases",

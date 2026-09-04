@@ -6473,6 +6473,191 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "WorkspaceConfiguration": {
+        "Close": "关闭",
+        "NavigationLabel": "知识库设置导航",
+        "EditTitle": "知识库设置",
+        "CreateTitle": "新建知识库",
+        "Groups": {
+          "Basic": "基础",
+          "Indexing": "索引与解析",
+          "Storage": "存储与数据"
+        },
+        "Sections": {
+          "Basic": "基本信息",
+          "Models": "模型配置",
+          "Vector": "向量检索",
+          "Parser": "解析引擎",
+          "Chunk": "分块设置",
+          "Image": "图像处理",
+          "Audio": "音频处理",
+          "Graph": "知识图谱",
+          "Advanced": "高级设置",
+          "Storage": "存储引擎"
+        },
+        "Statuses": {
+          "Supported": "已支持",
+          "PostCreate": "创建后配置",
+          "Preview": "预览"
+        },
+        "Basic": {
+          "Description": "设置知识库的类型、索引策略和基本信息。",
+          "KnowledgebaseType": "知识库类型",
+          "Document": "文档",
+          "QandA": "问答",
+          "KnowledgebaseTypeHelp": "Xpert 当前支持标准文档知识库，问答知识库将在后续版本接入。",
+          "IndexStrategy": "索引策略",
+          "RagSearch": "RAG 检索",
+          "RagSearchDescription": "对文档进行分块、向量化和检索，支持向量、图谱和混合模式。",
+          "WikiKnowledgebase": "Wiki 知识库",
+          "New": "NEW",
+          "WikiDescription": "自动生成关联的 Wiki 页面，当前 Xpert 暂无对应索引浏览器。",
+          "Name": "知识库名称",
+          "NamePlaceholder": "请输入知识库名称",
+          "KnowledgebaseDescription": "知识库描述",
+          "DescriptionPlaceholder": "请输入知识库描述（可选）"
+        },
+        "Models": {
+          "Description": "为知识库选择合适的 AI 模型。",
+          "LargeLanguageModel": "LLM 大语言模型",
+          "LargeLanguageModelDescription": "用于总结和摘要的大语言模型。",
+          "EmbeddingModel": "Embedding 嵌入模型",
+          "EmbeddingModelDescription": "用于文本向量化的嵌入模型。"
+        },
+        "Vector": {
+          "Description": "配置查询向量、候选数量和相似度筛选策略。",
+          "Search": "向量搜索",
+          "SearchDescription": "生成查询嵌入并搜索与其向量表示最相似的文本块。",
+          "RerankModel": "重新排序模型",
+          "RerankDescription": "使用重排模型对候选文本块重新排序，提升结果相关性。",
+          "TopK": "前多少",
+          "TopKDescription": "返回候选文本块的数量（1–100）。",
+          "ScoreThreshold": "相似度阈值",
+          "ScoreThresholdDescription": "低于阈值的文本块会被过滤，关闭后不限制最低相似度。",
+          "StorageNotice": "向量存储由 Xpert 平台统一管理，此处只配置检索行为。"
+        },
+        "Parser": {
+          "Description": "为不同文件类型选择文档解析引擎。未配置的文件类型将使用内置解析引擎。",
+          "FileTypes": {
+            "Pdf": "PDF 文档",
+            "Word": "Word 文档",
+            "Presentation": "演示文稿",
+            "Excel": "Excel 表格",
+            "Ebook": "电子书",
+            "WebArchive": "网页归档",
+            "Csv": "CSV 文件"
+          },
+          "Engines": {
+            "BuiltinDefault": "内置（默认）",
+            "MarkItDown": "MarkItDown",
+            "MinerU": "MinerU",
+            "MarkItDownDefault": "MarkItDown（默认）",
+            "Builtin": "内置",
+            "SimpleDefault": "Simple（默认）"
+          },
+          "ExcelHeaderRow": "将首行作为列标题，并保留在每行上下文中。"
+        },
+        "Chunk": {
+          "Description": "控制上传文档在嵌入前的切分方式。默认值适用于大多数场景，仅在检索质量异常时调整。",
+          "Strategy": "分块策略",
+          "StrategyDescription": "选择文档的分块方式。自动模式会分析每个文档的结构并选择最佳策略。",
+          "Strategies": {
+            "Auto": "自动",
+            "Title": "按标题切分",
+            "Structure": "结构感知",
+            "Length": "按长度切分"
+          },
+          "Test": "测试分块效果",
+          "AutoNoteLabel": "自动",
+          "AutoNote": "文档分析器根据内容结构自动在“按标题切分”“结构感知”“按长度切分”之间选择。",
+          "Size": "分块大小",
+          "SizeDescription": "每个分块的最大字符数（100–4000）。默认 512。",
+          "SizeRecommendation": "约中文 300 tokens / 英文 100–130 tokens。FAQ 用 200–400，叙述性长文档用 1000–2000。",
+          "Overlap": "分块重叠",
+          "OverlapDescription": "相邻分块之间共享的字符数（0–500）。默认 80，约为分块大小的 15%。FAQ/结构化数据用 0，长篇叙述用 150–200。",
+          "CharacterCount": "{{count}} 字符",
+          "Separators": "分隔符",
+          "SeparatorsDescription": "切分时优先使用的字符或字符串。优先级高的分隔符先尝试；默认顺序优先段落、句子、标点。",
+          "RemoveSeparator": "移除分隔符",
+          "AddSeparator": "添加分隔符",
+          "Add": "添加",
+          "SeparatorLabels": {
+            "DoubleNewline": "双换行 (\\n\\n)",
+            "SingleNewline": "单换行 (\\n)",
+            "ChinesePeriod": "中文句号 (。)",
+            "Exclamation": "感叹号 (!)",
+            "Question": "问号 (?)",
+            "ChineseSemicolon": "中文分号 (；)",
+            "EnglishSemicolon": "英文分号 (;)"
+          }
+        },
+        "Image": {
+          "Description": "配置图片理解策略，帮助知识库提取图片中的文字和语义。",
+          "Enable": "启用图片理解",
+          "EnableDescription": "图片文档将在导入时调用视觉理解模型。",
+          "VisionModel": "Vision 模型",
+          "PostCreateNotice": "图片理解配置将在知识库创建后从文档导入设置中保存。"
+        },
+        "Audio": {
+          "Description": "为音频文件选择语音识别引擎。",
+          "SpeechToText": "语音转文本（ASR）",
+          "UnavailableDescription": "Xpert 文档模型已支持 Audio 类型，但当前知识库创建接口还没有 ASR 引擎字段。",
+          "FrontendPreview": "前端预览",
+          "ParserEngine": "解析引擎",
+          "NotConnected": "暂未接入"
+        },
+        "Graph": {
+          "Description": "配置 GraphRAG，从文档中抽取实体和关系并参与知识检索。",
+          "Enable": "启用 GraphRAG",
+          "EnableDescription": "解析文档时抽取实体、关系和证据，供图谱检索与混合检索使用。",
+          "RetrievalMode": "检索模式",
+          "Parameters": "图谱检索参数",
+          "ParametersDescription": "与 Xpert 检索设置保持一致，关闭 GraphRAG 时保留当前配置。",
+          "EntityTopK": "实体 Top K",
+          "EntityTopKDescription": "每次查询用于扩展图谱的候选实体数量。",
+          "NeighborHops": "邻居跳数",
+          "NeighborHopsDescription": "沿实体关系扩展的层数，最多支持两跳。",
+          "Weight": "图谱权重",
+          "WeightDescription": "混合检索时图谱结果在最终排序中的权重。",
+          "PostCreateNotice": "创建后可在知识库配置中重建图谱；已存在的文档需要重新解析才会生成图谱数据。",
+          "Modes": {
+            "Vector": "向量",
+            "VectorDescription": "使用文本向量进行语义检索。",
+            "Graph": "图谱",
+            "GraphDescription": "优先召回实体关系及其关联文档片段。",
+            "Hybrid": "混合",
+            "HybridDescription": "融合向量检索与图谱召回，按权重合并结果。"
+          }
+        },
+        "Advanced": {
+          "Description": "配置问题生成等高级功能。",
+          "QuestionGeneration": "AI 问题生成",
+          "QuestionGenerationDescription": "解析文档时调用大模型为每个分块生成相关问题，提高检索召回率。启用后会增加文档解析耗时。",
+          "QuestionCount": "生成问题数量",
+          "QuestionCountDescription": "每个文档分块生成的问题数量（1–10）。",
+          "QuestionRequirements": "问题生成要求",
+          "QuestionRequirementsDescription": "指定问题面向的人群、场景和表达方式，系统仍维持稳定输出格式。",
+          "QuestionRequirementsPlaceholder": "例如：生成客服用户常问的自然语言问题，避免考试题式表达...",
+          "TableMetadataRequirements": "表格元数据生成要求",
+          "TableMetadataRequirementsDescription": "为 CSV/Excel 摘要补充业务背景和字段语义，帮助后续检索理解表格内容。",
+          "TableMetadataRequirementsPlaceholder": "例如：这是销售订单表，金额单位为元，status 字段值使用公司内部状态码..."
+        },
+        "Storage": {
+          "Description": "配置原始文件和处理结果的存储方式。",
+          "PlatformDefault": "平台默认存储",
+          "PlatformDefaultDescription": "当前 Xpert 统一使用工作空间存储服务，知识库创建时不单独选择存储引擎。",
+          "SwitchUnsupported": "暂不支持切换"
+        },
+        "Actions": {
+          "Cancel": "取消",
+          "Save": "保存配置",
+          "Create": "创建知识库"
+        },
+        "Validation": {
+          "NameRequired": "请输入知识库名称",
+          "EmbeddingModelRequired": "请选择 Embedding 模型"
+        }
+      },
       "WorkbenchTitle": "知识库",
       "WorkbenchDescription": "团队知识共享、协作与管理",
       "PersonalKnowledge": "个人知识库",

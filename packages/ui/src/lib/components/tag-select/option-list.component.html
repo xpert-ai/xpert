@@ -4,13 +4,19 @@
       <div
         #optionElement
         role="option"
-        [attr.aria-selected]="activeIndex() === index"
+        [attr.aria-selected]="checkable() ? isSelected(option) : activeIndex() === index"
         [class]="optionClasses(index, !!option.disabled)"
         (mousedown)="onMouseDown($event)"
         (mouseenter)="onMouseEnter(index)"
         (click)="onOptionClick(option)"
       >
-        <span class="truncate">{{ option.label }}</span>
+        @if (checkable()) {
+          <z-checkbox class="pointer-events-none w-full" [ngModel]="isSelected(option)">
+            <span class="truncate">{{ option.label }}</span>
+          </z-checkbox>
+        } @else {
+          <span class="truncate">{{ option.label }}</span>
+        }
       </div>
     }
   } @else {

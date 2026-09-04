@@ -5012,6 +5012,191 @@
       "TakeMeThere": "帶我去！"
     },
     "Knowledgebase": {
+      "WorkspaceConfiguration": {
+        "Close": "關閉",
+        "NavigationLabel": "知識庫設置導航",
+        "EditTitle": "知識庫設置",
+        "CreateTitle": "新建知識庫",
+        "Groups": {
+          "Basic": "基礎",
+          "Indexing": "索引與解析",
+          "Storage": "儲存與資料"
+        },
+        "Sections": {
+          "Basic": "基本資訊",
+          "Models": "模型配置",
+          "Vector": "向量檢索",
+          "Parser": "解析引擎",
+          "Chunk": "分塊設置",
+          "Image": "圖像處理",
+          "Audio": "音訊處理",
+          "Graph": "知識圖譜",
+          "Advanced": "進階設置",
+          "Storage": "儲存引擎"
+        },
+        "Statuses": {
+          "Supported": "已支援",
+          "PostCreate": "建立後配置",
+          "Preview": "預覽"
+        },
+        "Basic": {
+          "Description": "設置知識庫的類型、索引策略和基本資訊。",
+          "KnowledgebaseType": "知識庫類型",
+          "Document": "文件",
+          "QandA": "問答",
+          "KnowledgebaseTypeHelp": "Xpert 目前支援標準文件知識庫，問答知識庫將在後續版本接入。",
+          "IndexStrategy": "索引策略",
+          "RagSearch": "RAG 檢索",
+          "RagSearchDescription": "對文件進行分塊、向量化和檢索，支援向量、圖譜和混合模式。",
+          "WikiKnowledgebase": "Wiki 知識庫",
+          "New": "NEW",
+          "WikiDescription": "自動產生關聯的 Wiki 頁面，目前 Xpert 暫無對應索引瀏覽器。",
+          "Name": "知識庫名稱",
+          "NamePlaceholder": "請輸入知識庫名稱",
+          "KnowledgebaseDescription": "知識庫描述",
+          "DescriptionPlaceholder": "請輸入知識庫描述（可選）"
+        },
+        "Models": {
+          "Description": "為知識庫選擇合適的 AI 模型。",
+          "LargeLanguageModel": "LLM 大語言模型",
+          "LargeLanguageModelDescription": "用於總結和摘要的大語言模型。",
+          "EmbeddingModel": "Embedding 嵌入模型",
+          "EmbeddingModelDescription": "用於文字向量化的嵌入模型。"
+        },
+        "Vector": {
+          "Description": "配置查詢向量、候選數量和相似度篩選策略。",
+          "Search": "向量搜尋",
+          "SearchDescription": "產生查詢嵌入並搜尋與其向量表示最相似的文字區塊。",
+          "RerankModel": "重新排序模型",
+          "RerankDescription": "使用重排模型對候選文字區塊重新排序，提升結果相關性。",
+          "TopK": "前多少",
+          "TopKDescription": "傳回候選文字區塊的數量（1–100）。",
+          "ScoreThreshold": "相似度閾值",
+          "ScoreThresholdDescription": "低於閾值的文字區塊會被過濾，關閉後不限制最低相似度。",
+          "StorageNotice": "向量儲存由 Xpert 平台統一管理，此處只配置檢索行為。"
+        },
+        "Parser": {
+          "Description": "為不同檔案類型選擇文件解析引擎。未配置的檔案類型將使用內置解析引擎。",
+          "FileTypes": {
+            "Pdf": "PDF 文件",
+            "Word": "Word 文件",
+            "Presentation": "簡報",
+            "Excel": "Excel 表格",
+            "Ebook": "電子書",
+            "WebArchive": "網頁封存",
+            "Csv": "CSV 檔案"
+          },
+          "Engines": {
+            "BuiltinDefault": "內置（預設）",
+            "MarkItDown": "MarkItDown",
+            "MinerU": "MinerU",
+            "MarkItDownDefault": "MarkItDown（預設）",
+            "Builtin": "內置",
+            "SimpleDefault": "Simple（預設）"
+          },
+          "ExcelHeaderRow": "將首列作為欄位標題，並保留在每列上下文中。"
+        },
+        "Chunk": {
+          "Description": "控制上傳文件在嵌入前的切分方式。預設值適用於大多數場景，僅在檢索品質異常時調整。",
+          "Strategy": "分塊策略",
+          "StrategyDescription": "選擇文件的分塊方式。自動模式會分析每個文件的結構並選擇最佳策略。",
+          "Strategies": {
+            "Auto": "自動",
+            "Title": "按標題切分",
+            "Structure": "結構感知",
+            "Length": "按長度切分"
+          },
+          "Test": "測試分塊效果",
+          "AutoNoteLabel": "自動",
+          "AutoNote": "文件分析器根據內容結構自動在「按標題切分」「結構感知」「按長度切分」之間選擇。",
+          "Size": "分塊大小",
+          "SizeDescription": "每個分塊的最大字元數（100–4000）。預設 512。",
+          "SizeRecommendation": "約中文 300 tokens / 英文 100–130 tokens。FAQ 用 200–400，敘述性長文件用 1000–2000。",
+          "Overlap": "分塊重疊",
+          "OverlapDescription": "相鄰分塊之間共享的字元數（0–500）。預設 80，約為分塊大小的 15%。FAQ/結構化資料用 0，長篇敘述用 150–200。",
+          "CharacterCount": "{{count}} 字元",
+          "Separators": "分隔符",
+          "SeparatorsDescription": "切分時優先使用的字元或字串。優先級高的分隔符先嘗試；預設順序優先段落、句子、標點。",
+          "RemoveSeparator": "移除分隔符",
+          "AddSeparator": "新增分隔符",
+          "Add": "新增",
+          "SeparatorLabels": {
+            "DoubleNewline": "雙換行 (\\n\\n)",
+            "SingleNewline": "單換行 (\\n)",
+            "ChinesePeriod": "中文句號 (。)",
+            "Exclamation": "驚嘆號 (!)",
+            "Question": "問號 (?)",
+            "ChineseSemicolon": "中文分號 (；)",
+            "EnglishSemicolon": "英文分號 (;)"
+          }
+        },
+        "Image": {
+          "Description": "配置圖片理解策略，幫助知識庫擷取圖片中的文字和語義。",
+          "Enable": "啟用圖片理解",
+          "EnableDescription": "圖片文件將在匯入時調用視覺理解模型。",
+          "VisionModel": "Vision 模型",
+          "PostCreateNotice": "圖片理解配置將在知識庫建立後從文件匯入設置中儲存。"
+        },
+        "Audio": {
+          "Description": "為音訊檔案選擇語音識別引擎。",
+          "SpeechToText": "語音轉文字（ASR）",
+          "UnavailableDescription": "Xpert 文件模型已支援 Audio 類型，但目前知識庫建立介面還沒有 ASR 引擎欄位。",
+          "FrontendPreview": "前端預覽",
+          "ParserEngine": "解析引擎",
+          "NotConnected": "暫未接入"
+        },
+        "Graph": {
+          "Description": "配置 GraphRAG，從文件中抽取實體和關係並參與知識檢索。",
+          "Enable": "啟用 GraphRAG",
+          "EnableDescription": "解析文件時抽取實體、關係和證據，供圖譜檢索與混合檢索使用。",
+          "RetrievalMode": "檢索模式",
+          "Parameters": "圖譜檢索參數",
+          "ParametersDescription": "與 Xpert 檢索設置保持一致，關閉 GraphRAG 時保留目前配置。",
+          "EntityTopK": "實體 Top K",
+          "EntityTopKDescription": "每次查詢用於擴展圖譜的候選實體數量。",
+          "NeighborHops": "鄰居跳數",
+          "NeighborHopsDescription": "沿實體關係擴展的層數，最多支援兩跳。",
+          "Weight": "圖譜權重",
+          "WeightDescription": "混合檢索時圖譜結果在最終排序中的權重。",
+          "PostCreateNotice": "建立後可在知識庫配置中重建圖譜；已存在的文件需要重新解析才會產生圖譜資料。",
+          "Modes": {
+            "Vector": "向量",
+            "VectorDescription": "使用文字向量進行語義檢索。",
+            "Graph": "圖譜",
+            "GraphDescription": "優先召回實體關係及其關聯文件片段。",
+            "Hybrid": "混合",
+            "HybridDescription": "融合向量檢索與圖譜召回，按權重合併結果。"
+          }
+        },
+        "Advanced": {
+          "Description": "配置問題產生等進階功能。",
+          "QuestionGeneration": "AI 問題產生",
+          "QuestionGenerationDescription": "解析文件時調用大模型為每個分塊產生相關問題，提高檢索召回率。啟用後會增加文件解析耗時。",
+          "QuestionCount": "產生問題數量",
+          "QuestionCountDescription": "每個文件分塊產生的問題數量（1–10）。",
+          "QuestionRequirements": "問題產生要求",
+          "QuestionRequirementsDescription": "指定問題面向的人群、場景和表達方式，系統仍維持穩定輸出格式。",
+          "QuestionRequirementsPlaceholder": "例如：產生客服使用者常問的自然語言問題，避免考試題式表達...",
+          "TableMetadataRequirements": "表格中繼資料產生要求",
+          "TableMetadataRequirementsDescription": "為 CSV/Excel 摘要補充業務背景和欄位語義，幫助後續檢索理解表格內容。",
+          "TableMetadataRequirementsPlaceholder": "例如：這是銷售訂單表，金額單位為元，status 欄位值使用公司內部狀態碼..."
+        },
+        "Storage": {
+          "Description": "配置原始檔案和處理結果的儲存方式。",
+          "PlatformDefault": "平台預設儲存",
+          "PlatformDefaultDescription": "目前 Xpert 統一使用工作空間儲存服務，知識庫建立時不單獨選擇儲存引擎。",
+          "SwitchUnsupported": "暫不支援切換"
+        },
+        "Actions": {
+          "Cancel": "取消",
+          "Save": "儲存配置",
+          "Create": "建立知識庫"
+        },
+        "Validation": {
+          "NameRequired": "請輸入知識庫名稱",
+          "EmbeddingModelRequired": "請選擇 Embedding 模型"
+        }
+      },
       "Knowledgebase": "知識庫",
       "KnowledgebaseSettings": "知識庫設置",
       "KnowledgebaseSettingsDescription": "在這裏，您可以修改此知識庫的屬性和檢索設置。",
