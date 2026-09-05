@@ -1,9 +1,13 @@
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { KnowledgeChunkComponent, XpertKnowledgeFilterFormComponent } from '@cloud/app/@shared/knowledge'
+import {
+  KnowledgeChunkComponent,
+  KnowledgeRetrievalSettingsComponent,
+  XpertKnowledgeFilterFormComponent
+} from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
-import { myRxResource, XpCommonModule, ZardAccordionImports } from '@xpert-ai/headless-ui'
+import { myRxResource, XpCommonModule, ZardAccordionImports, type ZardAccordionItemLike } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -17,10 +21,13 @@ import {
   KnowledgeFilterNode,
   KnowledgeDocumentService,
   KnowledgebaseService,
+  KnowledgebaseTypeEnum,
   OrderTypeEnum,
   TKBRetrievalSettings,
   ToastrService,
   getErrorMessage,
+  isDocumentKnowledgebaseType,
+  normalizeKnowledgebaseFAQRecall,
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
@@ -38,6 +45,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     XpCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
+    KnowledgeRetrievalSettingsComponent,
     XpertKnowledgeFilterFormComponent
   ],
   animations: [routeAnimations]
@@ -51,11 +59,18 @@ export class KnowledgeTestComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly isFAQ = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.FAQ)
+  readonly showDocumentTestControls = computed(() => isDocumentKnowledgebaseType(this.knowledgebase()?.type))
+  readonly showRetrievalSettings = computed(() => this.showDocumentTestControls() || this.isFAQ())
 
-  readonly recall = computed(() => this.knowledgebase()?.recall)
+  readonly recall = computed(() =>
+    this.isFAQ() ? normalizeKnowledgebaseFAQRecall(this.knowledgebase()?.recall) : this.knowledgebase()?.recall
+  )
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
-  readonly retrievalMode = computed<GraphRagRetrievalMode>(() => this.knowledgebase()?.graphRag?.mode ?? 'vector')
+  readonly retrievalMode = computed<GraphRagRetrievalMode>(
+    () => this.recall()?.mode ?? this.knowledgebase()?.graphRag?.mode ?? (this.isFAQ() ? 'hybrid' : 'vector')
+  )
   readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
     const graphRag = this.knowledgebase()?.graphRag
     return {
@@ -64,7 +79,7 @@ export class KnowledgeTestComponent {
       neighborHops: graphRag?.neighborHops,
       graphWeight: graphRag?.graphWeight,
       communityTopK: graphRag?.communityTopK,
-      fusion: this.knowledgebase()?.recall?.fusion
+      fusion: this.recall()?.fusion
     }
   })
 
@@ -157,6 +172,13 @@ export class KnowledgeTestComponent {
   selectLog(log: IKnowledgeRetrievalLog) {
     this.query.set(log.query)
     this.results.set(null)
+  }
+
+  onRetrievalSettingsClose(reload: boolean | void, panel: ZardAccordionItemLike) {
+    panel.close()
+    if (reload) {
+      this.knowledgebaseComponent.refresh()
+    }
   }
 }
 

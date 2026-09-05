@@ -8,6 +8,7 @@ import {
     KnowledgeFilterDiagnostics,
     KnowledgeFilterSources,
     KnowledgebaseTypeEnum,
+    KnowledgeRetrievalMode,
     TKBFusionConfig,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
@@ -36,9 +37,14 @@ import {
     WeightedRrfFusion,
     withKnowledgeDocumentMetadata
 } from '../../retrieval'
+import { filterFAQNegativeMatches, materializeFAQResult } from '../../faq/faq-result'
 
 function getBatchDocuments(batch: KnowledgeRetrievalBatch): DocumentInterface<DocumentMetadata>[] {
     return batch.candidates.map(({ document }) => document)
+}
+
+function resolveRetrievalMode(kb: IKnowledgebase, retrieval?: TKBRetrievalSettings): KnowledgeRetrievalMode {
+    return retrieval?.mode ?? kb.recall?.mode ?? kb.graphRag?.mode ?? 'vector'
 }
 
 @QueryHandler(KnowledgeSearchQuery)
@@ -110,12 +116,12 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             command.input.variables,
                             retrieval
                         )
-                        docs = searchResult.documents
+                        docs = filterFAQNegativeMatches(searchResult.documents, query).map(materializeFAQResult)
                         filterDiagnostics = searchResult.diagnostics
                     }
 
                     const score = command.input.score ?? kb.recall?.score
-                    const retrievalMode = retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'
+                    const retrievalMode = resolveRetrievalMode(kb, retrieval)
                     if (!isNil(score) && retrievalMode !== 'keyword' && !this.usesWeightedRrf(kb, retrieval)) {
                         docs = docs.filter((doc) => doc.metadata.score >= score)
                     }
@@ -194,7 +200,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             filterStatus: 'failed',
             errorCode:
                 retrievalFailure?.errorCode ??
-                this.resolveFilterErrorCode(error, command.input.retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'),
+                this.resolveFilterErrorCode(error, resolveRetrievalMode(kb, command.input.retrieval)),
             hitCount: 0,
             vectorBackend: previousDiagnostics?.vectorBackend ?? environment.vectorStore,
             errors
@@ -267,7 +273,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             vectorBackend: environment.vectorStore
         })
         prepared.diagnostics.filterLatency = Date.now() - filterStartedAt
-        const mode = retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'
+        const mode = resolveRetrievalMode(kb, retrieval)
         const request: KnowledgeRetrievalRequest = {
             knowledgebase: kb,
             query,
@@ -463,7 +469,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
     }
 
     private usesWeightedRrf(kb: IKnowledgebase, retrieval?: TKBRetrievalSettings) {
-        const mode = retrieval?.mode ?? kb.graphRag?.mode ?? 'vector'
+        const mode = resolveRetrievalMode(kb, retrieval)
         const fusion = this.resolveFusionConfig(kb, retrieval)
         return kb.type !== KnowledgebaseTypeEnum.External && mode === 'hybrid' && fusion?.mode === 'weighted_rrf'
     }

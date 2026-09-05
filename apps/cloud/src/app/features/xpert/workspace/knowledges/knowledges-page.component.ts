@@ -11,10 +11,12 @@ import {
   IKnowledgeDocument,
   KDocumentSourceType,
   KnowledgebaseService,
+  KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum
 } from '../../../../@core'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
+import { getKnowledgebaseDefaultRoute } from '../../knowledge/knowledgebase/knowledgebase-route'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 
 type DocumentSort = 'updatedAt' | 'name'
@@ -163,9 +165,15 @@ export class XpertWorkspaceKnowledgesPageComponent {
       })
       .closed.subscribe((knowledgebase) => {
         if (knowledgebase?.id) {
-          void this.#router.navigate(['/xpert/knowledges', knowledgebase.id], {
-            queryParams: { returnTo: this.workspaceReturnTo() }
-          })
+          void this.#router.navigate(
+            getKnowledgebaseDefaultRoute({
+              id: knowledgebase.id,
+              type: knowledgebase.type ?? KnowledgebaseTypeEnum.Standard
+            }),
+            {
+              queryParams: { returnTo: this.workspaceReturnTo() }
+            }
+          )
         }
       })
   }

@@ -11,34 +11,81 @@
     </p>
   </div>
 
-  <z-accordion
-    data-test-controls
-    class="mb-4 space-y-2"
-    displayDensity="compact"
-    togglePosition="before"
-    [multi]="true"
-  >
-    <z-accordion-item
-      zValue="knowledge-filters"
-      data-test-panel="filters"
-      class="rounded-xl border border-divider-subtle bg-components-card-bg"
+  @if (showRetrievalSettings()) {
+    <z-accordion
+      data-test-controls
+      class="mb-4 space-y-2"
+      displayDensity="compact"
+      togglePosition="before"
+      [multi]="true"
     >
-      <z-accordion-header>
-        <z-accordion-title class="text-text-secondary">
-          <i class="ri-filter-3-line shrink-0 text-text-accent"></i>
-          <span>{{ 'XP.Knowledgebase.KnowledgeFilters' | translate: { Default: 'Knowledge Filters' } }}</span>
-        </z-accordion-title>
-      </z-accordion-header>
+      <z-accordion-item
+        #retrievalPanel="zAccordionItem"
+        zValue="retrieval-settings"
+        data-test-panel="retrieval"
+        class="rounded-xl border border-divider-subtle bg-components-card-bg"
+      >
+        <z-accordion-header>
+          <z-accordion-title class="text-text-secondary">
+            <i class="ri-focus-mode shrink-0 text-text-accent"></i>
+            <span>{{ 'XP.Knowledgebase.RetrievalSetting' | translate: { Default: 'Retrieval settings' } }}</span>
+          </z-accordion-title>
+          <z-accordion-description class="!flex-none">
+            <span class="rounded-md bg-components-input-bg-normal px-2 py-1 system-xs-medium text-text-secondary">
+              @switch (retrievalMode()) {
+                @case ('vector') {
+                  {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
+                }
+                @case ('keyword') {
+                  {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate: { Default: 'Keyword' } }}
+                }
+                @case ('graph') {
+                  {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
+                }
+                @case ('hybrid') {
+                  {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
+                }
+              }
+            </span>
+          </z-accordion-description>
+        </z-accordion-header>
 
-      <xp-knowledge-filter-form
-        class="block border-t border-divider-subtle pt-3"
-        [(filter)]="requestFilter"
-        [fields]="filterFields()"
-        [allowVariables]="false"
-        [folderOptions]="folderOptions()"
-      />
-    </z-accordion-item>
-  </z-accordion>
+        <div class="border-t border-divider-subtle pt-3">
+          <xp-knowledge-retrieval-settings
+            class="block max-h-[min(70vh,720px)] min-h-0 overflow-y-auto pr-1"
+            savable
+            [ngModel]="knowledgebase()"
+            [allowGraphRetrieval]="!isFAQ()"
+            [defaultMode]="isFAQ() ? 'hybrid' : 'vector'"
+            (close)="onRetrievalSettingsClose($event, retrievalPanel)"
+          />
+        </div>
+      </z-accordion-item>
+
+      @if (showDocumentTestControls()) {
+        <z-accordion-item
+          zValue="knowledge-filters"
+          data-test-panel="filters"
+          class="rounded-xl border border-divider-subtle bg-components-card-bg"
+        >
+          <z-accordion-header>
+            <z-accordion-title class="text-text-secondary">
+              <i class="ri-filter-3-line shrink-0 text-text-accent"></i>
+              <span>{{ 'XP.Knowledgebase.KnowledgeFilters' | translate: { Default: 'Knowledge Filters' } }}</span>
+            </z-accordion-title>
+          </z-accordion-header>
+
+          <xp-knowledge-filter-form
+            class="block border-t border-divider-subtle pt-3"
+            [(filter)]="requestFilter"
+            [fields]="filterFields()"
+            [allowVariables]="false"
+            [folderOptions]="folderOptions()"
+          />
+        </z-accordion-item>
+      }
+    </z-accordion>
+  }
 
   <div
     data-test-query-input

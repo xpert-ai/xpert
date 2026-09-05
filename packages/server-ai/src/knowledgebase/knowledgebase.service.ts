@@ -2,6 +2,7 @@ import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     channelName,
+    DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentMetadata,
     genPipelineKnowledgeBaseKey,
     genPipelineSourceKey,
@@ -13,6 +14,7 @@ import {
     IWFNSource,
     KBDocumentStatusEnum,
     KnowledgebaseChannel,
+    KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
@@ -40,7 +42,8 @@ import {
     KNOWLEDGE_PROCESSING_MODE_NAME,
     KBMetadataFieldDef,
     MetadataFieldType,
-    KnowledgeFilterJSONValue
+    KnowledgeFilterJSONValue,
+    normalizeKnowledgebaseFAQRecall
 } from '@xpert-ai/contracts'
 import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
@@ -104,6 +107,8 @@ import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeSearchResult } from './queries/knowledge-search.query'
 import { KnowledgebaseTask, KnowledgebaseTaskService } from './task'
 import { KnowledgeDocumentStore, TEmbeddingVectorMetadata } from './vector-store'
+import { buildFAQVectorWriteFromMetadata, resolveFAQEmbeddingContextSize } from './faq/faq-vector'
+import { isKnowledgeFAQChunkMetadata } from './faq/faq-projection'
 import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
@@ -149,6 +154,36 @@ function knowledgebaseAccessDenied() {
     )
 }
 
+function isKnowledgebaseFAQConfig(value: unknown): value is KnowledgebaseFAQConfig {
+    return (
+        !!value &&
+        typeof value === 'object' &&
+        'indexMode' in value &&
+        (value.indexMode === 'question_only' || value.indexMode === 'question_answer') &&
+        'questionIndexMode' in value &&
+        (value.questionIndexMode === 'combined' || value.questionIndexMode === 'separate') &&
+        (!('negativeMatchMode' in value) ||
+            value.negativeMatchMode === undefined ||
+            value.negativeMatchMode === 'exact')
+    )
+}
+
+function normalizeKnowledgebaseFAQConfig(value: unknown): KnowledgebaseFAQConfig {
+    if (!isKnowledgebaseFAQConfig(value)) {
+        throw new BadRequestException(
+            t('server-ai:Error.KnowledgebaseFAQConfigInvalid', {
+                defaultValue: 'FAQ configuration is invalid'
+            })
+        )
+    }
+
+    return {
+        indexMode: value.indexMode,
+        questionIndexMode: value.questionIndexMode,
+        negativeMatchMode: value.negativeMatchMode ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG.negativeMatchMode
+    }
+}
+
 function assertSafeKnowledgebaseTaskRelations(relations: unknown): asserts relations is string[] | undefined {
     if (relations === undefined) {
         return
@@ -175,6 +210,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     id: true,
     name: true,
     type: true,
+    faqConfig: true,
     structure: true,
     language: true,
     avatar: true,
@@ -371,6 +407,19 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         delete input.createdAt
         delete input.updatedAt
         delete input.deletedAt
+
+        input.type ??= KnowledgebaseTypeEnum.Standard
+        if (input.type === KnowledgebaseTypeEnum.FAQ) {
+            input.faqConfig = normalizeKnowledgebaseFAQConfig(input.faqConfig ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG)
+            input.recall = normalizeKnowledgebaseFAQRecall(input.recall)
+            input.graphRag = {
+                ...(input.graphRag ?? {}),
+                enabled: false,
+                mode: input.recall.mode
+            }
+        } else {
+            delete input.faqConfig
+        }
 
         // Check name
         const exist = await super.findOneOrFailByOptions({
@@ -577,6 +626,47 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             throw new BadRequestException('workspace cannot be changed after a knowledgebase is created')
         }
         delete changes.workspace
+        if (Object.prototype.hasOwnProperty.call(changes, 'type')) {
+            if (changes.type !== _entity.type) {
+                throw new BadRequestException(
+                    t('server-ai:Error.KnowledgebaseTypeImmutable', {
+                        defaultValue: 'Knowledgebase type cannot be changed after creation'
+                    })
+                )
+            }
+            delete changes.type
+        }
+        if (Object.prototype.hasOwnProperty.call(changes, 'faqConfig')) {
+            throw new BadRequestException(
+                t('server-ai:Error.KnowledgebaseFAQConfigImmutable', {
+                    defaultValue: 'FAQ configuration cannot be changed after a knowledgebase is created'
+                })
+            )
+        }
+        if (
+            _entity.type === KnowledgebaseTypeEnum.FAQ &&
+            (Object.prototype.hasOwnProperty.call(changes, 'recall') ||
+                Object.prototype.hasOwnProperty.call(changes, 'graphRag'))
+        ) {
+            changes.recall = normalizeKnowledgebaseFAQRecall({
+                ...(_entity.recall ?? {}),
+                ...(changes.recall ?? {}),
+                fusion: {
+                    ...(_entity.recall?.fusion ?? {}),
+                    ...(changes.recall?.fusion ?? {}),
+                    weights: {
+                        ...(_entity.recall?.fusion?.weights ?? {}),
+                        ...(changes.recall?.fusion?.weights ?? {})
+                    }
+                }
+            })
+            changes.graphRag = {
+                ...(_entity.graphRag ?? {}),
+                ...(changes.graphRag ?? {}),
+                enabled: false,
+                mode: changes.recall.mode
+            }
+        }
 
         // Check name uniqueness if name is being changed
         if (changes.name && changes.name !== _entity.name) {
@@ -1256,13 +1346,40 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             throw new BadRequestException(`Chunk '${missingContent.id}' has no pageContent for embedding rebuild`)
         }
 
+        const embeddingItems =
+            knowledgebase.type === KnowledgebaseTypeEnum.FAQ
+                ? embeddingChunks.flatMap((chunk) => {
+                      if (
+                          !chunk.id ||
+                          !chunk.document ||
+                          !isKnowledgeFAQChunkMetadata(chunk.metadata) ||
+                          chunk.metadata.vectorSyncStatus === 'pending' ||
+                          chunk.metadata.vectorSyncStatus === 'failed'
+                      ) {
+                          return []
+                      }
+                      const write = buildFAQVectorWriteFromMetadata({
+                          knowledgebase,
+                          document: chunk.document,
+                          faqId: chunk.id,
+                          metadata: chunk.metadata,
+                          config: knowledgebase.faqConfig ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
+                          embeddingContextSize: resolveFAQEmbeddingContextSize(knowledgebase, 'pending')
+                      })
+                      return write.chunks.map((item, index) => ({ chunk: item, id: write.ids[index] }))
+                  })
+                : embeddingChunks.map((chunk) => ({ chunk, id: chunk.id }))
+
         const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
         let count = 0
-        while (batchSize * count < embeddingChunks.length) {
-            const batch = embeddingChunks.slice(batchSize * count, batchSize * (count + 1))
-            await vectorStore.addKnowledgeChunks(batch, {
-                ids: batch.map((chunk) => chunk.id)
-            })
+        while (batchSize * count < embeddingItems.length) {
+            const batch = embeddingItems.slice(batchSize * count, batchSize * (count + 1))
+            await vectorStore.addKnowledgeChunks(
+                batch.map(({ chunk }) => chunk),
+                {
+                    ids: batch.map(({ id }) => id)
+                }
+            )
             count++
         }
 

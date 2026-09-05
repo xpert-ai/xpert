@@ -335,6 +335,24 @@ describe('XpertAssistantFacade', () => {
     )
   })
 
+  it('opens FAQ citation effects in the FAQ manager', () => {
+    createFacade('/xpert/x/xpert-1/agents')
+    const router = TestBed.inject(Router)
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    latestRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-faq-1',
+        citationUrl: 'xpert://knowledgebase/faq?knowledgebaseId=kb-faq-1&faqId=faq-1'
+      }
+    })
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-faq-1', 'faq'], {
+      queryParams: { faqId: 'faq-1' }
+    })
+  })
+
   it('reads assistant id from the unified runtime config when configured', () => {
     const { facade } = createFacade('/xpert/x/xpert-1/agents')
 

@@ -41,7 +41,7 @@
     class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5"
     [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' }"
   >
-    @for (modeOption of retrievalModes; track modeOption) {
+    @for (modeOption of retrievalModes(); track modeOption) {
       <button
         z-tab-link
         type="button"
@@ -429,7 +429,7 @@
                     | translate
                       : {
                           Default:
-                            'In Hybrid mode, merge Vector, Graph, and Keyword candidates by rank. Leave it off to keep the existing weighted fusion behavior.'
+                            'In Hybrid mode, merge enabled retrieval sources by rank. Leave it off to keep the existing weighted fusion behavior.'
                         }
                 "
                 zPosition="top"
@@ -447,13 +447,13 @@
           <span class="hidden system-xs-semibold text-text-secondary @[640px]/retrieval:inline">
             {{ 'XP.Knowledgebase.WeightedRRF' | translate: { Default: 'Weighted RRF' } }}
           </span>
-          <z-switch [(ngModel)]="rrfEnabled" zSize="sm" />
+          <z-switch [(ngModel)]="rrfEnabled" [disabled]="!allowGraphRetrieval()" zSize="sm" />
         </div>
       </z-card-header>
 
       <z-card-content class="px-4 py-3">
         @if (rrfActive()) {
-          <div class="grid grid-cols-1 gap-3 @[560px]/retrieval:grid-cols-2 @[960px]/retrieval:grid-cols-4">
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3">
             <div
               data-setting="rrf-rank-constant"
               class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
@@ -496,27 +496,29 @@
                 />
               </div>
             </div>
-            <div
-              data-setting="rrf-graph-weight"
-              class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
-            >
-              <div class="mb-3 system-xs-semibold text-text-secondary">
-                <span>{{ 'XP.Knowledgebase.RRFGraphWeight' | translate: { Default: 'Graph Weight' } }}</span>
+            @if (allowGraphRetrieval()) {
+              <div
+                data-setting="rrf-graph-weight"
+                class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
+              >
+                <div class="mb-3 system-xs-semibold text-text-secondary">
+                  <span>{{ 'XP.Knowledgebase.RRFGraphWeight' | translate: { Default: 'Graph Weight' } }}</span>
+                </div>
+                <div data-slider-input class="flex min-w-0 items-center gap-3">
+                  <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfGraphWeight" />
+                  <input
+                    z-input
+                    zSize="sm"
+                    class="w-16 shrink-0 text-center"
+                    type="number"
+                    [min]="0"
+                    [max]="1"
+                    [step]="0.05"
+                    [(ngModel)]="rrfGraphWeight"
+                  />
+                </div>
               </div>
-              <div data-slider-input class="flex min-w-0 items-center gap-3">
-                <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfGraphWeight" />
-                <input
-                  z-input
-                  zSize="sm"
-                  class="w-16 shrink-0 text-center"
-                  type="number"
-                  [min]="0"
-                  [max]="1"
-                  [step]="0.05"
-                  [(ngModel)]="rrfGraphWeight"
-                />
-              </div>
-            </div>
+            }
             <div
               data-setting="rrf-keyword-weight"
               class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
