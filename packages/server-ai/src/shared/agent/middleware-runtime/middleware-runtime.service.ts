@@ -1,3 +1,4 @@
+import { XpertProjectPurgeService } from '../../../xpert-project/services/project-purge.service'
 import { ICopilotModel, IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
@@ -299,7 +300,8 @@ export class AgentMiddlewareRuntimeService {
                 [
                     ProjectProvisioningRuntimeCapability,
                     {
-                        ensure: (input) => this.knowledgeRuntime.ensureProject(input)
+                        ensure: (input) => this.knowledgeRuntime.ensureProject(input),
+                        purge: (input) => this.moduleRef.get(XpertProjectPurgeService, { strict: false }).purge(input)
                     }
                 ]
             ],

@@ -32,6 +32,18 @@ export class XpertProjectAccessService {
         return this.resolveAccess(projectId)
     }
 
+    async assertCanPurge(projectId: string): Promise<XpertProjectAccess> {
+        const access = await this.resolveAccess(projectId)
+        if (access.role !== 'owner' || access.project.status !== 'archived') {
+            throw new ForbiddenException(
+                t('server-ai:Error.ProjectPurgeOwnerRequired', {
+                    defaultValue: 'Only the owner can permanently delete an archived Project.'
+                })
+            )
+        }
+        return access
+    }
+
     async assertCanUse(projectId: string): Promise<XpertProjectAccess> {
         const access = await this.resolveAccess(projectId)
         if (access.project.status === 'archived') {
