@@ -1,0 +1,680 @@
+<div class="relative flex h-full min-w-0 flex-1 overflow-hidden bg-muted/20 p-3">
+  <section class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background">
+    <header class="shrink-0 border-b border-border px-4 py-3">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-semibold text-text-primary">
+              {{ 'XP.Knowledgebase.FAQManagement.Title' | translate: { Default: 'FAQ' } }}
+            </h1>
+            <z-badge zType="outline" zShape="pill">{{ total() }}</z-badge>
+            @switch (vectorRebuildStatus()) {
+              @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
+                <z-badge
+                  zType="outline"
+                  zShape="pill"
+                  class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                >
+                  {{ 'XP.Knowledgebase.Status_RebuildRequired' | translate: { Default: 'Pending vector rebuild' } }}
+                </z-badge>
+              }
+              @case (eKnowledgebaseStatusEnum.REBUILDING) {
+                <z-badge zType="secondary" zShape="pill">
+                  <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                  {{ 'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' } }}
+                </z-badge>
+              }
+              @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
+                <z-badge
+                  zType="destructive"
+                  zShape="pill"
+                  [zTooltip]="knowledgebase()?.embeddingRebuildError"
+                  zPosition="bottom"
+                >
+                  {{ 'XP.Knowledgebase.Status_RebuildFailed' | translate: { Default: 'Vector rebuild failed' } }}
+                </z-badge>
+              }
+            }
+          </div>
+          <p class="mt-0.5 max-w-2xl truncate text-xs text-text-tertiary">
+            {{
+              'XP.Knowledgebase.FAQManagement.Description'
+                | translate: { Default: 'Manage standard questions, similar phrasings and reusable answer blocks.' }
+            }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            [disabled]="vectorMutationLocked()"
+            (click)="openImportDialog()"
+          >
+            <z-icon zType="upload" />
+            {{ 'XP.Knowledgebase.FAQManagement.Import' | translate: { Default: 'Import' } }}
+          </button>
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            z-menu
+            zPlacement="bottomRight"
+            [zMenuTriggerFor]="exportMenu"
+            [zDisabled]="exporting()"
+            [disabled]="exporting()"
+          >
+            <z-icon zType="file_download" />
+            {{ 'XP.Knowledgebase.FAQManagement.Export' | translate: { Default: 'Export' } }}
+            <z-icon zType="chevron-down" class="size-3" />
+          </button>
+          <button z-button zType="default" type="button" [disabled]="busy()" (click)="openCreate()">
+            <z-icon zType="plus" />
+            {{ 'XP.Knowledgebase.FAQManagement.Add' | translate: { Default: 'Add FAQ' } }}
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <div class="flex min-w-60 flex-1 items-center gap-2 xl:max-w-[400px]">
+          <input
+            z-input
+            type="search"
+            class="w-full"
+            [formControl]="search"
+            [placeholder]="
+              'XP.Knowledgebase.FAQManagement.SearchPlaceholder' | translate: { Default: 'Search questions or answers' }
+            "
+            (keydown.enter)="applySearch()"
+          />
+          <button
+            z-button
+            zType="outline"
+            zSize="icon-sm"
+            type="button"
+            [disabled]="loading()"
+            [attr.aria-label]="'XP.ACTIONS.Search' | translate: { Default: 'Search' }"
+            (click)="applySearch()"
+          >
+            <z-icon zType="search" />
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1 rounded-md bg-muted p-1" role="group">
+          <button
+            z-button
+            zType="ghost"
+            zSize="sm"
+            type="button"
+            [attr.aria-pressed]="statusFilter() === 'all'"
+            [class]="statusFilter() === 'all' ? '!bg-background !text-text-primary shadow-sm' : ''"
+            (click)="setStatusFilter('all')"
+          >
+            {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
+          </button>
+          <button
+            z-button
+            zType="ghost"
+            zSize="sm"
+            type="button"
+            [attr.aria-pressed]="statusFilter() === 'enabled'"
+            [class]="statusFilter() === 'enabled' ? '!bg-background !text-text-primary shadow-sm' : ''"
+            (click)="setStatusFilter('enabled')"
+          >
+            {{ 'XP.Knowledgebase.FAQManagement.Enabled' | translate: { Default: 'Enabled' } }}
+          </button>
+          <button
+            z-button
+            zType="ghost"
+            zSize="sm"
+            type="button"
+            [attr.aria-pressed]="statusFilter() === 'disabled'"
+            [class]="statusFilter() === 'disabled' ? '!bg-background !text-text-primary shadow-sm' : ''"
+            (click)="setStatusFilter('disabled')"
+          >
+            {{ 'XP.Knowledgebase.FAQManagement.Disabled' | translate: { Default: 'Disabled' } }}
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="relative min-h-0 flex-1 overflow-auto">
+      @if (loading()) {
+        <xp-spin class="absolute inset-0 z-10" />
+      }
+
+      @if (!loading() && loadError()) {
+        <div class="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+          <z-icon zType="triangle-alert" class="size-7 text-text-destructive" />
+          <h2 class="mt-4 text-sm font-semibold text-text-primary">
+            {{ 'XP.Knowledgebase.FAQManagement.LoadFailed' | translate: { Default: 'Could not load FAQ entries' } }}
+          </h2>
+          <p class="mt-1 max-w-lg text-sm leading-6 text-text-tertiary">{{ loadError() }}</p>
+          <button z-button zType="outline" type="button" class="mt-4" (click)="load()">
+            {{ 'XP.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
+          </button>
+        </div>
+      } @else if (!loading() && !entries().length) {
+        <div class="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+          <div class="flex size-12 items-center justify-center rounded-xl bg-muted text-text-tertiary">
+            <z-icon zType="help_outline" class="size-6" />
+          </div>
+          <h2 class="mt-4 text-sm font-semibold text-text-primary">
+            {{ 'XP.Knowledgebase.FAQManagement.EmptyTitle' | translate: { Default: 'No FAQ entries yet' } }}
+          </h2>
+          <p class="mt-1 max-w-sm text-sm leading-6 text-text-tertiary">
+            {{
+              'XP.Knowledgebase.FAQManagement.EmptyDescription'
+                | translate: { Default: 'Add the first question and answer to make this knowledge base searchable.' }
+            }}
+          </p>
+          <button z-button zType="default" type="button" class="mt-4" [disabled]="busy()" (click)="openCreate()">
+            <z-icon zType="plus" />
+            {{ 'XP.Knowledgebase.FAQManagement.Add' | translate: { Default: 'Add FAQ' } }}
+          </button>
+        </div>
+      } @else {
+        <table z-table zSize="compact" class="w-full table-fixed text-sm">
+          <colgroup>
+            <col class="w-12" />
+            <col />
+            <col class="w-28" />
+            <col class="w-24" />
+            <col class="w-24" />
+            <col class="w-40" />
+            <col class="w-20" />
+            <col class="w-36" />
+            <col class="w-16" />
+          </colgroup>
+          <thead z-table-header>
+            <tr z-table-row>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                <z-checkbox
+                  displayDensity="compact"
+                  [indeterminate]="isPartialSelected()"
+                  [ngModel]="isAllSelected()"
+                  (checkChange)="selectAll($event)"
+                >
+                  <span class="sr-only">
+                    {{ 'XP.KEY_WORDS.SelectAll' | translate: { Default: 'Select all' } }}
+                  </span>
+                </z-checkbox>
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{
+                  'XP.Knowledgebase.FAQManagement.StandardQuestion'
+                    | translate: { Default: 'Standard question / Answer preview' }
+                }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{
+                  'XP.Knowledgebase.FAQManagement.SimilarQuestionTitle' | translate: { Default: 'Similar questions' }
+                }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{
+                  'XP.Knowledgebase.FAQManagement.NegativeQuestionTitle' | translate: { Default: 'Negative questions' }
+                }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{ 'XP.Knowledgebase.FAQManagement.AnswerTitle' | translate: { Default: 'Answers' } }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{ 'XP.Knowledgebase.FAQManagement.UpdatedAt' | translate: { Default: 'Updated at' } }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{ 'XP.Knowledgebase.FAQManagement.Status' | translate: { Default: 'Status' } }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background">
+                {{ 'XP.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing progress' } }}
+              </th>
+              <th z-table-head class="sticky top-0 z-[1] bg-background text-right">
+                {{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
+              </th>
+            </tr>
+          </thead>
+          <tbody z-table-body>
+            @for (entry of entries(); track entry.id; let index = $index) {
+              <tr
+                z-table-row
+                tabindex="0"
+                class="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                [attr.data-state]="selectedEntryId() === entry.id ? 'selected' : null"
+                (click)="openDetails(entry)"
+                (keydown.enter)="openDetails(entry)"
+                (keydown.space)="$event.preventDefault(); openDetails(entry)"
+              >
+                <td z-table-cell (click)="$event.stopPropagation()">
+                  <z-checkbox
+                    displayDensity="compact"
+                    [ngModel]="selectionModel.isSelected(entry.id)"
+                    (checkChange)="selectionModel.toggle(entry.id)"
+                  >
+                    <span class="sr-only">{{ index + 1 }}</span>
+                  </z-checkbox>
+                </td>
+                <td z-table-cell class="min-w-0 overflow-hidden py-3">
+                  <div class="truncate font-semibold text-text-primary" [title]="entry.standardQuestion">
+                    {{ entry.standardQuestion }}
+                  </div>
+                  <div class="mt-1 truncate text-xs text-text-tertiary" [title]="entry.answerBlocks.join(' ')">
+                    {{ entry.answerBlocks.join(' ') }}
+                  </div>
+                </td>
+                <td z-table-cell class="text-xs tabular-nums text-text-secondary">
+                  {{ entry.similarQuestions.length }}
+                </td>
+                <td z-table-cell class="text-xs tabular-nums text-text-secondary">
+                  {{ entry.negativeQuestions.length }}
+                </td>
+                <td z-table-cell class="text-xs tabular-nums text-text-secondary">
+                  {{ entry.answerBlocks.length }}
+                </td>
+                <td z-table-cell class="truncate text-xs text-text-tertiary">
+                  {{ entry.updatedAt ?? entry.createdAt | date: 'medium' }}
+                </td>
+                <td z-table-cell>
+                  <z-badge [zType]="entry.enabled ? 'outline' : 'secondary'" zShape="pill">
+                    {{
+                      (entry.enabled
+                        ? 'XP.Knowledgebase.FAQManagement.Enabled'
+                        : 'XP.Knowledgebase.FAQManagement.Disabled'
+                      ) | translate
+                    }}
+                  </z-badge>
+                </td>
+                <td z-table-cell>
+                  @switch (vectorRebuildStatus()) {
+                    @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
+                      <z-badge
+                        zType="outline"
+                        zShape="pill"
+                        class="border-text-warning/30 bg-text-warning/10 text-text-warning"
+                      >
+                        {{
+                          'XP.Knowledgebase.Status_RebuildRequired' | translate: { Default: 'Pending vector rebuild' }
+                        }}
+                      </z-badge>
+                    }
+                    @case (eKnowledgebaseStatusEnum.REBUILDING) {
+                      <z-badge zType="secondary" zShape="pill">
+                        <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                        {{ 'XP.Knowledgebase.Status_Rebuilding' | translate: { Default: 'Vector rebuilding' } }}
+                      </z-badge>
+                    }
+                    @case (eKnowledgebaseStatusEnum.REBUILD_FAILED) {
+                      <z-badge
+                        zType="destructive"
+                        zShape="pill"
+                        [zTooltip]="knowledgebase()?.embeddingRebuildError"
+                        zPosition="left"
+                      >
+                        {{ 'XP.Knowledgebase.Status_RebuildFailed' | translate: { Default: 'Vector rebuild failed' } }}
+                      </z-badge>
+                    }
+                    @default {
+                      @if (reprocessingEntryIds().has(entry.id)) {
+                        <z-badge zType="secondary" zShape="pill">
+                          <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                          {{ 'XP.Knowledgebase.Status_Running' | translate: { Default: 'Running' } }}
+                        </z-badge>
+                      } @else {
+                        <z-badge
+                          zType="outline"
+                          zShape="pill"
+                          class="border-text-success/30 bg-text-success/10 text-text-success"
+                        >
+                          {{ 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }}
+                        </z-badge>
+                      }
+                    }
+                  }
+                </td>
+                <td z-table-cell class="text-right" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    z-button
+                    zType="ghost"
+                    zSize="icon-sm"
+                    z-menu
+                    zPlacement="bottomRight"
+                    [zMenuTriggerFor]="rowActionsMenu"
+                    [zMenuTriggerData]="{ entry: entry }"
+                    [attr.aria-label]="'XP.Chat.MoreActions' | translate: { Default: 'More actions' }"
+                    (click)="$event.stopPropagation()"
+                    (keydown)="$event.stopPropagation()"
+                  >
+                    <z-icon zType="more_horiz" />
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    @if (total()) {
+      <footer
+        class="flex shrink-0 items-center justify-between border-t border-border px-4 py-2 text-xs text-text-tertiary"
+      >
+        <span>{{ pageStart() }}–{{ pageEnd() }} / {{ total() }}</span>
+        <div class="flex gap-1">
+          <button
+            z-button
+            zType="outline"
+            zSize="icon-sm"
+            type="button"
+            [disabled]="!canPrevious()"
+            [attr.aria-label]="'XP.ACTIONS.Previous' | translate: { Default: 'Previous' }"
+            (click)="previousPage()"
+          >
+            <z-icon zType="chevron-left" />
+          </button>
+          <button
+            z-button
+            zType="outline"
+            zSize="icon-sm"
+            type="button"
+            [disabled]="!canNext()"
+            [attr.aria-label]="'XP.ACTIONS.Next' | translate: { Default: 'Next' }"
+            (click)="nextPage()"
+          >
+            <z-icon zType="chevron-right" />
+          </button>
+        </div>
+      </footer>
+    }
+  </section>
+
+  @if (inspectorOpen()) {
+    <aside
+      class="absolute inset-3 z-20 flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-background shadow-lg xl:relative xl:inset-auto xl:z-auto xl:ml-3 xl:w-[var(--faq-inspector-width)] xl:shrink-0 xl:shadow-none"
+      [style.--faq-inspector-width]="inspectorWidth() + 'px'"
+    >
+      <button
+        type="button"
+        role="separator"
+        aria-orientation="vertical"
+        class="absolute inset-y-0 left-0 z-20 hidden w-2 touch-none cursor-col-resize items-center justify-center bg-transparent p-0 text-border transition-colors hover:bg-primary/10 hover:text-primary focus-visible:bg-primary/10 focus-visible:text-primary focus-visible:outline-none xl:flex"
+        [attr.aria-label]="'XP.Knowledgebase.ResizeInspector' | translate: { Default: 'Resize details panel' }"
+        [attr.aria-valuemin]="inspectorMinWidth"
+        [attr.aria-valuemax]="inspectorMaxWidth()"
+        [attr.aria-valuenow]="inspectorWidth()"
+        (pointerdown)="startInspectorResize($event)"
+        (keydown)="resizeInspectorFromKeyboard($event)"
+      >
+        <span class="h-12 w-1 rounded-full bg-current"></span>
+      </button>
+
+      @if (inspectorMode() === 'create' || inspectorMode() === 'edit') {
+        @if (knowledgebaseId(); as id) {
+          <xp-knowledge-faq-editor
+            [knowledgebaseId]="id"
+            [entry]="inspectorMode() === 'edit' ? selectedEntry() : null"
+            (cancelled)="closeInspector()"
+            (saved)="onSaved($event)"
+          />
+        }
+      } @else if (selectedEntry(); as entry) {
+        <header class="shrink-0 border-b border-border px-5 pb-5 pt-3">
+          <div class="flex items-center justify-between gap-3">
+            <z-badge [zType]="entry.enabled ? 'outline' : 'secondary'" zShape="pill">
+              {{
+                (entry.enabled ? 'XP.Knowledgebase.FAQManagement.Enabled' : 'XP.Knowledgebase.FAQManagement.Disabled')
+                  | translate
+              }}
+            </z-badge>
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon-sm"
+              type="button"
+              [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+              (click)="closeInspector()"
+            >
+              <z-icon zType="x" />
+            </button>
+          </div>
+          <h2 class="mt-3 break-words text-xl font-semibold tracking-tight text-text-primary">
+            {{ entry.standardQuestion }}
+          </h2>
+          <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
+            <span>
+              {{ entry.similarQuestions.length }}
+              {{ 'XP.Knowledgebase.FAQManagement.SimilarQuestions' | translate }}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {{ entry.negativeQuestions.length }}
+              {{ 'XP.Knowledgebase.FAQManagement.NegativeQuestions' | translate }}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {{ entry.answerBlocks.length }}
+              {{ 'XP.Knowledgebase.FAQManagement.AnswerBlocks' | translate }}
+            </span>
+          </div>
+        </header>
+
+        <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+          <section class="border-b border-border py-5">
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ 'XP.Knowledgebase.FAQManagement.StandardQuestion' | translate: { Default: 'Standard question' } }}
+            </h3>
+            <p class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-text-secondary">
+              {{ entry.standardQuestion }}
+            </p>
+          </section>
+
+          <section class="border-b border-border py-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{
+                  'XP.Knowledgebase.FAQManagement.SimilarQuestionTitle' | translate: { Default: 'Similar questions' }
+                }}
+              </h3>
+              <z-badge zType="outline" zShape="pill">{{ entry.similarQuestions.length }}</z-badge>
+            </div>
+            @if (entry.similarQuestions.length) {
+              <ol class="mt-3 space-y-2">
+                @for (question of entry.similarQuestions; track question; let index = $index) {
+                  <li class="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-sm leading-6 text-text-secondary">
+                    <span class="pt-0.5 font-mono text-xs text-text-tertiary">
+                      {{ (index + 1).toString().padStart(2, '0') }}
+                    </span>
+                    <span class="break-words">{{ question }}</span>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="mt-3 text-sm text-text-tertiary">—</p>
+            }
+          </section>
+
+          <section class="border-b border-border py-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{
+                  'XP.Knowledgebase.FAQManagement.NegativeQuestionTitle' | translate: { Default: 'Negative questions' }
+                }}
+              </h3>
+              <z-badge zType="outline" zShape="pill">{{ entry.negativeQuestions.length }}</z-badge>
+            </div>
+            @if (entry.negativeQuestions.length) {
+              <ol class="mt-3 space-y-2">
+                @for (question of entry.negativeQuestions; track question; let index = $index) {
+                  <li class="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-sm leading-6 text-text-secondary">
+                    <span class="pt-0.5 font-mono text-xs text-text-tertiary">
+                      {{ (index + 1).toString().padStart(2, '0') }}
+                    </span>
+                    <span class="break-words">{{ question }}</span>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="mt-3 text-sm text-text-tertiary">—</p>
+            }
+          </section>
+
+          <section class="border-b border-border py-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="text-sm font-semibold text-text-primary">
+                {{ 'XP.Knowledgebase.FAQManagement.AnswerTitle' | translate: { Default: 'Answers' } }}
+              </h3>
+              <z-badge zType="outline" zShape="pill">{{ entry.answerBlocks.length }}</z-badge>
+            </div>
+            <div class="mt-3">
+              @for (answer of entry.answerBlocks; track $index; let index = $index) {
+                <div class="relative pl-8" [class]="index ? 'border-t border-border py-4' : 'pb-4'">
+                  <span class="absolute left-0 top-1 font-mono text-xs text-text-tertiary">
+                    {{ (index + 1).toString().padStart(2, '0') }}
+                  </span>
+                  <p class="whitespace-pre-wrap break-words text-sm leading-6 text-text-secondary">{{ answer }}</p>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="py-5">
+            <h3 class="text-sm font-semibold text-text-primary">
+              {{ 'XP.Knowledgebase.FAQManagement.RecordInformation' | translate: { Default: 'Record information' } }}
+            </h3>
+            <dl class="mt-3 grid grid-cols-2 gap-x-5 gap-y-4 text-xs">
+              <div>
+                <dt class="text-text-tertiary">
+                  {{ 'XP.Knowledgebase.FAQManagement.CreatedAt' | translate: { Default: 'Created at' } }}
+                </dt>
+                <dd class="mt-1 font-medium text-text-primary">{{ entry.createdAt | date: 'medium' }}</dd>
+              </div>
+              <div>
+                <dt class="text-text-tertiary">
+                  {{ 'XP.Knowledgebase.FAQManagement.UpdatedAt' | translate: { Default: 'Updated at' } }}
+                </dt>
+                <dd class="mt-1 font-medium text-text-primary">{{ entry.updatedAt | date: 'medium' }}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <footer class="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-background px-5 py-3">
+          <button
+            z-button
+            zType="ghost"
+            type="button"
+            class="text-text-destructive"
+            [disabled]="deleting() || vectorMutationLocked()"
+            (click)="delete(entry)"
+          >
+            <z-icon zType="trash" />
+            {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+          </button>
+          <button z-button zType="default" type="button" [disabled]="vectorMutationLocked()" (click)="openEdit()">
+            <z-icon zType="edit" />
+            {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit FAQ' } }}
+          </button>
+        </footer>
+      }
+    </aside>
+  }
+
+  @if (selectionModel.hasValue()) {
+    <div class="absolute bottom-5 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap">
+      <div class="flex items-center gap-1.5 rounded-lg border border-border bg-background p-1.5 shadow-lg">
+        <div class="inline-flex items-center gap-2 px-2 text-xs font-medium text-text-secondary">
+          <span class="flex size-5 items-center justify-center rounded bg-primary text-primary-foreground">
+            {{ selectionModel.selected.length }}
+          </span>
+          {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
+        </div>
+        <div class="mx-1 h-4 w-px bg-border"></div>
+        <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="setSelectedEnabled(true)">
+          <z-icon zType="circle-check" />
+          {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
+        </button>
+        <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="setSelectedEnabled(false)">
+          <z-icon zType="circle-x" />
+          {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
+        </button>
+        <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="reprocessSelected()">
+          <z-icon [zType]="reprocessing() ? 'loader-circle' : 'autorenew'" [class.animate-spin]="reprocessing()" />
+          {{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}
+        </button>
+        <button
+          z-button
+          zType="ghost"
+          zSize="sm"
+          type="button"
+          z-menu
+          zPlacement="topCenter"
+          [zMenuTriggerFor]="batchExportMenu"
+          [zDisabled]="exporting()"
+          [disabled]="exporting()"
+        >
+          <z-icon zType="file_download" />
+          {{ 'XP.Knowledgebase.FAQManagement.Export' | translate: { Default: 'Export' } }}
+          <z-icon zType="chevron-up" class="size-3" />
+        </button>
+        <div class="mx-1 h-4 w-px bg-border"></div>
+        <button z-button zType="destructive" zSize="sm" type="button" [disabled]="busy()" (click)="deleteSelected()">
+          <z-icon zType="trash" />
+          {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+        </button>
+      </div>
+    </div>
+  }
+</div>
+
+<ng-template #exportMenu>
+  <div z-menu-content class="w-40 p-1">
+    <button type="button" z-menu-item (click)="exportFAQs('csv')">
+      <z-icon zType="table_view" class="mr-2" />
+      {{ 'XP.Knowledgebase.FAQManagement.ExportCSV' | translate: { Default: 'Export CSV' } }}
+    </button>
+    <button type="button" z-menu-item (click)="exportFAQs('json')">
+      <z-icon zType="data_array" class="mr-2" />
+      {{ 'XP.Knowledgebase.FAQManagement.ExportJSON' | translate: { Default: 'Export JSON' } }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #rowActionsMenu let-entry="entry">
+  <div z-menu-content class="w-40 p-1">
+    <button type="button" z-menu-item [zDisabled]="busy()" (click)="reprocessEntry(entry)">
+      <z-icon zType="autorenew" class="mr-2" />
+      {{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}
+    </button>
+    <button type="button" z-menu-item [zDisabled]="busy() || entry.enabled" (click)="setEntryEnabled(entry, true)">
+      <z-icon zType="circle-check" class="mr-2" />
+      {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
+    </button>
+    <button
+      type="button"
+      z-menu-item
+      zType="destructive"
+      [zDisabled]="busy() || !entry.enabled"
+      (click)="setEntryEnabled(entry, false)"
+    >
+      <z-icon zType="circle-x" class="mr-2" />
+      {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
+    </button>
+    <div class="my-1 w-full border-t border-border"></div>
+    <button type="button" z-menu-item zType="destructive" [zDisabled]="busy()" (click)="delete(entry)">
+      <z-icon zType="trash" class="mr-2" />
+      {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #batchExportMenu>
+  <div z-menu-content class="w-44 p-1">
+    <button type="button" z-menu-item (click)="exportFAQs('csv', true)">
+      <z-icon zType="table_view" class="mr-2" />
+      {{ 'XP.Knowledgebase.FAQManagement.ExportSelectedCSV' | translate: { Default: 'Export selected CSV' } }}
+    </button>
+    <button type="button" z-menu-item (click)="exportFAQs('json', true)">
+      <z-icon zType="data_array" class="mr-2" />
+      {{ 'XP.Knowledgebase.FAQManagement.ExportSelectedJSON' | translate: { Default: 'Export selected JSON' } }}
+    </button>
+  </div>
+</ng-template>

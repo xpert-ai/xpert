@@ -52,7 +52,7 @@
             <section class="kb-section">
               <div class="kb-section-heading">
                 <h1>{{ i18nPrefix + '.Sections.Basic' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Basic.Description' | translate }}</p>
+                <p>{{ i18nPrefix + (isFAQ() ? '.Basic.FAQDescription' : '.Basic.Description') | translate }}</p>
               </div>
 
               <div class="kb-field">
@@ -60,46 +60,51 @@
                   >{{ i18nPrefix + '.Basic.KnowledgebaseType' | translate }} <span class="kb-required">*</span></label
                 >
                 <z-toggle-group class="kb-type-toggle" zType="outline" zSize="lg" [(ngModel)]="type">
-                  <z-toggle-group-item class="min-w-28" [value]="KnowledgebaseTypeEnum.Standard">
+                  <z-toggle-group-item
+                    class="min-w-28"
+                    [value]="KnowledgebaseTypeEnum.Standard"
+                    [disabled]="isEditMode()"
+                  >
                     {{ i18nPrefix + '.Basic.Document' | translate }}
                   </z-toggle-group-item>
-                  <z-toggle-group-item class="min-w-28" value="qa" disabled>
+                  <z-toggle-group-item class="min-w-28" [value]="KnowledgebaseTypeEnum.FAQ" [disabled]="isEditMode()">
                     {{ i18nPrefix + '.Basic.QandA' | translate }}
-                    <span class="kb-mini-badge">{{ i18nPrefix + '.Statuses.Preview' | translate }}</span>
                   </z-toggle-group-item>
                 </z-toggle-group>
                 <p class="kb-help-text">{{ i18nPrefix + '.Basic.KnowledgebaseTypeHelp' | translate }}</p>
               </div>
 
-              <div class="kb-field">
-                <label class="kb-label"
-                  >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
-                >
-                <div class="kb-choice-grid">
-                  <button
-                    type="button"
-                    class="kb-choice-card"
-                    [class.kb-choice-card-selected]="indexStrategy() === 'rag'"
-                    (click)="indexStrategy.set('rag')"
+              @if (!isFAQ()) {
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
                   >
-                    <span class="kb-choice-check"><i class="ri-check-line"></i></span>
-                    <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
-                    <span class="kb-choice-card-description">{{
-                      i18nPrefix + '.Basic.RagSearchDescription' | translate
-                    }}</span>
-                  </button>
-                  <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
-                    <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
-                    <span class="kb-choice-card-title"
-                      >{{ i18nPrefix + '.Basic.WikiKnowledgebase' | translate }}
-                      <span class="kb-new-badge">{{ i18nPrefix + '.Basic.New' | translate }}</span></span
+                  <div class="kb-choice-grid">
+                    <button
+                      type="button"
+                      class="kb-choice-card"
+                      [class.kb-choice-card-selected]="indexStrategy() === 'rag'"
+                      (click)="indexStrategy.set('rag')"
                     >
-                    <span class="kb-choice-card-description">{{
-                      i18nPrefix + '.Basic.WikiDescription' | translate
-                    }}</span>
-                  </button>
+                      <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                      <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
+                      <span class="kb-choice-card-description">{{
+                        i18nPrefix + '.Basic.RagSearchDescription' | translate
+                      }}</span>
+                    </button>
+                    <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
+                      <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
+                      <span class="kb-choice-card-title"
+                        >{{ i18nPrefix + '.Basic.WikiKnowledgebase' | translate }}
+                        <span class="kb-new-badge">{{ i18nPrefix + '.Basic.New' | translate }}</span></span
+                      >
+                      <span class="kb-choice-card-description">{{
+                        i18nPrefix + '.Basic.WikiDescription' | translate
+                      }}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              }
 
               <div class="kb-field">
                 <label class="kb-label"
@@ -173,79 +178,149 @@
             </section>
           }
 
-          @case ('vector') {
+          @case ('vector-storage') {
             <section class="kb-section">
               <div class="kb-section-heading">
-                <h1>{{ i18nPrefix + '.Sections.Vector' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Vector.Description' | translate }}</p>
+                <h1>{{ i18nPrefix + '.VectorStorage.Title' | translate }}</h1>
+                <p>{{ i18nPrefix + '.VectorStorage.Description' | translate }}</p>
               </div>
-              <div class="kb-panel kb-vector-search-panel">
-                <div class="kb-vector-search-heading">
-                  <div class="kb-vector-search-title">
-                    <i class="ri-focus-2-line"></i>
-                    <span>{{ i18nPrefix + '.Vector.Search' | translate }}</span>
-                  </div>
-                  <p class="kb-panel-description">{{ i18nPrefix + '.Vector.SearchDescription' | translate }}</p>
+
+              <div class="kb-model-row">
+                <div class="kb-model-row-copy">
+                  <div class="kb-model-row-title">{{ i18nPrefix + '.VectorStorage.Label' | translate }}</div>
+                  <p>{{ i18nPrefix + '.VectorStorage.LabelDescription' | translate }}</p>
+                </div>
+                <div class="w-[min(100%,30rem)] shrink-0">
+                  <z-select class="w-full" zSize="lg" [ngModel]="'system'" [disabled]="true">
+                    <z-select-item zValue="system">{{
+                      i18nPrefix + '.VectorStorage.SystemDefault' | translate
+                    }}</z-select-item>
+                  </z-select>
+                  <p class="mt-2 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.VectorStorage.SystemDefaultHelp' | translate }}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="mt-5 flex items-start gap-2 rounded-lg border border-divider-subtle bg-components-input-bg-normal px-4 py-3 text-sm leading-6 text-text-tertiary"
+              >
+                <i class="ri-information-2-line mt-1 shrink-0 text-text-accent"></i>
+                <span>{{ i18nPrefix + '.VectorStorage.MigrationNotice' | translate }}</span>
+              </div>
+            </section>
+          }
+
+          @case ('retrieval') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>{{ i18nPrefix + '.Sections.Retrieval' | translate }}</h1>
+              </div>
+              <xp-knowledge-retrieval-settings
+                [(ngModel)]="retrieval"
+                [allowGraphRetrieval]="!isFAQ()"
+                [defaultMode]="isFAQ() ? 'hybrid' : 'vector'"
+              />
+            </section>
+          }
+
+          @case ('faq') {
+            <section class="kb-section">
+              <div class="kb-section-heading">
+                <h1>{{ i18nPrefix + '.FAQ.Title' | translate }}</h1>
+                <p>{{ i18nPrefix + '.FAQ.Description' | translate }}</p>
+              </div>
+
+              <fieldset
+                class="m-0 flex min-w-0 flex-col gap-6 border-0 p-0"
+                [class]="faqConfigurationDisabled() ? 'pointer-events-none opacity-60' : ''"
+                [disabled]="faqConfigurationDisabled()"
+              >
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.FAQ.IndexMode' | translate }} <span class="kb-required">*</span></label
+                  >
+                  <z-toggle-group
+                    class="w-fit"
+                    zType="outline"
+                    zSize="lg"
+                    [ngModel]="faqConfig().indexMode"
+                    (ngModelChange)="updateFAQConfig('indexMode', $event)"
+                  >
+                    <z-toggle-group-item class="min-w-40" value="question_only" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.QuestionOnly' | translate }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item
+                      class="min-w-40"
+                      value="question_answer"
+                      [disabled]="faqConfigurationDisabled()"
+                    >
+                      {{ i18nPrefix + '.FAQ.QuestionAnswer' | translate }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.IndexModeHelp' | translate }}</p>
                 </div>
 
-                <div class="kb-divider"></div>
+                <div class="border-t border-divider-subtle"></div>
 
-                <div class="kb-vector-rerank-row">
-                  <div>
-                    <div class="kb-field-title">{{ i18nPrefix + '.Vector.RerankModel' | translate }}</div>
-                    <p class="kb-help-text">{{ i18nPrefix + '.Vector.RerankDescription' | translate }}</p>
-                  </div>
-                  <z-switch class="kb-primary-switch" [(ngModel)]="rerankEnabled" />
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.FAQ.QuestionIndexMode' | translate }} <span class="kb-required">*</span></label
+                  >
+                  <z-toggle-group
+                    class="w-fit"
+                    zType="outline"
+                    zSize="lg"
+                    [ngModel]="faqConfig().questionIndexMode"
+                    (ngModelChange)="updateFAQConfig('questionIndexMode', $event)"
+                  >
+                    <z-toggle-group-item class="min-w-32" value="combined" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.Combined' | translate }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item class="min-w-32" value="separate" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.Separate' | translate }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.QuestionIndexModeHelp' | translate }}</p>
                 </div>
 
-                @if (rerankEnabled()) {
-                  <div class="kb-vector-rerank-model">
-                    <copilot-model-select hiddenLabel [modelType]="eAiModelTypeEnum.RERANK" [(ngModel)]="rerankModel" />
-                  </div>
-                }
+                <div class="border-t border-divider-subtle"></div>
 
-                <div class="kb-vector-metric-grid">
-                  <div class="kb-vector-metric-card">
-                    <div class="kb-vector-metric-label">
-                      <span class="kb-field-title">{{ i18nPrefix + '.Vector.TopK' | translate }}</span>
-                      <strong>{{ vectorTopK() }}</strong>
-                    </div>
-                    <p class="kb-help-text">{{ i18nPrefix + '.Vector.TopKDescription' | translate }}</p>
-                    <z-slider
-                      class="kb-range"
-                      [min]="1"
-                      [max]="100"
-                      [step]="1"
-                      [attr.aria-label]="i18nPrefix + '.Vector.TopK' | translate"
-                      [(ngModel)]="vectorTopK"
-                    />
-                    <div class="kb-range-ticks"><span>1</span><span>50</span><span>100</span></div>
-                  </div>
-
-                  <div class="kb-vector-metric-card">
-                    <div class="kb-vector-metric-label">
-                      <span class="kb-field-title">{{ i18nPrefix + '.Vector.ScoreThreshold' | translate }}</span>
-                      <z-switch class="kb-primary-switch" [(ngModel)]="vectorScoreEnabled" />
-                      <strong>{{ vectorScore() | number: '1.2-2' }}</strong>
-                    </div>
-                    <p class="kb-help-text">{{ i18nPrefix + '.Vector.ScoreThresholdDescription' | translate }}</p>
-                    <z-slider
-                      class="kb-range"
-                      [min]="0"
-                      [max]="1"
-                      [step]="0.01"
-                      [disabledInput]="!vectorScoreEnabled()"
-                      [attr.aria-label]="i18nPrefix + '.Vector.ScoreThreshold' | translate"
-                      [(ngModel)]="vectorScore"
-                    />
-                    <div class="kb-range-ticks"><span>0</span><span>0.5</span><span>1</span></div>
-                  </div>
+                <div class="kb-field">
+                  <label class="kb-label"
+                    >{{ i18nPrefix + '.FAQ.NegativeMatchMode' | translate }} <span class="kb-required">*</span></label
+                  >
+                  <z-toggle-group
+                    class="w-fit"
+                    zType="outline"
+                    zSize="lg"
+                    [ngModel]="faqConfig().negativeMatchMode ?? 'exact'"
+                    (ngModelChange)="updateFAQConfig('negativeMatchMode', $event)"
+                  >
+                    <z-toggle-group-item class="min-w-32" value="exact" [disabled]="faqConfigurationDisabled()">
+                      {{ i18nPrefix + '.FAQ.NegativeMatchExact' | translate }}
+                    </z-toggle-group-item>
+                    <z-toggle-group-item class="min-w-32" value="semantic" [disabled]="true">
+                      {{ i18nPrefix + '.FAQ.NegativeMatchSemantic' | translate }}
+                    </z-toggle-group-item>
+                  </z-toggle-group>
+                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.NegativeMatchModeHelp' | translate }}</p>
                 </div>
+              </fieldset>
 
-                <div class="kb-inline-notice">
-                  <i class="ri-information-line"></i>
-                  <span>{{ i18nPrefix + '.Vector.StorageNotice' | translate }}</span>
+              @if (faqConfigurationDisabled()) {
+                <div
+                  class="flex items-center gap-2 rounded-lg border border-divider-subtle bg-components-input-bg-normal px-4 py-3 text-sm text-text-tertiary"
+                >
+                  <i class="ri-lock-line"></i>
+                  <span>{{ i18nPrefix + '.FAQ.Locked' | translate }}</span>
                 </div>
+              }
+
+              <div
+                class="rounded-lg border border-divider-subtle bg-components-input-bg-normal px-4 py-4 text-sm leading-6 text-text-tertiary"
+              >
+                {{ i18nPrefix + '.FAQ.Notice' | translate }}
               </div>
             </section>
           }
@@ -402,6 +477,79 @@
                   />
                 </div>
               </div>
+
+              <div
+                data-chunk-parent-child
+                class="mt-5 flex flex-col items-start justify-between gap-4 border-t border-divider-subtle pt-5 sm:flex-row sm:gap-6"
+              >
+                <div class="min-w-0">
+                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.ParentChild' | translate }}</div>
+                  <p class="kb-help-text">{{ i18nPrefix + '.Chunk.ParentChildDescription' | translate }}</p>
+                </div>
+                <z-switch class="kb-primary-switch shrink-0" [(ngModel)]="parentChildChunkingEnabled" />
+              </div>
+
+              <z-accordion
+                data-chunk-advanced-options
+                displayDensity="compact"
+                displayMode="flat"
+                togglePosition="before"
+                class="mt-5 block border-y border-divider-subtle"
+              >
+                <z-accordion-item
+                  zValue="chunk-advanced-options"
+                  class="[&_[data-slot=accordion-body]>div]:px-0 [&_[data-slot=accordion-body]>div]:pb-0"
+                >
+                  <z-accordion-header class="px-0 py-4 hover:text-text-primary">
+                    <z-accordion-title class="text-sm font-normal text-text-secondary">
+                      {{ i18nPrefix + '.Chunk.AdvancedOptions' | translate }}
+                    </z-accordion-title>
+                  </z-accordion-header>
+
+                  <div class="flex flex-col border-t border-divider-subtle">
+                    <div
+                      data-chunk-max-tokens
+                      class="flex flex-col items-start justify-between gap-4 py-5 sm:flex-row sm:gap-6"
+                    >
+                      <div class="min-w-0">
+                        <div class="kb-field-title">{{ i18nPrefix + '.Chunk.MaxChunkTokens' | translate }}</div>
+                        <p class="kb-help-text">{{ i18nPrefix + '.Chunk.MaxChunkTokensDescription' | translate }}</p>
+                      </div>
+                      <input
+                        z-input
+                        zSize="lg"
+                        class="w-full shrink-0 sm:w-40"
+                        type="number"
+                        min="0"
+                        max="8192"
+                        step="1"
+                        [(ngModel)]="maxChunkTokens"
+                      />
+                    </div>
+
+                    <div
+                      data-chunk-language-hint
+                      class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
+                    >
+                      <div class="min-w-0">
+                        <div class="kb-field-title">{{ i18nPrefix + '.Chunk.LanguageHint' | translate }}</div>
+                        <p class="kb-help-text">{{ i18nPrefix + '.Chunk.LanguageHintDescription' | translate }}</p>
+                      </div>
+                      <z-select class="w-full shrink-0 sm:w-60" zSize="lg" [(ngModel)]="chunkLanguageHint">
+                        <z-select-item zValue="auto">{{
+                          i18nPrefix + '.Chunk.LanguageOptions.Auto' | translate
+                        }}</z-select-item>
+                        <z-select-item zValue="Chinese">{{
+                          i18nPrefix + '.Chunk.LanguageOptions.Chinese' | translate
+                        }}</z-select-item>
+                        <z-select-item zValue="English">{{
+                          i18nPrefix + '.Chunk.LanguageOptions.English' | translate
+                        }}</z-select-item>
+                      </z-select>
+                    </div>
+                  </div>
+                </z-accordion-item>
+              </z-accordion>
             </section>
           }
 
@@ -423,14 +571,58 @@
                     (ngModelChange)="updateParserPreview('imageUnderstanding', $event)"
                   />
                 </div>
-                <div class="kb-divider"></div>
-                <copilot-model-select
-                  class="block"
-                  [label]="i18nPrefix + '.Image.VisionModel' | translate"
-                  [modelType]="eAiModelTypeEnum.LLM"
-                  [features]="[eModelFeature.VISION]"
-                  [(ngModel)]="visionModel"
-                />
+
+                <div class="mt-5 border-t border-divider-subtle py-5">
+                  <copilot-model-select
+                    class="block"
+                    [label]="i18nPrefix + '.Image.VisionModel' | translate"
+                    [modelType]="eAiModelTypeEnum.LLM"
+                    [features]="[eModelFeature.VISION]"
+                    [(ngModel)]="visionModel"
+                  />
+                </div>
+
+                <div
+                  data-image-language
+                  class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
+                >
+                  <div class="min-w-0 flex-1">
+                    <div class="kb-field-title">{{ i18nPrefix + '.Image.DescriptionLanguage' | translate }}</div>
+                    <p class="kb-help-text">{{ i18nPrefix + '.Image.DescriptionLanguageDescription' | translate }}</p>
+                  </div>
+                  <z-select class="w-full shrink-0 sm:w-60" zSize="lg" [(ngModel)]="imageDescriptionLanguage">
+                    <z-select-item zValue="auto">{{
+                      i18nPrefix + '.Image.LanguageOptions.Auto' | translate
+                    }}</z-select-item>
+                    <z-select-item zValue="Chinese">{{
+                      i18nPrefix + '.Image.LanguageOptions.Chinese' | translate
+                    }}</z-select-item>
+                    <z-select-item zValue="English">{{
+                      i18nPrefix + '.Image.LanguageOptions.English' | translate
+                    }}</z-select-item>
+                  </z-select>
+                </div>
+
+                <div
+                  data-image-requirements
+                  class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
+                >
+                  <div class="min-w-0 flex-1">
+                    <div class="kb-field-title">{{ i18nPrefix + '.Image.ParsingRequirements' | translate }}</div>
+                    <p class="kb-help-text">{{ i18nPrefix + '.Image.ParsingRequirementsDescription' | translate }}</p>
+                  </div>
+                  <div class="relative w-full shrink-0 sm:w-[28rem]">
+                    <textarea
+                      z-input
+                      class="kb-textarea min-h-28"
+                      maxlength="4000"
+                      [(ngModel)]="imageParsingRequirements"
+                      [placeholder]="i18nPrefix + '.Image.ParsingRequirementsPlaceholder' | translate"
+                    ></textarea>
+                    <div class="kb-counter">{{ imageParsingRequirements().length }}/4000</div>
+                  </div>
+                </div>
+
                 <p class="kb-inline-notice">
                   <i class="ri-information-line"></i> {{ i18nPrefix + '.Image.PostCreateNotice' | translate }}
                 </p>
@@ -463,134 +655,6 @@
                     i18nPrefix + '.Audio.NotConnected' | translate
                   }}</z-select-item>
                 </z-select>
-              </div>
-            </section>
-          }
-
-          @case ('graph') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
-                <h1>{{ i18nPrefix + '.Sections.Graph' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Graph.Description' | translate }}</p>
-              </div>
-              <div class="kb-panel kb-graph-settings-panel">
-                <div class="kb-field-inline">
-                  <div>
-                    <div class="kb-panel-title">{{ i18nPrefix + '.Graph.Enable' | translate }}</div>
-                    <p class="kb-panel-description">{{ i18nPrefix + '.Graph.EnableDescription' | translate }}</p>
-                  </div>
-                  <z-switch
-                    class="kb-primary-switch"
-                    [ngModel]="graphEnabled()"
-                    (ngModelChange)="setGraphEnabled($event)"
-                  />
-                </div>
-
-                <div class="kb-divider"></div>
-
-                <div class="kb-graph-mode-row">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Graph.RetrievalMode' | translate }}</div>
-                  <z-segmented
-                    class="kb-graph-mode-control"
-                    [ngModel]="graphMode()"
-                    (ngModelChange)="setGraphMode($event)"
-                    [zAriaLabel]="i18nPrefix + '.Graph.RetrievalMode' | translate"
-                  >
-                    @for (option of graphModeOptions; track option.value) {
-                      <z-segmented-item
-                        [value]="option.value"
-                        [label]="i18nPrefix + '.' + option.labelKey | translate"
-                        [zDisabled]="!graphEnabled() && option.value !== 'vector'"
-                      />
-                    }
-                  </z-segmented>
-                  <p class="kb-help-text">{{ graphModeDescriptionKey() | translate }}</p>
-                </div>
-
-                <div class="kb-graph-settings-heading">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Graph.Parameters' | translate }}</div>
-                  <p class="kb-help-text">{{ i18nPrefix + '.Graph.ParametersDescription' | translate }}</p>
-                </div>
-
-                <fieldset
-                  class="kb-graph-setting-list"
-                  [class.kb-graph-setting-list-disabled]="!graphEnabled()"
-                  [disabled]="!graphEnabled()"
-                >
-                  <div class="kb-graph-setting-row">
-                    <div class="kb-graph-setting-copy">
-                      <div class="kb-graph-setting-label">
-                        <div class="kb-field-title">{{ i18nPrefix + '.Graph.EntityTopK' | translate }}</div>
-                        <strong>{{ graphEntityTopK() }}</strong>
-                      </div>
-                      <p class="kb-help-text">{{ i18nPrefix + '.Graph.EntityTopKDescription' | translate }}</p>
-                    </div>
-                    <div class="kb-graph-range-control">
-                      <z-slider
-                        class="kb-range"
-                        [min]="1"
-                        [max]="50"
-                        [step]="1"
-                        [disabledInput]="!graphEnabled()"
-                        [attr.aria-label]="i18nPrefix + '.Graph.EntityTopK' | translate"
-                        [ngModel]="graphEntityTopK()"
-                        (ngModelChange)="graphEnabled() && graphEntityTopK.set(+$event)"
-                      />
-                      <div class="kb-range-ticks"><span>1</span><span>25</span><span>50</span></div>
-                    </div>
-                  </div>
-
-                  <div class="kb-graph-setting-row">
-                    <div class="kb-graph-setting-copy">
-                      <div class="kb-graph-setting-label">
-                        <div class="kb-field-title">{{ i18nPrefix + '.Graph.NeighborHops' | translate }}</div>
-                        <strong>{{ graphNeighborHops() }}</strong>
-                      </div>
-                      <p class="kb-help-text">{{ i18nPrefix + '.Graph.NeighborHopsDescription' | translate }}</p>
-                    </div>
-                    <div class="kb-graph-range-control">
-                      <z-slider
-                        class="kb-range"
-                        [min]="1"
-                        [max]="2"
-                        [step]="1"
-                        [disabledInput]="!graphEnabled()"
-                        [attr.aria-label]="i18nPrefix + '.Graph.NeighborHops' | translate"
-                        [ngModel]="graphNeighborHops()"
-                        (ngModelChange)="graphEnabled() && graphNeighborHops.set(+$event)"
-                      />
-                      <div class="kb-range-ticks"><span>1</span><span>2</span></div>
-                    </div>
-                  </div>
-
-                  <div class="kb-graph-setting-row">
-                    <div class="kb-graph-setting-copy">
-                      <div class="kb-graph-setting-label">
-                        <div class="kb-field-title">{{ i18nPrefix + '.Graph.Weight' | translate }}</div>
-                        <strong>{{ graphWeight() | number: '1.2-2' }}</strong>
-                      </div>
-                      <p class="kb-help-text">{{ i18nPrefix + '.Graph.WeightDescription' | translate }}</p>
-                    </div>
-                    <div class="kb-graph-range-control">
-                      <z-slider
-                        class="kb-range"
-                        [min]="0"
-                        [max]="1"
-                        [step]="0.05"
-                        [disabledInput]="!graphEnabled()"
-                        [attr.aria-label]="i18nPrefix + '.Graph.Weight' | translate"
-                        [ngModel]="graphWeight()"
-                        (ngModelChange)="graphEnabled() && graphWeight.set(+$event)"
-                      />
-                      <div class="kb-range-ticks"><span>0</span><span>0.5</span><span>1</span></div>
-                    </div>
-                  </div>
-                </fieldset>
-
-                <div class="kb-inline-notice">
-                  <i class="ri-information-line"></i>
-                  <span>{{ i18nPrefix + '.Graph.PostCreateNotice' | translate }}</span>
-                </div>
               </div>
             </section>
           }
@@ -641,6 +705,19 @@
                   </div>
                 </div>
               }
+
+              <div
+                data-automatic-tagging
+                class="mt-7 flex flex-col items-start justify-between gap-4 border-y border-divider-subtle py-6 sm:flex-row sm:gap-8"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="kb-field-title">{{ i18nPrefix + '.Advanced.AutomaticTagging' | translate }}</div>
+                  <p class="mt-1 text-sm leading-6 text-text-tertiary">
+                    {{ i18nPrefix + '.Advanced.AutomaticTaggingDescription' | translate }}
+                  </p>
+                </div>
+                <z-switch class="kb-primary-switch shrink-0" [(ngModel)]="automaticTaggingEnabled" />
+              </div>
 
               <div class="kb-advanced-field kb-table-metadata-field">
                 <div class="kb-field-title">{{ i18nPrefix + '.Advanced.TableMetadataRequirements' | translate }}</div>

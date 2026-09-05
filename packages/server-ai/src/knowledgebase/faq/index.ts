@@ -1,0 +1,5 @@
+export * from './knowledge-faq.controller'
+export * from './knowledge-faq.service'
+export * from './faq-result'
+export * from './faq-transfer'
+export * from './faq-vector'

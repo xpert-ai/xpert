@@ -22,6 +22,7 @@ import { combineLatest } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/headless-ui'
+import { WorkspaceHistoryService } from '../services/workspace-history.service'
 
 export type ActiveScope =
   | { level: RequestScopeLevel.TENANT }
@@ -183,6 +184,7 @@ export class PersistQuery extends Query<PersistState> {
 
 @Injectable({ providedIn: 'root' })
 export class Store {
+  private readonly workspaceHistory = inject(WorkspaceHistoryService)
   protected appStore = inject(AppStore)
   protected appQuery = inject(AppQuery)
   protected persistStore = inject(PersistStore)
@@ -753,6 +755,7 @@ export class Store {
   }
 
   setWorkspace(workspace: IXpertWorkspace) {
+    this.workspaceHistory.remember(this.userId, this.organizationId, workspace.id)
     this.persistStore.update((state) => {
       return {
         ...state,

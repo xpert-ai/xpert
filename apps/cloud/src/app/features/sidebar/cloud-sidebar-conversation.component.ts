@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog, DialogModule } from '@angular/cdk/dialog'
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -21,6 +21,7 @@ export class CloudSidebarConversationComponent {
   readonly active = input(false)
   readonly compact = input(false)
   readonly preserveQueryParams = input(false)
+  readonly selected = output<void>()
   readonly busy = signal(false)
   readonly error = signal('')
   readonly menuOpen = signal(false)

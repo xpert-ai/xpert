@@ -30,9 +30,8 @@ import {
 import { SandboxRuntimeBindingSelector } from './sandbox-job/sandbox-runtime-binding-selector.service'
 import { SandboxRuntimeHealthService } from './sandbox-job/sandbox-runtime-health.service'
 import { SandboxJobCapacityService } from './sandbox-job/sandbox-job-capacity.service'
-import { SandboxJobCapabilityRegistrationService } from './sandbox-job/sandbox-job-capability-registration.service'
 import { LocalBrowserRuntimeProvider } from './sandbox-job/local-browser-runtime.provider'
-import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/index'
 import { VolumeModule } from '../shared/volume'
 import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
@@ -71,7 +70,6 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         SandboxActionRegistry,
         SandboxJobCapacityService,
         SandboxJobRuntimeCapabilityService,
-        SandboxJobCapabilityRegistrationService,
         NsjailSandboxProvider,
         NsjailWorkspacePathMapper,
         SandboxFileMiddleware,

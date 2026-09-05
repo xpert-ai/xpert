@@ -1,7 +1,7 @@
 import * as _axios from 'axios'
 import { Readable } from 'stream'
-import { IColumnDef, IDSSchema, IDSTable } from '@xpert-ai/contracts'
-export { IColumnDef, IDSSchema, IDSTable } from '@xpert-ai/contracts'
+import { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
+export { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
 const axios = _axios.default
 
 /**
@@ -65,7 +65,7 @@ export interface DBQueryRunner {
   configurationSchema: Record<string, unknown>
 
   jdbcUrl(schema?: string): string
-  initPool?(options: AdapterBaseOptions): Promise<void>;
+  initPool?(options: AdapterBaseOptions): Promise<void>
   /**
    * Execute a sql query
    *
@@ -90,6 +90,11 @@ export interface DBQueryRunner {
    * @param tableName
    */
   getSchema(catalog?: string, tableName?: string): Promise<IDSSchema[]>
+  /**
+   * Runs an adapter-owned, read-only capability without exposing its domain
+   * contract through the host platform.
+   */
+  queryCapability?(query: IDataSourceCapabilityQuery): Promise<unknown>
   /**
    * Describe a sql query result schema
    *
@@ -125,11 +130,7 @@ export interface DBQueryRunner {
   /**
    * Unified table operation executor
    */
-  tableOp(
-    action: DBTableAction,
-    params: DBTableOperationParams,
-    options?: QueryOptions
-  ): Promise<any>
+  tableOp(action: DBTableAction, params: DBTableOperationParams, options?: QueryOptions): Promise<any>
 
   tableDataOp<T = any>(
     action: DBTableDataAction,
@@ -245,26 +246,20 @@ export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBase
   abstract runQuery(query: string, options?: QueryOptions): Promise<QueryResult>
   abstract getCatalogs(): Promise<IDSSchema[]>
   abstract getSchema(catalog?: string, tableName?: string): Promise<IDSSchema[]>
-  describe(catalog: string, statement: string): Promise<{columns?: IDSTable['columns']}> {
+  describe(catalog: string, statement: string): Promise<{ columns?: IDSTable['columns'] }> {
     throw new Error(`Unimplemented`)
   }
   abstract ping(): Promise<void>
-  async import({name, columns, data}, options?: {catalog?: string}): Promise<void> {return null}
+  async import({ name, columns, data }, options?: { catalog?: string }): Promise<void> {
+    return null
+  }
   async dropTable(name: string, options?: any): Promise<void> {
     this.runQuery(`DROP TABLE ${name}`, options)
   }
-  async tableOp(
-    action: DBTableAction,
-    params: DBTableOperationParams,
-    options?: QueryOptions
-  ): Promise<any> {
+  async tableOp(action: DBTableAction, params: DBTableOperationParams, options?: QueryOptions): Promise<any> {
     throw new Error(`Unimplemented method`)
   }
-  async tableDataOp(
-    action: DBTableDataAction,
-    params: DBTableDataParams,
-    options?: QueryOptions
-  ): Promise<any> {
+  async tableDataOp(action: DBTableDataAction, params: DBTableDataParams, options?: QueryOptions): Promise<any> {
     throw new Error(`Unimplemented tableDataOp`)
   }
 
@@ -275,7 +270,9 @@ export interface HttpAdapterOptions extends AdapterBaseOptions {
   url?: string
 }
 
-export abstract class BaseHTTPQueryRunner<T extends HttpAdapterOptions = HttpAdapterOptions> extends BaseQueryRunner<T> {
+export abstract class BaseHTTPQueryRunner<
+  T extends HttpAdapterOptions = HttpAdapterOptions
+> extends BaseQueryRunner<T> {
   get url(): string {
     return this.options?.url as string
   }
@@ -321,7 +318,6 @@ export interface SQLAdapterOptions extends AdapterBaseOptions {
   version?: number
 }
 
-
 export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapterOptions> extends BaseQueryRunner<T> {
   override syntax = DBSyntaxEnum.SQL
   override protocol = DBProtocolEnum.SQL
@@ -355,12 +351,8 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
   /**
    * Default implementation for table operations
    */
-  override async tableOp(
-    action: DBTableAction,
-    params: DBTableOperationParams,
-    options?: QueryOptions
-  ): Promise<any> {
-    switch(action) {
+  override async tableOp(action: DBTableAction, params: DBTableOperationParams, options?: QueryOptions): Promise<any> {
+    switch (action) {
       case DBTableAction.CREATE_TABLE: {
         // Default implementation for creating table (generic SQL syntax)
         const { schema, table, columns, createMode = DBCreateTableMode.ERROR } = params
@@ -369,10 +361,7 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
         // Check if table exists (try to query table info)
         let exists = false
         try {
-          const result = await this.runQuery(
-            `SELECT * FROM ${tableName} WHERE 1=0`,
-            options
-          )
+          const result = await this.runQuery(`SELECT * FROM ${tableName} WHERE 1=0`, options)
           exists = true
         } catch (error) {
           // Table does not exist
@@ -390,22 +379,24 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
         }
 
         // --- MODE: UPGRADE → auto upgrade (simple implementation: only add new columns) ---
-        // Note: This default implementation does not support modifying column types, 
+        // Note: This default implementation does not support modifying column types,
         //       recommend each database to implement its own version
         if (exists && createMode === DBCreateTableMode.UPGRADE) {
-          console.warn(`[BaseSQLQueryRunner] UPGRADE mode uses basic implementation. Consider implementing tableOp for better support.`)
-          
+          console.warn(
+            `[BaseSQLQueryRunner] UPGRADE mode uses basic implementation. Consider implementing tableOp for better support.`
+          )
+
           // Try to add new columns (will fail if column already exists, but doesn't affect)
           for (const col of columns) {
             try {
               const colType = this.mapColumnType(col.type, col.isKey, col.length)
-              await this.runQuery(
-                `ALTER TABLE ${tableName} ADD COLUMN ${col.fieldName} ${colType}`,
-                options
-              )
+              await this.runQuery(`ALTER TABLE ${tableName} ADD COLUMN ${col.fieldName} ${colType}`, options)
             } catch (error) {
               // Field might already exist, ignore error
-              console.debug(`Failed to add column ${col.fieldName}:`, error instanceof Error ? error.message : String(error))
+              console.debug(
+                `Failed to add column ${col.fieldName}:`,
+                error instanceof Error ? error.message : String(error)
+              )
             }
           }
           return
@@ -422,7 +413,7 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
           .join(', ')
 
         const createTableStatement = `CREATE TABLE ${tableName} (${columnsDDL})`
-        
+
         await this.runQuery(createTableStatement, options)
         return
       }
@@ -430,7 +421,7 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
         // Default implementation for dropping table
         const { schema, table } = params
         const tableName = schema ? `${schema}.${table}` : table
-        
+
         await this.runQuery(`DROP TABLE IF EXISTS ${tableName}`, options)
         return
       }
@@ -444,9 +435,9 @@ export abstract class BaseSQLQueryRunner<T extends SQLAdapterOptions = SQLAdapte
    * Generic type mapping (subclasses can override)
    */
   protected mapColumnType(type: string, isKey: boolean, length?: number): string {
-    switch(type?.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'string':
-        return length ? `VARCHAR(${length})` : (isKey ? 'VARCHAR(255)' : 'VARCHAR(1000)')
+        return length ? `VARCHAR(${length})` : isKey ? 'VARCHAR(255)' : 'VARCHAR(1000)'
       case 'number':
         return 'INT'
       case 'boolean':
@@ -520,10 +511,10 @@ export enum DBTableAction {
 export interface DBTableOperationParams {
   schema?: string
   table?: string
-  newTable?: string      // rename/clone
+  newTable?: string // rename/clone
   columns?: ColumnDef[]
   column?: ColumnDef // add/modify
-  columnName?: string    // drop column
+  columnName?: string // drop column
   index?: DBIndexDefinition
   indexName?: string
   createMode?: DBCreateTableMode
@@ -540,9 +531,9 @@ export interface DBIndexDefinition {
  * Modes for creating a table, if the table already exists
  */
 export enum DBCreateTableMode {
-  ERROR = 'error',       // throw error
-  IGNORE = 'ignore',     // do nothing
-  UPGRADE = 'upgrade'    // automatically upgrade table structure
+  ERROR = 'error', // throw error
+  IGNORE = 'ignore', // do nothing
+  UPGRADE = 'upgrade' // automatically upgrade table structure
 }
 
 export enum DBTableDataAction {

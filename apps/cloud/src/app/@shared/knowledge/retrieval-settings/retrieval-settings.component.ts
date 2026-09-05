@@ -26,9 +26,31 @@ import {
   DEFAULT_KNOWLEDGE_RRF_WEIGHTS,
   GraphRagRetrievalMode,
   IKnowledgebase,
+  normalizeKnowledgebaseFAQRecall,
   TKBRetrievalSettings
 } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot/copilot-model-select'
+
+export function hasEnabledKnowledgeRetrievalSource(
+  retrieval: Partial<IKnowledgebase & TKBRetrievalSettings> | null | undefined,
+  allowGraphRetrieval = true
+): boolean {
+  const mode = retrieval?.mode ?? retrieval?.recall?.mode ?? retrieval?.graphRag?.mode ?? 'vector'
+  if (mode === 'graph' && !allowGraphRetrieval) {
+    return false
+  }
+  const fusion = retrieval?.recall?.fusion
+  if (mode !== 'hybrid' || fusion?.mode !== 'weighted_rrf') {
+    return true
+  }
+
+  const weights = fusion.weights
+  const enabledWeights = allowGraphRetrieval
+    ? [weights?.vector, weights?.graph, weights?.keyword]
+    : [weights?.vector, weights?.keyword]
+  return enabledWeights.some((weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0)
+}
+
 /**
  *
  */
@@ -68,6 +90,10 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly savable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly allowGraphRetrieval = input<boolean, boolean | string>(true, {
+    transform: booleanAttribute
+  })
+  readonly defaultMode = input<GraphRagRetrievalMode>('vector')
 
   readonly knowledgebase = this.cva.value$
 
@@ -82,11 +108,11 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly fusionWeights = attrModel(this.fusion, 'weights', {})
   readonly rrfEnabled = linkedModel<boolean>({
     initialValue: false,
-    compute: () => this.fusion()?.mode === 'weighted_rrf',
+    compute: () => (!this.allowGraphRetrieval() && this.mode() === 'hybrid') || this.fusion()?.mode === 'weighted_rrf',
     update: (enabled) => {
       this.fusion.update((state) => ({
         ...(state ?? {}),
-        mode: enabled ? 'weighted_rrf' : 'legacy'
+        mode: enabled || (!this.allowGraphRetrieval() && this.mode() === 'hybrid') ? 'weighted_rrf' : 'legacy'
       }))
     }
   })
@@ -97,12 +123,34 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly graphRag = attrModel(this.knowledgebase, 'graphRag', {})
   readonly mode = linkedModel<GraphRagRetrievalMode>({
     initialValue: 'vector',
-    compute: () => this.graphRag()?.mode ?? this.knowledgebase()?.mode ?? 'vector',
+    compute: () => {
+      const mode =
+        this.knowledgebase()?.mode ??
+        this.recall()?.mode ??
+        (this.allowGraphRetrieval() ? this.graphRag()?.mode : undefined) ??
+        this.defaultMode()
+      return this.retrievalModes().includes(mode) ? mode : this.defaultMode()
+    },
     update: (value) => {
-      this.graphRag.update((state) => ({
+      this.recall.update((state) => ({
         ...(state ?? {}),
         mode: value
       }))
+      this.graphRag.update((state) => ({
+        ...(state ?? {}),
+        enabled: this.allowGraphRetrieval() ? state?.enabled : false,
+        mode: value
+      }))
+      if (!this.allowGraphRetrieval()) {
+        this.fusion.update((state) => ({
+          ...(state ?? {}),
+          mode: value === 'hybrid' ? 'weighted_rrf' : state?.mode,
+          weights: {
+            ...(state?.weights ?? {}),
+            graph: 0
+          }
+        }))
+      }
     }
   })
   readonly graphEnabled = attrModel(this.graphRag, 'enabled', false)
@@ -110,7 +158,7 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly neighborHops = attrModel(this.graphRag, 'neighborHops', 1)
   readonly graphWeight = attrModel(this.graphRag, 'graphWeight', 0.35)
   readonly graphControlsVisible = computed(
-    () => this.graphEnabled() || this.mode() === 'graph' || this.mode() === 'hybrid'
+    () => this.allowGraphRetrieval() && (this.graphEnabled() || this.mode() === 'graph' || this.mode() === 'hybrid')
   )
   readonly rrfActive = computed(() => this.mode() === 'hybrid' && this.rrfEnabled())
   readonly vectorRetrieverActive = computed(
@@ -120,22 +168,29 @@ export class KnowledgeRetrievalSettingsComponent {
   )
   readonly graphRetrieverActive = computed(
     () =>
-      this.mode() === 'graph' ||
-      (this.mode() === 'hybrid' && (!this.rrfActive() || this.isPositiveWeight(this.rrfGraphWeight())))
+      this.allowGraphRetrieval() &&
+      (this.mode() === 'graph' ||
+        (this.mode() === 'hybrid' && (!this.rrfActive() || this.isPositiveWeight(this.rrfGraphWeight()))))
   )
   readonly keywordRetrieverActive = computed(
     () =>
       this.mode() === 'keyword' ||
       (this.mode() === 'hybrid' && this.rrfEnabled() && this.isPositiveWeight(this.rrfKeywordWeight()))
   )
-  readonly rrfHasEnabledRetriever = computed(
-    () =>
-      !this.rrfActive() ||
-      [this.rrfVectorWeight(), this.rrfGraphWeight(), this.rrfKeywordWeight()].some(
-        (weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0
-      )
+  readonly rrfHasEnabledRetriever = computed(() => {
+    const knowledgebase = this.knowledgebase()
+    if (this.allowGraphRetrieval()) {
+      return hasEnabledKnowledgeRetrievalSource(knowledgebase)
+    }
+    const recall = normalizeKnowledgebaseFAQRecall({
+      ...(knowledgebase?.recall ?? {}),
+      mode: this.mode()
+    })
+    return hasEnabledKnowledgeRetrievalSource({ ...knowledgebase, mode: recall.mode, recall }, false)
+  })
+  readonly retrievalModes = computed<GraphRagRetrievalMode[]>(() =>
+    this.allowGraphRetrieval() ? ['vector', 'keyword', 'graph', 'hybrid'] : ['vector', 'keyword', 'hybrid']
   )
-  readonly retrievalModes: GraphRagRetrievalMode[] = ['vector', 'keyword', 'graph', 'hybrid']
   readonly useScore = linkedModel({
     initialValue: false,
     compute: () => !isNil(this.score()),
@@ -144,12 +199,14 @@ export class KnowledgeRetrievalSettingsComponent {
     }
   })
   readonly rerankModel = attrModel(this.knowledgebase, 'rerankModel', null)
+  readonly rerankModelId = attrModel(this.knowledgebase, 'rerankModelId', null)
   readonly useRerank = linkedModel({
     initialValue: false,
-    compute: () => !!this.rerankModel(),
+    compute: () => !!(this.rerankModel() || this.rerankModelId()),
     update: (value) => {
       if (!value) {
         this.rerankModel.set(null)
+        this.rerankModelId.set(null)
       }
     }
   })
@@ -162,13 +219,27 @@ export class KnowledgeRetrievalSettingsComponent {
       return
     }
 
+    const recall = this.allowGraphRetrieval()
+      ? this.recall()
+      : normalizeKnowledgebaseFAQRecall({
+          ...(this.recall() ?? {}),
+          mode: this.mode()
+        })
+    const graphRag = this.allowGraphRetrieval()
+      ? this.graphRag()
+      : {
+          ...(this.graphRag() ?? {}),
+          enabled: false,
+          mode: recall.mode
+        }
+
     this.loading.set(true)
     this.knowledgebaseAPI
       .update(this.knowledgebase().id, {
-        recall: this.recall(),
+        recall,
         rerankModelId: this.useRerank() ? this.knowledgebase().rerankModelId : null,
         rerankModel: this.useRerank() ? this.rerankModel() : null,
-        graphRag: this.graphRag()
+        graphRag
       })
       .subscribe({
         next: (kb) => {

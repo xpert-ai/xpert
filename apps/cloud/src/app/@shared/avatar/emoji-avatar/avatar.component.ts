@@ -49,6 +49,7 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
     '[class.xs]': 'xs()',
     '[class.small]': 'small()',
     '[class.large]': 'large()',
+    '[class.xlarge]': 'xlarge()',
     '[class.cursor-pointer]': 'editable()',
     '[class.editable]': 'editable()',
     '[class.focused]': 'focused'
@@ -75,6 +76,9 @@ export class EmojiAvatarComponent {
   readonly large = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
+  readonly xlarge = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   readonly resolvedAvatar = computed(() => this.avatar() ?? this.cva.value$() ?? null)
   readonly avatarFallback = computed(() => buildAvatarFallback(this.fallbackLabel()))
@@ -96,7 +100,9 @@ export class EmojiAvatarComponent {
     } satisfies Partial<TAvatar>
   })
 
-  readonly emojiSize = computed(() => (this.large() ? 24 : this.small() ? 16 : this.xs() ? 14 : 18))
+  readonly emojiSize = computed(() =>
+    this.xlarge() ? 32 : this.large() ? 24 : this.small() ? 16 : this.xs() ? 14 : 18
+  )
 
   @HostBinding('class.focused') focused = false
 

@@ -4,10 +4,8 @@
       <button
         z-button
         zType="ghost"
-        zSize="icon-sm"
-        zShape="circle"
         type="button"
-        class="hidden shrink-0 lg:inline-flex"
+        class="hidden shrink-0 lg:inline-flex w-8 h-8 items-center justify-center"
         data-sidebar-toggle-button="viewer"
         [zTooltip]="
           sideMenuVisible()
@@ -28,9 +26,9 @@
         (click)="sideMenuToggle.emit()"
       >
         @if (sideMenuVisible()) {
-          <i class="ri-sidebar-fold-line text-base"></i>
+          <i class="ri-sidebar-fold-line text-lg"></i>
         } @else {
-          <i class="ri-sidebar-unfold-line text-base"></i>
+          <i class="ri-sidebar-unfold-line text-lg"></i>
         }
       </button>
     }
@@ -288,7 +286,7 @@
         </div>
       }
     } @else {
-      <div class="xp-empty-state h-full">
+      <div class="w-full h-full flex flex-col items-center justify-center">
         <div class="text-lg font-semibold text-text-primary">
           {{ 'XP.Files.SelectFile' | translate: { Default: 'Select a file' } }}
         </div>

@@ -35,6 +35,25 @@
     "USERS": "用户"
   },
   "XP": {
+    "AssistantProfile": {
+      "Title": "Assistant 资料",
+      "Close": "关闭资料",
+      "Basic": "基本信息",
+      "Loading": "正在加载 Assistant…",
+      "LoadError": "无法加载此 Assistant。",
+      "Retry": "重试",
+      "NoDescription": "暂无简介。",
+      "Workspace": "工作空间",
+      "Creator": "创建者",
+      "PublishedAt": "发布时间",
+      "UpdatedAt": "更新时间",
+      "Skills": "技能",
+      "Tools": "工具",
+      "SubAgents": "子智能体",
+      "Conversations30d": "近30天对话",
+      "TabsError": "扩展视图暂时无法加载。",
+      "Open": "查看 Assistant 资料"
+    },
     "Title": "元数分析云",
     "ViewExtension": {
       "RemoteComponentLoadFailed": "无法加载此视图",
@@ -2156,7 +2175,7 @@
       "Relation": "关系",
       "GraphRAG": "GraphRAG",
       "WeightedRRF": "加权 RRF",
-      "WeightedRRFInfo": "在混合模式下，按排名融合向量、图谱和关键词候选结果。关闭时继续使用原有加权融合方式。",
+      "WeightedRRFInfo": "在混合模式下，按排名融合已启用的候选来源。关闭时继续使用原有加权融合方式。",
       "WeightedRRFDesc": "增加精确关键词召回，并融合三路候选结果。",
       "WeightedRRFHybridOnly": "请选择混合检索模式以启用 RRF。",
       "RRFRankConstant": "排名常数",
@@ -2166,7 +2185,6 @@
       "RRFThresholdIgnored": "RRF 融合分数不是向量相似度，因此不会应用相似度阈值。",
       "RRFPositiveWeightRequired": "请至少将一路检索来源的权重设置为大于 0。",
       "RetrievalMode": "检索模式",
-      "RetrievalModeDesc": "选择知识库召回候选内容的方式。",
       "RetrievalMode_Vector": "向量",
       "RetrievalMode_Keyword": "关键词",
       "RetrievalMode_Graph": "图谱",

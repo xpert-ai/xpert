@@ -34,55 +34,39 @@
 </ng-template>
 
 <div class="@container/retrieval relative flex min-w-0 flex-col gap-3">
-  <div
-    class="flex flex-col gap-3 @[640px]/retrieval:flex-row @[640px]/retrieval:items-center @[640px]/retrieval:justify-between"
+  <nav
+    z-tab-nav-bar
+    zSize="sm"
+    [stretchTabs]="true"
+    class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5"
+    [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' }"
   >
-    <div class="min-w-0">
-      <div class="system-sm-semibold text-text-primary">
-        {{ 'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' } }}
-      </div>
-      <div class="mt-0.5 system-xs-regular text-text-tertiary">
-        {{
-          'XP.Knowledgebase.RetrievalModeDesc'
-            | translate: { Default: 'Choose how this knowledge base recalls candidate content.' }
-        }}
-      </div>
-    </div>
-
-    <nav
-      z-tab-nav-bar
-      zSize="sm"
-      [stretchTabs]="true"
-      class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5 @[640px]/retrieval:w-[360px]"
-      [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' }"
-    >
-      @for (modeOption of retrievalModes; track modeOption) {
-        <button
-          z-tab-link
-          type="button"
-          class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
-          [attr.data-retrieval-mode]="modeOption"
-          [active]="mode() === modeOption"
-          (click)="mode.set(modeOption)"
-        >
-          @switch (modeOption) {
-            @case ('vector') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
-            }
-            @case ('keyword') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate: { Default: 'Keyword' } }}
-            }
-            @case ('graph') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
-            }
-            @case ('hybrid') {
-              {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
-            }
+    @for (modeOption of retrievalModes(); track modeOption) {
+      <button
+        z-tab-link
+        type="button"
+        class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+        [attr.data-retrieval-mode]="modeOption"
+        [active]="mode() === modeOption"
+        (click)="mode.set(modeOption)"
+      >
+        @switch (modeOption) {
+          @case ('vector') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
           }
-        </button>
-      }
-    </nav>
-  </div>
+          @case ('keyword') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate: { Default: 'Keyword' } }}
+          }
+          @case ('graph') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
+          }
+          @case ('hybrid') {
+            {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
+          }
+        }
+      </button>
+    }
+  </nav>
 
   <z-card data-retrieval-stage="recall" class="gap-0 border-divider-regular bg-components-panel-bg py-0 shadow-none">
     <z-card-header class="flex flex-row items-start gap-3 border-b border-divider-regular px-4 py-3">
@@ -445,7 +429,7 @@
                     | translate
                       : {
                           Default:
-                            'In Hybrid mode, merge Vector, Graph, and Keyword candidates by rank. Leave it off to keep the existing weighted fusion behavior.'
+                            'In Hybrid mode, merge enabled retrieval sources by rank. Leave it off to keep the existing weighted fusion behavior.'
                         }
                 "
                 zPosition="top"
@@ -463,13 +447,13 @@
           <span class="hidden system-xs-semibold text-text-secondary @[640px]/retrieval:inline">
             {{ 'XP.Knowledgebase.WeightedRRF' | translate: { Default: 'Weighted RRF' } }}
           </span>
-          <z-switch [(ngModel)]="rrfEnabled" zSize="sm" />
+          <z-switch [(ngModel)]="rrfEnabled" [disabled]="!allowGraphRetrieval()" zSize="sm" />
         </div>
       </z-card-header>
 
       <z-card-content class="px-4 py-3">
         @if (rrfActive()) {
-          <div class="grid grid-cols-1 gap-3 @[560px]/retrieval:grid-cols-2 @[960px]/retrieval:grid-cols-4">
+          <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3">
             <div
               data-setting="rrf-rank-constant"
               class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
@@ -512,27 +496,29 @@
                 />
               </div>
             </div>
-            <div
-              data-setting="rrf-graph-weight"
-              class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
-            >
-              <div class="mb-3 system-xs-semibold text-text-secondary">
-                <span>{{ 'XP.Knowledgebase.RRFGraphWeight' | translate: { Default: 'Graph Weight' } }}</span>
+            @if (allowGraphRetrieval()) {
+              <div
+                data-setting="rrf-graph-weight"
+                class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
+              >
+                <div class="mb-3 system-xs-semibold text-text-secondary">
+                  <span>{{ 'XP.Knowledgebase.RRFGraphWeight' | translate: { Default: 'Graph Weight' } }}</span>
+                </div>
+                <div data-slider-input class="flex min-w-0 items-center gap-3">
+                  <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfGraphWeight" />
+                  <input
+                    z-input
+                    zSize="sm"
+                    class="w-16 shrink-0 text-center"
+                    type="number"
+                    [min]="0"
+                    [max]="1"
+                    [step]="0.05"
+                    [(ngModel)]="rrfGraphWeight"
+                  />
+                </div>
               </div>
-              <div data-slider-input class="flex min-w-0 items-center gap-3">
-                <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfGraphWeight" />
-                <input
-                  z-input
-                  zSize="sm"
-                  class="w-16 shrink-0 text-center"
-                  type="number"
-                  [min]="0"
-                  [max]="1"
-                  [step]="0.05"
-                  [(ngModel)]="rrfGraphWeight"
-                />
-              </div>
-            </div>
+            }
             <div
               data-setting="rrf-keyword-weight"
               class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"

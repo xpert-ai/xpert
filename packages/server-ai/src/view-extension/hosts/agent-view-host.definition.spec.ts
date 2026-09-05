@@ -7,6 +7,15 @@ import { join } from 'node:path'
 import { VolumeHandle } from '../../shared/volume'
 import { AgentViewHostDefinition } from './agent-view-host.definition'
 
+const createProfileIdentity = () =>
+    ({
+        resolve: jest.fn(async (xpert: { id: string }) => ({
+            instanceId: xpert.id,
+            currentId: xpert.id,
+            versionIds: [xpert.id]
+        }))
+    }) as never
+
 describe('AgentViewHostDefinition', () => {
     it('loads the primary agent relation and derives middleware feature capabilities', async () => {
         const xpertService = {
@@ -82,7 +91,8 @@ describe('AgentViewHostDefinition', () => {
             {} as any,
             {} as any,
             {} as any,
-            {} as any
+            {} as any,
+            createProfileIdentity()
         )
 
         const resolved = await definition.resolve('agent-host-1')
@@ -92,6 +102,11 @@ describe('AgentViewHostDefinition', () => {
         })
         expect(middlewareRegistry.get).toHaveBeenCalledWith('BomDocumentIntakeMiddleware', 'org-1')
         expect(resolved?.context).toMatchObject({
+            assistant: {
+                instanceId: 'agent-host-1',
+                currentId: 'agent-host-1',
+                versionIds: ['agent-host-1']
+            },
             capabilities: {
                 features: ['bom_document_intake', 'sandbox']
             },
@@ -151,7 +166,8 @@ describe('AgentViewHostDefinition', () => {
             {} as never,
             {} as never,
             {} as never,
-            {} as never
+            {} as never,
+            createProfileIdentity()
         )
 
         try {
@@ -201,7 +217,8 @@ describe('AgentViewHostDefinition', () => {
             {} as never,
             projectAccessService as never,
             {} as never,
-            {} as never
+            {} as never,
+            createProfileIdentity()
         )
 
         const resolved = await definition.resolve('agent-host-1', {
@@ -267,6 +284,7 @@ describe('AgentViewHostDefinition', () => {
             avatar: { emoji: '🧱', background: '#eef2ff' },
             active: true,
             version: '10',
+            publishAt: new Date('2026-01-01T00:00:00Z'),
             agent: { key: 'Agent_BomEngineer' },
             graph: { nodes: [], connections: [] },
             options: {
@@ -287,7 +305,8 @@ describe('AgentViewHostDefinition', () => {
             {} as any,
             {} as any,
             {} as any,
-            {} as any
+            {} as any,
+            createProfileIdentity()
         )
 
         const resolved = await definition.resolve(requester.id)
@@ -384,7 +403,8 @@ describe('AgentViewHostDefinition', () => {
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[3],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[4],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[5],
-            {} as ConstructorParameters<typeof AgentViewHostDefinition>[6]
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[6],
+            createProfileIdentity()
         )
 
         const published = await definition.resolve('agent-host-1')
@@ -424,7 +444,8 @@ describe('AgentViewHostDefinition', () => {
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[3],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[4],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[5],
-            {} as ConstructorParameters<typeof AgentViewHostDefinition>[6]
+            {} as ConstructorParameters<typeof AgentViewHostDefinition>[6],
+            createProfileIdentity()
         )
         const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         const context = { hostId: 'agent-host-1' } as XpertViewHostContext
@@ -479,7 +500,8 @@ describe('AgentViewHostDefinition', () => {
             {} as never,
             {} as never,
             {} as never,
-            volumeClient as never
+            volumeClient as never,
+            createProfileIdentity()
         )
 
         try {

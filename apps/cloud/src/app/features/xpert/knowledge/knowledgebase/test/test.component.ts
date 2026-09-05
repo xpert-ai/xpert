@@ -21,11 +21,13 @@ import {
   KnowledgeFilterNode,
   KnowledgeDocumentService,
   KnowledgebaseService,
+  KnowledgebaseTypeEnum,
   OrderTypeEnum,
   TKBRetrievalSettings,
   ToastrService,
   getErrorMessage,
-  injectHelpWebsite,
+  isDocumentKnowledgebaseType,
+  normalizeKnowledgebaseFAQRecall,
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
@@ -55,14 +57,20 @@ export class KnowledgeTestComponent {
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
-  readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/retrieval')
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly isFAQ = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.FAQ)
+  readonly showDocumentTestControls = computed(() => isDocumentKnowledgebaseType(this.knowledgebase()?.type))
+  readonly showRetrievalSettings = computed(() => this.showDocumentTestControls() || this.isFAQ())
 
-  readonly recall = computed(() => this.knowledgebase()?.recall)
+  readonly recall = computed(() =>
+    this.isFAQ() ? normalizeKnowledgebaseFAQRecall(this.knowledgebase()?.recall) : this.knowledgebase()?.recall
+  )
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
-  readonly retrievalMode = computed<GraphRagRetrievalMode>(() => this.knowledgebase()?.graphRag?.mode ?? 'vector')
+  readonly retrievalMode = computed<GraphRagRetrievalMode>(
+    () => this.recall()?.mode ?? this.knowledgebase()?.graphRag?.mode ?? (this.isFAQ() ? 'hybrid' : 'vector')
+  )
   readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
     const graphRag = this.knowledgebase()?.graphRag
     return {
@@ -71,7 +79,7 @@ export class KnowledgeTestComponent {
       neighborHops: graphRag?.neighborHops,
       graphWeight: graphRag?.graphWeight,
       communityTopK: graphRag?.communityTopK,
-      fusion: this.knowledgebase()?.recall?.fusion
+      fusion: this.recall()?.fusion
     }
   })
 

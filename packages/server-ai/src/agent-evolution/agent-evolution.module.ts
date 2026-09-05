@@ -4,7 +4,6 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
-    AgentEvolutionCapabilityRegistrationService,
     AgentEvolutionRuntimeService,
     AgentEvolutionGovernanceService,
     AgentEvolutionQueueProcessor,
@@ -37,7 +36,6 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         AgentEvolutionReleaseGatePolicyService,
         AgentEvolutionQueueService,
         AgentEvolutionQueueProcessor,
-        AgentEvolutionCapabilityRegistrationService,
         EvolutionTargetProviderRegistry,
         { provide: EVOLUTION_RUNTIME_SERVICE_TOKEN, useExisting: AgentEvolutionRuntimeService },
         ...AGENT_EVOLUTION_CONFORMANCE_PROVIDERS

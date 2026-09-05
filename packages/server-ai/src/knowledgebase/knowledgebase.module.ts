@@ -39,6 +39,7 @@ import {
     VectorKnowledgeCandidateRetriever,
     WeightedRrfFusion
 } from './retrieval'
+import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
 
 @Module({
     imports: [
@@ -58,7 +59,7 @@ import {
             name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
         })
     ],
-    controllers: [KnowledgebaseController],
+    controllers: [KnowledgebaseController, KnowledgeFAQController],
     providers: [
         KnowledgebaseService,
         KnowledgebaseRebuildEmbeddingConsumer,
@@ -80,6 +81,7 @@ import {
         KnowledgeKeywordIndexService,
         LegacyWeightedFusion,
         WeightedRrfFusion,
+        KnowledgeFAQService,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,
         ...QueryHandlers,
@@ -97,7 +99,8 @@ import {
         ImageUnderstandingRegistry,
         KnowledgeFilterV2MigrationService,
         KnowledgeGraphFilterScopeService,
-        KnowledgeKeywordIndexService
+        KnowledgeKeywordIndexService,
+        KnowledgeFAQService
     ]
 })
 export class KnowledgebaseModule {}

@@ -1,7 +1,6 @@
 export * from './agent-evolution.service'
 export * from './agent-evolution.store'
 export * from './agent-evolution-runtime.service'
-export * from './agent-evolution-capability-registration.service'
 export * from './agent-evolution-governance.service'
 export * from './agent-evolution-queue.service'
 export * from './agent-evolution-queue.processor'

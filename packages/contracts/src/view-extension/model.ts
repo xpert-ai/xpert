@@ -1,5 +1,6 @@
 import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
+import type { XpertViewAssistantIdentity } from './assistant-profile'
 
 export type XpertViewHostType = 'integration' | 'knowledgebase' | 'agent' | 'project' | 'sandbox' | string
 
@@ -139,6 +140,7 @@ export interface XpertViewRuntimeScope {
 export type XpertViewHostState = Record<string, unknown>
 
 export interface XpertResolvedViewHostContext extends XpertViewHostContext {
+  assistant?: XpertViewAssistantIdentity
   slots: XpertViewSlot[]
   hostSnapshot?: unknown
   capabilities?: XpertViewHostCapabilities
@@ -624,6 +626,7 @@ export interface XpertExtensionViewManifest {
   polling?: XpertViewPolling
   activation?: XpertViewActivation
   runtime?: {
+    /** Host-derived Assistants that satisfy every required Feature. Provider declarations are ignored. */
     featureProviders?: XpertViewFeatureProvider[]
   }
   workbench?: XpertWorkbenchViewOptions

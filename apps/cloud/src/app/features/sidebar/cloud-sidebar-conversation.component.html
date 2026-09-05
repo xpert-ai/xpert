@@ -11,6 +11,7 @@
     [attr.aria-current]="active() ? 'page' : null"
     [attr.aria-label]="hoverLabel()"
     [title]="hoverLabel()"
+    (click)="selected.emit()"
   >
     <i
       [class]="compact() ? 'ri-chat-3-line shrink-0 text-base' : 'ri-file-text-line shrink-0 text-xl'"

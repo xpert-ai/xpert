@@ -1,5 +1,6 @@
 import {
     AIPermissionsEnum,
+    AGENT_PROFILE_TABS_SLOT,
     getAgentMiddlewareNodes,
     IWFNMiddleware,
     IXpert,
@@ -29,6 +30,7 @@ import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
+import { XpertProfileIdentityService } from '../../xpert/xpert-profile-identity.service'
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
@@ -49,6 +51,7 @@ export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     readonly hostType = 'agent'
     readonly slots: XpertViewSlot[] = [
+        { key: AGENT_PROFILE_TABS_SLOT, mode: 'tabs', order: 30, manifestPolicy: { requireFeatureActivation: true } },
         { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
         {
             key: AGENT_WORKBENCH_MAIN_SLOT,
@@ -73,7 +76,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         private readonly projectAccessService: XpertProjectAccessService,
         private readonly xpertBindingService: XpertProjectXpertBindingService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly profileIdentity: XpertProfileIdentityService
     ) {}
 
     async resolve(hostId: string, options?: ViewHostResolutionOptions) {
@@ -103,6 +107,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }
             },
             context: {
+                assistant: await this.profileIdentity.resolve(runtimeXpert),
                 capabilities: agentContext.capabilities,
                 hostState: agentContext.hostState,
                 runtimeScope

@@ -25,7 +25,7 @@ import {
 } from '@xpert-ai/contracts'
 import { createBuiltinToolset, XpertToolsetService } from '../xpert-toolset'
 import { PublishedXpertAccessService } from '../xpert'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 import { resolveToolRuntimeScope } from '../tool-runtime/workspace-scope'
 
 const COMPLETED_STATUSES = new Set(['completed', 'done', 'succeeded', 'success'])

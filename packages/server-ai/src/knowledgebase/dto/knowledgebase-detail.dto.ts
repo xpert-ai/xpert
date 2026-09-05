@@ -1,5 +1,9 @@
-import { ICopilotModel, IKnowledgebase, IXpert } from '@xpert-ai/contracts'
+import { ICopilotModel, IKnowledgebase, IXpert, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
+
+type KnowledgebaseDTOInput = Omit<Partial<IKnowledgebase>, 'type'> & {
+    type?: KnowledgebaseTypeEnum | null
+}
 
 @Exclude()
 class KnowledgebaseModelDetailDTO implements Partial<ICopilotModel> {
@@ -70,7 +74,11 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     declare name: string
 
     @Expose()
-    declare type?: IKnowledgebase['type']
+    declare type: IKnowledgebase['type']
+
+    @Expose()
+    declare faqConfig?: IKnowledgebase['faqConfig']
+
     declare applicationTags?: string[]
 
     @Expose()
@@ -177,7 +185,8 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     @Transform((params: TransformFnParams) => (params.value ? new KnowledgebasePipelineDetailDTO(params.value) : null))
     declare pipeline?: IXpert
 
-    constructor(partial: Partial<IKnowledgebase>) {
+    constructor(partial: KnowledgebaseDTOInput) {
         Object.assign(this, partial)
+        this.type = partial.type ?? KnowledgebaseTypeEnum.Standard
     }
 }

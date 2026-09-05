@@ -9,11 +9,14 @@ import type {
     LearningEvent,
     ResolveCapabilityExecutionPlanRequest
 } from '@xpert-ai/contracts'
+import { EvolutionRuntimeCapability } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { RuntimeCapabilityProvider } from '../../shared/runtime'
 import { hashEvolutionValue } from '../domain/evolution-hash'
 import { AgentEvolutionStore, EvolutionTenantScope } from './agent-evolution.store'
 
 @Injectable()
+@RuntimeCapabilityProvider(EvolutionRuntimeCapability)
 export class AgentEvolutionRuntimeService implements EvolutionRuntimeApi {
     constructor(private readonly store: AgentEvolutionStore) {}
 

@@ -71,7 +71,9 @@ export class RuntimeCapabilitiesService {
             return normalizeMiddlewareProvider(entity?.provider) === SKILLS_MIDDLEWARE_NAME
         })
         const defaultSkillSelection = collectDefaultSkillSelection(middlewareNodes)
-        const disabledSkillIds = await this.getDisabledSkillIds(hasSkillsMiddleware, xpert, assistantId)
+        const disabledSkillIds = hasSkillsMiddleware
+            ? await this.getDisabledSkillIds(xpert, assistantId)
+            : new Set<string>()
 
         const middlewareCapabilities = middlewareNodes
             .map((node) => {
@@ -188,9 +190,26 @@ export class RuntimeCapabilitiesService {
         }
     }
 
-    private async getDisabledSkillIds(hasSkillsMiddleware: boolean, xpert: IXpert, assistantId?: string) {
+    /**
+     * Counts every installed Skill in the Assistant's Workspace that the current
+     * runtime identity can read, minus that Assistant binding's disabled Skills.
+     * This intentionally does not depend on whether the primary Agent currently
+     * mounts Skills Middleware: Profile reports accessible Workspace inventory,
+     * while getRuntimeCapabilities decides which capabilities are exposed to a run.
+     */
+    async countAccessibleWorkspaceSkills(xpert: IXpert, assistantId?: string): Promise<number> {
+        const workspaceId = xpert.workspaceId?.trim()
+        if (!workspaceId) {
+            return 0
+        }
+
+        const disabledSkillIds = await this.getDisabledSkillIds(xpert, assistantId)
+        return (await this.getAccessibleWorkspaceSkillPackages(workspaceId, disabledSkillIds)).length
+    }
+
+    private async getDisabledSkillIds(xpert: IXpert, assistantId?: string) {
         const targetId = xpert.id ?? assistantId
-        if (!hasSkillsMiddleware || !xpert.workspaceId || !targetId) {
+        if (!xpert.workspaceId || !targetId) {
             return new Set<string>()
         }
 
@@ -216,13 +235,7 @@ export class RuntimeCapabilitiesService {
             where: {},
             withDeleted: false
         } as PaginationParams<SkillPackage>
-        // Capability discovery is part of execution and must honor run-only workspace access.
-        const result = await this.skillPackageService.getAllByWorkspaceForRuntime(
-            workspaceId,
-            query,
-            false,
-            RequestContext.currentUser()
-        )
+        const enabledItems = await this.getAccessibleWorkspaceSkillPackages(workspaceId, disabledSkillIds, query)
 
         const isDefaultSkill = (skill: SkillPackage) => {
             const skillIndex = skill.skillIndex
@@ -237,7 +250,6 @@ export class RuntimeCapabilitiesService {
                 )
             )
         }
-        const enabledItems = (result.items ?? []).filter((skill) => !disabledSkillIds.has(skill.id))
         const skills = enabledItems.map((skill) => {
             const skillIndex = skill.skillIndex
             const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
@@ -275,6 +287,27 @@ export class RuntimeCapabilitiesService {
         })
 
         return { skills, commands }
+    }
+
+    private async getAccessibleWorkspaceSkillPackages(
+        workspaceId: string,
+        disabledSkillIds: Set<string>,
+        query: PaginationParams<SkillPackage> = {
+            relations: ['skillIndex', 'skillIndex.repository'],
+            order: {},
+            where: {},
+            withDeleted: false
+        } as PaginationParams<SkillPackage>
+    ) {
+        // Workspace run access is the authoritative boundary for both runtime
+        // capability discovery and the Profile's accessible-Skills indicator.
+        const result = await this.skillPackageService.getAllByWorkspaceForRuntime(
+            workspaceId,
+            query,
+            false,
+            RequestContext.currentUser()
+        )
+        return (result.items ?? []).filter((skill) => !disabledSkillIds.has(skill.id))
     }
 
     private async getProjectScopedRuntimeSkills({

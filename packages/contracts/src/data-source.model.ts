@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel } from './base-entity.model'
+import type { JSONValue } from './core.model'
 import { IDataSourceType } from './data-source-type.model'
 import { IUser } from './user.model'
 
@@ -22,6 +23,18 @@ export interface IDataSourceAuthentication extends IBasePerTenantEntityModel {
 
   dataSource?: IDataSource
   user?: IUser
+}
+
+/**
+ * Generic, read-only query delegated to the selected data-source adapter.
+ *
+ * Capability names and payload schemas are owned by adapters and their
+ * consumers; the platform intentionally does not model domain protocols.
+ */
+export interface IDataSourceCapabilityQuery {
+  capability: string
+  operation: string
+  payload?: JSONValue
 }
 
 export enum AuthenticationEnum {

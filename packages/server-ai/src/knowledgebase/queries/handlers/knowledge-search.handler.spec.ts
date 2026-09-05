@@ -128,6 +128,96 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         )
     })
 
+    it('materializes a structured FAQ hit with its complete ordered answer', async () => {
+        const knowledgebase = {
+            id: 'kb-faq',
+            type: KnowledgebaseTypeEnum.FAQ,
+            recall: { topK: 5 }
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({ items: [knowledgebase] }))
+        }
+        const { handler, vectorRetriever } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            { execute: jest.fn() } as unknown as QueryBus
+        )
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(
+            vectorBatch([
+                {
+                    pageContent: '如何重置密码？',
+                    metadata: {
+                        chunkId: 'faq-1',
+                        contentKind: 'faq',
+                        standardQuestion: '如何重置密码？',
+                        similarQuestions: ['忘记密码怎么办？'],
+                        negativeQuestions: ['如何修改用户名？'],
+                        answerBlocks: ['打开设置页面。', '点击“重置密码”。'],
+                        enabled: true,
+                        faqVectorIds: ['faq-1::faq-vector:question:0']
+                    }
+                }
+            ])
+        )
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-faq'],
+                query: '忘记密码',
+                source: 'spec'
+            })
+        )
+
+        expect(result.documents[0].pageContent).toBe(
+            '问题：如何重置密码？\n\n相似问法：\n- 忘记密码怎么办？\n\n回答：\n打开设置页面。\n\n点击“重置密码”。'
+        )
+    })
+
+    it('filters an FAQ hit when the normalized query exactly matches a negative question', async () => {
+        const knowledgebase = {
+            id: 'kb-faq',
+            type: KnowledgebaseTypeEnum.FAQ,
+            recall: { topK: 5 }
+        }
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({ items: [knowledgebase] }))
+        }
+        const { handler, vectorRetriever } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            { execute: jest.fn() } as unknown as QueryBus
+        )
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(
+            vectorBatch([
+                {
+                    pageContent: '如何重置密码？',
+                    metadata: {
+                        chunkId: 'faq-1',
+                        contentKind: 'faq',
+                        standardQuestion: '如何重置密码？',
+                        similarQuestions: ['忘记密码怎么办？'],
+                        negativeQuestions: ['如何修改用户名？'],
+                        answerBlocks: ['打开设置页面。'],
+                        enabled: true,
+                        faqVectorIds: ['faq-1::faq-vector:question:0']
+                    }
+                }
+            ])
+        )
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-faq'],
+                query: '  如何修改用户名？ ',
+                source: 'spec'
+            })
+        )
+
+        expect(result.documents).toEqual([])
+    })
+
     it('routes graph mode to graph search without vector search', async () => {
         const graphDocs = [chunk('graph-1', { graphScore: 0.9, score: 0.9 })]
         const queryBus = {
@@ -426,6 +516,48 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 hitCount: 4
             })
         )
+    })
+
+    it('uses the knowledgebase recall mode before the legacy GraphRAG mode', async () => {
+        const knowledgebaseService = {
+            findAll: jest.fn(async () => ({
+                items: [
+                    {
+                        id: 'kb-faq',
+                        type: KnowledgebaseTypeEnum.FAQ,
+                        recall: {
+                            topK: 5,
+                            mode: 'hybrid',
+                            fusion: {
+                                mode: 'weighted_rrf',
+                                weights: { vector: 0.7, keyword: 0.3, graph: 0 }
+                            }
+                        }
+                    }
+                ]
+            }))
+        }
+        const { handler, vectorRetriever, keywordRetriever } = createHandler(
+            knowledgebaseService as unknown as KnowledgebaseService,
+            { execute: jest.fn(async () => ({ docs: [] })) } as unknown as QueryBus
+        )
+        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(vectorBatch([chunk('faq-1', { score: 0.8 })]))
+        const keywordSearch = jest
+            .spyOn(keywordRetriever, 'retrieve')
+            .mockResolvedValue(keywordBatch([chunk('faq-1', { keywordScore: 3 })]))
+
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                knowledgebases: ['kb-faq'],
+                query: '如何重置密码',
+                source: 'spec'
+            })
+        )
+
+        expect(keywordSearch).toHaveBeenCalledTimes(1)
+        expect(result.documents.map((document) => document.metadata.chunkId)).toEqual(['faq-1'])
     })
 
     it('lets request-level RRF settings override the knowledgebase legacy default', async () => {

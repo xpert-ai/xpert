@@ -5,6 +5,7 @@ import {
     IKnowledgeDocument,
     IXpert,
     KBMetadataFieldDef,
+    KnowledgebaseFAQConfig,
     KnowledgebaseParserConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
@@ -41,6 +42,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @IsEnum(KnowledgebaseTypeEnum)
     @Column({ type: 'varchar', nullable: true, length: 20 })
     type: KnowledgebaseTypeEnum
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'jsonb', nullable: true })
+    faqConfig?: KnowledgebaseFAQConfig | null
 
     @ApiPropertyOptional({ enum: KnowledgeStructureEnum, enumName: 'KnowledgeStructureEnum' })
     @IsEnum(KnowledgeStructureEnum)
