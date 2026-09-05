@@ -1,0 +1,185 @@
+<z-hover-card
+  class="flex w-[480px] min-w-[min(480px,calc(100vw-16px))] max-w-[calc(100vw-16px)] min-h-[min(560px,calc(100dvh-16px))] max-h-[min(640px,calc(100dvh-16px))] flex-col overflow-hidden p-0"
+  role="region"
+  [attr.aria-label]="'XP.AssistantProfile.Title' | translate"
+>
+  <header class="relative shrink-0 border-b border-divider-regular bg-background-default-subtle pb-5 pl-4 pr-6 pt-6">
+    <button
+      z-button
+      zType="ghost"
+      zSize="sm"
+      type="button"
+      class="absolute right-2 top-2"
+      [disabled]="busy()"
+      [attr.aria-label]="'XP.AssistantProfile.Close' | translate"
+      (click)="closed.emit()"
+    >
+      <i class="ri-close-line text-lg" aria-hidden="true"></i>
+    </button>
+    <div class="flex items-start gap-4 pr-5">
+      <emoji-avatar
+        xlarge
+        class="shrink-0 overflow-hidden rounded-2xl"
+        [avatar]="avatar()"
+        [alt]="title()"
+        [fallbackLabel]="title()"
+      />
+      <div class="min-w-0 flex-1">
+        <h2 class="break-words text-xl font-semibold leading-7">{{ title() }}</h2>
+        @if (description()) {
+          <p class="mt-1 line-clamp-2 text-sm text-text-secondary">{{ description() }}</p>
+        }
+        <div class="mt-2 flex flex-wrap gap-1.5 text-xs text-text-secondary">
+          @if (profile()?.version || summary()?.version) {
+            <span class="rounded-md border border-divider-regular px-1.5 py-0.5"
+              >v{{ profile()?.version || summary()?.version }}</span
+            >
+          }
+          @for (tag of profile()?.tags ?? []; track tag.id) {
+            <span class="rounded-md bg-hover-bg px-1.5 py-0.5">{{ tag.name }}</span>
+          }
+        </div>
+      </div>
+    </div>
+    @if (profile()?.indicators; as indicators) {
+      <dl class="mt-3 grid grid-cols-4 py-0.5 text-center">
+        <div class="flex min-w-0 flex-col px-2">
+          <dt class="order-2 mt-0.5 truncate text-[11px] leading-4 text-text-tertiary">
+            {{ 'XP.AssistantProfile.Skills' | translate }}
+          </dt>
+          <dd class="order-1 text-base font-semibold leading-5 text-text-primary">
+            {{ indicators.skillCount ?? '—' }}
+          </dd>
+        </div>
+        <div class="flex min-w-0 flex-col border-l border-divider-regular px-2">
+          <dt class="order-2 mt-0.5 truncate text-[11px] leading-4 text-text-tertiary">
+            {{ 'XP.AssistantProfile.Tools' | translate }}
+          </dt>
+          <dd class="order-1 text-base font-semibold leading-5 text-text-primary">{{ indicators.toolCount }}</dd>
+        </div>
+        <div class="flex min-w-0 flex-col border-l border-divider-regular px-2">
+          <dt class="order-2 mt-0.5 truncate text-[11px] leading-4 text-text-tertiary">
+            {{ 'XP.AssistantProfile.SubAgents' | translate }}
+          </dt>
+          <dd class="order-1 text-base font-semibold leading-5 text-text-primary">{{ indicators.subAgentCount }}</dd>
+        </div>
+        <div class="flex min-w-0 flex-col border-l border-divider-regular px-2">
+          <dt class="order-2 mt-0.5 truncate text-[11px] leading-4 text-text-tertiary">
+            {{ 'XP.AssistantProfile.Conversations30d' | translate }}
+          </dt>
+          <dd class="order-1 text-base font-semibold leading-5 text-text-primary">
+            {{ indicators.conversationCount30d ?? '—' }}
+          </dd>
+        </div>
+      </dl>
+    }
+  </header>
+  <div
+    role="tablist"
+    [attr.aria-label]="'XP.AssistantProfile.Title' | translate"
+    class="flex shrink-0 gap-4 overflow-x-auto border-b border-divider-regular px-5"
+    (keydown)="onTabKey($event)"
+  >
+    <button
+      type="button"
+      role="tab"
+      [id]="id + '-basic'"
+      [attr.aria-controls]="id + '-basic-panel'"
+      class="shrink-0 border-b-2 px-0.5 py-3 text-sm"
+      [class.border-primary]="selected() === 'basic'"
+      [class.border-transparent]="selected() !== 'basic'"
+      [attr.aria-selected]="selected() === 'basic'"
+      [attr.tabindex]="selected() === 'basic' ? 0 : -1"
+      [disabled]="busy()"
+      (click)="select('basic')"
+    >
+      {{ 'XP.AssistantProfile.Basic' | translate }}
+    </button>
+    @for (tab of tabs(); track tab.key) {
+      <button
+        type="button"
+        role="tab"
+        [id]="id + '-' + tab.key"
+        [attr.aria-controls]="id + '-' + tab.key + '-panel'"
+        class="shrink-0 border-b-2 px-0.5 py-3 text-sm"
+        [class.border-primary]="selected() === tab.key"
+        [class.border-transparent]="selected() !== tab.key"
+        [attr.aria-selected]="selected() === tab.key"
+        [attr.tabindex]="selected() === tab.key ? 0 : -1"
+        [disabled]="busy()"
+        (click)="select(tab.key)"
+      >
+        {{ tab.title | i18n }}
+      </button>
+    }
+  </div>
+  <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    @if (selected() === 'basic') {
+      <div
+        [id]="id + '-basic-panel'"
+        role="tabpanel"
+        [attr.aria-labelledby]="id + '-basic'"
+        tabindex="0"
+        class="space-y-5 p-6 text-sm"
+      >
+        @if (loading()) {
+          <p role="status" class="text-text-secondary">{{ 'XP.AssistantProfile.Loading' | translate }}</p>
+        }
+        @if (profileError()) {
+          <p role="alert">{{ 'XP.AssistantProfile.LoadError' | translate }}</p>
+          <button z-button zType="outline" zSize="sm" type="button" (click)="retry()">
+            {{ 'XP.AssistantProfile.Retry' | translate }}
+          </button>
+        }
+        @if (profile(); as info) {
+          <p class="whitespace-pre-wrap break-words leading-6 text-text-secondary">
+            {{ info.description || ('XP.AssistantProfile.NoDescription' | translate) }}
+          </p>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-5 gap-y-3">
+            @if (info.workspace) {
+              <dt class="text-text-tertiary">{{ 'XP.AssistantProfile.Workspace' | translate }}</dt>
+              <dd class="break-words">{{ info.workspace.name }}</dd>
+            }
+            @if (info.creator?.name) {
+              <dt class="text-text-tertiary">{{ 'XP.AssistantProfile.Creator' | translate }}</dt>
+              <dd>{{ info.creator.name }}</dd>
+            }
+            @if (info.publishedAt) {
+              <dt class="text-text-tertiary">{{ 'XP.AssistantProfile.PublishedAt' | translate }}</dt>
+              <dd>{{ info.publishedAt | date: 'mediumDate' }}</dd>
+            }
+            @if (info.updatedAt) {
+              <dt class="text-text-tertiary">{{ 'XP.AssistantProfile.UpdatedAt' | translate }}</dt>
+              <dd>{{ info.updatedAt | date: 'mediumDate' }}</dd>
+            }
+          </dl>
+        }
+        @if (tabsError()) {
+          <p role="alert" class="text-text-secondary">{{ 'XP.AssistantProfile.TabsError' | translate }}</p>
+          <button z-button zType="outline" zSize="sm" type="button" (click)="retry()">
+            {{ 'XP.AssistantProfile.Retry' | translate }}
+          </button>
+        }
+      </div>
+    }
+    @for (tab of tabs(); track tab.key) {
+      @if (mountedTabKeys().includes(tab.key)) {
+        <xp-view-renderer
+          class="block h-[380px] max-h-[calc(100dvh-240px)] min-h-0"
+          [style.display]="selected() === tab.key ? null : 'none'"
+          [attr.aria-hidden]="selected() === tab.key ? null : true"
+          [id]="id + '-' + tab.key + '-panel'"
+          role="tabpanel"
+          [attr.aria-labelledby]="id + '-' + tab.key"
+          hostType="agent"
+          [hostId]="assistantId()"
+          [manifest]="tab"
+          [active]="selected() === tab.key"
+          [fillAvailableHeight]="true"
+          [isolatedOrigin]="true"
+          (actionPending)="actionPending.set($event)"
+        />
+      }
+    }
+  </div>
+</z-hover-card>

@@ -154,6 +154,58 @@ describe('RuntimeCapabilitiesService', () => {
         expect(query).not.toHaveProperty('skip')
     })
 
+    it('counts accessible Workspace skills even when the primary Agent does not mount Skills Middleware', async () => {
+        const getAllByWorkspaceForRuntime = jest.fn(async () => ({
+            items: [
+                { id: 'skill-a', workspaceId: 'workspace-1' },
+                { id: 'skill-b', workspaceId: 'workspace-1' },
+                { id: 'skill-c', workspaceId: 'workspace-1' }
+            ]
+        }))
+        const getUserPreferenceByAssistantId = jest.fn(async () => ({
+            toolPreferences: {
+                version: 1,
+                skills: {
+                    'workspace-1': {
+                        workspaceId: 'workspace-1',
+                        disabledSkillIds: ['skill-b']
+                    }
+                }
+            }
+        }))
+        const service = new RuntimeCapabilitiesService(
+            { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
+            { getAllByWorkspaceForRuntime } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
+            new RuntimeCommandService(),
+            {
+                resolveRuntimeCommandProfile: jest.fn()
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
+            { getUserPreferenceByAssistantId } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4]
+        )
+
+        await expect(
+            service.countAccessibleWorkspaceSkills(
+                {
+                    id: 'assistant-1',
+                    workspaceId: 'workspace-1',
+                    graph: { nodes: [], connections: [] }
+                } as unknown as Parameters<RuntimeCapabilitiesService['countAccessibleWorkspaceSkills']>[0],
+                'assistant-1'
+            )
+        ).resolves.toBe(2)
+
+        expect(getUserPreferenceByAssistantId).toHaveBeenCalledWith('assistant-1')
+        expect(getAllByWorkspaceForRuntime).toHaveBeenCalledWith(
+            'workspace-1',
+            expect.objectContaining({
+                relations: ['skillIndex', 'skillIndex.repository'],
+                withDeleted: false
+            }),
+            false,
+            null
+        )
+    })
+
     it('keeps all enabled Xpert skills and adds enabled Project skills using distinct source identities', async () => {
         const getAllByWorkspaceForRuntime = jest.fn(async () => ({
             items: [

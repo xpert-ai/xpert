@@ -1,16 +1,69 @@
-@if (shouldRender()) {
+@if (collapsed()) {
+  <button
+    type="button"
+    cdkOverlayOrigin
+    #menuOrigin="cdkOverlayOrigin"
+    class="mx-auto flex size-10 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    [class]="menuOpen() ? 'bg-components-list-option-active-bg text-text-primary!' : ''"
+    [attr.aria-label]="'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' }"
+    [attr.aria-expanded]="menuOpen()"
+    aria-haspopup="dialog"
+    aria-controls="cloud-sidebar-recent-tasks-popup"
+    (click)="menuOpen.set(!menuOpen())"
+  >
+    <i
+      class="ri-history-line inline-flex size-5 items-center justify-center text-xl leading-none"
+      aria-hidden="true"
+    ></i>
+  </button>
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="menuOrigin"
+    [cdkConnectedOverlayOpen]="menuOpen()"
+    [cdkConnectedOverlayPositions]="menuPositions"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    [cdkConnectedOverlayViewportMargin]="8"
+    (backdropClick)="menuOpen.set(false)"
+    (detach)="menuOpen.set(false)"
+    (overlayKeydown)="$event.key === 'Escape' && menuOpen.set(false)"
+  >
+    <section
+      id="cloud-sidebar-recent-tasks-popup"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cloud-sidebar-recent-tasks-popup-label"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      class="flex max-h-[min(70vh,32rem)] w-[min(26rem,calc(100vw-4rem))] min-w-0 flex-col rounded-xl border border-border/80 bg-popover/95 p-1.5 text-popover-foreground shadow-xl backdrop-blur-sm"
+    >
+      <h2 id="cloud-sidebar-recent-tasks-popup-label" class="px-2 py-1.5 text-xs font-semibold text-text-tertiary">
+        {{ 'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' } }}
+      </h2>
+      <div class="min-h-0 overflow-y-auto">
+        <ng-container [ngTemplateOutlet]="taskList" />
+      </div>
+    </section>
+  </ng-template>
+} @else {
   <section class="cloud-sidebar-recent-tasks" aria-labelledby="cloud-sidebar-recent-tasks-label">
     <h2 id="cloud-sidebar-recent-tasks-label" class="cloud-sidebar-recent-tasks__heading">
       <button
         type="button"
-        class="cloud-sidebar-recent-tasks__trigger"
+        class="cloud-sidebar-recent-tasks__trigger flex h-9 w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-base font-normal leading-5 text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         [attr.aria-expanded]="expanded()"
         aria-controls="cloud-sidebar-recent-tasks-list"
         (click)="toggleExpanded()"
       >
-        <span>{{ 'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' } }}</span>
         <i
-          class="ri-arrow-down-s-line cloud-sidebar-recent-tasks__chevron"
+          class="ri-history-line inline-flex size-5 shrink-0 items-center justify-center text-xl leading-none"
+          aria-hidden="true"
+        ></i>
+        <span class="min-w-0 flex-1 truncate">{{
+          'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' }
+        }}</span>
+        <i
+          class="ri-arrow-right-s-line cloud-sidebar-recent-tasks__chevron"
           [class.is-open]="expanded()"
           aria-hidden="true"
         ></i>
@@ -19,32 +72,34 @@
 
     @if (expanded()) {
       <div id="cloud-sidebar-recent-tasks-list">
-        @if (conversations().length > 0) {
-          <ul class="cloud-sidebar-recent-tasks__list">
-            @for (conversation of conversations(); track conversation.id) {
-              @if (taskRoute(conversation); as route) {
-                <li class="cloud-sidebar-recent-tasks__entry">
-                  <a
-                    class="cloud-sidebar-recent-tasks__item"
-                    [routerLink]="route"
-                    [attr.aria-label]="taskTitle(conversation)"
-                    [zTooltip]="taskTitle(conversation)"
-                    zPosition="right"
-                  >
-                    <i class="ri-file-text-line cloud-sidebar-recent-tasks__icon"></i>
-                    <span class="cloud-sidebar-recent-tasks__title">{{ taskTitle(conversation) }}</span>
-                    <span class="cloud-sidebar-recent-tasks__time">{{ conversation.updatedAt | relative }}</span>
-                  </a>
-                </li>
-              }
-            }
-          </ul>
-        } @else {
-          <p class="cloud-sidebar-recent-tasks__empty">
-            {{ 'XP.Sidebar.NoRecentTasks' | translate: { Default: 'No recent tasks' } }}
-          </p>
-        }
+        <ng-container [ngTemplateOutlet]="taskList" />
       </div>
     }
   </section>
 }
+
+<ng-template #taskList>
+  @if (conversations().length > 0) {
+    <ul class="cloud-sidebar-recent-tasks__list">
+      @for (conversation of conversations(); track conversation.id) {
+        @if (taskRoute(conversation); as route) {
+          <li class="cloud-sidebar-recent-tasks__entry">
+            <xp-sidebar-conversation
+              [conversation]="conversation"
+              [route]="route"
+              [active]="isTaskActive(conversation)"
+              (selected)="menuOpen.set(false)"
+            />
+          </li>
+        }
+      }
+    </ul>
+  } @else {
+    <p class="cloud-sidebar-recent-tasks__empty">
+      {{ 'XP.Sidebar.NoRecentTasks' | translate: { Default: 'No recent tasks' } }}
+    </p>
+  }
+  @if (xpertId(); as assistantId) {
+    <xp-sidebar-conversation-archive [xpertId]="assistantId" [routeBase]="['/chat/clawxpert', 'c']" />
+  }
+</ng-template>

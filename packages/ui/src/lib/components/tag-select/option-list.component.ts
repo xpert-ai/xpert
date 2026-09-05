@@ -1,12 +1,15 @@
 import { ChangeDetectionStrategy, Component, ElementRef, effect, input, output, viewChildren } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 
 import { commandEmptyVariants, commandItemVariants, commandListVariants } from '../command/command.variants'
+import { ZardCheckboxComponent } from '../checkbox'
 import { mergeClasses } from '../../utils/merge-classes'
 
 import type { ZardTagSelectOption } from './tag-select.types'
 
 @Component({
   selector: 'z-tag-select-option-list',
+  imports: [FormsModule, ZardCheckboxComponent],
   templateUrl: './option-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   exportAs: 'zTagSelectOptionList'
@@ -17,6 +20,8 @@ export class ZardTagSelectOptionListComponent {
   readonly options = input<readonly ZardTagSelectOption<unknown>[]>([])
   readonly activeIndex = input(-1)
   readonly emptyText = input('No results found.')
+  readonly checkable = input(false)
+  readonly selectedValues = input<readonly unknown[]>([])
 
   readonly optionSelected = output<ZardTagSelectOption<unknown>>()
   readonly activeIndexChange = output<number>()
@@ -60,5 +65,9 @@ export class ZardTagSelectOptionListComponent {
     }
 
     this.optionSelected.emit(option)
+  }
+
+  protected isSelected(option: ZardTagSelectOption<unknown>): boolean {
+    return this.selectedValues().some((value) => Object.is(value, option.value))
   }
 }

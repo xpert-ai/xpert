@@ -3,6 +3,7 @@ import { KnowledgeFilterDiagnostics } from '@xpert-ai/contracts'
 
 export type KnowledgebaseCitation = {
     index: number
+    faqId?: string
     chunkId?: string
     documentId?: string
     knowledgebaseId?: string
@@ -35,9 +36,18 @@ export const KNOWLEDGEBASE_CITATION_MARKDOWN_INSTRUCTION =
 
 export function createKnowledgebaseCitationUrl(input: {
     knowledgebaseId: string
-    documentId: string
+    documentId?: string
     chunkId?: string
+    faqId?: string
 }) {
+    if (input.faqId) {
+        const faqSearchParams = new URLSearchParams({
+            knowledgebaseId: input.knowledgebaseId,
+            faqId: input.faqId
+        })
+        return `xpert://knowledgebase/faq?${faqSearchParams.toString()}`
+    }
+    if (!input.documentId) return undefined
     const searchParams = new URLSearchParams({
         knowledgebaseId: input.knowledgebaseId,
         documentId: input.documentId
@@ -56,11 +66,12 @@ export function addKnowledgebaseCitationLink<T extends KnowledgebaseCitation>(
     const citationLabel = `⟦${citation.index}⟧`
     // The agent receives this exact string and should copy it verbatim into the final answer.
     const citationUrl =
-        citation.documentId && knowledgebaseId
+        knowledgebaseId && (citation.faqId || citation.documentId)
             ? createKnowledgebaseCitationUrl({
                   knowledgebaseId,
                   documentId: citation.documentId,
-                  chunkId: citation.chunkId
+                  chunkId: citation.chunkId,
+                  faqId: citation.faqId
               })
             : undefined
 
@@ -87,12 +98,14 @@ export function createKnowledgebaseCitationFromDocument(
     const documentId =
         getString(metadata.documentId) ?? getString(metadata.knowledgeId) ?? getString(relationDocument?.id)
     const chunkId = getString(metadata.chunkId) ?? getString((doc as unknown as { id?: unknown }).id)
+    const faqId = getString(metadata.contentKind) === 'faq' ? chunkId : undefined
     const score = getNumber(metadata.score)
     const relevanceScore = getNumber(metadata.relevanceScore)
 
     return addKnowledgebaseCitationLink(
         {
             index,
+            ...(faqId ? { faqId } : {}),
             ...(chunkId ? { chunkId } : {}),
             ...(documentId ? { documentId } : {}),
             knowledgebaseId: getString(metadata.knowledgebaseId),

@@ -17,8 +17,37 @@ export enum KnowledgeProviderEnum {
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
+  FAQ = 'faq',
   External = 'external'
 }
+
+/**
+ * Knowledge bases created before the type discriminator was introduced are document knowledge bases.
+ */
+export function isDocumentKnowledgebaseType(type: KnowledgebaseTypeEnum | null | undefined): boolean {
+  return type == null || type === KnowledgebaseTypeEnum.Standard
+}
+
+export type KnowledgebaseFAQIndexMode = 'question_only' | 'question_answer'
+
+export type KnowledgebaseFAQQuestionIndexMode = 'combined' | 'separate'
+
+export type KnowledgebaseFAQNegativeMatchMode = 'exact' | 'semantic'
+
+export type KnowledgebaseFAQConfig = {
+  indexMode: KnowledgebaseFAQIndexMode
+  questionIndexMode: KnowledgebaseFAQQuestionIndexMode
+  /** Optional for knowledge bases created before negative matching was configurable. */
+  negativeMatchMode?: KnowledgebaseFAQNegativeMatchMode
+}
+
+export const DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG = {
+  indexMode: 'question_only',
+  questionIndexMode: 'separate',
+  negativeMatchMode: 'exact'
+} as const satisfies KnowledgebaseFAQConfig
+
+export type KnowledgeRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
 export enum KnowledgebaseStatusEnum {
   READY = 'ready',
@@ -54,6 +83,11 @@ export type TKnowledgebase = {
    * Type of KB
    */
   type: KnowledgebaseTypeEnum
+
+  /**
+   * Creation-time indexing behavior for FAQ knowledge bases.
+   */
+  faqConfig?: KnowledgebaseFAQConfig | null
 
   /**
    * English | Chinese
@@ -203,6 +237,10 @@ export enum KnowledgebasePermission {
  */
 export type TKBRecallParams = {
   /**
+   * Default retrieval mode for this knowledgebase.
+   */
+  mode?: KnowledgeRetrievalMode
+  /**
    * Top K of result chunks
    */
   topK?: number
@@ -215,6 +253,75 @@ export type TKBRecallParams = {
    * Weight in EnsembleRetriever
    */
   weight?: number
+
+  /**
+   * Candidate fusion strategy. Missing configuration keeps the legacy behavior.
+   */
+  fusion?: TKBFusionConfig
+}
+
+export type KnowledgeFusionMode = 'legacy' | 'weighted_rrf'
+
+export const DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT = 60
+export const DEFAULT_KNOWLEDGE_RRF_WEIGHTS = {
+  vector: 0.65,
+  graph: 0.35,
+  keyword: 0.3
+} as const
+
+export type TKBFusionConfig = {
+  mode?: KnowledgeFusionMode
+  rankConstant?: number
+  weights?: {
+    vector?: number
+    graph?: number
+    keyword?: number
+  }
+}
+
+export const DEFAULT_KNOWLEDGEBASE_FAQ_RECALL = {
+  mode: 'hybrid',
+  fusion: {
+    mode: 'weighted_rrf',
+    rankConstant: DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT,
+    weights: {
+      vector: 0.7,
+      keyword: 0.3,
+      graph: 0
+    }
+  }
+} as const satisfies TKBRecallParams
+
+export const KNOWLEDGEBASE_FAQ_RETRIEVAL_MODES = [
+  'vector',
+  'keyword',
+  'hybrid'
+] as const satisfies readonly KnowledgeRetrievalMode[]
+
+/**
+ * FAQ retrieval only uses question vectors and keyword indexes. Graph retrieval is not supported.
+ */
+export function normalizeKnowledgebaseFAQRecall(recall?: TKBRecallParams | null): TKBRecallParams {
+  const requestedMode = recall?.mode
+  const mode = KNOWLEDGEBASE_FAQ_RETRIEVAL_MODES.some((candidate) => candidate === requestedMode)
+    ? requestedMode
+    : DEFAULT_KNOWLEDGEBASE_FAQ_RECALL.mode
+
+  return {
+    ...DEFAULT_KNOWLEDGEBASE_FAQ_RECALL,
+    ...(recall ?? {}),
+    mode,
+    fusion: {
+      ...DEFAULT_KNOWLEDGEBASE_FAQ_RECALL.fusion,
+      ...(recall?.fusion ?? {}),
+      mode: mode === 'hybrid' ? 'weighted_rrf' : (recall?.fusion?.mode ?? DEFAULT_KNOWLEDGEBASE_FAQ_RECALL.fusion.mode),
+      weights: {
+        ...DEFAULT_KNOWLEDGEBASE_FAQ_RECALL.fusion.weights,
+        ...(recall?.fusion?.weights ?? {}),
+        graph: 0
+      }
+    }
+  }
 }
 
 export type DocumentMetadata = IDocChunkMetadata & {

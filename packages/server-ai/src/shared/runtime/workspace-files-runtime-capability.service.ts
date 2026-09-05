@@ -11,6 +11,7 @@ import { realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
 import {
     RequestContext,
+    ProjectAccessRuntimeCapability,
     WorkspaceFile,
     WorkspaceFileBuffer,
     WorkspaceFileLocator,
@@ -31,7 +32,9 @@ import {
     WorkspaceUnderstandingChunk,
     WorkspaceUnderstandingChunkPage,
     WorkspaceValidateUnderstandingReferencesInput,
-    WorkspaceValidatedUnderstandingReference
+    WorkspaceValidatedUnderstandingReference,
+    type RuntimeCapabilityResolver,
+    XPERT_RUNTIME_CAPABILITIES_TOKEN
 } from '@xpert-ai/plugin-sdk'
 import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import { t } from 'i18next'
@@ -55,7 +58,6 @@ import { GetFileUnderstandingStatusQuery } from '../../file-understanding/querie
 import { ResolveAuthorizedFileAssetQuery } from '../../file-understanding/queries/resolve-authorized-file-asset.query'
 import { SearchFileChunksQuery } from '../../file-understanding/queries/search-file-chunks.query'
 import { ValidateFileUnderstandingReferencesQuery } from '../../file-understanding/queries/validate-file-understanding-references.query'
-import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
@@ -95,8 +97,8 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         private readonly commandBus: Pick<CommandBus, 'execute'>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
-        @Inject(XpertProjectAccessService)
-        private readonly projectAccessService: Pick<XpertProjectAccessService, 'assertCanEdit'>,
+        @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN)
+        private readonly capabilities: RuntimeCapabilityResolver,
         @Optional()
         @Inject(QueryBus)
         private readonly queryBus?: Pick<QueryBus, 'execute'>
@@ -676,7 +678,18 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
         if (!projectId) {
             throw new BadRequestException('projectId is required for Project workspace file mutation')
         }
-        await this.projectAccessService.assertCanEdit(projectId)
+        const projectAccess = this.capabilities.get(ProjectAccessRuntimeCapability)
+        if (!projectAccess) {
+            throw new InternalServerErrorException('Project access runtime capability is unavailable')
+        }
+        await projectAccess.assertEdit({
+            projectId,
+            actor: {
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                userId: RequestContext.currentUserId()
+            }
+        })
     }
 
     private resolveUnderstandingScope(input: WorkspaceFileScope) {

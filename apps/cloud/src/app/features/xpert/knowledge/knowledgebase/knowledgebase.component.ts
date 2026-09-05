@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
@@ -19,6 +19,7 @@ import {
   ApiKeyBindingType,
   getErrorMessage,
   injectHelpWebsite,
+  IKnowledgebase,
   IXpert,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
@@ -27,6 +28,8 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
+import { XpertNewKnowledgeComponent } from '../new/new.component'
+import { getKnowledgebaseDefaultRoute } from './knowledgebase-route'
 import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -83,6 +86,7 @@ export class KnowledgebaseComponent {
   readonly knowledgebase = this.#knowledgebase.value
 
   readonly type = computed(() => this.knowledgebase()?.type)
+  readonly faq = computed(() => this.type() === KnowledgebaseTypeEnum.FAQ)
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly external = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.External)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
@@ -127,6 +131,25 @@ export class KnowledgebaseComponent {
         })
     }
   })
+
+  constructor() {
+    effect(() => {
+      const knowledgebaseId = this.paramId()
+      if (!knowledgebaseId || !this.faq()) return
+
+      const path = this.#router.url.split('?')[0].replace(/\/$/, '')
+      const basePath = `/xpert/knowledges/${knowledgebaseId}`
+      if (path === basePath || path === `${basePath}/documents`) {
+        void this.#router.navigate(
+          getKnowledgebaseDefaultRoute({ id: knowledgebaseId, type: KnowledgebaseTypeEnum.FAQ }),
+          {
+            queryParamsHandling: 'preserve',
+            replaceUrl: true
+          }
+        )
+      }
+    })
+  }
 
   refresh() {
     this.#knowledgebase.reload()
@@ -210,6 +233,33 @@ export class KnowledgebaseComponent {
       })
       .closed.subscribe({
         next: () => {}
+      })
+  }
+
+  openConfiguration() {
+    const knowledgebase = this.knowledgebase()
+    if (!knowledgebase || this.loading()) {
+      return
+    }
+
+    this.#dialog
+      .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+        width: 'min(96vw, 72rem)',
+        height: 'min(90vh, 52rem)',
+        maxWidth: 'calc(100vw - 1.5rem)',
+        maxHeight: 'calc(100vh - 1.5rem)',
+        panelClass: 'xp-overlay-pane-card',
+        data: {
+          workspaceId: knowledgebase.workspaceId,
+          knowledgebase
+        }
+      })
+      .closed.subscribe({
+        next: (updated) => {
+          if (updated) {
+            this.refresh()
+          }
+        }
       })
   }
 }

@@ -173,7 +173,7 @@
     @if (showMetadata()) {
       <div class="w-full border-t border-solid border-divider-deep px-1 pt-1 mt-1 text-text-secondary">
         @if (document(); as document) {
-          <knowledge-doc-id [doc]="document" />
+          <knowledge-doc-id [doc]="document" [contentKind]="chunk().metadata.contentKind" />
         }
       </div>
     }

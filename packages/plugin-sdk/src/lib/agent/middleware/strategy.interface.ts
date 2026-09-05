@@ -28,5 +28,8 @@ export interface IAgentMiddlewareContext {
 export interface IAgentMiddlewareStrategy<T = unknown> {
   meta: TAgentMiddlewareMeta
 
+  /** Static Tool names exposed by this Middleware, for capability summaries without creating a runtime instance. */
+  getToolNames?(options: T): readonly string[]
+
   createMiddleware(options: T, context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware>
 }

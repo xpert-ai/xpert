@@ -1,4 +1,12 @@
-import { IDSSchema, IDSTable, IDataSource, IPagination, IUser, PermissionsEnum } from '@xpert-ai/contracts'
+import {
+	IDataSourceCapabilityQuery,
+	IDSSchema,
+	IDSTable,
+	IDataSource,
+	IPagination,
+	IUser,
+	PermissionsEnum
+} from '@xpert-ai/contracts'
 import { CrudController, PaginationParams } from '../core/crud'
 import {
 	CurrentUser,
@@ -179,7 +187,7 @@ export class DataSourceController extends CrudController<DataSource> {
 		@Param('id', UUIDValidationPipe) dataSourceId: string,
 		@Body() body: { query: { id: string; body: string }[] },
 		@Headers('Accept-Language') acceptLanguage: string
-	): Promise<any> {
+	): Promise<unknown[]> {
 		const dataSource = await this.dsService.findOne(dataSourceId, {
 			relations: ['type']
 		})
@@ -205,6 +213,22 @@ export class DataSourceController extends CrudController<DataSource> {
 					})
 			})
 		)
+	}
+
+	@Post('/:id/capabilities/query')
+	@HttpCode(200)
+	@UseGuards(PermissionGuard)
+	@Permissions(PermissionsEnum.DATA_SOURCE_VIEW)
+	async queryCapability(
+		@Param('id', UUIDValidationPipe) dataSourceId: string,
+		@Body() query: IDataSourceCapabilityQuery
+	): Promise<unknown> {
+		try {
+			return await this.dsService.queryCapability(dataSourceId, query)
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Data-source capability query failed'
+			throw new HttpException(message, HttpStatus.BAD_REQUEST)
+		}
 	}
 
 	@Post('/ping')

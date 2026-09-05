@@ -187,19 +187,19 @@ describe('getFeatureMenus', () => {
     expect(chat).toBeUndefined()
     expect(newTask).toMatchObject({
       title: 'New task',
-      icon: 'ri-add-circle-line',
+      icon: 'ri-chat-new-line',
       pathMatch: 'full',
       data: {
         action: 'newClawXpertConversation'
       }
     })
     expect(tasks).toMatchObject({
-      title: 'Scheduled',
-      icon: 'ri-time-line',
+      title: 'Automations',
+      icon: 'ri-alarm-line',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope'
     })
-    expect(tasks?.data?.translationKey).toBe('Scheduled')
+    expect(tasks?.data?.translationKey).toBe('Automations')
   })
 
   it('adds MCP Management beside Plugins for super admins', () => {

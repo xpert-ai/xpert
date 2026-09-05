@@ -223,7 +223,7 @@ function renderHostHtml(config) {
     </style>
   </head>
   <body>
-    <iframe id="remote-view" title="${escapeHtmlAttribute(config.frameTitle)}"></iframe>
+    <iframe id="remote-view" title="${escapeHtmlAttribute(config.frameTitle)}"${config.isolatedOrigin ? ' sandbox="allow-scripts allow-forms allow-downloads allow-popups"' : ''}></iframe>
     <script>
       const channel = ${serializeForInlineScript(CHANNEL)}
       const protocolVersion = ${PROTOCOL_VERSION}
@@ -231,13 +231,14 @@ function renderHostHtml(config) {
       const initMessage = ${serializeForInlineScript(initMessage)}
       const bridgePath = ${serializeForInlineScript(BRIDGE_PATH)}
       const frame = document.getElementById('remote-view')
-      const targetOrigin = window.location.origin
+      const targetOrigin = ${config.isolatedOrigin ? '"*"' : 'window.location.origin'}
+      const expectedOrigin = ${config.isolatedOrigin ? '"null"' : 'window.location.origin'}
 
       window.addEventListener('message', async (event) => {
         const message = event.data
         if (
           event.source !== frame.contentWindow ||
-          event.origin !== targetOrigin ||
+          event.origin !== expectedOrigin ||
           !message ||
           message.channel !== channel ||
           message.protocolVersion !== protocolVersion
@@ -288,7 +289,7 @@ function renderHostHtml(config) {
           }, targetOrigin)
         },
         reload() {
-          frame.contentWindow.location.reload()
+          frame.src = frame.src
         }
       })
 
@@ -375,6 +376,7 @@ function normalizeConfig(config, overrides) {
       theme: config.hostContext?.theme ?? { mode: 'light', tokens: {} },
       debug: isPlainObject(config.hostContext?.debug) ? config.hostContext.debug : { enabled: false, production: true }
     },
+    isolatedOrigin: config.isolatedOrigin === true,
     state: config.state ?? {},
     exposeState: config.exposeState ?? isLoopbackHost(host),
     handleRequest:

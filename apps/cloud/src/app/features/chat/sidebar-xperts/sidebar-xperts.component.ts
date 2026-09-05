@@ -1,10 +1,10 @@
+import { AssistantProfileDirective } from '@cloud/app/@shared/xpert/assistant-profile/assistant-profile.directive'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar/emoji-avatar/avatar.component'
 import { AssistantBindingScope, AssistantBindingService, AssistantCode, IXpert, Store } from '../../../@core'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { catchError, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { ChatHomeService } from '../home.service'
@@ -17,7 +17,7 @@ type SidebarXpertState = {
 @Component({
   standalone: true,
   selector: 'xp-chat-sidebar-xperts',
-  imports: [CommonModule, EmojiAvatarComponent, ...ZardTooltipImports],
+  imports: [AssistantProfileDirective, CommonModule, EmojiAvatarComponent],
   template: `
     @if (xperts().length) {
       <div
@@ -45,12 +45,13 @@ type SidebarXpertState = {
                   ? 'border-primary bg-components-card-bg shadow-sm'
                   : 'bg-background-default-subtle hover:border-border'
               ]"
-              [zTooltip]="xpertLabel(xpert)"
-              zPosition="right"
               (click)="openXpert($event, xpert)"
             >
               <emoji-avatar
                 class="block shrink-0 overflow-hidden rounded-[inherit]"
+                [xpAssistantProfile]="xpert.id"
+                [summary]="xpert"
+                zPlacement="right"
                 [ngClass]="sidebarState() === 'expanded' ? 'h-9 w-9 rounded-xl' : 'h-full w-full'"
                 [avatar]="xpert.avatar"
                 [alt]="xpertLabel(xpert)"

@@ -18,19 +18,21 @@ export class WeightedRrfFusion implements KnowledgeCandidateFusion<WeightedRrfFu
     ): DocumentInterface<DocumentMetadata>[] {
         const failedBatch = batches.find(({ failed }) => failed)
         if (failedBatch) {
-            throw new Error(
+            const defaultValue = `Cannot fuse failed RRF batch for source: ${failedBatch.source}`
+            const message =
                 t('server-ai:Error.RrfBatchFailed', {
                     source: failedBatch.source,
-                    defaultValue: `Cannot fuse failed RRF batch for source: ${failedBatch.source}`
-                })
-            )
+                    defaultValue
+                }) || defaultValue
+            throw new Error(failedBatch.error ? `${message}: ${failedBatch.error}` : message)
         }
 
         if (!Number.isFinite(options.rankConstant) || options.rankConstant < 0) {
+            const defaultValue = 'RRF rankConstant must be a finite non-negative number'
             throw new RangeError(
                 t('server-ai:Error.RrfRankConstantInvalid', {
-                    defaultValue: 'RRF rankConstant must be a finite non-negative number'
-                })
+                    defaultValue
+                }) || defaultValue
             )
         }
 
@@ -47,30 +49,33 @@ export class WeightedRrfFusion implements KnowledgeCandidateFusion<WeightedRrfFu
 
         for (const batch of batches) {
             if (batchSources.has(batch.source)) {
+                const defaultValue = `Duplicate RRF batch source: ${batch.source}`
                 throw new Error(
                     t('server-ai:Error.RrfBatchSourceDuplicate', {
                         source: batch.source,
-                        defaultValue: `Duplicate RRF batch source: ${batch.source}`
-                    })
+                        defaultValue
+                    }) || defaultValue
                 )
             }
             batchSources.add(batch.source)
 
             const weight = options.weights[batch.source]
             if (weight === undefined) {
+                const defaultValue = `Missing RRF weight for source: ${batch.source}`
                 throw new RangeError(
                     t('server-ai:Error.RrfWeightMissing', {
                         source: batch.source,
-                        defaultValue: `Missing RRF weight for source: ${batch.source}`
-                    })
+                        defaultValue
+                    }) || defaultValue
                 )
             }
             if (!Number.isFinite(weight) || weight < 0) {
+                const defaultValue = `RRF weight for source "${batch.source}" must be a finite non-negative number`
                 throw new RangeError(
                     t('server-ai:Error.RrfWeightInvalid', {
                         source: batch.source,
-                        defaultValue: `RRF weight for source "${batch.source}" must be a finite non-negative number`
-                    })
+                        defaultValue
+                    }) || defaultValue
                 )
             }
             if (weight === 0) {
@@ -79,12 +84,13 @@ export class WeightedRrfFusion implements KnowledgeCandidateFusion<WeightedRrfFu
             const contributedRanks = new Map<string, number>()
             batch.candidates.forEach(({ document: doc, rank }) => {
                 if (!Number.isInteger(rank) || rank < 1) {
+                    const defaultValue = `RRF candidate rank for source "${batch.source}" must be a positive integer`
                     throw new RangeError(
                         t('server-ai:Error.RrfCandidateRankInvalid', {
                             source: batch.source,
                             rank,
-                            defaultValue: `RRF candidate rank for source "${batch.source}" must be a positive integer`
-                        })
+                            defaultValue
+                        }) || defaultValue
                     )
                 }
                 const key = resolveKnowledgeDocumentKey(doc)

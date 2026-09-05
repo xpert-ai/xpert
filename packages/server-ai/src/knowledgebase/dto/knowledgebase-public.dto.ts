@@ -2,11 +2,17 @@ import {
     IKnowledgebase,
     IUser,
     KBMetadataFieldDef,
+    KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
+    KnowledgebaseTypeEnum,
     TAvatar
 } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
+
+type KnowledgebaseDTOInput = Omit<Partial<IKnowledgebase>, 'type'> & {
+    type?: KnowledgebaseTypeEnum | null
+}
 
 @Exclude()
 export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
@@ -20,6 +26,12 @@ export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
 
     @Expose()
     declare name: string
+
+    @Expose()
+    declare type: KnowledgebaseTypeEnum
+
+    @Expose()
+    declare faqConfig?: KnowledgebaseFAQConfig | null
 
     @Expose()
     declare language?: 'Chinese' | 'English'
@@ -48,7 +60,8 @@ export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
     @Expose()
     declare createdAt: Date
 
-    constructor(partial: IKnowledgebase) {
+    constructor(partial: KnowledgebaseDTOInput) {
         Object.assign(this, partial)
+        this.type = partial.type ?? KnowledgebaseTypeEnum.Standard
     }
 }

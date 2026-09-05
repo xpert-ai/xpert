@@ -43,6 +43,8 @@ export type ProjectEnsureResult = {
 export interface ProjectProvisioningApi {
   /** Create or reconcile a Chat Project without changing its caller-supplied id. */
   ensure(input: ProjectEnsureInput): Promise<ProjectEnsureResult>
+  /** Owner-only physical deletion of an archived plugin-bound Project and its workspace. */
+  purge?(input: { projectId: string; xpertId: string }): Promise<{ projectId: string; deleted: boolean }>
 }
 
 export const ProjectProvisioningRuntimeCapability = createRuntimeCapability<ProjectProvisioningApi>(

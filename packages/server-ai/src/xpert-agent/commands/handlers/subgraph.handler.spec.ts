@@ -24,7 +24,7 @@ import {
 } from '@xpert-ai/contracts'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
-import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime.service'
+import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime/index'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { setModelVisionSupport } from '../../../copilot-model/model-capabilities'

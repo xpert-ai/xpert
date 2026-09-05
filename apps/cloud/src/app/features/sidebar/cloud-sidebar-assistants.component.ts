@@ -1,12 +1,13 @@
+import { AssistantProfileDirective } from '@cloud/app/@shared/xpert/assistant-profile/assistant-profile.directive'
 import { CommonModule } from '@angular/common'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, NgZone, computed, effect, inject, input, signal } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
-import { Observable, combineLatest, forkJoin, merge, of } from 'rxjs'
+import { Observable, combineLatest, debounceTime, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
   AIPermissionsEnum,
@@ -42,8 +43,19 @@ import {
   getAssistantTagNames,
   isAssistantRouteActive,
   normalizeAssistantXperts,
-  orderAssistantXperts
+  normalizeChatPath,
+  normalizeUnreadSummaries,
+  mergeConversations,
+  orderAssistantXperts,
+  readAssistantOrder,
+  viewKeysMatch,
+  writeAssistantOrder
 } from './cloud-sidebar-assistants.utils'
+
+import { SidebarConversationArchiveButtonComponent } from './conversation-archive.component'
+import { CloudSidebarConversationComponent } from './cloud-sidebar-conversation.component'
+
+export { formatConversationUpdatedAt } from './cloud-sidebar-assistants.utils'
 
 export type CloudSidebarAssistantState = {
   items: IXpert[]
@@ -107,12 +119,15 @@ const EMPTY_ASSISTANT_CONVERSATION_STATE: AssistantConversationState = {
   templateUrl: './cloud-sidebar-assistants.component.html',
   styleUrl: './cloud-sidebar-assistants.component.scss',
   imports: [
+    AssistantProfileDirective,
     CommonModule,
     DragDropModule,
     TranslateModule,
     EmojiAvatarComponent,
     IconComponent,
     ZardIconComponent,
+    CloudSidebarConversationComponent,
+    SidebarConversationArchiveButtonComponent,
     ...ZardTooltipImports
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -129,6 +144,7 @@ export class CloudSidebarAssistantsComponent {
   readonly assistantMenus = signal<Record<string, AssistantMenuState>>({})
   readonly assistantConversations = signal<Record<string, AssistantConversationState>>({})
   readonly query = signal('')
+  readonly searchQuery = toSignal(toObservable(this.query).pipe(debounceTime(300)), { initialValue: '' })
   readonly category = signal(ALL_ASSISTANT_CATEGORY)
   readonly businessAreaFilter = signal<{ id: string; name: string } | null>(null)
 
@@ -365,13 +381,16 @@ export class CloudSidebarAssistantsComponent {
     return null
   })
   readonly filteredXperts = computed(() => {
-    const items = filterAssistantXperts(this.listXperts(), this.query(), this.activeCategory())
+    const items = filterAssistantXperts(this.listXperts(), this.searchQuery(), this.activeCategory())
     const businessAreaId = this.activeBusinessAreaFilter()?.id
 
     return businessAreaId ? items.filter((xpert) => getAssistantBusinessArea(xpert)?.id === businessAreaId) : items
   })
   readonly hasAssistantFilter = computed(
-    () => !!this.query().trim() || this.activeCategory() !== ALL_ASSISTANT_CATEGORY || !!this.activeBusinessAreaFilter()
+    () =>
+      !!this.searchQuery().trim() ||
+      this.activeCategory() !== ALL_ASSISTANT_CATEGORY ||
+      !!this.activeBusinessAreaFilter()
   )
   readonly defaultVisibleXpertCount = computed(() => DEFAULT_VISIBLE_ASSISTANT_COUNT)
   readonly visibleXperts = computed(() => {
@@ -438,6 +457,15 @@ export class CloudSidebarAssistantsComponent {
   })
   readonly assistantCount = computed(() => this.listXperts().length)
   readonly shouldRender = computed(() => this.request().enabled)
+
+  constructor() {
+    this.#conversationService.sidebarRefresh$.pipe(takeUntilDestroyed()).subscribe(({ xpertId }) => {
+      const xpert = this.listXperts().find((item) => item.id === xpertId)
+      if (!xpert || !this.assistantConversations()[xpertId]?.loaded) return
+      this.updateAssistantConversations(xpertId, { ...EMPTY_ASSISTANT_CONVERSATION_STATE })
+      this.loadAssistantConversations(xpert)
+    })
+  }
 
   openClawXpert(event: Event) {
     event.stopPropagation()
@@ -527,7 +555,12 @@ export class CloudSidebarAssistantsComponent {
   }
 
   assistantConversationGroups(xpert: IXpert) {
-    return groupConversations(this.assistantConversationState(xpert).items)
+    const items = this.assistantConversationState(xpert).items
+    const pinned = items.filter((item) => item.sidebar?.pinned)
+    return [
+      ...(pinned.length ? [{ name: 'Pinned', values: pinned }] : []),
+      ...groupConversations(items.filter((item) => !item.sidebar?.pinned))
+    ]
   }
 
   canLoadEarlierConversations(xpert: IXpert) {
@@ -535,29 +568,8 @@ export class CloudSidebarAssistantsComponent {
     return state.loaded && !state.loading && state.items.length < state.total
   }
 
-  conversationTitle(conversation: IChatConversation) {
-    return conversation.title?.trim() || 'Untitled conversation'
-  }
-
-  conversationUpdatedLabel(conversation: IChatConversation) {
-    return formatConversationUpdatedAt(conversation.updatedAt)
-  }
-
-  conversationUpdatedDateTime(conversation: IChatConversation) {
-    const updatedAt = conversation.updatedAt
-    if (!updatedAt) {
-      return null
-    }
-
-    const date = updatedAt instanceof Date ? updatedAt : new Date(updatedAt)
-    return Number.isNaN(date.getTime()) ? null : date.toISOString()
-  }
-
-  conversationHoverLabel(conversation: IChatConversation) {
-    const title = this.conversationTitle(conversation)
-    const updatedAt = this.conversationUpdatedLabel(conversation)
-
-    return updatedAt ? `${title} · ${updatedAt}` : title
+  assistantConversationRoute(xpert: IXpert, conversation: IChatConversation) {
+    return ['/chat/x', getAssistantRouteId(xpert), 'c', conversation.threadId]
   }
 
   openAssistantConversation(event: Event, xpert: IXpert, conversation: IChatConversation) {
@@ -810,15 +822,7 @@ export class CloudSidebarAssistantsComponent {
     })
 
     this.#conversationService
-      .getMyInOrg({
-        select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
-        order: { updatedAt: OrderTypeEnum.DESC },
-        take: ASSISTANT_CONVERSATION_PAGE_SIZE,
-        skip: append ? current.items.length : 0,
-        where: {
-          xpertId: assistantId
-        }
-      })
+      .getSidebarConversations(assistantId, ASSISTANT_CONVERSATION_PAGE_SIZE, append ? current.items.length : 0)
       .pipe(catchError(() => of(null as { items: IChatConversation[]; total: number } | null)))
       .subscribe((result) => {
         if (!result) {
@@ -927,137 +931,9 @@ export class CloudSidebarAssistantsComponent {
   }
 }
 
-function normalizeChatPath(url: string) {
-  const [pathname] = (url || '/chat').split('?')
-  if (!pathname || pathname === '/') {
-    return '/chat'
-  }
-
-  return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
-}
-
 function readViewKey(router: Router) {
   const viewKey = router.parseUrl(router.url).queryParamMap.get('view')?.trim()
   return viewKey || null
-}
-
-function viewKeysMatch(menuViewKey: string, currentViewKey: string | null | undefined) {
-  const normalizedMenuViewKey = menuViewKey.trim()
-  const normalizedCurrentViewKey = currentViewKey?.trim()
-
-  if (!normalizedMenuViewKey || !normalizedCurrentViewKey) {
-    return false
-  }
-
-  return (
-    normalizedMenuViewKey === normalizedCurrentViewKey ||
-    normalizedMenuViewKey.endsWith(`__${normalizedCurrentViewKey}`) ||
-    normalizedCurrentViewKey.endsWith(`__${normalizedMenuViewKey}`)
-  )
-}
-
-function normalizeUnreadSummaries(value: unknown): IChatConversationUnreadXpertSummary[] {
-  if (Array.isArray(value)) {
-    return value.filter(isUnreadSummary)
-  }
-
-  if (value && typeof value === 'object' && Array.isArray((value as { items?: unknown }).items)) {
-    return (value as { items: unknown[] }).items.filter(isUnreadSummary)
-  }
-
-  return []
-}
-
-function mergeConversations(current: IChatConversation[], incoming: IChatConversation[]) {
-  const conversations = new Map<string, IChatConversation>()
-
-  for (const conversation of [...current, ...incoming]) {
-    const key = conversation.id?.trim() || conversation.threadId?.trim()
-    if (key) {
-      conversations.set(key, conversation)
-    }
-  }
-
-  return Array.from(conversations.values()).sort(
-    (left, right) => toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt)
-  )
-}
-
-function toTimestamp(value: Date | string | number | null | undefined) {
-  const timestamp = value instanceof Date ? value.getTime() : value ? new Date(value).getTime() : 0
-  return Number.isFinite(timestamp) ? timestamp : 0
-}
-
-export function formatConversationUpdatedAt(value: Date | string | number | null | undefined) {
-  if (value === null || value === undefined || value === '') {
-    return ''
-  }
-
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hour = String(date.getHours()).padStart(2, '0')
-  const minute = String(date.getMinutes()).padStart(2, '0')
-
-  return `${year}-${month}-${day} ${hour}:${minute}`
-}
-
-function isUnreadSummary(value: unknown): value is IChatConversationUnreadXpertSummary {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    typeof (value as IChatConversationUnreadXpertSummary).xpertId === 'string' &&
-    typeof (value as IChatConversationUnreadXpertSummary).unreadMessages === 'number'
-  )
-}
-
-function readAssistantOrder(storageKey: string) {
-  const storage = getLocalStorage()
-  if (!storage) {
-    return []
-  }
-
-  let value: unknown
-  try {
-    const storedValue = storage.getItem(storageKey)
-    value = storedValue ? JSON.parse(storedValue) : []
-  } catch {
-    return []
-  }
-
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  const orderedIds = value.filter((id): id is string => typeof id === 'string' && !!id.trim()).map((id) => id.trim())
-
-  return Array.from(new Set(orderedIds))
-}
-
-function writeAssistantOrder(storageKey: string, orderedIds: string[]) {
-  const storage = getLocalStorage()
-  if (!storage) {
-    return
-  }
-
-  try {
-    storage.setItem(storageKey, JSON.stringify(orderedIds))
-  } catch {
-    return
-  }
-}
-
-function getLocalStorage() {
-  try {
-    return globalThis.localStorage ?? null
-  } catch {
-    return null
-  }
 }
 
 function shouldShowAssistantMenuItem(manifest: XpertExtensionViewManifest) {

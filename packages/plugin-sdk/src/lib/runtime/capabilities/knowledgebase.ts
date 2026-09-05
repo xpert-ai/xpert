@@ -1,7 +1,7 @@
 import { JSONValue, KnowledgeFilterDiagnostics, KnowledgeFilterNode } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 
-export type KnowledgebaseRetrievalMode = 'vector' | 'graph' | 'hybrid'
+export type KnowledgebaseRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
 export type KnowledgebaseMetadata = Record<string, JSONValue>
 

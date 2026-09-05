@@ -756,6 +756,28 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
   })
 
+  it('keeps the Project View runtime scope stable while switching inspected conversations', async () => {
+    facade.projectId.set('project-1')
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(fixture.componentInstance.viewRuntimeScope()).toEqual({
+      projectId: 'project-1',
+      conversationId: null
+    })
+    const fixedViewLoadCount = viewExtensionApi.getSlotViews.mock.calls.length
+
+    fixture.componentInstance.resolvedConversationId.set('conversation-2')
+    await settle(fixture)
+
+    expect(fixture.componentInstance.viewRuntimeScope()).toEqual({
+      projectId: 'project-1',
+      conversationId: null
+    })
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledTimes(fixedViewLoadCount)
+  })
+
   it('keeps the Workbench open when switching conversations within the same xpert', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -1614,6 +1636,26 @@ describe('ClawXpertConversationDetailComponent', () => {
           sourceBlockIds: ['block-auto-2']
         }
       }
+    })
+  })
+
+  it('opens FAQ citations in the FAQ manager instead of the hidden managed document', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const router = TestBed.inject(Router)
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    getRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-faq-1',
+        citationUrl: 'xpert://knowledgebase/faq?knowledgebaseId=kb-faq-1&faqId=faq-7'
+      }
+    })
+    await settle(fixture)
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-faq-1', 'faq'], {
+      queryParams: { faqId: 'faq-7' }
     })
   })
 

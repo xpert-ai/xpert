@@ -1,8 +1,8 @@
 import type { Type } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
-import { CopilotModelModule } from '../../copilot-model/copilot-model.module'
-import { XpertAgentModule } from '../../xpert-agent/xpert-agent.module'
-import { XpertAgentExecutionModule } from '../../xpert-agent-execution/agent-execution.module'
+import { CopilotModelModule } from '../../../copilot-model/copilot-model.module'
+import { XpertAgentModule } from '../../../xpert-agent/xpert-agent.module'
+import { XpertAgentExecutionModule } from '../../../xpert-agent-execution/agent-execution.module'
 import { AgentMiddlewareRuntimeModule } from './middleware-runtime.module'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 

@@ -26,42 +26,59 @@
       aria-label="Knowledge base"
     >
       @if (!external()) {
-        <a
-          z-tab-link
-          [routerLink]="['./', 'documents']"
-          queryParamsHandling="preserve"
-          [routerLinkActiveOptions]="{ exact: false }"
-          routerLinkActive=""
-          #documentsActive="routerLinkActive"
-          [active]="documentsActive.isActive"
-        >
-          <z-icon zType="file-text" />
-          <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}</span>
-        </a>
-        <a
-          z-tab-link
-          [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
-          queryParamsHandling="preserve"
-          [routerLinkActiveOptions]="{ exact: false }"
-          routerLinkActive=""
-          #pipelineActive="routerLinkActive"
-          [active]="pipelineActive.isActive"
-        >
-          <z-icon zType="robot_2" />
-          <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}</span>
-        </a>
-        <a
-          z-tab-link
-          [routerLink]="['./', 'graph']"
-          queryParamsHandling="preserve"
-          [routerLinkActiveOptions]="{ exact: false }"
-          routerLinkActive=""
-          #graphActive="routerLinkActive"
-          [active]="graphActive.isActive"
-        >
-          <z-icon zType="hub" />
-          <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}</span>
-        </a>
+        @if (faq()) {
+          <a
+            z-tab-link
+            [routerLink]="['./', 'faq']"
+            queryParamsHandling="preserve"
+            [routerLinkActiveOptions]="{ exact: false }"
+            routerLinkActive=""
+            #faqActive="routerLinkActive"
+            [active]="faqActive.isActive"
+          >
+            <z-icon zType="help_outline" />
+            <span class="hidden lg:inline">{{ 'XP.Knowledgebase.FAQ' | translate: { Default: 'FAQ' } }}</span>
+          </a>
+        } @else {
+          <a
+            z-tab-link
+            [routerLink]="['./', 'documents']"
+            queryParamsHandling="preserve"
+            [routerLinkActiveOptions]="{ exact: false }"
+            routerLinkActive=""
+            #documentsActive="routerLinkActive"
+            [active]="documentsActive.isActive"
+          >
+            <z-icon zType="file-text" />
+            <span class="hidden lg:inline">{{
+              'XP.Knowledgebase.Documents' | translate: { Default: 'Documents' }
+            }}</span>
+          </a>
+          <a
+            z-tab-link
+            [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
+            queryParamsHandling="preserve"
+            [routerLinkActiveOptions]="{ exact: false }"
+            routerLinkActive=""
+            #pipelineActive="routerLinkActive"
+            [active]="pipelineActive.isActive"
+          >
+            <z-icon zType="robot_2" />
+            <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}</span>
+          </a>
+          <a
+            z-tab-link
+            [routerLink]="['./', 'graph']"
+            queryParamsHandling="preserve"
+            [routerLinkActiveOptions]="{ exact: false }"
+            routerLinkActive=""
+            #graphActive="routerLinkActive"
+            [active]="graphActive.isActive"
+          >
+            <z-icon zType="hub" />
+            <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}</span>
+          </a>
+        }
       }
       <a
         z-tab-link
@@ -75,23 +92,20 @@
         <z-icon zType="center_focus_strong" />
         <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Test' | translate: { Default: 'Test' } }}</span>
       </a>
-      <a
-        z-tab-link
-        [routerLink]="['./', 'configuration']"
-        queryParamsHandling="preserve"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive=""
-        #configurationActive="routerLinkActive"
-        [active]="configurationActive.isActive"
-      >
-        <z-icon zType="tune" />
-        <span class="hidden lg:inline">{{
-          'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' }
-        }}</span>
-      </a>
     </nav>
 
     <div class="flex shrink-0 items-center gap-1.5">
+      <button
+        type="button"
+        z-button
+        zType="outline"
+        [disabled]="loading()"
+        (click)="openConfiguration()"
+        [attr.aria-label]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
+      >
+        <z-icon zType="tune" />
+        <span class="hidden xl:inline">{{ 'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' } }}</span>
+      </button>
       <button type="button" z-button zType="outline" (click)="back()">
         <z-icon zType="arrow-left" />
         <span class="hidden xl:inline">{{ 'XP.ACTIONS.Back' | translate: { Default: 'Back' } }}</span>

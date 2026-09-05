@@ -7,7 +7,7 @@ import { AgentMiddlewareRegistry, WorkflowNodeRegistry, WorkflowTriggerRegistry 
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
-import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime.module'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/index'
 import { ConversationTitleService } from '../shared/agent/conversation-title.service'
 import { ExecutionCancelModule } from '../shared/execution/execution-cancel.module'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'

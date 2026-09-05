@@ -1,4 +1,615 @@
 @reference "../../../../../styles/tailwind-reference.css";
+@reference "../../../../../styles/theme/theme.tailwind.css";
+
 :host {
-  @apply flex flex-col relative rounded-2xl bg-components-card-bg;
+  @apply relative block h-full w-full overflow-hidden rounded-xl bg-components-card-bg text-text-primary;
+}
+
+.kb-create-dialog {
+  @apply relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl bg-components-card-bg;
+}
+
+.kb-settings-container {
+  @apply flex h-full min-h-0 w-full overflow-hidden;
+}
+
+.kb-create-title {
+  @apply text-xl font-semibold leading-7 text-text-primary;
+}
+
+.kb-close-button {
+  @apply absolute right-5 top-5 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-components-button-secondary-bg text-xl text-text-secondary transition hover:bg-hover-bg hover:text-text-primary;
+}
+
+.kb-sidebar-header {
+  @apply shrink-0 border-b border-divider-subtle px-3.5 pb-3 pt-4;
+}
+
+.kb-sidebar-header + .kb-sidebar-group {
+  @apply mt-3;
+}
+
+.kb-create-sidebar {
+  @apply flex w-52 shrink-0 flex-col overflow-y-auto border-r border-divider-subtle bg-background-default-subtle;
+}
+
+.kb-sidebar-group + .kb-sidebar-group {
+  @apply mt-6;
+}
+
+.kb-sidebar-group-title {
+  @apply px-3 pb-2 text-sm font-semibold leading-5 text-text-tertiary;
+}
+
+.kb-sidebar-nav {
+  @apply flex flex-col gap-1;
+}
+
+.kb-sidebar-item {
+  @apply flex h-10 w-full cursor-pointer items-center justify-start gap-3 rounded-lg px-3 text-left text-sm font-medium text-text-secondary transition hover:bg-components-card-bg hover:text-text-primary;
+}
+
+.kb-sidebar-item i {
+  @apply w-5 shrink-0 text-lg text-text-tertiary;
+}
+
+.kb-sidebar-item-active {
+  @apply bg-components-card-bg text-text-primary shadow-xs;
+}
+
+.kb-sidebar-item-active i {
+  @apply text-text-primary;
+}
+
+.kb-sidebar-item-preview {
+  @apply text-text-secondary;
+}
+
+.kb-sidebar-dot {
+  @apply ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-text-warning;
+}
+
+.kb-create-content {
+  @apply min-h-0 min-w-0 flex-1 overflow-y-auto bg-components-card-bg px-8 py-6;
+}
+
+.kb-settings-content {
+  @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
+}
+
+.kb-section {
+  @apply mx-auto w-full max-w-4xl pb-8;
+}
+
+.kb-section-heading {
+  @apply mb-8;
+}
+
+.kb-section-heading h1 {
+  @apply text-2xl font-semibold leading-8 text-text-primary;
+}
+
+.kb-section-heading p {
+  @apply mt-1 text-sm leading-6 text-text-tertiary;
+}
+
+.kb-field {
+  @apply relative mb-6;
+}
+
+.kb-field:last-child {
+  @apply mb-0;
+}
+
+.kb-label {
+  @apply mb-2 block text-sm font-semibold leading-5 text-text-primary;
+}
+
+.kb-required {
+  @apply ml-0.5 text-text-destructive;
+}
+
+.kb-help-text {
+  @apply mt-1 text-xs leading-5 text-text-tertiary;
+}
+
+.kb-input {
+  @apply w-full;
+}
+
+.kb-textarea {
+  @apply min-h-28 w-full resize-y;
+}
+
+.kb-counter {
+  @apply absolute bottom-2 right-2 text-xs text-text-quaternary;
+}
+
+.kb-type-toggle {
+  @apply overflow-hidden rounded-md;
+}
+
+.kb-choice-grid {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+}
+
+.kb-choice-card {
+  @apply relative flex min-h-36 cursor-pointer flex-col items-start rounded-xl border border-divider-regular bg-components-card-bg p-5 text-left transition hover:border-components-option-card-option-selected-border;
+}
+
+.kb-choice-card-selected {
+  @apply border-components-option-card-option-selected-border bg-background-default-subtle ring-1 ring-components-option-card-option-selected-border;
+}
+
+.kb-choice-card-disabled {
+  @apply cursor-not-allowed opacity-70 hover:border-divider-regular;
+}
+
+.kb-choice-check,
+.kb-choice-empty {
+  @apply mb-3 flex h-6 w-6 items-center justify-center rounded-md border border-divider-regular text-base text-text-quaternary;
+}
+
+.kb-choice-check {
+  @apply border-transparent bg-components-button-primary-bg text-components-button-primary-text;
+}
+
+.kb-choice-card-title {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.kb-choice-card-description {
+  @apply mt-2 text-sm leading-5 text-text-tertiary;
+}
+
+.kb-new-badge,
+.kb-mini-badge,
+.kb-status-badge {
+  @apply inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold leading-4;
+}
+
+.kb-new-badge {
+  @apply ml-1 bg-background-default-subtle text-text-primary;
+}
+
+.kb-mini-badge {
+  @apply bg-background-default-subtle text-text-warning;
+}
+
+.kb-field-inline {
+  @apply flex items-center justify-between gap-6;
+}
+
+.kb-model-grid,
+.kb-form-grid {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+}
+
+.kb-weknora-form {
+  @apply w-full;
+}
+
+.kb-model-row {
+  @apply flex items-center justify-between gap-8 py-2;
+}
+
+.kb-model-row-copy {
+  @apply min-w-0 flex-1;
+}
+
+.kb-model-row-title {
+  @apply text-base font-semibold leading-6 text-text-primary;
+}
+
+.kb-model-row-copy p {
+  @apply mt-1 text-sm leading-6 text-text-tertiary;
+}
+
+.kb-model-row-select {
+  @apply w-[min(100%,30rem)] shrink-0;
+}
+
+.kb-model-row-select ::ng-deep .model-select-trigger {
+  @apply h-11 rounded-lg border-divider-regular bg-components-input-bg-normal px-3;
+}
+
+.kb-panel {
+  @apply rounded-xl border border-divider-subtle bg-components-panel-bg p-5;
+}
+
+.kb-panel + .kb-panel {
+  @apply mt-4;
+}
+
+.kb-panel-post-create {
+  @apply border-dashed;
+}
+
+.kb-panel-header {
+  @apply flex items-start justify-between gap-4;
+}
+
+.kb-panel-title {
+  @apply text-sm font-semibold leading-5 text-text-primary;
+}
+
+.kb-panel-description {
+  @apply mt-1 text-xs leading-5 text-text-tertiary;
+}
+
+.kb-status-post-create {
+  @apply shrink-0 bg-background-default-subtle text-text-warning;
+}
+
+.kb-status-preview {
+  @apply shrink-0 bg-components-input-bg-normal text-text-tertiary;
+}
+
+.kb-inline-notice {
+  @apply mt-3 flex items-start gap-2 rounded-lg border border-divider-subtle bg-components-card-bg px-3 py-2 text-xs leading-5 text-text-tertiary;
+}
+
+.kb-inline-notice i {
+  @apply mt-0.5 shrink-0 text-text-accent;
+}
+
+.kb-placeholder-card {
+  @apply flex items-center gap-4 rounded-xl border border-dashed border-divider-deep bg-components-panel-bg p-5;
+}
+
+.kb-placeholder-icon {
+  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-components-card-bg text-xl text-text-tertiary;
+}
+
+.kb-placeholder-card > div:nth-child(2) {
+  @apply min-w-0 flex-1;
+}
+
+.kb-divider {
+  @apply my-5 h-px w-full bg-divider-subtle;
+}
+
+.kb-parser-engine-list {
+  @apply w-full;
+}
+
+.kb-parser-engine-row {
+  @apply flex items-start justify-between gap-8 border-b border-divider-subtle py-5;
+}
+
+.kb-parser-engine-row:first-child {
+  @apply pt-0;
+}
+
+.kb-parser-engine-row:last-child {
+  @apply border-b-0 pb-0;
+}
+
+.kb-parser-engine-copy {
+  @apply min-w-0 flex-1;
+}
+
+.kb-parser-engine-title {
+  @apply flex items-center gap-3 text-base font-semibold leading-6 text-text-primary;
+}
+
+.kb-parser-engine-title i {
+  @apply text-2xl font-normal text-text-tertiary;
+}
+
+.kb-extension-list {
+  @apply mt-2 flex flex-wrap gap-2;
+}
+
+.kb-extension-chip {
+  @apply rounded-md bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-tertiary;
+}
+
+.kb-parser-engine-control {
+  @apply flex w-[min(100%,28rem)] shrink-0 flex-col gap-3;
+}
+
+.kb-parser-engine-select {
+  @apply w-full;
+}
+
+.kb-checkbox-row {
+  @apply text-sm leading-5 text-text-secondary;
+}
+
+.kb-chunk-strategy-row,
+.kb-chunk-setting-row {
+  @apply flex items-start justify-between gap-10 border-b border-divider-subtle py-7;
+}
+
+.kb-chunk-strategy-row {
+  @apply pt-0;
+}
+
+.kb-separator-row {
+  @apply border-b-0 pb-0;
+}
+
+.kb-chunk-copy {
+  @apply min-w-0 flex-1;
+}
+
+.kb-field-title {
+  @apply text-lg font-semibold leading-7 text-text-primary;
+}
+
+.kb-chunk-copy p,
+.kb-advanced-switch-row p,
+.kb-advanced-field p {
+  @apply mt-1 text-sm leading-6 text-text-tertiary;
+}
+
+.kb-chunk-strategy-control {
+  @apply flex w-[min(100%,28rem)] shrink-0 flex-col items-end gap-4;
+}
+
+.kb-test-chunk-button {
+  @apply cursor-pointer self-end text-sm font-semibold text-text-primary;
+}
+
+.kb-test-chunk-button i {
+  @apply text-xl;
+}
+
+.kb-chunk-auto-note {
+  @apply border-l-4 border-components-button-primary-border bg-components-panel-bg px-4 py-3 text-sm leading-6 text-text-secondary;
+}
+
+.kb-chunk-auto-note strong {
+  @apply font-semibold text-text-primary;
+}
+
+.kb-range-control {
+  @apply relative flex w-[min(100%,28rem)] shrink-0 flex-col items-end gap-1;
+}
+
+.kb-range-control > strong {
+  @apply text-lg font-semibold text-text-primary;
+}
+
+.kb-range {
+  @apply w-full;
+}
+
+.kb-primary-switch ::ng-deep button[data-state='checked'] {
+  background-color: var(--color-components-toggle-bg);
+}
+
+.kb-range-ticks {
+  @apply flex w-full justify-between text-xs text-text-secondary;
+}
+
+.kb-separator-control {
+  @apply w-[min(100%,28rem)] shrink-0;
+}
+
+.kb-separator-select {
+  @apply block min-h-20 w-full;
+}
+
+.kb-separator-select ::ng-deep z-tag-select-input-trigger > div {
+  @apply min-h-20 content-start rounded-lg border-divider-regular bg-components-input-bg-normal;
+}
+
+.kb-advanced-switch-row {
+  @apply flex items-start justify-between gap-8 border-b border-divider-subtle pb-7;
+}
+
+.kb-advanced-switch-row > div {
+  @apply min-w-0 flex-1;
+}
+
+.kb-advanced-emphasis {
+  @apply mt-6 border-l-4 border-components-button-primary-border pl-7;
+}
+
+.kb-advanced-field {
+  @apply relative;
+}
+
+.kb-advanced-field + .kb-advanced-field {
+  @apply mt-7 border-t border-divider-subtle pt-7;
+}
+
+.kb-advanced-count-row {
+  @apply flex items-start justify-between gap-8;
+}
+
+.kb-number-input {
+  @apply w-52 shrink-0;
+}
+
+.kb-advanced-textarea {
+  @apply mt-4 min-h-32;
+}
+
+.kb-table-metadata-field {
+  @apply mt-8;
+}
+
+.kb-source-grid {
+  @apply mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3;
+}
+
+.kb-parser-rules {
+  @apply mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2;
+}
+
+.kb-parser-rule {
+  @apply flex items-center justify-between gap-3 rounded-lg border border-divider-subtle bg-components-card-bg px-3 py-2;
+}
+
+.kb-parser-rule-name {
+  @apply flex min-w-0 items-center gap-2 text-sm font-medium text-text-secondary;
+}
+
+.kb-parser-rule-name i {
+  @apply text-lg text-text-tertiary;
+}
+
+.kb-parser-rule-select {
+  @apply h-8 w-32 shrink-0 bg-components-panel-bg text-xs;
+}
+
+.kb-source-card {
+  @apply flex h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-divider-regular bg-components-card-bg text-sm text-text-secondary transition hover:border-components-option-card-option-selected-border hover:text-text-primary;
+}
+
+.kb-source-card i {
+  @apply text-lg text-text-tertiary;
+}
+
+.kb-source-card-selected {
+  @apply border-components-option-card-option-selected-border bg-background-default-subtle text-text-primary ring-1 ring-components-option-card-option-selected-border;
+}
+
+.kb-source-card-selected i {
+  @apply text-text-primary;
+}
+
+.kb-create-footer {
+  @apply flex shrink-0 justify-end gap-3 border-t border-divider-subtle bg-components-card-bg px-6 py-4;
+}
+
+.kb-footer-button {
+  @apply min-w-28 justify-center;
+}
+
+.kb-footer-primary {
+  @apply min-w-36;
+}
+
+@media (max-width: 720px) {
+  :host {
+    @apply rounded-xl;
+  }
+
+  .kb-create-title {
+    @apply text-base;
+  }
+
+  .kb-create-sidebar {
+    @apply w-48;
+  }
+
+  .kb-sidebar-item {
+    @apply gap-2 px-2 text-xs;
+  }
+
+  .kb-sidebar-item i {
+    @apply w-4 text-base;
+  }
+
+  .kb-create-content {
+    @apply px-5 py-6;
+  }
+
+  .kb-section-heading {
+    @apply mb-6;
+  }
+
+  .kb-field-inline {
+    @apply items-start;
+  }
+
+  .kb-model-row,
+  .kb-parser-engine-row,
+  .kb-chunk-strategy-row,
+  .kb-chunk-setting-row {
+    @apply gap-5;
+  }
+
+  .kb-model-row-select,
+  .kb-parser-engine-control,
+  .kb-chunk-strategy-control,
+  .kb-range-control,
+  .kb-separator-control {
+    @apply w-2/5;
+  }
+}
+
+@media (max-width: 520px) {
+  .kb-settings-container {
+    @apply flex-col;
+  }
+
+  .kb-create-sidebar {
+    @apply flex w-full shrink-0 overflow-x-auto overflow-y-hidden border-b border-r-0 px-3 py-2;
+  }
+
+  .kb-sidebar-header {
+    @apply hidden;
+  }
+
+  .kb-sidebar-group {
+    @apply flex items-center gap-1;
+  }
+
+  .kb-sidebar-group + .kb-sidebar-group {
+    @apply mt-0;
+  }
+
+  .kb-sidebar-group-title {
+    @apply hidden;
+  }
+
+  .kb-sidebar-nav {
+    @apply flex-row;
+  }
+
+  .kb-sidebar-item {
+    @apply h-9 w-auto shrink-0 whitespace-nowrap rounded-md px-2;
+  }
+
+  .kb-sidebar-item span:not(.kb-sidebar-dot) {
+    @apply hidden;
+  }
+
+  .kb-create-content {
+    @apply px-4 py-5;
+  }
+
+  .kb-create-footer {
+    @apply px-4 py-3;
+  }
+
+  .kb-model-row,
+  .kb-parser-engine-row,
+  .kb-chunk-strategy-row,
+  .kb-chunk-setting-row {
+    @apply flex-col gap-4;
+  }
+
+  .kb-model-row-select,
+  .kb-parser-engine-control,
+  .kb-chunk-strategy-control,
+  .kb-range-control,
+  .kb-separator-control {
+    @apply w-full;
+  }
+
+  .kb-chunk-strategy-control {
+    @apply items-stretch;
+  }
+
+  .kb-range-control {
+    @apply items-stretch;
+  }
+
+  .kb-advanced-count-row {
+    @apply flex-col gap-3;
+  }
+
+  .kb-number-input {
+    @apply w-full;
+  }
+
+  .kb-footer-button {
+    @apply min-w-24;
+  }
 }

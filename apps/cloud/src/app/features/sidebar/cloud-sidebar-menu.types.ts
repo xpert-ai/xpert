@@ -19,6 +19,7 @@ export interface CloudMenuData {
   onboardingTarget?: string
   workspaceSection?: 'skills' | 'connectors' | 'files' | 'knowledges' | 'settings'
   action?: 'newClawXpertConversation'
+  sidebarSection?: 'projects' | 'workspaces'
   [key: string]: unknown
 }
 

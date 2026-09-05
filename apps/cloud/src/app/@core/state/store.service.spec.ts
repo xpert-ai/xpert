@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
 import { AiFeatureEnum, FeatureEnum, IFeatureOrganization, RequestScopeLevel } from '@xpert-ai/contracts'
 import { AppQuery, AppStore, PersistQuery, PersistStore, Store } from './store.service'
+import { WorkspaceHistoryService } from '../services/workspace-history.service'
 
 function createFeatureOrganization(
   code: FeatureEnum | AiFeatureEnum,
@@ -96,6 +97,16 @@ describe('Store', () => {
       organizationId: 'org-2'
     })
     expect(restoredStore.organizationId).toBe('org-2')
+  })
+
+  it('records workspace selections in the current user and organization history', () => {
+    store.userId = 'user-1'
+    store.organizationId = 'org-1'
+    store.setWorkspace({ id: 'workspace-1', name: 'First workspace', ownerId: 'user-1' })
+    store.setWorkspace({ id: 'workspace-2', name: 'Second workspace', ownerId: 'user-1' })
+
+    expect(TestBed.inject(WorkspaceHistoryService).recent('user-1', 'org-1')).toEqual(['workspace-2', 'workspace-1'])
+    expect(TestBed.inject(AppQuery).getValue().selectedWorkspace?.id).toBe('workspace-2')
   })
 
   it('restores tenant scope from persisted state', () => {

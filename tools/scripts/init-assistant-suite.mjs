@@ -17,7 +17,7 @@ import {
   requireAuthentication
 } from './local-plugin-cli.mjs'
 
-const BOOLEAN_FLAGS = ['dryRun', 'help', 'noKeychain', 'resume']
+const BOOLEAN_FLAGS = ['dryRun', 'help', 'noKeychain', 'refresh', 'resume']
 
 function printUsage() {
   console.log(`Install and publish a versioned Assistant suite from official plugin templates.
@@ -33,6 +33,7 @@ Required options:
 Suite options:
   --run-id <value>          Unique suffix for the installation batch; defaults to a UTC timestamp
   --resume                  Resume an exact prior run after template provenance validation
+  --refresh                 Update every exact existing Assistant from its template, then rebind and republish the suite
   --environment-id <id>     Publish environment; omitted means null
   --release-notes <text>    Publication note for the Orchestrator
   --manifest-file <path>    Write the secret-free provisioning receipt
@@ -187,14 +188,13 @@ function readTemplateSource(xpert) {
 
 /** Resolves the primary Agent key from the current draft or published Assistant. */
 function readPrimaryAgentKey(xpert) {
+  const graph = Array.isArray(xpert?.draft?.nodes) ? xpert.draft : xpert?.graph
+  if (Array.isArray(graph?.nodes)) {
+    const rootAgents = graph.nodes.filter((node) => node?.type === 'agent' && node?.entity?.leaderKey == null)
+    return rootAgents.length === 1 ? (rootAgents[0]?.entity?.key ?? rootAgents[0]?.key ?? null) : null
+  }
   const direct = xpert?.draft?.team?.agent?.key ?? xpert?.agent?.key
   if (direct) return direct
-  const publishedLeaders = (xpert?.graph?.nodes ?? []).filter(
-    (node) => node?.type === 'agent' && node?.entity?.leaderKey == null
-  )
-  if (publishedLeaders.length === 1) {
-    return publishedLeaders[0].entity?.key ?? publishedLeaders[0].key ?? null
-  }
   const configured = Object.keys(xpert?.options?.agent ?? {})
   return configured.length === 1 ? configured[0] : null
 }
@@ -223,20 +223,40 @@ async function publishAssistant(apiRoot, headers, xpertId, environmentId, releas
   return response.body
 }
 
+/** Refreshes one existing Assistant draft from its tracked official template. */
+async function refreshAssistantTemplate(apiRoot, headers, xpertId) {
+  const response = await postJson(`${apiRoot}/xpert/${encodeURIComponent(xpertId)}/sync-template`, headers, {})
+  assertResponseOk('Assistant template refresh', response)
+  return getTeam(apiRoot, headers, xpertId)
+}
+
 /** Installs or explicitly resumes one role Assistant without silently overwriting an existing instance. */
-async function installRole({ apiRoot, definition, headers, profile, resume, runId, workspaceId }) {
+async function installRole({ apiRoot, definition, headers, profile, refresh, resume, runId, workspaceId }) {
   const name = installedName(definition, runId)
   const existing = await findByName(apiRoot, headers, workspaceId, name)
-  if (existing && !resume) {
+  if (existing && !resume && !refresh) {
     throw new LocalPluginCliError(
-      `Assistant ${name} already exists. Use a new --run-id or pass --resume after inspection.`
+      `Assistant ${name} already exists. Use a new --run-id, pass --resume for a partial run, or pass --refresh for an intentional template update.`
     )
   }
+  if (!existing && refresh) {
+    throw new LocalPluginCliError(`Assistant ${name} does not exist and cannot be refreshed.`)
+  }
   if (existing) {
-    const team = await getTeam(apiRoot, headers, existing.id)
+    let team = await getTeam(apiRoot, headers, existing.id)
     assertAssistantIdentity(team, profile, definition)
+    if (refresh) {
+      team = await refreshAssistantTemplate(apiRoot, headers, team.id)
+      assertAssistantIdentity(team, profile, definition)
+      await publishAssistant(apiRoot, headers, team.id, null, `Refreshed ${profile.key}`)
+      team = await getTeam(apiRoot, headers, team.id)
+      assertAssistantIdentity(team, profile, definition)
+      return team
+    }
     if (!team.version) {
-      return publishAssistant(apiRoot, headers, team.id, null, `Resumed ${profile.key}`)
+      await publishAssistant(apiRoot, headers, team.id, null, `Resumed ${profile.key}`)
+      team = await getTeam(apiRoot, headers, team.id)
+      assertAssistantIdentity(team, profile, definition)
     }
     return team
   }
@@ -262,18 +282,25 @@ async function installRole({ apiRoot, definition, headers, profile, resume, runI
 }
 
 /** Installs a draft Orchestrator or resumes only the exact batch requested by the caller. */
-async function installOrchestratorDraft({ apiRoot, headers, profile, resume, runId, workspaceId }) {
+async function installOrchestratorDraft({ apiRoot, headers, profile, refresh, resume, runId, workspaceId }) {
   const definition = profile.orchestrator
   const name = installedName(definition, runId)
   const existing = await findByName(apiRoot, headers, workspaceId, name)
-  if (existing && !resume) {
+  if (existing && !resume && !refresh) {
     throw new LocalPluginCliError(
-      `Assistant ${name} already exists. Use a new --run-id or pass --resume after inspection.`
+      `Assistant ${name} already exists. Use a new --run-id, pass --resume for a partial run, or pass --refresh for an intentional template update.`
     )
   }
+  if (!existing && refresh) {
+    throw new LocalPluginCliError(`Assistant ${name} does not exist and cannot be refreshed.`)
+  }
   if (existing) {
-    const team = await getTeam(apiRoot, headers, existing.id)
+    let team = await getTeam(apiRoot, headers, existing.id)
     assertAssistantIdentity(team, profile, definition)
+    if (refresh) {
+      team = await refreshAssistantTemplate(apiRoot, headers, team.id)
+      assertAssistantIdentity(team, profile, definition)
+    }
     return team
   }
 
@@ -353,6 +380,10 @@ function verifyPublishedSuite(orchestrator, profile, rolesByKey) {
   const from = profile.orchestrator.primaryAgentKey
   for (const roleKey of profile.orchestrator.externalRoleKeys) {
     const role = rolesByKey.get(roleKey)
+    const nodes = graph.nodes.filter((node) => node.type === 'xpert' && node.key === role.id)
+    if (nodes.length !== 1) {
+      throw new LocalPluginCliError(`Published Orchestrator must have exactly one external Xpert node for ${roleKey}.`)
+    }
     const matches = graph.connections.filter(
       (connection) =>
         connection.type === 'xpert' &&
@@ -382,6 +413,9 @@ async function main() {
     return
   }
   const { profile, profilePath } = readSuiteProfile(args.profile)
+  if (args.refresh && args.resume) {
+    throw new LocalPluginCliError('--refresh and --resume are mutually exclusive.')
+  }
   const workspaceId = args.workspaceId
   const organizationId = args.orgId || process.env.XPERT_ORG_ID
   if (!workspaceId) throw new LocalPluginCliError('--workspace-id <id> is required.')
@@ -403,7 +437,10 @@ async function main() {
   console.log('[assistant:suite:init] Organization:', organizationId)
   console.log('[assistant:suite:init] Workspace:', workspaceId)
   console.log('[assistant:suite:init] Environment:', environmentId)
-  console.log('[assistant:suite:init] Existing instance policy:', args.resume ? 'resume exact batch' : 'create only')
+  console.log(
+    '[assistant:suite:init] Existing instance policy:',
+    args.refresh ? 'refresh exact existing batch' : args.resume ? 'resume exact partial batch' : 'create only'
+  )
   if (args.dryRun) {
     console.log('[assistant:suite:init] Dry run only. No API request was sent.')
     return
@@ -451,6 +488,7 @@ async function main() {
         definition,
         headers,
         profile,
+        refresh: args.refresh === true,
         resume: args.resume === true,
         runId,
         workspaceId
@@ -467,6 +505,7 @@ async function main() {
     apiRoot,
     headers,
     profile,
+    refresh: args.refresh === true,
     resume: args.resume === true,
     runId,
     workspaceId
@@ -483,7 +522,7 @@ async function main() {
     headers,
     orchestratorDraft.id,
     environmentId,
-    args.releaseNotes || `Installed Assistant suite ${profile.key}`
+    args.releaseNotes || `${args.refresh ? 'Refreshed' : 'Installed'} Assistant suite ${profile.key}`
   )
   const published = await getTeam(apiRoot, headers, orchestratorDraft.id)
   assertAssistantIdentity(published, profile, profile.orchestrator)

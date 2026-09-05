@@ -12,6 +12,7 @@ jest.mock('@xpert-ai/server-core', () => {
 
 import { RequestContext } from '@xpert-ai/server-core'
 import { ConflictException, ForbiddenException } from '@nestjs/common'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { FileAssetAccessService } from './file-asset-access.service'
 
 describe('FileAssetAccessService', () => {
@@ -91,6 +92,36 @@ describe('FileAssetAccessService', () => {
             workspaceDataScope: 'shared'
         })
         publishedXpertAccessService.isPublishedXpertInFamily.mockResolvedValue(false)
+    })
+
+    describe('archived project purge with real project authorization', () => {
+        function purgeFixture(ownerId = 'user-1', status = 'archived') {
+            const project = { id: 'project-1', tenantId: 'tenant-1', organizationId: 'org-1', ownerId, status }
+            const projects = new XpertProjectAccessService(
+                { findOne: jest.fn().mockResolvedValue(project) } as never,
+                { findOne: jest.fn().mockResolvedValue({ role: 'editor' }) } as never,
+                {} as never
+            )
+            fileAssetRepository.findOne.mockResolvedValue({ ...ownedAsset, projectId: project.id })
+            return new FileAssetAccessService(
+                fileAssetRepository as never,
+                conversationFileLinkRepository as never,
+                storageFileService as never,
+                conversationService as never,
+                projects,
+                publishedXpertAccessService as never
+            )
+        }
+        it('rejects ordinary deletion of an archived project file', async () => {
+            const access = purgeFixture()
+            await expect(
+                access.resolve({
+                    locator: { fileAssetId: 'asset-1' },
+                    authority: { kind: 'current-owner' },
+                    operation: 'delete'
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        })
     })
 
     it('limits the first lookup to the current tenant', async () => {

@@ -1,0 +1,124 @@
+<div
+  class="group/conversation flex min-w-0 items-center rounded-md text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-within:bg-hover-bg focus-within:text-text-primary"
+  [class]="active() ? 'bg-components-list-option-active-bg text-text-primary!' : ''"
+  [attr.data-conversation-id]="conversation().id"
+>
+  <a
+    class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    [class]="compact() ? 'h-8 text-sm' : 'h-10 text-base'"
+    [routerLink]="route()"
+    [queryParamsHandling]="preserveQueryParams() ? 'preserve' : null"
+    [attr.aria-current]="active() ? 'page' : null"
+    [attr.aria-label]="hoverLabel()"
+    [title]="hoverLabel()"
+    (click)="selected.emit()"
+  >
+    <i
+      [class]="compact() ? 'ri-chat-3-line shrink-0 text-base' : 'ri-file-text-line shrink-0 text-xl'"
+      aria-hidden="true"
+    ></i>
+    <span class="min-w-0 flex-1 truncate">{{ title() }}</span>
+    @if (conversation().sidebar?.pinned) {
+      <i
+        class="ri-pushpin-2-fill shrink-0 text-xs text-text-tertiary group-hover/conversation:hidden group-focus-within/conversation:hidden"
+        aria-hidden="true"
+      ></i>
+    }
+    <time
+      class="max-w-0 shrink-0 overflow-hidden whitespace-nowrap text-xs tabular-nums text-text-tertiary opacity-0 group-hover/conversation:max-w-28 group-hover/conversation:opacity-100 group-focus-within/conversation:max-w-28 group-focus-within/conversation:opacity-100"
+      >{{ updatedAt() }}</time
+    >
+  </a>
+  <div
+    class="flex max-w-0 shrink-0 items-center overflow-hidden opacity-0 group-hover/conversation:max-w-24 group-hover/conversation:opacity-100 group-focus-within/conversation:max-w-24 group-focus-within/conversation:opacity-100 [@media(hover:none)]:max-w-24 [@media(hover:none)]:opacity-100"
+    [class]="menuOpen() ? 'max-w-24! opacity-100!' : ''"
+  >
+    <button
+      type="button"
+      class="flex size-7 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      [cdkMenuTriggerFor]="moreMenu"
+      (cdkMenuOpened)="menuOpen.set(true)"
+      (cdkMenuClosed)="menuOpen.set(false)"
+      [disabled]="busy()"
+      [attr.aria-label]="'XP.Sidebar.ConversationMore' | translate"
+      [title]="'XP.Sidebar.ConversationMore' | translate"
+    >
+      <i class="ri-more-line text-lg" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      class="flex size-7 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      [disabled]="busy()"
+      (click)="toggleArchive()"
+      [attr.aria-label]="
+        (conversation().sidebar?.archived ? 'XP.Sidebar.UnarchiveConversation' : 'XP.Sidebar.ArchiveConversation')
+          | translate
+      "
+      [title]="
+        (conversation().sidebar?.archived ? 'XP.Sidebar.UnarchiveConversation' : 'XP.Sidebar.ArchiveConversation')
+          | translate
+      "
+    >
+      <i
+        [class]="conversation().sidebar?.archived ? 'ri-inbox-unarchive-line text-lg' : 'ri-archive-line text-lg'"
+        aria-hidden="true"
+      ></i>
+    </button>
+    <button
+      type="button"
+      class="mr-1 flex size-7 shrink-0 items-center justify-center rounded text-text-tertiary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      [disabled]="busy()"
+      (click)="togglePin()"
+      [attr.aria-pressed]="!!conversation().sidebar?.pinned"
+      [attr.aria-label]="
+        (conversation().sidebar?.pinned ? 'XP.Sidebar.UnpinConversation' : 'XP.Sidebar.PinConversation') | translate
+      "
+      [title]="
+        (conversation().sidebar?.pinned ? 'XP.Sidebar.UnpinConversation' : 'XP.Sidebar.PinConversation') | translate
+      "
+    >
+      <i
+        [class]="
+          conversation().sidebar?.pinned ? 'ri-pushpin-2-fill text-lg text-text-primary' : 'ri-pushpin-2-line text-lg'
+        "
+        aria-hidden="true"
+      ></i>
+    </button>
+  </div>
+</div>
+@if (error()) {
+  <p role="alert" class="px-2 text-xs text-text-destructive">{{ error() }}</p>
+}
+<ng-template #moreMenu>
+  <div
+    cdkMenu
+    class="flex min-w-44 flex-col gap-1 rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg"
+  >
+    <button
+      type="button"
+      cdkMenuItem
+      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-hover-bg focus:bg-hover-bg focus:outline-none"
+      (cdkMenuItemTriggered)="openFolder()"
+    >
+      <i class="ri-folder-open-line text-lg text-text-secondary" aria-hidden="true"></i
+      >{{ 'XP.Sidebar.OpenConversationFolder' | translate }}
+    </button>
+    <button
+      type="button"
+      cdkMenuItem
+      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-hover-bg focus:bg-hover-bg focus:outline-none"
+      (cdkMenuItemTriggered)="rename()"
+    >
+      <i class="ri-edit-line text-lg text-text-secondary" aria-hidden="true"></i
+      >{{ 'XP.Sidebar.RenameConversation' | translate }}
+    </button>
+    <button
+      type="button"
+      cdkMenuItem
+      class="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-text-destructive hover:bg-hover-bg focus:bg-hover-bg focus:outline-none"
+      (cdkMenuItemTriggered)="remove()"
+    >
+      <i class="ri-delete-bin-line text-lg" aria-hidden="true"></i>{{ 'XP.Sidebar.DeleteConversation' | translate }}
+    </button>
+  </div>
+</ng-template>

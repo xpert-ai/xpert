@@ -199,7 +199,7 @@ describe('createFileUnderstandingTools', () => {
                             mimeType: 'image/png',
                             anchor: { page: 3, path: 'page-0003.png' },
                             file: {
-                                workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0003.png',
+                                workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0003.png',
                                 fileName: 'page-0003.png'
                             }
                         }
@@ -228,7 +228,7 @@ describe('createFileUnderstandingTools', () => {
                     mimeType: 'image/png',
                     page: 3,
                     path: 'page-0003.png',
-                    workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0003.png',
+                    workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0003.png',
                     fileName: 'page-0003.png'
                 }
             ]

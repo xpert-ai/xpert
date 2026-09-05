@@ -5,7 +5,7 @@ import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
 import { IUserGroup } from '../user-group.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
-import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
+import { IKnowledgebase, KnowledgeRetrievalMode, TKBFusionConfig, TKBRecallParams } from './knowledgebase.model'
 import { ChecklistItem, I18nObject, IPoint, ISize, TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
@@ -815,7 +815,9 @@ export type TChatSourceAuditOptions = {
  * Knowledgebase retrieval settings
  */
 export type TKBRetrievalSettings = {
-  mode?: 'vector' | 'graph' | 'hybrid'
+  mode?: KnowledgeRetrievalMode
+  /** Overrides the knowledgebase candidate fusion strategy for this retrieval. */
+  fusion?: TKBFusionConfig
   neighborHops?: number
   entityTopK?: number
   communityTopK?: number

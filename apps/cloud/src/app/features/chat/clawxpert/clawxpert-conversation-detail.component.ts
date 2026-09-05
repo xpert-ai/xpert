@@ -1011,10 +1011,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
   readonly resolvedConversation = signal<IChatConversation | null>(null)
-  readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => ({
-    projectId: this.runtimeProjectId(),
-    conversationId: this.resolvedConversationId()
-  }))
+  readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => {
+    const projectId = this.runtimeProjectId()
+    return {
+      projectId,
+      // Project-bound Workbench Views share one durable data scope. Switching
+      // the inspected ChatKit execution inside that Project must update ChatKit
+      // without invalidating and recreating the Remote View iframe.
+      conversationId: projectId ? null : this.resolvedConversationId()
+    }
+  })
   readonly conversationFilesMode = computed<'editable' | 'readonly'>(() => {
     if (!this.runtimeProjectId()) {
       return 'editable'
@@ -2390,6 +2396,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private focusKnowledgebaseWorkbenchTab(target: KnowledgebaseCitationTarget) {
+    if (target.faqId || !target.documentId) {
+      return false
+    }
     const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
     if (!menuItem) {
       return false
@@ -2408,6 +2417,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private openKnowledgebaseCitationFallback(target: KnowledgebaseCitationTarget) {
     if (!target.knowledgebaseId) {
+      return Promise.resolve(false)
+    }
+
+    if (target.faqId) {
+      return this.#router.navigate(['/xpert/knowledges', target.knowledgebaseId, 'faq'], {
+        queryParams: { faqId: target.faqId }
+      })
+    }
+
+    if (!target.documentId) {
       return Promise.resolve(false)
     }
 
@@ -2827,7 +2846,8 @@ function findResolvedViewByKey<T extends { viewKey: string }>(items: T[], viewKe
 
 type KnowledgebaseCitationTarget = {
   knowledgebaseId?: string
-  documentId: string
+  documentId?: string
+  faqId?: string
   chunkId?: string
   page?: number
   sourceBlockIds?: string[]
@@ -2840,7 +2860,8 @@ function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): Knowl
   }
 
   const documentId = getString(event.data['documentId'])
-  if (!documentId) {
+  const faqId = getString(event.data['faqId'])
+  if (!documentId && !faqId) {
     return null
   }
 
@@ -2860,7 +2881,8 @@ function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): Knowl
     : []
 
   return {
-    documentId,
+    ...(documentId ? { documentId } : {}),
+    ...(faqId ? { faqId } : {}),
     ...(knowledgebaseId ? { knowledgebaseId } : {}),
     ...(chunkId ? { chunkId } : {}),
     ...(page ? { page } : {}),

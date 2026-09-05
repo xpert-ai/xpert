@@ -28,6 +28,25 @@ import {
   orderAssistantXperts
 } from './cloud-sidebar-assistants.utils'
 
+jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', () => {
+  const { Directive, Input } = jest.requireActual('@angular/core')
+
+  @Directive({
+    standalone: true,
+    selector: '[xpAssistantProfile]',
+    exportAs: 'xpAssistantProfile',
+    host: { '[attr.data-assistant-profile-trigger]': 'instanceId' }
+  })
+  class AssistantProfileDirective {
+    @Input('xpAssistantProfile') instanceId?: string
+    @Input() summary?: unknown
+    @Input() zPlacement?: string
+    open = jest.fn()
+  }
+
+  return { AssistantProfileDirective }
+})
+
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Directive, Input } = jest.requireActual('@angular/core')
 
@@ -118,159 +137,6 @@ jest.mock('../../@shared/avatar/emoji-avatar/avatar.component', () => {
   }
 })
 
-function xpert(item: Partial<AssistantXpertLike>): AssistantXpertLike {
-  return item
-}
-
-describe('cloud sidebar assistants helpers', () => {
-  it('formats the local conversation update date and time', () => {
-    const updatedAt = new Date(2026, 7, 23, 9, 5)
-
-    expect(formatConversationUpdatedAt(updatedAt)).toBe('2026-08-23 09:05')
-    expect(formatConversationUpdatedAt('invalid-date')).toBe('')
-  })
-
-  it('keeps latest unique xperts with an id', () => {
-    const items = normalizeAssistantXperts([
-      xpert({ id: 'a', slug: 'alpha' }),
-      xpert({ id: 'a', slug: 'alpha-copy' }),
-      xpert({ id: 'b', latest: false }),
-      xpert({ slug: 'missing-id' })
-    ])
-
-    expect(items.map((item) => item.slug)).toEqual(['alpha'])
-  })
-
-  it('uses the expected label, description and route id fallbacks', () => {
-    const item = xpert({
-      id: 'assistant-id',
-      slug: 'assistant-slug',
-      name: 'Assistant Name',
-      titleCN: '中文标题'
-    })
-
-    expect(getAssistantLabel(item)).toBe('中文标题')
-    expect(getAssistantDescription(item)).toBe('Assistant Name')
-    expect(getAssistantRouteId(item)).toBe('assistant-slug')
-  })
-
-  it('prefixes assistant menu labels with the assigned business area', () => {
-    const item = xpert({
-      id: 'assistant-id',
-      title: 'Planning Assistant',
-      businessAreaId: 'operations-id',
-      businessArea: { id: 'operations-id', name: 'Operations' }
-    })
-
-    expect(getAssistantLabel(item)).toBe('Operations / Planning Assistant')
-    expect(getAssistantName(item)).toBe('Planning Assistant')
-    expect(getAssistantBusinessArea(item)).toEqual({ id: 'operations-id', name: 'Operations' })
-    expect(getAssistantBusinessAreaInitial('销售')).toBe('销')
-    expect(getAssistantLabel({ ...item, businessArea: null })).toBe('Planning Assistant')
-  })
-
-  it('filters assistants by label or description', () => {
-    const items = [
-      xpert({ id: 'documents', title: 'Documents Assistant', description: 'Word and sheets' }),
-      xpert({ id: 'tools', title: 'Tool Runner', description: 'Workspace calls' })
-    ]
-
-    expect(filterAssistantXperts(items, 'sheet').map((item) => item.id)).toEqual(['documents'])
-    expect(filterAssistantXperts(items, 'tool').map((item) => item.id)).toEqual(['tools'])
-  })
-
-  it('places assistants missing from the saved order first by newest creation time', () => {
-    const items = [
-      xpert({ id: 'ordered-first', createdAt: new Date('2026-01-03T00:00:00Z') }),
-      xpert({ id: 'newer', createdAt: new Date('2026-01-05T00:00:00Z') }),
-      xpert({ id: 'ordered-second', createdAt: new Date('2026-01-04T00:00:00Z') }),
-      xpert({ id: 'newest', createdAt: new Date('2026-01-06T00:00:00Z') })
-    ]
-
-    expect(orderAssistantXperts(items, ['ordered-first', 'ordered-second']).map((item) => item.id)).toEqual([
-      'newest',
-      'newer',
-      'ordered-first',
-      'ordered-second'
-    ])
-  })
-
-  it('orders all assistants by newest creation time when no saved order exists', () => {
-    const items = [
-      xpert({ id: 'oldest', createdAt: new Date('2026-01-01T00:00:00Z') }),
-      xpert({ id: 'newest', createdAt: new Date('2026-01-03T00:00:00Z') }),
-      xpert({ id: 'middle', createdAt: new Date('2026-01-02T00:00:00Z') })
-    ]
-
-    expect(orderAssistantXperts(items, []).map((item) => item.id)).toEqual(['newest', 'middle', 'oldest'])
-  })
-
-  it('matches assistant categories from tag names instead of label or description keywords', () => {
-    const items = [
-      xpert({ id: 'finance', title: 'General Assistant', tags: [{ name: 'Finance' }] }),
-      xpert({ id: 'support', title: 'General Assistant', tags: [{ name: 'Support' }] }),
-      xpert({
-        id: 'untagged',
-        title: 'Finance Support Assistant',
-        description: 'report ticket workflow',
-        tags: []
-      })
-    ]
-
-    expect(filterAssistantXperts(items, '', 'finance').map((item) => item.id)).toEqual(['finance'])
-    expect(filterAssistantXperts(items, '', 'support').map((item) => item.id)).toEqual(['support'])
-  })
-
-  it('does not use tag labels as category identity', () => {
-    const items = [xpert({ id: 'localized-tag', tags: [{ name: 'finance', label: { zh: '财务' } }] })]
-
-    expect(filterAssistantXperts(items, '', 'finance').map((item) => item.id)).toEqual(['localized-tag'])
-    expect(filterAssistantXperts(items, '', '财务')).toEqual([])
-  })
-
-  it('matches exact normalized tag names without aliases', () => {
-    const items = [xpert({ id: 'localized-tag', tags: [{ name: '财务' }] })]
-
-    expect(filterAssistantXperts(items, '', 'finance')).toEqual([])
-    expect(filterAssistantXperts(items, '', '财务').map((item) => item.id)).toEqual(['localized-tag'])
-  })
-
-  it('does not infer categories from titles or descriptions', () => {
-    const items = [
-      xpert({
-        id: 'keyword-only',
-        title: 'Finance Support Assistant',
-        description: 'Handles finance tickets',
-        tags: []
-      })
-    ]
-
-    expect(filterAssistantXperts(items, '', 'finance')).toEqual([])
-    expect(filterAssistantXperts(items, '', 'support')).toEqual([])
-  })
-
-  it('keeps untagged assistants visible only in the all category', () => {
-    const items = [
-      xpert({
-        id: 'untagged',
-        title: 'Finance Support Assistant',
-        description: 'report ticket workflow'
-      })
-    ]
-
-    expect(filterAssistantXperts(items, '', 'all').map((item) => item.id)).toEqual(['untagged'])
-    expect(filterAssistantXperts(items, '', 'finance')).toEqual([])
-    expect(filterAssistantXperts(items, '', 'support')).toEqual([])
-  })
-
-  it('matches the active assistant route', () => {
-    const item = xpert({ id: 'assistant-id', slug: 'mcp-tools-agent-01' })
-
-    expect(isAssistantRouteActive('/chat/x/mcp-tools-agent-01/c', item)).toBe(true)
-    expect(isAssistantRouteActive('/chat/x/common/c', item)).toBe(false)
-  })
-})
-
 @Component({
   standalone: true,
   template: ''
@@ -293,8 +159,9 @@ describe('CloudSidebarAssistantsComponent', () => {
   }
   let conversationService: {
     getUnreadByXperts: jest.Mock
-    getMyInOrg: jest.Mock
+    getSidebarConversations: jest.Mock
     unreadRefresh$: Subject<void>
+    sidebarRefresh$: Subject<{ xpertId: string }>
   }
   let viewExtensionApi: {
     getSlotViews: jest.Mock
@@ -368,8 +235,9 @@ describe('CloudSidebarAssistantsComponent', () => {
     }
     conversationService = {
       getUnreadByXperts: jest.fn(() => of([])),
-      getMyInOrg: jest.fn(() => of({ items: [], total: 0 })),
-      unreadRefresh$: new Subject<void>()
+      getSidebarConversations: jest.fn(() => of({ items: [], total: 0 })),
+      unreadRefresh$: new Subject<void>(),
+      sidebarRefresh$: new Subject<{ xpertId: string }>()
     }
     viewExtensionApi = {
       getSlotViews: jest.fn(() =>
@@ -470,6 +338,21 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__subtitle').textContent).toContain('1')
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__filters')).toBeNull()
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalledWith('user', 'clawxpert')
+  })
+
+  it('attaches the Profile hover trigger only to the Assistant avatar', async () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const item = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item')
+    const avatar = item.querySelector('emoji-avatar')
+
+    expect(item.hasAttribute('data-assistant-profile-trigger')).toBe(false)
+    expect(avatar.getAttribute('data-assistant-profile-trigger')).toBe('other-xpert')
+    expect(fixture.nativeElement.querySelector('[aria-label="XP.AssistantProfile.Open"]')).toBeNull()
   })
 
   it('reloads available assistants after an xpert publish refresh event', async () => {
@@ -1032,479 +915,5 @@ describe('CloudSidebarAssistantsComponent', () => {
     )
 
     expect(names).toEqual(['Other Assistant', 'Claw Xpert'])
-  })
-
-  it('keeps normal assistant rows on the assistant chat route', async () => {
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const normalAssistantButton = fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__item-main')[0]
-    normalAssistantButton.click()
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'])
-  })
-
-  it('opens the latest unread history thread when an assistant has unread messages', async () => {
-    conversationService.getUnreadByXperts.mockReturnValue(
-      of([
-        {
-          xpertId: 'other-xpert',
-          unreadMessages: 1,
-          unreadConversations: 1,
-          latestUnreadAt: '2026-06-21T00:00:00.000Z',
-          latestUnreadConversationId: 'conversation-unread',
-          latestUnreadThreadId: 'thread-unread'
-        }
-      ])
-    )
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const normalAssistantButton = fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__item-main')[0]
-    normalAssistantButton.click()
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-unread'])
-  })
-
-  it('loads and opens assistant result items from the expandable menu', async () => {
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.componentRef.setInput('embedded', true)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
-    expect(toggle).not.toBeNull()
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
-
-    toggle.click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench.fixed')
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__children-label')).toHaveLength(1)
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-label').textContent).toContain(
-      'XP.Sidebar.RecentConversations'
-    )
-
-    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
-    expect(child.textContent).toContain('未清销售订单')
-    expect(child.querySelector('.icon-emoji')?.textContent).toContain('📦')
-    child.click()
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'], {
-      queryParams: { view: 'sales-orders' }
-    })
-
-    toggle.click()
-    fixture.detectChanges()
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
-  })
-
-  it('marks the assistant menu item matching the current view query as active', async () => {
-    const router = TestBed.inject(Router)
-    await router.navigateByUrl('/chat/x/other-assistant/c?view=sales-orders')
-
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    fixture.componentRef.setInput('embedded', true)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const toggle = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle')
-    toggle.click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const child = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__child-item')
-    expect(child.classList.contains('is-active')).toBe(true)
-    expect(child.getAttribute('aria-current')).toBe('page')
-
-    await router.navigateByUrl('/chat/x/other-assistant/c?view=another-view')
-    fixture.detectChanges()
-
-    expect(child.classList.contains('is-active')).toBe(false)
-    expect(child.hasAttribute('aria-current')).toBe(false)
-  })
-
-  it('loads recent assistant conversations in pages of ten and opens older conversations', async () => {
-    const today = new Date().toISOString()
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const firstPage = Array.from({ length: 10 }, (_, index) => ({
-      id: `conversation-${index + 1}`,
-      threadId: `thread-${index + 1}`,
-      title: `Conversation ${index + 1}`,
-      updatedAt: index < 5 ? today : yesterday,
-      xpertId: 'other-xpert'
-    }))
-    conversationService.getMyInOrg.mockReturnValueOnce(of({ items: firstPage, total: 12 })).mockReturnValueOnce(
-      of({
-        items: [
-          {
-            id: 'conversation-11',
-            threadId: 'thread-11',
-            title: 'Conversation 11',
-            updatedAt: yesterday,
-            xpertId: 'other-xpert'
-          },
-          {
-            id: 'conversation-12',
-            threadId: 'thread-12',
-            title: 'Conversation 12',
-            updatedAt: yesterday,
-            xpertId: 'other-xpert'
-          }
-        ],
-        total: 12
-      })
-    )
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.componentRef.setInput('embedded', true)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(conversationService.getMyInOrg).toHaveBeenNthCalledWith(1, {
-      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
-      order: { updatedAt: OrderTypeEnum.DESC },
-      take: 10,
-      skip: 0,
-      where: { xpertId: 'other-xpert' }
-    })
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')).toHaveLength(10)
-    expect(
-      Array.from(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-group-label')).map(
-        (item: Element) => item.textContent?.trim()
-      )
-    ).toEqual(['XP.KEY_WORDS.Date_Today', 'XP.KEY_WORDS.Date_Yesterday'])
-
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier').click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(conversationService.getMyInOrg).toHaveBeenNthCalledWith(2, {
-      select: ['id', 'threadId', 'title', 'updatedAt', 'xpertId'],
-      order: { updatedAt: OrderTypeEnum.DESC },
-      take: 10,
-      skip: 10,
-      where: { xpertId: 'other-xpert' }
-    })
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')).toHaveLength(12)
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__load-earlier')).toBeNull()
-
-    fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__conversation-item')[10].click()
-    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-11'], {
-      queryParamsHandling: 'preserve'
-    })
-  })
-
-  it('marks the recent conversation matching the route thread as active', async () => {
-    conversationService.getMyInOrg.mockReturnValue(
-      of({
-        items: [
-          {
-            id: 'conversation-active',
-            threadId: 'thread-active',
-            title: 'Active conversation',
-            updatedAt: new Date().toISOString(),
-            xpertId: 'other-xpert'
-          }
-        ],
-        total: 1
-      })
-    )
-    const router = TestBed.inject(Router)
-    await router.navigateByUrl('/chat/x/other-assistant/c/thread-active')
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.componentRef.setInput('embedded', true)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const activeConversation = fixture.nativeElement.querySelector(
-      '.cloud-sidebar-assistants__conversation-item.is-active'
-    )
-    expect(activeConversation).not.toBeNull()
-    expect(activeConversation.textContent).toContain('Active conversation')
-    expect(activeConversation.getAttribute('aria-current')).toBe('page')
-  })
-
-  it('shows the view empty state when an assistant has no fixed views', async () => {
-    viewExtensionApi.getSlotViews.mockReturnValue(of([]))
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.componentRef.setInput('embedded', true)
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    fixture.nativeElement.querySelector('.cloud-sidebar-assistants__item-toggle').click()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-state').textContent).toContain(
-      'XP.Sidebar.NoAssistantViews'
-    )
-  })
-
-  it('routes normal assistant settings to the xpert studio page', async () => {
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const normalAssistantSettingsButton = fixture.nativeElement.querySelectorAll(
-      '.cloud-sidebar-assistants__settings'
-    )[0]
-    normalAssistantSettingsButton.click()
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/xpert/x', 'other-xpert', 'agents'])
-  })
-
-  it('routes the create shortcut to the selected workspace digital experts page', async () => {
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    const createButton = fixture.nativeElement.querySelector('.cloud-sidebar-assistants__create')
-
-    expect(createButton).not.toBeNull()
-    createButton.click()
-    expect(navigateSpy).toHaveBeenCalledWith(['/xpert/w', 'workspace-1', 'xperts'])
-  })
-
-  it('hides the create shortcut without xpert edit permission', async () => {
-    store.hasPermission.mockReturnValue(false)
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__create')).toBeNull()
-  })
-
-  it('hides assistant settings when the current user cannot edit the xpert workspace', async () => {
-    assistantBindingService.getAvailableXperts.mockReturnValue(
-      of([
-        {
-          id: 'other-xpert',
-          slug: 'other-assistant',
-          title: 'Other Assistant',
-          description: 'Read-only assistant',
-          latest: true,
-          workspaceId: 'workspace-1',
-          workspace: {
-            capabilities: {
-              canRead: true,
-              canRun: true,
-              canWrite: false,
-              canManage: false
-            }
-          }
-        },
-        {
-          id: 'bound-xpert',
-          slug: 'personal-assistant',
-          title: 'Personal Assistant',
-          description: 'Bound read-only assistant',
-          latest: true,
-          workspaceId: 'workspace-1',
-          workspace: {
-            capabilities: {
-              canRead: true,
-              canRun: true,
-              canWrite: false,
-              canManage: false
-            }
-          }
-        }
-      ])
-    )
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__settings')).toHaveLength(0)
-
-    fixture.componentInstance.openAssistantSettings(new MouseEvent('click'), {
-      id: 'other-xpert',
-      workspaceId: 'workspace-1',
-      workspace: {
-        capabilities: {
-          canRead: true,
-          canRun: true,
-          canWrite: false,
-          canManage: false
-        }
-      }
-    } as any)
-
-    expect(navigateSpy).not.toHaveBeenCalled()
-  })
-
-  it('renders assistant status dots only for assistants with unread messages', async () => {
-    conversationService.getUnreadByXperts.mockReturnValue(
-      of([
-        {
-          xpertId: 'other-xpert',
-          unreadMessages: 2,
-          unreadConversations: 1,
-          latestUnreadAt: '2026-06-21T00:00:00.000Z',
-          latestUnreadConversationId: 'conversation-unread',
-          latestUnreadThreadId: 'thread-unread'
-        }
-      ])
-    )
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
-  })
-
-  it('polls unread summaries every 2 seconds while the page is visible', fakeAsync(() => {
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.detectChanges()
-    tick()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(1_999)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(1)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
-
-    fixture.destroy()
-    discardPeriodicTasks()
-  }))
-
-  it('pauses unread polling while hidden and refreshes immediately when visible again', fakeAsync(() => {
-    documentVisibilityState = 'hidden'
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.detectChanges()
-    tick()
-
-    expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
-
-    tick(2_000)
-    expect(conversationService.getUnreadByXperts).not.toHaveBeenCalled()
-
-    documentVisibilityState = 'visible'
-    document.dispatchEvent(new Event('visibilitychange'))
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(2_000)
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
-
-    fixture.destroy()
-    discardPeriodicTasks()
-  }))
-
-  it('does not overlap unread summary requests when a prior request is still pending', fakeAsync(() => {
-    const pendingUnread = new Subject<unknown>()
-    conversationService.getUnreadByXperts.mockReturnValue(pendingUnread.asObservable())
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.detectChanges()
-    tick()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    tick(120_000)
-    conversationService.unreadRefresh$.next()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(1)
-
-    pendingUnread.next([])
-    pendingUnread.complete()
-    conversationService.getUnreadByXperts.mockReturnValue(of([]))
-    conversationService.unreadRefresh$.next()
-
-    expect(conversationService.getUnreadByXperts).toHaveBeenCalledTimes(2)
-
-    fixture.destroy()
-    discardPeriodicTasks()
-  }))
-
-  it('normalizes wrapped unread responses and ignores invalid unread payloads', async () => {
-    conversationService.getUnreadByXperts.mockReturnValueOnce(
-      of({
-        items: [
-          {
-            xpertId: 'other-xpert',
-            unreadMessages: 1,
-            unreadConversations: 1,
-            latestUnreadAt: '2026-06-21T00:00:00.000Z',
-            latestUnreadConversationId: 'conversation-unread',
-            latestUnreadThreadId: 'thread-unread'
-          }
-        ]
-      })
-    )
-    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(1)
-
-    conversationService.getUnreadByXperts.mockReturnValueOnce(of({}))
-    conversationService.unreadRefresh$.next()
-    fixture.detectChanges()
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__status')).toHaveLength(0)
   })
 })

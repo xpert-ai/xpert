@@ -6,7 +6,8 @@ import {
 
 export type KnowledgebaseCitationEffectTarget = {
   knowledgebaseId?: string
-  documentId: string
+  documentId?: string
+  faqId?: string
   chunkId?: string
   page?: number
   sourceBlockIds?: string[]
@@ -34,20 +35,23 @@ export function getKnowledgebaseCitationTargetFromEffectEvent(
   }
 
   const data = isRecord(event.data) ? event.data : null
+  const citationUrl = readString(data?.['citationUrl'])
+  const faqUrlTarget = parseFAQCitationUrl(citationUrl)
   const documentId = readString(data?.['documentId'])
-  const knowledgebaseId = readString(data?.['knowledgebaseId'])
+  const knowledgebaseId = readString(data?.['knowledgebaseId']) ?? faqUrlTarget?.knowledgebaseId
+  const faqId = readString(data?.['faqId']) ?? faqUrlTarget?.faqId
   const chunkId = readString(data?.['chunkId'])
   const page = readPositiveInteger(data?.['page'])
   const sourceBlockIds = readStringArray(data?.['sourceBlockIds'])
   const evidenceText = readString(data?.['evidenceText'])
   const documentName = readString(data?.['documentName'])
-  const citationUrl = readString(data?.['citationUrl'])
-  if (!documentId) {
+  if (!documentId && !faqId) {
     return null
   }
 
   return {
-    documentId,
+    ...(documentId ? { documentId } : {}),
+    ...(faqId ? { faqId } : {}),
     ...(knowledgebaseId ? { knowledgebaseId } : {}),
     ...(chunkId ? { chunkId } : {}),
     ...(page ? { page } : {}),
@@ -76,6 +80,7 @@ export function createKnowledgebaseCitationOpenHostEvent(
       target.knowledgebaseId,
       target.documentId,
       target.chunkId,
+      target.faqId,
       receivedAt
     ]),
     type: ASSISTANT_CITATION_OPEN_EVENT,
@@ -85,6 +90,19 @@ export function createKnowledgebaseCitationOpenHostEvent(
     ...(context.hostId ? { hostId: context.hostId } : {}),
     ...(context.threadId ? { threadId: context.threadId } : {}),
     data: target
+  }
+}
+
+function parseFAQCitationUrl(value: string | null) {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'xpert:' || url.hostname !== 'knowledgebase' || url.pathname !== '/faq') return null
+    const knowledgebaseId = readString(url.searchParams.get('knowledgebaseId'))
+    const faqId = readString(url.searchParams.get('faqId'))
+    return knowledgebaseId && faqId ? { knowledgebaseId, faqId } : null
+  } catch {
+    return null
   }
 }
 

@@ -13,7 +13,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 import { BaseToolset } from '../xpert-toolset/toolset'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { McpCapabilityCatalog } from '../mcp-publication'

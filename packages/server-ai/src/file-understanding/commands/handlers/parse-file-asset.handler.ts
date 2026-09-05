@@ -194,7 +194,7 @@ export class ParseFileAssetHandler implements ICommandHandler<ParseFileAssetComm
     }
 
     private async projectParsedPageImages(asset: FileAsset) {
-        if (!asset.conversationId || (!asset.projectId && !asset.xpertId)) {
+        if ((!asset.conversationId && !asset.projectId) || (!asset.projectId && !asset.xpertId)) {
             return null
         }
         return await this.workspaceProjectionService
