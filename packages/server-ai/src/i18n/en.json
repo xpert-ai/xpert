@@ -1,5 +1,7 @@
 {
     "Error": {
+        "ProjectPurgeFileMismatch": "File does not belong to the Project being permanently deleted.",
+        "ProjectPurgeOwnerRequired": "Only the owner can permanently delete an archived Project.",
         "SandboxProviderProjectContentReadOnlyUnsupported": "Sandbox provider {{provider}} does not support read-only Project Content.",
         "ProjectContentApiRequired": "Use the Project Content API to modify project.md or Project skills.",
         "ProjectContentDeleteApiRequired": "Project instructions and skills cannot be deleted through the file API.",

@@ -28,6 +28,29 @@ describe('XpertProjectAccessService', () => {
         xpertBindingService.contains.mockReturnValue(false)
     })
 
+    it.each([
+        ['user-1', 'archived', true],
+        ['user-1', 'active', false],
+        ['other', 'archived', false]
+    ] as const)('restricts purge to archived project owners: %s %s', async (ownerId, status, allowed) => {
+        jest.mocked(projectRepository.findOne).mockResolvedValue({
+            id: 'project-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId,
+            status
+        } as XpertProject)
+        jest.mocked(membershipRepository.findOne).mockResolvedValue({ role: 'manager' } as XpertProjectMembership)
+        const result = createService().assertCanPurge('project-1')
+        if (allowed) await expect(result).resolves.toMatchObject({ role: 'owner' })
+        else await expect(result).rejects.toBeInstanceOf(ForbiddenException)
+        expect(projectRepository.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 'project-1', tenantId: 'tenant-1', organizationId: 'org-1' }
+            })
+        )
+    })
+
     it('allows a manager to manage but rejects an editor', async () => {
         jest.mocked(projectRepository.findOne).mockResolvedValue({
             id: 'project-1',

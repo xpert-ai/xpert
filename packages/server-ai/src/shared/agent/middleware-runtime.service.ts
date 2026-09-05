@@ -1,3 +1,4 @@
+import { XpertProjectPurgeService } from '../../xpert-project/services/project-purge.service'
 import { randomUUID } from 'crypto'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
@@ -1205,7 +1206,8 @@ export class AgentMiddlewareRuntimeService {
             [
                 ProjectProvisioningRuntimeCapability,
                 {
-                    ensure: (input) => this.ensureProject(input)
+                    ensure: (input) => this.ensureProject(input),
+                    purge: (input) => this.moduleRef.get(XpertProjectPurgeService, { strict: false }).purge(input)
                 }
             ]
         ])

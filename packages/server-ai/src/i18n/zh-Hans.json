@@ -1,5 +1,7 @@
 {
     "Error": {
+        "ProjectPurgeFileMismatch": "文件不属于正在永久删除的项目。",
+        "ProjectPurgeOwnerRequired": "只有项目所有者才能永久删除已归档的项目。",
         "SandboxProviderProjectContentReadOnlyUnsupported": "沙盒提供者 {{provider}} 不支持只读项目内容。",
         "ProjectContentApiRequired": "请使用项目内容 API 修改 project.md 或项目技能。",
         "ProjectContentDeleteApiRequired": "不能通过文件 API 删除项目指令和技能。",
