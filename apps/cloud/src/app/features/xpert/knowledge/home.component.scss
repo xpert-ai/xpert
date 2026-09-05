@@ -4,354 +4,422 @@
   @apply block h-full w-full overflow-hidden;
 }
 
-.knowledge-home {
-  @apply flex h-full min-h-0 min-w-0 flex-col bg-components-card-bg;
+.knowledge-library {
+  @apply flex h-full min-h-0 min-w-0 flex-col text-text-primary;
+  background-color: var(--color-components-card-bg);
+  letter-spacing: 0;
 }
 
-.knowledge-home__header {
-  @apply flex shrink-0 items-center justify-between gap-4 border-b border-border px-8 py-6;
+.knowledge-library__header {
+  @apply shrink-0 px-10 pb-4 pt-7;
 }
 
-.knowledge-home__header h1 {
-  @apply text-2xl font-semibold text-text-primary;
+.knowledge-library__heading {
+  @apply max-w-3xl;
 }
 
-.knowledge-home__header p {
-  @apply mt-1 text-sm text-text-tertiary;
-}
-
-.knowledge-summary__actions,
-.knowledge-editor__actions {
+.knowledge-library__title-row {
   @apply flex items-center gap-2;
 }
 
-.text-action,
-.icon-action,
-.primary-action,
-.sidebar-add,
-.new-knowledgebase-link,
-.knowledge-nav-item,
-.knowledge-file-row,
-.knowledge-breadcrumbs button,
-.knowledge-menu button {
-  @apply transition-colors;
+.knowledge-library h1 {
+  @apply text-3xl font-semibold leading-10;
 }
 
-.text-action {
-  @apply inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-50;
+.knowledge-library__heading p {
+  @apply mt-1 text-sm leading-6 text-text-tertiary;
 }
 
-.icon-action {
-  @apply inline-flex size-9 items-center justify-center rounded-md text-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-40;
+.header-action,
+.card-icon-action {
+  @apply inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
 }
 
-.icon-action--muted {
-  @apply text-text-tertiary;
+.header-action {
+  @apply size-9 text-xl text-text-secondary hover:bg-hover-bg hover:text-text-primary;
 }
 
-.primary-action {
-  @apply inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50;
-}
-
-.knowledge-home__body {
+.knowledge-library__body {
   @apply flex min-h-0 flex-1;
 }
 
-.knowledge-sidebar {
-  @apply flex w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border bg-components-card-bg px-4 py-6;
+.scope-rail-shell {
+  @apply relative flex min-h-0 shrink-0;
 }
 
-.knowledge-sidebar__section-title,
-.knowledge-sidebar__section-heading {
-  @apply px-4 text-sm font-semibold text-text-tertiary;
+.knowledge-content {
+  @apply flex min-w-0 flex-1 flex-col;
 }
 
-.knowledge-sidebar__section-title {
-  @apply mb-3 mt-4;
+.scope-rail {
+  @apply flex h-full w-full flex-col items-center gap-1 overflow-y-auto border-r border-border bg-background-default-subtle px-1 py-3;
 }
 
-.knowledge-sidebar__section-heading {
-  @apply mt-8 flex items-center justify-between py-3;
+.scope-rail__item {
+  @apply relative flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[11px] text-text-tertiary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
 }
 
-.knowledge-sidebar__empty {
-  @apply px-4 py-2 text-sm text-text-tertiary;
+.scope-rail__item > i {
+  @apply text-base;
 }
 
-.knowledge-nav-item {
-  @apply flex min-h-14 w-full items-center gap-3 rounded-md px-4 text-left text-base text-text-secondary hover:bg-hover-bg;
+.scope-rail__item.active {
+  @apply font-medium text-text-primary shadow-sm;
+  background-color: var(--color-hover-bg);
 }
 
-.knowledge-nav-item.active {
-  @apply bg-components-card-bg font-semibold text-text-primary;
+.scope-rail__count {
+  @apply hidden min-w-4 rounded-full bg-background-default-subtle px-1 text-center text-[10px] leading-4 text-text-tertiary;
 }
 
-.knowledge-nav-item__avatar {
-  @apply size-9 shrink-0 overflow-hidden rounded-md;
+.scope-rail__item.active .scope-rail__count {
+  color: var(--color-text-primary);
+  background-color: var(--color-components-card-bg);
 }
 
-.knowledge-nav-item__name {
-  @apply min-w-0 flex-1 truncate;
+.scope-rail__resize-handle {
+  @apply absolute inset-y-0 right-0 z-10 w-2 cursor-col-resize outline-none;
+  transform: translateX(50%);
+  touch-action: none;
+  user-select: none;
 }
 
-.knowledge-nav-item__scope {
-  @apply inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-background-default-subtle text-base text-text-tertiary;
+.scope-rail__resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background-color: transparent;
+  transition: background-color 150ms ease;
 }
 
-.sidebar-add {
-  @apply inline-flex size-7 items-center justify-center rounded-md text-base text-text-tertiary hover:bg-hover-bg hover:text-text-primary;
+.scope-rail__resize-handle:hover::after,
+.scope-rail__resize-handle:focus-visible::after,
+.scope-rail-shell--resizing .scope-rail__resize-handle::after {
+  background-color: var(--color-border);
 }
 
-.new-knowledgebase-link {
-  @apply flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-text-secondary hover:bg-hover-bg hover:text-text-primary;
+.scope-rail-shell--expanded .scope-rail {
+  @apply items-stretch px-2;
 }
 
-.new-knowledgebase-link--top {
-  @apply mb-2 shrink-0;
+.scope-rail-shell--expanded .scope-rail__item {
+  @apply min-h-11 flex-row justify-start gap-3 px-3 text-sm;
 }
 
-.knowledge-main {
-  @apply flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden;
+.scope-rail-shell--expanded .scope-rail__item > i {
+  @apply text-lg;
 }
 
-.knowledge-summary {
-  @apply flex shrink-0 items-center justify-between gap-6 border-b border-border px-12 py-10;
+.scope-rail-shell--expanded .scope-rail__count {
+  @apply static ml-auto inline-block;
 }
 
-.knowledge-summary__identity {
-  @apply flex min-w-0 items-center gap-5;
+.knowledge-collection {
+  @apply min-w-0 flex-1 overflow-y-auto px-10 pb-12 pt-4;
 }
 
-.knowledge-summary__avatar {
-  @apply size-20 shrink-0 overflow-hidden rounded-xl;
+.collection-sections {
+  @apply flex flex-col gap-8;
 }
 
-.knowledge-summary__title-row {
-  @apply flex flex-wrap items-center gap-3;
+.collection-section {
+  @apply min-w-0;
 }
 
-.knowledge-summary h2 {
-  @apply truncate text-2xl font-semibold text-text-primary;
+.collection-section__header {
+  @apply mb-4 flex min-h-10 w-fit max-w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
 }
 
-.knowledge-summary p {
-  @apply mt-2 max-w-2xl truncate text-base text-text-tertiary;
+.collection-section__title {
+  @apply inline-flex items-center gap-2;
 }
 
-.scope-badge {
-  @apply inline-flex items-center gap-1 rounded-full bg-background-default-subtle px-2 py-1 text-xs text-text-tertiary;
+.collection-section__title > i {
+  @apply text-lg text-text-tertiary;
 }
 
-.knowledge-files {
-  @apply flex min-h-0 flex-1 flex-col px-12 py-9;
+.collection-section--pinned .collection-section__title > i {
+  @apply text-text-primary;
 }
 
-.knowledge-files__toolbar {
-  @apply flex shrink-0 items-center justify-between gap-4;
+.collection-section__count {
+  @apply min-w-6 rounded-full bg-background-default-subtle px-2 py-0.5 text-center text-xs font-normal text-text-tertiary;
 }
 
-.knowledge-files__heading {
-  @apply flex items-baseline gap-3;
+.collection-section__toggle {
+  @apply text-lg text-text-tertiary transition-transform;
+  margin-left: 0.125rem;
 }
 
-.knowledge-files__heading h3 {
-  @apply text-2xl font-semibold text-text-primary;
+.collection-section__toggle.expanded {
+  transform: rotate(90deg);
 }
 
-.knowledge-files__heading span {
+.knowledge-grid {
+  @apply grid gap-5;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.knowledge-card {
+  @apply relative flex min-h-48 min-w-0 cursor-pointer flex-col border border-border p-5 shadow-sm transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--color-text-accent) 5%, var(--color-components-card-bg));
+}
+
+.knowledge-card:hover {
+  background-color: color-mix(in srgb, var(--color-text-accent) 8%, var(--color-components-card-bg));
+}
+
+.knowledge-card--team {
+  background-color: color-mix(in srgb, var(--color-text-success) 6%, var(--color-components-card-bg));
+}
+
+.knowledge-card--team:hover {
+  background-color: color-mix(in srgb, var(--color-text-success) 10%, var(--color-components-card-bg));
+}
+
+.knowledge-card--public {
+  background-color: color-mix(in srgb, var(--color-text-warning) 7%, var(--color-components-card-bg));
+}
+
+.knowledge-card--public:hover {
+  background-color: color-mix(in srgb, var(--color-text-warning) 11%, var(--color-components-card-bg));
+}
+
+.knowledge-card--pinned {
+  border-color: color-mix(in srgb, var(--color-text-accent) 36%, var(--color-border));
+}
+
+.knowledge-card__actions {
+  @apply absolute right-3 top-3 flex items-center gap-1;
+}
+
+.card-icon-action {
+  @apply size-8 text-base text-text-tertiary hover:text-text-primary;
+}
+
+.card-icon-action:hover {
+  background-color: var(--color-components-card-bg);
+}
+
+.favorite-action {
+  @apply opacity-0;
+}
+
+.favorite-action.active {
+  @apply opacity-100 text-text-warning;
+}
+
+.knowledge-card:hover .favorite-action,
+.knowledge-card:focus-within .favorite-action {
+  @apply opacity-100;
+}
+
+.knowledge-card__header {
+  @apply flex min-w-0 items-start justify-between gap-3 pr-16;
+}
+
+.knowledge-card__title-row {
+  @apply flex min-w-0 items-center gap-2;
+}
+
+.knowledge-card__title-row h2 {
+  @apply truncate text-lg font-semibold leading-7 text-text-primary;
+}
+
+.knowledge-card__type-icon {
+  @apply shrink-0 text-lg text-text-success;
+}
+
+.knowledge-card__pin-icon {
+  @apply shrink-0 text-base text-text-accent;
+}
+
+.processing-status {
+  @apply inline-flex shrink-0 items-center gap-1 rounded-full bg-background-default-subtle px-2 py-1 text-[11px] text-text-tertiary;
+}
+
+.knowledge-card__description {
+  @apply mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-text-tertiary;
+}
+
+.knowledge-card__footer {
+  @apply mt-auto flex items-end justify-between gap-4 border-t border-border/70 pt-4;
+}
+
+.knowledge-card__features {
+  @apply flex min-w-0 items-center gap-2;
+}
+
+.feature-badge,
+.permission-badge {
+  @apply inline-flex h-7 items-center gap-1 rounded-md bg-background-default-subtle px-2 text-xs text-text-tertiary;
+}
+
+.feature-badge--graph {
+  @apply text-text-success;
+}
+
+.permission-badge {
+  @apply shrink-0 bg-transparent px-0;
+}
+
+.knowledge-card--skeleton {
+  @apply pointer-events-none cursor-default gap-4;
+}
+
+.skeleton-line {
+  @apply block h-3 w-full animate-pulse rounded bg-background-default-subtle;
+}
+
+.skeleton-line--title {
+  @apply h-5 w-2/5;
+}
+
+.skeleton-line--short {
+  @apply w-3/5;
+}
+
+.collection-state {
+  @apply flex min-h-72 flex-col items-center justify-center gap-2 text-center text-sm text-text-tertiary;
+}
+
+.collection-state > i {
+  @apply mb-2 text-4xl;
+}
+
+.collection-state strong {
+  @apply text-base font-medium text-text-secondary;
+}
+
+.collection-state span {
+  @apply max-w-md text-xs leading-5;
+}
+
+.collection-state button {
+  @apply mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
+  background-color: var(--color-components-card-bg);
+}
+
+.collection-state--error {
+  color: var(--color-text-destructive);
+}
+
+.knowledgebase-menu {
+  @apply min-w-44 rounded-lg border border-border p-1.5 shadow-lg;
+  background-color: var(--color-components-card-bg);
+}
+
+.knowledgebase-menu button {
+  @apply flex w-full items-center gap-2 rounded-md bg-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
+  background-color: transparent;
+}
+
+.knowledgebase-menu button:focus {
+  background-color: transparent;
+}
+
+.knowledgebase-menu button:hover {
+  background-color: var(--color-hover-bg);
+}
+
+.knowledgebase-menu button > i {
   @apply text-base text-text-tertiary;
 }
 
-.knowledge-files__tools {
-  @apply flex items-center gap-2;
+.knowledgebase-menu button:disabled {
+  @apply pointer-events-none opacity-60;
 }
 
-.knowledge-search {
-  @apply flex h-9 w-56 items-center gap-2 rounded-md border border-border px-3 text-text-tertiary focus-within:border-primary;
+.knowledgebase-menu__separator {
+  @apply my-1 border-t border-border;
 }
 
-.knowledge-search input {
-  @apply min-w-0 flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary;
-}
-
-.knowledge-breadcrumbs {
-  @apply mt-6 flex min-h-9 items-center gap-1 overflow-x-auto border-b border-border pb-3 text-sm;
-}
-
-.knowledge-breadcrumbs button {
-  @apply shrink-0 rounded px-1 text-text-tertiary hover:bg-hover-bg hover:text-text-primary;
-}
-
-.knowledge-breadcrumbs button.current {
-  @apply font-medium text-text-primary;
-}
-
-.knowledge-breadcrumbs i {
-  @apply shrink-0 text-text-tertiary;
-}
-
-.knowledge-file-list {
-  @apply min-h-0 flex-1 overflow-y-auto;
-}
-
-.knowledge-file-list__header,
-.knowledge-file-row {
-  @apply grid grid-cols-[minmax(0,1fr)_12rem] items-center gap-4;
-}
-
-.knowledge-file-list__header {
-  @apply border-b border-border px-5 py-4 text-sm font-medium text-text-tertiary;
-}
-
-.knowledge-file-row {
-  @apply min-h-16 w-full border-b border-border/70 px-5 text-left text-base text-text-secondary hover:bg-hover-bg;
-}
-
-.knowledge-file-row__name {
-  @apply flex min-w-0 items-center gap-3;
-}
-
-.knowledge-file-row__updated {
-  @apply text-xs text-text-tertiary;
-}
-
-.file-icon {
-  @apply inline-flex size-10 shrink-0 items-center justify-center rounded-md text-xl;
-}
-
-.file-icon.folder,
-.file-icon.presentation {
-  background-color: var(--color-status-warning-bg);
-  color: var(--color-text-warning);
-}
-
-.file-icon.pdf {
-  background-color: var(--color-status-error-bg);
+.knowledgebase-menu button.danger,
+.knowledgebase-menu button.danger > i {
   color: var(--color-text-destructive);
 }
 
-.file-icon.document {
-  background-color: var(--color-text-highlight-bg);
-  color: var(--color-text-accent);
+@media (max-width: 1180px) {
+  .knowledge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.file-icon.spreadsheet {
-  background-color: color-mix(in srgb, var(--color-text-success) 16%, transparent);
-  color: var(--color-text-success);
-}
-
-.file-icon.file {
-  @apply bg-background-default-subtle text-text-tertiary;
-}
-
-.knowledge-state,
-.knowledge-empty-home {
-  @apply flex min-h-56 flex-1 flex-col items-center justify-center gap-2 text-center text-sm text-text-tertiary;
-}
-
-.knowledge-state > i,
-.knowledge-empty-home > i {
-  @apply text-3xl;
-}
-
-.knowledge-state strong,
-.knowledge-empty-home h2 {
-  @apply font-medium text-text-secondary;
-}
-
-.knowledge-state span,
-.knowledge-empty-home p {
-  @apply text-xs text-text-tertiary;
-}
-
-.knowledge-state--error {
-  color: var(--color-text-destructive);
-}
-
-.knowledge-editor-overlay {
-  @apply fixed inset-0 z-50 p-4 backdrop-blur-sm;
-  background-color: color-mix(in srgb, var(--color-background-body) 80%, transparent);
-}
-
-.knowledge-editor {
-  @apply flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-components-card-bg shadow-xl;
-}
-
-.knowledge-editor__header {
-  @apply flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-3;
-}
-
-.knowledge-editor__title {
-  @apply flex min-w-0 items-center gap-3 text-sm text-text-primary;
-}
-
-.knowledge-editor__title strong {
-  @apply truncate;
-}
-
-.editor-status {
-  @apply text-xs text-text-tertiary;
-}
-
-.knowledge-editor__body {
-  @apply min-h-0 flex-1 overflow-hidden;
-}
-
-.knowledge-markdown-editor,
-.knowledge-spreadsheet-editor,
-.knowledge-docx-editor {
-  @apply block h-full min-h-0 w-full;
-}
-
-.knowledge-menu {
-  @apply min-w-52 rounded-lg border border-border bg-components-card-bg p-1 shadow-lg;
-}
-
-.knowledge-menu button {
-  @apply flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary;
-}
-
-.knowledge-menu button i {
-  @apply w-4 text-base text-text-tertiary;
-}
-
-@media (max-width: 768px) {
-  .knowledge-home__header,
-  .knowledge-summary,
-  .knowledge-files {
-    @apply px-4;
+@media (max-width: 760px) {
+  .knowledge-library__header {
+    @apply px-5 py-5;
   }
 
-  .knowledge-sidebar {
-    @apply w-52;
+  .knowledge-library h1 {
+    @apply text-2xl leading-8;
   }
 
-  .knowledge-summary {
-    @apply items-start;
+  .knowledge-library__body {
+    @apply grid;
+    grid-template-areas:
+      'header'
+      'scope'
+      'collection';
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 
-  .knowledge-summary__avatar {
-    @apply size-12;
+  .knowledge-content {
+    display: contents;
   }
 
-  .knowledge-files__toolbar {
-    @apply items-start;
+  .knowledge-library__header {
+    grid-area: header;
   }
 
-  .knowledge-search {
-    @apply w-40;
+  .scope-rail-shell {
+    @apply w-full;
+    width: 100% !important;
+    grid-area: scope;
   }
 
-  .knowledge-file-list__header,
-  .knowledge-file-row {
-    @apply grid-cols-[minmax(0,1fr)_7rem] px-2;
+  .scope-rail {
+    @apply flex-row overflow-x-auto border-b border-r-0 px-4 py-2;
   }
 
-  .knowledge-editor-overlay {
-    @apply p-0;
+  .scope-rail__resize-handle {
+    display: none;
   }
 
-  .knowledge-editor {
-    @apply rounded-none border-0;
+  .scope-rail-shell--expanded .scope-rail {
+    @apply items-center px-4;
+  }
+
+  .scope-rail-shell--expanded .scope-rail__item {
+    @apply min-h-12 w-auto min-w-16 shrink-0 flex-col justify-center gap-1 px-3 text-xs;
+  }
+
+  .scope-rail-shell--expanded .scope-rail__item > i {
+    @apply text-xl;
+  }
+
+  .scope-rail-shell--expanded .scope-rail__count {
+    @apply absolute ml-0;
+  }
+
+  .scope-rail__item {
+    @apply min-h-12 w-auto min-w-16 shrink-0 px-3;
+  }
+
+  .knowledge-collection {
+    @apply px-5 pb-8 pt-5;
+    grid-area: collection;
+  }
+
+  .knowledge-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .knowledge-card {
+    @apply min-h-44;
   }
 }
