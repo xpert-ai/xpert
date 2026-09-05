@@ -31,6 +31,9 @@ import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-r
 import { XpertAuthoringMiddleware } from './middlewares/xpert-authoring.middleware'
 import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
 import { XpertToolsetModule } from '../xpert-toolset'
+import { XpertProfileController } from './xpert-profile.controller'
+import { XpertProfileIndicatorsService } from './xpert-profile-indicators.service'
+import { XpertProfileIdentityService } from './xpert-profile-identity.service'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
 import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
@@ -93,7 +96,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
         SseStreamModule,
         forwardRef(() => XpertProjectModule)
     ],
-    controllers: [XpertController, XpertAccessController],
+    controllers: [XpertProfileController, XpertController, XpertAccessController],
     providers: [
         XpertService,
         XpertTriggerBootstrapRecoveryService,
@@ -101,6 +104,8 @@ import { XpertProjectModule } from '../xpert-project/project.module'
         WorkflowTriggerRegistry,
         AgentViewHostDefinition,
         PublishedXpertAccessService,
+        XpertProfileIdentityService,
+        XpertProfileIndicatorsService,
         XpertAuthoringService,
         XpertAuthoringMiddleware,
         XpertPrincipalService,
@@ -120,6 +125,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
         XpertService,
         XpertPrincipalService,
         PublishedXpertAccessService,
+        XpertProfileIdentityService,
         XpertTemplateWorkspaceInitializer,
         AssistantUserPreferenceService,
         AssistantModelSelectionService

@@ -174,7 +174,7 @@ describe('WeightedRrfFusion', () => {
                     weights: {}
                 }
             )
-        ).toThrow(new Error('Cannot fuse failed RRF batch for source: graph'))
+        ).toThrow(new Error('Cannot fuse failed RRF batch for source: graph: graph backend unavailable'))
     })
 
     it('merges overlapping document metadata with the later source taking precedence', () => {

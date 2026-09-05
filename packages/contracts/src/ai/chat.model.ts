@@ -86,6 +86,15 @@ export type TSensitiveOperation = {
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
   /**
+   * Non-persistent, response-only field populated by the sidebar endpoint.
+   * Not stored on the ChatConversation entity or in the chat_conversation table.
+   * Values are persisted separately in the current user's Assistant preferences
+   * under preferences.conversationSidebar[conversationId].
+   *
+   * @transient
+   */
+  sidebar?: TChatConversationSidebarState
+  /**
    * Thread id for agent execution
    */
   threadId: string
@@ -150,6 +159,11 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
    * per-message `fileAssets` and `ConversationFileLink`.
    */
   attachments?: IStorageFile[]
+}
+
+export type TChatConversationSidebarState = {
+  pinned: boolean
+  archived: boolean
 }
 
 export type TChatConversationLog = IChatConversation & {

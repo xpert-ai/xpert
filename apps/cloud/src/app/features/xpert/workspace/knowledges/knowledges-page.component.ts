@@ -11,10 +11,12 @@ import {
   IKnowledgeDocument,
   KDocumentSourceType,
   KnowledgebaseService,
+  KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
   OrderTypeEnum
 } from '../../../../@core'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
+import { getKnowledgebaseDefaultRoute } from '../../knowledge/knowledgebase/knowledgebase-route'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 
 type DocumentSort = 'updatedAt' | 'name'
@@ -154,23 +156,50 @@ export class XpertWorkspaceKnowledgesPageComponent {
 
     this.#dialog
       .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+        width: 'min(96vw, 72rem)',
+        height: 'min(90vh, 52rem)',
+        maxWidth: 'calc(100vw - 1.5rem)',
+        maxHeight: 'calc(100vh - 1.5rem)',
+        panelClass: 'xp-overlay-pane-card',
         data: { workspaceId }
       })
       .closed.subscribe((knowledgebase) => {
         if (knowledgebase?.id) {
-          void this.#router.navigate(['/xpert/knowledges', knowledgebase.id], {
-            queryParams: { returnTo: this.workspaceReturnTo() }
-          })
+          void this.#router.navigate(
+            getKnowledgebaseDefaultRoute({
+              id: knowledgebase.id,
+              type: knowledgebase.type ?? KnowledgebaseTypeEnum.Standard
+            }),
+            {
+              queryParams: { returnTo: this.workspaceReturnTo() }
+            }
+          )
         }
       })
   }
 
   openKnowledgebaseSettings() {
-    const id = this.activeKnowledgebaseId()
-    if (id && this.canWriteActiveKnowledgebase()) {
-      void this.#router.navigate(['/xpert/knowledges', id, 'configuration'], {
-        queryParams: { returnTo: this.workspaceReturnTo() }
-      })
+    const knowledgebase = this.activeKnowledgebase()
+    if (knowledgebase && this.canWriteActiveKnowledgebase()) {
+      this.#dialog
+        .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+          width: 'min(96vw, 72rem)',
+          height: 'min(90vh, 52rem)',
+          maxWidth: 'calc(100vw - 1.5rem)',
+          maxHeight: 'calc(100vh - 1.5rem)',
+          panelClass: 'xp-overlay-pane-card',
+          data: {
+            workspaceId: this.workspaceId(),
+            knowledgebase
+          }
+        })
+        .closed.subscribe({
+          next: (updated) => {
+            if (updated) {
+              this.refresh()
+            }
+          }
+        })
     }
   }
 

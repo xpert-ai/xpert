@@ -1,4 +1,10 @@
-import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@xpert-ai/contracts'
+import {
+	DataSourceProtocolEnum,
+	IDataSource,
+	IDataSourceCapabilityQuery,
+	IDSSchema,
+	mapTranslationLanguage
+} from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
 import { QueryBus } from '@nestjs/cqrs'
@@ -106,6 +112,22 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 				]
 			}
 			return await runner.getSchema(catalog, table)
+		} finally {
+			await runner.teardown()
+		}
+	}
+
+	async queryCapability(id: string, query: IDataSourceCapabilityQuery): Promise<unknown> {
+		validateCapabilityQuery(query)
+		const dataSource = await this.prepareDataSource(id)
+		const runner = await this.queryBus.execute(
+			new DataSourceStrategyQuery(dataSource.type.type, dataSource.options)
+		)
+		try {
+			if (!runner.queryCapability) {
+				throw new Error(`Data source adapter '${dataSource.type.type}' does not support capability queries`)
+			}
+			return await runner.queryCapability(query)
 		} finally {
 			await runner.teardown()
 		}
@@ -288,4 +310,19 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 			total
 		}
 	}
+}
+
+const CAPABILITY_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/
+
+function validateCapabilityQuery(query: IDataSourceCapabilityQuery): void {
+	if (!query || !isCapabilityKey(query.capability, 128)) {
+		throw new Error('A valid data-source capability is required')
+	}
+	if (!isCapabilityKey(query.operation, 64)) {
+		throw new Error('A valid data-source capability operation is required')
+	}
+}
+
+function isCapabilityKey(value: string, maxLength: number): boolean {
+	return typeof value === 'string' && value.length <= maxLength && CAPABILITY_KEY_PATTERN.test(value)
 }

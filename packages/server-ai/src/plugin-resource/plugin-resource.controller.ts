@@ -81,6 +81,13 @@ export class PluginResourceController {
     mcpServerConnectionInfo(@Param('name') name: string, @Param('componentKey') componentKey: string) {
         return this.mcpServers.connectionInfo(name, componentKey)
     }
+
+    @Post('mcp/:componentKey/credential')
+    @UseGuards(RoleGuard)
+    @Roles(RolesEnum.SUPER_ADMIN)
+    mcpServerCredential(@Param('name') name: string, @Param('componentKey') componentKey: string) {
+        return this.mcpServers.credential(name, componentKey)
+    }
 }
 
 function parseComponentStateQuery(value: unknown) {

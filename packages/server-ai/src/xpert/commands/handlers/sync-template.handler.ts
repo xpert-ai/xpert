@@ -1,4 +1,10 @@
-import { LanguagesEnum, TXpertTemplateSyncResult } from '@xpert-ai/contracts'
+import {
+    LanguagesEnum,
+    TXpertTemplateSyncResult,
+    type IXpert,
+    type TXpertTeamConnection,
+    type TXpertTeamNode
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -47,8 +53,9 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
             throw new BadRequestException(`Source template '${currentSource.templateId}' has no Xpert team definition.`)
         }
 
-        // The template owns the draft graph, while the existing instance keeps its stable name.
+        // The template owns portable graph content; the instance keeps its name and organization-local bindings.
         parsed.team.name = xpert.name
+        preserveInstalledExternalXpertBindings(parsed, xpert)
         const templateSource = createXpertTemplateSource(template, currentSource)
         await this.commandBus.execute(
             new XpertImportCommand(parsed, {
@@ -75,6 +82,61 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
             ...(template.releaseNotes ? { releaseNotes: template.releaseNotes } : {})
         }
     }
+}
+
+/**
+ * External Xpert bindings point at organization-installed Assistant ids, so
+ * they are instance configuration rather than portable template content.
+ * Keep those nodes and edges while the template replaces the rest of the
+ * graph. A draft, when present, is authoritative over the last publication so
+ * an intentional unpublished removal is not resurrected.
+ */
+function preserveInstalledExternalXpertBindings(parsed: XpertDraftDslDTO, xpert: IXpert): void {
+    const installedGraph = xpert.draft ?? xpert.graph
+    if (!installedGraph?.nodes?.length) {
+        return
+    }
+
+    const installedExternalNodes = installedGraph.nodes.filter(
+        (node): node is TXpertTeamNode<'xpert'> => node.type === 'xpert'
+    )
+    if (!installedExternalNodes.length) {
+        return
+    }
+
+    const externalNodeKeys = new Set(installedExternalNodes.map((node) => node.key))
+    const installedExternalConnections = (installedGraph.connections ?? []).filter(
+        (connection): connection is TXpertTeamConnection =>
+            connection.type === 'xpert' && externalNodeKeys.has(connection.to)
+    )
+    const parsedNodeKeys = new Set((parsed.nodes ?? []).map((node) => node.key))
+    parsed.nodes = [
+        ...(parsed.nodes ?? []),
+        ...installedExternalNodes
+            .filter((node) => !parsedNodeKeys.has(node.key))
+            .map((node) => ({ ...node, position: { ...node.position } }))
+    ]
+
+    const parsedExternalConnections = new Map(
+        (parsed.connections ?? [])
+            .filter((connection) => connection.type === 'xpert')
+            .map((connection) => [externalConnectionIdentity(connection), connection])
+    )
+    for (const connection of installedExternalConnections) {
+        const identity = externalConnectionIdentity(connection)
+        const templateConnection = parsedExternalConnections.get(identity)
+        if (templateConnection) {
+            templateConnection.required = connection.required
+            templateConnection.readonly = connection.readonly
+        } else {
+            parsed.connections = [...(parsed.connections ?? []), { ...connection }]
+        }
+    }
+}
+
+/** Produces an endpoint identity independent of UI-generated connection keys. */
+function externalConnectionIdentity(connection: TXpertTeamConnection): string {
+    return `${connection.type}:${connection.from}:${connection.to}`
 }
 
 /** Detects declarative runtime dependencies without coupling to one schema version. */

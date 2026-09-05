@@ -368,6 +368,14 @@ describe('RemoteComponentRendererComponent', () => {
         type: 'ready'
       }
     })
+    component.handleMessage({
+      source: frameWindow,
+      data: {
+        channel: 'xpertai.remote_component',
+        protocolVersion: 1,
+        type: 'ready'
+      }
+    })
 
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -391,6 +399,34 @@ describe('RemoteComponentRendererComponent', () => {
       }),
       '*'
     )
+    expect(postMessage.mock.calls.filter(([message]) => message.type === 'init')).toHaveLength(1)
+  })
+
+  it('does not replace an iframe that completed the ready handshake with the srcdoc fallback', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.componentRef.setInput('isolatedOrigin', true)
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const frameWindow = frame.contentWindow as Window
+    const postMessage = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+    const component = fixture.componentInstance as unknown as {
+      handleFrameLoad(): void
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
+    }
+
+    component.handleMessage({
+      source: frameWindow,
+      data: { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }
+    })
+    component.handleFrameLoad()
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    expect(frame.hasAttribute('srcdoc')).toBe(false)
+    expect(postMessage.mock.calls.filter(([message]) => message.type === 'init')).toHaveLength(1)
   })
 
   it('resends init with the updated host theme when the host theme changes', async () => {
@@ -405,6 +441,13 @@ describe('RemoteComponentRendererComponent', () => {
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
     const frameWindow = frame.contentWindow as Window
     const postMessage = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+    const component = fixture.componentInstance as unknown as {
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
+    }
+    component.handleMessage({
+      source: frameWindow,
+      data: { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }
+    })
     postMessage.mockClear()
 
     document.documentElement.dataset.theme = 'dark'
@@ -596,7 +639,7 @@ describe('RemoteComponentRendererComponent', () => {
 
     const component = fixture.componentInstance as unknown as {
       handleFileAccessRequest(message: Record<string, unknown>): Promise<unknown>
-      handleFrameLoad(): void
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
     }
     await component.handleFileAccessRequest({ fileKey: 'asset-1', purpose: 'preview' })
     const initialSrc = (fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement).getAttribute('src')
@@ -616,7 +659,10 @@ describe('RemoteComponentRendererComponent', () => {
     const postMessage = jest
       .spyOn(updatedFrame.contentWindow as Window, 'postMessage')
       .mockImplementation(() => undefined)
-    component.handleFrameLoad()
+    component.handleMessage({
+      source: updatedFrame.contentWindow,
+      data: { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }
+    })
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'init',
@@ -630,6 +676,39 @@ describe('RemoteComponentRendererComponent', () => {
       projectId: 'project-2',
       conversationId: null
     })
+  })
+
+  it('keeps an inactive iframe mounted and reports tab activation without refetching its entry', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.componentRef.setInput('active', true)
+    await flushRemoteEntry(fixture)
+
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const postMessage = jest.spyOn(frame.contentWindow as Window, 'postMessage').mockImplementation(() => undefined)
+    const component = fixture.componentInstance as unknown as {
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
+    }
+    component.handleMessage({
+      source: frame.contentWindow,
+      data: { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }
+    })
+    postMessage.mockClear()
+
+    fixture.componentRef.setInput('active', false)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(fixture.nativeElement.querySelector('iframe')).toBe(frame)
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'viewActive', active: false }), '*')
+
+    fixture.componentRef.setInput('active', true)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(fixture.nativeElement.querySelector('iframe')).toBe(frame)
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'viewActive', active: true }), '*')
+    expect(api.getRemoteComponentEntry).toHaveBeenCalledTimes(1)
   })
 
   it('ignores postMessage events from a different iframe source', async () => {

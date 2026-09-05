@@ -1,3 +1,4 @@
+import { FileAssetDeletionService } from './file-asset-deletion.service'
 import { StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -43,6 +44,7 @@ import { XpertModule } from '../xpert/xpert.module'
     ],
     controllers: [FileUnderstandingController],
     providers: [
+        FileAssetDeletionService,
         FileUnderstandingVectorService,
         FileWorkspaceProjectionService,
         FileAssetAccessService,

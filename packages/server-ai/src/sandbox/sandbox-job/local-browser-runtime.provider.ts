@@ -523,42 +523,43 @@ async function resolveLocalRuntimeAssets(
         const manifestPath = path.join(root, 'manifest.json')
         try {
             await Promise.all([access(runnerPath, fsConstants.R_OK), access(manifestPath, fsConstants.R_OK)])
-            const nodePath = await resolveNodeExecutable(definition.expectedManifest.nodeVersion)
-            const environmentAdditions: NodeJS.ProcessEnv = {
-                XPERT_SANDBOX_RUNTIME_MANIFEST_PATH: manifestPath
-            }
-            if (configuration.requiresAiResources) {
-                const artifactRoot = localAiArtifactRoot(definition.sandboxRuntimeVersion)
-                environmentAdditions.XPERT_SANDBOX_RUNTIME_ARTIFACT_ROOT = artifactRoot
-                if (installAiResources) {
-                    await installLocalAiResources({
-                        packageRoot,
-                        nodePath,
-                        artifactRoot,
-                        expectedCatalogSha256: definition.expectedManifest.modelCatalogSha256
-                    })
-                }
-            }
-            if (configuration.requiresFfmpeg) {
-                const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
-                environmentAdditions.PATH = prependPath(path.dirname(ffmpegPath), process.env.PATH)
-            }
-            if (configuration.requiresLibreOffice) {
-                const sofficePath = await resolveLocalLibreOffice()
-                environmentAdditions.PATH = prependPath(
-                    path.dirname(sofficePath),
-                    environmentAdditions.PATH ?? process.env.PATH
-                )
-            }
-            return {
-                root,
-                runnerPath,
-                nodePath,
-                environment: localRuntimeEnvironment(environmentAdditions)
-            }
         } catch (error) {
             lastError = error
-            // Try the next deterministic source-tree location.
+            // Only missing assets warrant trying another source-tree location.
+            continue
+        }
+        const nodePath = await resolveNodeExecutable(definition.expectedManifest.nodeVersion)
+        const environmentAdditions: NodeJS.ProcessEnv = {
+            XPERT_SANDBOX_RUNTIME_MANIFEST_PATH: manifestPath
+        }
+        if (configuration.requiresAiResources) {
+            const artifactRoot = localAiArtifactRoot(definition.sandboxRuntimeVersion)
+            environmentAdditions.XPERT_SANDBOX_RUNTIME_ARTIFACT_ROOT = artifactRoot
+            if (installAiResources) {
+                await installLocalAiResources({
+                    packageRoot,
+                    nodePath,
+                    artifactRoot,
+                    expectedCatalogSha256: definition.expectedManifest.modelCatalogSha256
+                })
+            }
+        }
+        if (configuration.requiresFfmpeg) {
+            const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
+            environmentAdditions.PATH = prependPath(path.dirname(ffmpegPath), process.env.PATH)
+        }
+        if (configuration.requiresLibreOffice) {
+            const sofficePath = await resolveLocalLibreOffice()
+            environmentAdditions.PATH = prependPath(
+                path.dirname(sofficePath),
+                environmentAdditions.PATH ?? process.env.PATH
+            )
+        }
+        return {
+            root,
+            runnerPath,
+            nodePath,
+            environment: localRuntimeEnvironment(environmentAdditions)
         }
     }
     throw new Error(
@@ -627,6 +628,11 @@ async function resolveLocalFfmpeg(packageRoot: string): Promise<string> {
 }
 
 async function resolveLocalLibreOffice(): Promise<string> {
+    const configuredPath = process.env.XPERT_LOCAL_LIBREOFFICE_PATH?.trim()
+    if (configuredPath) {
+        await access(configuredPath, fsConstants.X_OK)
+        return configuredPath
+    }
     const candidates = [
         ...(process.env.PATH ?? '')
             .split(path.delimiter)

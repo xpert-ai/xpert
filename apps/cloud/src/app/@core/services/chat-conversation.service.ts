@@ -5,6 +5,7 @@ import {
   IChatMessage,
   IChatConversationReadState,
   IChatConversationUnreadXpertSummary,
+  TChatConversationSidebarState,
   WorkbenchAssistantConversationResolution,
   IStorageFile,
   OrganizationBaseCrudService,
@@ -20,6 +21,8 @@ import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './que
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
   readonly #unreadRefresh = new Subject<void>()
   readonly unreadRefresh$ = this.#unreadRefresh.asObservable()
+  readonly #sidebarRefresh = new Subject<{ xpertId: string; conversationId: string; deleted: boolean }>()
+  readonly sidebarRefresh$ = this.#sidebarRefresh.asObservable()
 
   constructor() {
     super(API_PREFIX + '/chat-conversation')
@@ -47,6 +50,27 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
         })
       )
     )
+  }
+
+  getSidebarConversations(xpertId: string, take = 10, skip = 0, archived = false) {
+    return this.selectOrganizationId().pipe(
+      switchMap(() =>
+        this.httpClient.get<{ items: IChatConversation[]; total: number }>(this.apiBaseUrl + '/my/sidebar', {
+          params: createOptionalQueryParams({ xpertId, take, skip, archived })
+        })
+      )
+    )
+  }
+
+  updateSidebarState(conversation: IChatConversation, patch: Partial<TChatConversationSidebarState>) {
+    return this.httpClient
+      .patch<TChatConversationSidebarState>(this.apiBaseUrl + `/${conversation.id}/sidebar`, patch)
+      .pipe(tap(() => this.refreshSidebar(conversation)))
+  }
+
+  refreshSidebar(conversation: IChatConversation, deleted = false) {
+    this.#sidebarRefresh.next({ xpertId: conversation.xpertId, conversationId: conversation.id, deleted })
+    this.refreshUnread()
   }
 
   findAllByXpert(xpertId: string, options: PaginationParams<IChatConversation>) {

@@ -27,7 +27,7 @@ import { I18nService, TranslateOptions } from 'nestjs-i18n'
 import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
-import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime.service'
+import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 
 const DEFAULT_MCP_AVATAR: TAvatar = {
     url:

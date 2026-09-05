@@ -181,7 +181,7 @@ describe('PluginMcpServerService', () => {
                         scopes: ['tools:list', 'tools:call']
                     }
                 ]),
-            createForOrganization: jest.fn(async () => ({
+            createRevealableForOrganization: jest.fn(async () => ({
                 apiKey: { id: 'key-1' },
                 secret: 'one-time-secret'
             }))
@@ -259,8 +259,8 @@ describe('PluginMcpServerService', () => {
         expect(first.createdApiKey?.secret).toBe('one-time-secret')
         expect(first.connectionInfo.endpoint).toBe(`http://localhost:3000/api/mcp/p/${managedSlug}`)
         expect(second.createdApiKey).toBeUndefined()
-        expect(apiKeys.createForOrganization).toHaveBeenCalledTimes(1)
-        expect(apiKeys.createForOrganization).toHaveBeenCalledWith(publication, 'org-1', expect.any(Object))
+        expect(apiKeys.createRevealableForOrganization).toHaveBeenCalledTimes(1)
+        expect(apiKeys.createRevealableForOrganization).toHaveBeenCalledWith(publication, 'org-1', expect.any(Object))
         expect(publicationAccess.enable).toHaveBeenCalledTimes(2)
         expect(installer.installRegisteredRuntimeToolProviderToOrganization).toHaveBeenCalledWith({
             pluginName: '@xpert-ai/plugin-decorated',
@@ -523,6 +523,145 @@ describe('PluginMcpServerService', () => {
         expect(publications.disable).toHaveBeenCalledWith('publication-organization-1')
         expect(publicationAccess.disable).not.toHaveBeenCalled()
         expect(installation.enabled).toBe(false)
+    })
+
+    it('returns a repeatable credential scoped to the requesting organization', async () => {
+        const publication = {
+            id: 'publication-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            status: 'active'
+        }
+        const installation = { config: { name: 'Decorated tools' } }
+        const apiKeys = {
+            getOrCreateRevealableCredential: jest.fn(async () => ({
+                apiKey: { id: 'key-1', organizationId: 'org-1' },
+                secret: 'repeatable-secret'
+            }))
+        }
+        const publications = {
+            getManaged: jest.fn(async () => ({ ...publication, capabilities: [] })),
+            resolveRuntimeCapabilities: jest.fn(async () => [])
+        }
+        const service = new PluginMcpServerService(
+            {} as never,
+            {} as never,
+            {} as never,
+            publications as never,
+            apiKeys as never,
+            { assertEnabled: jest.fn() } as never,
+            {} as never,
+            new StrategyBus(),
+            {} as never,
+            []
+        )
+        const ownership = {
+            level: 'organization',
+            organizationId: 'org-1',
+            tenantId: 'tenant-1'
+        }
+        Reflect.set(
+            service,
+            'resolveProviderOwnership',
+            jest.fn(() => ownership)
+        )
+        Reflect.set(
+            service,
+            'requireProviderPublication',
+            jest.fn(async () => ({ publication, installation }))
+        )
+        Reflect.set(
+            service,
+            'connectionInfoFor',
+            jest.fn(async () => ({
+                protocolVersion: '2026-07-28',
+                transport: 'streamable-http',
+                endpoint: 'http://localhost:3000/api/mcp/p/decorated',
+                authorization: 'Bearer'
+            }))
+        )
+        Reflect.set(
+            service,
+            'runInProviderScope',
+            jest.fn((_ownership: unknown, task: () => Promise<unknown>) => task())
+        )
+
+        const result = await service.credential('@xpert-ai/plugin-decorated', 'decorated-tools')
+
+        expect(apiKeys.getOrCreateRevealableCredential).toHaveBeenCalledWith(publication, 'org-1', {
+            name: 'Decorated tools MCP client',
+            scopes: ['tools:list', 'tools:call']
+        })
+        expect(result).toEqual(
+            expect.objectContaining({
+                secret: 'repeatable-secret',
+                connectionInfo: expect.objectContaining({ endpoint: 'http://localhost:3000/api/mcp/p/decorated' })
+            })
+        )
+    })
+
+    it('adds Resource scopes to repeatable credentials for Providers with MCP Apps', async () => {
+        const publication = {
+            id: 'publication-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            status: 'active'
+        }
+        const installation = { config: { name: 'Decorated tools' } }
+        const apiKeys = {
+            getOrCreateRevealableCredential: jest.fn(async () => ({
+                apiKey: { id: 'key-1', organizationId: 'org-1' },
+                secret: 'repeatable-secret'
+            }))
+        }
+        const publications = {
+            getManaged: jest.fn(async () => ({ ...publication, capabilities: [] })),
+            resolveRuntimeCapabilities: jest.fn(async () => [{ capabilityType: 'tool' }, { capabilityType: 'app' }])
+        }
+        const service = new PluginMcpServerService(
+            {} as never,
+            {} as never,
+            {} as never,
+            publications as never,
+            apiKeys as never,
+            { assertEnabled: jest.fn() } as never,
+            {} as never,
+            new StrategyBus(),
+            {} as never,
+            []
+        )
+        const ownership = {
+            level: 'organization',
+            organizationId: 'org-1',
+            tenantId: 'tenant-1'
+        }
+        Reflect.set(
+            service,
+            'resolveProviderOwnership',
+            jest.fn(() => ownership)
+        )
+        Reflect.set(
+            service,
+            'requireProviderPublication',
+            jest.fn(async () => ({ publication, installation }))
+        )
+        Reflect.set(
+            service,
+            'connectionInfoFor',
+            jest.fn(async () => ({}))
+        )
+        Reflect.set(
+            service,
+            'runInProviderScope',
+            jest.fn((_ownership: unknown, task: () => Promise<unknown>) => task())
+        )
+
+        await service.credential('@xpert-ai/plugin-decorated', 'decorated-tools')
+
+        expect(apiKeys.getOrCreateRevealableCredential).toHaveBeenCalledWith(publication, 'org-1', {
+            name: 'Decorated tools MCP client',
+            scopes: ['tools:list', 'tools:call', 'resources:list', 'resources:read']
+        })
     })
 
     it('disables the tenant Publication and every legacy organization Publication on uninstall', async () => {

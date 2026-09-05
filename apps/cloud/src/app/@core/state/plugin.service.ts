@@ -9,6 +9,7 @@ import {
   IPluginResourceComponentState,
   IPluginMcpServerActivationResult,
   IPluginMcpServerConnectionInfo,
+  IPluginMcpServerCredentialResult,
   IPluginResourceInstallResult,
   IPluginDescriptor,
   IPluginInstallInput,
@@ -137,6 +138,13 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
   getPluginMcpServerConnectionInfo(pluginName: string, componentKey: string) {
     return this.httpClient.get<IPluginMcpServerConnectionInfo>(
       `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/mcp/${encodeURIComponent(componentKey)}/connection-info`
+    )
+  }
+
+  getPluginMcpServerCredential(pluginName: string, componentKey: string) {
+    return this.httpClient.post<IPluginMcpServerCredentialResult>(
+      `${this.apiBaseUrl}/${encodeURIComponent(pluginName)}/resources/mcp/${encodeURIComponent(componentKey)}/credential`,
+      {}
     )
   }
 

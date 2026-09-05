@@ -111,6 +111,8 @@ export type KnowledgeFilterErrorCode =
   | 'missing_fixed_variable'
   | 'filter_too_complex'
   | 'graph_search_failed'
+  | 'keyword_index_missing'
+  | 'keyword_query_failed'
   | 'unsupported_backend'
   | 'unsupported_retrieval_mode'
 
@@ -131,7 +133,13 @@ export type KnowledgeFilterDiagnostics = {
   filterLatency?: number
   vectorLatency?: number
   vectorBranchHitCount?: number
+  keywordLatency?: number
+  keywordCandidateCount?: number
+  keywordBranchHitCount?: number
+  keywordIndexStatus?: 'ready' | 'missing'
+  keywordFailureReason?: string
   graphBranchHitCount?: number
+  fusionMode?: 'legacy' | 'weighted_rrf'
   graphGlobalCandidateCount?: number
   graphCandidateScanLimit?: number
   graphCandidateScanRounds?: number

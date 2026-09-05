@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core'
+import { Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import {
   XpertDetailViewSchema,
   XpertExtensionViewManifest,
@@ -133,6 +134,8 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
               [hostId]="hostId()"
               [manifest]="manifest()"
               [runtimeScope]="runtimeScope()"
+              [isolatedOrigin]="isolatedOrigin()"
+              (actionPending)="actionPending.emit($event)"
               [runtimeUserId]="runtimeUserId()"
               [query]="query()"
               [active]="active()"
@@ -154,6 +157,8 @@ import { RemoteComponentRendererComponent } from './renderers/remote-component-r
   `
 })
 export class ViewRendererComponent {
+  readonly actionPending = output<boolean>()
+  readonly isolatedOrigin = input(false)
   readonly hostType = input.required<string>()
   readonly hostId = input.required<string>()
   readonly manifest = input.required<XpertExtensionViewManifest>()
@@ -314,17 +319,23 @@ export class ViewRendererComponent {
       return
     }
 
+    const actionScope = `${this.hostType()}:${this.hostId()}:${this.manifest().key}`
+    this.actionPending.emit(true)
     try {
       const result = await firstValueFrom(
-        this.#api.executeAction(
-          this.hostType(),
-          this.hostId(),
-          this.manifest().key,
-          action.key,
-          { targetId },
-          this.runtimeScope() ?? undefined
-        )
+        this.#api
+          .executeAction(
+            this.hostType(),
+            this.hostId(),
+            this.manifest().key,
+            action.key,
+            { targetId },
+            this.runtimeScope() ?? undefined
+          )
+          .pipe(takeUntilDestroyed(this.#destroyRef))
       )
+      if (this.#destroyRef.destroyed || actionScope !== `${this.hostType()}:${this.hostId()}:${this.manifest().key}`)
+        return
 
       if (result.message) {
         const message = this.#i18n.transform(result.message)
@@ -354,7 +365,9 @@ export class ViewRendererComponent {
         }
       }
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
+      if (!this.#destroyRef.destroyed) this.#toastr.error(getErrorMessage(error))
+    } finally {
+      if (!this.#destroyRef.destroyed) this.actionPending.emit(false)
     }
   }
 
@@ -396,7 +409,9 @@ export class ViewRendererComponent {
       const manifest = this.manifest()
       const query = normalizeViewQuery(this.query(), manifest.dataSource.querySchema)
       const data = await firstValueFrom(
-        this.#api.getViewData(this.hostType(), this.hostId(), manifest.key, query, this.runtimeScope() ?? undefined)
+        this.#api
+          .getViewData(this.hostType(), this.hostId(), manifest.key, query, this.runtimeScope() ?? undefined)
+          .pipe(takeUntilDestroyed(this.#destroyRef))
       )
 
       if (requestId !== this.requestId) {

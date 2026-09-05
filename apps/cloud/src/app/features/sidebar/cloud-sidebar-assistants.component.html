@@ -11,12 +11,13 @@
           type="button"
           class="cloud-sidebar-assistants__current-compact"
           [attr.aria-label]="currentAssistantLabel()"
-          [zTooltip]="currentAssistantLabel()"
-          zPosition="right"
           (click)="openClawXpert($event)"
         >
           <emoji-avatar
             class="cloud-sidebar-assistants__current-avatar"
+            [xpAssistantProfile]="boundXpert()?.id || ''"
+            [summary]="boundXpert()"
+            zPlacement="right"
             xs
             [avatar]="currentAssistantAvatar()"
             [alt]="currentAssistantLabel()"
@@ -34,6 +35,9 @@
             >
               <emoji-avatar
                 class="cloud-sidebar-assistants__current-avatar"
+                [xpAssistantProfile]="boundXpert()?.id || ''"
+                [summary]="boundXpert()"
+                zPlacement="right"
                 xs
                 [avatar]="currentAssistantAvatar()"
                 [alt]="currentAssistantLabel()"
@@ -99,10 +103,12 @@
       }
     } @else {
       @if (!collapsed()) {
-        <div class="cloud-sidebar-assistants__header" [class.is-open]="expanded()">
+        <div class="cloud-sidebar-assistants__header group/assistants bg-transparent!" [class.is-open]="expanded()">
           <button
             type="button"
-            class="cloud-sidebar-assistants__header-main"
+            [class]="
+              embedded() ? 'cloud-sidebar-assistants__header-main flex-none!' : 'cloud-sidebar-assistants__header-main'
+            "
             [disabled]="embedded()"
             [attr.aria-expanded]="expanded()"
             (click)="toggleExpanded()"
@@ -116,6 +122,28 @@
               </span>
             </span>
           </button>
+
+          @if (embedded()) {
+            <label
+              class="mx-2 flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-divider-regular bg-components-input-bg-normal px-2 text-text-secondary focus-within:border-ring"
+              [class]="
+                query()
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/assistants:opacity-100 group-focus-within/assistants:opacity-100 [@media(hover:none)]:opacity-100'
+              "
+            >
+              <i class="ri-search-line shrink-0 text-sm" aria-hidden="true"></i>
+              <input
+                type="search"
+                class="w-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-text-primary outline-none placeholder:text-text-tertiary"
+                [value]="query()"
+                [attr.aria-label]="'XP.Assistant.SearchAll' | translate: { Default: 'Search all assistants' }"
+                [placeholder]="'XP.Assistant.SearchAll' | translate: { Default: 'Search all assistants' }"
+                (input)="updateQuery($event)"
+                (keydown.escape)="query.set(''); $event.stopPropagation()"
+              />
+            </label>
+          }
 
           @if (activeBusinessAreaFilter(); as businessArea) {
             <button
@@ -133,7 +161,9 @@
             </button>
           }
 
-          <span class="cloud-sidebar-assistants__subtitle">{{ assistantHeaderCount() }}</span>
+          <span class="cloud-sidebar-assistants__subtitle">{{
+            hasAssistantFilter() ? filteredXperts().length : assistantHeaderCount()
+          }}</span>
 
           @if (canCreateDigitalExpert()) {
             <button
@@ -160,15 +190,17 @@
         </div>
 
         @if (expanded()) {
-          <label class="cloud-sidebar-assistants__search">
-            <i class="ri-search-line"></i>
-            <input
-              type="search"
-              [value]="query()"
-              [placeholder]="'XP.Assistant.Search' | translate: { Default: 'Search' }"
-              (input)="updateQuery($event)"
-            />
-          </label>
+          @if (!embedded()) {
+            <label class="cloud-sidebar-assistants__search">
+              <i class="ri-search-line"></i>
+              <input
+                type="search"
+                [value]="query()"
+                [placeholder]="'XP.Assistant.Search' | translate: { Default: 'Search' }"
+                (input)="updateQuery($event)"
+              />
+            </label>
+          }
 
           @if (showCategoryFilters()) {
             <div class="cloud-sidebar-assistants__filters" role="list">
@@ -210,25 +242,18 @@
               <div
                 class="cloud-sidebar-assistants__item group relative"
                 [class.is-active]="isActive(xpert)"
-                [zTooltip]="assistantLabel(xpert)"
-                zPosition="right"
-                [zDisabled]="!collapsed()"
                 (click)="openAssistant($event, xpert)"
               >
                 @if (!collapsed()) {
                   <i class="ri-draggable cloud-sidebar-assistants__drag-handle" cdkDragHandle aria-hidden="true"></i>
                 }
                 <div class="cloud-sidebar-assistants__item-layout">
-                  <!-- <button
-                    type="button"
-                    class="cloud-sidebar-assistants__item-main"
-                    [attr.aria-label]="assistantLabel(xpert)"
-                    (click)="openAssistant($event, xpert)"
-                  ></button> -->
-
                   <emoji-avatar
                     xs
                     class="cloud-sidebar-assistants__avatar"
+                    [xpAssistantProfile]="xpert.id"
+                    [summary]="xpert"
+                    zPlacement="right"
                     [avatar]="xpert.avatar"
                     [alt]="assistantLabel(xpert)"
                     [fallbackLabel]="assistantLabel(xpert)"
@@ -236,7 +261,9 @@
 
                   @if (!collapsed()) {
                     <span class="cloud-sidebar-assistants__content">
-                      <span class="cloud-sidebar-assistants__name">
+                      <span
+                        class="cloud-sidebar-assistants__name text-text-secondary! group-hover:text-text-primary! group-focus-within:text-text-primary!"
+                      >
                         @if (assistantBusinessAreaName(xpert); as businessAreaName) {
                           @if (canFilterByAssistantBusinessArea(xpert)) {
                             <button
@@ -303,7 +330,7 @@
                       (click)="toggleAssistantExpanded($event, xpert)"
                     >
                       <i
-                        class="cloud-sidebar-assistants__item-chevron"
+                        class="cloud-sidebar-assistants__item-chevron text-text-secondary! group-hover:text-text-primary!"
                         [class.ri-arrow-right-s-line]="!isAssistantExpanded(xpert)"
                         [class.ri-arrow-down-s-line]="isAssistantExpanded(xpert)"
                         aria-hidden="true"
@@ -328,10 +355,11 @@
                     @for (item of assistantMenuState(xpert).items; track item.viewKey) {
                       <button
                         type="button"
+                        class="flex h-8 w-full min-w-0 cursor-pointer items-center gap-1 rounded-md border-0 px-2 py-1 text-left text-sm leading-5 transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         [class]="
                           isAssistantMenuItemActive(xpert, item)
-                            ? 'cloud-sidebar-assistants__child-item is-active'
-                            : 'cloud-sidebar-assistants__child-item'
+                            ? 'cloud-sidebar-assistants__child-item is-active bg-components-list-option-active-bg text-text-primary'
+                            : 'cloud-sidebar-assistants__child-item bg-transparent text-text-secondary'
                         "
                         [attr.aria-label]="item.title"
                         [attr.aria-current]="isAssistantMenuItemActive(xpert, item) ? 'page' : null"
@@ -347,7 +375,7 @@
                         } @else {
                           <i class="ri-file-list-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
                         }
-                        <span>{{ item.title }}</span>
+                        <span class="min-w-0 truncate">{{ item.title }}</span>
                       </button>
                     }
                   } @else {
@@ -384,30 +412,22 @@
                     } @else if (assistantConversationState(xpert).items.length) {
                       @for (group of assistantConversationGroups(xpert); track group.name) {
                         <div class="cloud-sidebar-assistants__conversation-group-label">
-                          {{ 'XP.KEY_WORDS.Date_' + group.name | translate: { Default: group.name } }}
+                          {{
+                            (group.name === 'Pinned'
+                              ? 'XP.Sidebar.PinnedConversations'
+                              : 'XP.KEY_WORDS.Date_' + group.name
+                            ) | translate: { Default: group.name }
+                          }}
                         </div>
 
                         @for (conversation of group.values; track conversation.id || conversation.threadId) {
-                          <button
-                            type="button"
-                            class="cloud-sidebar-assistants__conversation-item"
-                            [class.is-active]="isAssistantConversationActive(xpert, conversation)"
-                            [attr.aria-current]="isAssistantConversationActive(xpert, conversation) ? 'page' : null"
-                            [attr.aria-label]="conversationHoverLabel(conversation)"
-                            [attr.title]="conversationHoverLabel(conversation)"
-                            (click)="openAssistantConversation($event, xpert, conversation)"
-                          >
-                            <i class="ri-chat-3-line cloud-sidebar-assistants__child-icon" aria-hidden="true"></i>
-                            <span>{{ conversationTitle(conversation) }}</span>
-                            @if (conversationUpdatedLabel(conversation); as updatedAtLabel) {
-                              <time
-                                class="cloud-sidebar-assistants__conversation-updated"
-                                [attr.datetime]="conversationUpdatedDateTime(conversation)"
-                              >
-                                {{ updatedAtLabel }}
-                              </time>
-                            }
-                          </button>
+                          <xp-sidebar-conversation
+                            [conversation]="conversation"
+                            [route]="assistantConversationRoute(xpert, conversation)"
+                            [active]="isAssistantConversationActive(xpert, conversation)"
+                            [compact]="true"
+                            [preserveQueryParams]="true"
+                          />
                         }
                       }
 
@@ -440,6 +460,10 @@
                         {{ 'XP.Sidebar.NoRecentConversations' | translate: { Default: 'No recent conversations' } }}
                       </div>
                     }
+                    <xp-sidebar-conversation-archive
+                      [xpertId]="xpert.id"
+                      [routeBase]="['/chat/x', xpert.slug || xpert.id, 'c']"
+                    />
                   </section>
                 </div>
               }
@@ -456,12 +480,13 @@
             <li>
               <button
                 type="button"
-                class="cloud-sidebar-assistants__more mx-auto"
+                class="cloud-sidebar-assistants__more mx-auto flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-3 text-left text-text-secondary underline-offset-2 hover:text-text-primary hover:underline focus-visible:text-text-primary focus-visible:underline focus-visible:outline-none"
+                [class]="embedded() ? 'mt-1 min-h-9! justify-center text-center' : ''"
                 [class.is-open]="moreExpanded()"
                 [attr.aria-expanded]="moreExpanded()"
                 (click)="toggleMore($event)"
               >
-                <span class="cloud-sidebar-assistants__more-label">
+                <span class="cloud-sidebar-assistants__more-label min-w-0 truncate text-sm font-medium leading-5">
                   @if (moreExpanded()) {
                     {{ 'XP.Assistant.CollapseDigitalExperts' | translate: { Default: 'Show less' } }}
                   } @else {

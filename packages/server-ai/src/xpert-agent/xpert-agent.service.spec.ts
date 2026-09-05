@@ -32,7 +32,7 @@ jest.mock('../xpert/xpert.service', () => ({
     XpertService: class XpertService {}
 }))
 
-jest.mock('../shared/agent/middleware-runtime.service', () => ({
+jest.mock('../shared/agent/middleware-runtime/index', () => ({
     AgentMiddlewareRuntimeService: class AgentMiddlewareRuntimeService {}
 }))
 

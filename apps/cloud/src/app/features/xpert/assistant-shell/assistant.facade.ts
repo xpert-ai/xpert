@@ -7,7 +7,10 @@ import { AssistantCode, XpertAPIService } from '../../../@core'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { distinctUntilChanged, EMPTY, filter, map, startWith, switchMap } from 'rxjs'
 import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
-import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
+import {
+  createKnowledgebaseCitationOpenHostEvent,
+  getKnowledgebaseCitationTargetFromEffectEvent
+} from '../../assistant/knowledgebase-citation-effect'
 import {
   type ChatKitEffectEvent,
   type ChatKitPromptWorkflowEffect,
@@ -217,6 +220,14 @@ export class XpertAssistantFacade {
   }
 
   handleEffect(event: ChatKitEffectEvent) {
+    const citationTarget = getKnowledgebaseCitationTargetFromEffectEvent(event)
+    if (citationTarget?.knowledgebaseId && citationTarget.faqId) {
+      void this.#router.navigate(['/xpert/knowledges', citationTarget.knowledgebaseId, 'faq'], {
+        queryParams: { faqId: citationTarget.faqId }
+      })
+      return
+    }
+
     const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
       hostType: 'agent',
       hostId: this.context().xpertId

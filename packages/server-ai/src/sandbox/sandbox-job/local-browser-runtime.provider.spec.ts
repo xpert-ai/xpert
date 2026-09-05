@@ -1,4 +1,5 @@
 import { mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { SandboxRuntimeCreateOptions } from '@xpert-ai/plugin-sdk'
@@ -18,15 +19,59 @@ import {
 
 describe('LocalBrowserRuntimeProvider', () => {
     const originalNodeEnv = process.env.NODE_ENV
+    const originalLibreOfficePath = process.env.XPERT_LOCAL_LIBREOFFICE_PATH
     const roots: string[] = []
 
     beforeEach(() => {
         process.env.NODE_ENV = 'test'
+        delete process.env.XPERT_LOCAL_LIBREOFFICE_PATH
     })
 
     afterEach(async () => {
+        jest.restoreAllMocks()
         process.env.NODE_ENV = originalNodeEnv
+        if (originalLibreOfficePath === undefined) delete process.env.XPERT_LOCAL_LIBREOFFICE_PATH
+        else process.env.XPERT_LOCAL_LIBREOFFICE_PATH = originalLibreOfficePath
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
+    })
+
+    it('preserves missing LibreOffice diagnostics when the runtime assets exist', async () => {
+        const originalAccess = fs.access
+        jest.spyOn(fs, 'access').mockImplementation((file, mode) => {
+            if (/[/\\]soffice(?:\.exe)?$/.test(String(file))) {
+                return Promise.reject(Object.assign(new Error('missing soffice'), { code: 'ENOENT' }))
+            }
+            return originalAccess(file, mode)
+        })
+        const provider = new LocalBrowserRuntimeProvider()
+        const definition = new SandboxRuntimeDefinitionRegistry().require(DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE)
+        const binding = provider.listBindings().find((item) => item.id === LOCAL_DOCUMENT_RUNTIME_BINDING)
+        if (!binding) throw new Error('Document runtime binding is missing.')
+
+        await expect(provider.getBindingHealth({ definition, binding })).resolves.toMatchObject({
+            available: false,
+            reason: 'Install LibreOffice and expose the soffice executable on PATH.'
+        })
+    })
+
+    it('uses an explicit LibreOffice executable outside PATH for document jobs', async () => {
+        const originalAccess = fs.access
+        jest.spyOn(fs, 'access').mockImplementation((file, mode) => {
+            if (/[/\\]soffice(?:\.exe)?$/.test(String(file))) {
+                return Promise.reject(Object.assign(new Error('missing soffice'), { code: 'ENOENT' }))
+            }
+            return originalAccess(file, mode)
+        })
+        const provider = new LocalBrowserRuntimeProvider()
+        // Creation checks the configured executable; the health probe separately runs it.
+        process.env.XPERT_LOCAL_LIBREOFFICE_PATH = process.execPath
+        const options = await createOptions(provider)
+        const definition = new SandboxRuntimeDefinitionRegistry().require(DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE)
+        const binding = provider.listBindings().find((item) => item.id === LOCAL_DOCUMENT_RUNTIME_BINDING)
+        if (!binding) throw new Error('Document runtime binding is missing.')
+        await expect(provider.create({ ...options, definition, binding })).resolves.toMatchObject({
+            workspaceRoot: expect.any(String)
+        })
     })
 
     it('publishes low-priority development Bindings for browser, AI, video, and document profiles', () => {

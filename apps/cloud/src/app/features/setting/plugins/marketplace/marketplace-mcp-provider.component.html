@@ -1,6 +1,8 @@
 <div
   data-testid="plugin-marketplace-mcp-provider"
-  class="mt-3 rounded-xl border border-divider-regular bg-components-panel-bg p-3"
+  [class]="
+    surface() === 'flat' ? 'px-5 py-4' : 'mt-3 rounded-xl border border-divider-regular bg-components-panel-bg p-3'
+  "
 >
   @if (stateLoading()) {
     <div class="mb-3 flex items-center gap-2 text-xs text-text-tertiary">
@@ -84,24 +86,37 @@
         {{ currentConnection.connectionInfo.endpoint }}
       </div>
 
-      @if (currentConnection.apiKeySecret) {
+      @if (canManage()) {
         <div class="rounded-lg border border-state-warning-hover bg-state-warning-hover/10 p-3">
-          <div class="text-xs font-medium text-text-warning">
-            {{
-              'XP.Plugin.McpApiKeyOneTime'
-                | translate: { Default: 'Copy this API key now. It will not be shown again.' }
-            }}
-          </div>
-          <div class="mt-2 flex items-start gap-2">
-            <code class="min-w-0 flex-1 break-all text-xs text-text-primary">{{ currentConnection.apiKeySecret }}</code>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-xs font-medium text-text-warning">
+              {{
+                'XP.Plugin.McpApiKeyProtected'
+                  | translate: { Default: 'Keep this API token private. It grants access to this MCP server.' }
+              }}
+            </div>
             <button
               type="button"
               class="btn btn-secondary btn-small"
-              (click)="copyText(currentConnection.apiKeySecret)"
+              [disabled]="actionPending()"
+              (click)="toggleCredential()"
             >
-              {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+              {{
+                (credentialVisible() ? 'XP.Plugin.HideMcpApiKey' : 'XP.Plugin.ShowMcpApiKey')
+                  | translate: { Default: credentialVisible() ? 'Hide token' : 'Show token' }
+              }}
             </button>
           </div>
+          @if (credentialVisible() && currentConnection.apiKeySecret; as secret) {
+            <div class="mt-2 flex items-start gap-2">
+              <code class="min-w-0 flex-1 break-all text-xs text-text-primary">{{
+                credentialVisible() ? secret : '••••••••••••••••••••••••'
+              }}</code>
+              <button type="button" class="btn btn-secondary btn-small" (click)="copyText(secret)">
+                {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
+              </button>
+            </div>
+          }
         </div>
       }
 
@@ -111,7 +126,12 @@
             <span class="text-xs font-medium text-text-primary">
               {{ 'XP.Plugin.McpClientConfiguration' | translate: { Default: 'MCP client configuration' } }}
             </span>
-            <button type="button" class="btn btn-secondary btn-small" (click)="copyText(config)">
+            <button
+              type="button"
+              class="btn btn-secondary btn-small"
+              [disabled]="actionPending()"
+              (click)="copyClientConfiguration()"
+            >
               {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
             </button>
           </div>

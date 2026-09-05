@@ -221,7 +221,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     // Xpert AI Features
     {
       title: 'New task',
-      icon: 'ri-add-circle-line',
+      icon: 'ri-chat-new-line',
       link: '/chat/clawxpert/c',
       pathMatch: 'full',
       scopeContext: 'dual-scope',
@@ -233,13 +233,13 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
-      title: 'Scheduled',
-      icon: 'ri-time-line',
+      title: 'Automations',
+      icon: 'ri-alarm-line',
       link: '/chat/tasks',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Scheduled',
+        translationKey: 'Automations',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
       }
@@ -274,6 +274,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Project',
+        sidebarSection: 'projects',
         featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_PROJECT],
         permissionKeys: [AIPermissionsEnum.XPERT_PROJECT_VIEW]
       }
@@ -298,6 +299,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Workspace',
+        sidebarSection: 'workspaces',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
         onboardingTarget: 'workspace'

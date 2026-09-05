@@ -23,6 +23,8 @@
   <z-popover class="w-full p-0">
     <z-tag-select-option-list
       [options]="visibleOptions()"
+      [checkable]="checkable()"
+      [selectedValues]="currentValues()"
       [activeIndex]="activeIndex()"
       (optionSelected)="onOptionSelected($event)"
       (activeIndexChange)="onActiveIndexChange($event)"

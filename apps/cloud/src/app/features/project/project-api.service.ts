@@ -32,6 +32,7 @@ import type {
   TFileDirectory
 } from '@xpert-ai/contracts'
 import { API_XPERT_PROJECT } from '@cloud/app/@core/constants/app.constants'
+import { Subject, tap } from 'rxjs'
 
 export interface XpertProjectOverview {
   project: IXpertProject
@@ -67,6 +68,8 @@ export type XpertProjectConversationTarget = {
 @Injectable({ providedIn: 'root' })
 export class XpertProjectApiService {
   readonly #http = inject(HttpClient)
+  readonly #projectsChanged = new Subject<void>()
+  readonly projectsChanged$ = this.#projectsChanged.asObservable()
 
   list(params: { search?: string; status?: string; skip?: number; take?: number } = {}) {
     const data = {
@@ -147,7 +150,9 @@ export class XpertProjectApiService {
 
   acceptInvitation(token: string) {
     const input: TXpertProjectInvitationTokenInput = { token }
-    return this.#http.post<IXpertProjectMembership>(`${API_XPERT_PROJECT}/invitations/accept`, input)
+    return this.#http
+      .post<IXpertProjectMembership>(`${API_XPERT_PROJECT}/invitations/accept`, input)
+      .pipe(tap(() => this.#projectsChanged.next()))
   }
 
   declineInvitation(token: string) {
@@ -198,15 +203,19 @@ export class XpertProjectApiService {
   }
 
   create(input: IXpertProjectCreateInput) {
-    return this.#http.post<IXpertProject>(API_XPERT_PROJECT, input)
+    return this.#http.post<IXpertProject>(API_XPERT_PROJECT, input).pipe(tap(() => this.#projectsChanged.next()))
   }
 
   importDsl(input: unknown) {
-    return this.#http.post<IXpertProject>(`${API_XPERT_PROJECT}/import`, input)
+    return this.#http
+      .post<IXpertProject>(`${API_XPERT_PROJECT}/import`, input)
+      .pipe(tap(() => this.#projectsChanged.next()))
   }
 
   update(id: string, input: Partial<IXpertProject>) {
-    return this.#http.put<IXpertProject>(`${API_XPERT_PROJECT}/${id}`, input)
+    return this.#http
+      .put<IXpertProject>(`${API_XPERT_PROJECT}/${id}`, input)
+      .pipe(tap(() => this.#projectsChanged.next()))
   }
 
   bindWorkspace(id: string, workspaceId: string) {
@@ -226,7 +235,9 @@ export class XpertProjectApiService {
   }
 
   archive(id: string) {
-    return this.#http.post<IXpertProject>(`${API_XPERT_PROJECT}/${id}/archive`, {})
+    return this.#http
+      .post<IXpertProject>(`${API_XPERT_PROJECT}/${id}/archive`, {})
+      .pipe(tap(() => this.#projectsChanged.next()))
   }
 
   plans(id: string) {

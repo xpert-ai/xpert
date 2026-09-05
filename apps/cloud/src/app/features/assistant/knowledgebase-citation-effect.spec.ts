@@ -59,4 +59,20 @@ describe('knowledgebase citation effect helpers', () => {
       })
     ).toBeNull()
   })
+
+  it('accepts FAQ citation links without requiring a managed document id', () => {
+    expect(
+      getKnowledgebaseCitationTargetFromEffectEvent({
+        name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+        data: {
+          knowledgebaseId: 'kb-1',
+          citationUrl: 'xpert://knowledgebase/faq?knowledgebaseId=kb-1&faqId=faq-1'
+        }
+      })
+    ).toEqual({
+      knowledgebaseId: 'kb-1',
+      faqId: 'faq-1',
+      citationUrl: 'xpert://knowledgebase/faq?knowledgebaseId=kb-1&faqId=faq-1'
+    })
+  })
 })

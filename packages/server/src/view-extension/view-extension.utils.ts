@@ -120,10 +120,44 @@ export function normalizeManifest(
 			version: manifest.source?.version
 		},
 		dataSource: normalizeDataSource(manifest.dataSource),
+		runtime: normalizeRuntime(manifest, context),
 		actions: normalizeActions(manifest.actions),
 		clientCommands: normalizeClientCommands(manifest.clientCommands),
 		fileAccess: normalizeFileAccess(manifest.fileAccess),
 		hostEvents: normalizeHostEvents(manifest.hostEvents)
+	}
+}
+
+function normalizeRuntime(
+	manifest: XpertExtensionViewManifest,
+	context: XpertResolvedViewHostContext
+): XpertExtensionViewManifest['runtime'] {
+	const requiredFeatures = normalizeStringList(manifest.activation?.requiredFeatures)
+	if (!requiredFeatures.length) {
+		return undefined
+	}
+
+	const providersByFeature = context.capabilities?.featureProviders
+	if (!providersByFeature) {
+		return undefined
+	}
+
+	const [firstFeature, ...remainingFeatures] = requiredFeatures
+	const eligibleProviderIds = remainingFeatures.reduce(
+		(providerIds, feature) => {
+			const featureProviderIds = new Set((providersByFeature[feature] ?? []).map(({ xpertId }) => xpertId))
+			return new Set([...providerIds].filter((xpertId) => featureProviderIds.has(xpertId)))
+		},
+		new Set((providersByFeature[firstFeature] ?? []).map(({ xpertId }) => xpertId))
+	)
+
+	return {
+		featureProviders: (providersByFeature[firstFeature] ?? []).filter(({ xpertId }, index, providers) => {
+			return (
+				eligibleProviderIds.has(xpertId) &&
+				providers.findIndex((provider) => provider.xpertId === xpertId) === index
+			)
+		})
 	}
 }
 

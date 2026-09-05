@@ -6,6 +6,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 - Prefer `rg` for search; keep edits ASCII; do not revert user changes.
 - Run pnpm commands through Corepack so the repo's `packageManager` is honored. Use `corepack pnpm ...` instead of bare `pnpm ...`; this repo currently expects `pnpm@10.24.0`, and using another pnpm version can rebuild an incompatible `node_modules` layout.
+- Golden rule: code files must not exceed 1,000 lines; when a file reaches that threshold, review its responsibilities and refactor coherent functionality into focused modules.
 - Golden rule: prefer writing Tailwind utility classes directly on HTML elements. Only extract component CSS when inline utilities are impractical, such as `:host`, pseudo-elements, or other selector-driven cases.
 - Use Angular Aria + TailwindCSS v4 for UI components.
 - Use standalone Angular components with signals, the new control flow like `@for/@if`, and reactive forms. Keep templates Tailwind-first.
@@ -43,6 +44,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Support light/dark modes via Tailwind CSS classes, No hard-coded color classes or color literals introduced.
 - Prefer using JavaScript's async/await functionality over RxJS.
 - Prefer using the inject() function over constructor parameter injection.
+- Golden rule: use Angular CDK `Clipboard` for copy actions, especially after asynchronous work; do not rely on `navigator.clipboard` retaining user activation, and verify that the first click copies successfully.
 
 ### Class Binding Rule
 
@@ -54,7 +56,8 @@ Rationale: keep simple cases concise, and complex cases structured and maintaina
 
 ### Dialog Styling
 
-- Golden rule: Angular CDK Dialogs use `backdropClass: 'backdrop-blur-xs-black'` and `panelClass: 'xp-overlay-pane-dialog'`; do not repeat their surface utilities at call sites, and introduce another semantic panel class only for a genuinely different treatment.
+- Golden rule: Angular CDK Dialogs use `backdropClass: 'backdrop-blur-xs-black'` and `panelClass: 'xp-overlay-pane-dialog'`; introduce another semantic panel class only for a genuinely different treatment.
+- Dialog component roots own content sizing and layout only. Do not repeat the panel's clipping, radius, background, foreground, border/ring, outline, or shadow utilities at call sites or on the component root.
 
 ## API Endpoints
 
@@ -68,5 +71,6 @@ Rationale: keep simple cases concise, and complex cases structured and maintaina
 
 ## UX Notes
 
+- Golden rule: do not nest Cards to structure a section. Use a Title/divider plus Accordion, Tabs, or Carousel for grouping, and reserve Cards for leaf content.
 - Favor a modern enterprise aesthetic: structured layouts, restrained visual accents, clear information hierarchy, and confident CTAs.
 - Provide loading/empty states; support search/filter/sort when dealing with lists.

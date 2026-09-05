@@ -32,7 +32,10 @@ export const XPERT_RUNTIME_CAPABILITIES_TOKEN = 'XPERT_RUNTIME_CAPABILITIES'
 export class DefaultRuntimeCapabilityRegistry implements RuntimeCapabilityRegistry {
   private readonly capabilities = new Map<string, unknown>()
 
-  constructor(entries: Array<[RuntimeCapabilityKey<unknown> | string, unknown]> = []) {
+  constructor(
+    entries: Array<[RuntimeCapabilityKey<unknown> | string, unknown]> = [],
+    private readonly parent?: RuntimeCapabilityResolver
+  ) {
     entries.forEach(([key, implementation]) => this.register(key, implementation))
   }
 
@@ -42,11 +45,12 @@ export class DefaultRuntimeCapabilityRegistry implements RuntimeCapabilityRegist
   }
 
   has<T>(key: RuntimeCapabilityKey<T> | string): boolean {
-    return this.capabilities.has(runtimeCapabilityId(key))
+    return this.capabilities.has(runtimeCapabilityId(key)) || this.parent?.get(key) !== undefined
   }
 
   get<T>(key: RuntimeCapabilityKey<T> | string): T | undefined {
-    return this.capabilities.get(runtimeCapabilityId(key)) as T | undefined
+    const id = runtimeCapabilityId(key)
+    return this.capabilities.has(id) ? (this.capabilities.get(id) as T | undefined) : this.parent?.get(key)
   }
 
   require<T>(key: RuntimeCapabilityKey<T> | string): T {

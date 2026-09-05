@@ -182,6 +182,18 @@ export interface PluginMarketplaceAppModelRequirements {
   visionLabel?: string | I18nObject
 }
 
+/** Portable independent Assistant topology owned by a trusted App. Instance IDs are host-managed. */
+export interface PluginMarketplaceAppAssistantSuite {
+  version: string
+  coordinatorAgentKey: string
+  roles: Array<{
+    key: string
+    templateKey: string
+    primaryAgentKey: string
+    title?: string | I18nObject
+  }>
+}
+
 /**
  * Declarative, host-owned initialization contract for a trusted plugin App.
  * The host only executes this contract from a loaded plugin contribution.
@@ -189,6 +201,7 @@ export interface PluginMarketplaceAppModelRequirements {
 export interface PluginMarketplaceAppConfig {
   scope: PluginApplicationScope
   assistantTemplateKey: string
+  assistantSuite?: PluginMarketplaceAppAssistantSuite
   workspace: {
     mode: 'dedicated'
     name: string | I18nObject
@@ -991,6 +1004,13 @@ export interface IPluginMcpServerActivationResult {
     apiKey: Omit<IMcpApiKey, 'keyHash'>
     secret: string
   }
+}
+
+/** A retrievable MCP client credential scoped to the requesting administrator and organization. */
+export interface IPluginMcpServerCredentialResult {
+  connectionInfo: IPluginMcpServerConnectionInfo
+  apiKey: Omit<IMcpApiKey, 'keyHash'>
+  secret: string
 }
 
 export interface PluginResourceComponentSelector {

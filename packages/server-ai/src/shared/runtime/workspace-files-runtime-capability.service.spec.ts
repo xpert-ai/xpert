@@ -8,7 +8,7 @@ import {
 } from '../../file-understanding'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { VolumeHandle } from '../volume'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { DefaultRuntimeCapabilityRegistry, ProjectAccessRuntimeCapability, RequestContext } from '@xpert-ai/plugin-sdk'
 import { WorkspaceFilesRuntimeCapabilityService } from './workspace-files-runtime-capability.service'
 
 describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
@@ -346,7 +346,15 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         return new WorkspaceFilesRuntimeCapabilityService(
             { execute: jest.fn() },
             { resolve: jest.fn().mockReturnValue(volume) },
-            { assertCanEdit: jest.fn().mockResolvedValue({ role: 'editor' }) },
+            new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, {
+                listReadable: jest.fn().mockResolvedValue([]),
+                assertEdit: jest
+                    .fn()
+                    .mockResolvedValue({ projectId: 'project-1', role: 'editor', canManage: false, archived: false }),
+                assertManage: jest
+                    .fn()
+                    .mockResolvedValue({ projectId: 'project-1', role: 'manager', canManage: true, archived: false })
+            }),
             queryBus
         )
     }

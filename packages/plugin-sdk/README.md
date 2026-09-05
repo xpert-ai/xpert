@@ -26,11 +26,18 @@ import { z } from 'zod/v3'
 
 const inputSchema = z.object({ query: z.string().trim().min(1).max(200) }).strict()
 const outputSchema = z.object({ items: z.array(z.object({ id: z.string() }).strict()) }).strict()
+const resultsApp = {
+  key: 'order_results_app',
+  entry: 'dist/mcp-apps/order-results/index.html',
+  title: 'Order results',
+  csp: { connectDomains: [], resourceDomains: [] }
+}
 
 @XpertToolProvider({
   provider: 'order_ops',
   componentKey: 'order-operations',
   name: 'Order Operations',
+  apps: [resultsApp],
   defaultMiddleware: 'OrderCoordinationMiddleware',
   middlewares: [{ provider: 'OrderCoordinationMiddleware', meta: coordinationMeta }]
 })
@@ -44,7 +51,8 @@ export class OrderOperationsTools {
     mcp: {
       behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
       requiredContext: ['tenant', 'organization', 'principal', 'execution'],
-      visibility: ['model']
+      visibility: ['model', 'app'],
+      app: { resourceKey: resultsApp.key }
     }
   })
   async search(input: z.infer<typeof inputSchema>, context: XpertBusinessToolContext) {
@@ -54,6 +62,8 @@ export class OrderOperationsTools {
 ```
 
 MCP exposure is explicit. Provide strict Zod input/output schemas and return an allowlisted DTO; the host validates the output and maps it to `structuredContent`. Invocation context is constructed for every call and must never be cached on the Provider singleton. `getMiddlewareExtensions()` may add Agent-only hooks such as `wrapToolCall`, but business-critical behavior belongs in the method or shared service.
+
+For a host-native MCP App, declare each static HTML bundle once in the Provider's `apps` array, then bind a Tool with `mcp.app.resourceKey` and include `app` visibility. The App key must exist in the same Provider and its entry must be a relative `.html` path inside the packaged plugin. The host publishes the bundle as a `ui://` resource; plugins must not create a stdio server or put CSP/credentials in Tool results.
 
 The host owns the public MCP endpoint identity. It combines the plugin's stable `artifactNamespace`, the Provider key, and an opaque scope hash; client names and product-specific identifiers do not belong in the slug. A tenant- or system-level plugin has one tenant-scoped Publication and capability snapshot, while each organization receives an independent access grant and organization-bound credential. An organization-level plugin receives a dedicated organization-scoped Publication.
 
