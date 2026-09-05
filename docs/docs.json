@@ -124,7 +124,10 @@
             "groups": [
               {
                 "group": "计划",
-                "pages": ["zh-hans/plans/follow-up-behavior-agent-chat"]
+                "pages": [
+                  "zh-hans/plans/2026-09-04-agent-plugin-runtime-export-assistant-mcp-tasks",
+                  "zh-hans/plans/follow-up-behavior-agent-chat"
+                ]
               },
               {
                 "group": "项目架构",
