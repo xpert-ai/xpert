@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core'
 import { DecoratedAgentMiddlewareStrategy, DecoratedToolsetStrategy } from './adapters'
 import { XpertTool, XpertToolProvider } from './decorators'
 import { describeXpertToolProvider } from './descriptor'
+import { prepareToolResult } from './prepared-result'
 import { XpertToolProviderRegistry } from './registry'
 import type { IAgentMiddlewareContext } from '../agent/middleware/strategy.interface'
 import type { ToolExecutionContext } from '../toolset/tool-execution-context'
@@ -126,6 +127,7 @@ describe('decorated business Tool adapters', () => {
     )
 
     expect(result?.structuredContent).toEqual({ value: 'mcp-value', surface: 'mcp' })
+    expect(result?.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
     expect(definition?.app).toEqual({ resourceKey: dashboardApp.key })
     expect(definition?.visibility).toEqual(['model', 'app'])
     expect(toolset.getMcpCapabilityDefinitions()?.apps).toEqual([dashboardApp])
@@ -307,3 +309,156 @@ function mcpContext(tenantId: string, organizationId: string, principalId: strin
     host: {}
   }
 }
+
+@XpertToolProvider({
+  provider: 'image_test',
+  componentKey: 'image-test',
+  name: 'Image test',
+  defaultMiddleware: 'images',
+  middlewares: [{ provider: 'images', meta: middlewareMeta('images') }]
+})
+class ImageTestProvider {
+  invalid = false
+  @XpertTool({
+    name: 'read_image',
+    description: 'Read a governed preview.',
+    inputSchema: z.object({}).strict(),
+    outputSchema: z.object({ drawingId: z.string() }).strict(),
+    resultFormat: 'tool_result',
+    middleware: true,
+    mcp
+  })
+  read() {
+    return {
+      content: [{ type: 'image' as const, mimeType: 'image/png', data: 'aGVsbG8=' }],
+      structuredContent: this.invalid ? { drawingId: 42 } : { drawingId: 'drawing-1' }
+    }
+  }
+}
+
+describe('decorated tool_result format', () => {
+  it('keeps MCP image bytes out of the validated structured DTO', async () => {
+    const provider = new ImageTestProvider()
+    const toolset = await new DecoratedToolsetStrategy(provider, 'image-plugin', '1.0.0').create({ name: 'Images' })
+    const definition = toolset.getMcpCapabilityDefinitions().tools[0]
+    const result = await definition.execute({}, mcpContext('tenant', 'org', 'user'))
+    expect(result).toEqual({
+      content: [
+        { type: 'image', mimeType: 'image/png', data: 'aGVsbG8=' },
+        { type: 'text', text: '{"drawingId":"drawing-1"}' }
+      ],
+      structuredContent: { drawingId: 'drawing-1' }
+    })
+    provider.invalid = true
+    await expect(definition.execute({}, mcpContext('tenant', 'org', 'user'))).rejects.toThrow()
+  })
+  it('delivers images to Agent vision and preserves a compact artifact', async () => {
+    const provider = new ImageTestProvider()
+    const strategy = new DecoratedAgentMiddlewareStrategy(provider, describeXpertToolProvider(provider), 'images')
+    const middleware = await strategy.createMiddleware({}, middlewareContext('tenant', 'org', 'user'))
+    const result = await middleware.tools[0].invoke({
+      type: 'tool_call',
+      id: 'image-call',
+      name: 'read_image',
+      args: {}
+    })
+    expect(result.content).toEqual(
+      expect.arrayContaining([{ type: 'image_url', image_url: { url: 'data:image/png;base64,aGVsbG8=' } }])
+    )
+    expect(result.artifact.structuredContent).toEqual({ drawingId: 'drawing-1' })
+  })
+})
+
+it('accepts strict object refinements and enforces them at invocation', async () => {
+  @XpertToolProvider({ provider: 'refined_test', componentKey: 'refined-test', name: 'Refined' })
+  class Refined {
+    @XpertTool({
+      name: 'refined_tool',
+      description: 'Requires an ordered range.',
+      inputSchema: z
+        .object({ start: z.number(), end: z.number() })
+        .strict()
+        .refine((value) => value.start < value.end),
+      outputSchema: z.object({ ok: z.boolean() }).strict(),
+      middleware: false,
+      mcp
+    })
+    run() {
+      return { ok: true }
+    }
+  }
+  const toolset = await new DecoratedToolsetStrategy(new Refined(), 'test', '1').create({ name: 'Refined' })
+  const definition = toolset.getMcpCapabilityDefinitions().tools[0]
+  await expect(definition.execute({ start: 2, end: 1 }, mcpContext('tenant', 'org', 'user'))).rejects.toThrow()
+  expect(
+    (await definition.execute({ start: 1, end: 2 }, mcpContext('tenant', 'org', 'user'))).structuredContent
+  ).toEqual({ ok: true })
+})
+
+const recoveredOutput = z.union([
+  z.object({ success: z.boolean(), label: z.string() }).strict(),
+  z.object({ resultStatus: z.literal('unavailable'), success: z.boolean(), operationId: z.string() }).strict()
+])
+@XpertToolProvider({
+  provider: 'recover_test',
+  componentKey: 'recover-test',
+  name: 'Recovery',
+  defaultMiddleware: 'recovery',
+  middlewares: [{ provider: 'recovery', meta: middlewareMeta('recovery') }]
+})
+class RecoveryProvider {
+  commits = 0
+  denied = false
+  @XpertTool({
+    name: 'recover_write',
+    description: 'Write then prepare its result.',
+    inputSchema: z.object({}).strict(),
+    outputSchema: recoveredOutput,
+    middleware: true,
+    mcp
+  })
+  write() {
+    if (this.denied) throw new Error('authorization_denied')
+    this.commits++
+    return prepareToolResult(
+      () => ({ success: true, label: 42 }),
+      () => ({ resultStatus: 'unavailable' as const, success: true, operationId: 'op' })
+    )
+  }
+}
+it('returns a schema-valid receipt on both surfaces without rerunning the completed write', async () => {
+  const provider = new RecoveryProvider()
+  const toolset = await new DecoratedToolsetStrategy(provider).create({ name: 'Recovery' })
+  const definition = toolset.getMcpCapabilityDefinitions().tools[0]
+  const result = await definition.execute({}, mcpContext('tenant', 'org', 'user'))
+  expect(result.structuredContent).toEqual({ resultStatus: 'unavailable', success: true, operationId: 'op' })
+  expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
+  expect(result.isError).not.toBe(true)
+  expect(provider.commits).toBe(1)
+  const strategy = new DecoratedAgentMiddlewareStrategy(provider, describeXpertToolProvider(provider), 'recovery')
+  const middleware = await strategy.createMiddleware({}, middlewareContext('tenant', 'org', 'user'))
+  expect(JSON.parse(await middleware.tools[0].invoke({}))).toMatchObject({
+    resultStatus: 'unavailable',
+    operationId: 'op'
+  })
+  expect(provider.commits).toBe(2)
+  provider.denied = true
+  await expect(definition.execute({}, mcpContext('tenant', 'org', 'user'))).rejects.toThrow('authorization_denied')
+  expect(provider.commits).toBe(2)
+})
+it('requires every output recovery union branch to be a strict object', () => {
+  @XpertToolProvider({ provider: 'invalid_union', componentKey: 'invalid-union', name: 'Invalid' })
+  class Invalid {
+    @XpertTool({
+      name: 'invalid_union',
+      description: 'Invalid recovery declaration.',
+      inputSchema: z.object({}).strict(),
+      outputSchema: z.union([z.object({ ok: z.boolean() }).strict(), z.object({ value: z.string() })]),
+      mcp
+    })
+    run() {
+      return { ok: true }
+    }
+  }
+  expect(() => describeXpertToolProvider(new Invalid())).toThrow('strict Zod object')
+})

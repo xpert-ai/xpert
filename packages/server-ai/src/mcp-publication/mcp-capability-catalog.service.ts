@@ -297,7 +297,8 @@ function nativeToolDeclaration(tool: AnyXpertToolDefinition, providerInstruction
         description: tool.description,
         ...(providerInstructions ? { providerInstructions } : {}),
         inputSchema: zodMcpSchema(tool.inputSchema),
-        ...(tool.outputSchema ? { outputSchema: zodMcpSchema(tool.outputSchema) } : {}),
+        // Strict output unions emit anyOf without a root type; MCP requires object output schemas.
+        ...(tool.outputSchema ? { outputSchema: { ...zodMcpSchema(tool.outputSchema), type: 'object' } } : {}),
         behavior: tool.behavior,
         annotations: {
             ...(tool.title ? { title: tool.title } : {}),

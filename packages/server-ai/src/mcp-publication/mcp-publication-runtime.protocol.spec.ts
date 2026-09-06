@@ -606,6 +606,51 @@ describe('McpPublicationRuntimeService protocol', () => {
         remoteContext.mockRestore()
     })
 
+    it('accepts declared minimal receipts and still rejects output outside the schema', async () => {
+        const capability = toolCapability()
+        if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Invalid test fixture')
+        capability.descriptorSnapshot.outputSchema = {
+            type: 'object',
+            anyOf: [
+                {
+                    type: 'object',
+                    required: ['source'],
+                    properties: { source: { type: 'string' } },
+                    additionalProperties: false
+                },
+                {
+                    type: 'object',
+                    required: ['resultStatus', 'operationId'],
+                    properties: { resultStatus: { const: 'unavailable' }, operationId: { type: 'string' } },
+                    additionalProperties: false
+                }
+            ]
+        }
+        resolveRuntimeCapabilities.mockResolvedValue([capability])
+        const receipt = { resultStatus: 'unavailable', operationId: 'op' }
+        executeTool.mockResolvedValueOnce({
+            content: [{ type: 'text', text: JSON.stringify(receipt) }],
+            structuredContent: receipt
+        })
+        const result = await legacyRequest(
+            'tools/call',
+            { name: capability.publicName, arguments: { query: 'MCP' } },
+            200
+        )
+        expect(result.body.result).toMatchObject({ structuredContent: receipt })
+        expect(result.body.result.isError).not.toBe(true)
+        executeTool.mockResolvedValueOnce({
+            content: [{ type: 'text', text: '{}' }],
+            structuredContent: { resultStatus: 'unavailable', privateData: 'secret' }
+        })
+        const rejected = await legacyRequest(
+            'tools/call',
+            { name: capability.publicName, arguments: { query: 'MCP' } },
+            201
+        )
+        expect(rejected.body.result.isError).toBe(true)
+    })
+
     it('requires App-linked tools to return both text fallback and structured content', async () => {
         resolveRuntimeCapabilities.mockResolvedValue([appToolCapability(), appCapability()])
 
