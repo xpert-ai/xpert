@@ -61,6 +61,7 @@ jest.mock('./plugin-resource-installation.entity', () => ({
 }))
 
 import {
+    RequestScopeLevel,
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_RESOURCE_ERROR_CODE,
     PLUGIN_RESOURCE_INSTALLATION_STATUS
@@ -77,6 +78,7 @@ import {
 import { parsePluginMcpCapabilityDeclarations, parsePluginMcpServerConfig } from './plugin-mcp-server-contract'
 
 describe('PluginResourceInstallerService helpers', () => {
+    afterEach(() => jest.restoreAllMocks())
     it('accepts a static capability descriptor file reference without starting the MCP server', () => {
         expect(
             parsePluginMcpServerConfig(
@@ -204,86 +206,124 @@ describe('PluginResourceInstallerService helpers', () => {
         ).toBe(PLUGIN_RESOURCE_INSTALLATION_STATUS.READY)
     })
 
-    it('installs a native plugin toolset once at organization scope', async () => {
-        jest.mocked(collectPluginBundleComponents).mockReturnValue([
-            {
-                componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
-                componentKey: 'cut',
-                definitionHash: 'cut-native-hash',
-                config: {
-                    provider: 'cut',
-                    name: 'Cut MCP Capabilities'
+    it.each([false, true])(
+        'installs or refreshes a native plugin toolset in scope (background=%s)',
+        async (background) => {
+            jest.mocked(collectPluginBundleComponents).mockReturnValue([
+                {
+                    componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
+                    componentKey: 'cut',
+                    definitionHash: 'cut-native-hash',
+                    config: {
+                        provider: 'cut',
+                        name: 'Cut MCP Capabilities'
+                    }
                 }
+            ])
+            jest.mocked(readPluginBundleManifest).mockReturnValue({
+                manifest: { name: '@xpert-ai/plugin-cut' }
+            } as never)
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(background ? null : 'user-1')
+            jest.spyOn(RequestContext, 'getScope').mockReturnValue({
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                level: RequestScopeLevel.ORGANIZATION
+            })
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+            const queryBuilder = {
+                where: jest.fn(),
+                andWhere: jest.fn(),
+                getOne: jest.fn().mockResolvedValue(null)
             }
-        ])
-        jest.mocked(readPluginBundleManifest).mockReturnValue({ manifest: { name: '@xpert-ai/plugin-cut' } } as never)
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
-        const queryBuilder = {
-            where: jest.fn(),
-            andWhere: jest.fn(),
-            getOne: jest.fn().mockResolvedValue(null)
-        }
-        queryBuilder.where.mockReturnValue(queryBuilder)
-        queryBuilder.andWhere.mockReturnValue(queryBuilder)
-        const installationRepo = {
-            createQueryBuilder: jest.fn(() => queryBuilder),
-            create: jest.fn((value) => value),
-            save: jest.fn(async (value) => value)
-        }
-        const toolsetRepo = { find: jest.fn().mockResolvedValue([]) }
-        const toolsetService = {
-            createBuiltinToolset: jest.fn().mockResolvedValue({
+            queryBuilder.where.mockReturnValue(queryBuilder)
+            queryBuilder.andWhere.mockReturnValue(queryBuilder)
+            const installationRepo = {
+                createQueryBuilder: jest.fn(() => queryBuilder),
+                create: jest.fn((value) => value),
+                save: jest.fn(async (value) => value)
+            }
+            const existing = {
                 id: 'toolset-cut',
                 tenantId: 'tenant-1',
                 organizationId: 'org-1',
-                workspaceId: null,
-                type: 'cut'
-            })
-        }
-        const capabilityCatalog = { discoverAndReplaceMcpToolset: jest.fn().mockResolvedValue([]) }
-        const service = new PluginResourceInstallerService(
-            installationRepo as never,
-            {} as never,
-            toolsetRepo as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            toolsetService as never,
-            capabilityCatalog as never,
-            {} as never,
-            { listRegistrations: jest.fn(() => []) } as never,
-            [{ name: '@xpert-ai/plugin-cut', scopeKey: 'org-1', baseDir: '/tmp/plugin' }] as never
-        )
-
-        const result = await service.installToOrganization('@xpert-ai/plugin-cut')
-
-        expect(toolsetService.createBuiltinToolset).toHaveBeenCalledWith(
-            'cut',
-            expect.objectContaining({
-                name: 'Cut MCP Capabilities',
-                options: expect.objectContaining({
+                options: {
                     pluginManaged: true,
                     pluginName: '@xpert-ai/plugin-cut',
                     componentKey: 'cut'
-                })
-            })
-        )
-        expect(capabilityCatalog.discoverAndReplaceMcpToolset).toHaveBeenCalledWith('toolset-cut')
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith('installation.tenantId = :installationTenantId', {
-            installationTenantId: 'tenant-1'
-        })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith(
-            'installation.organizationId = :installationOrganizationId',
-            {
-                installationOrganizationId: 'org-1'
+                }
             }
-        )
-        expect(installationRepo.create).toHaveBeenCalledWith(
-            expect.not.objectContaining({ workspaceId: expect.anything() })
-        )
-        expect(result.installations).toHaveLength(1)
-    })
+            const toolsetRepo = {
+                find: jest.fn().mockResolvedValue(background ? [existing] : []),
+                save: jest.fn(async (value) => value)
+            }
+            const toolsetService = {
+                createBuiltinToolset: jest.fn().mockResolvedValue({
+                    id: 'toolset-cut',
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    workspaceId: null,
+                    type: 'cut'
+                })
+            }
+            const capabilityCatalog = { discoverAndReplaceMcpToolset: jest.fn().mockResolvedValue([]) }
+            const service = new PluginResourceInstallerService(
+                installationRepo as never,
+                {} as never,
+                toolsetRepo as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                toolsetService as never,
+                capabilityCatalog as never,
+                {} as never,
+                { listRegistrations: jest.fn(() => []) } as never,
+                [{ name: '@xpert-ai/plugin-cut', scopeKey: 'org-1', baseDir: '/tmp/plugin' }] as never
+            )
+
+            const result = await service.installToOrganization('@xpert-ai/plugin-cut')
+
+            if (background) {
+                expect(toolsetService.createBuiltinToolset).not.toHaveBeenCalled()
+                expect(toolsetRepo.save).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        ...existing,
+                        name: 'Cut MCP Capabilities',
+                        options: expect.objectContaining({ definitionHash: 'cut-native-hash' })
+                    })
+                )
+            } else
+                expect(toolsetService.createBuiltinToolset).toHaveBeenCalledWith(
+                    'cut',
+                    expect.objectContaining({
+                        name: 'Cut MCP Capabilities',
+                        options: expect.objectContaining({
+                            pluginManaged: true,
+                            pluginName: '@xpert-ai/plugin-cut',
+                            componentKey: 'cut'
+                        })
+                    })
+                )
+            expect(toolsetRepo.find).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1' })
+                })
+            )
+            expect(capabilityCatalog.discoverAndReplaceMcpToolset).toHaveBeenCalledWith('toolset-cut')
+            expect(queryBuilder.andWhere).toHaveBeenCalledWith('installation.tenantId = :installationTenantId', {
+                installationTenantId: 'tenant-1'
+            })
+            expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+                'installation.organizationId = :installationOrganizationId',
+                {
+                    installationOrganizationId: 'org-1'
+                }
+            )
+            expect(installationRepo.create).toHaveBeenCalledWith(
+                expect.not.objectContaining({ workspaceId: expect.anything() })
+            )
+            expect(result.installations).toHaveLength(1)
+        }
+    )
 
     it('rejects a manifest component that claims to be a runtime MCP provider', async () => {
         jest.mocked(collectPluginBundleComponents).mockReturnValue([
