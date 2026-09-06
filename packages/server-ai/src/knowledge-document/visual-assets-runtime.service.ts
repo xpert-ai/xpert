@@ -1,3 +1,5 @@
+import { KnowledgeDocumentVisualAssetsRuntimeFactoryCapability } from '@xpert-ai/plugin-sdk'
+import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import type { Cache } from 'cache-manager'
@@ -5,10 +7,11 @@ import fsPromises from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
 import sharp from 'sharp'
-import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import type {
-    AgentMiddlewareRuntimeScope,
+    RuntimeIdentityScope,
     KnowledgeDocumentVisualAssetsApi,
+    KnowledgeDocumentVisualAssetsRuntimeFactory,
+    KnowledgeDocumentVisualAssetsRuntimeDependencies,
     KnowledgeDocumentVisualCandidate,
     KnowledgeDocumentVisualCandidateReason,
     KnowledgeDocumentVisualCandidateRequest,
@@ -100,7 +103,8 @@ type LegacyAssetContext = {
 }
 
 @Injectable()
-export class KnowledgeDocumentVisualAssetsRuntimeService {
+@RuntimeCapabilityProvider(KnowledgeDocumentVisualAssetsRuntimeFactoryCapability)
+export class KnowledgeDocumentVisualAssetsRuntimeService implements KnowledgeDocumentVisualAssetsRuntimeFactory {
     constructor(
         @Inject(CACHE_MANAGER)
         private readonly cacheManager: Cache,
@@ -112,21 +116,23 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
     ) {}
 
     createScopedApi(
-        scope: AgentMiddlewareRuntimeScope,
-        dependencies: { workspaceFiles: WorkspaceFilesApi }
+        scope: RuntimeIdentityScope,
+        dependencies: KnowledgeDocumentVisualAssetsRuntimeDependencies
     ): KnowledgeDocumentVisualAssetsApi {
+        scope = { ...scope }
+        const { workspaceFiles, resolveExecutionScope } = dependencies
+        const resolveScope = resolveExecutionScope ?? (() => scope)
         const allowedPaths = new Map<string, AllowedVisualPathRecord>()
         return {
-            issueCandidates: (input) => this.issueCandidates(invocationScope(scope), input, allowedPaths),
-            prepareImages: (input) =>
-                this.prepareImages(invocationScope(scope), input.filePaths, allowedPaths, dependencies.workspaceFiles),
-            consumeImageBatch: (batchRef) => this.consumeImageBatch(invocationScope(scope), batchRef),
-            discardImageBatch: (batchRef) => this.discardImageBatch(invocationScope(scope), batchRef)
+            issueCandidates: (input) => this.issueCandidates(resolveScope(), input, allowedPaths),
+            prepareImages: (input) => this.prepareImages(resolveScope(), input.filePaths, allowedPaths, workspaceFiles),
+            consumeImageBatch: (batchRef) => this.consumeImageBatch(resolveScope(), batchRef),
+            discardImageBatch: (batchRef) => this.discardImageBatch(resolveScope(), batchRef)
         }
     }
 
     private async issueCandidates(
-        scope: AgentMiddlewareRuntimeScope,
+        scope: RuntimeIdentityScope,
         input: KnowledgeDocumentVisualCandidateRequest,
         allowedPaths: Map<string, AllowedVisualPathRecord>
     ) {
@@ -177,7 +183,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
     }
 
     private async prepareImages(
-        scope: AgentMiddlewareRuntimeScope,
+        scope: RuntimeIdentityScope,
         rawFilePaths: string[],
         allowedPaths: Map<string, AllowedVisualPathRecord>,
         workspaceFiles: WorkspaceFilesApi
@@ -272,7 +278,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         }
     }
 
-    private async consumeImageBatch(scope: AgentMiddlewareRuntimeScope, batchRef: string) {
+    private async consumeImageBatch(scope: RuntimeIdentityScope, batchRef: string) {
         const binding = requireExecutionBinding(scope)
         const key = batchCacheKey(batchRef)
         const batch = await this.cacheManager.get<VisualImageBatchRecord>(key)
@@ -284,7 +290,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         return batch.images
     }
 
-    private async discardImageBatch(scope: AgentMiddlewareRuntimeScope, batchRef: string) {
+    private async discardImageBatch(scope: RuntimeIdentityScope, batchRef: string) {
         const binding = requireExecutionBinding(scope)
         const key = batchCacheKey(batchRef)
         const batch = await this.cacheManager.get<VisualImageBatchRecord>(key)
@@ -639,7 +645,7 @@ function selectPdfFallbackPages(
     return [...pages]
 }
 
-function requireExecutionBinding(scope: AgentMiddlewareRuntimeScope): RequiredExecutionBinding {
+function requireExecutionBinding(scope: RuntimeIdentityScope): RequiredExecutionBinding {
     const tenantId = readString(scope.tenantId)
     const userId = readString(scope.userId)
     const xpertId = readString(scope.xpertId)
@@ -657,24 +663,6 @@ function requireExecutionBinding(scope: AgentMiddlewareRuntimeScope): RequiredEx
         conversationId,
         agentKey,
         executionId
-    }
-}
-
-function invocationScope(scope: AgentMiddlewareRuntimeScope): AgentMiddlewareRuntimeScope {
-    const configurable = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable
-    return {
-        ...scope,
-        tenantId: readString(configurable?.tenantId) ?? scope.tenantId,
-        organizationId: readString(configurable?.organizationId) ?? scope.organizationId,
-        userId: readString(configurable?.userId) ?? scope.userId,
-        xpertId: readString(configurable?.xpertId) ?? scope.xpertId,
-        conversationId:
-            readString(configurable?.conversationId) ??
-            readString(configurable?.conversation_id) ??
-            readString(scope.conversationId) ??
-            readString(configurable?.thread_id),
-        agentKey: readString(configurable?.agentKey) ?? scope.agentKey,
-        executionId: readString(configurable?.executionId) ?? scope.executionId
     }
 }
 

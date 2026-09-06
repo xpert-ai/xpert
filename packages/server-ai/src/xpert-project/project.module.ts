@@ -1,3 +1,4 @@
+import { ProjectProvisioningRuntimeService } from './services/project-provisioning-runtime.service'
 import { FileAsset } from '../file-understanding/entities/file-asset.entity'
 import { XpertProjectPurgeService } from './services/project-purge.service'
 import {
@@ -113,6 +114,7 @@ import { XpertAgentModule } from '../xpert-agent'
     ],
     controllers: [XpertProjectController, XpertProjectInvitationController, XpertProjectAdminController],
     providers: [
+        ProjectProvisioningRuntimeService,
         XpertProjectPurgeService,
         XpertProjectService,
         XpertProjectContentService,

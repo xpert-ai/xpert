@@ -4,22 +4,38 @@ import { QueryBus } from '@nestjs/cqrs'
 import {
     AgentMiddlewareFileReference,
     AgentMiddlewareResolvedFile,
-    AgentMiddlewareRuntimeScope
+    type AgentMiddlewareFileApi,
+    FileRuntimeCapability
 } from '@xpert-ai/plugin-sdk'
 import { FileStorage } from '@xpert-ai/server-core'
-import type { FileAsset } from '../../../file-understanding/entities/file-asset.entity'
-import type { FileAssetAuthority, FileAssetLocator } from '../../../file-understanding/file-asset-access.service'
-import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
-import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding/queries/resolve-authorized-file-asset.query'
-import { normalizeOptionalString } from './utils'
+import type { FileAsset } from '../entities/file-asset.entity'
+import type { FileAssetAuthority, FileAssetLocator } from '../file-asset-access.service'
+import { GetOwnedStorageFileQuery } from '../queries/get-owned-storage-file.query'
+import { ResolveAuthorizedFileAssetQuery } from '../queries/resolve-authorized-file-asset.query'
+import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
+import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
 
+export type FileRuntimeDefaults = { conversationId?: string | null }
+
+// Platform calls use the current owner; Agent calls bind the conversation once.
+// Never persist a conversation identity on the shared provider instance.
 @Injectable()
-export class AgentMiddlewareFileRuntimeService {
+@RuntimeCapabilityProvider(FileRuntimeCapability)
+export class FileRuntimeService implements AgentMiddlewareFileApi {
     constructor(private readonly queryBus: QueryBus) {}
 
-    async resolveFile(
+    resolveFile(input: AgentMiddlewareFileReference): Promise<AgentMiddlewareResolvedFile | null> {
+        return this.resolveFileWithScope(input, {})
+    }
+
+    createScopedApi(defaults: FileRuntimeDefaults): AgentMiddlewareFileApi {
+        const scope = { conversationId: normalizeOptionalString(defaults.conversationId) }
+        return { resolveFile: (input) => this.resolveFileWithScope(input, scope) }
+    }
+
+    private async resolveFileWithScope(
         input: AgentMiddlewareFileReference,
-        scope: AgentMiddlewareRuntimeScope = {}
+        scope: FileRuntimeDefaults
     ): Promise<AgentMiddlewareResolvedFile | null> {
         const directUrl =
             normalizeOptionalString(input.previewUrl) ??
@@ -117,7 +133,7 @@ export class AgentMiddlewareFileRuntimeService {
         return new FileStorage().getProvider(storageFile.storageProvider)?.url(file)
     }
 
-    private resolveFileAssetAuthority(scope: AgentMiddlewareRuntimeScope): FileAssetAuthority {
+    private resolveFileAssetAuthority(scope: FileRuntimeDefaults): FileAssetAuthority {
         const conversationId = normalizeOptionalString(scope.conversationId)
         return conversationId ? { kind: 'conversation', conversationId } : { kind: 'current-owner' }
     }

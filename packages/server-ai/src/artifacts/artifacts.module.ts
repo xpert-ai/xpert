@@ -10,9 +10,11 @@ import {
     ArtifactsShareSessionController
 } from './artifacts.controller'
 import { ArtifactsService } from './artifacts.service'
+import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 
 @Module({
     imports: [
+        RuntimeCapabilityModule,
         TypeOrmModule.forFeature([Artifact, ArtifactVersion, ArtifactLink, ArtifactAccessLog]),
         UserModule,
         UserOrganizationModule,

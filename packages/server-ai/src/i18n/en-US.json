@@ -1,5 +1,7 @@
 {
     "Error": {
+        "ActorTokenRuntimeIdentityMismatch": "The token runtime identity is missing or does not match the current caller.",
+        "ActorTokenProviderUnavailable": "Outbound actor token provider is not configured.",
         "ProjectPurgeFileMismatch": "File does not belong to the Project being permanently deleted.",
         "ProjectPurgeOwnerRequired": "Only the owner can permanently delete an archived Project.",
         "SandboxProviderProjectContentReadOnlyUnsupported": "Sandbox provider {{provider}} does not support read-only Project Content.",

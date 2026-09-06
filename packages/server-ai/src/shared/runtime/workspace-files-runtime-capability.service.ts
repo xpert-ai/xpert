@@ -21,6 +21,7 @@ import {
     WorkspaceRuntimeWriteInput,
     WorkspaceFileReference,
     WorkspaceFilesApi,
+    WorkspaceFilesRuntimeCapability,
     WorkspaceUnderstandFileInput,
     WorkspaceUnderstoodFile,
     WorkspaceUploadBufferInput,
@@ -60,6 +61,8 @@ import { SearchFileChunksQuery } from '../../file-understanding/queries/search-f
 import { ValidateFileUnderstandingReferencesQuery } from '../../file-understanding/queries/validate-file-understanding-references.query'
 import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../volume'
 
+import { RuntimeCapabilityProvider } from './runtime-capability-provider.decorator'
+
 const WORKSPACE_FILES_SOURCE = 'platform.workspace.files'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -89,6 +92,7 @@ export type WorkspaceReadOnlyFileSource = {
 }
 
 @Injectable()
+@RuntimeCapabilityProvider(WorkspaceFilesRuntimeCapability)
 export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi {
     readonly api: WorkspaceFilesApi = this
 

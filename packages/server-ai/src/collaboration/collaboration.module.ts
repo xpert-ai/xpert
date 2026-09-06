@@ -7,10 +7,16 @@ import { CollaborationGateway } from './collaboration.gateway'
 import { CollaborationMaterializationProcessor } from './collaboration-materialization.processor'
 import { CollaborationService } from './collaboration.service'
 import { CollaborationDocument, CollaborationUpdate } from './entities'
+import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 
 @Global()
 @Module({
-    imports: [DiscoveryModule, RedisModule, TypeOrmModule.forFeature([CollaborationDocument, CollaborationUpdate])],
+    imports: [
+        RuntimeCapabilityModule,
+        DiscoveryModule,
+        RedisModule,
+        TypeOrmModule.forFeature([CollaborationDocument, CollaborationUpdate])
+    ],
     providers: [
         CollaborationDocumentProviderRegistry,
         CollaborationService,

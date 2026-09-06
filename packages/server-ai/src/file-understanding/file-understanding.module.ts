@@ -19,6 +19,7 @@ import { FileAssetAccessService } from './file-asset-access.service'
 import { ChatConversationModule } from '../chat-conversation'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 import { XpertModule } from '../xpert/xpert.module'
+import { FileRuntimeModule } from './runtime/file-runtime.module'
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import { XpertModule } from '../xpert/xpert.module'
             XpertProject
         ]),
         CqrsModule,
+        FileRuntimeModule,
         TenantModule,
         UserModule,
         StorageFileModule,

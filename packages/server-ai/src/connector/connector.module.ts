@@ -12,6 +12,7 @@ import { ConnectorRuntimeAudit } from './connector-runtime-audit.entity'
 import { ConnectorController } from './connector.controller'
 import { Connector } from './connector.entity'
 import { ConnectorService } from './connector.service'
+import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 
 @Module({
     imports: [
@@ -26,6 +27,7 @@ import { ConnectorService } from './connector.service'
         TenantModule,
         UserOrganizationModule,
         DiscoveryModule,
+        RuntimeCapabilityModule,
         CqrsModule,
         XpertWorkspaceModule
     ],

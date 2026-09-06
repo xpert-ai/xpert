@@ -12,9 +12,11 @@ import {
     Optional
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
 import type { IUser } from '@xpert-ai/contracts'
 import {
     CollaborationDocumentProviderRegistry,
+    CollaborationRuntimeCapability,
     type ApplyCollaborationUpdateInput,
     type ApplyCollaborationUpdateResult,
     type CollaborationApi,
@@ -86,6 +88,7 @@ export type CollaborationBroadcast =
  * Plugin providers own resource authorization and projection into business entities.
  */
 @Injectable()
+@RuntimeCapabilityProvider(CollaborationRuntimeCapability)
 export class CollaborationService implements CollaborationApi, OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(CollaborationService.name)
     private readonly nodeId = randomUUID()

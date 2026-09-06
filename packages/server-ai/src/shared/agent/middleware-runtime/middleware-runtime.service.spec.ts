@@ -81,6 +81,9 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import {
     ActorTokenRuntimeCapability,
+    ActorTokenRuntimeFactoryCapability,
+    ConnectorRuntimeFactoryCapability,
+    KnowledgeDocumentVisualAssetsRuntimeFactoryCapability,
     AssistantTaskRuntimeCapability,
     CancelConversationCommand,
     createRuntimeCapability,
@@ -100,6 +103,7 @@ import { ConnectorRuntimeCapability } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException } from '@nestjs/common'
 import { UploadFileCommand } from '@xpert-ai/server-core'
 import { of } from 'rxjs'
+import i18next from 'i18next'
 import { AIModelGetProviderQuery } from '../../../ai-model/queries/get-provider.query'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider/queries/get-model.query'
 import { CopilotCheckLimitCommand } from '../../../copilot-user/commands/check-limit.command'
@@ -138,22 +142,29 @@ import { CollaborationService } from '../../../collaboration'
 import { CopilotService } from '../../../copilot/copilot.service'
 import { applicationMetrics } from '../../../metrics'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../runtime/workspace-files-runtime-capability.service'
-import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from '../../../knowledge-document/visual-assets-runtime.token'
+import { ActorTokenRuntimeService } from '../../../actor-token/actor-token-runtime.service'
 import { ResolveRuntimeSkillPackagesQuery } from '../../../skill-package/queries/resolve-runtime-skill-packages.query'
-import { AgentMiddlewareAssistantTaskRuntimeService } from './assistant-task-runtime.service'
-import { AgentMiddlewareFileRuntimeService } from './file-runtime.service'
-import { AgentMiddlewareKnowledgeRuntimeService } from './knowledge-runtime.service'
+import { AssistantTaskRuntimeService } from '../../../xpert-agent-execution/runtime/assistant-task-runtime.service'
+import { FileRuntimeService } from '../../../file-understanding/runtime/file-runtime.service'
+import { KnowledgebaseRuntimeService } from '../../../knowledgebase/runtime/knowledgebase-runtime.service'
+import { KnowledgebaseDocumentsRuntimeService } from '../../../knowledgebase/runtime/knowledgebase-documents-runtime.service'
+import { KnowledgebaseProvisioningRuntimeService } from '../../../knowledgebase/runtime/knowledgebase-provisioning-runtime.service'
+import { ProjectProvisioningRuntimeService } from '../../../xpert-project/services/project-provisioning-runtime.service'
 import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 
 describe('AgentMiddlewareRuntimeService', () => {
+    beforeAll(async () => {
+        await i18next.init({ lng: 'en', resources: {} })
+    })
+
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let volumeClient: { resolve: jest.Mock }
     let volumeRoot: string
     let workspaceFiles: WorkspaceFilesRuntimeCapabilityService
     let connectors: {
-        createScopedRuntimeApi: jest.Mock
+        createScopedApi: jest.Mock
         resolveSelectedRuntimeBindings: jest.Mock
     }
     let artifacts: { createScopedApi: jest.Mock }
@@ -163,9 +174,8 @@ describe('AgentMiddlewareRuntimeService', () => {
     let copilotUsage: { recordModelUsage: jest.Mock }
     let actorTokenProvider: { mint: jest.Mock }
     let visualAssetsRuntime: { createScopedApi: jest.Mock }
-    let moduleRef: { get: jest.Mock }
     let platformCapabilities: DefaultRuntimeCapabilityRegistry
-    let assistantTaskRuntime: AgentMiddlewareAssistantTaskRuntimeService
+    let assistantTaskRuntime: AssistantTaskRuntimeService
     let service: AgentMiddlewareRuntimeService
 
     beforeEach(() => {
@@ -191,7 +201,7 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
         workspaceFiles = new WorkspaceFilesRuntimeCapabilityService(commandBus, volumeClient, platformCapabilities)
         connectors = {
-            createScopedRuntimeApi: jest.fn(() => ({
+            createScopedApi: jest.fn(() => ({
                 getConnector: jest.fn().mockResolvedValue(undefined),
                 getConnectorCredential: jest.fn().mockResolvedValue(undefined)
             })),
@@ -242,7 +252,6 @@ describe('AgentMiddlewareRuntimeService', () => {
                 discardImageBatch: jest.fn().mockResolvedValue(undefined)
             }))
         }
-        moduleRef = { get: jest.fn(() => visualAssetsRuntime) }
         const modelRuntime = new AgentMiddlewareModelRuntimeService(
             commandBus as any,
             queryBus as any,
@@ -252,21 +261,37 @@ describe('AgentMiddlewareRuntimeService', () => {
             copilotService,
             copilotUsage as never
         )
-        const knowledgeRuntime = new AgentMiddlewareKnowledgeRuntimeService(commandBus as any, queryBus as any)
-        const fileRuntime = new AgentMiddlewareFileRuntimeService(queryBus as any)
-        assistantTaskRuntime = new AgentMiddlewareAssistantTaskRuntimeService(commandBus as any, queryBus as any)
+        const fileRuntime = new FileRuntimeService(queryBus as never)
+        assistantTaskRuntime = new AssistantTaskRuntimeService(commandBus as never, queryBus as never)
+        platformCapabilities
+            .register(
+                KnowledgebaseRuntimeCapability,
+                new KnowledgebaseRuntimeService(commandBus as never, queryBus as never)
+            )
+            .register(
+                KnowledgebaseDocumentsRuntimeCapability,
+                new KnowledgebaseDocumentsRuntimeService(commandBus as never)
+            )
+            .register(
+                KnowledgebaseProvisioningRuntimeCapability,
+                new KnowledgebaseProvisioningRuntimeService(commandBus as never)
+            )
+            .register(AssistantTaskRuntimeCapability, assistantTaskRuntime)
+            .register(
+                ProjectProvisioningRuntimeCapability,
+                new ProjectProvisioningRuntimeService(commandBus as never, { purge: jest.fn() } as never)
+            )
+        platformCapabilities
+            .register(ConnectorRuntimeFactoryCapability, connectors as never)
+            .register(ActorTokenRuntimeFactoryCapability, new ActorTokenRuntimeService(actorTokenProvider as never))
+            .register(KnowledgeDocumentVisualAssetsRuntimeFactoryCapability, visualAssetsRuntime)
         service = new AgentMiddlewareRuntimeService(
             modelRuntime,
-            knowledgeRuntime,
             fileRuntime,
-            assistantTaskRuntime,
-            connectors as unknown as ConstructorParameters<typeof AgentMiddlewareRuntimeService>[4],
             workspaceFiles,
             artifacts as any,
             collaboration,
-            moduleRef as any,
-            platformCapabilities,
-            actorTokenProvider as any
+            platformCapabilities
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
@@ -286,6 +311,24 @@ describe('AgentMiddlewareRuntimeService', () => {
 
         expect(service.api.capabilities?.require(capability)).toBe(implementation)
         expect(service.createScopedApi({ tenantId: 'tenant-1' }).capabilities?.require(capability)).toBe(implementation)
+    })
+
+    it('shares the platform domain providers across distinct Agent executions', () => {
+        const first = service.createScopedApi({ xpertId: 'assistant-1', projectId: 'project-1' })
+        const second = service.createScopedApi({ xpertId: 'assistant-2', projectId: 'project-2' })
+        for (const key of [
+            KnowledgebaseRuntimeCapability,
+            KnowledgebaseDocumentsRuntimeCapability,
+            KnowledgebaseProvisioningRuntimeCapability,
+            AssistantTaskRuntimeCapability,
+            ProjectProvisioningRuntimeCapability
+        ]) {
+            expect(first.capabilities?.get(key.id)).toBe(platformCapabilities.get(key.id))
+            expect(second.capabilities?.get(key.id)).toBe(platformCapabilities.get(key.id))
+        }
+        expect(first.capabilities?.require(WorkspaceFilesRuntimeCapability)).not.toBe(
+            second.capabilities?.require(WorkspaceFilesRuntimeCapability)
+        )
     })
 
     it('emits middleware events as chat events without agent identity', async () => {
@@ -345,7 +388,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             return null
         })
 
-        await service.startAssistantTask({
+        await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
             xpertId: 'xpert-1',
             agentKey: 'Agent_Outline',
             taskId: 'task-1',
@@ -391,7 +434,7 @@ describe('AgentMiddlewareRuntimeService', () => {
             return null
         })
 
-        await service.startAssistantTask({
+        await service.api.capabilities?.require(AssistantTaskRuntimeCapability).startTask({
             xpertId: 'xpert-1',
             agentKey: 'Agent_Authoring',
             projectId: 'project-1',
@@ -489,13 +532,13 @@ describe('AgentMiddlewareRuntimeService', () => {
             getConnector: jest.fn().mockResolvedValue({ id: 'binding-1' }),
             getConnectorCredential: jest.fn().mockResolvedValue({ token: 'scoped-token' })
         }
-        connectors.createScopedRuntimeApi.mockReturnValueOnce(scopedConnectorApi)
+        connectors.createScopedApi.mockReturnValueOnce(scopedConnectorApi)
 
         await service.resolveSelectedConnectorRuntimeBindings(scope)
         const runtime = service.createScopedApi(scope)
 
         expect(connectors.resolveSelectedRuntimeBindings).toHaveBeenCalledWith(['binding-1'], scope)
-        expect(connectors.createScopedRuntimeApi).toHaveBeenCalledWith(scope)
+        expect(connectors.createScopedApi).toHaveBeenCalledWith(expect.objectContaining(scope))
         expect(runtime.capabilities?.require(ConnectorRuntimeCapability)).toBe(scopedConnectorApi)
     })
 
@@ -528,8 +571,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                 }
             })
         ).resolves.toEqual({ candidates: [], warnings: [] })
-        expect(moduleRef.get).toHaveBeenCalledWith(KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME, { strict: false })
-        expect(visualAssetsRuntime.createScopedApi).toHaveBeenCalledWith(scope, {
+        expect(visualAssetsRuntime.createScopedApi).toHaveBeenCalledWith(expect.objectContaining(scope), {
+            resolveExecutionScope: expect.any(Function),
             workspaceFiles: expect.objectContaining({
                 writeRuntimeBuffer: expect.any(Function)
             })
@@ -2604,6 +2647,7 @@ function roleAssistantFixture(
         active: true,
         version: '10',
         agent: { key: 'Agent_BomEngineer' },
+        publishAt: overrides.published === false ? null : new Date('2026-08-28T08:00:00Z'),
         graph: overrides.published === false ? null : { nodes: [], connections: [] },
         options: {
             templateSource: {
@@ -2621,6 +2665,7 @@ function createTestVolumeHandle(scope: Record<string, unknown>, root: string) {
         serverRoot: root,
         hostRoot: root,
         publicBaseUrl: 'https://files.example',
+        exposesDirectFileUrls: () => true,
         path: (relativePath?: string | null) => join(root, normalizeTestRelativePath(relativePath)),
         publicUrl: (relativePath?: string | null) =>
             ['https://files.example', normalizeTestRelativePath(relativePath)].filter(Boolean).join('/'),

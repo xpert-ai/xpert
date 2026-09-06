@@ -15,6 +15,8 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
+    AssistantTaskRuntimeCapability,
+    type AgentMiddlewareAssistantTaskApi,
     AgentMiddlewareAssistantTaskCancelResult,
     AgentMiddlewareAssistantTaskFile,
     AgentMiddlewareAssistantTaskInput,
@@ -30,34 +32,37 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { Observable } from 'rxjs'
 import { In } from 'typeorm'
-import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
-import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
-import { ResolveRuntimeSkillPackagesQuery } from '../../../skill-package/queries/resolve-runtime-skill-packages.query'
-import { SKILLS_MIDDLEWARE_NAME } from '../../../skill-package/types'
-import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
-import { FindAgentExecutionsQuery } from '../../../xpert-agent-execution/queries/find.query'
-import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
+import { GetChatConversationQuery } from '../../chat-conversation/queries/conversation-get.query'
+import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
+import { ResolveRuntimeSkillPackagesQuery } from '../../skill-package/queries/resolve-runtime-skill-packages.query'
+import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
+import { XpertAgentExecutionUpsertCommand } from '../commands/upsert.command'
+import { FindAgentExecutionsQuery } from '../queries/find.query'
+import { XpertAgentExecutionOneQuery } from '../queries/get-one.query'
 import {
     describeExternalAssistantBinding,
     directExternalAssistantIds,
     matchesExternalAssistantExpectation,
     safeExternalAssistantBinding,
     type ResolvedExternalAssistantBinding
-} from '../../../xpert/external-assistant-binding'
-import { XpertChatCommand } from '../../../xpert/commands/chat.command'
-import { FindXpertQuery } from '../../../xpert/queries/get-one.query'
-import { normalizeOptionalString } from './utils'
+} from '../../xpert/external-assistant-binding'
+import { XpertChatCommand } from '../../xpert/commands/chat.command'
+import { FindXpertQuery } from '../../xpert/queries/get-one.query'
+import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
+
+import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
 
 @Injectable()
-export class AgentMiddlewareAssistantTaskRuntimeService {
-    readonly #logger = new Logger(AgentMiddlewareAssistantTaskRuntimeService.name)
+@RuntimeCapabilityProvider(AssistantTaskRuntimeCapability)
+export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTaskApi {
+    readonly #logger = new Logger(AssistantTaskRuntimeService.name)
 
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {}
 
-    async getAssistantTaskStatus(
+    async getTaskStatus(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskResult | null> {
         const execution = await this.findAssistantTaskExecution(input)
@@ -88,7 +93,7 @@ export class AgentMiddlewareAssistantTaskRuntimeService {
     }
 
     /** Limit reconciliation to requester-owned runs from currently bound external Assistants. */
-    async listCorrelatedAssistantExecutions(
+    async listCorrelatedExecutions(
         input: AgentMiddlewareListCorrelatedExecutionsInput
     ): Promise<AgentMiddlewareCorrelatedExecution[]> {
         const bindings = (
@@ -166,7 +171,7 @@ export class AgentMiddlewareAssistantTaskRuntimeService {
         })
     }
 
-    async cancelAssistantTask(
+    async cancelTask(
         input: AgentMiddlewareAssistantTaskStatusInput
     ): Promise<AgentMiddlewareAssistantTaskCancelResult> {
         const result = await this.commandBus.execute<
@@ -186,7 +191,7 @@ export class AgentMiddlewareAssistantTaskRuntimeService {
     }
 
     /** Starts a task on the current Assistant or one deterministically resolved external Assistant. */
-    async startAssistantTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
+    async startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
         const requesterXpertId = normalizeOptionalString(input.xpertId)
         const prompt = normalizeOptionalString(input.prompt)
         if (!requesterXpertId) {

@@ -11,6 +11,7 @@ import {
     UnauthorizedException
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
+import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
 import type { ArtifactAccessEvent, IUser } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { RequestContext as ServerRequestContext, UserOrganizationService, UserService } from '@xpert-ai/server-core'
@@ -24,6 +25,7 @@ import {
     ArtifactLinkVersionMode,
     ArtifactRecord,
     ArtifactsApi,
+    ArtifactsRuntimeCapability,
     ArtifactSafeHtmlProfile,
     ArtifactVersionRecord,
     ArtifactShareInput,
@@ -124,6 +126,7 @@ export type ArtifactSharedDescriptor = {
 }
 
 @Injectable()
+@RuntimeCapabilityProvider(ArtifactsRuntimeCapability)
 export class ArtifactsService implements ArtifactsApi {
     constructor(
         @InjectRepository(Artifact)
