@@ -78,6 +78,8 @@
         "McpPublicationAccessDenied": "The MCP principal no longer has permission to run this service.",
         "McpManagementScopeRequired": "MCP management requires an active tenant scope.",
         "McpToolsetOutsideManagementScope": "The MCP toolset is outside the current management scope.",
+        "McpUnsupportedSchemaDialect": "Unsupported JSON Schema dialect: {{dialect}}.",
+        "McpInvalidArgumentValue": "Invalid value",
         "McpToolsetNoCapabilities": "The toolset does not declare MCP-publishable capabilities.",
         "McpToolsetWorkspaceMismatch": "The toolset is outside the requested workspace execution context.",
         "McpOrganizationPublicationWorkspaceToolset": "Organization-scoped MCP publications cannot execute a workspace-scoped toolset.",

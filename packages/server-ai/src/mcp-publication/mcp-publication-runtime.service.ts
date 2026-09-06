@@ -1,4 +1,5 @@
 import { runWithCapturedRequestContext } from '../shared/request-context'
+import { mcpInputSchema } from './mcp-input-schema'
 import {
     defaultMcpToolApprovalMode,
     canAllowMcpToolDirectly,
@@ -356,7 +357,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
         requestId: string,
         traceId?: string
     ) {
-        const inputSchema = fromJsonSchema(descriptor.inputSchema as JsonSchemaType)
+        const inputSchema = mcpInputSchema(descriptor.inputSchema as JsonSchemaType)
         const outputSchema = descriptor.outputSchema
             ? fromJsonSchema(descriptor.outputSchema as JsonSchemaType)
             : undefined

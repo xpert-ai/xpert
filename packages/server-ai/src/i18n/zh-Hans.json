@@ -78,6 +78,8 @@
         "McpPublicationAccessDenied": "MCP 主体已无权运行该服务。",
         "McpManagementScopeRequired": "MCP 管理需要有效的租户范围。",
         "McpToolsetOutsideManagementScope": "该 MCP 工具集不属于当前管理范围。",
+        "McpUnsupportedSchemaDialect": "\u4e0d\u652f\u6301\u7684 JSON Schema \u65b9\u8a00\uff1a{{dialect}}\u3002",
+        "McpInvalidArgumentValue": "\u65e0\u6548\u7684\u503c",
         "McpToolsetNoCapabilities": "该工具集未声明可发布的 MCP 能力。",
         "McpToolsetWorkspaceMismatch": "该工具集不属于请求的工作区执行上下文。",
         "McpOrganizationPublicationWorkspaceToolset": "组织级 MCP 服务不能执行绑定到工作空间的工具集。",
