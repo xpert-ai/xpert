@@ -281,7 +281,7 @@ export class ApplicationDetailComponent {
       case 'degraded':
         return this.#translate.instant('XP.Explore.Application.Status.Degraded', { Default: 'Needs repair' })
       default:
-        return this.#translate.instant('XP.Explore.Application.Status.NotInstalled', { Default: 'Not enabled' })
+        return this.#translate.instant('XP.Explore.Application.Status.NotInstalled', { Default: 'Setup required' })
     }
   }
 

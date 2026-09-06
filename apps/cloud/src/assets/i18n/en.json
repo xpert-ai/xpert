@@ -1845,6 +1845,7 @@
       "InstallNow": "Install Now",
       "InstallOrUpdate": "Install or Update",
       "Application": {
+        "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",
         "AppTemplate": "App template",
         "LoadingDetails": "Loading application details…",
         "Marketplace": "Application marketplace",
@@ -1892,7 +1893,7 @@
           "Initializing": "Initializing",
           "Failed": "Initialization failed",
           "Degraded": "Needs repair",
-          "NotInstalled": "Not enabled"
+          "NotInstalled": "Setup required"
         },
         "Scope": {
           "Tenant": "Tenant",

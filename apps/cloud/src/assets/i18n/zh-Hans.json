@@ -1366,6 +1366,7 @@
       "InstallNow": "立即安装",
       "InstallOrUpdate": "安装或更新",
       "Application": {
+        "SetupExplanation": "\u5e94\u7528\u5df2\u53ef\u7528\u3002\u521d\u59cb\u5316\u540e\uff0c\u5c06\u4e3a\u5f53\u524d\u7ec4\u7ec7\u521b\u5efa\u5de5\u4f5c\u7a7a\u95f4\u548c\u5165\u53e3\u52a9\u624b\u3002",
         "AppTemplate": "App 模板",
         "LoadingDetails": "正在加载应用详情…",
         "Marketplace": "应用市场",
@@ -1413,7 +1414,7 @@
           "Initializing": "初始化中",
           "Failed": "初始化失败",
           "Degraded": "需要修复",
-          "NotInstalled": "未启用"
+          "NotInstalled": "\u5f85\u521d\u59cb\u5316"
         },
         "Scope": {
           "Tenant": "租户级",

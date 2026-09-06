@@ -62,6 +62,7 @@
     "Title": "元數分析雲",
     "Explore": {
       "Application": {
+        "SetupExplanation": "\u61c9\u7528\u7a0b\u5f0f\u5df2\u53ef\u7528\u3002\u521d\u59cb\u5316\u5f8c\uff0c\u5c07\u70ba\u76ee\u524d\u7d44\u7e54\u5efa\u7acb\u5de5\u4f5c\u7a7a\u9593\u548c\u5165\u53e3\u52a9\u7406\u3002",
         "AppTemplate": "App 範本",
         "LoadingDetails": "正在載入應用程式詳情…",
         "Marketplace": "應用程式市場",
@@ -109,7 +110,7 @@
           "Initializing": "初始化中",
           "Failed": "初始化失敗",
           "Degraded": "需要修復",
-          "NotInstalled": "未啟用"
+          "NotInstalled": "\u5f85\u521d\u59cb\u5316"
         },
         "Scope": {
           "Tenant": "租戶級",
