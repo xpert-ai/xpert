@@ -1,3 +1,4 @@
+import { runWithCapturedRequestContext } from '../shared/request-context'
 import {
     defaultMcpToolApprovalMode,
     canAllowMcpToolDirectly,
@@ -167,7 +168,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                             }
                             throw error
                         }
-                        await applicationTracing.traceAsync(
+                        const executionUser = await applicationTracing.traceAsync(
                             'mcp.authorize',
                             { 'mcp.publication.id': publication.id },
                             () => this.publicationAuthorization.assertCanRun(publication, principal)
@@ -206,7 +207,21 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                         )
                         const nodeHandler = toNodeHandler(handler)
                         try {
-                            await nodeHandler(request, response, parsedBody)
+                            // File/Artifact capabilities read RequestContext. Restore only the user
+                            // verified for this call; a service account must not inherit an administrator.
+                            await runWithCapturedRequestContext(
+                                {
+                                    user: executionUser ?? null,
+                                    headers: {
+                                        'tenant-id': principal.tenantId,
+                                        ...(principal.organizationId
+                                            ? { 'organization-id': principal.organizationId }
+                                            : {}),
+                                        'x-request-id': requestId
+                                    }
+                                },
+                                () => nodeHandler(request, response, parsedBody)
+                            )
                             status = response.statusCode >= 400 ? 'error' : 'success'
                         } finally {
                             await handler.close()
