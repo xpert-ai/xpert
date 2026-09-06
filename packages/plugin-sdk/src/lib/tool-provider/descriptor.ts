@@ -2,6 +2,7 @@ import type { ZodEffects } from 'zod/v3'
 import type { ZodTypeAny } from 'zod/v3'
 import {
   MCP_CAPABILITY_VISIBILITIES,
+  MCP_CAPABILITY_APPROVAL_MODES,
   MCP_REQUIRED_CONTEXTS,
   MCP_TOOL_IDEMPOTENCY,
   MCP_TOOL_RISKS,
@@ -144,6 +145,12 @@ function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: st
     throw new Error(`MCP Tool '${options.name}' requires at least one execution context.`)
   }
   if (options.mcp) {
+    if (
+      options.mcp.defaultApprovalMode !== undefined &&
+      !includesValue(MCP_CAPABILITY_APPROVAL_MODES, options.mcp.defaultApprovalMode)
+    ) {
+      throw new Error(`MCP Tool '${options.name}' declares invalid defaultApprovalMode.`)
+    }
     const behavior = options.mcp.behavior
     if (
       !includesValue(MCP_TOOL_RISKS, behavior?.risk) ||

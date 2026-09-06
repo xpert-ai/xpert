@@ -187,6 +187,7 @@ function createMcpTool(
     outputSchema,
     exposure: { mcp: { eligible: true } },
     behavior: mcp.behavior,
+    ...(mcp.defaultApprovalMode ? { defaultApprovalMode: mcp.defaultApprovalMode } : {}),
     requiredContext: [...mcp.requiredContext],
     visibility: [...(mcp.visibility ?? (mcp.app ? ['model', 'app'] : ['model']))],
     ...(mcp.app ? { app: { resourceKey: mcp.app.resourceKey } } : {}),

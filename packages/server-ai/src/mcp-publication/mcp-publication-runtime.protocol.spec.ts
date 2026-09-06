@@ -490,6 +490,44 @@ describe('McpPublicationRuntimeService protocol', () => {
         trace.mockRestore()
     })
 
+    it.each([writeToolCapability, dangerousToolCapability])(
+        'executes application-authorized tools on a legacy connection without elicitation',
+        async (factory) => {
+            const capability = factory()
+            if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+            capability.policy = null
+            capability.descriptorSnapshot.defaultApprovalMode = 'allow'
+            resolveRuntimeCapabilities.mockResolvedValue([capability])
+            const result = await legacyRequest(
+                'tools/call',
+                { name: capability.publicName, arguments: { query: 'MCP' } },
+                104
+            )
+            expect(result.body.error).toBeUndefined()
+            expect(result.body.result?.isError).not.toBe(true)
+            expect(result.body.result).not.toHaveProperty('inputRequests')
+            expect(executeTool).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it.each(['confirm', 'deny'] as const)(
+        'keeps an administrator %s override above the application default',
+        async (approvalMode) => {
+            const capability = writeToolCapability()
+            if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+            capability.descriptorSnapshot.defaultApprovalMode = 'allow'
+            capability.policy = { approvalMode }
+            resolveRuntimeCapabilities.mockResolvedValue([capability])
+            const result = await request('tools/call', { name: 'generic_write', arguments: { query: 'MCP' } }, 105, {
+                name: 'generic_write',
+                clientCapabilities: { elicitation: { form: {} } }
+            })
+            expect(executeTool).not.toHaveBeenCalled()
+            if (approvalMode === 'confirm') expect(result.body.result?.resultType).toBe('input_required')
+            else expect(result.body.error ?? result.body.result?.isError).toBeTruthy()
+        }
+    )
+
     it('requires signed multi-round-trip approval before executing confirm-mode tools', async () => {
         resolveRuntimeCapabilities.mockResolvedValue([writeToolCapability()])
         const clientCapabilities = { elicitation: { form: {} } }

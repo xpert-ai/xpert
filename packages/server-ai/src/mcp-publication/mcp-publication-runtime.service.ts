@@ -1,4 +1,6 @@
 import {
+    defaultMcpToolApprovalMode,
+    canAllowMcpToolDirectly,
     MCP_PROTOCOL_VERSION,
     MCP_TASK_EXTENSION_ID,
     type McpAppCapabilityDescriptor,
@@ -1106,18 +1108,13 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
     }
 }
 
-function defaultApprovalMode(descriptor: McpToolCapabilityDescriptor) {
-    if (descriptor.behavior.risk === 'read') return 'allow'
-    if (descriptor.behavior.risk === 'write') return 'confirm'
-    return 'deny'
-}
-
 function effectiveApprovalMode(
     capability: McpPublicationCapability,
     descriptor: McpToolCapabilityDescriptor
 ): McpCapabilityApprovalMode {
-    const configured = capability.policy?.approvalMode ?? defaultApprovalMode(descriptor)
-    return descriptor.behavior.risk === 'dangerous' && configured === 'allow' ? 'deny' : configured
+    // Administrator overrides win; an owner-declared allow is required for dangerous tools.
+    const configured = capability.policy?.approvalMode ?? defaultMcpToolApprovalMode(descriptor)
+    return !canAllowMcpToolDirectly(descriptor) && configured === 'allow' ? 'deny' : configured
 }
 
 function isToolApprovalGranted(value: unknown) {

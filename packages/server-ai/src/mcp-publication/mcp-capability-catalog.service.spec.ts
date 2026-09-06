@@ -154,6 +154,7 @@ describe('McpCapabilityCatalogService', () => {
                 z.object({ resultStatus: z.literal('unavailable') }).strict()
             ]),
             exposure: { mcp: { eligible: true } },
+            defaultApprovalMode: 'allow',
             behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
             requiredContext: ['workspace', 'principal', 'execution'],
             visibility: ['model', 'app'],
@@ -221,6 +222,9 @@ describe('McpCapabilityCatalogService', () => {
 
         const catalog = await service.discoverAndReplaceMcpToolset('toolset-1')
 
+        expect(catalog.find((item) => item.capabilityKey === 'search_documents')?.descriptor).toMatchObject({
+            defaultApprovalMode: 'allow'
+        })
         expect(discover).not.toHaveBeenCalled()
         expect(catalog).toHaveLength(5)
         expect(catalog.find(({ capabilityType }) => capabilityType === 'tool')?.descriptor).toEqual(

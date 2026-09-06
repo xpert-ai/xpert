@@ -3,6 +3,7 @@ import type {
   I18nObject,
   JsonSchemaObjectType,
   McpRequiredContext,
+  McpCapabilityApprovalMode,
   McpToolBehavior,
   TAgentMiddlewareMeta
 } from '@xpert-ai/contracts'
@@ -51,6 +52,8 @@ export interface XpertToolProviderOptions {
 }
 
 export interface XpertMcpToolOptions {
+  /** Default for auto-published tools; explicit administrator policy takes precedence. */
+  defaultApprovalMode?: McpCapabilityApprovalMode
   behavior: McpToolBehavior
   requiredContext: readonly McpRequiredContext[]
   visibility?: readonly XpertToolVisibility[]

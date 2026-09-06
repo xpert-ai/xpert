@@ -300,6 +300,7 @@ function nativeToolDeclaration(tool: AnyXpertToolDefinition, providerInstruction
         // Strict output unions emit anyOf without a root type; MCP requires object output schemas.
         ...(tool.outputSchema ? { outputSchema: { ...zodMcpSchema(tool.outputSchema), type: 'object' } } : {}),
         behavior: tool.behavior,
+        ...(tool.defaultApprovalMode ? { defaultApprovalMode: tool.defaultApprovalMode } : {}),
         annotations: {
             ...(tool.title ? { title: tool.title } : {}),
             readOnlyHint: tool.behavior.risk === 'read',

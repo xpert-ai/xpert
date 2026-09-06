@@ -1,3 +1,4 @@
+import { defaultMcpToolApprovalMode, canAllowMcpToolDirectly } from '@xpert-ai/contracts'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
@@ -614,7 +615,7 @@ export class XpertMcpPublicationsComponent {
     return !(
       approvalMode === 'allow' &&
       draft.catalog.descriptor.capabilityType === 'tool' &&
-      draft.catalog.descriptor.behavior.risk === 'dangerous'
+      !canAllowMcpToolDirectly(draft.catalog.descriptor)
     )
   }
 
@@ -945,5 +946,5 @@ function uniquePublicName(capabilityKey: string, toolsetId: string, usedNames: S
 
 function defaultApprovalMode(capability: IMcpCapabilityCatalog): McpCapabilityApprovalMode {
   if (capability.descriptor.capabilityType !== 'tool') return 'allow'
-  return capability.descriptor.behavior.risk === 'read' ? 'allow' : 'confirm'
+  return defaultMcpToolApprovalMode(capability.descriptor)
 }

@@ -46,6 +46,7 @@ class DecoratedTestProvider {
     middleware: true,
     mcp: {
       ...mcp,
+      defaultApprovalMode: 'allow',
       visibility: ['model', 'app'],
       app: { resourceKey: dashboardApp.key }
     }
@@ -86,6 +87,17 @@ class DecoratedTestProvider {
 }
 
 describe('decorated business Tool adapters', () => {
+  it('propagates the declared default policy without changing behavior metadata', async () => {
+    const tools = (
+      await new DecoratedToolsetStrategy(new DecoratedTestProvider(), 'test', '1').create({ name: 'Test' })
+    ).getMcpCapabilityDefinitions().tools
+    expect(tools.find((item) => item.name === 'default_tool')).toMatchObject({
+      defaultApprovalMode: 'allow',
+      behavior: mcp.behavior
+    })
+    expect(tools.find((item) => item.name === 'alternate_tool')).not.toHaveProperty('defaultApprovalMode')
+  })
+
   it('binds class and method metadata into multiple Middleware groups', async () => {
     const provider = new DecoratedTestProvider()
     const descriptor = describeXpertToolProvider(provider)

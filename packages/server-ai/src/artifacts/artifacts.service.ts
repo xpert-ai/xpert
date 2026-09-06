@@ -1161,7 +1161,13 @@ export class ArtifactsService implements ArtifactsApi {
         const qb = this.linkRepository
             .createQueryBuilder('link')
             .leftJoinAndSelect('link.artifact', 'artifact')
-            .where('(link.id = :idOrSlug OR link.slug = :idOrSlug)', { idOrSlug: normalized })
+            // PostgreSQL casts UUID parameters even inside OR; slugs must never bind to link.id.
+            .where('(link.id = :linkId OR link.slug = :linkSlug)', {
+                linkId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized)
+                    ? normalized
+                    : null,
+                linkSlug: normalized
+            })
             .andWhere('link.tenantId = :tenantId', { tenantId: scope.tenantId })
         if (scope.organizationId) {
             qb.andWhere('link.organizationId = :organizationId', { organizationId: scope.organizationId })
@@ -1379,7 +1385,12 @@ export class ArtifactsService implements ArtifactsApi {
         access: ArtifactLinkAccessInput,
         scope: ArtifactsRuntimeScope
     ): string | undefined {
-        if (access.mode === 'public_link' && !access.userConfirmedPublicLink) {
+        // Trusted plugin policy is distinct from user confirmation; callers must not bind it from tool input.
+        if (
+            access.mode === 'public_link' &&
+            !access.userConfirmedPublicLink &&
+            access.publicLinkAuthorization !== 'application_policy'
+        ) {
             throw new BadRequestException('public_link requires explicit user confirmation')
         }
         if (access.mode === 'signed_preview') {

@@ -13,6 +13,7 @@ import {
     MCP_REQUIRED_CONTEXTS,
     MCP_TOOL_IDEMPOTENCY,
     MCP_TOOL_RISKS,
+    MCP_CAPABILITY_APPROVAL_MODES,
     MCP_TOOL_SIDE_EFFECTS
 } from '@xpert-ai/contracts'
 import { isIP } from 'node:net'
@@ -60,6 +61,11 @@ export function assertValidMcpCapabilityDescriptor(descriptor: McpCapabilityDesc
             if (!MCP_TOOL_RISKS.includes(descriptor.behavior.risk)) invalid('tool risk is invalid')
             if (!MCP_TOOL_SIDE_EFFECTS.includes(descriptor.behavior.sideEffect)) invalid('tool side effect is invalid')
             if (!MCP_TOOL_IDEMPOTENCY.includes(descriptor.behavior.idempotency)) invalid('tool idempotency is invalid')
+            if (
+                descriptor.defaultApprovalMode !== undefined &&
+                !MCP_CAPABILITY_APPROVAL_MODES.includes(descriptor.defaultApprovalMode)
+            )
+                invalid('tool default approval mode is invalid')
             if (descriptor.appResourceKey) assertIdentifier(descriptor.appResourceKey, 'tool app resource key')
             if (descriptor.taskMaxLifetimeMs !== undefined) {
                 assertPositiveInteger(descriptor.taskMaxLifetimeMs, 'tool task maximum lifetime')
@@ -375,6 +381,9 @@ function compareToolDescriptor(
             `tool idempotency weakened from '${previous.behavior.idempotency}' to '${current.behavior.idempotency}'`
         )
     }
+    // Manual Publications must review policy changes even when tool risk and schemas stay unchanged.
+    if (previous.defaultApprovalMode !== current.defaultApprovalMode)
+        reasons.push('tool default approval policy changed')
     if (previous.appResourceKey !== current.appResourceKey) reasons.push('tool app binding changed')
     if (previous.taskMode !== 'required' && current.taskMode === 'required')
         reasons.push('tool now requires task execution')
@@ -474,6 +483,7 @@ function semanticDescriptor(descriptor: McpCapabilityDescriptor): JSONValue {
             value.inputSchema = descriptor.inputSchema
             if (descriptor.outputSchema) value.outputSchema = descriptor.outputSchema
             value.behavior = { ...descriptor.behavior }
+            if (descriptor.defaultApprovalMode !== undefined) value.defaultApprovalMode = descriptor.defaultApprovalMode
             if (descriptor.annotations) value.annotations = toolAnnotations(descriptor)
             if (descriptor.appResourceKey) value.appResourceKey = descriptor.appResourceKey
             if (descriptor.taskMode) value.taskMode = descriptor.taskMode

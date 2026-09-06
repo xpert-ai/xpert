@@ -91,3 +91,22 @@ import {
 ```
 
 This entry point excludes the NestJS and Node.js dependencies used by the server SDK.
+
+### Native MCP invocation defaults
+
+A decorated tool can declare `mcp.defaultApprovalMode: 'allow' | 'confirm' | 'deny'`.
+The native capability descriptor carries this default through auto-publication and
+provider synchronization. Explicit Publication administrator policies take
+precedence. Omitting the field retains the existing risk defaults: reads allow,
+writes confirm, and dangerous tools deny. A dangerous tool can run directly only
+when its owner explicitly declares `allow`; risk annotations remain unchanged.
+Manual Publications review changes to this declaration before adopting them.
+
+For public Artifact links authorized by trusted application policy, runtime callers
+may pass `access.publicLinkAuthorization: 'application_policy'` instead of
+asserting `userConfirmedPublicLink`. This field must be derived by trusted plugin
+code, never exposed as a tool argument. Existing user-confirmation calls retain
+their behavior; user identity and Artifact scope checks still apply.
+
+These additions require matching host contracts/runtime support and an SDK build
+containing these interfaces. They are not part of the published SDK 3.18.3 baseline.

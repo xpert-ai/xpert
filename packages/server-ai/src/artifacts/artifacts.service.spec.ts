@@ -56,6 +56,26 @@ describe('ArtifactsService', () => {
         expect(linkRepository.items).toHaveLength(0)
     })
 
+    it('accepts trusted application authorization for public links without asserting user confirmation', async () => {
+        const api = service.createScopedApi({ tenantId: 'tenant-1', userId: 'user-1' })
+        const artifact = await api.createArtifact({
+            source: { pluginName: '@xpert-ai/plugin-demo', resourceType: 'demo', resourceId: 'application-policy' },
+            kind: 'html'
+        })
+        writeWorkspaceFile('policy.html', '<html><body>Policy test</body></html>')
+        await api.createArtifactVersion({
+            artifactId: artifact.id,
+            workspaceFileRef: workspaceRef('policy.html'),
+            mimeType: 'text/html'
+        })
+        const link = await api.createArtifactLink({
+            artifactId: artifact.id,
+            access: { mode: 'public_link', publicLinkAuthorization: 'application_policy' }
+        })
+        expect(link.accessMode).toBe('public_link')
+        expect(linkRepository.items).toHaveLength(1)
+    })
+
     it('creates a signed preview artifact link and resolves the current version with the preview token', async () => {
         const html = '<!doctype html><html><body>Artifact deck</body></html>'
         const filePath = 'exports/deck.html'
@@ -586,7 +606,11 @@ class MemoryRepository {
         }
         const entity = {
             ...value,
-            id: value.id ?? `${this.prefix}-${(this.sequence += 1)}`,
+            id:
+                value.id ??
+                (this.prefix === 'link'
+                    ? `00000000-0000-4000-8000-${String((this.sequence += 1)).padStart(12, '0')}`
+                    : `${this.prefix}-${(this.sequence += 1)}`),
             createdAt: value.createdAt ?? new Date(),
             updatedAt: new Date()
         }
@@ -648,7 +672,7 @@ class MemoryRepository {
             getOne: async () => {
                 const item = this.items.find(
                     (candidate) =>
-                        (candidate.id === parameters.idOrSlug || candidate.slug === parameters.idOrSlug) &&
+                        (candidate.id === parameters.linkId || candidate.slug === parameters.linkSlug) &&
                         candidate.tenantId === parameters.tenantId &&
                         (parameters.organizationId === undefined ||
                             candidate.organizationId === parameters.organizationId)
