@@ -600,6 +600,93 @@ describe('McpPublicationRuntimeService protocol', () => {
         )
     })
 
+    it('rejects an expired confirmation before executing the tool', async () => {
+        resolveRuntimeCapabilities.mockResolvedValue([writeToolCapability()])
+        const clientCapabilities = { elicitation: { form: {} } }
+        const requested = await request('tools/call', { name: 'generic_write', arguments: { query: 'MCP' } }, 33, {
+            name: 'generic_write',
+            clientCapabilities
+        })
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60 * 1000)
+        try {
+            const expired = await request(
+                'tools/call',
+                {
+                    name: 'generic_write',
+                    arguments: { query: 'MCP' },
+                    requestState: requested.body.result?.requestState,
+                    inputResponses: { input: { action: 'accept', content: { approved: true } } }
+                },
+                34,
+                { name: 'generic_write', clientCapabilities }
+            )
+            expect(expired.body.error).toEqual(expect.objectContaining({ code: expect.any(Number) }))
+            expect(executeTool).not.toHaveBeenCalled()
+        } finally {
+            clock.mockRestore()
+        }
+    })
+
+    it('resumes a provider confirmation after the publication approval without accepting changed input', async () => {
+        resolveRuntimeCapabilities.mockResolvedValue([writeToolCapability()])
+        const clientCapabilities = { elicitation: { form: {} } }
+        const args = { name: 'generic_write', arguments: { query: 'MCP' } }
+        const options = { name: 'generic_write', clientCapabilities }
+        const previousImplementation = executeTool.getMockImplementation()
+        executeTool.mockImplementation(async (input) => {
+            await input.host.input.request({
+                type: 'form',
+                title: 'Publish drawing at revision 4',
+                schema: { type: 'object', properties: { confirmed: { type: 'boolean' } }, required: ['confirmed'] }
+            })
+            return { content: [{ type: 'text', text: 'Confirmed' }] }
+        })
+        const first = await request('tools/call', args, 101, options)
+        const second = await request(
+            'tools/call',
+            {
+                ...args,
+                requestState: first.body.result?.requestState,
+                inputResponses: { input: { action: 'accept', content: { approved: true } } }
+            },
+            102,
+            options
+        )
+        expect(second.body.result?.resultType).toBe('input_required')
+        expect(second.body.result?.inputRequests).toEqual(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    params: expect.objectContaining({ message: 'Publish drawing at revision 4' })
+                })
+            })
+        )
+        const changed = await request(
+            'tools/call',
+            {
+                ...args,
+                arguments: { query: 'different drawing' },
+                requestState: second.body.result?.requestState,
+                inputResponses: { input: { action: 'accept', content: { confirmed: true } } }
+            },
+            103,
+            options
+        )
+        expect(changed.body.result?.isError).toBe(true)
+        const final = await request(
+            'tools/call',
+            {
+                ...args,
+                requestState: second.body.result?.requestState,
+                inputResponses: { input: { action: 'accept', content: { confirmed: true } } }
+            },
+            104,
+            options
+        )
+        expect(final.body.result?.resultType).toBe('complete')
+        expect(final.body.result?.isError).not.toBe(true)
+        executeTool.mockImplementation(previousImplementation)
+    })
+
     it('continues a valid incoming W3C trace context through the shared tool runtime', async () => {
         const traceId = '4bf92f3577b34da6a3ce929d0e0e4736'
         const traceparent = `00-${traceId}-00f067aa0ba902b7-01`
