@@ -1,5 +1,9 @@
 # Plugin SDK
 
+## Runtime capabilities
+
+See [platform capabilities and scoped factories](./runtime-capabilities.md) for domain registration, execution-scoped APIs and usage outside Agent middleware.
+
 ## Building
 
 Run `nx build plugin-sdk` to build the library.
