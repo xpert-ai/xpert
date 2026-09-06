@@ -12,10 +12,11 @@ export class XpertAccessController {
     constructor(private readonly publishedXpertAccessService: PublishedXpertAccessService) {}
 
     @Get(':id')
-    async getAccessiblePublishedXpert(@Param('id') id: string): Promise<Pick<IXpert, 'id'>> {
+    async getAccessiblePublishedXpert(@Param('id') id: string): Promise<Pick<IXpert, 'id' | 'avatar'>> {
         const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id)
         return {
-            id: xpert.id
+            id: xpert.id,
+            avatar: xpert.avatar ?? undefined
         }
     }
 }

@@ -1,3 +1,4 @@
+import { PluginApplicationSuiteService } from './plugin-application-suite.service'
 import {
     AiModelTypeEnum,
     AiProviderRole,
@@ -104,7 +105,8 @@ export class PluginApplicationService {
         private readonly queryBus: QueryBus,
         @Optional()
         @Inject(LOADED_PLUGINS)
-        private readonly loadedPlugins: LoadedPluginRecord[] = []
+        private readonly loadedPlugins: LoadedPluginRecord[] = [],
+        @Optional() private readonly assistantSuites?: PluginApplicationSuiteService
     ) {}
 
     /** Returns trusted presentation metadata plus scoped health and initialization preflight. */
@@ -195,6 +197,10 @@ export class PluginApplicationService {
                   preflight.defaultVisionModelId
               )
             : null
+        if (application.config.assistantSuite) {
+            if (!this.assistantSuites) throw new BadRequestException('application_suite_runtime_unavailable')
+            await this.assistantSuites.validate(application)
+        }
         const claim = await this.claimInstallation(resolved, operationId)
         const installation = claim.installation
 
@@ -294,7 +300,11 @@ export class PluginApplicationService {
                 : null
             let xpertId = existingXpert?.id
             let xpertSlug = existingXpert?.slug ?? null
-            if (!xpertId) {
+            if (application.config.assistantSuite) {
+                const suite = await this.assistantSuites.ensure(application, installation, workspaceId)
+                xpertId = suite.id
+                xpertSlug = suite.slug ?? null
+            } else if (!xpertId) {
                 const assistantName = await this.uniqueAssistantName(application.appName, installation.organizationId)
                 const result = await this.commandBus.execute<PluginTemplateInstallCommand, PluginResourceInstallResult>(
                     new PluginTemplateInstallCommand(
@@ -321,6 +331,7 @@ export class PluginApplicationService {
             installation.errorCode = null
             installation.errorMessage = null
             installation.resourceRefs = {
+                ...installation.resourceRefs,
                 workspace: workspaceId,
                 assistant: xpertId,
                 ...Object.fromEntries(
@@ -684,7 +695,11 @@ export class PluginApplicationService {
                       (results) => results.length === expectedKnowledgebaseCount && results.every((exists) => exists)
                   )
         ])
-        if (!workspaceExists || !xpertExists || !knowledgebaseExists) {
+        const application = this.resolveApplication(installation.pluginName, installation.appName).application
+        const suiteHealthy =
+            !application.config.assistantSuite ||
+            (this.assistantSuites && (await this.assistantSuites.healthy(application, installation)))
+        if (!workspaceExists || !xpertExists || !knowledgebaseExists || !suiteHealthy) {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'resource_missing'
             installation.errorMessage = 'One or more initialized App resources are missing.'
