@@ -5,6 +5,7 @@ import { TChatModelOptions } from './model'
 
 export type RerankResult = {
   index: number
+  /** Relevance score reported by the rerank provider. Higher values are more relevant. */
   relevanceScore: number
   document?: Document<Record<string, any>>
 }
@@ -23,6 +24,7 @@ export interface IRerank {
     query: string,
     options: {
       topN?: number
+      /** Minimum relevanceScore, applied before the Top N limit. */
       scoreThreshold?: number
       model?: string
     }

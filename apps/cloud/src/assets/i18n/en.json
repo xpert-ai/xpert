@@ -5363,6 +5363,8 @@
       "LegacyFusionActive": "Legacy weighted fusion remains active until Weighted RRF is enabled.",
       "Reranking": "Reranking",
       "RerankingDesc": "Refine the fused candidates before returning the final result.",
+      "RerankThreshold": "Rerank threshold",
+      "RerankThresholdHelp": "Filter reranked results below this relevance score before applying Top K.",
       "GraphStatus": "Graph Status",
       "GraphStatus_Indexing": "Indexing",
       "GraphStatus_Ready": "Ready",

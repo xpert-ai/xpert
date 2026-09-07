@@ -258,6 +258,8 @@ export enum KnowledgebasePermission {
  * Recall parameters
  */
 export type TKBRecallParams = {
+  /** Default content selection, used only when Wiki is enabled. */
+  contentScope?: KnowledgeRetrievalContentScope
   /**
    * Default retrieval mode for this knowledgebase.
    */
@@ -267,9 +269,13 @@ export type TKBRecallParams = {
    */
   topK?: number
   /**
-   * At least the similarity threshold
+   * Minimum vector similarity. Null disables the threshold.
    */
-  score?: number
+  score?: number | null
+  /**
+   * Minimum relevance score returned by the rerank model. Null disables the threshold.
+   */
+  rerankThreshold?: number | null
 
   /**
    * Weight in EnsembleRetriever

@@ -5777,6 +5777,8 @@
       "LegacyFusionActive": "開啟加權 RRF 前，繼續使用原有加權融合。",
       "Reranking": "重新排序",
       "RerankingDesc": "返回最終結果前，使用模型精排融合後的候選內容。",
+      "RerankThreshold": "重排分數閾值",
+      "RerankThresholdHelp": "按重排相關性分數過濾候選內容，再取 Top K。",
       "TestTheHittingEffect": "測試根據給定的查詢文本，知識的命中效果。",
       "Query": "查詢",
       "SourceText": "源文本",

@@ -1,5 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { DocumentMetadata, IKnowledgebase, KnowledgeFilterDiagnostics, KnowledgeGraphStatus } from '@xpert-ai/contracts'
+import { DocumentMetadata, IKnowledgebase, KnowledgeFilterDiagnostics } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
@@ -33,10 +33,7 @@ export class KnowledgeGraphSearchHandler implements IQueryHandler<KnowledgeGraph
     ) {}
 
     async execute({ input }: KnowledgeGraphSearchQuery): Promise<TKnowledgeGraphSearchResult> {
-        if (
-            input.knowledgebase.graphRag?.enabled !== true ||
-            input.knowledgebase.graphStatus === KnowledgeGraphStatus.DISABLED
-        ) {
+        if (input.knowledgebase.graphRag?.enabled !== true) {
             return { docs: [] }
         }
 

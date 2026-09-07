@@ -2207,6 +2207,8 @@
       "LegacyFusionActive": "开启加权 RRF 前，继续使用原有加权融合。",
       "Reranking": "重新排序",
       "RerankingDesc": "返回最终结果前，使用模型精排融合后的候选内容。",
+      "RerankThreshold": "重排分数阈值",
+      "RerankThresholdHelp": "按重排相关性分数过滤候选内容，再取 Top K。",
       "GraphStatus": "图谱状态",
       "GraphStatus_Indexing": "索引中",
       "GraphStatus_Ready": "已就绪",

@@ -20,6 +20,7 @@ export type KnowledgebaseSearchInput = {
   query: string
   k?: number
   score?: number
+  rerankThreshold?: number
   filter?: KnowledgeFilterNode
   retrieval?: KnowledgebaseRetrievalSettings
   source: string

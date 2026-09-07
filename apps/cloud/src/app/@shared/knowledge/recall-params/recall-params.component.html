@@ -100,6 +100,53 @@
   </div>
 </div>
 
+<div class="flex items-center justify-between">
+  <div class="flex items-center h-6">
+    <span class="mr-1 text-text-secondary system-sm-semibold">{{
+      'XP.Knowledgebase.RerankThreshold' | translate: { Default: 'Rerank threshold' }
+    }}</span>
+    <div
+      class="shrink-0 text-text-tertiary hover:text-text-secondary"
+      [zTooltip]="
+        'XP.Knowledgebase.RerankThresholdHelp'
+          | translate: { Default: 'Filter reranked results below this relevance score before applying Top K.' }
+      "
+      zPosition="top"
+    >
+      <i class="ri-question-line"></i>
+    </div>
+  </div>
+</div>
+<div class="mt-1 flex items-center">
+  <div class="mr-3 flex shrink-0 items-center">
+    <div class="flex">
+      <div class="relative w-full">
+        <input
+          class="xp-input w-[72px]"
+          step="0.05"
+          max="1"
+          min="0"
+          type="number"
+          [ngModel]="rerankThreshold()"
+          (ngModelChange)="update({ rerankThreshold: $event })"
+        />
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center grow">
+    <z-slider
+      class="w-full"
+      [max]="1"
+      [min]="0"
+      [step]="0.05"
+      [showTickMarks]="true"
+      [showValueLabel]="true"
+      [ngModel]="rerankThreshold()"
+      (changeEnd)="update({ rerankThreshold: sliderValue($event) })"
+    ></z-slider>
+  </div>
+</div>
+
 @if (enableWeight()) {
   <div class="flex items-center justify-between">
     <div class="flex items-center h-6">

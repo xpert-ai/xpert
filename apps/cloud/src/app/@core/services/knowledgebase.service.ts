@@ -34,6 +34,7 @@ import {
   KnowledgeFilterSources,
   KnowledgeRetrievalContentScope,
   PaginationParams,
+  TCopilotModel,
   TKBRetrievalSettings,
   toHttpParams
 } from '@cloud/app/@core/state'
@@ -157,7 +158,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     options: {
       query: string
       k: number
-      score: number
+      score?: number | null
+      rerankModel?: TCopilotModel | null
+      rerankThreshold?: number | null
       filters?: KnowledgeFilterSources
       variables?: Record<string, unknown>
       retrieval?: TKBRetrievalSettings

@@ -15,6 +15,8 @@ export type KnowledgeRetrievalRequest = {
     knowledgebase: IKnowledgebase
     query: string
     k?: number
+    /** Minimum vector similarity before fusion or reranking. */
+    score?: number | null
     retrieval?: TKBRetrievalSettings
     contentScope?: KnowledgeRetrievalContentScope
     scope: {
@@ -45,7 +47,7 @@ export class KnowledgeRetrievalFailure extends Error {
     readonly name = 'KnowledgeRetrievalFailure'
 
     constructor(
-        readonly source: KnowledgeRetrieverSource,
+        readonly source: KnowledgeRetrieverSource | 'rerank',
         readonly errorCode: KnowledgeFilterErrorCode,
         readonly diagnostics: KnowledgeFilterDiagnostics,
         message: string

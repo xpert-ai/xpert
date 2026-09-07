@@ -3,6 +3,7 @@ import {
     KnowledgeFilterDiagnostics,
     KnowledgeFilterSources,
     KnowledgeRetrievalContentScope,
+    TCopilotModel,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -23,7 +24,12 @@ export class KnowledgeSearchQuery implements IQuery {
             knowledgebases: string[]
             query: string
             k?: number
-            score?: number
+            /** Null disables internal vector filtering; undefined inherits the knowledgebase threshold. */
+            score?: number | null
+            /** Undefined uses the knowledgebase rerank model; null disables reranking. */
+            rerankModel?: TCopilotModel | null
+            /** Undefined inherits the knowledgebase rerank threshold; null disables threshold filtering. */
+            rerankThreshold?: number | null
             filters?: KnowledgeFilterSources
             /** Runtime state used only to resolve mandatory fixed-filter variables. */
             variables?: Record<string, unknown>

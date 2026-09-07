@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgeRerankModelUnavailable": "知识库“{{knowledgebase}}”的重排模型不可用。",
         "KnowledgeContentScopeInvalid": "检索内容范围无效。",
         "KnowledgeContentScopeWikiDisabled": "请先启用 Wiki，再检索 Wiki 内容。",
         "KnowledgeContentScopeWikiUnsupported": "仅 Wiki 暂不支持纯图谱检索或知识过滤器。",

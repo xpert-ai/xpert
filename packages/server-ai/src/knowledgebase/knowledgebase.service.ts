@@ -1,6 +1,7 @@
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
+    AiModelTypeEnum,
     channelName,
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentMetadata,
@@ -958,7 +959,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         options: {
             query: string
             k?: number
-            score?: number
+            score?: number | null
+            rerankModel?: TCopilotModel | null
+            rerankThreshold?: number | null
             filters?: KnowledgeFilterSources
             variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
@@ -1672,12 +1675,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return chatModel
     }
 
-    private getActiveVectorStoreRelations(requiredEmbeddings: boolean) {
+    private getActiveVectorStoreRelations(requiredEmbeddings: boolean, rerankEnabled = true) {
         return requiredEmbeddings
             ? [
-                  'rerankModel',
-                  'rerankModel.copilot',
-                  'rerankModel.copilot.modelProvider',
+                  ...(rerankEnabled ? ['rerankModel', 'rerankModel.copilot', 'rerankModel.copilot.modelProvider'] : []),
                   'copilotModel',
                   'copilotModel.copilot',
                   'copilotModel.copilot.modelProvider',
@@ -1692,12 +1693,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     private async findKnowledgebaseForActiveVectorStore(
         knowledgebaseId: IKnowledgebase | string,
-        requiredEmbeddings: boolean
+        requiredEmbeddings: boolean,
+        rerankEnabled = true
     ) {
         let knowledgebase: IKnowledgebase
         if (typeof knowledgebaseId === 'string') {
             knowledgebase = await this.findOne(knowledgebaseId, {
-                relations: this.getActiveVectorStoreRelations(requiredEmbeddings)
+                relations: this.getActiveVectorStoreRelations(requiredEmbeddings, rerankEnabled)
             })
         } else {
             knowledgebase = knowledgebaseId
@@ -1900,22 +1902,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             )
         }
 
-        let rerankModel: IRerank = null
-        if (rerankEnabled && knowledgebase.rerankModel) {
-            rerankModel = await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
-                new CopilotModelGetRerankQuery(knowledgebase.rerankModel.copilot, knowledgebase.rerankModel, {
-                    ...options.modelContext,
-                    tokenCallback: (token) => {
-                        // execution.tokens += (token ?? 0)
-                    }
-                })
-            )
-            if (!rerankModel) {
-                throw new AiModelNotFoundException(
-                    `Rerank model '${knowledgebase.rerankModel.model || knowledgebase.rerankModel.copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`
-                )
-            }
-        }
+        const rerankModel =
+            rerankEnabled && knowledgebase.rerankModel
+                ? await this.createRerankModel(knowledgebase, options.modelContext)
+                : null
 
         const store = await this.commandBus.execute(
             new RagCreateVStoreCommand(embeddings, {
@@ -1942,12 +1932,73 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return vStore
     }
 
+    private async createRerankModel(
+        knowledgebase: Pick<IKnowledgebase, 'name'> & { rerankModel?: TCopilotModel },
+        modelContext?: TKnowledgebaseModelContext
+    ) {
+        const model = knowledgebase.rerankModel
+        const rerankModel = model
+            ? await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
+                  new CopilotModelGetRerankQuery(model.copilot, model, {
+                      ...modelContext,
+                      tokenCallback: (token) => {
+                          // execution.tokens += (token ?? 0)
+                      }
+                  })
+              )
+            : null
+        if (!rerankModel) {
+            const defaultValue = `Rerank model is not available for knowledgebase '${knowledgebase.name}'.`
+            throw new AiModelNotFoundException(
+                t('server-ai:Error.KnowledgeRerankModelUnavailable', {
+                    knowledgebase: knowledgebase.name,
+                    defaultValue
+                }) || defaultValue
+            )
+        }
+        return rerankModel
+    }
+
+    async getRerankModel(
+        knowledgebaseId: string,
+        modelContext?: TKnowledgebaseModelContext,
+        requestedModel?: TCopilotModel
+    ) {
+        const knowledgebase = await this.findOne(knowledgebaseId, {
+            relations: ['rerankModel', 'rerankModel.copilot', 'rerankModel.copilot.modelProvider']
+        })
+        if (requestedModel !== undefined) {
+            // Resolve the provider server-side; never trust client-supplied copilot credentials or relations.
+            if (
+                !requestedModel.copilotId ||
+                !requestedModel.model ||
+                requestedModel.modelType !== AiModelTypeEnum.RERANK
+            ) {
+                throw new BadRequestException('A rerank model and its copilot are required.')
+            }
+            const model = await this.ensureCopilotModel({
+                copilotId: requestedModel.copilotId,
+                model: requestedModel.model,
+                modelType: AiModelTypeEnum.RERANK,
+                options: requestedModel.options
+            })
+            return this.createRerankModel({ name: knowledgebase.name, rerankModel: model }, modelContext)
+        }
+        return this.createRerankModel(knowledgebase, modelContext)
+    }
+
     async getActiveVectorStore(
         knowledgebaseId: IKnowledgebase | string,
         requiredEmbeddings = false,
-        modelContext?: TKnowledgebaseModelContext
+        modelContext?: TKnowledgebaseModelContext,
+        options?: { rerankEnabled?: boolean }
     ) {
-        const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(knowledgebaseId, requiredEmbeddings)
+        const rerankEnabled = options?.rerankEnabled ?? true
+        const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(
+            knowledgebaseId,
+            requiredEmbeddings,
+            rerankEnabled
+        )
         await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings, modelContext)
         const copilotModel = knowledgebase.copilotModel
         const collectionName = knowledgebase.embeddingCollectionName ?? knowledgebase.id
@@ -1956,7 +2007,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             copilotModel,
             collectionName,
             requiredEmbeddings,
-            rerankEnabled: true,
+            rerankEnabled,
             modelContext,
             embeddingMetadata: {
                 provider: this.getEmbeddingProviderName(copilotModel),
