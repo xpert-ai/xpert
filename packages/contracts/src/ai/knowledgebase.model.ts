@@ -1,3 +1,4 @@
+import type { TKBRetrievalSettings } from './xpert.model'
 import { ICopilotModel } from './copilot-model.model'
 import { I18nObject, TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -396,3 +397,29 @@ export const KNOWLEDGE_PROCESSING_MODE_NAME = 'processing_mode'
 export const KNOWLEDGE_DOCUMENTS_NAME = 'documents'
 export const KNOWLEDGE_FOLDER_ID_NAME = 'folder_id'
 export const KNOWLEDGE_STAGE_NAME = 'stage'
+
+/** Check the sources that can execute within the selected content scope. */
+export function hasEnabledKnowledgeRetrievalSource(
+  retrieval: Partial<IKnowledgebase & TKBRetrievalSettings> | null | undefined,
+  allowGraphRetrieval = true,
+  contentScope: KnowledgeRetrievalContentScope = retrieval?.recall?.contentScope ?? 'all'
+): boolean {
+  const mode = retrieval?.mode ?? retrieval?.recall?.mode ?? retrieval?.graphRag?.mode ?? 'vector'
+  const graphAvailable = allowGraphRetrieval && contentScope !== 'wiki' && retrieval?.graphRag?.enabled === true
+  if (mode === 'graph') return graphAvailable
+  const fusion = retrieval?.recall?.fusion ?? retrieval?.fusion
+  if (mode !== 'hybrid' || fusion?.mode !== 'weighted_rrf') {
+    return true
+  }
+
+  const weights = fusion.weights
+  const enabledWeights = [
+    weights?.vector === undefined ? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.vector : weights.vector,
+    graphAvailable ? (weights?.graph === undefined ? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph : weights.graph) : 0,
+    weights?.keyword === undefined ? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.keyword : weights.keyword
+  ]
+  return (
+    enabledWeights.every((weight) => typeof weight === 'number' && Number.isFinite(weight) && weight >= 0) &&
+    enabledWeights.some((weight) => weight > 0)
+  )
+}

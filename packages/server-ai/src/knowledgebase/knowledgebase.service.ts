@@ -100,6 +100,7 @@ import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert
 import { GetXpertWorkspaceQuery } from '../xpert-workspace/queries'
 import { XpertService } from '../xpert/xpert.service'
 import { Knowledgebase } from './knowledgebase.entity'
+import { assertKnowledgebaseRetrievalSettings } from './retrieval-settings-validation'
 import {
     createEmbeddingCollectionName,
     createEmbeddingFingerprint,
@@ -442,8 +443,14 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             delete input.faqConfig
         }
 
+        input.graphStatus =
+            input.graphRag?.enabled === true ? KnowledgeGraphStatus.READY : KnowledgeGraphStatus.DISABLED
+        input.graphRevision = 0
+        input.graphIndexError = null
+
         const wikiCreateState = prepareKnowledgeWikiCreateState(input)
         Object.assign(input, wikiCreateState)
+        assertKnowledgebaseRetrievalSettings(input)
 
         // Check name
         const exist = await super.findOneOrFailByOptions({
@@ -755,6 +762,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                   Object.prototype.hasOwnProperty.call(changes, 'chatModel') ? changes.chatModel : _entity.chatModel
               )
             : {}
+
+        if ('recall' in changes || 'graphRag' in changes || wikiInput) {
+            assertKnowledgebaseRetrievalSettings({ ..._entity, ...changes, ...wikiPatch })
+        }
 
         try {
             if (Object.prototype.hasOwnProperty.call(changes, 'metadataSchema')) {

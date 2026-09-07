@@ -501,8 +501,14 @@ export class GraphragService {
                 })
             ])
 
+        let status = enabled ? (knowledgebase.graphStatus ?? KnowledgeGraphStatus.READY) : KnowledgeGraphStatus.DISABLED
+        // Older creates kept the column default even when graph indexing was enabled.
+        if (enabled && status === KnowledgeGraphStatus.DISABLED) {
+            status = knowledgebase.documentNum ? KnowledgeGraphStatus.REBUILD_REQUIRED : KnowledgeGraphStatus.READY
+        }
+
         return {
-            status: enabled ? (knowledgebase.graphStatus ?? KnowledgeGraphStatus.READY) : KnowledgeGraphStatus.DISABLED,
+            status,
             enabled,
             revision: knowledgebase.graphRevision ?? 0,
             error: knowledgebase.graphIndexError ?? null,

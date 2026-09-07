@@ -115,6 +115,40 @@ describe('Wiki creation and editing form', () => {
     expect(root.querySelector('[data-wiki-generation-settings]')).toBeNull()
   })
 
+  it('offers graph indexing independently of the locked Wiki strategy for existing documents', async () => {
+    await render({ ...draft, id: 'kb-1', documentNum: 2, graphRag: { enabled: false } })
+    const graph = element<HTMLButtonElement>('[data-index-capability="graph"]')
+    expect(graph.disabled).toBe(false)
+    expect(graph.getAttribute('aria-pressed')).toBe('false')
+
+    graph.click()
+    await settle()
+
+    expect(graph.getAttribute('aria-pressed')).toBe('true')
+    expect(fixture.componentInstance.retrieval().graphRag?.enabled).toBe(true)
+    expect(fixture.componentInstance.wikiEnabled()).toBe(false)
+  })
+
+  it.each(['graph', 'hybrid'] as const)(
+    'blocks creating Wiki-only %s defaults without a usable source',
+    async (mode) => {
+      await render({
+        ...draft,
+        graphRag: { enabled: true },
+        recall: {
+          mode,
+          contentScope: 'wiki',
+          fusion: { mode: 'weighted_rrf', weights: { vector: 0, keyword: 0, graph: 1 } }
+        }
+      })
+      await enableWiki()
+      expect(fixture.componentInstance.retrievalConfigurationValid()).toBe(false)
+      element<HTMLButtonElement>('.kb-footer-primary').click()
+      http.expectNone('/api/knowledgebase')
+      expect(close).not.toHaveBeenCalled()
+    }
+  )
+
   it('renders Wiki controls between the strategy and name and submits their edited values', async () => {
     await render()
     await enableWiki()

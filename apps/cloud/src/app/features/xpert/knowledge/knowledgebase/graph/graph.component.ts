@@ -14,7 +14,6 @@ import {
 } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { FormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
@@ -47,6 +46,7 @@ import {
   ToastrService
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+import { KnowledgeGraphIndexActionsComponent } from './graph-index-actions.component'
 
 type GraphSelection =
   | {
@@ -80,7 +80,6 @@ const ALL_SELECT_VALUE = '__all__'
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule,
     ReactiveFormsModule,
     TranslateModule,
     XpSpinComponent,
@@ -90,6 +89,7 @@ const ALL_SELECT_VALUE = '__all__'
     ZardIconComponent,
     ZardInputDirective,
     ZardSearchInputComponent,
+    KnowledgeGraphIndexActionsComponent,
     ...ZardCardImports,
     ...ZardFormImports,
     ...ZardSelectImports
@@ -120,6 +120,7 @@ export class KnowledgeGraphComponent {
   #cy: cytoscape.Core | null = null
   #graphDataKey = ''
   #loadedKnowledgebaseId: string | null = null
+  #loadedGraphEnabled: boolean | undefined
   #resizeObserver: ResizeObserver | null = null
   #themeObserver: MutationObserver | null = null
 
@@ -214,8 +215,13 @@ export class KnowledgeGraphComponent {
 
     effect(() => {
       const knowledgebaseId = this.knowledgebase()?.id
-      if (knowledgebaseId && knowledgebaseId !== this.#loadedKnowledgebaseId) {
+      const graphEnabled = this.knowledgebase()?.graphRag?.enabled === true
+      if (
+        knowledgebaseId &&
+        (knowledgebaseId !== this.#loadedKnowledgebaseId || graphEnabled !== this.#loadedGraphEnabled)
+      ) {
         this.#loadedKnowledgebaseId = knowledgebaseId
+        this.#loadedGraphEnabled = graphEnabled
         untracked(() => void this.loadGraph())
       }
     })

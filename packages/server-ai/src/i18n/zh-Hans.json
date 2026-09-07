@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgeRetrievalSourceRequired": "请选择至少一种适用于当前检索内容且权重大于零的检索方式。",
         "KnowledgeRerankModelUnavailable": "知识库“{{knowledgebase}}”的重排模型不可用。",
         "KnowledgeContentScopeInvalid": "检索内容范围无效。",
         "KnowledgeContentScopeWikiDisabled": "请先启用 Wiki，再检索 Wiki 内容。",
