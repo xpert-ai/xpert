@@ -149,6 +149,12 @@ function createService(
 }
 
 describe('KnowledgeDocumentService logical folder paths', () => {
+    it('keeps soft deletion closed until every derived-data participant is fail-closed', async () => {
+        const service = createService([])
+
+        await expect(service.softRemove('document-1')).rejects.toBeInstanceOf(ConflictException)
+    })
+
     it('orders ancestors from the root to the selected entity', async () => {
         const root = {
             id: 'folder-water',

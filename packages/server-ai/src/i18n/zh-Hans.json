@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgeDocumentSoftDeleteUnavailable": "派生数据清理能力启用前，暂不支持文档软删除。",
         "ModelUsageDeliveryReceiptMissing": "无法加载模型用量投递凭证。",
         "ModelUsageDeliveryPayloadMismatch": "同一模型用量请求被使用不同的计费数据重放。",
         "SandboxProviderProjectContentReadOnlyUnsupported": "沙盒提供者 {{provider}} 不支持只读项目内容。",

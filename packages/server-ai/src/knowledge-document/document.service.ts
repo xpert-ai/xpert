@@ -37,8 +37,21 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
+import { t } from 'i18next'
 import { compact, uniq } from 'lodash'
-import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository, UpdateResult } from 'typeorm'
+import {
+    DataSource,
+    DeepPartial,
+    FindManyOptions,
+    FindOneOptions,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Raw,
+    Repository,
+    SaveOptions,
+    UpdateResult
+} from 'typeorm'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
 import type { KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase/vector-store'
 import { KnowledgeDocument } from './document.entity'
@@ -368,6 +381,69 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         @InjectQueue('embedding-document') private docQueue: Queue
     ) {
         super(repo)
+    }
+
+    override async softRemove(
+        _id: KnowledgeDocument['id'],
+        _options?: FindOneOptions<KnowledgeDocument>,
+        _saveOptions?: SaveOptions
+    ): Promise<KnowledgeDocument> {
+        throw new ConflictException(
+            t('server-ai:Error.KnowledgeDocumentSoftDeleteUnavailable', {
+                defaultValue: 'Document soft deletion is unavailable until derived-data cleanup is enabled'
+            })
+        )
+    }
+
+    override async findAll(filter?: FindManyOptions<KnowledgeDocument>) {
+        return super.findAll(this.withReadableDocumentManyOptions(filter))
+    }
+
+    override async findOne(
+        id: string | number | FindOneOptions<KnowledgeDocument>,
+        options?: FindOneOptions<KnowledgeDocument>
+    ) {
+        if (typeof id === 'object') {
+            return super.findOne(this.withReadableDocumentOneOptions(id))
+        }
+        return super.findOne(id, this.withReadableDocumentOneOptions(options))
+    }
+
+    override async findOneByIdString(id: string, options?: FindOneOptions<KnowledgeDocument>) {
+        return super.findOneByIdString(id, this.withReadableDocumentOneOptions(options))
+    }
+
+    private withReadableDocumentManyOptions(
+        options?: FindManyOptions<KnowledgeDocument>
+    ): FindManyOptions<KnowledgeDocument> {
+        const where = options?.where
+        return {
+            ...(options ?? {}),
+            where: Array.isArray(where)
+                ? where.map((item) => this.readableDocumentWhere(item))
+                : this.readableDocumentWhere(where)
+        }
+    }
+
+    private withReadableDocumentOneOptions(
+        options?: FindOneOptions<KnowledgeDocument>
+    ): FindOneOptions<KnowledgeDocument> {
+        const where = options?.where
+        return {
+            ...(options ?? {}),
+            where: Array.isArray(where)
+                ? where.map((item) => this.readableDocumentWhere(item))
+                : this.readableDocumentWhere(where)
+        }
+    }
+
+    private readableDocumentWhere(
+        where: FindOptionsWhere<KnowledgeDocument> = {}
+    ): FindOptionsWhere<KnowledgeDocument> {
+        return {
+            ...where,
+            hardDeletePendingAt: IsNull()
+        }
     }
 
     /**
@@ -2049,6 +2125,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         Reflect.deleteProperty(document, 'createdAt')
         Reflect.deleteProperty(document, 'updatedAt')
         delete document.deletedAt
+        delete document.hardDeletePendingAt
+        delete document.publicationEpoch
         delete document.knowledgebase
         delete document.storageFile
         if (hasParent) {

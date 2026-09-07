@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgeDocumentSoftDeleteUnavailable": "Document soft deletion is unavailable until derived-data cleanup is enabled.",
         "ModelUsageDeliveryReceiptMissing": "The model usage delivery receipt could not be loaded.",
         "ModelUsageDeliveryPayloadMismatch": "The model usage request was replayed with different billing data.",
         "SandboxProviderProjectContentReadOnlyUnsupported": "Sandbox provider {{provider}} does not support read-only Project Content.",
