@@ -1,3 +1,6 @@
+import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
+import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
+import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
 import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
@@ -77,6 +80,9 @@ import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-sc
     controllers: [KnowledgebaseController, KnowledgeFAQController],
     providers: [
         KnowledgebaseService,
+        KnowledgebaseRuntimeService,
+        KnowledgebaseDocumentsRuntimeService,
+        KnowledgebaseProvisioningRuntimeService,
         KnowledgebaseRebuildEmbeddingConsumer,
         KnowledgebaseTaskService,
         KnowledgeRetrievalLogService,

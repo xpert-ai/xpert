@@ -55,6 +55,12 @@
                 {{ appDetail.application.displayName | i18n }}
               </h1>
               <p class="mt-3 text-lg text-muted-foreground">{{ presentation()?.tagline | i18n }}</p>
+              <!-- This is organization initialization state, independent of plugin availability. -->
+              @if (status() === 'not_installed') {
+                <p class="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  {{ 'XP.Explore.Application.SetupExplanation' | translate }}
+                </p>
+              }
               <div class="mt-6 flex flex-wrap gap-3">
                 <button z-button type="button" (click)="primaryAction()" [disabled]="status() === 'initializing'">
                   {{ primaryActionLabel() }}

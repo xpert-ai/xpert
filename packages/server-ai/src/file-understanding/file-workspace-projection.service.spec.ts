@@ -657,13 +657,14 @@ describe('FileWorkspaceProjectionService', () => {
         expect(fileAssetRepository.findOne).not.toHaveBeenCalled()
     })
 
-    it('projects parsed PDF page images into the same workspace file folder', async () => {
+    it.each(['conversation-1', undefined])('projects PDF page images with conversation %s', async (conversationId) => {
         const asset = {
             id: 'file-asset-1',
             tenantId: 'tenant-1',
             userId: 'user-1',
             storageFileId: 'storage-file-1',
-            conversationId: 'conversation-1',
+            conversationId,
+            projectId: 'project-1',
             xpertId: 'xpert-1',
             originalName: 'report.pdf',
             capabilities: ['preview', 'read']
@@ -703,9 +704,7 @@ describe('FileWorkspaceProjectionService', () => {
                     catalog: 'xperts',
                     xpertId: 'xpert-1'
                 },
-                sessionPath: {
-                    relativePath: 'sessions/conversation-1'
-                },
+                sessionPath: conversationId ? { relativePath: 'sessions/conversation-1' } : undefined,
                 volume: createTestVolume(tempRoot, {
                     tenantId: 'tenant-1',
                     catalog: 'xperts',
@@ -737,7 +736,8 @@ describe('FileWorkspaceProjectionService', () => {
 
         await service.projectFileAsset({
             fileAssetId: 'file-asset-1',
-            conversationId: 'conversation-1',
+            conversationId,
+            projectId: 'project-1',
             xpertId: 'xpert-1',
             sandboxProvider: 'docker-sandbox',
             buffer: Buffer.from('pdf bytes')
@@ -745,7 +745,10 @@ describe('FileWorkspaceProjectionService', () => {
 
         await expect(
             fsPromises.readFile(
-                path.join(tempRoot, 'sessions/conversation-1/files/file-asset-1/pages/page-0001.png'),
+                path.join(
+                    tempRoot,
+                    `${conversationId ? 'sessions/conversation-1/' : ''}files/file-asset-1/pages/page-0001.png`
+                ),
                 'utf-8'
             )
         ).resolves.toContain(
@@ -754,8 +757,7 @@ describe('FileWorkspaceProjectionService', () => {
         expect(fileArtifactRepository.save).toHaveBeenCalledWith([
             expect.objectContaining({
                 metadata: expect.objectContaining({
-                    workspacePath: '/workspace/sessions/conversation-1/files/file-asset-1/pages/page-0001.png',
-                    workspaceRelativePath: 'sessions/conversation-1/files/file-asset-1/pages/page-0001.png'
+                    workspacePath: `${conversationId ? 'sessions/conversation-1/' : ''}files/file-asset-1/pages/page-0001.png`
                 })
             })
         ])

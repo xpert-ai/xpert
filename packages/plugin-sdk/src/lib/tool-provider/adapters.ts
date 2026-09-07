@@ -10,6 +10,8 @@ import type { AnyXpertToolDefinition } from '../toolset/define-tool'
 import type { IToolsetStrategy } from '../toolset/strategy.interface'
 import type { ToolExecutionContext } from '../toolset/tool-execution-context'
 import { describeXpertToolProvider, getXpertToolMethod } from './descriptor'
+import { resolveToolResult } from './prepared-result'
+import { agentContent, parseDecoratedToolResult } from './tool-result'
 import type {
   XpertBusinessToolContext,
   XpertDecoratedToolDescriptor,
@@ -142,16 +144,28 @@ function createAgentTool(
     async (input: unknown, config: RunnableConfig) => {
       const parsedInput = await descriptor.options.inputSchema.parseAsync(input)
       const output = await invoke(parsedInput, agentExecutionContext(middlewareContext, middlewareOptions, config))
-      const parsedOutput = descriptor.options.outputSchema
-        ? await descriptor.options.outputSchema.parseAsync(output)
-        : output
-      return stringifyDto(parsedOutput, descriptor.options.name)
+      if (descriptor.options.resultFormat === 'tool_result' && descriptor.options.outputSchema) {
+        const result = await resolveToolResult(output, (value) =>
+          parseDecoratedToolResult(value, descriptor.options.outputSchema)
+        )
+        return [
+          agentContent(result.content),
+          { structuredContent: result.structuredContent, isError: result.isError ?? false }
+        ]
+      }
+      return resolveToolResult(output, async (value) => {
+        const parsedOutput = descriptor.options.outputSchema
+          ? await descriptor.options.outputSchema.parseAsync(value)
+          : value
+        return stringifyDto(parsedOutput, descriptor.options.name)
+      })
     },
     {
       name: descriptor.options.name,
       description: descriptor.options.description,
       schema: descriptor.options.inputSchema,
       verboseParsingErrors: true,
+      responseFormat: descriptor.options.resultFormat === 'tool_result' ? 'content_and_artifact' : 'content',
       ...(descriptor.options.metadata ? { metadata: descriptor.options.metadata } : {})
     }
   )
@@ -173,23 +187,25 @@ function createMcpTool(
     outputSchema,
     exposure: { mcp: { eligible: true } },
     behavior: mcp.behavior,
+    ...(mcp.defaultApprovalMode ? { defaultApprovalMode: mcp.defaultApprovalMode } : {}),
     requiredContext: [...mcp.requiredContext],
     visibility: [...(mcp.visibility ?? (mcp.app ? ['model', 'app'] : ['model']))],
     ...(mcp.app ? { app: { resourceKey: mcp.app.resourceKey } } : {}),
     execute: async (input: unknown, context: ToolExecutionContext) => {
       const parsedInput = await descriptor.options.inputSchema.parseAsync(input)
       const output = await invoke(parsedInput, mcpExecutionContext(context))
-      const parsedOutput = await outputSchema.parseAsync(output)
-      const dto = jsonDto(parsedOutput, descriptor.options.name)
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `${descriptor.options.title ?? descriptor.options.name} completed. See structuredContent for the result.`
-          }
-        ],
-        structuredContent: dto
+      if (descriptor.options.resultFormat === 'tool_result') {
+        return resolveToolResult(output, (value) => parseDecoratedToolResult(value, outputSchema))
       }
+      return resolveToolResult(output, async (value) => {
+        const parsedOutput = await outputSchema.parseAsync(value)
+        // Serialize once so text-only clients and MCP Apps receive the same JSON-safe DTO.
+        const text = stringifyDto(parsedOutput, descriptor.options.name)
+        return {
+          content: [{ type: 'text' as const, text }],
+          structuredContent: JSON.parse(text) as unknown
+        }
+      })
     }
   }
 }
@@ -252,10 +268,6 @@ function stringifyDto(value: unknown, toolName: string) {
   const result = JSON.stringify(value)
   if (result === undefined) throw new Error(`Tool '${toolName}' returned a non-JSON value.`)
   return result
-}
-
-function jsonDto(value: unknown, toolName: string) {
-  return JSON.parse(stringifyDto(value, toolName)) as unknown
 }
 
 function asI18n(value: string): I18nObject {

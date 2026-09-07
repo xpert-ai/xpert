@@ -186,7 +186,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         {
             name: 'parsed_file_page_images',
             description:
-                'List rendered PDF page images for a parsed file. Use this before view-image when a parsed PDF page must be inspected visually.',
+                'List rendered PDF page images for a parsed file. Use this before view_image when a parsed PDF page must be inspected visually. Each workspacePath is a POSIX file path relative to the current workspace root, never an absolute path. Pass it unchanged to view_image; do not prepend a host or /workspace directory.',
             schema: z
                 .object({
                     fileId: z.string().uuid(),

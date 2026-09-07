@@ -1,4 +1,5 @@
 export type PageImagePreviewFile = {
+    /** POSIX file path relative to the current workspace root; never an absolute path. */
     workspacePath?: string
     url?: string
     fileName?: string
@@ -37,7 +38,7 @@ export function createPageImagePreviewFile(metadata?: Record<string, unknown>): 
     }
 
     const file: PageImagePreviewFile = {
-        workspacePath: readStringMetadata(metadata, 'workspacePath'),
+        workspacePath: readPageImageWorkspacePath(metadata),
         url: readStringMetadata(metadata, 'url'),
         fileName: readStringMetadata(metadata, 'fileName'),
         width: readNumberMetadata(metadata, 'width'),
@@ -55,4 +56,20 @@ function readStringMetadata(metadata: Record<string, unknown> | undefined, key: 
 function readNumberMetadata(metadata: Record<string, unknown> | undefined, key: string) {
     const value = metadata?.[key]
     return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+/** Reject ambiguous or escaping paths at the persisted-metadata boundary. */
+function readPageImageWorkspacePath(metadata: Record<string, unknown>): string | undefined {
+    const value = metadata.workspacePath
+    if (value == null) return undefined
+    if (
+        typeof value !== 'string' ||
+        !value ||
+        value !== value.trim() ||
+        /[\\\x00-\x1f:]/.test(value) ||
+        value.split('/').some((part) => !part || part === '.' || part === '..')
+    ) {
+        throw new Error('Invalid page image workspacePath: expected a normalized workspace-relative POSIX file path.')
+    }
+    return value
 }

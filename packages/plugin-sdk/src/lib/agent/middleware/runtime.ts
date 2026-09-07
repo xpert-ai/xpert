@@ -18,6 +18,7 @@ import {
 import { Subscriber } from 'rxjs'
 import { AIGCModelClient, AsyncAIGCModelClient, IRerank, TLLMUsage } from '../../ai-model/types'
 import type { RuntimeCapabilityRegistry } from '../../core'
+import type { RuntimeIdentityScope } from '../../runtime/runtime-scope'
 import type { WorkspaceFileCatalog } from '../../runtime/capabilities/workspace-files'
 
 export * from './runtime-capability'
@@ -118,25 +119,14 @@ export type AgentMiddlewareModelProviderConnection = {
   reportUsage(report: ModelUsageReport, modelAccess?: IModelAccessResolution): Promise<ModelUsageReportResult>
 }
 
-export type AgentMiddlewareRuntimeScope = {
-  tenantId?: string | null
-  organizationId?: string | null
+export type AgentMiddlewareRuntimeScope = RuntimeIdentityScope & {
   providerScopeId?: string | null
-  userId?: string | null
-  workspaceId?: string | null
-  projectId?: string | null
-  xpertId?: string | null
   /** Authoritative Volume catalog for runtime workspace files. */
   catalog?: WorkspaceFileCatalog | null
   /** Authoritative catalog identity for portable workspace references. */
   scopeId?: string | null
   /** Legacy xperts catalog compatibility flag; new runtimes use user-xperts instead. */
   isolateByUser?: boolean | null
-  xpertName?: string | null
-  conversationId?: string | null
-  threadId?: string | null
-  agentKey?: string | null
-  executionId?: string | null
   /** Connector bindings selected for this conversation. An empty list denies connector resolution. */
   connectorBindingIds?: string[] | null
   usageCallback?: (usage: TLLMUsage) => void | Promise<void>

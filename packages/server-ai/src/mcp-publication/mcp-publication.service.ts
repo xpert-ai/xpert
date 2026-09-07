@@ -1,4 +1,5 @@
 import {
+    canAllowMcpToolDirectly,
     IMcpCapabilitySourceSummary,
     MCP_AUTH_METHODS,
     MCP_PROTOCOL_VERSION,
@@ -898,7 +899,7 @@ export class McpPublicationService {
     ) {
         if (
             descriptor.capabilityType === 'tool' &&
-            descriptor.behavior.risk === 'dangerous' &&
+            !canAllowMcpToolDirectly(descriptor) &&
             policy?.approvalMode === 'allow'
         ) {
             throw new BadRequestException(

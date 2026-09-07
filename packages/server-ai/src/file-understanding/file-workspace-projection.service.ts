@@ -69,7 +69,7 @@ export class FileWorkspaceProjectionService {
         if (projectId) {
             await this.projectAccessService.assertCanEdit(projectId)
         }
-        if (!conversationId || (!input.environmentId && !projectId && !xpertId)) {
+        if ((!conversationId && !projectId) || (!input.environmentId && !projectId && !xpertId)) {
             return asset
         }
 
@@ -98,7 +98,8 @@ export class FileWorkspaceProjectionService {
             // Store paths in the workspace namespace visible to agent tools, not
             // the backend server path used to write the projected file.
             const baseRelativePath =
-                workArea.sessionPath?.relativePath ?? normalizeRelativePath('sessions', conversationId)
+                workArea.sessionPath?.relativePath ??
+                (conversationId ? normalizeRelativePath('sessions', conversationId) : '')
             let projectedAsset = asset
             let assetFolderRelativePath = normalizeRelativePath(baseRelativePath, 'files', asset.id)
             const projectionScope = resolveProjectionScope(workArea.volumeScope)
@@ -159,7 +160,6 @@ export class FileWorkspaceProjectionService {
                 fileAssetId: asset.id,
                 storageProvider: storageFile?.storageProvider,
                 assetFolderRelativePath,
-                workspaceRoot: workArea.workspaceRoot,
                 volume: workArea.volume
             })
             return projectedAsset
@@ -207,7 +207,6 @@ export class FileWorkspaceProjectionService {
         fileAssetId: string
         storageProvider?: string
         assetFolderRelativePath: string
-        workspaceRoot: string
         volume: VolumeHandle
     }) {
         const artifacts = await this.fileArtifactRepository.find({
@@ -241,15 +240,13 @@ export class FileWorkspaceProjectionService {
                 typeof page === 'number' ? `page-${String(page).padStart(4, '0')}.png` : `${artifact.id}.png`
             const fileName = normalizeFileName(readPageImageFileName(artifact.metadata) ?? fallbackFileName)
             const relativePath = normalizeRelativePath(input.assetFolderRelativePath, 'pages', fileName)
-            const workspacePath = path.posix.join(input.workspaceRoot, relativePath)
 
             try {
                 const buffer = await storageProvider.getFile(storageKey)
                 await writeProjectedVolumeFile(input.volume, relativePath, buffer)
                 artifact.metadata = {
                     ...(artifact.metadata ?? {}),
-                    workspacePath,
-                    workspaceRelativePath: relativePath,
+                    workspacePath: relativePath,
                     projectedAt: new Date().toISOString()
                 }
                 projectedArtifacts.push(artifact)

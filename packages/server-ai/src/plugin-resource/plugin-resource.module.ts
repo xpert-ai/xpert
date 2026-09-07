@@ -1,3 +1,4 @@
+import { PluginApplicationSuiteService } from './plugin-application-suite.service'
 import { TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -59,6 +60,7 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController],
     providers: [
+        PluginApplicationSuiteService,
         PluginResourceInstallerService,
         PluginMcpServerService,
         PluginApplicationService,

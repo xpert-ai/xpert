@@ -527,7 +527,7 @@ export class PluginResourceInstallerService {
         const next =
             installation ??
             this.installationRepo.create({
-                tenantId: RequestContext.currentTenantId(),
+                tenantId: RequestContext.getScope().tenantId,
                 organizationId: RequestContext.getOrganizationId() ?? undefined,
                 ...(workspaceId ? { workspaceId } : {}),
                 xpertId,
@@ -1000,8 +1000,8 @@ export class PluginResourceInstallerService {
                 `Native toolset component '${runtimeComponent.component.componentKey}' requires provider`
             )
         }
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId() ?? null
+        const { tenantId, organizationId } = RequestContext.getScope()
+        if (!tenantId) throw new BadRequestException('A tenant scope is required to manage plugin resources.')
         const candidates = await this.toolsetRepo.find({
             where: {
                 tenantId,
@@ -1035,6 +1035,28 @@ export class PluginResourceInstallerService {
         const name = readStringField(config, 'name') ?? `${runtimeComponent.component.componentKey} MCP Capabilities`
         const description =
             readStringField(config, 'description') ?? `Host-native MCP capabilities from ${runtimeComponent.pluginName}`
+        // Bootstrap may refresh only an existing, scope-checked plugin-owned toolset.
+        // Creating a new installation still uses the authenticated management path.
+        if (!RequestContext.currentUserId()) {
+            if (!current)
+                throw new BadRequestException(
+                    'The managed MCP toolset must be installed before background synchronization.'
+                )
+            const toolset = await this.toolsetRepo.save({
+                ...current,
+                name,
+                description,
+                options: {
+                    ...current.options,
+                    pluginManaged: true,
+                    pluginName: runtimeComponent.pluginName,
+                    componentKey: runtimeComponent.component.componentKey,
+                    definitionHash: runtimeComponent.component.definitionHash
+                }
+            })
+            if (replaceCapabilityCatalog) await this.capabilityCatalog.discoverAndReplaceMcpToolset(toolset.id)
+            return toolset
+        }
         const toolset = await this.toolsetService.createBuiltinToolset(provider, {
             ...(current?.id ? { id: current.id } : {}),
             name,

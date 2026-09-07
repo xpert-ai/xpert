@@ -81,6 +81,8 @@ export type ArtifactLinkAccessInput = {
   expiresAt?: string | Date | null
   ttlSeconds?: number | null
   userConfirmedPublicLink?: boolean | null
+  /** Trusted application authorization; must never be populated from untrusted tool arguments. */
+  publicLinkAuthorization?: 'application_policy'
 }
 
 /** Browser response hints and HTML safety profile for an Artifact link. */

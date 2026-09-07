@@ -1,3 +1,6 @@
+jest.mock('../xpert-toolset', () => ({ XpertToolsetService: class XpertToolsetService {} }))
+jest.mock('../mcp-consumer', () => ({ McpConsumerCapabilitiesService: class McpConsumerCapabilitiesService {} }))
+jest.mock('../tool-runtime', () => ({ ToolRuntimeService: class ToolRuntimeService {} }))
 import {
     MCP_CAPABILITY_DESCRIPTOR_VERSION,
     XpertToolsetCategoryEnum,
@@ -146,8 +149,12 @@ describe('McpCapabilityCatalogService', () => {
             title: 'Search documents',
             description: 'Searches workspace documents',
             inputSchema: z.object({ query: z.string() }),
-            outputSchema: z.object({ count: z.number() }),
+            outputSchema: z.union([
+                z.object({ count: z.number() }).strict(),
+                z.object({ resultStatus: z.literal('unavailable') }).strict()
+            ]),
             exposure: { mcp: { eligible: true } },
+            defaultApprovalMode: 'allow',
             behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
             requiredContext: ['workspace', 'principal', 'execution'],
             visibility: ['model', 'app'],
@@ -215,6 +222,9 @@ describe('McpCapabilityCatalogService', () => {
 
         const catalog = await service.discoverAndReplaceMcpToolset('toolset-1')
 
+        expect(catalog.find((item) => item.capabilityKey === 'search_documents')?.descriptor).toMatchObject({
+            defaultApprovalMode: 'allow'
+        })
         expect(discover).not.toHaveBeenCalled()
         expect(catalog).toHaveLength(5)
         expect(catalog.find(({ capabilityType }) => capabilityType === 'tool')?.descriptor).toEqual(
@@ -222,7 +232,7 @@ describe('McpCapabilityCatalogService', () => {
                 capabilityType: 'tool',
                 capabilityKey: 'search_documents',
                 inputSchema: expect.objectContaining({ type: 'object' }),
-                outputSchema: expect.objectContaining({ type: 'object' }),
+                outputSchema: expect.objectContaining({ type: 'object', anyOf: expect.any(Array) }),
                 behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
                 appResourceKey: 'document_browser',
                 visibility: ['model', 'app'],

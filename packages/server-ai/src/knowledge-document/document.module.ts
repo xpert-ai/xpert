@@ -19,14 +19,15 @@ import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { KnowledgeDocumentVisualAssetsRuntimeService } from './visual-assets-runtime.service'
-import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtime.token'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
         TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
         DiscoveryModule,
+        RuntimeCapabilityModule,
         TenantModule,
         CqrsModule,
         UserModule,
@@ -47,10 +48,6 @@ import { KnowledgeDerivedIndexPublicationService } from './derived-index-publica
         KnowledgeDocumentAnalysisSnapshotService,
         KnowledgeDocumentVisualAssetsRuntimeService,
         KnowledgeDerivedIndexPublicationService,
-        {
-            provide: KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
-            useExisting: KnowledgeDocumentVisualAssetsRuntimeService
-        },
         KnowledgeDocumentConsumer,
         ...CommandHandlers,
         ...QueryHandlers
@@ -60,8 +57,8 @@ import { KnowledgeDerivedIndexPublicationService } from './derived-index-publica
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
+        KnowledgeDocumentVisualAssetsRuntimeService,
         KnowledgeDerivedIndexPublicationService,
-        KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
         TypeOrmModule
     ]
 })

@@ -39,7 +39,7 @@ describe('GetFilePreviewHandler', () => {
                 size: 123,
                 status: 'ready',
                 capabilities: ['preview', 'read', 'search'],
-                workspacePath: '/workspace/sessions/conversation-1/files/file-1/resume.pdf',
+                workspacePath: 'sessions/conversation-1/files/file-1/resume.pdf',
                 summary: 'A'.repeat(1200),
                 metadata: {
                     parser: 'pdf',
@@ -162,7 +162,7 @@ describe('GetFilePreviewHandler', () => {
                 size: 456,
                 status: 'ready',
                 capabilities: ['preview', 'read', 'page_images', 'vision'],
-                workspacePath: '/workspace/sessions/conversation-1/files/file-1/deck.pdf',
+                workspacePath: 'sessions/conversation-1/files/file-1/deck.pdf',
                 summary: 'Deck summary',
                 metadata: {
                     parser: 'pdf',
@@ -184,7 +184,7 @@ describe('GetFilePreviewHandler', () => {
                     metadata: {
                         storageKey: 'contexts/tenant-1/file-understanding/file-1/run-1/pages/page-0001.png',
                         serverPath: '/private/server/page-0001.png',
-                        workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
+                        workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0001.png',
                         url: 'https://files.example/page-0001.png',
                         fileName: 'page-0001.png',
                         width: 800,
@@ -208,7 +208,7 @@ describe('GetFilePreviewHandler', () => {
                 mimeType: 'image/png',
                 anchor: { page: 1, path: 'page-0001.png' },
                 file: {
-                    workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
+                    workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0001.png',
                     url: 'https://files.example/page-0001.png',
                     fileName: 'page-0001.png',
                     width: 800,

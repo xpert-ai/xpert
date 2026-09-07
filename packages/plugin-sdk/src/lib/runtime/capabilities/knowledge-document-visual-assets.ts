@@ -1,5 +1,6 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
-import type { WorkspacePortableFileReference } from './workspace-files'
+import type { RuntimeIdentityScope } from '../runtime-scope'
+import type { WorkspaceFilesApi, WorkspacePortableFileReference } from './workspace-files'
 
 export type KnowledgeDocumentVisualCandidateReason =
   | 'same_block'
@@ -105,3 +106,27 @@ export const KnowledgeDocumentVisualAssetsRuntimeCapability = createRuntimeCapab
       'Issue execution-scoped logical KnowledgeDocument image paths and inject validated images without exposing host storage paths.'
   }
 )
+
+export type KnowledgeDocumentVisualAssetsRuntimeDependencies = {
+  /** File writer already bound to the authorized project/workspace. */
+  workspaceFiles: WorkspaceFilesApi
+  /** Optional host resolver for child executions whose identity is assigned after graph construction. */
+  resolveExecutionScope?: () => RuntimeIdentityScope
+}
+
+export interface KnowledgeDocumentVisualAssetsRuntimeFactory {
+  /** Every API owns a fresh allow-list; supplied scope must identify an authorized execution. */
+  createScopedApi(
+    scope: RuntimeIdentityScope,
+    dependencies: KnowledgeDocumentVisualAssetsRuntimeDependencies
+  ): KnowledgeDocumentVisualAssetsApi
+}
+
+export const KnowledgeDocumentVisualAssetsRuntimeFactoryCapability =
+  createRuntimeCapability<KnowledgeDocumentVisualAssetsRuntimeFactory>(
+    'platform.knowledge-document.visual-assets.factory',
+    {
+      description:
+        'Create a visual-assets API with an execution-local image allow-list and authorized workspace writer.'
+    }
+  )

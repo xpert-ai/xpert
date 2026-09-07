@@ -40,3 +40,6 @@ export * from './mcp-publication/index'
 export * from './mcp-consumer/index'
 export * from './tool-runtime/index'
 export * from './knowledgebase/migration'
+
+export * from './shared/runtime/workspace-files-runtime.module'
+export * from './actor-token/actor-token-runtime.module'

@@ -9,3 +9,6 @@ export * from './file-understanding.module'
 export * from './middlewares'
 export * from './queries'
 export * from './tools'
+
+export * from './runtime/file-runtime.module'
+export * from './runtime/file-runtime.service'

@@ -1,3 +1,6 @@
+import { ProjectProvisioningRuntimeService } from './services/project-provisioning-runtime.service'
+import { FileAsset } from '../file-understanding/entities/file-asset.entity'
+import { XpertProjectPurgeService } from './services/project-purge.service'
 import {
     Feature,
     FeatureOrganization,
@@ -68,6 +71,7 @@ import { XpertAgentModule } from '../xpert-agent'
     imports: [
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
         TypeOrmModule.forFeature([
+            FileAsset,
             XpertProject,
             XpertProjectTask,
             XpertProjectTaskStep,
@@ -110,6 +114,8 @@ import { XpertAgentModule } from '../xpert-agent'
     ],
     controllers: [XpertProjectController, XpertProjectInvitationController, XpertProjectAdminController],
     providers: [
+        ProjectProvisioningRuntimeService,
+        XpertProjectPurgeService,
         XpertProjectService,
         XpertProjectContentService,
         XpertProjectMembershipService,

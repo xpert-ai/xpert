@@ -1,5 +1,9 @@
 # Plugin SDK
 
+## Runtime capabilities
+
+See [platform capabilities and scoped factories](./runtime-capabilities.md) for domain registration, execution-scoped APIs and usage outside Agent middleware.
+
 ## Building
 
 Run `nx build plugin-sdk` to build the library.
@@ -61,7 +65,9 @@ export class OrderOperationsTools {
 }
 ```
 
-MCP exposure is explicit. Provide strict Zod input/output schemas and return an allowlisted DTO; the host validates the output and maps it to `structuredContent`. Invocation context is constructed for every call and must never be cached on the Provider singleton. `getMiddlewareExtensions()` may add Agent-only hooks such as `wrapToolCall`, but business-critical behavior belongs in the method or shared service.
+MCP exposure is explicit. Provide strict Zod input/output schemas and return an allowlisted DTO; the host validates the output and maps it to `structuredContent` and a JSON `TextContent` block so clients that only expose text can still read the result. With `resultFormat: 'tool_result'`, image and other content blocks are preserved and the validated structured metadata also receives a JSON text fallback. Invocation context is constructed for every call and must never be cached on the Provider singleton. `getMiddlewareExtensions()` may add Agent-only hooks such as `wrapToolCall`, but business-critical behavior belongs in the method or shared service.
+
+For completed operations, `prepareToolResult(() => project(result), () => minimalReceipt)` defers output mapping to the adapter. The normal path maps and validates once; projection, validation or JSON serialization failures recover a bounded receipt without executing the business method again. Declare `outputSchema: z.union([normalSchema, receiptSchema])`, with strict objects in every branch. The fallback is validated too. Business exceptions thrown before the method returns remain errors. With `tool_result`, both callbacks return the content envelope and the union describes its structured metadata. The MCP protocol still validates the published JSON Schema; custom Zod refinements remain enforced by the SDK. Do not put side effects inside either callback.
 
 For a host-native MCP App, declare each static HTML bundle once in the Provider's `apps` array, then bind a Tool with `mcp.app.resourceKey` and include `app` visibility. The App key must exist in the same Provider and its entry must be a relative `.html` path inside the packaged plugin. The host publishes the bundle as a `ui://` resource; plugins must not create a stdio server or put CSP/credentials in Tool results.
 
@@ -85,3 +91,22 @@ import {
 ```
 
 This entry point excludes the NestJS and Node.js dependencies used by the server SDK.
+
+### Native MCP invocation defaults
+
+A decorated tool can declare `mcp.defaultApprovalMode: 'allow' | 'confirm' | 'deny'`.
+The native capability descriptor carries this default through auto-publication and
+provider synchronization. Explicit Publication administrator policies take
+precedence. Omitting the field retains the existing risk defaults: reads allow,
+writes confirm, and dangerous tools deny. A dangerous tool can run directly only
+when its owner explicitly declares `allow`; risk annotations remain unchanged.
+Manual Publications review changes to this declaration before adopting them.
+
+For public Artifact links authorized by trusted application policy, runtime callers
+may pass `access.publicLinkAuthorization: 'application_policy'` instead of
+asserting `userConfirmedPublicLink`. This field must be derived by trusted plugin
+code, never exposed as a tool argument. Existing user-confirmation calls retain
+their behavior; user identity and Artifact scope checks still apply.
+
+These additions require matching host contracts/runtime support and an SDK build
+containing these interfaces. They are not part of the published SDK 3.18.3 baseline.

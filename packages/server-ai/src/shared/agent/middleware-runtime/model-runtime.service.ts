@@ -38,7 +38,7 @@ import { CopilotUsageService } from '../../../copilot-usage'
 import { ensureCopilotModelContextSize } from '../../../copilot-model/utils/context-size'
 import { applicationMetrics } from '../../../metrics'
 import { wrapAgentExecution } from '../execution'
-import { normalizeOptionalString } from './utils'
+import { normalizeOptionalString } from '../../runtime/runtime-input'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution

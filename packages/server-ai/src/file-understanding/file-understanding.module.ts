@@ -1,3 +1,4 @@
+import { FileAssetDeletionService } from './file-asset-deletion.service'
 import { StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -18,6 +19,7 @@ import { FileAssetAccessService } from './file-asset-access.service'
 import { ChatConversationModule } from '../chat-conversation'
 import { XpertProjectAccessModule } from '../xpert-project/project-access.module'
 import { XpertModule } from '../xpert/xpert.module'
+import { FileRuntimeModule } from './runtime/file-runtime.module'
 
 @Module({
     imports: [
@@ -32,6 +34,7 @@ import { XpertModule } from '../xpert/xpert.module'
             XpertProject
         ]),
         CqrsModule,
+        FileRuntimeModule,
         TenantModule,
         UserModule,
         StorageFileModule,
@@ -43,6 +46,7 @@ import { XpertModule } from '../xpert/xpert.module'
     ],
     controllers: [FileUnderstandingController],
     providers: [
+        FileAssetDeletionService,
         FileUnderstandingVectorService,
         FileWorkspaceProjectionService,
         FileAssetAccessService,

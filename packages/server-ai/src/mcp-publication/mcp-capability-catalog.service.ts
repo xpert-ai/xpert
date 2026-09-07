@@ -18,7 +18,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { createHash } from 'node:crypto'
-import { Repository } from 'typeorm'
+import { IsNull, Repository } from 'typeorm'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { assertValidMcpCapabilityDescriptor, hashMcpCapabilityDescriptor } from '../tool-runtime/capability-descriptor'
 import { ToolRuntimeService } from '../tool-runtime'
@@ -108,7 +108,12 @@ export class McpCapabilityCatalogService {
 
     private async assertToolsetInCurrentScope(toolsetId: string) {
         const scope = RequestContext.getScope()
-        const toolset = await this.toolsets.findOne(toolsetId)
+        if (!scope.tenantId) throw new BadRequestException('MCP capability discovery requires a tenant scope.')
+        // The lifecycle restores management scope without a signed-in user. Bind
+        // the lookup explicitly instead of using the user-scoped ID shortcut.
+        const toolset = await this.toolsets.findOne({
+            where: { id: toolsetId, tenantId: scope.tenantId, organizationId: scope.organizationId ?? IsNull() }
+        })
         if (
             !scope.tenantId ||
             toolset.tenantId !== scope.tenantId ||
@@ -297,8 +302,10 @@ function nativeToolDeclaration(tool: AnyXpertToolDefinition, providerInstruction
         description: tool.description,
         ...(providerInstructions ? { providerInstructions } : {}),
         inputSchema: zodMcpSchema(tool.inputSchema),
-        ...(tool.outputSchema ? { outputSchema: zodMcpSchema(tool.outputSchema) } : {}),
+        // Strict output unions emit anyOf without a root type; MCP requires object output schemas.
+        ...(tool.outputSchema ? { outputSchema: { ...zodMcpSchema(tool.outputSchema), type: 'object' } } : {}),
         behavior: tool.behavior,
+        ...(tool.defaultApprovalMode ? { defaultApprovalMode: tool.defaultApprovalMode } : {}),
         annotations: {
             ...(tool.title ? { title: tool.title } : {}),
             readOnlyHint: tool.behavior.risk === 'read',

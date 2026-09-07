@@ -57,6 +57,7 @@ import { MembershipModule } from './membership'
 import { ModelAccessModule } from './model-access'
 import { ModelGatewayModule } from './model-gateway'
 import { ArtifactsModule } from './artifacts'
+import { ActorTokenRuntimeModule } from './actor-token/actor-token-runtime.module'
 import { CollaborationModule } from './collaboration'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
 import { AgentEvolutionModule } from './agent-evolution'
@@ -121,6 +122,7 @@ import { McpPublicationModule } from './mcp-publication'
         RagWebModule,
         SandboxModule,
         ArtifactsModule,
+        ActorTokenRuntimeModule,
         CollaborationModule,
         WorkspaceFileAccessModule,
         AgentEvolutionModule,

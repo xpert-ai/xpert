@@ -1,3 +1,4 @@
+import { resolveAgentExecutionScope } from '../shared/agent/middleware-runtime/execution-scope'
 import { NotFoundException } from '@nestjs/common'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
@@ -161,7 +162,10 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
 
     it('binds visual candidates to the child Agent execution available at tool invocation time', async () => {
         const { executionId: _executionId, conversationId: _conversationId, ...graphBuildScope } = executionScope()
-        const api = service.createScopedApi(graphBuildScope, { workspaceFiles: workspaceFiles as never })
+        const api = service.createScopedApi(graphBuildScope, {
+            workspaceFiles: workspaceFiles as never,
+            resolveExecutionScope: () => resolveAgentExecutionScope(graphBuildScope)
+        })
 
         const result = await AsyncLocalStorageProviderSingleton.runWithConfig(
             {
@@ -196,6 +200,21 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
                         agentKey: 'Agent_RequirementEvidenceSpecialist'
                     }
                 },
+                () => api.prepareImages({ filePaths: [result.candidates[0].filePath] })
+            )
+        ).resolves.toEqual(
+            expect.objectContaining({ images: [expect.objectContaining({ visualAssetId: 'asset-page-2' })] })
+        )
+    })
+
+    it('keeps a platform caller scope fixed even when unrelated LangGraph context is present', async () => {
+        const scope = executionScope()
+        const api = service.createScopedApi(scope, { workspaceFiles: workspaceFiles as never })
+        scope.executionId = 'mutated-after-binding'
+        const result = await api.issueCandidates(candidateRequest())
+        await expect(
+            AsyncLocalStorageProviderSingleton.runWithConfig(
+                { configurable: { tenantId: 'another-tenant', executionId: 'unrelated-execution' } },
                 () => api.prepareImages({ filePaths: [result.candidates[0].filePath] })
             )
         ).resolves.toEqual(

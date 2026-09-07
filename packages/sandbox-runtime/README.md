@@ -10,6 +10,8 @@ Add the family below `images/`, declare it once in `images/catalog.json`, and im
 
 ## Local verification
 
+The development-only `document/libreoffice-v1` Binding requires the Node version declared in its Runtime Definition and an executable LibreOffice installation. The API searches `PATH` and standard LibreOffice locations. If LibreOffice is installed elsewhere, set `XPERT_LOCAL_LIBREOFFICE_PATH` to its absolute `soffice` executable path in the local API environment and restart the API. The executable directory is also added to document Job `PATH`. Actions that extract PDF text additionally require `pdftotext` on the API's `PATH`. Runtime source assets remain under `packages/sandbox-runtime`; missing conversion dependencies must not be repaired by creating an unrelated `sandbox-runtime` directory.
+
 ```bash
 corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser
 corepack pnpm --filter @xpert-ai/sandbox-runtime install:ai

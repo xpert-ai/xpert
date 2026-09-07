@@ -1,3 +1,4 @@
+import { AssistantTaskRuntimeService } from './runtime/assistant-task-runtime.service'
 import { TenantModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -23,7 +24,7 @@ import { CopilotUsageModule } from '../copilot-usage'
         CopilotUsageModule
     ],
     controllers: [XpertAgentExecutionController],
-    providers: [XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
+    providers: [AssistantTaskRuntimeService, XpertAgentExecutionService, ...CommandHandlers, ...QueryHandlers],
     exports: [XpertAgentExecutionService]
 })
 export class XpertAgentExecutionModule {}

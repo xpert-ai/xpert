@@ -15,7 +15,8 @@ export class McpPublicationAuthorizationService {
         private readonly publicationAccess: McpPublicationAccessService
     ) {}
 
-    async assertCanRun(publication: McpPublication, principal: McpPrincipal) {
+    /** Returns the verified user for request-local platform capabilities; service accounts have no user identity. */
+    async assertCanRun(publication: McpPublication, principal: McpPrincipal): Promise<User | null> {
         if (
             principal.tenantId !== publication.tenantId ||
             principal.publicationId !== publication.id ||
@@ -29,7 +30,7 @@ export class McpPublicationAuthorizationService {
             await this.publicationAccess.assertEnabled(publication, principal.organizationId)
         }
         if (principal.subjectType === 'service_account') {
-            return
+            return null
         }
         if (!principal.userId) {
             throw this.forbidden()
@@ -49,6 +50,7 @@ export class McpPublicationAuthorizationService {
         ) {
             throw this.forbidden()
         }
+        return user
     }
 
     private forbidden() {

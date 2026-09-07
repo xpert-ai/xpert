@@ -19,7 +19,7 @@ describe('ListFilePageImagesHandler', () => {
                     mimeType: 'image/png',
                     anchor: { page: 1, path: 'page-0001.png' },
                     metadata: {
-                        workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0001.png',
+                        workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0001.png',
                         fileName: 'page-0001.png'
                     }
                 },
@@ -30,7 +30,7 @@ describe('ListFilePageImagesHandler', () => {
                     anchor: { page: 2, path: 'page-0002.png' },
                     metadata: {
                         storageKey: 'contexts/tenant-1/file-understanding/file-1/run-1/pages/page-0002.png',
-                        workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0002.png',
+                        workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0002.png',
                         url: 'https://files.example/page-0002.png',
                         fileName: 'page-0002.png',
                         width: 800,
@@ -71,7 +71,7 @@ describe('ListFilePageImagesHandler', () => {
                 mimeType: 'image/png',
                 anchor: { page: 2, path: 'page-0002.png' },
                 file: {
-                    workspacePath: '/workspace/sessions/conversation-1/files/file-1/pages/page-0002.png',
+                    workspacePath: 'sessions/conversation-1/files/file-1/pages/page-0002.png',
                     url: 'https://files.example/page-0002.png',
                     fileName: 'page-0002.png',
                     width: 800,
