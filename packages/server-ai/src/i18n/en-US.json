@@ -1,5 +1,7 @@
 {
     "Error": {
+        "ModelUsageDeliveryReceiptMissing": "The model usage delivery receipt could not be loaded.",
+        "ModelUsageDeliveryPayloadMismatch": "The model usage request was replayed with different billing data.",
         "SandboxProviderProjectContentReadOnlyUnsupported": "Sandbox provider {{provider}} does not support read-only Project Content.",
         "ProjectContentApiRequired": "Use the Project Content API to modify project.md or Project skills.",
         "ProjectContentDeleteApiRequired": "Project instructions and skills cannot be deleted through the file API.",

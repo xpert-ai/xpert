@@ -11,11 +11,13 @@ import { QueryHandlers } from './queries/handlers'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
 import { ModelAccessModule } from '../model-access'
 import { CopilotUsageModule } from '../copilot-usage'
+import { ModelUsageDeliveryReceipt } from '../copilot-usage/model-usage/model-usage-delivery-receipt.entity'
+import { CopilotTokenUsageDeliveryService } from './copilot-token-usage-delivery.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/copilot-user', module: CopilotUserModule }]),
-        TypeOrmModule.forFeature([CopilotUser]),
+        TypeOrmModule.forFeature([CopilotUser, ModelUsageDeliveryReceipt]),
         forwardRef(() => UserModule),
         TenantModule,
         CqrsModule,
@@ -24,7 +26,7 @@ import { CopilotUsageModule } from '../copilot-usage'
         CopilotUsageModule
     ],
     controllers: [CopilotUserController],
-    providers: [CopilotUserService, ...CommandHandlers, ...QueryHandlers],
+    providers: [CopilotUserService, CopilotTokenUsageDeliveryService, ...CommandHandlers, ...QueryHandlers],
     exports: [CopilotUserService]
 })
 export class CopilotUserModule {}
