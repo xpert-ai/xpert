@@ -119,7 +119,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             expect.objectContaining({
                 knowledgebase,
                 query: 'quality requirements',
-                k: undefined,
+                k: 5,
                 modelContext: {
                     xpertId: 'xpert-1',
                     threadId: 'thread-1'
@@ -1065,7 +1065,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         expect(result.documents[0].metadata.relevanceScore).toBeCloseTo(0.6)
     })
 
-    it('reranks the vector branch and the fused results in hybrid mode', async () => {
+    it('reranks the complete fused results once in hybrid mode', async () => {
         const vectorStore = {
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
@@ -1090,7 +1090,8 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                     }
                 ]
             })),
-            getActiveVectorStore: jest.fn(async () => vectorStore)
+            getActiveVectorStore: jest.fn(async () => vectorStore),
+            getRerankModel: jest.fn(async () => vectorStore)
         }
         const { handler } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
@@ -1124,9 +1125,8 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
             })
         )
 
-        expect(vectorStore.rerank).toHaveBeenCalledTimes(2)
-        expect(vectorStore.rerank.mock.calls[0][0]).toHaveLength(1)
-        expect(vectorStore.rerank.mock.calls[1][0]).toHaveLength(2)
+        expect(vectorStore.rerank).toHaveBeenCalledTimes(1)
+        expect(vectorStore.rerank.mock.calls[0][0]).toHaveLength(2)
     })
 
     it('uses the knowledgebase retrieval mode when the request does not override it', async () => {
@@ -1238,26 +1238,20 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                         metadataSchema: []
                     }
                 ]
+            })),
+            getActiveVectorStore: jest.fn(async () => ({
+                embeddingModel: 'embedding-model',
+                structuredSimilaritySearchWithScore: jest.fn(async () => ({
+                    items: [[chunk('chunk-1'), 0.3]],
+                    candidateDocumentCount: 1,
+                    candidateChunkCount: 1
+                }))
             }))
         }
-        const { handler, vectorRetriever } = createHandler(
+        const { handler } = createHandler(
             knowledgebaseService as unknown as KnowledgebaseService,
             { execute: jest.fn() } as unknown as QueryBus
         )
-        jest.spyOn(vectorRetriever, 'retrieve').mockResolvedValue(
-            vectorBatch([chunk('chunk-1', { score: 0.7, relevanceScore: 0.95 })], {
-                filterVersion: 2,
-                filterStatus: 'applied',
-                dynamicFilter: {
-                    kind: 'condition',
-                    field: 'document.fileExtension',
-                    operator: 'eq',
-                    value: { kind: 'literal', value: 'pdf' }
-                },
-                hitCount: 1
-            })
-        )
-
         const result = await handler.execute(
             new KnowledgeSearchQuery({
                 tenantId: 'tenant-1',

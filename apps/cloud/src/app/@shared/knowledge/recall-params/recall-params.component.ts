@@ -12,13 +12,7 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [
-    CdkMenuModule,
-    FormsModule,
-    TranslateModule,
-    ...ZardTooltipImports,
-    ZardSliderComponent
-],
+  imports: [CdkMenuModule, FormsModule, TranslateModule, ...ZardTooltipImports, ZardSliderComponent],
   selector: 'knowledge-recall-params',
   templateUrl: 'recall-params.component.html',
   styleUrls: ['recall-params.component.scss'],
@@ -35,6 +29,7 @@ export class KnowledgeRecallParamsComponent {
 
   readonly topK = computed(() => this.value$()?.topK)
   readonly score = computed(() => this.value$()?.score)
+  readonly rerankThreshold = computed(() => this.value$()?.rerankThreshold)
   readonly weight = computed(() => this.value$()?.weight)
 
   update(value: Partial<TKBRecallParams>) {

@@ -1,75 +1,87 @@
-<section class="mt-6 border-t border-border pt-5" aria-live="polite">
-  <div class="flex items-center justify-between gap-3">
-    <h2 class="text-base font-semibold text-text-primary">
-      {{ 'XP.Knowledgebase.GraphDocumentProgress.Title' | translate }}
-    </h2>
-    <span class="text-xs" [ngClass]="stateClass()" [attr.data-graph-state]="state()">
-      {{ 'XP.Knowledgebase.GraphDocumentProgress.States.' + state() | translate }}
-    </span>
-  </div>
-  @if (progress()?.stages; as stages) {
-    <z-stepper
-      orientation="horizontal"
-      [selectedIndex]="stageIndex()"
-      class="mt-4 pointer-events-none [&_[role=tabpanel]]:hidden! [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:border-text-success/30 [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:bg-text-success [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:text-primary-foreground"
-    >
-      @for (stage of stageKeys; track stage) {
-        <z-step [completed]="stages[stage] === 'complete'">
-          <ng-template zStepLabel>
-            <span [ngClass]="stageClasses[stages[stage]]">
-              @if (stages[stage] === 'running') {
-                <z-icon zType="loader-circle" class="mr-1 inline size-4 animate-spin" />
-              }
-              {{ 'XP.Knowledgebase.GraphDocumentProgress.Stages.' + stage | translate }}
-            </span>
-          </ng-template>
-        </z-step>
-      }
-    </z-stepper>
-    <div class="mt-3 grid grid-cols-3 gap-3">
-      @for (stage of stageKeys; track stage) {
-        <p
-          class="text-center text-xs"
-          [ngClass]="stageClasses[stages[stage]]"
-          [attr.data-graph-stage]="stage"
-          [attr.data-state]="stages[stage]"
-        >
-          {{ 'XP.Knowledgebase.GraphDocumentProgress.StageStates.' + stages[stage] | translate }}
-        </p>
-      }
+@if (!details()) {
+  <span
+    class="inline-flex shrink-0 items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs"
+    [ngClass]="stateClass()"
+    [attr.data-graph-state]="state()"
+    [attr.title]="state() === 'failed' ? progress()?.error : null"
+  >
+    <i class="ri-node-tree" aria-hidden="true"></i>
+    {{ 'XP.Knowledgebase.GraphDocumentProgress.States.' + state() | translate }}
+  </span>
+} @else {
+  <section class="mt-6 border-t border-border pt-5" aria-live="polite">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-base font-semibold text-text-primary">
+        {{ 'XP.Knowledgebase.GraphDocumentProgress.Title' | translate }}
+      </h2>
+      <span class="text-xs" [ngClass]="stateClass()" [attr.data-graph-state]="state()">
+        {{ 'XP.Knowledgebase.GraphDocumentProgress.States.' + state() | translate }}
+      </span>
     </div>
-  }
-  @if (progress()?.totalChunks > 0) {
-    <p class="mt-3 text-xs tabular-nums text-text-tertiary" data-graph-chunks>
-      {{
-        'XP.Knowledgebase.GraphDocumentProgress.Chunks'
-          | translate
-            : {
-                processed: progress().processedChunks ?? 0,
-                total: progress().totalChunks
-              }
-      }}
-    </p>
-  }
-  @if (state() === 'failed') {
-    <p class="mt-3 break-words text-xs text-text-destructive" role="alert">
-      {{ progress()?.error || ('XP.Knowledgebase.GraphDocumentProgress.FailureHint' | translate) }}
-    </p>
-  } @else if (state() !== 'ready' && state() !== 'running' && state() !== 'queued' && state() !== 'loading') {
-    <p class="mt-3 text-xs text-text-tertiary" data-graph-hint>
-      {{ 'XP.Knowledgebase.GraphDocumentProgress.Hints.' + state() | translate }}
-    </p>
-  }
-  @if (state() === 'ready') {
-    <a
-      z-button
-      zType="outline"
-      zSize="sm"
-      class="mt-4"
-      [routerLink]="['/xpert/knowledges', knowledgebase().id, 'graph']"
-      queryParamsHandling="preserve"
-    >
-      {{ 'XP.Knowledgebase.GraphDocumentProgress.ViewGraph' | translate }}
-    </a>
-  }
-</section>
+    @if (progress()?.stages; as stages) {
+      <z-stepper
+        orientation="horizontal"
+        [selectedIndex]="stageIndex()"
+        class="mt-4 pointer-events-none [&_[role=tabpanel]]:hidden! [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:border-text-success/30 [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:bg-text-success [&_.z-stepper__trigger[data-state=completed]_.z-stepper__indicator]:text-primary-foreground"
+      >
+        @for (stage of stageKeys; track stage) {
+          <z-step [completed]="stages[stage] === 'complete'">
+            <ng-template zStepLabel>
+              <span [ngClass]="stageClasses[stages[stage]]">
+                @if (stages[stage] === 'running') {
+                  <z-icon zType="loader-circle" zSize="sm" class="mr-1 inline-flex animate-spin" />
+                }
+                {{ 'XP.Knowledgebase.GraphDocumentProgress.Stages.' + stage | translate }}
+              </span>
+            </ng-template>
+          </z-step>
+        }
+      </z-stepper>
+      <div class="mt-3 grid grid-cols-3 gap-3">
+        @for (stage of stageKeys; track stage) {
+          <p
+            class="text-center text-xs"
+            [ngClass]="stageClasses[stages[stage]]"
+            [attr.data-graph-stage]="stage"
+            [attr.data-state]="stages[stage]"
+          >
+            {{ 'XP.Knowledgebase.GraphDocumentProgress.StageStates.' + stages[stage] | translate }}
+          </p>
+        }
+      </div>
+    }
+    @if (progress()?.totalChunks > 0) {
+      <p class="mt-3 text-xs tabular-nums text-text-tertiary" data-graph-chunks>
+        {{
+          'XP.Knowledgebase.GraphDocumentProgress.Chunks'
+            | translate
+              : {
+                  processed: progress().processedChunks ?? 0,
+                  total: progress().totalChunks
+                }
+        }}
+      </p>
+    }
+    @if (state() === 'failed') {
+      <p class="mt-3 break-words text-xs text-text-destructive" role="alert">
+        {{ progress()?.error || ('XP.Knowledgebase.GraphDocumentProgress.FailureHint' | translate) }}
+      </p>
+    } @else if (state() !== 'ready' && state() !== 'running' && state() !== 'queued' && state() !== 'loading') {
+      <p class="mt-3 text-xs text-text-tertiary" data-graph-hint>
+        {{ 'XP.Knowledgebase.GraphDocumentProgress.Hints.' + state() | translate }}
+      </p>
+    }
+    @if (state() === 'ready') {
+      <a
+        z-button
+        zType="outline"
+        zSize="sm"
+        class="mt-4"
+        [routerLink]="['/xpert/knowledges', knowledgebase().id, 'graph']"
+        queryParamsHandling="preserve"
+      >
+        {{ 'XP.Knowledgebase.GraphDocumentProgress.ViewGraph' | translate }}
+      </a>
+    }
+  </section>
+}

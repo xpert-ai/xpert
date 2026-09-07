@@ -50,6 +50,7 @@ export class KnowledgebaseRuntimeService implements KnowledgebaseApi {
                 query: input.query,
                 k: input.k,
                 score: input.score,
+                rerankThreshold: input.rerankThreshold,
                 filters: { request: input.filter },
                 retrieval: input.retrieval,
                 source: input.source,

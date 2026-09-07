@@ -145,6 +145,7 @@ export class KnowledgeRetriever extends BaseRetriever {
                     knowledgebases: this.knowledgebaseId ? [this.knowledgebaseId] : [],
                     query,
                     score: this.options?.recall.score,
+                    rerankThreshold: this.options?.recall.rerankThreshold,
                     k: this.options?.recall.topK,
                     source: 'retriever',
                     filters: {

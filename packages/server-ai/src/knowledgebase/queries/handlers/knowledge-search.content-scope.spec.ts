@@ -93,6 +93,23 @@ function query(contentScope?: KnowledgeRetrievalContentScope, mode: KnowledgeRet
 }
 
 describe('Knowledge search content scope', () => {
+    it('inherits a Wiki-enabled knowledgebase content default and allows a request override', async () => {
+        const { handler, vector } = setup({ recall: { contentScope: 'original' } })
+        expect((await handler.execute(query())).documents).toEqual([original])
+        expect(vector.retrieve).toHaveBeenCalledWith(expect.objectContaining({ contentScope: 'original' }))
+        expect((await handler.execute(query('wiki'))).documents).toEqual([wiki])
+        expect((await handler.execute(query('all'))).documents).toEqual([original, wiki])
+    })
+
+    it('does not inherit Wiki scope when Wiki is disabled', async () => {
+        const { handler, vector } = setup({
+            wikiConfig: { enabled: false, extractionGranularity: 'standard' },
+            recall: { contentScope: 'wiki' }
+        })
+        await handler.execute(query())
+        expect(vector.retrieve).toHaveBeenCalledWith(expect.objectContaining({ contentScope: 'all' }))
+    })
+
     it.each([undefined, 'all'] as const)('preserves mixed results for scope %s', async (scope) => {
         const { handler, visibility } = setup()
         const result = await handler.execute(query(scope))

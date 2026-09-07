@@ -115,6 +115,7 @@ export type KnowledgeFilterErrorCode =
   | 'graph_search_failed'
   | 'keyword_index_missing'
   | 'keyword_query_failed'
+  | 'rerank_failed'
   | 'unsupported_backend'
   | 'unsupported_retrieval_mode'
 

@@ -67,6 +67,22 @@ describe('Document Wiki progress UI', () => {
     expect(root().querySelector('[data-wiki-state]').getAttribute('data-wiki-state')).toBe('unknown')
     expect(root().querySelectorAll('[data-wiki-stage]')).toHaveLength(0)
   })
+  it('displays the returned failure detail as text in the inspector, not in the compact row', () => {
+    fixture.componentRef.setInput('progress', {
+      ...progress,
+      state: 'failed',
+      error: '<script>provider failure</script>'
+    })
+    fixture.detectChanges()
+    expect(root().querySelector('[data-wiki-error-details]')).toBeNull()
+    fixture.componentRef.setInput('details', true)
+    fixture.detectChanges()
+    expect(root().querySelector('[data-wiki-error-details]').textContent).toContain('<script>provider failure</script>')
+    expect(root().querySelector('script')).toBeNull()
+    fixture.componentRef.setInput('progress', { ...progress, state: 'failed' })
+    fixture.detectChanges()
+    expect(root().querySelector('[data-wiki-error-details]')).toBeNull()
+  })
   it('retries a known-not-sent failure without a charge confirmation', async () => {
     fixture.componentRef.setInput('details', true)
     fixture.componentRef.setInput('progress', {

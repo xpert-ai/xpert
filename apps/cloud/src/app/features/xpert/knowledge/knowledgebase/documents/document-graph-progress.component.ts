@@ -12,6 +12,7 @@ import {
 import { ZardButtonComponent, ZardIconComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { catchError, distinctUntilChanged, exhaustMap, map, of, switchMap, take, timer } from 'rxjs'
 import { KnowledgebaseService } from '../../../../../@core/services/knowledgebase.service'
+import type { DocumentGraphProgressSnapshot } from './document-graph-status'
 
 @Component({
   selector: 'xp-document-graph-progress',
@@ -22,6 +23,8 @@ import { KnowledgebaseService } from '../../../../../@core/services/knowledgebas
 export class DocumentGraphProgressComponent {
   readonly knowledgebase = input.required<IKnowledgebase>()
   readonly document = input.required<IKnowledgeDocument>()
+  readonly details = input(true)
+  readonly snapshot = input<DocumentGraphProgressSnapshot>()
   readonly #api = inject(KnowledgebaseService)
   readonly #request = computed(() => {
     const kb = this.knowledgebase()
@@ -30,7 +33,9 @@ export class DocumentGraphProgressComponent {
       knowledgebaseId: kb.id,
       documentId: doc.id,
       enabled: !!kb.graphRag?.enabled,
+      managed: this.snapshot() !== undefined,
       key: JSON.stringify([
+        this.snapshot() !== undefined,
         kb.id,
         kb.graphRag?.enabled,
         kb.graphRevision,
@@ -48,8 +53,8 @@ export class DocumentGraphProgressComponent {
   readonly #response = toSignal(
     toObservable(this.#request).pipe(
       distinctUntilChanged((left, right) => left.key === right.key),
-      switchMap(({ knowledgebaseId, documentId, enabled, key }) => {
-        if (!enabled || !knowledgebaseId || !documentId) return of({ key, progress: null })
+      switchMap(({ knowledgebaseId, documentId, enabled, managed, key }) => {
+        if (managed || !enabled || !knowledgebaseId || !documentId) return of({ key, progress: null })
         return timer(0, 5000).pipe(
           exhaustMap(() =>
             this.#api.getGraphDocumentProgress(knowledgebaseId, documentId).pipe(
@@ -65,14 +70,20 @@ export class DocumentGraphProgressComponent {
   readonly progress = computed<KnowledgeGraphDocumentProgress | null>(() => {
     const request = this.#request()
     if (!request.enabled) return { documentId: request.documentId, state: 'disabled' }
+    const snapshot = this.snapshot()
+    if (snapshot) return snapshot.progress?.documentId === request.documentId ? snapshot.progress : null
     const response = this.#response()
     return response?.key === request.key && response.progress?.documentId === request.documentId
       ? response.progress
       : null
   })
-  readonly state = computed(
-    () => this.progress()?.state ?? (this.#response()?.key === this.#request().key ? 'unknown' : 'loading')
-  )
+  readonly state = computed(() => {
+    const progress = this.progress()
+    if (progress) return progress.state
+    const snapshot = this.snapshot()
+    if (snapshot) return snapshot.progress === null ? 'unknown' : 'loading'
+    return this.#response()?.key === this.#request().key ? 'unknown' : 'loading'
+  })
   readonly stageKeys = ['extraction', 'persistence', 'indexing'] as const
   readonly stageIndex = computed(() => {
     const stages = this.progress()?.stages

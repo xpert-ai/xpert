@@ -1,5 +1,3 @@
-import { CdkMenuModule } from '@angular/cdk/menu'
-
 import { NgTemplateOutlet } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -11,11 +9,14 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
+  ZardCheckboxComponent,
+  ZardFormImports,
   ZardInputDirective,
   ZardSliderComponent,
   ZardSwitchComponent,
   ZardTabsImports,
-  ZardTooltipImports
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
@@ -26,30 +27,14 @@ import {
   DEFAULT_KNOWLEDGE_RRF_WEIGHTS,
   GraphRagRetrievalMode,
   IKnowledgebase,
+  KnowledgeRetrievalContentScope,
+  hasEnabledKnowledgeRetrievalSource,
   normalizeKnowledgebaseFAQRecall,
   TKBRetrievalSettings
 } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot/copilot-model-select'
 
-export function hasEnabledKnowledgeRetrievalSource(
-  retrieval: Partial<IKnowledgebase & TKBRetrievalSettings> | null | undefined,
-  allowGraphRetrieval = true
-): boolean {
-  const mode = retrieval?.mode ?? retrieval?.recall?.mode ?? retrieval?.graphRag?.mode ?? 'vector'
-  if (mode === 'graph' && !allowGraphRetrieval) {
-    return false
-  }
-  const fusion = retrieval?.recall?.fusion
-  if (mode !== 'hybrid' || fusion?.mode !== 'weighted_rrf') {
-    return true
-  }
-
-  const weights = fusion.weights
-  const enabledWeights = allowGraphRetrieval
-    ? [weights?.vector, weights?.graph, weights?.keyword]
-    : [weights?.vector, weights?.keyword]
-  return enabledWeights.some((weight) => typeof weight === 'number' && Number.isFinite(weight) && weight > 0)
-}
+export { hasEnabledKnowledgeRetrievalSource } from '../../../@core/types'
 
 /**
  *
@@ -57,18 +42,20 @@ export function hasEnabledKnowledgeRetrievalSource(
 @Component({
   standalone: true,
   imports: [
-    CdkMenuModule,
     FormsModule,
     NgTemplateOutlet,
     TranslateModule,
-    ...ZardTooltipImports,
     ...ZardTabsImports,
     ...ZardCardImports,
+    ...ZardFormImports,
     ZardBadgeComponent,
+    ZardCheckboxComponent,
     ZardButtonComponent,
     ZardInputDirective,
     ZardSliderComponent,
     ZardSwitchComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     XpCommonModule,
     CopilotModelSelectComponent
   ],
@@ -94,6 +81,10 @@ export class KnowledgeRetrievalSettingsComponent {
     transform: booleanAttribute
   })
   readonly defaultMode = input<GraphRagRetrievalMode>('vector')
+  readonly usage = input<'default' | 'test'>('default')
+  readonly showContentScope = input(false)
+  readonly disabled = input(false)
+  readonly contentScopes = ['all', 'original', 'wiki'] as const
 
   readonly knowledgebase = this.cva.value$
 
@@ -102,8 +93,10 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly loading = signal(false)
 
   readonly recall = attrModel(this.knowledgebase, 'recall')
+  readonly contentScope = attrModel(this.recall, 'contentScope', 'all')
   readonly score = attrModel(this.recall, 'score', null)
-  readonly topK = attrModel(this.recall, 'topK', null)
+  readonly rerankThreshold = attrModel(this.recall, 'rerankThreshold')
+  readonly topK = attrModel(this.recall, 'topK', 10)
   readonly fusion = attrModel(this.recall, 'fusion', {})
   readonly fusionWeights = attrModel(this.fusion, 'weights', {})
   readonly rrfEnabled = linkedModel<boolean>({
@@ -154,12 +147,11 @@ export class KnowledgeRetrievalSettingsComponent {
     }
   })
   readonly graphEnabled = attrModel(this.graphRag, 'enabled', false)
+  readonly wikiOnly = computed(() => this.showContentScope() && this.contentScope() === 'wiki')
+  readonly graphAvailable = computed(() => this.allowGraphRetrieval() && this.graphEnabled() && !this.wikiOnly())
   readonly entityTopK = attrModel(this.graphRag, 'entityTopK', 8)
   readonly neighborHops = attrModel(this.graphRag, 'neighborHops', 1)
   readonly graphWeight = attrModel(this.graphRag, 'graphWeight', 0.35)
-  readonly graphControlsVisible = computed(
-    () => this.allowGraphRetrieval() && (this.graphEnabled() || this.mode() === 'graph' || this.mode() === 'hybrid')
-  )
   readonly rrfActive = computed(() => this.mode() === 'hybrid' && this.rrfEnabled())
   readonly vectorRetrieverActive = computed(
     () =>
@@ -168,7 +160,7 @@ export class KnowledgeRetrievalSettingsComponent {
   )
   readonly graphRetrieverActive = computed(
     () =>
-      this.allowGraphRetrieval() &&
+      this.graphAvailable() &&
       (this.mode() === 'graph' ||
         (this.mode() === 'hybrid' && (!this.rrfActive() || this.isPositiveWeight(this.rrfGraphWeight()))))
   )
@@ -180,7 +172,11 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly rrfHasEnabledRetriever = computed(() => {
     const knowledgebase = this.knowledgebase()
     if (this.allowGraphRetrieval()) {
-      return hasEnabledKnowledgeRetrievalSource(knowledgebase)
+      return hasEnabledKnowledgeRetrievalSource(
+        knowledgebase,
+        true,
+        this.showContentScope() ? this.contentScope() : 'all'
+      )
     }
     const recall = normalizeKnowledgebaseFAQRecall({
       ...(knowledgebase?.recall ?? {}),
@@ -191,6 +187,29 @@ export class KnowledgeRetrievalSettingsComponent {
   readonly retrievalModes = computed<GraphRagRetrievalMode[]>(() =>
     this.allowGraphRetrieval() ? ['vector', 'keyword', 'graph', 'hybrid'] : ['vector', 'keyword', 'hybrid']
   )
+  private readonly previousWeights: { vector: number; graph: number; keyword: number } = {
+    ...DEFAULT_KNOWLEDGE_RRF_WEIGHTS
+  }
+
+  selectContentScope(scope: KnowledgeRetrievalContentScope) {
+    this.contentScope.set(scope)
+    if (scope === 'wiki' && this.mode() === 'graph') this.mode.set('vector')
+  }
+
+  selectMode(mode: GraphRagRetrievalMode) {
+    if (mode === 'graph' && !this.graphAvailable()) return
+    this.mode.set(mode)
+  }
+
+  setRetrieverEnabled(source: 'vector' | 'graph' | 'keyword', enabled: boolean) {
+    if (!this.rrfActive() || (source === 'graph' && !this.graphAvailable())) return
+    const currentWeight = this.fusionWeights()?.[source] ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS[source]
+    if (!enabled && this.isPositiveWeight(currentWeight)) this.previousWeights[source] = currentWeight
+    this.fusionWeights.update((weights) => ({
+      ...weights,
+      [source]: enabled ? this.previousWeights[source] : 0
+    }))
+  }
   readonly useScore = linkedModel({
     initialValue: false,
     compute: () => !isNil(this.score()),
@@ -210,11 +229,18 @@ export class KnowledgeRetrievalSettingsComponent {
       }
     }
   })
+  readonly useRerankThreshold = linkedModel({
+    initialValue: false,
+    compute: () => !isNil(this.rerankThreshold()),
+    update: (value) => {
+      this.rerankThreshold.set(value ? (this.rerankThreshold() ?? 0.5) : null)
+    }
+  })
 
   saveRetrievalSettings() {
     if (!this.rrfHasEnabledRetriever()) {
-      this.#toastrService.error('XP.Knowledgebase.RRFPositiveWeightRequired', '', {
-        Default: 'RRF requires at least one retrieval source with a positive weight.'
+      this.#toastrService.error('XP.Knowledgebase.RetrievalSourceRequired', '', {
+        Default: 'Select at least one available retrieval source with a positive weight.'
       })
       return
     }

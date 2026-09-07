@@ -28,7 +28,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
-import { XpertNewKnowledgeComponent } from '../new/new.component'
+import { KnowledgeConfigurationSection, XpertNewKnowledgeComponent } from '../new/new.component'
 import { getKnowledgebaseDefaultRoute, isKnowledgebaseWikiEnabled } from './knowledgebase-route'
 import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
@@ -237,7 +237,7 @@ export class KnowledgebaseComponent {
       })
   }
 
-  openConfiguration() {
+  openConfiguration(initialSection?: KnowledgeConfigurationSection) {
     const knowledgebase = this.knowledgebase()
     if (!knowledgebase || this.loading()) {
       return
@@ -252,7 +252,8 @@ export class KnowledgebaseComponent {
         panelClass: 'xp-overlay-pane-card',
         data: {
           workspaceId: knowledgebase.workspaceId,
-          knowledgebase
+          knowledgebase,
+          initialSection
         }
       })
       .closed.subscribe({

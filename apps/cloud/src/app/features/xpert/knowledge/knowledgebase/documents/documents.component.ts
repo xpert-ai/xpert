@@ -62,9 +62,7 @@ import {
   MetadataFieldType,
   KDocumentSourceType,
   KnowledgebaseService,
-  KnowledgeGraphIndexJobStatus,
   KnowledgeGraphStatus,
-  KnowledgeGraphStatusResponse,
   KnowledgebaseStatusEnum,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
@@ -80,6 +78,7 @@ import { validateOriginalFileResponse } from './original-file-preview'
 import { injectDocumentWikiProgress } from './document-wiki-status'
 import { DocumentWikiProgressComponent } from './document-wiki-progress.component'
 import { DocumentGraphProgressComponent } from './document-graph-progress.component'
+import { injectDocumentGraphProgress } from './document-graph-status'
 import { DocumentProgressColumnWidth, DocumentProgressWidthDirective } from './document-progress-column'
 
 const REFRESH_DEBOUNCE_TIME = 5000
@@ -281,7 +280,6 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
 export class KnowledgeDocumentsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
-  eKnowledgeGraphIndexJobStatus = KnowledgeGraphIndexJobStatus
   eKnowledgeGraphStatus = KnowledgeGraphStatus
   eKnowledgebaseStatusEnum = KnowledgebaseStatusEnum
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
@@ -372,16 +370,6 @@ export class KnowledgeDocumentsComponent {
   #moveDialogRef: DialogRef<unknown, unknown> | null = null
   isRateLimitReached = false
   readonly #data = signal<IKnowledgeDocument[]>([])
-  readonly graphJobs = signal<KnowledgeGraphStatusResponse['jobs']>([])
-  readonly graphJobByDocumentId = computed(() => {
-    const byDocumentId = new Map<string, NonNullable<KnowledgeGraphStatusResponse['jobs']>[number]>()
-    for (const job of this.graphJobs() ?? []) {
-      if (typeof job.documentId === 'string' && job.documentId) {
-        byDocumentId.set(job.documentId, job)
-      }
-    }
-    return byDocumentId
-  })
   readonly total = signal<number>(0)
   readonly selectionModel = new SelectionModel<string>(true, [])
   readonly search = model<string>()
@@ -436,6 +424,12 @@ export class KnowledgeDocumentsComponent {
 
     return [...rows].sort((a, b) => compareDocumentSortValues(a, b, sortState as ActiveDocumentTableSortState))
   })
+
+  readonly graphDocumentProgress = injectDocumentGraphProgress(
+    this.knowledgebase,
+    this.filteredData,
+    this.selectedDocument
+  )
 
   // Folders
   readonly parentFolder = toSignal(
@@ -562,7 +556,6 @@ export class KnowledgeDocumentsComponent {
           } else {
             this.resetFolderBrowser()
           }
-          this.refreshGraphJobs()
         })
     })
 
@@ -603,7 +596,6 @@ export class KnowledgeDocumentsComponent {
       // Knowledgebase-level polling is only needed for aggregate states such as GraphRAG indexing
       // and vector rebuild locks; normal document parsing can refresh the document list alone.
       this.knowledgebaseComponent.refresh()
-      this.refreshGraphJobs()
     })
   }
 
@@ -1171,7 +1163,6 @@ export class KnowledgeDocumentsComponent {
 
   refresh() {
     this.refresh$.next(true)
-    this.refreshGraphJobs()
   }
 
   canDownloadOriginalFile(doc: IKnowledgeDocument) {
@@ -1301,30 +1292,6 @@ export class KnowledgeDocumentsComponent {
       }
       return next
     })
-  }
-
-  refreshGraphJobs() {
-    const knowledgebase = this.knowledgebase()
-    if (!knowledgebase?.id || !knowledgebase.graphRag?.enabled) {
-      this.graphJobs.set([])
-      return
-    }
-
-    this.kbAPI
-      .getGraphStatus(knowledgebase.id)
-      .pipe(take(1))
-      .subscribe({
-        next: (status) => {
-          this.graphJobs.set(status.jobs ?? [])
-        },
-        error: () => {
-          this.graphJobs.set([])
-        }
-      })
-  }
-
-  graphJobStatus(documentId: string) {
-    return this.graphJobByDocumentId().get(documentId)
   }
 
   backHome() {

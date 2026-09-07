@@ -95,6 +95,62 @@ describe('XpertNewKnowledgeComponent', () => {
     expect(component.wikiEnabled()).toBe(false)
   })
 
+  it('opens the requested settings section', () => {
+    const component = createComponent({ initialSection: 'models' })
+
+    expect(component.activeSection()).toBe('models')
+  })
+
+  it('uses weighted RRF for new knowledgebases without migrating existing legacy settings', () => {
+    const component = createComponent({ workspaceId: 'workspace-1' })
+    expect(component.retrieval().recall?.fusion?.mode).toBe('weighted_rrf')
+
+    TestBed.resetTestingModule()
+    const editor = createComponent({ knowledgebase: { id: 'kb-1', recall: { mode: 'hybrid' } } })
+    expect(editor.retrieval().recall?.fusion).toBeUndefined()
+  })
+
+  it('can enable graph indexing for existing content without changing Wiki or retrieval mode', () => {
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb-1',
+        name: 'Existing documents',
+        type: KnowledgebaseTypeEnum.Standard,
+        documentNum: 2,
+        copilotModel: { id: 'embedding-1' },
+        wikiConfig: { enabled: false },
+        recall: { mode: 'vector' },
+        graphRag: { enabled: false, mode: 'vector', entityTopK: 12 }
+      }
+    })
+
+    component.toggleGraph()
+    component.save()
+
+    expect(component.wikiEnabled()).toBe(false)
+    expect(component.knowledgebaseService.updateWikiConfiguration).toHaveBeenCalledWith(
+      'kb-1',
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          graphRag: expect.objectContaining({ enabled: true, mode: 'vector', entityTopK: 12 }),
+          recall: expect.objectContaining({ mode: 'vector' })
+        }),
+        wikiConfig: expect.objectContaining({ enabled: false })
+      })
+    )
+
+    component.toggleGraph()
+    expect(component.retrieval().graphRag?.enabled).toBe(false)
+  })
+
+  it('cannot enable graph indexing for FAQ knowledgebases', () => {
+    const component = createComponent({ knowledgebase: { id: 'faq-1', type: KnowledgebaseTypeEnum.FAQ } })
+
+    component.toggleGraph()
+
+    expect(component.retrieval().graphRag?.enabled).toBe(false)
+  })
+
   function createEditor() {
     return createComponent({
       knowledgebase: {
@@ -129,6 +185,21 @@ describe('XpertNewKnowledgeComponent', () => {
       })
     )
     expect(TestBed.inject(DialogRef).close).toHaveBeenCalledWith({ id: 'kb-1' })
+  })
+
+  it('persists the Wiki content selection as part of the knowledgebase recall defaults', () => {
+    const component = createEditor()
+    component.retrieval.update((retrieval) => ({
+      ...retrieval,
+      recall: { ...retrieval.recall, contentScope: 'original' }
+    }))
+    component.save()
+    expect(component.knowledgebaseService.updateWikiConfiguration).toHaveBeenCalledWith(
+      'kb-1',
+      expect.objectContaining({
+        settings: expect.objectContaining({ recall: expect.objectContaining({ contentScope: 'original' }) })
+      })
+    )
   })
 
   it('keeps the editor open without a separate ordinary save when Wiki validation fails', () => {

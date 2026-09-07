@@ -28,12 +28,14 @@ import {
   KnowledgeDocumentProcessingMode,
   KnowledgeGraphStatusResponse,
   KnowledgeGraphDocumentProgress,
+  KnowledgeGraphDocumentsProgressResponse,
   KnowledgeGraphVisualizationQuery,
   KnowledgeGraphViewResponse,
   KnowledgeFilterDiagnostics,
   KnowledgeFilterSources,
   KnowledgeRetrievalContentScope,
   PaginationParams,
+  TCopilotModel,
   TKBRetrievalSettings,
   toHttpParams
 } from '@cloud/app/@core/state'
@@ -157,7 +159,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     options: {
       query: string
       k: number
-      score: number
+      score?: number | null
+      rerankModel?: TCopilotModel | null
+      rerankThreshold?: number | null
       filters?: KnowledgeFilterSources
       variables?: Record<string, unknown>
       retrieval?: TKBRetrievalSettings
@@ -177,6 +181,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   getGraphDocumentProgress(id: string, documentId: string) {
     return this.httpClient.get<KnowledgeGraphDocumentProgress>(
       this.apiBaseUrl + `/${id}/graph/documents/${documentId}/status`
+    )
+  }
+
+  getGraphDocumentsProgress(id: string, documentIds: string[]) {
+    return this.httpClient.post<KnowledgeGraphDocumentsProgressResponse>(
+      this.apiBaseUrl + `/${id}/graph/documents/status`,
+      { documentIds }
     )
   }
 

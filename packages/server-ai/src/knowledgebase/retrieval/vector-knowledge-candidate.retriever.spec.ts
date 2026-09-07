@@ -115,10 +115,12 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             preparedFilter
         })
 
-        expect(knowledgebaseService.getActiveVectorStore).toHaveBeenCalledWith('kb-1', true, {
-            xpertId: 'xpert-1',
-            threadId: 'thread-1'
-        })
+        expect(knowledgebaseService.getActiveVectorStore).toHaveBeenCalledWith(
+            'kb-1',
+            true,
+            { xpertId: 'xpert-1', threadId: 'thread-1' },
+            { rerankEnabled: false }
+        )
         expect(vectorStore.structuredSimilaritySearchWithScore).toHaveBeenCalledWith('quality requirements', 5, {
             postgres: {
                 sql: 'TRUE',
@@ -244,7 +246,8 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             }))
         ).toEqual([
             { id: 'faq-1', score: 0.9, rank: 1 },
-            { id: 'faq-2', score: 0.8, rank: 2 }
+            { id: 'faq-2', score: 0.8, rank: 2 },
+            { id: 'faq-3', score: 0.5, rank: 4 }
         ])
     })
 
@@ -572,7 +575,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
         expect(result.diagnostics.hitCount).toBe(1)
     })
 
-    it('keeps reranking inside the vector branch when a rerank model is configured', async () => {
+    it('preserves vector candidates for final-stage reranking', async () => {
         environment.vectorStore = VectorTypeEnum.PGVECTOR
         const knowledgebase = createKnowledgebase({
             recall: { topK: 2 },
@@ -610,22 +613,28 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             vectorBackend: VectorTypeEnum.PGVECTOR
         })
 
-        const result = await retriever.retrieve(createRequest(knowledgebase, preparedFilter, { k: 1 }))
+        const result = await retriever.retrieve(createRequest(knowledgebase, preparedFilter, { k: 2 }))
 
-        expect(vectorStore.rerank).toHaveBeenCalledWith(expect.any(Array), 'quality requirements', { topN: 1 })
+        expect(vectorStore.rerank).not.toHaveBeenCalled()
         expect(result.candidates).toEqual([
             {
                 rank: 1,
                 document: expect.objectContaining({
+                    pageContent: 'stored one',
+                    metadata: expect.objectContaining({ chunkId: 'chunk-1', score: 0.8 })
+                })
+            },
+            {
+                rank: 2,
+                document: expect.objectContaining({
                     pageContent: 'stored two',
                     metadata: expect.objectContaining({
                         chunkId: 'chunk-2',
-                        score: 0.9,
-                        relevanceScore: 0.97
+                        score: 0.9
                     })
                 })
             }
         ])
-        expect(result.diagnostics.hitCount).toBe(1)
+        expect(result.diagnostics.hitCount).toBe(2)
     })
 })

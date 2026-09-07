@@ -79,6 +79,16 @@
                   <label class="kb-label"
                     >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
                   >
+                  <p class="kb-help-text">
+                    {{
+                      i18nPrefix + '.Basic.IndexCapabilitiesHelp'
+                        | translate
+                          : {
+                              Default:
+                                'Document indexing is included. Optionally build Wiki pages and a knowledge graph from the same documents.'
+                            }
+                    }}
+                  </p>
                   <div class="kb-choice-grid">
                     <button
                       type="button"
@@ -113,6 +123,31 @@
                       }}</span>
                       <span class="kb-choice-card-description">{{
                         i18nPrefix + '.Basic.WikiDescription' | translate
+                      }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="kb-choice-card"
+                      data-index-capability="graph"
+                      [class.kb-choice-card-selected]="graphEnabled()"
+                      [attr.aria-pressed]="graphEnabled()"
+                      (click)="toggleGraph()"
+                    >
+                      @if (graphEnabled()) {
+                        <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                      } @else {
+                        <span class="kb-choice-empty"></span>
+                      }
+                      <span class="kb-choice-card-title">{{
+                        i18nPrefix + '.Basic.GraphIndex' | translate: { Default: 'Knowledge graph' }
+                      }}</span>
+                      <span class="kb-choice-card-description">{{
+                        i18nPrefix + '.Basic.GraphIndexDescription'
+                          | translate
+                            : {
+                                Default:
+                                  'Extract entities, relationships and source evidence. Rebuild the graph to index existing documents after enabling it.'
+                              }
                       }}</span>
                     </button>
                   </div>
@@ -328,6 +363,7 @@
               </div>
               <xp-knowledge-retrieval-settings
                 [(ngModel)]="retrieval"
+                [showContentScope]="!isFAQ() && wikiEnabled()"
                 [allowGraphRetrieval]="!isFAQ()"
                 [defaultMode]="isFAQ() ? 'hybrid' : 'vector'"
               />
