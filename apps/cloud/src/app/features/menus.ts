@@ -247,7 +247,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     {
       title: 'CodeXpert',
       icon: 'ri-code-box-line',
-      link: 'https://code.xpertai.cn/',
+      link: environment.CODE_XPERT_URL,
       external: true,
       scopeContext: 'dual-scope',
       data: {
@@ -258,7 +258,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     {
       title: 'Data & Ontology',
       icon: 'ri-node-tree',
-      link: 'https://data.xpertai.cn/',
+      link: environment.DATA_ONTOLOGY_URL,
       external: true,
       scopeContext: 'dual-scope',
       data: {
