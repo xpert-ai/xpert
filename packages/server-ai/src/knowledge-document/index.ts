@@ -1,4 +1,6 @@
 export * from './document.module'
+export * from './deletion'
 export * from './document.service'
 export * from './transform-snapshot.service'
 export * from './analysis-snapshot.service'
+export * from './derived-index-publication.service'

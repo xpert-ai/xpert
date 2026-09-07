@@ -227,6 +227,15 @@ export class XpertAssistantFacade {
       })
       return
     }
+    if (citationTarget?.knowledgebaseId && citationTarget.wikiPageId) {
+      void this.#router.navigate(['/xpert/knowledges', citationTarget.knowledgebaseId, 'wiki'], {
+        queryParams: {
+          wikiPageId: citationTarget.wikiPageId,
+          ...(citationTarget.section ? { section: citationTarget.section } : {})
+        }
+      })
+      return
+    }
 
     const citationEvent = createKnowledgebaseCitationOpenHostEvent(event, {
       hostType: 'agent',

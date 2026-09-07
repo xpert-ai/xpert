@@ -2396,7 +2396,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private focusKnowledgebaseWorkbenchTab(target: KnowledgebaseCitationTarget) {
-    if (target.faqId || !target.documentId) {
+    if (target.faqId || target.wikiPageId || !target.documentId) {
       return false
     }
     const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
@@ -2423,6 +2423,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (target.faqId) {
       return this.#router.navigate(['/xpert/knowledges', target.knowledgebaseId, 'faq'], {
         queryParams: { faqId: target.faqId }
+      })
+    }
+
+    if (target.wikiPageId) {
+      return this.#router.navigate(['/xpert/knowledges', target.knowledgebaseId, 'wiki'], {
+        queryParams: {
+          wikiPageId: target.wikiPageId,
+          ...(target.section ? { section: target.section } : {})
+        }
       })
     }
 
@@ -2848,6 +2857,8 @@ type KnowledgebaseCitationTarget = {
   knowledgebaseId?: string
   documentId?: string
   faqId?: string
+  wikiPageId?: string
+  section?: string
   chunkId?: string
   page?: number
   sourceBlockIds?: string[]
@@ -2861,13 +2872,15 @@ function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): Knowl
 
   const documentId = getString(event.data['documentId'])
   const faqId = getString(event.data['faqId'])
-  if (!documentId && !faqId) {
+  const wikiPageId = getString(event.data['wikiPageId'])
+  if (!documentId && !faqId && !wikiPageId) {
     return null
   }
 
   const knowledgebaseId = getString(event.data['knowledgebaseId'])
   const chunkId = getString(event.data['chunkId'])
   const evidenceText = getString(event.data['evidenceText'])
+  const section = getString(event.data['section'])
   const pageValue = event.data['page']
   const parsedPage = typeof pageValue === 'number' ? pageValue : typeof pageValue === 'string' ? Number(pageValue) : 0
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined
@@ -2883,6 +2896,8 @@ function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): Knowl
   return {
     ...(documentId ? { documentId } : {}),
     ...(faqId ? { faqId } : {}),
+    ...(wikiPageId ? { wikiPageId } : {}),
+    ...(section ? { section } : {}),
     ...(knowledgebaseId ? { knowledgebaseId } : {}),
     ...(chunkId ? { chunkId } : {}),
     ...(page ? { page } : {}),

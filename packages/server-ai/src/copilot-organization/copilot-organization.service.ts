@@ -3,7 +3,7 @@ import { RequestContext, TenantAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IsNull, Repository } from 'typeorm'
+import { EntityManager, IsNull, Repository } from 'typeorm'
 import { CopilotOrganization } from './copilot-organization.entity'
 
 @Injectable()
@@ -24,8 +24,9 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
      * @param input
      * @returns
      */
-    async upsert(input: Partial<CopilotOrganization>): Promise<ICopilotOrganization> {
-        const existing = await this.findOneOrFailByOptions({
+    async upsert(input: Partial<CopilotOrganization>, manager?: EntityManager): Promise<ICopilotOrganization> {
+        const repository = manager?.getRepository(CopilotOrganization) ?? this.repository
+        const existing = await repository.findOne({
             where: {
                 tenantId: input.tenantId,
                 organizationId: input.organizationId,
@@ -35,25 +36,27 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
                 currency: input.currency ?? IsNull()
             }
         })
-        if (existing.success) {
-            existing.record.tokenUsed = (existing.record.tokenUsed ?? 0) + (input.tokenUsed ?? 0)
-            existing.record.priceUsed = Number(existing.record.priceUsed ?? 0) + Number(input.priceUsed ?? 0)
-            existing.record.tokenLimit ??= input.tokenLimit
-            existing.record.currency ??= input.currency
-            return await this.repository.save(existing.record)
+        if (existing) {
+            existing.tokenUsed = (existing.tokenUsed ?? 0) + (input.tokenUsed ?? 0)
+            existing.priceUsed = Number(existing.priceUsed ?? 0) + Number(input.priceUsed ?? 0)
+            existing.tokenLimit ??= input.tokenLimit
+            existing.currency ??= input.currency
+            return await repository.save(existing)
         } else {
-            return await this.create({
-                tenantId: input.tenantId,
-                organizationId: input.organizationId,
-                copilotId: input.copilotId,
-                provider: input.provider,
-                model: input.model,
-                tokenUsed: input.tokenUsed ?? 0,
-                tokenLimit: input.tokenLimit,
-                priceUsed: Number(input.priceUsed ?? 0),
-                priceLimit: input.priceLimit,
-                currency: input.currency
-            })
+            return await repository.save(
+                repository.create({
+                    tenantId: input.tenantId,
+                    organizationId: input.organizationId,
+                    copilotId: input.copilotId,
+                    provider: input.provider,
+                    model: input.model,
+                    tokenUsed: input.tokenUsed ?? 0,
+                    tokenLimit: input.tokenLimit,
+                    priceUsed: Number(input.priceUsed ?? 0),
+                    priceLimit: input.priceLimit,
+                    currency: input.currency
+                })
+            )
         }
     }
 

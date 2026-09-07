@@ -7,6 +7,7 @@ import { IIntegration } from '../integration.model'
 import { channelName } from '../agent/graph'
 import { IDocChunkMetadata } from './knowledge-doc-chunk.model'
 import type { GraphRagConfig, KnowledgeGraphStatus } from './knowledge-graph.model'
+import type { KnowledgebaseWikiConfig, KnowledgeWikiStatus, KnowledgeWikiAvailability } from './knowledge-wiki.model'
 
 /**
  * Non-internal types should remain the same as IntegrationEnum.
@@ -49,6 +50,9 @@ export const DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG = {
 
 export type KnowledgeRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
+/** Request-local content selection, independent of algorithms and persisted recall settings. */
+export type KnowledgeRetrievalContentScope = 'all' | 'original' | 'wiki'
+
 export enum KnowledgebaseStatusEnum {
   READY = 'ready',
   REBUILD_REQUIRED = 'rebuild_required',
@@ -89,6 +93,20 @@ export type TKnowledgebase = {
    */
   faqConfig?: KnowledgebaseFAQConfig | null
 
+  /** Optional generated Wiki capability for Standard knowledgebases. */
+  wikiConfig?: KnowledgebaseWikiConfig | null
+  wikiStatus?: KnowledgeWikiStatus | null
+  wikiAvailability?: KnowledgeWikiAvailability | null
+  wikiRevision?: number | null
+  wikiActiveRevision?: number | null
+  wikiStagedRevision?: number | null
+  wikiBuildError?: string | null
+  wikiRebuildRequiredReason?: 'generator_upgrade' | null
+  wikiGeneratorVersion?: string | null
+  wikiConfigFingerprint?: string | null
+  canManageWiki?: boolean
+  canManageDocumentDeletions?: boolean
+
   /**
    * English | Chinese
    */
@@ -124,6 +142,10 @@ export type TKnowledgebase = {
    */
   chatModel?: ICopilotModel | null
   chatModelId?: string | null
+
+  /** Optional dedicated LLM for Wiki generation. Falls back to chatModel when unset. */
+  wikiModel?: ICopilotModel | null
+  wikiModelId?: string | null
 
   embeddingCollectionName?: string | null
   embeddingModelFingerprint?: string | null

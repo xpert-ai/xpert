@@ -13,7 +13,7 @@ import { NgModelChangeDebouncedDirective } from '@cloud/app/@theme/directives'
 import { get } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
+import { BehaviorSubject, catchError, distinctUntilChanged, filter, of, startWith, switchMap, tap } from 'rxjs'
 import {
   buildChunkTree,
   getErrorMessage,
@@ -84,12 +84,26 @@ export class KnowledgeDocumentChunkComponent {
   readonly documentId = this.paramId
   readonly documentId$ = toObservable(this.paramId)
   readonly refresh$ = new BehaviorSubject<boolean>(true)
+  readonly documentError = signal<string | null>(null)
+  readonly documentLoading = signal(false)
   readonly document = toSignal(
     this.refresh$.pipe(
       switchMap(() =>
         this.documentId$.pipe(
           filter(nonBlank),
-          switchMap((id) => this.knowledgeDocumentService.getById(id))
+          switchMap((id) => {
+            this.documentError.set(null)
+            this.documentLoading.set(true)
+            return this.knowledgeDocumentService.getById(id).pipe(
+              tap(() => this.documentLoading.set(false)),
+              catchError((error) => {
+                this.documentError.set(getErrorMessage(error))
+                this.documentLoading.set(false)
+                return of(null)
+              }),
+              startWith(null)
+            )
+          })
         )
       )
     )

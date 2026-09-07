@@ -5032,6 +5032,55 @@
       "TakeMeThere": "帶我去！"
     },
     "Knowledgebase": {
+      "GraphDocumentProgress": {
+        "Title": "圖譜處理",
+        "States": {
+          "disabled": "圖譜不可用",
+          "source_disabled": "圖譜不可用",
+          "waiting_source": "等待文件處理",
+          "not_started": "未開始",
+          "outdated": "待更新",
+          "queued": "排隊中",
+          "running": "圖譜建構中",
+          "ready": "圖譜已產生",
+          "failed": "圖譜處理失敗",
+          "cancelled": "已取消",
+          "no_content": "無可擷取內容",
+          "completed": "任務已完成",
+          "loading": "正在取得狀態",
+          "unknown": "狀態取得失敗"
+        },
+        "Stages": {
+          "extraction": "實體關係擷取",
+          "persistence": "圖譜寫入",
+          "indexing": "檢索索引"
+        },
+        "StageStates": {
+          "pending": "待處理",
+          "running": "處理中",
+          "complete": "完成",
+          "failed": "失敗"
+        },
+        "Hints": {
+          "disabled": "目前知識庫未啟用圖譜。",
+          "source_disabled": "目前文件已停用或等待刪除，不參與圖譜處理。",
+          "waiting_source": "文件解析完成後才能開始圖譜處理。",
+          "not_started": "目前文件尚未建立圖譜處理任務。",
+          "outdated": "圖譜任務與目前文件或圖譜設定不一致，請重建圖譜以更新。",
+          "cancelled": "圖譜處理任務已取消。",
+          "no_content": "目前文件沒有可用於建構圖譜的文字內容。",
+          "completed": "歷史任務已完成，但未記錄處理階段和圖譜產生結果。",
+          "unknown": "暫時無法取得圖譜狀態，系統將自動重試。"
+        },
+        "Chunks": "已擷取分塊：{{processed}} / {{total}}",
+        "FailureHint": "圖譜處理失敗。",
+        "ViewGraph": "查看圖譜"
+      },
+      "RetrievalContentScope": "檢索內容",
+      "RetrievalContentAll": "全部",
+      "RetrievalContentOriginal": "僅原始文件",
+      "RetrievalContentWiki": "僅 Wiki",
+      "RetrievalContentWikiHint": "僅 Wiki 使用向量或關鍵詞召回，不支援純圖譜檢索或知識過濾器。",
       "ScopeNavigation": "知識庫範圍",
       "ResizeSidebar": "調整知識庫側欄寬度",
       "ResizeSidebarHint": "拖動調整側欄寬度",
@@ -5072,6 +5121,76 @@
       "Delete": "刪除知識庫",
       "DeleteInformation": "刪除後，此知識庫中的文件和索引資料也會一併刪除。",
       "FAQ": "FAQ",
+      "Wiki": {
+        "DocumentIndexed": "已 Wiki",
+        "DocumentProgress": {
+          "Title": "Wiki 處理",
+          "States": {
+            "not_started": "Wiki 未開始",
+            "queued": "Wiki 待生成",
+            "generating": "Wiki 生成中",
+            "indexing": "Wiki 索引中",
+            "publishing": "Wiki 發布中",
+            "ready": "已 Wiki",
+            "failed": "Wiki 失敗",
+            "outdated": "Wiki 待更新",
+            "no_content": "未擷取到 Wiki 內容",
+            "unknown": "Wiki 狀態待重新整理"
+          },
+          "Stages": {
+            "generation": "頁面生成",
+            "indexing": "檢索索引",
+            "publication": "發布可用"
+          },
+          "StageStates": {
+            "pending": "待處理",
+            "running": "處理中",
+            "complete": "完成",
+            "failed": "失敗",
+            "skipped": "無需處理"
+          },
+          "Hints": {
+            "not_started": "原文處理就緒後才能生成 Wiki；已停用的文件不參與生成。",
+            "outdated": "目前來源尚無可用的 Wiki 版本，請到 Wiki 頁檢查更新或重建。",
+            "no_content": "處理已結束，但該文件未產生可發布的 Wiki 內容。"
+          },
+          "WaitingForBatch": "正在等待同一發布批次的任務，其他文件的處理可能阻塞發布。",
+          "FailureHint": "Wiki 處理失敗，有知識庫編輯權限的使用者可查看原因並重試。",
+          "Retry": "重試",
+          "EmptySources": "Wiki 重建未找到可用來源，已保留原有發布內容。",
+          "EmptyPublication": "Wiki 重建未產生可發布頁面，已保留原有發布內容。",
+          "IndexFailed": "Wiki 檢索索引失敗，可重試繼續處理，原有發布頁面仍可用。",
+          "PublicationConflict": "Wiki 發布與其他更新發生衝突，原有發布頁面仍可用，可重試繼續處理。",
+          "RetryQueued": "已提交重試",
+          "ViewWiki": "查看 Wiki"
+        },
+        "DisabledTitle": "建立關聯 Wiki",
+        "DisabledDescription": "啟用 Wiki，從來源文件中提取有證據支撐的摘要、實體與概念。",
+        "Configure": "設定 Wiki",
+        "Indexing": "產生中",
+        "Search": "搜尋 Wiki 頁面",
+        "Empty": "暫無 Wiki 頁面。",
+        "BuildFailed": "最新一次 Wiki 產生失敗。",
+        "RebuildRequired": "Wiki 需要重新產生。",
+        "Degraded": "上一版本中安全的頁面仍可瀏覽。",
+        "Rebuild": "授權重建",
+        "RebuildConfirm": "重新產生 Wiki 會呼叫已設定的模型並可能產生費用，是否繼續？",
+        "RetryChargeConfirm": "上一次呼叫可能已經計費。是否重試並允許產生額外費用？",
+        "Reconciling": "正在核對模型服務商的呼叫結果…",
+        "RequestNotSent": "Wiki 模型請求準備失敗，尚未傳送生成請求。請修正模型設定或回傳格式後重試。",
+        "Indeterminate": "模型服務商的呼叫結果不確定，重試可能產生額外費用。",
+        "Related": "相關頁面",
+        "Evidence": "來源證據",
+        "BuildingEmpty": "正在產生 Wiki 頁面…",
+        "SelectPage": "請選擇一個 Wiki 頁面。",
+        "PageType": {
+          "all": "全部",
+          "summary": "摘要",
+          "entity": "實體",
+          "concept": "概念",
+          "index": "索引"
+        }
+      },
       "FAQManagement": {
         "Title": "FAQ",
         "Description": "管理標準問題、相似問法、反例和可重用的回答區塊。",
@@ -5165,6 +5284,7 @@
           "VectorStorage": "向量儲存",
           "Retrieval": "檢索設置",
           "FAQ": "FAQ 設置",
+          "Wiki": "Wiki 生成",
           "Parser": "解析引擎",
           "Chunk": "分塊設置",
           "Image": "圖像處理",
@@ -5189,8 +5309,8 @@
           "RagSearch": "RAG 檢索",
           "RagSearchDescription": "對文件進行分塊、向量化和檢索，支援向量、圖譜和混合模式。",
           "WikiKnowledgebase": "Wiki 知識庫",
-          "New": "NEW",
           "WikiDescription": "自動產生關聯的 Wiki 頁面，目前 Xpert 暫無對應索引瀏覽器。",
+          "IndexStrategyLocked": "知識庫已有內容，索引策略暫不支援調整。如需變更，需要先清空知識庫。",
           "Name": "知識庫名稱",
           "NamePlaceholder": "請輸入知識庫名稱",
           "KnowledgebaseDescription": "知識庫描述",
@@ -5214,6 +5334,26 @@
           "Locked": "FAQ 索引配置建立後暫不可修改。",
           "Notice": "FAQ 條目由標準問、相似問和一個或多個答案組成，可在知識庫詳情中維護。"
         },
+        "Wiki": {
+          "Title": "Wiki 生成",
+          "Description": "控制如何從文檔中提取信息並生成相互關聯的 Wiki 頁面。",
+          "ExtractionGranularity": "提取粒度",
+          "ExtractionGranularityHelp": "控制每篇文檔抽取的 Wiki 實體和概念數量。",
+          "Granularity": {
+            "Focused": "聚焦",
+            "Standard": "標準",
+            "Exhaustive": "詳盡",
+            "focusedHelp": "僅抽取主要實體和概念，使索引更聚焦。",
+            "standardHelp": "抽取主要實體以及被詳細描述的次要實體和概念，適合大多數場景。",
+            "exhaustiveHelp": "抽取更多次要實體和概念，使索引更詳盡。"
+          },
+          "ContentGenerationRequirements": "Wiki 內容生成要求",
+          "ContentGenerationRequirementsHelp": "控制摘要、頁面和首頁的表達重點；引用、合併與防幻覺規則由系統固定維護。",
+          "ContentGenerationRequirementsPlaceholder": "例如：使用法務審閱口吻，優先展示責任主體、時間線和風險提示...",
+          "ExtractionFocus": "Wiki 提取重點",
+          "ExtractionFocusHelp": "說明應重點識別的領域實體和概念，不會替換系統的 JSON 與引用協議。",
+          "ExtractionFocusPlaceholder": "例如：重點識別產品、版本、組織、負責人和關鍵技術概念..."
+        },
         "VectorStorage": {
           "Title": "向量儲存",
           "Description": "查看此知識庫使用的向量儲存，目前由系統級配置統一決定。",
@@ -5228,7 +5368,9 @@
           "LargeLanguageModel": "LLM 大語言模型",
           "LargeLanguageModelDescription": "用於總結和摘要的大語言模型。",
           "EmbeddingModel": "Embedding 嵌入模型",
-          "EmbeddingModelDescription": "用於文字向量化的嵌入模型。"
+          "EmbeddingModelDescription": "用於文字向量化的嵌入模型。",
+          "WikiModel": "Wiki 合成模型",
+          "WikiModelDescription": "可選；不設置時將回退使用上方的 LLM 大語言模型。"
         },
         "Vector": {
           "Description": "配置查詢向量、候選數量和相似度篩選策略。",
@@ -5402,7 +5544,8 @@
         },
         "Validation": {
           "NameRequired": "請輸入知識庫名稱",
-          "EmbeddingModelRequired": "請選擇 Embedding 模型"
+          "EmbeddingModelRequired": "請選擇 Embedding 模型",
+          "WikiModelRequired": "請選擇 Wiki 合成模型，或先配置 LLM 大語言模型。"
         }
       },
       "Knowledgebase": "知識庫",

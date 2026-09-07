@@ -1,5 +1,7 @@
 export * from './knowledge-graph-community.entity'
 export * from './knowledge-graph-entity.entity'
+export * from './knowledge-graph-entity-contribution.entity'
 export * from './knowledge-graph-index-job.entity'
 export * from './knowledge-graph-mention.entity'
 export * from './knowledge-graph-relation.entity'
+export * from './knowledge-graph-relation-contribution.entity'

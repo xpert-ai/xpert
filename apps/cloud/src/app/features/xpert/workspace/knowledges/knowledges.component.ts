@@ -6,7 +6,7 @@ import { XpDynamicGridDirective, nonBlank } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, injectConfirmUnique } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
-import { BehaviorSubject, filter, map, switchMap } from 'rxjs'
+import { BehaviorSubject, filter, firstValueFrom, map, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgebase,
@@ -137,10 +137,19 @@ export class XpertWorkspaceKnowledgesComponent {
       })
   }
 
-  edit(item: IKnowledgebase) {
+  async edit(item: IKnowledgebase) {
     if (!this.canManage(item)) {
       return
     }
+
+    let knowledgebase: IKnowledgebase
+    try {
+      knowledgebase = await firstValueFrom(this.knowledgebaseService.getDetail(item.id))
+    } catch (error) {
+      this._toastrService.error(getErrorMessage(error), 'Error')
+      return
+    }
+    if (!this.canManage(knowledgebase)) return
 
     this.#dialog
       .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
@@ -151,7 +160,7 @@ export class XpertWorkspaceKnowledgesComponent {
         panelClass: 'xp-overlay-pane-card',
         data: {
           workspaceId: this.workspaceId(),
-          knowledgebase: item
+          knowledgebase
         }
       })
       .closed.subscribe({

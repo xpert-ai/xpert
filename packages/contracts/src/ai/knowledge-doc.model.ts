@@ -185,6 +185,15 @@ export type TDocSourceConfig = {
 export type TKnowledgeDocument = {
   disabled?: boolean
 
+  /** Soft-delete marker; ordinary read paths exclude these documents. */
+  deletedAt?: Date | null
+
+  /** Hard-delete writer gate. A pending document is never eligible for read or publication. */
+  hardDeletePendingAt?: Date | null
+
+  /** Monotonic fence captured by every document-derived writer. */
+  publicationEpoch?: number
+
   knowledgebaseId?: string
 
   /**
@@ -333,6 +342,9 @@ export interface StandardDocumentMetadata {
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
+  /** Internal index containers are not user-uploaded documents. */
+  systemManaged?: boolean
+  systemManagedType?: string
   transformSnapshot?: KnowledgeDocumentTransformSnapshotRef
   analysisSnapshot?: KnowledgeDocumentAnalysisSnapshotRef
   documentAnalysis?: DocumentAnalysisMetadata

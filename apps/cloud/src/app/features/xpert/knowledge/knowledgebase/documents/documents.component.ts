@@ -77,6 +77,10 @@ import { openWorkbenchFilePreviewDialog } from '../../../../assistant/workbench-
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { KnowledgeDocumentCoverPreviewComponent } from './document-cover-preview.component'
 import { validateOriginalFileResponse } from './original-file-preview'
+import { injectDocumentWikiProgress } from './document-wiki-status'
+import { DocumentWikiProgressComponent } from './document-wiki-progress.component'
+import { DocumentGraphProgressComponent } from './document-graph-progress.component'
+import { DocumentProgressColumnWidth, DocumentProgressWidthDirective } from './document-progress-column'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 48
@@ -261,7 +265,10 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
     XpCommonModule,
     KnowledgeDocIdComponent,
     XpI18nPipe,
-    KnowledgeDocumentCoverPreviewComponent
+    KnowledgeDocumentCoverPreviewComponent,
+    DocumentWikiProgressComponent,
+    DocumentGraphProgressComponent,
+    DocumentProgressWidthDirective
   ],
   animations: [
     trigger('detailExpand', [
@@ -323,7 +330,10 @@ export class KnowledgeDocumentsComponent {
   readonly documentInspectorMinWidth = DOCUMENT_INSPECTOR_MIN_WIDTH
   // One table-column model drives width, visibility, order, and sort affordances.
   readonly tableColumns = signal<DocumentTableColumn[]>(createDefaultDocumentColumns())
-  readonly visibleDocumentColumns = computed(() => this.tableColumns().filter((column) => column.visible))
+  readonly progressColumnWidth = new DocumentProgressColumnWidth()
+  readonly visibleDocumentColumns = computed(() =>
+    this.progressColumnWidth.fit(this.tableColumns().filter((column) => column.visible))
+  )
   readonly sortState = signal<DocumentTableSortState>({ active: null, direction: '' })
   readonly tableMinWidth = computed(
     () =>
@@ -392,6 +402,7 @@ export class KnowledgeDocumentsComponent {
       (browserDocument?.id === selectedDocumentId ? browserDocument : null)
     )
   })
+  readonly wikiDocumentProgress = injectDocumentWikiProgress(this.knowledgebase, this.#data, this.selectedDocument)
   /** Reuses the protected range-enabled endpoint so the inspector renders page one without downloading a whole PDF. */
   readonly selectedPdfPreviewSource = computed(() => {
     const document = this.selectedDocument()

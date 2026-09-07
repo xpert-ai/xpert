@@ -29,7 +29,7 @@ import {
 } from '../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
 import { XpertNewKnowledgeComponent } from '../new/new.component'
-import { getKnowledgebaseDefaultRoute } from './knowledgebase-route'
+import { getKnowledgebaseDefaultRoute, isKnowledgebaseWikiEnabled } from './knowledgebase-route'
 import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -87,6 +87,7 @@ export class KnowledgebaseComponent {
 
   readonly type = computed(() => this.knowledgebase()?.type)
   readonly faq = computed(() => this.type() === KnowledgebaseTypeEnum.FAQ)
+  readonly wikiEnabled = computed(() => isKnowledgebaseWikiEnabled(this.knowledgebase()))
   readonly avatar = computed(() => this.knowledgebase()?.avatar)
   readonly external = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.External)
   readonly pipelineId = computed(() => this.knowledgebase()?.pipelineId)
@@ -135,19 +136,19 @@ export class KnowledgebaseComponent {
   constructor() {
     effect(() => {
       const knowledgebaseId = this.paramId()
-      if (!knowledgebaseId || !this.faq()) return
+      const knowledgebase = this.knowledgebase()
+      if (!knowledgebaseId || !knowledgebase) return
 
       const path = this.#router.url.split('?')[0].replace(/\/$/, '')
       const basePath = `/xpert/knowledges/${knowledgebaseId}`
-      if (path === basePath || path === `${basePath}/documents`) {
-        void this.#router.navigate(
-          getKnowledgebaseDefaultRoute({ id: knowledgebaseId, type: KnowledgebaseTypeEnum.FAQ }),
-          {
-            queryParamsHandling: 'preserve',
-            replaceUrl: true
-          }
-        )
-      }
+      const shouldRedirectFAQ = this.faq() && (path === basePath || path === `${basePath}/documents`)
+      const shouldRedirectWiki = path === `${basePath}/wiki` && !this.wikiEnabled()
+      if (!shouldRedirectFAQ && !shouldRedirectWiki) return
+
+      void this.#router.navigate(getKnowledgebaseDefaultRoute({ id: knowledgebaseId, type: knowledgebase.type }), {
+        queryParamsHandling: 'preserve',
+        replaceUrl: true
+      })
     })
   }
 

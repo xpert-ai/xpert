@@ -21,6 +21,32 @@ export enum KnowledgeGraphIndexJobStatus {
 
 export type KnowledgeGraphIndexJobType = 'document' | 'rebuild'
 
+export type KnowledgeGraphIndexStage = 'extraction' | 'persistence' | 'indexing'
+export type KnowledgeGraphIndexResult = 'indexed' | 'empty' | 'superseded' | 'disabled'
+export type KnowledgeGraphDocumentStageState = 'pending' | 'running' | 'complete' | 'failed'
+export type KnowledgeGraphDocumentState =
+  | 'disabled'
+  | 'source_disabled'
+  | 'waiting_source'
+  | 'not_started'
+  | 'outdated'
+  | 'queued'
+  | 'running'
+  | 'ready'
+  | 'failed'
+  | 'cancelled'
+  | 'no_content'
+  | 'completed'
+
+export type KnowledgeGraphDocumentProgress = {
+  documentId: string
+  state: KnowledgeGraphDocumentState
+  stages?: Record<KnowledgeGraphIndexStage, KnowledgeGraphDocumentStageState>
+  processedChunks?: number | null
+  totalChunks?: number | null
+  error?: string | null
+}
+
 export type GraphRagRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
 export type KnowledgeGraphItemOrigin = 'extracted' | 'manual' | 'curated'
@@ -125,6 +151,10 @@ export interface IKnowledgeGraphIndexJob extends IBasePerTenantAndOrganizationEn
   document?: IKnowledgeDocument | null
   type: KnowledgeGraphIndexJobType
   status: KnowledgeGraphIndexJobStatus
+  stage?: KnowledgeGraphIndexStage | null
+  result?: KnowledgeGraphIndexResult | null
+  sourceContentHash?: string | null
+  sourcePublicationEpoch?: number | null
   revision?: number | null
   totalChunks?: number | null
   processedChunks?: number | null

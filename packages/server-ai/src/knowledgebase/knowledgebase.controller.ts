@@ -5,6 +5,7 @@ import {
     IPagination,
     KnowledgebasePermission,
     KnowledgeFilterSources,
+    KnowledgeRetrievalContentScope,
     KnowledgeDocumentProcessingMode,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
@@ -247,6 +248,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
             filters?: KnowledgeFilterSources
             variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
+            contentScope?: KnowledgeRetrievalContentScope
         }
     ) {
         return await this.service.test(id, body)

@@ -32,6 +32,7 @@ import {
     Body,
     ClassSerializerInterceptor,
     Controller,
+    DefaultValuePipe,
     Delete,
     ForbiddenException,
     Get,
@@ -76,6 +77,7 @@ import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.se
 import { resolveKnowledgeDocumentTransformerIdentity } from './document-hash'
 import { t } from 'i18next'
 import { resolveHttpByteRange } from '../shared/utils/http-byte-range'
+import { userDocumentListWhere } from './document-list-filter'
 
 function parseExpectedVersion(version: unknown) {
     if (typeof version === 'number' && Number.isInteger(version) && version > 0) {
@@ -233,7 +235,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         await this.service.assertKnowledgebaseReadAccess(knowledgebaseId)
         return this.service.findAll({
             ...(data ?? {}),
-            where: transformWhere(data?.where),
+            where: Array.isArray(data?.where)
+                ? data.where.map((where) => userDocumentListWhere(transformWhere(where) ?? {}))
+                : userDocumentListWhere(transformWhere(data?.where) ?? {}),
             relations: getSafeKnowledgeDocumentReadRelations(data?.relations)
         })
     }
@@ -252,7 +256,8 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
     @Get(':id')
     async findById(
         @Param('id') id: string,
-        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<KnowledgeDocument>['relations'],
+        @Query('$relations', new DefaultValuePipe('[]'), ParseJsonPipe)
+        relations?: PaginationParams<KnowledgeDocument>['relations'],
         @Query('$select', ParseJsonPipe) select?: PaginationParams<KnowledgeDocument>['select']
     ): Promise<KnowledgeDocument> {
         await this.service.assertDocumentReadAccess(id)

@@ -95,6 +95,9 @@ export class KnowledgeGraphEntity extends TenantOrganizationBaseEntity implement
     @Column({ type: 'int', nullable: true, default: 0 })
     revision?: number | null
 
+    @Column({ type: 'varchar', length: 128, nullable: true })
+    sourceFingerprint?: string | null
+
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()
     @IsOptional()

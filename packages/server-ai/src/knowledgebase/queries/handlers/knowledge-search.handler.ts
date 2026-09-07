@@ -9,11 +9,14 @@ import {
     KnowledgeFilterSources,
     KnowledgebaseTypeEnum,
     KnowledgeRetrievalMode,
+    KnowledgeRetrievalContentScope,
+    isDocumentKnowledgebaseType,
+    normalizeKnowledgebaseWikiConfig,
     TKBFusionConfig,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { getErrorMessage, getPythonErrorMessage } from '@xpert-ai/server-common'
-import { BadRequestException, Inject, InternalServerErrorException, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, InternalServerErrorException, Logger, Optional } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { isNil, sortBy } from 'lodash'
@@ -38,6 +41,8 @@ import {
     withKnowledgeDocumentMetadata
 } from '../../retrieval'
 import { filterFAQNegativeMatches, materializeFAQResult } from '../../faq/faq-result'
+import { KnowledgeWikiSearchScopeService } from '../../wiki/knowledge-wiki-search-scope.service'
+import { filterKnowledgeContentScope, parseKnowledgeRetrievalContentScope } from '../../retrieval/content-scope'
 
 function getBatchDocuments(batch: KnowledgeRetrievalBatch): DocumentInterface<DocumentMetadata>[] {
     return batch.candidates.map(({ document }) => document)
@@ -54,6 +59,10 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
     @Inject(KnowledgeRetrievalLogService)
     private readonly retrievalLogService: KnowledgeRetrievalLogService
 
+    @Inject(KnowledgeWikiSearchScopeService)
+    @Optional()
+    private readonly wikiSearchScopeService?: KnowledgeWikiSearchScopeService
+
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
         @Inject(VectorKnowledgeCandidateRetriever)
@@ -68,6 +77,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
     public async execute(command: KnowledgeSearchQuery): Promise<KnowledgeSearchResult> {
         const { knowledgebases, query, k, retrieval } = command.input
+        const contentScope = parseKnowledgeRetrievalContentScope(command.input.contentScope)
         const tenantId = command.input.tenantId ?? RequestContext.currentTenantId()
         const organizationId = command.input.organizationId ?? RequestContext.getOrganizationId()
         const topK = k ?? 1000
@@ -89,6 +99,13 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                     let docs: DocumentInterface<DocumentMetadata>[] = []
                     let filterDiagnostics: KnowledgeFilterDiagnostics
                     if (kb.type === KnowledgebaseTypeEnum.External) {
+                        if (contentScope !== 'all') {
+                            throw new BadRequestException(
+                                t('server-ai:Error.KnowledgeContentScopeBackendUnsupported', {
+                                    defaultValue: 'This knowledgebase does not support retrieval content selection.'
+                                })
+                            )
+                        }
                         if (this.hasFilterConfiguration(command.input.filters, retrieval)) {
                             throw new BadRequestException(
                                 'Knowledge filter v2 is not supported by external knowledgebases.'
@@ -114,11 +131,24 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             k,
                             command.input.filters,
                             command.input.variables,
-                            retrieval
+                            retrieval,
+                            contentScope
                         )
                         docs = filterFAQNegativeMatches(searchResult.documents, query).map(materializeFAQResult)
+                        if (this.wikiSearchScopeService) {
+                            docs = await this.wikiSearchScopeService.filterVisibleCandidates(
+                                kb,
+                                docs,
+                                this.hasFilterConfiguration(command.input.filters, retrieval)
+                            )
+                        } else if (contentScope === 'wiki') {
+                            docs = []
+                        }
+                        docs = filterKnowledgeContentScope(docs, contentScope)
                         filterDiagnostics = searchResult.diagnostics
                     }
+
+                    if (command.input.contentScope !== undefined) filterDiagnostics.contentScope = contentScope
 
                     const score = command.input.score ?? kb.recall?.score
                     const retrievalMode = resolveRetrievalMode(kb, retrieval)
@@ -259,7 +289,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         k?: number,
         filters?: KnowledgeFilterSources,
         variables?: Record<string, unknown>,
-        retrieval?: TKBRetrievalSettings
+        retrieval?: TKBRetrievalSettings,
+        contentScope: KnowledgeRetrievalContentScope = 'all'
     ): Promise<{ documents: DocumentInterface<DocumentMetadata>[]; diagnostics: KnowledgeFilterDiagnostics }> {
         const filterStartedAt = Date.now()
         const prepared = prepareKnowledgeFilter({
@@ -274,11 +305,28 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         })
         prepared.diagnostics.filterLatency = Date.now() - filterStartedAt
         const mode = resolveRetrievalMode(kb, retrieval)
+        if (contentScope === 'wiki') {
+            if (!isDocumentKnowledgebaseType(kb.type) || !normalizeKnowledgebaseWikiConfig(kb.wikiConfig).enabled) {
+                throw new BadRequestException(
+                    t('server-ai:Error.KnowledgeContentScopeWikiDisabled', {
+                        defaultValue: 'Enable Wiki before searching Wiki content.'
+                    })
+                )
+            }
+            if (mode === 'graph' || prepared.effective || this.hasFilterConfiguration(filters, retrieval)) {
+                throw new BadRequestException(
+                    t('server-ai:Error.KnowledgeContentScopeWikiUnsupported', {
+                        defaultValue: 'Wiki-only search does not support graph retrieval or knowledge filters.'
+                    })
+                )
+            }
+        }
         const request: KnowledgeRetrievalRequest = {
             knowledgebase: kb,
             query,
             k,
             retrieval,
+            contentScope,
             scope: {
                 tenantId: context.tenantId,
                 organizationId: context.organizationId
@@ -335,7 +383,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
         const vectorResult = await this.vectorRetriever.retrieve(request)
         const vectorDocs = getBatchDocuments(vectorResult)
-        if (mode !== 'hybrid') {
+        if (mode !== 'hybrid' || contentScope === 'wiki') {
             return { documents: vectorDocs, diagnostics: vectorResult.diagnostics }
         }
         vectorResult.diagnostics.vectorBranchHitCount = vectorDocs.length
@@ -367,7 +415,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const fusion = this.resolveFusionConfig(request.knowledgebase, request.retrieval)
         const weights: Record<KnowledgeRetrieverSource, number> = {
             vector: fusion?.weights?.vector ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.vector,
-            graph: fusion?.weights?.graph ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph,
+            graph:
+                request.contentScope === 'wiki' ? 0 : (fusion?.weights?.graph ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph),
             keyword: fusion?.weights?.keyword ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.keyword
         }
         this.validateRrfWeights(weights)

@@ -7,7 +7,9 @@ describe('KnowledgeDocIdComponent', () => {
   const chunkTemplate = readFileSync(join(__dirname, '../chunk/chunk.component.html'), 'utf8')
 
   it('renders a Zard FAQ icon from the explicit chunk content kind', () => {
-    expect(source).toContain("input<IKnowledgeFAQChunkMetadata['contentKind'] | undefined>()")
+    expect(source).toContain(
+      "input<(IKnowledgeFAQChunkMetadata | IKnowledgeWikiChunkMetadata)['contentKind'] | undefined>()"
+    )
     expect(template).toContain("@if (contentKind() === 'faq')")
     expect(template).toContain('<z-icon zType="help_outline"')
     expect(chunkTemplate).toContain('[contentKind]="chunk().metadata.contentKind"')

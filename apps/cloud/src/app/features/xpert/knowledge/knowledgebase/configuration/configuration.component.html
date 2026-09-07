@@ -163,6 +163,21 @@
         [(ngModel)]="chatModel"
       />
 
+      @if (isWiki()) {
+        <copilot-model-select
+          class="block mb-1"
+          [label]="'XP.Knowledgebase.WikiModel' | translate: { Default: 'Wiki generation model' }"
+          [modelType]="eModelType.LLM"
+          [(ngModel)]="wikiModel"
+        />
+        <p class="mb-4 text-xs leading-5 text-text-tertiary">
+          {{
+            'XP.Knowledgebase.WikiModelFallback'
+              | translate: { Default: 'When unset, Wiki generation uses the LLM model.' }
+          }}
+        </p>
+      }
+
       <copilot-model-select
         class="block mb-4"
         [label]="'XP.Knowledgebase.VisionModel' | translate: { Default: 'Vision Model' }"
@@ -172,6 +187,118 @@
       />
     </div>
   </div>
+
+  @if (isWiki()) {
+    <div class="w-full my-1 h-px bg-divider-subtle"></div>
+
+    <div class="flex gap-x-1">
+      <div class="flex shrink-0 w-[180px] h-7 pt-1">
+        <div class="font-semibold text-text-secondary">
+          {{ 'XP.Knowledgebase.WikiGenerationSettings' | translate: { Default: 'Wiki generation settings' } }}
+        </div>
+      </div>
+      <div class="grow flex min-w-0 flex-col gap-6">
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold text-text-secondary">
+            {{ 'XP.Knowledgebase.WikiExtractionGranularity' | translate: { Default: 'Extraction granularity' } }}
+          </label>
+          <p class="text-sm leading-6 text-text-tertiary">
+            {{
+              'XP.Knowledgebase.WikiExtractionGranularityHelp'
+                | translate
+                  : {
+                      Default: 'Controls how many Wiki entities and concepts are extracted from each document.'
+                    }
+            }}
+          </p>
+          <z-toggle-group
+            class="w-fit"
+            zType="outline"
+            zSize="lg"
+            [ngModel]="wikiConfig().extractionGranularity"
+            (ngModelChange)="updateWikiConfig('extractionGranularity', $event)"
+          >
+            <z-toggle-group-item class="min-w-24" value="focused">
+              {{ 'XP.Knowledgebase.WikiGranularityFocused' | translate: { Default: 'Focused' } }}
+            </z-toggle-group-item>
+            <z-toggle-group-item class="min-w-24" value="standard">
+              {{ 'XP.Knowledgebase.WikiGranularityStandard' | translate: { Default: 'Standard' } }}
+            </z-toggle-group-item>
+            <z-toggle-group-item class="min-w-24" value="exhaustive">
+              {{ 'XP.Knowledgebase.WikiGranularityExhaustive' | translate: { Default: 'Exhaustive' } }}
+            </z-toggle-group-item>
+          </z-toggle-group>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold text-text-secondary">
+            {{
+              'XP.Knowledgebase.WikiContentGenerationRequirements'
+                | translate: { Default: 'Wiki content generation requirements' }
+            }}
+          </label>
+          <p class="text-sm leading-6 text-text-tertiary">
+            {{
+              'XP.Knowledgebase.WikiContentGenerationRequirementsHelp'
+                | translate
+                  : {
+                      Default:
+                        'Controls the emphasis of summaries and pages. Citation and anti-hallucination rules remain system-managed.'
+                    }
+            }}
+          </p>
+          <textarea
+            z-input
+            class="min-h-32 w-full resize-y"
+            [ngModel]="wikiConfig().contentGenerationRequirements"
+            (ngModelChange)="updateWikiConfig('contentGenerationRequirements', $event)"
+            maxlength="4000"
+            [placeholder]="
+              'XP.Knowledgebase.WikiContentGenerationRequirementsPlaceholder'
+                | translate
+                  : {
+                      Default: 'For example: prioritize responsible parties, timelines, and risk notices...'
+                    }
+            "
+          ></textarea>
+          <div class="text-right text-xs text-text-tertiary">
+            {{ wikiConfig().contentGenerationRequirements?.length ?? 0 }}/4000
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="font-semibold text-text-secondary">
+            {{ 'XP.Knowledgebase.WikiExtractionFocus' | translate: { Default: 'Wiki extraction focus' } }}
+          </label>
+          <p class="text-sm leading-6 text-text-tertiary">
+            {{
+              'XP.Knowledgebase.WikiExtractionFocusHelp'
+                | translate
+                  : {
+                      Default: 'Describe domain entities and concepts that deserve special attention.'
+                    }
+            }}
+          </p>
+          <textarea
+            z-input
+            class="min-h-32 w-full resize-y"
+            [ngModel]="wikiConfig().extractionFocus"
+            (ngModelChange)="updateWikiConfig('extractionFocus', $event)"
+            maxlength="4000"
+            [placeholder]="
+              'XP.Knowledgebase.WikiExtractionFocusPlaceholder'
+                | translate
+                  : {
+                      Default:
+                        'For example: prioritize products, versions, organizations, owners, and key technical concepts...'
+                    }
+            "
+          ></textarea>
+          <div class="text-right text-xs text-text-tertiary">{{ wikiConfig().extractionFocus?.length ?? 0 }}/4000</div>
+        </div>
+      </div>
+    </div>
+  }
 
   <div class="w-full my-1 h-px bg-divider-subtle"></div>
 

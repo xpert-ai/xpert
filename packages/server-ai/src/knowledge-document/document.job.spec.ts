@@ -19,6 +19,7 @@ import { KnowledgeDocLoadCommand } from './commands'
 import { computeKnowledgeDocumentProcessingHash } from './document-hash'
 import { KnowledgeDocumentConsumer } from './document.job'
 import { KnowledgeDocumentService } from './document.service'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 let mockContextActive = false
 
@@ -94,7 +95,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             userService as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const processJob = jest.spyOn(consumer, '_processJob').mockResolvedValue({})
         const job = {
@@ -147,7 +149,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-1',
@@ -231,7 +234,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-1',
@@ -332,7 +336,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-1',
@@ -437,7 +442,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-1',
@@ -557,7 +563,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-1',
@@ -587,7 +594,12 @@ describe('KnowledgeDocumentConsumer', () => {
         const finishUpdate = documentService.update.mock.calls.find(
             ([, updates]) => updates.status === KBDocumentStatusEnum.FINISH
         )
-        expect(finishUpdate?.[1]).toEqual(expect.objectContaining({ contentHash: 'new-content-hash' }))
+        expect(finishUpdate?.[1]).toEqual(
+            expect.objectContaining({
+                contentHash: 'new-content-hash',
+                publicationEpoch: expect.any(Function)
+            })
+        )
     })
 
     it('applies the embedding context guard before incrementally persisting oversized chunks', async () => {
@@ -640,7 +652,8 @@ describe('KnowledgeDocumentConsumer', () => {
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
-            commandBus as unknown as CommandBus
+            commandBus as unknown as CommandBus,
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-bom',
