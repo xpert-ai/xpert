@@ -1,6 +1,7 @@
 // Why this exists: the MCP SDK's default diagnostics can omit missing/extra field names.
 // Replace its input validator so clients can repair arguments before business execution.
 // Report bounded field paths and constraints, never submitted values or full arguments.
+// Ajv 8 and ajv-formats are server-ai runtime dependencies; Docker omits root devDependencies.
 import { fromJsonSchema, type JsonSchemaType, type jsonSchemaValidator } from '@modelcontextprotocol/server'
 import Ajv, { type ErrorObject } from 'ajv'
 import Ajv2019 from 'ajv/dist/2019'

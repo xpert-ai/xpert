@@ -1391,6 +1391,12 @@ importers:
       '@xpert-ai/shadcn-ui':
         specifier: workspace:*
         version: link:../shadcn-ui
+      ajv:
+        specifier: 8.18.0
+        version: 8.18.0
+      ajv-formats:
+        specifier: 2.1.1
+        version: 2.1.1(ajv@8.18.0)
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
