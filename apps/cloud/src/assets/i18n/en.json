@@ -2649,6 +2649,8 @@
       }
     },
     "Copilot": {
+      "ModelsLoadFailed": "Unable to load models. Check the model provider configuration and try again.",
+      "ModelsLoading": "Loading models…",
       "AICopilot": "Model Providers",
       "Copilot": "Copilot",
       "NoMatchingModels": "No matching models",

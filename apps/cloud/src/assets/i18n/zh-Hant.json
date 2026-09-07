@@ -3712,6 +3712,8 @@
       "Untitled": "未命名認證"
     },
     "Copilot": {
+      "ModelsLoadFailed": "無法載入模型，請檢查模型供應商設定後重試。",
+      "ModelsLoading": "正在載入模型…",
       "Copilot": "智能助理",
       "ConversationVariables": "會話變量",
       "SystemVariables": "系統變量",

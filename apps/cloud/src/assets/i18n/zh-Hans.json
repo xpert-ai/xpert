@@ -4802,6 +4802,8 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "ModelsLoadFailed": "无法加载模型，请检查模型供应商配置后重试。",
+      "ModelsLoading": "正在加载模型…",
       "Copilot": "智能助理",
       "DiscoverMoreAt": "发现更多就在",
       "PluginMarketplace": "插件市场",

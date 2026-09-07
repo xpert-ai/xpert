@@ -2267,6 +2267,8 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "ModelsLoadFailed": "无法加载模型，请检查模型供应商配置后重试。",
+      "ModelsLoading": "正在加载模型…",
       "Copilot": "Copilot",
       "AICopilot": "AI 副驾驶",
       "EnableCopilot": "启用 Copilot",
