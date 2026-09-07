@@ -19,16 +19,18 @@ describe('KnowledgebaseDetailDTO', () => {
         })
     })
 
-    it('exposes server-computed Wiki management capability', () => {
+    it('exposes server-computed Wiki and deletion management capabilities', () => {
         const dto = new KnowledgebaseDetailDTO({
             id: 'knowledgebase-1',
             name: 'Knowledgebase',
             type: KnowledgebaseTypeEnum.Standard,
-            canManageWiki: true
+            canManageWiki: true,
+            canManageDocumentDeletions: true
         })
 
         expect(instanceToPlain(dto)).toMatchObject({
-            canManageWiki: true
+            canManageWiki: true,
+            canManageDocumentDeletions: true
         })
     })
 

@@ -97,6 +97,9 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     @Expose()
     declare canManageWiki?: boolean
 
+    @Expose()
+    declare canManageDocumentDeletions?: boolean
+
     declare applicationTags?: string[]
 
     @Expose()

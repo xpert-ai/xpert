@@ -170,6 +170,7 @@ describe('KnowledgebaseService', () => {
         const detail = await service.findOneDetail('kb-1')
 
         expect(detail.canManageWiki).toBe(canManage)
+        expect(detail.canManageDocumentDeletions).toBe(canManage)
     })
 
     it('allows only backend-approved relations on generic knowledgebase reads', () => {

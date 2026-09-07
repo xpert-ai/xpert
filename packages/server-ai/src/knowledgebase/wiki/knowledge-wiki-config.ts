@@ -71,7 +71,8 @@ const KNOWLEDGEBASE_WIKI_SERVER_FIELDS = [
     'wikiRebuildRequiredReason',
     'wikiGeneratorVersion',
     'wikiConfigFingerprint',
-    'canManageWiki'
+    'canManageWiki',
+    'canManageDocumentDeletions'
 ] as const
 
 export function assertNoClientWikiState(input: Partial<IKnowledgebase>) {

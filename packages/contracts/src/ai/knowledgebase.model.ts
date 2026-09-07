@@ -105,6 +105,7 @@ export type TKnowledgebase = {
   wikiGeneratorVersion?: string | null
   wikiConfigFingerprint?: string | null
   canManageWiki?: boolean
+  canManageDocumentDeletions?: boolean
 
   /**
    * English | Chinese
