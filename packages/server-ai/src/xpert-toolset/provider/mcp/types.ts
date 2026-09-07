@@ -18,7 +18,7 @@ import { installMcpMetaArtifactBridge } from './meta-artifact-bridge'
 import { installMcpToolAppMetadataBridge, installMcpUiClientCapabilitiesBridge } from './app-support'
 import { resolvePluginManagedMcpSchema } from './plugin-managed-runtime'
 import { McpStdioRuntimeHandle, mcpStdioRuntimeManager } from './mcp-stdio-runtime'
-import type { TBuiltinToolsetParams } from '../../../shared'
+import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 import { resolveMcpConsumerAuthProvider } from '../../../mcp-consumer/auth/mcp-consumer-auth.registry'
 import { LangChainMcpConnection } from '../../../mcp-consumer/connection/langchain-mcp-connection'
 

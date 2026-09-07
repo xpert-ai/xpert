@@ -1,6 +1,6 @@
 import { IXpertToolset, TMCPSchema } from '@xpert-ai/contracts'
 import { CommandBus } from '@nestjs/cqrs'
-import type { TBuiltinToolsetParams } from '../../../shared'
+import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 
 export async function createProMCPClient(
     toolset: Partial<IXpertToolset>,

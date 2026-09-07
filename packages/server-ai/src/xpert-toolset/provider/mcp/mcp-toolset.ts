@@ -26,7 +26,8 @@ import { McpConsumer } from '../../../mcp-consumer/mcp-consumer'
 import type { McpConsumerCallToolResult } from '../../../mcp-consumer/tools/mcp-consumer-call-tool-result'
 import { createProMCPClient } from './pro'
 import { createMCPClient } from './types'
-import { _BaseToolset, TBuiltinToolsetParams } from '../../../shared'
+import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
+import { _BaseToolset } from '../../../shared/tools/toolset'
 import {
     buildMcpAppComponentMessage,
     detachMcpAppInstancesForClient,
