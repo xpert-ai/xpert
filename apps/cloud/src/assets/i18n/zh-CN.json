@@ -2254,6 +2254,7 @@
       "Weight": "权重",
       "DefaultRetrievalMode": "默认检索方式",
       "DefaultRetrievalModeHelp": "保存后作为知识库的默认检索方式，智能体和工作流可覆盖此配置。",
+      "TestRetrievalSettingsHelp": "调整仅用于当前检索测试，不修改知识库默认配置。",
       "GraphRetrievalUnavailable": "知识图谱尚未启用，请先到基本信息中开启，再使用图谱检索。",
       "RecallSourcesHelp": "各路已选检索方式先分别找出候选内容。",
       "VectorThresholdStageHelp": "在融合前过滤向量候选内容，不影响关键词和图谱的检索结果。",

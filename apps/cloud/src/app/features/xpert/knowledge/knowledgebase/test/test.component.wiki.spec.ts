@@ -1,13 +1,15 @@
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { signal } from '@angular/core'
+import { By } from '@angular/platform-browser'
+import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { of } from 'rxjs'
-import { IKnowledgebase, KnowledgebaseTypeEnum, Store, ToastrService } from '../../../../../@core'
+import { AiModelTypeEnum, IKnowledgebase, KnowledgebaseTypeEnum, Store, ToastrService } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { KnowledgeTestComponent } from './test.component'
 
@@ -26,7 +28,11 @@ describe('Wiki retrieval test content scope', () => {
     await fixture.whenStable()
     fixture.detectChanges()
     for (const request of http.match((request) => request.method === 'GET')) {
-      request.flush({ items: [], total: 0 })
+      request.flush(
+        request.request.url.includes('/copilot/models') || request.request.url.includes('parameter-rules')
+          ? []
+          : { items: [], total: 0 }
+      )
     }
     fixture.detectChanges()
   }
@@ -93,14 +99,14 @@ describe('Wiki retrieval test content scope', () => {
     expect(scope.closest('z-accordion-item')).toBe(settings)
     expect(root.querySelectorAll('[data-test-controls] z-accordion-item')).toHaveLength(2)
     expect(settings.querySelector('z-accordion-header')?.getAttribute('aria-expanded')).toBe('false')
-    const modeControls = settings.querySelector('xp-knowledge-retrieval-settings')
+    const modeControls = settings.querySelector('[data-retrieval-mode]')
     expect(scope.compareDocumentPosition(modeControls) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(scope.querySelectorAll('[z-tab-link]')).toHaveLength(3)
-    expect(scope.querySelector('[z-tab-nav-bar]')?.getAttribute('aria-labelledby')).toBe(
-      scope.querySelector('#retrieval-content-scope-label')?.id
+    expect(scope.querySelector('[z-tab-nav-bar]')?.getAttribute('aria-label')).toBe(
+      'XP.Knowledgebase.RetrievalContentScope'
     )
     const scopeNav = scope.querySelector('[z-tab-nav-bar]')
-    const modeNav = modeControls.querySelector('[z-tab-nav-bar]')
+    const modeNav = modeControls.closest('[z-tab-nav-bar]')
     expect(scopeNav?.getAttribute('data-z-size')).toBe(modeNav.getAttribute('data-z-size'))
     expect(scopeNav?.getAttribute('data-stretch-tabs')).toBe('true')
     await submit('all')
@@ -148,6 +154,73 @@ describe('Wiki retrieval test content scope', () => {
     await choose('all')
     await submit('all')
     http.expectNone((request) => request.method === 'PUT' || request.method === 'PATCH')
+  })
+
+  it('uses temporary mode, recall, fusion and rerank settings without updating the knowledgebase', async () => {
+    await render(true)
+    await choose('all')
+    root.querySelector<HTMLElement>('[data-retrieval-mode="keyword"]').click()
+    await settle()
+    const editor = fixture.debugElement.query(By.directive(KnowledgeRetrievalSettingsComponent))
+      .componentInstance as KnowledgeRetrievalSettingsComponent
+    editor.topK.set(4)
+    editor.score.set(0.25)
+    await settle()
+    expect(root.querySelector('[data-action="save"]')).toBeNull()
+    expect(root.querySelector('[data-action="cancel"]')).toBeNull()
+    const header = root.querySelector<HTMLElement>('[data-test-panel="retrieval"] z-accordion-header')
+    header.click()
+    await settle()
+    fixture.componentInstance.query.set('quality requirements')
+    fixture.componentInstance.test()
+    const request = http.expectOne('/api/knowledgebase/kb-1/test')
+    expect(request.request.body).toMatchObject({
+      k: 4,
+      score: 0.25,
+      retrieval: { mode: 'keyword' },
+      rerankModel: null,
+      rerankThreshold: null
+    })
+    expect(knowledgebase().recall).toEqual({ mode: 'vector', topK: 10 })
+    request.flush({ documents: [], diagnostics: [] })
+    await settle()
+    http.expectNone((request) => request.method === 'PUT' || request.method === 'PATCH')
+  })
+
+  it('sends an unsaved rerank selection and fusion weights only with the test request', async () => {
+    await render(true)
+    await choose('all')
+    const editor = fixture.debugElement.query(By.directive(KnowledgeRetrievalSettingsComponent))
+      .componentInstance as KnowledgeRetrievalSettingsComponent
+    editor.mode.set('hybrid')
+    editor.rrfEnabled.set(true)
+    editor.rrfVectorWeight.set(0.2)
+    editor.rrfKeywordWeight.set(0.8)
+    editor.rerankModel.set({ modelType: AiModelTypeEnum.RERANK, model: 'rerank-test', copilotId: 'copilot-1' })
+    editor.rerankThreshold.set(0.7)
+    await settle()
+    fixture.componentInstance.test()
+    const request = http.expectOne('/api/knowledgebase/kb-1/test')
+    expect(request.request.body).toMatchObject({
+      rerankModel: { model: 'rerank-test', copilotId: 'copilot-1', modelType: AiModelTypeEnum.RERANK },
+      rerankThreshold: 0.7,
+      retrieval: { mode: 'hybrid', fusion: { mode: 'weighted_rrf', weights: { vector: 0.2, keyword: 0.8 } } }
+    })
+    expect(request.request.body.rerankModel).not.toHaveProperty('copilot')
+    expect(knowledgebase().rerankModel).toBeUndefined()
+    expect(knowledgebase().recall.fusion).toBeUndefined()
+    request.flush({ documents: [], diagnostics: [] })
+    await settle()
+    http.expectNone((request) => request.method === 'PUT' || request.method === 'PATCH')
+  })
+
+  it('initializes test content from the saved default and retains an explicit test override', async () => {
+    await render(true)
+    knowledgebase.update((kb) => ({ ...kb, id: 'kb-2', recall: { ...kb.recall, contentScope: 'original' } }))
+    await settle()
+    expect(fixture.componentInstance.contentScope()).toBe('original')
+    await choose('wiki')
+    expect(knowledgebase().recall.contentScope).toBe('original')
   })
 
   it('supports keyboard selection and disables scope changes while the test is loading', async () => {
