@@ -2,6 +2,8 @@ import {
     IKnowledgebase,
     IKnowledgeDocument,
     IKnowledgeGraphIndexJob,
+    KnowledgeGraphIndexResult,
+    KnowledgeGraphIndexStage,
     KnowledgeGraphIndexJobStatus,
     KnowledgeGraphIndexJobType
 } from '@xpert-ai/contracts'
@@ -48,6 +50,15 @@ export class KnowledgeGraphIndexJob extends TenantOrganizationBaseEntity impleme
     @Column({ nullable: true })
     documentId?: string | null
 
+    @Column({ type: 'varchar', length: 128, nullable: true })
+    sourceContentHash?: string | null
+
+    @Column({ type: 'int', nullable: true })
+    sourcePublicationEpoch?: number | null
+
+    @Column({ type: 'text', nullable: true })
+    dispatchError?: string | null
+
     @ApiProperty({ type: () => String })
     @IsString()
     @Column({ type: 'varchar', length: 30 })
@@ -57,6 +68,12 @@ export class KnowledgeGraphIndexJob extends TenantOrganizationBaseEntity impleme
     @IsEnum(KnowledgeGraphIndexJobStatus)
     @Column({ type: 'varchar', length: 30, default: KnowledgeGraphIndexJobStatus.QUEUED })
     status: KnowledgeGraphIndexJobStatus
+
+    @Column({ type: 'varchar', length: 30, nullable: true })
+    stage?: KnowledgeGraphIndexStage | null
+
+    @Column({ type: 'varchar', length: 30, nullable: true })
+    result?: KnowledgeGraphIndexResult | null
 
     @ApiPropertyOptional({ type: () => Number })
     @IsNumber()

@@ -10,9 +10,11 @@ import { KnowledgeDocumentService } from '../knowledge-document/document.service
 import {
     KnowledgeGraphCommunity,
     KnowledgeGraphEntity,
+    KnowledgeGraphEntityContribution,
     KnowledgeGraphIndexJob,
     KnowledgeGraphMention,
-    KnowledgeGraphRelation
+    KnowledgeGraphRelation,
+    KnowledgeGraphRelationContribution
 } from './entities'
 import {
     GraphragService,
@@ -121,6 +123,40 @@ describe('GraphRAG service', () => {
         ).not.toThrow()
     })
 
+    it('reports queue failure and persists failed graph status instead of leaving indexing forever', async () => {
+        const queueError = new Error('Redis unavailable')
+        const jobRepository = {
+            create: jest.fn((input: Partial<KnowledgeGraphIndexJob>) =>
+                Object.assign(new KnowledgeGraphIndexJob(), input)
+            ),
+            save: jest.fn(async (input: KnowledgeGraphIndexJob) => Object.assign(input, { id: 'job-1' })),
+            update: jest.fn().mockResolvedValue({ affected: 1 })
+        }
+        const knowledgebaseRepository = { update: jest.fn().mockResolvedValue({ affected: 1 }) }
+        const service = Object.create(GraphragService.prototype) as GraphragService
+        Object.assign(service, {
+            jobRepository,
+            knowledgebaseRepository,
+            knowledgebaseService: { findOne: jest.fn().mockResolvedValue({ id: 'kb-1', graphRag: { enabled: true } }) },
+            documentService: {
+                findAll: jest.fn().mockResolvedValue({ items: [{ id: 'doc-1', contentHash: 'hash' }] })
+            },
+            graphQueue: { add: jest.fn().mockRejectedValue(queueError) }
+        })
+
+        await expect(
+            service.enqueueDocuments({ knowledgebaseId: 'kb-1', documentIds: ['doc-1'], reason: 'document' })
+        ).rejects.toThrow('Redis unavailable')
+        expect(jobRepository.update).toHaveBeenCalledWith(
+            'job-1',
+            expect.objectContaining({ status: 'failed', dispatchError: 'Redis unavailable' })
+        )
+        expect(knowledgebaseRepository.update).toHaveBeenLastCalledWith('kb-1', {
+            graphStatus: 'failed',
+            graphIndexError: 'Redis unavailable'
+        })
+    })
+
     it('does not enqueue graph jobs when GraphRAG is disabled', async () => {
         const knowledgebaseService = {
             findOne: jest.fn(async () => ({
@@ -153,7 +189,9 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            queue as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            queue as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>()
         )
 
         const jobs = await service.enqueueDocuments({
@@ -220,7 +258,9 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             queryBus as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>()
         )
         const knowledgebase = {
             ...enabledKnowledgebase(),
@@ -232,7 +272,7 @@ describe('GraphRAG service', () => {
             }
         }
 
-        await (service as any).extractDocumentGraph(
+        await service['extractDocumentGraph'](
             knowledgebase,
             Array.from({ length: 5 }, (_, index) => ({
                 id: `chunk-${index + 1}`,
@@ -242,10 +282,8 @@ describe('GraphRAG service', () => {
                     chunkId: `chunk-${index + 1}`
                 }
             })),
-            {
-                enabled: true,
-                extractionMaxCharacters: 5000
-            }
+            'job-1',
+            { enabled: true, extractionMaxCharacters: 5000 }
         )
 
         expect(queryBus.execute).toHaveBeenCalledTimes(1)
@@ -254,24 +292,8 @@ describe('GraphRAG service', () => {
         expect(queryBus.execute.mock.calls[0][0].copilotModel).toBe(knowledgebase.chatModel)
         expect(chatModel.withStructuredOutput).toHaveBeenCalled()
         expect(structuredModel.invoke).toHaveBeenCalledTimes(2)
-        expect(jobRepository.update).toHaveBeenNthCalledWith(
-            1,
-            {
-                knowledgebaseId: knowledgebase.id,
-                documentId: 'doc-1',
-                status: KnowledgeGraphIndexJobStatus.RUNNING
-            },
-            { processedChunks: 4 }
-        )
-        expect(jobRepository.update).toHaveBeenNthCalledWith(
-            2,
-            {
-                knowledgebaseId: knowledgebase.id,
-                documentId: 'doc-1',
-                status: KnowledgeGraphIndexJobStatus.RUNNING
-            },
-            { processedChunks: 5 }
-        )
+        expect(jobRepository.update).toHaveBeenNthCalledWith(1, 'job-1', { processedChunks: 4 })
+        expect(jobRepository.update).toHaveBeenNthCalledWith(2, 'job-1', { processedChunks: 5 })
     })
 
     it('fails an index job when extracted graph items have no source evidence', async () => {
@@ -298,6 +320,8 @@ describe('GraphRAG service', () => {
             organizationId: 'org-1',
             knowledgebaseId: 'kb-1',
             documentId: 'doc-1',
+            sourceContentHash: 'content-hash-1',
+            sourcePublicationEpoch: 2,
             revision: 4,
             knowledgebase
         })
@@ -357,10 +381,24 @@ describe('GraphRAG service', () => {
             jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
             knowledgebaseRepository as unknown as Repository<Knowledgebase>,
             knowledgebaseService as unknown as KnowledgebaseService,
-            {} as unknown as KnowledgeDocumentService,
+            {
+                findOne: jest.fn(async () => ({
+                    id: 'doc-1',
+                    contentHash: 'content-hash-1',
+                    publicationEpoch: 2
+                }))
+            } as unknown as KnowledgeDocumentService,
             chunkService as unknown as KnowledgeDocumentChunkService,
             queryBus as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            {
+                find: jest.fn(async () => []),
+                delete: jest.fn()
+            } as unknown as Repository<KnowledgeGraphEntityContribution>,
+            {
+                find: jest.fn(async () => []),
+                delete: jest.fn()
+            } as unknown as Repository<KnowledgeGraphRelationContribution>
         )
 
         await service.processIndexJob('job-1')
@@ -417,7 +455,9 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphEntityContribution>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>
         )
 
         const entity = await service.createEntity('kb-1', {
@@ -492,7 +532,9 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>()
         )
 
         const entity = await service.hideEntity('kb-1', 'entity-1')
@@ -540,7 +582,9 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphEntityContribution>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>
         )
 
         await service.clearKnowledgebase('kb-1')
@@ -627,7 +671,9 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             chunkService as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>()
         )
 
         const result = await service.getEntityChunks('kb-1', 'entity-1', {
