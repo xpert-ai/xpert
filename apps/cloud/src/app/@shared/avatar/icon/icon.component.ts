@@ -11,7 +11,6 @@ import { IconDefinition } from '@cloud/app/@core'
     <div class="icon-root" [ngStyle]="inlineStyle()">
       @if (icon(); as i) {
         @switch (i.type) {
-
           @case ('image') {
             <img
               class="icon-image"
@@ -39,17 +38,12 @@ import { IconDefinition } from '@cloud/app/@core'
               [class]="i.value"
               [attr.aria-hidden]="i.alt ? 'false' : 'true'"
               [attr.title]="i.alt || null"
-              [style.fontSize.px]="i.size"
+              [style.fontSize]="sizePx()"
             ></i>
           }
 
           @case ('emoji') {
-            <span
-              class="icon-emoji"
-              role="img"
-              [attr.aria-label]="i.alt || 'emoji'"
-              [style.fontSize.px]="i.size"
-            >
+            <span class="icon-emoji" role="img" [attr.aria-label]="i.alt || 'emoji'" [style.fontSize]="sizePx()">
               {{ i.value }}
             </span>
           }
@@ -63,55 +57,58 @@ import { IconDefinition } from '@cloud/app/@core'
       }
     </div>
   `,
-  styles: [`
-    .icon-root {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      vertical-align: middle;
-    }
+  styles: [
+    `
+      .icon-root {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        vertical-align: middle;
+      }
 
-    .icon-image {
-      display: inline-block;
-      object-fit: contain;
-    }
+      .icon-image {
+        display: inline-block;
+        object-fit: contain;
+      }
 
-    .icon-font {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+      .icon-font {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
 
-    .icon-emoji {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+      .icon-emoji {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
 
-    .icon-placeholder {
-      width: 1em;
-      height: 1em;
-      display: inline-block;
-      background: rgba(0, 0, 0, 0.05);
-      border-radius: 4px;
-    }
+      .icon-placeholder {
+        width: 1em;
+        height: 1em;
+        display: inline-block;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 4px;
+      }
 
-    :host {
-      ::ng-deep {
-        .icon-svg svg {
-          width: 100%;
-          height: 100%;
-          display: block;
+      :host {
+        ::ng-deep {
+          .icon-svg svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+          }
         }
       }
-    }
-  `],
+    `
+  ]
 })
 export class IconComponent {
-
   private sanitizer = inject(DomSanitizer)
-  
+
   /** Input signal for the icon definition. */
   icon = input<IconDefinition | null>(null)
   size = input<number, number | string>(null, {

@@ -610,6 +610,14 @@
       "UrlOnlySSECompatibility": "未声明类型的 URL 配置会按 SSE 导入，以兼容旧配置。"
     },
     "Chat": {
+      "WorkbenchPresentation": {
+        "SearchAssistants": "搜索助手",
+        "AssistantsLoadFailed": "暂时无法加载助手列表",
+        "MaximizeWorkbench": "最大化工作台",
+        "RestoreLayout": "恢复并排布局",
+        "BackToPlatform": "返回平台",
+        "Agent": "智能体"
+      },
       "QuoteSelection": "引用选中内容",
       "RemoveReference": "移除引用",
       "MoreActions": "更多操作",

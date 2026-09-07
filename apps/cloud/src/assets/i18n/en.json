@@ -2127,6 +2127,14 @@
       "zh-Hant": "繁体中文"
     },
     "Chat": {
+      "WorkbenchPresentation": {
+        "SearchAssistants": "Search assistants",
+        "AssistantsLoadFailed": "Unable to load assistants",
+        "MaximizeWorkbench": "Maximize Workbench",
+        "RestoreLayout": "Restore split layout",
+        "BackToPlatform": "Back to platform",
+        "Agent": "Agent"
+      },
       "QuoteSelection": "Quote selection",
       "RemoveReference": "Remove reference",
       "ReferencedContentOnly": "Referenced content",

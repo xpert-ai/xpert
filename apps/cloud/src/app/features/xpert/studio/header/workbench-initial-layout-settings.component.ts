@@ -137,7 +137,8 @@ type WorkbenchViewOption = {
             <span class="mt-1 block text-xs leading-5 text-text-secondary">
               {{
                 'XP.Xpert.WorkbenchMaximizedTip'
-                  | translate: { Default: 'Start with extension views expanded and ChatKit minimized.' }
+                  | translate
+                    : { Default: 'Start with the workbench expanded and ChatKit in overlay mode, minimized to Pet.' }
               }}
             </span>
           </z-radio>

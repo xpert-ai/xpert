@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, computed, inject, input, output } from '@angular/core'
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -69,6 +69,8 @@ export class HeaderUserComponent {
   // Inputs
   readonly user = input<IUser>()
   readonly compact = input(false)
+  readonly menuPlacement = input<'sidebar' | 'header'>('sidebar')
+  readonly avatarImageFailed = signal(false)
   readonly fullWidth = input(false)
   readonly sidebar = input(false)
 
@@ -98,6 +100,13 @@ export class HeaderUserComponent {
   )
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())
+
+  constructor() {
+    effect(() => {
+      this.user()?.imageUrl
+      this.avatarImageFailed.set(false)
+    })
+  }
 
   onLanguageSelect(language: string): void {
     this.#i18n.changeLanguage(language)

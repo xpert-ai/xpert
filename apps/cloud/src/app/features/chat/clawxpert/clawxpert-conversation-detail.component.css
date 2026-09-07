@@ -1,0 +1,210 @@
+/* The existing tab bar changes presentation; panels and their iframes stay mounted. */
+[data-workspace-tab-header] {
+  min-height: 48px;
+  transition:
+    min-height 500ms ease-out,
+    padding 500ms ease-out,
+    background-color 500ms ease-out,
+    border-color 500ms ease-out;
+}
+
+[data-workbench-brand],
+[data-workbench-account] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex-shrink: 0;
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition:
+    max-width 500ms ease-out,
+    opacity 350ms ease-out,
+    transform 500ms ease-out,
+    margin 500ms ease-out;
+}
+
+[data-workbench-brand] {
+  width: max-content;
+}
+[data-workbench-account] {
+  width: 44px;
+}
+[data-workspace-tab-header] [z-tab-link][data-active='true'] {
+  background: var(--color-hover-bg);
+}
+
+[data-workspace-tab-header] [z-tab-link] {
+  transition:
+    height 500ms ease-out,
+    padding 500ms ease-out,
+    gap 500ms ease-out,
+    font-size 500ms ease-out,
+    border-radius 500ms ease-out,
+    background-color 350ms ease-out,
+    color 350ms ease-out;
+}
+
+[data-workspace-tab-icon] {
+  overflow: hidden;
+  transition:
+    width 500ms ease-out,
+    height 500ms ease-out,
+    margin 500ms ease-out,
+    opacity 350ms ease-out;
+}
+
+[data-workspace-tab-icon] > span {
+  transition: opacity 150ms ease-out;
+}
+[z-tab-link]:is(:hover, :focus-within) [data-workspace-tab-icon] > span {
+  opacity: 0;
+}
+
+[data-workspace-tab-label]::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleX(0.65);
+  transition:
+    opacity 350ms ease-out,
+    transform 500ms ease-out;
+}
+
+[data-workbench-layout='maximized'] {
+  [data-workspace-tab-header] {
+    min-height: 52px;
+    padding: 0 32px;
+    background: var(--sidebar);
+    border-color: var(--color-border);
+  }
+
+  [data-workbench-brand] {
+    max-width: 22rem;
+    margin-right: 32px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  [data-workbench-account] {
+    max-width: 44px;
+    margin-left: 16px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  [data-workbench-app-title] {
+    font-size: 14px;
+  }
+  [data-workspace-tab-icon] {
+    width: 24px;
+    height: 24px;
+  }
+  [z-tab-nav-bar] {
+    padding: 0;
+  }
+
+  [z-tab-link] {
+    height: 51px;
+    padding-block: 0;
+    padding-inline: 14px;
+    border-radius: 0;
+    background: transparent;
+    font-size: 14px;
+    &[data-active='true'] {
+      background: transparent;
+      font-weight: 600;
+    }
+  }
+
+  [z-tab-link][data-active='true'] [data-workspace-tab-label]::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  [data-workspace-tab-divider] {
+    opacity: 0;
+  }
+  [data-open-tasks-panel],
+  [data-toggle-chatkit-maximized],
+  [data-chatkit-layout-mode-toggle] {
+    display: none;
+  }
+}
+
+/* Both end states use compatible grid tracks so restoring split view interpolates. */
+[data-workbench-layout='normal'],
+[data-workbench-layout='maximized'] {
+  --workbench-chat-track: 32rem;
+  grid-template-rows: minmax(0, 1fr) minmax(0, var(--workbench-chat-track));
+}
+[data-workbench-layout='maximized'] {
+  --workbench-chat-track: 0px;
+}
+
+@media (min-width: 1024px) {
+  [data-workbench-layout='normal'],
+  [data-workbench-layout='maximized'] {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--workbench-chat-track));
+    > [data-workbench-chat-shell] {
+      width: 100%;
+      max-width: none;
+    }
+  }
+  [data-workbench-layout='normal'] {
+    --workbench-chat-track: var(--clawxpert-chatkit-width);
+  }
+}
+
+@media (max-width: 1279px) {
+  [data-workbench-layout='maximized'] {
+    [data-workspace-tab-header] {
+      padding-inline: 16px;
+    }
+    [data-workbench-brand] {
+      max-width: 13rem;
+      margin-right: 8px;
+    }
+    [z-tab-link] {
+      padding-inline: 12px;
+    }
+    [data-workbench-account] {
+      margin-left: 4px;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  [data-workbench-layout='maximized'] {
+    [data-workspace-tab-header] {
+      padding-inline: 8px;
+      gap: 2px;
+    }
+    [data-workbench-brand] {
+      max-width: 48px;
+      margin-right: 4px;
+    }
+    [data-workbench-app-title],
+    [data-workbench-app-menu] > i {
+      display: none;
+    }
+    [data-workbench-account] {
+      width: 36px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-workbench-layout],
+  [data-workspace-tab-header],
+  [data-workbench-brand],
+  [data-workbench-account],
+  [data-workspace-tab-header] [z-tab-link],
+  [data-workspace-tab-label]::after,
+  [data-workspace-tab-icon] > span {
+    transition: none;
+  }
+}

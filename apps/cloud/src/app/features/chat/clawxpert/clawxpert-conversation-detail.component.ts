@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
-import { Router } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
@@ -26,7 +26,7 @@ import {
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
-import { IconComponent } from '../../../@shared/avatar'
+import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-client-command-registry.service'
@@ -53,6 +53,9 @@ import {
   type WorkbenchExtensionViewOpenRequest
 } from '../../assistant/workbench-navigation-open-client-command'
 import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-preview-dialog.component'
+import { WorkbenchPresentationService } from '../../../@core/services/workbench-presentation.service'
+import { WorkbenchAssistantMenuComponent } from '../workbench-chat/workbench-assistant-menu.component'
+import { WorkbenchAccountComponent } from '../workbench-chat/workbench-account.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
@@ -168,6 +171,9 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
   selector: 'xp-clawxpert-conversation-detail',
   imports: [
     CommonModule,
+    RouterLink,
+    WorkbenchAccountComponent,
+    WorkbenchAssistantMenuComponent,
     TranslateModule,
     ChatKit,
     ZardButtonComponent,
@@ -180,582 +186,15 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
     ChatTasksComponent,
     ChatSharedTerminalComponent,
     IconComponent,
+    EmojiAvatarComponent,
     ClawXpertFixedViewStackComponent
   ],
-  template: `
-    <div [class]="workspaceLayoutClasses()" [style.--clawxpert-chatkit-width]="chatkitWidthStyle()">
-      <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
-        <div [class]="detailPanelContentClasses()">
-          <div data-workspace-tab-header class="flex min-w-0 items-center justify-start gap-1.5 px-1 py-0.5">
-            <z-tab-nav-scroll
-              class="min-w-0 flex-1"
-              [previousLabel]="'XP.Chat.ClawXpert.ScrollTabsLeft' | translate: { Default: 'Scroll tabs left' }"
-              [nextLabel]="'XP.Chat.ClawXpert.ScrollTabsRight' | translate: { Default: 'Scroll tabs right' }"
-            >
-              <nav
-                z-tab-nav-bar
-                [tabPanel]="tabPanel"
-                color="accent"
-                alignTabs="start"
-                stretchTabs="false"
-                disableRipple
-                zSize="sm"
-                class="m-0 w-max min-w-full border-0 p-1 !overflow-visible"
-              >
-                @for (tab of workspaceTabs(); track tab.id; let last = $last) {
-                  <button
-                    z-tab-link
-                    type="button"
-                    [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
-                    [attr.data-tab-id]="tab.id"
-                    class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!bg-hover-bg data-[active=true]:!text-text-primary"
-                    tabindex="0"
-                    [active]="activeTabId() === tab.id"
-                    (click)="selectTab(tab.id)"
-                  >
-                    <span class="relative flex h-5 w-5 shrink-0 items-center justify-center mr-1">
-                      <span class="flex h-5 w-5 items-center justify-center text-text-primary">
-                        @switch (tab.kind) {
-                          @case ('files') {
-                            <i class="ri-folder-3-line shrink-0 text-lg"></i>
-                          }
-                          @case ('terminal') {
-                            <i class="ri-terminal-window-line shrink-0 text-lg"></i>
-                          }
-                          @case ('tasks') {
-                            <i class="ri-calendar-line shrink-0 text-lg"></i>
-                          }
-                          @case ('browser') {
-                            <i class="ri-global-line shrink-0 text-lg"></i>
-                          }
-                          @case ('fixed-view') {
-                            <xp-icon
-                              [icon]="tab.icon ?? defaultFixedViewIcon"
-                              [size]="18"
-                              class="shrink-0 text-text-primary"
-                            />
-                          }
-                        }
-                      </span>
-                    </span>
-                    @switch (tab.kind) {
-                      @case ('files') {
-                        <span class="truncate">{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                      }
-                      @case ('terminal') {
-                        <span class="truncate">
-                          {{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
-                        </span>
-                      }
-                      @case ('tasks') {
-                        <span class="truncate">{{ 'XP.Chat.Tasks' | translate: { Default: 'Tasks' } }}</span>
-                      }
-                      @case ('browser') {
-                        <span class="max-w-[12rem] truncate">
-                          {{ tab.displayUrl || ('XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' }) }}
-                        </span>
-                      }
-                      @case ('fixed-view') {
-                        <span class="max-w-[12rem] truncate">
-                          {{ tab.title }}
-                        </span>
-                      }
-                    }
-
-                    <button
-                      z-button
-                      class="absolute right-0.5 flex w-6 h-6 shrink-0 items-center justify-center opacity-0 transition-[background-color,opacity] group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
-                      type="button"
-                      tabindex="0"
-                      [attr.data-close-tab]="tab.id"
-                      zType="secondary"
-                      zSize="icon"
-                      (click)="closeWorkspaceTab($event, tab.id)"
-                      (keydown.enter)="closeWorkspaceTab($event, tab.id)"
-                      (keydown.space)="closeWorkspaceTab($event, tab.id)"
-                    >
-                      <span
-                        class="flex h-4 w-4 m-auto shrink-0 items-center justify-center rounded-full bg-text-tertiary text-components-card-bg hover:bg-text-secondary"
-                      >
-                        <i class="ri-close-line text-sm"></i>
-                      </span>
-                    </button>
-
-                    @if (!last) {
-                      <div class="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-hover-bg"></div>
-                    }
-                  </button>
-                }
-              </nav>
-            </z-tab-nav-scroll>
-
-            <button
-              z-button
-              type="button"
-              zType="ghost"
-              zSize="icon"
-              data-add-workspace-tab
-              class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:text-text-primary"
-              [title]="'XP.Chat.ClawXpert.NewWorkspaceTab' | translate: { Default: 'New workspace tab' }"
-              z-menu
-              [zMenuTriggerFor]="workspaceTabMenu"
-            >
-              <i class="ri-add-line text-lg"></i>
-            </button>
-
-            <ng-template #workspaceTabMenu>
-              <div z-menu-content class="w-52">
-                <button type="button" z-menu-item data-add-files-tab (click)="addWorkspaceTab('files')">
-                  <span class="flex items-center gap-2">
-                    <i class="ri-folder-3-line text-base"></i>
-                    <span>{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
-                  </span>
-                </button>
-                <button type="button" z-menu-item data-add-browser-tab (click)="addWorkspaceTab('browser')">
-                  <span class="flex items-center gap-2">
-                    <i class="ri-global-line text-base"></i>
-                    <span>{{ 'XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}</span>
-                  </span>
-                </button>
-                <button type="button" z-menu-item data-add-terminal-tab (click)="addWorkspaceTab('terminal')">
-                  <span class="flex items-center gap-2">
-                    <i class="ri-terminal-window-line text-base"></i>
-                    <span>{{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}</span>
-                  </span>
-                </button>
-                @if (fixedViewMenuVisible()) {
-                  <div class="my-1 border-t border-divider-regular"></div>
-                  <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
-                    {{ 'XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
-                  </div>
-                  @if (loadingFixedViews()) {
-                    <button type="button" z-menu-item disabled data-fixed-views-loading>
-                      <span class="flex items-center gap-2 text-text-tertiary">
-                        <i class="ri-loader-4-line text-base"></i>
-                        <span>
-                          {{ 'XP.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' } }}
-                        </span>
-                      </span>
-                    </button>
-                  } @else if (fixedViewError()) {
-                    <button type="button" z-menu-item disabled data-fixed-views-error>
-                      <span class="flex items-center gap-2 text-text-tertiary">
-                        <i class="ri-error-warning-line text-base"></i>
-                        <span>
-                          {{
-                            'XP.Chat.ClawXpert.FixedViewsLoadFailed'
-                              | translate: { Default: 'Failed to load fixed views' }
-                          }}
-                        </span>
-                      </span>
-                    </button>
-                  } @else {
-                    @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
-                      <button
-                        type="button"
-                        z-menu-item
-                        data-add-fixed-view-tab
-                        [attr.data-fixed-view-key]="fixedView.viewKey"
-                        (click)="openFixedViewTab(fixedView)"
-                      >
-                        <span class="flex min-w-0 items-center gap-2">
-                          <xp-icon
-                            [icon]="fixedView.icon ?? defaultFixedViewIcon"
-                            [size]="16"
-                            class="shrink-0 text-text-primary"
-                          />
-                          <span class="min-w-0 truncate">{{ fixedView.title }}</span>
-                        </span>
-                      </button>
-                    }
-                  }
-                }
-              </div>
-            </ng-template>
-
-            <div class="ml-auto flex shrink-0 items-center justify-end">
-              <button
-                z-button
-                type="button"
-                zType="ghost"
-                zSize="icon"
-                data-open-tasks-panel
-                class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary disabled:pointer-events-none disabled:opacity-50"
-                [class.bg-hover-bg]="activeTab()?.kind === 'tasks'"
-                [class.text-text-primary]="activeTab()?.kind === 'tasks'"
-                [disabled]="!facade.xpertId()"
-                [title]="'XP.Chat.Tasks' | translate: { Default: 'Tasks' }"
-                [zTooltip]="'XP.Chat.Tasks' | translate: { Default: 'Tasks' }"
-                zPosition="bottom"
-                (click)="openTasksTab()"
-              >
-                <i class="ri-calendar-line text-lg"></i>
-              </button>
-              @if (!overlayDialog() && !isChatMinimizedToPet()) {
-                <button
-                  z-button
-                  type="button"
-                  zType="ghost"
-                  zSize="icon"
-                  data-toggle-chatkit-maximized
-                  class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-                  [attr.aria-label]="'XP.Chat.ClawXpert.MaximizeChatkit' | translate: { Default: 'Maximize ChatKit' }"
-                  [title]="'XP.Chat.ClawXpert.MaximizeChatkit' | translate: { Default: 'Maximize ChatKit' }"
-                  [zTooltip]="'XP.Chat.ClawXpert.MaximizeChatkit' | translate: { Default: 'Maximize ChatKit' }"
-                  zPosition="bottom"
-                  (click)="closeDetailPanel()"
-                >
-                  <i class="ri-expand-left-line text-lg"></i>
-                </button>
-              }
-              <button
-                z-button
-                type="button"
-                zType="ghost"
-                zSize="icon"
-                data-toggle-detail-panel
-                data-chatkit-layout-mode-toggle
-                [attr.data-chatkit-layout-mode]="chatkitLayoutMode()"
-                class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-                [class.bg-hover-bg]="chatkitLayoutMode() === 'pet'"
-                [class.text-text-primary]="chatkitLayoutMode() === 'pet'"
-                [title]="chatkitLayoutActionLabel()"
-                [zTooltip]="chatkitLayoutActionLabel()"
-                zPosition="bottom"
-                (click)="toggleChatkitLayoutMode()"
-              >
-                <i [class]="chatkitLayoutModeIconClasses()"></i>
-              </button>
-            </div>
-          </div>
-
-          <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
-            @if (!activeTab()) {
-              <div
-                data-empty-workspace-placeholder
-                class="flex h-full min-h-[24rem] items-center justify-center px-4 py-8 sm:px-6"
-              >
-                <div
-                  data-empty-workspace-card-grid
-                  class="grid w-full max-w-5xl grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-3 sm:gap-4"
-                >
-                  <button
-                    type="button"
-                    data-empty-workspace-card="files"
-                    class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                    (click)="addWorkspaceTab('files')"
-                  >
-                    <i class="ri-folder-3-line text-3xl text-text-tertiary"></i>
-                    <div class="mt-4 text-xl font-semibold text-text-primary">
-                      {{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}
-                    </div>
-                    <div class="mt-2 text-lg text-text-secondary">
-                      {{ 'XP.Chat.ClawXpert.FilesLauncherDesc' | translate: { Default: 'Browse project files' } }}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    data-empty-workspace-card="browser"
-                    class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                    (click)="addWorkspaceTab('browser')"
-                  >
-                    <i class="ri-global-line text-3xl text-text-tertiary"></i>
-                    <div class="mt-4 text-xl font-semibold text-text-primary">
-                      {{ 'XP.Chat.ClawXpert.Browser' | translate: { Default: 'Browser' } }}
-                    </div>
-                    <div class="mt-2 text-lg text-text-secondary">
-                      {{ 'XP.Chat.ClawXpert.BrowserLauncherDesc' | translate: { Default: 'Open website' } }}
-                    </div>
-                  </button>
-                  @for (fixedView of fixedViewMenuItems(); track fixedView.viewKey) {
-                    <button
-                      type="button"
-                      data-empty-workspace-card="fixed-view"
-                      [attr.data-fixed-view-key]="fixedView.viewKey"
-                      class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                      (click)="openFixedViewTab(fixedView)"
-                    >
-                      <xp-icon [icon]="fixedView.icon ?? defaultFixedViewIcon" [size]="32" class="text-text-tertiary" />
-                      <div class="mt-4 text-xl font-semibold text-text-primary">
-                        {{ fixedView.title }}
-                      </div>
-                      <div class="mt-2 text-lg text-text-secondary">
-                        {{
-                          fixedView.description ||
-                            ('XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
-                        }}
-                      </div>
-                    </button>
-                  }
-                  <button
-                    type="button"
-                    data-empty-workspace-card="terminal"
-                    class="flex min-h-44 flex-col items-center justify-center rounded-2xl bg-background-default-subtle p-6 text-center transition-colors hover:bg-hover-bg"
-                    (click)="addWorkspaceTab('terminal')"
-                  >
-                    <i class="ri-terminal-window-line text-3xl text-text-tertiary"></i>
-                    <div class="mt-4 text-xl font-semibold text-text-primary">
-                      {{ 'XP.Chat.ClawXpert.Terminal' | translate: { Default: 'Terminal' } }}
-                    </div>
-                    <div class="mt-2 text-lg text-text-secondary">
-                      {{
-                        'XP.Chat.ClawXpert.TerminalLauncherDesc' | translate: { Default: 'Launch interactive shell' }
-                      }}
-                    </div>
-                  </button>
-                </div>
-              </div>
-            } @else {
-              @if (fixedViewHostId(); as hostId) {
-                <xp-clawxpert-fixed-view-stack
-                  class="contents"
-                  [tabs]="fixedViewTabs()"
-                  [activeTabId]="activeTabId()"
-                  hostType="agent"
-                  [hostId]="hostId"
-                  [slot]="agentWorkbenchFixedSlot"
-                  [runtimeScope]="viewRuntimeScope()"
-                  [runtimeUserId]="facade.userId()"
-                />
-              }
-
-              @if (activeFixedViewTab()) {
-                @if (!fixedViewHostId()) {
-                  <div
-                    class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
-                  >
-                    {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
-                  </div>
-                }
-              } @else if (activeTab()?.kind === 'tasks') {
-                <div class="h-full min-h-0 overflow-hidden px-4 py-3">
-                  <xp-chat-tasks
-                    class="block h-full min-h-0"
-                    [embedded]="true"
-                    [xpertId]="facade.xpertId()"
-                    (tasksChanged)="handleTasksChanged()"
-                    (conversationSelected)="openTaskHistoryConversation($event)"
-                  />
-                </div>
-              } @else if (contextLoading() && !resolvedConversationId()) {
-                <div
-                  class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
-                >
-                  {{ 'XP.Chat.ClawXpert.ContextLoading' | translate: { Default: 'Loading conversation workspace...' } }}
-                </div>
-              } @else {
-                @if (!resolvedConversationId()) {
-                  <div class="block h-full p-2">
-                    <div
-                      class="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-                    >
-                      <i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
-                      <div class="mt-4 text-base font-medium text-text-primary">
-                        {{
-                          'XP.Chat.ClawXpert.DetailPanelEmptyTitle'
-                            | translate: { Default: 'Start a conversation to unlock workspace tools' }
-                        }}
-                      </div>
-                      <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                        @if (activeTab()?.kind === 'files') {
-                          {{
-                            'XP.Chat.ClawXpert.FilesEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, its server-volume workspace files will appear here.'
-                                  }
-                          }}
-                        } @else if (activeTab()?.kind === 'browser') {
-                          {{
-                            'XP.Chat.ClawXpert.PreviewDetailEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, its managed sandbox services will appear here for live browsing and element selection.'
-                                  }
-                          }}
-                        } @else {
-                          {{
-                            'XP.Chat.ClawXpert.TerminalEmptyDesc'
-                              | translate
-                                : {
-                                    Default:
-                                      'Once this ClawXpert thread is created, you can run commands here against the current workspace.'
-                                  }
-                          }}
-                        }
-                      </div>
-                    </div>
-                  </div>
-                } @else {
-                  @if (contextError()) {
-                    <div
-                      class="mb-3 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary"
-                    >
-                      {{ contextError() }}
-                    </div>
-                  }
-
-                  @if (activeTab()?.kind === 'files') {
-                    <xp-clawxpert-conversation-files
-                      class="h-full p-2 pr-0"
-                      [conversationId]="resolvedConversationId()"
-                      [xpertId]="facade.xpertId()"
-                      [projectId]="viewRuntimeScope().projectId"
-                      [mode]="conversationFilesMode()"
-                      [reloadKey]="fileListReloadKey()"
-                      (referenceRequest)="handleWorkspaceReference($event)"
-                    />
-                  } @else if (activeTab()?.kind === 'browser') {
-                    <xp-clawxpert-conversation-preview
-                      class="h-full p-2 pr-0"
-                      [conversationId]="resolvedConversationId()"
-                      [serviceId]="activeBrowserTab()?.serviceId"
-                      [url]="activeBrowserTab()?.url"
-                      [zoom]="activeBrowserTab()?.zoom"
-                      [deviceToolbarVisible]="activeBrowserTab()?.deviceToolbarVisible"
-                      [reloadKey]="activeBrowserTab()?.reloadKey"
-                      (browserStateChange)="updateActiveBrowserTab($event)"
-                      (referenceRequest)="handleElementReference($event)"
-                    />
-                  } @else {
-                    <xp-chat-shared-terminal
-                      class="h-full"
-                      [mode]="'interactive'"
-                      [conversationId]="resolvedConversationId()"
-                      [projectId]="resolvedConversation()?.projectId ?? null"
-                    />
-                  }
-                }
-              }
-            }
-          </z-tab-nav-panel>
-        </div>
-      </section>
-
-      <section [class]="chatShellClasses()" [attr.aria-hidden]="chatkitHiddenFromWorkspace() ? 'true' : null">
-        @if (!showDetailPanel() && !isChatMinimizedToPet()) {
-          <button
-            z-button
-            type="button"
-            zType="ghost"
-            zSize="icon"
-            data-toggle-detail-panel
-            data-show-workbench-panel
-            class="absolute left-3 top-3 z-20 flex !h-9 !w-9 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg/90 text-text-secondary shadow-sm backdrop-blur transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-            [attr.aria-label]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
-            [title]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
-            [zTooltip]="'XP.Chat.ClawXpert.ShowDetailPanel' | translate: { Default: 'Show workspace panel' }"
-            zPosition="bottom"
-            (click)="toggleDetailPanel()"
-          >
-            <i class="ri-side-bar-line text-lg"></i>
-          </button>
-        }
-        @if (showChatkitResizeHandle()) {
-          <div
-            role="separator"
-            tabindex="0"
-            aria-orientation="vertical"
-            data-chatkit-resize-handle
-            class="group/resize absolute left-0 top-0 z-30 hidden h-full w-3 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center lg:flex"
-            [attr.aria-valuemin]="chatkitMinWidth"
-            [attr.aria-valuemax]="chatkitMaxWidth"
-            [attr.aria-valuenow]="chatkitWidthPx()"
-            [title]="'XP.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
-            [zTooltip]="'XP.Chat.ClawXpert.ResizeChatkit' | translate: { Default: 'Resize ChatKit' }"
-            zPosition="left"
-            (pointerdown)="startChatkitResize($event)"
-            (keydown.arrowleft)="resizeChatkitFromKeyboard($event, 32)"
-            (keydown.arrowright)="resizeChatkitFromKeyboard($event, -32)"
-          >
-            <span [class]="chatkitResizeGripClasses()"></span>
-          </div>
-        }
-        <div
-          data-chatkit-surface
-          class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform] duration-500 ease-out motion-reduce:transition-none"
-          [class]="chatSurfaceClasses()"
-        >
-          <div class="min-h-0 flex-1">
-            @if (facade.loading()) {
-              <div
-                class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
-              >
-                {{ 'XP.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
-              </div>
-            } @else {
-              @switch (facade.viewState()) {
-                @case ('organization-required') {
-                  <div
-                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-                  >
-                    <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
-                    <div class="mt-4 text-base font-medium text-text-primary">
-                      {{
-                        'XP.Chat.ClawXpert.OrganizationRequired'
-                          | translate: { Default: 'Select an organization to use ClawXpert' }
-                      }}
-                    </div>
-                    <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                      {{
-                        'XP.Chat.ClawXpert.OrganizationRequiredDesc'
-                          | translate
-                            : { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
-                      }}
-                    </div>
-                  </div>
-                }
-                @case ('error') {
-                  <div
-                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center"
-                  >
-                    <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
-                    <div class="mt-4 text-base font-medium text-text-primary">
-                      {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
-                    </div>
-                    <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                      {{ facade.viewErrorMessage() }}
-                    </div>
-                  </div>
-                }
-                @case ('ready') {
-                  @for (runtime of chatkitMountEntries(); track runtime.key) {
-                    <xpert-chatkit #chatkitHost class="block h-full min-h-0" [control]="runtime.control" />
-                  }
-                }
-                @default {
-                  <div
-                    class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
-                  >
-                    <z-icon zType="edit_note" class="text-3xl text-text-tertiary"></z-icon>
-                    <div class="mt-4 text-base font-medium text-text-primary">
-                      {{
-                        'XP.Chat.ClawXpert.SetupFirstTitle' | translate: { Default: 'Finish setup in overview first' }
-                      }}
-                    </div>
-                    <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                      {{
-                        'XP.Chat.ClawXpert.SetupFirstDesc'
-                          | translate
-                            : {
-                                Default:
-                                  'Bind a ClawXpert in the overview page before entering the detail chat workspace.'
-                              }
-                      }}
-                    </div>
-                  </div>
-                }
-              }
-            }
-          </div>
-        </div>
-      </section>
-    </div>
-  `
+  templateUrl: './clawxpert-conversation-detail.component.html',
+  styleUrl: './clawxpert-conversation-detail.component.css'
 })
 export class ClawXpertConversationDetailComponent implements OnDestroy {
+  readonly #presentation = inject(WorkbenchPresentationService)
+  readonly #element = inject<ElementRef<HTMLElement>>(ElementRef)
   readonly #threadService = inject(AiThreadService)
   readonly #artifactService = inject(ArtifactService)
   readonly #conversationService = inject(ChatConversationService)
@@ -1072,12 +511,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     () => this.facade.assistantId()?.trim() || this.facade.xpertId()?.trim() || null
   )
   readonly #workbenchLayoutState = computed<ClawXpertWorkbenchLayoutState>(() =>
-    this.overlayDialog()
-      ? 'overlay'
-      : !this.detailPanelVisible()
-        ? 'minimized'
-        : this.workspaceMaximized()
-          ? 'maximized'
+    this.workspaceMaximized()
+      ? 'maximized'
+      : this.overlayDialog()
+        ? 'overlay'
+        : !this.detailPanelVisible()
+          ? 'minimized'
           : 'normal'
   )
   readonly chatkitWidthPx = signal(CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX)
@@ -1094,6 +533,19 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly showDetailPanel = computed(
     () => this.detailPanelVisible() && (this.workspaceTabs().length === 0 || !!this.activePanel())
   )
+  readonly immersiveWorkbench = computed(
+    () =>
+      this.facade.viewState() === 'ready' &&
+      this.showDetailPanel() &&
+      (this.workbenchMaximized() || this.overlayDialog())
+  )
+  readonly assistantTitle = computed(() => this.facade.assistantTitle?.() || this.facade.definition.defaultTitle)
+  readonly workbenchLayoutAction = computed(() =>
+    this.immersiveWorkbench()
+      ? 'XP.Chat.WorkbenchPresentation.RestoreLayout'
+      : 'XP.Chat.WorkbenchPresentation.MaximizeWorkbench'
+  )
+  readonly assistantAvatar = computed(() => this.facade.assistantAvatar?.() ?? undefined)
   readonly chatkitHiddenFromWorkspace = computed(
     () => !this.overlayDialog() && this.showDetailPanel() && this.workbenchMaximized()
   )
@@ -1157,6 +609,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
 
   constructor() {
+    effect((onCleanup) => {
+      if (this.immersiveWorkbench()) onCleanup(this.#presentation.enter())
+    })
     this.#unregisterAssistantCommand = registerAssistantChatSendMessageCommand(this.#clientCommands, {
       getControl: () => this.control(),
       isReady: () => this.facade.viewState() === 'ready',
@@ -1218,13 +673,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.#activeWorkbenchLayoutPreferenceKey = preferenceKey
         this.#initializedWorkbenchLayoutPreferenceKey = null
         this.#pendingWorkbenchLayoutRestore = null
-        this.#pendingChatkitPetRestore =
-          preferenceKey && userId
-            ? {
-                preferenceKey,
-                minimized: this.#workbenchLayoutStorage.loadChatkitPet(userId, assistantId ?? '') ?? false
-              }
-            : null
+        this.#pendingChatkitPetRestore = null
         this.#pendingInitialOverlayOpen = false
       }
 
@@ -1237,6 +686,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         const restoredState = userId ? this.#workbenchLayoutStorage.load(userId, assistantId) : null
         const configuredState = toConfiguredWorkbenchLayoutState(configuredInitialLayout)
         const nextState = restoredState ?? configuredState ?? 'minimized'
+        this.#pendingChatkitPetRestore = {
+          preferenceKey,
+          // Maximized workbenches start with an overlay launcher, including saved legacy layouts.
+          minimized:
+            nextState === 'maximized' ||
+            (userId ? (this.#workbenchLayoutStorage.loadChatkitPet(userId, assistantId) ?? false) : false)
+        }
         this.#pendingWorkbenchLayoutRestore = { preferenceKey, state: nextState }
         this.applyWorkbenchLayoutState(nextState)
         return
@@ -1416,7 +872,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           chatkitElement.dataset.displayMode != null ||
           chatkitElement.dataset.chatOpen != null ||
           chatkitElement.dataset.chatMinimizedToPet != null
-        if (pendingRestore?.preferenceKey === preferenceKey && chatkitStateReady) {
+        const waitingForOverlay =
+          overlayDialog && pendingRestore?.minimized && chatkitElement.dataset.displayMode !== 'pet'
+        if (pendingRestore?.preferenceKey === preferenceKey && chatkitStateReady && !waitingForOverlay) {
           if (pendingRestore.minimized) {
             this.#pendingInitialOverlayOpen = false
             if (chatkitElement.dataset.chatOpen === 'true') {
@@ -1671,8 +1129,35 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.restoreOverlayChatkit()
         return
       case 'chat':
-        this.openDetailPanel()
+        this.restoreWorkbenchLayout()
     }
+  }
+
+  toggleWorkbenchMaximized() {
+    if (this.immersiveWorkbench()) {
+      this.restoreWorkbenchLayout(false)
+      return
+    }
+
+    if (this.#activeWorkbenchLayoutPreferenceKey) {
+      this.#pendingChatkitPetRestore = {
+        preferenceKey: this.#activeWorkbenchLayoutPreferenceKey,
+        minimized: true
+      }
+    }
+    this.applyWorkbenchLayoutState('maximized')
+    this.openDetailPanel()
+  }
+
+  restoreWorkbenchLayout(focusTab = true) {
+    this.#pendingChatkitPetRestore = null
+    if (this.isChatMinimizedToPet()) this.restoreChatkitFromPet()
+    this.#pendingInitialOverlayOpen = false
+    this.overlayDialog.set(false)
+    this.workspaceMaximized.set(false)
+    this.openDetailPanel()
+    // The app menu fades away; keep keyboard focus in the surviving tab navigation.
+    if (focusTab) this.#element.nativeElement.querySelector<HTMLElement>('[z-tab-link][data-active="true"]')?.focus()
   }
 
   openDetailPanel() {
@@ -1697,7 +1182,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private applyWorkbenchLayoutState(state: ClawXpertWorkbenchLayoutState) {
     this.#pendingInitialOverlayOpen = state === 'overlay'
-    this.overlayDialog.set(state === 'overlay')
+    this.overlayDialog.set(state === 'overlay' || state === 'maximized')
     this.chatkitPinnedToRight.set(state === 'normal')
     this.detailPanelVisible.set(state !== 'minimized')
     this.workspaceMaximized.set(state === 'maximized')

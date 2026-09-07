@@ -49,6 +49,7 @@ jest.mock('../app.service', () => ({
   AppService: class AppService {}
 }))
 
+import { WorkbenchPresentationService } from '../@core/services/workbench-presentation.service'
 import { Renderer2, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
@@ -334,6 +335,20 @@ describe('FeaturesComponent sidebar organization default', () => {
   afterEach(() => {
     document.body.innerHTML = ''
     TestBed.resetTestingModule()
+  })
+
+  it('restores the saved sidebar width and collapse choice after an immersive workbench leaves', async () => {
+    const { component } = await setup()
+    component.sidebarWidth.set(320)
+    component.sidebarCollapsed.set(false)
+    const leave = TestBed.inject(WorkbenchPresentationService).enter()
+    expect(component.workbenchImmersive()).toBe(true)
+    expect(component.sidebarWidth()).toBe(320)
+    expect(component.sidebarCollapsed()).toBe(false)
+    leave()
+    expect(component.workbenchImmersive()).toBe(false)
+    expect(component.sidebarWidth()).toBe(320)
+    expect(component.sidebarCollapsed()).toBe(false)
   })
 
   it('expands the sidebar when the active organization enables the default', async () => {

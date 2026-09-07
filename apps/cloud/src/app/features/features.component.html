@@ -69,10 +69,18 @@
         ? 'xp-features__sidenav transition-none flex flex-col p-0!'
         : 'xp-features__sidenav flex flex-col p-0!'
     "
-    [zWidth]="sidebarWidth()"
+    data-platform-sidebar
+    [attr.data-workbench-hidden]="workbenchImmersive()"
+    [attr.aria-hidden]="workbenchImmersive() ? 'true' : null"
+    [attr.inert]="workbenchImmersive() ? '' : null"
+    [style.opacity]="workbenchImmersive() ? 0 : 1"
+    [style.transition]="sidebarResizing() ? 'none' : null"
+    [style.width.px]="workbenchImmersive() ? 0 : renderedSidebarCollapsed() ? 50 : sidebarWidth()"
+    class="shrink-0 overflow-hidden transition-[width,opacity] duration-500 ease-out motion-reduce:transition-none"
+    [zWidth]="workbenchImmersive() ? 0 : sidebarWidth()"
     [zCollapsible]="true"
     [zCollapsed]="renderedSidebarCollapsed()"
-    [zCollapsedWidth]="50"
+    [zCollapsedWidth]="workbenchImmersive() ? 0 : 50"
     [zTrigger]="emptySidebarTrigger"
     (zCollapsedChange)="onCollapsedChange($event)"
   >
@@ -87,7 +95,7 @@
     />
   </z-sidebar>
 
-  @if (!isMobile() && !renderedSidebarCollapsed()) {
+  @if (!workbenchImmersive() && !isMobile() && !renderedSidebarCollapsed()) {
     <div class="relative z-40 w-0 shrink-0">
       <button
         type="button"

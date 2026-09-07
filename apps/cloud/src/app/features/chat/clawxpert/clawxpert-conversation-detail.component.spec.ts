@@ -1,3 +1,31 @@
+jest.mock('../../../@shared/avatar/emoji-avatar/avatar.component', () => {
+  const { Component, Input } = jest.requireActual('@angular/core')
+  @Component({ selector: 'emoji-avatar', template: '' })
+  class EmojiAvatarComponent {
+    @Input() avatar?: unknown
+    @Input() alt?: string
+    @Input() fallbackLabel?: string
+  }
+  return { EmojiAvatarComponent }
+})
+
+jest.mock('../workbench-chat/workbench-account.component', () => {
+  const { Component } = jest.requireActual('@angular/core')
+  @Component({ selector: 'xp-workbench-account', template: '' })
+  class WorkbenchAccountComponent {}
+  return { WorkbenchAccountComponent }
+})
+
+jest.mock('../workbench-chat/workbench-assistant-menu.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+  @Component({ selector: 'xp-workbench-assistant-menu', template: '' })
+  class WorkbenchAssistantMenuComponent {
+    @Input() activeId?: string
+    @Output() selected = new EventEmitter<void>()
+  }
+  return { WorkbenchAssistantMenuComponent }
+})
+
 jest.mock('../../../@core', () => ({
   AssistantCode: {
     CLAWXPERT: 'clawxpert'
@@ -80,9 +108,11 @@ jest.mock('@xpert-ai/headless-ui', () => {
 
   @Directive({
     standalone: true,
-    selector: '[z-menu]'
+    selector: '[z-menu]',
+    exportAs: 'zMenuTrigger'
   })
   class ZardMenuDirective {
+    close() {}
     @Input() zMenuTriggerFor?: unknown
   }
 
@@ -282,6 +312,7 @@ import { ViewClientCommandRegistry } from '../../../@shared/view-extension/view-
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
+import { WorkbenchPresentationService } from '../../../@core/services/workbench-presentation.service'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import { ClawXpertSkillTrialIntentService } from './clawxpert-skill-trial-intent.service'
@@ -2299,9 +2330,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(tabNav?.className).toContain('!overflow-visible')
     expect(tabNav?.contains(addTabButton)).toBe(false)
     expect(tabButton?.className).toContain('rounded-lg')
-    expect(tabButton?.className).toContain('bg-hover-bg')
     expect(tabButton?.className).toContain('data-[active=true]:!border-transparent')
-    expect(tabButton?.className).toContain('data-[active=true]:!bg-hover-bg')
     expect(closeButton?.className).toContain('opacity-0')
     expect(closeButton?.className).toContain('group-hover/tab:opacity-100')
     expect(closeButtonIcon?.className).toContain('rounded-full')
@@ -2311,6 +2340,92 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(addTabButton?.className).toContain('!w-9')
     expect(addTabButton?.className).toContain('rounded-xl')
   })
+
+  it.each([false, true])(
+    'toggles Workbench maximization without remounting views (restore before runtime: %s)',
+    async (restoreEarly) => {
+      viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('metrics')]))
+      const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+      await settle(fixture)
+      const component = fixture.componentInstance
+      component.openDetailPanel()
+      await settle(fixture)
+
+      const host: HTMLElement = fixture.nativeElement
+      const toggle = host.querySelector<HTMLButtonElement>('[data-toggle-workbench-maximized]')!
+      const nav = host.querySelector('[z-tab-nav-bar]')
+      const view = host.querySelector('[data-extension-host-outlet]')
+      const chatkit = host.querySelector<HTMLElement>('xpert-chatkit')!
+      const activeTab = component.activeTabId()
+      const shadow = chatkit.attachShadow({ mode: 'open' })
+      const pet = document.createElement('button')
+      pet.setAttribute('data-chatkit-host-pet', '')
+      pet.addEventListener('click', () => {
+        chatkit.dataset.chatOpen = 'true'
+      })
+      const close = document.createElement('button')
+      close.className = 'ck-launcher-close'
+      const minimize = jest.fn(() => {
+        chatkit.dataset.chatOpen = 'false'
+      })
+      close.addEventListener('click', minimize)
+      shadow.append(pet, close)
+      chatkit.dataset.displayMode = 'chat'
+      chatkit.dataset.chatOpen = 'true'
+      await settle(fixture)
+
+      expect(toggle.previousElementSibling?.hasAttribute('data-toggle-chatkit-maximized')).toBe(true)
+      expect(toggle.nextElementSibling?.hasAttribute('data-chatkit-layout-mode-toggle')).toBe(true)
+      expect(toggle.getAttribute('aria-pressed')).toBe('false')
+      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-line')
+      expect(view).not.toBeNull()
+      toggle.focus()
+      toggle.click()
+      await settle(fixture)
+
+      expect(component.workspaceMaximized()).toBe(true)
+      expect(component.overlayDialog()).toBe(true)
+      expect(getRuntimeInput().displayMode?.()).toBe('pet')
+      expect(toggle.getAttribute('aria-pressed')).toBe('true')
+      expect(toggle.getAttribute('aria-label')).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
+      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-exit-line')
+      expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('maximized')
+      // Changing layout must wait for the embedded runtime to enter overlay mode.
+      expect(minimize).not.toHaveBeenCalled()
+
+      if (restoreEarly) {
+        toggle.click()
+        await settle(fixture)
+      }
+      chatkit.dataset.displayMode = 'pet'
+      await settle(fixture)
+      if (restoreEarly) {
+        expect(minimize).not.toHaveBeenCalled()
+        expect(chatkit.dataset.chatOpen).toBe('true')
+      } else {
+        expect(minimize).toHaveBeenCalledTimes(1)
+        expect(component.isChatMinimizedToPet()).toBe(true)
+        toggle.click()
+        await settle(fixture)
+        expect(chatkit.dataset.chatOpen).toBe('true')
+      }
+      chatkit.dataset.displayMode = 'chat'
+      await settle(fixture)
+
+      expect(component.workspaceMaximized()).toBe(false)
+      expect(component.overlayDialog()).toBe(false)
+      expect(component.showChatkitResizeHandle()).toBe(true)
+      expect(toggle.getAttribute('aria-pressed')).toBe('false')
+      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-line')
+      expect(document.activeElement).toBe(toggle)
+      expect(host.querySelector('[data-toggle-workbench-maximized]')).toBe(toggle)
+      expect(host.querySelector('[z-tab-nav-bar]')).toBe(nav)
+      expect(host.querySelector('[data-extension-host-outlet]')).toBe(view)
+      expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
+      expect(component.activeTabId()).toBe(activeTab)
+      expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
+    }
+  )
 
   it('maximizes ChatKit by minimizing the Workbench from the header button', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -2407,6 +2522,108 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBeNull()
+  })
+
+  it.each([false, true])(
+    'starts a maximized workbench with an overlay pet (saved legacy layout: %s)',
+    async (saved) => {
+      facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+      if (saved) {
+        localStorage.setItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'), 'maximized')
+        localStorage.setItem(getClawXpertChatkitPetStorageKey('user-1', 'assistant-1'), 'false')
+      }
+      viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('metrics')]))
+      const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+      await settle(fixture)
+      const component = fixture.componentInstance
+      const host: HTMLElement = fixture.nativeElement
+      const chatkit = host.querySelector<HTMLElement>('xpert-chatkit')!
+      const shadow = chatkit.attachShadow({ mode: 'open' })
+      const pet = document.createElement('button')
+      pet.setAttribute('data-chatkit-host-pet', '')
+      const open = jest.fn(() => {
+        chatkit.dataset.chatOpen = 'true'
+      })
+      pet.addEventListener('click', open)
+      const close = document.createElement('button')
+      close.className = 'ck-launcher-close'
+      close.addEventListener('click', () => {
+        chatkit.dataset.chatOpen = 'false'
+      })
+      shadow.append(pet, close)
+      chatkit.dataset.displayMode = 'pet'
+      // A delayed runtime initialization must still start minimized.
+      chatkit.dataset.chatOpen = 'true'
+      await settle(fixture)
+
+      expect(getRuntimeInput().displayMode?.()).toBe('pet')
+      expect(component.overlayDialog()).toBe(true)
+      expect(component.isChatMinimizedToPet()).toBe(true)
+      expect(chatkit.dataset.chatOpen).toBe('false')
+      expect(open).not.toHaveBeenCalled()
+      expect(component.workspaceMaximized()).toBe(true)
+      expect(component.chatkitHiddenFromWorkspace()).toBe(false)
+      expect(component.showChatkitResizeHandle()).toBe(false)
+      expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe(
+        saved ? 'maximized' : null
+      )
+
+      const view = host.querySelector('[data-extension-host-outlet]')
+      host.querySelector<HTMLButtonElement>('[data-chatkit-layout-mode-toggle]')!.click()
+      await settle(fixture)
+      expect(open).toHaveBeenCalledTimes(1)
+      expect(chatkit.dataset.chatOpen).toBe('true')
+      expect(component.isChatMinimizedToPet()).toBe(false)
+      expect(component.overlayDialog()).toBe(true)
+      expect(component.immersiveWorkbench()).toBe(true)
+      expect(host.querySelector('[data-extension-host-outlet]')).toBe(view)
+
+      close.click()
+      await settle(fixture)
+      expect(component.isChatMinimizedToPet()).toBe(true)
+      component.restoreWorkbenchLayout()
+      await settle(fixture)
+      expect(component.overlayDialog()).toBe(false)
+      expect(component.workspaceMaximized()).toBe(false)
+      expect(component.showChatkitResizeHandle()).toBe(true)
+    }
+  )
+
+  it('restores split layout from maximized without replacing tabs, the active view, or ChatKit', async () => {
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('metrics')]))
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const host: HTMLElement = fixture.nativeElement
+    const nav = host.querySelector('[z-tab-nav-bar]')
+    const tab = host.querySelector('[z-tab-link]')
+    const view = host.querySelector('[data-extension-host-outlet]')
+    const chatkit = host.querySelector('xpert-chatkit')
+    const presentation = TestBed.inject(WorkbenchPresentationService)
+    expect(presentation.immersive()).toBe(true)
+    expect(view).not.toBeNull()
+    expect(host.querySelector('[data-workbench-layout]')?.getAttribute('data-workbench-layout')).toBe('maximized')
+
+    host.querySelector<HTMLButtonElement>('[data-chatkit-layout-mode-toggle]')?.click()
+    await settle(fixture)
+
+    expect(presentation.immersive()).toBe(false)
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
+    expect(fixture.componentInstance.showChatkitResizeHandle()).toBe(true)
+    expect(host.querySelector('[data-workbench-layout]')?.getAttribute('data-workbench-layout')).toBe('normal')
+    expect(host.querySelectorAll('[z-tab-nav-bar]')).toHaveLength(1)
+    expect(host.querySelector('[z-tab-nav-bar]')).toBe(nav)
+    expect(host.querySelector('[z-tab-link]')).toBe(tab)
+    expect(host.querySelector('[data-extension-host-outlet]')).toBe(view)
+    expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
+
+    fixture.componentInstance.restoreOverlayChatkit()
+    await settle(fixture)
+    expect(presentation.immersive()).toBe(true)
+    expect(host.querySelector('[data-extension-host-outlet]')).toBe(view)
+    fixture.destroy()
+    expect(presentation.immersive()).toBe(false)
   })
 
   it('opens the configured overlay dialog, restores it from the pet, and pins it into the right column', async () => {

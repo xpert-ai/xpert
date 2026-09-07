@@ -5576,6 +5576,14 @@
       "User": "用户"
     },
     "Chat": {
+      "WorkbenchPresentation": {
+        "SearchAssistants": "搜索助手",
+        "AssistantsLoadFailed": "暂时无法加载助手列表",
+        "MaximizeWorkbench": "最大化工作台",
+        "RestoreLayout": "恢复并排布局",
+        "BackToPlatform": "返回平台",
+        "Agent": "智能体"
+      },
       "QuoteSelection": "引用选中内容",
       "RemoveReference": "移除引用",
       "ContextCompression": "正在自动压缩上下文",
@@ -8337,7 +8345,7 @@
       "ChatKitMaximized": "ChatKit 最大化",
       "ChatKitMaximizedTip": "首次打开时展开对话，并最小化工作台。",
       "WorkbenchMaximized": "工作台最大化",
-      "WorkbenchMaximizedTip": "首次打开时展开扩展视图，并最小化 ChatKit。",
+      "WorkbenchMaximizedTip": "首次打开时展开工作台，ChatKit 使用浮窗模式并收起到 Pet。",
       "WorkbenchDefaultView": "默认工作台视图",
       "WorkbenchDefaultViewTip": "选择工作台打开时默认选中的扩展视图。如果视图不可用，则使用第一个视图。",
       "LoadingWorkbenchViews": "正在加载扩展视图…",

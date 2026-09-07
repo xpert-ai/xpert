@@ -4,19 +4,29 @@
   [class.is-sidebar]="sidebar() && !compact()"
   [class.w-full]="fullWidth()"
   [cdkMenuTriggerFor]="menu"
-  [cdkMenuPosition]="[
-    {
-      originX: 'end',
-      originY: 'bottom',
-      overlayX: 'start',
-      overlayY: 'bottom',
-      offsetX: 3
-    }
-  ]"
+  [attr.aria-label]="('XP.MENU.UserProfile' | translate: { Default: 'User Profile' }) + ': ' + (user() | user)"
+  [cdkMenuPosition]="
+    menuPlacement() === 'header'
+      ? [{ originX: 'end', originY: 'bottom', overlayX: 'end', overlayY: 'top', offsetY: 8 }]
+      : [
+          {
+            originX: 'end',
+            originY: 'bottom',
+            overlayX: 'start',
+            overlayY: 'bottom',
+            offsetX: 3
+          }
+        ]
+  "
 >
-  @if (user().imageUrl) {
+  @if (user().imageUrl && !avatarImageFailed()) {
     <div class="w-8 h-8 rounded-full overflow-hidden flex items-center">
-      <img class="avatar h-auto w-full" [src]="user().imageUrl || '/assets/images/avatar-default.svg'" />
+      <img
+        alt=""
+        (error)="avatarImageFailed.set(true)"
+        class="avatar h-auto w-full"
+        [src]="user().imageUrl || '/assets/images/avatar-default.svg'"
+      />
     </div>
   } @else {
     @if (compact()) {
@@ -68,9 +78,9 @@
     </div>
 
     @if (user()) {
-      <div class="header-user-menu__items flex flex-col justify-start items-stretch gap-1 p-1">
+      <div class="header-user-menu__items flex flex-col justify-start items-stretch gap-0 p-1">
         <div
-          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
           [cdkMenuTriggerFor]="langMenu"
         >
@@ -81,7 +91,7 @@
         </div>
 
         <div
-          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
           [cdkMenuTriggerFor]="themeMenu"
         >
@@ -92,7 +102,7 @@
         </div>
 
         <div
-          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
           (click)="onProfile()"
         >
@@ -104,7 +114,7 @@
 
         @if (hasActiveMembership()) {
           <div
-            class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+            class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
             cdkMenuItem
             (click)="onUsageBilling()"
           >
@@ -116,7 +126,7 @@
         }
 
         <div
-          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
           (click)="onEntryGuideClick()"
         >
@@ -127,7 +137,7 @@
         </div>
 
         <a
-          class="flex items-center w-full h-9 px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group justify-between"
+          class="flex items-center w-full px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group justify-between"
           target="_blank"
           rel="noopener noreferrer"
           role="menuitem"
@@ -158,7 +168,7 @@
         </a>
 
         <a
-          class="flex items-center w-full h-9 px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group justify-between"
+          class="flex items-center w-full px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group justify-between"
           target="_blank"
           rel="noopener noreferrer"
           role="menuitem"
@@ -191,7 +201,7 @@
         <div class="w-full border-b border-solid border-divider-regular my-1"></div>
 
         <a
-          class="flex justify-start items-center w-full h-9 px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group"
+          class="flex justify-start items-center w-full px-3 text-text-primary text-[14px] rounded-lg font-normal hover:bg-hover-bg cursor-pointer group"
           target="_blank"
           rel="noopener noreferrer"
           role="menuitem"
@@ -223,7 +233,7 @@
         </a>
 
         <div
-          class="flex items-center justify-start h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          class="flex items-center justify-start px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
           (click)="onAbout()"
         >
@@ -238,7 +248,7 @@
         <div class="w-full border-b border-solid border-divider-regular my-1"></div>
 
         <div
-          class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
+          class="flex items-center justify-between px-3 rounded-lg cursor-pointer group hover:bg-hover-bg"
           cdkMenuItem
           (click)="onLogoutClick()"
         >
