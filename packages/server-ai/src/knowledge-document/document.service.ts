@@ -61,6 +61,7 @@ import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeGraphClearDocumentCommand } from '../graphrag/commands'
+import { KnowledgeWikiRetractSourceCommand } from '../knowledgebase/wiki/commands'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import {
     computeKnowledgeDocumentChunkHash,
@@ -71,6 +72,7 @@ import {
 } from './document-hash'
 import { TDocChunkMetadata } from './types'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries/get-owned-storage-file.query'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 type OriginalFileDownloadTarget = {
     absolutePath: string
@@ -378,7 +380,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        @InjectQueue('embedding-document') private docQueue: Queue
+        @InjectQueue('embedding-document') private docQueue: Queue,
+        private readonly derivedIndexPublicationService: KnowledgeDerivedIndexPublicationService
     ) {
         super(repo)
     }
@@ -1629,6 +1632,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         })
         await vectorStore.addKnowledgeDocument(document, [chunk])
         await this.refreshDocumentContentHash(id)
+        await this.publishChunkMutation(document)
         return chunk
     }
 
@@ -1660,6 +1664,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 await vectorStore.partialUpdateFilterAttributes(document, [chunk])
             }
             await this.refreshDocumentContentHash(documentId)
+            await this.publishChunkMutation(document)
             return result
         } catch (err) {
             throw new BadRequestException(err.message)
@@ -1687,6 +1692,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             await vectorStore.partialUpdateFilterAttributes(document, [chunk])
         }
         await this.refreshDocumentContentHash(documentId)
+        await this.publishChunkMutation(document)
         return result
     }
 
@@ -1698,22 +1704,24 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async deleteChunk(documentId: string, id: string) {
-        const { vectorStore } = await this.getDocumentVectorStore(documentId)
+        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
         await this.assertChunkBelongsToDocument(documentId, id)
         // Delete entity
         await this.chunkService.delete(id)
         // Delete vector
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
+        await this.publishChunkMutation(document)
     }
 
     async deleteChunkWithVersion(documentId: string, id: string, expectedVersion?: number) {
         assertExpectedVersion(expectedVersion)
-        const { vectorStore } = await this.getDocumentVectorStore(documentId)
+        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
         await this.assertChunkBelongsToDocument(documentId, id)
         await this.chunkService.deleteWithVersion(id, expectedVersion)
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
+        await this.publishChunkMutation(document)
     }
 
     private async assertChunkBelongsToDocument(documentId: string, id: string) {
@@ -1757,6 +1765,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.updateDocument(documentId, {
             contentHash: computeKnowledgeDocumentContentHash(chunks),
             chunkNum: chunks.length
+        })
+    }
+
+    private publishChunkMutation(document: KnowledgeDocument) {
+        return this.derivedIndexPublicationService.publish({
+            knowledgebase: document.knowledgebase,
+            documentId: document.id,
+            userId: RequestContext.currentUserId(),
+            contentChanged: true
         })
     }
 
@@ -2290,6 +2307,14 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async deleteDocumentArtifacts(document: KnowledgeDocument) {
+        await this.commandBus.execute(
+            new KnowledgeWikiRetractSourceCommand({
+                knowledgebaseId: document.knowledgebaseId,
+                documentId: document.id,
+                userId: RequestContext.currentUserId(),
+                reason: 'hard_deleted'
+            })
+        )
         const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, false)
         await vectorStore.deleteKnowledgeDocument(document)
         try {

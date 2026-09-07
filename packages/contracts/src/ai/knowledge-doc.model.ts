@@ -342,6 +342,9 @@ export interface StandardDocumentMetadata {
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
+  /** Internal index containers are not user-uploaded documents. */
+  systemManaged?: boolean
+  systemManagedType?: string
   transformSnapshot?: KnowledgeDocumentTransformSnapshotRef
   analysisSnapshot?: KnowledgeDocumentAnalysisSnapshotRef
   documentAnalysis?: DocumentAnalysisMetadata

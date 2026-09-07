@@ -16,9 +16,9 @@ import { CommandBus } from '@nestjs/cqrs'
 import { ChunkMetadata, countTokensSafe } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
-import { KnowledgeGraphEnqueueCommand } from '../graphrag/commands'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocLoadCommand } from './commands'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
 import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
 import { guardEmbeddingInputDocuments } from './embedding-input-guard'
@@ -49,7 +49,8 @@ export class KnowledgeDocumentConsumer {
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
         private readonly userService: UserService,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly publicationService: KnowledgeDerivedIndexPublicationService
     ) {}
 
     @Process({ concurrency: 5 })
@@ -266,9 +267,6 @@ export class KnowledgeDocumentConsumer {
                             { tokens: totalTokenUsed }
                         )
                     }
-                    if (syncResult.contentChanged) {
-                        await this.enqueueGraphIndex(knowledgebase, document.id, job.data.userId)
-                    }
                 }
 
                 const processDuration = new Date().getTime() - processBeginAt.getTime()
@@ -291,6 +289,13 @@ export class KnowledgeDocumentConsumer {
                             : this.createSkippedIncrementalSyncMetadata(document)
                     }
                 )
+
+                await this.publicationService.publish({
+                    knowledgebase,
+                    documentId: document.id,
+                    userId: job.data.userId,
+                    contentChanged: syncResult?.contentChanged === true
+                })
 
                 this.logger.debug(`[Job: entity '${job.id}'] End!`)
             } catch (err) {
@@ -369,23 +374,6 @@ export class KnowledgeDocumentConsumer {
                 ...metadataPatch
             }
         })
-    }
-
-    private async enqueueGraphIndex(knowledgebase: IKnowledgebase, documentId: string, userId?: string) {
-        try {
-            await this.commandBus.execute(
-                new KnowledgeGraphEnqueueCommand({
-                    userId,
-                    tenantId: knowledgebase.tenantId,
-                    organizationId: knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
-                    documentIds: [documentId],
-                    reason: 'document'
-                })
-            )
-        } catch (error) {
-            this.logger.warn(`Failed to enqueue GraphRAG index for document '${documentId}': ${getErrorMessage(error)}`)
-        }
     }
 
     async checkIfJobCancelled(docId: string): Promise<boolean> {

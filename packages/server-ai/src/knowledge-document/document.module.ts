@@ -20,6 +20,7 @@ import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { KnowledgeDocumentVisualAssetsRuntimeService } from './visual-assets-runtime.service'
 import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtime.token'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 @Module({
     imports: [
@@ -45,6 +46,7 @@ import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtim
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
         KnowledgeDocumentVisualAssetsRuntimeService,
+        KnowledgeDerivedIndexPublicationService,
         {
             provide: KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
             useExisting: KnowledgeDocumentVisualAssetsRuntimeService
@@ -58,6 +60,7 @@ import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtim
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
+        KnowledgeDerivedIndexPublicationService,
         KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
         TypeOrmModule
     ]

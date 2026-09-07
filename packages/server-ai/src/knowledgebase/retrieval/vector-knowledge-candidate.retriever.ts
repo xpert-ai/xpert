@@ -16,6 +16,7 @@ import { KnowledgebaseService } from '../knowledgebase.service'
 import { compileKnowledgeFilterToMilvus, compileKnowledgeFilterToPostgres } from '../filter'
 import { withKnowledgeDocumentMetadata } from './document'
 import { KnowledgeCandidateRetriever, KnowledgeRetrievalBatch, KnowledgeRetrievalRequest } from './types'
+import { milvusContentScopePredicate, postgresContentScopePredicate } from './content-scope'
 
 type VectorSearchResult = {
     items: [DocumentInterface, number][]
@@ -55,6 +56,10 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                 return vectorStore.structuredSimilaritySearchWithScore(query, topK, {
                     postgres: {
                         ...compiled,
+                        sql:
+                            request.contentScope && request.contentScope !== 'all'
+                                ? `(${compiled.sql}) AND (${postgresContentScopePredicate(request.contentScope)})`
+                                : compiled.sql,
                         knowledgebaseId: kb.id
                     }
                 })
@@ -67,20 +72,37 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                     ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
                     : { sql: 'TRUE', parameters: [] }
                 const mandatory = 'enabled == true and filterAttributes["document"]["disabled"] == false'
+                const contentPredicate = milvusContentScopePredicate(request.contentScope)
+                const expression = [mandatory, compiled.expression, contentPredicate]
+                    .filter(Boolean)
+                    .map((part, index) => (index === 0 ? part : `(${part})`))
+                    .join(' and ')
                 const [result, candidates] = await Promise.all([
                     vectorStore.structuredSimilaritySearchWithScore(query, topK, {
                         milvus: {
-                            expression: compiled.expression ? `${mandatory} and (${compiled.expression})` : mandatory,
+                            expression,
                             values: compiled.values
                         }
                     }),
-                    this.knowledgebaseService.countStructuredFilterCandidates(kb.id, relationalCompiled)
+                    this.knowledgebaseService.countStructuredFilterCandidates(kb.id, {
+                        ...relationalCompiled,
+                        sql: contentPredicate
+                            ? `(${relationalCompiled.sql}) AND (${postgresContentScopePredicate(request.contentScope)})`
+                            : relationalCompiled.sql
+                    })
                 ])
                 return {
                     items: result.items,
                     candidateDocumentCount: candidates.candidateDocumentCount,
                     candidateChunkCount: candidates.candidateChunkCount
                 }
+            }
+            if (request.contentScope && request.contentScope !== 'all') {
+                throw new BadRequestException(
+                    t('server-ai:Error.KnowledgeContentScopeBackendUnsupported', {
+                        defaultValue: 'This vector store does not support retrieval content selection.'
+                    })
+                )
             }
             if (prepared.effective) {
                 throw new BadRequestException(

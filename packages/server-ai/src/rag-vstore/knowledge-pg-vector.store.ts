@@ -1,5 +1,6 @@
 import { Document } from '@langchain/core/documents'
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector'
+import { t } from 'i18next'
 
 export type StructuredVectorSearchFilter = {
     postgres?: {
@@ -25,6 +26,59 @@ export type StructuredVectorSearchResult = {
  * `d` (knowledge_document) and `c` (knowledge_document_chunk).
  */
 export class KnowledgePGVectorStore extends PGVectorStore {
+    // Stable chunk IDs must survive a retry after vector insertion but before publication.
+    // Upsert atomically; never delete a published vector before its replacement succeeds.
+    override async addVectors(vectors: number[][], documents: Document[], options?: { ids?: string[] }) {
+        if (!options?.ids) return super.addVectors(vectors, documents, options)
+        if (options.ids.length !== vectors.length || documents.length !== vectors.length) {
+            throw new Error(
+                t('server-ai:Error.KnowledgebaseVectorBatchInvalid', {
+                    defaultValue: 'The vector, document and identifier counts must match.'
+                })
+            )
+        }
+        const collectionId = this.collectionTableName ? await this.getOrCreateCollection() : null
+        const columns = [this.idColumnName, this.contentColumnName, this.vectorColumnName, this.metadataColumnName]
+        if (collectionId) columns.push('collection_id')
+        for (let offset = 0; offset < vectors.length; offset += this.chunkSize) {
+            const values: unknown[] = []
+            const rows = vectors.slice(offset, offset + this.chunkSize).map((vector, index) => {
+                const document = documents[offset + index]
+                const row: unknown[] = [
+                    options.ids[offset + index],
+                    document.pageContent.replace(/\0/g, ''),
+                    `[${vector.join(',')}]`,
+                    document.metadata
+                ]
+                if (collectionId) row.push(collectionId)
+                return `(${row
+                    .map((value) => {
+                        values.push(value)
+                        return `$${values.length}`
+                    })
+                    .join(', ')})`
+            })
+            const assignments = columns
+                .filter((column) => column !== this.idColumnName && column !== 'collection_id')
+                .map((column) => `"${column}" = EXCLUDED."${column}"`)
+                .join(', ')
+            const result = await this.pool.query(
+                `INSERT INTO ${this.computedTableName} AS target
+                (${columns.map((column) => `"${column}"`).join(', ')}) VALUES ${rows.join(', ')}
+                ON CONFLICT ("${this.idColumnName}") DO UPDATE SET ${assignments}
+                ${collectionId ? 'WHERE target."collection_id" IS NOT DISTINCT FROM EXCLUDED."collection_id"' : ''}`,
+                values
+            )
+            if (result.rowCount !== rows.length) {
+                throw new Error(
+                    t('server-ai:Error.KnowledgebaseVectorCollectionConflict', {
+                        defaultValue: 'A vector identifier belongs to another collection.'
+                    })
+                )
+            }
+        }
+    }
+
     async structuredSimilaritySearchWithScore(
         query: string,
         k: number,

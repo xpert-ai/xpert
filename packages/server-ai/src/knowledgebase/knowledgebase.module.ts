@@ -40,11 +40,26 @@ import {
     WeightedRrfFusion
 } from './retrieval'
 import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
+import {
+    KnowledgeWikiPage,
+    KnowledgeWikiPageEvidenceEntity,
+    KnowledgeWikiPageVersion,
+    KnowledgeWikiSourceState
+} from './wiki/entities'
+import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-scope.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
-        TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask, KnowledgeRetrievalLog]),
+        TypeOrmModule.forFeature([
+            Knowledgebase,
+            KnowledgebaseTask,
+            KnowledgeRetrievalLog,
+            KnowledgeWikiPage,
+            KnowledgeWikiPageVersion,
+            KnowledgeWikiPageEvidenceEntity,
+            KnowledgeWikiSourceState
+        ]),
         DiscoveryModule,
         TenantModule,
         CqrsModule,
@@ -82,6 +97,7 @@ import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
         LegacyWeightedFusion,
         WeightedRrfFusion,
         KnowledgeFAQService,
+        KnowledgeWikiSearchScopeService,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,
         ...QueryHandlers,
@@ -100,7 +116,8 @@ import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
         KnowledgeFilterV2MigrationService,
         KnowledgeGraphFilterScopeService,
         KnowledgeKeywordIndexService,
-        KnowledgeFAQService
+        KnowledgeFAQService,
+        KnowledgeWikiSearchScopeService
     ]
 })
 export class KnowledgebaseModule {}

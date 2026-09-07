@@ -4,6 +4,7 @@ import {
     IKnowledgebase,
     KnowledgeFilterDiagnostics,
     KnowledgeFilterErrorCode,
+    KnowledgeRetrievalContentScope,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { PreparedKnowledgeFilter } from '../filter'
@@ -15,6 +16,7 @@ export type KnowledgeRetrievalRequest = {
     query: string
     k?: number
     retrieval?: TKBRetrievalSettings
+    contentScope?: KnowledgeRetrievalContentScope
     scope: {
         tenantId: string
         organizationId: string

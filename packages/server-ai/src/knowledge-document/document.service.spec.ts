@@ -89,6 +89,7 @@ import { KnowledgeDocument } from './document.entity'
 import { buildLogicalFolderPath, KnowledgeDocumentService } from './document.service'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
+import type { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 function createService(
     documents: Partial<KnowledgeDocument>[],
@@ -138,7 +139,8 @@ function createService(
         (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
         (overrides?.commandBus ?? {}) as CommandBus,
         (overrides?.queryBus ?? {}) as QueryBus,
-        {} as Queue
+        {} as Queue,
+        { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
     )
     Object.assign(service, {
         textSplitterRegistry: {

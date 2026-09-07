@@ -2,6 +2,7 @@ import {
     DocumentMetadata,
     KnowledgeFilterDiagnostics,
     KnowledgeFilterSources,
+    KnowledgeRetrievalContentScope,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -27,6 +28,7 @@ export class KnowledgeSearchQuery implements IQuery {
             /** Runtime state used only to resolve mandatory fixed-filter variables. */
             variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
+            contentScope?: KnowledgeRetrievalContentScope
             source: string
             id?: string // Request ID for tracing the request
             xpertId?: string

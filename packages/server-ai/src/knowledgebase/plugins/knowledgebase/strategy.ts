@@ -29,8 +29,11 @@ import { countTokensSafe, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@x
 import { get } from 'lodash'
 import { In } from 'typeorm'
 import { CopilotTokenRecordCommand } from '../../../copilot-user'
-import { KnowledgeGraphEnqueueCommand } from '../../../graphrag/commands'
-import { IncrementalChunkSyncResult, KnowledgeDocumentService } from '../../../knowledge-document'
+import {
+    IncrementalChunkSyncResult,
+    KnowledgeDerivedIndexPublicationService,
+    KnowledgeDocumentService
+} from '../../../knowledge-document'
 import {
     computeKnowledgeDocumentProcessingHash,
     resolveKnowledgeDocumentSourceHash
@@ -73,6 +76,9 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
     @Inject(KnowledgebaseTaskService)
     private readonly taskService: KnowledgebaseTaskService
+
+    @Inject(KnowledgeDerivedIndexPublicationService)
+    private readonly publicationService: KnowledgeDerivedIndexPublicationService
 
     constructor(
         private readonly commandBus: CommandBus,
@@ -264,9 +270,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                             { tokens: totalTokenUsed }
                                         )
                                     }
-                                    if (syncResult.contentChanged) {
-                                        await this.enqueueGraphIndex(knowledgebase, document.id, userId)
-                                    }
                                 }
                                 await this.updateDocumentProcessingMetadata(
                                     document.id,
@@ -289,6 +292,12 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                             : this.createSkippedIncrementalSyncMetadata(document)
                                     }
                                 )
+                                await this.publicationService.publish({
+                                    knowledgebase,
+                                    documentId: document.id,
+                                    userId,
+                                    contentChanged: syncResult?.contentChanged === true
+                                })
                                 statisticsInformation += ` - Embedded ${chunks?.length || 0}/${totalChunks} chunks. \n`
                             } catch (err) {
                                 if (err === KBDocumentStatusEnum.CANCEL) {
@@ -451,23 +460,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                 ...metadataPatch
             }
         })
-    }
-
-    private async enqueueGraphIndex(knowledgebase: IKnowledgebase, documentId: string, userId?: string) {
-        try {
-            await this.commandBus.execute(
-                new KnowledgeGraphEnqueueCommand({
-                    userId,
-                    tenantId: knowledgebase.tenantId,
-                    organizationId: knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
-                    documentIds: [documentId],
-                    reason: 'document'
-                })
-            )
-        } catch (error) {
-            this.logger.warn(`Failed to enqueue GraphRAG index for document '${documentId}': ${getErrorMessage(error)}`)
-        }
     }
 
     async checkIfJobCancelled(docId: string): Promise<boolean> {

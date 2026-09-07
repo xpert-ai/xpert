@@ -1,4 +1,10 @@
-import { ICopilotModel, IKnowledgebase, IXpert, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
+import {
+    ICopilotModel,
+    IKnowledgebase,
+    IXpert,
+    KnowledgebaseTypeEnum,
+    normalizeKnowledgebaseWikiConfig
+} from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 
 type KnowledgebaseDTOInput = Omit<Partial<IKnowledgebase>, 'type'> & {
@@ -79,6 +85,18 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     @Expose()
     declare faqConfig?: IKnowledgebase['faqConfig']
 
+    @Expose()
+    declare wikiConfig?: IKnowledgebase['wikiConfig']
+
+    @Expose()
+    declare wikiStatus?: IKnowledgebase['wikiStatus']
+
+    @Expose()
+    declare wikiAvailability?: IKnowledgebase['wikiAvailability']
+
+    @Expose()
+    declare canManageWiki?: boolean
+
     declare applicationTags?: string[]
 
     @Expose()
@@ -101,6 +119,9 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
 
     @Expose()
     declare chatModelId?: string | null
+
+    @Expose()
+    declare wikiModelId?: string | null
 
     @Expose()
     declare rerankModelId?: string
@@ -169,6 +190,10 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
 
     @Expose()
     @Transform((params: TransformFnParams) => (params.value ? new KnowledgebaseModelDetailDTO(params.value) : null))
+    declare wikiModel?: ICopilotModel | null
+
+    @Expose()
+    @Transform((params: TransformFnParams) => (params.value ? new KnowledgebaseModelDetailDTO(params.value) : null))
     declare rerankModel?: ICopilotModel
 
     @Expose()
@@ -188,5 +213,13 @@ export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     constructor(partial: KnowledgebaseDTOInput) {
         Object.assign(this, partial)
         this.type = partial.type ?? KnowledgebaseTypeEnum.Standard
+        this.wikiConfig = normalizeKnowledgebaseWikiConfig(partial.wikiConfig)
+        if (!this.wikiConfig.enabled) {
+            this.wikiStatus = 'disabled'
+            this.wikiAvailability = 'unavailable'
+        } else {
+            this.wikiStatus = partial.wikiStatus ?? 'rebuild_required'
+            this.wikiAvailability = partial.wikiAvailability ?? 'unavailable'
+        }
     }
 }

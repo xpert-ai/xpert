@@ -21,6 +21,7 @@ import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
+import { KnowledgeWikiModule } from './knowledgebase/wiki'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { SandboxModule } from './sandbox/sandbox.module'
 import { XpertModule } from './xpert'
@@ -114,6 +115,7 @@ import { McpPublicationModule } from './mcp-publication'
         PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,
+        KnowledgeWikiModule,
         KnowledgeDocumentModule,
         RagVStoreModule,
         RagWebModule,

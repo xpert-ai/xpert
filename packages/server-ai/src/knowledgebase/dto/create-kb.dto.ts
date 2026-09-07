@@ -2,6 +2,7 @@ import {
     ICopilotModel,
     IKnowledgebase,
     KnowledgebaseFAQConfig,
+    KnowledgebaseWikiConfig,
     KnowledgebaseParserConfig,
     KnowledgebasePermission,
     KnowledgebaseTypeEnum,
@@ -60,6 +61,14 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
     @IsObject()
     @IsOptional()
     faqConfig?: KnowledgebaseFAQConfig
+
+    @ApiPropertyOptional({
+        type: () => Object,
+        description: 'Optional generated Wiki capability for standard knowledgebases'
+    })
+    @IsObject()
+    @IsOptional()
+    wikiConfig?: KnowledgebaseWikiConfig
 
     @ApiProperty({
         type: () => Object,
@@ -123,6 +132,14 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
     })
     @IsOptional()
     chatModel?: ICopilotModel
+
+    @ApiPropertyOptional({
+        type: () => Object,
+        description: 'Optional dedicated LLM for Wiki generation; falls back to chatModel when omitted'
+    })
+    @IsObject()
+    @IsOptional()
+    wikiModel?: ICopilotModel | null
 
     constructor(partial: IKnowledgebase) {
         Object.assign(this, partial)

@@ -1,3 +1,5 @@
+import type { KnowledgeRetrievalContentScope } from './knowledgebase.model'
+
 export const KNOWLEDGE_FILTER_VERSION = 2 as const
 export const KNOWLEDGE_FILTER_MAX_DEPTH = 3
 export const KNOWLEDGE_FILTER_MAX_CONDITIONS = 20
@@ -117,6 +119,7 @@ export type KnowledgeFilterErrorCode =
   | 'unsupported_retrieval_mode'
 
 export type KnowledgeFilterDiagnostics = {
+  contentScope?: KnowledgeRetrievalContentScope
   filterVersion: typeof KNOWLEDGE_FILTER_VERSION
   fixedFilter?: KnowledgeFilterNode
   requestFilter?: KnowledgeFilterNode
