@@ -32,6 +32,7 @@ import {
     Body,
     ClassSerializerInterceptor,
     Controller,
+    DefaultValuePipe,
     Delete,
     ForbiddenException,
     Get,
@@ -252,7 +253,8 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
     @Get(':id')
     async findById(
         @Param('id') id: string,
-        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<KnowledgeDocument>['relations'],
+        @Query('$relations', new DefaultValuePipe('[]'), ParseJsonPipe)
+        relations?: PaginationParams<KnowledgeDocument>['relations'],
         @Query('$select', ParseJsonPipe) select?: PaginationParams<KnowledgeDocument>['select']
     ): Promise<KnowledgeDocument> {
         await this.service.assertDocumentReadAccess(id)
