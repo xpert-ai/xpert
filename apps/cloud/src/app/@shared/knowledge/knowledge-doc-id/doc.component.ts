@@ -1,6 +1,11 @@
 import { Component, computed, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgeDocument, IKnowledgeFAQChunkMetadata, KDocumentSourceType } from '../../../@core/types'
+import {
+  IKnowledgeDocument,
+  IKnowledgeFAQChunkMetadata,
+  IKnowledgeWikiChunkMetadata,
+  KDocumentSourceType
+} from '../../../@core/types'
 import { XpCommonModule, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { resolveKnowledgeDocumentFileKind } from '../document-file-kind'
 
@@ -17,7 +22,7 @@ export class KnowledgeDocIdComponent {
   // Inputs
   readonly doc = input<Partial<IKnowledgeDocument>>()
   readonly searchText = input<string | undefined>()
-  readonly contentKind = input<IKnowledgeFAQChunkMetadata['contentKind'] | undefined>()
+  readonly contentKind = input<(IKnowledgeFAQChunkMetadata | IKnowledgeWikiChunkMetadata)['contentKind'] | undefined>()
 
   // States
   readonly sourceType = computed(() => this.doc().sourceType)

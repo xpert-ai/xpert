@@ -1,4 +1,4 @@
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, linkedSignal, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import {
@@ -7,7 +7,14 @@ import {
   XpertKnowledgeFilterFormComponent
 } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
-import { myRxResource, XpCommonModule, ZardAccordionImports, type ZardAccordionItemLike } from '@xpert-ai/headless-ui'
+import {
+  myRxResource,
+  XpCommonModule,
+  ZardAccordionImports,
+  type ZardAccordionItemLike,
+  ZardTabNavBarDirective,
+  ZardTabNavLinkDirective
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -19,6 +26,7 @@ import {
   KBMetadataFieldDef,
   KnowledgeFilterDiagnostics,
   KnowledgeFilterNode,
+  KnowledgeRetrievalContentScope,
   KnowledgeDocumentService,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
@@ -42,6 +50,8 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     FormsModule,
     TranslateModule,
     ...ZardAccordionImports,
+    ZardTabNavBarDirective,
+    ZardTabNavLinkDirective,
     XpCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
@@ -62,6 +72,16 @@ export class KnowledgeTestComponent {
   readonly isFAQ = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.FAQ)
   readonly showDocumentTestControls = computed(() => isDocumentKnowledgebaseType(this.knowledgebase()?.type))
   readonly showRetrievalSettings = computed(() => this.showDocumentTestControls() || this.isFAQ())
+  readonly showContentScope = computed(
+    () => this.showDocumentTestControls() && this.knowledgebase()?.wikiConfig?.enabled === true
+  )
+  readonly contentScope = linkedSignal<{ id: string; enabled: boolean }, KnowledgeRetrievalContentScope>({
+    source: () => ({ id: this.knowledgebase()?.id, enabled: this.showContentScope() }),
+    computation: (source, previous) =>
+      previous && source.id === previous.source.id && source.enabled === previous.source.enabled
+        ? previous.value
+        : 'all'
+  })
 
   readonly recall = computed(() =>
     this.isFAQ() ? normalizeKnowledgebaseFAQRecall(this.knowledgebase()?.recall) : this.knowledgebase()?.recall
@@ -150,7 +170,8 @@ export class KnowledgeTestComponent {
         k: this.topK() ?? 10,
         score: this.score(),
         filters: this.requestFilter() ? { request: this.requestFilter() } : undefined,
-        retrieval: this.retrievalSettings()
+        retrieval: this.retrievalSettings(),
+        ...(this.showContentScope() ? { contentScope: this.contentScope() } : {})
       })
       .subscribe({
         next: (result) => {

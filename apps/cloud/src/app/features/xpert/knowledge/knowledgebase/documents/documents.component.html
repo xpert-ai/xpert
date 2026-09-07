@@ -260,7 +260,11 @@
                     }
                     @case ('progress') {
                       @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-                        <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
+                        <div
+                          class="flex w-max flex-nowrap items-center gap-2 whitespace-nowrap cursor-pointer"
+                          [xpDocumentProgressWidth]="progressColumnWidth"
+                          (click)="openTask(element)"
+                        >
                           @switch (knowledgebase()?.status) {
                             @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                               <z-badge
@@ -370,9 +374,16 @@
                               }
                             }
                           }
+                          @if (knowledgebaseComponent.wikiEnabled()) {
+                            <xp-document-wiki-progress
+                              class="inline-flex shrink-0"
+                              [knowledgebaseId]="knowledgebase().id"
+                              [progress]="wikiDocumentProgress().get(element.id)"
+                            />
+                          }
                           @if (graphJobStatus(element.id); as graphJob) {
                             <div
-                              class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
+                              class="inline-flex shrink-0 items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
                             >
                               <i class="ri-node-tree"></i>
                               @switch (graphJob.status) {
@@ -978,6 +989,16 @@
               }
             </div>
           </section>
+
+          @if (knowledgebaseComponent.wikiEnabled()) {
+            <xp-document-wiki-progress
+              [knowledgebaseId]="knowledgebase().id"
+              [progress]="wikiDocumentProgress().get(document.id)"
+              [details]="true"
+            />
+          }
+
+          <xp-document-graph-progress [knowledgebase]="knowledgebase()" [document]="document" />
 
           <section class="mt-6 border-t border-border pt-5">
             <h2 class="text-sm font-semibold text-text-primary">

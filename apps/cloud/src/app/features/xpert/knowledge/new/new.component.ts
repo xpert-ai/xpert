@@ -23,14 +23,17 @@ import {
 import {
   AiModelTypeEnum,
   DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
+  DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
   getErrorMessage,
   ICopilotModel,
   IKnowledgebase,
   KnowledgebaseFAQConfig,
+  KnowledgebaseWikiConfig,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
   ModelFeature,
   normalizeKnowledgebaseFAQRecall,
+  normalizeKnowledgebaseWikiConfig,
   ToastrService,
   TKBRetrievalSettings
 } from '../../../../@core'
@@ -429,11 +432,20 @@ export class XpertNewKnowledgeComponent {
     ...(this.#initialKnowledgebase?.faqConfig ?? {})
   })
   readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())
-  readonly indexStrategy = model<'rag' | 'wiki'>('rag')
+  readonly wikiEnabled = model(this.#initialKnowledgebase?.wikiConfig?.enabled ?? false)
+  readonly isWiki = computed(() => !this.isFAQ() && this.wikiEnabled())
+  readonly indexStrategyLocked = computed(
+    () => this.isEditMode() && (this.existingKnowledgebase()?.documentNum ?? 0) > 0
+  )
+  readonly wikiConfig = model<KnowledgebaseWikiConfig>({
+    ...DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
+    ...(this.#initialKnowledgebase?.wikiConfig ?? {})
+  })
   readonly excelHeaderRow = model(false)
 
   readonly copilotModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.copilotModel)
   readonly chatModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.chatModel ?? undefined)
+  readonly wikiModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.wikiModel ?? undefined)
   readonly visionModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.visionModel ?? undefined)
 
   readonly embeddingBatchSize = model<number | null>(this.#initialKnowledgebase?.parserConfig?.embeddingBatchSize ?? 16)
@@ -530,6 +542,13 @@ export class XpertNewKnowledgeComponent {
     this.activeSection.set(section)
   }
 
+  toggleWiki() {
+    if (this.indexStrategyLocked()) {
+      return
+    }
+    this.wikiEnabled.update((enabled) => !enabled)
+  }
+
   sectionStatusKey(status: SectionStatus) {
     switch (status) {
       case 'supported':
@@ -550,6 +569,10 @@ export class XpertNewKnowledgeComponent {
       return
     }
     this.faqConfig.update((current) => ({ ...current, [key]: value }))
+  }
+
+  updateWikiConfig<K extends keyof KnowledgebaseWikiConfig>(key: K, value: KnowledgebaseWikiConfig[K]) {
+    this.wikiConfig.update((current) => ({ ...current, [key]: value }))
   }
 
   updateParserEngine(key: string, value: string) {
@@ -616,9 +639,30 @@ export class XpertNewKnowledgeComponent {
 
     const knowledgebaseId = this.existingKnowledgebase()?.id
     if (!knowledgebaseId) return
+    const confirmModelCharges = this.requiresPaidWikiRebuild()
+    if (
+      confirmModelCharges &&
+      !window.confirm(
+        this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
+          Default: 'This Wiki change rebuilds existing content and may incur model charges. Continue?'
+        })
+      )
+    ) {
+      return
+    }
 
     this.loading.set(true)
-    this.knowledgebaseService.update(knowledgebaseId, this.buildPayload()).subscribe({
+    const request$ = !this.isFAQ()
+      ? this.knowledgebaseService.updateWikiConfiguration(knowledgebaseId, {
+          settings: this.buildPayload(),
+          wikiConfig: { ...this.wikiConfig(), enabled: this.wikiEnabled() },
+          wikiModel: this.wikiModel() ?? null,
+          confirmModelCharges,
+          maxModelInvocations: Math.max(20, (this.#initialKnowledgebase?.documentNum || 1) * 20),
+          maxEstimatedTokens: Math.max(200_000, (this.#initialKnowledgebase?.documentNum || 1) * 200_000)
+        })
+      : this.knowledgebaseService.update(knowledgebaseId, this.buildPayload())
+    request$.subscribe({
       next: (knowledgebase) => {
         this.#toastr.success('XP.Messages.SavedSuccessfully', {
           Default: 'Knowledge base settings saved successfully'
@@ -650,6 +694,12 @@ export class XpertNewKnowledgeComponent {
       return false
     }
 
+    if (this.isWiki() && !(this.wikiModel() || this.chatModel())) {
+      this.activeSection.set('models')
+      this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.WikiModelRequired`))
+      return false
+    }
+
     if (!this.retrievalConfigurationValid()) {
       this.activeSection.set('retrieval')
       this.#toastr.error('XP.Knowledgebase.RRFPositiveWeightRequired', '', {
@@ -659,6 +709,31 @@ export class XpertNewKnowledgeComponent {
     }
 
     return true
+  }
+
+  private requiresPaidWikiRebuild() {
+    if (!this.wikiEnabled() || !this.#initialKnowledgebase?.documentNum) return false
+    const currentConfig = normalizeKnowledgebaseWikiConfig(this.#initialKnowledgebase.wikiConfig)
+    const nextConfig = normalizeKnowledgebaseWikiConfig({ ...this.wikiConfig(), enabled: true })
+    const currentModel = this.#initialKnowledgebase.wikiModel ?? this.#initialKnowledgebase.chatModel
+    const nextModel = this.wikiModel() ?? this.chatModel()
+    return (
+      JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) ||
+      JSON.stringify(this.toComparableWikiModel(currentModel)) !== JSON.stringify(this.toComparableWikiModel(nextModel))
+    )
+  }
+
+  private toComparableWikiModel(model: ICopilotModel | undefined | null) {
+    return model
+      ? {
+          id: model.id,
+          copilotId: model.copilotId,
+          referencedId: model.referencedId,
+          modelType: model.modelType,
+          model: model.model,
+          options: model.options
+        }
+      : null
   }
 
   private buildPayload(): Partial<IKnowledgebase> {
@@ -695,6 +770,9 @@ export class XpertNewKnowledgeComponent {
       payload.type = this.type()
       if (this.isFAQ()) {
         Object.assign(payload, { faqConfig: this.faqConfig() })
+      } else {
+        payload.wikiConfig = { ...this.wikiConfig(), enabled: this.wikiEnabled() }
+        payload.wikiModel = this.wikiModel() ?? null
       }
     }
 

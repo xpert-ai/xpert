@@ -83,8 +83,8 @@
                     <button
                       type="button"
                       class="kb-choice-card"
-                      [class.kb-choice-card-selected]="indexStrategy() === 'rag'"
-                      (click)="indexStrategy.set('rag')"
+                      [class.kb-choice-card-selected]="true"
+                      aria-pressed="true"
                     >
                       <span class="kb-choice-check"><i class="ri-check-line"></i></span>
                       <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
@@ -92,18 +92,111 @@
                         i18nPrefix + '.Basic.RagSearchDescription' | translate
                       }}</span>
                     </button>
-                    <button type="button" class="kb-choice-card kb-choice-card-disabled" disabled>
-                      <span class="kb-choice-empty"><i class="ri-checkbox-blank-line"></i></span>
-                      <span class="kb-choice-card-title"
-                        >{{ i18nPrefix + '.Basic.WikiKnowledgebase' | translate }}
-                        <span class="kb-new-badge">{{ i18nPrefix + '.Basic.New' | translate }}</span></span
-                      >
+                    <button
+                      type="button"
+                      class="kb-choice-card"
+                      [ngClass]="{
+                        'kb-choice-card-selected': wikiEnabled(),
+                        'kb-choice-card-disabled': indexStrategyLocked()
+                      }"
+                      [attr.aria-pressed]="wikiEnabled()"
+                      [disabled]="indexStrategyLocked()"
+                      (click)="toggleWiki()"
+                    >
+                      @if (wikiEnabled()) {
+                        <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                      } @else {
+                        <span class="kb-choice-empty"></span>
+                      }
+                      <span class="kb-choice-card-title">{{
+                        i18nPrefix + '.Basic.WikiKnowledgebase' | translate
+                      }}</span>
                       <span class="kb-choice-card-description">{{
                         i18nPrefix + '.Basic.WikiDescription' | translate
                       }}</span>
                     </button>
                   </div>
+                  @if (indexStrategyLocked()) {
+                    <div
+                      class="mt-3 flex items-start gap-2 rounded-lg border border-divider-subtle bg-background-default-subtle px-4 py-3 text-sm leading-6 text-text-tertiary"
+                    >
+                      <i class="ri-information-2-line mt-1 shrink-0 text-text-accent"></i>
+                      <span>{{ i18nPrefix + '.Basic.IndexStrategyLocked' | translate }}</span>
+                    </div>
+                  }
                 </div>
+
+                @if (isWiki()) {
+                  <div data-wiki-generation-settings class="mb-8 border-t border-divider-subtle pt-6">
+                    <div class="mb-6">
+                      <h2 class="text-xl font-semibold leading-7 text-text-primary">
+                        {{ i18nPrefix + '.Wiki.Title' | translate }}
+                      </h2>
+                      <p class="mt-1 text-sm leading-6 text-text-tertiary">
+                        {{ i18nPrefix + '.Wiki.Description' | translate }}
+                      </p>
+                    </div>
+
+                    <div class="kb-field">
+                      <label class="kb-label">{{ i18nPrefix + '.Wiki.ExtractionGranularity' | translate }}</label>
+                      <p class="kb-help-text">{{ i18nPrefix + '.Wiki.ExtractionGranularityHelp' | translate }}</p>
+                      <z-toggle-group
+                        class="w-fit"
+                        zType="outline"
+                        zSize="lg"
+                        [ngModel]="wikiConfig().extractionGranularity"
+                        (ngModelChange)="updateWikiConfig('extractionGranularity', $event)"
+                      >
+                        <z-toggle-group-item class="min-w-24" value="focused">
+                          {{ i18nPrefix + '.Wiki.Granularity.Focused' | translate }}
+                        </z-toggle-group-item>
+                        <z-toggle-group-item class="min-w-24" value="standard">
+                          {{ i18nPrefix + '.Wiki.Granularity.Standard' | translate }}
+                        </z-toggle-group-item>
+                        <z-toggle-group-item class="min-w-24" value="exhaustive">
+                          {{ i18nPrefix + '.Wiki.Granularity.Exhaustive' | translate }}
+                        </z-toggle-group-item>
+                      </z-toggle-group>
+                      <p class="kb-help-text">
+                        {{
+                          i18nPrefix + '.Wiki.Granularity.' + wikiConfig().extractionGranularity + 'Help' | translate
+                        }}
+                      </p>
+                    </div>
+
+                    <div class="kb-field">
+                      <label class="kb-label">{{
+                        i18nPrefix + '.Wiki.ContentGenerationRequirements' | translate
+                      }}</label>
+                      <p class="kb-help-text">
+                        {{ i18nPrefix + '.Wiki.ContentGenerationRequirementsHelp' | translate }}
+                      </p>
+                      <textarea
+                        z-input
+                        class="kb-textarea min-h-36"
+                        [ngModel]="wikiConfig().contentGenerationRequirements"
+                        (ngModelChange)="updateWikiConfig('contentGenerationRequirements', $event)"
+                        [placeholder]="i18nPrefix + '.Wiki.ContentGenerationRequirementsPlaceholder' | translate"
+                        maxlength="4000"
+                      ></textarea>
+                      <div class="kb-counter">{{ wikiConfig().contentGenerationRequirements?.length ?? 0 }}/4000</div>
+                    </div>
+
+                    <div class="kb-field">
+                      <label class="kb-label">{{ i18nPrefix + '.Wiki.ExtractionFocus' | translate }}</label>
+                      <p class="kb-help-text">{{ i18nPrefix + '.Wiki.ExtractionFocusHelp' | translate }}</p>
+                      <textarea
+                        z-input
+                        class="kb-textarea min-h-36"
+                        [ngModel]="wikiConfig().extractionFocus"
+                        (ngModelChange)="updateWikiConfig('extractionFocus', $event)"
+                        [placeholder]="i18nPrefix + '.Wiki.ExtractionFocusPlaceholder' | translate"
+                        maxlength="4000"
+                      ></textarea>
+                      <div class="kb-counter">{{ wikiConfig().extractionFocus?.length ?? 0 }}/4000</div>
+                    </div>
+                  </div>
+                }
               }
 
               <div class="kb-field">
@@ -174,6 +267,23 @@
                     [(ngModel)]="copilotModel"
                   />
                 </div>
+
+                @if (isWiki()) {
+                  <div class="kb-divider"></div>
+
+                  <div class="kb-model-row">
+                    <div class="kb-model-row-copy">
+                      <div class="kb-model-row-title">{{ i18nPrefix + '.Models.WikiModel' | translate }}</div>
+                      <p>{{ i18nPrefix + '.Models.WikiModelDescription' | translate }}</p>
+                    </div>
+                    <copilot-model-select
+                      class="kb-model-row-select"
+                      hiddenLabel
+                      [modelType]="eAiModelTypeEnum.LLM"
+                      [(ngModel)]="wikiModel"
+                    />
+                  </div>
+                }
               </div>
             </section>
           }

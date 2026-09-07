@@ -75,4 +75,20 @@ describe('knowledgebase citation effect helpers', () => {
       citationUrl: 'xpert://knowledgebase/faq?knowledgebaseId=kb-1&faqId=faq-1'
     })
   })
+
+  it('accepts Wiki citation links without requiring a source document id', () => {
+    expect(
+      getKnowledgebaseCitationTargetFromEffectEvent({
+        name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+        data: {
+          citationUrl: '/xpert/knowledges/kb-1/wiki?wikiPageId=page-1&section=overview'
+        }
+      })
+    ).toEqual({
+      knowledgebaseId: 'kb-1',
+      wikiPageId: 'page-1',
+      section: 'overview',
+      citationUrl: '/xpert/knowledges/kb-1/wiki?wikiPageId=page-1&section=overview'
+    })
+  })
 })

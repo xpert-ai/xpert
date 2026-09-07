@@ -1659,6 +1659,27 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
   })
 
+  it('opens Wiki citations in the Wiki browser', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const router = TestBed.inject(Router)
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    getRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-wiki-1',
+        wikiPageId: 'page-1',
+        section: 'overview'
+      }
+    })
+    await settle(fixture)
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-wiki-1', 'wiki'], {
+      queryParams: { wikiPageId: 'page-1', section: 'overview' }
+    })
+  })
+
   it('keeps visited extension views mounted while switching workspace tabs', async () => {
     viewExtensionApi.getSlotViews.mockReturnValue(
       of([

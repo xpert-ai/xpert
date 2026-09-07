@@ -4533,7 +4533,126 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "GraphDocumentProgress": {
+        "Title": "Graph processing",
+        "States": {
+          "disabled": "Graph unavailable",
+          "source_disabled": "Graph unavailable",
+          "waiting_source": "Waiting for document",
+          "not_started": "Not started",
+          "outdated": "Update required",
+          "queued": "Queued",
+          "running": "Building graph",
+          "ready": "Graph indexed",
+          "failed": "Graph failed",
+          "cancelled": "Cancelled",
+          "no_content": "No extractable content",
+          "completed": "Job completed",
+          "loading": "Loading status",
+          "unknown": "Status could not be loaded"
+        },
+        "Stages": {
+          "extraction": "Entity and relation extraction",
+          "persistence": "Graph storage",
+          "indexing": "Search index"
+        },
+        "StageStates": {
+          "pending": "Pending",
+          "running": "Running",
+          "complete": "Complete",
+          "failed": "Failed"
+        },
+        "Hints": {
+          "disabled": "Graph is not enabled for this knowledge base.",
+          "source_disabled": "This document is disabled or pending deletion and does not participate in graph processing.",
+          "waiting_source": "Graph processing starts after document parsing is complete.",
+          "not_started": "No graph processing task has been created for this document.",
+          "outdated": "The graph task does not match the current document or graph configuration. Rebuild the graph to update it.",
+          "cancelled": "The graph processing task was cancelled.",
+          "no_content": "This document has no text content that can be used to build a graph.",
+          "completed": "This older task completed, but its processing stages and graph result were not recorded.",
+          "unknown": "Unable to load graph status. It will be retried automatically."
+        },
+        "Chunks": "Extracted chunks: {{processed}} / {{total}}",
+        "FailureHint": "Graph processing failed.",
+        "ViewGraph": "View graph"
+      },
+      "RetrievalContentScope": "Search content",
+      "RetrievalContentAll": "All",
+      "RetrievalContentOriginal": "Original documents only",
+      "RetrievalContentWiki": "Wiki only",
+      "RetrievalContentWikiHint": "Wiki-only search uses vector or keyword retrieval, not graph retrieval or knowledge filters.",
       "FAQ": "FAQ",
+      "Wiki": {
+        "DocumentIndexed": "Wiki indexed",
+        "DocumentProgress": {
+          "Title": "Wiki processing",
+          "States": {
+            "not_started": "Wiki not started",
+            "queued": "Wiki queued",
+            "generating": "Generating Wiki",
+            "indexing": "Indexing Wiki",
+            "publishing": "Publishing Wiki",
+            "ready": "Wiki indexed",
+            "failed": "Wiki failed",
+            "outdated": "Wiki needs update",
+            "no_content": "No Wiki content",
+            "unknown": "Wiki status unavailable"
+          },
+          "Stages": {
+            "generation": "Page generation",
+            "indexing": "Search indexing",
+            "publication": "Publication"
+          },
+          "StageStates": {
+            "pending": "Pending",
+            "running": "Processing",
+            "complete": "Complete",
+            "failed": "Failed",
+            "skipped": "Not applicable"
+          },
+          "Hints": {
+            "not_started": "Wiki starts after the source is ready. Disabled sources do not participate.",
+            "outdated": "The current source is not covered by a usable Wiki version. Update or rebuild Wiki from the Wiki page.",
+            "no_content": "Processing finished without publishable content for this document."
+          },
+          "WaitingForBatch": "Waiting for tasks in the same publication batch; another source may be blocking publication.",
+          "FailureHint": "Wiki processing failed. A knowledgebase editor can inspect the cause and retry.",
+          "Retry": "Retry",
+          "EmptySources": "Wiki rebuild found no usable sources. The published Wiki has been preserved.",
+          "EmptyPublication": "Wiki rebuild produced no publishable pages. The published Wiki has been preserved.",
+          "IndexFailed": "Wiki search indexing failed. Retry to resume; existing published pages remain available.",
+          "PublicationConflict": "Wiki publication conflicted with another update. Existing published pages remain available; retry to resume.",
+          "RetryQueued": "Retry queued",
+          "ViewWiki": "View Wiki"
+        },
+        "DisabledTitle": "Build a connected Wiki",
+        "DisabledDescription": "Enable Wiki to extract grounded summaries, entities and concepts from your source documents.",
+        "Configure": "Configure Wiki",
+        "Indexing": "Building",
+        "Search": "Search Wiki pages",
+        "Empty": "No Wiki pages yet.",
+        "BuildFailed": "The latest Wiki build failed.",
+        "RebuildRequired": "Wiki must be rebuilt.",
+        "Degraded": "Safe pages from the previous revision remain available.",
+        "Rebuild": "Authorize rebuild",
+        "RebuildConfirm": "Rebuilding Wiki content calls the configured model and may incur charges. Continue?",
+        "RetryChargeConfirm": "The provider may already have charged the previous call. Retry and allow an additional charge?",
+        "Reconciling": "Checking the model provider outcome…",
+        "RequestNotSent": "The Wiki model request could not be prepared. No generation request was sent; retry after fixing the model configuration or output format.",
+        "Indeterminate": "The provider outcome is uncertain and a retry may add a charge.",
+        "Related": "Related pages",
+        "Evidence": "Source evidence",
+        "BuildingEmpty": "Wiki pages are being built…",
+        "SelectPage": "Select a Wiki page to read.",
+        "PageType": {
+          "all": "All",
+          "summary": "Summaries",
+          "entity": "Entities",
+          "concept": "Concepts",
+          "index": "Indexes"
+        }
+      },
       "FAQManagement": {
         "Title": "FAQ",
         "Description": "Manage standard questions, similar phrasings, negative questions and reusable answer blocks.",
@@ -4627,6 +4746,7 @@
           "VectorStorage": "Vector storage",
           "Retrieval": "Retrieval settings",
           "FAQ": "FAQ settings",
+          "Wiki": "Wiki generation",
           "Parser": "Parser engines",
           "Chunk": "Chunk settings",
           "Image": "Image processing",
@@ -4651,8 +4771,8 @@
           "RagSearch": "RAG retrieval",
           "RagSearchDescription": "Chunk, vectorize, and retrieve documents with vector, graph, and hybrid modes.",
           "WikiKnowledgebase": "Wiki knowledge base",
-          "New": "NEW",
           "WikiDescription": "Automatically generate connected Wiki pages. Xpert does not currently provide a corresponding index browser.",
+          "IndexStrategyLocked": "This knowledge base already contains content. Its indexing strategy cannot be changed yet. Clear the knowledge base before changing it.",
           "Name": "Knowledge base name",
           "NamePlaceholder": "Enter a knowledge base name",
           "KnowledgebaseDescription": "Knowledge base description",
@@ -4676,6 +4796,26 @@
           "Locked": "FAQ indexing configuration cannot currently be changed after creation.",
           "Notice": "Each FAQ entry contains one standard question, similar questions, and one or more answers. Entries can be maintained from the knowledge base details page."
         },
+        "Wiki": {
+          "Title": "Wiki generation",
+          "Description": "Control how documents are analyzed and transformed into connected Wiki pages.",
+          "ExtractionGranularity": "Extraction granularity",
+          "ExtractionGranularityHelp": "Controls how many Wiki entities and concepts are extracted from each document.",
+          "Granularity": {
+            "Focused": "Focused",
+            "Standard": "Standard",
+            "Exhaustive": "Exhaustive",
+            "focusedHelp": "Extract only primary entities and concepts for a more focused index.",
+            "standardHelp": "Extract primary and clearly described secondary entities and concepts. Recommended for most cases.",
+            "exhaustiveHelp": "Extract more secondary entities and concepts for a more detailed index."
+          },
+          "ContentGenerationRequirements": "Wiki content generation requirements",
+          "ContentGenerationRequirementsHelp": "Controls the emphasis of summaries, pages, and the home page. Citation and anti-hallucination rules remain system-managed.",
+          "ContentGenerationRequirementsPlaceholder": "For example: use a legal-review tone and prioritize responsible parties, timelines, and risk notices...",
+          "ExtractionFocus": "Wiki extraction focus",
+          "ExtractionFocusHelp": "Describe domain entities and concepts that deserve special attention. This does not replace the system JSON and citation protocol.",
+          "ExtractionFocusPlaceholder": "For example: prioritize products, versions, organizations, owners, and key technical concepts..."
+        },
         "VectorStorage": {
           "Title": "Vector storage",
           "Description": "View the vector storage used by this knowledge base. It is currently controlled by the system configuration.",
@@ -4690,7 +4830,9 @@
           "LargeLanguageModel": "LLM",
           "LargeLanguageModelDescription": "The large language model used for summaries and abstracts.",
           "EmbeddingModel": "Embedding model",
-          "EmbeddingModelDescription": "The embedding model used to vectorize text."
+          "EmbeddingModelDescription": "The embedding model used to vectorize text.",
+          "WikiModel": "Wiki generation model",
+          "WikiModelDescription": "Optional. When unset, Wiki generation falls back to the LLM above."
         },
         "Vector": {
           "Description": "Configure query vectors, candidate count, and similarity filtering.",
@@ -4864,7 +5006,8 @@
         },
         "Validation": {
           "NameRequired": "Enter a knowledge base name",
-          "EmbeddingModelRequired": "Select an embedding model"
+          "EmbeddingModelRequired": "Select an embedding model",
+          "WikiModelRequired": "Select a Wiki generation model or configure the general LLM."
         }
       },
       "WorkbenchTitle": "Knowledge base",

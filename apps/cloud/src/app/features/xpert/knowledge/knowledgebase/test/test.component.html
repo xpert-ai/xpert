@@ -51,6 +51,69 @@
         </z-accordion-header>
 
         <div class="border-t border-divider-subtle pt-3">
+          @if (showContentScope()) {
+            <div data-test-content-scope class="mb-3 flex flex-col gap-2">
+              <span id="retrieval-content-scope-label" class="text-sm font-medium text-text-secondary">
+                {{ 'XP.Knowledgebase.RetrievalContentScope' | translate: { Default: 'Search content' } }}
+              </span>
+              <nav
+                z-tab-nav-bar
+                zSize="sm"
+                [stretchTabs]="true"
+                class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5"
+                aria-labelledby="retrieval-content-scope-label"
+              >
+                <button
+                  z-tab-link
+                  type="button"
+                  class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+                  data-content-scope="all"
+                  [active]="contentScope() === 'all'"
+                  [disabled]="loading()"
+                  [attr.disabled]="loading() ? '' : null"
+                  (click)="contentScope.set('all')"
+                >
+                  {{ 'XP.Knowledgebase.RetrievalContentAll' | translate: { Default: 'All' } }}
+                </button>
+                <button
+                  z-tab-link
+                  type="button"
+                  class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+                  data-content-scope="original"
+                  [active]="contentScope() === 'original'"
+                  [disabled]="loading()"
+                  [attr.disabled]="loading() ? '' : null"
+                  (click)="contentScope.set('original')"
+                >
+                  {{ 'XP.Knowledgebase.RetrievalContentOriginal' | translate: { Default: 'Original documents only' } }}
+                </button>
+                <button
+                  z-tab-link
+                  type="button"
+                  class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+                  data-content-scope="wiki"
+                  [active]="contentScope() === 'wiki'"
+                  [disabled]="loading()"
+                  [attr.disabled]="loading() ? '' : null"
+                  (click)="contentScope.set('wiki')"
+                >
+                  {{ 'XP.Knowledgebase.RetrievalContentWiki' | translate: { Default: 'Wiki only' } }}
+                </button>
+              </nav>
+              @if (contentScope() === 'wiki') {
+                <p class="text-xs text-text-tertiary">
+                  {{
+                    'XP.Knowledgebase.RetrievalContentWikiHint'
+                      | translate
+                        : {
+                            Default:
+                              'Wiki-only search uses vector or keyword retrieval, not graph retrieval or knowledge filters.'
+                          }
+                  }}
+                </p>
+              }
+            </div>
+          }
           <xp-knowledge-retrieval-settings
             class="block max-h-[min(70vh,720px)] min-h-0 overflow-y-auto pr-1"
             savable
