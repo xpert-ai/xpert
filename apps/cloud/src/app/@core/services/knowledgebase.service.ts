@@ -28,6 +28,7 @@ import {
   KnowledgeDocumentProcessingMode,
   KnowledgeGraphStatusResponse,
   KnowledgeGraphDocumentProgress,
+  KnowledgeGraphDocumentsProgressResponse,
   KnowledgeGraphVisualizationQuery,
   KnowledgeGraphViewResponse,
   KnowledgeFilterDiagnostics,
@@ -180,6 +181,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   getGraphDocumentProgress(id: string, documentId: string) {
     return this.httpClient.get<KnowledgeGraphDocumentProgress>(
       this.apiBaseUrl + `/${id}/graph/documents/${documentId}/status`
+    )
+  }
+
+  getGraphDocumentsProgress(id: string, documentIds: string[]) {
+    return this.httpClient.post<KnowledgeGraphDocumentsProgressResponse>(
+      this.apiBaseUrl + `/${id}/graph/documents/status`,
+      { documentIds }
     )
   }
 

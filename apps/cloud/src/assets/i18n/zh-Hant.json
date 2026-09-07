@@ -5157,7 +5157,7 @@
             "no_content": "處理已結束，但該文件未產生可發布的 Wiki 內容。"
           },
           "WaitingForBatch": "正在等待同一發布批次的任務，其他文件的處理可能阻塞發布。",
-          "FailureHint": "Wiki 處理失敗，有知識庫編輯權限的使用者可查看原因並重試。",
+          "FailureHint": "Wiki 處理失敗。",
           "Retry": "重試",
           "EmptySources": "Wiki 重建未找到可用來源，已保留原有發布內容。",
           "EmptyPublication": "Wiki 重建未產生可發布頁面，已保留原有發布內容。",

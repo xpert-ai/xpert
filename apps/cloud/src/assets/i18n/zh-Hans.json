@@ -6586,7 +6586,7 @@
             "no_content": "处理已结束，但该文档未产生可发布的 Wiki 内容。"
           },
           "WaitingForBatch": "正在等待同一发布批次的任务，其他文档的处理可能阻塞发布。",
-          "FailureHint": "Wiki 处理失败，有知识库编辑权限的用户可查看原因并重试。",
+          "FailureHint": "Wiki 处理失败。",
           "Retry": "重试",
           "EmptySources": "Wiki 重建未找到可用来源，已保留原有发布内容。",
           "EmptyPublication": "Wiki 重建未生成可发布页面，已保留原有发布内容。",

@@ -4620,7 +4620,7 @@
             "no_content": "Processing finished without publishable content for this document."
           },
           "WaitingForBatch": "Waiting for tasks in the same publication batch; another source may be blocking publication.",
-          "FailureHint": "Wiki processing failed. A knowledgebase editor can inspect the cause and retry.",
+          "FailureHint": "Wiki processing failed.",
           "Retry": "Retry",
           "EmptySources": "Wiki rebuild found no usable sources. The published Wiki has been preserved.",
           "EmptyPublication": "Wiki rebuild produced no publishable pages. The published Wiki has been preserved.",
