@@ -496,7 +496,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
         return new KnowledgebaseDetailDTO({
             ...knowledgebase,
-            canManageWiki: canManage
+            canManageWiki: canManage,
+            canManageDocumentDeletions: canManage
         })
     }
 

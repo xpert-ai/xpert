@@ -20,12 +20,26 @@ import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { KnowledgeDocumentVisualAssetsRuntimeService } from './visual-assets-runtime.service'
 import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtime.token'
+import {
+    KnowledgeDocumentDeletionCleanupReceipt,
+    KnowledgeDocumentDeletionIntent,
+    KnowledgeDocumentPublicationAttempt,
+    KnowledgeDocumentPublicationAttemptSource
+} from './deletion'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
-        TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
+        TypeOrmModule.forFeature([
+            KnowledgeDocument,
+            KnowledgeDocumentPage,
+            KnowledgeDocumentChunk,
+            KnowledgeDocumentDeletionIntent,
+            KnowledgeDocumentDeletionCleanupReceipt,
+            KnowledgeDocumentPublicationAttempt,
+            KnowledgeDocumentPublicationAttemptSource
+        ]),
         DiscoveryModule,
         TenantModule,
         CqrsModule,
