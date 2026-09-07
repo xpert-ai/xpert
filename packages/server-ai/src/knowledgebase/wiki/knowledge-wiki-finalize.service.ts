@@ -185,6 +185,7 @@ export class KnowledgeWikiFinalizeService {
             await this.recoverConflict(job, children, [error.pageId], candidates)
             return
         }
+        await this.projectionService.retireSupersededVersions(knowledgebase.id)
         await this.linkService.refreshCounts(knowledgebase.id)
         if (job.sourceDocumentIdSnapshot) {
             await this.sourceStateRepository.update(

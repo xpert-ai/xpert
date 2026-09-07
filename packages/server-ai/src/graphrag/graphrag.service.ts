@@ -336,6 +336,7 @@ export class GraphragService {
             jobs.push(graphJob)
         }
 
+        if (!jobs.length) await this.updateGraphStatusFromJobs(knowledgebase.id)
         return jobs
     }
 

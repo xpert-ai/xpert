@@ -73,6 +73,7 @@ import {
 import { TDocChunkMetadata } from './types'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries/get-owned-storage-file.query'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentPublication } from './document-publication'
 
 type OriginalFileDownloadTarget = {
     absolutePath: string
@@ -1178,6 +1179,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         delete changes.createdAt
         delete changes.updatedAt
         delete changes.deletedAt
+        delete changes.publicationEpoch
         delete changes.knowledgebase
         delete changes.storageFile
 
@@ -1762,10 +1764,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...chunk,
             contentHash: chunk.contentHash ?? computeKnowledgeDocumentChunkHash(chunk)
         }))
-        await this.updateDocument(documentId, {
-            contentHash: computeKnowledgeDocumentContentHash(chunks),
-            chunkNum: chunks.length
-        })
+        await writeKnowledgeDocumentPublication(
+            this as unknown as KnowledgeDocumentPublicationWriter,
+            documentId,
+            {
+                contentHash: computeKnowledgeDocumentContentHash(chunks),
+                chunkNum: chunks.length
+            },
+            true
+        )
     }
 
     private publishChunkMutation(document: KnowledgeDocument) {

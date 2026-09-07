@@ -6,7 +6,7 @@ import {
     isKnowledgeWikiChunkMetadata
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, QueryFailedError, Repository } from 'typeorm'
 import { v5 as uuidv5 } from 'uuid'
@@ -25,6 +25,8 @@ const MAX_ERROR_LENGTH = 4000
 
 @Injectable()
 export class KnowledgeWikiProjectionService {
+    private readonly logger = new Logger(KnowledgeWikiProjectionService.name)
+
     constructor(
         @InjectRepository(KnowledgeDocument)
         private readonly documentRepository: Repository<KnowledgeDocument>,
@@ -127,8 +129,43 @@ export class KnowledgeWikiProjectionService {
         }
         await this.pageVersionRepository.update(
             { knowledgebaseId: knowledgebase.id, id: In(uniqueVersionIds) },
-            { projectionStatus: 'disabled' }
+            { projectionStatus: 'disabled', projectionError: null }
         )
+    }
+
+    async retireSupersededVersions(knowledgebaseId?: string) {
+        // Published versions cannot become active again: publication advances the page's optimistic version.
+        // The committed pointer is the cleanup authority, including retries after a worker crash.
+        const query = this.pageVersionRepository
+            .createQueryBuilder('version')
+            .innerJoinAndSelect('version.knowledgebase', 'knowledgebase')
+            .innerJoin('version.page', 'page')
+            .where('version.publishedAt IS NOT NULL')
+            .andWhere('version.projectionStatus <> :disabled', { disabled: 'disabled' })
+            .andWhere('page.knowledgebaseId = version.knowledgebaseId')
+            .andWhere('page.activeVersionId IS DISTINCT FROM version.id')
+            .orderBy('version.updatedAt', 'ASC')
+            .addOrderBy('version.id', 'ASC')
+        if (knowledgebaseId) query.andWhere('version.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+        else query.take(50)
+
+        const groups = new Map<string, KnowledgeWikiPageVersion[]>()
+        for (const version of await query.getMany()) {
+            const group = groups.get(version.knowledgebaseId) ?? []
+            group.push(version)
+            groups.set(version.knowledgebaseId, group)
+        }
+        for (const versions of groups.values()) {
+            const versionIds = versions.map((version) => version.id)
+            try {
+                await this.retireVersions(versions[0].knowledgebase, versionIds)
+            } catch (error) {
+                const message = getErrorMessage(error).slice(0, MAX_ERROR_LENGTH)
+                // Keep the versions discoverable; updatedAt moves a failed batch behind other cleanup work.
+                await this.pageVersionRepository.update({ id: In(versionIds) }, { projectionError: message })
+                this.logger.warn(`Wiki projection cleanup will retry for '${versions[0].knowledgebaseId}': ${message}`)
+            }
+        }
     }
 
     private async ensureProjectionDocument(knowledgebase: Knowledgebase) {

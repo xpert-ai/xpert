@@ -62,7 +62,7 @@ function fixture() {
     const versions = { findOne: jest.fn(async () => version), update: jest.fn(), count: async () => 1 }
     const knowledgebase = Object.assign(new Knowledgebase(), { id: 'kb', wikiActiveRevision: 1 })
     const dispatcher = { dispatch: jest.fn(), markSucceeded: jest.fn() }
-    const projection = { stage: jest.fn() }
+    const projection = { stage: jest.fn(), retireSupersededVersions: jest.fn() }
     const service = Object.assign(Object.create(KnowledgeWikiFinalizeService.prototype), {
         jobRepository: jobs,
         pageRepository: pages,
@@ -86,6 +86,30 @@ function fixture() {
 }
 
 describe('Wiki publication conflict recovery', () => {
+    it('retires superseded projections only after the replacement transaction commits', async () => {
+        const { service, page, version, job, pages, projection, dispatcher } = fixture()
+        version.expectedPageVersion = page.version
+        pages.update.mockImplementation(async () => {
+            expect(projection.retireSupersededVersions).not.toHaveBeenCalled()
+            page.activeVersionId = version.id
+            return { affected: 1 }
+        })
+        projection.retireSupersededVersions.mockImplementation(async () => {
+            expect(page.activeVersionId).toBe(version.id)
+        })
+        await service.process(job)
+        expect(projection.retireSupersededVersions).toHaveBeenCalledWith('kb')
+        expect(dispatcher.markSucceeded).toHaveBeenCalledWith(job.id)
+    })
+
+    it('retries cleanup when the page pointer was already published by an earlier attempt', async () => {
+        const { service, page, version, job, projection } = fixture()
+        page.activeVersionId = version.id
+        await service.process(job)
+        expect(projection.stage).not.toHaveBeenCalled()
+        expect(projection.retireSupersededVersions).toHaveBeenCalledWith('kb')
+    })
+
     it('keeps the published version and schedules the conflicted page against current sources', async () => {
         const { service, page, child, job, dispatcher, projection } = fixture()
         await service.process(job)
@@ -94,6 +118,7 @@ describe('Wiki publication conflict recovery', () => {
         expect(job.status).toBe('queued')
         expect(job.generationAttempt).toBe(1)
         expect(projection.stage).not.toHaveBeenCalled()
+        expect(projection.retireSupersededVersions).not.toHaveBeenCalled()
         expect(dispatcher.dispatch).toHaveBeenCalledWith(expect.objectContaining({ id: 'reduce' }), 'user')
     })
 
@@ -105,6 +130,7 @@ describe('Wiki publication conflict recovery', () => {
         expect(page.activeVersionId).toBe('old-version')
         expect(child.status).toBe('queued')
         expect(dispatcher.markSucceeded).not.toHaveBeenCalled()
+        expect(projection.retireSupersededVersions).not.toHaveBeenCalled()
     })
 
     it('bounds automatic conflict retries and retains the published page', async () => {

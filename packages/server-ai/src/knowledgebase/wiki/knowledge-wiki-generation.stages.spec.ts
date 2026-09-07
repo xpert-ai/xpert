@@ -138,6 +138,7 @@ function createHarness(type: KnowledgeWikiJob['type'], children: Partial<Knowled
         jobFence,
         lease: new KnowledgeWikiJobLeaseService(jobs),
         indexService: new KnowledgeWikiIndexService(pages, versions, links),
+        projectionService: { retireSupersededVersions: jest.fn() },
         linkService: new KnowledgeWikiLinkService(pages, contributions, links),
         dataSource: dataSource as unknown as DataSource
     }

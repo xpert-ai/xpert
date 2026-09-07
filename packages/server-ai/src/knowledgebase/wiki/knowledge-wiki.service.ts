@@ -503,6 +503,7 @@ export class KnowledgeWikiService {
                 ...this.pageScope(scope),
                 id: In(uniqueIds),
                 status: 'ready',
+                projectionStatus: 'ready',
                 activeVersionId: Not(IsNull())
             }
         })
@@ -511,6 +512,7 @@ export class KnowledgeWikiService {
             const linkedPageId = backlinks ? row.sourcePageId : row.targetPageId
             const linkedPage = pagesById.get(linkedPageId)
             if (!linkedPage) return []
+            if (backlinks && row.sourcePageVersionId !== linkedPage.activeVersionId) return []
             return [
                 {
                     pageId: linkedPage.id,

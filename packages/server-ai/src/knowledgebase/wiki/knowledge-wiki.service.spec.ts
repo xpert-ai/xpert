@@ -18,7 +18,7 @@ function createService(params: {
     knowledgebase: Partial<Knowledgebase>
     canWrite: boolean
     readyPageCount?: number
-    pageRepository?: { findAndCount?: jest.Mock; findOne?: jest.Mock }
+    pageRepository?: { findAndCount?: jest.Mock; findOne?: jest.Mock; find?: jest.Mock }
     pageVersionRepository?: { find?: jest.Mock; findOne?: jest.Mock }
     evidenceRepository?: { find?: jest.Mock }
     linkRepository?: { find?: jest.Mock }
@@ -73,6 +73,58 @@ function createService(params: {
 }
 
 describe('KnowledgeWikiService', () => {
+    it('returns backlinks only from the source page active version', async () => {
+        const target = Object.assign(new KnowledgeWikiPage(), {
+            id: 'target',
+            activeVersionId: 'target-v1',
+            status: 'ready',
+            projectionStatus: 'ready'
+        })
+        const source = Object.assign(new KnowledgeWikiPage(), {
+            id: 'source',
+            activeVersionId: 'source-v2',
+            status: 'ready',
+            projectionStatus: 'ready'
+        })
+        const { service } = createService({
+            knowledgebase: { id: 'kb-1', type: KnowledgebaseTypeEnum.Standard },
+            canWrite: false,
+            pageRepository: {
+                findOne: jest.fn().mockResolvedValue(target),
+                find: jest.fn().mockResolvedValue([source])
+            },
+            pageVersionRepository: { findOne: jest.fn().mockResolvedValue({ id: 'target-v1', aliases: [] }) },
+            evidenceRepository: { find: jest.fn().mockResolvedValue([]) },
+            linkRepository: {
+                find: jest
+                    .fn()
+                    .mockResolvedValueOnce([])
+                    .mockResolvedValueOnce([
+                        {
+                            sourcePageId: 'source',
+                            sourcePageVersionId: 'source-v1',
+                            targetPageId: 'target',
+                            label: 'removed'
+                        },
+                        {
+                            sourcePageId: 'source',
+                            sourcePageVersionId: 'source-v2',
+                            targetPageId: 'target',
+                            label: 'current'
+                        },
+                        {
+                            sourcePageId: 'source',
+                            sourcePageVersionId: 'source-v3',
+                            targetPageId: 'target',
+                            label: 'staged'
+                        }
+                    ])
+            }
+        })
+        const detail = await service.getPage('kb-1', 'target')
+        expect(detail.backlinks).toEqual([expect.objectContaining({ pageId: 'source', label: 'current' })])
+    })
+
     it('offers a retry without an additional-charge warning for calls that were never executed', async () => {
         const { service } = createService({
             knowledgebase: { id: 'kb-1', type: KnowledgebaseTypeEnum.Standard, wikiStatus: 'failed' },

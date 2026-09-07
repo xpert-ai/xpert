@@ -84,10 +84,22 @@ export class KnowledgeWikiLinkService {
 
     async refreshCounts(knowledgebaseId: string) {
         const pages = await this.pageRepository.find({ where: { knowledgebaseId }, select: { id: true } })
+        if (!pages.length) return
+        const activeLinks = this.linkRepository
+            .createQueryBuilder('link')
+            .innerJoin('link.sourcePage', 'source')
+            .innerJoin('link.targetPage', 'target')
+            .where('link.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+            .andWhere('source.knowledgebaseId = link.knowledgebaseId AND target.knowledgebaseId = link.knowledgebaseId')
+            .andWhere('source.activeVersionId = link.sourcePageVersionId')
+            .andWhere('source.status = :ready AND source.projectionStatus = :ready', { ready: 'ready' })
+            .andWhere(
+                'target.status = :ready AND target.projectionStatus = :ready AND target.activeVersionId IS NOT NULL'
+            )
         for (const page of pages) {
             const [inboundLinkCount, outboundLinkCount] = await Promise.all([
-                this.linkRepository.count({ where: { knowledgebaseId, targetPageId: page.id } }),
-                this.linkRepository.count({ where: { knowledgebaseId, sourcePageId: page.id } })
+                activeLinks.clone().andWhere('link.targetPageId = :pageId', { pageId: page.id }).getCount(),
+                activeLinks.clone().andWhere('link.sourcePageId = :pageId', { pageId: page.id }).getCount()
             ])
             // Derived counts must not advance the optimistic content-publication version.
             await this.pageRepository.update(page.id, {

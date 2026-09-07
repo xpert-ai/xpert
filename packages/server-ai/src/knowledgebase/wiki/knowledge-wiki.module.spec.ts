@@ -6,12 +6,18 @@ import { KnowledgeWikiGenerationService } from './knowledge-wiki-generation.serv
 import { KnowledgeWikiPageReduceService } from './knowledge-wiki-page-reduce.service'
 import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invocation.service'
 import { KnowledgeWikiModule } from './knowledge-wiki.module'
+import { KnowledgeWikiReconcilerService } from './knowledge-wiki-reconciler.service'
 
 describe('KnowledgeWikiModule', () => {
     it('registers and constructs the worker and its extracted stages', async () => {
         const registered: unknown = Reflect.getMetadata(MODULE_METADATA.PROVIDERS, KnowledgeWikiModule)
         if (!Array.isArray(registered)) throw new Error('KnowledgeWikiModule providers are unavailable')
-        const stages = [KnowledgeWikiGenerationService, KnowledgeWikiPageReduceService, KnowledgeWikiFinalizeService]
+        const stages = [
+            KnowledgeWikiGenerationService,
+            KnowledgeWikiPageReduceService,
+            KnowledgeWikiFinalizeService,
+            KnowledgeWikiReconcilerService
+        ]
         expect(registered).toEqual(expect.arrayContaining(stages))
 
         // Verify constructor injection without opening database, queue or model connections.

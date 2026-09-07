@@ -8,6 +8,7 @@ import { Knowledgebase } from '../knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage } from './entities'
 import { KNOWLEDGE_WIKI_GENERATOR_VERSION } from './knowledge-wiki-config'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
+import { KnowledgeWikiProjectionService } from './knowledge-wiki-projection.service'
 
 const RECONCILE_INTERVAL_MS = 30_000
 const RECONCILE_BATCH_SIZE = 50
@@ -24,7 +25,8 @@ export class KnowledgeWikiReconcilerService {
         private readonly pageRepository: Repository<KnowledgeWikiPage>,
         @InjectRepository(Knowledgebase)
         private readonly knowledgebaseRepository: Repository<Knowledgebase>,
-        private readonly dispatcher: KnowledgeWikiJobDispatcherService
+        private readonly dispatcher: KnowledgeWikiJobDispatcherService,
+        private readonly projectionService: KnowledgeWikiProjectionService
     ) {}
 
     @Interval(RECONCILE_INTERVAL_MS)
@@ -66,6 +68,7 @@ export class KnowledgeWikiReconcilerService {
                 await this.dispatcher.dispatch(job, job.billingPrincipalId)
             }
 
+            await this.projectionService.retireSupersededVersions()
             await this.reconcileKnowledgebaseFailures()
             await this.reconcileGeneratorVersions()
         } catch (error) {

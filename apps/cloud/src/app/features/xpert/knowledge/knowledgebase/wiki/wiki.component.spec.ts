@@ -1,10 +1,14 @@
 import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
-import { provideRouter } from '@angular/router'
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { KnowledgeWikiRecoveryAction, KnowledgeWikiStatusResponse } from '@xpert-ai/contracts'
-import { of } from 'rxjs'
+import {
+  KnowledgeWikiPageListItem,
+  KnowledgeWikiRecoveryAction,
+  KnowledgeWikiStatusResponse
+} from '@xpert-ai/contracts'
+import { BehaviorSubject, of } from 'rxjs'
 import { KnowledgeWikiService, ToastrService } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { KnowledgeWikiComponent } from './wiki.component'
@@ -109,5 +113,100 @@ describe('Wiki recovery messages', () => {
     await fixture.whenStable()
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(service.retryJob).not.toHaveBeenCalled()
+  })
+})
+
+describe('Wiki related-page navigation', () => {
+  function page(id: string): KnowledgeWikiPageListItem {
+    return {
+      id,
+      pageKey: `concept:${id}`,
+      pageType: 'concept',
+      canonicalName: id,
+      title: id,
+      slug: id,
+      summary: '',
+      status: 'ready',
+      projectionStatus: 'ready',
+      updatedAt: '2026-09-07T00:00:00Z'
+    }
+  }
+
+  async function setup(listSize: number) {
+    const params = new BehaviorSubject(convertToParamMap({ wikiPageId: 'A', section: 'old-section' }))
+    const route = { queryParamMap: params, snapshot: { queryParamMap: params.value } }
+    const router = {
+      url: '/wiki?wikiPageId=A&section=old-section',
+      navigate: jest.fn(async (_commands: unknown[], options: { queryParams: { wikiPageId?: string } }) => {
+        if (options.queryParams.wikiPageId) {
+          router.url = `/wiki?wikiPageId=${options.queryParams.wikiPageId}`
+          route.snapshot.queryParamMap = convertToParamMap({ wikiPageId: options.queryParams.wikiPageId })
+          params.next(route.snapshot.queryParamMap)
+        }
+        return true
+      })
+    }
+    const service = {
+      getStatus: jest.fn(() => of({ enabled: true, status: 'ready' })),
+      getPages: jest.fn(() =>
+        of({ items: Array.from({ length: listSize }, (_, i) => page(i ? `page-${i}` : 'A')), total: 60 })
+      ),
+      getPage: jest.fn((_kb: string, id: string) =>
+        of({ ...page(id), markdown: '', links: [], backlinks: [], evidence: [] })
+      )
+    }
+    await TestBed.configureTestingModule({
+      imports: [KnowledgeWikiComponent, TranslateModule.forRoot()],
+      providers: [
+        { provide: KnowledgeWikiService, useValue: service },
+        { provide: KnowledgebaseComponent, useValue: { paramId: signal('kb') } },
+        { provide: ToastrService, useValue: { danger: jest.fn() } },
+        { provide: ActivatedRoute, useValue: route },
+        { provide: Router, useValue: router }
+      ]
+    })
+      .overrideComponent(KnowledgeWikiComponent, { set: { template: '' } })
+      .compileComponents()
+    const fixture = TestBed.createComponent(KnowledgeWikiComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    return { fixture, router, route, service }
+  }
+
+  afterEach(() => TestBed.resetTestingModule())
+
+  it.each([1, 50])(
+    'keeps the URL, reload, and evidence return aligned for a page outside a %i-item list',
+    async (size) => {
+      const { fixture, router, route, service } = await setup(size)
+      fixture.componentInstance.openLinkedPage('B')
+      await fixture.whenStable()
+      expect(router.navigate).toHaveBeenCalledWith([], {
+        relativeTo: route,
+        queryParams: { wikiPageId: 'B', section: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true
+      })
+      expect(fixture.componentInstance.selectedPage()?.id).toBe('B')
+      fixture.componentInstance.openEvidence('document', 'chunk')
+      expect(router.navigate).toHaveBeenLastCalledWith(['/xpert/knowledges', 'kb', 'documents', 'document'], {
+        queryParams: { chunkId: 'chunk', returnTo: '/wiki?wikiPageId=B' }
+      })
+      fixture.destroy()
+      service.getPage.mockClear()
+      const reloaded = TestBed.createComponent(KnowledgeWikiComponent)
+      reloaded.detectChanges()
+      await reloaded.componentInstance.refresh()
+      await reloaded.whenStable()
+      expect(service.getPage).toHaveBeenCalledWith('kb', 'B')
+      expect(reloaded.componentInstance.selectedPage()?.id).toBe('B')
+    }
+  )
+
+  it('uses the same navigation for a listed page', async () => {
+    const { fixture, router } = await setup(1)
+    await fixture.componentInstance.selectPage(page('A'))
+    expect(router.url).toBe('/wiki?wikiPageId=A')
+    expect(fixture.componentInstance.selectedPage()?.id).toBe('A')
   })
 })

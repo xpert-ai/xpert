@@ -102,6 +102,18 @@ describe('Graph index job stage persistence', () => {
         expect(extract).not.toHaveBeenCalled()
     })
 
+    it('rejects an earlier publication after extraction even when the content hash returns to its original value', async () => {
+        const { service, job, documentService, extract, persist, sync } = setup()
+        extract.mockImplementation(async () => {
+            documentService.findOne.mockResolvedValue({ id: 'doc', contentHash: 'hash', publicationEpoch: 3 })
+            return { entities: [], relations: [] }
+        })
+        await service.processIndexJob('job')
+        expect(job.result).toBe('superseded')
+        expect(persist).not.toHaveBeenCalled()
+        expect(sync).not.toHaveBeenCalled()
+    })
+
     it('records disabled Graph without claiming a generated graph', async () => {
         const { service, job, extract } = setup()
         job.knowledgebase.graphRag.enabled = false

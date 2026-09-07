@@ -45,6 +45,10 @@ import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
 import { ERROR_CHANNEL_NAME } from '../types'
 import { TDocChunkMetadata } from '../../../knowledge-document/types'
+import {
+    KnowledgeDocumentPublicationWriter,
+    writeKnowledgeDocumentProcessingMetadata
+} from '../../../knowledge-document/document-publication'
 
 const InfoChannelName = 'info'
 const TaskChannelName = 'task'
@@ -290,7 +294,8 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                                   embeddingTokenUsed
                                               )
                                             : this.createSkippedIncrementalSyncMetadata(document)
-                                    }
+                                    },
+                                    syncResult?.contentChanged === true
                                 )
                                 await this.publicationService.publish({
                                     knowledgebase,
@@ -446,20 +451,16 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
     private async updateDocumentProcessingMetadata(
         documentId: string,
         updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>,
-        metadataPatch?: Partial<KnowledgeDocumentMetadata>
+        metadataPatch?: Partial<KnowledgeDocumentMetadata>,
+        contentChanged?: boolean
     ) {
-        if (!metadataPatch) {
-            return await this.documentService.update(documentId, updates)
-        }
-
-        const current = await this.documentService.findOne(documentId, { select: { id: true, metadata: true } })
-        return await this.documentService.update(documentId, {
-            ...updates,
-            metadata: {
-                ...(current.metadata ?? {}),
-                ...metadataPatch
-            }
-        })
+        return writeKnowledgeDocumentProcessingMetadata(
+            this.documentService as unknown as KnowledgeDocumentPublicationWriter,
+            documentId,
+            updates,
+            metadataPatch,
+            contentChanged
+        )
     }
 
     async checkIfJobCancelled(docId: string): Promise<boolean> {

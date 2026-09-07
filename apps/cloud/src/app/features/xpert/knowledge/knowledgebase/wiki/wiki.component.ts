@@ -154,15 +154,19 @@ export class KnowledgeWikiComponent {
     }
   }
 
-  async selectPage(page: KnowledgeWikiPageListItem) {
-    this.selectedPageId.set(page.id)
+  selectPage(page: KnowledgeWikiPageListItem) {
+    return this.openPage(page.id)
+  }
+
+  private async openPage(pageId: string) {
+    this.selectedPageId.set(pageId)
     await this.#router.navigate([], {
       relativeTo: this.#route,
-      queryParams: { wikiPageId: page.id, section: null },
+      queryParams: { wikiPageId: pageId, section: null },
       queryParamsHandling: 'merge',
       replaceUrl: true
     })
-    await this.loadPage(page.id)
+    await this.loadPage(pageId)
   }
 
   async loadPage(pageId: string) {
@@ -256,12 +260,7 @@ export class KnowledgeWikiComponent {
   }
 
   openLinkedPage(pageId: string) {
-    const page = this.pages().find((item) => item.id === pageId)
-    if (page) void this.selectPage(page)
-    else {
-      this.selectedPageId.set(pageId)
-      void this.loadPage(pageId)
-    }
+    void this.openPage(pageId)
   }
 
   openEvidence(documentId: string, chunkId: string) {
