@@ -23,6 +23,28 @@ const base: DocumentWikiProgressRow = {
     uncertain: false
 }
 describe('Document Wiki lifecycle projection', () => {
+    it('keeps identity resolution in the generation stage and exposes its failed job for retry', () => {
+        expect(
+            deriveDocumentWikiProgress(
+                { ...base, reducePending: true, versionCount: 0, finalizeStatus: null },
+                false,
+                true
+            )
+        ).toMatchObject({ state: 'generating', stages: { generation: 'running' } })
+        expect(
+            deriveDocumentWikiProgress(
+                {
+                    ...base,
+                    reducePending: true,
+                    versionCount: 0,
+                    failureJobId: 'dedup',
+                    failureType: 'identity_resolve'
+                },
+                false,
+                true
+            )
+        ).toMatchObject({ state: 'failed', stages: { generation: 'failed' }, retry: { jobId: 'dedup' } })
+    })
     it.each(['queued', 'running'] as const)('reports an active source-map state (%s)', (mapStatus) => {
         expect(deriveDocumentWikiProgress({ ...base, mapStatus }, false, true).state).toBe(
             mapStatus === 'queued' ? 'queued' : 'generating'

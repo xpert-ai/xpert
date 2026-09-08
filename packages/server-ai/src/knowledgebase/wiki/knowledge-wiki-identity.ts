@@ -7,16 +7,16 @@ export function normalizeKnowledgeWikiCanonicalName(value: string) {
     return value.normalize('NFKC').trim().replace(/\s+/gu, ' ').toLowerCase()
 }
 
-export function createKnowledgeWikiMappedPageIdentity(
+export function createKnowledgeWikiResolvedPageIdentity(
     pageType: KnowledgeWikiMappedPageType,
     canonicalName: string,
-    sourceDocumentId: string
+    sourceDocumentId: string,
+    pageId: string
 ) {
-    const normalizedCanonicalName = normalizeKnowledgeWikiCanonicalName(canonicalName)
-    const pageKey = pageType === 'summary' ? `summary:${sourceDocumentId}` : `${pageType}:${normalizedCanonicalName}`
+    const pageKey = pageType === 'summary' ? `summary:${sourceDocumentId}` : `${pageType}:${pageId}`
     return {
         pageKey,
-        normalizedCanonicalName,
+        normalizedCanonicalName: normalizeKnowledgeWikiCanonicalName(canonicalName),
         slug: createKnowledgeWikiSlug(canonicalName, pageKey)
     }
 }

@@ -3,7 +3,7 @@ import { toJsonSchema } from '@langchain/core/utils/json_schema'
 import {
     AiModelTypeEnum,
     isOutputTokenParameter,
-    KnowledgeWikiPageContributionPayload,
+    KnowledgeWikiPageSourcePayload,
     normalizeKnowledgebaseWikiConfig
 } from '@xpert-ai/contracts'
 import { countTokensSafe } from '@xpert-ai/plugin-sdk'
@@ -32,6 +32,13 @@ import {
 import { KnowledgeWikiMapModelOutput, KnowledgeWikiModelOutput, KnowledgeWikiReduceModelOutput } from './types'
 import { hashKnowledgeWikiValue } from './knowledge-wiki-generation.utils'
 import { KnowledgeWikiInvocationBudgetService } from './knowledge-wiki-invocation-budget.service'
+import {
+    buildKnowledgeWikiDedupMessages,
+    knowledgeWikiDedupOutputSchema,
+    KnowledgeWikiDedupModelInput,
+    KnowledgeWikiDedupModelOutput,
+    parseKnowledgeWikiDedupOutput
+} from './knowledge-wiki-dedup-model'
 
 const MAX_ERROR_LENGTH = 4000
 
@@ -43,7 +50,7 @@ type UsageTotals = {
 
 export type KnowledgeWikiReduceSource = {
     document: KnowledgeDocument
-    payload: KnowledgeWikiPageContributionPayload
+    payload: KnowledgeWikiPageSourcePayload
     lifecycleGeneration: number
     evidence: Array<{
         sourceChunkId: string
@@ -125,14 +132,35 @@ export class KnowledgeWikiModelInvocationService {
         })
     }
 
+    invokeDedupModel(
+        job: KnowledgeWikiJob,
+        knowledgebase: Knowledgebase,
+        input: KnowledgeWikiDedupModelInput,
+        ordinal: number
+    ) {
+        return this.invokeModel<KnowledgeWikiDedupModelOutput>({
+            job,
+            knowledgebase,
+            stage: 'dedup',
+            ordinal,
+            inputFingerprint: hashKnowledgeWikiValue(input),
+            messages: buildKnowledgeWikiDedupMessages(input),
+            schema: knowledgeWikiDedupOutputSchema,
+            parse: (value) => parseKnowledgeWikiDedupOutput(value, input)
+        })
+    }
+
     private async invokeModel<T extends KnowledgeWikiModelOutput>(input: {
         job: KnowledgeWikiJob
         knowledgebase: Knowledgebase
-        stage: 'map' | 'reduce'
+        stage: 'map' | 'dedup' | 'reduce'
         ordinal: number
         inputFingerprint: string
         messages: Array<{ role: 'system' | 'user'; content: string }>
-        schema: typeof knowledgeWikiMapOutputSchema | typeof knowledgeWikiReduceOutputSchema
+        schema:
+            | typeof knowledgeWikiMapOutputSchema
+            | typeof knowledgeWikiReduceOutputSchema
+            | typeof knowledgeWikiDedupOutputSchema
         parse: (value: unknown) => T
     }): Promise<T> {
         const model = resolveKnowledgeWikiModel(input.knowledgebase)
@@ -193,14 +221,14 @@ export class KnowledgeWikiModelInvocationService {
             throw this.indeterminateError()
         }
         let usage: UsageTotals = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
-        const running: Partial<KnowledgeWikiModelInvocation> = {
+        const running = {
             status: 'running',
             reconciliationStatus: 'not_available',
             errorCode: null,
             error: null,
             completedAt: null,
             billingStatus: 'pending'
-        }
+        } satisfies Partial<KnowledgeWikiModelInvocation>
         const claimed = await this.invocationRepository.update(
             {
                 id: invocation.id,
@@ -231,7 +259,7 @@ export class KnowledgeWikiModelInvocationService {
                 }
             )
             const structured = client.withStructuredOutput(schema, {
-                name: input.stage === 'map' ? 'knowledge_wiki_map' : 'knowledge_wiki_reduce'
+                name: `knowledge_wiki_${input.stage}`
             })
             invocationStarted = true
             const rawOutput = await structured.invoke(input.messages)

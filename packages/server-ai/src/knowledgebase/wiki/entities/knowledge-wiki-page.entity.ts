@@ -1,4 +1,9 @@
-import { KnowledgeWikiPageStatus, KnowledgeWikiPageType, KnowledgeWikiProjectionStatus } from '@xpert-ai/contracts'
+import {
+    KnowledgeWikiPageStatus,
+    KnowledgeWikiPageType,
+    KnowledgeWikiProjectionStatus,
+    KnowledgeWikiIdentityProfile
+} from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId, VersionColumn } from 'typeorm'
 import { Knowledgebase } from '../../knowledgebase.entity'
@@ -32,6 +37,13 @@ export class KnowledgeWikiPage extends TenantOrganizationBaseEntity {
 
     @Column({ type: 'varchar', length: 512 })
     normalizedCanonicalName: string
+
+    /** Internal identity catalogue; article text and displayed aliases belong to published versions. */
+    @Column({ type: 'jsonb', nullable: true })
+    identity?: KnowledgeWikiIdentityProfile | null
+
+    @Column({ type: 'int', default: 0 })
+    identityRevision: number
 
     @Column({ type: 'varchar', length: 600 })
     slug: string

@@ -44,6 +44,10 @@ import { KnowledgeWikiRetractionService } from './knowledge-wiki-retraction.serv
 import { JOB_KNOWLEDGE_WIKI_GENERATION } from './types'
 import { KnowledgeWikiCommandHandlers } from './commands/handlers'
 
+import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
+import { KnowledgeWikiIdentityEmbeddingService } from './knowledge-wiki-identity-embedding.service'
+import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-scheduler.service'
+
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgeWikiModule }]),
@@ -73,6 +77,9 @@ import { KnowledgeWikiCommandHandlers } from './commands/handlers'
     ],
     controllers: [KnowledgeWikiController],
     providers: [
+        KnowledgeWikiIdentityResolverService,
+        KnowledgeWikiIdentityEmbeddingService,
+        KnowledgeWikiPageSchedulerService,
         KnowledgeWikiService,
         KnowledgeWikiGenerationService,
         KnowledgeWikiFinalizeService,

@@ -60,7 +60,12 @@ export function deriveDocumentWikiProgress(
         result.state = 'failed'
         if (row.failureShared) {
             result.waitingForBatch = true
-        } else if (row.failureType === 'source_map' || row.failureType === 'page_reduce' || !generated) {
+        } else if (
+            row.failureType === 'source_map' ||
+            row.failureType === 'identity_resolve' ||
+            row.failureType === 'page_reduce' ||
+            !generated
+        ) {
             result.stages.generation = 'failed'
         } else if (result.stages.indexing !== 'complete') result.stages.indexing = 'failed'
         else result.stages.publication = 'failed'

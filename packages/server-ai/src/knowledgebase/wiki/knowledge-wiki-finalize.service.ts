@@ -20,6 +20,7 @@ import { KnowledgeWikiError } from './knowledge-wiki-error'
 // Invariants: wait for reductions, stage projections, then publish all page pointers in one transaction.
 // A failed child or page-version conflict must not activate the staged knowledgebase revision.
 // Projection staging stays outside the transaction; recheck the job fence before publication.
+// Lock the knowledgebase before pages, matching identity resolution's lock order.
 @Injectable()
 export class KnowledgeWikiFinalizeService {
     constructor(
@@ -119,6 +120,10 @@ export class KnowledgeWikiFinalizeService {
         await this.jobFence.assert(job)
         try {
             await this.dataSource.transaction(async (manager) => {
+                await manager.getRepository(Knowledgebase).findOneOrFail({
+                    where: { id: knowledgebase.id },
+                    lock: { mode: 'pessimistic_write' }
+                })
                 for (const candidate of [...candidates].sort((left, right) =>
                     left.page.id.localeCompare(right.page.id)
                 )) {

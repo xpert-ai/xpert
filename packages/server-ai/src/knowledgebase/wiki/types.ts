@@ -39,14 +39,20 @@ export type KnowledgeWikiRetryInput = {
 }
 
 export type KnowledgeWikiMapModelOutput = {
-    pages: import('@xpert-ai/contracts').KnowledgeWikiPageContributionPayload[]
+    pages: Array<
+        import('@xpert-ai/contracts').KnowledgeWikiPageContributionPayload & {
+            identity: import('@xpert-ai/contracts').KnowledgeWikiIdentityDescriptor
+        }
+    >
 }
 
 export type KnowledgeWikiReduceModelOutput = {
     title: string
     summary: string
     contentMarkdown: string
-    aliases: string[]
 }
 
-export type KnowledgeWikiModelOutput = KnowledgeWikiMapModelOutput | KnowledgeWikiReduceModelOutput
+export type KnowledgeWikiModelOutput =
+    | KnowledgeWikiMapModelOutput
+    | KnowledgeWikiReduceModelOutput
+    | import('./knowledge-wiki-dedup-model').KnowledgeWikiDedupModelOutput

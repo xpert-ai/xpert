@@ -607,6 +607,8 @@
         "KnowledgebaseWikiIndexFailed": "Wiki search indexing failed. Retry to resume; existing published pages remain available.",
         "KnowledgebaseVectorBatchInvalid": "The vector, document and identifier counts must match.",
         "KnowledgebaseVectorCollectionConflict": "A vector identifier belongs to another collection.",
+        "KnowledgebaseWikiIdentityInvalid": "Wiki identity output is inconsistent with its page type or supplied candidates.",
+        "KnowledgebaseWikiIdentityStale": "Wiki identity resolution no longer matches the current source or job. Retry with the current source.",
         "KnowledgebaseWikiFinalizeConflict": "The Wiki page changed while its new version was being published.",
         "KnowledgebaseWikiJobStale": "The Wiki job is stale for the current revision or configuration.",
         "KnowledgebaseWikiFingerprintStale": "The Wiki job configuration fingerprint is no longer active.",

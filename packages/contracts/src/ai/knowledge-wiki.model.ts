@@ -49,7 +49,13 @@ export type KnowledgeWikiPageStatus = 'building' | 'ready' | 'stale' | 'failed' 
 
 export type KnowledgeWikiProjectionStatus = 'pending' | 'ready' | 'failed' | 'disabled'
 
-export type KnowledgeWikiJobType = 'source_map' | 'page_reduce' | 'retract' | 'rebuild' | 'finalize'
+export type KnowledgeWikiJobType =
+  | 'source_map'
+  | 'identity_resolve'
+  | 'page_reduce'
+  | 'retract'
+  | 'rebuild'
+  | 'finalize'
 
 export type KnowledgeWikiJobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'stale' | 'cancelled'
 
@@ -167,6 +173,9 @@ export type KnowledgeWikiPageContributionPayload = {
   }>
 }
 
+/** One source's contributions after identity resolution. Aggregate counts may exceed Map output limits. */
+export type KnowledgeWikiPageSourcePayload = KnowledgeWikiPageContributionPayload
+
 export const KNOWLEDGE_WIKI_MAX_ALIASES = 20
 export const KNOWLEDGE_WIKI_MAX_FACTS = 100
 export const KNOWLEDGE_WIKI_MAX_SUGGESTED_LINKS = 50
@@ -183,7 +192,10 @@ function isBoundedStringArray(value: unknown, maxItems: number, maxItemLength: n
   return Array.isArray(value) && value.length <= maxItems && value.every((item) => isBoundedString(item, maxItemLength))
 }
 
-function isKnowledgeWikiFact(value: unknown): value is KnowledgeWikiPageContributionPayload['facts'][number] {
+function isKnowledgeWikiFact(
+  value: unknown,
+  aggregated = false
+): value is KnowledgeWikiPageContributionPayload['facts'][number] {
   return (
     !!value &&
     typeof value === 'object' &&
@@ -192,7 +204,7 @@ function isKnowledgeWikiFact(value: unknown): value is KnowledgeWikiPageContribu
     'sourceChunkIds' in value &&
     isBoundedStringArray(
       value.sourceChunkIds,
-      KNOWLEDGE_WIKI_MAX_SOURCE_CHUNKS_PER_FACT,
+      aggregated ? Infinity : KNOWLEDGE_WIKI_MAX_SOURCE_CHUNKS_PER_FACT,
       KNOWLEDGE_WIKI_MAX_CANONICAL_NAME_LENGTH
     ) &&
     value.sourceChunkIds.length > 0
@@ -216,6 +228,14 @@ function isKnowledgeWikiSuggestedLink(
 }
 
 export function isKnowledgeWikiPageContributionPayload(value: unknown): value is KnowledgeWikiPageContributionPayload {
+  return isWikiContribution(value, false)
+}
+
+export function isKnowledgeWikiPageSourcePayload(value: unknown): value is KnowledgeWikiPageSourcePayload {
+  return isWikiContribution(value, true)
+}
+
+function isWikiContribution(value: unknown, aggregated: boolean): value is KnowledgeWikiPageContributionPayload {
   return (
     !!value &&
     typeof value === 'object' &&
@@ -226,16 +246,20 @@ export function isKnowledgeWikiPageContributionPayload(value: unknown): value is
     'canonicalName' in value &&
     isBoundedString(value.canonicalName, KNOWLEDGE_WIKI_MAX_CANONICAL_NAME_LENGTH) &&
     'aliases' in value &&
-    isBoundedStringArray(value.aliases, KNOWLEDGE_WIKI_MAX_ALIASES, KNOWLEDGE_WIKI_MAX_CANONICAL_NAME_LENGTH) &&
+    isBoundedStringArray(
+      value.aliases,
+      aggregated ? Infinity : KNOWLEDGE_WIKI_MAX_ALIASES,
+      KNOWLEDGE_WIKI_MAX_CANONICAL_NAME_LENGTH
+    ) &&
     'summary' in value &&
-    isBoundedString(value.summary, KNOWLEDGE_WIKI_MAX_SUMMARY_LENGTH) &&
+    isBoundedString(value.summary, aggregated ? Infinity : KNOWLEDGE_WIKI_MAX_SUMMARY_LENGTH) &&
     'facts' in value &&
     Array.isArray(value.facts) &&
-    value.facts.length <= KNOWLEDGE_WIKI_MAX_FACTS &&
-    value.facts.every(isKnowledgeWikiFact) &&
+    (aggregated || value.facts.length <= KNOWLEDGE_WIKI_MAX_FACTS) &&
+    value.facts.every((fact) => isKnowledgeWikiFact(fact, aggregated)) &&
     'suggestedLinks' in value &&
     Array.isArray(value.suggestedLinks) &&
-    value.suggestedLinks.length <= KNOWLEDGE_WIKI_MAX_SUGGESTED_LINKS &&
+    (aggregated || value.suggestedLinks.length <= KNOWLEDGE_WIKI_MAX_SUGGESTED_LINKS) &&
     value.suggestedLinks.every(isKnowledgeWikiSuggestedLink)
   )
 }

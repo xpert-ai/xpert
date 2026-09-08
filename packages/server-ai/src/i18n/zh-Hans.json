@@ -607,6 +607,8 @@
         "KnowledgebaseWikiIndexFailed": "Wiki 检索索引失败，可重试继续处理，原有发布页面仍可用。",
         "KnowledgebaseVectorBatchInvalid": "向量、文档和标识符的数量必须一致。",
         "KnowledgebaseVectorCollectionConflict": "向量标识符属于另一个集合。",
+        "KnowledgebaseWikiIdentityInvalid": "Wiki 身份判断结果与条目类型或提供的候选不一致。",
+        "KnowledgebaseWikiIdentityStale": "Wiki 身份判断对应的来源或任务已发生变化，请使用当前来源重试。",
         "KnowledgebaseWikiFinalizeConflict": "发布新版本时 Wiki 页面已发生变化。",
         "KnowledgebaseWikiJobStale": "Wiki 任务与当前版本或配置不一致，已失效。",
         "KnowledgebaseWikiFingerprintStale": "Wiki 任务的配置指纹已不再生效。",

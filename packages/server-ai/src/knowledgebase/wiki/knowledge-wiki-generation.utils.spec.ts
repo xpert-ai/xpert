@@ -1,10 +1,7 @@
+import { mergeResolvedWikiContributions } from './knowledge-wiki-dedup'
 import { KBDocumentStatusEnum, KDocumentSourceType } from '@xpert-ai/contracts'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
-import {
-    createKnowledgeWikiMapBatches,
-    isEligibleKnowledgeWikiSource,
-    mergeKnowledgeWikiMapPages
-} from './knowledge-wiki-generation.utils'
+import { createKnowledgeWikiMapBatches, isEligibleKnowledgeWikiSource } from './knowledge-wiki-generation.utils'
 
 describe('knowledge Wiki generation utilities', () => {
     it('excludes unfinished, deleted, and system-managed sources', () => {
@@ -53,8 +50,8 @@ describe('knowledge Wiki generation utilities', () => {
         ).toHaveLength(1)
     })
 
-    it('merges exact page identities without dropping evidence chunk ids', () => {
-        const pages = mergeKnowledgeWikiMapPages([
+    it('aggregates already resolved source contributions without dropping evidence chunk ids', () => {
+        const page = mergeResolvedWikiContributions([
             {
                 schemaVersion: 1,
                 pageType: 'entity',
@@ -67,7 +64,7 @@ describe('knowledge Wiki generation utilities', () => {
             {
                 schemaVersion: 1,
                 pageType: 'entity',
-                canonicalName: ' xpert ',
+                canonicalName: 'Xpert',
                 aliases: ['Xpert Platform'],
                 summary: 'Second',
                 facts: [{ text: 'Shared fact', sourceChunkIds: ['chunk-2'] }],
@@ -75,8 +72,7 @@ describe('knowledge Wiki generation utilities', () => {
             }
         ])
 
-        expect(pages).toHaveLength(1)
-        expect(pages[0].aliases).toEqual(['Xpert AI', 'Xpert Platform'])
-        expect(pages[0].facts[0].sourceChunkIds).toEqual(['chunk-1', 'chunk-2'])
+        expect(page.aliases).toEqual(['Xpert AI', 'Xpert Platform'])
+        expect(page.facts[0].sourceChunkIds).toEqual(['chunk-1', 'chunk-2'])
     })
 })

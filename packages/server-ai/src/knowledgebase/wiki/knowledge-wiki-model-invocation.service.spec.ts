@@ -59,6 +59,13 @@ describe('KnowledgeWikiModelInvocationService', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'entity',
+                    identity: {
+                        kind: 'entity',
+                        entityType: 'product',
+                        description: 'An AI platform.',
+                        scope: null,
+                        identifiers: []
+                    },
                     canonicalName: 'Xpert',
                     aliases: [],
                     summary: 'An AI platform.',
@@ -130,6 +137,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'concept',
+                    identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
                     canonicalName: 'Strategy',
                     aliases: [],
                     summary: 'A documented strategy.',
@@ -163,6 +171,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'concept',
+                    identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
                     canonicalName: 'Strategy',
                     aliases: [],
                     summary: 'A documented strategy.',
@@ -354,6 +363,9 @@ describe('KnowledgeWikiModelInvocationService', () => {
         await expect(service.invokeMapModel(job as never, knowledgebase as never, 'doc', [], 0)).resolves.toEqual({
             pages: []
         })
+        const nullableScope = {
+            anyOf: [{ type: 'string', minLength: 1, maxLength: 1000 }, { type: 'null' }]
+        }
         expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
             response_format: {
                 type: 'json_schema',
@@ -363,6 +375,19 @@ describe('KnowledgeWikiModelInvocationService', () => {
                             pages: {
                                 items: {
                                     properties: {
+                                        identity: {
+                                            anyOf: [
+                                                { properties: { kind: { const: 'summary' } } },
+                                                { properties: { kind: { const: 'entity' }, scope: nullableScope } },
+                                                {
+                                                    properties: {
+                                                        kind: { const: 'concept' },
+                                                        domain: nullableScope,
+                                                        scope: nullableScope
+                                                    }
+                                                }
+                                            ]
+                                        },
                                         suggestedLinks: {
                                             items: { required: ['targetType', 'targetCanonicalName', 'label'] }
                                         }
@@ -382,7 +407,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
                 [],
                 'reduce-1'
             )
-        ).resolves.toEqual({ title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert', aliases: [] })
+        ).resolves.toEqual({ title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert' })
         expect(fetch).toHaveBeenCalledTimes(2)
     })
 
@@ -478,5 +503,49 @@ describe('KnowledgeWikiModelInvocationService', () => {
         )
         expect(results.some((result) => result.status === 'fulfilled')).toBe(true)
         expect(invoke).toHaveBeenCalledTimes(1)
+    })
+
+    it('journals and replays identity decisions without repeating the provider call or billing', async () => {
+        const { service, invoke, invocations, commandBus, withStructuredOutput } = createHarness()
+        invoke.mockResolvedValue({ decision: 'same', pageId: 'page-1', reason: 'Same documented team.' })
+        const descriptor = {
+            kind: 'entity' as const,
+            entityType: 'organization' as const,
+            description: 'North team.',
+            scope: null,
+            identifiers: []
+        }
+        const input = {
+            candidateId: 'candidate',
+            canonicalName: 'Northern Team',
+            aliases: [],
+            descriptor,
+            facts: [],
+            candidates: [{ id: 'page-1', canonicalName: 'North Team', aliases: [], descriptor }]
+        }
+        const first = await service.invokeDedupModel(job as never, knowledgebase as never, input, 0)
+        expect(await service.invokeDedupModel(job as never, knowledgebase as never, input, 0)).toEqual(first)
+        expect(invoke).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(invocations[0].stage).toBe('dedup')
+        expect(withStructuredOutput).toHaveBeenCalledWith(expect.anything(), { name: 'knowledge_wiki_dedup' })
+    })
+
+    it('does not cache an out-of-candidate identity as a successful decision', async () => {
+        const { service, invoke, invocations } = createHarness()
+        invoke.mockResolvedValue({ decision: 'same', pageId: 'foreign', reason: 'Invalid target.' })
+        const input = {
+            candidateId: 'candidate',
+            canonicalName: 'Concept',
+            aliases: [],
+            descriptor: { kind: 'concept' as const, definition: 'Definition.', domain: null, scope: null },
+            facts: [],
+            candidates: []
+        }
+        await expect(service.invokeDedupModel(job as never, knowledgebase as never, input, 0)).rejects.toMatchObject({
+            code: 'knowledge_wiki_identity_invalid'
+        })
+        expect(invocations[0].status).not.toBe('succeeded')
+        expect(invocations[0].structuredOutput).toBeUndefined()
     })
 })

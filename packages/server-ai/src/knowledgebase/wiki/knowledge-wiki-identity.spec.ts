@@ -1,26 +1,26 @@
 import {
     createKnowledgeWikiIndexPageKey,
-    createKnowledgeWikiMappedPageIdentity,
+    createKnowledgeWikiResolvedPageIdentity,
     normalizeKnowledgeWikiCanonicalName
 } from './knowledge-wiki-identity'
 
 describe('knowledge Wiki page identity', () => {
-    it('merges entity and concept pages only by page type and normalized canonical name', () => {
+    it('uses the resolved stable identity instead of merging by normalized name', () => {
         expect(normalizeKnowledgeWikiCanonicalName('  Weighted   RRF ')).toBe('weighted rrf')
-        expect(createKnowledgeWikiMappedPageIdentity('entity', 'Weighted RRF', 'document-1').pageKey).toBe(
-            createKnowledgeWikiMappedPageIdentity('entity', ' weighted  rrf ', 'document-2').pageKey
-        )
-        expect(createKnowledgeWikiMappedPageIdentity('concept', 'Weighted RRF', 'document-1').pageKey).not.toBe(
-            createKnowledgeWikiMappedPageIdentity('entity', 'Weighted RRF', 'document-1').pageKey
-        )
+        const first = createKnowledgeWikiResolvedPageIdentity('entity', 'North Team', 'doc-1', 'north')
+        const alias = createKnowledgeWikiResolvedPageIdentity('entity', 'Northern Operations', 'doc-2', 'north')
+        const namesake = createKnowledgeWikiResolvedPageIdentity('entity', 'North Team', 'doc-3', 'south')
+        expect(first.pageKey).toBe(alias.pageKey)
+        expect(first.pageKey).not.toBe(namesake.pageKey)
     })
 
     it('keeps summary identity stable and separate per source document', () => {
-        const first = createKnowledgeWikiMappedPageIdentity('summary', 'Repeated title', 'document-1')
-        const second = createKnowledgeWikiMappedPageIdentity('summary', 'Repeated title', 'document-2')
-
+        const first = createKnowledgeWikiResolvedPageIdentity('summary', 'Report', 'doc-1', 'page-1')
+        const renamed = createKnowledgeWikiResolvedPageIdentity('summary', 'Renamed report', 'doc-1', 'page-1')
+        const second = createKnowledgeWikiResolvedPageIdentity('summary', 'Report', 'doc-2', 'page-2')
+        expect(first.pageKey).toBe(renamed.pageKey)
+        expect(first.pageKey).toBe('summary:doc-1')
         expect(first.pageKey).not.toBe(second.pageKey)
-        expect(first.pageKey).toBe('summary:document-1')
         expect(first.slug).not.toBe(second.slug)
     })
 

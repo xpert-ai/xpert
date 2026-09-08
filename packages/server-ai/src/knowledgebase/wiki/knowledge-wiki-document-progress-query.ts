@@ -50,19 +50,22 @@ export async function queryKnowledgeWikiDocumentProgress(
                     AND r."organizationId" IS NOT DISTINCT FROM $3
             )
         )
-        SELECT s.*, coalesce(reductions.pending, false) AS "reducePending",
+        SELECT s.*, (coalesce(reductions.pending, false) OR EXISTS (
+            SELECT 1 FROM jobs j WHERE j."parentJobId" = s."pipelineId" AND j.type = 'identity_resolve'
+                AND j."isCurrent" AND j.status <> 'succeeded'
+        )) AS "reducePending",
             coalesce(versions.count, 0) AS "versionCount",
             coalesce(versions.pending, false) AS "projectionPending",
             coalesce(versions.failed, false) AS "projectionFailed",
             final.status AS "finalizeStatus", blocker.id AS "failureJobId", blocker.type AS "failureType",
-            blocker.id IS NOT NULL AND blocker.id <> s."mapId" AND blocker.type <> 'finalize'
+            blocker.id IS NOT NULL AND blocker.id <> s."mapId" AND blocker.type NOT IN ('finalize', 'identity_resolve')
                 AND NOT EXISTS (SELECT 1 FROM related r WHERE r."documentId" = s."documentId" AND r.id = blocker.id)
                 AS "failureShared",
             CASE WHEN $5 THEN blocker.error END AS "failureError",
             CASE WHEN $5 THEN blocker."errorCode" END AS "failureCode",
             EXISTS (SELECT 1 FROM jobs b WHERE s.rebuild AND b."isCurrent"
                 AND b."parentJobId" = s."pipelineId" AND b.id <> s."mapId"
-                AND b.status IN ('queued', 'running', 'failed') AND b.type IN ('source_map', 'page_reduce')) AS "batchPending",
+                AND b.status IN ('queued', 'running', 'failed') AND b.type IN ('source_map', 'identity_resolve', 'page_reduce')) AS "batchPending",
             EXISTS (SELECT 1 FROM knowledge_wiki_model_invocation i
                 WHERE $5 AND i."jobId" = blocker.id AND i."generationAttempt" = blocker."generationAttempt"
                     AND i.status = 'indeterminate' AND i."knowledgebaseId" = $1
