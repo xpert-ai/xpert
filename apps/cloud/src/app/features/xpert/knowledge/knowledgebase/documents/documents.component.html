@@ -985,6 +985,7 @@
             [knowledgebase]="knowledgebase()"
             [document]="document"
             [snapshot]="graphDocumentProgress().get(document.id)"
+            (retried)="graphProgressRefresh.set(graphProgressRefresh() + 1)"
           />
 
           <section class="mt-6 border-t border-border pt-5">

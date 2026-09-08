@@ -2,7 +2,8 @@ import { Component, computed, signal } from '@angular/core'
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { Subject } from 'rxjs'
+import { Subject, of } from 'rxjs'
+import { ToastrService } from '../../../../../@core/services/toastr.service'
 import {
   IKnowledgebase,
   IKnowledgeDocument,
@@ -43,6 +44,7 @@ const ready = (documentId: string): KnowledgeGraphDocumentProgress => ({
           [knowledgebase]="knowledgebase()"
           [document]="doc"
           [snapshot]="progress().get(doc.id)"
+          (retried)="retryRefresh.set(retryRefresh() + 1)"
         />
       </div>
     }
@@ -57,7 +59,13 @@ class HostComponent {
   readonly documents = signal([source('doc-1')])
   readonly fileRows = computed(() => this.documents().filter((doc) => doc.sourceType !== KDocumentSourceType.FOLDER))
   readonly selectedDocument = signal<IKnowledgeDocument | null>(this.documents()[0])
-  readonly progress = injectDocumentGraphProgress(this.knowledgebase, this.documents, this.selectedDocument)
+  readonly retryRefresh = signal(0)
+  readonly progress = injectDocumentGraphProgress(
+    this.knowledgebase,
+    this.documents,
+    this.selectedDocument,
+    this.retryRefresh
+  )
 }
 
 describe('Shared graph progress in document rows and inspector', () => {
@@ -68,6 +76,7 @@ describe('Shared graph progress in document rows and inspector', () => {
     response: Subject<{ documents: KnowledgeGraphDocumentProgress[] }>
   }>
   const api = {
+    retryGraphDocument: jest.fn(() => of({ documentId: 'doc-1', state: 'queued' })),
     getGraphDocumentsProgress: jest.fn((knowledgebaseId: string, documentIds: string[]) => {
       const response = new Subject<{ documents: KnowledgeGraphDocumentProgress[] }>()
       requests.push({ knowledgebaseId, documentIds, response })
@@ -78,13 +87,18 @@ describe('Shared graph progress in document rows and inspector', () => {
     requests = []
     TestBed.configureTestingModule({
       imports: [HostComponent, TranslateModule.forRoot()],
-      providers: [provideRouter([]), { provide: KnowledgebaseService, useValue: api }]
+      providers: [
+        provideRouter([]),
+        { provide: KnowledgebaseService, useValue: api },
+        { provide: ToastrService, useValue: { danger: jest.fn() } }
+      ]
     })
     fixture = TestBed.createComponent(HostComponent)
   })
   afterEach(() => {
     fixture.destroy()
     api.getGraphDocumentsProgress.mockClear()
+    api.retryGraphDocument.mockClear()
   })
   function refresh() {
     fixture.detectChanges()
@@ -137,6 +151,34 @@ describe('Shared graph progress in document rows and inspector', () => {
     expect(state('[data-inspector]')).toBe('ready')
     fixture.destroy()
   }))
+
+  it('refreshes both the row and inspector immediately after retry, without waiting for the settled poll', async () => {
+    jest.useFakeTimers()
+    const render = () => {
+      fixture.detectChanges()
+      TestBed.flushEffects()
+      jest.advanceTimersByTime(0)
+      fixture.detectChanges()
+    }
+    try {
+      render()
+      respond({ documentId: 'doc-1', state: 'failed', error: 'duplicate key' })
+      const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+        '[data-inspector] [data-graph-retry]'
+      )
+      button.click()
+      await Promise.resolve()
+      render()
+      expect(api.retryGraphDocument).toHaveBeenCalledWith('kb-1', 'doc-1')
+      expect(requests).toHaveLength(2)
+      respond({ documentId: 'doc-1', state: 'queued' })
+      expect(state('[data-row="doc-1"]')).toBe('queued')
+      expect(state('[data-inspector]')).toBe('queued')
+    } finally {
+      fixture.destroy()
+      jest.useRealTimers()
+    }
+  })
 
   it('invalidates a changed source without blanking another row or inspector', fakeAsync(() => {
     const host = fixture.componentInstance

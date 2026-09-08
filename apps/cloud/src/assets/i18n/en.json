@@ -4545,6 +4545,7 @@
     },
     "Knowledgebase": {
       "GraphDocumentProgress": {
+        "Retry": "Retry graph",
         "Title": "Graph processing",
         "States": {
           "disabled": "Graph unavailable",

@@ -425,10 +425,12 @@ export class KnowledgeDocumentsComponent {
     return [...rows].sort((a, b) => compareDocumentSortValues(a, b, sortState as ActiveDocumentTableSortState))
   })
 
+  readonly graphProgressRefresh = signal(0)
   readonly graphDocumentProgress = injectDocumentGraphProgress(
     this.knowledgebase,
     this.filteredData,
-    this.selectedDocument
+    this.selectedDocument,
+    this.graphProgressRefresh
   )
 
   // Folders

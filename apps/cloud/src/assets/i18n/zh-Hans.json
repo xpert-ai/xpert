@@ -6511,6 +6511,7 @@
     },
     "Knowledgebase": {
       "GraphDocumentProgress": {
+        "Retry": "重试图谱",
         "Title": "图谱处理",
         "States": {
           "disabled": "图谱不可用",

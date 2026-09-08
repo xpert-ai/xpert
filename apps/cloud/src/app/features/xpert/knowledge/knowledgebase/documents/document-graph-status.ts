@@ -33,14 +33,15 @@ const LOADING_SNAPSHOT: DocumentGraphProgressSnapshot = { progress: undefined }
 export function injectDocumentGraphProgress(
   knowledgebase: Signal<IKnowledgebase>,
   documents: Signal<IKnowledgeDocument[]>,
-  selectedDocument?: Signal<IKnowledgeDocument | null>
+  selectedDocument?: Signal<IKnowledgeDocument | null>,
+  refresh?: Signal<number>
 ) {
   const api = inject(KnowledgebaseService)
   const request = computed(() => {
     const kb = knowledgebase()
     const selected = selectedDocument?.()
     const sources = new Map([...(selected ? [selected] : []), ...documents()].map((doc) => [doc.id, doc]))
-    const context = [kb?.id, kb?.graphRag?.enabled, kb?.graphRevision, kb?.graphStatus]
+    const context = [kb?.id, kb?.graphRag?.enabled, kb?.graphRevision, kb?.graphStatus, refresh?.()]
     const entries = kb?.graphRag?.enabled
       ? [...sources.values()]
           .filter((doc) => doc.id && doc.sourceType !== KDocumentSourceType.FOLDER)

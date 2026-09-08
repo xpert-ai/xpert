@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common'
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, inject, input, output, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -10,8 +10,9 @@ import {
   KnowledgeGraphDocumentStageState
 } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardIconComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
-import { catchError, distinctUntilChanged, exhaustMap, map, of, switchMap, take, timer } from 'rxjs'
+import { catchError, distinctUntilChanged, exhaustMap, firstValueFrom, map, of, switchMap, take, timer } from 'rxjs'
 import { KnowledgebaseService } from '../../../../../@core/services/knowledgebase.service'
+import { ToastrService } from '../../../../../@core/services/toastr.service'
 import type { DocumentGraphProgressSnapshot } from './document-graph-status'
 
 @Component({
@@ -25,6 +26,10 @@ export class DocumentGraphProgressComponent {
   readonly document = input.required<IKnowledgeDocument>()
   readonly details = input(true)
   readonly snapshot = input<DocumentGraphProgressSnapshot>()
+  readonly retried = output<void>()
+  readonly retrying = signal(false)
+  readonly #refresh = signal(0)
+  readonly #toastr = inject(ToastrService)
   readonly #api = inject(KnowledgebaseService)
   readonly #request = computed(() => {
     const kb = this.knowledgebase()
@@ -35,6 +40,7 @@ export class DocumentGraphProgressComponent {
       enabled: !!kb.graphRag?.enabled,
       managed: this.snapshot() !== undefined,
       key: JSON.stringify([
+        this.#refresh(),
         this.snapshot() !== undefined,
         kb.id,
         kb.graphRag?.enabled,
@@ -108,4 +114,19 @@ export class DocumentGraphProgressComponent {
         return 'text-text-tertiary'
     }
   })
+
+  async retry() {
+    if (this.state() !== 'failed' || this.retrying()) return
+    const { knowledgebaseId, documentId } = this.#request()
+    this.retrying.set(true)
+    try {
+      await firstValueFrom(this.#api.retryGraphDocument(knowledgebaseId, documentId))
+      this.#refresh.update((value) => value + 1)
+      this.retried.emit()
+    } catch (error) {
+      this.#toastr.danger(error)
+    } finally {
+      this.retrying.set(false)
+    }
+  }
 }

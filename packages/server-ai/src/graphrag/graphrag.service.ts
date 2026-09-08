@@ -38,6 +38,7 @@ import { Brackets, FindOptionsWhere, In, IsNull, Not, Raw, Repository, SelectQue
 import { z } from 'zod'
 import { normalizeKnowledgeGraphName, normalizeKnowledgeGraphType } from './identity-write'
 import { buildGraphEntitySummary, KnowledgeGraphContributionWriter } from './graph-contribution-writer'
+import { createGraphIndexJob } from './graph-index-job'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
 import { CopilotOneByRoleQuery } from '../copilot/queries'
 import { KnowledgeDocumentChunkService } from '../knowledge-document/chunk/chunk.service'
@@ -276,12 +277,6 @@ export class GraphragService {
             return []
         }
 
-        const revision = knowledgebase.graphRevision ?? 0
-        await this.knowledgebaseRepository.update(knowledgebase.id, {
-            graphStatus: KnowledgeGraphStatus.INDEXING,
-            graphIndexError: null
-        })
-
         const { items: sourceDocuments } = await this.documentService.findAll({
             where: { knowledgebaseId: knowledgebase.id, id: In(documentIds) },
             select: { id: true, contentHash: true, publicationEpoch: true }
@@ -291,27 +286,29 @@ export class GraphragService {
         for (const documentId of documentIds) {
             const source = sourceById.get(documentId)
             if (!source?.contentHash) continue
-            const graphJob = await this.jobRepository.save(
-                this.jobRepository.create({
-                    tenantId: input.tenantId ?? knowledgebase.tenantId,
-                    organizationId: input.organizationId ?? knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
-                    documentId,
-                    sourceContentHash: source.contentHash,
-                    sourcePublicationEpoch: source.publicationEpoch ?? 0,
-                    type: input.reason,
-                    status: KnowledgeGraphIndexJobStatus.QUEUED,
-                    revision,
-                    processedChunks: 0,
-                    totalChunks: 0
-                })
+            const graphJob = await createGraphIndexJob(
+                this.jobRepository,
+                this.knowledgebaseRepository,
+                knowledgebase,
+                source,
+                input
             )
+            await this.dispatchJobs([graphJob], input.userId)
+            jobs.push(graphJob)
+        }
+
+        if (!jobs.length) await this.updateGraphStatusFromJobs(knowledgebase.id)
+        return jobs
+    }
+
+    async dispatchJobs(jobs: KnowledgeGraphIndexJob[], userId?: string | null) {
+        for (const graphJob of jobs) {
             try {
                 await this.graphQueue.add({
-                    userId: input.userId ?? RequestContext.currentUserId(),
-                    tenantId: input.tenantId ?? knowledgebase.tenantId,
-                    organizationId: input.organizationId ?? knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
+                    userId: userId ?? RequestContext.currentUserId(),
+                    tenantId: graphJob.tenantId,
+                    organizationId: graphJob.organizationId,
+                    knowledgebaseId: graphJob.knowledgebaseId,
                     graphIndexJobId: graphJob.id
                 })
             } catch (error) {
@@ -322,17 +319,13 @@ export class GraphragService {
                     error: message,
                     completedAt: new Date()
                 })
-                await this.knowledgebaseRepository.update(knowledgebase.id, {
+                await this.knowledgebaseRepository.update(graphJob.knowledgebaseId, {
                     graphStatus: KnowledgeGraphStatus.FAILED,
                     graphIndexError: message
                 })
                 throw error
             }
-            jobs.push(graphJob)
         }
-
-        if (!jobs.length) await this.updateGraphStatusFromJobs(knowledgebase.id)
-        return jobs
     }
 
     async clearDocument(knowledgebaseId: string, documentId: string) {
@@ -1654,7 +1647,21 @@ export class GraphragService {
         const [queued, running, failed] = await Promise.all([
             this.jobRepository.count({ where: { knowledgebaseId, status: KnowledgeGraphIndexJobStatus.QUEUED } }),
             this.jobRepository.count({ where: { knowledgebaseId, status: KnowledgeGraphIndexJobStatus.RUNNING } }),
-            this.jobRepository.count({ where: { knowledgebaseId, status: KnowledgeGraphIndexJobStatus.FAILED } })
+            this.jobRepository.count({
+                where: {
+                    knowledgebaseId,
+                    status: KnowledgeGraphIndexJobStatus.FAILED,
+                    // Keep failure history, but a newer retry supersedes its aggregate failure state.
+                    id: Raw(
+                        (alias) => `${alias} IN (
+                    SELECT DISTINCT ON ("documentId") "id" FROM "knowledge_graph_index_job"
+                    WHERE "knowledgebaseId" = :graphStatusKnowledgebaseId
+                    ORDER BY "documentId", "createdAt" DESC, "id" DESC
+                )`,
+                        { graphStatusKnowledgebaseId: knowledgebaseId }
+                    )
+                }
+            })
         ])
         if (queued || running) {
             await this.knowledgebaseRepository.update(knowledgebaseId, { graphStatus: KnowledgeGraphStatus.INDEXING })

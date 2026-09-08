@@ -2,14 +2,16 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { IKnowledgebase, IKnowledgeDocument, KnowledgeGraphDocumentProgress } from '@xpert-ai/contracts'
-import { Subject } from 'rxjs'
+import { Subject, throwError } from 'rxjs'
+import { ToastrService } from '../../../../../@core/services/toastr.service'
 import { KnowledgebaseService } from '../../../../../@core/services/knowledgebase.service'
 import { DocumentGraphProgressComponent } from './document-graph-progress.component'
 
 describe('Graph document inspector', () => {
   let fixture: ComponentFixture<DocumentGraphProgressComponent>
   let response: Subject<KnowledgeGraphDocumentProgress>
-  const api = { getGraphDocumentProgress: jest.fn() }
+  const api = { getGraphDocumentProgress: jest.fn(), retryGraphDocument: jest.fn() }
+  const toastr = { danger: jest.fn() }
   const kb = { id: 'kb', graphRag: { enabled: true } } as IKnowledgebase
   const doc = { id: 'doc', version: 1 } as IKnowledgeDocument
   const indexed: KnowledgeGraphDocumentProgress = {
@@ -22,7 +24,11 @@ describe('Graph document inspector', () => {
     api.getGraphDocumentProgress.mockReturnValue(response)
     await TestBed.configureTestingModule({
       imports: [DocumentGraphProgressComponent, TranslateModule.forRoot()],
-      providers: [provideRouter([]), { provide: KnowledgebaseService, useValue: api }]
+      providers: [
+        provideRouter([]),
+        { provide: KnowledgebaseService, useValue: api },
+        { provide: ToastrService, useValue: toastr }
+      ]
     }).compileComponents()
     const translate = TestBed.inject(TranslateService)
     translate.setTranslation('zh-Hans', {
@@ -46,6 +52,8 @@ describe('Graph document inspector', () => {
   afterEach(() => {
     fixture.destroy()
     api.getGraphDocumentProgress.mockReset()
+    api.retryGraphDocument.mockReset()
+    toastr.danger.mockReset()
     jest.useRealTimers()
   })
   const root = () => fixture.nativeElement as HTMLElement
@@ -104,6 +112,55 @@ describe('Graph document inspector', () => {
     expect(root().querySelector('[data-graph-stage=indexing]').getAttribute('data-state')).toBe('failed')
     expect(root().querySelector('a')).toBeNull()
     fixture.destroy()
+  })
+
+  it('queues a retry once and refreshes progress when it succeeds', async () => {
+    setup()
+    refresh()
+    emit({ documentId: 'doc', state: 'failed', error: 'duplicate key' })
+    const retryResponse = new Subject<KnowledgeGraphDocumentProgress>()
+    api.retryGraphDocument.mockReturnValue(retryResponse)
+    const retried = jest.fn()
+    fixture.componentInstance.retried.subscribe(retried)
+    const button = root().querySelector<HTMLButtonElement>('[data-graph-retry]')
+    button.click()
+    button.click()
+    fixture.detectChanges()
+    expect(button.disabled).toBe(true)
+    expect(api.retryGraphDocument).toHaveBeenCalledTimes(1)
+    expect(api.retryGraphDocument).toHaveBeenCalledWith('kb', 'doc')
+    response = new Subject()
+    api.getGraphDocumentProgress.mockReturnValue(response)
+    retryResponse.next({ documentId: 'doc', state: 'queued' })
+    await Promise.resolve()
+    refresh()
+    emit({ documentId: 'doc', state: 'queued' })
+    expect(retried).toHaveBeenCalledTimes(1)
+    expect(root().querySelector('[data-graph-retry]')).toBeNull()
+    expect(fixture.componentInstance.state()).toBe('queued')
+  })
+
+  it('keeps the retry available and reports dispatch errors', async () => {
+    setup()
+    refresh()
+    emit({ documentId: 'doc', state: 'failed' })
+    const error = new Error('queue unavailable')
+    api.retryGraphDocument.mockReturnValue(throwError(() => error))
+    await fixture.componentInstance.retry()
+    fixture.detectChanges()
+    expect(toastr.danger).toHaveBeenCalledWith(error)
+    expect(root().querySelector<HTMLButtonElement>('[data-graph-retry]').disabled).toBe(false)
+  })
+
+  it('does not retry a successful or active graph', async () => {
+    setup()
+    refresh()
+    emit(indexed)
+    await fixture.componentInstance.retry()
+    expect(root().querySelector('[data-graph-retry]')).toBeNull()
+    emit({ documentId: 'doc', state: 'running' })
+    await fixture.componentInstance.retry()
+    expect(api.retryGraphDocument).not.toHaveBeenCalled()
   })
 
   it('only offers the graph route for a confirmed indexed result', () => {

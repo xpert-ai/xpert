@@ -191,6 +191,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     )
   }
 
+  retryGraphDocument(id: string, documentId: string) {
+    return this.httpClient.post<KnowledgeGraphDocumentProgress>(
+      this.apiBaseUrl + `/${id}/graph/documents/${documentId}/retry`,
+      {}
+    )
+  }
+
   rebuildGraph(id: string) {
     return this.httpClient.post(this.apiBaseUrl + `/${id}/graph/rebuild`, {})
   }
