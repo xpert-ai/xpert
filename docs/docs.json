@@ -92,6 +92,7 @@
                   "zh-hans/guides/assistant-architecture",
                   "zh-hans/guides/clawxpert-skill-selection",
                   "zh-hans/guides/agent-middleware",
+                  "zh-hans/guides/context-compression-architecture",
                   "zh-hans/guides/workspace-skill-creator",
                   "zh-hans/guides/view-extension-runtime-features",
                   "zh-hans/guides/datax-metric-management-plugin",
