@@ -23,6 +23,13 @@ describe('thread-context-usage helpers', () => {
     expect(isThreadContextUsageEvent({ type: 'sandbox' })).toBe(false)
   })
 
+  it('retains effective model information and rejects invalid windows', () => {
+    const resolved = { ...event, effectiveModel: { model: 'small', contextWindow: 32768 } }
+    expect(isThreadContextUsageEvent(resolved)).toBe(true)
+    expect(upsertThreadContextUsage({}, resolved)['agent-1'].effectiveModel?.contextWindow).toBe(32768)
+    expect(isThreadContextUsageEvent({ ...event, effectiveModel: { contextWindow: Infinity } })).toBe(false)
+  })
+
   it('stores the latest usage by agent key', () => {
     expect(upsertThreadContextUsage({}, event)).toEqual({
       'agent-1': event

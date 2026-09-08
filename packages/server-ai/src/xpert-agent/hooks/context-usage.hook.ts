@@ -5,7 +5,8 @@ import {
     ChatMessageEventTypeEnum,
     IXpertAgent,
     IXpertAgentExecution,
-    TThreadContextUsageEvent,
+    TAgentThreadContextUsageEvent,
+    TAgentExecutionMetadata,
     TTokenUsage
 } from '@xpert-ai/contracts'
 import { AfterModelHandler } from '@xpert-ai/plugin-sdk'
@@ -16,7 +17,8 @@ type TExecutionLoader = () => Promise<Partial<IXpertAgentExecution> | null>
 export function createThreadContextUsageEventHook(
     agent: IXpertAgent,
     thread_id: string,
-    loadExecution: TExecutionLoader
+    loadExecution: TExecutionLoader,
+    loadEffectiveModel?: () => TAgentExecutionMetadata['effectiveModelSnapshot']
 ) {
     const agentKey = agent.key
     return {
@@ -32,7 +34,13 @@ export function createThreadContextUsageEventHook(
                 runId: execution.id,
                 agentKey,
                 message: lastMessage,
-                execution,
+                execution: {
+                    ...execution,
+                    metadata: {
+                        ...execution.metadata,
+                        ...(loadEffectiveModel ? { effectiveModelSnapshot: loadEffectiveModel() } : {})
+                    }
+                },
                 updatedAt: new Date()
             })
 
@@ -73,7 +81,7 @@ export function createThreadContextUsageEvent(params: {
     execution?: Partial<IXpertAgentExecution> | null
     message: unknown
     updatedAt?: string | Date
-}): TThreadContextUsageEvent | null {
+}): TAgentThreadContextUsageEvent | null {
     const tokenUsage = getAIMessageTokenUsage(params.message)
     if (!tokenUsage) {
         return null
@@ -81,7 +89,12 @@ export function createThreadContextUsageEvent(params: {
 
     const totalTokens = toFiniteNumber(tokenUsage.totalTokens || tokenUsage.promptTokens + tokenUsage.completionTokens)
 
+    const snapshot = params.execution?.metadata?.effectiveModelSnapshot
+    const contextWindow = snapshot?.options?.context_size
     return {
+        ...(typeof contextWindow === 'number' && Number.isFinite(contextWindow) && contextWindow > 0
+            ? { effectiveModel: { model: snapshot.model, contextWindow } }
+            : {}),
         type: CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE,
         threadId: params.threadId,
         runId: params.runId ?? null,

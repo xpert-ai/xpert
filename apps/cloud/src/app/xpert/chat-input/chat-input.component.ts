@@ -203,6 +203,8 @@ export class ChatInputComponent {
   })
   readonly contextWindowSize = computed(() => {
     const value =
+      this.contextUsage()?.effectiveModel?.contextWindow ??
+      this.primaryAgent()?.copilotModel?.options?.context_size ??
       this.conversation()?.xpert?.copilotModel?.options?.context_size ??
       this.xpert()?.copilotModel?.options?.context_size
     const size = toPositiveNumber(value)

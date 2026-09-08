@@ -25,6 +25,7 @@ import {
     StateGraph
 } from '@langchain/langgraph'
 import {
+    AiModelTypeEnum,
     agentLabel,
     agentUniqueName,
     allChannels,
@@ -149,6 +150,7 @@ import {
     createInvalidToolCallErrorMessage,
     createInvalidToolCallRepairContext
 } from './invalid-tool-call-diagnostics'
+import { createModelExecutionSnapshot, withModelExecutionSnapshot } from '../../model-execution-snapshot'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { resolveToolRuntimeScope } from '../../../tool-runtime/workspace-scope'
 import {
@@ -296,10 +298,26 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     })
                 )
             }
+            const snapshot = createModelExecutionSnapshot({
+                ...effectiveCopilotModel,
+                copilotId: effectiveCopilotModel.copilotId ?? copilot.id,
+                modelType: AiModelTypeEnum.LLM,
+                model: effectiveCopilotModel.model || copilot.copilotModel?.model
+            })
             execution.metadata = {
                 ...(execution.metadata ?? {}),
+                ...(snapshot
+                    ? {
+                          effectiveModelSnapshot: snapshot
+                      }
+                    : {}),
                 provider: copilot.modelProvider?.providerName,
                 model: effectiveCopilotModel.model || copilot.copilotModel?.model
+            }
+            if (execution.id && snapshot) {
+                await this.commandBus.execute(
+                    new XpertAgentExecutionUpsertCommand({ id: execution.id, metadata: execution.metadata })
+                )
             }
         }
 
@@ -1025,10 +1043,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...userAfterModelHooks,
             ...(!hiddenAgent
                 ? [
-                      createThreadContextUsageEventHook(agent, thread_id, async () => {
-                          const executionId = resolveExecutionId()
-                          return executionId ? await this.executionService.findOne(executionId) : null
-                      })
+                      createThreadContextUsageEventHook(
+                          agent,
+                          thread_id,
+                          async () => {
+                              const executionId = resolveExecutionId()
+                              return executionId ? await this.executionService.findOne(executionId) : null
+                          },
+                          () => execution.metadata?.effectiveModelSnapshot
+                      )
                   ]
                 : [])
         ]
@@ -1235,7 +1258,29 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Execute agent
         const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
             const { structuredChatModel, jsonSchema } = withStructured(chatModel, agent, withTools)
-            let withFallbackModel: Runnable = withModelMessagePreparation(structuredChatModel, chatModel)
+            const withCandidateSnapshot = (model: Runnable, candidate: typeof effectiveCopilotModel) =>
+                withModelExecutionSnapshot(
+                    model,
+                    {
+                        ...candidate,
+                        copilotId: candidate?.copilotId ?? candidate?.copilot?.id ?? team.copilotModel?.copilotId,
+                        modelType: AiModelTypeEnum.LLM
+                    },
+                    async (snapshot) => {
+                        if (JSON.stringify(snapshot) === JSON.stringify(execution.metadata?.effectiveModelSnapshot))
+                            return
+                        execution.metadata = { ...execution.metadata, effectiveModelSnapshot: snapshot }
+                        const id = resolveExecutionId()
+                        if (id)
+                            await this.commandBus.execute(
+                                new XpertAgentExecutionUpsertCommand({ id, metadata: execution.metadata })
+                            )
+                    }
+                )
+            let withFallbackModel: Runnable = withCandidateSnapshot(
+                withModelMessagePreparation(structuredChatModel, chatModel),
+                effectiveCopilotModel
+            )
             if (agent.options?.retry?.enabled) {
                 withFallbackModel = withFallbackModel.withRetry({
                     stopAfterAttempt: agent.options.retry.stopAfterAttempt ?? 2
@@ -1263,7 +1308,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 )
                 const { structuredChatModel: fallbackChatModel } = withStructured(_fallbackChatModel, agent, withTools)
                 withFallbackModel = withFallbackModel.withFallbacks([
-                    withModelMessagePreparation(fallbackChatModel, _fallbackChatModel)
+                    withCandidateSnapshot(
+                        withModelMessagePreparation(fallbackChatModel, _fallbackChatModel),
+                        agent.options.fallback.copilotModel
+                    )
                 ])
             }
 
