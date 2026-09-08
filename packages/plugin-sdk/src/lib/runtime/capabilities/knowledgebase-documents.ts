@@ -226,7 +226,25 @@ export type KnowledgebaseReadImageResult = {
   buffer: Buffer
 }
 
+/** Bounded, ordered source text. The host checks document read access on every page. */
+export type KnowledgebaseReadTextInput = {
+  knowledgebaseId: string
+  documentId: string
+  offset?: number
+  limit?: number
+}
+export type KnowledgebaseReadTextResult = {
+  knowledgebaseId: string
+  documentId: string
+  version: number
+  sourceHash?: string | null
+  total: number
+  chunks: Array<{ id: string; text: string; page?: number; version: number }>
+}
+
 export interface KnowledgebaseDocumentsApi {
+  readText(input: KnowledgebaseReadTextInput): Promise<KnowledgebaseReadTextResult>
+
   listDocuments(input: KnowledgebaseListDocumentsInput): Promise<KnowledgebaseListDocumentsResult>
 
   createFolder(input: KnowledgebaseCreateFolderInput): Promise<KnowledgebaseCreateFolderResult>

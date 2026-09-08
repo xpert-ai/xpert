@@ -83,7 +83,6 @@
 
   [data-workbench-brand] {
     max-width: 22rem;
-    margin-right: 32px;
     opacity: 1;
     transform: translateX(0);
   }

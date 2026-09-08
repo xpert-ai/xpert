@@ -9,6 +9,7 @@ import {
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
     ReadKnowledgebaseDocumentImageHandler,
+    ReadKnowledgebaseDocumentTextHandler,
     ReprocessKnowledgebaseDocumentsHandler,
     StartKnowledgebaseDocumentsProcessingHandler,
     UploadKnowledgebaseDocumentFileHandler
@@ -28,6 +29,7 @@ export const CommandHandlers = [
     ListKnowledgebaseDocumentsHandler,
     MoveKnowledgebaseDocumentHandler,
     ReadKnowledgebaseDocumentImageHandler,
+    ReadKnowledgebaseDocumentTextHandler,
     ReprocessKnowledgebaseDocumentsHandler,
     KnowledgebaseClearHandler,
     PluginPermissionsHandler,
