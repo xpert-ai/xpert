@@ -12,6 +12,7 @@ import {
     KnowledgeRetrievalContentScope,
     isDocumentKnowledgebaseType,
     normalizeKnowledgebaseWikiConfig,
+    TCopilotModel,
     TKBFusionConfig,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
@@ -52,6 +53,10 @@ function resolveRetrievalMode(kb: IKnowledgebase, retrieval?: TKBRetrievalSettin
     return retrieval?.mode ?? kb.recall?.mode ?? kb.graphRag?.mode ?? 'vector'
 }
 
+function isGraphRetrievalEnabled(kb: IKnowledgebase) {
+    return kb.graphRag?.enabled === true
+}
+
 @QueryHandler(KnowledgeSearchQuery)
 export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearchQuery> {
     private readonly logger = new Logger(KnowledgeSearchQueryHandler.name)
@@ -77,7 +82,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
     public async execute(command: KnowledgeSearchQuery): Promise<KnowledgeSearchResult> {
         const { knowledgebases, query, k, retrieval } = command.input
-        const contentScope = parseKnowledgeRetrievalContentScope(command.input.contentScope)
+        // Validate explicit scope once; each knowledgebase can supply its own saved default.
+        parseKnowledgeRetrievalContentScope(command.input.contentScope)
         const tenantId = command.input.tenantId ?? RequestContext.currentTenantId()
         const organizationId = command.input.organizationId ?? RequestContext.getOrganizationId()
         const topK = k ?? 1000
@@ -95,6 +101,12 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const diagnostics: KnowledgeFilterDiagnostics[] = []
         const kbs = await Promise.all(
             _knowledgebases.map(async (kb) => {
+                const requestedScope =
+                    command.input.contentScope ??
+                    (isDocumentKnowledgebaseType(kb.type) && kb.wikiConfig?.enabled
+                        ? kb.recall?.contentScope
+                        : undefined)
+                const contentScope = parseKnowledgeRetrievalContentScope(requestedScope)
                 try {
                     let docs: DocumentInterface<DocumentMetadata>[] = []
                     let filterDiagnostics: KnowledgeFilterDiagnostics
@@ -132,7 +144,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             command.input.filters,
                             command.input.variables,
                             retrieval,
-                            contentScope
+                            contentScope,
+                            command.input.score
                         )
                         docs = filterFAQNegativeMatches(searchResult.documents, query).map(materializeFAQResult)
                         if (this.wikiSearchScopeService) {
@@ -146,13 +159,32 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                         }
                         docs = filterKnowledgeContentScope(docs, contentScope)
                         filterDiagnostics = searchResult.diagnostics
+                        if (requestedScope !== undefined) filterDiagnostics.contentScope = contentScope
+                        docs = await this.finalizeRetrievalResults(
+                            kb,
+                            query,
+                            docs,
+                            filterDiagnostics,
+                            k,
+                            command.input.rerankThreshold,
+                            {
+                                xpertId: command.input.xpertId,
+                                threadId: command.input.threadId
+                            },
+                            command.input.rerankModel
+                        )
                     }
 
-                    if (command.input.contentScope !== undefined) filterDiagnostics.contentScope = contentScope
+                    if (requestedScope !== undefined) filterDiagnostics.contentScope = contentScope
 
                     const score = command.input.score ?? kb.recall?.score
                     const retrievalMode = resolveRetrievalMode(kb, retrieval)
-                    if (!isNil(score) && retrievalMode !== 'keyword' && !this.usesWeightedRrf(kb, retrieval)) {
+                    if (
+                        kb.type === KnowledgebaseTypeEnum.External &&
+                        !isNil(score) &&
+                        retrievalMode !== 'keyword' &&
+                        !this.usesWeightedRrf(kb, retrieval)
+                    ) {
                         docs = docs.filter((doc) => doc.metadata.score >= score)
                     }
                     filterDiagnostics.hitCount = docs.length
@@ -290,7 +322,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         filters?: KnowledgeFilterSources,
         variables?: Record<string, unknown>,
         retrieval?: TKBRetrievalSettings,
-        contentScope: KnowledgeRetrievalContentScope = 'all'
+        contentScope: KnowledgeRetrievalContentScope = 'all',
+        score?: number | null
     ): Promise<{ documents: DocumentInterface<DocumentMetadata>[]; diagnostics: KnowledgeFilterDiagnostics }> {
         const filterStartedAt = Date.now()
         const prepared = prepareKnowledgeFilter({
@@ -324,7 +357,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const request: KnowledgeRetrievalRequest = {
             knowledgebase: kb,
             query,
-            k,
+            k: k ?? kb.recall?.topK ?? 10,
+            score,
             retrieval,
             contentScope,
             scope: {
@@ -387,6 +421,10 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             return { documents: vectorDocs, diagnostics: vectorResult.diagnostics }
         }
         vectorResult.diagnostics.vectorBranchHitCount = vectorDocs.length
+        if (!isGraphRetrievalEnabled(kb)) {
+            vectorResult.diagnostics.graphBranchHitCount = 0
+            return { documents: vectorDocs, diagnostics: vectorResult.diagnostics }
+        }
 
         const graphResult = await this.graphRetriever.retrieve(request)
         if (graphResult.failed) {
@@ -404,9 +442,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const merged = this.legacyWeightedFusion.fuse([vectorResult, graphResult], {
             graphWeight: retrieval?.graphWeight ?? kb.graphRag?.graphWeight ?? 0.35
         })
-        const documents = await this.finalizeHybridResults(kb, query, merged, k, request.modelContext)
-        vectorResult.diagnostics.hitCount = documents.length
-        return { documents, diagnostics: vectorResult.diagnostics }
+        vectorResult.diagnostics.hitCount = merged.length
+        return { documents: merged, diagnostics: vectorResult.diagnostics }
     }
 
     private async searchWithWeightedRrf(
@@ -416,7 +453,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         const weights: Record<KnowledgeRetrieverSource, number> = {
             vector: fusion?.weights?.vector ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.vector,
             graph:
-                request.contentScope === 'wiki' ? 0 : (fusion?.weights?.graph ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph),
+                request.contentScope === 'wiki' || !isGraphRetrievalEnabled(request.knowledgebase)
+                    ? 0
+                    : (fusion?.weights?.graph ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph),
             keyword: fusion?.weights?.keyword ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.keyword
         }
         this.validateRrfWeights(weights)
@@ -463,15 +502,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             diagnostics.hitCount = 0
             throw new KnowledgeRetrievalFailure(failedBatch.source, errorCode, diagnostics, getErrorMessage(error))
         }
-        const documents = await this.finalizeHybridResults(
-            request.knowledgebase,
-            request.query,
-            merged,
-            request.k,
-            request.modelContext
-        )
-        diagnostics.hitCount = documents.length
-        return { documents, diagnostics }
+        diagnostics.hitCount = merged.length
+        return { documents: merged, diagnostics }
     }
 
     private validateRrfWeights(weights: Readonly<Record<KnowledgeRetrieverSource, number>>) {
@@ -540,21 +572,30 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         }
     }
 
-    private async finalizeHybridResults(
+    private async finalizeRetrievalResults(
         kb: IKnowledgebase,
         query: string,
         merged: DocumentInterface<DocumentMetadata>[],
+        diagnostics: KnowledgeFilterDiagnostics,
         k?: number,
+        requestedRerankThreshold?: number | null,
         modelContext?: {
             xpertId?: string
             threadId?: string
-        }
+        },
+        requestedRerankModel?: TCopilotModel | null
     ) {
-        if (kb.rerankModelId && merged.length > 0) {
+        const topK = k ?? kb.recall?.topK ?? 10
+        const rerankThreshold =
+            requestedRerankThreshold === undefined ? kb.recall?.rerankThreshold : requestedRerankThreshold
+        if ((requestedRerankModel === undefined ? kb.rerankModelId : requestedRerankModel) && merged.length > 0) {
             try {
-                const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, modelContext)
-                const rerankedDocs = await vectorStore.rerank(merged, query, {
-                    topN: Math.min(merged.length, k ?? kb.recall?.topK)
+                const rerankModel = await (requestedRerankModel
+                    ? this.knowledgebaseService.getRerankModel(kb.id, modelContext, requestedRerankModel)
+                    : this.knowledgebaseService.getRerankModel(kb.id, modelContext))
+                const rerankedDocs = await rerankModel.rerank(merged, query, {
+                    topN: Math.min(merged.length, topK),
+                    ...(rerankThreshold == null ? {} : { scoreThreshold: rerankThreshold })
                 })
                 return rerankedDocs.map(({ index, relevanceScore }) => ({
                     ...merged[index],
@@ -564,10 +605,15 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                     }
                 }))
             } catch (error) {
-                throw new InternalServerErrorException(getPythonErrorMessage(error))
+                throw new KnowledgeRetrievalFailure(
+                    'rerank',
+                    'rerank_failed',
+                    diagnostics,
+                    getPythonErrorMessage(error)
+                )
             }
         }
 
-        return merged.slice(0, k ?? kb.recall?.topK)
+        return merged.slice(0, topK)
     }
 }

@@ -6,7 +6,6 @@ import {
     VectorTypeEnum
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { getPythonErrorMessage } from '@xpert-ai/server-common'
 import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { Raw } from 'typeorm'
@@ -37,7 +36,9 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
     async retrieve(request: KnowledgeRetrievalRequest): Promise<KnowledgeRetrievalBatch> {
         const { knowledgebase: kb, query, k } = request
         const prepared = request.preparedFilter
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, request.modelContext)
+        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, request.modelContext, {
+            rerankEnabled: false
+        })
         const requestedTopK = k ?? kb.recall?.topK ?? 10
         const vectorTopK =
             kb.type === KnowledgebaseTypeEnum.FAQ
@@ -123,7 +124,9 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                 searchResult = await search(currentTopK)
             }
         }
-        const items = searchResult.items
+        const score = request.score === undefined ? kb.recall?.score : request.score
+        const items =
+            score == null ? searchResult.items : searchResult.items.filter(([, distance]) => 1 - distance >= score)
         diagnostics.candidateDocumentCount = searchResult.candidateDocumentCount
         diagnostics.candidateChunkCount = searchResult.candidateChunkCount
         diagnostics.vectorLatency = Date.now() - vectorStartedAt
@@ -242,33 +245,10 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             }
             return { document, rank }
         })
-        if (kb.rerankModelId && documents.length > 0) {
-            try {
-                const rerankedDocs = await vectorStore.rerank(documents, query, {
-                    topN: Math.min(documents.length, k ?? kb.recall?.topK)
-                })
-                const reranked = rerankedDocs.map(({ index, relevanceScore }) =>
-                    withKnowledgeDocumentMetadata(documents[index], { relevanceScore })
-                )
-                diagnostics.hitCount = reranked.length
-                diagnostics.retryableWithoutDynamic = reranked.length === 0 && !!prepared.sources.dynamic
-                return {
-                    source: this.source,
-                    candidates: reranked.map((document, index) => ({ document, rank: index + 1 })),
-                    diagnostics
-                }
-            } catch (error) {
-                throw new InternalServerErrorException(getPythonErrorMessage(error))
-            }
-        }
-
-        const resultCandidates =
-            kb.type === KnowledgebaseTypeEnum.FAQ
-                ? candidates.sort((left, right) => left.rank - right.rank).slice(0, requestedTopK)
-                : candidates
-        diagnostics.hitCount = resultCandidates.length
-        diagnostics.retryableWithoutDynamic = resultCandidates.length === 0 && !!prepared.sources.dynamic
-        return { source: this.source, candidates: resultCandidates, diagnostics }
+        // Finalization owns Top K after filtering and optional saved or temporary reranking.
+        diagnostics.hitCount = candidates.length
+        diagnostics.retryableWithoutDynamic = candidates.length === 0 && !!prepared.sources.dynamic
+        return { source: this.source, candidates, diagnostics }
     }
 }
 

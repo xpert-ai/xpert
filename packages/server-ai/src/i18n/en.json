@@ -1,5 +1,8 @@
 {
     "Error": {
+        "KnowledgeGraphDocumentStatusBatchInvalid": "Provide between 1 and {{max}} document UUIDs.",
+        "KnowledgeRetrievalSourceRequired": "Select at least one retrieval source available for the selected content scope with a positive weight.",
+        "KnowledgeRerankModelUnavailable": "Rerank model is not available for knowledgebase '{{knowledgebase}}'.",
         "KnowledgeContentScopeInvalid": "Invalid retrieval content scope.",
         "KnowledgeContentScopeWikiDisabled": "Enable Wiki before searching Wiki content.",
         "KnowledgeContentScopeWikiUnsupported": "Wiki-only search does not support graph retrieval or knowledge filters.",

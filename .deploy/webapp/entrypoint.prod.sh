@@ -4,7 +4,7 @@ set -ex
 # This Entrypoint used when we run Docker container outside of Docker Compose (e.g. in k8s)
 WEBAPP_RUNTIME_API_BASE_URL=${WEBAPP_API_BASE_URL:-$API_BASE_URL}
 CODE_XPERT_URL=${CODE_XPERT_URL:-https://code.xpertai.cn/}
-DATA_ONTOLOLOGY_URL:-https://data.xpertai.cn/}
+DATA_ONTOLOGY_URL=${DATA_ONTOLOGY_URL:-https://data.xpertai.cn/}
 
 # In production we should replace some values in generated JS code
 sed -i "s#DOCKER_API_BASE_URL#$WEBAPP_RUNTIME_API_BASE_URL#g" *.js
@@ -28,4 +28,3 @@ sed -i "s#DOCKER_DEMO#$DEMO#g" *.js
 envsubst '' < /etc/nginx/conf.d/prod.conf.template > /etc/nginx/nginx.conf
 
 exec "$@"
-link: environment.CODE_XPERT_URLlink: environment.DATA_ONTOLOGY_URL

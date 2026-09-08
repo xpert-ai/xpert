@@ -38,6 +38,10 @@ export type KnowledgeGraphDocumentState =
   | 'no_content'
   | 'completed'
 
+export const KNOWLEDGE_GRAPH_DOCUMENT_STATUS_BATCH_SIZE = 100
+
+export type KnowledgeGraphDocumentsProgressResponse = { documents: KnowledgeGraphDocumentProgress[] }
+
 export type KnowledgeGraphDocumentProgress = {
   documentId: string
   state: KnowledgeGraphDocumentState

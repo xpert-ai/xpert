@@ -25,6 +25,11 @@ export class GraphragController {
         return this.documentProgress.getProgress(id, documentId)
     }
 
+    @Post('documents/status')
+    async documentStatuses(@Param('id') id: string, @Body('documentIds') documentIds: unknown) {
+        return this.documentProgress.getBatchProgress(id, documentIds)
+    }
+
     @Post('rebuild')
     async rebuild(@Param('id') id: string) {
         return this.service.rebuildKnowledgebase(id)

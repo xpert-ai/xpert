@@ -24,6 +24,8 @@ import {
   AiModelTypeEnum,
   DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
   DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
+  DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT,
+  DEFAULT_KNOWLEDGE_RRF_WEIGHTS,
   getErrorMessage,
   ICopilotModel,
   IKnowledgebase,
@@ -50,6 +52,8 @@ type SectionKey =
   | 'audio'
   | 'advanced'
   | 'storage'
+
+export type KnowledgeConfigurationSection = SectionKey
 
 const FAQ_SECTION_KEYS: readonly SectionKey[] = ['basic', 'models', 'vector-storage', 'retrieval', 'faq']
 
@@ -80,6 +84,7 @@ type ParserEngineOption = {
 type KnowledgeDialogData = {
   workspaceId?: string
   knowledgebase?: IKnowledgebase
+  initialSection?: KnowledgeConfigurationSection
 }
 
 @Component({
@@ -123,7 +128,7 @@ export class XpertNewKnowledgeComponent {
   readonly existingKnowledgebase = signal<IKnowledgebase | null>(this.#initialKnowledgebase)
   readonly isEditMode = computed(() => !!this.existingKnowledgebase()?.id)
   readonly workspaceId = signal(this.#dialogData?.workspaceId ?? this.#initialKnowledgebase?.workspaceId)
-  readonly activeSection = signal<SectionKey>('basic')
+  readonly activeSection = signal<SectionKey>(this.#dialogData?.initialSection ?? 'basic')
 
   readonly sections: CreateSection[] = [
     { key: 'basic', group: 'Basic', labelKey: 'Sections.Basic', icon: 'ri-information-line', status: 'supported' },
@@ -492,6 +497,15 @@ export class XpertNewKnowledgeComponent {
           score: this.#initialKnowledgebase ? (this.#initialKnowledgebase.recall?.score ?? null) : 0.5
         })
       : {
+          ...(!this.#initialKnowledgebase?.id
+            ? {
+                fusion: {
+                  mode: 'weighted_rrf' as const,
+                  rankConstant: DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT,
+                  weights: { ...DEFAULT_KNOWLEDGE_RRF_WEIGHTS }
+                }
+              }
+            : {}),
           ...(this.#initialKnowledgebase?.recall ?? {}),
           topK: this.#initialKnowledgebase?.recall?.topK ?? 10,
           score: this.#initialKnowledgebase ? (this.#initialKnowledgebase.recall?.score ?? null) : 0.5
@@ -500,7 +514,7 @@ export class XpertNewKnowledgeComponent {
     rerankModelId: this.#initialKnowledgebase?.rerankModelId ?? null,
     graphRag: {
       ...(this.#initialKnowledgebase?.graphRag ?? {}),
-      enabled: this.#initialKnowledgebase?.graphRag?.enabled ?? false,
+      enabled: !this.isFAQ() && (this.#initialKnowledgebase?.graphRag?.enabled ?? false),
       mode: this.isFAQ()
         ? normalizeKnowledgebaseFAQRecall(this.#initialKnowledgebase?.recall).mode
         : (this.#initialKnowledgebase?.graphRag?.mode ?? 'vector'),
@@ -510,8 +524,13 @@ export class XpertNewKnowledgeComponent {
     }
   })
   readonly retrievalConfigurationValid = computed(() =>
-    hasEnabledKnowledgeRetrievalSource(this.retrieval(), !this.isFAQ())
+    hasEnabledKnowledgeRetrievalSource(
+      this.retrieval(),
+      !this.isFAQ(),
+      !this.isFAQ() && this.wikiEnabled() ? (this.retrieval()?.recall?.contentScope ?? 'all') : 'all'
+    )
   )
+  readonly graphEnabled = computed(() => !this.isFAQ() && this.retrieval().graphRag?.enabled === true)
 
   // Document-level parser options are shown here for parity with WeKnora and
   // will be applied from the document import flow until the KB create DTO grows.
@@ -547,6 +566,14 @@ export class XpertNewKnowledgeComponent {
       return
     }
     this.wikiEnabled.update((enabled) => !enabled)
+  }
+
+  toggleGraph() {
+    if (this.isFAQ()) return
+    this.retrieval.update((retrieval) => ({
+      ...retrieval,
+      graphRag: { ...retrieval.graphRag, enabled: !retrieval.graphRag?.enabled }
+    }))
   }
 
   sectionStatusKey(status: SectionStatus) {
@@ -702,8 +729,8 @@ export class XpertNewKnowledgeComponent {
 
     if (!this.retrievalConfigurationValid()) {
       this.activeSection.set('retrieval')
-      this.#toastr.error('XP.Knowledgebase.RRFPositiveWeightRequired', '', {
-        Default: 'RRF requires at least one retrieval source with a positive weight.'
+      this.#toastr.error('XP.Knowledgebase.RetrievalSourceRequired', '', {
+        Default: 'Choose an available retrieval method and enable at least one source with a positive weight.'
       })
       return false
     }

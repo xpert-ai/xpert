@@ -56,6 +56,34 @@ function deleteQueryBuilderMock() {
 }
 
 describe('GraphRAG service', () => {
+    it.each([
+        { enabled: true, documentNum: 0, expected: 'ready' },
+        { enabled: true, documentNum: 2, expected: 'rebuild_required' },
+        { enabled: false, documentNum: 0, expected: 'disabled' }
+    ])(
+        'repairs legacy disabled status in the read response: $enabled / $documentNum',
+        async ({ enabled, documentNum, expected }) => {
+            const repository = { count: jest.fn(async () => 0), find: jest.fn(async () => []) }
+            const service = Object.create(GraphragService.prototype) as GraphragService
+            Object.assign(service, {
+                knowledgebaseService: {
+                    findOne: jest.fn(async () => ({
+                        ...enabledKnowledgebase(),
+                        graphRag: { enabled },
+                        graphStatus: 'disabled',
+                        documentNum
+                    }))
+                },
+                entityRepository: repository,
+                relationRepository: repository,
+                mentionRepository: repository,
+                jobRepository: repository
+            })
+            const result = await service.getStatus('kb-1')
+            expect(result).toMatchObject({ enabled, status: expected, entityCount: 0, relationCount: 0 })
+        }
+    )
+
     it('normalizes entity names and types with stable explicit keys', () => {
         expect(normalizeKnowledgeGraphName('  OpenAI   Platform  ')).toBe('openai platform')
         expect(normalizeKnowledgeGraphType('Product Area')).toBe('product_area')

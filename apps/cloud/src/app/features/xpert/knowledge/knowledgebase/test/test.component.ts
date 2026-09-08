@@ -11,7 +11,6 @@ import {
   myRxResource,
   XpCommonModule,
   ZardAccordionImports,
-  type ZardAccordionItemLike,
   ZardTabNavBarDirective,
   ZardTabNavLinkDirective
 } from '@xpert-ai/headless-ui'
@@ -23,10 +22,10 @@ import {
   DocumentMetadata,
   GraphRagRetrievalMode,
   IKnowledgeRetrievalLog,
+  IKnowledgebase,
   KBMetadataFieldDef,
   KnowledgeFilterDiagnostics,
   KnowledgeFilterNode,
-  KnowledgeRetrievalContentScope,
   KnowledgeDocumentService,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
@@ -75,24 +74,34 @@ export class KnowledgeTestComponent {
   readonly showContentScope = computed(
     () => this.showDocumentTestControls() && this.knowledgebase()?.wikiConfig?.enabled === true
   )
-  readonly contentScope = linkedSignal<{ id: string; enabled: boolean }, KnowledgeRetrievalContentScope>({
-    source: () => ({ id: this.knowledgebase()?.id, enabled: this.showContentScope() }),
-    computation: (source, previous) =>
-      previous && source.id === previous.source.id && source.enabled === previous.source.enabled
-        ? previous.value
-        : 'all'
+  // Keep test changes local, including when the parent refreshes background status.
+  readonly testSettings = linkedSignal<IKnowledgebase, Partial<IKnowledgebase>>({
+    source: this.knowledgebase,
+    computation: (kb, previous) =>
+      previous?.source?.id === kb?.id && previous?.value
+        ? {
+            ...previous.value,
+            graphRag: { ...previous.value.graphRag, enabled: kb?.graphRag?.enabled },
+            wikiConfig: kb?.wikiConfig,
+            recall: {
+              ...previous.value.recall,
+              contentScope: kb?.wikiConfig?.enabled ? previous.value.recall?.contentScope : 'all'
+            }
+          }
+        : { ...kb }
   })
+  readonly contentScope = computed(() => this.testSettings()?.recall?.contentScope ?? 'all')
 
   readonly recall = computed(() =>
-    this.isFAQ() ? normalizeKnowledgebaseFAQRecall(this.knowledgebase()?.recall) : this.knowledgebase()?.recall
+    this.isFAQ() ? normalizeKnowledgebaseFAQRecall(this.testSettings()?.recall) : this.testSettings()?.recall
   )
   readonly score = computed(() => this.recall()?.score)
   readonly topK = computed(() => this.recall()?.topK)
   readonly retrievalMode = computed<GraphRagRetrievalMode>(
-    () => this.recall()?.mode ?? this.knowledgebase()?.graphRag?.mode ?? (this.isFAQ() ? 'hybrid' : 'vector')
+    () => this.recall()?.mode ?? this.testSettings()?.graphRag?.mode ?? (this.isFAQ() ? 'hybrid' : 'vector')
   )
   readonly retrievalSettings = computed<TKBRetrievalSettings>(() => {
-    const graphRag = this.knowledgebase()?.graphRag
+    const graphRag = this.testSettings()?.graphRag
     return {
       mode: this.retrievalMode(),
       entityTopK: graphRag?.entityTopK,
@@ -164,11 +173,23 @@ export class KnowledgeTestComponent {
   test() {
     this.#loading.set(true)
     this.error.set(null)
+    const model = this.testSettings()?.rerankModel
     this.knowledgebaseAPI
       .test(this.knowledgebase().id, {
         query: this.query(),
         k: this.topK() ?? 10,
-        score: this.score(),
+        score: this.score() ?? null,
+        rerankThreshold: this.recall()?.rerankThreshold ?? null,
+        rerankModel: model
+          ? {
+              modelType: model.modelType,
+              model: model.model,
+              copilotId: model.copilotId ?? model.copilot?.id,
+              options: model.options
+            }
+          : this.testSettings()?.rerankModelId
+            ? undefined
+            : null,
         filters: this.requestFilter() ? { request: this.requestFilter() } : undefined,
         retrieval: this.retrievalSettings(),
         ...(this.showContentScope() ? { contentScope: this.contentScope() } : {})
@@ -193,13 +214,6 @@ export class KnowledgeTestComponent {
   selectLog(log: IKnowledgeRetrievalLog) {
     this.query.set(log.query)
     this.results.set(null)
-  }
-
-  onRetrievalSettingsClose(reload: boolean | void, panel: ZardAccordionItemLike) {
-    panel.close()
-    if (reload) {
-      this.knowledgebaseComponent.refresh()
-    }
   }
 }
 

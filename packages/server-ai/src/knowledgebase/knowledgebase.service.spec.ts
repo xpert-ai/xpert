@@ -312,6 +312,31 @@ describe('KnowledgebaseService', () => {
         expect(result).not.toHaveProperty('createdById', 'victim-user')
     })
 
+    it.each([true, false])('initializes graph state from the create switch (%s)', async (enabled) => {
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+            save: jest.fn().mockImplementation(async (entity) => entity)
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+        const result = await runInRequestContext(() =>
+            service.create({
+                name: 'Graph knowledgebase',
+                type: KnowledgebaseTypeEnum.Standard,
+                graphRag: { enabled }
+            })
+        )
+        expect(result.graphStatus).toBe(enabled ? 'ready' : 'disabled')
+        expect(result.graphRevision).toBe(0)
+        expect(result.graphIndexError).toBeNull()
+    })
+
     it('persists validated FAQ configuration when creating an FAQ knowledgebase', async () => {
         const repository = {
             findOne: jest.fn(),

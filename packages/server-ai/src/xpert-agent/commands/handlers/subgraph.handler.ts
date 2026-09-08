@@ -1785,7 +1785,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         for (const id of knowledgebaseIds) {
             const retrieval = retrievals?.[id]
             const retriever = createKnowledgeRetriever(this.queryBus, id, {
-                recall: { ...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {}) },
+                recall: {
+                    ...(omitBy(recalls?.[id], isNil) ?? {}),
+                    ...(omitBy(recall, isNil) ?? {}),
+                    score: recall?.score === undefined ? recalls?.[id]?.score : recall.score
+                },
                 retrieval
             })
             const knowledgeToolset = {
