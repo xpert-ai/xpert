@@ -1,4 +1,5 @@
-import type { TFollowUpConsumedEvent, TMessageContentComplex, TThreadContextUsageEvent } from '@xpert-ai/chatkit-types'
+import type { TAgentThreadContextUsageEvent } from './chat-event.model'
+import type { TFollowUpConsumedEvent, TMessageContentComplex } from '@xpert-ai/chatkit-types'
 import type { IChatConversation } from './chat.model'
 import type { IChatMessage } from './chat-message.model'
 import type { IXpertAgentExecution } from './xpert-agent-execution.model'
@@ -193,7 +194,7 @@ export type TChatStreamErrorPayload = {
 export type TChatStreamChatEventData =
   | NonNullable<IChatMessage['events']>[number]
   | TFollowUpConsumedEvent
-  | TThreadContextUsageEvent
+  | TAgentThreadContextUsageEvent
   | TThreadGoalUpdatedEvent
   | TThreadGoalClearedEvent
 

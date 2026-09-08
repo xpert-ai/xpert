@@ -26,7 +26,7 @@ import {
   TChatOptions,
   TChatRequest,
   TXpertChatResumeDecision,
-  TThreadContextUsageEvent,
+  TAgentThreadContextUsageEvent,
   TInterruptCommand,
   TMessageAppendContext,
   TMessageContent,
@@ -113,7 +113,7 @@ export abstract class ChatService {
 
   readonly answering = signal<boolean>(false)
   readonly pendingFollowUps = signal<PendingFollowUp[]>([])
-  readonly contextUsageByAgentKey = signal<Record<string, TThreadContextUsageEvent>>({})
+  readonly contextUsageByAgentKey = signal<Record<string, TAgentThreadContextUsageEvent>>({})
   protected chatSubscription: Subscription = null
   private joinedRunSubscription: Subscription = null
   private joinedRunKey: string | null = null
@@ -769,7 +769,7 @@ export abstract class ChatService {
     }
   }
 
-  setContextUsage(event: TThreadContextUsageEvent) {
+  setContextUsage(event: TAgentThreadContextUsageEvent) {
     this.contextUsageByAgentKey.update((state) => upsertThreadContextUsage(state, event))
   }
 

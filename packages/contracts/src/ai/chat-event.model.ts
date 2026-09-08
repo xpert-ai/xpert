@@ -1,4 +1,5 @@
 import type {
+  TThreadContextUsageEvent,
   TChatEventMessage,
   TFollowUpConsumedEvent,
   TThreadGoalClearedEvent,
@@ -70,4 +71,9 @@ function toIsoString(value?: string | Date) {
     }
   }
   return new Date().toISOString()
+}
+
+/** Optional resolved model information; older event consumers remain compatible. */
+export type TAgentThreadContextUsageEvent = TThreadContextUsageEvent & {
+  effectiveModel?: { model?: string; contextWindow: number }
 }

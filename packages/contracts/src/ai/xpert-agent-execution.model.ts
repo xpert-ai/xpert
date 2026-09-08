@@ -128,6 +128,10 @@ export type TAgentExecutionMetadata = {
   primaryModelId?: string
   primaryModelSource?: import('./assistant-model.model').TAssistantPrimaryModelSelectionSource
   /** Sanitized model snapshot used to keep resume and retry deterministic. */
+  effectiveModelSnapshot?: Pick<
+    import('./copilot-model.model').TCopilotModel,
+    'copilotId' | 'modelType' | 'model' | 'options'
+  >
   primaryModelSnapshot?: Pick<
     import('./copilot-model.model').TCopilotModel,
     'copilotId' | 'modelType' | 'model' | 'options'
