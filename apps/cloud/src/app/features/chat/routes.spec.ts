@@ -22,10 +22,6 @@ jest.mock('../../@core', () => ({
   }
 }))
 
-jest.mock('./common/common.component', () => ({
-  ChatCommonAssistantComponent: class ChatCommonAssistantComponent {}
-}))
-
 jest.mock('./xpert/xpert.component', () => ({
   ChatXpertComponent: class ChatXpertComponent {}
 }))

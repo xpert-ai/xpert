@@ -96,7 +96,6 @@ describe('ChatHomeComponent', () => {
       imports: [ChatHomeComponent],
       providers: [
         provideRouter([
-          { path: 'chat/x/common', component: DummyComponent },
           { path: 'chat/clawxpert/c', component: DummyComponent },
           { path: '**', component: DummyComponent }
         ]),
@@ -121,22 +120,6 @@ describe('ChatHomeComponent', () => {
     expect(fixture.nativeElement.querySelector('router-outlet')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('xp-chat-sidebar-xperts')).toBeNull()
     expect(fixture.nativeElement.querySelector('[data-chat-sidebar-xperts]')).toBeNull()
-  })
-
-  it('clears the common conversation state on the common chat route', async () => {
-    homeService.conversationId.set('conversation-1')
-    homeService.conversation.set({ id: 'conversation-1' })
-
-    const fixture = TestBed.createComponent(ChatHomeComponent)
-    const router = TestBed.inject(Router)
-
-    fixture.detectChanges()
-    await router.navigateByUrl('/chat/x/common')
-    await fixture.whenStable()
-    fixture.detectChanges()
-
-    expect(homeService.conversationId()).toBeNull()
-    expect(homeService.conversation()).toBeNull()
   })
 
   it('redirects ClawXpert routes to Explore when the feature is disabled after hydration', async () => {
