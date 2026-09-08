@@ -1,5 +1,8 @@
 {
     "Error": {
+        "KnowledgeIdentityInvalid": "Knowledge identity data or model output is invalid.",
+        "KnowledgeIdentityStale": "The identity source changed during processing. Please retry.",
+        "KnowledgeIdentityBusy": "The identity catalogue changed during processing. Please retry.",
         "KnowledgeGraphDocumentStatusBatchInvalid": "Provide between 1 and {{max}} document UUIDs.",
         "KnowledgeRetrievalSourceRequired": "Select at least one retrieval source available for the selected content scope with a positive weight.",
         "KnowledgeRerankModelUnavailable": "Rerank model is not available for knowledgebase '{{knowledgebase}}'.",

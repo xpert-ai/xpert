@@ -1,3 +1,5 @@
+import { KnowledgeIdentity } from '../../knowledgebase/identity/knowledge-identity.entity'
+import { KnowledgeIdentityObservation } from '../../knowledgebase/identity/knowledge-identity-observation.entity'
 import {
     ChatConversation,
     ChatConversationThread,
@@ -88,6 +90,8 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    KnowledgeIdentity,
+    KnowledgeIdentityObservation,
     ChatConversation,
     ChatConversationThread,
     ChatConversationGoal,

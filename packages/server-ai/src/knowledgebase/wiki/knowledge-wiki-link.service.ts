@@ -1,3 +1,4 @@
+import { loadIdentityCatalogue } from '../identity/knowledge-identity-catalogue'
 import { KnowledgeWikiPageType } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -52,9 +53,23 @@ export class KnowledgeWikiLinkService {
                 pageType: In([...new Set(suggestions.map((item) => item.targetType))])
             }
         })
+        const aliases = new Map<string, string[]>()
+        for (const kind of ['entity', 'concept'] as const) {
+            if (!targets.some((target) => target.pageType === kind && target.identityId)) continue
+            const catalogue = await loadIdentityCatalogue(
+                this.pageRepository.manager,
+                {
+                    knowledgebaseId: knowledgebase.id,
+                    tenantId: knowledgebase.tenantId,
+                    organizationId: knowledgebase.organizationId
+                },
+                kind
+            )
+            for (const entry of catalogue.entries) aliases.set(entry.id, entry.profile.aliases)
+        }
         const targetsByName = new Map<string, Set<KnowledgeWikiPage>>()
         for (const target of targets) {
-            for (const name of [target.canonicalName, ...(target.identity?.aliases ?? [])]) {
+            for (const name of [target.canonicalName, ...(aliases.get(target.identityId) ?? [])]) {
                 const key = `${target.pageType}:${normalizeKnowledgeWikiCanonicalName(name)}`
                 const matches = targetsByName.get(key) ?? new Set<KnowledgeWikiPage>()
                 matches.add(target)

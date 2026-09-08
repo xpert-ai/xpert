@@ -1,28 +1,30 @@
-import { KnowledgeWikiIdentityDescriptor } from '@xpert-ai/contracts'
+import { KnowledgeIdentityDescriptor } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { KnowledgebaseService } from '../knowledgebase.service'
-import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiSourceMapResult } from './entities'
-import { KnowledgeWikiIdentityEmbeddingService } from './knowledge-wiki-identity-embedding.service'
+import { KnowledgeIdentity } from './knowledge-identity.entity'
+import { KnowledgeIdentityInput, KnowledgeIdentityCatalogueEntry } from './knowledge-identity.types'
+import { KnowledgeIdentityEmbeddingService } from './knowledge-identity-embedding.service'
 
 function fixture() {
-    const descriptor: KnowledgeWikiIdentityDescriptor = {
+    const descriptor: KnowledgeIdentityDescriptor = {
         kind: 'concept',
         definition: 'Retrieve by meaning.',
         domain: 'retrieval',
         scope: null
     }
-    const row = Object.assign(new KnowledgeWikiSourceMapResult(), {
-        id: 'new',
+    const row: KnowledgeIdentityInput = {
+        candidateKey: 'candidate',
         canonicalName: 'Semantic search',
-        identity: descriptor
-    })
-    const page = Object.assign(new KnowledgeWikiPage(), {
+        descriptor,
+        aliases: [],
+        facts: []
+    }
+    const page: KnowledgeIdentityCatalogueEntry = {
         id: 'canonical',
         canonicalName: 'Semantic retrieval',
-        identityRevision: 1,
-        version: 4,
-        identity: { descriptor, aliases: [], embedding: null }
-    })
+        revision: 1,
+        profile: { descriptor, aliases: [], embedding: null }
+    }
     const embedDocuments = jest.fn(async (texts: string[]) => texts.map(() => [1, 0]))
     const store = {
         knowledgebase: { embeddingModelFingerprint: 'model-1', embeddingDimensions: 2 },
@@ -31,10 +33,9 @@ function fixture() {
     const knowledgebaseService = { getActiveVectorStore: jest.fn(async () => store) }
     const pages = { update: jest.fn(async () => ({ affected: 1 })) }
     const results = { update: jest.fn(async () => ({ affected: 1 })) }
-    const service = new KnowledgeWikiIdentityEmbeddingService(
+    const service = new KnowledgeIdentityEmbeddingService(
         knowledgebaseService as unknown as KnowledgebaseService,
-        pages as unknown as Repository<KnowledgeWikiPage>,
-        results as unknown as Repository<KnowledgeWikiSourceMapResult>
+        pages as unknown as Repository<KnowledgeIdentity>
     )
     return {
         service,
@@ -45,11 +46,11 @@ function fixture() {
         pages,
         results,
         knowledgebaseService,
-        job: Object.assign(new KnowledgeWikiJob(), { knowledgebaseId: 'kb' })
+        job: 'kb'
     }
 }
 
-describe('Wiki identity embedding cache', () => {
+describe('Shared identity embedding cache', () => {
     it('reuses vectors for unchanged identity text and model, without using the reranker', async () => {
         const h = fixture()
         await h.service.prepare(h.job, h.row, [h.page])
@@ -60,8 +61,8 @@ describe('Wiki identity embedding cache', () => {
             rerankEnabled: false
         })
         expect(h.pages.update).toHaveBeenCalledWith(
-            { id: 'canonical', identityRevision: 1 },
-            expect.objectContaining({ version: expect.any(Function) })
+            { id: 'canonical', revision: 1 },
+            expect.objectContaining({ embedding: expect.objectContaining({ vector: [1, 0] }) })
         )
     })
 
@@ -93,7 +94,7 @@ describe('Wiki identity embedding cache', () => {
         const h = fixture()
         h.embedDocuments.mockResolvedValue(vectors)
         await expect(h.service.prepare(h.job, h.row, [h.page])).rejects.toMatchObject({
-            code: 'knowledge_wiki_identity_invalid'
+            code: 'invalid'
         })
         expect(h.pages.update).not.toHaveBeenCalled()
         expect(h.results.update).not.toHaveBeenCalled()

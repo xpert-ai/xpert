@@ -14,6 +14,9 @@ import { Column, Entity, Index } from 'typeorm'
 @Index(['knowledgebaseId', 'generationRevision'])
 @Index(['knowledgebaseId', 'sourceDocumentIdSnapshot'])
 export class KnowledgeWikiSourceMapResult extends TenantOrganizationBaseEntity {
+    @Column({ type: 'uuid', nullable: true })
+    identityId: string | null
+
     @Column({ type: 'uuid' })
     knowledgebaseId: string
 

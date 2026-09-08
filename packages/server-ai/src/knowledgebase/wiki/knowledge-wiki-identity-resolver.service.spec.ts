@@ -3,9 +3,11 @@ import { DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { Knowledgebase } from '../knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiSourceMapResult, KnowledgeWikiSourceState } from './entities'
-import { KnowledgeWikiDedupModelInput, KnowledgeWikiDedupModelOutput } from './knowledge-wiki-dedup-model'
 import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
-import { KnowledgeWikiIdentityEmbeddingService } from './knowledge-wiki-identity-embedding.service'
+import { KnowledgeIdentityService } from '../identity/knowledge-identity.service'
+import { KnowledgeIdentityInput, KnowledgeIdentityRuntime } from '../identity/knowledge-identity.types'
+import { KnowledgeIdentityObservation } from '../identity/knowledge-identity-observation.entity'
+import { KnowledgeIdentityError } from '../identity/knowledge-identity-error'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
 import { KnowledgeWikiJobFenceService } from './knowledge-wiki-job-fence.service'
 import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invocation.service'
@@ -54,16 +56,12 @@ function existingPage(id: string, name: string, descriptor: KnowledgeWikiIdentit
     return Object.assign(new KnowledgeWikiPage(), {
         id,
         knowledgebaseId: 'kb',
+        identityId: 'shared-identity',
         pageKey: `${descriptor.kind}:${id}`,
         canonicalName: name,
         pageType: descriptor.kind,
-        identityRevision: 1,
-        version: 1,
-        identity: {
-            descriptor,
-            aliases: [name],
-            embedding: { modelFingerprint: 'embedding', contentFingerprint: 'text', vector: [1, 0] }
-        }
+        version: 4,
+        activeVersionId: 'published-version'
     })
 }
 
@@ -79,7 +77,8 @@ function harness(rows: KnowledgeWikiSourceMapResult[], initialPages: KnowledgeWi
             sourceDocumentIdSnapshot: id,
             sourceContentHash: 'hash',
             sourcePublicationEpoch: 1,
-            sourceLifecycleGeneration: 1
+            sourceLifecycleGeneration: 1,
+            generationAttempt: 0
         })
     )
     const pipeline =
@@ -132,7 +131,9 @@ function harness(rows: KnowledgeWikiSourceMapResult[], initialPages: KnowledgeWi
     const pageRepository = {
         findOne: jest.fn(
             async ({ where }: { where: FindOptionsWhere<KnowledgeWikiPage> }) =>
-                pages.find((page) => page.id === where.id) ?? null
+                pages.find((page) =>
+                    where.identityId ? page.identityId === where.identityId : page.pageKey === where.pageKey
+                ) ?? null
         ),
         find: jest.fn(async ({ where }: { where: FindOptionsWhere<KnowledgeWikiPage> }) =>
             pages
@@ -147,8 +148,7 @@ function harness(rows: KnowledgeWikiSourceMapResult[], initialPages: KnowledgeWi
         update: jest.fn(async (id: string, patch: Partial<KnowledgeWikiPage>) => {
             const page = pages.find((item) => item.id === id)
             if (!page) return { affected: 0 }
-            if (patch.identity) page.identity = patch.identity
-            if (patch.identityRevision !== undefined) page.identityRevision = patch.identityRevision
+            Object.assign(page, patch)
             return { affected: 1 }
         })
     }
@@ -201,31 +201,19 @@ function harness(rows: KnowledgeWikiSourceMapResult[], initialPages: KnowledgeWi
         isSourceCurrent: (map: KnowledgeWikiJob, doc: KnowledgeDocument) =>
             map.sourceContentHash === doc.contentHash && map.sourcePublicationEpoch === doc.publicationEpoch
     }
-    const embeddings = {
-        prepare: jest.fn(
-            async (_job: KnowledgeWikiJob, row: KnowledgeWikiSourceMapResult, choices: KnowledgeWikiPage[]) => {
-                row.identityEmbedding = { modelFingerprint: 'embedding', contentFingerprint: 'text', vector: [1, 0] }
-                choices.forEach((page) => {
-                    page.identity.embedding = {
-                        modelFingerprint: 'embedding',
-                        contentFingerprint: 'text',
-                        vector: [1, 0]
-                    }
-                })
+    const model = { invokeDedupModel: jest.fn() }
+    const identities = {
+        resolveBatch: jest.fn(
+            async (_source: unknown, inputs: KnowledgeIdentityInput[], runtime: KnowledgeIdentityRuntime) => {
+                await runtime.assertCurrent(manager)
+                return inputs.map((input) =>
+                    Object.assign(new KnowledgeIdentityObservation(), {
+                        candidateKey: input.candidateKey,
+                        identityId: 'shared-identity',
+                        decision: { outcome: 'same', reason: 'Same object.', comparedIdentityIds: [] }
+                    })
+                )
             }
-        )
-    }
-    const model = {
-        invokeDedupModel: jest.fn(
-            async (
-                _job: KnowledgeWikiJob,
-                _kb: Knowledgebase,
-                input: KnowledgeWikiDedupModelInput
-            ): Promise<KnowledgeWikiDedupModelOutput> => ({
-                decision: 'same',
-                pageId: input.candidates[0].id,
-                reason: 'Source context identifies the same object.'
-            })
         )
     }
     const scheduler = { schedulePages: jest.fn(async () => true) }
@@ -233,30 +221,45 @@ function harness(rows: KnowledgeWikiSourceMapResult[], initialPages: KnowledgeWi
     const service = new KnowledgeWikiIdentityResolverService(
         jobs as unknown as Repository<KnowledgeWikiJob>,
         results as unknown as Repository<KnowledgeWikiSourceMapResult>,
-        pageRepository as unknown as Repository<KnowledgeWikiPage>,
         dataSource as unknown as DataSource,
         fence as unknown as KnowledgeWikiJobFenceService,
-        embeddings as unknown as KnowledgeWikiIdentityEmbeddingService,
+        identities as unknown as KnowledgeIdentityService,
         model as unknown as KnowledgeWikiModelInvocationService,
         scheduler as unknown as KnowledgeWikiPageSchedulerService,
         dispatcher as unknown as KnowledgeWikiJobDispatcherService
     )
-    return { service, job, pipeline, rows, pages, pageRepository, jobs, model, scheduler, embeddings, documents }
+    return {
+        service,
+        job,
+        pipeline,
+        rows,
+        pages,
+        pageRepository,
+        jobs,
+        model,
+        scheduler,
+        identities,
+        documents,
+        dispatcher
+    }
 }
 
-describe('Wiki identity resolution stage', () => {
-    it('resolves different names in a source to the same stable page and preserves both raw candidates', async () => {
+describe('Wiki adapter for shared knowledge identity', () => {
+    it('attaches aliases resolved by the shared service to one page and preserves both source candidates', async () => {
         const h = harness([candidate('1', 'North Team', team), candidate('2', 'North Operations', team)])
         await h.service.process(h.job)
         expect(h.pages).toHaveLength(1)
         expect(h.rows[0].normalizedPageKey).toBe(h.rows[1].normalizedPageKey)
-        expect(h.rows).toHaveLength(2)
-        expect(h.rows[1].identityDecision.outcome).toBe('same')
-        expect(h.pages[0].identity.aliases).toEqual(['North Team', 'North Operations'])
+        expect(h.rows.map((row) => row.identityId)).toEqual(['shared-identity', 'shared-identity'])
+        expect(h.identities.resolveBatch).toHaveBeenCalledWith(
+            expect.objectContaining({ consumer: 'wiki', sourcePublicationEpoch: 1 }),
+            expect.arrayContaining([expect.objectContaining({ descriptor: team })]),
+            expect.any(Object)
+        )
         expect(h.scheduler.schedulePages).toHaveBeenCalledWith(h.pipeline, h.job)
     })
 
-    it('uses per-document Summary identity without an embedding or semantic model call', async () => {
+    it('keeps Summary document-owned without submitting summaries for identity matching', async () => {
         const h = harness([
             candidate('1', 'Report', { kind: 'summary' }),
             candidate('2', 'Renamed report', { kind: 'summary' }),
@@ -265,104 +268,56 @@ describe('Wiki identity resolution stage', () => {
         await h.service.process(h.job)
         expect(h.pages).toHaveLength(2)
         expect(h.rows.map((row) => row.normalizedPageKey)).toEqual(['summary:doc', 'summary:doc', 'summary:another'])
-        expect(h.model.invokeDedupModel).not.toHaveBeenCalled()
-        expect(h.embeddings.prepare).not.toHaveBeenCalled()
-    })
-
-    it('preserves same-name entities with conflicting identifiers as separate pages', async () => {
-        const first = { ...team, identifiers: [{ namespace: 'company/team', value: 'north' }] }
-        const second = { ...team, identifiers: [{ namespace: 'company/team', value: 'south' }] }
-        const h = harness([candidate('1', 'Operations', first), candidate('2', 'Operations', second)])
-        await h.service.process(h.job)
-        expect(h.pages).toHaveLength(2)
-        expect(h.rows[0].normalizedPageKey).not.toBe(h.rows[1].normalizedPageKey)
+        expect(h.identities.resolveBatch.mock.calls.map((call) => call[1])).toEqual([[], []])
         expect(h.model.invokeDedupModel).not.toHaveBeenCalled()
     })
 
-    it.each(['different', 'uncertain'] as const)(
-        'does not merge related concepts when the semantic judge returns %s',
-        async (decision) => {
-            const h = harness(
-                [
-                    candidate('new', 'Keyword retrieval', {
-                        ...retrieval,
-                        definition: 'Retrieve passages by exact words.'
-                    })
-                ],
-                [existingPage('semantic', 'Semantic retrieval', retrieval)]
-            )
-            h.model.invokeDedupModel.mockResolvedValue({
-                decision,
-                pageId: null,
-                reason: 'Definitions do not establish equivalence.'
-            })
-            await h.service.process(h.job)
-            expect(h.pages).toHaveLength(2)
-            expect(h.rows[0].identityDecision.outcome).toBe(decision === 'different' ? 'new' : 'uncertain')
-        }
-    )
-
-    it('merges equivalent concepts across names, preserving their explicit definition in the model input', async () => {
-        const h = harness(
-            [candidate('new', 'Semantic search', retrieval)],
-            [existingPage('semantic', 'Semantic retrieval', retrieval)]
-        )
+    it('leaves the published article and page id intact when binding a new source to its identity', async () => {
+        const page = existingPage('published', 'Semantic retrieval', retrieval)
+        const h = harness([candidate('new', 'Semantic search', retrieval)], [page])
         await h.service.process(h.job)
         expect(h.pages).toHaveLength(1)
-        expect(h.rows[0].normalizedPageKey).toBe('concept:semantic')
-        expect(h.model.invokeDedupModel.mock.calls[0][2].descriptor).toEqual(retrieval)
+        expect(h.rows[0].normalizedPageKey).toBe('concept:published')
+        expect(page).toMatchObject({ id: 'published', version: 4, activeVersionId: 'published-version' })
+        expect(h.pageRepository.update).not.toHaveBeenCalled()
     })
 
-    it('rejects a provider failure without converting it to a new identity', async () => {
-        const h = harness([candidate('new', 'Northern Team', team)], [existingPage('north', 'North Team', team)])
-        h.model.invokeDedupModel.mockRejectedValue(new Error('Provider outcome uncertain'))
+    it('does not allocate a page or schedule Reduce when shared identity fails', async () => {
+        const h = harness([candidate('new', 'Northern Team', team)])
+        h.identities.resolveBatch.mockRejectedValue(new Error('Provider outcome uncertain'))
         await expect(h.service.process(h.job)).rejects.toThrow('Provider outcome uncertain')
-        expect(h.pages).toHaveLength(1)
+        expect(h.pages).toHaveLength(0)
         expect(h.rows[0].normalizedPageKey).toBeNull()
         expect(h.scheduler.schedulePages).not.toHaveBeenCalled()
     })
 
-    it('rejects a page id outside the supplied, scoped candidate set', async () => {
-        const h = harness([candidate('new', 'Northern Team', team)], [existingPage('north', 'North Team', team)])
-        h.model.invokeDedupModel.mockResolvedValue({
-            decision: 'same',
-            pageId: 'foreign-kb-page',
-            reason: 'Untrusted model output.'
-        })
-        await expect(h.service.process(h.job)).rejects.toMatchObject({ code: 'knowledge_wiki_identity_invalid' })
-        expect(h.rows[0].normalizedPageKey).toBeNull()
-    })
-
-    it('reuses persisted identity decisions when resuming after downstream interruption', async () => {
-        const h = harness([candidate('1', 'North Operations', team)], [existingPage('north', 'North Team', team)])
+    it('resumes after downstream interruption without repeating identity resolution', async () => {
+        const h = harness([candidate('1', 'North Operations', team)])
         h.scheduler.schedulePages.mockRejectedValueOnce(new Error('Scheduling interrupted'))
         await expect(h.service.process(h.job)).rejects.toThrow('Scheduling interrupted')
         await h.service.process(h.job)
-        expect(h.model.invokeDedupModel).toHaveBeenCalledTimes(1)
+        expect(h.identities.resolveBatch).toHaveBeenCalledTimes(1)
         expect(h.pages).toHaveLength(1)
         expect(h.scheduler.schedulePages).toHaveBeenCalledTimes(2)
     })
 
-    it('rechecks the catalogue after a concurrent identity allocation instead of creating a duplicate', async () => {
+    it('retains the source-generation fence and does not attach stale candidates', async () => {
         const h = harness([candidate('new', 'Northern Team', team)])
-        h.embeddings.prepare.mockImplementationOnce(async (_job, row) => {
-            row.identityEmbedding = { modelFingerprint: 'embedding', contentFingerprint: 'text', vector: [1, 0] }
-            h.pages.push(existingPage('other-worker', 'North Team', team))
-        })
-        await h.service.process(h.job)
-        expect(h.pages).toHaveLength(1)
-        expect(h.rows[0].normalizedPageKey).toBe('entity:other-worker')
-        expect(h.model.invokeDedupModel).toHaveBeenCalledTimes(1)
-    })
-
-    it('rejects a source changed during the model call before committing its identity', async () => {
-        const h = harness([candidate('new', 'Northern Team', team)], [existingPage('north', 'North Team', team)])
-        h.model.invokeDedupModel.mockImplementationOnce(async () => {
+        const original = h.identities.resolveBatch.getMockImplementation()
+        h.identities.resolveBatch.mockImplementationOnce(async (source, input, runtime) => {
             h.documents[0].publicationEpoch += 1
-            return { decision: 'same', pageId: 'north', reason: 'Same team.' }
+            return original(source, input, runtime)
         })
         await expect(h.service.process(h.job)).rejects.toMatchObject({ code: 'knowledge_wiki_identity_stale' })
-        expect(h.rows[0].normalizedPageKey).toBeNull()
-        expect(h.scheduler.schedulePages).not.toHaveBeenCalled()
+        expect(h.pages).toHaveLength(0)
+    })
+
+    it('requeues catalogue contention without converting it into a new page', async () => {
+        const h = harness([candidate('new', 'Northern Team', team)])
+        h.identities.resolveBatch.mockRejectedValue(new KnowledgeIdentityError('busy'))
+        await h.service.process(h.job)
+        expect(h.jobs.update).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ status: 'queued' }))
+        expect(h.dispatcher.dispatch).toHaveBeenCalled()
+        expect(h.pages).toHaveLength(0)
     })
 })

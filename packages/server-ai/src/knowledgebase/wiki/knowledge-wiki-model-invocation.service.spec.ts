@@ -552,7 +552,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
 
     it('journals and replays identity decisions without repeating the provider call or billing', async () => {
         const { service, invoke, invocations, commandBus, withStructuredOutput } = createHarness()
-        invoke.mockResolvedValue({ decision: 'same', pageId: 'page-1', reason: 'Same documented team.' })
+        invoke.mockResolvedValue({ decision: 'same', identityId: 'page-1', reason: 'Same documented team.' })
         const descriptor = {
             kind: 'entity' as const,
             entityType: 'organization' as const,
@@ -578,7 +578,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
 
     it('does not cache an out-of-candidate identity as a successful decision', async () => {
         const { service, invoke, invocations } = createHarness()
-        invoke.mockResolvedValue({ decision: 'same', pageId: 'foreign', reason: 'Invalid target.' })
+        invoke.mockResolvedValue({ decision: 'same', identityId: 'foreign', reason: 'Invalid target.' })
         const input = {
             candidateId: 'candidate',
             canonicalName: 'Concept',
@@ -588,7 +588,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
             candidates: []
         }
         await expect(service.invokeDedupModel(job as never, knowledgebase as never, input, 0)).rejects.toMatchObject({
-            code: 'knowledge_wiki_identity_invalid'
+            code: 'invalid'
         })
         expect(invocations[0].status).not.toBe('succeeded')
         expect(invocations[0].structuredOutput).toBeUndefined()

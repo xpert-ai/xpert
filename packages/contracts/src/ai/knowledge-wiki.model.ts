@@ -274,6 +274,7 @@ export type KnowledgeWikiPageListParams = {
 }
 
 export type KnowledgeWikiPageListItem = {
+  identityId?: string | null
   id: string
   pageKey: string
   pageType: KnowledgeWikiPageType

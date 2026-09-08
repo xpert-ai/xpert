@@ -8,7 +8,6 @@ import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invo
 import { KnowledgeWikiModule } from './knowledge-wiki.module'
 import { KnowledgeWikiReconcilerService } from './knowledge-wiki-reconciler.service'
 import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
-import { KnowledgeWikiIdentityEmbeddingService } from './knowledge-wiki-identity-embedding.service'
 import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-scheduler.service'
 
 describe('KnowledgeWikiModule', () => {
@@ -18,7 +17,6 @@ describe('KnowledgeWikiModule', () => {
         const stages = [
             KnowledgeWikiGenerationService,
             KnowledgeWikiIdentityResolverService,
-            KnowledgeWikiIdentityEmbeddingService,
             KnowledgeWikiPageSchedulerService,
             KnowledgeWikiPageReduceService,
             KnowledgeWikiFinalizeService,

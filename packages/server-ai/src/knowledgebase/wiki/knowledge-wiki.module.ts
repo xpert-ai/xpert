@@ -1,3 +1,4 @@
+import { KnowledgeIdentityModule } from '../identity/knowledge-identity.module'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
@@ -45,11 +46,11 @@ import { JOB_KNOWLEDGE_WIKI_GENERATION } from './types'
 import { KnowledgeWikiCommandHandlers } from './commands/handlers'
 
 import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
-import { KnowledgeWikiIdentityEmbeddingService } from './knowledge-wiki-identity-embedding.service'
 import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-scheduler.service'
 
 @Module({
     imports: [
+        forwardRef(() => KnowledgeIdentityModule),
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgeWikiModule }]),
         TypeOrmModule.forFeature([
             Knowledgebase,
@@ -78,7 +79,6 @@ import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-schedul
     controllers: [KnowledgeWikiController],
     providers: [
         KnowledgeWikiIdentityResolverService,
-        KnowledgeWikiIdentityEmbeddingService,
         KnowledgeWikiPageSchedulerService,
         KnowledgeWikiService,
         KnowledgeWikiGenerationService,

@@ -1,4 +1,5 @@
-import { KnowledgeWikiIdentityDescriptor } from '@xpert-ai/contracts'
+import * as identityCatalogue from '../identity/knowledge-identity-catalogue'
+import { KnowledgeIdentityDescriptor } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { Knowledgebase } from '../knowledgebase.entity'
 import {
@@ -9,7 +10,7 @@ import {
 } from './entities'
 import { KnowledgeWikiLinkService } from './knowledge-wiki-link.service'
 
-const descriptor: KnowledgeWikiIdentityDescriptor = {
+const descriptor: KnowledgeIdentityDescriptor = {
     kind: 'entity',
     entityType: 'organization',
     description: 'North team',
@@ -23,12 +24,22 @@ function page(id: string, canonicalName: string, aliases: string[]) {
         pageKey: `entity:${id}`,
         pageType: 'entity',
         canonicalName,
-        identity: { descriptor, aliases, embedding: null }
+        identityId: id,
+        testAliases: aliases
     })
 }
 
 describe('Wiki links after identity resolution', () => {
-    async function stage(targets: KnowledgeWikiPage[], targetCanonicalName: string) {
+    async function stage(targets: ReturnType<typeof page>[], targetCanonicalName: string) {
+        jest.spyOn(identityCatalogue, 'loadIdentityCatalogue').mockResolvedValue({
+            fingerprint: 'test',
+            entries: targets.map((target) => ({
+                id: target.identityId,
+                revision: 1,
+                canonicalName: target.canonicalName,
+                profile: { descriptor, aliases: target.testAliases, embedding: null }
+            }))
+        })
         const pages = { find: jest.fn(async () => targets) }
         const contributions = {
             find: jest.fn(async () => [

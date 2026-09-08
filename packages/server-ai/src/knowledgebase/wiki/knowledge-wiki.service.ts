@@ -259,6 +259,7 @@ export class KnowledgeWikiService {
                 {
                     id: page.id,
                     pageKey: page.pageKey,
+                    identityId: page.identityId,
                     pageType: page.pageType,
                     canonicalName: page.canonicalName,
                     title: page.status === 'ready' ? (version?.title ?? page.canonicalName) : page.canonicalName,
@@ -384,6 +385,7 @@ export class KnowledgeWikiService {
         return {
             id: page.id,
             pageKey: page.pageKey,
+            identityId: page.identityId,
             pageType: page.pageType,
             canonicalName: page.canonicalName,
             title: version.title,
@@ -473,6 +475,7 @@ export class KnowledgeWikiService {
         return {
             id: page.id,
             pageKey: page.pageKey,
+            identityId: page.identityId,
             pageType: page.pageType,
             canonicalName: page.canonicalName,
             title: page.canonicalName,
