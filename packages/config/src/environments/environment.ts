@@ -1,4 +1,7 @@
-/** This file can be replaced during build by using the `fileReplacements` array.
+clientBaseUrl: process.env.CLIENT_BASE_URL || 'http://localhost:4200',
+  codeXpertUrl: process.env.CODE_XPERT_URL?.trim() || 'https://code.xpertai.cn/',
+  deepResearchUrl: process.env.DEEP_RESEARCH_URL?.trim() || 'https://research.xpertai.cn/',
+  dataOntologyUrl: process.env.DATA_ONTOLOGY_URL?.trim() || 'https://data.xpertai.cn/',/** This file can be replaced during build by using the `fileReplacements` array.
  * `ng build ---prod` replaces `environment.ts` with `environment.prod.ts`.
  * The list of file replacements can be found in `angular.json`.
  */

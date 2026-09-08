@@ -53,6 +53,9 @@ FROM node:20 AS production
 ENV NODE_OPTIONS="--max-old-space-size=2048" \
     NODE_ENV=production \
     API_BASE_URL=http://localhost:3000 \
+    CODE_XPERT_URL=https://code.xpertai.cn/ \
+    DEEP_RESEARCH_URL=https://research.xpertai.cn/ \
+    DATA_ONTOLOGY_URL=https://data.xpertai.cn/ \
     SENTRY_DSN= \
     DB_HOST=db \
     DB_NAME=postgres \
@@ -98,7 +101,7 @@ COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/dist ./packag
 COPY --chown=node:node --from=build /srv/xpert/dist/apps/api .
 COPY --chown=node:node --from=build /srv/xpert/tsconfig.base.json ./
 COPY --chown=node:node --from=build /srv/xpert/pnpm-lock.yaml ./
-COPY --chown=node:node --from=build /srv/xpert/pnpm-workspace.yaml ./
+COPY --chown=node --from=build /srv/xpert/pnpm-workspace.yaml ./
 COPY --chown=node:node --from=build /srv/xpert/.npmrc ./
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 
@@ -109,9 +112,9 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 RUN pnpm install --prod --no-frozen-lockfile && \
     # node-pty@1.1.x can publish a linux-arm64 package where the prebuild
     # directory exists but the actual native addon does not. Validate by
-    # loading the module for real, then fall back to a source rebuild only if
+    # loading the module for real, then fall back to a source rebuild only if 
     # that runtime check fails.
-    (node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/server-ai'),path.join(process.cwd(),'dist/packages/server-ai')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } try { require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok'); } catch (error) { console.error(error instanceof Error ? error.stack ?? error.message : String(error)); process.exit(1); }" || (npm_config_build_from_source=true npm rebuild node-pty --foreground-scripts && node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),'packages/server-ai'),path.join(process.cwd(),'dist/packages/server-ai')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok after rebuild');")) && \
+    (node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),"packages/server-ai'),path.join(process.cwd(),'dist/packages/server-ai')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } try { require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok'); } catch (error) { console.error(error instanceof Error ? error.stack ?? error.message : String(error)); process.exit(1); }" || (npm_config_build_from_source=true npm rebuild node-pty --foreground-scripts && node -e "const path=require('node:path'); const searchPaths=[process.cwd(),path.join(process.cwd(),"packages/server-ai'),path.join(process.cwd(),'dist/packages/server-ai')]; let pkgJson=''; for(const base of searchPaths){ try { pkgJson=require.resolve('node-pty/package.json',{paths:[base]}); break; } catch {} } if(!pkgJson){ console.error('Unable to resolve node-pty/package.json from', searchPaths.join(', ')); process.exit(1); } require(path.join(path.dirname(pkgJson),'lib','index.js')); console.log('node-pty native addon ok after rebuild');")) && \
     touch ormlogs.log && chown -R node:node /srv/xpert
 
 USER node:node

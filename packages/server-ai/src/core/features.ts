@@ -1,5 +1,5 @@
 import { AiFeatureEnum, IFeatureCreateInput } from '@xpert-ai/contracts'
-import { toggleFeatures } from '@xpert-ai/server-config'
+import { environment, toggleFeatures } from '@xpert-ai/server-config'
 
 const features = toggleFeatures
 const COPILOT_FEATURE_GROUP_CODE = 'GROUP_COPILOT'
@@ -113,7 +113,7 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 name: 'CodeXpert',
                 code: AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
                 description: 'Show the CodeXpert entry in main navigation',
-                link: 'https://code.xpertai.cn/',
+                link: environment.codeXpertUrl,
                 isEnabled: true,
                 icon: 'code',
                 status: 'info'
@@ -122,7 +122,7 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 name: 'DeepResearch',
                 code: AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
                 description: 'Show the DeepResearch entry in main navigation',
-                link: 'https://research.xpertai.cn/',
+                link: environment.deepResearchUrl,
                 isEnabled: true,
                 icon: 'search',
                 status: 'info'
@@ -131,7 +131,7 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
                 name: 'Data & Ontology',
                 code: AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY,
                 description: 'Show the Data & Ontology entry in main navigation',
-                link: 'https://data.xpertai.cn/',
+                link: environment.dataOntologyUrl,
                 isEnabled: features.FEATURE_XPERT_DATA_ONTOLOGY,
                 icon: 'schema',
                 status: 'info'

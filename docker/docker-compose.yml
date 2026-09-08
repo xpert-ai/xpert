@@ -41,6 +41,9 @@ services:
       OLAP_HOST: olap
       OLAP_PORT: 8080
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      CODE_XPERT_URL: ${CODE_XPERT_URL:-https://code.xpertai.cn/}
+      DEEP_RESEARCH_URL: ${DEEP_RESEARCH_URL:-https://research.xpertai.cn/}
+      DATA_ONTOLOGY_URL: ${DATA_ONTOLOGY_URL:-https://data.xpertai.cn/}
       SENTRY_DSN: ${SENTRY_DSN:-}
       NPM_CONFIG_CACHE: /var/lib/xpert/data/npm-cache
     env_file:
@@ -76,6 +79,8 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
       WEBAPP_API_BASE_URL: ${WEBAPP_API_BASE_URL:-}
+      CODE_XPERT_URL: ${CODE_XPERT_URL:-https://code.xpertai.cn/}
+      DATA_ONTOLOGY_URL: ${DATA_ONTOLOGY_URL:-https://data.xpertai.cn/}
       VITE_CHATKIT_FRAME_URL: ${VITE_CHATKIT_FRAME_URL:-/chatkit}
       VITE_MCP_APP_SANDBOX_PROXY_URL: ${VITE_MCP_APP_SANDBOX_PROXY_URL:-}
       VITE_MCP_APP_SANDBOX_ALLOWED_DOMAINS: ${VITE_MCP_APP_SANDBOX_ALLOWED_DOMAINS:-}
