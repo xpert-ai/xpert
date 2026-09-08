@@ -1,3 +1,13 @@
+// Invariants: prepared request state survives failure. The first afterModel hook
+// raises saved request errors only after the model node update is checkpointed.
+// Candidate budget checks stay inside retry/fallback, before provider invocation.
+import {
+    MODEL_REQUEST_FAILURE_STATE_KEY,
+    ModelRequestStateError,
+    modelRequestFailureUpdate,
+    throwPendingModelRequestFailure,
+    withModelRequestValidation
+} from '../../../shared/agent/model-request-state'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import {
@@ -48,6 +58,7 @@ import {
     STATE_VARIABLE_HUMAN,
     stringifyMessageContent,
     TAgentRunnableConfigurable,
+    TCopilotModel,
     TStateVariable,
     TSummarize,
     TXpertGraph,
@@ -308,7 +319,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 ...(execution.metadata ?? {}),
                 ...(snapshot
                     ? {
-                          effectiveModelSnapshot: snapshot
+                          effectiveModelSnapshot: snapshot,
+                          ...(execution.metadata?.primaryModelSnapshot &&
+                          options.primaryAgentKey === agent.key &&
+                          options.xpertId === team.id
+                              ? { primaryModelSnapshot: snapshot }
+                              : {})
                       }
                     : {}),
                 provider: copilot.modelProvider?.providerName,
@@ -1055,6 +1071,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                   ]
                 : [])
         ]
+        if (!hiddenAgent) {
+            afterModelHooks.push({
+                key: `${agent.key}_model_request_failure`,
+                hook: async (state) => {
+                    return throwPendingModelRequestFailure(state, resolveExecutionId())
+                }
+            })
+        }
         const afterModelExecutionOrder = [...afterModelHooks].reverse()
 
         // Model tools
@@ -1258,6 +1282,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Execute agent
         const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
             const { structuredChatModel, jsonSchema } = withStructured(chatModel, agent, withTools)
+            let activeRequest: ModelRequest | undefined
             const withCandidateSnapshot = (model: Runnable, candidate: typeof effectiveCopilotModel) =>
                 withModelExecutionSnapshot(
                     model,
@@ -1277,8 +1302,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                             )
                     }
                 )
-            let withFallbackModel: Runnable = withCandidateSnapshot(
-                withModelMessagePreparation(structuredChatModel, chatModel),
+            let withFallbackModel: Runnable = withModelRequestValidation(
+                withCandidateSnapshot(
+                    withModelMessagePreparation(structuredChatModel, chatModel),
+                    effectiveCopilotModel
+                ),
+                () => activeRequest,
                 effectiveCopilotModel
             )
             if (agent.options?.retry?.enabled) {
@@ -1308,8 +1337,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 )
                 const { structuredChatModel: fallbackChatModel } = withStructured(_fallbackChatModel, agent, withTools)
                 withFallbackModel = withFallbackModel.withFallbacks([
-                    withCandidateSnapshot(
-                        withModelMessagePreparation(fallbackChatModel, _fallbackChatModel),
+                    withModelRequestValidation(
+                        withCandidateSnapshot(
+                            withModelMessagePreparation(fallbackChatModel, _fallbackChatModel),
+                            agent.options.fallback.copilotModel
+                        ),
+                        () => activeRequest,
                         agent.options.fallback.copilotModel
                     )
                 ])
@@ -1360,11 +1393,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 systemMessage,
                 tools: withTools,
                 state,
-                runtime: config
+                runtime: { ...config, configurable: { ...config.configurable, copilotModel: effectiveCopilotModel } }
             }
             let systemMessageContent = systemMessage.content
+            let agentStateUpdate: ModelRequest['agentStateUpdate']
             const defaultModelHandler: WrapModelCallHandler = async (request) => {
+                activeRequest = request
+                agentStateUpdate = request.agentStateUpdate
                 const model = request.model ?? withFallbackModel
+                if (model !== withFallbackModel) await request.validateRequest?.(request)
                 const reqMessages = request.messages ?? baseMessages
                 const systemMsg = request.systemMessage ?? systemMessage
                 systemMessageContent = systemMsg.content
@@ -1425,9 +1462,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     [GRAPH_JUMP_TO_STATE_KEY]: null,
                     messages: [...humanMessages],
                     [channelName(agentKey)]: {
+                        ...agentStateUpdate,
+                        [MODEL_REQUEST_FAILURE_STATE_KEY]: null,
                         system: systemMessageContent,
                         error: null,
-                        messages: [...deleteMessages, ...humanMessages]
+                        messages: agentStateUpdate?.messages ?? [...deleteMessages, ...humanMessages]
                     }
                 }
                 if (isBaseMessage(message) || isBaseMessageChunk(message)) {
@@ -1450,6 +1489,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 return writeAgentMemories(baseState, agent.options?.memories)
             } catch (err) {
+                const failedState =
+                    err instanceof ModelRequestStateError
+                        ? modelRequestFailureUpdate(err, resolveExecutionId())
+                        : undefined
                 if (errorHandling?.type === 'failBranch') {
                     return {
                         messages: [
@@ -1458,13 +1501,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                             new AIMessage(`Error: ${getErrorMessage(err)}`)
                         ],
                         [channelName(agentKey)]: {
+                            ...failedState,
+                            [MODEL_REQUEST_FAILURE_STATE_KEY]: null,
                             system: systemMessage.content,
                             error: getErrorMessage(err),
                             messages: [
-                                ...deleteMessages,
-                                ...humanMessages,
+                                ...(failedState?.messages ?? [...deleteMessages, ...humanMessages]),
                                 new AIMessage(`Error: ${getErrorMessage(err)}`)
                             ]
+                        }
+                    }
+                }
+                if (failedState) {
+                    return {
+                        messages: [...humanMessages],
+                        [agentChannel]: {
+                            ...failedState,
+                            system: systemMessageContent,
+                            messages: failedState.messages ?? [...deleteMessages, ...humanMessages]
                         }
                     }
                 }
@@ -1503,7 +1557,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             beforeAgentHooks.forEach(({ key, hook }) =>
                 subgraphBuilder.addNode(
                     key,
-                    createBeforeAgentNode(hook, agentChannel).withConfig({
+                    createBeforeAgentNode(hook, agentChannel, effectiveCopilotModel).withConfig({
                         runName: key,
                         tags: [thread_id, runtimeXpert.id, key]
                     })
@@ -1543,7 +1597,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             beforeModelHooks.forEach(({ key, hook }) =>
                 subgraphBuilder.addNode(
                     key,
-                    createBeforeModelNode(hook, agentChannel).withConfig({
+                    createBeforeModelNode(hook, agentChannel, effectiveCopilotModel).withConfig({
                         runName: key,
                         tags: [thread_id, runtimeXpert.id, key]
                     })
@@ -1567,7 +1621,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         agentChannel,
                         index === afterModelExecutionOrder.length - 1,
                         errorHandling,
-                        agent.options?.memories
+                        agent.options?.memories,
+                        effectiveCopilotModel
                     ).withConfig({ runName: key, tags: [thread_id, runtimeXpert.id, key] })
                 )
             )
@@ -2456,18 +2511,30 @@ function getModelHooks(middlewareWithKeys: Array<{ key: string; middleware: Agen
     }
 }
 
-function createBeforeAgentNode(hook: BeforeModelHandler<typeof MessagesAnnotation.State, any>, agentChannel: string) {
-    return createBeforeModelNode(hook, agentChannel)
+function createBeforeAgentNode(
+    hook: BeforeModelHandler<typeof MessagesAnnotation.State, any>,
+    agentChannel: string,
+    copilotModel?: TCopilotModel
+) {
+    return createBeforeModelNode(hook, agentChannel, copilotModel)
 }
 
-function createBeforeModelNode(hook: BeforeModelHandler<typeof MessagesAnnotation.State, any>, agentChannel: string) {
+function createBeforeModelNode(
+    hook: BeforeModelHandler<typeof MessagesAnnotation.State, any>,
+    agentChannel: string,
+    copilotModel?: TCopilotModel
+) {
     return new RunnableLambda({
         func: async (
             state: typeof AgentStateAnnotation.State,
             config?: RunnableConfig
         ): Promise<Partial<typeof AgentStateAnnotation.State>> => {
             const middlewareState = getChannelState(state, agentChannel)
-            const result = await hook(middlewareState, { ...(config ?? {}), state })
+            const result = await hook(middlewareState, {
+                ...(config ?? {}),
+                state,
+                configurable: { ...config?.configurable, ...(copilotModel ? { copilotModel } : {}) }
+            })
             if (result && typeof result === 'object') {
                 const { jumpTo, ...partial } = result
                 if (jumpTo) {
@@ -2494,7 +2561,8 @@ function createAfterModelNode(
     agentChannel: string,
     isLast: boolean,
     errorHandling?: IXpertAgent['options']['errorHandling'],
-    memories?: IXpertAgent['options']['memories']
+    memories?: IXpertAgent['options']['memories'],
+    copilotModel?: TCopilotModel
 ) {
     return new RunnableLambda({
         func: async (
@@ -2508,7 +2576,10 @@ function createAfterModelNode(
             let nextState: Record<string, any> = { ...channelState }
             let nextJumpTo: JumpToTarget | undefined
             if (hook) {
-                const result = await hook(channelState, config)
+                const result = await hook(channelState, {
+                    ...config,
+                    configurable: { ...config?.configurable, ...(copilotModel ? { copilotModel } : {}) }
+                })
                 if (result && typeof result === 'object') {
                     const { jumpTo, ...partial } = result
                     nextState = {
