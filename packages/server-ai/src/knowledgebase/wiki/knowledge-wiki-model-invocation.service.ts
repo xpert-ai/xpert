@@ -69,6 +69,18 @@ function mergeUsage(current: UsageTotals, usage: TLLMUsage) {
     }
 }
 
+function isProviderRequestRejected(error: unknown): boolean {
+    if (!(error instanceof Error) || !('status' in error) || error.status !== 400) return false
+    // Read structured SDK fields only. A message containing "400" cannot establish execution outcome.
+    return (
+        ('type' in error && error.type === 'invalid_request_error') ||
+        ('code' in error &&
+            (error.code === 'invalid_json_schema' ||
+                error.code === 'InvalidParameter' ||
+                error.code === 'InternalError.Algo.InvalidParameter'))
+    )
+}
+
 @Injectable()
 export class KnowledgeWikiModelInvocationService {
     constructor(
@@ -216,8 +228,8 @@ export class KnowledgeWikiModelInvocationService {
             )
             throw this.indeterminateError()
         }
-        const retryPreparation = invocation.status === 'failed' && invocation.reconciliationStatus === 'not_executed'
-        if (invocation.status !== 'prepared' && !retryPreparation) {
+        const retryNotExecuted = invocation.status === 'failed' && invocation.reconciliationStatus === 'not_executed'
+        if (invocation.status !== 'prepared' && !retryNotExecuted) {
             throw this.indeterminateError()
         }
         let usage: UsageTotals = { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
@@ -232,8 +244,8 @@ export class KnowledgeWikiModelInvocationService {
         const claimed = await this.invocationRepository.update(
             {
                 id: invocation.id,
-                status: retryPreparation ? 'failed' : 'prepared',
-                ...(retryPreparation ? { reconciliationStatus: 'not_executed' as const } : {})
+                status: retryNotExecuted ? 'failed' : 'prepared',
+                ...(retryNotExecuted ? { reconciliationStatus: 'not_executed' as const } : {})
             },
             running
         )
@@ -241,6 +253,7 @@ export class KnowledgeWikiModelInvocationService {
         Object.assign(invocation, running)
         invocation.status = 'running'
         let invocationStarted = false
+        let responseReceived = false
         try {
             // Compile before invoking: some SDKs otherwise defer Zod conversion until request construction.
             const schema = toJsonSchema(input.schema)
@@ -263,6 +276,7 @@ export class KnowledgeWikiModelInvocationService {
             })
             invocationStarted = true
             const rawOutput = await structured.invoke(input.messages)
+            responseReceived = true
             const output = input.parse(rawOutput)
             invocation.status = 'succeeded'
             invocation.structuredOutput = output
@@ -273,10 +287,16 @@ export class KnowledgeWikiModelInvocationService {
             return output
         } catch (error) {
             if (invocation.status === 'running') {
-                invocation.status = invocationStarted ? 'indeterminate' : 'failed'
-                invocation.reconciliationStatus = invocationStarted ? 'indeterminate' : 'not_executed'
-                invocation.errorCode = invocationStarted ? 'provider_outcome_indeterminate' : 'model_preparation_failed'
-                if (!invocationStarted) invocation.billingStatus = 'delivered'
+                const rejected = invocationStarted && !responseReceived && isProviderRequestRejected(error)
+                const notExecuted = !invocationStarted || rejected
+                invocation.status = notExecuted ? 'failed' : 'indeterminate'
+                invocation.reconciliationStatus = notExecuted ? 'not_executed' : 'indeterminate'
+                invocation.errorCode = !invocationStarted
+                    ? 'model_preparation_failed'
+                    : rejected
+                      ? 'provider_request_rejected'
+                      : 'provider_outcome_indeterminate'
+                if (notExecuted) invocation.billingStatus = 'delivered'
                 invocation.error = getErrorMessage(error).slice(0, MAX_ERROR_LENGTH)
                 invocation.completedAt = new Date()
                 await this.invocationRepository.save(invocation)

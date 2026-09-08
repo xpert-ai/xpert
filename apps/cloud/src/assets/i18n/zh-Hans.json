@@ -6617,6 +6617,7 @@
         "RetryChargeConfirm": "上一次调用可能已经计费。是否重试并允许产生额外费用？",
         "Reconciling": "正在核对模型服务商的调用结果…",
         "RequestNotSent": "Wiki 模型请求准备失败，尚未发送生成请求。请修正模型配置或返回格式后重试。",
+        "RequestRejected": "模型服务商拒绝了 Wiki 请求的参数或返回格式，请修正后重试。",
         "Indeterminate": "模型服务商的调用结果不确定，重试可能产生额外费用。",
         "Related": "相关页面",
         "Evidence": "来源证据",

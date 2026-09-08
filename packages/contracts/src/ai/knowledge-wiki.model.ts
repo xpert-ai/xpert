@@ -71,6 +71,7 @@ export type KnowledgeWikiRecoveryAction = {
   jobId: string
   invocationId: string
   reconciliationStatus: 'not_available' | 'pending' | 'recovered' | 'not_executed' | 'indeterminate'
+  failureReason?: 'preparation_failed' | 'request_rejected'
   canRetry: boolean
   requiresAdditionalChargeConfirmation: boolean
   inputCurrent: boolean

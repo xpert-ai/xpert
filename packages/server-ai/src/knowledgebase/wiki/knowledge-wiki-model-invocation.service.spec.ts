@@ -326,6 +326,51 @@ describe('KnowledgeWikiModelInvocationService', () => {
         expect(invoke).toHaveBeenCalledTimes(1)
     })
 
+    it.each([
+        { type: 'invalid_request_error', code: null },
+        { type: null, code: 'InternalError.Algo.InvalidParameter' }
+    ])('records an explicit SDK parameter rejection as not executed (%j)', async (error) => {
+        const { service, modelRuntime, invocations, commandBus } = createHarness()
+        const fetch = jest.fn(
+            async () =>
+                new Response(JSON.stringify({ error: { ...error, message: 'Invalid response_format schema' } }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                })
+        )
+        modelRuntime.createModelClient.mockResolvedValue(
+            new ChatOpenAI({
+                apiKey: 'offline-test-key',
+                model: 'qwen3.7-flash',
+                maxRetries: 0,
+                configuration: { baseURL: 'https://wiki-sdk-test.invalid/v1', fetch }
+            })
+        )
+        const run = () => service.invokeMapModel(job as never, knowledgebase as never, 'doc', [], 0)
+        await expect(run()).rejects.toThrow('Invalid response_format schema')
+        expect(invocations[0]).toMatchObject({
+            status: 'failed',
+            reconciliationStatus: 'not_executed',
+            errorCode: 'provider_request_rejected',
+            billingStatus: 'delivered'
+        })
+        await expect(run()).rejects.toThrow('Invalid response_format schema')
+        expect(fetch).toHaveBeenCalledTimes(2)
+        expect(invocations).toHaveLength(1)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        new Error('400 InvalidParameter'),
+        Object.assign(new Error('Unknown bad request'), { status: 400 }),
+        Object.assign(new Error('Server failure'), { status: 500, type: 'invalid_request_error' })
+    ])('keeps ambiguous dispatched failures uncertain (%s)', async (error) => {
+        const { service, invoke, invocations } = createHarness()
+        invoke.mockRejectedValueOnce(error)
+        await expect(service.invokeMapModel(job as never, knowledgebase as never, 'doc', [], 0)).rejects.toThrow(error)
+        expect(invocations[0]).toMatchObject({ status: 'indeterminate', reconciliationStatus: 'indeterminate' })
+    })
+
     it('sends precompiled map and reduce schemas through the real SDK using only a fake HTTP transport', async () => {
         const { service, modelRuntime } = createHarness()
         const responses = [

@@ -4651,6 +4651,7 @@
         "RetryChargeConfirm": "The provider may already have charged the previous call. Retry and allow an additional charge?",
         "Reconciling": "Checking the model provider outcome…",
         "RequestNotSent": "The Wiki model request could not be prepared. No generation request was sent; retry after fixing the model configuration or output format.",
+        "RequestRejected": "The model provider rejected the Wiki request parameters or output format. Fix them before retrying.",
         "Indeterminate": "The provider outcome is uncertain and a retry may add a charge.",
         "Related": "Related pages",
         "Evidence": "Source evidence",
