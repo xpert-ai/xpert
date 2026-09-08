@@ -57,6 +57,9 @@ export interface IEnvironment {
   host: string
   baseUrl: string
   clientBaseUrl: string
+  codeXpertUrl: string
+  deepResearchUrl: string
+  dataOntologyUrl: string
 
   production: boolean
   /**

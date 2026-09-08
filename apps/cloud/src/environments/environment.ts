@@ -5,6 +5,8 @@ const CHATKIT_FRAME_URL = getEnvValue('VITE_CHATKIT_FRAME_URL') || '/chatkit'
 const MCP_APP_SANDBOX_PROXY_URL = getEnvValue('VITE_MCP_APP_SANDBOX_PROXY_URL')
 const MCP_APP_SANDBOX_ALLOWED_DOMAINS = getEnvValue('VITE_MCP_APP_SANDBOX_ALLOWED_DOMAINS')
 const DEPLOYMENT_TARGET = normalizeDeploymentTarget(getEnvValue('VITE_DEPLOYMENT_TARGET', 'DEPLOYMENT_TARGET'), 'local')
+const CODE_XPERT_URL = getEnvValue('VITE_CODE_XPERT_URL', 'CODE_XPERT_URL') || 'https://code.xpertai.cn/'
+const DATA_ONTOLOGY_URL = getEnvValue('VITE_DATA_ONTOLOGY_URL', 'DATA_ONTOLOGY_URL') || 'https://data.xpertai.cn/'
 
 export const environment: IEnvironment = {
   version: VERSION,
@@ -13,6 +15,8 @@ export const environment: IEnvironment = {
   deploymentTarget: DEPLOYMENT_TARGET,
   API_BASE_URL: API_BASE_URL,
   CHATKIT_FRAME_URL,
+  CODE_XPERT_URL,
+  DATA_ONTOLOGY_URL,
   mcpOAuthEnabled: false,
   MCP_APP_SANDBOX_PROXY_URL,
   MCP_APP_SANDBOX_ALLOWED_DOMAINS
