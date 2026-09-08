@@ -160,6 +160,14 @@ export interface ModelRequest<TState extends Record<string, unknown> = Record<st
 
   systemMessage?: SystemMessage
 
+  /** Validate the final request after every wrapper, immediately before invocation. */
+  validateRequest?: (request: ModelRequest<TState, TContext>) => void | Promise<void>
+  /** Assembled messages at the model invocation boundary, including the system message. */
+  finalMessages?: BaseMessage[]
+
+  /** Explicit updates to this Agent's channel, including when a prepared request fails. */
+  agentStateUpdate?: Partial<AgentBuiltInState> & { [key: string]: unknown }
+
   /**
    * Tool choice configuration (model-specific format).
    * Can be one of:

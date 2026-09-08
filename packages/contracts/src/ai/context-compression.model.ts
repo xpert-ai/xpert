@@ -4,7 +4,19 @@ export const CONTEXT_COMPRESSION_COMPONENT_TYPE = 'context-compression'
 
 export type TContextCompressionComponentStatus = 'running' | 'success' | 'fail'
 
-export type TContextCompressionComponentReason = 'no_messages' | 'no_unprotected_history' | 'no_token_gain'
+export type TContextCompressionComponentReason =
+  | 'no_messages'
+  | 'no_unprotected_history'
+  | 'no_token_gain'
+  | 'summary_invalid'
+  | 'summary_input_budget'
+  | 'summary_output_budget'
+  | 'summary_work_limit'
+  | 'summary_constraints_lost'
+  | 'summary_service_error'
+  | 'retry_deferred'
+  | 'context_budget_exceeded'
+  | 'context_validation_failed'
 
 export type TContextCompressionComponentData = {
   category: 'Tool'

@@ -77,6 +77,8 @@ export type Runtime<TContext = unknown> = Partial<Omit<LangGraphRuntime<TContext
   WithMaybeContext<TContext> & {
     configurable?: {
       thread_id?: string
+      copilotModel?: ICopilotModel
+      subscriber?: Subscriber<MessageEvent>
       sandbox?: TSandboxConfigurable | null
       [key: string]: unknown
     }
