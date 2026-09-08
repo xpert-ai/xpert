@@ -5,7 +5,9 @@ import {
     IPagination,
     KnowledgebasePermission,
     KnowledgeFilterSources,
+    KnowledgeRetrievalContentScope,
     KnowledgeDocumentProcessingMode,
+    TCopilotModel,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import {
@@ -243,10 +245,13 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
         body: {
             query: string
             k: number
-            score: number
+            score?: number | null
+            rerankModel?: TCopilotModel | null
+            rerankThreshold?: number | null
             filters?: KnowledgeFilterSources
             variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
+            contentScope?: KnowledgeRetrievalContentScope
         }
     ) {
         return await this.service.test(id, body)

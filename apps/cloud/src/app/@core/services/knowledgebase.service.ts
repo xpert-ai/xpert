@@ -6,11 +6,13 @@ import {
   API_PREFIX,
   classificateDocumentCategory,
   DocumentMetadata,
+  ICopilotModel,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
   IDocumentSourceProvider,
   IDocumentUnderstandingProvider,
   IKnowledgebase,
+  KnowledgebaseWikiConfig,
   IKnowledgeGraphEntity,
   IKnowledgeGraphMention,
   IKnowledgeGraphRelation,
@@ -25,11 +27,15 @@ import {
   KnowledgeGraphRelationUpdateInput,
   KnowledgeDocumentProcessingMode,
   KnowledgeGraphStatusResponse,
+  KnowledgeGraphDocumentProgress,
+  KnowledgeGraphDocumentsProgressResponse,
   KnowledgeGraphVisualizationQuery,
   KnowledgeGraphViewResponse,
   KnowledgeFilterDiagnostics,
   KnowledgeFilterSources,
+  KnowledgeRetrievalContentScope,
   PaginationParams,
+  TCopilotModel,
   TKBRetrievalSettings,
   toHttpParams
 } from '@cloud/app/@core/state'
@@ -78,6 +84,20 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.selectOrganizationId().pipe(
       switchMap(() => this.httpClient.get<IKnowledgebase>(this.apiBaseUrl + `/detail/${id}`))
     )
+  }
+
+  updateWikiConfiguration(
+    id: string,
+    input: {
+      wikiConfig: KnowledgebaseWikiConfig
+      settings?: Partial<IKnowledgebase>
+      wikiModel?: ICopilotModel | null
+      confirmModelCharges?: boolean
+      maxModelInvocations?: number
+      maxEstimatedTokens?: number
+    }
+  ) {
+    return this.httpClient.put<IKnowledgebase>(this.apiBaseUrl + `/${id}/wiki/config`, input)
   }
 
   /**
@@ -139,10 +159,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     options: {
       query: string
       k: number
-      score: number
+      score?: number | null
+      rerankModel?: TCopilotModel | null
+      rerankThreshold?: number | null
       filters?: KnowledgeFilterSources
       variables?: Record<string, unknown>
       retrieval?: TKBRetrievalSettings
+      contentScope?: KnowledgeRetrievalContentScope
     }
   ) {
     return this.httpClient.post<{
@@ -153,6 +176,19 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
 
   getGraphStatus(id: string) {
     return this.httpClient.get<KnowledgeGraphStatusResponse>(this.apiBaseUrl + `/${id}/graph/status`)
+  }
+
+  getGraphDocumentProgress(id: string, documentId: string) {
+    return this.httpClient.get<KnowledgeGraphDocumentProgress>(
+      this.apiBaseUrl + `/${id}/graph/documents/${documentId}/status`
+    )
+  }
+
+  getGraphDocumentsProgress(id: string, documentIds: string[]) {
+    return this.httpClient.post<KnowledgeGraphDocumentsProgressResponse>(
+      this.apiBaseUrl + `/${id}/graph/documents/status`,
+      { documentIds }
+    )
   }
 
   rebuildGraph(id: string) {

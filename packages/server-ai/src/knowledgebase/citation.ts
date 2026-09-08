@@ -4,6 +4,8 @@ import { KnowledgeFilterDiagnostics } from '@xpert-ai/contracts'
 export type KnowledgebaseCitation = {
     index: number
     faqId?: string
+    wikiPageId?: string
+    section?: string
     chunkId?: string
     documentId?: string
     knowledgebaseId?: string
@@ -39,7 +41,16 @@ export function createKnowledgebaseCitationUrl(input: {
     documentId?: string
     chunkId?: string
     faqId?: string
+    wikiPageId?: string
+    section?: string
 }) {
+    if (input.wikiPageId) {
+        const wikiSearchParams = new URLSearchParams({
+            wikiPageId: input.wikiPageId
+        })
+        if (input.section) wikiSearchParams.set('section', input.section)
+        return `/xpert/knowledges/${encodeURIComponent(input.knowledgebaseId)}/wiki?${wikiSearchParams.toString()}`
+    }
     if (input.faqId) {
         const faqSearchParams = new URLSearchParams({
             knowledgebaseId: input.knowledgebaseId,
@@ -66,12 +77,14 @@ export function addKnowledgebaseCitationLink<T extends KnowledgebaseCitation>(
     const citationLabel = `⟦${citation.index}⟧`
     // The agent receives this exact string and should copy it verbatim into the final answer.
     const citationUrl =
-        knowledgebaseId && (citation.faqId || citation.documentId)
+        knowledgebaseId && (citation.wikiPageId || citation.faqId || citation.documentId)
             ? createKnowledgebaseCitationUrl({
                   knowledgebaseId,
                   documentId: citation.documentId,
                   chunkId: citation.chunkId,
-                  faqId: citation.faqId
+                  faqId: citation.faqId,
+                  wikiPageId: citation.wikiPageId,
+                  section: citation.section
               })
             : undefined
 
@@ -99,6 +112,8 @@ export function createKnowledgebaseCitationFromDocument(
         getString(metadata.documentId) ?? getString(metadata.knowledgeId) ?? getString(relationDocument?.id)
     const chunkId = getString(metadata.chunkId) ?? getString((doc as unknown as { id?: unknown }).id)
     const faqId = getString(metadata.contentKind) === 'faq' ? chunkId : undefined
+    const wikiPageId = getString(metadata.contentKind) === 'wiki' ? getString(metadata.wikiPageId) : undefined
+    const section = wikiPageId ? getString(metadata.sectionAnchor) : undefined
     const score = getNumber(metadata.score)
     const relevanceScore = getNumber(metadata.relevanceScore)
 
@@ -106,6 +121,8 @@ export function createKnowledgebaseCitationFromDocument(
         {
             index,
             ...(faqId ? { faqId } : {}),
+            ...(wikiPageId ? { wikiPageId } : {}),
+            ...(section ? { section } : {}),
             ...(chunkId ? { chunkId } : {}),
             ...(documentId ? { documentId } : {}),
             knowledgebaseId: getString(metadata.knowledgebaseId),

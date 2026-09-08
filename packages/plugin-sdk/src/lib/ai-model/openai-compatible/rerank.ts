@@ -65,26 +65,20 @@ export class OpenAICompatibleReranker implements IRerank {
         throw new Error('Invalid response format: missing results array')
       }
 
-      // Collect raw scores and normalize them.
-      const scores = output.map((r: any) => r.relevance_score)
-      const minScore = Math.min(...scores)
-      const maxScore = Math.max(...scores)
-      const scoreRange = maxScore !== minScore ? maxScore - minScore : 1.0
-
       const reranked = output
         .map((r: any) => {
           const index = r.index
-          const normalizedScore = (r.relevance_score - minScore) / scoreRange
 
           const result: RerankResult = {
-              index,
-              relevanceScore: normalizedScore,
-            }
+            index,
+            relevanceScore: r.relevance_score
+          }
           if (options.returnDocuments) {
             result.document = new Document({
-                pageContent: typeof r.document === 'string' ? r.document : (r.document?.text ?? docs[index]?.pageContent ?? ''),
-                metadata: docs[index]?.metadata ?? {}
-              })
+              pageContent:
+                typeof r.document === 'string' ? r.document : (r.document?.text ?? docs[index]?.pageContent ?? ''),
+              metadata: docs[index]?.metadata ?? {}
+            })
           }
 
           return result

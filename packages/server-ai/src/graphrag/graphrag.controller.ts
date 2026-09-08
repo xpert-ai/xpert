@@ -8,13 +8,27 @@ import {
 } from '@xpert-ai/contracts'
 import { KnowledgeGraphEntity } from './entities'
 import { GraphragService } from './graphrag.service'
+import { GraphDocumentProgressService } from './document-progress.service'
 
 @ApiTags('KnowledgeGraph')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller(':id/graph')
 export class GraphragController {
-    constructor(private readonly service: GraphragService) {}
+    constructor(
+        private readonly service: GraphragService,
+        private readonly documentProgress: GraphDocumentProgressService
+    ) {}
+
+    @Get('documents/:documentId/status')
+    async documentStatus(@Param('id') id: string, @Param('documentId') documentId: string) {
+        return this.documentProgress.getProgress(id, documentId)
+    }
+
+    @Post('documents/status')
+    async documentStatuses(@Param('id') id: string, @Body('documentIds') documentIds: unknown) {
+        return this.documentProgress.getBatchProgress(id, documentIds)
+    }
 
     @Post('rebuild')
     async rebuild(@Param('id') id: string) {

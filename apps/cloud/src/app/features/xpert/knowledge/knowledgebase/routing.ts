@@ -12,6 +12,8 @@ import { KnowledgeDocumentSettingsComponent } from './documents/settings/setting
 import { KnowledgebasePipelineComponent } from './pipeline/pipeline.component'
 import { ExtensionHostViewPageComponent } from 'apps/cloud/src/app/@shared/view-extension'
 import { KnowledgeFAQComponent } from './faq/faq.component'
+import { KnowledgeWikiComponent } from './wiki/wiki.component'
+import { knowledgebaseWikiGuard } from './knowledgebase-wiki.guard'
 
 export default [
   {
@@ -63,6 +65,11 @@ export default [
       {
         path: 'graph',
         component: KnowledgeGraphComponent
+      },
+      {
+        path: 'wiki',
+        canActivate: [knowledgebaseWikiGuard],
+        component: KnowledgeWikiComponent
       },
       {
         path: 'view/:viewKey',

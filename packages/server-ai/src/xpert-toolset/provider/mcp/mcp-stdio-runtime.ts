@@ -10,7 +10,7 @@ import {
     resolvePluginManagedMcpContract,
     type PluginRuntimePaths
 } from './plugin-managed-runtime'
-import type { TBuiltinToolsetParams } from '../../../shared'
+import type { TBuiltinToolsetParams } from '../../../shared/tools/builtin'
 
 const RUNNER_SPEC_ENV = 'XPERT_MCP_STDIO_RUNNER_SPEC'
 const DEFAULT_STARTUP_TIMEOUT_MS = 15_000

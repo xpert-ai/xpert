@@ -130,7 +130,7 @@
 }
 
 .kb-choice-grid {
-  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+  @apply grid grid-cols-1 gap-4 md:grid-cols-3;
 }
 
 .kb-choice-card {
@@ -162,14 +162,9 @@
   @apply mt-2 text-sm leading-5 text-text-tertiary;
 }
 
-.kb-new-badge,
 .kb-mini-badge,
 .kb-status-badge {
   @apply inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold leading-4;
-}
-
-.kb-new-badge {
-  @apply ml-1 bg-background-default-subtle text-text-primary;
 }
 
 .kb-mini-badge {

@@ -28,4 +28,28 @@ describe('knowledgebase citation', () => {
             })
         )
     })
+
+    it('links Wiki results to the active Wiki page and section', () => {
+        const citation = createKnowledgebaseCitationFromDocument(
+            {
+                pageContent: 'Wiki content',
+                metadata: {
+                    knowledgebaseId: 'kb-1',
+                    chunkId: 'wiki-vector-1',
+                    contentKind: 'wiki',
+                    wikiPageId: 'page-1',
+                    wikiPageVersionId: 'version-1',
+                    wikiPageKey: 'entity:xpert',
+                    wikiPageType: 'entity',
+                    wikiRevision: 1,
+                    sectionAnchor: 'overview',
+                    projectionStatus: 'ready'
+                }
+            },
+            2
+        )
+
+        expect(citation.citationUrl).toBe('/xpert/knowledges/kb-1/wiki?wikiPageId=page-1&section=overview')
+        expect(citation.wikiPageId).toBe('page-1')
+    })
 })

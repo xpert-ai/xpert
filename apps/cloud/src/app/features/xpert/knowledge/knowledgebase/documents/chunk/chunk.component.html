@@ -46,22 +46,23 @@
       </div>
     }
   </div>
-  <div class="flex items-center flex-wrap">
-    @if (activeView() === 'chunks') {
-      <div
-        class="flex items-center rounded-lg border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-sm backdrop-blur-[5px] relative z-20"
-      >
-        <button
-          type="button"
-          class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-hover-bg disabled:cursor-not-allowed disabled:hover:bg-transparent"
-          (click)="addChunk()"
+  @if (document()) {
+    <div class="flex items-center flex-wrap">
+      @if (activeView() === 'chunks') {
+        <div
+          class="flex items-center rounded-lg border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-sm backdrop-blur-[5px] relative z-20"
         >
-          <i class="ri-file-add-line"></i>
-          <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent">
-            {{ 'XP.Knowledgebase.AddChunk' | translate: { Default: 'Add Chunk' } }}
-          </span>
-        </button>
-        <!--  <div class="relative">
+          <button
+            type="button"
+            class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-hover-bg disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            (click)="addChunk()"
+          >
+            <i class="ri-file-add-line"></i>
+            <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent">
+              {{ 'XP.Knowledgebase.AddChunk' | translate: { Default: 'Add Chunk' } }}
+            </span>
+          </button>
+          <!--  <div class="relative">
         <div>
           <button
             class="group inline-flex items-center bg-components-button-secondary-bg px-3 py-2 rounded-lg text-base font-medium hover:bg-components-button-secondary-bg-hover hover:border-components-button-secondary-border-hover focus:outline-none !p-2 !rounded-l-none !rounded-r-lg !hover:bg-hover-bg backdrop-blur-[5px] disabled:cursor-not-allowed disabled:bg-transparent disabled:hover:bg-transparent"
@@ -74,44 +75,45 @@
           </button>
         </div> 
       </div>-->
-      </div>
+        </div>
 
-      <div class="w-[1px] h-4 mx-2 bg-divider-regular"></div>
-    }
-
-    <div class="flex items-center px-3 py-2 rounded-lg border-[0.5px]">
-      @if (docEnabled()) {
-        <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
-        <span class="">{{ 'XP.Knowledgebase.Available' | translate: { Default: 'Available' } }}</span>
-      } @else {
-        <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-components-card-bg flex"></span>
-        <span class="">{{ 'XP.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}</span>
+        <div class="w-[1px] h-4 mx-2 bg-divider-regular"></div>
       }
 
-      <div class="flex justify-between items-center ml-1.5">
-        <z-switch [(ngModel)]="docEnabled" (ngModelChange)="updateDoc({ disabled: !$event })" />
+      <div class="flex items-center px-3 py-2 rounded-lg border-[0.5px]">
+        @if (docEnabled()) {
+          <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
+          <span class="">{{ 'XP.Knowledgebase.Available' | translate: { Default: 'Available' } }}</span>
+        } @else {
+          <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-components-card-bg flex"></span>
+          <span class="">{{ 'XP.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}</span>
+        }
+
+        <div class="flex justify-between items-center ml-1.5">
+          <z-switch [(ngModel)]="docEnabled" (ngModelChange)="updateDoc({ disabled: !$event })" />
+        </div>
       </div>
-    </div>
 
-    @if (activeView() === 'chunks') {
-      <div class="w-[1px] h-4 mx-2 bg-divider-regular"></div>
+      @if (activeView() === 'chunks') {
+        <div class="w-[1px] h-4 mx-2 bg-divider-regular"></div>
 
-      <div
-        class="flex items-center rounded-lg border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-sm backdrop-blur-[5px] relative z-20"
-      >
-        <button
-          type="button"
-          class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-hover-bg disabled:cursor-not-allowed disabled:hover:bg-transparent"
-          (click)="toggleShowMetadata()"
+        <div
+          class="flex items-center rounded-lg border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-sm backdrop-blur-[5px] relative z-20"
         >
-          <i class="ri-file-info-line"></i>
-          <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent">
-            {{ 'XP.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
-          </span>
-        </button>
-      </div>
-    }
-  </div>
+          <button
+            type="button"
+            class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-hover-bg disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            (click)="toggleShowMetadata()"
+          >
+            <i class="ri-file-info-line"></i>
+            <span class="text-[13px] leading-[16px] font-medium capitalize px-0.5 ml-0.5 text-text-accent">
+              {{ 'XP.Knowledgebase.Metadata' | translate: { Default: 'Metadata' } }}
+            </span>
+          </button>
+        </div>
+      }
+    </div>
+  }
 </div>
 
 @if (evidenceExcerpt()) {
@@ -124,7 +126,15 @@
   </aside>
 }
 
-@if (activeView() === 'analysis' && availableAnalysisPreview(); as analysis) {
+@if (documentError(); as error) {
+  <div role="alert" class="flex grow flex-col items-center justify-center gap-3 p-8 text-center">
+    <z-icon zType="circle-alert" class="size-8 text-text-destructive" />
+    <p class="max-w-xl text-sm text-text-secondary">{{ error }}</p>
+    <button z-button zType="outline" type="button" data-document-retry (click)="refresh()">
+      {{ 'XP.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
+    </button>
+  </div>
+} @else if (activeView() === 'analysis' && availableAnalysisPreview(); as analysis) {
   <xp-knowledge-document-analysis-preview
     class="block min-h-0 grow"
     [documentId]="documentId()"
@@ -572,6 +582,6 @@
   </div>
 }
 
-@if (loading()) {
+@if ((documentLoading() || loading()) && !documentError()) {
   <xp-spin class="absolute top-0 left-0 w-full h-full" />
 }

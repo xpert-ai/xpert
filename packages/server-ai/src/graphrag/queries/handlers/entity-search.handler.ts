@@ -1,4 +1,3 @@
-import { KnowledgeGraphStatus } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
@@ -18,7 +17,7 @@ export class KnowledgeGraphEntitySearchHandler implements IQueryHandler<Knowledg
 
     async execute({ input }: KnowledgeGraphEntitySearchQuery) {
         const { knowledgebase, query } = input
-        if (knowledgebase.graphRag?.enabled !== true || knowledgebase.graphStatus === KnowledgeGraphStatus.DISABLED) {
+        if (knowledgebase.graphRag?.enabled !== true) {
             return []
         }
 

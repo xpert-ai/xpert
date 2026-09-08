@@ -10,12 +10,19 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
 import { CopilotUsageController } from './copilot-usage.controller'
 import { CopilotUsageService } from './copilot-usage.service'
 import { ModelUsageLedgerService } from './model-usage/model-usage-ledger.service'
+import { ModelUsageDeliveryReceipt } from './model-usage/model-usage-delivery-receipt.entity'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/copilot-usage', module: CopilotUsageModule }]),
         CqrsModule,
-        TypeOrmModule.forFeature([CopilotUser, CopilotOrganization, MembershipPointLedger, User]),
+        TypeOrmModule.forFeature([
+            CopilotUser,
+            CopilotOrganization,
+            MembershipPointLedger,
+            ModelUsageDeliveryReceipt,
+            User
+        ]),
         MembershipModule,
         TenantModule
     ],

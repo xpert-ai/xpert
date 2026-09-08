@@ -1,4 +1,4 @@
-import { IKnowledgebase, KnowledgeGraphStatus } from '@xpert-ai/contracts'
+import { IKnowledgebase } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
@@ -37,7 +37,7 @@ export class KnowledgeGraphExploreHandler implements IQueryHandler<KnowledgeGrap
         if (!knowledgebase) {
             throw new NotFoundException(`Knowledgebase '${input.knowledgebaseId}' was not found.`)
         }
-        if (!knowledgebase.graphRag?.enabled || knowledgebase.graphStatus === KnowledgeGraphStatus.DISABLED) {
+        if (!knowledgebase.graphRag?.enabled) {
             throw new BadRequestException('GraphRAG is not enabled for this knowledgebase.')
         }
 

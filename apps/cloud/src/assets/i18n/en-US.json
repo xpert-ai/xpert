@@ -747,6 +747,8 @@
       "LegacyFusionActive": "Legacy weighted fusion remains active until Weighted RRF is enabled.",
       "Reranking": "Reranking",
       "RerankingDesc": "Refine the fused candidates before returning the final result.",
+      "RerankThreshold": "Rerank threshold",
+      "RerankThresholdHelp": "Filter reranked results below this relevance score before applying Top K.",
       "AnalysisPreview": {
         "Title": "Analysis preview",
         "DocumentDetailViews": "Document detail views",
@@ -801,7 +803,49 @@
           "Seal": "Seal",
           "Other": "Other"
         }
-      }
+      },
+      "DefaultRetrievalMode": "Default retrieval method",
+      "DefaultRetrievalModeHelp": "Save this as the knowledge base default. Agents and workflows can override it.",
+      "TestRetrievalSettingsHelp": "Changes apply only to the current test and do not update the knowledgebase defaults.",
+      "GraphRetrievalUnavailable": "The knowledge graph is not enabled. Enable it in Basic information before using graph retrieval.",
+      "RecallSourcesHelp": "Each selected retrieval method first finds its own candidate content.",
+      "VectorThresholdStageHelp": "Filter vector candidates before fusion. This threshold does not apply to keyword or graph results.",
+      "KeywordRequiresRankFusion": "Legacy score fusion does not support keyword retrieval. Select rank fusion (RRF) to include keywords.",
+      "GraphRecallHelp": "Find relevant entities, expand along their relationships, and return source chunks with graph evidence.",
+      "RankFusionRecommended": "Rank fusion (RRF, recommended)",
+      "LegacyFusionCompatibility": "Legacy score fusion (compatibility)",
+      "LegacyFusionSourcesHelp": "Supports vector and graph retrieval only. The knowledge graph must be enabled; keyword retrieval is not included.",
+      "RetrievalResults": "Retrieval results",
+      "FinalRerankingHelp": "When enabled, rerank the candidates once with a model before returning the final results.",
+      "RetrievalTopK": "Recall and result limit (Top K)",
+      "SharedRetrievalTopKHelp": "Each retrieval method and the final result list use this same maximum number of items.",
+      "RetrievalSourceRequired": "Enter valid weights and select at least one available retrieval method.",
+      "SaveDefaultRetrieval": "Save as knowledge base defaults",
+      "GraphRebuildRequiredHelp": "The knowledge graph is enabled. Rebuild it to index existing documents.",
+      "RebuildGraph": "Rebuild graph",
+      "GraphRebuildStarted": "Graph rebuild started",
+      "GraphDisabledDesc": "Enable the knowledge graph in Basic information, then return here to rebuild it and index existing documents.",
+      "WorkspaceConfiguration": {
+        "Basic": {
+          "Description": "Set the knowledge base type, indexing and content generation, and basic information.",
+          "IndexStrategy": "Indexing and content generation",
+          "IndexCapabilitiesHelp": "Document indexing is included. Wiki pages and a knowledge graph can be enabled as needed.",
+          "RagSearch": "Document indexing (base)",
+          "RagSearchDescription": "Chunk and vectorize documents for vector and keyword retrieval.",
+          "WikiKnowledgebase": "Wiki pages",
+          "WikiDescription": "Generate connected Wiki pages from documents, then browse and search their content.",
+          "GraphIndex": "Knowledge graph",
+          "GraphIndexDescription": "Extract entities, relationships and source evidence from documents. Rebuild the graph after enabling it to index existing documents.",
+          "IndexStrategyLocked": "This knowledge base already contains content, so Wiki pages cannot be enabled or disabled yet. Clear the knowledge base before changing this setting."
+        }
+      },
+      "SimilarityThreshold": "Similarity threshold",
+      "GraphWeight": "Graph weight",
+      "VectorSearchDesc": "Create a query embedding and find the most similar document chunks.",
+      "VectorSearch": "Vector search",
+      "NeighborHops": "Neighborhood hops",
+      "EntityTopK": "Entity Top K",
+      "GraphRAG": "GraphRAG"
     },
     "Referral": {
       "CopyCode": "Copy invitation code",
@@ -2500,6 +2544,8 @@
       "EmptyDescription": "Create a data source to connect your databases and services."
     },
     "Copilot": {
+      "ModelsLoadFailed": "Unable to load models. Check the model provider configuration and try again.",
+      "ModelsLoading": "Loading models…",
       "AICopilot": "Model Providers",
       "Copilot": "Copilot",
       "NoMatchingModels": "No matching models",

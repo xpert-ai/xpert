@@ -4802,6 +4802,8 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "ModelsLoadFailed": "无法加载模型，请检查模型供应商配置后重试。",
+      "ModelsLoading": "正在加载模型…",
       "Copilot": "智能助理",
       "DiscoverMoreAt": "发现更多就在",
       "PluginMarketplace": "插件市场",
@@ -6508,7 +6510,126 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "GraphDocumentProgress": {
+        "Title": "图谱处理",
+        "States": {
+          "disabled": "图谱不可用",
+          "source_disabled": "图谱不可用",
+          "waiting_source": "等待文档处理",
+          "not_started": "未开始",
+          "outdated": "待更新",
+          "queued": "排队中",
+          "running": "图谱构建中",
+          "ready": "图谱已生成",
+          "failed": "图谱处理失败",
+          "cancelled": "已取消",
+          "no_content": "无可抽取内容",
+          "completed": "任务已完成",
+          "loading": "正在获取状态",
+          "unknown": "状态获取失败"
+        },
+        "Stages": {
+          "extraction": "实体关系抽取",
+          "persistence": "图谱写入",
+          "indexing": "检索索引"
+        },
+        "StageStates": {
+          "pending": "待处理",
+          "running": "处理中",
+          "complete": "完成",
+          "failed": "失败"
+        },
+        "Hints": {
+          "disabled": "当前知识库未开启图谱。",
+          "source_disabled": "当前文档已禁用或等待删除，不参与图谱处理。",
+          "waiting_source": "文档解析完成后才能开始图谱处理。",
+          "not_started": "当前文档尚未创建图谱处理任务。",
+          "outdated": "图谱任务与当前文档或图谱配置不一致，请重建图谱以更新。",
+          "cancelled": "图谱处理任务已取消。",
+          "no_content": "当前文档没有可用于构建图谱的文本内容。",
+          "completed": "历史任务已完成，但未记录处理阶段和图谱生成结果。",
+          "unknown": "暂时无法获取图谱状态，系统将自动重试。"
+        },
+        "Chunks": "已抽取分块：{{processed}} / {{total}}",
+        "FailureHint": "图谱处理失败。",
+        "ViewGraph": "查看图谱"
+      },
+      "RetrievalContentScope": "检索内容",
+      "RetrievalContentAll": "全部",
+      "RetrievalContentOriginal": "仅原始文档",
+      "RetrievalContentWiki": "仅 Wiki",
+      "RetrievalContentWikiHint": "仅 Wiki 使用向量或关键词召回，不支持纯图谱检索或知识过滤器。",
       "FAQ": "FAQ",
+      "Wiki": {
+        "DocumentIndexed": "已 Wiki",
+        "DocumentProgress": {
+          "Title": "Wiki 处理",
+          "States": {
+            "not_started": "Wiki 未开始",
+            "queued": "Wiki 待生成",
+            "generating": "Wiki 生成中",
+            "indexing": "Wiki 索引中",
+            "publishing": "Wiki 发布中",
+            "ready": "已 Wiki",
+            "failed": "Wiki 失败",
+            "outdated": "Wiki 待更新",
+            "no_content": "未提取到 Wiki 内容",
+            "unknown": "Wiki 状态待刷新"
+          },
+          "Stages": {
+            "generation": "页面生成",
+            "indexing": "检索索引",
+            "publication": "发布可用"
+          },
+          "StageStates": {
+            "pending": "待处理",
+            "running": "处理中",
+            "complete": "完成",
+            "failed": "失败",
+            "skipped": "无需处理"
+          },
+          "Hints": {
+            "not_started": "原文处理就绪后才能生成 Wiki；已禁用的文档不参与生成。",
+            "outdated": "当前来源尚无可用的 Wiki 版本，请到 Wiki 页检查更新或重建。",
+            "no_content": "处理已结束，但该文档未产生可发布的 Wiki 内容。"
+          },
+          "WaitingForBatch": "正在等待同一发布批次的任务，其他文档的处理可能阻塞发布。",
+          "FailureHint": "Wiki 处理失败。",
+          "Retry": "重试",
+          "EmptySources": "Wiki 重建未找到可用来源，已保留原有发布内容。",
+          "EmptyPublication": "Wiki 重建未生成可发布页面，已保留原有发布内容。",
+          "IndexFailed": "Wiki 检索索引失败，可重试继续处理，原有发布页面仍可用。",
+          "PublicationConflict": "Wiki 发布与其他更新发生冲突，原有发布页面仍可用，可重试继续处理。",
+          "RetryQueued": "已提交重试",
+          "ViewWiki": "查看 Wiki"
+        },
+        "DisabledTitle": "构建关联 Wiki",
+        "DisabledDescription": "启用 Wiki，从来源文档中提取有证据支撑的摘要、实体与概念。",
+        "Configure": "配置 Wiki",
+        "Indexing": "生成中",
+        "Search": "搜索 Wiki 页面",
+        "Empty": "暂无 Wiki 页面。",
+        "BuildFailed": "最新一次 Wiki 生成失败。",
+        "RebuildRequired": "Wiki 需要重新生成。",
+        "Degraded": "上一版本中安全的页面仍可浏览。",
+        "Rebuild": "授权重建",
+        "RebuildConfirm": "重新生成 Wiki 会调用已配置的模型并可能产生费用，是否继续？",
+        "RetryChargeConfirm": "上一次调用可能已经计费。是否重试并允许产生额外费用？",
+        "Reconciling": "正在核对模型服务商的调用结果…",
+        "RequestNotSent": "Wiki 模型请求准备失败，尚未发送生成请求。请修正模型配置或返回格式后重试。",
+        "Indeterminate": "模型服务商的调用结果不确定，重试可能产生额外费用。",
+        "Related": "相关页面",
+        "Evidence": "来源证据",
+        "BuildingEmpty": "正在生成 Wiki 页面…",
+        "SelectPage": "请选择一个 Wiki 页面。",
+        "PageType": {
+          "all": "全部",
+          "summary": "摘要",
+          "entity": "实体",
+          "concept": "概念",
+          "index": "索引"
+        }
+      },
       "FAQManagement": {
         "Title": "FAQ",
         "Description": "管理标准问题、相似问法、反例和可复用的回答块。",
@@ -6602,6 +6723,7 @@
           "VectorStorage": "向量存储",
           "Retrieval": "检索设置",
           "FAQ": "FAQ 设置",
+          "Wiki": "Wiki 生成",
           "Parser": "解析引擎",
           "Chunk": "分块设置",
           "Image": "图像处理",
@@ -6616,22 +6738,25 @@
           "Preview": "预览"
         },
         "Basic": {
-          "Description": "设置知识库的类型、索引策略和基本信息。",
+          "Description": "设置知识库类型、索引与内容生成方式和基本信息。",
           "FAQDescription": "设置 FAQ 知识库的类型和基本信息。",
           "KnowledgebaseType": "知识库类型",
           "Document": "文档",
           "QandA": "问答",
           "KnowledgebaseTypeHelp": "文档知识库用于组织文件和分块，问答知识库用于组织结构化 FAQ 内容。",
-          "IndexStrategy": "索引策略",
-          "RagSearch": "RAG 检索",
-          "RagSearchDescription": "对文档进行分块、向量化和检索，支持向量、图谱和混合模式。",
-          "WikiKnowledgebase": "Wiki 知识库",
-          "New": "NEW",
-          "WikiDescription": "自动生成关联的 Wiki 页面，当前 Xpert 暂无对应索引浏览器。",
+          "IndexStrategy": "索引与内容生成",
+          "RagSearch": "文档索引（基础）",
+          "RagSearchDescription": "对文档进行分块与向量化，支持向量和关键词检索。",
+          "WikiKnowledgebase": "Wiki 页面",
+          "WikiDescription": "从文档中生成相互关联的 Wiki 页面，可浏览和检索页面内容。",
+          "IndexStrategyLocked": "知识库已有内容，暂不支持更改 Wiki 页面的启用状态。如需更改，需要先清空知识库。",
           "Name": "知识库名称",
           "NamePlaceholder": "请输入知识库名称",
           "KnowledgebaseDescription": "知识库描述",
-          "DescriptionPlaceholder": "请输入知识库描述（可选）"
+          "DescriptionPlaceholder": "请输入知识库描述（可选）",
+          "IndexCapabilitiesHelp": "文档索引为基础能力，Wiki 页面和知识图谱可按需启用。",
+          "GraphIndex": "知识图谱",
+          "GraphIndexDescription": "从文档中提取实体、关系和来源证据。已有文档需在启用后重建图谱。"
         },
         "FAQ": {
           "Title": "FAQ 设置",
@@ -6651,6 +6776,26 @@
           "Locked": "FAQ 索引配置创建后暂不可修改。",
           "Notice": "FAQ 条目由标准问、相似问和一个或多个答案组成，可在知识库详情中维护。"
         },
+        "Wiki": {
+          "Title": "Wiki 生成",
+          "Description": "控制如何从文档中提取信息并生成相互关联的 Wiki 页面。",
+          "ExtractionGranularity": "提取粒度",
+          "ExtractionGranularityHelp": "控制每篇文档抽取的 Wiki 实体和概念数量。粒度越细，索引越聚焦；粒度越粗，索引越详尽。",
+          "Granularity": {
+            "Focused": "聚焦",
+            "Standard": "标准",
+            "Exhaustive": "详尽",
+            "focusedHelp": "仅抽取主要实体和概念，使索引更聚焦。",
+            "standardHelp": "抽取主要实体以及被详细描述的次要实体和概念，适合大多数场景。",
+            "exhaustiveHelp": "抽取更多次要实体和概念，使索引更详尽。"
+          },
+          "ContentGenerationRequirements": "Wiki 内容生成要求",
+          "ContentGenerationRequirementsHelp": "控制摘要、页面和首页的表达重点；引用、合并与防幻觉规则由系统固定维护。",
+          "ContentGenerationRequirementsPlaceholder": "例如：使用法务审阅口吻，优先展示责任主体、时间线和风险提示...",
+          "ExtractionFocus": "Wiki 提取重点",
+          "ExtractionFocusHelp": "说明应重点识别的领域实体和概念，不会替换系统的 JSON 与引用协议。",
+          "ExtractionFocusPlaceholder": "例如：重点识别产品、版本、组织、负责人和关键技术概念..."
+        },
         "VectorStorage": {
           "Title": "向量存储",
           "Description": "查看此知识库使用的向量存储，当前由系统级配置统一决定。",
@@ -6665,7 +6810,9 @@
           "LargeLanguageModel": "LLM 大语言模型",
           "LargeLanguageModelDescription": "用于总结和摘要的大语言模型。",
           "EmbeddingModel": "Embedding 嵌入模型",
-          "EmbeddingModelDescription": "用于文本向量化的嵌入模型。"
+          "EmbeddingModelDescription": "用于文本向量化的嵌入模型。",
+          "WikiModel": "Wiki 合成模型",
+          "WikiModelDescription": "可选；不设置时将回退使用上方的 LLM 大语言模型。"
         },
         "Vector": {
           "Description": "配置查询向量、候选数量和相似度筛选策略。",
@@ -6839,7 +6986,8 @@
         },
         "Validation": {
           "NameRequired": "请输入知识库名称",
-          "EmbeddingModelRequired": "请选择 Embedding 模型"
+          "EmbeddingModelRequired": "请选择 Embedding 模型",
+          "WikiModelRequired": "请选择 Wiki 合成模型，或先配置 LLM 大语言模型。"
         }
       },
       "WorkbenchTitle": "知识库",
@@ -7229,6 +7377,8 @@
       "LegacyFusionActive": "开启加权 RRF 前，继续使用原有加权融合。",
       "Reranking": "重新排序",
       "RerankingDesc": "返回最终结果前，使用模型精排融合后的候选内容。",
+      "RerankThreshold": "重排分数阈值",
+      "RerankThresholdHelp": "按重排相关性分数过滤候选内容，再取 Top K。",
       "GraphStatus": "图谱状态",
       "GraphStatus_Indexing": "索引中",
       "GraphStatus_Ready": "已就绪",
@@ -7265,7 +7415,7 @@
       "HideRelation": "隐藏关系",
       "Relation": "关系",
       "GraphDisabledTitle": "GraphRAG 已禁用",
-      "GraphDisabledDesc": "请在配置中启用 GraphRAG 并重建图谱后使用可视化。",
+      "GraphDisabledDesc": "请在基本信息中启用知识图谱，再回到此页重建图谱以索引已有文档。",
       "GraphEmptyTitle": "暂无图谱数据",
       "GraphEmptyDesc": "重建图谱或手动创建实体后，即可开始维护该知识图谱。",
       "GraphOrigin_extracted": "抽取",
@@ -7489,7 +7639,25 @@
       "StepStatus_pending": "待处理",
       "StepStatus_running": "运行中",
       "StepStatus_success": "成功",
-      "StepStatus_failed": "失败"
+      "StepStatus_failed": "失败",
+      "DefaultRetrievalMode": "默认检索方式",
+      "DefaultRetrievalModeHelp": "保存后作为知识库的默认检索方式，智能体和工作流可覆盖此配置。",
+      "TestRetrievalSettingsHelp": "调整仅用于当前检索测试，不修改知识库默认配置。",
+      "GraphRetrievalUnavailable": "知识图谱尚未启用，请先到基本信息中开启，再使用图谱检索。",
+      "RecallSourcesHelp": "各路已选检索方式先分别找出候选内容。",
+      "VectorThresholdStageHelp": "在融合前过滤向量候选内容，不影响关键词和图谱的检索结果。",
+      "KeywordRequiresRankFusion": "旧版分数融合不支持关键词检索，请选择排名融合（RRF）后启用关键词。",
+      "GraphRecallHelp": "先找出相关实体，再沿关系扩展，返回带有图谱证据的原文片段。",
+      "RankFusionRecommended": "排名融合（RRF，推荐）",
+      "LegacyFusionCompatibility": "旧版分数融合（兼容）",
+      "LegacyFusionSourcesHelp": "仅支持向量和图谱检索，图谱需先启用，不包含关键词检索。",
+      "RetrievalResults": "检索结果",
+      "FinalRerankingHelp": "开启后，在返回最终结果前，对候选内容统一进行一次模型重排。",
+      "RetrievalTopK": "召回与返回数量 Top K",
+      "SharedRetrievalTopKHelp": "各路召回与最终返回结果共用这一数量上限。",
+      "RetrievalSourceRequired": "请填写有效权重，并至少选择一路可用的检索方式。",
+      "SaveDefaultRetrieval": "保存为知识库默认配置",
+      "GraphRebuildRequiredHelp": "知识图谱已启用，请重建图谱以索引已有文档。"
     },
     "Integration": {
       "Integration": "集成",

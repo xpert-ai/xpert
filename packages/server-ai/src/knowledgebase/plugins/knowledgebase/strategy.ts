@@ -29,8 +29,11 @@ import { countTokensSafe, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@x
 import { get } from 'lodash'
 import { In } from 'typeorm'
 import { CopilotTokenRecordCommand } from '../../../copilot-user'
-import { KnowledgeGraphEnqueueCommand } from '../../../graphrag/commands'
-import { IncrementalChunkSyncResult, KnowledgeDocumentService } from '../../../knowledge-document'
+import {
+    IncrementalChunkSyncResult,
+    KnowledgeDerivedIndexPublicationService,
+    KnowledgeDocumentService
+} from '../../../knowledge-document'
 import {
     computeKnowledgeDocumentProcessingHash,
     resolveKnowledgeDocumentSourceHash
@@ -42,6 +45,10 @@ import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
 import { ERROR_CHANNEL_NAME } from '../types'
 import { TDocChunkMetadata } from '../../../knowledge-document/types'
+import {
+    KnowledgeDocumentPublicationWriter,
+    writeKnowledgeDocumentProcessingMetadata
+} from '../../../knowledge-document/document-publication'
 
 const InfoChannelName = 'info'
 const TaskChannelName = 'task'
@@ -73,6 +80,9 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
     @Inject(KnowledgebaseTaskService)
     private readonly taskService: KnowledgebaseTaskService
+
+    @Inject(KnowledgeDerivedIndexPublicationService)
+    private readonly publicationService: KnowledgeDerivedIndexPublicationService
 
     constructor(
         private readonly commandBus: CommandBus,
@@ -264,9 +274,6 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                             { tokens: totalTokenUsed }
                                         )
                                     }
-                                    if (syncResult.contentChanged) {
-                                        await this.enqueueGraphIndex(knowledgebase, document.id, userId)
-                                    }
                                 }
                                 await this.updateDocumentProcessingMetadata(
                                     document.id,
@@ -287,8 +294,15 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                                   embeddingTokenUsed
                                               )
                                             : this.createSkippedIncrementalSyncMetadata(document)
-                                    }
+                                    },
+                                    syncResult?.contentChanged === true
                                 )
+                                await this.publicationService.publish({
+                                    knowledgebase,
+                                    documentId: document.id,
+                                    userId,
+                                    contentChanged: syncResult?.contentChanged === true
+                                })
                                 statisticsInformation += ` - Embedded ${chunks?.length || 0}/${totalChunks} chunks. \n`
                             } catch (err) {
                                 if (err === KBDocumentStatusEnum.CANCEL) {
@@ -437,37 +451,16 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
     private async updateDocumentProcessingMetadata(
         documentId: string,
         updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>,
-        metadataPatch?: Partial<KnowledgeDocumentMetadata>
+        metadataPatch?: Partial<KnowledgeDocumentMetadata>,
+        contentChanged?: boolean
     ) {
-        if (!metadataPatch) {
-            return await this.documentService.update(documentId, updates)
-        }
-
-        const current = await this.documentService.findOne(documentId, { select: { id: true, metadata: true } })
-        return await this.documentService.update(documentId, {
-            ...updates,
-            metadata: {
-                ...(current.metadata ?? {}),
-                ...metadataPatch
-            }
-        })
-    }
-
-    private async enqueueGraphIndex(knowledgebase: IKnowledgebase, documentId: string, userId?: string) {
-        try {
-            await this.commandBus.execute(
-                new KnowledgeGraphEnqueueCommand({
-                    userId,
-                    tenantId: knowledgebase.tenantId,
-                    organizationId: knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
-                    documentIds: [documentId],
-                    reason: 'document'
-                })
-            )
-        } catch (error) {
-            this.logger.warn(`Failed to enqueue GraphRAG index for document '${documentId}': ${getErrorMessage(error)}`)
-        }
+        return writeKnowledgeDocumentProcessingMetadata(
+            this.documentService as unknown as KnowledgeDocumentPublicationWriter,
+            documentId,
+            updates,
+            metadataPatch,
+            contentChanged
+        )
     }
 
     async checkIfJobCancelled(docId: string): Promise<boolean> {

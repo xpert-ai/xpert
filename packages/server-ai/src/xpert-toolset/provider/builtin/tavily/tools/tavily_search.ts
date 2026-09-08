@@ -1,21 +1,21 @@
-import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
-import { Tool, ToolRunnableConfig, type ToolParams } from "@langchain/core/tools";
-import { getEnvironmentVariable } from "@langchain/core/utils/env";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from "@xpert-ai/contracts";
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
+import { Tool, ToolRunnableConfig, type ToolParams } from '@langchain/core/tools'
+import { getEnvironmentVariable } from '@langchain/core/utils/env'
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { Logger } from '@nestjs/common'
-import { TavilyToolset } from "../tavily";
-import { BaseTool } from "../../../../../shared";
+import { TavilyToolset } from '../tavily'
+import { BaseTool } from '../../../../../shared/tools/toolset'
 
 /**
  * Options for the TavilySearchResults tool.
  */
 export type TavilySearchAPIRetrieverFields = ToolParams & {
-  max_results?: number;
-  kwargs?: Record<string, unknown>;
-  apiKey?: string;
-};
+    max_results?: number
+    kwargs?: Record<string, unknown>
+    apiKey?: string
+}
 
 /**
  * Tavily search API tool integration.
@@ -84,81 +84,82 @@ export type TavilySearchAPIRetrieverFields = ToolParams & {
  * </details>
  */
 export class TavilySearchResults extends BaseTool {
-  readonly #logger = new Logger(TavilySearchResults.name)
+    readonly #logger = new Logger(TavilySearchResults.name)
 
-  /**
-   * Change the tool name
-   */
-  static lc_name(): string {
-    return "tavily_search";
-  }
-
-  description =
-    "A search engine optimized for comprehensive, accurate, and trusted results. Useful for when you need to answer questions about current events. Input should be a search query.";
-
-  name = "tavily_search_results_json";
-
-  protected max_results = 5;
-
-  protected apiKey?: string;
-
-  protected kwargs: Record<string, unknown> = {};
-
-  constructor(private toolset: TavilyToolset, fields?: TavilySearchAPIRetrieverFields) {
-    super(fields);
-    this.max_results = fields?.max_results ?? this.max_results;
-    this.kwargs = fields?.kwargs ?? this.kwargs;
-    this.apiKey = fields?.apiKey ?? getEnvironmentVariable("TAVILY_API_KEY");
-    if (this.apiKey === undefined) {
-      throw new Error(
-        `No Tavily API key found. Either set an environment variable named "TAVILY_API_KEY" or pass an API key as "apiKey".`
-      );
-    }
-    this.responseFormat = 'content_and_artifact'
-  }
-
-  protected async _call(
-    input: string,
-    _runManager?: CallbackManagerForToolRun,
-    parentConfig?: ToolRunnableConfig
-  ): Promise<[string, any]> {
-    const body: Record<string, unknown> = {
-      query: input,
-      max_results: this.max_results,
-      api_key: this.apiKey,
-    };
-
-    const response = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ ...body, ...this.kwargs }),
-    });
-    const json = await response.json();
-    if (!response.ok) {
-      throw new Error(
-        `Request failed with status code ${response.status}: ${json.detail?.error}`
-      );
-    }
-    if (!Array.isArray(json.results)) {
-      throw new Error(`Could not parse Tavily results. Please try again.`);
+    /**
+     * Change the tool name
+     */
+    static lc_name(): string {
+        return 'tavily_search'
     }
 
-    const toolCall = getToolCallFromConfig(parentConfig)
-    // Tool message event
-		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-      id: toolCall?.id,
-      category: 'Computer',
-      type: ChatMessageStepCategory.WebSearch,
-			toolset: TavilyToolset.provider,
-			tool: this.name,
-			title: t('server-ai:Tools.TavilySearch.WebSearch'),
-			message: input,
-			data: json.results
-		}).catch((err) => {
-			this.#logger.error(err)
-		})
-    return [JSON.stringify(json.results, null, 2), json.results]
-  }
+    description =
+        'A search engine optimized for comprehensive, accurate, and trusted results. Useful for when you need to answer questions about current events. Input should be a search query.'
+
+    name = 'tavily_search_results_json'
+
+    protected max_results = 5
+
+    protected apiKey?: string
+
+    protected kwargs: Record<string, unknown> = {}
+
+    constructor(
+        private toolset: TavilyToolset,
+        fields?: TavilySearchAPIRetrieverFields
+    ) {
+        super(fields)
+        this.max_results = fields?.max_results ?? this.max_results
+        this.kwargs = fields?.kwargs ?? this.kwargs
+        this.apiKey = fields?.apiKey ?? getEnvironmentVariable('TAVILY_API_KEY')
+        if (this.apiKey === undefined) {
+            throw new Error(
+                `No Tavily API key found. Either set an environment variable named "TAVILY_API_KEY" or pass an API key as "apiKey".`
+            )
+        }
+        this.responseFormat = 'content_and_artifact'
+    }
+
+    protected async _call(
+        input: string,
+        _runManager?: CallbackManagerForToolRun,
+        parentConfig?: ToolRunnableConfig
+    ): Promise<[string, any]> {
+        const body: Record<string, unknown> = {
+            query: input,
+            max_results: this.max_results,
+            api_key: this.apiKey
+        }
+
+        const response = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({ ...body, ...this.kwargs })
+        })
+        const json = await response.json()
+        if (!response.ok) {
+            throw new Error(`Request failed with status code ${response.status}: ${json.detail?.error}`)
+        }
+        if (!Array.isArray(json.results)) {
+            throw new Error(`Could not parse Tavily results. Please try again.`)
+        }
+
+        const toolCall = getToolCallFromConfig(parentConfig)
+        // Tool message event
+        dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+            id: toolCall?.id,
+            category: 'Computer',
+            type: ChatMessageStepCategory.WebSearch,
+            toolset: TavilyToolset.provider,
+            tool: this.name,
+            title: t('server-ai:Tools.TavilySearch.WebSearch'),
+            message: input,
+            data: json.results
+        }).catch((err) => {
+            this.#logger.error(err)
+        })
+        return [JSON.stringify(json.results, null, 2), json.results]
+    }
 }

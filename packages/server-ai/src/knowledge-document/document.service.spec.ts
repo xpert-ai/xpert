@@ -89,6 +89,7 @@ import { KnowledgeDocument } from './document.entity'
 import { buildLogicalFolderPath, KnowledgeDocumentService } from './document.service'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
+import type { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 function createService(
     documents: Partial<KnowledgeDocument>[],
@@ -138,7 +139,8 @@ function createService(
         (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
         (overrides?.commandBus ?? {}) as CommandBus,
         (overrides?.queryBus ?? {}) as QueryBus,
-        {} as Queue
+        {} as Queue,
+        { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
     )
     Object.assign(service, {
         textSplitterRegistry: {
@@ -149,6 +151,72 @@ function createService(
 }
 
 describe('KnowledgeDocumentService logical folder paths', () => {
+    it('does not let a document edit restore a stale publication epoch', async () => {
+        const update = jest.fn(async (_criteria: object, _patch: Partial<IKnowledgeDocument>) => ({ affected: 1 }))
+        const service = createService([], {
+            repo: {
+                update,
+                findOne: jest.fn(async () => ({ id: 'doc', knowledgebaseId: 'kb', version: 1, publicationEpoch: 8 }))
+            },
+            knowledgebaseService: { assertNotRebuilding: jest.fn() }
+        })
+        await service.updateWithVersion('doc', { publicationEpoch: 0 }, 1)
+        expect(update).toHaveBeenCalled()
+        expect(update.mock.calls[0][1]).not.toHaveProperty('publicationEpoch')
+    })
+
+    it.each(['create', 'update', 'updateWithVersion', 'delete', 'deleteWithVersion'])(
+        'advances the publication epoch together with the content hash after a chunk %s',
+        async (operation) => {
+            const update = jest.fn()
+            const service = createService([], { repo: { update } })
+            const chunk = {
+                id: 'chunk',
+                documentId: 'doc',
+                pageContent: 'content',
+                metadata: { chunkId: 'chunk' },
+                version: 1
+            }
+            const chunks = {
+                create: jest.fn(async () => chunk),
+                findOne: jest.fn(async () => chunk),
+                findAll: jest.fn(async () => ({ items: operation.startsWith('delete') ? [] : [chunk] })),
+                updateChunk: jest.fn(),
+                updateWithVersion: jest.fn(),
+                delete: jest.fn(),
+                deleteWithVersion: jest.fn()
+            }
+            Object.assign(service, { chunkService: chunks })
+            jest.spyOn(service, 'getDocumentVectorStore').mockResolvedValue({
+                document: { id: 'doc', knowledgebaseId: 'kb', knowledgebase: { id: 'kb' } },
+                vectorStore: {
+                    addKnowledgeDocument: jest.fn(),
+                    updateChunk: jest.fn(),
+                    partialUpdateFilterAttributes: jest.fn(),
+                    deleteChunk: jest.fn()
+                }
+            } as never)
+            if (operation === 'create') await service.createChunk('doc', chunk)
+            else if (operation === 'update') await service.updateChunk('doc', 'chunk', chunk)
+            else if (operation === 'updateWithVersion') await service.updateChunkWithVersion('doc', 'chunk', chunk)
+            else if (operation === 'delete') await service.deleteChunk('doc', 'chunk')
+            else await service.deleteChunkWithVersion('doc', 'chunk', 1)
+            expect(update).toHaveBeenCalledWith(
+                'doc',
+                expect.objectContaining({
+                    contentHash: expect.any(String),
+                    publicationEpoch: expect.any(Function)
+                })
+            )
+        }
+    )
+
+    it('keeps soft deletion closed until every derived-data participant is fail-closed', async () => {
+        const service = createService([])
+
+        await expect(service.softRemove('document-1')).rejects.toBeInstanceOf(ConflictException)
+    })
+
     it('orders ancestors from the root to the selected entity', async () => {
         const root = {
             id: 'folder-water',

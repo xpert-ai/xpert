@@ -19,12 +19,27 @@ import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { KnowledgeDocumentVisualAssetsRuntimeService } from './visual-assets-runtime.service'
+import {
+    KnowledgeDocumentDeletionCleanupReceipt,
+    KnowledgeDocumentDeletionIntent,
+    KnowledgeDocumentPublicationAttempt,
+    KnowledgeDocumentPublicationAttemptSource
+} from './deletion'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
-        TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
+        TypeOrmModule.forFeature([
+            KnowledgeDocument,
+            KnowledgeDocumentPage,
+            KnowledgeDocumentChunk,
+            KnowledgeDocumentDeletionIntent,
+            KnowledgeDocumentDeletionCleanupReceipt,
+            KnowledgeDocumentPublicationAttempt,
+            KnowledgeDocumentPublicationAttemptSource
+        ]),
         DiscoveryModule,
         RuntimeCapabilityModule,
         TenantModule,
@@ -46,6 +61,7 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
         KnowledgeDocumentVisualAssetsRuntimeService,
+        KnowledgeDerivedIndexPublicationService,
         KnowledgeDocumentConsumer,
         ...CommandHandlers,
         ...QueryHandlers
@@ -56,6 +72,7 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
         KnowledgeDocumentVisualAssetsRuntimeService,
+        KnowledgeDerivedIndexPublicationService,
         TypeOrmModule
     ]
 })

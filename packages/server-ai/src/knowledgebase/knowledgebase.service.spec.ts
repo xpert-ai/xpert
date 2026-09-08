@@ -23,7 +23,7 @@ import { KnowledgebaseTaskService } from './task'
 import type { TKnowledgebaseRebuildEmbeddingJob } from './types'
 import { CopilotModelGetEmbeddingsQuery, CopilotModelGetRerankQuery } from '../copilot-model'
 import { AssertChatConversationAccessQuery } from '../chat-conversation/queries'
-import { VolumeSubtreeClient } from '../shared'
+import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 
 type RequestUser = {
     id: string
@@ -154,6 +154,23 @@ describe('KnowledgebaseService', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it.each([true, false])('derives Wiki management from knowledgebase write access (%s) alone', async (canManage) => {
+        const service = createService({
+            repository: { findOne: jest.fn(), delete: jest.fn() },
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+        jest.spyOn(service, 'findOneByIdString').mockResolvedValue(
+            Object.assign(new Knowledgebase(), { id: 'kb-1', type: KnowledgebaseTypeEnum.Standard })
+        )
+        jest.spyOn(service, 'canManageKnowledgebase').mockResolvedValue(canManage)
+
+        const detail = await service.findOneDetail('kb-1')
+
+        expect(detail.canManageWiki).toBe(canManage)
+        expect(detail.canManageDocumentDeletions).toBe(canManage)
     })
 
     it('allows only backend-approved relations on generic knowledgebase reads', () => {
@@ -295,6 +312,31 @@ describe('KnowledgebaseService', () => {
         expect(result).not.toHaveProperty('createdById', 'victim-user')
     })
 
+    it.each([true, false])('initializes graph state from the create switch (%s)', async (enabled) => {
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+            save: jest.fn().mockImplementation(async (entity) => entity)
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+        const result = await runInRequestContext(() =>
+            service.create({
+                name: 'Graph knowledgebase',
+                type: KnowledgebaseTypeEnum.Standard,
+                graphRag: { enabled }
+            })
+        )
+        expect(result.graphStatus).toBe(enabled ? 'ready' : 'disabled')
+        expect(result.graphRevision).toBe(0)
+        expect(result.graphIndexError).toBeNull()
+    })
+
     it('persists validated FAQ configuration when creating an FAQ knowledgebase', async () => {
         const repository = {
             findOne: jest.fn(),
@@ -343,6 +385,350 @@ describe('KnowledgebaseService', () => {
             })
         )
     })
+
+    it('creates a Wiki knowledgebase without a separate organization feature grant', async () => {
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+            save: jest.fn().mockImplementation(async (entity) => entity)
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        const result = await runInRequestContext(() =>
+            service.create({
+                name: 'Wiki knowledgebase',
+                type: KnowledgebaseTypeEnum.Standard,
+                chatModel: {
+                    copilotId: 'copilot-1',
+                    modelType: AiModelTypeEnum.LLM,
+                    model: 'chat-model'
+                },
+                wikiConfig: {
+                    enabled: true,
+                    extractionGranularity: 'focused',
+                    contentGenerationRequirements: '',
+                    extractionFocus: ''
+                }
+            })
+        )
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                wikiConfig: {
+                    enabled: true,
+                    extractionGranularity: 'focused',
+                    contentGenerationRequirements: '',
+                    extractionFocus: ''
+                },
+                wikiStatus: 'ready',
+                wikiAvailability: 'ready',
+                wikiRevision: 0,
+                wikiActiveRevision: 0,
+                wikiStagedRevision: null,
+                wikiGeneratorVersion: 'wiki-v1',
+                wikiConfigFingerprint: expect.any(String)
+            })
+        )
+    })
+
+    it('requires a chat model before enabling Wiki', async () => {
+        const save = jest.fn()
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn(),
+            save
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        await expect(
+            runInRequestContext(() =>
+                service.create({
+                    name: 'Wiki without chat model',
+                    type: KnowledgebaseTypeEnum.Standard,
+                    wikiConfig: {
+                        enabled: true,
+                        extractionGranularity: 'standard'
+                    }
+                })
+            )
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(save).not.toHaveBeenCalled()
+    })
+
+    it('allows a dedicated Wiki model when the general LLM is not configured', async () => {
+        const wikiModel = {
+            copilotId: 'copilot-1',
+            modelType: AiModelTypeEnum.LLM,
+            model: 'wiki-model'
+        }
+        const repository = {
+            findOne: jest.fn(),
+            findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+            delete: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+            save: jest.fn().mockImplementation(async (entity) => entity)
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+
+        const result = await runInRequestContext(() =>
+            service.create({
+                name: 'Wiki model knowledgebase',
+                type: KnowledgebaseTypeEnum.Standard,
+                wikiModel,
+                wikiConfig: { enabled: true, extractionGranularity: 'standard' }
+            })
+        )
+
+        expect(result).toEqual(expect.objectContaining({ wikiModel, wikiStatus: 'ready' }))
+    })
+
+    it.each([
+        { currentEnabled: false, nextEnabled: true },
+        { currentEnabled: true, nextEnabled: false }
+    ])(
+        'rejects changing the Wiki index strategy from $currentEnabled to $nextEnabled after documents have been added',
+        async ({ currentEnabled, nextEnabled }) => {
+            const knowledgebase = Object.assign(new Knowledgebase(), {
+                id: 'kb-wiki',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                workspaceId: 'workspace-1',
+                createdById: 'owner-user',
+                permission: KnowledgebasePermission.Private,
+                type: KnowledgebaseTypeEnum.Standard,
+                documentNum: 3,
+                chatModelId: 'chat-model-1',
+                chatModel: {
+                    id: 'chat-model-1',
+                    copilotId: 'copilot-1',
+                    modelType: AiModelTypeEnum.LLM,
+                    model: 'chat-model'
+                },
+                wikiModel: { id: 'wiki-model-old' },
+                wikiModelId: 'wiki-model-old',
+                wikiConfig: { enabled: currentEnabled, extractionGranularity: 'standard' },
+                wikiStatus: currentEnabled ? 'ready' : 'disabled',
+                wikiAvailability: currentEnabled ? 'ready' : 'unavailable'
+            })
+            const save = jest.fn().mockImplementation(async (entity) => entity)
+            const repository = {
+                findOne: jest.fn().mockResolvedValue(knowledgebase),
+                delete: jest.fn(),
+                save
+            } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+            const service = createService({
+                repository,
+                commandBus: { execute: jest.fn() },
+                xpertService: { updateXpert: jest.fn() },
+                workspaceAccessService: {
+                    assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } })
+                }
+            })
+
+            const input = {
+                wikiModel: null,
+                wikiConfig: {
+                    enabled: nextEnabled,
+                    extractionGranularity: 'exhaustive' as const,
+                    contentGenerationRequirements: '  Prefer timelines. ',
+                    extractionFocus: ' Products and versions. '
+                }
+            }
+            await expect(
+                runInRequestContext(
+                    () => service.updateWikiConfiguration('kb-wiki', { ...input, confirmModelCharges: true }),
+                    'owner-user',
+                    RolesEnum.AI_BUILDER
+                )
+            ).rejects.toBeInstanceOf(BadRequestException)
+            expect(save).not.toHaveBeenCalled()
+        }
+    )
+
+    it('saves ordinary and Wiki settings together with the new general LLM fallback', async () => {
+        const knowledgebase = Object.assign(new Knowledgebase(), {
+            id: 'kb-wiki',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            type: KnowledgebaseTypeEnum.Standard,
+            documentNum: 0,
+            description: 'Before',
+            wikiConfig: { enabled: false, extractionGranularity: 'standard' }
+        })
+        const save = jest.fn(async (entity: Knowledgebase) => entity)
+        const service = createService({
+            repository: {
+                findOne: jest.fn().mockResolvedValue(knowledgebase),
+                delete: jest.fn(),
+                save
+            } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            workspaceAccessService: { assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } }) }
+        })
+        const chatModel = { id: 'chat-1', copilotId: 'copilot-1', modelType: AiModelTypeEnum.LLM, model: 'new-llm' }
+        const input = {
+            wikiConfig: { enabled: true, extractionGranularity: 'standard' as const },
+            settings: { description: 'After', chatModel }
+        }
+        const saved = await runInRequestContext(() => service.updateWikiConfiguration('kb-wiki', input))
+        expect(save).toHaveBeenCalledTimes(1)
+        expect(saved).toMatchObject({
+            description: 'After',
+            chatModel,
+            wikiConfig: { enabled: true },
+            wikiStatus: 'ready'
+        })
+    })
+
+    it('does not persist ordinary settings when the Wiki strategy change is rejected', async () => {
+        const knowledgebase = Object.assign(new Knowledgebase(), {
+            id: 'kb-wiki',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            type: KnowledgebaseTypeEnum.Standard,
+            documentNum: 3,
+            description: 'Before',
+            wikiConfig: { enabled: false, extractionGranularity: 'standard' }
+        })
+        const save = jest.fn()
+        const service = createService({
+            repository: {
+                findOne: jest.fn().mockResolvedValue(knowledgebase),
+                delete: jest.fn(),
+                save
+            } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            workspaceAccessService: { assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } }) }
+        })
+        const input = {
+            wikiConfig: { enabled: true, extractionGranularity: 'standard' as const },
+            settings: { description: 'After' }
+        }
+        await expect(
+            runInRequestContext(() => service.updateWikiConfiguration('kb-wiki', input))
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(save).not.toHaveBeenCalled()
+        expect(knowledgebase.description).toBe('Before')
+    })
+
+    it('updates Wiki generation settings without a separate organization feature grant', async () => {
+        const knowledgebase = Object.assign(new Knowledgebase(), {
+            id: 'kb-wiki',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-user',
+            permission: KnowledgebasePermission.Private,
+            type: KnowledgebaseTypeEnum.Standard,
+            documentNum: 3,
+            chatModel: {
+                id: 'chat-model-1',
+                copilotId: 'copilot-1',
+                modelType: AiModelTypeEnum.LLM,
+                model: 'chat-model'
+            },
+            wikiConfig: { enabled: true, extractionGranularity: 'standard' },
+            wikiStatus: 'ready',
+            wikiAvailability: 'ready',
+            wikiConfigFingerprint: 'old-fingerprint'
+        })
+        const save = jest.fn().mockImplementation(async (entity) => entity)
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(knowledgebase),
+            delete: jest.fn(),
+            save
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            workspaceAccessService: {
+                assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } })
+            }
+        })
+
+        const result = await runInRequestContext(
+            () =>
+                service.updateWikiConfiguration('kb-wiki', {
+                    wikiConfig: {
+                        enabled: true,
+                        extractionGranularity: 'exhaustive',
+                        contentGenerationRequirements: 'Prefer timelines.',
+                        extractionFocus: 'Products and versions.'
+                    },
+                    confirmModelCharges: true
+                }),
+            'owner-user',
+            RolesEnum.AI_BUILDER
+        )
+
+        expect(result).toEqual(
+            expect.objectContaining({
+                wikiConfig: {
+                    enabled: true,
+                    extractionGranularity: 'exhaustive',
+                    contentGenerationRequirements: 'Prefer timelines.',
+                    extractionFocus: 'Products and versions.'
+                },
+                wikiStatus: 'rebuild_required'
+            })
+        )
+        expect(save).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([KnowledgebaseTypeEnum.FAQ, KnowledgebaseTypeEnum.External])(
+        'rejects Wiki enablement for %s knowledgebases',
+        async (type) => {
+            const save = jest.fn()
+            const repository = {
+                findOne: jest.fn(),
+                findOneOrFail: jest.fn().mockRejectedValue(new Error('not found')),
+                delete: jest.fn(),
+                create: jest.fn(),
+                save
+            } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+            const service = createService({
+                repository,
+                commandBus: { execute: jest.fn() },
+                xpertService: { updateXpert: jest.fn() }
+            })
+
+            await expect(
+                runInRequestContext(() =>
+                    service.create({
+                        name: `${type} Wiki knowledgebase`,
+                        type,
+                        chatModelId: 'chat-model-1',
+                        wikiConfig: {
+                            enabled: true,
+                            extractionGranularity: 'standard'
+                        }
+                    })
+                )
+            ).rejects.toBeInstanceOf(BadRequestException)
+            expect(save).not.toHaveBeenCalled()
+        }
+    )
 
     it('removes graph retrieval from FAQ recall configuration', async () => {
         const repository = {
@@ -760,6 +1146,51 @@ describe('KnowledgebaseService', () => {
         expect(save).not.toHaveBeenCalled()
     })
 
+    it.each([
+        ['wikiConfig', { enabled: true, extractionGranularity: 'standard' }],
+        ['wikiModel', { id: 'wiki-model-1' }],
+        ['wikiModelId', 'wiki-model-1'],
+        ['wikiStatus', 'ready'],
+        ['wikiAvailability', 'ready'],
+        ['wikiRevision', 4],
+        ['wikiActiveRevision', 3],
+        ['wikiStagedRevision', 4],
+        ['wikiBuildError', 'forged'],
+        ['wikiRebuildRequiredReason', 'generator_upgrade'],
+        ['wikiGeneratorVersion', 'forged'],
+        ['wikiConfigFingerprint', 'forged']
+    ])('rejects generic updates to server-owned Wiki field %s', async (field, value) => {
+        const knowledgebase = {
+            id: 'kb-wiki',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            createdById: 'owner-user',
+            permission: KnowledgebasePermission.Private,
+            type: KnowledgebaseTypeEnum.Standard
+        } as Knowledgebase
+        const save = jest.fn()
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(knowledgebase),
+            delete: jest.fn(),
+            save
+        } as unknown as jest.Mocked<KnowledgebaseRepositoryMock>
+        const workspaceAccessService: jest.Mocked<WorkspaceAccessServiceMock> = {
+            assertCan: jest.fn().mockResolvedValue({ workspace: { id: 'workspace-1' } })
+        }
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            workspaceAccessService
+        })
+
+        await expect(
+            runInRequestContext(() => service.update('kb-wiki', { [field]: value }), 'owner-user', RolesEnum.AI_BUILDER)
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(save).not.toHaveBeenCalled()
+    })
+
     it('rejects changing the knowledgebase type after creation', async () => {
         const knowledgebase = {
             id: 'kb-faq',
@@ -932,6 +1363,7 @@ describe('KnowledgebaseService', () => {
             permission: 'private',
             copilotModelId: 'embedding-model-1',
             chatModelId: 'chat-model-1',
+            wikiModelId: 'wiki-model-1',
             rerankModelId: 'rerank-model-1',
             visionModelId: 'vision-model-1',
             documentNum: 2,
@@ -948,6 +1380,13 @@ describe('KnowledgebaseService', () => {
             graphStatus: 'ready',
             graphRevision: 3,
             graphIndexError: null,
+            wikiConfig: {
+                enabled: true,
+                extractionGranularity: 'standard'
+            },
+            wikiStatus: 'ready',
+            wikiAvailability: 'degraded',
+            wikiBuildError: 'writer-only failure detail',
             pipelineId: 'pipeline-1',
             integrationId: 'integration-1',
             copilotModel: {
@@ -960,9 +1399,17 @@ describe('KnowledgebaseService', () => {
             },
             chatModel: {
                 id: 'chat-model-1',
-                modelType: 'llm',
+                modelType: AiModelTypeEnum.LLM,
                 model: 'chat-model',
                 copilotId: 'copilot-2',
+                referencedId: null,
+                options: { context_size: 128000 }
+            },
+            wikiModel: {
+                id: 'wiki-model-1',
+                modelType: AiModelTypeEnum.LLM,
+                model: 'wiki-model',
+                copilotId: 'copilot-5',
                 referencedId: null,
                 options: { context_size: 128000 }
             },
@@ -1027,11 +1474,23 @@ describe('KnowledgebaseService', () => {
 
         expect(repository.findOne).toHaveBeenCalledWith(
             expect.objectContaining({
-                relations: ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline'],
+                relations: [
+                    'copilotModel',
+                    'chatModel',
+                    'wikiModel',
+                    'rerankModel',
+                    'visionModel',
+                    'xperts',
+                    'pipeline'
+                ],
                 select: expect.objectContaining({
                     id: true,
                     name: true,
                     faqConfig: true,
+                    wikiConfig: true,
+                    wikiStatus: true,
+                    wikiAvailability: true,
+                    wikiModelId: true,
                     apiEnabled: true,
                     workspaceId: true,
                     pipelineId: true
@@ -1048,6 +1507,18 @@ describe('KnowledgebaseService', () => {
             faqConfig: {
                 indexMode: 'question_only',
                 questionIndexMode: 'separate'
+            },
+            wikiConfig: {
+                enabled: true,
+                extractionGranularity: 'standard'
+            },
+            wikiStatus: 'ready',
+            wikiAvailability: 'degraded',
+            wikiModelId: 'wiki-model-1',
+            wikiModel: {
+                id: 'wiki-model-1',
+                modelType: 'llm',
+                model: 'wiki-model'
             },
             apiEnabled: true,
             workspaceId: 'workspace-1',
@@ -1066,6 +1537,7 @@ describe('KnowledgebaseService', () => {
                 version: '1.0.0'
             }
         })
+        expect(payload).not.toHaveProperty('wikiBuildError')
         expect(payload).not.toHaveProperty('tenantId')
         expect(payload).not.toHaveProperty('organizationId')
         expect(payload.xperts[0]).not.toHaveProperty('graph')

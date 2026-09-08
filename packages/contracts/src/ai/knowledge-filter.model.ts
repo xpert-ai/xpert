@@ -1,3 +1,5 @@
+import type { KnowledgeRetrievalContentScope } from './knowledgebase.model'
+
 export const KNOWLEDGE_FILTER_VERSION = 2 as const
 export const KNOWLEDGE_FILTER_MAX_DEPTH = 3
 export const KNOWLEDGE_FILTER_MAX_CONDITIONS = 20
@@ -113,10 +115,12 @@ export type KnowledgeFilterErrorCode =
   | 'graph_search_failed'
   | 'keyword_index_missing'
   | 'keyword_query_failed'
+  | 'rerank_failed'
   | 'unsupported_backend'
   | 'unsupported_retrieval_mode'
 
 export type KnowledgeFilterDiagnostics = {
+  contentScope?: KnowledgeRetrievalContentScope
   filterVersion: typeof KNOWLEDGE_FILTER_VERSION
   fixedFilter?: KnowledgeFilterNode
   requestFilter?: KnowledgeFilterNode

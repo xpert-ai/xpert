@@ -260,7 +260,11 @@
                     }
                     @case ('progress') {
                       @if (element.sourceType !== eKDocumentSourceType.FOLDER) {
-                        <div class="flex items-center gap-1 cursor-pointer" (click)="openTask(element)">
+                        <div
+                          class="flex w-max flex-nowrap items-center gap-2 whitespace-nowrap cursor-pointer"
+                          [xpDocumentProgressWidth]="progressColumnWidth"
+                          (click)="openTask(element)"
+                        >
                           @switch (knowledgebase()?.status) {
                             @case (eKnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                               <z-badge
@@ -370,34 +374,20 @@
                               }
                             }
                           }
-                          @if (graphJobStatus(element.id); as graphJob) {
-                            <div
-                              class="mt-1 inline-flex items-center gap-1 rounded-md bg-background-section-burn px-2 py-0.5 text-xs text-text-tertiary"
-                            >
-                              <i class="ri-node-tree"></i>
-                              @switch (graphJob.status) {
-                                @case (eKnowledgeGraphIndexJobStatus.QUEUED) {
-                                  <span>
-                                    {{ 'XP.Knowledgebase.GraphJob_Queued' | translate: { Default: 'Graph queued' } }}
-                                  </span>
-                                }
-                                @case (eKnowledgeGraphIndexJobStatus.RUNNING) {
-                                  <span class="text-text-accent">
-                                    {{ 'XP.Knowledgebase.GraphJob_Running' | translate: { Default: 'Graph indexing' } }}
-                                  </span>
-                                }
-                                @case (eKnowledgeGraphIndexJobStatus.SUCCESS) {
-                                  <span class="text-text-success">
-                                    {{ 'XP.Knowledgebase.GraphJob_Success' | translate: { Default: 'Graph indexed' } }}
-                                  </span>
-                                }
-                                @case (eKnowledgeGraphIndexJobStatus.FAILED) {
-                                  <span class="text-text-danger" [zTooltip]="graphJob.error" zPosition="left">
-                                    {{ 'XP.Knowledgebase.GraphJob_Failed' | translate: { Default: 'Graph failed' } }}
-                                  </span>
-                                }
-                              }
-                            </div>
+                          @if (knowledgebaseComponent.wikiEnabled()) {
+                            <xp-document-wiki-progress
+                              class="inline-flex shrink-0"
+                              [knowledgebaseId]="knowledgebase().id"
+                              [progress]="wikiDocumentProgress().get(element.id)"
+                            />
+                          }
+                          @if (knowledgebase().graphRag?.enabled) {
+                            <xp-document-graph-progress
+                              [knowledgebase]="knowledgebase()"
+                              [document]="element"
+                              [snapshot]="graphDocumentProgress().get(element.id)"
+                              [details]="false"
+                            />
                           }
                         </div>
                       }
@@ -737,7 +727,7 @@
               @default {
                 <z-badge [zType]="isProcessing(document.status) ? 'secondary' : 'outline'" zShape="pill">
                   @if (isProcessing(document.status)) {
-                    <z-icon zType="loader-circle" class="mr-1 inline size-3.5 animate-spin" />
+                    <z-icon zType="loader-circle" zSize="sm" class="mr-1 inline-flex animate-spin" />
                   }
                   {{
                     documentStatusLabelKey(document.status)
@@ -920,7 +910,11 @@
                   <ng-template zStepLabel>
                     <span [class.text-text-destructive]="processStageState(document, $any(stage.key)) === 'error'">
                       @if (processStageState(document, $any(stage.key)) === 'active') {
-                        <z-icon zType="loader-circle" class="mr-1 inline size-4 animate-spin text-text-accent" />
+                        <z-icon
+                          zType="loader-circle"
+                          zSize="sm"
+                          class="mr-1 inline-flex animate-spin text-text-accent"
+                        />
                       }
                       {{ stage.labelKey | translate: { Default: stage.defaultLabel } }}
                     </span>
@@ -978,6 +972,20 @@
               }
             </div>
           </section>
+
+          @if (knowledgebaseComponent.wikiEnabled()) {
+            <xp-document-wiki-progress
+              [knowledgebaseId]="knowledgebase().id"
+              [progress]="wikiDocumentProgress().get(document.id)"
+              [details]="true"
+            />
+          }
+
+          <xp-document-graph-progress
+            [knowledgebase]="knowledgebase()"
+            [document]="document"
+            [snapshot]="graphDocumentProgress().get(document.id)"
+          />
 
           <section class="mt-6 border-t border-border pt-5">
             <h2 class="text-sm font-semibold text-text-primary">

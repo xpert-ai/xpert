@@ -1,0 +1,264 @@
+<div class="relative flex h-full min-w-0 flex-1 overflow-hidden bg-muted/20 p-3">
+  @if (statusLoading()) {
+    <xp-spin class="absolute inset-0 z-20" />
+  }
+
+  <section class="flex min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-background">
+    @if (loadError()) {
+      <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+        <z-icon zType="circle-alert" class="size-8 text-text-destructive" />
+        <p class="max-w-xl text-sm text-text-secondary">{{ loadError() }}</p>
+        <button z-button zType="outline" type="button" (click)="refresh()">
+          {{ 'XP.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
+        </button>
+      </div>
+    } @else if (!enabled()) {
+      <div class="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <div class="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <z-icon zType="book-open" class="size-7" />
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold text-text-primary">
+            {{ 'XP.Knowledgebase.Wiki.DisabledTitle' | translate: { Default: 'Build a connected Wiki' } }}
+          </h1>
+          <p class="mt-2 max-w-xl text-sm text-text-tertiary">
+            {{
+              'XP.Knowledgebase.Wiki.DisabledDescription'
+                | translate
+                  : {
+                      Default:
+                        'Enable Wiki to extract grounded summaries, entities and concepts from your source documents.'
+                    }
+            }}
+          </p>
+        </div>
+        <button z-button zType="default" type="button" (click)="openConfiguration()">
+          <z-icon zType="settings" />
+          {{ 'XP.Knowledgebase.Wiki.Configure' | translate: { Default: 'Configure Wiki' } }}
+        </button>
+      </div>
+    } @else {
+      <aside class="flex w-72 shrink-0 flex-col border-r border-border xl:w-80">
+        <header class="border-b border-border p-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <h1 class="font-semibold text-text-primary">Wiki</h1>
+              <z-badge zType="outline" zShape="pill">{{ total() }}</z-badge>
+            </div>
+            @if (status()?.status === 'indexing') {
+              <z-badge zType="secondary" zShape="pill">
+                <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                {{ 'XP.Knowledgebase.Wiki.Indexing' | translate: { Default: 'Building' } }}
+              </z-badge>
+            }
+          </div>
+
+          <div class="mt-3 flex gap-2">
+            <input
+              z-input
+              type="search"
+              class="min-w-0 flex-1"
+              [formControl]="search"
+              [placeholder]="'XP.Knowledgebase.Wiki.Search' | translate: { Default: 'Search Wiki pages' }"
+              (keydown.enter)="applySearch()"
+            />
+            <button z-button zType="outline" zSize="icon-sm" type="button" (click)="applySearch()">
+              <z-icon zType="search" />
+            </button>
+          </div>
+
+          <div class="mt-2 flex flex-wrap gap-1">
+            @for (type of pageTypes; track type) {
+              <button
+                z-button
+                zType="ghost"
+                zSize="sm"
+                type="button"
+                [class]="pageType() === type ? '!bg-muted !text-text-primary' : '!text-text-tertiary'"
+                (click)="setPageType(type)"
+              >
+                {{ 'XP.Knowledgebase.Wiki.PageType.' + type | translate: { Default: type } }}
+              </button>
+            }
+          </div>
+        </header>
+
+        <div class="relative min-h-0 flex-1 overflow-y-auto p-2">
+          @if (listLoading()) {
+            <xp-spin class="absolute inset-0 z-10" />
+          }
+          @for (page of pages(); track page.id) {
+            <button
+              type="button"
+              class="mb-1 flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors hover:bg-muted"
+              [class]="selectedPageId() === page.id ? 'bg-muted text-text-primary' : 'text-text-secondary'"
+              (click)="selectPage(page)"
+            >
+              <span class="w-full truncate text-sm font-medium">{{ page.title }}</span>
+              <span class="mt-0.5 line-clamp-2 text-xs text-text-tertiary">{{ page.summary }}</span>
+            </button>
+          } @empty {
+            @if (!listLoading()) {
+              <div class="p-6 text-center text-sm text-text-tertiary">
+                {{ 'XP.Knowledgebase.Wiki.Empty' | translate: { Default: 'No Wiki pages yet.' } }}
+              </div>
+            }
+          }
+        </div>
+      </aside>
+
+      <main class="relative min-w-0 flex-1 overflow-y-auto">
+        @if (status()?.status === 'rebuild_required' || status()?.status === 'failed') {
+          <div
+            class="m-4 flex items-center justify-between gap-3 rounded-lg border border-text-warning/30 bg-text-warning/10 p-3"
+          >
+            <div class="min-w-0 text-sm text-text-secondary">
+              <div class="font-medium text-text-primary">
+                {{
+                  (status()?.status === 'failed'
+                    ? 'XP.Knowledgebase.Wiki.BuildFailed'
+                    : 'XP.Knowledgebase.Wiki.RebuildRequired'
+                  )
+                    | translate
+                      : {
+                          Default:
+                            status()?.status === 'failed' ? 'The latest Wiki build failed.' : 'Wiki must be rebuilt.'
+                        }
+                }}
+              </div>
+              @if (status()?.availability === 'degraded') {
+                <div class="mt-1 text-xs text-text-tertiary">
+                  {{
+                    'XP.Knowledgebase.Wiki.Degraded'
+                      | translate: { Default: 'Safe pages from the previous revision remain available.' }
+                  }}
+                </div>
+              }
+            </div>
+            @if (canManage()) {
+              <button z-button zType="outline" type="button" [disabled]="rebuilding()" (click)="rebuild()">
+                {{ 'XP.Knowledgebase.Wiki.Rebuild' | translate: { Default: 'Authorize rebuild' } }}
+              </button>
+            }
+          </div>
+        }
+
+        @for (action of recoveryActions(); track action.invocationId) {
+          <div
+            class="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3"
+          >
+            <span class="text-sm text-text-secondary">
+              @if (action.reconciliationStatus === 'not_executed') {
+                {{
+                  'XP.Knowledgebase.Wiki.RequestNotSent'
+                    | translate
+                      : {
+                          Default:
+                            'The Wiki model request could not be prepared. No generation request was sent; retry after fixing the model configuration or output format.'
+                        }
+                }}
+              } @else if (action.recommendedAction === 'wait') {
+                {{
+                  'XP.Knowledgebase.Wiki.Reconciling'
+                    | translate
+                      : {
+                          Default: 'Checking the model provider outcome…'
+                        }
+                }}
+              } @else {
+                {{
+                  'XP.Knowledgebase.Wiki.Indeterminate'
+                    | translate
+                      : {
+                          Default: 'The provider outcome is uncertain and a retry may add a charge.'
+                        }
+                }}
+              }
+            </span>
+            @if (action.canRetry) {
+              <button z-button zType="outline" type="button" (click)="retry(action)">
+                {{ 'XP.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (pageLoading()) {
+          <xp-spin class="absolute inset-0 z-10" />
+        } @else if (pageError()) {
+          <div class="flex min-h-80 flex-col items-center justify-center gap-3 p-8 text-center">
+            <z-icon zType="file-question" class="size-8 text-text-tertiary" />
+            <p class="text-sm text-text-secondary">{{ pageError() }}</p>
+          </div>
+        } @else if (selectedPage(); as page) {
+          <article class="mx-auto max-w-4xl px-8 py-7">
+            <div class="flex flex-wrap items-center gap-2">
+              <z-badge zType="outline" zShape="pill">{{ page.pageType }}</z-badge>
+              <span class="text-xs text-text-tertiary">R{{ page.revision }}</span>
+            </div>
+            <h1 class="mt-3 text-3xl font-semibold tracking-tight text-text-primary">{{ page.title }}</h1>
+            <p class="mt-3 text-base leading-7 text-text-secondary">{{ page.summary }}</p>
+            @if (page.aliases.length) {
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                @for (alias of page.aliases; track alias) {
+                  <z-badge zType="secondary" zShape="pill">{{ alias }}</z-badge>
+                }
+              </div>
+            }
+
+            <div class="my-6 h-px bg-border"></div>
+            <markdown class="xp-copilot-markdown block text-text-primary" [data]="page.markdown" />
+
+            @if (page.links.length || page.backlinks.length) {
+              <section class="mt-8 border-t border-border pt-5">
+                <h2 class="text-sm font-semibold text-text-primary">
+                  {{ 'XP.Knowledgebase.Wiki.Related' | translate: { Default: 'Related pages' } }}
+                </h2>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @for (link of page.links; track link.pageId) {
+                    <button z-button zType="outline" zSize="sm" type="button" (click)="openLinkedPage(link.pageId)">
+                      {{ link.label || link.title }}
+                    </button>
+                  }
+                  @for (link of page.backlinks; track link.pageId) {
+                    <button z-button zType="ghost" zSize="sm" type="button" (click)="openLinkedPage(link.pageId)">
+                      ← {{ link.title }}
+                    </button>
+                  }
+                </div>
+              </section>
+            }
+
+            @if (page.evidence.length) {
+              <section class="mt-8 border-t border-border pt-5">
+                <h2 class="text-sm font-semibold text-text-primary">
+                  {{ 'XP.Knowledgebase.Wiki.Evidence' | translate: { Default: 'Source evidence' } }}
+                </h2>
+                <div class="mt-3 space-y-2">
+                  @for (evidence of page.evidence; track evidence.id) {
+                    <button
+                      type="button"
+                      class="block w-full rounded-lg border border-border p-3 text-left hover:bg-muted/50"
+                      [disabled]="!evidence.sourceAvailable"
+                      (click)="openEvidence(evidence.sourceDocumentId, evidence.sourceChunkId)"
+                    >
+                      <p class="line-clamp-3 text-sm leading-6 text-text-secondary">{{ evidence.quote }}</p>
+                      <span class="mt-2 block text-xs text-text-tertiary">{{ evidence.sourceDocumentId }}</span>
+                    </button>
+                  }
+                </div>
+              </section>
+            }
+          </article>
+        } @else {
+          <div class="flex min-h-80 items-center justify-center p-8 text-sm text-text-tertiary">
+            {{
+              (indexing() ? 'XP.Knowledgebase.Wiki.BuildingEmpty' : 'XP.Knowledgebase.Wiki.SelectPage')
+                | translate: { Default: indexing() ? 'Wiki pages are being built…' : 'Select a Wiki page to read.' }
+            }}
+          </div>
+        }
+      </main>
+    }
+  </section>
+</div>
