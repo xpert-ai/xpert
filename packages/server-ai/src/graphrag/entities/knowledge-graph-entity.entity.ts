@@ -1,3 +1,4 @@
+import { KnowledgeIdentity } from '../../knowledgebase/identity/knowledge-identity.entity'
 import {
     IKnowledgebase,
     IKnowledgeGraphEntity,
@@ -13,10 +14,21 @@ import { KnowledgeGraphMention } from './knowledge-graph-mention.entity'
 import { KnowledgeGraphRelation } from './knowledge-graph-relation.entity'
 
 @Entity('knowledge_graph_entity')
-@Index(['tenantId', 'organizationId', 'knowledgebaseId', 'normalizedName', 'type'], { unique: true })
+@Index(['knowledgebaseId', 'identityId'], { unique: true })
+@Index('IDX_graph_manual_entity_name', ['tenantId', 'organizationId', 'knowledgebaseId', 'normalizedName', 'type'], {
+    unique: true,
+    where: '"identityId" IS NULL'
+})
 @Index(['knowledgebaseId', 'origin'])
 @Index(['knowledgebaseId', 'visibility'])
 export class KnowledgeGraphEntity extends TenantOrganizationBaseEntity implements IKnowledgeGraphEntity {
+    @ManyToOne(() => KnowledgeIdentity, { nullable: true, onDelete: 'NO ACTION' })
+    @JoinColumn({ name: 'identityId' })
+    identity: KnowledgeIdentity | null
+
+    @Column({ type: 'uuid', nullable: true })
+    identityId: string | null
+
     @ApiProperty({ type: () => Knowledgebase, readOnly: true })
     @ManyToOne(() => Knowledgebase, {
         nullable: true,

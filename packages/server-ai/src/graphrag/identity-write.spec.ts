@@ -19,10 +19,20 @@ describe('Graph identity write conflicts', () => {
         const repository = {
             findOne: jest.fn().mockResolvedValueOnce(null).mockResolvedValue(winner),
             create: jest.fn((value: object) => value),
-            save: jest.fn().mockResolvedValue(winner).mockRejectedValueOnce(duplicate),
+            save: jest.fn().mockResolvedValue(winner),
+            createQueryBuilder: jest.fn(() => query),
             findOneOrFail: jest.fn().mockResolvedValue(winner),
             findOneByOrFail: jest.fn().mockResolvedValue(winner)
         }
+        const query = {
+            insert: jest.fn(),
+            values: jest.fn(),
+            orIgnore: jest.fn(),
+            execute: jest.fn(async () => undefined)
+        }
+        query.insert.mockReturnValue(query)
+        query.values.mockReturnValue(query)
+        query.orIgnore.mockReturnValue(query)
         const contributionRepository = {
             findOne: jest.fn().mockResolvedValue(null),
             find: jest.fn().mockResolvedValue([]),
@@ -53,21 +63,20 @@ describe('Graph identity write conflicts', () => {
             sourcePublicationEpoch: 1,
             revision: 0
         })
-        return { service, job, repository, contributionRepository, winner, duplicate }
+        return { service, job, repository, contributionRepository, winner, duplicate, query }
     }
 
     it('reuses the concurrently inserted entity and keeps this document contribution', async () => {
         const { service, job, repository, contributionRepository, winner } = fixture()
-        await expect(service['upsertEntity'](job, { name: 'Information retrieval', type: 'Domain' })).resolves.toBe(
-            winner
-        )
+        await expect(
+            service['upsertEntity'](job, { name: 'Information retrieval', type: 'Domain' }, 'shared')
+        ).resolves.toBe(winner)
         expect(repository.findOne).toHaveBeenCalledWith({
             where: {
                 tenantId: 'tenant',
                 organizationId: 'org',
                 knowledgebaseId: 'kb',
-                normalizedName: 'information retrieval',
-                type: 'domain'
+                identityId: 'shared'
             }
         })
         expect(contributionRepository.save).toHaveBeenCalledWith(
@@ -90,10 +99,6 @@ describe('Graph identity write conflicts', () => {
             Object.assign(new KnowledgeGraphEntity(), { id: 'source' }),
             Object.assign(new KnowledgeGraphEntity(), { id: 'target' }),
             {
-                sourceName: 'Source',
-                sourceType: 'concept',
-                targetName: 'Target',
-                targetType: 'domain',
                 type: 'belongs to'
             }
         )
@@ -108,14 +113,15 @@ describe('Graph identity write conflicts', () => {
     it('does not hide a uniqueness error when no matching identity exists', async () => {
         const { service, job, repository, duplicate } = fixture()
         repository.findOne.mockReset().mockResolvedValue(null)
-        await expect(service['upsertEntity'](job, { name: 'Name', type: 'domain' })).rejects.toBe(duplicate)
+        repository.findOneOrFail.mockRejectedValue(duplicate)
+        await expect(service['upsertEntity'](job, { name: 'Name', type: 'domain' }, 'shared')).rejects.toBe(duplicate)
     })
 
     it('does not treat other database errors as identity conflicts', async () => {
-        const { service, job, repository } = fixture()
+        const { service, job, repository, query } = fixture()
         const error = new Error('connection lost')
-        repository.save.mockReset().mockRejectedValue(error)
-        await expect(service['upsertEntity'](job, { name: 'Name', type: 'domain' })).rejects.toBe(error)
+        query.execute.mockRejectedValue(error)
+        await expect(service['upsertEntity'](job, { name: 'Name', type: 'domain' }, 'shared')).rejects.toBe(error)
         expect(repository.findOne).toHaveBeenCalledTimes(1)
     })
 })

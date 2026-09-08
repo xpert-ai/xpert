@@ -1,6 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import {
     DocumentMetadata,
+    KnowledgeIdentityDescriptor,
     GraphRagConfig,
     IKnowledgebase,
     KnowledgeFilterDiagnostics,
@@ -48,6 +49,8 @@ export type TKnowledgeGraphSearchResult = {
 }
 
 export type TKnowledgeGraphExtractionEntity = {
+    candidateId: string
+    identity: KnowledgeIdentityDescriptor
     name: string
     type: string
     aliases?: string[] | null
@@ -61,10 +64,8 @@ export type TKnowledgeGraphExtractionEntity = {
 }
 
 export type TKnowledgeGraphExtractionRelation = {
-    sourceName: string
-    sourceType: string
-    targetName: string
-    targetType: string
+    sourceCandidateId: string
+    targetCandidateId: string
     type: string
     description?: string | null
     confidence?: number | null
@@ -79,3 +80,12 @@ export type TKnowledgeGraphExtraction = {
     entities: TKnowledgeGraphExtractionEntity[]
     relations: TKnowledgeGraphExtractionRelation[]
 }
+
+export type KnowledgeGraphEntityContributionInput = Pick<
+    TKnowledgeGraphExtractionEntity,
+    'name' | 'type' | 'aliases' | 'description' | 'confidence' | 'evidence'
+>
+export type KnowledgeGraphRelationContributionInput = Pick<
+    TKnowledgeGraphExtractionRelation,
+    'type' | 'description' | 'confidence' | 'evidence'
+>

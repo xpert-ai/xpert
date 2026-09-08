@@ -1,9 +1,12 @@
+import { KnowledgeGraphProjectionWriter } from './graph-projection-writer'
+import { TKnowledgeGraphExtraction } from './types'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema, EntitySchemaColumnOptions, UpdateEvent } from 'typeorm'
 import {
     KnowledgeGraphEntity,
     KnowledgeGraphEntityContribution,
     KnowledgeGraphIndexJob,
+    KnowledgeGraphMention,
     KnowledgeGraphRelation,
     KnowledgeGraphRelationContribution
 } from './entities'
@@ -51,18 +54,33 @@ postgresDescribe('Graph contribution concurrency', () => {
             schema,
             extra: { options: `-c search_path=${schema}`, statement_timeout: 5000 },
             entities: [
+                new EntitySchema<KnowledgeGraphMention>({
+                    name: KnowledgeGraphMention.name,
+                    target: KnowledgeGraphMention,
+                    tableName: 'knowledge_graph_mention',
+                    columns: {
+                        ...common,
+                        entityId: { type: 'uuid' },
+                        relationId: { type: 'uuid', nullable: true },
+                        documentId: { type: 'uuid' },
+                        chunkId: { type: 'uuid' },
+                        quote: { type: 'text', nullable: true }
+                    }
+                }),
                 new EntitySchema<KnowledgeGraphEntity>({
                     name: KnowledgeGraphEntity.name,
                     target: KnowledgeGraphEntity,
                     tableName: 'knowledge_graph_entity',
                     columns: {
                         ...identity,
+                        identityId: { type: 'uuid', nullable: true },
                         name: { type: 'varchar' },
                         normalizedName: { type: 'varchar' },
                         aliases: { type: 'jsonb', nullable: true },
-                        summary: { type: 'text', nullable: true }
+                        summary: { type: 'text', nullable: true },
+                        mentionCount: { type: 'int', nullable: true }
                     },
-                    uniques: [{ columns: ['tenantId', 'organizationId', 'knowledgebaseId', 'normalizedName', 'type'] }]
+                    uniques: [{ columns: ['knowledgebaseId', 'identityId'] }]
                 }),
                 new EntitySchema<KnowledgeGraphRelation>({
                     name: KnowledgeGraphRelation.name,
@@ -73,7 +91,8 @@ postgresDescribe('Graph contribution concurrency', () => {
                         sourceEntityId: { type: 'uuid' },
                         targetEntityId: { type: 'uuid' },
                         normalizedType: { type: 'varchar' },
-                        weight: { type: 'float', nullable: true }
+                        weight: { type: 'float', nullable: true },
+                        evidenceCount: { type: 'int', nullable: true }
                     },
                     uniques: [{ columns: ['knowledgebaseId', 'sourceEntityId', 'targetEntityId', 'type'] }]
                 }),
@@ -148,17 +167,20 @@ postgresDescribe('Graph contribution concurrency', () => {
         }
         db.subscribers.push(subscriber)
         const name = `Concept ${randomUUID()}`
+        const identityId = randomUUID()
         await db.getRepository(KnowledgeGraphEntity).save({
             ...scope,
             name,
             normalizedName: name.toLowerCase(),
+            identityId,
             type: 'concept',
             origin: 'extracted',
             visibility: 'active',
             revision: 1,
             aliases: []
         })
-        const write = (alias: string) => service['upsertEntity'](job(), { name, type: 'concept', aliases: [alias] })
+        const write = (alias: string) =>
+            service['upsertEntity'](job(), { name, type: 'concept', aliases: [alias] }, identityId)
         const first = write('Alias A')
         let second: ReturnType<typeof write> | undefined
         try {
@@ -217,10 +239,6 @@ postgresDescribe('Graph contribution concurrency', () => {
         db.subscribers.push(subscriber)
         const write = (description: string, confidence: number) =>
             service['upsertRelation'](job(), source, target, {
-                sourceName: 'Source',
-                sourceType: 'concept',
-                targetName: 'Target',
-                targetType: 'concept',
                 type: 'related',
                 description,
                 confidence
@@ -246,21 +264,22 @@ postgresDescribe('Graph contribution concurrency', () => {
 
     it('reuses identities and keeps all entity and relation contributions on concurrent reprocessing', async () => {
         const name = `Shared ${randomUUID()}`
+        const identityId = randomUUID()
         const source = Object.assign(new KnowledgeGraphEntity(), { id: randomUUID() })
         const target = Object.assign(new KnowledgeGraphEntity(), { id: randomUUID() })
         const documents = Array.from({ length: 6 }, () => job())
         const write = async (input: KnowledgeGraphIndexJob, index: number) => {
-            const entity = await service['upsertEntity'](input, {
-                name,
-                type: 'concept',
-                aliases: [`Alias ${index}`],
-                confidence: index / 10
-            })
+            const entity = await service['upsertEntity'](
+                input,
+                {
+                    name,
+                    type: 'concept',
+                    aliases: [`Alias ${index}`],
+                    confidence: index / 10
+                },
+                identityId
+            )
             const relation = await service['upsertRelation'](input, source, target, {
-                sourceName: 'Source',
-                sourceType: 'concept',
-                targetName: 'Target',
-                targetType: 'concept',
                 type: 'related',
                 confidence: index / 10,
                 description: `Source ${index}`
@@ -287,5 +306,79 @@ postgresDescribe('Graph contribution concurrency', () => {
         expect(
             await db.getRepository(KnowledgeGraphRelationContribution).count({ where: { relationId: relation.id } })
         ).toBe(6)
+    })
+
+    it('preserves distinct same-name nodes, combines aliases, and resolves relation endpoints by candidate id', async () => {
+        const input = job()
+        const chunkId = randomUUID()
+        const northIdentity = randomUUID()
+        const southIdentity = randomUUID()
+        const north = {
+            candidateId: 'north',
+            name: 'Operations',
+            type: 'organization',
+            identity: {
+                kind: 'entity' as const,
+                entityType: 'organization' as const,
+                description: 'North team',
+                scope: 'north',
+                identifiers: []
+            },
+            evidence: [{ chunkId, quote: 'North team evidence' }]
+        }
+        const extraction: TKnowledgeGraphExtraction = {
+            entities: [
+                north,
+                { ...north, candidateId: 'alias', name: 'North Ops', evidence: [{ chunkId, quote: 'Alias evidence' }] },
+                { ...north, candidateId: 'south', identity: { ...north.identity, scope: 'south' } }
+            ],
+            relations: [
+                {
+                    sourceCandidateId: 'north',
+                    targetCandidateId: 'south',
+                    type: 'coordinates with',
+                    evidence: [{ chunkId, quote: 'North coordinates with South' }]
+                },
+                {
+                    sourceCandidateId: 'alias',
+                    targetCandidateId: 'south',
+                    type: 'coordinates with',
+                    evidence: [{ chunkId, quote: 'Another relation source' }]
+                },
+                { sourceCandidateId: 'north', targetCandidateId: 'alias', type: 'same as', evidence: [{ chunkId }] }
+            ]
+        }
+        const ids = new Map([
+            ['north', northIdentity],
+            ['alias', northIdentity],
+            ['south', southIdentity]
+        ])
+        const nodes = await db.transaction((manager) =>
+            new KnowledgeGraphProjectionWriter(manager).persist(
+                input,
+                [{ id: chunkId, pageContent: 'North and South coordinate.', metadata: { chunkId } }],
+                extraction,
+                ids
+            )
+        )
+        expect(nodes).toHaveLength(2)
+        const northNode = await db.getRepository(KnowledgeGraphEntity).findOneByOrFail({ identityId: northIdentity })
+        const southNode = await db.getRepository(KnowledgeGraphEntity).findOneByOrFail({ identityId: southIdentity })
+        expect(northNode.normalizedName).toBe(southNode.normalizedName)
+        expect(northNode.aliases).toEqual(expect.arrayContaining(['Operations', 'North Ops']))
+        expect(
+            await db
+                .getRepository(KnowledgeGraphEntityContribution)
+                .count({ where: { entityId: northNode.id, sourceDocumentIdSnapshot: input.documentId } })
+        ).toBe(1)
+        const relations = await db
+            .getRepository(KnowledgeGraphRelation)
+            .find({ where: { sourceEntityId: northNode.id } })
+        expect(relations).toHaveLength(1)
+        expect(relations[0].targetEntityId).toBe(southNode.id)
+        const mentions = await db.getRepository(KnowledgeGraphMention).find({ where: { relationId: relations[0].id } })
+        expect(new Set(mentions.map((mention) => mention.quote))).toEqual(
+            new Set(['North coordinates with South', 'Another relation source'])
+        )
     })
 })

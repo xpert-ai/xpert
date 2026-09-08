@@ -1,3 +1,4 @@
+import { v5 as uuidv5 } from 'uuid'
 // Invariants: lock the identity row before changing contributions or reading their aggregate.
 // Every read/write in that critical section uses the same transaction connection.
 import { KnowledgeGraphItemOrigin } from '@xpert-ai/contracts'
@@ -11,8 +12,8 @@ import {
     KnowledgeGraphRelation,
     KnowledgeGraphRelationContribution
 } from './entities'
-import { normalizeKnowledgeGraphName, normalizeKnowledgeGraphType, saveGraphIdentity } from './identity-write'
-import { TKnowledgeGraphExtractionEntity, TKnowledgeGraphExtractionRelation } from './types'
+import { normalizeKnowledgeGraphName, normalizeKnowledgeGraphType, insertGraphIdentity } from './identity-write'
+import { KnowledgeGraphEntityContributionInput, KnowledgeGraphRelationContributionInput } from './types'
 
 const GRAPH_ORIGIN_EXTRACTED = 'extracted'
 const GRAPH_VISIBILITY_ACTIVE = 'active'
@@ -54,23 +55,28 @@ export class KnowledgeGraphContributionWriter {
         )
     }
 
-    async upsertEntity(graphJob: KnowledgeGraphIndexJob, extracted: TKnowledgeGraphExtractionEntity) {
+    async upsertEntity(
+        graphJob: KnowledgeGraphIndexJob,
+        extracted: KnowledgeGraphEntityContributionInput,
+        identityId: string
+    ) {
         const type = normalizeKnowledgeGraphType(extracted.type)
         const normalizedName = normalizeKnowledgeGraphName(extracted.name)
         const identity: FindOptionsWhere<KnowledgeGraphEntity> = {
             tenantId: graphJob.tenantId ?? IsNull(),
             organizationId: graphJob.organizationId ?? IsNull(),
             knowledgebaseId: graphJob.knowledgebaseId,
-            normalizedName,
-            type
+            identityId
         }
         let entity = await this.entityRepository.findOne({ where: identity })
         if (!entity) {
             entity = this.entityRepository.create({
+                id: uuidv5(`knowledge-graph-node:${graphJob.knowledgebaseId}:${identityId}`, uuidv5.URL),
                 tenantId: graphJob.tenantId,
                 organizationId: graphJob.organizationId,
                 knowledgebaseId: graphJob.knowledgebaseId,
                 type,
+                identityId,
                 name: extracted.name.trim(),
                 normalizedName,
                 origin: GRAPH_ORIGIN_EXTRACTED,
@@ -80,7 +86,7 @@ export class KnowledgeGraphContributionWriter {
                 confidence: extracted.confidence ?? null,
                 revision: graphJob.revision ?? 0
             })
-            entity = await saveGraphIdentity(this.entityRepository, entity, identity)
+            entity = await insertGraphIdentity(this.entityRepository, entity, identity)
         }
         return this.manager.transaction(async (manager) => {
             const writer = new KnowledgeGraphContributionWriter(manager)
@@ -122,7 +128,7 @@ export class KnowledgeGraphContributionWriter {
         graphJob: KnowledgeGraphIndexJob,
         source: KnowledgeGraphEntity,
         target: KnowledgeGraphEntity,
-        extracted: TKnowledgeGraphExtractionRelation
+        extracted: KnowledgeGraphRelationContributionInput
     ) {
         const type = normalizeKnowledgeGraphType(extracted.type)
         const identity: FindOptionsWhere<KnowledgeGraphRelation> = {
@@ -148,7 +154,7 @@ export class KnowledgeGraphContributionWriter {
                 weight: extracted.confidence ?? null,
                 revision: graphJob.revision ?? 0
             })
-            relation = await saveGraphIdentity(this.relationRepository, relation, identity)
+            relation = await insertGraphIdentity(this.relationRepository, relation, identity)
         }
         return this.manager.transaction(async (manager) => {
             const writer = new KnowledgeGraphContributionWriter(manager)
@@ -209,6 +215,7 @@ export class KnowledgeGraphContributionWriter {
                 left.sourceDocumentIdSnapshot.localeCompare(right.sourceDocumentIdSnapshot)
         )
         entity.name = ranked[0].name
+        entity.normalizedName = normalizeKnowledgeGraphName(entity.name)
         entity.aliases = uniq(contributions.flatMap((item) => item.aliases ?? [])).sort()
         entity.description = ranked.find((item) => !!item.description)?.description ?? null
         entity.confidence = Math.max(...contributions.map((item) => item.confidence ?? 0))
