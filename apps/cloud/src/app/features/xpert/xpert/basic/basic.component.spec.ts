@@ -9,17 +9,12 @@ jest.mock('apps/cloud/src/app/@shared/copilot', () => ({ CopilotModelSelectCompo
 
 import { XpertComponent } from '../xpert.component'
 import { XpertService } from '../xpert.service'
-import { syncInheritedPrimaryAgentModel, XpertBasicComponent } from './basic.component'
+import { clearLegacyInheritedPrimaryAgentModel, XpertBasicComponent } from './basic.component'
 
 const initialModel = {
   copilotId: 'copilot-qwen',
   modelType: AiModelTypeEnum.LLM,
   model: 'qwen-initial'
-} satisfies TCopilotModel
-const nextTeamModel = {
-  copilotId: 'copilot-qwen',
-  modelType: AiModelTypeEnum.LLM,
-  model: 'qwen-next'
 } satisfies TCopilotModel
 const canvasModel = {
   copilotId: 'copilot-moonshot',
@@ -27,11 +22,8 @@ const canvasModel = {
   model: 'moonshot-v1-32k'
 } satisfies TCopilotModel
 
-describe('syncInheritedPrimaryAgentModel', () => {
-  function createDraft(
-    copilotModelSource?: 'team' | 'agent',
-    nodeModel: TCopilotModel = initialModel
-  ): TXpertTeamDraft {
+describe('clearLegacyInheritedPrimaryAgentModel', () => {
+  function createDraft(nodeModel?: TCopilotModel): TXpertTeamDraft {
     return {
       team: {
         copilotModel: initialModel,
@@ -42,27 +34,29 @@ describe('syncInheritedPrimaryAgentModel', () => {
           type: 'agent',
           key: 'Agent_primary',
           position: { x: 0, y: 0 },
-          ...(copilotModelSource ? { copilotModelSource } : {}),
-          entity: { key: 'Agent_primary', copilotModel: nodeModel }
+          entity: { key: 'Agent_primary', ...(nodeModel ? { copilotModel: nodeModel } : {}) }
         }
       ],
       connections: []
     }
   }
 
-  it.each([['team' as const], [undefined]])('updates an inherited or legacy copied Agent model (%s)', (source) => {
-    const nodes = syncInheritedPrimaryAgentModel(createDraft(source), nextTeamModel)
+  it('clears a legacy model copied from the team so the Agent inherits future changes', () => {
+    const nodes = clearLegacyInheritedPrimaryAgentModel(createDraft(initialModel))
 
     expect(nodes?.[0]).toEqual(
       expect.objectContaining({
-        copilotModelSource: 'team',
-        entity: expect.objectContaining({ copilotModel: nextTeamModel })
+        entity: expect.objectContaining({ copilotModel: undefined })
       })
     )
   })
 
+  it('does not rewrite an Agent that already inherits through an empty model', () => {
+    expect(clearLegacyInheritedPrimaryAgentModel(createDraft())).toBeNull()
+  })
+
   it('preserves an explicitly selected canvas Agent model', () => {
-    expect(syncInheritedPrimaryAgentModel(createDraft('agent', canvasModel), nextTeamModel)).toBeNull()
+    expect(clearLegacyInheritedPrimaryAgentModel(createDraft(canvasModel))).toBeNull()
   })
 })
 

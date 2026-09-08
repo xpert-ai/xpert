@@ -454,7 +454,7 @@ export class XpertStudioPanelAgentComponent {
     effect(() => {
       if (this.xpertAgent()) {
         this.prompt.set(this.xpertAgent().prompt)
-        this.copilotModel.set(this.node()?.copilotModelSource === 'team' ? undefined : this.xpertAgent().copilotModel)
+        this.copilotModel.set(this.xpertAgent().copilotModel)
       }
     })
   }
@@ -482,17 +482,9 @@ export class XpertStudioPanelAgentComponent {
   }
 
   updateCopilotModel(model: ICopilotModel | null) {
-    this.apiService.updateNode(this.key(), (node) => {
-      const agentNode = node as Partial<TXpertTeamNode<'agent'>>
-      return {
-        ...agentNode,
-        copilotModelSource: model ? 'agent' : 'team',
-        entity: {
-          ...this.xpertAgent(),
-          copilotModel: model ?? undefined,
-          copilotModelId: undefined
-        }
-      }
+    this.apiService.updateXpertAgent(this.key(), {
+      copilotModel: model ?? undefined,
+      copilotModelId: undefined
     })
   }
 

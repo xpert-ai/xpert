@@ -220,7 +220,7 @@ export class XpertBasicComponent implements IsDirty {
     }
     if (this.type() === XpertTypeEnum.Agent) {
       const draft = this.draft()
-      const inheritedModelNodes = syncInheritedPrimaryAgentModel(draft, basicValue.copilotModel)
+      const inheritedModelNodes = clearLegacyInheritedPrimaryAgentModel(draft)
       this.xpertAPI
         .upadteDraft(this.xpertId(), {
           team: {
@@ -317,9 +317,8 @@ export class XpertBasicComponent implements IsDirty {
   }
 }
 
-export function syncInheritedPrimaryAgentModel(
-  draft: Partial<TXpertTeamDraft> | null | undefined,
-  nextModel: TCopilotModel | null | undefined
+export function clearLegacyInheritedPrimaryAgentModel(
+  draft: Partial<TXpertTeamDraft> | null | undefined
 ): TXpertTeamDraft['nodes'] | null {
   const primaryAgentKey = draft?.team?.agent?.key
   const primaryNode = draft?.nodes?.find(
@@ -330,11 +329,7 @@ export function syncInheritedPrimaryAgentModel(
   }
 
   const legacyTeamModel = draft.team.agent?.copilotModel ?? draft.team.copilotModel
-  const inheritsTeamModel =
-    primaryNode.copilotModelSource === 'team' ||
-    (primaryNode.copilotModelSource == null &&
-      (!primaryNode.entity.copilotModel || isEqual(primaryNode.entity.copilotModel, legacyTeamModel)))
-  if (!inheritsTeamModel) {
+  if (!primaryNode.entity.copilotModel || !isEqual(primaryNode.entity.copilotModel, legacyTeamModel)) {
     return null
   }
 
@@ -342,10 +337,9 @@ export function syncInheritedPrimaryAgentModel(
     node.key === primaryNode.key && node.type === 'agent'
       ? {
           ...node,
-          copilotModelSource: 'team',
           entity: {
             ...node.entity,
-            copilotModel: nextModel ?? undefined,
+            copilotModel: undefined,
             copilotModelId: undefined
           }
         }
