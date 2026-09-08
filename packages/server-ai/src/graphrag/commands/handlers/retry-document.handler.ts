@@ -53,6 +53,10 @@ export class KnowledgeGraphRetryDocumentHandler implements ICommandHandler<Knowl
             if (!document.contentHash || projectGraphDocumentProgress(currentKb, document, latest).state !== 'failed') {
                 return []
             }
+            const snapshot = await manager.getRepository(KnowledgeGraphIndexJob).findOne({
+                where: { id: latest.id, ...scope },
+                select: { id: true, extractionId: true, extractionSnapshot: true }
+            })
             return [
                 await createGraphIndexJob(
                     manager.getRepository(KnowledgeGraphIndexJob),
@@ -66,7 +70,8 @@ export class KnowledgeGraphRetryDocumentHandler implements ICommandHandler<Knowl
                         documentIds: [document.id],
                         userId: input.userId,
                         reason: 'document'
-                    }
+                    },
+                    snapshot
                 )
             ]
         })

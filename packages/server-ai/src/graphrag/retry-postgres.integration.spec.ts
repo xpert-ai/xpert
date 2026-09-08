@@ -8,7 +8,11 @@ import { KnowledgeGraphRetryDocumentCommand } from './commands'
 import { KnowledgeGraphRetryDocumentHandler } from './commands/handlers/retry-document.handler'
 import { KnowledgeGraphEntity, KnowledgeGraphIndexJob, KnowledgeGraphRelation } from './entities'
 import { GraphragService } from './graphrag.service'
-import { saveGraphIdentity } from './identity-write'
+import { insertGraphIdentity } from './identity-write'
+import { QueryBus } from '@nestjs/cqrs'
+import { KnowledgeGraphExtractionService } from './graph-extraction.service'
+import { KnowledgeIdentityService } from '../knowledgebase/identity/knowledge-identity.service'
+import { createGraphIndexJob } from './graph-index-job'
 
 const postgresDescribe = process.env.KNOWLEDGE_GRAPH_PG_E2E === '1' ? describe : describe.skip
 const schema = `graph_retry_test_${randomUUID().replace(/-/g, '')}`
@@ -108,6 +112,8 @@ postgresDescribe('Graph retry PostgreSQL concurrency', () => {
                         completedAt: { type: 'timestamptz', nullable: true },
                         sourceContentHash: { type: 'varchar' },
                         sourcePublicationEpoch: { type: 'int' },
+                        extractionId: { type: 'uuid', nullable: true },
+                        extractionSnapshot: { type: 'jsonb', nullable: true, select: false },
                         revision: { type: 'int' },
                         status: { type: 'varchar' },
                         createdAt: { type: 'timestamptz', createDate: true }
@@ -146,7 +152,7 @@ postgresDescribe('Graph retry PostgreSQL concurrency', () => {
         const repository = db.getRepository(KnowledgeGraphEntity)
         const identity = { ...scope, normalizedName: 'information retrieval', type: 'domain' }
         const write = () =>
-            saveGraphIdentity(
+            insertGraphIdentity(
                 repository,
                 repository.create({
                     ...identity,
@@ -165,7 +171,7 @@ postgresDescribe('Graph retry PostgreSQL concurrency', () => {
         const repository = db.getRepository(KnowledgeGraphRelation)
         const identity = { ...scope, sourceEntityId: randomUUID(), targetEntityId: randomUUID(), type: 'belongs_to' }
         const write = () =>
-            saveGraphIdentity(repository, repository.create({ ...identity, id: randomUUID() }), identity)
+            insertGraphIdentity(repository, repository.create({ ...identity, id: randomUUID() }), identity)
         const [first, second] = await Promise.all([write(), write()])
         expect(first.id).toBe(second.id)
         expect(await repository.count()).toBe(1)
@@ -230,6 +236,137 @@ postgresDescribe('Graph retry PostgreSQL concurrency', () => {
         )
         expect(dispatchJobs).toHaveBeenCalledTimes(1)
         expect(await jobs.count({ where: { status: KnowledgeGraphIndexJobStatus.QUEUED } })).toBe(1)
+    })
+
+    it('carries the original extraction through repeated failed-job retries', async () => {
+        const failed = await addFailedJob()
+        const jobs = db.getRepository(KnowledgeGraphIndexJob)
+        const extractionId = randomUUID()
+        const snapshot = {
+            entities: [
+                {
+                    candidateId: '0:team',
+                    name: 'Operations',
+                    type: 'organization',
+                    identity: {
+                        kind: 'entity' as const,
+                        entityType: 'organization' as const,
+                        description: 'North team.',
+                        scope: 'north',
+                        identifiers: []
+                    },
+                    evidence: [{ chunkId: 'chunk' }]
+                }
+            ],
+            relations: []
+        }
+        await jobs.update(failed.id, { extractionId, extractionSnapshot: snapshot })
+        const handler = new KnowledgeGraphRetryDocumentHandler(
+            {
+                findOneByIdString: () => db.getRepository(Knowledgebase).findOneByOrFail({ id: kbId })
+            } as unknown as KnowledgebaseService,
+            { dispatchJobs: async () => undefined } as unknown as GraphragService,
+            jobs
+        )
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const [retry] = await handler.execute(
+                new KnowledgeGraphRetryDocumentCommand({ knowledgebaseId: kbId, documentId: docId })
+            )
+            const saved = await jobs.findOneOrFail({
+                where: { id: retry.id },
+                select: { id: true, extractionId: true, extractionSnapshot: true }
+            })
+            expect(saved.extractionId).toBe(extractionId)
+            expect(saved.extractionSnapshot).toEqual(snapshot)
+            await jobs.update(retry.id, { status: KnowledgeGraphIndexJobStatus.FAILED })
+        }
+    })
+
+    it('uses the first durable snapshot when duplicate deliveries finish extraction concurrently', async () => {
+        const job = await addFailedJob()
+        job.knowledgebase = Object.assign(new Knowledgebase(), { id: kbId, chatModel: { copilotId: 'provider' } })
+        let release: () => void
+        const gate = new Promise<void>((resolve) => {
+            release = resolve
+        })
+        let calls = 0
+        const invoke = async () => {
+            const call = ++calls
+            if (calls === 2) release()
+            await gate
+            return {
+                entities: [
+                    {
+                        candidateId: `${call}`.repeat(128),
+                        name: `Team ${call}`,
+                        type: 'organization',
+                        identity: {
+                            kind: 'entity',
+                            entityType: 'organization',
+                            description: 'North team.',
+                            scope: 'north',
+                            identifiers: []
+                        },
+                        evidence: [{ chunkId: 'chunk' }]
+                    }
+                ],
+                relations: []
+            }
+        }
+        const service = new KnowledgeGraphExtractionService(
+            db.getRepository(KnowledgeGraphIndexJob),
+            { execute: async () => ({ withStructuredOutput: () => ({ invoke }) }) } as unknown as QueryBus,
+            {} as KnowledgeIdentityService
+        )
+        const run = () =>
+            service.extractOnce(job, [{ id: 'chunk', metadata: { chunkId: 'chunk' }, pageContent: 'North team.' }], {
+                enabled: true,
+                mode: 'hybrid',
+                entityTopK: 20,
+                neighborHops: 1,
+                communityTopK: 3,
+                graphWeight: 0.5,
+                extractionBatchSize: 4,
+                extractionMaxCharacters: 12000
+            })
+        const [first, second] = await Promise.all([run(), run()])
+        expect(first).toEqual(second)
+        expect(first.entities[0].candidateId).toHaveLength(130)
+        const replay = await service.extractOnce(
+            job,
+            [{ id: 'chunk', metadata: { chunkId: 'chunk' }, pageContent: 'North team.' }],
+            {
+                enabled: true,
+                mode: 'hybrid',
+                entityTopK: 20,
+                neighborHops: 1,
+                communityTopK: 3,
+                graphWeight: 0.5,
+                extractionBatchSize: 4,
+                extractionMaxCharacters: 12000
+            }
+        )
+        expect(replay).toEqual(first)
+        expect(calls).toBe(2)
+    })
+
+    it('allocates a fresh extraction for explicit rebuild instead of carrying the previous snapshot', async () => {
+        const failed = await addFailedJob()
+        const jobs = db.getRepository(KnowledgeGraphIndexJob)
+        await jobs.update(failed.id, {
+            extractionId: randomUUID(),
+            extractionSnapshot: { entities: [], relations: [] }
+        })
+        const kb = await db.getRepository(Knowledgebase).findOneByOrFail({ id: kbId })
+        const document = await db.getRepository(KnowledgeDocument).findOneByOrFail({ id: docId })
+        const rebuilt = await createGraphIndexJob(jobs, db.getRepository(Knowledgebase), kb, document, {
+            knowledgebaseId: kbId,
+            documentIds: [docId],
+            reason: 'rebuild'
+        })
+        const previous = await jobs.findOneByOrFail({ id: failed.id })
+        expect(rebuilt.extractionId).not.toBe(previous.extractionId)
+        expect(rebuilt.extractionSnapshot).toBeNull()
     })
 
     it('keeps a dispatch failure durable after the reservation transaction commits', async () => {
