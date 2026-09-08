@@ -1,4 +1,4 @@
-import { KnowledgeWikiPageContributionPayload } from '@xpert-ai/contracts'
+import { KnowledgeWikiPageSourcePayload } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { KnowledgeWikiPageReduceInput } from './knowledge-wiki-page-reduce-input.entity'
@@ -38,7 +38,7 @@ export class KnowledgeWikiPageReduceInputSource extends TenantOrganizationBaseEn
     sourceContentHash: string
 
     @Column({ type: 'jsonb' })
-    payload: KnowledgeWikiPageContributionPayload
+    payload: KnowledgeWikiPageSourcePayload
 
     @Column({ type: 'jsonb' })
     evidence: KnowledgeWikiReduceEvidence[]

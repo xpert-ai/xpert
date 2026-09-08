@@ -5,8 +5,19 @@ export type KnowledgeWikiErrorCode =
     | 'knowledge_wiki_empty_publication'
     | 'knowledge_wiki_index_failed'
     | 'knowledge_wiki_publication_conflict'
+    | 'knowledge_wiki_identity_invalid'
+    | 'knowledge_wiki_identity_stale'
 
 const messages: Record<KnowledgeWikiErrorCode, { key: string; defaultValue: string }> = {
+    knowledge_wiki_identity_invalid: {
+        key: 'KnowledgebaseWikiIdentityInvalid',
+        defaultValue: 'Wiki identity output is inconsistent with its page type or supplied candidates.'
+    },
+    knowledge_wiki_identity_stale: {
+        key: 'KnowledgebaseWikiIdentityStale',
+        defaultValue:
+            'Wiki identity resolution no longer matches the current source or job. Retry with the current source.'
+    },
     knowledge_wiki_empty_sources: {
         key: 'KnowledgebaseWikiEmptySources',
         defaultValue: 'Wiki rebuild found no usable sources. The published Wiki has been preserved.'

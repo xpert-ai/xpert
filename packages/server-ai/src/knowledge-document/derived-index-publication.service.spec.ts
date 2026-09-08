@@ -1,6 +1,6 @@
 import { CommandBus } from '@nestjs/cqrs'
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
-import { KnowledgeGraphEnqueueCommand } from '../graphrag/commands'
+import { KnowledgeGraphEnqueueCommand, KnowledgeGraphRetryDocumentCommand } from '../graphrag/commands'
 import { KnowledgeWikiEnqueueSourceCommand } from '../knowledgebase/wiki/commands'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
@@ -50,8 +50,8 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
         expect(commandBus.execute).toHaveBeenCalledTimes(2)
     })
 
-    it('does not dispatch derived work when the source hash did not change', async () => {
-        const commandBus = { execute: jest.fn() }
+    it('checks failed Graph recovery without regenerating Wiki when the source hash did not change', async () => {
+        const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
         const service = new KnowledgeDerivedIndexPublicationService(commandBus as unknown as CommandBus)
 
         await service.publish({
@@ -67,6 +67,12 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
             contentChanged: false
         })
 
-        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeGraphRetryDocumentCommand)
+        expect(commandBus.execute.mock.calls[0][0].input).toEqual({
+            knowledgebaseId: 'kb-1',
+            documentId: 'document-1',
+            userId: 'user-1'
+        })
     })
 })

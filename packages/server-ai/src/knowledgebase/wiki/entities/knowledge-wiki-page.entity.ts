@@ -1,3 +1,4 @@
+import { KnowledgeIdentity } from '../../identity/knowledge-identity.entity'
 import { KnowledgeWikiPageStatus, KnowledgeWikiPageType, KnowledgeWikiProjectionStatus } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId, VersionColumn } from 'typeorm'
@@ -5,6 +6,7 @@ import { Knowledgebase } from '../../knowledgebase.entity'
 
 @Entity('knowledge_wiki_page')
 @Index(['knowledgebaseId', 'pageKey'], { unique: true })
+@Index(['knowledgebaseId', 'identityId'], { unique: true })
 @Index(['knowledgebaseId', 'slug'], { unique: true })
 @Index(['tenantId', 'organizationId', 'knowledgebaseId', 'status'])
 @Index(['knowledgebaseId', 'pageType', 'updatedAt'])
@@ -32,6 +34,13 @@ export class KnowledgeWikiPage extends TenantOrganizationBaseEntity {
 
     @Column({ type: 'varchar', length: 512 })
     normalizedCanonicalName: string
+
+    @ManyToOne(() => KnowledgeIdentity, { nullable: true, onDelete: 'NO ACTION' })
+    @JoinColumn({ name: 'identityId' })
+    identity: KnowledgeIdentity | null
+
+    @Column({ type: 'uuid', nullable: true })
+    identityId: string | null
 
     @Column({ type: 'varchar', length: 600 })
     slug: string

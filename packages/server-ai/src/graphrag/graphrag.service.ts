@@ -1,11 +1,9 @@
+import { KnowledgeGraphProjectionWriter } from './graph-projection-writer'
+import { KnowledgeGraphExtractionService } from './graph-extraction.service'
 import { Document, DocumentInterface } from '@langchain/core/documents'
-import { HumanMessage, SystemMessage } from '@langchain/core/messages'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
-    AiProviderRole,
     DocumentMetadata,
     GraphRagConfig,
-    ICopilot,
     IKnowledgebase,
     IKnowledgeDocumentChunk,
     KDocumentSourceType,
@@ -32,13 +30,12 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { t } from 'i18next'
 import { compact, uniq } from 'lodash'
-import { createHash } from 'node:crypto'
 import { Brackets, FindOptionsWhere, In, IsNull, Not, Raw, Repository, SelectQueryBuilder } from 'typeorm'
 import { z } from 'zod'
-import { CopilotModelGetChatModelQuery } from '../copilot-model'
-import { CopilotOneByRoleQuery } from '../copilot/queries'
+import { normalizeKnowledgeGraphName, normalizeKnowledgeGraphType } from './identity-write'
+import { buildGraphEntitySummary, KnowledgeGraphContributionWriter } from './graph-contribution-writer'
+import { createGraphIndexJob } from './graph-index-job'
 import { KnowledgeDocumentChunkService } from '../knowledge-document/chunk/chunk.service'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { TDocChunkMetadata } from '../knowledge-document/types'
@@ -57,8 +54,8 @@ import {
     JOB_KNOWLEDGE_GRAPH_INDEX,
     TKnowledgeGraphEnqueueInput,
     TKnowledgeGraphExtraction,
-    TKnowledgeGraphExtractionEntity,
-    TKnowledgeGraphExtractionRelation,
+    KnowledgeGraphEntityContributionInput,
+    KnowledgeGraphRelationContributionInput,
     TKnowledgeGraphIndexQueueJob
 } from './types'
 
@@ -107,51 +104,6 @@ const graphRelationCreateSchema = z
 
 const graphRelationUpdateSchema = graphRelationCreateSchema.partial().strict()
 
-const graphExtractionSchema = z.object({
-    entities: z
-        .array(
-            z.object({
-                name: z.string().min(1),
-                type: z.string().min(1),
-                aliases: z.array(z.string()).optional().nullable(),
-                description: z.string().optional().nullable(),
-                confidence: z.number().min(0).max(1).optional().nullable(),
-                evidence: z
-                    .array(
-                        z.object({
-                            chunkId: z.string().min(1),
-                            quote: z.string().optional().nullable(),
-                            confidence: z.number().min(0).max(1).optional().nullable()
-                        })
-                    )
-                    .min(1)
-            })
-        )
-        .default([]),
-    relations: z
-        .array(
-            z.object({
-                sourceName: z.string().min(1),
-                sourceType: z.string().min(1),
-                targetName: z.string().min(1),
-                targetType: z.string().min(1),
-                type: z.string().min(1),
-                description: z.string().optional().nullable(),
-                confidence: z.number().min(0).max(1).optional().nullable(),
-                evidence: z
-                    .array(
-                        z.object({
-                            chunkId: z.string().min(1),
-                            quote: z.string().optional().nullable(),
-                            confidence: z.number().min(0).max(1).optional().nullable()
-                        })
-                    )
-                    .min(1)
-            })
-        )
-        .default([])
-})
-
 function resolveGraphConfig(config?: GraphRagConfig | null): Required<GraphRagConfig> {
     return {
         ...DEFAULT_GRAPH_RAG_CONFIG,
@@ -167,27 +119,9 @@ function resolveGraphConfig(config?: GraphRagConfig | null): Required<GraphRagCo
     }
 }
 
-export function normalizeKnowledgeGraphName(value: string) {
-    return value.trim().replace(/\s+/g, ' ').toLowerCase()
-}
+export { normalizeKnowledgeGraphName, normalizeKnowledgeGraphType } from './identity-write'
 
-export function normalizeKnowledgeGraphType(value: string) {
-    return value.trim().replace(/\s+/g, '_').toLowerCase()
-}
-
-export function validateKnowledgeGraphExtractionEvidence(
-    extraction: TKnowledgeGraphExtraction,
-    validChunkIds: ReadonlySet<string>
-) {
-    const graphItems = [...extraction.entities, ...extraction.relations]
-    const hasInvalidEvidence = graphItems.some(
-        (item) => !item.evidence?.length || item.evidence.some(({ chunkId }) => !validChunkIds.has(chunkId))
-    )
-    if (!graphItems.length || hasInvalidEvidence) {
-        const defaultValue = 'GraphRAG extraction did not return valid source evidence for every graph item.'
-        throw new Error(t('server-ai:Error.GraphExtractionEvidenceInvalid', { defaultValue }) || defaultValue)
-    }
-}
+export { validateKnowledgeGraphExtractionEvidence } from './graph-extraction-model'
 
 function isGraphOrigin(value: unknown): value is KnowledgeGraphItemOrigin {
     return graphOriginSchema.safeParse(value).success
@@ -263,7 +197,8 @@ export class GraphragService {
         @InjectRepository(KnowledgeGraphEntityContribution)
         private readonly entityContributionRepository: Repository<KnowledgeGraphEntityContribution>,
         @InjectRepository(KnowledgeGraphRelationContribution)
-        private readonly relationContributionRepository: Repository<KnowledgeGraphRelationContribution>
+        private readonly relationContributionRepository: Repository<KnowledgeGraphRelationContribution>,
+        private readonly extractionService: KnowledgeGraphExtractionService
     ) {}
 
     isEnabled(knowledgebase: Pick<IKnowledgebase, 'graphRag'> | null | undefined) {
@@ -281,12 +216,6 @@ export class GraphragService {
             return []
         }
 
-        const revision = knowledgebase.graphRevision ?? 0
-        await this.knowledgebaseRepository.update(knowledgebase.id, {
-            graphStatus: KnowledgeGraphStatus.INDEXING,
-            graphIndexError: null
-        })
-
         const { items: sourceDocuments } = await this.documentService.findAll({
             where: { knowledgebaseId: knowledgebase.id, id: In(documentIds) },
             select: { id: true, contentHash: true, publicationEpoch: true }
@@ -296,27 +225,29 @@ export class GraphragService {
         for (const documentId of documentIds) {
             const source = sourceById.get(documentId)
             if (!source?.contentHash) continue
-            const graphJob = await this.jobRepository.save(
-                this.jobRepository.create({
-                    tenantId: input.tenantId ?? knowledgebase.tenantId,
-                    organizationId: input.organizationId ?? knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
-                    documentId,
-                    sourceContentHash: source.contentHash,
-                    sourcePublicationEpoch: source.publicationEpoch ?? 0,
-                    type: input.reason,
-                    status: KnowledgeGraphIndexJobStatus.QUEUED,
-                    revision,
-                    processedChunks: 0,
-                    totalChunks: 0
-                })
+            const graphJob = await createGraphIndexJob(
+                this.jobRepository,
+                this.knowledgebaseRepository,
+                knowledgebase,
+                source,
+                input
             )
+            await this.dispatchJobs([graphJob], input.userId)
+            jobs.push(graphJob)
+        }
+
+        if (!jobs.length) await this.updateGraphStatusFromJobs(knowledgebase.id)
+        return jobs
+    }
+
+    async dispatchJobs(jobs: KnowledgeGraphIndexJob[], userId?: string | null) {
+        for (const graphJob of jobs) {
             try {
                 await this.graphQueue.add({
-                    userId: input.userId ?? RequestContext.currentUserId(),
-                    tenantId: input.tenantId ?? knowledgebase.tenantId,
-                    organizationId: input.organizationId ?? knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
+                    userId: userId ?? RequestContext.currentUserId(),
+                    tenantId: graphJob.tenantId,
+                    organizationId: graphJob.organizationId,
+                    knowledgebaseId: graphJob.knowledgebaseId,
                     graphIndexJobId: graphJob.id
                 })
             } catch (error) {
@@ -327,17 +258,13 @@ export class GraphragService {
                     error: message,
                     completedAt: new Date()
                 })
-                await this.knowledgebaseRepository.update(knowledgebase.id, {
+                await this.knowledgebaseRepository.update(graphJob.knowledgebaseId, {
                     graphStatus: KnowledgeGraphStatus.FAILED,
                     graphIndexError: message
                 })
                 throw error
             }
-            jobs.push(graphJob)
         }
-
-        if (!jobs.length) await this.updateGraphStatusFromJobs(knowledgebase.id)
-        return jobs
     }
 
     async clearDocument(knowledgebaseId: string, documentId: string) {
@@ -1077,12 +1004,7 @@ export class GraphragService {
             }
 
             await this.jobRepository.update(graphJob.id, { stage: 'extraction' })
-            const extraction = await this.extractDocumentGraph(
-                knowledgebase,
-                textChunks,
-                graphJob.id,
-                knowledgebase.graphRag
-            )
+            const extraction = await this.extractDocumentGraph(graphJob, textChunks)
             const currentSource = await this.documentService.findOne(graphJob.documentId, {
                 select: { id: true, contentHash: true, publicationEpoch: true }
             })
@@ -1244,7 +1166,8 @@ export class GraphragService {
                 organizationId: knowledgebase.organizationId ?? IsNull(),
                 knowledgebaseId: knowledgebase.id,
                 normalizedName,
-                type
+                type,
+                identityId: IsNull()
             }
         })
         if (existing && existing.id !== ignoreEntityId) {
@@ -1300,104 +1223,12 @@ export class GraphragService {
         return !chunk.metadata?.mediaType || chunk.metadata.mediaType === 'text'
     }
 
-    private async extractDocumentGraph(
-        knowledgebase: IKnowledgebase,
+    private extractDocumentGraph(
+        job: KnowledgeGraphIndexJob,
         chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
-        graphIndexJobId: string,
-        config?: GraphRagConfig | null
-    ): Promise<TKnowledgeGraphExtraction> {
-        const graphConfig = resolveGraphConfig(config)
-        const chatModel = await this.resolveExtractionChatModel(knowledgebase)
-        const structuredModel = chatModel.withStructuredOutput<TKnowledgeGraphExtraction>(graphExtractionSchema, {
-            method: 'functionCalling'
-        })
-
-        const merged: TKnowledgeGraphExtraction = {
-            entities: [],
-            relations: []
-        }
-        for (let index = 0; index < chunks.length; index += graphConfig.extractionBatchSize) {
-            const batch = chunks.slice(index, index + graphConfig.extractionBatchSize)
-            const input = this.formatChunksForExtraction(batch, graphConfig.extractionMaxCharacters)
-            const output = await structuredModel.invoke([
-                new SystemMessage(
-                    [
-                        'Extract a small knowledge graph from the provided chunks.',
-                        'Use only explicit machine-readable fields in the output schema.',
-                        'Every entity and relation must include a stable type. Do not infer missing types from names.',
-                        'Every entity and relation must include a non-empty evidence array.',
-                        'Every evidence item must use a chunkId exactly as provided in the input chunks.'
-                    ].join('\n')
-                ),
-                new HumanMessage(`Knowledgebase: ${knowledgebase.name ?? knowledgebase.id}\n\n${input}`)
-            ])
-            merged.entities.push(...output.entities)
-            merged.relations.push(...output.relations)
-            await this.jobRepository.update(graphIndexJobId, {
-                processedChunks: Math.min(chunks.length, index + batch.length)
-            })
-        }
-        validateKnowledgeGraphExtractionEvidence(
-            merged,
-            new Set(
-                chunks
-                    .map((chunk) => chunk.metadata?.chunkId ?? chunk.id)
-                    .filter((chunkId): chunkId is string => typeof chunkId === 'string' && chunkId.length > 0)
-            )
-        )
-        return merged
-    }
-
-    private async resolveExtractionChatModel(knowledgebase: IKnowledgebase): Promise<BaseChatModel> {
-        const configuredChatModel = knowledgebase.chatModel
-        if (configuredChatModel) {
-            if (!configuredChatModel.copilot && !configuredChatModel.copilotId) {
-                throw new Error('Knowledgebase chat model provider is required for GraphRAG extraction')
-            }
-            return this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-                new CopilotModelGetChatModelQuery(configuredChatModel.copilot ?? null, configuredChatModel, {
-                    abortController: new AbortController(),
-                    usageCallback: () => {
-                        //
-                    }
-                })
-            )
-        }
-
-        const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot>(
-            new CopilotOneByRoleQuery(
-                RequestContext.currentTenantId() ?? knowledgebase.tenantId,
-                RequestContext.getOrganizationId() ?? knowledgebase.organizationId,
-                AiProviderRole.Primary,
-                ['copilotModel']
-            )
-        )
-        if (!copilot?.copilotModel) {
-            throw new Error('No available primary copilot found for GraphRAG extraction')
-        }
-        return this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-            new CopilotModelGetChatModelQuery(copilot, copilot.copilotModel, {
-                abortController: new AbortController(),
-                usageCallback: () => {
-                    //
-                }
-            })
-        )
-    }
-
-    private formatChunksForExtraction(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[], maxCharacters: number) {
-        let remaining = maxCharacters
-        const parts: string[] = []
-        for (const chunk of chunks) {
-            if (remaining <= 0) {
-                break
-            }
-            const chunkId = chunk.metadata?.chunkId ?? chunk.id
-            const content = (chunk.pageContent ?? '').slice(0, remaining)
-            remaining -= content.length
-            parts.push(`<chunk id="${chunkId}">\n${content}\n</chunk>`)
-        }
-        return parts.join('\n\n')
+        config: GraphRagConfig | null = job.knowledgebase.graphRag
+    ) {
+        return this.extractionService.extractOnce(job, chunks, resolveGraphConfig(config))
     }
 
     private async persistExtraction(
@@ -1405,344 +1236,53 @@ export class GraphragService {
         chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
         extraction: TKnowledgeGraphExtraction
     ) {
-        const chunkById = new Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>>()
-        for (const chunk of chunks) {
-            const chunkId = chunk.metadata?.chunkId ?? chunk.id
-            if (chunkId) {
-                chunkById.set(chunkId, chunk)
-            }
-        }
-
-        const entityMap = new Map<string, KnowledgeGraphEntity>()
-        const touchedEntityIds = new Set<string>()
-        for (const extracted of extraction.entities) {
-            const entity = await this.upsertEntity(graphJob, extracted)
-            entityMap.set(this.entityKey(extracted.name, extracted.type), entity)
-            touchedEntityIds.add(entity.id)
-            await this.createEntityMentions(graphJob, entity, extracted, chunkById)
-        }
-
-        for (const relation of extraction.relations) {
-            const source = await this.resolveRelationEntity(
-                graphJob,
-                relation.sourceName,
-                relation.sourceType,
-                relation,
-                entityMap
-            )
-            const target = await this.resolveRelationEntity(
-                graphJob,
-                relation.targetName,
-                relation.targetType,
-                relation,
-                entityMap
-            )
-            touchedEntityIds.add(source.id)
-            touchedEntityIds.add(target.id)
-            const persistedRelation = await this.upsertRelation(graphJob, source, target, relation)
-            await this.createRelationMentions(graphJob, persistedRelation, source, target, relation, chunkById)
-        }
-
-        return Array.from(touchedEntityIds)
-    }
-
-    private entityKey(name: string, type: string) {
-        return `${normalizeKnowledgeGraphType(type)}:${normalizeKnowledgeGraphName(name)}`
-    }
-
-    private async upsertEntity(graphJob: KnowledgeGraphIndexJob, extracted: TKnowledgeGraphExtractionEntity) {
-        const type = normalizeKnowledgeGraphType(extracted.type)
-        const normalizedName = normalizeKnowledgeGraphName(extracted.name)
-        let entity = await this.entityRepository.findOne({
-            where: {
-                tenantId: graphJob.tenantId ?? IsNull(),
-                organizationId: graphJob.organizationId ?? IsNull(),
-                knowledgebaseId: graphJob.knowledgebaseId,
-                normalizedName,
-                type
-            }
+        const identities = await this.extractionService.resolveIdentities(graphJob, extraction)
+        return this.entityRepository.manager.transaction(async (manager) => {
+            await this.extractionService.assertCurrent(manager, graphJob)
+            return new KnowledgeGraphProjectionWriter(manager).persist(graphJob, chunks, extraction, identities)
         })
-        if (!entity) {
-            entity = this.entityRepository.create({
-                tenantId: graphJob.tenantId,
-                organizationId: graphJob.organizationId,
-                knowledgebaseId: graphJob.knowledgebaseId,
-                type,
-                name: extracted.name.trim(),
-                normalizedName,
-                origin: GRAPH_ORIGIN_EXTRACTED,
-                visibility: GRAPH_VISIBILITY_ACTIVE,
-                aliases: extracted.aliases ?? [],
-                description: extracted.description ?? null,
-                confidence: extracted.confidence ?? null,
-                revision: graphJob.revision ?? 0
-            })
-        } else {
-            entity.confidence = Math.max(entity.confidence ?? 0, extracted.confidence ?? 0)
-            entity.revision = graphJob.revision ?? entity.revision
-        }
-        entity.summary = this.buildEntitySummary(entity)
-        entity = await this.entityRepository.save(entity)
-        if (!graphJob.documentId || !graphJob.sourceContentHash) return entity
-        const current = await this.entityContributionRepository.findOne({
-            where: { entityId: entity.id, sourceDocumentIdSnapshot: graphJob.documentId }
-        })
-        await this.entityContributionRepository.save(
-            this.entityContributionRepository.create({
-                ...(current ?? {}),
-                tenantId: graphJob.tenantId,
-                organizationId: graphJob.organizationId,
-                entityId: entity.id,
-                knowledgebaseId: graphJob.knowledgebaseId,
-                sourceDocumentIdSnapshot: graphJob.documentId,
-                sourceContentHash: graphJob.sourceContentHash,
-                sourcePublicationEpoch: graphJob.sourcePublicationEpoch ?? 0,
-                name: extracted.name.trim(),
-                aliases: extracted.aliases ?? [],
-                description: extracted.description ?? null,
-                confidence: extracted.confidence ?? null,
-                revision: graphJob.revision ?? 0
-            })
-        )
-        await this.recomputeEntityFromContributions(entity.id)
-        return this.entityRepository.findOneByOrFail({ id: entity.id })
     }
 
-    private async resolveRelationEntity(
-        graphJob: KnowledgeGraphIndexJob,
-        name: string,
-        type: string,
-        relation: TKnowledgeGraphExtractionRelation,
-        entityMap: Map<string, KnowledgeGraphEntity>
+    private upsertEntity(
+        job: KnowledgeGraphIndexJob,
+        extracted: KnowledgeGraphEntityContributionInput,
+        identityId: string
     ) {
-        const key = this.entityKey(name, type)
-        const existing = entityMap.get(key)
-        if (existing) {
-            return existing
-        }
-        const entity = await this.upsertEntity(graphJob, {
-            name,
-            type,
-            description: relation.description ?? null,
-            confidence: relation.confidence ?? null,
-            evidence: relation.evidence ?? []
-        })
-        entityMap.set(key, entity)
-        return entity
+        return new KnowledgeGraphContributionWriter(this.entityRepository.manager).upsertEntity(
+            job,
+            extracted,
+            identityId
+        )
     }
 
-    private async upsertRelation(
-        graphJob: KnowledgeGraphIndexJob,
+    private upsertRelation(
+        job: KnowledgeGraphIndexJob,
         source: KnowledgeGraphEntity,
         target: KnowledgeGraphEntity,
-        extracted: TKnowledgeGraphExtractionRelation
+        extracted: KnowledgeGraphRelationContributionInput
     ) {
-        const type = normalizeKnowledgeGraphType(extracted.type)
-        let relation = await this.relationRepository.findOne({
-            where: {
-                knowledgebaseId: graphJob.knowledgebaseId,
-                sourceEntityId: source.id,
-                targetEntityId: target.id,
-                type
-            }
-        })
-        if (!relation) {
-            relation = this.relationRepository.create({
-                tenantId: graphJob.tenantId,
-                organizationId: graphJob.organizationId,
-                knowledgebaseId: graphJob.knowledgebaseId,
-                sourceEntityId: source.id,
-                targetEntityId: target.id,
-                type,
-                normalizedType: type,
-                origin: GRAPH_ORIGIN_EXTRACTED,
-                visibility: GRAPH_VISIBILITY_ACTIVE,
-                description: extracted.description ?? null,
-                confidence: extracted.confidence ?? null,
-                weight: extracted.confidence ?? null,
-                revision: graphJob.revision ?? 0
-            })
-        } else {
-            relation.confidence = Math.max(relation.confidence ?? 0, extracted.confidence ?? 0)
-            relation.revision = graphJob.revision ?? relation.revision
-        }
-        relation = await this.relationRepository.save(relation)
-        if (!graphJob.documentId || !graphJob.sourceContentHash) return relation
-        const current = await this.relationContributionRepository.findOne({
-            where: { relationId: relation.id, sourceDocumentIdSnapshot: graphJob.documentId }
-        })
-        await this.relationContributionRepository.save(
-            this.relationContributionRepository.create({
-                ...(current ?? {}),
-                tenantId: graphJob.tenantId,
-                organizationId: graphJob.organizationId,
-                relationId: relation.id,
-                knowledgebaseId: graphJob.knowledgebaseId,
-                sourceDocumentIdSnapshot: graphJob.documentId,
-                sourceContentHash: graphJob.sourceContentHash,
-                sourcePublicationEpoch: graphJob.sourcePublicationEpoch ?? 0,
-                description: extracted.description ?? null,
-                confidence: extracted.confidence ?? null,
-                weight: extracted.confidence ?? null,
-                revision: graphJob.revision ?? 0
-            })
+        return new KnowledgeGraphContributionWriter(this.entityRepository.manager).upsertRelation(
+            job,
+            source,
+            target,
+            extracted
         )
-        await this.recomputeRelationFromContributions(relation.id)
-        return this.relationRepository.findOneByOrFail({ id: relation.id })
-    }
-
-    private async createEntityMentions(
-        graphJob: KnowledgeGraphIndexJob,
-        entity: KnowledgeGraphEntity,
-        extracted: TKnowledgeGraphExtractionEntity,
-        chunkById: Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>>
-    ) {
-        const evidence = extracted.evidence ?? []
-        for (const item of evidence) {
-            const chunk = chunkById.get(item.chunkId)
-            if (!chunk) {
-                continue
-            }
-            await this.mentionRepository.save(
-                this.mentionRepository.create({
-                    tenantId: graphJob.tenantId,
-                    organizationId: graphJob.organizationId,
-                    knowledgebaseId: graphJob.knowledgebaseId,
-                    entityId: entity.id,
-                    documentId: graphJob.documentId,
-                    chunkId: item.chunkId,
-                    quote: item.quote ?? null,
-                    confidence: item.confidence ?? extracted.confidence ?? null,
-                    revision: graphJob.revision ?? 0
-                })
-            )
-        }
-    }
-
-    private async createRelationMentions(
-        graphJob: KnowledgeGraphIndexJob,
-        relation: KnowledgeGraphRelation,
-        source: KnowledgeGraphEntity,
-        target: KnowledgeGraphEntity,
-        extracted: TKnowledgeGraphExtractionRelation,
-        chunkById: Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>>
-    ) {
-        const evidence = extracted.evidence ?? []
-        for (const item of evidence) {
-            const chunk = chunkById.get(item.chunkId)
-            if (!chunk) {
-                continue
-            }
-            for (const entity of [source, target]) {
-                await this.mentionRepository.save(
-                    this.mentionRepository.create({
-                        tenantId: graphJob.tenantId,
-                        organizationId: graphJob.organizationId,
-                        knowledgebaseId: graphJob.knowledgebaseId,
-                        entityId: entity.id,
-                        relationId: relation.id,
-                        documentId: graphJob.documentId,
-                        chunkId: item.chunkId,
-                        quote: item.quote ?? null,
-                        confidence: item.confidence ?? extracted.confidence ?? null,
-                        revision: graphJob.revision ?? 0
-                    })
-                )
-            }
-        }
-        relation.evidenceCount = await this.mentionRepository.count({ where: { relationId: relation.id } })
-        await this.relationRepository.save(relation)
     }
 
     private async recomputeEntityFromContributions(entityId: string) {
-        const entity = await this.entityRepository.findOne({ where: { id: entityId } })
-        if (!entity || !isExtractedOrigin(entity.origin)) return
-        const contributions = await this.entityContributionRepository.find({
-            where: { entityId },
-            order: { sourceDocumentIdSnapshot: 'ASC' }
-        })
-        if (!contributions.length) {
-            entity.sourceFingerprint = null
-            entity.aliases = []
-            entity.description = null
-            entity.summary = this.buildEntitySummary(entity)
-            entity.confidence = null
-            await this.entityRepository.save(entity)
-            return
-        }
-        const ranked = [...contributions].sort(
-            (left, right) =>
-                (right.confidence ?? 0) - (left.confidence ?? 0) ||
-                left.sourceDocumentIdSnapshot.localeCompare(right.sourceDocumentIdSnapshot)
+        return new KnowledgeGraphContributionWriter(this.entityRepository.manager).recomputeEntityFromContributions(
+            entityId
         )
-        entity.name = ranked[0].name
-        entity.aliases = uniq(contributions.flatMap((item) => item.aliases ?? [])).sort()
-        entity.description = ranked.find((item) => !!item.description)?.description ?? null
-        entity.confidence = Math.max(...contributions.map((item) => item.confidence ?? 0))
-        entity.revision = Math.max(...contributions.map((item) => item.revision))
-        entity.sourceFingerprint = createHash('sha256')
-            .update(
-                JSON.stringify(
-                    contributions.map((item) => ({
-                        sourceDocumentId: item.sourceDocumentIdSnapshot,
-                        sourceContentHash: item.sourceContentHash,
-                        sourcePublicationEpoch: item.sourcePublicationEpoch,
-                        aliases: item.aliases,
-                        description: item.description,
-                        confidence: item.confidence
-                    }))
-                )
-            )
-            .digest('hex')
-        entity.summary = this.buildEntitySummary(entity)
-        await this.entityRepository.save(entity)
     }
 
     private async recomputeRelationFromContributions(relationId: string) {
-        const relation = await this.relationRepository.findOne({ where: { id: relationId } })
-        if (!relation || !isExtractedOrigin(relation.origin)) return
-        const contributions = await this.relationContributionRepository.find({
-            where: { relationId },
-            order: { sourceDocumentIdSnapshot: 'ASC' }
-        })
-        if (!contributions.length) {
-            relation.description = null
-            relation.confidence = null
-            relation.weight = null
-            relation.sourceFingerprint = null
-            await this.relationRepository.save(relation)
-            return
-        }
-        const ranked = [...contributions].sort(
-            (left, right) =>
-                (right.confidence ?? 0) - (left.confidence ?? 0) ||
-                left.sourceDocumentIdSnapshot.localeCompare(right.sourceDocumentIdSnapshot)
+        return new KnowledgeGraphContributionWriter(this.entityRepository.manager).recomputeRelationFromContributions(
+            relationId
         )
-        relation.description = ranked.find((item) => !!item.description)?.description ?? null
-        relation.confidence = Math.max(...contributions.map((item) => item.confidence ?? 0))
-        relation.weight = Math.max(...contributions.map((item) => item.weight ?? 0))
-        relation.revision = Math.max(...contributions.map((item) => item.revision))
-        relation.sourceFingerprint = createHash('sha256')
-            .update(
-                JSON.stringify(
-                    contributions.map((item) => ({
-                        sourceDocumentId: item.sourceDocumentIdSnapshot,
-                        sourceContentHash: item.sourceContentHash,
-                        sourcePublicationEpoch: item.sourcePublicationEpoch,
-                        description: item.description,
-                        confidence: item.confidence,
-                        weight: item.weight
-                    }))
-                )
-            )
-            .digest('hex')
-        await this.relationRepository.save(relation)
     }
 
     private buildEntitySummary(entity: Pick<KnowledgeGraphEntity, 'name' | 'type' | 'aliases' | 'description'>) {
-        const aliases = entity.aliases?.length ? `Aliases: ${entity.aliases.join(', ')}.` : ''
-        const description = entity.description ? `Description: ${entity.description}` : ''
-        return [`${entity.name} (${entity.type}).`, aliases, description].filter(Boolean).join(' ')
+        return buildGraphEntitySummary(entity)
     }
 
     private async refreshEntityMentionCounts(knowledgebaseId: string, entityIds: string[]) {
@@ -1834,7 +1374,21 @@ export class GraphragService {
         const [queued, running, failed] = await Promise.all([
             this.jobRepository.count({ where: { knowledgebaseId, status: KnowledgeGraphIndexJobStatus.QUEUED } }),
             this.jobRepository.count({ where: { knowledgebaseId, status: KnowledgeGraphIndexJobStatus.RUNNING } }),
-            this.jobRepository.count({ where: { knowledgebaseId, status: KnowledgeGraphIndexJobStatus.FAILED } })
+            this.jobRepository.count({
+                where: {
+                    knowledgebaseId,
+                    status: KnowledgeGraphIndexJobStatus.FAILED,
+                    // Keep failure history, but a newer retry supersedes its aggregate failure state.
+                    id: Raw(
+                        (alias) => `${alias} IN (
+                    SELECT DISTINCT ON ("documentId") "id" FROM "knowledge_graph_index_job"
+                    WHERE "knowledgebaseId" = :graphStatusKnowledgebaseId
+                    ORDER BY "documentId", "createdAt" DESC, "id" DESC
+                )`,
+                        { graphStatusKnowledgebaseId: knowledgebaseId }
+                    )
+                }
+            })
         ])
         if (queued || running) {
             await this.knowledgebaseRepository.update(knowledgebaseId, { graphStatus: KnowledgeGraphStatus.INDEXING })

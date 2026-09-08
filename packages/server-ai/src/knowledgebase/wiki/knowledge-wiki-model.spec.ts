@@ -19,6 +19,7 @@ describe('knowledge Wiki model boundary', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'concept',
+                    identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
                     canonicalName: 'Strategy',
                     aliases: [],
                     summary: 'A documented strategy.',
@@ -80,6 +81,13 @@ describe('knowledge Wiki model boundary', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'entity',
+                    identity: {
+                        kind: 'entity',
+                        entityType: 'product',
+                        description: 'An AI platform.',
+                        scope: null,
+                        identifiers: []
+                    },
                     canonicalName: 'Xpert',
                     aliases: [],
                     summary: 'An AI platform.',
@@ -150,6 +158,13 @@ describe('knowledge Wiki model boundary', () => {
                     {
                         schemaVersion: 1,
                         pageType: 'entity',
+                        identity: {
+                            kind: 'entity',
+                            entityType: 'product',
+                            description: 'An AI platform.',
+                            scope: null,
+                            identifiers: []
+                        },
                         canonicalName: 'Xpert',
                         aliases: [],
                         summary: 'An AI platform.',
@@ -188,6 +203,13 @@ describe('knowledge Wiki model boundary', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'entity',
+                    identity: {
+                        kind: 'entity',
+                        entityType: 'product',
+                        description: 'An AI platform.',
+                        scope: null,
+                        identifiers: []
+                    },
                     canonicalName: 'Xpert',
                     aliases: [],
                     summary: 'An AI platform.',

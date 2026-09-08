@@ -1,4 +1,4 @@
-import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
+import { PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
@@ -9,6 +9,9 @@ import {
 import { KnowledgeGraphEntity } from './entities'
 import { GraphragService } from './graphrag.service'
 import { GraphDocumentProgressService } from './document-progress.service'
+import { CommandBus } from '@nestjs/cqrs'
+import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
+import { KnowledgeGraphRetryDocumentCommand } from './commands'
 
 @ApiTags('KnowledgeGraph')
 @ApiBearerAuth()
@@ -17,7 +20,9 @@ import { GraphDocumentProgressService } from './document-progress.service'
 export class GraphragController {
     constructor(
         private readonly service: GraphragService,
-        private readonly documentProgress: GraphDocumentProgressService
+        private readonly documentProgress: GraphDocumentProgressService,
+        private readonly commandBus: CommandBus,
+        private readonly knowledgebaseService: KnowledgebaseService
     ) {}
 
     @Get('documents/:documentId/status')
@@ -28,6 +33,19 @@ export class GraphragController {
     @Post('documents/status')
     async documentStatuses(@Param('id') id: string, @Body('documentIds') documentIds: unknown) {
         return this.documentProgress.getBatchProgress(id, documentIds)
+    }
+
+    @Post('documents/:documentId/retry')
+    async retryDocument(@Param('id') id: string, @Param('documentId') documentId: string) {
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(id)
+        await this.commandBus.execute(
+            new KnowledgeGraphRetryDocumentCommand({
+                knowledgebaseId: id,
+                documentId,
+                userId: RequestContext.currentUserId()
+            })
+        )
+        return this.documentProgress.getProgress(id, documentId)
     }
 
     @Post('rebuild')

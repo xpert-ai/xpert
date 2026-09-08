@@ -15,7 +15,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
-import { FindOptionsWhere, ILike, In, IsNull, Not, Repository } from 'typeorm'
+import { Brackets, FindOptionsWhere, ILike, In, IsNull, Not, Repository } from 'typeorm'
 import { Knowledgebase } from '../knowledgebase.entity'
 import { KnowledgebaseDetailDTO } from '../dto'
 import { KnowledgebaseService } from '../knowledgebase.service'
@@ -259,6 +259,7 @@ export class KnowledgeWikiService {
                 {
                     id: page.id,
                     pageKey: page.pageKey,
+                    identityId: page.identityId,
                     pageType: page.pageType,
                     canonicalName: page.canonicalName,
                     title: page.status === 'ready' ? (version?.title ?? page.canonicalName) : page.canonicalName,
@@ -384,6 +385,7 @@ export class KnowledgeWikiService {
         return {
             id: page.id,
             pageKey: page.pageKey,
+            identityId: page.identityId,
             pageType: page.pageType,
             canonicalName: page.canonicalName,
             title: version.title,
@@ -473,6 +475,7 @@ export class KnowledgeWikiService {
         return {
             id: page.id,
             pageKey: page.pageKey,
+            identityId: page.identityId,
             pageType: page.pageType,
             canonicalName: page.canonicalName,
             title: page.canonicalName,
@@ -571,18 +574,42 @@ export class KnowledgeWikiService {
             organizationId: scope.organizationId,
             knowledgebaseId: scope.knowledgebase.id
         }
+        const recovery = this.invocationRepository
+            .createQueryBuilder('invocation')
+            .innerJoinAndSelect('invocation.job', 'job')
+            .where(where)
+            .andWhere('job."isCurrent" = true')
+            .andWhere('job."knowledgebaseId" = invocation."knowledgebaseId"')
+            .andWhere('job."tenantId" IS NOT DISTINCT FROM invocation."tenantId"')
+            .andWhere('job."organizationId" IS NOT DISTINCT FROM invocation."organizationId"')
+            .andWhere('invocation."generationAttempt" = job."generationAttempt"')
+            .andWhere(
+                new Brackets((query) => {
+                    query
+                        .where(
+                            `(job.status = :failed AND (invocation.status = :indeterminate
+                                OR (invocation.status = :failed AND invocation."reconciliationStatus" = :notExecuted)))`,
+                            { failed: 'failed', indeterminate: 'indeterminate', notExecuted: 'not_executed' }
+                        )
+                        .orWhere(
+                            `(job.status IN (:...activeStatuses) AND (invocation.status = :reconciling
+                                OR invocation."reconciliationStatus" = :pending))`,
+                            {
+                                activeStatuses: ['queued', 'running', 'failed'],
+                                reconciling: 'reconciling',
+                                pending: 'pending'
+                            }
+                        )
+                })
+            )
         const [indeterminateCount, billingRecoveryCount, invocations] = await Promise.all([
-            this.invocationRepository.count({ where: { ...where, status: 'indeterminate' } }),
+            recovery
+                .clone()
+                .andWhere('invocation.status = :indeterminate', { indeterminate: 'indeterminate' })
+                .getCount(),
+            // Billing recovery retains its complete history independently of current generation warnings.
             this.invocationRepository.count({ where: { ...where, billingStatus: 'failed' } }),
-            this.invocationRepository.find({
-                where: [
-                    { ...where, status: In(['reconciling', 'indeterminate']) },
-                    { ...where, status: 'failed', reconciliationStatus: 'not_executed' }
-                ],
-                relations: ['job'],
-                order: { updatedAt: 'DESC' },
-                take: 20
-            })
+            recovery.orderBy('invocation.updatedAt', 'DESC').addOrderBy('invocation.id', 'DESC').take(20).getMany()
         ])
         return {
             indeterminateCount,
@@ -613,6 +640,14 @@ export class KnowledgeWikiService {
                 jobId: invocation.jobId,
                 invocationId: invocation.id,
                 reconciliationStatus: notExecuted ? 'not_executed' : 'indeterminate',
+                ...(notExecuted
+                    ? {
+                          failureReason:
+                              invocation.errorCode === 'provider_request_rejected'
+                                  ? ('request_rejected' as const)
+                                  : ('preparation_failed' as const)
+                      }
+                    : {}),
                 canRetry: inputCurrent,
                 requiresAdditionalChargeConfirmation: inputCurrent && !notExecuted,
                 inputCurrent,

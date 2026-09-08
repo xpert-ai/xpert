@@ -193,6 +193,12 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                         }
                                     )
                                     statisticsInformation += ` - Skipped unchanged source. \n`
+                                    await this.publicationService.publish({
+                                        knowledgebase,
+                                        documentId: document.id,
+                                        userId,
+                                        contentChanged: false
+                                    })
                                     return
                                 }
                                 if (chunks) {

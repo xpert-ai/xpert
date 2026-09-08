@@ -37,12 +37,20 @@ export class KnowledgeWikiReconcilerService {
             const now = new Date()
             const [dispatchFailures, expiredLeases] = await Promise.all([
                 this.jobRepository.find({
-                    where: {
-                        status: 'queued',
-                        isCurrent: true,
-                        dispatchError: Not(IsNull()),
-                        dispatchAfter: LessThanOrEqual(now)
-                    },
+                    where: [
+                        {
+                            status: 'queued',
+                            isCurrent: true,
+                            dispatchError: Not(IsNull()),
+                            dispatchAfter: LessThanOrEqual(now)
+                        },
+                        {
+                            status: 'queued',
+                            isCurrent: true,
+                            dispatchAttempts: 0,
+                            dispatchAfter: LessThanOrEqual(now)
+                        }
+                    ],
                     order: { dispatchAfter: 'ASC' },
                     take: RECONCILE_BATCH_SIZE
                 }),

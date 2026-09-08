@@ -148,7 +148,16 @@
             class="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3"
           >
             <span class="text-sm text-text-secondary">
-              @if (action.reconciliationStatus === 'not_executed') {
+              @if (action.reconciliationStatus === 'not_executed' && action.failureReason === 'request_rejected') {
+                {{
+                  'XP.Knowledgebase.Wiki.RequestRejected'
+                    | translate
+                      : {
+                          Default:
+                            'The model provider rejected the Wiki request parameters or output format. Fix them before retrying.'
+                        }
+                }}
+              } @else if (action.reconciliationStatus === 'not_executed') {
                 {{
                   'XP.Knowledgebase.Wiki.RequestNotSent'
                     | translate

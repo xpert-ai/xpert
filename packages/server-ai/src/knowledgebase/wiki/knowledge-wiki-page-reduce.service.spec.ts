@@ -3,6 +3,7 @@ import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { Knowledgebase } from '../knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage, KnowledgeWikiPageReduceInput, KnowledgeWikiPageVersion } from './entities'
 import { hashKnowledgeWikiValue } from './knowledge-wiki-generation.utils'
+import { KnowledgeWikiReduceSource } from './knowledge-wiki-model-invocation.service'
 import { KnowledgeWikiPageReduceService } from './knowledge-wiki-page-reduce.service'
 
 function fixture(changed: boolean) {
@@ -57,12 +58,20 @@ function fixture(changed: boolean) {
     })
     const savedVersions: KnowledgeWikiPageVersion[] = []
     const model = {
-        invokeReduceModel: jest.fn(async () => ({
-            title: 'Team',
-            summary: 'Ownership',
-            contentMarkdown: 'Maintains the service.',
-            aliases: []
-        }))
+        invokeReduceModel: jest.fn(
+            async (
+                _job: KnowledgeWikiJob,
+                _kb: Knowledgebase,
+                _page: KnowledgeWikiPage,
+                _sources: KnowledgeWikiReduceSource[],
+                _fingerprint: string
+            ) => ({
+                title: 'Team',
+                summary: 'Ownership',
+                contentMarkdown: 'Maintains the service.',
+                aliases: []
+            })
+        )
     }
     const dispatcher = { markSucceeded: jest.fn() }
     const service = Object.assign(Object.create(KnowledgeWikiPageReduceService.prototype), {
@@ -100,7 +109,7 @@ function fixture(changed: boolean) {
         modelInvocationService: model,
         dispatcher
     }) as KnowledgeWikiPageReduceService
-    return { service, job, page, previousInput, previousVersion, savedVersions, model, dispatcher }
+    return { service, job, page, document, payload, previousInput, previousVersion, savedVersions, model, dispatcher }
 }
 
 describe('Wiki reduce after publication conflict', () => {
@@ -129,5 +138,78 @@ describe('Wiki reduce after publication conflict', () => {
             expect.objectContaining({ id: 'replacement', generationAttempt: 1, expectedPageVersion: 5 })
         ])
         expect(page.activeVersionId).toBe('published')
+    })
+})
+
+describe('Wiki resolved source material', () => {
+    it('keeps multiple names from the same source in one contribution without losing facts', async () => {
+        const h = fixture(false)
+        Object.assign(h.service, {
+            mapResultRepository: {
+                find: async () => [
+                    {
+                        sourceDocumentIdSnapshot: 'doc',
+                        sourceLifecycleGeneration: 1,
+                        candidateKey: '1',
+                        payload: h.payload
+                    },
+                    {
+                        sourceDocumentIdSnapshot: 'doc',
+                        sourceLifecycleGeneration: 1,
+                        candidateKey: '2',
+                        payload: {
+                            ...h.payload,
+                            canonicalName: 'Team alias',
+                            facts: [{ text: 'Additional fact.', sourceChunkIds: ['chunk'] }]
+                        }
+                    }
+                ]
+            }
+        })
+        await h.service.process(h.job)
+        const sources = h.model.invokeReduceModel.mock.calls[0][3]
+        expect(sources).toHaveLength(1)
+        expect(sources[0].payload.facts.map((fact) => fact.text)).toEqual([
+            'Team maintains the service.',
+            'Additional fact.'
+        ])
+        expect(sources[0].evidence).toHaveLength(2)
+    })
+
+    it('replaces only the updated document contribution and retains other current sources', async () => {
+        const h = fixture(false)
+        const other = Object.assign(new KnowledgeDocument(), h.document, { id: 'other' })
+        Object.assign(h.service, {
+            contributionRepository: {
+                find: async () => [
+                    {
+                        sourceDocumentIdSnapshot: 'doc',
+                        sourceLifecycleGeneration: 0,
+                        payload: { ...h.payload, facts: [{ text: 'Old fact.', sourceChunkIds: ['chunk'] }] }
+                    },
+                    {
+                        sourceDocumentIdSnapshot: 'other',
+                        sourceLifecycleGeneration: 1,
+                        payload: { ...h.payload, facts: [{ text: 'Other source fact.', sourceChunkIds: ['chunk'] }] }
+                    }
+                ],
+                create: (value: object) => value,
+                save: async () => undefined
+            },
+            documentRepository: { find: async () => [h.document, other] },
+            sourceStateRepository: {
+                find: async () => [
+                    { sourceDocumentIdSnapshot: 'doc', lifecycleGeneration: 1, lastContentHash: 'hash' },
+                    { sourceDocumentIdSnapshot: 'other', lifecycleGeneration: 1, lastContentHash: 'hash' }
+                ]
+            }
+        })
+        await h.service.process(h.job)
+        const sources = h.model.invokeReduceModel.mock.calls[0][3]
+        expect(sources).toHaveLength(2)
+        expect(sources.flatMap((source) => source.payload.facts.map((fact) => fact.text))).toEqual([
+            'Team maintains the service.',
+            'Other source fact.'
+        ])
     })
 })

@@ -25,11 +25,15 @@ describe('Wiki recovery messages', () => {
     retryJob: jest.fn(() => of({}))
   }
 
-  async function render(reconciliationStatus: KnowledgeWikiRecoveryAction['reconciliationStatus']) {
+  async function render(
+    reconciliationStatus: KnowledgeWikiRecoveryAction['reconciliationStatus'],
+    failureReason?: 'request_rejected'
+  ) {
     const action: KnowledgeWikiRecoveryAction = {
       jobId: 'job-1',
       invocationId: 'invocation-1',
       reconciliationStatus,
+      ...(failureReason ? { failureReason } : {}),
       canRetry: reconciliationStatus !== 'pending',
       inputCurrent: true,
       requiresAdditionalChargeConfirmation: reconciliationStatus === 'indeterminate',
@@ -68,6 +72,7 @@ describe('Wiki recovery messages', () => {
         Knowledgebase: {
           Wiki: {
             RequestNotSent: 'No generation request was sent. Retry after fixing the model settings.',
+            RequestRejected: 'The provider rejected the request. Retry after fixing its parameters.',
             Indeterminate: 'The provider outcome is uncertain and a retry may add a charge.',
             Reconciling: 'Checking the model provider outcome...'
           }
@@ -113,6 +118,20 @@ describe('Wiki recovery messages', () => {
     await fixture.whenStable()
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(service.retryJob).not.toHaveBeenCalled()
+  })
+
+  it('distinguishes provider rejection from a request that was not sent', async () => {
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
+    const root = await render('not_executed', 'request_rejected')
+    expect(root.textContent).toContain('The provider rejected the request')
+    expect(root.textContent).not.toContain('No generation request was sent')
+    expect(root.textContent).not.toContain('a retry may add a charge')
+    Array.from(root.querySelectorAll('button'))
+      .find((button) => button.textContent.trim() === 'Retry')
+      .click()
+    await fixture.whenStable()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(service.retryJob).toHaveBeenCalledWith('kb-1', 'job-1', false)
   })
 })
 

@@ -1,4 +1,4 @@
-import { KnowledgeWikiPageContributionPayload } from '@xpert-ai/contracts'
+import { KnowledgeWikiPageSourcePayload } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { Knowledgebase } from '../../knowledgebase.entity'
@@ -49,5 +49,5 @@ export class KnowledgeWikiPageContribution extends TenantOrganizationBaseEntity 
     generatorVersion: string
 
     @Column({ type: 'jsonb' })
-    payload: KnowledgeWikiPageContributionPayload
+    payload: KnowledgeWikiPageSourcePayload
 }

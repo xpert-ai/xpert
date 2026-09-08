@@ -126,6 +126,21 @@ postgresDescribe('Wiki document status PostgreSQL projection', () => {
                 [reduceId]
             )
         })
+        it('reports pending and failed identity resolution through the real SQL progress projection', async () => {
+            const identityId = '00000000-0000-4000-8000-000000000014'
+            await runner.query(
+                `INSERT INTO pg_temp.knowledge_wiki_job (id, type, status, "parentJobId") VALUES ($1, 'identity_resolve', 'running', $2)`,
+                [identityId, mapId]
+            )
+            expect(await progress()).toMatchObject([{ state: 'generating', stages: { generation: 'running' } }])
+            await runner.query(
+                `UPDATE pg_temp.knowledge_wiki_job SET status = 'failed', error = 'identity failed' WHERE id = $1`,
+                [identityId]
+            )
+            expect(await progress()).toMatchObject([
+                { state: 'failed', stages: { generation: 'failed' }, retry: { jobId: identityId } }
+            ])
+        })
         it('follows map -> reduce -> index -> publish and the current invocation attempt', async () => {
             expect(await progress()).toMatchObject([{ documentId: docId, state: 'indexing' }])
             await runner.query(`UPDATE pg_temp.knowledge_wiki_page_version SET "projectionStatus" = 'ready'`)
