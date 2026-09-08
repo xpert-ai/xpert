@@ -217,6 +217,8 @@ export async function buildBlankXpertDraft(
   if (!primaryAgentNode || !primaryAgentKey) {
     throw new Error('Primary agent node not found for blank xpert draft initialization')
   }
+  primaryAgentNode.entity.copilotModel = undefined
+  primaryAgentNode.entity.copilotModelId = undefined
 
   const {
     triggerNodes,

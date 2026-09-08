@@ -28,6 +28,7 @@ import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertComponent } from '../xpert.component'
 import { XpertService } from '../xpert.service'
+import { isEqual } from 'lodash-es'
 
 @Component({
   selector: 'xpert-basic',
@@ -84,7 +85,7 @@ export class XpertBasicComponent implements IsDirty {
   //   { initialValue: null }
   // )
 
-  readonly draft = computed(() => {
+  readonly draft = computed<Partial<TXpertTeamDraft> | null>(() => {
     if (this.xpert()) {
       return this.xpert().draft ?? { team: omitXpertRelations(this.xpert()) }
     }
@@ -218,14 +219,26 @@ export class XpertBasicComponent implements IsDirty {
       }
     }
     if (this.type() === XpertTypeEnum.Agent) {
+      const draft = this.draft()
+      const inheritedModelNodes = clearLegacyInheritedPrimaryAgentModel(draft)
       this.xpertAPI
         .upadteDraft(this.xpertId(), {
           team: {
             ...omitXpertRelations(this.xpert()),
-            ...(this.draft()?.team ?? {}),
+            ...(draft?.team ?? {}),
             ...basicValue,
+            ...(draft?.team?.agent
+              ? {
+                  agent: {
+                    ...draft.team.agent,
+                    copilotModel: basicValue.copilotModel ?? undefined,
+                    copilotModelId: undefined
+                  }
+                }
+              : {}),
             options
-          }
+          },
+          ...(inheritedModelNodes ? { nodes: inheritedModelNodes } : {})
         } as TXpertTeamDraft)
         .subscribe({
           next: (value) => {
@@ -302,4 +315,34 @@ export class XpertBasicComponent implements IsDirty {
     }
     return `${copilotId}\u0000${model.modelType ?? AiModelTypeEnum.LLM}\u0000${modelName}`
   }
+}
+
+export function clearLegacyInheritedPrimaryAgentModel(
+  draft: Partial<TXpertTeamDraft> | null | undefined
+): TXpertTeamDraft['nodes'] | null {
+  const primaryAgentKey = draft?.team?.agent?.key
+  const primaryNode = draft?.nodes?.find(
+    (node) => node.type === 'agent' && (node.key === primaryAgentKey || node.entity.key === primaryAgentKey)
+  )
+  if (!draft?.nodes || !primaryNode || primaryNode.type !== 'agent') {
+    return null
+  }
+
+  const legacyTeamModel = draft.team.agent?.copilotModel ?? draft.team.copilotModel
+  if (!primaryNode.entity.copilotModel || !isEqual(primaryNode.entity.copilotModel, legacyTeamModel)) {
+    return null
+  }
+
+  return draft.nodes.map((node) =>
+    node.key === primaryNode.key && node.type === 'agent'
+      ? {
+          ...node,
+          entity: {
+            ...node.entity,
+            copilotModel: undefined,
+            copilotModelId: undefined
+          }
+        }
+      : node
+  )
 }

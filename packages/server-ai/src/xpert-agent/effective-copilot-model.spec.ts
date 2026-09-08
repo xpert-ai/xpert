@@ -14,6 +14,13 @@ describe('resolveEffectiveCopilotModel', () => {
     }
     const team = { id: 'assistant-1', copilotModel: configured }
 
+    it('uses the Agent model first and falls back to the team model', () => {
+        expect(
+            resolveEffectiveCopilotModel(team as never, { key: 'primary', copilotModel: selected } as never, {})
+        ).toEqual(selected)
+        expect(resolveEffectiveCopilotModel(team as never, { key: 'primary' } as never, {})).toEqual(configured)
+    })
+
     it('overrides only the root Assistant Primary Agent', () => {
         expect(
             resolveEffectiveCopilotModel(team as never, { key: 'primary', copilotModel: configured } as never, {

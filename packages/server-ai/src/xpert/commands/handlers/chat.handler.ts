@@ -302,6 +302,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 : null
             if (
                 request.mode === 'queue' &&
+                !options?.isDraft &&
                 this.assistantModelSelectionService &&
                 xpertId &&
                 supportsAssistantPrimaryModelSelection(followUpXpert)
@@ -813,7 +814,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 xpert: latestXpert,
                 runtimeAgentKey,
                 input,
-                sourceExecution: sourceModelExecution
+                sourceExecution: sourceModelExecution,
+                isDraft: Boolean(options?.isDraft)
             })
             if (primaryModelSelection) {
                 applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
@@ -965,7 +967,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 xpert: latestXpert,
                 runtimeAgentKey,
                 input,
-                sourceExecution: sourceModelExecution
+                sourceExecution: sourceModelExecution,
+                isDraft: Boolean(options?.isDraft)
             })
             if (primaryModelSelection) {
                 applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
@@ -1473,16 +1476,19 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         xpert,
         runtimeAgentKey,
         input,
-        sourceExecution
+        sourceExecution,
+        isDraft
     }: {
         request: TChatRequest
         xpert: Partial<IXpert>
         runtimeAgentKey: string
         input: TChatRequestHuman | null
         sourceExecution: IXpertAgentExecution | null
+        isDraft: boolean
     }): Promise<TAssistantPrimaryModelSelection | null> {
         const primaryAgentKey = xpert.agent?.key
         if (
+            isDraft ||
             !this.assistantModelSelectionService ||
             !supportsAssistantPrimaryModelSelection(xpert) ||
             !primaryAgentKey ||
