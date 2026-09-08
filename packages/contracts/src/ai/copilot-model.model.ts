@@ -31,5 +31,7 @@ export type TCopilotModelOptions = {
    * Max input context size of selected model
    */
   context_size?: number
+  /** Missing provenance preserves legacy explicit values. */
+  context_size_source?: 'provider' | 'override' | 'snapshot'
   [key: string]: any
 }

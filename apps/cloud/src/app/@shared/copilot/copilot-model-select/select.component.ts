@@ -447,7 +447,8 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
       ...this.cva.value$(),
       options: {
         ...(this.cva.value$().options ?? {}),
-        [name]: nextValue
+        [name]: nextValue,
+        ...(name === ModelPropertyKey.CONTEXT_SIZE ? { context_size_source: 'override' as const } : {})
       }
     })
   }
@@ -605,8 +606,10 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
 
     if (typeof contextSize === 'number') {
       options[ModelPropertyKey.CONTEXT_SIZE] = contextSize
+      options.context_size_source = 'provider'
     } else if (model) {
       delete options[ModelPropertyKey.CONTEXT_SIZE]
+      delete options.context_size_source
     }
 
     return {
@@ -631,7 +634,12 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   private resolveOptions(options: Record<string, any> | undefined, rules: ParameterRule[]) {
     const contextSize = this.parseContextSize(options?.[ModelPropertyKey.CONTEXT_SIZE])
     const retainedOptions = {
-      ...(typeof contextSize === 'number' ? { [ModelPropertyKey.CONTEXT_SIZE]: contextSize } : {})
+      ...(typeof contextSize === 'number'
+        ? {
+            [ModelPropertyKey.CONTEXT_SIZE]: contextSize,
+            ...(options?.context_size_source ? { context_size_source: options.context_size_source } : {})
+          }
+        : {})
     } as Record<string, any>
 
     for (const rule of rules) {

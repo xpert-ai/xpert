@@ -7,7 +7,7 @@ type TCustomModel = {
 
 export function ensureCopilotModelContextSize(
     copilotModel: ICopilotModel,
-    modelProvider: IAIModelProviderStrategy,
+    modelProvider: Pick<IAIModelProviderStrategy, 'getProviderModels'>,
     modelName?: string,
     customModels?: TCustomModel[]
 ): number | undefined {
@@ -16,7 +16,7 @@ export function ensureCopilotModelContextSize(
     }
 
     const currentContextSize = normalizeContextSize(copilotModel.options?.context_size)
-    if (typeof currentContextSize === 'number') {
+    if (typeof currentContextSize === 'number' && copilotModel.options?.context_size_source !== 'provider') {
         copilotModel.options = {
             ...(copilotModel.options ?? {}),
             context_size: currentContextSize
@@ -34,11 +34,12 @@ export function ensureCopilotModelContextSize(
           )
         : undefined
 
-    const contextSize = customModelContextSize ?? predefinedModelContextSize
+    const contextSize = customModelContextSize ?? predefinedModelContextSize ?? currentContextSize
     if (typeof contextSize === 'number') {
         copilotModel.options = {
             ...(copilotModel.options ?? {}),
-            [ModelPropertyKey.CONTEXT_SIZE]: contextSize
+            [ModelPropertyKey.CONTEXT_SIZE]: contextSize,
+            context_size_source: 'provider'
         }
     }
 
