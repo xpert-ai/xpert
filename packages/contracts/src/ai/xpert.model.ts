@@ -648,6 +648,8 @@ export type TXpertTeamNodeBase = {
   position: IRect
   size?: ISize
   hash?: string
+  /** Whether the Agent node model follows the draft team's primary model. */
+  copilotModelSource?: 'team' | 'agent'
   parentId?: string
   readonly?: boolean
 }

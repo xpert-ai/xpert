@@ -162,6 +162,7 @@ describe('blank draft util', () => {
 
     expect(draft.nodes).toHaveLength(1)
     expect(draft.nodes[0].key).toBe('Agent_primary')
+    expect(draft.nodes[0].copilotModelSource).toBe('team')
     expect(draft.connections).toHaveLength(0)
     expect(draft.team.agent.options?.middlewares).toBeUndefined()
   })

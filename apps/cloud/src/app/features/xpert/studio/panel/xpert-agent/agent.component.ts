@@ -454,7 +454,7 @@ export class XpertStudioPanelAgentComponent {
     effect(() => {
       if (this.xpertAgent()) {
         this.prompt.set(this.xpertAgent().prompt)
-        this.copilotModel.set(this.xpertAgent().copilotModel)
+        this.copilotModel.set(this.node()?.copilotModelSource === 'team' ? undefined : this.xpertAgent().copilotModel)
       }
     })
   }
@@ -481,8 +481,19 @@ export class XpertStudioPanelAgentComponent {
     this.apiService.updateXpertAgent(this.key(), { prompt: event })
   }
 
-  updateCopilotModel(model: ICopilotModel) {
-    this.apiService.updateXpertAgent(this.key(), { copilotModel: model })
+  updateCopilotModel(model: ICopilotModel | null) {
+    this.apiService.updateNode(this.key(), (node) => {
+      const agentNode = node as Partial<TXpertTeamNode<'agent'>>
+      return {
+        ...agentNode,
+        copilotModelSource: model ? 'agent' : 'team',
+        entity: {
+          ...this.xpertAgent(),
+          copilotModel: model ?? undefined,
+          copilotModelId: undefined
+        }
+      }
+    })
   }
 
   updateAvatar(avatar: TAvatar) {
