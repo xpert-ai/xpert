@@ -15,43 +15,65 @@
     </div>
 
     <div class="flex shrink-0 items-start gap-2">
-      @if (canUpload()) {
+      @if (canUpload() || showRefresh()) {
         <div class="flex shrink-0 flex-col items-end gap-1">
           <div class="flex flex-wrap justify-end gap-2">
-            <button
-              z-button
-              zSize="sm"
-              zType="ghost"
-              type="button"
-              [class]="uploadActionClasses()"
-              [zTooltip]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
-              zPosition="top"
-              [attr.aria-label]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
-              [zDisabled]="uploadDisabled() || uploading()"
-              (click)="onUploadClick('file')"
-            >
-              <i class="ri-upload-2-line"></i>
-              <span class="sr-only">{{ 'XP.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
-            </button>
+            @if (showRefresh()) {
+              <button
+                z-button
+                zSize="sm"
+                zType="ghost"
+                type="button"
+                [class]="uploadActionClasses()"
+                [zTooltip]="'XP.WorkspaceFiles.RefreshTree' | translate: { Default: 'Refresh file tree' }"
+                zPosition="top"
+                [attr.aria-label]="'XP.WorkspaceFiles.RefreshTree' | translate: { Default: 'Refresh file tree' }"
+                [zDisabled]="loading() || uploading()"
+                (click)="onRefreshClick()"
+              >
+                <z-icon zType="refresh" [class.animate-spin]="loading()" aria-hidden="true" />
+                <span class="sr-only">
+                  {{ 'XP.WorkspaceFiles.RefreshTree' | translate: { Default: 'Refresh file tree' } }}
+                </span>
+              </button>
+            }
 
-            <button
-              z-button
-              zSize="sm"
-              zType="ghost"
-              type="button"
-              [class]="uploadActionClasses()"
-              [zTooltip]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
-              zPosition="top"
-              [attr.aria-label]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
-              [zDisabled]="uploadDisabled() || uploading()"
-              (click)="onUploadClick('folder')"
-            >
-              <i class="ri-folder-upload-line"></i>
-              <span class="sr-only">{{ 'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
-            </button>
+            @if (canUpload()) {
+              <button
+                z-button
+                zSize="sm"
+                zType="ghost"
+                type="button"
+                [class]="uploadActionClasses()"
+                [zTooltip]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+                zPosition="top"
+                [attr.aria-label]="'XP.Files.UploadFiles' | translate: { Default: 'Upload files' }"
+                [zDisabled]="uploadDisabled() || uploading()"
+                (click)="onUploadClick('file')"
+              >
+                <i class="ri-upload-2-line"></i>
+                <span class="sr-only">{{ 'XP.Files.UploadFiles' | translate: { Default: 'Upload files' } }}</span>
+              </button>
+
+              <button
+                z-button
+                zSize="sm"
+                zType="ghost"
+                type="button"
+                [class]="uploadActionClasses()"
+                [zTooltip]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+                zPosition="top"
+                [attr.aria-label]="'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' }"
+                [zDisabled]="uploadDisabled() || uploading()"
+                (click)="onUploadClick('folder')"
+              >
+                <i class="ri-folder-upload-line"></i>
+                <span class="sr-only">{{ 'XP.Files.UploadFolder' | translate: { Default: 'Upload folder' } }}</span>
+              </button>
+            }
           </div>
 
-          @if (uploadTargetHint()) {
+          @if (canUpload() && uploadTargetHint()) {
             <div class="max-w-[14rem] text-right text-xs text-text-tertiary">
               {{ uploadTargetHint() }}
             </div>
@@ -76,11 +98,11 @@
               @if (item.hasChildren) {
                 <button type="button" [class]="toggleClasses()" (click)="onDirectoryToggle($event, item)">
                   @if (isDirectoryLoading(item.fullPath || item.filePath)) {
-                    <i class="ri-loader-4-line animate-spin"></i>
+                    <z-icon zType="loader-circle" class="animate-spin" aria-hidden="true" />
                   } @else if (item.expanded) {
-                    <i class="ri-arrow-down-s-line"></i>
+                    <z-icon zType="chevron-down" aria-hidden="true" />
                   } @else {
-                    <i class="ri-arrow-right-s-line"></i>
+                    <z-icon zType="chevron-right" aria-hidden="true" />
                   }
                 </button>
               } @else {
@@ -91,17 +113,10 @@
                 type="button"
                 data-file-tree-item-content
                 [class]="itemContentClasses()"
-                [zTooltip]="item.fullPath || item.filePath"
-                zPosition="top"
                 [title]="item.fullPath || item.filePath"
                 (click)="onItemClick(item)"
               >
-                <i
-                  [class]="itemIconClasses()"
-                  [class.ri-folder-open-line]="item.hasChildren && item.expanded"
-                  [class.ri-folder-line]="item.hasChildren && !item.expanded"
-                  [class.ri-file-text-line]="!item.hasChildren"
-                ></i>
+                <z-icon [zType]="itemIconType(item)" [class]="itemIconClasses()" aria-hidden="true" />
                 <span [class]="itemLabelClasses(item)">
                   {{ item.filePath }}
                 </span>
@@ -109,41 +124,22 @@
 
               @if (showActions(item)) {
                 <div
-                  class="absolute right-1 ml-auto flex shrink-0 items-center gap-1 p-0.5 rounded-lg opacity-100 transition-opacity bg-components-panel-bg md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto"
+                  class="absolute right-1 ml-auto flex shrink-0 items-center rounded-md opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto"
                 >
-                  @if (canDownloadItem(item)) {
-                    <button
-                      type="button"
-                      [class]="itemActionClasses()"
-                      [disabled]="isDownloading(item.fullPath || item.filePath)"
-                      [attr.aria-label]="'XP.Files.Download' | translate: { Default: 'Download' }"
-                      (click)="onFileDownload($event, item)"
-                    >
-                      @if (isDownloading(item.fullPath || item.filePath)) {
-                        <i class="ri-loader-4-line animate-spin"></i>
-                      } @else {
-                        <i class="ri-download-2-line"></i>
-                      }
-                      <span>{{ 'XP.Files.Download' | translate: { Default: 'Download' } }}</span>
-                    </button>
-                  }
-
-                  @if (canDelete()) {
-                    <button
-                      type="button"
-                      [class]="cx(itemActionClasses(), 'hover:text-text-destructive')"
-                      [disabled]="isDeleting(item.fullPath || item.filePath)"
-                      [attr.aria-label]="'XP.Files.Delete' | translate: { Default: 'Delete' }"
-                      (click)="onFileDelete($event, item)"
-                    >
-                      @if (isDeleting(item.fullPath || item.filePath)) {
-                        <i class="ri-loader-4-line animate-spin"></i>
-                      } @else {
-                        <i class="ri-delete-bin-line"></i>
-                      }
-                      <span>{{ 'XP.Files.Delete' | translate: { Default: 'Delete' } }}</span>
-                    </button>
-                  }
+                  <button
+                    type="button"
+                    z-button
+                    zType="ghost"
+                    zSize="icon-xs"
+                    z-menu
+                    [zMenuTriggerFor]="itemMenu"
+                    [zMenuTriggerData]="{ item: item }"
+                    zPlacement="bottomRight"
+                    [attr.aria-label]="'XP.Files.MoreActions' | translate: { Default: 'More actions' }"
+                    [title]="'XP.Files.MoreActions' | translate: { Default: 'More actions' }"
+                  >
+                    <z-icon zType="more_horiz" aria-hidden="true" />
+                  </button>
                 </div>
               }
             </div>
@@ -171,3 +167,40 @@
     }
   </div>
 </section>
+
+<ng-template #itemMenu let-item="item">
+  <div z-menu-content class="min-w-32">
+    @if (canDownloadItem(item)) {
+      <button
+        type="button"
+        z-menu-item
+        [zDisabled]="isDownloading(item.fullPath || item.filePath)"
+        (click)="onFileDownload($event, item)"
+      >
+        @if (isDownloading(item.fullPath || item.filePath)) {
+          <z-icon zType="loader-circle" class="mr-2 animate-spin" aria-hidden="true" />
+        } @else {
+          <z-icon zType="file_download" class="mr-2" aria-hidden="true" />
+        }
+        <span>{{ 'XP.Files.Download' | translate: { Default: 'Download' } }}</span>
+      </button>
+    }
+
+    @if (canDelete()) {
+      <button
+        type="button"
+        z-menu-item
+        zType="destructive"
+        [zDisabled]="isDeleting(item.fullPath || item.filePath)"
+        (click)="onFileDelete($event, item)"
+      >
+        @if (isDeleting(item.fullPath || item.filePath)) {
+          <z-icon zType="loader-circle" class="mr-2 animate-spin" aria-hidden="true" />
+        } @else {
+          <z-icon zType="delete" class="mr-2" aria-hidden="true" />
+        }
+        <span>{{ 'XP.Files.Delete' | translate: { Default: 'Delete' } }}</span>
+      </button>
+    }
+  </div>
+</ng-template>

@@ -60,6 +60,7 @@
     [canDownload]="canDownloadFiles()"
     [canDownloadDirectory]="canDownloadDirectories()"
     [canDelete]="canDeleteFiles()"
+    [showRefresh]="showTreeRefresh()"
     [downloadingPaths]="downloadingPaths()"
     [deletingPaths]="deletingPaths()"
     [emptyTitle]="'XP.Files.NoFilesFound' | translate: { Default: 'No files found yet.' }"
@@ -73,6 +74,7 @@
     (fileSelect)="openFile($event)"
     (directoryToggle)="toggleDirectory($event)"
     (uploadRequest)="requestUpload($event)"
+    (refreshRequest)="refreshFileTree()"
     (fileDownload)="downloadTreeFile($event)"
     (fileDelete)="deleteTreeFile($event)"
   />

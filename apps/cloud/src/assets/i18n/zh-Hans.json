@@ -1642,7 +1642,8 @@
       "ReferenceSelection": "引用选中内容",
       "ReferenceUnavailable": "当前没有可引用的文本内容",
       "DownloadUnavailable": "该文件暂时无法下载。",
-      "DownloadFailed": "下载文件失败"
+      "DownloadFailed": "下载文件失败",
+      "MoreActions": "更多操作"
     },
     "Skills": {
       "Selected": "已选",
@@ -3216,12 +3217,13 @@
       }
     },
     "WorkspaceFiles": {
-      "Title": "资源库",
+      "Title": "资料库",
       "Description": "浏览、管理和编辑 Claw Xpert 工作区中的资源。",
       "RootLabel": "Claw Xpert 工作区文件",
       "WorkspaceFiles": "工作区文件",
       "SearchPlaceholder": "搜索工作区文件",
       "ClearSearch": "清除搜索",
+      "RefreshTree": "刷新文件树",
       "Unavailable": "请先配置 Claw Xpert。"
     },
     "WorkspaceKnowledge": {
