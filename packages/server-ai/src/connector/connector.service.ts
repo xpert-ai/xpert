@@ -19,6 +19,7 @@ import {
     assertConnectorDefinition,
     ConnectorStrategyRegistry,
     ConnectorRuntimeFactoryCapability,
+    type ConfiguredRuntimeConnectorSelection,
     getConnectorAuthorizationModes,
     getConnectorAuthMethods
 } from '@xpert-ai/plugin-sdk'
@@ -1534,6 +1535,44 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         return result
     }
 
+    async resolveConfiguredRuntimeBindings(
+        selections: ConfiguredRuntimeConnectorSelection[] | null | undefined,
+        scope: ConnectorRuntimeScope
+    ): Promise<SelectedRuntimeConnectorBinding[]> {
+        const configured = normalizeConfiguredRuntimeConnectorSelections(selections)
+        if (!configured.length) {
+            return []
+        }
+        this.assertRuntimeIdentityScope(scope)
+
+        const xpert = await this.assertXpertRunAccess(requiredConnectorText(scope.xpertId, 'runtime.xpertId'))
+        const bindingScope = scope.projectId
+            ? ({ type: 'project', projectId: requiredConnectorText(scope.projectId, 'runtime.projectId') } as const)
+            : ({
+                  type: 'workspace',
+                  workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId')
+              } as const)
+
+        const availableBindings = await this.findBindings(bindingScope)
+        const bindingIds: string[] = []
+        for (const selection of configured) {
+            const binding = selection.bindingId
+                ? availableBindings.find((candidate) => candidate.id === selection.bindingId)
+                : availableBindings.find((candidate) => candidate.provider === selection.provider)
+            if (!binding || binding.provider !== selection.provider) {
+                throw new NotFoundException(
+                    t('server-ai:Error.ConnectorBindingNotFound', {
+                        defaultValue: `No '${selection.provider}' connector is configured for this runtime scope`
+                    })
+                )
+            }
+            bindingIds.push(binding.id)
+        }
+        // Reuse the selected-binding path for identity, scope, credential and
+        // active-connection checks instead of maintaining a second copy here.
+        return this.resolveSelectedRuntimeBindings(bindingIds, scope)
+    }
+
     async getRuntimeConnector(input: ConnectorRuntimeGetInput): Promise<ConnectorRuntimeCredential> {
         const runtime = await this.getRuntimeConnectorCredential(input)
         return this.projectLegacyRuntimeResponse(runtime)
@@ -2452,6 +2491,23 @@ function normalizeBindingIds(value?: string[] | null) {
     return Array.from(
         new Set((value ?? []).map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean))
     )
+}
+
+function normalizeConfiguredRuntimeConnectorSelections(
+    value?: ConfiguredRuntimeConnectorSelection[] | null
+): ConfiguredRuntimeConnectorSelection[] {
+    const providers = new Set<string>()
+    const result: ConfiguredRuntimeConnectorSelection[] = []
+    for (const item of value ?? []) {
+        const provider = typeof item?.provider === 'string' ? item.provider.trim() : ''
+        if (!provider || providers.has(provider)) {
+            continue
+        }
+        const bindingId = typeof item.bindingId === 'string' ? item.bindingId.trim() : ''
+        providers.add(provider)
+        result.push({ provider, ...(bindingId ? { bindingId } : {}) })
+    }
+    return result
 }
 
 function requiredConnectorText(value: unknown, field: string) {

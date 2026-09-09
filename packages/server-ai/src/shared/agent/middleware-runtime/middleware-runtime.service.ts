@@ -10,6 +10,7 @@ import {
     AgentMiddlewareModelProviderConnection,
     AgentMiddlewareRuntimeApi,
     AgentMiddlewareRuntimeScope,
+    type ConfiguredRuntimeConnectorSelection,
     AgentMiddlewareWrapWorkflowNodeExecutionParams,
     AgentMiddlewareWrapWorkflowNodeExecutionResult,
     ArtifactsRuntimeCapability,
@@ -87,6 +88,15 @@ export class AgentMiddlewareRuntimeService {
         return this.platformCapabilities
             .require(ConnectorRuntimeFactoryCapability)
             .resolveSelectedRuntimeBindings(scope.connectorBindingIds, scope)
+    }
+
+    resolveConfiguredConnectorRuntimeBindings(
+        selections: ConfiguredRuntimeConnectorSelection[] | null | undefined,
+        scope: AgentMiddlewareRuntimeScope
+    ) {
+        return this.platformCapabilities
+            .require(ConnectorRuntimeFactoryCapability)
+            .resolveConfiguredRuntimeBindings(selections, scope)
     }
 
     /** Build the middleware runtime API and capability registry for one invocation. */

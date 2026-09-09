@@ -23,6 +23,7 @@ import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 import { isRuntimeCapabilitiesAllowlist } from './runtime-capabilities'
 
 const normalizeNodeKey = (key: string) => key?.split('/')?.[0]
+const CONNECTOR_MIDDLEWARE_NAME = 'ConnectorMiddleware'
 
 function isSkillsMiddlewareNode(node?: TXpertTeamNode | null) {
     const entity = node?.entity as unknown as IWFNMiddleware | undefined
@@ -105,7 +106,7 @@ export function getRuntimeEnabledMiddlewareNodes(
         }
 
         const provider = normalizeMiddlewareProvider(entity?.provider)
-        return hasSelectedSkills && provider === SKILLS_MIDDLEWARE_NAME
+        return provider === CONNECTOR_MIDDLEWARE_NAME || (hasSelectedSkills && provider === SKILLS_MIDDLEWARE_NAME)
     })
 
     assertSingleSkillsMiddlewareConnection(agent.key, runtimeEnabledMiddlewares)

@@ -2017,6 +2017,99 @@ describe('ConnectorService', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
     })
 
+    it('resolves provider-only graph Connector selections through the selected-binding checks', async () => {
+        const binding = await connectors.save(
+            connectors.create({
+                id: 'workspace-example-binding',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                scopeType: 'workspace',
+                workspaceId: 'workspace-1',
+                projectId: null,
+                provider: 'example',
+                authorizationMode: 'shared',
+                status: 'active',
+                credentialCiphertext: 'shared-credential'
+            })
+        )
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-configured',
+            executionId: 'execution-configured'
+        }
+
+        await expect(service.resolveConfiguredRuntimeBindings([{ provider: 'example' }], scope)).resolves.toEqual([
+            { bindingId: binding.id, provider: 'example' }
+        ])
+    })
+
+    it('delegates configured graph Connector selections to the existing selected-binding resolver', async () => {
+        const binding = await connectors.save(
+            connectors.create({
+                id: 'project-example-binding',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                scopeType: 'project',
+                workspaceId: null,
+                projectId: 'project-1',
+                provider: 'example',
+                authorizationMode: 'shared',
+                status: 'active',
+                credentialCiphertext: 'shared-credential'
+            })
+        )
+        const scope = {
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            projectId: 'project-1',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-delegated',
+            executionId: 'execution-delegated'
+        }
+        const resolveSelected = jest
+            .spyOn(service, 'resolveSelectedRuntimeBindings')
+            .mockResolvedValue([{ bindingId: binding.id!, provider: binding.provider }])
+
+        await expect(
+            service.resolveConfiguredRuntimeBindings([{ provider: 'example', bindingId: binding.id }], scope)
+        ).resolves.toEqual([{ bindingId: binding.id, provider: 'example' }])
+        expect(resolveSelected).toHaveBeenCalledWith([binding.id], scope)
+    })
+
+    it('reuses the selected-binding active credential check for configured graph Connectors', async () => {
+        await connectors.save(
+            connectors.create({
+                id: 'inactive-example-binding',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                scopeType: 'workspace',
+                workspaceId: 'workspace-1',
+                projectId: null,
+                provider: 'example',
+                authorizationMode: 'shared',
+                status: 'disconnected',
+                credentialCiphertext: null
+            })
+        )
+        await expect(
+            service.resolveConfiguredRuntimeBindings([{ provider: 'example' }], {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                workspaceId: 'workspace-1',
+                xpertId: 'xpert-1',
+                conversationId: 'conversation-inactive',
+                executionId: 'execution-inactive'
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+    })
+
     it('returns only Project bindings and sanitized auth forms in Project runtime options', async () => {
         strategy.definition = {
             ...strategy.definition,

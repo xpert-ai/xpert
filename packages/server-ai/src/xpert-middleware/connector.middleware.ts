@@ -1,4 +1,4 @@
-import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
+import { IWFNMiddleware, normalizeMiddlewareProvider, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import {
     AgentMiddleware,
     AgentMiddlewareRegistry,
@@ -103,6 +103,22 @@ export class ConnectorMiddleware implements IAgentMiddlewareStrategy<ConnectorMi
 
 export function connectorRuntimeMiddlewareProvider(provider: string) {
     return `${CONNECTOR_RUNTIME_MIDDLEWARE_PREFIX}${provider}`
+}
+
+export function getConnectorMiddlewareProvider(node: Pick<IWFNMiddleware, 'provider' | 'options'>) {
+    return getConnectorMiddlewareSelection(node)?.provider ?? null
+}
+
+export function getConnectorMiddlewareSelection(node: Pick<IWFNMiddleware, 'provider' | 'options'>) {
+    if (normalizeMiddlewareProvider(node.provider) !== CONNECTOR_MIDDLEWARE_NAME) {
+        return null
+    }
+    const provider = normalizeConfigValue(node.options?.provider)
+    if (!provider) {
+        return null
+    }
+    const bindingId = normalizeConfigValue(node.options?.connectorId)
+    return { provider, ...(bindingId ? { bindingId } : {}) }
 }
 
 function normalizeConnectorMiddleware(middleware: AgentMiddleware): AgentMiddleware {

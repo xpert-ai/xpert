@@ -153,7 +153,9 @@ import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { resolveToolRuntimeScope } from '../../../tool-runtime/workspace-scope'
 import {
     CONNECTOR_MIDDLEWARE_NAME,
-    connectorRuntimeMiddlewareProvider
+    connectorRuntimeMiddlewareProvider,
+    getConnectorMiddlewareProvider,
+    getConnectorMiddlewareSelection
 } from '../../../xpert-middleware/connector.middleware'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
@@ -789,7 +791,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         })
         const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
         const connectorBindingIds = getRuntimeConnectorBindingIds(options.runtimeCapabilities)
-        const middlewareRuntimeScope: AgentMiddlewareRuntimeScope = {
+        const middlewareRuntimeScopeBase: AgentMiddlewareRuntimeScope = {
             tenantId: runtimeXpert.tenantId,
             organizationId: runtimeOrganizationId,
             userId: runtimeUserId,
@@ -809,8 +811,31 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             workspaceRoot: options.workspaceRoot,
             workspacePath: options.workspacePath
         }
-        const selectedRuntimeConnectorBindings =
-            await this.agentMiddlewareRuntimeService.resolveSelectedConnectorRuntimeBindings(middlewareRuntimeScope)
+        const explicitlySelectedRuntimeConnectorBindings =
+            await this.agentMiddlewareRuntimeService.resolveSelectedConnectorRuntimeBindings(middlewareRuntimeScopeBase)
+        const explicitlySelectedProviders = new Set(
+            explicitlySelectedRuntimeConnectorBindings.map((binding) => binding.provider)
+        )
+        const configuredConnectorSelections = visibleMiddlewareNodes
+            .map((node) => getConnectorMiddlewareSelection(node.entity as IWFNMiddleware))
+            .filter((selection): selection is NonNullable<typeof selection> => Boolean(selection))
+            .filter((selection) => !explicitlySelectedProviders.has(selection.provider))
+        const configuredRuntimeConnectorBindings =
+            await this.agentMiddlewareRuntimeService.resolveConfiguredConnectorRuntimeBindings(
+                configuredConnectorSelections,
+                middlewareRuntimeScopeBase
+            )
+        const selectedRuntimeConnectorBindings = [
+            ...explicitlySelectedRuntimeConnectorBindings,
+            ...configuredRuntimeConnectorBindings
+        ]
+        const middlewareRuntimeScope: AgentMiddlewareRuntimeScope = {
+            ...middlewareRuntimeScopeBase,
+            connectorBindingIds: selectedRuntimeConnectorBindings.map((binding) => binding.bindingId)
+        }
+        const selectedRuntimeConnectorProviders = new Set(
+            selectedRuntimeConnectorBindings.map((binding) => binding.provider)
+        )
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi(middlewareRuntimeScope)
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
             tenantId: runtimeXpert.tenantId,
@@ -907,7 +932,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             const entity = node.entity as IWFNMiddleware
             const isGraphConnectorMiddleware =
                 normalizeMiddlewareProvider(entity.provider) === CONNECTOR_MIDDLEWARE_NAME
-            if (isRuntimeCapabilitiesAllowlist(options.runtimeCapabilities) && isGraphConnectorMiddleware) {
+            const isSelectedRuntimeConnectorProvider = selectedRuntimeConnectorProviders.has(
+                getConnectorMiddlewareProvider(entity) ?? ''
+            )
+            if (
+                isGraphConnectorMiddleware &&
+                (isRuntimeCapabilitiesAllowlist(options.runtimeCapabilities) || isSelectedRuntimeConnectorProvider)
+            ) {
                 return entries
             }
             const middleware = visibleAgentMiddlewares[index]

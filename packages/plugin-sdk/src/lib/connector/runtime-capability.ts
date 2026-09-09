@@ -13,12 +13,23 @@ export type ConnectorRuntimeScope = RuntimeIdentityScope & {
 
 export type SelectedRuntimeConnectorBinding = { bindingId: string; provider: string }
 
+export type ConfiguredRuntimeConnectorSelection = {
+  provider: string
+  /** Optional binding pinned by the graph. Provider-only selections resolve in the current runtime scope. */
+  bindingId?: string | null
+}
+
 export interface ConnectorRuntimeFactory {
   /** Snapshot the authorized identity and selected binding IDs for this runtime. */
   createScopedApi(scope: ConnectorRuntimeScope): ConnectorRuntimeApi
   /** Preflight selected bindings through the same identity, project and credential checks. */
   resolveSelectedRuntimeBindings(
     bindingIds: string[] | null | undefined,
+    scope: ConnectorRuntimeScope
+  ): Promise<SelectedRuntimeConnectorBinding[]>
+  /** Resolve connector bindings explicitly enabled by middleware nodes in the published graph. */
+  resolveConfiguredRuntimeBindings(
+    selections: ConfiguredRuntimeConnectorSelection[] | null | undefined,
     scope: ConnectorRuntimeScope
   ): Promise<SelectedRuntimeConnectorBinding[]>
 }
