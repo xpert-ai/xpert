@@ -24,7 +24,7 @@ describe('createMapStreamEvents', () => {
         jest.clearAllMocks()
     })
 
-    it('suppresses internal stream events', () => {
+    it.each(['text', 'reasoning'])('suppresses internal %s events during streaming and completion', (contentType) => {
         const subscriber = { next: jest.fn() }
         const mapStreamEvent = createMapStreamEvents(
             logger as unknown as Logger,
@@ -35,24 +35,23 @@ describe('createMapStreamEvents', () => {
             }
         )
 
-        const chunk = mapStreamEvent({
-            event: 'on_chat_model_stream',
-            tags: [],
-            data: {
-                chunk: {
-                    id: 'message-stream-1',
-                    content: '{"outcome":"passed"}',
-                    tool_call_chunks: [],
-                    additional_kwargs: {}
-                }
-            },
-            metadata: {
-                internal: true
-            },
-            run_id: 'langgraph-run-1'
-        })
+        const message = {
+            id: 'message-stream-1',
+            content: contentType === 'text' ? '{"outcome":"passed"}' : '',
+            tool_call_chunks: [],
+            additional_kwargs: contentType === 'reasoning' ? { reasoning_content: 'Internal summary reasoning.' } : {}
+        }
+        for (const event of ['on_chat_model_start', 'on_chat_model_stream', 'on_chat_model_end']) {
+            const chunk = mapStreamEvent({
+                event,
+                tags: [],
+                data: { chunk: message, output: message },
+                metadata: { internal: true },
+                run_id: 'langgraph-run-1'
+            })
 
-        expect(chunk).toBeNull()
+            expect(chunk).toBeNull()
+        }
         expect(subscriber.next).not.toHaveBeenCalled()
     })
 

@@ -131,6 +131,9 @@ export class ChatContextCompressionChunkComponent {
 
   private readonly isSkipped = computed(() => {
     const reason = this.chunk()?.reason
-    return reason === 'no_messages' || reason === 'no_unprotected_history' || reason === 'no_token_gain'
+    return (
+      this.status() === 'success' &&
+      (reason === 'no_messages' || reason === 'no_unprotected_history' || reason === 'no_token_gain')
+    )
   })
 }
