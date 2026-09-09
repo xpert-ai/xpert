@@ -287,7 +287,18 @@ export class KnowledgeWikiGenerationService {
                 })
             )
         }
-        if (indeterminate) job.generationAttempt += 1
+        const invalidResponse = await this.invocationRepository.count({
+            where: {
+                jobId: job.id,
+                generationAttempt: job.generationAttempt,
+                status: 'failed',
+                errorCode: 'model_response_invalid'
+            }
+        })
+        if (invalidResponse) {
+            await this.modelInvocationService.settleFailedResponseBilling(job, await this.jobFence.assert(job))
+        }
+        if (indeterminate || invalidResponse) job.generationAttempt += 1
         job.status = 'queued'
         job.error = null
         job.errorCode = null
@@ -391,9 +402,7 @@ export class KnowledgeWikiGenerationService {
             await this.jobRepository.update(job.id, { status: 'stale', isCurrent: false, completedAt: new Date() })
             return
         }
-        const chunks = (document.chunks ?? [])
-            .filter((chunk) => !!chunk.id && !!chunk.pageContent)
-            .sort((left, right) => left.id.localeCompare(right.id))
+        const chunks = (document.chunks ?? []).filter((chunk) => !!chunk.id && !!chunk.pageContent)
         const batches = createKnowledgeWikiMapBatches(
             chunks,
             normalizeKnowledgebaseWikiConfig(knowledgebase.wikiConfig)

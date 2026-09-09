@@ -142,6 +142,31 @@ describe('Wiki reduce after publication conflict', () => {
 })
 
 describe('Wiki resolved source material', () => {
+    it('passes complete cited source text in document order, retaining each fact anchor', async () => {
+        const h = fixture(false)
+        const originalText = '# Ownership\n\n' + 'Context paragraph.\n'.repeat(150) + '\nTeam maintains the service.'
+        h.document.chunks = [
+            {
+                id: 'a-later',
+                pageContent: 'A later source section.',
+                metadata: { chunkId: 'later', chunkIndex: 1 }
+            },
+            { id: 'chunk', pageContent: originalText, metadata: { chunkId: 'earlier', chunkIndex: 0 } }
+        ]
+        h.payload.facts = [
+            { text: 'A later fact.', sourceChunkIds: ['a-later'] },
+            { text: 'Team maintains the service.', sourceChunkIds: ['chunk'] }
+        ]
+
+        await h.service.process(h.job)
+
+        const sources = h.model.invokeReduceModel.mock.calls[0][3]
+        expect(sources[0].evidence).toEqual([
+            { sourceChunkId: 'chunk', quote: originalText, ordinal: 1, sectionAnchor: 'fact-2' },
+            { sourceChunkId: 'a-later', quote: 'A later source section.', ordinal: 0, sectionAnchor: 'fact-1' }
+        ])
+    })
+
     it('keeps multiple names from the same source in one contribution without losing facts', async () => {
         const h = fixture(false)
         Object.assign(h.service, {

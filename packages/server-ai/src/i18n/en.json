@@ -1,5 +1,7 @@
 {
     "Error": {
+        "KnowledgebaseWikiMarkdownResponseInvalid": "Wiki generation must return a SUMMARY line followed by a Markdown title and body on separate lines.",
+        "KnowledgebaseWikiModelResponseInvalid": "The Wiki model returned invalid content. Retry the failed generation task.",
         "KnowledgebaseWikiRelationsInvalid": "Wiki relations reference an invalid page or unsupported source fact.",
         "KnowledgeIdentityInvalid": "Knowledge identity data or model output is invalid.",
         "KnowledgeIdentityStale": "The identity source changed during processing. Please retry.",
