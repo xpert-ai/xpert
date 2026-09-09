@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.3
+
+### Patch Changes
+
+- d107704: Add Assistant Profile display contracts and capability/activity indicators, trusted Assistant version identities, and the feature-gated Profile tab slot. Expose static Middleware Tool names and human Project access to plugin server services, and provide the shared Zard Hover Card interaction primitive.
+- Updated dependencies [d107704]
+  - @xpert-ai/contracts@3.18.2
+
 ## 3.18.2
 
 ### Patch Changes
