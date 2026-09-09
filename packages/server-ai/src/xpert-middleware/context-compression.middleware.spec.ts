@@ -8,7 +8,10 @@ import {
     START,
     StateGraph
 } from '@langchain/langgraph'
-import { ContextCompressionMiddleware } from './context-compression.middleware'
+import {
+    ContextCompressionMiddleware,
+    type ContextCompressionMiddlewareOptions
+} from './context-compression.middleware'
 import type { AgentMiddleware } from '@xpert-ai/plugin-sdk'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
@@ -684,4 +687,110 @@ describe('context compression bug regressions', () => {
         const keptAnswer = update.messages?.at(-1)
         expect(keptAnswer?.additional_kwargs.contextCompressionUsageInvalidated).toBe(true)
     })
+})
+
+describe('context compression small-window tool budgets', () => {
+    const tool = (id: string, tokens: number) =>
+        new ToolMessage({ id, name: 'read_file', tool_call_id: id, content: 'x'.repeat(tokens * 4) })
+
+    it.each<[string, ContextCompressionMiddlewareOptions]>([
+        ['defaults', {}],
+        ['40k protection', { pruneMinimumTokens: 0 }],
+        ['20k minimum gain', { pruneProtectTokens: 0 }]
+    ])('prunes an old 4k result in a 32k window with %s without invoking the summary model', async (_, options) => {
+        const f = createContext()
+        const middleware = await new ContextCompressionMiddleware().createMiddleware(options, f.context)
+        const recent = tool('recent', 8000)
+        const latest = new HumanMessage('c'.repeat(12000 * 4))
+        const update = await getBeforeModel(middleware)(
+            {
+                messages: [
+                    new HumanMessage('Read old'),
+                    tool('old', 4000),
+                    new HumanMessage('Read recent'),
+                    recent,
+                    latest
+                ]
+            },
+            createRuntimeConfig(f.subscriber, 'Continue', { context_size: 32768, max_tokens: 4096 })
+        )
+        if (!update) throw new Error('Missing compression update')
+        const old = update.messages?.find((message) => message.id === 'old')
+        expect(old?.additional_kwargs.pruned).toBe(true)
+        expect(update?.messages).toEqual(expect.arrayContaining([recent, latest]))
+        expect(f.model.invoke).not.toHaveBeenCalled()
+        expect(f.subscriber.next.mock.calls.at(-1)?.[0].data.data.data.status).toBe('success')
+    })
+
+    it.each([
+        [4096, 1200],
+        [16000, 1200],
+        [4096, 5]
+    ])('caps the 50k tool budget in 32k with %i output tokens reserved and %i lines', async (maxTokens, lineCount) => {
+        const f = createContext()
+        const middleware = await new ContextCompressionMiddleware().createMiddleware(
+            { enableTwoPhaseCompression: false },
+            f.context
+        )
+        const content = Array(lineCount)
+            .fill('x'.repeat(120000 / lineCount - 1))
+            .join('\n')
+        const update = await getBeforeModel(middleware)(
+            {
+                messages: [
+                    new HumanMessage('Read'),
+                    new ToolMessage({ id: 'large', name: 'read_file', tool_call_id: 'large', content })
+                ]
+            },
+            createRuntimeConfig(f.subscriber, 'Continue', { context_size: 32768, max_tokens: maxTokens })
+        )
+        if (!update) throw new Error('Missing compression update')
+        const output = update.messages?.find((message) => message.id === 'large')
+        const file = output?.additional_kwargs.originalFile
+        try {
+            expect(output?.additional_kwargs.truncated).toBe(true)
+            const budget = Math.min(Math.round(32768 * 0.7), 32768 - maxTokens)
+            expect(Math.ceil(String(output?.content).length / 4)).toBeLessThanOrEqual(budget)
+            expect(f.model.invoke).not.toHaveBeenCalled()
+            if (typeof file !== 'string') throw new Error('Missing original tool output')
+            const { readFile } = await import('node:fs/promises')
+            expect(await readFile(file, 'utf8')).toBe(content)
+        } finally {
+            if (typeof file === 'string') {
+                const { unlink } = await import('node:fs/promises')
+                await unlink(file)
+            }
+        }
+    })
+
+    it.each([
+        [131072, 22000, 28000, 45000],
+        [200000, 6000, 42000, 97000]
+    ])(
+        'keeps the original 40k/20k/50k behavior when it fits a %i window',
+        async (window, oldTokens, recentTokens, textTokens) => {
+            const f = createContext()
+            const middleware = await new ContextCompressionMiddleware().createMiddleware({}, f.context)
+            const update = await getBeforeModel(middleware)(
+                {
+                    messages: [
+                        new HumanMessage('Read old'),
+                        tool('old', oldTokens),
+                        new HumanMessage('Read recent'),
+                        tool('recent', recentTokens),
+                        new HumanMessage('c'.repeat(textTokens * 4))
+                    ]
+                },
+                createRuntimeConfig(f.subscriber, 'Continue', { context_size: window, max_tokens: 4096 })
+            )
+            if (!update) throw new Error('Missing compression update')
+            expect(f.model.invoke).toHaveBeenCalledTimes(1)
+            expect(
+                update?.messages?.some(
+                    (message) => message.additional_kwargs.pruned || message.additional_kwargs.truncated
+                )
+            ).toBe(false)
+            expect(JSON.stringify(f.model.invoke.mock.calls)).not.toContain('Tool output truncated')
+        }
+    )
 })

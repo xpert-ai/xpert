@@ -394,9 +394,14 @@ function truncateToFitBudget(content: string, remainingBudget: number, toolName:
         currentTokens += lineTokens
     }
 
-    // Keep at least minLines
-    if (selectedLines.length < minLines && lines.length >= minLines) {
-        selectedLines = lines.slice(-minLines)
+    // The minimum line count must still fit the tool-output budget.
+    const minimumLines = lines.slice(-minLines)
+    if (
+        selectedLines.length < minLines &&
+        lines.length >= minLines &&
+        estimateTokenCountSync(minimumLines.join('\n')) <= availableBudget
+    ) {
+        selectedLines = minimumLines
     }
 
     const skippedLines = lines.length - selectedLines.length
@@ -1646,10 +1651,26 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
             let currentTokenCount = originalTokenCount
 
+            // Keep configured tool limits as ceilings, scaled down by the existing prompt budget when needed.
+            const promptBudget = promptWindowEstimate.effectivePromptBudget
+            const needsSmallerLimits =
+                options.toolOutputBudget > promptBudget ||
+                options.pruneProtectTokens + options.pruneMinimumTokens > promptBudget
+            const toolOutputBudget = Math.min(options.toolOutputBudget, promptBudget)
+            const pruneProtectTokens = needsSmallerLimits
+                ? Math.min(options.pruneProtectTokens, Math.floor(promptBudget * options.preserveFraction))
+                : options.pruneProtectTokens
+            const pruneMinimumTokens = needsSmallerLimits
+                ? Math.min(
+                      options.pruneMinimumTokens,
+                      Math.max(1, Math.ceil(promptWindowEstimate.estimatedPromptTokens - promptBudget))
+                  )
+                : options.pruneMinimumTokens
+
             if (options.enableTwoPhase) {
                 const pruneResult = await this.pruneOldToolOutputs(currentMessages, {
-                    pruneProtectTokens: options.pruneProtectTokens,
-                    pruneMinimumTokens: options.pruneMinimumTokens,
+                    pruneProtectTokens,
+                    pruneMinimumTokens,
                     protectedUserTurns: options.protectedUserTurns
                 })
 
@@ -1688,7 +1709,7 @@ export class ContextCompressionMiddleware implements IAgentMiddlewareStrategy {
 
             this.logger.log('First layer pruning insufficient, starting second layer summary compression...')
 
-            const truncatedHistory = await this.truncateHistoryToBudget(currentMessages, options.toolOutputBudget)
+            const truncatedHistory = await this.truncateHistoryToBudget(currentMessages, toolOutputBudget)
             currentMessages = truncatedHistory
             currentTokenCount = await this.estimateTokens(currentMessages)
 
