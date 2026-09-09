@@ -1550,6 +1550,7 @@
       "RemoveUserFromOrg": "Remove user from organization"
     },
     "ACTIONS": {
+      "Retry": "Retry",
       "ADD": "Add",
       "Add": "Add",
       "CANCEL": "Cancel",
