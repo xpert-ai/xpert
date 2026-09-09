@@ -1046,7 +1046,8 @@
       "LoadFolderFailed": "載入資料夾失敗",
       "LoadFileFailed": "載入文件失敗",
       "UploadFiles": "上傳文件",
-      "UploadFolder": "上傳資料夾"
+      "UploadFolder": "上傳資料夾",
+      "MoreActions": "更多操作"
     },
     "KEY_WORDS": {
       "Skills": "技能",
@@ -5040,6 +5041,16 @@
       "FoundDoorwayGreat": "看起來您已經找到了通往偉大虛無的大門",
       "SorryAboutThat": "很抱歉！請訪問我們的主頁以找到您需要的信息。",
       "TakeMeThere": "帶我去！"
+    },
+    "WorkspaceFiles": {
+      "Title": "資料庫",
+      "Description": "瀏覽、管理和編輯 Claw Xpert 工作區中的資源。",
+      "RootLabel": "Claw Xpert 工作區文件",
+      "WorkspaceFiles": "工作區文件",
+      "SearchPlaceholder": "搜尋工作區文件",
+      "ClearSearch": "清除搜尋",
+      "RefreshTree": "重新整理檔案樹",
+      "Unavailable": "請先配置 Claw Xpert。"
     },
     "Knowledgebase": {
       "GraphDocumentProgress": {

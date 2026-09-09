@@ -403,7 +403,8 @@
       "LoadFolderFailed": "加载文件夹失败",
       "LoadFileFailed": "加载文件失败",
       "UploadFiles": "上传文件",
-      "UploadFolder": "上传文件夹"
+      "UploadFolder": "上传文件夹",
+      "MoreActions": "更多操作"
     },
     "KEY_WORDS": {
       "Ask": "提问",
@@ -1931,6 +1932,16 @@
       "AddSemanticModels": "添加语义模型",
       "New": "新建",
       "Files": "文件"
+    },
+    "WorkspaceFiles": {
+      "Title": "资料库",
+      "Description": "浏览、管理和编辑 Claw Xpert 工作区中的资源。",
+      "RootLabel": "Claw Xpert 工作区文件",
+      "WorkspaceFiles": "工作区文件",
+      "SearchPlaceholder": "搜索工作区文件",
+      "ClearSearch": "清除搜索",
+      "RefreshTree": "刷新文件树",
+      "Unavailable": "请先配置 Claw Xpert。"
     },
     "Knowledgebase": {
       "FilterForm": {
