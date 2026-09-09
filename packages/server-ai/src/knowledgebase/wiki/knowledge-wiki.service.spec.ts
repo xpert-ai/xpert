@@ -47,7 +47,11 @@ function createService(params: {
         ...params.pageRepository
     }
     const jobRepository = {
-        count: jest.fn().mockResolvedValue(0)
+        createQueryBuilder: jest.fn(() => ({
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getCount: jest.fn().mockResolvedValue(0)
+        }))
     }
     const recoveryQuery = {
         innerJoinAndSelect: jest.fn().mockReturnThis(),

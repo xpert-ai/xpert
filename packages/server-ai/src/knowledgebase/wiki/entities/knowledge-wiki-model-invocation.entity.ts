@@ -34,7 +34,7 @@ export class KnowledgeWikiModelInvocation extends TenantOrganizationBaseEntity {
     requestId: string
 
     @Column({ type: 'varchar', length: 32 })
-    stage: 'map' | 'dedup' | 'reduce'
+    stage: 'map' | 'dedup' | 'reduce' | 'classify' | 'links'
 
     @Column({ type: 'int' })
     callOrdinal: number

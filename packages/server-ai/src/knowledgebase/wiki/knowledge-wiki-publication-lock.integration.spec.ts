@@ -71,6 +71,7 @@ postgresDescribe('Wiki publication and identity lock ordering', () => {
         const job = Object.assign(new KnowledgeWikiJob(), { id: randomUUID(), knowledgebaseId: kb.id })
         const succeeded = jest.fn()
         const service = Object.assign(Object.create(KnowledgeWikiFinalizeService.prototype), {
+            classification: { enqueuePublished: jest.fn() },
             jobRepository: { find: async () => [] },
             jobFence: { assert: async () => kb },
             indexService: {

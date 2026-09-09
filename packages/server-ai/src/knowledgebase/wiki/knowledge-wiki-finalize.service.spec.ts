@@ -65,6 +65,7 @@ function fixture() {
     const dispatcher = { dispatch: jest.fn(), markSucceeded: jest.fn() }
     const projection = { stage: jest.fn(), retireSupersededVersions: jest.fn() }
     const service = Object.assign(Object.create(KnowledgeWikiFinalizeService.prototype), {
+        classification: { enqueuePublished: jest.fn() },
         jobRepository: jobs,
         pageRepository: pages,
         pageVersionRepository: versions,

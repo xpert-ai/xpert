@@ -69,6 +69,7 @@ function createHarness(type: KnowledgeWikiJob['type'], children: Partial<Knowled
         billingPrincipalId: 'user-1'
     })
     const jobRepository = {
+        query: jest.fn().mockResolvedValue([]),
         findOne: jest.fn(
             async ({ where }: { where: Partial<KnowledgeWikiJob> }): Promise<KnowledgeWikiJob | null> =>
                 where.id === job.id ? Object.assign(new KnowledgeWikiJob(), job) : null
@@ -126,6 +127,7 @@ function createHarness(type: KnowledgeWikiJob['type'], children: Partial<Knowled
         jobs
     )
     const dependencies = {
+        classification: { enqueuePublished: jest.fn() },
         logger: new Logger(KnowledgeWikiGenerationService.name),
         jobRepository,
         knowledgebaseRepository,

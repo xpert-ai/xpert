@@ -1,3 +1,5 @@
+import { Inject } from '@nestjs/common'
+import { KnowledgeWikiClassificationService } from './knowledge-wiki-classification.service'
 import { KBDocumentStatusEnum, normalizeKnowledgebaseWikiConfig } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
@@ -32,6 +34,7 @@ import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-schedul
 import { KnowledgeWikiFinalizeService } from './knowledge-wiki-finalize.service'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
 import { KnowledgeWikiJobFenceService } from './knowledge-wiki-job-fence.service'
+import { retireSupersededKnowledgeWikiJobs } from './knowledge-wiki-job-current'
 import { KnowledgeWikiJobLeaseService } from './knowledge-wiki-job-lease.service'
 import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invocation.service'
 import { KnowledgeWikiPageReduceService } from './knowledge-wiki-page-reduce.service'
@@ -49,6 +52,7 @@ const MAX_DISPATCH_ERROR_LENGTH = 4000
 
 @Injectable()
 export class KnowledgeWikiGenerationService {
+    @Inject(KnowledgeWikiClassificationService) private readonly classification: KnowledgeWikiClassificationService
     private readonly logger = new Logger(KnowledgeWikiGenerationService.name)
 
     constructor(
@@ -143,6 +147,7 @@ export class KnowledgeWikiGenerationService {
         ) {
             sourceState.generationPendingReason = 'full_rebuild_required'
             await this.sourceStateRepository.save(sourceState)
+            await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
             return null
         }
 
@@ -177,6 +182,7 @@ export class KnowledgeWikiGenerationService {
         }
         sourceState.desiredRootJobId = job.id
         await this.sourceStateRepository.save(sourceState)
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
         await this.knowledgebaseRepository.update(knowledgebase.id, {
             wikiStatus: 'indexing',
             wikiBuildError: null
@@ -255,6 +261,7 @@ export class KnowledgeWikiGenerationService {
 
     async retry(input: KnowledgeWikiRetryInput) {
         await this.knowledgebaseService.assertKnowledgebaseWriteAccess(input.knowledgebaseId, { select: { id: true } })
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, input.knowledgebaseId)
         const job = await this.jobRepository.findOne({
             where: { id: input.jobId, knowledgebaseId: input.knowledgebaseId, isCurrent: true }
         })
@@ -292,12 +299,13 @@ export class KnowledgeWikiGenerationService {
 
     async processJob(jobId: string) {
         const job = await this.jobRepository.findOne({ where: { id: jobId } })
-        if (!job || ['succeeded', 'stale', 'cancelled'].includes(job.status)) return job
+        if (!job || job.isCurrent === false || ['succeeded', 'stale', 'cancelled'].includes(job.status)) return job
         const stopHeartbeat = await this.lease.acquire(job)
         if (!stopHeartbeat) return job
 
         try {
-            if (job.type === 'source_map') await this.processSourceMap(job)
+            if (job.type === 'classify') await this.classification.process(job)
+            else if (job.type === 'source_map') await this.processSourceMap(job)
             else if (job.type === 'identity_resolve') await this.identityResolver.process(job)
             else if (job.type === 'page_reduce') await this.pageReducer.process(job)
             else if (job.type === 'finalize') await this.finalizer.process(job)
@@ -366,6 +374,7 @@ export class KnowledgeWikiGenerationService {
         job.status = 'succeeded'
         job.completedAt = new Date()
         await this.jobRepository.save(job)
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
         await Promise.all(children.map((child) => this.dispatcher.dispatch(child, job.billingPrincipalId)))
         if (!children.length) {
             await this.rebuildCoordinator.scheduleAfterMap(job)
@@ -500,7 +509,7 @@ export class KnowledgeWikiGenerationService {
                 leaseExpiresAt: null
             }
         )
-        if (!failed.affected) return
+        if (!failed.affected || job.type === 'classify') return
         const readyPages = await this.pageRepository.count({
             where: { knowledgebaseId: job.knowledgebaseId, status: 'ready', activeVersionId: Not(IsNull()) }
         })

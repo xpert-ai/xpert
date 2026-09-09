@@ -4,7 +4,6 @@ import { KnowledgeDocumentChunkComponent } from './documents/chunk/chunk.compone
 import { KnowledgeDocumentCreateComponent } from './documents/create/create.component'
 import { KnowledgeDocumentsComponent } from './documents/documents.component'
 import { KnowledgebaseComponent } from './knowledgebase.component'
-import { KnowledgeGraphComponent } from './graph/graph.component'
 import { KnowledgeTestComponent } from './test/test.component'
 import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipeline.component'
 import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component'
@@ -12,7 +11,6 @@ import { KnowledgeDocumentSettingsComponent } from './documents/settings/setting
 import { KnowledgebasePipelineComponent } from './pipeline/pipeline.component'
 import { ExtensionHostViewPageComponent } from 'apps/cloud/src/app/@shared/view-extension'
 import { KnowledgeFAQComponent } from './faq/faq.component'
-import { KnowledgeWikiComponent } from './wiki/wiki.component'
 import { knowledgebaseWikiGuard } from './knowledgebase-wiki.guard'
 
 export default [
@@ -64,12 +62,14 @@ export default [
       },
       {
         path: 'graph',
-        component: KnowledgeGraphComponent
+        data: { preload: false },
+        loadComponent: () => import('./graph/graph.component').then((m) => m.KnowledgeGraphComponent)
       },
       {
         path: 'wiki',
+        data: { preload: false },
         canActivate: [knowledgebaseWikiGuard],
-        component: KnowledgeWikiComponent
+        loadComponent: () => import('./wiki/wiki.component').then((m) => m.KnowledgeWikiComponent)
       },
       {
         path: 'view/:viewKey',

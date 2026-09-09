@@ -1,8 +1,12 @@
 {
     "Error": {
+        "KnowledgebaseWikiRelationsInvalid": "Wiki 关联引用了无效页面或缺少来源事实依据。",
         "KnowledgeIdentityInvalid": "知识身份数据或模型返回结果无效。",
         "KnowledgeIdentityStale": "处理期间来源已发生变化，请重试。",
         "KnowledgeIdentityBusy": "处理期间身份目录已发生变化，请重试。",
+        "KnowledgebaseWikiFolderNotEmpty": "请先移走子目录及页面，再删除此目录。",
+        "KnowledgebaseWikiOrganizationInvalid": "目录或分类请求无效，请检查目录层级并刷新后重试。",
+        "KnowledgebaseWikiOrganizationConflict": "Wiki 目录或页面归属已发生变化，请刷新后重试。",
         "KnowledgeGraphDocumentStatusBatchInvalid": "请提供 1 至 {{max}} 个文档 UUID。",
         "KnowledgeRetrievalSourceRequired": "请选择至少一种适用于当前检索内容且权重大于零的检索方式。",
         "KnowledgeRerankModelUnavailable": "知识库“{{knowledgebase}}”的重排模型不可用。",

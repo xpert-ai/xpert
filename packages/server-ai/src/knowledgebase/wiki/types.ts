@@ -53,6 +53,9 @@ export type KnowledgeWikiReduceModelOutput = {
 }
 
 export type KnowledgeWikiModelOutput =
+    | import('./knowledge-wiki-content-quality').KnowledgeWikiRelationsOutput
+    | import('@xpert-ai/contracts').KnowledgeWikiTaxonomyOutput
+    | import('@xpert-ai/contracts').KnowledgeWikiClassificationOutput
     | KnowledgeWikiMapModelOutput
     | KnowledgeWikiReduceModelOutput
     | import('./knowledge-wiki-dedup-model').KnowledgeWikiDedupModelOutput

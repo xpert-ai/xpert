@@ -1,8 +1,12 @@
 {
     "Error": {
+        "KnowledgebaseWikiRelationsInvalid": "Wiki relations reference an invalid page or unsupported source fact.",
         "KnowledgeIdentityInvalid": "Knowledge identity data or model output is invalid.",
         "KnowledgeIdentityStale": "The identity source changed during processing. Please retry.",
         "KnowledgeIdentityBusy": "The identity catalogue changed during processing. Please retry.",
+        "KnowledgebaseWikiFolderNotEmpty": "Move child directories and pages before deleting this directory.",
+        "KnowledgebaseWikiOrganizationInvalid": "The Wiki directory or classification request is invalid. Check the directory hierarchy and refresh before trying again.",
+        "KnowledgebaseWikiOrganizationConflict": "Wiki directories or page placement changed. Refresh before applying this change.",
         "KnowledgeGraphDocumentStatusBatchInvalid": "Provide between 1 and {{max}} document UUIDs.",
         "KnowledgeRetrievalSourceRequired": "Select at least one retrieval source available for the selected content scope with a positive weight.",
         "KnowledgeRerankModelUnavailable": "Rerank model is not available for knowledgebase '{{knowledgebase}}'.",

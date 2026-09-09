@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core'
-import { ExtraOptions, PreloadAllModules, RouterModule, Routes } from '@angular/router'
+import { ExtraOptions, RouterModule, Routes } from '@angular/router'
+import { SelectivePreloadingStrategy } from './@core/routing/selective-preloading-strategy'
 import { SignInSuccessComponent } from './@core/auth/signin-success'
 import { authGuard } from './@core/auth/auth.guard'
 
@@ -43,7 +44,7 @@ const routes: Routes = [
 
 const config: ExtraOptions = {
   useHash: false,
-  preloadingStrategy: PreloadAllModules
+  preloadingStrategy: SelectivePreloadingStrategy
 }
 
 @NgModule({

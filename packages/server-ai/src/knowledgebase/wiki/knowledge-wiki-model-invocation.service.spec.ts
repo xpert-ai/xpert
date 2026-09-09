@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 import i18next from 'i18next'
 import { DataSource, EntityManager } from 'typeorm'
 import { KnowledgeWikiJob, KnowledgeWikiModelInvocation } from './entities'
@@ -129,6 +130,175 @@ describe('KnowledgeWikiModelInvocationService', () => {
             modelType: AiModelTypeEnum.LLM
         }
     }
+
+    it('recovers omitted relations from facts and replays both saved invocations without another charge', async () => {
+        const { service, invoke, invocations, commandBus } = createHarness()
+        invoke
+            .mockResolvedValueOnce({
+                pages: ['Knowledge management', 'Tacit knowledge'].map((name) => ({
+                    schemaVersion: 1,
+                    pageType: 'concept',
+                    identity: { kind: 'concept', definition: name, domain: null, scope: null },
+                    canonicalName: name,
+                    aliases: [],
+                    summary: name,
+                    facts: [
+                        {
+                            text: 'Knowledge management includes making tacit knowledge explicit.',
+                            sourceChunkIds: ['chunk-1']
+                        }
+                    ],
+                    suggestedLinks: []
+                }))
+            })
+            .mockResolvedValueOnce({ links: [{ sourceIndex: 0, targetIndex: 1, factIndices: [0], label: 'includes' }] })
+        const run = () =>
+            service.invokeMapModel(
+                job as never,
+                knowledgebase as never,
+                'doc',
+                [{ id: 'chunk-1', content: 'Knowledge management includes making tacit knowledge explicit.' }],
+                0
+            )
+        const output = await run()
+        expect(output.pages[0].suggestedLinks).toEqual([
+            { targetType: 'concept', targetCanonicalName: 'Tacit knowledge', label: 'includes' }
+        ])
+        await expect(run()).resolves.toEqual(output)
+        expect(invocations.map((item) => item.stage)).toEqual(['map', 'links'])
+        expect(invoke).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+    })
+
+    it('preserves collapsed Markdown without a repair call, including cached results', async () => {
+        const { service, invoke, invocations, commandBus } = createHarness()
+        const original = '## OverviewBody text.## DetailsMore text.'
+        invoke.mockResolvedValue({ title: 'Page', summary: 'Summary', contentMarkdown: original })
+        const run = () =>
+            service.invokeReduceModel(
+                job as never,
+                knowledgebase as never,
+                { pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                [],
+                'format-case'
+            )
+        await expect(run()).resolves.toEqual({ title: 'Page', summary: 'Summary', contentMarkdown: original })
+        await expect(run()).resolves.toEqual({ title: 'Page', summary: 'Summary', contentMarkdown: original })
+        expect(invocations.map((item) => item.stage)).toEqual(['reduce'])
+        expect(invoke).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(
+        [false, true].flatMap((streaming) => [
+            { streaming, markdown: '## TitleBody text.## DetailsMore text.', malformed: false },
+            { streaming, markdown: '## Title\n\nBody "a b" and \\n.\n\n## Details\n\nMore text.', malformed: false },
+            { streaming, markdown: '', malformed: true }
+        ])
+    )(
+        'logs the original model text even when Wiki output validation fails (%j)',
+        async ({ streaming, markdown, malformed }) => {
+            const { service, modelRuntime, invocations } = createHarness()
+            const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined)
+            const output = { title: 'Page', summary: 'Summary', contentMarkdown: markdown }
+            const raw = JSON.stringify(malformed ? { ...output, contentMarkdown: 42 } : output)
+            const usage = { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+            const fetch = jest.fn(async () => {
+                if (streaming) {
+                    const events = (raw.match(/[\s\S]{1,3}/g) ?? []).map((content) => ({
+                        id: 'completion-diagnostic',
+                        object: 'chat.completion.chunk',
+                        created: 1,
+                        model: 'qwen3.7-flash',
+                        choices: [{ index: 0, delta: { role: 'assistant', content }, finish_reason: null }]
+                    }))
+                    const end = {
+                        id: 'completion-diagnostic',
+                        object: 'chat.completion.chunk',
+                        created: 1,
+                        model: 'qwen3.7-flash',
+                        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+                        usage
+                    }
+                    return new Response(
+                        [...events, end].map((event) => `data: ${JSON.stringify(event)}\n\n`).join('') +
+                            'data: [DONE]\n\n',
+                        {
+                            headers: { 'Content-Type': 'text/event-stream' }
+                        }
+                    )
+                }
+                return new Response(
+                    JSON.stringify({
+                        id: 'completion-diagnostic',
+                        object: 'chat.completion',
+                        created: 1,
+                        model: 'qwen3.7-flash',
+                        usage,
+                        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: raw } }]
+                    }),
+                    { headers: { 'Content-Type': 'application/json' } }
+                )
+            })
+            modelRuntime.createModelClient.mockResolvedValue(
+                new ChatOpenAI({
+                    apiKey: 'offline-test-key',
+                    model: 'qwen3.7-flash',
+                    streaming,
+                    maxRetries: 0,
+                    configuration: { baseURL: 'https://wiki-sdk-test.invalid/v1', fetch }
+                })
+            )
+            try {
+                const run = () =>
+                    service.invokeReduceModel(
+                        job as never,
+                        knowledgebase as never,
+                        { id: 'page-1', pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                        [],
+                        'diagnostic-case'
+                    )
+                if (malformed) {
+                    await expect(run()).rejects.toThrow()
+                } else {
+                    await expect(run()).resolves.toEqual(output)
+                    await expect(run()).resolves.toEqual(output)
+                }
+                const events = log.mock.calls.map(([message]) => JSON.parse(String(message)))
+                const rawEvents = events.filter((event) => event.event === 'wiki.reduce.raw')
+                expect(rawEvents).toHaveLength(1)
+                expect(rawEvents[0]).toMatchObject({
+                    knowledgebaseId: 'kb-1',
+                    jobId: 'job-1',
+                    generationAttempt: 0,
+                    inputFingerprint: 'diagnostic-case',
+                    model: 'qwen',
+                    output: { generations: [[{ text: raw }]] }
+                })
+                const parsedEvents = events.filter((event) => event.event === 'wiki.reduce.parsed')
+                if (malformed) {
+                    expect(parsedEvents).toHaveLength(0)
+                    expect(invocations[0].status).not.toBe('succeeded')
+                } else {
+                    expect(parsedEvents).toHaveLength(2)
+                    expect(parsedEvents[0]).toMatchObject({
+                        knowledgebaseId: 'kb-1',
+                        jobId: 'job-1',
+                        pageId: 'page-1',
+                        generationAttempt: 0,
+                        inputFingerprint: 'diagnostic-case',
+                        contentLength: markdown.length,
+                        lineFeedCount: markdown.split('\n').length - 1,
+                        output
+                    })
+                }
+                expect(fetch).toHaveBeenCalledTimes(1)
+                expect(invocations).toHaveLength(1)
+            } finally {
+                log.mockRestore()
+            }
+        }
+    )
 
     it('resolves prefixed citations against the supplied chunks on both new and cached model results', async () => {
         const { service, invoke, commandBus } = createHarness()
@@ -375,7 +545,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
         const { service, modelRuntime } = createHarness()
         const responses = [
             { pages: [] },
-            { title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert', aliases: [] }
+            { title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert\n\nAn AI platform.', aliases: [] }
         ]
         const fetch = jest.fn().mockImplementation(
             async () =>
@@ -452,7 +622,11 @@ describe('KnowledgeWikiModelInvocationService', () => {
                 [],
                 'reduce-1'
             )
-        ).resolves.toEqual({ title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert' })
+        ).resolves.toEqual({
+            title: 'Xpert',
+            summary: 'An AI platform.',
+            contentMarkdown: '## Xpert\n\nAn AI platform.'
+        })
         expect(fetch).toHaveBeenCalledTimes(2)
     })
 
