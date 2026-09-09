@@ -1270,6 +1270,19 @@
       "PasteMCPJson": "Paste an MCP JSON config to create a toolset.",
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
+    "Files": {
+      "MoreActions": "More actions"
+    },
+    "WorkspaceFiles": {
+      "Title": "Resource library",
+      "Description": "Browse, manage, and edit resources in the Claw Xpert workspace.",
+      "RootLabel": "Claw Xpert workspace files",
+      "WorkspaceFiles": "Workspace files",
+      "SearchPlaceholder": "Search workspace files",
+      "ClearSearch": "Clear search",
+      "RefreshTree": "Refresh file tree",
+      "Unavailable": "Configure Claw Xpert first."
+    },
     "Chat": {
       "WorkbenchPresentation": {
         "SearchAssistants": "Search assistants",
