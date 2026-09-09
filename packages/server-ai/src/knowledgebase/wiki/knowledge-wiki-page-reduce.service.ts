@@ -15,7 +15,11 @@ import {
     KnowledgeWikiSourceState
 } from './entities'
 import { KnowledgeWikiPageSourcePayload } from '@xpert-ai/contracts'
-import { hashKnowledgeWikiValue, isEligibleKnowledgeWikiSource } from './knowledge-wiki-generation.utils'
+import {
+    hashKnowledgeWikiValue,
+    isEligibleKnowledgeWikiSource,
+    orderKnowledgeWikiSourceChunks
+} from './knowledge-wiki-generation.utils'
 import { mergeResolvedWikiContributions } from './knowledge-wiki-dedup'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
 import { KnowledgeWikiJobFenceService } from './knowledge-wiki-job-fence.service'
@@ -293,15 +297,14 @@ export class KnowledgeWikiPageReduceService {
             ) {
                 return []
             }
-            const chunks = new Map((document.chunks ?? []).map((chunk) => [chunk.id, chunk]))
-            const evidence = configured.payload.facts.flatMap((fact, factIndex) =>
-                fact.sourceChunkIds.flatMap((chunkId) => {
-                    const chunk = chunks.get(chunkId)
-                    if (!chunk?.pageContent) return []
+            const chunks = orderKnowledgeWikiSourceChunks(document.chunks ?? [])
+            const evidence = chunks.flatMap((chunk) =>
+                configured.payload.facts.flatMap((fact, factIndex) => {
+                    if (!chunk.pageContent || !fact.sourceChunkIds.includes(chunk.id)) return []
                     return [
                         {
-                            sourceChunkId: chunkId,
-                            quote: chunk.pageContent.slice(0, 2000),
+                            sourceChunkId: chunk.id,
+                            quote: chunk.pageContent,
                             ordinal: factIndex,
                             sectionAnchor: `fact-${factIndex + 1}`
                         }

@@ -1,5 +1,7 @@
 {
     "Error": {
+        "KnowledgebaseWikiMarkdownResponseInvalid": "Wiki 生成结果格式不正确：需要单独的摘要行，以及分行的 Markdown 标题和正文。",
+        "KnowledgebaseWikiModelResponseInvalid": "Wiki 模型返回的内容格式不正确，请重试失败的生成任务。",
         "KnowledgebaseWikiRelationsInvalid": "Wiki 关联引用了无效页面或缺少来源事实依据。",
         "KnowledgeIdentityInvalid": "知识身份数据或模型返回结果无效。",
         "KnowledgeIdentityStale": "处理期间来源已发生变化，请重试。",
