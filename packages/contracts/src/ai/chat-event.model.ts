@@ -73,7 +73,5 @@ function toIsoString(value?: string | Date) {
   return new Date().toISOString()
 }
 
-/** Optional resolved model information; older event consumers remain compatible. */
-export type TAgentThreadContextUsageEvent = TThreadContextUsageEvent & {
-  effectiveModel?: { model?: string; contextWindow: number }
-}
+/** Compatible public alias for the shared context usage event. */
+export type TAgentThreadContextUsageEvent = TThreadContextUsageEvent
