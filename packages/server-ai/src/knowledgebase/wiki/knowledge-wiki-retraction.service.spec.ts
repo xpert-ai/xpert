@@ -33,6 +33,7 @@ function createService(input: {
         update: jest.fn().mockResolvedValue({ affected: 1 })
     }
     const jobRepository = {
+        query: jest.fn().mockResolvedValue([]),
         findOne: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockImplementation((value) => Object.assign(new KnowledgeWikiJob(), value)),
         save: jest.fn().mockImplementation(async (value) => Object.assign(value, { id: value.id ?? 'job-1' })),

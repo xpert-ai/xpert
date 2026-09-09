@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { KnowledgeWikiController } from './knowledge-wiki.controller'
 import { KnowledgeWikiService } from './knowledge-wiki.service'
+import { KnowledgeWikiBrowseService } from './knowledge-wiki-browse.service'
 
 describe('Wiki document status HTTP boundary', () => {
     let app: INestApplication
@@ -13,7 +14,10 @@ describe('Wiki document status HTTP boundary', () => {
     beforeAll(async () => {
         const module = await Test.createTestingModule({
             controllers: [KnowledgeWikiController],
-            providers: [{ provide: KnowledgeWikiService, useValue: { getDocumentStatus } }]
+            providers: [
+                { provide: KnowledgeWikiService, useValue: { getDocumentStatus } },
+                { provide: KnowledgeWikiBrowseService, useValue: {} }
+            ]
         }).compile()
         app = module.createNestApplication()
         await app.listen(0, '127.0.0.1')

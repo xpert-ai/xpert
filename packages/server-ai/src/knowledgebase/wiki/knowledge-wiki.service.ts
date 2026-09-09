@@ -33,6 +33,7 @@ import { createKnowledgeWikiConfigFingerprint, resolveKnowledgeWikiModel } from 
 import { KnowledgeWikiGenerationService } from './knowledge-wiki-generation.service'
 import { queryKnowledgeWikiDocumentStatus } from './knowledge-wiki-document-status'
 import { queryKnowledgeWikiDocumentProgress } from './knowledge-wiki-document-progress-query'
+import { KNOWLEDGE_WIKI_SUPERSEDED_JOB_SQL } from './knowledge-wiki-job-current'
 
 type KnowledgeWikiScope = {
     knowledgebase: Knowledgebase
@@ -557,15 +558,18 @@ export class KnowledgeWikiService {
     }
 
     private countJobs(scope: KnowledgeWikiScope, status: KnowledgeWikiJob['status']) {
-        return this.jobRepository.count({
-            where: {
+        return this.jobRepository
+            .createQueryBuilder('job')
+            .where({
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId,
                 knowledgebaseId: scope.knowledgebase.id,
                 status,
+                type: Not('classify'),
                 isCurrent: true
-            }
-        })
+            })
+            .andWhere(`NOT ${KNOWLEDGE_WIKI_SUPERSEDED_JOB_SQL}`)
+            .getCount()
     }
 
     private async getInvocationStatus(scope: KnowledgeWikiScope) {
@@ -579,6 +583,8 @@ export class KnowledgeWikiService {
             .innerJoinAndSelect('invocation.job', 'job')
             .where(where)
             .andWhere('job."isCurrent" = true')
+            .andWhere(`NOT ${KNOWLEDGE_WIKI_SUPERSEDED_JOB_SQL}`)
+            .andWhere('job.type <> :classificationType', { classificationType: 'classify' })
             .andWhere('job."knowledgebaseId" = invocation."knowledgebaseId"')
             .andWhere('job."tenantId" IS NOT DISTINCT FROM invocation."tenantId"')
             .andWhere('job."organizationId" IS NOT DISTINCT FROM invocation."organizationId"')

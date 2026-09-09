@@ -1,6 +1,23 @@
 import { KnowledgeIdentity } from '../../knowledgebase/identity/knowledge-identity.entity'
 import { KnowledgeIdentityObservation } from '../../knowledgebase/identity/knowledge-identity-observation.entity'
 import {
+    KnowledgeWikiJob,
+    KnowledgeWikiModelInvocation,
+    KnowledgeWikiPageEvidenceEntity,
+    KnowledgeWikiPageLinkEntity,
+    KnowledgeWikiPageContribution,
+    KnowledgeWikiPageReduceInputSource,
+    KnowledgeWikiPageReduceInput,
+    KnowledgeWikiPageVersion,
+    KnowledgeWikiPage,
+    KnowledgeWikiProjectionState,
+    KnowledgeWikiSourceMapResult,
+    KnowledgeWikiSourceState,
+    KnowledgeWikiFolder,
+    KnowledgeWikiPlacement,
+    KnowledgeWikiTaxonomy
+} from '../../knowledgebase/wiki/entities'
+import {
     ChatConversation,
     ChatConversationThread,
     ChatConversationGoal,
@@ -92,6 +109,21 @@ import {
 export const ALL_AI_ENTITIES = [
     KnowledgeIdentity,
     KnowledgeIdentityObservation,
+    KnowledgeWikiJob,
+    KnowledgeWikiModelInvocation,
+    KnowledgeWikiPageEvidenceEntity,
+    KnowledgeWikiPageLinkEntity,
+    KnowledgeWikiPageContribution,
+    KnowledgeWikiPageReduceInputSource,
+    KnowledgeWikiPageReduceInput,
+    KnowledgeWikiPageVersion,
+    KnowledgeWikiPage,
+    KnowledgeWikiProjectionState,
+    KnowledgeWikiSourceMapResult,
+    KnowledgeWikiSourceState,
+    KnowledgeWikiFolder,
+    KnowledgeWikiPlacement,
+    KnowledgeWikiTaxonomy,
     ChatConversation,
     ChatConversationThread,
     ChatConversationGoal,

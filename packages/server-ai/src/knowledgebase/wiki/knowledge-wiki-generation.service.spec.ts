@@ -34,6 +34,7 @@ function createService(enabled = true) {
     const knowledgebaseService = { assertKnowledgebaseWriteAccess: jest.fn().mockResolvedValue(knowledgebase) }
     const documentRepository = { findOne: jest.fn().mockResolvedValue(document) }
     const jobRepository = {
+        query: jest.fn().mockResolvedValue([]),
         findOne: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockResolvedValue({ affected: 1 }),
         create: jest.fn((input: Partial<KnowledgeWikiJob>) => Object.assign(new KnowledgeWikiJob(), input)),
@@ -75,6 +76,30 @@ function createService(enabled = true) {
 }
 
 describe('KnowledgeWikiGenerationService access', () => {
+    it('isolates classification worker failures from published Wiki status', async () => {
+        const { service, jobRepository } = createService()
+        const knowledgebaseRepository = { update: jest.fn() }
+        const job = Object.assign(new KnowledgeWikiJob(), {
+            id: 'job-1',
+            knowledgebaseId: 'kb-1',
+            type: 'classify',
+            status: 'queued',
+            isCurrent: true,
+            executionAttempt: 0
+        })
+        jobRepository.findOne.mockResolvedValue(job)
+        Object.assign(service, {
+            knowledgebaseRepository,
+            classification: { process: jest.fn().mockRejectedValue(new Error('Classification unavailable')) }
+        })
+        await expect(service.processJob(job.id)).rejects.toThrow('Classification unavailable')
+        expect(jobRepository.update).toHaveBeenCalledWith(
+            expect.objectContaining({ id: job.id }),
+            expect.objectContaining({ status: 'failed' })
+        )
+        expect(knowledgebaseRepository.update).not.toHaveBeenCalled()
+    })
+
     it('retries known local failures without another charge confirmation or a new generation attempt', async () => {
         const { service, jobRepository, dispatcher } = createService()
         jobRepository.findOne.mockResolvedValue(
@@ -142,7 +167,7 @@ describe('KnowledgeWikiGenerationService access', () => {
     })
 
     it('automatically enqueues a published source without an organization feature grant', async () => {
-        const { service, dispatcher, sourceStateRepository } = createService()
+        const { service, dispatcher, sourceStateRepository, jobRepository } = createService()
 
         await expect(
             service.enqueueSource({
@@ -157,6 +182,47 @@ describe('KnowledgeWikiGenerationService access', () => {
             expect.objectContaining({ eligible: true, generationPending: true, desiredRootJobId: 'job-1' })
         )
         expect(dispatcher.dispatch).toHaveBeenCalledWith(expect.objectContaining({ id: 'job-1' }), 'user-1')
+        expect(jobRepository.query).toHaveBeenCalledWith(expect.any(String), ['kb-1'])
+        expect(sourceStateRepository.save.mock.invocationCallOrder[0]).toBeLessThan(
+            jobRepository.query.mock.invocationCallOrder[0]
+        )
+        expect(jobRepository.query.mock.invocationCallOrder[0]).toBeLessThan(
+            dispatcher.dispatch.mock.invocationCallOrder[0]
+        )
+    })
+
+    it('rejects retry after retiring a superseded failed task', async () => {
+        const { service, dispatcher, jobRepository } = createService()
+        const old = Object.assign(new KnowledgeWikiJob(), {
+            id: 'old-job',
+            knowledgebaseId: 'kb-1',
+            status: 'failed',
+            isCurrent: true,
+            generationAttempt: 0
+        })
+        jobRepository.findOne.mockImplementation(async () => (old.isCurrent ? old : null))
+        jobRepository.query.mockImplementation(async () => {
+            old.isCurrent = false
+            old.status = 'stale'
+            return []
+        })
+        await expect(service.retry({ knowledgebaseId: 'kb-1', jobId: 'old-job', userId: 'user-1' })).rejects.toThrow()
+        expect(old).toMatchObject({ status: 'stale', isCurrent: false })
+        expect(dispatcher.dispatch).not.toHaveBeenCalled()
+    })
+
+    it('does not execute a retired task delivered by an old queue message', async () => {
+        const { service, jobRepository } = createService()
+        jobRepository.findOne.mockResolvedValue(
+            Object.assign(new KnowledgeWikiJob(), {
+                id: 'old-job',
+                type: 'source_map',
+                status: 'queued',
+                isCurrent: false
+            })
+        )
+        await service.processJob('old-job')
+        expect(jobRepository.update).not.toHaveBeenCalled()
     })
 
     it('does not generate Wiki for a knowledgebase that has not enabled it', async () => {

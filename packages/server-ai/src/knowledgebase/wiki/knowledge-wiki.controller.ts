@@ -1,3 +1,5 @@
+import { Inject } from '@nestjs/common'
+import { KnowledgeWikiBrowseService } from './knowledge-wiki-browse.service'
 import { RequestContext, UUIDValidationPipe } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post, Put, Query, ValidationPipe } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -14,6 +16,7 @@ import { KnowledgeWikiDocumentStatusQueryDTO } from './dto/knowledge-wiki-docume
 @ApiBearerAuth()
 @Controller(':knowledgebaseId/wiki')
 export class KnowledgeWikiController {
+    @Inject(KnowledgeWikiBrowseService) private readonly browse: KnowledgeWikiBrowseService
     constructor(private readonly service: KnowledgeWikiService) {}
 
     @Get('status')
@@ -59,14 +62,19 @@ export class KnowledgeWikiController {
         @Param('knowledgebaseId', UUIDValidationPipe) knowledgebaseId: string,
         @Query(new ValidationPipe({ transform: true, whitelist: true })) query: KnowledgeWikiPageListQueryDTO
     ) {
-        return this.service.listPages(knowledgebaseId, query)
+        return query.status && query.status !== 'ready'
+            ? this.service.listPages(knowledgebaseId, query)
+            : this.browse.list(knowledgebaseId, query)
     }
 
     @Get('pages/:pageId')
-    getPage(
+    async getPage(
         @Param('knowledgebaseId', UUIDValidationPipe) knowledgebaseId: string,
         @Param('pageId', UUIDValidationPipe) pageId: string
     ) {
-        return this.service.getPage(knowledgebaseId, pageId)
+        return {
+            ...(await this.service.getPage(knowledgebaseId, pageId)),
+            placement: await this.browse.placement(knowledgebaseId, pageId)
+        }
     }
 }
