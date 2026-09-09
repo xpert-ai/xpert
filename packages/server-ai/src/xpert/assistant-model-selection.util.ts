@@ -65,10 +65,20 @@ export function sanitizeAssistantModelSnapshot(model: TCopilotModel): ValidAssis
     }
 }
 
-function scrubSensitiveModelOptions(value: Record<string, unknown>): Record<string, unknown> {
+function scrubSensitiveModelOptions(value: object): Record<string, unknown> {
     return Object.fromEntries(
         Object.entries(value).flatMap(([key, item]) => {
-            if (/(api[-_]?key|token|secret|password|credential|authorization)/i.test(key)) {
+            const isOutputLimit =
+                /^(max_tokens|max_completion_tokens|max_output_tokens|max_tokens_to_sample|maxTokens|maxCompletionTokens|maxOutputTokens)$/.test(
+                    key
+                )
+            const isNumericLimit =
+                (typeof item === 'number' && Number.isFinite(item) && item >= 0) ||
+                (typeof item === 'string' && /^\d+$/.test(item))
+            if (
+                /(api[-_]?key|token|secret|password|credential|authorization)/i.test(key) &&
+                !(isOutputLimit && isNumericLimit)
+            ) {
                 return []
             }
             return [[key, scrubSensitiveModelOptionValue(item)]]
@@ -81,7 +91,7 @@ function scrubSensitiveModelOptionValue(value: unknown): unknown {
         return value.map((item) => scrubSensitiveModelOptionValue(item))
     }
     if (value && typeof value === 'object') {
-        return scrubSensitiveModelOptions(value as Record<string, unknown>)
+        return scrubSensitiveModelOptions(value)
     }
     return value
 }
