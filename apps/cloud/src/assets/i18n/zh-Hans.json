@@ -3532,6 +3532,7 @@
       "PasswordChangedSuccessfully": "密码修改成功"
     },
     "ACTIONS": {
+      "Retry": "重试",
       "Start": "开始",
       "Send": "发送",
       "Back": "返回",

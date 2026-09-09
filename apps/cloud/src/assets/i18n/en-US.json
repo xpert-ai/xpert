@@ -1566,6 +1566,7 @@
       }
     },
     "ACTIONS": {
+      "Retry": "Retry",
       "NEW": "New",
       "CREATE": "Create",
       "CANCEL": "Cancel",
