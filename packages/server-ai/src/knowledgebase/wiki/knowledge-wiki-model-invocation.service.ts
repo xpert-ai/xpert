@@ -1,3 +1,16 @@
+import {
+    wikiClassificationSchema,
+    WikiClassificationModelInput,
+    parseWikiClassification,
+    wikiClassificationMessages
+} from './knowledge-wiki-classification.model'
+import type { KnowledgeWikiClassificationOutput, KnowledgeWikiTaxonomyOutput } from '@xpert-ai/contracts'
+import {
+    WikiTaxonomyModelInput,
+    wikiTaxonomySchema,
+    wikiTaxonomyMessages,
+    parseWikiTaxonomy
+} from './knowledge-wiki-taxonomy.model'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { toJsonSchema } from '@langchain/core/utils/json_schema'
 import {
@@ -9,7 +22,7 @@ import {
 import { countTokensSafe } from '@xpert-ai/plugin-sdk'
 import type { TLLMUsage } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
@@ -31,6 +44,11 @@ import {
 } from './knowledge-wiki-model'
 import { KnowledgeWikiMapModelOutput, KnowledgeWikiModelOutput, KnowledgeWikiReduceModelOutput } from './types'
 import { hashKnowledgeWikiValue } from './knowledge-wiki-generation.utils'
+import {
+    applyKnowledgeWikiRelations,
+    knowledgeWikiRelationsMessages,
+    knowledgeWikiRelationsSchema
+} from './knowledge-wiki-content-quality'
 import { KnowledgeWikiInvocationBudgetService } from './knowledge-wiki-invocation-budget.service'
 import {
     buildKnowledgeWikiDedupMessages,
@@ -83,6 +101,8 @@ function isProviderRequestRejected(error: unknown): boolean {
 
 @Injectable()
 export class KnowledgeWikiModelInvocationService {
+    private readonly logger = new Logger(KnowledgeWikiModelInvocationService.name)
+
     constructor(
         @InjectRepository(KnowledgeWikiModelInvocation)
         private readonly invocationRepository: Repository<KnowledgeWikiModelInvocation>,
@@ -113,7 +133,20 @@ export class KnowledgeWikiModelInvocationService {
             parse: parseKnowledgeWikiMapOutput
         })
         // Validate after persisting the known response; citation errors must not imply an uncertain provider charge.
-        return resolveKnowledgeWikiMapSources(output, chunks)
+        const grounded = resolveKnowledgeWikiMapSources(output, chunks)
+        if (grounded.pages.length < 2 || grounded.pages.some((page) => page.suggestedLinks.length)) return grounded
+        const relations = await this.invokeModel({
+            job,
+            knowledgebase,
+            stage: 'links',
+            ordinal,
+            inputFingerprint: hashKnowledgeWikiValue(grounded),
+            messages: knowledgeWikiRelationsMessages(grounded),
+            schema: knowledgeWikiRelationsSchema,
+            parse: (value) => knowledgeWikiRelationsSchema.parse(value)
+        })
+        // Validate references after saving the known provider result, just like citation validation.
+        return applyKnowledgeWikiRelations(grounded, relations)
     }
 
     async invokeReduceModel(
@@ -123,7 +156,7 @@ export class KnowledgeWikiModelInvocationService {
         sources: KnowledgeWikiReduceSource[],
         inputFingerprint: string
     ) {
-        return this.invokeModel<KnowledgeWikiReduceModelOutput>({
+        const output = await this.invokeModel<KnowledgeWikiReduceModelOutput>({
             job,
             knowledgebase,
             stage: 'reduce',
@@ -142,6 +175,21 @@ export class KnowledgeWikiModelInvocationService {
             schema: knowledgeWikiReduceOutputSchema,
             parse: parseKnowledgeWikiReduceOutput
         })
+        this.logger.log(
+            JSON.stringify({
+                event: 'wiki.reduce.parsed',
+                knowledgebaseId: knowledgebase.id,
+                jobId: job.id,
+                pageId: page.id,
+                pageKey: page.pageKey,
+                generationAttempt: job.generationAttempt,
+                inputFingerprint,
+                contentLength: output.contentMarkdown.length,
+                lineFeedCount: output.contentMarkdown.split('\n').length - 1,
+                output
+            })
+        )
+        return output
     }
 
     invokeDedupModel(
@@ -162,10 +210,40 @@ export class KnowledgeWikiModelInvocationService {
         })
     }
 
+    invokeClassificationModel(
+        job: KnowledgeWikiJob,
+        knowledgebase: Knowledgebase,
+        input: WikiClassificationModelInput
+    ) {
+        return this.invokeModel<KnowledgeWikiClassificationOutput>({
+            job,
+            knowledgebase,
+            stage: 'classify',
+            ordinal: 0,
+            inputFingerprint: hashKnowledgeWikiValue(input),
+            messages: wikiClassificationMessages(input),
+            schema: wikiClassificationSchema,
+            parse: (value) => parseWikiClassification(value, input)
+        })
+    }
+
+    invokeTaxonomyModel(job: KnowledgeWikiJob, knowledgebase: Knowledgebase, input: WikiTaxonomyModelInput) {
+        return this.invokeModel<KnowledgeWikiTaxonomyOutput>({
+            job,
+            knowledgebase,
+            stage: 'classify',
+            ordinal: 0,
+            inputFingerprint: hashKnowledgeWikiValue(input),
+            messages: wikiTaxonomyMessages(input),
+            schema: wikiTaxonomySchema,
+            parse: (value) => parseWikiTaxonomy(value, input)
+        })
+    }
+
     private async invokeModel<T extends KnowledgeWikiModelOutput>(input: {
         job: KnowledgeWikiJob
         knowledgebase: Knowledgebase
-        stage: 'map' | 'dedup' | 'reduce'
+        stage: KnowledgeWikiModelInvocation['stage']
         ordinal: number
         inputFingerprint: string
         messages: Array<{ role: 'system' | 'user'; content: string }>
@@ -173,6 +251,9 @@ export class KnowledgeWikiModelInvocationService {
             | typeof knowledgeWikiMapOutputSchema
             | typeof knowledgeWikiReduceOutputSchema
             | typeof knowledgeWikiDedupOutputSchema
+            | typeof wikiClassificationSchema
+            | typeof wikiTaxonomySchema
+            | typeof knowledgeWikiRelationsSchema
         parse: (value: unknown) => T
     }): Promise<T> {
         const model = resolveKnowledgeWikiModel(input.knowledgebase)
@@ -214,6 +295,19 @@ export class KnowledgeWikiModelInvocationService {
             estimatedTokens
         )
         if (invocation?.status === 'succeeded' && invocation.structuredOutput) {
+            if (input.stage === 'reduce') {
+                this.logger.log(
+                    JSON.stringify({
+                        event: 'wiki.reduce.cache_hit',
+                        knowledgebaseId: input.knowledgebase.id,
+                        jobId: input.job.id,
+                        generationAttempt: input.job.generationAttempt,
+                        inputFingerprint: input.inputFingerprint,
+                        invocationId: invocation.id,
+                        requestId
+                    })
+                )
+            }
             await this.deliverBilling(invocation, input.knowledgebase, model)
             return input.parse(invocation.structuredOutput)
         }
@@ -275,7 +369,43 @@ export class KnowledgeWikiModelInvocationService {
                 name: `knowledge_wiki_${input.stage}`
             })
             invocationStarted = true
-            const rawOutput = await structured.invoke(input.messages)
+            const rawOutput = await structured.invoke(
+                input.messages,
+                input.stage === 'reduce'
+                    ? {
+                          // Temporary diagnostics: log the SDK model text before Wiki parsing and validation.
+                          callbacks: [
+                              {
+                                  name: 'wiki-reduce-diagnostic',
+                                  handleLLMEnd: (output, runId) => {
+                                      this.logger.log(
+                                          JSON.stringify({
+                                              event: 'wiki.reduce.raw',
+                                              knowledgebaseId: input.knowledgebase.id,
+                                              jobId: input.job.id,
+                                              pageKey: input.job.pageKey,
+                                              generationAttempt: input.job.generationAttempt,
+                                              inputFingerprint: input.inputFingerprint,
+                                              invocationId: invocation.id,
+                                              requestId,
+                                              runId,
+                                              model: model.model,
+                                              textStats: output.generations.map((generations) =>
+                                                  generations.map(({ text }) => ({
+                                                      length: text.length,
+                                                      lineFeedCount: text.split('\n').length - 1,
+                                                      escapedLineFeedCount: text.split('\\n').length - 1
+                                                  }))
+                                              ),
+                                              output
+                                          })
+                                      )
+                                  }
+                              }
+                          ]
+                      }
+                    : undefined
+            )
             responseReceived = true
             const output = input.parse(rawOutput)
             invocation.status = 'succeeded'

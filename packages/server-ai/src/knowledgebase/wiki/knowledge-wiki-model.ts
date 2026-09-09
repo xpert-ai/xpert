@@ -42,7 +42,12 @@ const mapPageSchema = z.object({
             })
         )
         .max(KNOWLEDGE_WIKI_MAX_FACTS),
-    suggestedLinks: z.array(suggestedLinkSchema).max(KNOWLEDGE_WIKI_MAX_SUGGESTED_LINKS)
+    suggestedLinks: z
+        .array(suggestedLinkSchema)
+        .max(KNOWLEDGE_WIKI_MAX_SUGGESTED_LINKS)
+        .describe(
+            "Links to other entity or concept pages supported by this page's cited facts. Do not omit explicit source relationships or infer relationships from co-occurrence alone."
+        )
 })
 
 export const knowledgeWikiMapOutputSchema = z.object({
@@ -148,6 +153,7 @@ export function buildKnowledgeWikiMapMessages(input: {
                 'For concepts record the definition, domain and scope. Use null for unsupported domain/scope; do not equate related or broader concepts.',
                 'Every fact must cite one or more chunk IDs that exist in SOURCE_DATA.',
                 'Copy the exact chunks[].id values into sourceChunkIds. Do not add prefixes such as "id:" or use titles, ordinals, or IDs from other batches.',
+                'Populate suggestedLinks for explicit relationships supported by the cited facts, using the target pageType and exact canonicalName. Include components, dependencies, applications and comparisons when stated in the source; do not link merely because pages share a source or similar words.',
                 granularity,
                 input.config.extractionFocus ? `Extraction focus: ${input.config.extractionFocus}` : '',
                 input.config.contentGenerationRequirements
