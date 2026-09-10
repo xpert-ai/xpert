@@ -1,0 +1,118 @@
+<div
+  data-parent-child-config
+  [formGroup]="form().fields"
+  class="grid min-w-0 grid-cols-1 gap-6 @min-[38rem]:grid-cols-2"
+>
+  <section formGroupName="parent" class="min-w-0 space-y-5">
+    <header class="flex items-start gap-3 border-b border-divider-subtle pb-4">
+      <i class="ri-file-text-line mt-0.5 text-lg text-text-secondary" aria-hidden="true"></i>
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold text-text-primary">{{ prefix + '.ParentTitle' | translate }}</h3>
+        <p class="mt-1 text-xs leading-5 text-text-tertiary">{{ prefix + '.ParentHelp' | translate }}</p>
+      </div>
+    </header>
+    <z-form-field appearance="standard" class="min-w-0 grid-cols-1 border-0 pb-0">
+      <z-form-label>{{ prefix + '.Mode' | translate }}</z-form-label>
+      <z-select formControlName="mode" class="w-full" [attr.aria-label]="prefix + '.Mode' | translate">
+        <z-select-item zValue="paragraph">{{ prefix + '.ParagraphMode' | translate }}</z-select-item>
+        <z-select-item zValue="full">{{ prefix + '.FullMode' | translate }}</z-select-item>
+      </z-select>
+      <z-form-message class="text-xs leading-5">
+        {{ prefix + (form().parentMode() === 'full' ? '.FullHelp' : '.ParagraphHelp') | translate }}
+      </z-form-message>
+    </z-form-field>
+    @if (form().parentMode() === 'paragraph') {
+      <div data-parent-paragraph-settings class="space-y-5">
+        <z-form-field appearance="standard" class="min-w-0 grid-cols-1 border-0 pb-0">
+          <z-form-label>{{ prefix + '.ParentSeparator' | translate }}</z-form-label>
+          <z-tag-select
+            formControlName="separators"
+            class="block w-full"
+            mode="tags"
+            [allowCreate]="true"
+            [tokenSeparators]="[]"
+            [options]="separatorSelect.separatorTagOptions"
+            [displayWith]="separatorSelect.displaySeparator"
+            [compareWith]="separatorSelect.compareSeparators"
+            [enableSuggestions]="true"
+            [searchable]="false"
+            [checkable]="true"
+            [placeholder]="addSeparatorKey | translate"
+            [attr.aria-label]="prefix + '.ParentSeparator' | translate"
+          />
+          <z-form-message class="text-xs leading-5">{{ prefix + '.ParentSeparatorHelp' | translate }}</z-form-message>
+        </z-form-field>
+        <z-form-field appearance="standard" class="min-w-0 grid-cols-1 border-0 pb-0">
+          <z-form-label>{{ prefix + '.ParentSize' | translate }}</z-form-label>
+          <input
+            z-input
+            type="number"
+            min="1"
+            step="1"
+            formControlName="maxChars"
+            class="w-full"
+            [attr.aria-label]="prefix + '.ParentSize' | translate"
+          />
+          @if (form().controls.parent.controls.maxChars.invalid && form().controls.parent.controls.maxChars.dirty) {
+            <z-form-message zType="error" class="text-xs leading-5">{{
+              prefix + '.PositiveInteger' | translate
+            }}</z-form-message>
+          } @else {
+            <z-form-message class="text-xs leading-5">{{ prefix + '.ParentSizeHelp' | translate }}</z-form-message>
+          }
+        </z-form-field>
+      </div>
+    }
+  </section>
+  <section
+    data-child-settings
+    formGroupName="child"
+    class="min-w-0 space-y-5 border-t border-divider-subtle pt-5 @min-[38rem]:border-t-0 @min-[38rem]:border-l @min-[38rem]:pl-6 @min-[38rem]:pt-0"
+  >
+    <header class="flex items-start gap-3 border-b border-divider-subtle pb-4">
+      <i class="ri-search-2-line mt-0.5 text-lg text-text-secondary" aria-hidden="true"></i>
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold text-text-primary">{{ prefix + '.ChildTitle' | translate }}</h3>
+        <p class="mt-1 text-xs leading-5 text-text-tertiary">{{ prefix + '.ChildHelp' | translate }}</p>
+      </div>
+    </header>
+    <z-form-field appearance="standard" class="min-w-0 grid-cols-1 border-0 pb-0">
+      <z-form-label>{{ prefix + '.ChildSeparator' | translate }}</z-form-label>
+      <z-tag-select
+        formControlName="separators"
+        class="block w-full"
+        mode="tags"
+        [allowCreate]="true"
+        [tokenSeparators]="[]"
+        [options]="separatorSelect.separatorTagOptions"
+        [displayWith]="separatorSelect.displaySeparator"
+        [compareWith]="separatorSelect.compareSeparators"
+        [enableSuggestions]="true"
+        [searchable]="false"
+        [checkable]="true"
+        [placeholder]="addSeparatorKey | translate"
+        [attr.aria-label]="prefix + '.ChildSeparator' | translate"
+      />
+      <z-form-message class="text-xs leading-5">{{ prefix + '.ChildSeparatorHelp' | translate }}</z-form-message>
+    </z-form-field>
+    <z-form-field appearance="standard" class="min-w-0 grid-cols-1 border-0 pb-0">
+      <z-form-label>{{ prefix + '.ChildSize' | translate }}</z-form-label>
+      <input
+        z-input
+        type="number"
+        min="1"
+        step="1"
+        formControlName="maxChars"
+        class="w-full"
+        [attr.aria-label]="prefix + '.ChildSize' | translate"
+      />
+      @if (form().controls.child.controls.maxChars.invalid && form().controls.child.controls.maxChars.dirty) {
+        <z-form-message zType="error" class="text-xs leading-5">{{
+          prefix + '.PositiveInteger' | translate
+        }}</z-form-message>
+      } @else {
+        <z-form-message class="text-xs leading-5">{{ prefix + '.ChildSizeHelp' | translate }}</z-form-message>
+      }
+    </z-form-field>
+  </section>
+</div>

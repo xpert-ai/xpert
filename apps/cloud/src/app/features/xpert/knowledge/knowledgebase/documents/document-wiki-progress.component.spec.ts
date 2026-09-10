@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { provideRouter } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { KnowledgeWikiDocumentProgress } from '@xpert-ai/contracts'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import en from '../../../../../../assets/i18n/en.json'
 import zhHans from '../../../../../../assets/i18n/zh-Hans.json'
 import zhHant from '../../../../../../assets/i18n/zh-Hant.json'
@@ -34,6 +35,7 @@ describe('Document Wiki progress UI', () => {
   })
   afterEach(() => {
     fixture?.destroy()
+    TestBed.inject(OverlayContainer).ngOnDestroy()
     jest.restoreAllMocks()
     api.retryJob.mockClear()
   })
@@ -98,8 +100,34 @@ describe('Document Wiki progress UI', () => {
     expect(confirm).not.toHaveBeenCalled()
     expect(api.retryJob).toHaveBeenCalledWith('kb', 'job', false)
   })
-  it('does not repeat an uncertain paid invocation without confirmation', async () => {
-    fixture.componentRef.setInput('details', true)
+  it.each(['z-cancel-button', 'z-close-header-button', 'escape'])(
+    'does not retry when the charge dialog is dismissed with %s',
+    async (dismissal) => {
+      fixture.componentRef.setInput('details', true)
+      fixture.componentRef.setInput('progress', {
+        ...progress,
+        state: 'failed',
+        retry: { jobId: 'job', requiresAdditionalChargeConfirmation: true }
+      })
+      const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
+      fixture.detectChanges()
+      root().querySelector<HTMLButtonElement>('[data-wiki-retry]').click()
+      fixture.detectChanges()
+      const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+      expect(confirm).not.toHaveBeenCalled()
+      expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RetryChargeConfirm')
+      expect(api.retryJob).not.toHaveBeenCalled()
+      if (dismissal === 'escape') {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      } else {
+        overlay.querySelector<HTMLButtonElement>(`[data-testid="${dismissal}"]`).click()
+      }
+      await fixture.whenStable()
+      expect(api.retryJob).not.toHaveBeenCalled()
+      expect(fixture.componentInstance.busy()).toBe(false)
+    }
+  )
+  it('waits for dialog approval and submits one paid retry despite repeated clicks', async () => {
     fixture.componentRef.setInput('progress', {
       ...progress,
       state: 'failed',
@@ -107,9 +135,24 @@ describe('Document Wiki progress UI', () => {
     })
     jest.spyOn(window, 'confirm').mockReturnValue(false)
     fixture.detectChanges()
-    root().querySelector<HTMLButtonElement>('[data-wiki-retry]').click()
-    await fixture.whenStable()
+    const response = new Subject<object>()
+    api.retryJob.mockReturnValueOnce(response)
+    const pending = fixture.componentInstance.retry()
+    await fixture.componentInstance.retry()
+    fixture.detectChanges()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
     expect(api.retryJob).not.toHaveBeenCalled()
+    overlay.querySelector<HTMLButtonElement>('[data-testid="z-ok-button"]').click()
+    await fixture.whenStable()
+    await fixture.componentInstance.retry()
+    expect(api.retryJob).toHaveBeenCalledTimes(1)
+    expect(api.retryJob).toHaveBeenCalledWith('kb', 'job', true)
+    response.next({})
+    response.complete()
+    await pending
+    expect(fixture.componentInstance.busy()).toBe(false)
+    expect(fixture.componentInstance.retriedJobId()).toBe('job')
   })
   it.each([
     ['en', en, 'Retry', 'Wiki search indexing failed'],

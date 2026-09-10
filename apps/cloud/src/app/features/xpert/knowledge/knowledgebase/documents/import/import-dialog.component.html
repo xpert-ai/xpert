@@ -1,0 +1,253 @@
+<div class="flex h-[min(48rem,calc(100dvh-3rem))] w-[min(76rem,calc(100vw-3rem))] flex-col" [attr.aria-busy]="busy()">
+  <header class="flex shrink-0 items-center justify-between gap-4 border-b border-divider-subtle px-5 py-3">
+    <h2 class="font-semibold">
+      {{ titleKey | translate }} <span class="ml-2 text-sm text-text-secondary">{{ total() }}</span>
+    </h2>
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      [disabled]="busy()"
+      (click)="dialogRef.close()"
+      [attr.aria-label]="prefix + '.Close' | translate"
+    >
+      <i class="ri-close-line text-lg"></i>
+    </button>
+  </header>
+  @if (pipelineDocument) {
+    <xp-knowledge-document-pipeline-settings
+      class="flex min-h-0 flex-1 overflow-hidden"
+      [knowledgebase]="data.knowledgebase"
+      [pipeline]="data.knowledgebase.pipeline"
+      [documents]="documents()"
+      [attr.inert]="busy() ? '' : null"
+    />
+  } @else {
+    <div
+      class="grid min-h-0 flex-1 grid-cols-[minmax(10rem,14rem)_minmax(9rem,12rem)_minmax(24rem,1fr)] overflow-auto"
+      [attr.inert]="busy() ? '' : null"
+    >
+      <aside class="flex min-h-0 flex-col border-r border-divider-subtle bg-background-default-subtle">
+        <div class="space-y-3 border-b border-divider-subtle p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-medium">{{
+              (editing ? 'XP.Knowledgebase.DocumentsSettings' : prefix + '.Files') | translate
+            }}</span>
+            @if (!editing) {
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                [cdkMenuTriggerFor]="addMenu"
+                [disabled]="busy() || data.locked()"
+                [attr.aria-label]="prefix + '.AddMore' | translate"
+              >
+                <i class="ri-file-add-line"></i>
+              </button>
+            }
+          </div>
+          @if (!editing) {
+            <label class="block text-xs text-text-secondary">{{ prefix + '.Location' | translate }}</label>
+            <xp-tree-select
+              class="block w-full"
+              displayDensity="cosy"
+              [ngModel]="selectedFolder()"
+              (ngModelChange)="selectFolder($event)"
+              [disabled]="busy() || foldersLoading() || data.locked()"
+              [treeNodes]="folderTree()"
+              [initialLevel]="1"
+              [searchable]="true"
+              [placeholder]="prefix + '.Root' | translate"
+              [attr.aria-label]="prefix + '.Location' | translate"
+            />
+            @if (folderError()) {
+              <button z-button zType="ghost" zSize="sm" (click)="loadFolders()">
+                {{ prefix + '.RetryFolders' | translate }}
+              </button>
+            }
+          }
+        </div>
+        <div class="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+          @for (item of uploads(); track item) {
+            <div class="flex items-start gap-2 rounded-lg p-2 hover:bg-hover-bg">
+              <i class="ri-file-text-line mt-1 text-text-secondary"></i>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm" [zTooltip]="item.file.name" zPosition="right" tabindex="0">
+                  {{ item.file.name }}
+                </p>
+                <p class="text-xs text-text-secondary">
+                  {{ item.formatSize() }} · {{ prefix + '.' + item.status() | translate }}
+                </p>
+                @if (item.status() === 'uploading') {
+                  <p class="text-xs text-text-secondary">{{ item.progress().toFixed(0) }}%</p>
+                }
+                @if (item.error()) {
+                  <p class="break-words text-xs text-text-destructive">{{ item.error() }}</p>
+                  <button z-button zType="ghost" zSize="sm" [disabled]="busy()" (click)="item.upload()">
+                    {{ prefix + '.Retry' | translate }}
+                  </button>
+                }
+              </div>
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                [disabled]="busy()"
+                (click)="removeUpload(item)"
+                [attr.aria-label]="prefix + '.Remove' | translate"
+              >
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+          }
+          @for (doc of externalDocuments(); track $index) {
+            <div class="flex items-start gap-2 rounded-lg p-2 hover:bg-hover-bg">
+              <i
+                [class]="
+                  editing ? 'ri-file-text-line mt-1 text-text-secondary' : 'ri-links-line mt-1 text-text-secondary'
+                "
+              ></i>
+              <p class="min-w-0 flex-1 truncate text-sm" [zTooltip]="doc.name" zPosition="right" tabindex="0">
+                {{ doc.name }}
+              </p>
+              @if (!editing) {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  [disabled]="busy()"
+                  (click)="removeExternal($index)"
+                  [attr.aria-label]="prefix + '.Remove' | translate"
+                >
+                  <i class="ri-close-line"></i>
+                </button>
+              }
+            </div>
+          }
+          @if (!total()) {
+            <div class="space-y-3 px-2 py-6 text-sm text-text-secondary">
+              <p>{{ prefix + '.EmptyFiles' | translate }}</p>
+              <button z-button zType="outline" (click)="fileInput.click()">
+                {{ prefix + '.UploadFiles' | translate }}
+              </button>
+            </div>
+          }
+        </div>
+      </aside>
+      <nav
+        class="min-h-0 space-y-1 overflow-auto border-r border-divider-subtle bg-background-default-subtle p-2"
+        [attr.aria-label]="prefix + '.Settings' | translate"
+      >
+        <p class="px-3 py-2 text-sm font-semibold">{{ prefix + '.Settings' | translate }}</p>
+        @for (item of sections; track item.id) {
+          <button
+            type="button"
+            class="flex w-full items-start gap-2 rounded-lg px-3 py-3 text-left hover:bg-hover-bg"
+            [class]="section() === item.id ? 'bg-hover-bg text-text-accent' : 'text-text-secondary'"
+            [attr.aria-current]="section() === item.id ? 'page' : null"
+            (click)="section.set(item.id)"
+          >
+            <i [class]="item.icon + ' mt-0.5'"></i>
+            <span class="min-w-0"
+              ><span class="block text-sm font-medium">{{ prefix + '.' + item.key | translate }}</span>
+              <span class="mt-1 block text-xs text-text-tertiary">
+                @if (!item.available || item.id === 'audio' || item.id === 'questions') {
+                  {{ prefix + '.Unavailable' | translate }}
+                } @else if (item.id === 'chunks' && chunkSize()) {
+                  {{ prefix + '.ChunkSummary' | translate: { size: chunkSize() } }}
+                } @else if (item.id === 'images') {
+                  {{
+                    prefix +
+                      (activeParserConfig().imageUnderstandingEnabled === true
+                        ? '.Enabled'
+                        : activeParserConfig().imageUnderstandingEnabled === false
+                          ? '.Disabled'
+                          : '.Inherited') | translate
+                  }}
+                } @else {
+                  {{
+                    prefix +
+                      ((onlySheet() ? activeParserConfig().transformerType : processing.config().pdfParser)
+                        ? '.Customized'
+                        : '.Inherited') | translate
+                  }}
+                }
+              </span>
+            </span>
+          </button>
+        }
+      </nav>
+      <section class="flex min-h-0 min-w-0 flex-col overflow-auto px-6 py-5">
+        <h3 class="text-xl font-semibold">{{ prefix + '.' + activeSection().key | translate }}</h3>
+        <p class="mb-5 mt-2 text-sm text-text-secondary">
+          {{ (editing ? prefix + '.EditDefaultsHint' : prefix + '.DefaultsHint') | translate }}
+        </p>
+        <fieldset class="min-w-0" [disabled]="busy()" [hidden]="!activeSection().available">
+          @if (onlySheet()) {
+            <xp-knowledge-document-create-settings
+              class="block min-w-0"
+              [hidden]="section() === 'audio' || section() === 'questions'"
+              [knowledgebaseValue]="data.knowledgebase"
+              [section]="settingsSection()"
+              [documents]="documents()"
+              [(parserConfig)]="sheetParserConfig"
+            />
+          }
+          @if (!onlySheet() || section() === 'audio' || section() === 'questions') {
+            <xp-knowledge-processing-settings
+              class="block min-w-0"
+              [form]="processing"
+              [documents]="pendingDocuments()"
+              [section]="processingSection()"
+              scope="documents"
+              [showHeading]="false"
+            />
+          }
+        </fieldset>
+        @if (!activeSection().available) {
+          <div role="status" class="border-t border-divider-subtle py-6 text-sm text-text-secondary">
+            {{ prefix + '.PendingSetting' | translate }}
+          </div>
+        }
+      </section>
+    </div>
+  }
+  <footer class="flex shrink-0 items-center justify-end gap-3 border-t border-divider-subtle px-5 py-4">
+    @if (configurationError(); as message) {
+      <p role="alert" class="mr-auto text-sm text-text-destructive">{{ message | translate }}</p>
+    }
+    @if (error()) {
+      <p role="alert" class="mr-auto text-sm text-text-destructive">{{ error() }}</p>
+    }
+    <button z-button zType="outline" [disabled]="busy()" (click)="dialogRef.close()">
+      {{ prefix + '.Cancel' | translate }}
+    </button>
+    @if (editing) {
+      <span
+        [zTooltip]="
+          (canRechunk() ? 'XP.Knowledgebase.RechunkWithoutConverterHint' : 'XP.Knowledgebase.TransformSnapshotRequired')
+            | translate
+        "
+      >
+        <button z-button zType="outline" [disabled]="!ready() || !canRechunk()" (click)="saveAndProcess('rechunk')">
+          {{ 'XP.Knowledgebase.RechunkOnly' | translate }}
+        </button>
+      </span>
+      <button z-button [disabled]="!ready()" (click)="saveAndProcess('full')">
+        {{ 'XP.Knowledgebase.FullReprocess' | translate }}
+      </button>
+    } @else {
+      <button z-button [disabled]="!ready()" (click)="submit()">
+        {{ prefix + (busy() ? '.Submitting' : '.Submit') | translate }}
+      </button>
+    }
+  </footer>
+</div>
+<input #fileInput class="hidden" type="file" multiple (change)="addFiles(fileInput.files); fileInput.value = ''" />
+<ng-template #addMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <button cdkMenuItem [cdkMenuItemDisabled]="busy() || data.locked()" (click)="fileInput.click()">
+      <i class="ri-upload-2-line mr-2"></i>{{ prefix + '.UploadFiles' | translate }}
+    </button>
+  </div>
+</ng-template>

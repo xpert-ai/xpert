@@ -1,21 +1,23 @@
+import { createKnowledgeProcessingForm } from '../processing/processing-form'
+import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
+import { KnowledgeChunkPreviewComponent } from './chunk-preview.component'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, DestroyRef, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { hasEnabledKnowledgeRetrievalSource, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  injectConfirm,
   ZardAccordionImports,
   ZardButtonComponent,
   ZardCheckboxComponent,
   ZardInputDirective,
   ZardSelectImports,
-  ZardSliderComponent,
   ZardSwitchComponent,
-  ZardTagSelectComponent,
   ZardToggleGroupComponent,
   ZardToggleGroupItemComponent,
   ZardTooltipImports
@@ -30,6 +32,7 @@ import {
   ICopilotModel,
   IKnowledgebase,
   KnowledgebaseFAQConfig,
+  KnowledgebaseParserConfig,
   KnowledgebaseWikiConfig,
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
@@ -39,6 +42,7 @@ import {
   ToastrService,
   TKBRetrievalSettings
 } from '../../../../@core'
+import { firstValueFrom } from 'rxjs'
 
 type SectionKey =
   | 'basic'
@@ -67,20 +71,6 @@ type CreateSection = {
   status: SectionStatus
 }
 
-type ParserPreviewState = {
-  textSplitter: string
-  transformer: string
-  spreadsheetInterpretation: string
-  spreadsheetContextUnit: string
-  includeHiddenSheets: boolean
-  imageUnderstanding: boolean
-}
-
-type ParserEngineOption = {
-  value: string
-  labelKey: string
-}
-
 type KnowledgeDialogData = {
   workspaceId?: string
   knowledgebase?: IKnowledgebase
@@ -91,21 +81,21 @@ type KnowledgeDialogData = {
   selector: 'xp-new-knowledge',
   standalone: true,
   imports: [
+    KnowledgeProcessingSettingsComponent,
+    KnowledgeChunkPreviewComponent,
     CommonModule,
     TranslateModule,
     DragDropModule,
     FormsModule,
     CopilotModelSelectComponent,
     KnowledgeRetrievalSettingsComponent,
-    ...ZardAccordionImports,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardInputDirective,
-    ZardSliderComponent,
     ZardSwitchComponent,
-    ZardTagSelectComponent,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
+    ...ZardAccordionImports,
     ...ZardSelectImports,
     ...ZardTooltipImports
   ],
@@ -118,7 +108,15 @@ export class XpertNewKnowledgeComponent {
   readonly #initialKnowledgebase = this.#dialogData?.knowledgebase ?? null
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
+  readonly #confirm = injectConfirm()
+  readonly #destroyRef = inject(DestroyRef)
   readonly knowledgebaseService = inject(KnowledgebaseService)
+  readonly processing = createKnowledgeProcessingForm({
+    config: this.#initialKnowledgebase?.parserConfig,
+    visionModel: this.#initialKnowledgebase?.visionModel,
+    structure: this.#initialKnowledgebase?.structure,
+    structureLocked: !!this.#initialKnowledgebase?.id && (this.#initialKnowledgebase.documentNum ?? 0) > 0
+  })
 
   readonly eAiModelTypeEnum = AiModelTypeEnum
   readonly eModelFeature = ModelFeature
@@ -128,6 +126,7 @@ export class XpertNewKnowledgeComponent {
   readonly existingKnowledgebase = signal<IKnowledgebase | null>(this.#initialKnowledgebase)
   readonly isEditMode = computed(() => !!this.existingKnowledgebase()?.id)
   readonly workspaceId = signal(this.#dialogData?.workspaceId ?? this.#initialKnowledgebase?.workspaceId)
+  readonly previewOpen = signal(false)
   readonly activeSection = signal<SectionKey>(this.#dialogData?.initialSection ?? 'basic')
 
   readonly sections: CreateSection[] = [
@@ -150,7 +149,7 @@ export class XpertNewKnowledgeComponent {
     { key: 'faq', group: 'Basic', labelKey: 'Sections.FAQ', icon: 'ri-question-line', status: 'supported' },
     { key: 'parser', group: 'Indexing', labelKey: 'Sections.Parser', icon: 'ri-file-search-line', status: 'supported' },
     { key: 'chunk', group: 'Indexing', labelKey: 'Sections.Chunk', icon: 'ri-file-copy-2-line', status: 'supported' },
-    { key: 'image', group: 'Indexing', labelKey: 'Sections.Image', icon: 'ri-image-line', status: 'post-create' },
+    { key: 'image', group: 'Indexing', labelKey: 'Sections.Image', icon: 'ri-image-line', status: 'supported' },
     { key: 'audio', group: 'Indexing', labelKey: 'Sections.Audio', icon: 'ri-volume-up-line', status: 'preview' },
     {
       key: 'advanced',
@@ -161,272 +160,6 @@ export class XpertNewKnowledgeComponent {
     },
     { key: 'storage', group: 'Storage', labelKey: 'Sections.Storage', icon: 'ri-hard-drive-3-line', status: 'preview' }
   ]
-
-  readonly parserEngineRows: Array<{
-    key: string
-    labelKey: string
-    extensions: string[]
-    icon: string
-    engine: string
-    options: ParserEngineOption[]
-    hasHeaderToggle?: boolean
-  }> = [
-    {
-      key: 'pdf',
-      labelKey: 'Parser.FileTypes.Pdf',
-      extensions: ['.pdf'],
-      icon: 'ri-file-pdf-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' },
-        { value: 'mineru', labelKey: 'Parser.Engines.MinerU' }
-      ]
-    },
-    {
-      key: 'word',
-      labelKey: 'Parser.FileTypes.Word',
-      extensions: ['.docx', '.doc'],
-      icon: 'ri-file-word-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
-      ]
-    },
-    {
-      key: 'presentation',
-      labelKey: 'Parser.FileTypes.Presentation',
-      extensions: ['.pptx', '.ppt'],
-      icon: 'ri-file-ppt-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
-      ]
-    },
-    {
-      key: 'excel',
-      labelKey: 'Parser.FileTypes.Excel',
-      extensions: ['.xlsx', '.xls'],
-      icon: 'ri-file-excel-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
-      ],
-      hasHeaderToggle: true
-    },
-    {
-      key: 'epub',
-      labelKey: 'Parser.FileTypes.Ebook',
-      extensions: ['.epub'],
-      icon: 'ri-book-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
-      ]
-    },
-    {
-      key: 'mhtml',
-      labelKey: 'Parser.FileTypes.WebArchive',
-      extensions: ['.mhtml'],
-      icon: 'ri-file-code-line',
-      engine: 'builtin',
-      options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
-      ]
-    },
-    {
-      key: 'csv',
-      labelKey: 'Parser.FileTypes.Csv',
-      extensions: ['.csv'],
-      icon: 'ri-file-excel-2-line',
-      engine: 'simple',
-      options: [
-        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'markdown',
-      labelKey: 'Parser.FileTypes.Markdown',
-      extensions: ['.md', '.markdown'],
-      icon: 'ri-markdown-line',
-      engine: 'builtin',
-      options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
-        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' },
-        { value: 'markitdown', labelKey: 'Parser.Engines.MarkItDown' }
-      ]
-    },
-    {
-      key: 'text',
-      labelKey: 'Parser.FileTypes.PlainText',
-      extensions: ['.txt'],
-      icon: 'ri-file-text-line',
-      engine: 'simple',
-      options: [
-        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'json',
-      labelKey: 'Parser.FileTypes.Json',
-      extensions: ['.json'],
-      icon: 'ri-braces-line',
-      engine: 'simple',
-      options: [
-        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'image',
-      labelKey: 'Parser.FileTypes.Image',
-      extensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'],
-      icon: 'ri-image-line',
-      engine: 'builtin',
-      options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
-        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
-      ]
-    },
-    {
-      key: 'audio',
-      labelKey: 'Parser.FileTypes.Audio',
-      extensions: ['.mp3', '.wav', '.m4a', '.flac', '.ogg'],
-      icon: 'ri-volume-up-line',
-      engine: 'simple',
-      options: [
-        { value: 'simple', labelKey: 'Parser.Engines.SimpleDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'docm',
-      labelKey: 'Parser.FileTypes.Docm',
-      extensions: ['.docm'],
-      icon: 'ri-file-word-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'htm',
-      labelKey: 'Parser.FileTypes.Htm',
-      extensions: ['.htm'],
-      icon: 'ri-file-code-line',
-      engine: 'builtin',
-      options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
-        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
-      ]
-    },
-    {
-      key: 'html',
-      labelKey: 'Parser.FileTypes.Html',
-      extensions: ['.html'],
-      icon: 'ri-file-code-line',
-      engine: 'builtin',
-      options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
-        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
-      ]
-    },
-    {
-      key: 'odp',
-      labelKey: 'Parser.FileTypes.Odp',
-      extensions: ['.odp'],
-      icon: 'ri-file-ppt-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'ods',
-      labelKey: 'Parser.FileTypes.Ods',
-      extensions: ['.ods'],
-      icon: 'ri-file-excel-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'odt',
-      labelKey: 'Parser.FileTypes.Odt',
-      extensions: ['.odt'],
-      icon: 'ri-file-text-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'pptm',
-      labelKey: 'Parser.FileTypes.Pptm',
-      extensions: ['.pptm'],
-      icon: 'ri-file-ppt-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'rtf',
-      labelKey: 'Parser.FileTypes.Rtf',
-      extensions: ['.rtf'],
-      icon: 'ri-file-text-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'xlsm',
-      labelKey: 'Parser.FileTypes.Xlsm',
-      extensions: ['.xlsm'],
-      icon: 'ri-file-excel-2-line',
-      engine: 'anydoc',
-      options: [
-        { value: 'anydoc', labelKey: 'Parser.Engines.AnydocDefault' },
-        { value: 'builtin', labelKey: 'Parser.Engines.Builtin' }
-      ]
-    },
-    {
-      key: 'xmind',
-      labelKey: 'Parser.FileTypes.Xmind',
-      extensions: ['.xmind'],
-      icon: 'ri-mind-map',
-      engine: 'builtin',
-      options: [
-        { value: 'builtin', labelKey: 'Parser.Engines.BuiltinDefault' },
-        { value: 'anydoc', labelKey: 'Parser.Engines.Anydoc' }
-      ]
-    }
-  ]
-
-  // Reserved UI state until the knowledge base API supports per-file parser selection.
-  readonly parserEngineSelections = signal<Record<string, string>>(
-    Object.fromEntries(this.parserEngineRows.map((row) => [row.key, row.engine]))
-  )
 
   readonly name = model<string>(this.#initialKnowledgebase?.name ?? '')
   readonly description = model<string>(this.#initialKnowledgebase?.description ?? '')
@@ -446,48 +179,16 @@ export class XpertNewKnowledgeComponent {
     ...DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
     ...(this.#initialKnowledgebase?.wikiConfig ?? {})
   })
-  readonly excelHeaderRow = model(false)
 
   readonly copilotModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.copilotModel)
   readonly chatModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.chatModel ?? undefined)
   readonly wikiModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.wikiModel ?? undefined)
-  readonly visionModel = model<ICopilotModel | undefined>(this.#initialKnowledgebase?.visionModel ?? undefined)
 
   readonly embeddingBatchSize = model<number | null>(this.#initialKnowledgebase?.parserConfig?.embeddingBatchSize ?? 16)
-  readonly chunkSize = model<number | null>(this.#initialKnowledgebase?.parserConfig?.chunkSize ?? 512)
-  readonly chunkOverlap = model<number | null>(this.#initialKnowledgebase?.parserConfig?.chunkOverlap ?? 80)
-  readonly delimiter = model<string>(this.#initialKnowledgebase?.parserConfig?.delimiter ?? '\n\n')
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
-  readonly chunkStrategy = model<'auto' | 'title' | 'structure' | 'length'>('auto')
-  readonly separators = signal<string[]>(['\\n\\n', '\\n', '。', '！', '？', '；', ';'])
-  // Reserved UI state until the knowledge base API exposes these chunking options.
-  readonly parentChildChunkingEnabled = model(false)
-  readonly maxChunkTokens = model<number | null>(0)
-  readonly chunkLanguageHint = model<'auto' | 'Chinese' | 'English'>('auto')
 
-  readonly separatorOptions = [
-    { value: '\\n\\n', labelKey: 'Chunk.SeparatorLabels.DoubleNewline' },
-    { value: '\\n', labelKey: 'Chunk.SeparatorLabels.SingleNewline' },
-    { value: '。', labelKey: 'Chunk.SeparatorLabels.ChinesePeriod' },
-    { value: '！', labelKey: 'Chunk.SeparatorLabels.Exclamation' },
-    { value: '？', labelKey: 'Chunk.SeparatorLabels.Question' },
-    { value: '；', labelKey: 'Chunk.SeparatorLabels.ChineseSemicolon' },
-    { value: ';', labelKey: 'Chunk.SeparatorLabels.EnglishSemicolon' }
-  ]
-
-  readonly separatorTagOptions = this.separatorOptions.map((option) => ({
-    value: option.value,
-    label: this.#translate.instant(`${this.i18nPrefix}.${option.labelKey}`)
-  }))
-
-  // Reserved UI state until the knowledge base API exposes these generation and image options.
-  readonly questionGenerationEnabled = model(true)
-  readonly questionCount = model<number | null>(3)
-  readonly questionRequirements = model('')
   readonly automaticTaggingEnabled = model(false)
   readonly tableMetadataRequirements = model('')
-  readonly imageDescriptionLanguage = model<'auto' | 'Chinese' | 'English'>('auto')
-  readonly imageParsingRequirements = model('')
 
   readonly retrieval = model<Partial<IKnowledgebase & TKBRetrievalSettings>>({
     recall: this.isFAQ()
@@ -532,17 +233,6 @@ export class XpertNewKnowledgeComponent {
   )
   readonly graphEnabled = computed(() => !this.isFAQ() && this.retrieval().graphRag?.enabled === true)
 
-  // Document-level parser options are shown here for parity with WeKnora and
-  // will be applied from the document import flow until the KB create DTO grows.
-  readonly parserPreview = signal<ParserPreviewState>({
-    textSplitter: 'platform-default',
-    transformer: 'platform-default',
-    spreadsheetInterpretation: 'records',
-    spreadsheetContextUnit: 'row',
-    includeHiddenSheets: false,
-    imageUnderstanding: true
-  })
-
   readonly loading = signal(false)
   readonly invalid = computed(() => !this.name().trim())
 
@@ -557,8 +247,13 @@ export class XpertNewKnowledgeComponent {
       .filter((group) => group.items.length)
   })
 
+  constructor() {
+    if (['parser', 'chunk'].includes(this.activeSection())) void this.processing.loadStrategies()
+  }
+
   selectSection(section: SectionKey) {
     this.activeSection.set(section)
+    if (['parser', 'chunk'].includes(section)) void this.processing.loadStrategies()
   }
 
   toggleWiki() {
@@ -587,10 +282,6 @@ export class XpertNewKnowledgeComponent {
     }
   }
 
-  updateParserPreview<K extends keyof ParserPreviewState>(key: K, value: ParserPreviewState[K]) {
-    this.parserPreview.update((current) => ({ ...current, [key]: value }))
-  }
-
   updateFAQConfig<K extends keyof KnowledgebaseFAQConfig>(key: K, value: KnowledgebaseFAQConfig[K]) {
     if (this.faqConfigurationDisabled()) {
       return
@@ -600,38 +291,6 @@ export class XpertNewKnowledgeComponent {
 
   updateWikiConfig<K extends keyof KnowledgebaseWikiConfig>(key: K, value: KnowledgebaseWikiConfig[K]) {
     this.wikiConfig.update((current) => ({ ...current, [key]: value }))
-  }
-
-  updateParserEngine(key: string, value: string) {
-    this.parserEngineSelections.update((current) => ({ ...current, [key]: value }))
-  }
-
-  addSeparator(value: string) {
-    if (!value || this.separators().includes(value)) {
-      return
-    }
-    this.separators.update((current) => [...current, value])
-    this.delimiter.set(this.separators()[0] || '\n\n')
-  }
-
-  updateSeparators(value: unknown) {
-    if (!Array.isArray(value)) {
-      return
-    }
-
-    const nextSeparators = value.filter((separator): separator is string => typeof separator === 'string')
-    this.separators.set(nextSeparators)
-    this.delimiter.set(nextSeparators[0] || '\n\n')
-  }
-
-  removeSeparator(value: string) {
-    this.separators.update((current) => current.filter((separator) => separator !== value))
-    this.delimiter.set(this.separators()[0] || '\n\n')
-  }
-
-  separatorLabelKey(value: string) {
-    const key = this.separatorOptions.find((option) => option.value === value)?.labelKey
-    return key ? `${this.i18nPrefix}.${key}` : value
   }
 
   submit() {
@@ -661,21 +320,34 @@ export class XpertNewKnowledgeComponent {
     })
   }
 
-  save() {
+  async save() {
     if (!this.validate()) return
 
     const knowledgebaseId = this.existingKnowledgebase()?.id
     if (!knowledgebaseId) return
     const confirmModelCharges = this.requiresPaidWikiRebuild()
-    if (
-      confirmModelCharges &&
-      !window.confirm(
-        this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
-          Default: 'This Wiki change rebuilds existing content and may incur model charges. Continue?'
-        })
-      )
-    ) {
-      return
+    if (confirmModelCharges) {
+      const disableClose = this.#dialogRef.disableClose
+      this.loading.set(true)
+      this.#dialogRef.disableClose = true
+      try {
+        const confirmed = await firstValueFrom(
+          this.#confirm<boolean>({
+            title: this.#translate.instant('XP.Knowledgebase.Wiki.Rebuild'),
+            information: this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
+              Default: 'This Wiki change rebuilds existing content and may incur model charges. Continue?'
+            })
+          }),
+          { defaultValue: false }
+        )
+        if (!confirmed || this.#destroyRef.destroyed) return
+      } catch (error) {
+        this.#toastr.error(getErrorMessage(error))
+        return
+      } finally {
+        this.#dialogRef.disableClose = disableClose
+        this.loading.set(false)
+      }
     }
 
     this.loading.set(true)
@@ -727,6 +399,13 @@ export class XpertNewKnowledgeComponent {
       return false
     }
 
+    const processingError = !this.isFAQ() && this.processing.validation()
+    if (processingError) {
+      this.activeSection.set(processingError.section === 'questions' ? 'advanced' : processingError.section)
+      this.#toastr.error(this.#translate.instant(processingError.key))
+      return false
+    }
+
     if (!this.retrievalConfigurationValid()) {
       this.activeSection.set('retrieval')
       this.#toastr.error('XP.Knowledgebase.RetrievalSourceRequired', '', {
@@ -763,6 +442,10 @@ export class XpertNewKnowledgeComponent {
       : null
   }
 
+  private buildParserConfig(): KnowledgebaseParserConfig {
+    return { ...this.processing.config(), embeddingBatchSize: this.embeddingBatchSize() ?? undefined }
+  }
+
   private buildPayload(): Partial<IKnowledgebase> {
     const retrieval = this.retrieval()
     const recall = this.isFAQ() ? normalizeKnowledgebaseFAQRecall(retrieval.recall) : retrieval.recall
@@ -778,17 +461,12 @@ export class XpertNewKnowledgeComponent {
       description: this.description().trim() || undefined,
       copilotModel: this.copilotModel(),
       chatModel: this.chatModel() ?? null,
-      visionModel: this.visionModel() ?? null,
+      visionModel: this.processing.visionModel() ?? null,
       recall,
       rerankModel: retrieval.rerankModel ?? null,
       rerankModelId: retrieval.rerankModel?.id ?? retrieval.rerankModelId ?? null,
       graphRag,
-      parserConfig: {
-        embeddingBatchSize: this.embeddingBatchSize() ?? undefined,
-        chunkSize: this.chunkSize(),
-        chunkOverlap: this.chunkOverlap(),
-        delimiter: this.delimiter() || null
-      },
+      parserConfig: this.isFAQ() ? this.#initialKnowledgebase?.parserConfig : this.buildParserConfig(),
       incrementalSyncEnabled: this.incrementalSyncEnabled()
     }
 

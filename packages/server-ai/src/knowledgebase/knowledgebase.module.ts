@@ -50,6 +50,7 @@ import {
     KnowledgeWikiSourceState
 } from './wiki/entities'
 import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-scope.service'
+import { KnowledgeParserSettingsService } from './parser-settings.service'
 
 @Module({
     imports: [
@@ -79,6 +80,7 @@ import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-sc
     ],
     controllers: [KnowledgebaseController, KnowledgeFAQController],
     providers: [
+        KnowledgeParserSettingsService,
         KnowledgebaseService,
         KnowledgebaseRuntimeService,
         KnowledgebaseDocumentsRuntimeService,
@@ -112,6 +114,7 @@ import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-sc
         ...Validators
     ],
     exports: [
+        KnowledgeParserSettingsService,
         KnowledgebaseService,
         KnowledgebaseTaskService,
         DocumentSourceRegistry,

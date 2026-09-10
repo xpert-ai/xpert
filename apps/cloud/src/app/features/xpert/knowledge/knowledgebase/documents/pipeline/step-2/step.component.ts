@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, finalize } from 'rxjs'
 import {
   getErrorMessage,
   KDocumentSourceType,
@@ -32,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     ContentLoaderModule,
     KnowledgeDocumentPipelineSettingsComponent
-]
+  ]
 })
 export class KnowledgeDocumentPipelineStep2Component {
   eKDocumentSourceType = KDocumentSourceType
@@ -63,6 +63,10 @@ export class KnowledgeDocumentPipelineStep2Component {
   }
 
   saveAndProcess() {
+    if (this.loading()) return
+    this.loading.set(true)
+    this.pipelineComponent.submitting.set(true)
+    if (this.pipelineComponent.dialogRef) this.pipelineComponent.dialogRef.disableClose = true
     this.kbAPI
       .processTask(this.knowledgebase().id, this.taskId(), {
         sources: {
@@ -72,9 +76,16 @@ export class KnowledgeDocumentPipelineStep2Component {
         },
         stage: 'prod'
       })
+      .pipe(
+        finalize(() => {
+          this.loading.set(false)
+          this.pipelineComponent.submitting.set(false)
+          if (this.pipelineComponent.dialogRef) this.pipelineComponent.dialogRef.disableClose = false
+        })
+      )
       .subscribe({
         next: (task) => {
-          this.pipelineComponent.nextStep()
+          this.pipelineComponent.processed()
         },
         error: (err) => {
           this.#toastr.error(getErrorMessage(err))

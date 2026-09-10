@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, linkedSignal, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -20,6 +20,9 @@ import {
   KDocumentSourceType,
   KDocumentWebTypeEnum,
   KnowledgebaseService,
+  KnowledgebaseParserConfig,
+  KBDocumentCategoryEnum,
+  knowledgebaseDocumentParserDefaults,
   KnowledgeDocumentService,
   KnowledgeFileUploader,
   StorageFileService,
@@ -88,7 +91,17 @@ export class KnowledgeDocumentCreateComponent {
   readonly selectedWebPages = signal<string[]>([])
 
   // Step 2
-  readonly parserConfig = model<DocumentTextParserConfig & Partial<DocumentSheetParserConfig>>({})
+  readonly parserConfig = linkedSignal<
+    KnowledgebaseParserConfig | undefined,
+    DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
+  >({
+    source: () =>
+      this.files().length && this.files().every((file) => file.document()?.category === KBDocumentCategoryEnum.Sheet)
+        ? undefined
+        : this.knowledgebase()?.parserConfig,
+    computation: (config, previous) =>
+      previous && previous.source === config ? previous.value : knowledgebaseDocumentParserDefaults(config)
+  })
   readonly step2Avaiable = computed(() => this.files()?.length || this.webResult()?.docs?.length)
 
   // Step 3

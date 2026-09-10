@@ -1,3 +1,9 @@
+import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
+import { KnowledgeParserSettingsService } from './parser-settings.service'
+import {
+    incompatibleKnowledgeChunkStructure,
+    invalidKnowledgeParserConfig
+} from '../knowledge-document/parser-validation'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
@@ -5,6 +11,7 @@ import {
     channelName,
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentMetadata,
+    DocumentTypeEnum,
     genPipelineKnowledgeBaseKey,
     genPipelineSourceKey,
     IKnowledgebase,
@@ -301,6 +308,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     @Inject(KnowledgeDocumentService)
     private readonly documentService: KnowledgeDocumentService
 
+    @Inject(KnowledgeParserSettingsService)
+    private readonly parserSettings: KnowledgeParserSettingsService
+
     @Inject(TextSplitterRegistry)
     private readonly textSplitterRegistry: TextSplitterRegistry
 
@@ -431,6 +441,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         delete input.deletedAt
 
         input.type ??= KnowledgebaseTypeEnum.Standard
+        if (input.type === KnowledgebaseTypeEnum.Standard && input.parserConfig) {
+            input.structure = await this.parserSettings.validateSettings(input.parserConfig)
+        }
         if (input.type === KnowledgebaseTypeEnum.FAQ) {
             input.faqConfig = normalizeKnowledgebaseFAQConfig(input.faqConfig ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG)
             input.recall = normalizeKnowledgebaseFAQRecall(input.recall)
@@ -705,6 +718,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 })
             )
         }
+        if (_entity.type === KnowledgebaseTypeEnum.Standard && changes.parserConfig) {
+            changes.structure = await this.parserSettings.validateSettings(changes.parserConfig)
+        }
+        if (changes.structure && changes.structure !== _entity.structure) {
+            await this.assertChunkStructureChange(_entity, changes.structure)
+        }
         assertNoClientWikiState(changes)
         if (
             _entity.type === KnowledgebaseTypeEnum.FAQ &&
@@ -931,8 +950,41 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         })
     }
 
+    private async assertChunkStructureChange(knowledgebase: Knowledgebase, structure: KnowledgeStructureEnum) {
+        if (!Object.values(KnowledgeStructureEnum).includes(structure)) {
+            throw invalidKnowledgeParserConfig('structure')
+        }
+        const documents = await this.documentService.findAll({
+            where: { knowledgebaseId: knowledgebase.id, type: Not(DocumentTypeEnum.FOLDER) },
+            ...(knowledgebase.structure
+                ? { take: 1 }
+                : { select: { id: true, type: true, category: true, parserConfig: true } })
+        })
+        if (knowledgebase.structure && documents.total > 0) throw incompatibleKnowledgeChunkStructure()
+        // Older single-document imports did not record the KB structure. Check their saved
+        // strategies before backfilling it, so defaults never reinterpret existing chunks.
+        for (const document of documents.items) {
+            const config = resolveKnowledgeDocumentParserConfig(document)
+            const existingStructure = config.textSplitterType
+                ? await this.parserSettings.validateSplitter(config)
+                : KnowledgeStructureEnum.General
+            if (existingStructure !== structure) throw incompatibleKnowledgeChunkStructure()
+        }
+    }
+
+    async ensureDocumentChunkStructure(knowledgebaseId: string, structure: KnowledgeStructureEnum) {
+        const knowledgebase = await this.findOneByIdString(knowledgebaseId)
+        if (!knowledgebase.structure) {
+            await this.assertChunkStructureChange(knowledgebase, structure)
+            // Claim the structure once so concurrent imports cannot install incompatible chunk trees.
+            await this.repository.update({ id: knowledgebaseId, structure: IsNull() }, { structure })
+        }
+        const current = knowledgebase.structure ?? (await this.findOneByIdString(knowledgebaseId)).structure
+        if (current !== structure) throw incompatibleKnowledgeChunkStructure()
+    }
+
     async getTextSplitterStrategies() {
-        return this.textSplitterRegistry.list().map((strategy) => strategy.meta)
+        return this.textSplitterRegistry.list().map((strategy) => ({ ...strategy.meta, structure: strategy.structure }))
     }
 
     async getDocumentTransformerStrategies() {

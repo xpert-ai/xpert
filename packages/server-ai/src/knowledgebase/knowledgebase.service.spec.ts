@@ -5,6 +5,7 @@ import {
     KDocumentSourceType,
     KnowledgebasePermission,
     KnowledgebaseTypeEnum,
+    KnowledgeStructureEnum,
     LanguagesEnum,
     RolesEnum,
     WorkflowNodeTypeEnum
@@ -2092,5 +2093,38 @@ describe('KnowledgebaseService', () => {
 
         expect(taskService.update).not.toHaveBeenCalled()
         expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+})
+
+describe('Knowledgebase chunk structure ownership', () => {
+    function setup(structure: KnowledgeStructureEnum | null, documentStructure: KnowledgeStructureEnum) {
+        const repository = { findOne: jest.fn(), delete: jest.fn(), update: jest.fn() }
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() },
+            documentService: {
+                findAll: jest.fn(async () => ({ total: 1, items: [{ id: 'doc', type: 'txt' }] })),
+                findAncestors: jest.fn(),
+                findOne: jest.fn(),
+                save: jest.fn()
+            }
+        })
+        const knowledgebase = { id: 'kb', type: KnowledgebaseTypeEnum.Standard, structure } as Knowledgebase
+        jest.spyOn(service, 'findOneByIdString').mockResolvedValue(knowledgebase)
+        Object.defineProperty(service, 'parserSettings', { value: { validateSplitter: async () => documentStructure } })
+        return { service, repository }
+    }
+
+    it('rejects an incoming document with a different established structure', async () => {
+        const { service, repository } = setup(KnowledgeStructureEnum.General, KnowledgeStructureEnum.General)
+        await expect(service.ensureDocumentChunkStructure('kb', KnowledgeStructureEnum.ParentChild)).rejects.toThrow()
+        expect(repository.update).not.toHaveBeenCalled()
+    })
+
+    it('checks historical documents before claiming a missing knowledgebase structure', async () => {
+        const { service, repository } = setup(null, KnowledgeStructureEnum.ParentChild)
+        await expect(service.ensureDocumentChunkStructure('kb', KnowledgeStructureEnum.General)).rejects.toThrow()
+        expect(repository.update).not.toHaveBeenCalled()
     })
 })

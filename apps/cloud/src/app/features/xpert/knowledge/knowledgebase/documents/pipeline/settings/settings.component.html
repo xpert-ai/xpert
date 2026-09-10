@@ -11,7 +11,7 @@
         <button
           type="button"
           class="btn disabled:btn-disabled btn-secondary-accent btn-medium gap-x-0.5"
-          [disabled]="previewing() || !chunkerNode()"
+          [disabled]="previewing() || !canPreview()"
           (click)="previewChunks()"
         >
           <i class="ri-eye-2-line"></i>
@@ -147,7 +147,7 @@
                   <button
                     type="button"
                     class="btn disabled:btn-disabled btn-secondary btn-medium"
-                    [disabled]="!chunkerNode()"
+                    [disabled]="previewing() || !canPreview()"
                     (click)="previewChunks()"
                   >
                     {{ 'XP.Knowledgebase.RetryPreview' | translate: { Default: 'Retry Preview' } }}
@@ -172,7 +172,7 @@
                 <button
                   type="button"
                   class="btn disabled:btn-disabled btn-secondary btn-medium"
-                  [disabled]="!chunkerNode()"
+                  [disabled]="previewing() || !canPreview()"
                   (click)="previewChunks()"
                 >
                   {{ 'XP.Knowledgebase.PreviewChunks' | translate: { Default: 'Preview Chunks' } }}

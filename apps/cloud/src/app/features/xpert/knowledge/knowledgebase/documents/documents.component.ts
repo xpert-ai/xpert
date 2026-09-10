@@ -1,3 +1,5 @@
+import { DocumentImportMenuComponent } from './import/import-menu.component'
+import { KnowledgeDocumentDialogService } from './import/document-dialog.service'
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
@@ -246,6 +248,7 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
+    DocumentImportMenuComponent,
     RouterModule,
     FormsModule,
     NgTemplateOutlet,
@@ -298,6 +301,7 @@ export class KnowledgeDocumentsComponent {
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly _dialog = inject(Dialog)
+  readonly documentDialogs = inject(KnowledgeDocumentDialogService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -734,11 +738,15 @@ export class KnowledgeDocumentsComponent {
     this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
   }
 
-  uploadIntoFolder(document: IKnowledgeDocument) {
+  async uploadIntoFolder(document: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
     }
-    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
+    if (
+      await this.documentDialogs.importDocuments(this.knowledgebase(), document.id, () => this.vectorMutationLocked())
+    ) {
+      this.refresh()
+    }
   }
 
   private async selectFolderBrowserDocument(document: IKnowledgeDocument) {
@@ -1327,24 +1335,6 @@ export class KnowledgeDocumentsComponent {
       }
     })
   }
-
-  createFromPipeline() {
-    if (this.vectorMutationLocked()) {
-      return
-    }
-    this.#router.navigate(['create-from-pipeline'], {
-      relativeTo: this.#route,
-      queryParams: { parentId: this.parentId() }
-    })
-  }
-
-  uploadDocuments() {
-    if (this.vectorMutationLocked()) {
-      return
-    }
-    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
-  }
-
   deleteDocument(doc: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
@@ -1704,14 +1694,13 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
-  openChunkSettings(document: IKnowledgeDocument) {
+  async openChunkSettings(document: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
     }
-    this.#router.navigate(['./', document.id, 'settings'], {
-      relativeTo: this.#route,
-      queryParams: { parentId: this.parentId() }
-    })
+    if (await this.documentDialogs.edit(document.id, () => this.vectorMutationLocked())) {
+      this.refresh()
+    }
   }
 
   // Metadata operations

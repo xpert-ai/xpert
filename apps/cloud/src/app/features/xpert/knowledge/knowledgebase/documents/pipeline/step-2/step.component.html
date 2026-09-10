@@ -13,14 +13,16 @@
   <div class="system-md-semibold text-text-primary">
     {{ 'XP.Knowledgebase.ProcessingDocuments' | translate: { Default: 'Processing Documents' } }}
   </div>
-  <a [routerLink]="['../']" class="cursor-pointer">
+  <div>
     <button
       type="button"
       class="btn disabled:btn-disabled btn-secondary-accent btn-medium absolute left-2.5 top-3.5 size-9 rounded-full p-0"
+      [disabled]="loading()"
+      (click)="pipelineComponent.close()"
     >
       <i class="ri-corner-up-left-line"></i>
     </button>
-  </a>
+  </div>
   <div class="absolute w-[100px] h-[100px] rounded-full bg-blue-500 blur-[80px] left-8 top-0 opacity-20"></div>
 </div>
 
@@ -38,7 +40,12 @@
       <i class="ri-arrow-left-line"></i>
       <span class="px-0.5">{{ 'XP.Knowledgebase.DocumentSource' | translate: { Default: 'Document Source' } }}</span>
     </button>
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium" (click)="saveAndProcess()">
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-medium"
+      [disabled]="loading()"
+      (click)="saveAndProcess()"
+    >
       {{ 'XP.Knowledgebase.SaveAndProcess' | translate: { Default: 'Save and Process' } }}
     </button>
   </div>

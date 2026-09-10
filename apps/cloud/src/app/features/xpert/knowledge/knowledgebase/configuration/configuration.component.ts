@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
-import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
+import { attrModel, injectConfirm, linkedModel } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -17,7 +17,7 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { filter, finalize, switchMap, take, timer } from 'rxjs'
+import { filter, finalize, firstValueFrom, switchMap, take, timer } from 'rxjs'
 import {
   AiModelTypeEnum,
   DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
@@ -88,6 +88,7 @@ export class KnowledgeConfigurationComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly #translate = inject(I18nService)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #confirm = injectConfirm()
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
@@ -214,8 +215,8 @@ export class KnowledgeConfigurationComponent {
     this.wikiConfig.update((current) => ({ ...current, [key]: value }))
   }
 
-  save() {
-    if (this.rebuilding()) {
+  async save() {
+    if (this.rebuilding() || this.loading()) {
       return
     }
 
@@ -227,15 +228,32 @@ export class KnowledgeConfigurationComponent {
       return
     }
     const confirmModelCharges = this.requiresPaidWikiRebuild()
-    if (
-      confirmModelCharges &&
-      !window.confirm(
-        this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
-          Default: 'This Wiki change rebuilds existing content and may incur model charges. Continue?'
-        })
-      )
-    ) {
-      return
+    if (confirmModelCharges) {
+      const knowledgebaseId = this.knowledgebase().id
+      this.loading.set(true)
+      try {
+        const confirmed = await firstValueFrom(
+          this.#confirm<boolean>({
+            title: this.#translate.instant('XP.Knowledgebase.Wiki.Rebuild'),
+            information: this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
+              Default: 'This Wiki change rebuilds existing content and may incur model charges. Continue?'
+            })
+          }),
+          { defaultValue: false }
+        )
+        if (
+          !confirmed ||
+          this.#destroyRef.destroyed ||
+          this.knowledgebase()?.id !== knowledgebaseId ||
+          this.rebuilding()
+        )
+          return
+      } catch (error) {
+        this._toastrService.error(getErrorMessage(error))
+        return
+      } finally {
+        this.loading.set(false)
+      }
     }
     this.loading.set(true)
     const draft = this.knowledgebaseModel()

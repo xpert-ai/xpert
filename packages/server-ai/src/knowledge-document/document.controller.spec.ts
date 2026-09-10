@@ -1,3 +1,5 @@
+import type { IKnowledgeDocument } from '@xpert-ai/contracts'
+import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -134,6 +136,9 @@ describe('KnowledgeDocumentController chunk estimate', () => {
             assertKnowledgebaseReadAccess: jest.fn(),
             assertOwnedStorageFiles: jest.fn(),
             prepareExternalDocumentInputs: jest.fn(),
+            resolveNewDocumentParserConfig: jest.fn(async (document: Partial<IKnowledgeDocument>) =>
+                resolveKnowledgeDocumentParserConfig(document)
+            ),
             findOne: jest.fn(async () => persistedDocument)
         }
         const controller = new KnowledgeDocumentController(
