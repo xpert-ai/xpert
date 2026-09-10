@@ -1,5 +1,22 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.4
+
+### Patch Changes
+
+- 3f72082: Add opt-in lazy template catalogs, summary pagination, explicit prompt locales and source revision tracking. Existing eager template providers remain compatible.
+
+  Restore role skill bindings when switching templates and preserve localized skill names during installation and selection.
+
+- 4be390b: Release Xpert 3.18.4 with aligned contracts, plugin-sdk, and Web application versions.
+
+- 63cd444: Allow host-enabled graph Connector providers in scoped runtime credentials while preserving explicit binding checks. Existing Connector APIs remain compatible.
+- Updated dependencies [3f72082]
+- Updated dependencies [7b97fee]
+- Updated dependencies [4be390b]
+- Updated dependencies [4e8c7ed]
+  - @xpert-ai/contracts@3.18.4
+
 ## 3.18.3
 
 ### Patch Changes
