@@ -16,7 +16,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
             organizationId: RequestContext.getOrganizationId(),
             workspaceId: command.environment?.workspaceId,
             principal: userId ? { type: 'user', id: userId, userId } : { type: 'service_account', id: 'xpert-runtime' },
-            toolsetIds: command.ids,
+            toolsetIds: command.ids ?? [],
             ...command.environment
         })
     }

@@ -1,11 +1,18 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, DestroyRef, inject, Injector, input, output } from '@angular/core'
-import { IKnowledgebase, IKnowledgeDocument } from '@cloud/app/@core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import {
+  getErrorMessage,
+  IKnowledgebase,
+  IKnowledgeDocument,
+  KnowledgebaseService,
+  ToastrService
+} from '@cloud/app/@core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { firstValueFrom } from 'rxjs'
-import { DOCUMENT_IMPORT_SOURCES, DocumentImportSource } from './import-model'
+import { firstValueFrom, takeWhile } from 'rxjs'
+import { DOCUMENT_IMPORT_SOURCES, DocumentImportSource, KnowledgePipelineImportResult } from './import-model'
 import { DocumentImportDialogComponent } from './import-dialog.component'
 import { DocumentImportSourceDialogComponent } from './source-dialog.component'
 
@@ -53,6 +60,9 @@ export class DocumentImportMenuComponent {
   readonly dialog = inject(Dialog)
   readonly injector = inject(Injector)
   readonly translate = inject(TranslateService)
+  private readonly destroyRef = inject(DestroyRef)
+  private readonly knowledgebaseAPI = inject(KnowledgebaseService)
+  private readonly toastr = inject(ToastrService)
   readonly prefix = 'XP.Knowledgebase.Import'
   readonly sources = DOCUMENT_IMPORT_SOURCES
   private destroyed = false
@@ -80,14 +90,30 @@ export class DocumentImportMenuComponent {
         const { KnowledgeDocumentPipelineComponent } = await import('../pipeline/pipeline.component')
         if (this.destroyed || this.locked()) return
         const result = await firstValueFrom(
-          this.dialog.open<boolean>(KnowledgeDocumentPipelineComponent, {
+          this.dialog.open<KnowledgePipelineImportResult>(KnowledgeDocumentPipelineComponent, {
             ...options,
             injector: this.injector,
             data: { parentId },
             ariaLabel: this.translate.instant(this.prefix + '.Pipeline')
           }).closed
         )
-        if (result && !this.destroyed) this.imported.emit()
+        if (result && !this.destroyed) {
+          this.imported.emit()
+          // Submission precedes document creation; follow the task even when the table is still empty.
+          this.knowledgebaseAPI
+            .pollTaskStatus(knowledgebase.id, result.taskId)
+            .pipe(
+              takeWhile(() => this.knowledgebase().id === knowledgebase.id),
+              takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe({
+              next: () => this.imported.emit(),
+              error: (error) => {
+                this.imported.emit()
+                this.toastr.error(getErrorMessage(error))
+              }
+            })
+        }
         return
       }
       let documents: Partial<IKnowledgeDocument>[] = []

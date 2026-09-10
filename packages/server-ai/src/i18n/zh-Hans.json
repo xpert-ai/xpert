@@ -1,5 +1,7 @@
 {
     "Error": {
+        "KnowledgePipelineFailed": "知识流水线执行失败",
+        "InvalidKnowledgePipelineCallback": "知识流水线回调上下文无效",
         "KnowledgebaseChunkStructureConflict": "知识库中已有其他分块结构，请保留当前结构或使用新的知识库。",
         "InvalidKnowledgeParserConfig": "无效或不可用的文档处理设置：{{field}}",
         "KnowledgebaseWikiMarkdownResponseInvalid": "Wiki 生成结果格式不正确：需要单独的摘要行，以及分行的 Markdown 标题和正文。",

@@ -1,7 +1,6 @@
-<div class="w-full space-y-4">
-  <!-- Upload box -->
+<div class="w-full space-y-5">
   <div
-    class="border border-dashed border-divider-deep rounded-xl p-6 text-center cursor-pointer hover:border-primary-400 transition"
+    class="flex flex-col items-center gap-4 rounded-xl border border-dashed border-divider-deep bg-background-default-subtle px-6 py-8 text-center"
     (drop)="onDrop($event)"
     (dragover)="onDragOver($event)"
   >
@@ -11,76 +10,84 @@
       class="hidden"
       #fileInput
       [accept]="acceptsStr()"
-      (change)="handleFiles(fileInput.files)"
+      (change)="handleFiles(fileInput.files); fileInput.value = ''"
     />
-    <div (click)="fileInput.click()" class="text-text-secondary">
-      <p class="text-base font-medium">
-        <i class="ri-upload-cloud-2-line"></i>
-        {{ 'XP.Knowledgebase.DragDropOr' | translate: { Default: 'Drag and drop files here, or' } }}
-        <span class="underline cursor-pointer text-[var(--sys-primary)]">{{
-          'XP.Knowledgebase.SelectFiles' | translate: { Default: 'select files' }
-        }}</span>
-      </p>
-      <p class="text-sm font-body text-text-quaternary mt-1 uppercase">
-        {{ 'XP.Knowledgebase.Supports' | translate: { Default: 'Supports' } }}
-        {{ extensionStr() }}
-        {{ 'XP.Knowledgebase.FileMaxSize' | translate: { Default: 'and each file does not exceed 15MB.' } }}
-      </p>
+    <div class="flex size-12 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary">
+      <i class="ri-upload-cloud-2-line text-2xl" aria-hidden="true"></i>
     </div>
-  </div>
-
-  <!-- File list -->
-  @if (files().length > 0) {
     <div class="space-y-2">
-      @for (file of files(); track $index) {
-        <div
-          class="relative flex flex-col border rounded-lg px-4 py-2 overflow-hidden bg-components-card-bg shadow-sm hover:bg-hover-bg transition"
-          [class.border-primary-300]="selected() === file"
-          (click)="selected.set(file)"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 shrink-0 bg-blue-100 flex items-center justify-center rounded">
-                <span class="text-blue-600 text-sm font-bold">M↓</span>
-              </div>
-              <div>
-                <p class="text-sm font-medium line-clamp-2 text-text-primary">{{ file.file.name }}</p>
-                <p class="text-xs text-text-tertiary">
-                  <span class="truncate">{{ file.file.type || 'FILE' }}</span> · {{ file.formatSize() }}
-                </p>
-              </div>
-            </div>
-
-            @if (file.progress() < 100) {
-              <button class="w-7 h-7 flex justify-center items-center">{{ file.progress() | number: '0.0-0' }}%</button>
-            } @else {
+      <p class="text-sm font-medium text-text-primary">
+        {{ 'XP.Knowledgebase.DragDropOr' | translate: { Default: 'Drag and drop files here, or' } }}
+      </p>
+      <button z-button zType="outline" type="button" (click)="fileInput.click()">
+        {{ 'XP.Knowledgebase.SelectFiles' | translate: { Default: 'Select files' } }}
+      </button>
+    </div>
+    <p class="max-w-lg text-xs leading-5 text-text-tertiary">
+      {{ 'XP.Knowledgebase.Supports' | translate: { Default: 'Supports' } }}
+      <span class="uppercase">{{ extensionStr() }}</span>
+      <span class="block">{{
+        'XP.Knowledgebase.FileMaxSize' | translate: { Default: 'Each file must not exceed 15MB.' }
+      }}</span>
+    </p>
+  </div>
+  @if (files().length) {
+    <div>
+      <div class="mb-2 flex items-center justify-between text-xs text-text-tertiary">
+        <span>{{ 'XP.Knowledgebase.Import.Files' | translate }}</span
+        ><span class="tabular-nums">{{ files().length }}</span>
+      </div>
+      <div class="divide-y divide-divider-subtle">
+        @for (file of files(); track file) {
+          <div
+            class="relative min-w-0 rounded-lg py-3"
+            [class]="selected() === file ? 'bg-background-default-subtle' : ''"
+          >
+            <div class="flex min-w-0 items-center gap-2">
               <button
-                class="w-7 h-7 flex justify-center items-center rounded-lg text-text-quaternary hover:text-red-500 transition hover:bg-hover-bg"
-                (click)="removeFile($index)"
+                z-button
+                zType="ghost"
+                type="button"
+                class="h-auto min-w-0 flex-1 justify-start gap-3 px-3 py-2 text-start"
+                [disabled]="file.status() !== 'done'"
+                [attr.aria-pressed]="selected() === file"
+                (click)="selected.set(file)"
               >
-                <i class="ri-delete-bin-5-line"></i>
+                <i class="ri-file-text-line shrink-0 text-xl text-text-tertiary" aria-hidden="true"></i>
+                <span class="flex min-w-0 flex-1 flex-col gap-1">
+                  <span class="truncate text-sm font-medium">{{ file.file.name }}</span>
+                  <span class="text-xs text-text-tertiary">{{ file.formatSize() }}</span>
+                </span>
               </button>
+              @if (file.status() === 'uploading' || file.status() === 'pending') {
+                <span class="shrink-0 px-3 text-xs tabular-nums text-text-tertiary"
+                  >{{ file.progress() | number: '0.0-0' }}%</span
+                >
+              } @else {
+                @if (file.status() === 'done') {
+                  <i class="ri-check-line text-text-success" aria-hidden="true"></i>
+                }
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  type="button"
+                  (click)="removeFile($index)"
+                  [attr.aria-label]="'XP.Knowledgebase.Import.Remove' | translate"
+                >
+                  <i class="ri-close-line" aria-hidden="true"></i>
+                </button>
+              }
+            </div>
+            @if (file.error(); as error) {
+              <p role="alert" class="px-3 pb-2 text-xs text-text-destructive">{{ error }}</p>
+            }
+            @if (file.status() === 'uploading') {
+              <z-progress-bar class="block px-3" zSize="sm" [progress]="file.progress()" />
             }
           </div>
-
-          <!-- Progress bar -->
-          <div
-            class="absolute left-0 bottom-0 w-full mt-3 h-[2px] bg-components-input-bg-normal rounded overflow-hidden"
-          >
-            <div
-              class="h-full rounded"
-              [style.width.%]="file.progress()"
-              [style.background-color]="
-                file.status() === 'done'
-                  ? 'var(--color-status-success-indicator-bg)'
-                  : file.status() === 'error'
-                    ? 'var(--color-status-error-indicator-bg)'
-                    : 'var(--color-status-running-indicator-bg)'
-              "
-            ></div>
-          </div>
-        </div>
-      }
+        }
+      </div>
     </div>
   }
 </div>

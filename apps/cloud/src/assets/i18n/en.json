@@ -4549,6 +4549,25 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "PipelineFlow": {
+        "Source": "Data source",
+        "Settings": "Processing settings",
+        "Result": "Result",
+        "SourceHint": "Choose a pipeline source, then upload files or fetch documents.",
+        "NoSources": "No sources are available. Check that the published pipeline contains a data source.",
+        "PreviewLoading": "Loading document preview…",
+        "PreviewEmpty": "This document has no preview content.",
+        "ProcessingFailed": "Some documents failed to process"
+      },
+      "PipelineProcessing": {
+        "SettingsHint": "This import uses the published pipeline settings. To change them, edit and publish the pipeline.",
+        "Chunks": "chunks",
+        "Loading": "Running the pipeline to generate a chunk preview…",
+        "Empty": "No chunks were generated for this document. Check its content and pipeline settings.",
+        "PreviewHint": "Preview how the pipeline splits your documents before starting the import.",
+        "Retry": "Retry preview",
+        "Failed": "The preview failed. Try again or check the pipeline."
+      },
       "SharedProcessing": {
         "ParentChild": {
           "ParentTitle": "Parent chunks · Context",

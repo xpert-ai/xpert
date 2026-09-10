@@ -1944,6 +1944,25 @@
       "Unavailable": "请先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "PipelineFlow": {
+        "Source": "选择数据源",
+        "Settings": "处理设置",
+        "Result": "处理结果",
+        "SourceHint": "选择流水线中的数据源，再上传文件或获取文档。",
+        "NoSources": "暂无可用数据源，请确认已发布的流水线包含数据源节点。",
+        "PreviewLoading": "正在加载文档预览…",
+        "PreviewEmpty": "此文档暂无可预览内容。",
+        "ProcessingFailed": "部分文档处理失败"
+      },
+      "PipelineProcessing": {
+        "SettingsHint": "本次导入使用已发布的流水线配置。如需调整，请编辑并重新发布流水线。",
+        "Chunks": "个分块",
+        "Loading": "正在运行流水线，生成分块预览…",
+        "Empty": "此文档未生成分块，请检查文档内容和流水线配置。",
+        "PreviewHint": "先预览文档的分块效果，确认后再开始导入。",
+        "Retry": "重新预览",
+        "Failed": "预览失败，请重试或检查流水线。"
+      },
       "SharedProcessing": {
         "ParentChild": {
           "ParentTitle": "父块 · 补充上下文",

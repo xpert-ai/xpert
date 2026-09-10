@@ -1,203 +1,149 @@
-<div class="h-full min-w-0 flex-1 px-14 overflow-y-auto">
-  <div class="flex flex-col gap-y-4 pt-4">
-    <div class="flex w-full flex-col rounded-lg border border-components-panel-border bg-components-panel-bg">
-      <div class="flex items-center gap-x-1 px-4 py-2">
-        <div class="system-sm-semibold-uppercase grow text-text-secondary">
+<div class="flex min-h-0 min-w-0 flex-1 flex-col">
+  <div class="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-2 lg:overflow-hidden">
+    <section class="min-h-0 min-w-0 overflow-y-auto px-6 py-6 lg:px-8">
+      <h3 class="text-xl font-semibold text-text-primary">
+        {{ 'XP.Knowledgebase.ProcessingDocuments' | translate: { Default: 'Processing Documents' } }}
+      </h3>
+      <p class="mt-2 text-sm leading-6 text-text-tertiary">
+        {{ 'XP.Knowledgebase.PipelineProcessing.SettingsHint' | translate }}
+      </p>
+
+      <div class="mt-8 flex items-center justify-between gap-3 border-b border-divider-subtle pb-4">
+        <h4 class="text-sm font-semibold text-text-primary">
           {{ 'XP.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
-        </div>
-        <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium" disabled="">
-          {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
-        </button>
+        </h4>
         <button
+          z-button
+          zType="outline"
+          zSize="sm"
           type="button"
-          class="btn disabled:btn-disabled btn-secondary-accent btn-medium gap-x-0.5"
           [disabled]="previewing() || !canPreview()"
+          [zLoading]="previewing()"
           (click)="previewChunks()"
         >
-          <i class="ri-eye-2-line"></i>
-          <span class="px-0.5">{{ 'XP.Knowledgebase.PreviewChunks' | translate: { Default: 'Preview Chunks' } }}</span>
+          <i class="ri-eye-line" aria-hidden="true"></i>
+          {{ 'XP.Knowledgebase.PreviewChunks' | translate: { Default: 'Preview Chunks' } }}
         </button>
       </div>
-      <div class="flex flex-col gap-3 border-t border-divider-subtle px-4 py-3">
-        @if (chunkerNode(); as chunkerNode) {
-          @if (chunkerStrategy(); as chunkerStrategy) {
-            <div
-              class="flex items-start gap-3 rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-3"
-            >
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-components-input-bg-normal">
-                @if (chunkerStrategy.icon; as icon) {
-                  <xp-icon class="!block h-8 w-8" [icon]="icon" />
-                } @else {
-                  <i class="ri-equalizer-3-line text-text-secondary"></i>
-                }
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="system-md-semibold text-text-secondary">
-                  {{ chunkerStrategy.label | i18n }}
-                </div>
-                <div class="system-xs-regular text-text-tertiary" [title]="chunkerStrategy.description | i18n">
-                  {{ chunkerStrategy.description | i18n }}
-                </div>
-              </div>
-            </div>
-          }
 
-          @if (hasChunkerConfigFields()) {
-            <json-schema-form
-              class="grid grid-cols-2 gap-2"
-              [schema]="chunkerConfigSchema()"
-              [readonly]="true"
-              [ngModel]="chunkerConfig()"
-            />
-          } @else {
-            <div
-              class="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-3 text-sm text-text-tertiary"
-            >
-              {{ 'XP.Pipeline.NoPluginConfig' | translate: { Default: 'No configuration required for this plugin.' } }}
+      @if (chunkerNode()) {
+        @if (chunkerStrategy(); as strategy) {
+          <div class="flex items-start gap-3 py-5">
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle">
+              @if (strategy.icon; as icon) {
+                <xp-icon class="block size-6" [icon]="icon" />
+              } @else {
+                <i class="ri-scissors-cut-line text-text-secondary" aria-hidden="true"></i>
+              }
             </div>
-          }
-        } @else {
-          <div
-            class="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-3 text-sm text-text-tertiary"
-          >
-            {{ 'XP.Knowledgebase.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-text-primary">{{ strategy.label | i18n }}</div>
+              <p class="mt-1 text-xs leading-5 text-text-tertiary">{{ strategy.description | i18n }}</p>
+            </div>
           </div>
         }
-      </div>
-    </div>
+        @if (hasChunkerConfigFields()) {
+          <json-schema-form
+            class="grid grid-cols-1 gap-5 border-t border-divider-subtle pt-5 sm:grid-cols-2"
+            [schema]="chunkerConfigSchema()"
+            [controlDefaults]="compactControlDefaults"
+            [readonly]="true"
+            [ngModel]="chunkerConfig()"
+          />
+        } @else {
+          <p class="py-5 text-sm leading-6 text-text-tertiary">
+            {{ 'XP.Pipeline.NoPluginConfig' | translate: { Default: 'No configuration required for this plugin.' } }}
+          </p>
+        }
+      } @else {
+        <p class="py-5 text-sm leading-6 text-text-tertiary">
+          {{ 'XP.Knowledgebase.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
+        </p>
+      }
+    </section>
 
-    <ng-content select="[actions]"></ng-content>
-  </div>
-</div>
-
-<div class="h-full min-w-0 flex-1">
-  <div class="flex h-full flex-col pl-2 pt-2">
-    <div class="relative flex h-full w-full shrink-0">
-      <div
-        class="flex h-full w-full flex-col rounded-tl-xl border-l-[0.5px] border-t-[0.5px] border-components-panel-border bg-background-default-lighter shadow-md shadow-shadow-shadow-5"
+    <section
+      class="flex min-h-80 min-w-0 flex-col border-t border-divider-subtle bg-background-default-subtle lg:min-h-0 lg:border-l lg:border-t-0"
+      [attr.aria-busy]="previewing()"
+    >
+      <header
+        class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-divider-subtle px-6 py-4"
       >
-        <header class="border-b border-divider-subtle pb-3 pl-5 pr-4 pt-4">
-          <div class="">
-            <div class="system-2xs-semibold-uppercase mb-1 px-1 uppercase text-text-accent">
-              {{ 'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}
-            </div>
-            <div class="flex items-center gap-1">
-              <div class="inline-block">
-                <div
-                  class="flex h-6 select-none items-center rounded-md px-1 hover:bg-hover-bg"
-                  [cdkMenuTriggerFor]="docsMenu"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    fill="currentColor"
-                    class="remixicon shrink-0 size-5 text-[#309BEC]"
-                  >
-                    <path
-                      d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM7 15.5V11.5L9 13.5L11 11.5V15.5H13V8.5H11L9 10.5L7 8.5H5V15.5H7ZM18 12.5V8.5H16V12.5H14L17 15.5L20 12.5H18Z"
-                    ></path>
-                  </svg>
-                  <div class="ml-1 flex flex-col items-start">
-                    <div class="flex items-center space-x-0.5">
-                      <span class="system-md-semibold max-w-[200px] font-body truncate text-text-primary">
-                        {{
-                          previewDocName() ||
-                            ('XP.Knowledgebase.SelectDocumentForPreview'
-                              | translate: { Default: 'Select a document to preview its content' })
-                        }}
-                      </span>
-                      <svg
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        fill="currentColor"
-                        class="remixicon h-[18px] w-[18px] text-text-primary"
-                      >
-                        <path
-                          d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"
-                        ></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div
-                class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase"
-              >
-                0 {{ 'XP.Knowledgebase.EstimatedChunks' | translate: { Default: 'Estimated Chunks' } }}
-              </div>
-            </div>
-          </div>
-        </header>
-        <main class="w-full grow overflow-y-auto px-6 py-5 space-y-2">
-          @if (previewing()) {
-            <bullet-list-content-loader class="w-full" />
-          } @else if (previewDocName()) {
-            @if (taskError(); as error) {
-              <div class="flex h-full w-full items-center justify-center">
-                <div class="flex flex-col items-center justify-center gap-3 pb-4">
-                  <i class="ri-error-warning-line text-2xl text-red-500"></i>
-                  <p class="text-sm text-text-tertiary">
-                    {{ 'XP.Knowledgebase.PreviewDocError' | translate: { Default: 'Failed to load preview:' } }}
-                    {{ error }}
-                  </p>
-                  <button
-                    type="button"
-                    class="btn disabled:btn-disabled btn-secondary btn-medium"
-                    [disabled]="previewing() || !canPreview()"
-                    (click)="previewChunks()"
-                  >
-                    {{ 'XP.Knowledgebase.RetryPreview' | translate: { Default: 'Retry Preview' } }}
-                  </button>
-                </div>
-              </div>
-            } @else {
-              @for (chunk of previewDocChunks(); track chunk; let i = $index) {
-                <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
-              }
-            }
-          } @else {
-            <div class="flex h-full w-full items-center justify-center">
-              <div class="flex flex-col items-center justify-center gap-3 pb-4">
-                <i class="ri-eye-2-line text-2xl"></i>
-                <p class="text-sm text-text-tertiary">
-                  {{
-                    'XP.Knowledgebase.PreviewDocHint'
-                      | translate: { Default: 'Click the "Document" button on the left to load a preview' }
-                  }}
-                </p>
-                <button
-                  type="button"
-                  class="btn disabled:btn-disabled btn-secondary btn-medium"
-                  [disabled]="previewing() || !canPreview()"
-                  (click)="previewChunks()"
-                >
-                  {{ 'XP.Knowledgebase.PreviewChunks' | translate: { Default: 'Preview Chunks' } }}
-                </button>
-              </div>
-            </div>
+        <h3 class="text-sm font-semibold text-text-primary">
+          {{ 'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}
+        </h3>
+        <div class="flex min-w-0 items-center gap-2">
+          <button
+            z-button
+            zType="ghost"
+            zSize="sm"
+            type="button"
+            class="min-w-0 max-w-64"
+            [disabled]="!documents()?.length"
+            [cdkMenuTriggerFor]="docsMenu"
+          >
+            <i class="ri-file-text-line shrink-0 text-text-tertiary" aria-hidden="true"></i>
+            <span class="truncate">{{
+              previewDocName() ||
+                ('XP.Knowledgebase.SelectFilePreview' | translate: { Default: 'Select file to preview' })
+            }}</span>
+            <i class="ri-arrow-down-s-line shrink-0" aria-hidden="true"></i>
+          </button>
+          @if (previewCompleted()) {
+            <span class="shrink-0 rounded-md bg-components-panel-bg px-2 py-1 text-xs tabular-nums text-text-secondary">
+              {{ previewDocChunks().length }} {{ 'XP.Knowledgebase.PipelineProcessing.Chunks' | translate }}
+            </span>
           }
-        </main>
-      </div>
-    </div>
+        </div>
+      </header>
+      <main class="min-h-0 flex-1 overflow-y-auto p-6" aria-live="polite">
+        @if (previewing()) {
+          <p class="mb-4 text-sm text-text-tertiary">{{ 'XP.Knowledgebase.PipelineProcessing.Loading' | translate }}</p>
+          <bullet-list-content-loader class="block w-full" />
+        } @else if (taskError(); as error) {
+          <div role="alert" class="flex h-full min-h-64 flex-col items-center justify-center gap-3 text-center">
+            <i class="ri-error-warning-line text-2xl text-text-destructive" aria-hidden="true"></i>
+            <p class="max-w-sm break-words text-sm leading-6 text-text-tertiary">{{ error }}</p>
+            <button z-button zType="outline" type="button" [disabled]="!canPreview()" (click)="previewChunks()">
+              {{ 'XP.Knowledgebase.PipelineProcessing.Retry' | translate }}
+            </button>
+          </div>
+        } @else if (previewCompleted()) {
+          <div class="space-y-3">
+            @for (chunk of previewDocChunks(); track $index; let i = $index) {
+              <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
+            } @empty {
+              <div class="flex min-h-64 flex-col items-center justify-center gap-3 text-center text-text-tertiary">
+                <i class="ri-file-search-line text-2xl" aria-hidden="true"></i>
+                <p class="max-w-sm text-sm leading-6">{{ 'XP.Knowledgebase.PipelineProcessing.Empty' | translate }}</p>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="flex h-full min-h-64 flex-col items-center justify-center gap-3 text-center">
+            <div class="flex size-12 items-center justify-center rounded-xl bg-components-panel-bg text-text-tertiary">
+              <i class="ri-file-search-line text-2xl" aria-hidden="true"></i>
+            </div>
+            <p class="max-w-sm text-sm leading-6 text-text-tertiary">
+              {{ 'XP.Knowledgebase.PipelineProcessing.PreviewHint' | translate }}
+            </p>
+            <button z-button zType="outline" type="button" [disabled]="!canPreview()" (click)="previewChunks()">
+              {{ 'XP.Knowledgebase.PreviewChunks' | translate: { Default: 'Preview Chunks' } }}
+            </button>
+          </div>
+        }
+      </main>
+    </section>
   </div>
+  <ng-content select="[actions]"></ng-content>
 </div>
 
 <ng-template #docsMenu>
   <div cdkMenu class="cdk-menu__large">
-    @for (option of documents(); track option.filePath) {
-      <div cdkMenuItem class="group/item overflow-hidden" (click)="previewDocName.set(option.name)">
-        <div class="max-w-full flex flex-col items-start overflow-hidden">
-          <div class="text-start">{{ option.name }}</div>
-        </div>
-      </div>
-    } @empty {
-      <div class="p-4 text-center text-text-tertiary">
-        {{ 'XP.Knowledgebase.NoDocumentYet' | translate: { Default: 'No document yet!' } }}
-      </div>
+    @for (option of documents(); track option.id) {
+      <button cdkMenuItem type="button" class="min-w-0 text-start" (click)="previewDocName.set(option.name)">
+        <span class="truncate">{{ option.name }}</span>
+      </button>
     }
   </div>
 </ng-template>

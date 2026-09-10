@@ -1494,7 +1494,13 @@ describe('KnowledgebaseService', () => {
                     wikiModelId: true,
                     apiEnabled: true,
                     workspaceId: true,
-                    pipelineId: true
+                    pipelineId: true,
+                    pipeline: {
+                        id: true,
+                        publishAt: true,
+                        version: true,
+                        graph: true
+                    }
                 }),
                 where: expect.objectContaining({
                     id: 'kb-1',
@@ -1542,7 +1548,7 @@ describe('KnowledgebaseService', () => {
         expect(payload).not.toHaveProperty('tenantId')
         expect(payload).not.toHaveProperty('organizationId')
         expect(payload.xperts[0]).not.toHaveProperty('graph')
-        expect(payload.pipeline).not.toHaveProperty('graph')
+        expect(payload.pipeline.graph).toEqual(knowledgebase.pipeline.graph)
     })
 
     it('rejects a task conversation before creating the task when conversation access fails', async () => {

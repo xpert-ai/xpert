@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, model } from '@angular/core'
 import { KnowledgebaseService, KnowledgeFileUploader } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardProgressBarComponent],
   selector: 'xp-knowledge-local-file',
   templateUrl: 'local-file.component.html',
   styleUrls: ['local-file.component.scss']
@@ -26,9 +27,27 @@ export class KnowledgeLocalFileComponent {
   readonly extensions = computed(() => {
     const exts = this.accepts()
     if (exts && exts.length) {
-      return exts.filter(Boolean).map((ext) => ext.startsWith('.') ? ext.slice(1) : ext)
+      return exts.filter(Boolean).map((ext) => (ext.startsWith('.') ? ext.slice(1) : ext))
     }
-    return ['txt', 'markdown', 'mdx', 'pdf', 'html', 'xlsx', 'xls', 'docx', 'pptx', 'csv', 'epub', 'md', 'htm', 'csv', 'odt', 'odp', 'ods']
+    return [
+      'txt',
+      'markdown',
+      'mdx',
+      'pdf',
+      'html',
+      'xlsx',
+      'xls',
+      'docx',
+      'pptx',
+      'csv',
+      'epub',
+      'md',
+      'htm',
+      'csv',
+      'odt',
+      'odp',
+      'ods'
+    ]
   })
 
   readonly extensionStr = computed(() => this.extensions()?.join(', '))
@@ -62,7 +81,7 @@ export class KnowledgeLocalFileComponent {
 
   // Remove file
   removeFile(index: number) {
+    if (this.selected() === this.files()[index]) this.selected.set(null)
     this.files.update((prev) => prev.filter((_, i) => i !== index))
   }
-
 }
