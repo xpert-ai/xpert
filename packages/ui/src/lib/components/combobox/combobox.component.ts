@@ -93,6 +93,7 @@ export class ZardComboboxOptionTemplateDirective {
       zPopover
       role="combobox"
       [zContent]="popoverContent"
+      [zMatchTriggerWidth]="true"
       [zType]="buttonVariant()"
       [class]="buttonClasses()"
       [zDisabled]="disabledState()"
@@ -264,10 +265,7 @@ export class ZardComboboxComponent implements ControlValueAccessor {
 
   protected readonly buttonClasses = computed(() => 'w-full justify-between')
 
-  protected readonly popoverClasses = computed(() => {
-    const widthClass = this.zWidth() === 'full' ? 'w-full' : comboboxVariants({ zWidth: this.zWidth() })
-    return `${widthClass} p-0`
-  })
+  protected readonly popoverClasses = computed(() => 'w-full p-0')
 
   protected readonly currentValue = computed(() => this.value() ?? this.internalValue())
 
