@@ -1,3 +1,6 @@
+import { EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { qualifiesLearning } from '../changes/strategy.service'
+import { changeError } from '../changes/change.errors'
 import type {
     DiagnoseLearningEventsRequest,
     EvolutionAnalysisResult,
@@ -13,7 +16,10 @@ import { AgentEvolutionStore, type EvolutionTenantScope } from './agent-evolutio
 
 @Injectable()
 export class AgentEvolutionAnalystService {
-    constructor(private readonly store: AgentEvolutionStore) {}
+    constructor(
+        private readonly store: AgentEvolutionStore,
+        private readonly providers: EvolutionTargetProviderRegistry
+    ) {}
 
     listDiagnoses(context: TenantContext, query: EvolutionPageQuery) {
         return this.store.listDiagnoses(toTenantScope(context), query)
@@ -61,7 +67,11 @@ export class AgentEvolutionAnalystService {
                 confidence: events.reduce((sum, event) => sum + event.confidence, 0) / events.length,
                 createdAt: now
             }
-            const caseCount = new Set(events.map((event) => event.subjectRef.split(':requirement:')[0])).size
+            const caseCount = new Set(events.map((event) => event.subjectRef)).size
+            const strategy = this.providers
+                .get(first.targetId, context.organizationId ?? undefined)
+                .descriptor.strategies.find((item) => item.id === request.strategyId)
+            if (!strategy || strategy.learning.mode !== 'feedback') changeError('strategy_not_allowed')
             const cluster: EvolutionEventCluster = {
                 clusterId: `CLU-${randomUUID()}`,
                 targetId: first.targetId,
@@ -69,10 +79,7 @@ export class AgentEvolutionAnalystService {
                 correctionSignature: signature,
                 eventIds: diagnosis.eventIds,
                 caseCount,
-                status:
-                    events.filter((event) => event.trustLevel !== 'L1').length >= 3 && caseCount >= 2
-                        ? 'proposal_ready'
-                        : 'collecting',
+                status: qualifiesLearning(events, strategy) ? 'proposal_ready' : 'collecting',
                 createdAt: now,
                 updatedAt: now
             }
@@ -95,9 +102,7 @@ function correctionSignature(event: LearningEvent) {
         targetId: event.targetId,
         scopeType: event.scope.type,
         scopeKey: event.scope.key,
-        productFamily: event.scope.dimensions?.productFamily ?? null,
-        workspaceId: event.scope.dimensions?.workspaceId ?? null,
-        projectId: event.scope.dimensions?.projectId ?? null,
+        dimensions: event.scope.dimensions ?? {},
         decisionPoint: event.decisionPoint,
         reasonCodes: [...event.reasonCodes].sort()
     })

@@ -2,8 +2,12 @@
     "Error": {
         "VisualEvidenceScopeRequired": "A governed KnowledgeDocument and evidence scope are required",
         "VisualEvidenceScopeInvalid": "The visual evidence audit scope is invalid",
+
         "DocumentProcessorUnavailable": "The selected document parser is unavailable. Refresh the parser settings.",
         "DocumentParserIntegrationUnavailable": "The selected integration is unavailable or does not belong to this parser. Select an available connection.",
+
+        "EvolutionChange": "Evolution cannot proceed: {{code}}",
+        "EvolutionResourceChange": "Resource change cannot proceed: {{code}}",
         "KnowledgeGraphDocumentStatusBatchInvalid": "Provide between 1 and {{max}} document UUIDs.",
         "KnowledgeRetrievalSourceRequired": "Select at least one retrieval source available for the selected content scope with a positive weight.",
         "KnowledgeRerankModelUnavailable": "Rerank model is not available for knowledgebase '{{knowledgebase}}'.",

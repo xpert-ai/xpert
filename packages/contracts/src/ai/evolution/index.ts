@@ -9,3 +9,8 @@ export * from './example'
 export * from './runtime'
 export * from './governance'
 export * from './experience'
+
+export * from './change'
+
+export * from './persistence'
+export * from './strategy'

@@ -1,0 +1,244 @@
+<section class="space-y-6">
+  <header class="flex flex-wrap items-start justify-between gap-4 border-b border-divider-regular pb-5">
+    <div class="min-w-0 flex-1">
+      <div class="mb-2 flex flex-wrap items-center gap-2">
+        <z-badge zType="secondary">{{
+          'XP.AgentEvolution.PublicationStatus.' + (lifecycle()?.publicationStatus || 'preparing') | translate
+        }}</z-badge>
+      </div>
+      <h2 class="text-xl font-semibold text-text-primary">{{ title() }}</h2>
+      <p class="mt-2 text-sm text-text-secondary">
+        {{ change().presentation?.resourceLabel || ('XP.AgentEvolution.ResourceContextUnavailable' | translate) }}
+      </p>
+      @if (change().presentation?.contextLabel; as context) {
+        <p class="mt-1 text-xs text-text-secondary">{{ context }}</p>
+      }
+    </div>
+    @if (link(); as target) {
+      <a z-button [routerLink]="target.commands" [queryParams]="target.queryParams">
+        <i class="ri-external-link-line" aria-hidden="true"></i>
+        {{
+          (mode() === 'release'
+            ? 'XP.AgentEvolution.OpenEffectHistory'
+            : change().status === 'pending_approval'
+              ? 'XP.AgentEvolution.ReviewInStudio'
+              : 'XP.AgentEvolution.OpenBusinessStudio'
+          ) | translate
+        }}
+      </a>
+    } @else if (change().presentationUnavailable) {
+      <p class="max-w-sm text-xs text-text-secondary">{{ 'XP.AgentEvolution.WorkbenchUnavailable' | translate }}</p>
+    }
+  </header>
+
+  <div class="flex flex-wrap items-center gap-3 text-sm">
+    <span class="font-medium"
+      >{{ 'XP.AgentEvolution.StrategyLabel' | translate }}: {{ text(change().strategy.definition.label) }}</span
+    >
+    <span class="text-text-secondary">v{{ change().strategy.definition.version }}</span>
+    <z-badge zType="outline">{{
+      'XP.AgentEvolution.EffectStatus.' + (lifecycle()?.effectStatus || 'pending') | translate
+    }}</z-badge>
+  </div>
+  <ol class="grid gap-3 border-y border-divider-regular py-4 sm:grid-cols-3 xl:grid-cols-6">
+    @for (step of steps(); track step.key) {
+      <li class="space-y-1 text-sm">
+        <p class="font-medium">{{ 'XP.AgentEvolution.StrategyStage.' + step.key | translate }}</p>
+        <p class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.StageStatus.' + step.status | translate }}</p>
+      </li>
+    }
+  </ol>
+  @if (canReview()) {
+    <div class="flex flex-wrap items-center gap-3">
+      <input
+        class="min-w-64 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+        [ngModel]="reason()"
+        (ngModelChange)="reason.set($event)"
+        [attr.aria-label]="'XP.AgentEvolution.HumanReview' | translate"
+        [placeholder]="'XP.AgentEvolution.HumanReview' | translate"
+      />
+      <button z-button [zDisabled]="!reason().trim()" (click)="review('approved')">
+        {{ 'XP.AgentEvolution.ConfirmApproval' | translate }}
+      </button>
+      <button z-button zType="outline" [zDisabled]="!reason().trim()" (click)="review('rejected')">
+        {{ 'XP.AgentEvolution.RejectCandidate' | translate }}
+      </button>
+    </div>
+  }
+  @if (canPublish()) {
+    <button z-button (click)="publish()">{{ 'XP.AgentEvolution.ConfirmPublication' | translate }}</button>
+  }
+
+  <p class="text-sm leading-6 text-text-secondary">
+    {{
+      (mode() === 'release' ? 'XP.AgentEvolution.ResourcePublicationHint' : 'XP.AgentEvolution.ResourceReviewHint')
+        | translate
+    }}
+  </p>
+
+  <dl class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="border-l-2 border-divider-regular pl-4">
+      <dt class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.Baseline' | translate }}</dt>
+      <dd class="mt-2 break-all text-lg font-semibold">{{ change().baseline.version }}</dd>
+    </div>
+    <div class="border-l-2 border-divider-regular pl-4">
+      <dt class="text-xs text-text-secondary">{{ 'XP.AgentEvolution.ResourceChecks' | translate }}</dt>
+      <dd class="mt-2 text-lg font-semibold">
+        {{
+          change().evaluation?.assessment === 'not_applicable'
+            ? ('XP.AgentEvolution.AssessmentNotApplicable' | translate)
+            : change().evaluation
+              ? passed() + ' / ' + change().evaluation!.checks.length
+              : ('XP.AgentEvolution.PendingEvaluation' | translate)
+        }}
+      </dd>
+    </div>
+    @for (readiness of change().evaluation?.readiness ?? []; track readiness.key) {
+      <div class="border-l-2 border-divider-regular pl-4">
+        <dt class="text-xs text-text-secondary">{{ text(readiness.label) }}</dt>
+        <dd class="mt-2 text-lg font-semibold">
+          {{ 'XP.AgentEvolution.ReadinessStatus.' + readiness.status | translate }}
+        </dd>
+      </div>
+    }
+    @for (metric of change().presentation?.metrics ?? []; track metric.key) {
+      <div class="border-l-2 border-divider-regular pl-4">
+        <dt class="text-xs text-text-secondary">{{ text(metric.label) }}</dt>
+        <dd class="mt-2 text-lg font-semibold">
+          {{ metric.value ?? '—' }}
+          @if (metric.total !== undefined) {
+            / {{ metric.total }}
+          }
+        </dd>
+      </div>
+    }
+  </dl>
+
+  @if (change().presentation?.effect; as effect) {
+    <p class="text-sm">
+      <span class="font-medium">{{ text(effect.label) }}</span> {{ text(effect.description) }}
+    </p>
+  }
+
+  @if (change().candidate; as candidate) {
+    @if (candidate.changes.length) {
+      <details class="border-b border-divider-regular pb-4">
+        <summary class="cursor-pointer text-sm font-medium">
+          {{ 'XP.AgentEvolution.CandidateChanges' | translate }}
+        </summary>
+        @for (delta of candidate.changes; track $index) {
+          <div class="mt-3 text-sm">
+            <p class="font-medium">{{ delta.path }} · {{ delta.summary }}</p>
+            @if (delta.before) {
+              <pre class="mt-2 whitespace-pre-wrap break-all text-text-secondary">{{ delta.before }}</pre>
+            }
+            <pre class="mt-2 whitespace-pre-wrap break-all">{{ delta.after }}</pre>
+          </div>
+        }
+      </details>
+    }
+  }
+  @if (change().approval; as approval) {
+    <section class="border-l-2 border-divider-regular pl-4">
+      <h3 class="text-sm font-semibold">{{ 'XP.AgentEvolution.HumanReview' | translate }}</h3>
+      <p class="mt-2 text-sm leading-6">{{ approval.reason }}</p>
+      <p class="mt-1 text-xs text-text-secondary">
+        {{ 'XP.AgentEvolution.ResourceStatus.' + approval.decision | translate }} ·
+        {{ approval.decidedAt | date: 'yyyy-MM-dd HH:mm' }}
+      </p>
+    </section>
+  }
+
+  @if (change().evaluation?.assessment === 'not_applicable') {
+    <p class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.AssessmentNotApplicableHint' | translate }}</p>
+  } @else if (change().evaluation; as evaluation) {
+    <details class="border-y border-divider-regular py-4" [open]="mode() === 'evaluation'">
+      <summary class="cursor-pointer text-sm font-semibold">
+        {{ 'XP.AgentEvolution.TestResults' | translate }} · {{ passed() }} / {{ evaluation.checks.length }}
+      </summary>
+      <div class="mt-4 grid gap-x-6 md:grid-cols-2">
+        @for (check of evaluation.checks; track check.checkId) {
+          <div class="flex items-start gap-2 border-t border-divider-subtle py-3">
+            <i
+              [class]="
+                check.passed ? 'ri-checkbox-circle-line text-text-success' : 'ri-error-warning-line text-text-warning'
+              "
+              aria-hidden="true"
+            ></i>
+            <div class="min-w-0">
+              <p class="text-sm font-medium">{{ check.title }}</p>
+              <p class="mt-1 text-xs text-text-secondary">
+                {{ check.origin }} ·
+                {{ (check.passed ? 'XP.AgentEvolution.CheckPassed' : 'XP.AgentEvolution.CheckFailed') | translate }}
+              </p>
+              <details class="mt-1 text-xs text-text-secondary">
+                <summary class="cursor-pointer">{{ 'XP.AgentEvolution.CheckDetails' | translate }}</summary>
+                <p class="mt-2 break-words leading-5">{{ check.details }}</p>
+              </details>
+            </div>
+          </div>
+        }
+      </div>
+      @for (readiness of evaluation.readiness; track readiness.key) {
+        @if (readiness.reasons.length) {
+          <div class="mt-4 border-l-2 border-divider-regular pl-3 text-sm">
+            <p class="font-medium">{{ text(readiness.label) }}</p>
+            @for (reason of readiness.reasons; track $index) {
+              <p class="mt-2 text-text-secondary">{{ reason }}</p>
+            }
+          </div>
+        }
+      }
+    </details>
+  }
+
+  <details class="border-b border-divider-regular pb-4">
+    <summary class="cursor-pointer text-sm font-medium text-text-secondary">
+      {{ 'XP.AgentEvolution.AuditDetails' | translate }}
+    </summary>
+    <dl class="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+      <div>
+        <dt class="text-text-secondary">{{ 'XP.AgentEvolution.ChangeRecord' | translate }}</dt>
+        <dd class="mt-1 break-all font-mono">{{ change().changeId }}</dd>
+      </div>
+      <div>
+        <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Target' | translate }}</dt>
+        <dd class="mt-1 break-all font-mono">{{ change().targetId }}</dd>
+      </div>
+      <div>
+        <dt class="text-text-secondary">{{ 'XP.AgentEvolution.BaselineHash' | translate }}</dt>
+        <dd class="mt-1 break-all font-mono">{{ change().baseline.hash }}</dd>
+      </div>
+      <div>
+        <dt class="text-text-secondary">{{ 'XP.AgentEvolution.CandidateHash' | translate }}</dt>
+        <dd class="mt-1 break-all font-mono">{{ change().candidate?.artifact?.hash || '—' }}</dd>
+      </div>
+      @if (change().receipt; as receipt) {
+        <div>
+          <dt class="text-text-secondary">{{ 'XP.AgentEvolution.WriteReceipt' | translate }}</dt>
+          <dd class="mt-1 break-all font-mono">{{ receipt.receiptId }}</dd>
+        </div>
+        <div>
+          <dt class="text-text-secondary">{{ 'XP.AgentEvolution.PublishedVersion' | translate }}</dt>
+          <dd class="mt-1 break-all font-mono">{{ receipt.resource.version }}</dd>
+        </div>
+      }
+      @if (change().evaluation; as evaluation) {
+        <div>
+          <dt class="text-text-secondary">{{ 'XP.AgentEvolution.EvaluatorVersion' | translate }}</dt>
+          <dd class="mt-1 break-all font-mono">{{ evaluation.datasetVersion }} · {{ evaluation.runId }}</dd>
+        </div>
+      }
+      @if (change().approval; as approval) {
+        <div>
+          <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Actor' | translate }}</dt>
+          <dd class="mt-1 break-all font-mono">{{ approval.actorId }}</dd>
+        </div>
+      }
+    </dl>
+    <details class="mt-4 text-xs">
+      <summary class="cursor-pointer">{{ 'XP.AgentEvolution.ImmutableResourceDetails' | translate }}</summary>
+      <pre class="mt-3 max-h-96 overflow-auto rounded-lg bg-background-default-subtle p-4">{{ change() | json }}</pre>
+    </details>
+  </details>
+</section>

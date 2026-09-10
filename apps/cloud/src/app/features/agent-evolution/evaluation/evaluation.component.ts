@@ -1,3 +1,12 @@
+import { ActivatedRoute, Router } from '@angular/router'
+import { EvolutionChangePickerComponent } from '../shared/evolution-change-picker.component'
+import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
+import {
+  changeFilter,
+  evolutionEntries,
+  selectedEvolutionEntry,
+  type EvolutionChangeFilter
+} from '../shared/evolution-change-presentation'
 import { CommonModule } from '@angular/common'
 import { DOCUMENT } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
@@ -27,6 +36,8 @@ import { evolutionApprovalGatePresentation, percent, shortId } from '../agent-ev
   standalone: true,
   selector: 'xp-agent-evolution-evaluation',
   imports: [
+    EvolutionChangePickerComponent,
+    EvolutionChangePanelComponent,
     CommonModule,
     FormsModule,
     EchartsDirective,
@@ -42,6 +53,42 @@ import { evolutionApprovalGatePresentation, percent, shortId } from '../agent-ev
 })
 export class AgentEvolutionEvaluationComponent {
   readonly facade = inject(AgentEvolutionFacade)
+  private readonly route = inject(ActivatedRoute)
+  private readonly router = inject(Router)
+  readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
+  readonly changeType = computed(() => changeFilter(this.query().get('changeStatus')))
+  readonly entries = computed(() =>
+    evolutionEntries(this.facade.contextLifecycleRecords(), this.facade.visibleTargets(), 'evaluation')
+  )
+  readonly selection = computed(() =>
+    selectedEvolutionEntry(this.entries(), this.changeType(), this.query().get('changeId'))
+  )
+  readonly resource = computed(
+    () => this.facade.contextChanges().find((item) => item.changeId === this.selection()?.id) ?? null
+  )
+  readonly usesReplay = computed(
+    () => this.selection()?.strategy.definition.evaluations.some((step) => step.kind === 'golden_replay') === true
+  )
+  selectChange(id: string | null) {
+    this.facade.selectedDatasetSnapshotId.set(null)
+    this.facade.selectedEvaluationRunId.set(null)
+    this.selectedCaseId.set(null)
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { changeId: id },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
+  }
+  filterChanges(type: EvolutionChangeFilter) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { changeStatus: type, changeType: null, changeId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
+  }
+
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
   readonly #document = inject(DOCUMENT)
@@ -54,15 +101,25 @@ export class AgentEvolutionEvaluationComponent {
   readonly showDatasetBuilder = signal(false)
   readonly datasetId = signal('')
   readonly datasetName = signal('')
-  readonly evaluatorVersion = signal('bom-provider-replay-v1')
+  readonly evaluatorVersion = signal('')
   readonly metricDefinitionVersion = signal('')
   readonly datasetCasesJson = signal('[]')
   readonly approvalReason = signal(this.#translate.instant('XP.AgentEvolution.DefaultApprovalReason'))
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
   readonly currentUser = toSignal(this.#store.user$, { initialValue: this.#store.user })
 
-  readonly evaluation = this.facade.latestEvaluation
-  readonly candidate = this.facade.latestCandidate
+  readonly evaluation = computed(
+    () =>
+      this.facade
+        .contextEvaluations()
+        .filter((item) => item.candidateId === this.candidate()?.candidateId)
+        .find((item) => item.runId === this.facade.selectedEvaluationRunId()) ??
+      this.facade.contextEvaluations().find((item) => item.candidateId === this.candidate()?.candidateId) ??
+      null
+  )
+  readonly candidate = computed(
+    () => this.facade.contextCandidates().find((item) => item.candidateId === this.selection()?.id) ?? null
+  )
   readonly candidateTarget = computed(
     () => this.facade.dashboard().targets.find((target) => target.targetId === this.candidate()?.targetId) ?? null
   )
@@ -73,13 +130,7 @@ export class AgentEvolutionEvaluationComponent {
       .contextDatasets()
       .filter((dataset) => dataset.targetId === candidate.targetId && sameScope(dataset.scope, candidate.targetScope))
   })
-  readonly candidateOptions = computed(() => {
-    this.localeChange()
-    return this.facade.contextCandidates().map((item) => ({
-      value: item.candidateId,
-      label: `${item.targetId} · ${item.candidateId} · ${this.#translate.instant(`XP.AgentEvolution.Status.${item.status}`, { Default: item.status })}`
-    }))
-  })
+
   readonly datasetOptions = computed(() => {
     this.localeChange()
     return this.compatibleDatasets().map((item) => ({
@@ -196,13 +247,6 @@ export class AgentEvolutionEvaluationComponent {
     if (confirmed) {
       await this.facade.evaluateCandidate(this.candidate(), this.dataset())
     }
-  }
-
-  selectCandidate(candidateId: string) {
-    this.facade.selectedCandidateId.set(candidateId || null)
-    this.facade.selectedDatasetSnapshotId.set(null)
-    this.facade.selectedEvaluationRunId.set(null)
-    this.selectedCaseId.set(null)
   }
 
   selectDataset(snapshotId: string) {

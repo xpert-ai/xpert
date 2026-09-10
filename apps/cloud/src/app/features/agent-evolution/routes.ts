@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router'
+import { Router, Routes } from '@angular/router'
 import { AgentEvolutionComponent } from './agent-evolution.component'
 
 export const routes: Routes = [

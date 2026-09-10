@@ -2,7 +2,14 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+  type IsActiveMatchOptions
+} from '@angular/router'
 import { AIPermissionsEnum } from '@cloud/app/@core'
 import { injectActiveScope } from '@cloud/app/@core/state'
 import {
@@ -17,6 +24,7 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs/operators'
 import { AgentEvolutionFacade } from './agent-evolution.facade'
+import { changeFilter } from './shared/evolution-change-presentation'
 
 @Component({
   standalone: true,
@@ -48,6 +56,12 @@ export class AgentEvolutionComponent {
   readonly #activeScope = injectActiveScope()
 
   readonly AIPermissionsEnum = AIPermissionsEnum
+  readonly tabMatchOptions: IsActiveMatchOptions = {
+    paths: 'subset',
+    queryParams: 'ignored',
+    matrixParams: 'ignored',
+    fragment: 'ignored'
+  }
   readonly currentUrl = toSignal(
     this.#router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -69,6 +83,16 @@ export class AgentEvolutionComponent {
       return 'XP.AgentEvolution.SubtitleRelease'
     }
     return 'XP.AgentEvolution.SubtitleOverview'
+  })
+
+  readonly changeNavigationQuery = computed(() => {
+    const query = this.#router.parseUrl(this.currentUrl()).queryParams
+    const status = query['changeStatus']
+    const id = query['changeId']
+    return {
+      changeStatus: changeFilter(typeof status === 'string' ? status : null),
+      changeId: typeof id === 'string' ? id : null
+    }
   })
 
   readonly tabs = [

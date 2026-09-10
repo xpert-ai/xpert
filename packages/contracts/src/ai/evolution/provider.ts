@@ -32,6 +32,13 @@ export interface EvolutionReleaseProvider {
 
 export interface EvolutionTargetProvider {
   readonly descriptor: EvolutionTargetDescriptor
+  readonly draftBuilder?: Pick<import('./change').EvolutionChangeProvider, 'prepare'>
+  readonly checkEvaluator?: Pick<import('./change').EvolutionChangeProvider, 'evaluate'>
+  readonly versionPublisher?: Pick<
+    import('./change').EvolutionChangeProvider,
+    'validateCurrent' | 'authorizePublication' | 'publish'
+  >
+  readonly presenter?: Pick<import('./change').EvolutionChangeProvider, 'describe'>
   readonly baselineExporter?: EvolutionBaselineExporter
   readonly candidateBuilder?: EvolutionCandidateBuilder
   readonly replayEvaluator?: EvolutionReplayEvaluator

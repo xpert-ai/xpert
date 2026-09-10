@@ -20,6 +20,7 @@ export interface ReviewLearningEventRequest {
 }
 
 export interface DiagnoseLearningEventsRequest {
+  strategyId: string
   eventIds: string[]
 }
 
@@ -29,6 +30,7 @@ export interface EvolutionAnalysisResult {
 }
 
 export interface CreateImprovementProposalRequest {
+  strategyId: string
   targetId: string
   scope: import('./target').EvolutionScope
   eventIds: string[]
@@ -84,7 +86,7 @@ export interface CreateEvolutionCanaryTestOverrideRequest {
   expiresInMinutes?: number
 }
 
-export type EvolutionJobType = 'evaluation' | 'install' | 'shadow' | 'canary' | 'rollback'
+export type EvolutionJobType = 'change_preparation' | 'evaluation' | 'install' | 'shadow' | 'canary' | 'rollback'
 export type EvolutionJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 export interface EvolutionJob {

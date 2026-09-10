@@ -1,3 +1,4 @@
+import { EvolutionChangeService } from '../changes/change.service'
 import type { EvolutionReleaseGatePolicy, EvolutionScope, ReleaseDeployment, ReleasePackage } from '@xpert-ai/contracts'
 import { EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { BadRequestException } from '@nestjs/common'
@@ -21,6 +22,7 @@ describe('AgentEvolutionGovernanceService one-time Candidate override', () => {
         experienceMinimumDurationHours: 0
     }
     const release: ReleasePackage = {
+        publicationKind: 'staged_rollout',
         releasePackageId: 'RP-1',
         candidateId: 'CAND-1',
         candidateHash: 'candidate-hash',
@@ -66,6 +68,7 @@ describe('AgentEvolutionGovernanceService one-time Candidate override', () => {
         const moduleRef = await Test.createTestingModule({
             providers: [
                 AgentEvolutionGovernanceService,
+                { provide: EvolutionChangeService, useValue: {} },
                 { provide: AgentEvolutionStore, useValue: store },
                 { provide: EvolutionTargetProviderRegistry, useValue: {} },
                 { provide: AgentEvolutionQualityGovernanceService, useValue: {} },

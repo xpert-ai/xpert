@@ -15,6 +15,7 @@ describe('AgentEvolutionRuntimeService one-time Candidate override', () => {
         const deploymentId = 'DEP-RP-e282368e-ebd7-46e8-beac-f01d0fda5edd-canary-5-52f98b2f'
         const subjectKey = '4ded459d-7b0e-4071-8c0f-c4d2fe9c43ab'
         const release: ReleasePackage = {
+            publicationKind: 'staged_rollout',
             releasePackageId: 'RP-1',
             candidateId: 'CAND-1',
             candidateHash: 'candidate-hash',

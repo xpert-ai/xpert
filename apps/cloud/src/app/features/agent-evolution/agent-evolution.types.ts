@@ -259,8 +259,8 @@ export function sameEvolutionScope(left?: EvolutionScope | null, right?: Evoluti
   return !!left && !!right && evolutionScopeId(left) === evolutionScopeId(right)
 }
 
-export function evolutionScopeLabel(scope?: EvolutionScope | null, legacyLabel = 'Legacy') {
-  if (!scope) return legacyLabel
+export function evolutionScopeLabel(scope?: EvolutionScope | null, missingLabel = '—') {
+  if (!scope) return missingLabel
   const dimensions = Object.entries(scope.dimensions ?? {})
     .filter(([, value]) => !!value)
     .map(([key, value]) => `${key}=${value}`)

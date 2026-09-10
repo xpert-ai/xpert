@@ -1,3 +1,4 @@
+import { FEEDBACK_LEARNING_STRATEGY } from '@xpert-ai/contracts'
 import type { EvolutionTargetProvider } from '@xpert-ai/contracts'
 import { EvolutionTargetProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
@@ -12,6 +13,7 @@ export class ConformanceIntentRoutingProvider
     implements EvolutionTargetProvider
 {
     override readonly descriptor = {
+        strategies: [structuredClone(FEEDBACK_LEARNING_STRATEGY)],
         targetId: CONFORMANCE_INTENT_ROUTING_TARGET,
         targetType: 'test_fixture' as const,
         displayName: 'Conformance Intent Routing',

@@ -1,6 +1,6 @@
 import type { I18nText } from '../../i18n.model'
 
-export type EvolutionTargetType = 'prompt_policy' | 'routing_policy' | 'extraction_policy' | 'test_fixture'
+export type EvolutionTargetType = string
 
 export type EvolutionScopeType = 'tenant' | 'organization' | 'workspace' | 'project'
 
@@ -10,11 +10,9 @@ export type EvolutionChannel = 'production' | 'shadow' | 'canary'
 
 export type EvolutionRiskLevel = 'R1' | 'R2' | 'R3' | 'R4'
 
+/** Provider-owned scope dimensions; the platform compares the complete frozen map. */
 export interface EvolutionScopeDimensions {
-  productFamily?: string
-  customerId?: string
-  workspaceId?: string
-  projectId?: string
+  [key: string]: string | undefined
 }
 
 export interface EvolutionScope {
@@ -72,6 +70,8 @@ export interface EvolutionCandidateFormDescriptor {
 }
 
 export interface EvolutionTargetDescriptor {
+  strategies: import('./strategy').EvolutionStrategy[]
+  category?: { key: string; label: I18nText }
   targetId: string
   targetType: EvolutionTargetType
   displayName: string
