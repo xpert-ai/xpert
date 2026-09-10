@@ -9,6 +9,9 @@ type XpertTemplateSourceDescriptor = {
     pluginDisplayName?: string
     source?: string
     releaseNotes?: string
+    locale?: string
+    pluginVersion?: string
+    contentHash?: string
 }
 
 export function resolveXpertTemplateSource(xpert: XpertTemplateSourceCarrier): TXpertTemplateSource | null {
@@ -66,6 +69,9 @@ export function createXpertTemplateSource(
         ...(readString(template.source) ? { source: template.source } : {}),
         installedAt: previous?.installedAt ?? now,
         lastSyncedAt: now,
+        ...(template.locale ? { locale: template.locale } : {}),
+        ...(template.pluginVersion ? { pluginVersion: template.pluginVersion } : {}),
+        ...(template.contentHash ? { contentHash: template.contentHash } : {}),
         ...(readString(template.releaseNotes) ? { releaseNotes: readString(template.releaseNotes) } : {})
     }
 }

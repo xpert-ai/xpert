@@ -163,6 +163,7 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                             // relations: ['chunks']
                         })
 
+                        const errors: string[] = []
                         const tasks = documents.map((document, index) => async () => {
                             statisticsInformation += `- Document ${index + 1} - ${document.name}: \n`
                             try {
@@ -193,6 +194,12 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                         }
                                     )
                                     statisticsInformation += ` - Skipped unchanged source. \n`
+                                    await this.publicationService.publish({
+                                        knowledgebase,
+                                        documentId: document.id,
+                                        userId,
+                                        contentChanged: false
+                                    })
                                     return
                                 }
                                 if (chunks) {
@@ -309,19 +316,25 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                     statisticsInformation += ` - Cancelled by user. \n`
                                     return
                                 }
-                                this.documentService.update(document.id, {
+                                const message = getErrorMessage(err)
+                                await this.documentService.update(document.id, {
                                     status: KBDocumentStatusEnum.ERROR,
-                                    processMsg: getErrorMessage(err)
+                                    processMsg: message
                                 })
-                                statisticsInformation += ` - Error: ${getErrorMessage(err)} \n`
+                                errors.push(message)
+                                statisticsInformation += ` - Error: ${message} \n`
                             }
                         })
 
-                        const results = await runWithConcurrencyLimit(tasks, 3)
+                        await runWithConcurrencyLimit(tasks, 3)
+                        const status = errors.length ? 'failed' : 'success'
+                        const error = errors.length ? errors.join('\n') : null
 
                         // Update task status
                         await this.taskService.update(knowledgeTaskId, {
-                            status: 'success'
+                            status,
+                            error,
+                            finishedAt: new Date()
                         })
 
                         return {
@@ -329,9 +342,9 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
                                 [channelName(node.key)]: {
                                     [InfoChannelName]: statisticsInformation.trim(),
                                     [TaskChannelName]: {
-                                        status: 'success'
+                                        status
                                     },
-                                    [ERROR_CHANNEL_NAME]: null
+                                    [ERROR_CHANNEL_NAME]: error
                                 }
                             }
                         }
@@ -465,7 +478,8 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 
     async checkIfJobCancelled(docId: string): Promise<boolean> {
         // Check database/cache for cancellation flag
-        const doc = await this.documentService.findOne(docId, { select: ['status'] })
+        // Tenant-scoped joins need the primary key in TypeORM's distinct subquery.
+        const doc = await this.documentService.findOne(docId, { select: ['id', 'status'] })
         if (doc) {
             return doc?.status === KBDocumentStatusEnum.CANCEL
         }

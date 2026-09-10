@@ -1,14 +1,16 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
   AiModelTypeEnum,
   DocumentSheetParserConfig,
+  decodeKnowledgeSeparators,
   DocumentSpreadsheetParserConfig,
   DocumentTextParserConfig,
   IKnowledgeDocument,
+  IKnowledgebase,
   KBDocumentCategoryEnum,
   KDocumentSourceType,
   KnowledgebaseService,
@@ -29,6 +31,7 @@ import {
   ZardButtonComponent,
   ZardCheckboxComponent,
   ZardIconComponent,
+  ZardTagSelectComponent,
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
@@ -47,6 +50,7 @@ import {
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardIconComponent,
+    ZardTagSelectComponent,
     XpSelectComponent,
     XpInputComponent,
     IconComponent,
@@ -69,13 +73,15 @@ export class KnowledgeDocumentCreateSettingsComponent {
   } satisfies JsonSchemaControlDefaults
 
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
-  readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
+  readonly knowledgebaseComponent = inject(KnowledgebaseComponent, { optional: true })
+  readonly knowledgebaseValue = input<IKnowledgebase>()
+  readonly section = input<'all' | 'parser' | 'chunks' | 'images'>('all')
 
   // Input Models
   readonly documents = model<Partial<IKnowledgeDocument>[]>()
   readonly parserConfig = model<DocumentTextParserConfig & Partial<DocumentSheetParserConfig>>()
 
-  readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
+  readonly knowledgebase = computed(() => this.knowledgebaseValue() ?? this.knowledgebaseComponent?.knowledgebase())
 
   // Strategies
   readonly #textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
@@ -86,6 +92,23 @@ export class KnowledgeDocumentCreateSettingsComponent {
   // Text Splitter
   readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', 'recursive-character')
   readonly textSplitter = attrModel(this.parserConfig, 'textSplitter')
+  readonly separators = linkedModel<string[]>({
+    initialValue: [],
+    compute: () => {
+      const config = this.parserConfig()
+      const value = config?.textSplitter?.separators
+      return config?.separators ?? decodeKnowledgeSeparators(typeof value === 'string' ? value : undefined)
+    },
+    update: (value) => this.parserConfig.update((config) => ({ ...config, separators: value }))
+  })
+  readonly compareSeparators = (left: unknown, right: unknown) => left === right
+  readonly separatorOptions = computed(() =>
+    this.separators().map((value) => ({ value, label: JSON.stringify(value) }))
+  )
+
+  updateSeparators(value: unknown[]) {
+    this.separators.set(value.filter((item): item is string => typeof item === 'string'))
+  }
 
   // Spreadsheet parsing is a generic knowledge-document capability. Business apps choose
   // the mode and persist it in parserConfig; the knowledge base only edits and executes it.
@@ -176,12 +199,15 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly textSplitterStrategy = computed(() =>
     this.#textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType())
   )
-  readonly textSplitterConfigSchema = computed(
-    () => this.textSplitterStrategy()?.configSchema || ({} as JsonSchema7ObjectType)
-  )
+  readonly textSplitterConfigSchema = computed(() => {
+    const schema = this.textSplitterStrategy()?.configSchema || ({} as JsonSchema7ObjectType)
+    if (this.textSplitterType() !== 'recursive-character') return schema
+    const { separators, ...properties } = schema.properties ?? {}
+    return { ...schema, properties }
+  })
 
   // Document Transformer
-  readonly transformerType = attrModel(this.parserConfig, 'transformerType', 'default')
+  readonly transformerType = attrModel(this.parserConfig, 'transformerType', '')
   readonly transformer = attrModel(this.parserConfig, 'transformer')
   readonly transformerIntegrationId = attrModel(this.parserConfig, 'transformerIntegration')
   readonly transformerStrategy = computed(() =>
@@ -193,14 +219,20 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly transformerIntegration = computed(() => this.transformerStrategy()?.integration)
   readonly transformerIntegrationProvider = computed(() => this.transformerIntegration()?.service)
 
-  readonly documentTransformerStrategies = computed(() =>
-    this.#documentTransformerStrategies()?.map((strategy) => ({
+  readonly documentTransformerStrategies = computed(() => [
+    {
+      value: '',
+      label: { en_US: 'Use knowledgebase / format default', zh_Hans: '使用知识库 / 文件类型默认设置' },
+      description: null,
+      _icon: null
+    },
+    ...(this.#documentTransformerStrategies()?.map((strategy) => ({
       value: strategy.meta.name,
       label: strategy.meta.label,
       description: strategy.meta.description,
       _icon: strategy.meta.icon
-    }))
-  )
+    })) ?? [])
+  ])
 
   // Image Understanding
   readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
@@ -209,21 +241,20 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly imageUnderstandingModel = attrModel(this.parserConfig, 'imageUnderstandingModel')
   readonly enableImageUnderstanding = linkedModel({
     initialValue: false,
-    compute: () => !!this.parserConfig().imageUnderstandingType,
-    update: (value) => {
-      this.parserConfig.update((state) => {
-        if (value) {
-          return {
-            ...state,
-            imageUnderstandingType: state.imageUnderstandingType || 'vlm-default',
-            imageUnderstanding: state.imageUnderstanding || {}
-          }
-        } else {
-          const { imageUnderstandingType, imageUnderstanding, ...rest } = state
-          return rest
-        }
-      })
-    }
+    compute: () =>
+      this.parserConfig()?.imageUnderstandingEnabled ??
+      (!!this.parserConfig()?.imageUnderstandingType ||
+        this.documents()?.some(
+          (document) =>
+            ['pdf', 'docx'].includes(document.type?.replace(/^\./, '').toLowerCase()) ||
+            document.category === KBDocumentCategoryEnum.Image
+        )),
+    update: (enabled) =>
+      this.parserConfig.update((state) => ({
+        ...state,
+        imageUnderstandingEnabled: enabled,
+        imageUnderstandingType: state?.imageUnderstandingType || 'vlm-default'
+      }))
   })
 
   readonly imageUnderstandingStrategies = computed(() =>
@@ -252,7 +283,29 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly replaceWhitespace = attrModel(this.parserConfig, 'replaceWhitespace', true)
   readonly removeSensitive = attrModel(this.parserConfig, 'removeSensitive', false)
 
-  readonly onlySheet = computed(() => this.documents()?.every((item) => item.category === KBDocumentCategoryEnum.Sheet))
+  readonly onlySheet = computed(
+    () =>
+      this.documents()?.length > 0 && this.documents().every((item) => item.category === KBDocumentCategoryEnum.Sheet)
+  )
+  readonly usesPlatformSpreadsheetParser = computed(
+    () => this.onlySheet() && (!this.transformerType() || this.transformerType() === 'default')
+  )
+
+  readonly configurationError = computed(() => {
+    if (this.section() === 'all' || !this.documents()?.length) return null
+    if (!this.#documentTransformerStrategies() || !this.#textSplitterStrategies()) return 'Loading'
+    if (this.transformerType() && !this.transformerStrategy()) return 'InvalidParser'
+    if (this.usesPlatformSpreadsheetParser()) return null
+    if (!this.textSplitterStrategy()) return 'InvalidChunker'
+    if (this.enableImageUnderstanding()) {
+      if (!this.#understandingStrategies()) return 'Loading'
+      if (!this.imageUnderstandingStrategy()) return 'InvalidImageStrategy'
+      if (this.requireVisionModel() && !this.imageUnderstandingModel()?.model && !this.kbVisionModel()?.model) {
+        return 'MissingVisionModel'
+      }
+    }
+    return null
+  })
 
   // Preview
   readonly selectedDocIndex = signal(null)

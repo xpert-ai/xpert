@@ -1,0 +1,535 @@
+<div class="@container block min-w-0">
+  @switch (section()) {
+    @case ('parser') {
+      <section class="block min-w-0 w-full">
+        @if (showHeading()) {
+          <div
+            class="mb-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
+          >
+            <h1>{{ i18nPrefix + '.Sections.Parser' | translate }}</h1>
+            <p>{{ i18nPrefix + '.Parser.Description' | translate }}</p>
+          </div>
+        }
+
+        @if (form().strategiesLoading()) {
+          <p class="mt-1 text-xs leading-5 text-text-tertiary">
+            {{ i18nPrefix + '.Implemented.LoadingStrategies' | translate }}
+          </p>
+        }
+        @if (form().strategiesError()) {
+          <p role="alert" class="text-text-destructive">{{ form().strategiesError() }}</p>
+          <button z-button zType="outline" type="button" (click)="form().loadStrategies()">
+            {{ i18nPrefix + '.Implemented.Retry' | translate }}
+          </button>
+        }
+        <div class="divide-y divide-divider-subtle">
+          @if (showPdfParser()) {
+            <div
+              data-parser-type="pdf"
+              class="grid grid-cols-1 items-start gap-6 border-b border-divider-subtle py-5 @min-[32rem]:grid-cols-2"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-3 text-base font-semibold leading-6 text-text-primary">
+                  <i class="ri-file-pdf-2-line"></i>PDF
+                </div>
+                <p class="mt-1 text-xs leading-5 text-text-tertiary">
+                  {{
+                    (scope() === 'documents'
+                      ? 'XP.Knowledgebase.SharedProcessing.BatchPdfHelp'
+                      : i18nPrefix + '.Implemented.PdfHelp'
+                    ) | translate
+                  }}
+                </p>
+              </div>
+              <z-select
+                class="w-full"
+                [ngModel]="form().pdfParserType()"
+                (ngModelChange)="form().selectPdfParser($event)"
+                [disabled]="form().strategiesLoading()"
+              >
+                <z-select-item zValue="inherit">{{
+                  i18nPrefix + '.Implemented.InheritParser' | translate
+                }}</z-select-item>
+                @for (provider of form().pdfProviders(); track provider.meta.name) {
+                  <z-select-item [zValue]="provider.meta.name">{{ provider.meta.label | i18n }}</z-select-item>
+                }
+              </z-select>
+            </div>
+            @if (form().pdfProvider(); as provider) {
+              @if (provider.integration; as integration) {
+                <xp-integration-select [provider]="integration.service" [(ngModel)]="form().pdfIntegration" />
+              }
+              <json-schema-form
+                class="grid grid-cols-2 gap-4 py-4"
+                [schema]="provider.meta.configSchema"
+                [(ngModel)]="form().pdfParserOptions"
+              />
+            } @else if (form().pdfParserType() !== 'inherit' && form().strategiesLoaded()) {
+              <p role="alert" class="text-text-destructive">
+                {{ i18nPrefix + '.Implemented.ProviderUnavailable' | translate }}: {{ form().pdfParserType() }}
+              </p>
+            }
+          }
+          @for (row of parserRows(); track row.key) {
+            <div
+              [attr.data-parser-type]="row.key"
+              class="grid grid-cols-1 items-start gap-6 border-b border-divider-subtle py-5 @min-[32rem]:grid-cols-2"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-3 text-base font-semibold leading-6 text-text-primary">
+                  <i [class]="row.icon"></i>{{ i18nPrefix + '.' + row.labelKey | translate }}
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  @for (extension of row.extensions; track extension) {
+                    <span
+                      class="rounded-md bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-tertiary"
+                      >{{ extension }}</span
+                    >
+                  }
+                </div>
+              </div>
+              <span class="text-sm text-text-tertiary">{{
+                (scope() === 'documents'
+                  ? 'XP.Knowledgebase.SharedProcessing.BatchOtherFormats'
+                  : i18nPrefix + '.Implemented.OtherFormats'
+                ) | translate
+              }}</span>
+            </div>
+          }
+        </div>
+        @if (documents() !== null && !showPdfParser() && !parserRows().length) {
+          <p class="py-5 text-sm text-text-tertiary">
+            {{
+              (documents().length
+                ? 'XP.Knowledgebase.SharedProcessing.BatchOtherFormats'
+                : 'XP.Knowledgebase.Import.EmptyFiles'
+              ) | translate
+            }}
+          </p>
+        }
+      </section>
+    }
+
+    @case ('chunk') {
+      <section class="block min-w-0 w-full">
+        @if (showHeading()) {
+          <div
+            class="mb-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
+          >
+            <h1>{{ i18nPrefix + '.Sections.Chunk' | translate }}</h1>
+            <p>{{ i18nPrefix + '.Chunk.Description' | translate }}</p>
+          </div>
+        }
+
+        <div class="grid grid-cols-1 gap-6 border-b border-divider-subtle pb-7 @min-[32rem]:grid-cols-2">
+          <div class="min-w-0 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
+            <div class="text-lg font-semibold leading-7 text-text-primary">
+              {{ i18nPrefix + '.Chunk.Strategy' | translate }}
+            </div>
+            <p>{{ i18nPrefix + '.Implemented.StrategyHelp' | translate }}</p>
+          </div>
+          <div class="flex min-w-0 w-full flex-col gap-4">
+            <z-select
+              zSize="lg"
+              [ngModel]="form().chunkStrategy()"
+              (ngModelChange)="form().selectChunkStrategy($event)"
+              [disabled]="form().strategiesLoading() || form().parentChildChunkingEnabled()"
+            >
+              @for (provider of form().regularSplitterProviders(); track provider.name) {
+                <z-select-item [zValue]="provider.name">{{ provider.label | i18n }}</z-select-item>
+              }
+              @if (form().parentChildChunkingEnabled()) {
+                <z-select-item zValue="parent-child">{{ i18nPrefix + '.Chunk.ParentChild' | translate }}</z-select-item>
+              }
+            </z-select>
+          </div>
+        </div>
+
+        @if (form().strategiesLoading()) {
+          <p class="mt-1 text-xs leading-5 text-text-tertiary">
+            {{ i18nPrefix + '.Implemented.LoadingStrategies' | translate }}
+          </p>
+        }
+        @if (form().strategiesError()) {
+          <p role="alert" class="text-text-destructive">{{ form().strategiesError() }}</p>
+          <button z-button zType="outline" type="button" (click)="form().loadStrategies()">
+            {{ i18nPrefix + '.Implemented.Retry' | translate }}
+          </button>
+        }
+        @if (form().strategiesLoaded() && !form().splitterProvider()) {
+          <p role="alert" class="text-text-destructive">
+            {{ i18nPrefix + '.Implemented.ProviderUnavailable' | translate }}: {{ form().chunkStrategy() }}
+          </p>
+        }
+        <p class="mt-1 text-xs leading-5 text-text-tertiary">{{ defaultsHint() | translate }}</p>
+        @if (!form().parentChildChunkingEnabled()) {
+          <div class="grid grid-cols-1 gap-6 border-b border-divider-subtle py-7 @min-[32rem]:grid-cols-2">
+            <div class="min-w-0 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
+              <div class="text-lg font-semibold leading-7 text-text-primary">
+                {{ i18nPrefix + '.Chunk.Size' | translate }}
+              </div>
+              <p>
+                {{ i18nPrefix + '.Chunk.SizeDescription' | translate }}<br />
+                {{ i18nPrefix + '.Chunk.SizeRecommendation' | translate }}
+              </p>
+            </div>
+            <div
+              class="relative flex min-w-0 w-full flex-col items-end gap-1 [&_strong]:text-lg [&_strong]:font-semibold [&_strong]:text-text-primary"
+            >
+              <z-slider
+                class="w-full"
+                [min]="100"
+                [max]="4000"
+                [step]="1"
+                [attr.aria-label]="i18nPrefix + '.Chunk.Size' | translate"
+                [(ngModel)]="form().chunkSize"
+              />
+              <div class="flex w-full justify-between text-xs text-text-secondary">
+                <span>100</span><span>1000</span><span>2000</span><span>4000</span>
+              </div>
+              <strong>{{
+                i18nPrefix + '.Chunk.CharacterCount' | translate: { count: form().chunkSize() ?? 512 }
+              }}</strong>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-6 border-b border-divider-subtle py-7 @min-[32rem]:grid-cols-2">
+            <div class="min-w-0 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
+              <div class="text-lg font-semibold leading-7 text-text-primary">
+                {{ i18nPrefix + '.Chunk.Overlap' | translate }}
+              </div>
+              <p>{{ i18nPrefix + '.Chunk.OverlapDescription' | translate }}</p>
+            </div>
+            <div
+              class="relative flex min-w-0 w-full flex-col items-end gap-1 [&_strong]:text-lg [&_strong]:font-semibold [&_strong]:text-text-primary"
+            >
+              <z-slider
+                class="w-full"
+                [min]="0"
+                [max]="500"
+                [step]="1"
+                [attr.aria-label]="i18nPrefix + '.Chunk.Overlap' | translate"
+                [(ngModel)]="form().chunkOverlap"
+              />
+              <div class="flex w-full justify-between text-xs text-text-secondary">
+                <span>0</span><span>250</span><span>500</span>
+              </div>
+              <strong>{{
+                i18nPrefix + '.Chunk.CharacterCount' | translate: { count: form().chunkOverlap() ?? 80 }
+              }}</strong>
+            </div>
+          </div>
+
+          @if (form().chunkStrategy() === 'recursive-character') {
+            <div class="space-y-4 pt-7">
+              <div class="min-w-0 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
+                <div class="text-lg font-semibold leading-7 text-text-primary">
+                  {{ i18nPrefix + '.Chunk.Separators' | translate }}
+                </div>
+                <p>{{ i18nPrefix + '.Chunk.SeparatorsDescription' | translate }}</p>
+              </div>
+              <div class="min-w-0 w-full">
+                <z-tag-select
+                  class="block w-full"
+                  mode="tags"
+                  [allowCreate]="true"
+                  [tokenSeparators]="[]"
+                  [options]="form().separatorTagOptions"
+                  [displayWith]="form().displaySeparator"
+                  [compareWith]="form().compareSeparators"
+                  [enableSuggestions]="true"
+                  [searchable]="false"
+                  [checkable]="true"
+                  [placeholder]="i18nPrefix + '.Chunk.AddSeparator' | translate"
+                  [value]="form().separators()"
+                  (valueChange)="form().updateSeparators($event)"
+                />
+              </div>
+            </div>
+          }
+        }
+        @if (!form().parentChildChunkingEnabled()) {
+          @if (form().splitterSchema(); as schema) {
+            <json-schema-form
+              class="mt-5 grid grid-cols-1 gap-4 @min-[32rem]:grid-cols-2"
+              [schema]="schema"
+              [(ngModel)]="form().splitterOptions"
+            />
+          }
+        }
+        <div data-chunk-parent-child class="mt-7 border-t border-divider-subtle pt-5">
+          <div class="flex items-start justify-between gap-6">
+            <div class="min-w-0">
+              <div class="text-lg font-semibold leading-7 text-text-primary">
+                {{ i18nPrefix + '.Chunk.ParentChild' | translate }}
+              </div>
+              <p class="mt-1 text-xs leading-5 text-text-tertiary">
+                {{ i18nPrefix + '.Chunk.ParentChildDescription' | translate }}
+              </p>
+              @if (form().indexStrategyLocked()) {
+                <p class="mt-2 text-xs leading-5 text-text-secondary">
+                  {{
+                    (scope() === 'documents'
+                      ? 'XP.Knowledgebase.SharedProcessing.ChunkStructureInherited'
+                      : 'XP.Knowledgebase.SharedProcessing.ChunkStructureLocked'
+                    ) | translate
+                  }}
+                </p>
+              }
+            </div>
+            <z-switch
+              class="shrink-0"
+              [ngModel]="form().parentChildChunkingEnabled()"
+              (ngModelChange)="form().toggleParentChild($event)"
+              [disabled]="!form().parentChildAvailable() || form().indexStrategyLocked()"
+              [attr.aria-label]="i18nPrefix + '.Chunk.ParentChild' | translate"
+            />
+          </div>
+          @if (form().parentChildChunkingEnabled()) {
+            <xp-parent-child-chunk-settings class="mt-6 block" [form]="form().parentChild" />
+          }
+        </div>
+
+        <z-accordion
+          data-chunk-advanced-options
+          displayDensity="compact"
+          displayMode="flat"
+          togglePosition="before"
+          class="mt-5 block border-y border-divider-subtle"
+        >
+          <z-accordion-item
+            zValue="chunk-advanced-options"
+            class="[&_[data-slot=accordion-body]>div]:px-0 [&_[data-slot=accordion-body]>div]:pb-0"
+          >
+            <z-accordion-header class="px-0 py-4 hover:text-text-primary">
+              <z-accordion-title class="text-sm font-normal text-text-secondary">
+                {{ i18nPrefix + '.Chunk.AdvancedOptions' | translate }}
+              </z-accordion-title>
+            </z-accordion-header>
+
+            <p class="mt-1 text-xs leading-5 text-text-tertiary">
+              {{ i18nPrefix + '.Implemented.LaterOptions' | translate }}
+            </p>
+            <div class="flex flex-col border-t border-divider-subtle">
+              <div
+                data-chunk-max-tokens
+                class="flex flex-col items-start justify-between gap-4 py-5 sm:flex-row sm:gap-6"
+              >
+                <div class="min-w-0">
+                  <div class="text-lg font-semibold leading-7 text-text-primary">
+                    {{ i18nPrefix + '.Chunk.MaxChunkTokens' | translate }}
+                  </div>
+                  <p class="mt-1 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.Chunk.MaxChunkTokensDescription' | translate }}
+                  </p>
+                </div>
+                <input
+                  z-input
+                  zSize="lg"
+                  class="w-full shrink-0 sm:w-40"
+                  type="number"
+                  min="0"
+                  max="8192"
+                  step="1"
+                  [disabled]="true"
+                  [(ngModel)]="form().maxChunkTokens"
+                />
+              </div>
+
+              <div
+                data-chunk-language-hint
+                class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
+              >
+                <div class="min-w-0">
+                  <div class="text-lg font-semibold leading-7 text-text-primary">
+                    {{ i18nPrefix + '.Chunk.LanguageHint' | translate }}
+                  </div>
+                  <p class="mt-1 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.Chunk.LanguageHintDescription' | translate }}
+                  </p>
+                </div>
+                <z-select
+                  class="w-full shrink-0 sm:w-60"
+                  zSize="lg"
+                  [disabled]="true"
+                  [(ngModel)]="form().chunkLanguageHint"
+                >
+                  <z-select-item zValue="auto">{{
+                    i18nPrefix + '.Chunk.LanguageOptions.Auto' | translate
+                  }}</z-select-item>
+                  <z-select-item zValue="Chinese">{{
+                    i18nPrefix + '.Chunk.LanguageOptions.Chinese' | translate
+                  }}</z-select-item>
+                  <z-select-item zValue="English">{{
+                    i18nPrefix + '.Chunk.LanguageOptions.English' | translate
+                  }}</z-select-item>
+                </z-select>
+              </div>
+            </div>
+          </z-accordion-item>
+        </z-accordion>
+      </section>
+    }
+
+    @case ('image') {
+      <section class="block w-full min-w-0">
+        @if (showHeading()) {
+          <div class="mb-6">
+            <h1 class="text-2xl font-semibold">{{ i18nPrefix + '.Sections.Image' | translate }}</h1>
+            <p class="mt-2 text-sm leading-6 text-text-tertiary">{{ i18nPrefix + '.Image.Description' | translate }}</p>
+          </div>
+        }
+        <div class="flex items-start justify-between gap-6 border-b border-divider-subtle py-5">
+          <div>
+            <label class="mb-2 block text-sm font-semibold text-text-primary">{{
+              i18nPrefix + '.Image.Enable' | translate
+            }}</label>
+            <p class="text-xs leading-5 text-text-tertiary">
+              {{ i18nPrefix + '.Image.EnableDescription' | translate }}
+            </p>
+          </div>
+          <z-switch [(ngModel)]="form().imageUnderstandingEnabled" />
+        </div>
+        @if (form().imageUnderstandingEnabled()) {
+          <div class="border-b border-divider-subtle py-5">
+            <copilot-model-select
+              class="block"
+              [label]="i18nPrefix + '.Image.VisionModel' | translate"
+              [modelType]="eAiModelTypeEnum.LLM"
+              [features]="[eModelFeature.VISION]"
+              [(ngModel)]="form().visionModel"
+            />
+          </div>
+          <div data-image-prompt class="py-5">
+            <label class="mb-2 block text-sm font-semibold text-text-primary" for="knowledge-image-prompt">{{
+              i18nPrefix + '.Implemented.ImagePrompt' | translate
+            }}</label>
+            <p class="mb-3 text-xs leading-5 text-text-tertiary">
+              {{ i18nPrefix + '.Implemented.ImagePromptHelp' | translate }}
+            </p>
+            <textarea
+              z-input
+              id="knowledge-image-prompt"
+              class="min-h-36 w-full resize-y"
+              maxlength="4000"
+              [(ngModel)]="form().imagePromptTemplate"
+              [placeholder]="i18nPrefix + '.Implemented.ImagePromptPlaceholder' | translate"
+            ></textarea>
+            <div class="mt-1 text-right text-xs text-text-quaternary">
+              {{ form().imagePromptTemplate().length }}/4000
+            </div>
+          </div>
+        }
+        <p class="mt-3 text-xs leading-5 text-text-tertiary">{{ defaultsHint() | translate }}</p>
+      </section>
+    }
+
+    @case ('audio') {
+      <section class="block min-w-0 w-full">
+        @if (showHeading()) {
+          <div
+            class="mb-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
+          >
+            <h1>{{ i18nPrefix + '.Sections.Audio' | translate }}</h1>
+            <p>{{ i18nPrefix + '.Audio.Description' | translate }}</p>
+          </div>
+        }
+        <div
+          class="flex items-center gap-4 rounded-xl border border-dashed border-divider-deep bg-components-panel-bg p-5"
+        >
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-components-card-bg text-xl text-text-tertiary"
+          >
+            <i class="ri-volume-up-line"></i>
+          </div>
+          <div>
+            <div class="text-sm font-semibold leading-5 text-text-primary">
+              {{ i18nPrefix + '.Audio.SpeechToText' | translate }}
+            </div>
+            <p class="mt-1 text-xs leading-5 text-text-tertiary">
+              {{ i18nPrefix + '.Audio.UnavailableDescription' | translate }}
+            </p>
+          </div>
+          <span
+            class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold leading-4 shrink-0 bg-components-input-bg-normal text-text-tertiary"
+            >{{ i18nPrefix + '.Audio.FrontendPreview' | translate }}</span
+          >
+        </div>
+        <div class="relative mb-6 mt-5">
+          <label class="mb-2 block text-sm font-semibold leading-5 text-text-primary">{{
+            i18nPrefix + '.Audio.ParserEngine' | translate
+          }}</label>
+          <z-select zDisabled [zValue]="'unavailable'">
+            <z-select-item zValue="unavailable">{{ i18nPrefix + '.Audio.NotConnected' | translate }}</z-select-item>
+          </z-select>
+        </div>
+      </section>
+    }
+
+    @case ('questions') {
+      <section class="block min-w-0 w-full">
+        @if (showHeading()) {
+          <div
+            class="mb-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
+          >
+            <h1>{{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}</h1>
+          </div>
+        }
+        <p class="mt-1 text-xs leading-5 text-text-tertiary mb-6">
+          {{ i18nPrefix + '.Implemented.LaterOptions' | translate }}
+        </p>
+        <div
+          class="flex items-start justify-between gap-6 border-b border-divider-subtle pb-7 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
+        >
+          <div>
+            <div class="text-lg font-semibold leading-7 text-text-primary">
+              {{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}
+            </div>
+            <p>{{ i18nPrefix + '.Advanced.QuestionGenerationDescription' | translate }}</p>
+          </div>
+          <z-switch class="shrink-0" [(ngModel)]="form().questionGenerationEnabled" />
+        </div>
+
+        @if (form().questionGenerationEnabled()) {
+          <div class="mt-6 border-l-4 border-components-button-primary-border pl-7">
+            <div class="mb-7 flex flex-col items-start gap-4 @min-[24rem]:flex-row">
+              <div class="min-w-0 flex-1 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
+                <div class="text-lg font-semibold leading-7 text-text-primary">
+                  {{ i18nPrefix + '.Advanced.QuestionCount' | translate }}
+                </div>
+                <p>{{ i18nPrefix + '.Advanced.QuestionCountDescription' | translate }}</p>
+              </div>
+              <div class="w-28 shrink-0">
+                <input
+                  z-input
+                  zSize="lg"
+                  class="w-full"
+                  type="number"
+                  min="1"
+                  max="10"
+                  [(ngModel)]="form().questionCount"
+                />
+              </div>
+            </div>
+            <div class="relative [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
+              <div class="text-lg font-semibold leading-7 text-text-primary">
+                {{ i18nPrefix + '.Advanced.QuestionRequirements' | translate }}
+              </div>
+              <p>{{ i18nPrefix + '.Advanced.QuestionRequirementsDescription' | translate }}</p>
+              <textarea
+                z-input
+                class="min-h-28 w-full resize-y mt-4 min-h-32"
+                maxlength="4000"
+                [(ngModel)]="form().questionRequirements"
+                [placeholder]="i18nPrefix + '.Advanced.QuestionRequirementsPlaceholder' | translate"
+              ></textarea>
+              <div class="absolute bottom-2 right-2 text-xs text-text-quaternary">
+                {{ form().questionRequirements().length }}/4000
+              </div>
+            </div>
+          </div>
+        }
+      </section>
+    }
+  }
+</div>

@@ -73,6 +73,8 @@ import {
     ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum,
+    ParameterRule,
+    ParameterType,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -881,7 +883,10 @@ describe('AgentMiddlewareRuntimeService', () => {
         })
     })
 
-    function mockCreateModelClientDependencies(options?: { tokenRecordError?: Error }) {
+    function mockCreateModelClientDependencies(options?: {
+        tokenRecordError?: Error
+        parameterRules?: ParameterRule[]
+    }) {
         const modelInstance = {
             invoke: jest.fn()
         }
@@ -910,7 +915,8 @@ describe('AgentMiddlewareRuntimeService', () => {
 
             if (query instanceof AIModelGetProviderQuery) {
                 return {
-                    getModelInstance
+                    getModelInstance,
+                    getModelManager: () => ({ getParameterRules: () => options?.parameterRules ?? [] })
                 }
             }
 
@@ -939,7 +945,12 @@ describe('AgentMiddlewareRuntimeService', () => {
     }
 
     it('creates a model client and records token usage through the runtime facade', async () => {
-        const { getModelInstance, modelInstance } = mockCreateModelClientDependencies()
+        const { getModelInstance, modelInstance } = mockCreateModelClientDependencies({
+            parameterRules: [
+                { name: 'max_tokens', label: { en_US: 'Maximum tokens' }, type: ParameterType.INT, default: 4096 },
+                { name: 'temperature', label: { en_US: 'Temperature' }, type: ParameterType.FLOAT, default: 0.7 }
+            ]
+        })
         const usageCallback = jest.fn()
         const executionUsageCallback = jest.fn()
         const runtime = service.createScopedApi({ usageCallback: executionUsageCallback })
@@ -948,8 +959,9 @@ describe('AgentMiddlewareRuntimeService', () => {
             {
                 copilotId: 'copilot-1',
                 model: 'gpt-4o-mini',
-                modelType: 'LLM'
-            } as any,
+                modelType: AiModelTypeEnum.LLM,
+                options: { temperature: 0.3 }
+            } as ICopilotModel,
             {
                 usageCallback
             }
@@ -958,9 +970,10 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect(client).toBe(modelInstance)
         expect(commandBus.execute).toHaveBeenCalledWith(expect.any(CopilotCheckLimitCommand))
         expect(getModelInstance).toHaveBeenCalledWith(
-            'LLM',
+            AiModelTypeEnum.LLM,
             expect.objectContaining({
                 model: 'gpt-4o-mini',
+                options: { temperature: 0.3, max_tokens: 4096 },
                 copilot: expect.objectContaining({
                     id: 'copilot-1'
                 })

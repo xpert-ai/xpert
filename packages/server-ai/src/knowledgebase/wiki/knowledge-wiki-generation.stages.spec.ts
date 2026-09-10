@@ -69,6 +69,7 @@ function createHarness(type: KnowledgeWikiJob['type'], children: Partial<Knowled
         billingPrincipalId: 'user-1'
     })
     const jobRepository = {
+        query: jest.fn().mockResolvedValue([]),
         findOne: jest.fn(
             async ({ where }: { where: Partial<KnowledgeWikiJob> }): Promise<KnowledgeWikiJob | null> =>
                 where.id === job.id ? Object.assign(new KnowledgeWikiJob(), job) : null
@@ -80,6 +81,7 @@ function createHarness(type: KnowledgeWikiJob['type'], children: Partial<Knowled
         })
     }
     const knowledgebaseRepository = {
+        findOneOrFail: jest.fn(async () => knowledgebase),
         findOne: jest.fn(async () => knowledgebase),
         update: jest.fn(async (_where: unknown, patch: Partial<Knowledgebase>) => {
             Object.assign(knowledgebase, patch)
@@ -125,6 +127,7 @@ function createHarness(type: KnowledgeWikiJob['type'], children: Partial<Knowled
         jobs
     )
     const dependencies = {
+        classification: { enqueuePublished: jest.fn() },
         logger: new Logger(KnowledgeWikiGenerationService.name),
         jobRepository,
         knowledgebaseRepository,
@@ -170,6 +173,63 @@ describe('Wiki worker stage behavior before and after extraction', () => {
     beforeEach(() => jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined))
     afterEach(() => jest.restoreAllMocks())
 
+    it('persists same-name mentions separately and hands them to identity resolution before Reduce', async () => {
+        const { service, job, documentRepository, queue } = createHarness('source_map')
+        job.sourceContentHash = 'hash'
+        documentRepository.findOne.mockResolvedValue(
+            Object.assign(new KnowledgeDocument(), {
+                id: 'doc-1',
+                knowledgebaseId: 'kb-1',
+                name: 'Teams',
+                status: KBDocumentStatusEnum.FINISH,
+                contentHash: 'hash',
+                chunks: [{ id: 'chunk', pageContent: 'Two distinct operations teams.' }]
+            })
+        )
+        const save = jest.fn(async (value: object) => value)
+        const completeMap = jest.fn()
+        Object.assign(service, {
+            modelInvocationService: {
+                invokeMapModel: async () => ({
+                    pages: ['north', 'south'].map((scope) => ({
+                        schemaVersion: 1,
+                        pageType: 'entity',
+                        canonicalName: 'Operations',
+                        aliases: [],
+                        summary: scope,
+                        identity: {
+                            kind: 'entity',
+                            entityType: 'organization',
+                            description: `${scope} team`,
+                            scope,
+                            identifiers: []
+                        },
+                        facts: [{ text: `${scope} operates separately`, sourceChunkIds: ['chunk'] }],
+                        suggestedLinks: []
+                    }))
+                })
+            },
+            mapResultRepository: { delete: jest.fn(), create: (value: object) => value, save },
+            pageScheduler: { completeMap }
+        })
+        await service.processJob(job.id)
+        expect(save).toHaveBeenCalledTimes(2)
+        expect(save.mock.calls.map(([value]) => value)).toEqual([
+            expect.objectContaining({
+                candidateKey: '000000000000',
+                normalizedPageKey: null,
+                identity: expect.objectContaining({ scope: 'north' })
+            }),
+            expect.objectContaining({
+                candidateKey: '000000000001',
+                normalizedPageKey: null,
+                identity: expect.objectContaining({ scope: 'south' })
+            })
+        ])
+        expect(completeMap).toHaveBeenCalledWith(expect.objectContaining({ id: job.id }), null)
+        expect(queue.add).not.toHaveBeenCalled()
+    })
+
     it('fails a source job with entirely invalid citations without publishing an empty revision or repeating the model call', async () => {
         const { service, job, knowledgebase, documentRepository, queue } = createHarness('source_map')
         job.sourceContentHash = 'source-hash'
@@ -191,6 +251,7 @@ describe('Wiki worker stage behavior before and after extraction', () => {
                     {
                         schemaVersion: 1,
                         pageType: 'concept',
+                        identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
                         canonicalName: 'Strategy',
                         aliases: [],
                         summary: 'A documented strategy.',

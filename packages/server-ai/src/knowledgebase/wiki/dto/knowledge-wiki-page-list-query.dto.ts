@@ -4,16 +4,24 @@ import {
     KNOWLEDGE_WIKI_MAX_SEARCH_LENGTH,
     KnowledgeWikiPageListParams,
     KnowledgeWikiPageStatus,
+    KnowledgeWikiPageGroup,
     KnowledgeWikiPageType
 } from '@xpert-ai/contracts'
 import { ApiPropertyOptional } from '@nestjs/swagger'
-import { Type } from 'class-transformer'
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
+import { Transform, Type } from 'class-transformer'
+import { IsBoolean, IsUUID, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
 
 const KNOWLEDGE_WIKI_PAGE_TYPES: KnowledgeWikiPageType[] = ['summary', 'entity', 'concept', 'index']
 const KNOWLEDGE_WIKI_PAGE_STATUSES: KnowledgeWikiPageStatus[] = ['building', 'ready', 'stale', 'failed', 'archived']
 
 export class KnowledgeWikiPageListQueryDTO implements KnowledgeWikiPageListParams {
+    @IsOptional() @IsIn(['knowledge', 'summary']) pageGroup?: KnowledgeWikiPageGroup
+    @IsOptional() @IsUUID() folderId?: string
+    @IsOptional()
+    @Transform(({ value }) => (value === 'true' ? true : value === 'false' ? false : value))
+    @IsBoolean()
+    unclassified?: boolean
+
     @ApiPropertyOptional({ type: String, maxLength: KNOWLEDGE_WIKI_MAX_SEARCH_LENGTH })
     @IsString()
     @MaxLength(KNOWLEDGE_WIKI_MAX_SEARCH_LENGTH)

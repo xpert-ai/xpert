@@ -3,7 +3,8 @@ import {
     IApiPrincipal,
     IXpert,
     isTenantSharedXpertWorkspace,
-    SecretTokenBindingType
+    SecretTokenBindingType,
+    UserType
 } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -54,10 +55,27 @@ export class PublishedXpertAccessService {
         return tenantId
     }
 
-    private currentUserId() {
+    private currentAccessUserId() {
         const userId = RequestContext.currentUserId()
         if (!userId) {
             throw new ForbiddenException('User context is required to access published assistants.')
+        }
+        const principal = this.currentApiPrincipal()
+        const usesApiKey =
+            principal?.principalType === 'api_key' ||
+            (principal?.principalType === 'client_secret' &&
+                principal.clientSecretBindingType === SecretTokenBindingType.API_KEY)
+        if (
+            usesApiKey &&
+            principal.type === UserType.COMMUNICATION &&
+            principal.apiKeyUserId === userId &&
+            principal.apiKey?.userId === userId &&
+            principal.tenantId === this.currentTenantId() &&
+            principal.apiKey.tenantId === principal.tenantId &&
+            !principal.requestedUserId
+        ) {
+            // Inherit authorization only; execution and file ownership keep the technical user id.
+            return principal.ownerUserId?.trim() || userId
         }
         return userId
     }
@@ -372,7 +390,7 @@ export class PublishedXpertAccessService {
 
         const tenantId = this.currentTenantId()
         const organizationId = this.currentOrganizationId()
-        const userId = this.currentUserId()
+        const userId = this.currentAccessUserId()
         const userXpertId = this.currentUserXpertId()
         const qb = this.repository
             .createQueryBuilder('xpert')
@@ -637,7 +655,7 @@ export class PublishedXpertAccessService {
             }
         }
 
-        const userId = this.currentUserId()
+        const userId = this.currentAccessUserId()
 
         if (!xpert.organizationId) {
             if (RequestContext.isTenantScope() || isTenantSharedXpertWorkspace(xpert.workspace)) {

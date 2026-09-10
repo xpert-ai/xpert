@@ -412,3 +412,54 @@ describe('KnowledgeDocLoadHandler', () => {
         expect(transformerRegistry.get).not.toHaveBeenCalled()
     })
 })
+
+it('does not invoke image understanding when a PDF explicitly disables it', async () => {
+    const getVisionModel = jest.fn()
+    const understandImages = jest.fn()
+    const chunk = new Document({
+        pageContent: 'Text ![picture](https://files.local/image.png)',
+        metadata: { chunkId: 'chunk' }
+    })
+    const handler = new KnowledgeDocLoadHandler(
+        { getVisionModel } as unknown as KnowledgebaseService,
+        { execute: jest.fn(async () => ({})) } as unknown as CommandBus,
+        {} as QueryBus
+    )
+    Object.assign(handler, {
+        knowledgeWorkAreaResolver: { resolve: jest.fn(async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } })) },
+        transformerRegistry: {
+            get: jest.fn(() => ({
+                permissions: [],
+                transformDocuments: async () => [
+                    {
+                        chunks: [chunk],
+                        metadata: {
+                            assets: [{ type: 'image', filePath: 'image.png', url: 'https://files.local/image.png' }]
+                        }
+                    }
+                ]
+            }))
+        },
+        imageUnderstandingRegistry: { get: jest.fn(() => ({ permissions: [], understandImages })) },
+        cacheManager: { get: jest.fn(), set: jest.fn() },
+        kbDocumentService: { update: jest.fn() }
+    })
+    jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks: [chunk] })
+    const result = await handler.execute(
+        new KnowledgeDocLoadCommand({
+            doc: {
+                id: 'doc',
+                knowledgebaseId: 'kb',
+                name: 'file.pdf',
+                type: 'pdf',
+                category: KBDocumentCategoryEnum.Text,
+                filePath: 'file.pdf',
+                parserConfig: { imageUnderstandingEnabled: false }
+            } as IKnowledgeDocument,
+            stage: 'test'
+        })
+    )
+    expect(result.chunks).toEqual([chunk])
+    expect(getVisionModel).not.toHaveBeenCalled()
+    expect(understandImages).not.toHaveBeenCalled()
+})

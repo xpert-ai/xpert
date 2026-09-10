@@ -208,7 +208,8 @@ describe('XpertChatHandler', () => {
 
     async function executeQueuedFollowUp(
         xpertType: XpertTypeEnum,
-        assistantModelSelectionService: { resolveSelection: jest.Mock }
+        assistantModelSelectionService: { resolveSelection: jest.Mock },
+        isDraft = false
     ) {
         xpertService.findOneForRuntime.mockResolvedValue({
             ...xpert,
@@ -238,7 +239,7 @@ describe('XpertChatHandler', () => {
                         input: { input: 'Continue later' }
                     }
                 },
-                { xpertId: 'xpert-1' } as XpertChatCommandOptions
+                { xpertId: 'xpert-1', isDraft } as XpertChatCommandOptions
             )
         )
 
@@ -292,6 +293,59 @@ describe('XpertChatHandler', () => {
             expect.objectContaining({ type: XpertTypeEnum.Agent }),
             { explicitModelId: undefined }
         )
+    })
+
+    it('keeps queued draft follow-ups on the draft graph model configuration', async () => {
+        const assistantModelSelectionService = {
+            resolveSelection: jest.fn().mockRejectedValue(new Error('must not resolve a published model override'))
+        }
+
+        await expect(executeQueuedFollowUp(XpertTypeEnum.Agent, assistantModelSelectionService, true)).resolves.toEqual(
+            []
+        )
+        expect(assistantModelSelectionService.resolveSelection).not.toHaveBeenCalled()
+    })
+
+    it('keeps draft sends on the draft graph model configuration', async () => {
+        const assistantModelSelectionService = {
+            resolveSelection: jest.fn().mockRejectedValue(new Error('must not resolve a published model override'))
+        }
+        handler = createHandlerWithModelSelection(assistantModelSelectionService)
+        mockSuccessfulSendCommands()
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'draft-run-1',
+                        input: { input: 'Preview the draft' }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1',
+                    isDraft: true
+                } as XpertChatCommandOptions
+            )
+        )
+
+        await expect(lastValueFrom(stream.pipe(toArray()))).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({ event: ChatMessageEventTypeEnum.ON_CONVERSATION_END })
+                })
+            ])
+        )
+        expect(assistantModelSelectionService.resolveSelection).not.toHaveBeenCalled()
+        const agentCommand = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof XpertAgentChatCommand) as XpertAgentChatCommand
+        expect(agentCommand.options).toEqual(
+            expect.objectContaining({
+                isDraft: true
+            })
+        )
+        expect(agentCommand.options.primaryCopilotModel).toBeUndefined()
     })
 
     it('does not require an Assistant primary model for queued knowledge pipeline follow-ups', async () => {

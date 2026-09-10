@@ -1,15 +1,17 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, input, output } from '@angular/core'
+import { Component, computed, inject, input, output } from '@angular/core'
 import { injectToastr, KBDocumentCategoryEnum, KnowledgeDocumentService, KnowledgeFileUploader } from '@cloud/app/@core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { map, startWith } from 'rxjs'
 
 @Component({
   standalone: true,
   selector: 'xp-knowledge-file-preview',
   templateUrl: './preview.component.html',
   styleUrl: './preview.component.scss',
-  imports: [CommonModule, TranslateModule]
+  imports: [CommonModule, TranslateModule, ZardButtonComponent]
 })
 export class KnowledgeFilePreviewComponent {
   eKBDocumentCategoryEnum = KBDocumentCategoryEnum
@@ -22,6 +24,12 @@ export class KnowledgeFilePreviewComponent {
 
   // Outputs
   readonly closed = output<void>()
+  readonly previewState = computed(() =>
+    this.file().preview$.pipe(
+      map((documents) => ({ loading: false, documents })),
+      startWith({ loading: true, documents: null })
+    )
+  )
 
   // States
 

@@ -75,7 +75,8 @@ describe('blank draft util', () => {
       skills: ['Skill A'],
       repositoryDefault: null,
       middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER],
-      middlewareRequired: {}
+      middlewareRequired: {},
+      preserveSkillsMiddleware: false
     })
 
     expect(hasBlankWizardSelections()).toBe(false)
@@ -90,7 +91,8 @@ describe('blank draft util', () => {
       skills: [],
       repositoryDefault: null,
       middlewares: ['guard'],
-      middlewareRequired: {}
+      middlewareRequired: {},
+      preserveSkillsMiddleware: false
     })
     expect(
       normalizeBlankTriggerSelections(
@@ -145,7 +147,8 @@ describe('blank draft util', () => {
         disabledSkillIds: ['skill-b']
       },
       middlewares: [BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER],
-      middlewareRequired: {}
+      middlewareRequired: {},
+      preserveSkillsMiddleware: false
     })
     expect(
       hasBlankWizardSelections({
@@ -162,6 +165,7 @@ describe('blank draft util', () => {
 
     expect(draft.nodes).toHaveLength(1)
     expect(draft.nodes[0].key).toBe('Agent_primary')
+    expect(draft.nodes[0].entity.copilotModel).toBeUndefined()
     expect(draft.connections).toHaveLength(0)
     expect(draft.team.agent.options?.middlewares).toBeUndefined()
   })

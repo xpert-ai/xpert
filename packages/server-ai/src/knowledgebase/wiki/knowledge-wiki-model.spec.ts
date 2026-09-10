@@ -2,9 +2,11 @@ import { ChatOpenAI } from '@langchain/openai'
 import i18next from 'i18next'
 import {
     buildKnowledgeWikiMapMessages,
+    buildKnowledgeWikiReduceMessages,
     knowledgeWikiMapOutputSchema,
     parseKnowledgeWikiMapOutput,
     parseKnowledgeWikiReduceOutput,
+    parseKnowledgeWikiReduceText,
     resolveKnowledgeWikiMapSources
 } from './knowledge-wiki-model'
 
@@ -19,6 +21,7 @@ describe('knowledge Wiki model boundary', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'concept',
+                    identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
                     canonicalName: 'Strategy',
                     aliases: [],
                     summary: 'A documented strategy.',
@@ -80,6 +83,13 @@ describe('knowledge Wiki model boundary', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'entity',
+                    identity: {
+                        kind: 'entity',
+                        entityType: 'product',
+                        description: 'An AI platform.',
+                        scope: null,
+                        identifiers: []
+                    },
                     canonicalName: 'Xpert',
                     aliases: [],
                     summary: 'An AI platform.',
@@ -150,6 +160,13 @@ describe('knowledge Wiki model boundary', () => {
                     {
                         schemaVersion: 1,
                         pageType: 'entity',
+                        identity: {
+                            kind: 'entity',
+                            entityType: 'product',
+                            description: 'An AI platform.',
+                            scope: null,
+                            identifiers: []
+                        },
                         canonicalName: 'Xpert',
                         aliases: [],
                         summary: 'An AI platform.',
@@ -167,6 +184,58 @@ describe('knowledge Wiki model boundary', () => {
                 aliases: []
             }).title
         ).toBe('Xpert')
+    })
+
+    it.each(['\n', '\r\n'])('splits the summary envelope while preserving Markdown whitespace (%j)', (newline) => {
+        const markdown = [
+            '# Page',
+            '',
+            'A paragraph.  ',
+            'A hard line break.',
+            '',
+            '- First',
+            '  - Nested',
+            '',
+            '```python',
+            'value = "a b"',
+            'escaped = "\\n"',
+            '```'
+        ].join(newline)
+        expect(
+            parseKnowledgeWikiReduceText(`SUMMARY: A concise summary.${newline}${newline}${markdown}`, 'Page')
+        ).toEqual({ title: 'Page', summary: 'A concise summary.', contentMarkdown: markdown })
+    })
+
+    it.each([
+        '',
+        '# Page\n\nMissing summary.',
+        'SUMMARY: Summary',
+        'SUMMARY: Summary\n\n',
+        'SUMMARY: Summary\n\n# Page',
+        'SUMMARY: Summary\n\n# PageBody## DetailsAll on one line.',
+        'SUMMARY: Summary\\n\\n# Page\\n\\nOnly literal escapes.',
+        'SUMMARY: Summary\n\n```markdown\n# Page\n\nBody.\n```'
+    ])('rejects a malformed plain-text envelope without guessing or repairing it (%j)', (text) => {
+        expect(() => parseKnowledgeWikiReduceText(text, 'Page')).toThrow()
+    })
+
+    it('keeps grounded writing and the Markdown response contract in the system instructions', () => {
+        const messages = buildKnowledgeWikiReduceMessages({
+            pageKey: 'concept:page',
+            canonicalName: 'Page',
+            sources: [],
+            config: {
+                enabled: true,
+                extractionGranularity: 'standard',
+                extractionFocus: '',
+                contentGenerationRequirements: 'Prefer timelines'
+            }
+        })
+        expect(messages[0].content).toContain('cited verbatim evidence')
+        expect(messages[0].content).toContain('do not write a new article or expand short statements')
+        expect(messages[0].content).toContain('SUMMARY: <one sentence>\n\n# <canonicalName>\n\n')
+        expect(messages[0].content).toContain('Prefer timelines')
+        expect(messages[1].content).toContain('"canonicalName":"Page"')
     })
 
     it.each([
@@ -188,6 +257,13 @@ describe('knowledge Wiki model boundary', () => {
                 {
                     schemaVersion: 1,
                     pageType: 'entity',
+                    identity: {
+                        kind: 'entity',
+                        entityType: 'product',
+                        description: 'An AI platform.',
+                        scope: null,
+                        identifiers: []
+                    },
                     canonicalName: 'Xpert',
                     aliases: [],
                     summary: 'An AI platform.',

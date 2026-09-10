@@ -97,7 +97,7 @@ export interface XpertPlugin<TConfig extends object = any> extends PluginLifecyc
    * template ids as `${pluginName}:${key}` when exposing them through the
    * xpert-template API.
    */
-  templates?: XpertTemplateContribution[] | XpertTemplateProvider
+  templates?: XpertTemplateContribution[] | XpertTemplateProvider | XpertTemplateCatalogProvider
   /** Declares the required system-level permissions for this plugin. */
   permissions?: Permissions
   /** Returns the DynamicModule to be mounted to the main application (can be set as global) */
@@ -125,6 +125,11 @@ export interface XpertTemplateContribution {
   startPrompts?: string[]
   promptWorkflows?: TPromptWorkflow[]
   releaseNotes?: string
+  availableLocales?: string[]
+  defaultLocale?: string
+  locale?: string
+  pluginVersion?: string
+  contentHash?: string
   xpertName?: string
   dependencies?: XpertTemplatePluginDependencies
   [key: string]: unknown
@@ -132,6 +137,13 @@ export interface XpertTemplateContribution {
 
 export interface XpertTemplateProvider {
   listTemplates(ctx: PluginContext): PromiseOrValue<XpertTemplateContribution[]>
+}
+
+/** Lists metadata without DSL; resolves exactly one immutable language variant on demand. */
+export interface XpertTemplateCatalogProvider {
+  kind: 'catalog'
+  listTemplates(ctx: PluginContext): PromiseOrValue<XpertTemplateContribution[]>
+  resolveTemplate(ctx: PluginContext, key: string, locale?: string): PromiseOrValue<XpertTemplateContribution>
 }
 
 export interface PluginContext<TConfig extends object = any> {

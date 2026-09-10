@@ -1,3 +1,4 @@
+import { KnowledgeGraphExtractionService } from './graph-extraction.service'
 import { Queue } from 'bull'
 import { QueryBus } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
@@ -105,6 +106,8 @@ describe('GraphRAG service', () => {
                 {
                     entities: [
                         {
+                            candidateId: 'design',
+                            identity: { kind: 'concept', definition: 'A design method.', domain: null, scope: null },
                             name: 'User-Centered Design',
                             type: 'concept'
                         }
@@ -121,10 +124,8 @@ describe('GraphRAG service', () => {
                     entities: [],
                     relations: [
                         {
-                            sourceName: 'Designer',
-                            sourceType: 'role',
-                            targetName: 'Prototype',
-                            targetType: 'artifact',
+                            sourceCandidateId: 'designer',
+                            targetCandidateId: 'prototype',
                             type: 'creates',
                             evidence: [{ chunkId: 'missing-chunk' }]
                         }
@@ -139,6 +140,8 @@ describe('GraphRAG service', () => {
                 {
                     entities: [
                         {
+                            candidateId: 'design',
+                            identity: { kind: 'concept', definition: 'A design method.', domain: null, scope: null },
                             name: 'User-Centered Design',
                             type: 'concept',
                             evidence: [{ chunkId: 'chunk-1' }]
@@ -219,7 +222,8 @@ describe('GraphRAG service', () => {
             { execute: jest.fn() } as unknown as QueryBus,
             queue as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
             repositoryMock<KnowledgeGraphEntityContribution>(),
-            repositoryMock<KnowledgeGraphRelationContribution>()
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            null
         )
 
         const jobs = await service.enqueueDocuments({
@@ -243,6 +247,14 @@ describe('GraphRAG service', () => {
                 .mockResolvedValueOnce({
                     entities: [
                         {
+                            candidateId: 'person',
+                            identity: {
+                                kind: 'entity',
+                                entityType: 'person',
+                                description: 'Alice in the source.',
+                                scope: null,
+                                identifiers: []
+                            },
                             name: 'Alice',
                             type: 'person',
                             evidence: [{ chunkId: 'chunk-1' }]
@@ -253,6 +265,14 @@ describe('GraphRAG service', () => {
                 .mockResolvedValueOnce({
                     entities: [
                         {
+                            candidateId: 'person',
+                            identity: {
+                                kind: 'entity',
+                                entityType: 'person',
+                                description: 'Bob in the source.',
+                                scope: null,
+                                identifiers: []
+                            },
                             name: 'Bob',
                             type: 'person',
                             evidence: [{ chunkId: 'chunk-5' }]
@@ -272,8 +292,13 @@ describe('GraphRAG service', () => {
                 throw new Error('Primary copilot fallback should not be used')
             })
         }
+        const job = Object.assign(new KnowledgeGraphIndexJob(), { id: 'job-1', knowledgebaseId: 'kb-1' })
         const jobRepository = {
-            update: jest.fn()
+            findOneOrFail: async () => job,
+            update: jest.fn(async (_criteria: unknown, patch: Partial<KnowledgeGraphIndexJob>) => {
+                Object.assign(job, patch)
+                return { affected: 1 }
+            })
         }
         const service = new GraphragService(
             repositoryMock<KnowledgeGraphEntity>(),
@@ -288,7 +313,12 @@ describe('GraphRAG service', () => {
             queryBus as unknown as QueryBus,
             { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
             repositoryMock<KnowledgeGraphEntityContribution>(),
-            repositoryMock<KnowledgeGraphRelationContribution>()
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            new KnowledgeGraphExtractionService(
+                jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
+                queryBus as unknown as QueryBus,
+                null
+            )
         )
         const knowledgebase = {
             ...enabledKnowledgebase(),
@@ -300,8 +330,8 @@ describe('GraphRAG service', () => {
             }
         }
 
-        await service['extractDocumentGraph'](
-            knowledgebase,
+        const output = await service['extractDocumentGraph'](
+            Object.assign(job, { knowledgebase }),
             Array.from({ length: 5 }, (_, index) => ({
                 id: `chunk-${index + 1}`,
                 documentId: 'doc-1',
@@ -310,10 +340,10 @@ describe('GraphRAG service', () => {
                     chunkId: `chunk-${index + 1}`
                 }
             })),
-            'job-1',
             { enabled: true, extractionMaxCharacters: 5000 }
         )
 
+        expect(output.entities.map((entity) => entity.candidateId)).toEqual(['0:person', '4:person'])
         expect(queryBus.execute).toHaveBeenCalledTimes(1)
         expect(queryBus.execute.mock.calls[0][0]).toBeInstanceOf(CopilotModelGetChatModelQuery)
         expect(queryBus.execute.mock.calls[0][0].copilot).toBeNull()
@@ -355,6 +385,7 @@ describe('GraphRAG service', () => {
         })
         const jobRepository = {
             findOne: jest.fn(async () => graphJob),
+            findOneOrFail: jest.fn(async () => graphJob),
             update: jest.fn(async () => undefined),
             count: jest.fn(async (options: { where: { status: KnowledgeGraphIndexJobStatus } }) =>
                 options.where.status === KnowledgeGraphIndexJobStatus.FAILED ? 1 : 0
@@ -426,7 +457,12 @@ describe('GraphRAG service', () => {
             {
                 find: jest.fn(async () => []),
                 delete: jest.fn()
-            } as unknown as Repository<KnowledgeGraphRelationContribution>
+            } as unknown as Repository<KnowledgeGraphRelationContribution>,
+            new KnowledgeGraphExtractionService(
+                jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
+                queryBus as unknown as QueryBus,
+                null
+            )
         )
 
         await service.processIndexJob('job-1')
@@ -485,7 +521,8 @@ describe('GraphRAG service', () => {
             { execute: jest.fn() } as unknown as QueryBus,
             { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
             { delete: jest.fn() } as unknown as Repository<KnowledgeGraphEntityContribution>,
-            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>,
+            null
         )
 
         const entity = await service.createEntity('kb-1', {
@@ -562,7 +599,8 @@ describe('GraphRAG service', () => {
             { execute: jest.fn() } as unknown as QueryBus,
             { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
             repositoryMock<KnowledgeGraphEntityContribution>(),
-            repositoryMock<KnowledgeGraphRelationContribution>()
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            null
         )
 
         const entity = await service.hideEntity('kb-1', 'entity-1')
@@ -612,7 +650,8 @@ describe('GraphRAG service', () => {
             { execute: jest.fn() } as unknown as QueryBus,
             { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
             { delete: jest.fn() } as unknown as Repository<KnowledgeGraphEntityContribution>,
-            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>,
+            null
         )
 
         await service.clearKnowledgebase('kb-1')
@@ -701,7 +740,8 @@ describe('GraphRAG service', () => {
             { execute: jest.fn() } as unknown as QueryBus,
             { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
             repositoryMock<KnowledgeGraphEntityContribution>(),
-            repositoryMock<KnowledgeGraphRelationContribution>()
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            null
         )
 
         const result = await service.getEntityChunks('kb-1', 'entity-1', {

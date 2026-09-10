@@ -157,6 +157,12 @@ export class KnowledgeDocumentConsumer {
                     this.logger.debug(
                         `[Job: entity '${job.id}'] Document '${document.id}' unchanged; skipped embedding.`
                     )
+                    await this.publicationService.publish({
+                        knowledgebase,
+                        documentId: document.id,
+                        userId: job.data.userId,
+                        contentChanged: false
+                    })
                     continue
                 }
 

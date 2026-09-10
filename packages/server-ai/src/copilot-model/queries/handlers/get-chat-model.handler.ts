@@ -99,6 +99,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
             ...copilotModel,
             options: resolveModelParameterOptions(copilotModel.options, parameterRules)
         }
+        copilotModel.options = resolvedCopilotModel.options
         const resolveUsagePricingSnapshot = async (context: ModelUsagePricingContext) =>
             modelProvider
                 .getModelManager(copilotModel.modelType)

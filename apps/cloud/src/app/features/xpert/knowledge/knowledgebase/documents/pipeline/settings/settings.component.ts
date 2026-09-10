@@ -19,7 +19,7 @@ import {
   WorkflowNodeTypeEnum
 } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
+import { JSONSchemaFormComponent, JsonSchemaControlDefaults } from '@cloud/app/@shared/forms'
 import { KnowledgeChunkComponent } from '@cloud/app/@shared/knowledge'
 import {
   buildJsonSchemaDefaults,
@@ -30,7 +30,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
 import { startWith, switchMap } from 'rxjs/operators'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -39,6 +39,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./settings.component.scss'],
   imports: [
     FormsModule,
+    ZardButtonComponent,
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
@@ -55,6 +56,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly kbAPI = inject(KnowledgebaseService)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
+  readonly compactControlDefaults = { switch: { zSize: 'sm' } } satisfies JsonSchemaControlDefaults
 
   // Inputs
   readonly knowledgebase = input<IKnowledgebase>()
@@ -124,6 +126,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly chunkerStrategy = computed(() =>
     this.textSplitterStrategies().find((strategy) => strategy.name === this.chunkerNode()?.entity.provider)
   )
+  readonly canPreview = computed(() => !!this.taskId() && !!this.selectedSource()?.key && !!this.chunkerNode())
   readonly chunkerConfigSchema = computed(() => this.chunkerStrategy()?.configSchema ?? null)
   readonly hasChunkerConfigFields = computed(() => jsonSchemaHasConfigFields(this.chunkerConfigSchema()))
   readonly chunkerConfig = computed(() => ({
@@ -140,7 +143,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
     }
     if (this.previewDocName()) {
       const doc = docs.find((d) => d.name === this.previewDocName())
-      return doc?.draft.chunks || doc?.chunks || []
+      return doc?.draft?.chunks ?? doc?.chunks ?? []
     }
     return docs[0]?.chunks || []
   })
@@ -148,7 +151,14 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly task = signal<IKnowledgebaseTask>(null)
   readonly _documents = computed(() => this.task()?.context?.documents)
 
-  readonly taskError = computed(() => this.task()?.error)
+  readonly requestError = signal<string | null>(null)
+  readonly previewCompleted = computed(() => this.task()?.status === 'success')
+  readonly taskError = computed(
+    () =>
+      this.requestError() ||
+      this.task()?.error ||
+      (this.task()?.status === 'failed' ? this.#translate.instant('XP.Knowledgebase.PipelineProcessing.Failed') : null)
+  )
 
   constructor() {
     effect(() => {
@@ -159,8 +169,10 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   }
 
   previewChunks() {
+    if (!this.canPreview() || this.previewing()) return
     this.previewing.set(true)
     this.task.set(null)
+    this.requestError.set(null)
     this.previewSub?.unsubscribe()
 
     this.kbAPI
@@ -183,12 +195,14 @@ export class KnowledgeDocumentPipelineSettingsComponent {
             },
             error: (err) => {
               this.previewing.set(false)
+              this.requestError.set(getErrorMessage(err))
               this.#toastr.error(getErrorMessage(err))
             }
           })
         },
         error: (error) => {
           this.previewing.set(false)
+          this.requestError.set(getErrorMessage(error))
           this.#toastr.error(getErrorMessage(error))
         }
       })

@@ -1,3 +1,4 @@
+import { loadIdentityCatalogue } from '../identity/knowledge-identity-catalogue'
 import { KnowledgeWikiPageType } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -11,11 +12,11 @@ import {
 } from './entities'
 import {
     createKnowledgeWikiIndexPageKey,
-    createKnowledgeWikiMappedPageIdentity,
+    normalizeKnowledgeWikiCanonicalName,
     KnowledgeWikiIndexKind
 } from './knowledge-wiki-identity'
 
-function resolveTargetPageKey(type: KnowledgeWikiPageType, canonicalName: string) {
+function resolveIndexPageKey(type: KnowledgeWikiPageType, canonicalName: string) {
     if (type === 'summary') return null
     if (type === 'index') {
         const kind = canonicalName.normalize('NFKC').trim().toLowerCase()
@@ -23,7 +24,7 @@ function resolveTargetPageKey(type: KnowledgeWikiPageType, canonicalName: string
             ? createKnowledgeWikiIndexPageKey(kind as KnowledgeWikiIndexKind)
             : null
     }
-    return createKnowledgeWikiMappedPageIdentity(type, canonicalName, '').pageKey
+    return null
 }
 
 @Injectable()
@@ -45,23 +46,47 @@ export class KnowledgeWikiLinkService {
         await this.linkRepository.delete({ sourcePageVersionId: version.id })
         const contributions = await this.contributionRepository.find({ where: { pageVersionId: version.id } })
         const suggestions = contributions.flatMap((contribution) => contribution.payload.suggestedLinks)
-        const targetKeys = [
-            ...new Set(
-                suggestions.flatMap((item) => {
-                    const key = resolveTargetPageKey(item.targetType, item.targetCanonicalName)
-                    return key ? [key] : []
-                })
-            )
-        ]
-        if (!targetKeys.length) return
+        if (!suggestions.length) return
         const targets = await this.pageRepository.find({
-            where: { knowledgebaseId: knowledgebase.id, pageKey: In(targetKeys) }
+            where: {
+                knowledgebaseId: knowledgebase.id,
+                pageType: In([...new Set(suggestions.map((item) => item.targetType))])
+            }
         })
-        const targetsByKey = new Map(targets.map((target) => [target.pageKey, target]))
+        const aliases = new Map<string, string[]>()
+        for (const kind of ['entity', 'concept'] as const) {
+            if (!targets.some((target) => target.pageType === kind && target.identityId)) continue
+            const catalogue = await loadIdentityCatalogue(
+                this.pageRepository.manager,
+                {
+                    knowledgebaseId: knowledgebase.id,
+                    tenantId: knowledgebase.tenantId,
+                    organizationId: knowledgebase.organizationId
+                },
+                kind
+            )
+            for (const entry of catalogue.entries) aliases.set(entry.id, entry.profile.aliases)
+        }
+        const targetsByName = new Map<string, Set<KnowledgeWikiPage>>()
+        for (const target of targets) {
+            for (const name of [target.canonicalName, ...(aliases.get(target.identityId) ?? [])]) {
+                const key = `${target.pageType}:${normalizeKnowledgeWikiCanonicalName(name)}`
+                const matches = targetsByName.get(key) ?? new Set<KnowledgeWikiPage>()
+                matches.add(target)
+                targetsByName.set(key, matches)
+            }
+        }
         const unique = new Map<string, KnowledgeWikiPageLinkEntity>()
         for (const suggestion of suggestions) {
-            const targetKey = resolveTargetPageKey(suggestion.targetType, suggestion.targetCanonicalName)
-            const target = targetKey ? targetsByKey.get(targetKey) : null
+            const indexKey = resolveIndexPageKey(suggestion.targetType, suggestion.targetCanonicalName)
+            const matches = targetsByName.get(
+                `${suggestion.targetType}:${normalizeKnowledgeWikiCanonicalName(suggestion.targetCanonicalName)}`
+            )
+            const target = indexKey
+                ? targets.find((page) => page.pageKey === indexKey)
+                : suggestion.targetType !== 'summary' && matches?.size === 1
+                  ? [...matches][0]
+                  : null
             if (!target || target.id === page.id) continue
             const key = `${target.id}:${suggestion.label ?? ''}`
             if (unique.has(key)) continue

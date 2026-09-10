@@ -69,7 +69,7 @@ describe('Graph index job stage persistence', () => {
         expect(finishIndexing).toBeDefined()
         finishIndexing()
         await processing
-        expect(extract).toHaveBeenCalledWith(job.knowledgebase, expect.any(Array), 'job', job.knowledgebase.graphRag)
+        expect(extract).toHaveBeenCalledWith(job, expect.any(Array))
         expect(job).toMatchObject({ status: KnowledgeGraphIndexJobStatus.SUCCESS, result: 'indexed' })
     })
 

@@ -73,6 +73,17 @@ export type KnowledgebaseParserConfig = {
   chunkSize: number | null
   chunkOverlap: number | null
   delimiter: string | null
+  pdfParser?: {
+    transformerType: string
+    transformerIntegration?: string
+    transformer?: { [key: string]: unknown }
+  }
+  textSplitterType?: string
+  textSplitter?: { [key: string]: unknown }
+  separators?: string[]
+  imageUnderstandingEnabled?: boolean
+  imageUnderstandingType?: string
+  imageUnderstanding?: { [key: string]: unknown }
 }
 
 /**

@@ -1,5 +1,6 @@
+import { invalidKnowledgeParserConfig } from '../../../knowledge-document/parser-validation'
 import { Document } from '@langchain/core/documents'
-import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
+import { decodeKnowledgeSeparators, IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'
@@ -62,18 +63,19 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
                             },
                             default: 'paragraph'
                         },
-                        separator: {
-                            type: 'string',
+                        separators: {
+                            type: 'array',
+                            items: { type: 'string' },
                             title: {
-                                en_US: 'Parent Separator',
+                                en_US: 'Parent Separators',
                                 zh_Hans: '父级分隔符'
                             },
                             description: {
-                                en_US: 'The string used to separate parent sections.',
-                                zh_Hans: '用于分隔父级部分的字符串。'
+                                en_US: 'Try separators in order, using later ones for oversized blocks. An empty list splits only at the character limit.',
+                                zh_Hans: '按顺序尝试分隔符，超长内容继续使用后续分隔符；空列表仅按字符上限切分。'
                             },
                             expressions: { hide: `model.mode !== 'paragraph'` },
-                            default: '\n\n'
+                            default: ['\n\n']
                         },
                         maxChars: {
                             type: 'number',
@@ -99,17 +101,18 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
                         zh_Hans: '用于检索的子块'
                     },
                     properties: {
-                        separator: {
-                            type: 'string',
+                        separators: {
+                            type: 'array',
+                            items: { type: 'string' },
                             title: {
-                                en_US: 'Child Separator',
+                                en_US: 'Child Separators',
                                 zh_Hans: '子级分隔符'
                             },
                             description: {
-                                en_US: 'The string used to separate child sections.',
-                                zh_Hans: '用于分隔子级部分的字符串。'
+                                en_US: 'Try separators in order, using later ones for oversized blocks. An empty list splits only at the character limit.',
+                                zh_Hans: '按顺序尝试分隔符，超长内容继续使用后续分隔符；空列表仅按字符上限切分。'
                             },
-                            default: '\n'
+                            default: ['\n']
                         },
                         maxChars: {
                             type: 'number',
@@ -132,14 +135,48 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
         }
     }
 
-    async validateConfig(): Promise<void> {
-        //
+    async validateConfig(config: TParentChildConfig): Promise<void> {
+        for (const [name, value] of [
+            ['parent', config.parent],
+            ['child', config.child]
+        ] as const) {
+            if (value !== undefined && (!value || typeof value !== 'object' || Array.isArray(value))) {
+                throw invalidKnowledgeParserConfig(name)
+            }
+            if (value?.maxChars !== undefined && (!Number.isSafeInteger(value.maxChars) || value.maxChars < 1)) {
+                throw invalidKnowledgeParserConfig(name + '.maxChars')
+            }
+            if (value?.separator !== undefined && typeof value.separator !== 'string') {
+                throw invalidKnowledgeParserConfig(name + '.separator')
+            }
+            if (
+                value?.separators !== undefined &&
+                (!Array.isArray(value.separators) ||
+                    value.separators.some((separator) => typeof separator !== 'string'))
+            ) {
+                throw invalidKnowledgeParserConfig(name + '.separators')
+            }
+        }
+        if (config.parent?.mode !== undefined && !['paragraph', 'full'].includes(config.parent.mode)) {
+            throw invalidKnowledgeParserConfig('parent.mode')
+        }
     }
 
     async splitDocuments(documents: Document[], options: TParentChildConfig) {
+        await this.validateConfig(options)
         const chunks: Document<ChunkMetadata>[] = []
         for (const doc of documents) {
-            const parentChunks = splitIntoParents(doc.pageContent, options.parent)
+            const parentChunks =
+                options.parent?.mode === 'full'
+                    ? [
+                          {
+                              content: doc.pageContent,
+                              startOffset: 0,
+                              endOffset: doc.pageContent.length,
+                              charCount: doc.pageContent.length
+                          }
+                      ]
+                    : splitIntoParents(doc.pageContent, { maxChars: 1000, ...options.parent })
 
             parentChunks.forEach((parentContent, parentIndex) => {
                 const parentId = uuid()
@@ -157,7 +194,11 @@ export class ParentChildStrategy implements ITextSplitterStrategy<TParentChildCo
                 })
                 chunks.push(parentDoc)
 
-                const childChunks = splitIntoParents(parentContent.content, options.child)
+                const childChunks = splitIntoParents(parentContent.content, {
+                    separator: '\n',
+                    maxChars: 200,
+                    ...options.child
+                })
                 childChunks.forEach((childContent, childIndex) => {
                     chunks.push(
                         new Document<ChunkMetadata>({
@@ -193,6 +234,10 @@ interface ParentChunk {
 
 export function splitIntoParents(text: string, config: TextSplitOptions): ParentChunk[] {
     const { maxChars = 2000 } = config
+    if (config.separators !== undefined) {
+        return splitByOrderedSeparators(text, decodeKnowledgeSeparators(config.separators), maxChars)
+    }
+    // Keep persisted single-separator configurations on their original splitting path.
     const separator = config.separator?.replace(/\\n/g, '\n') || '\n\n'
 
     const rawBlocks = text.split(separator)
@@ -236,5 +281,37 @@ export function splitIntoParents(text: string, config: TextSplitOptions): Parent
         cursor += rawBlock.length + separator.length
     }
 
+    return chunks
+}
+
+function splitByOrderedSeparators(text: string, separators: string[], maxChars: number, offset = 0): ParentChunk[] {
+    const separatorIndex = separators.findIndex((separator) => separator && text.includes(separator))
+    const separator = separators[separatorIndex]
+    const blocks = separator === undefined ? [text] : text.split(separator)
+    const remaining = separators.slice(separatorIndex + 1)
+    const chunks: ParentChunk[] = []
+    let cursor = offset
+
+    for (const block of blocks) {
+        const content = block.trim()
+        const startOffset = cursor + block.length - block.trimStart().length
+        cursor += block.length + (separator?.length ?? 0)
+        if (!content) continue
+        if (content.length > maxChars && separator !== undefined && remaining.length) {
+            for (const chunk of splitByOrderedSeparators(content, remaining, maxChars, startOffset)) {
+                chunks.push(chunk)
+            }
+            continue
+        }
+        for (let start = 0; start < content.length; start += maxChars) {
+            const part = content.slice(start, start + maxChars)
+            chunks.push({
+                content: part,
+                startOffset: startOffset + start,
+                endOffset: startOffset + start + part.length,
+                charCount: part.length
+            })
+        }
+    }
     return chunks
 }

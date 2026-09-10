@@ -229,13 +229,14 @@ describe('KnowledgeDocumentConsumer', () => {
         const commandBus = {
             execute: jest.fn()
         }
+        const publication = { publish: jest.fn() }
         const consumer = new KnowledgeDocumentConsumer(
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            publication as unknown as KnowledgeDerivedIndexPublicationService
         )
         const job = {
             id: 'job-1',
@@ -256,6 +257,9 @@ describe('KnowledgeDocumentConsumer', () => {
             job
         )
 
+        expect(publication.publish).toHaveBeenCalledWith(
+            expect.objectContaining({ documentId: 'doc-1', contentChanged: false })
+        )
         expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(KnowledgeDocLoadCommand))
         expect(documentService.update).toHaveBeenCalledWith(
             'doc-1',

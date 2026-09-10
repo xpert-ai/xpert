@@ -40,6 +40,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, BinaryIO, Callable, Iterator
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from network import EgressConfig, NetworkLease, NetworkManager
+
 RUNNER_HOST = os.environ.get("XPERT_NSJAIL_RUNNER_HOST", "0.0.0.0")
 RUNNER_PORT = int(os.environ.get("XPERT_NSJAIL_RUNNER_PORT", "8090"))
 RUNNER_TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "").strip()
@@ -48,6 +50,7 @@ WORKSPACE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_WORKSPACE_ROOT", "/sa
 ROOTFS = pathlib.Path(os.environ.get("XPERT_NSJAIL_ROOTFS", "/opt/xpert-rootfs")).resolve()
 STATE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_STATE_ROOT", "/var/lib/xpert-nsjail")).resolve()
 STATE_ROOT_BASE = pathlib.Path("/var/lib/xpert-nsjail")
+NETWORK = NetworkManager(EgressConfig.from_environment(), STATE_ROOT)
 STATE_MARKER_NAME = ".xpert-nsjail-state"
 STATE_MARKER_CONTENT = "xpert-nsjail-runner-state-v1\n"
 NSJAIL_BIN = os.environ.get("XPERT_NSJAIL_BIN", "/usr/local/bin/nsjail")
@@ -81,6 +84,7 @@ PIDS_LIMIT = int(os.environ.get("XPERT_NSJAIL_PIDS", "128"))
 CPU_MS_PER_SECOND = int(os.environ.get("XPERT_NSJAIL_CPU_MS_PER_SEC", "1000"))
 RLIMIT_AS_MB = int(os.environ.get("XPERT_NSJAIL_RLIMIT_AS_MB", "4096"))
 RLIMIT_FSIZE_MB = int(os.environ.get("XPERT_NSJAIL_RLIMIT_FSIZE_MB", "256"))
+TMPFS_MB = int(os.environ.get("XPERT_NSJAIL_TMPFS_MB", "256"))
 RLIMIT_NOFILE = int(os.environ.get("XPERT_NSJAIL_RLIMIT_NOFILE", "256"))
 JAIL_UID = int(os.environ.get("XPERT_NSJAIL_UID", "1000"))
 JAIL_GID = int(os.environ.get("XPERT_NSJAIL_GID", "1000"))
@@ -101,7 +105,9 @@ SAFE_SIGNAL_NAMES = {
 BASE_ENV = {
     "HOME": "/workspace",
     "LANG": "C.UTF-8",
-    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    # Persist npm tools in the writable workspace so later isolated commands can find them.
+    "NPM_CONFIG_PREFIX": "/workspace/.npm-global",
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/workspace/.npm-global/bin",
     "TERM": "xterm-256color",
 }
 
@@ -272,6 +278,8 @@ def cleanup_recorded_nsjail_cgroups() -> bool:
 def ensure_startup_invariants() -> None:
     if not RUNNER_TOKEN:
         raise SystemExit("XPERT_NSJAIL_RUNNER_TOKEN is required")
+    if TMPFS_MB <= 0:
+        raise SystemExit("XPERT_NSJAIL_TMPFS_MB must be positive")
     if not pathlib.Path(NSJAIL_BIN).is_file():
         raise SystemExit(f"NsJail binary not found: {NSJAIL_BIN}")
     if not ROOTFS.is_dir():
@@ -493,6 +501,7 @@ def nsjail_args(
     env: dict[str, str] | None = None,
     interactive: bool = False,
     time_limit_seconds: int = 0,
+    network: NetworkLease | None = None,
 ) -> list[str]:
     args = [
         NSJAIL_BIN,
@@ -525,8 +534,8 @@ def nsjail_args(
             "/dev/random:/dev/random",
             "--bindmount",
             "/dev/urandom:/dev/urandom",
-            "--tmpfsmount",
-            "/tmp",
+            "--mount",
+            f"none:/tmp:tmpfs:size={TMPFS_MB * 1024 * 1024},mode=1777",
             "--tmpfsmount",
             "/run",
             "--rlimit_as",
@@ -569,7 +578,7 @@ def nsjail_args(
     for name, value in {**BASE_ENV, **(env or {})}.items():
         args.extend(("--env", f"{name}={value}"))
     args.extend(("--", "/bin/bash", "--noprofile", "--norc", "-c", command))
-    return args
+    return network.command(args) if network else args
 
 
 def append_limited(output: bytearray, chunk: bytes, maximum: int) -> bool:
@@ -588,13 +597,19 @@ def _execute_command(
     on_line: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     time_limit_seconds = max(1, math.ceil(timeout_ms / 1000) + 5)
-    process = subprocess.Popen(
-        nsjail_args(runtime, command, time_limit_seconds=time_limit_seconds),
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-    )
+    network = NETWORK.acquire()
+    try:
+        process = subprocess.Popen(
+            nsjail_args(runtime, command, time_limit_seconds=time_limit_seconds, network=network),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+    except Exception:
+        if network:
+            network.close()
+        raise
     cgroup_paths: tuple[pathlib.Path, ...] = ()
     tracked = False
     try:
@@ -673,6 +688,8 @@ def _execute_command(
         cleanup_nsjail_cgroups(cgroup_paths)
         if tracked:
             runtime.untrack_process(process)
+        if network:
+            network.close()
 
 
 ACTIVE_EXECUTIONS_GLOBAL = 0
@@ -948,6 +965,7 @@ class Terminal:
     exit_code: int | None = None
     signal_number: int | None = None
     condition: threading.Condition = field(default_factory=threading.Condition)
+    network: NetworkLease | None = None
 
     def start_reader(self) -> None:
         threading.Thread(target=self._read, daemon=True).start()
@@ -987,6 +1005,8 @@ class Terminal:
             except OSError:
                 pass
             cleanup_nsjail_cgroups(self.cgroup_paths)
+            if self.network:
+                self.network.close()
 
     def drain(self) -> dict[str, Any]:
         with self.condition:
@@ -1028,6 +1048,7 @@ class Service:
     exit_code: int | None = None
     signal_name: str | None = None
     cgroup_cleaned: bool = False
+    network: NetworkLease | None = None
 
     def wait_for_logs(self) -> None:
         for thread in self.log_threads:
@@ -1040,6 +1061,8 @@ class Service:
         self.wait_for_logs()
         if not self.cgroup_cleaned:
             self.cgroup_cleaned = cleanup_nsjail_cgroups(self.cgroup_paths)
+        if self.network:
+            self.network.close()
         if self.status not in ("stopped", "failed"):
             self.exit_code, self.signal_name = decode_return_code(return_code)
             self.status = "stopped" if return_code == 0 or self.status == "stopping" else "failed"
@@ -1218,6 +1241,7 @@ def reap_idle_runtimes(
 def runtime_reaper(stop_event: threading.Event) -> None:
     while not stop_event.wait(RUNTIME_REAPER_INTERVAL_SECONDS):
         reaped = reap_idle_runtimes()
+        NETWORK.reap()
         if reaped:
             print(f"[nsjail-runner] reaped {reaped} idle runtime(s)", flush=True)
 
@@ -1238,22 +1262,23 @@ def open_terminal(runtime: Runtime, payload: Any) -> Terminal:
     terminal: Terminal | None = None
     pid: int | None = None
     master_fd: int | None = None
+    network: NetworkLease | None = None
     try:
+        network = NETWORK.acquire()
+        args = nsjail_args(
+            runtime,
+            "exec /bin/bash --noprofile --norc -i",
+            interactive=True,
+            time_limit_seconds=0,
+            network=network,
+        )
         pid, master_fd = pty.fork()
         if pid == 0:
             try:
-                os.execv(
-                    NSJAIL_BIN,
-                    nsjail_args(
-                        runtime,
-                        "exec /bin/bash --noprofile --norc -i",
-                        interactive=True,
-                        time_limit_seconds=0,
-                    ),
-                )
+                os.execv(args[0], args)
             finally:
                 os._exit(127)
-        terminal = Terminal(terminal_id, pid, master_fd, discover_nsjail_cgroups(pid))
+        terminal = Terminal(terminal_id, pid, master_fd, discover_nsjail_cgroups(pid), network=network)
         terminal.start_reader()
         fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         with runtime.lock:
@@ -1279,6 +1304,8 @@ def open_terminal(runtime: Runtime, payload: Any) -> Terminal:
                     os.close(master_fd)
                 except OSError:
                     pass
+        if not terminal and network:
+            network.close()
         raise
 
 
@@ -1461,10 +1488,12 @@ def start_service(runtime: Runtime, payload: Any) -> Service:
     process: subprocess.Popen[bytes] | None = None
     service: Service | None = None
     log_threads: tuple[threading.Thread, ...] = ()
+    network: NetworkLease | None = None
     try:
         stdout_path, stderr_path = prepare_service_logs(runtime, service_id)
+        network = NETWORK.acquire()
         process = subprocess.Popen(
-            nsjail_args(runtime, command, cwd=cwd, env=env, time_limit_seconds=0),
+            nsjail_args(runtime, command, cwd=cwd, env=env, time_limit_seconds=0, network=network),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -1480,6 +1509,7 @@ def start_service(runtime: Runtime, payload: Any) -> Service:
             utc_now(),
             discover_nsjail_cgroups(process.pid),
             log_threads,
+            network=network,
         )
         with runtime.lock:
             if runtime.destroyed:
@@ -1496,6 +1526,8 @@ def start_service(runtime: Runtime, payload: Any) -> Service:
             thread.join(timeout=1)
         if stdout_path:
             shutil.rmtree(stdout_path.parent, ignore_errors=True)
+        if network:
+            network.close()
         raise
 
     try:
@@ -1865,7 +1897,12 @@ class RunnerHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     ensure_startup_invariants()
-    server = ThreadingHTTPServer((RUNNER_HOST, RUNNER_PORT), RunnerHandler)
+    NETWORK.initialize()
+    try:
+        server = ThreadingHTTPServer((RUNNER_HOST, RUNNER_PORT), RunnerHandler)
+    except Exception:
+        NETWORK.close()
+        raise
     reaper_stop_event = threading.Event()
     reaper_thread = threading.Thread(target=runtime_reaper, args=(reaper_stop_event,), daemon=True)
     reaper_thread.start()
@@ -1884,6 +1921,7 @@ def main() -> None:
         for runtime in runtimes:
             runtime.destroy()
         cleanup_recorded_nsjail_cgroups()
+        NETWORK.close()
         server.server_close()
 
 

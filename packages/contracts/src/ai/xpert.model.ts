@@ -327,6 +327,9 @@ export type TXpertTemplateSource = {
   installedAt?: string
   lastSyncedAt?: string
   releaseNotes?: string
+  locale?: string
+  pluginVersion?: string
+  contentHash?: string
 }
 
 export type TXpertTemplateSyncResult = {

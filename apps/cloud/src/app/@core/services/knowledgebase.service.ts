@@ -13,6 +13,8 @@ import {
   IDocumentUnderstandingProvider,
   IKnowledgebase,
   KnowledgebaseWikiConfig,
+  KnowledgeChunkPreviewInput,
+  KnowledgeChunkPreviewResult,
   IKnowledgeGraphEntity,
   IKnowledgeGraphMention,
   IKnowledgeGraphRelation,
@@ -136,6 +138,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.get<IDocumentChunkerProvider[]>(this.apiBaseUrl + '/text-splitter/strategies')
   }
 
+  previewChunks(workspaceId: string, input: KnowledgeChunkPreviewInput) {
+    return this.httpClient.post<KnowledgeChunkPreviewResult>(
+      this.apiBaseUrl + '/by-workspace/' + workspaceId + '/preview-chunks',
+      input
+    )
+  }
+
   getDocumentTransformerStrategies() {
     return this.httpClient.get<{ meta: IDocumentProcessorProvider; integration: { service: string } }[]>(
       this.apiBaseUrl + '/transformer/strategies'
@@ -188,6 +197,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
     return this.httpClient.post<KnowledgeGraphDocumentsProgressResponse>(
       this.apiBaseUrl + `/${id}/graph/documents/status`,
       { documentIds }
+    )
+  }
+
+  retryGraphDocument(id: string, documentId: string) {
+    return this.httpClient.post<KnowledgeGraphDocumentProgress>(
+      this.apiBaseUrl + `/${id}/graph/documents/${documentId}/retry`,
+      {}
     )
   }
 

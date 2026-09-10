@@ -430,11 +430,7 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
                     type,
                     category,
                     ...managedFile,
-                    parserConfig: resolveKnowledgeDocumentParserConfig({
-                        type,
-                        category,
-                        parserConfig: document.parserConfig ?? input.parserConfig
-                    }),
+                    parserConfig: document.parserConfig ?? input.parserConfig,
                     metadata: {
                         ...(input.metadata ?? {}),
                         ...(document.metadata ?? {})
@@ -995,11 +991,7 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
         fileUrl: uploaded.fileUrl,
         mimeType: uploaded.mimeType,
         size: String(buffer.length),
-        parserConfig: resolveKnowledgeDocumentParserConfig({
-            type,
-            category,
-            parserConfig: input.parserConfig
-        }),
+        parserConfig: input.parserConfig,
         metadata: {
             ...(input.metadata ?? {}),
             documentType: 'contract-reference-source',

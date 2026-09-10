@@ -91,7 +91,11 @@ export class AgentMiddlewareRuntimeService {
 
     /** Build the middleware runtime API and capability registry for one invocation. */
     createScopedApi(scope: AgentMiddlewareRuntimeScope = {}): AgentMiddlewareRuntimeApi {
-        scope = { ...scope, connectorBindingIds: [...(scope.connectorBindingIds ?? [])] }
+        scope = {
+            ...scope,
+            connectorBindingIds: [...(scope.connectorBindingIds ?? [])],
+            connectorProviders: [...(scope.connectorProviders ?? [])]
+        }
         const workspaceFilesApi = hasBoundRuntimeWorkspaceScope(scope)
             ? this.workspaceFiles.createScopedApi(scope)
             : null

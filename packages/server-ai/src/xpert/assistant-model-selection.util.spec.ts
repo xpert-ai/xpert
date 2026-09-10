@@ -68,4 +68,27 @@ describe('Assistant model selection utilities', () => {
             endpoints: [{ url: 'https://example.com' }]
         })
     })
+
+    it('retains numeric output limits without retaining credentials disguised as limits', () => {
+        const options = sanitizeAssistantModelSnapshot({
+            ...primary,
+            options: {
+                context_size: 32768,
+                max_tokens: 4096,
+                max_completion_tokens: 2048,
+                max_output_tokens: 1024,
+                maxTokens: 512,
+                access_token: 'secret',
+                nested: { max_tokens: { token: 'secret' }, refreshToken: 'secret' }
+            }
+        }).options
+        expect(options).toEqual({
+            context_size: 32768,
+            max_tokens: 4096,
+            max_completion_tokens: 2048,
+            max_output_tokens: 1024,
+            maxTokens: 512,
+            nested: {}
+        })
+    })
 })

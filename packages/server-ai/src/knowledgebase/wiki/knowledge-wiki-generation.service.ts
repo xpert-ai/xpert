@@ -1,8 +1,6 @@
-import {
-    KBDocumentStatusEnum,
-    KnowledgeWikiPageContributionPayload,
-    normalizeKnowledgebaseWikiConfig
-} from '@xpert-ai/contracts'
+import { Inject } from '@nestjs/common'
+import { KnowledgeWikiClassificationService } from './knowledge-wiki-classification.service'
+import { KBDocumentStatusEnum, normalizeKnowledgebaseWikiConfig } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
@@ -28,25 +26,33 @@ import {
 import {
     createKnowledgeWikiMapBatches,
     hashKnowledgeWikiValue,
-    isEligibleKnowledgeWikiSource,
-    mergeKnowledgeWikiMapPages
+    isEligibleKnowledgeWikiSource
 } from './knowledge-wiki-generation.utils'
-import { createKnowledgeWikiMappedPageIdentity } from './knowledge-wiki-identity'
+import { v5 as uuidv5 } from 'uuid'
+import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
+import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-scheduler.service'
 import { KnowledgeWikiFinalizeService } from './knowledge-wiki-finalize.service'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
 import { KnowledgeWikiJobFenceService } from './knowledge-wiki-job-fence.service'
+import { retireSupersededKnowledgeWikiJobs } from './knowledge-wiki-job-current'
 import { KnowledgeWikiJobLeaseService } from './knowledge-wiki-job-lease.service'
 import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invocation.service'
 import { KnowledgeWikiPageReduceService } from './knowledge-wiki-page-reduce.service'
 import { KnowledgeWikiRebuildCoordinatorService } from './knowledge-wiki-rebuild-coordinator.service'
 import { KnowledgeWikiRetractionService } from './knowledge-wiki-retraction.service'
 import { KnowledgeWikiError } from './knowledge-wiki-error'
-import { KnowledgeWikiEnqueueSourceInput, KnowledgeWikiRebuildInput, KnowledgeWikiRetryInput } from './types'
+import {
+    KnowledgeWikiEnqueueSourceInput,
+    KnowledgeWikiRebuildInput,
+    KnowledgeWikiRetryInput,
+    KnowledgeWikiMapModelOutput
+} from './types'
 
 const MAX_DISPATCH_ERROR_LENGTH = 4000
 
 @Injectable()
 export class KnowledgeWikiGenerationService {
+    @Inject(KnowledgeWikiClassificationService) private readonly classification: KnowledgeWikiClassificationService
     private readonly logger = new Logger(KnowledgeWikiGenerationService.name)
 
     constructor(
@@ -74,7 +80,9 @@ export class KnowledgeWikiGenerationService {
         private readonly modelInvocationService: KnowledgeWikiModelInvocationService,
         private readonly pageReducer: KnowledgeWikiPageReduceService,
         private readonly finalizer: KnowledgeWikiFinalizeService,
-        private readonly retractionService: KnowledgeWikiRetractionService
+        private readonly retractionService: KnowledgeWikiRetractionService,
+        private readonly identityResolver: KnowledgeWikiIdentityResolverService,
+        private readonly pageScheduler: KnowledgeWikiPageSchedulerService
     ) {}
 
     async enqueueSource(input: KnowledgeWikiEnqueueSourceInput) {
@@ -139,6 +147,7 @@ export class KnowledgeWikiGenerationService {
         ) {
             sourceState.generationPendingReason = 'full_rebuild_required'
             await this.sourceStateRepository.save(sourceState)
+            await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
             return null
         }
 
@@ -173,6 +182,7 @@ export class KnowledgeWikiGenerationService {
         }
         sourceState.desiredRootJobId = job.id
         await this.sourceStateRepository.save(sourceState)
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
         await this.knowledgebaseRepository.update(knowledgebase.id, {
             wikiStatus: 'indexing',
             wikiBuildError: null
@@ -251,6 +261,7 @@ export class KnowledgeWikiGenerationService {
 
     async retry(input: KnowledgeWikiRetryInput) {
         await this.knowledgebaseService.assertKnowledgebaseWriteAccess(input.knowledgebaseId, { select: { id: true } })
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, input.knowledgebaseId)
         const job = await this.jobRepository.findOne({
             where: { id: input.jobId, knowledgebaseId: input.knowledgebaseId, isCurrent: true }
         })
@@ -276,7 +287,18 @@ export class KnowledgeWikiGenerationService {
                 })
             )
         }
-        if (indeterminate) job.generationAttempt += 1
+        const invalidResponse = await this.invocationRepository.count({
+            where: {
+                jobId: job.id,
+                generationAttempt: job.generationAttempt,
+                status: 'failed',
+                errorCode: 'model_response_invalid'
+            }
+        })
+        if (invalidResponse) {
+            await this.modelInvocationService.settleFailedResponseBilling(job, await this.jobFence.assert(job))
+        }
+        if (indeterminate || invalidResponse) job.generationAttempt += 1
         job.status = 'queued'
         job.error = null
         job.errorCode = null
@@ -288,12 +310,14 @@ export class KnowledgeWikiGenerationService {
 
     async processJob(jobId: string) {
         const job = await this.jobRepository.findOne({ where: { id: jobId } })
-        if (!job || ['succeeded', 'stale', 'cancelled'].includes(job.status)) return job
+        if (!job || job.isCurrent === false || ['succeeded', 'stale', 'cancelled'].includes(job.status)) return job
         const stopHeartbeat = await this.lease.acquire(job)
         if (!stopHeartbeat) return job
 
         try {
-            if (job.type === 'source_map') await this.processSourceMap(job)
+            if (job.type === 'classify') await this.classification.process(job)
+            else if (job.type === 'source_map') await this.processSourceMap(job)
+            else if (job.type === 'identity_resolve') await this.identityResolver.process(job)
             else if (job.type === 'page_reduce') await this.pageReducer.process(job)
             else if (job.type === 'finalize') await this.finalizer.process(job)
             else if (job.type === 'rebuild') await this.processRebuild(job)
@@ -361,6 +385,7 @@ export class KnowledgeWikiGenerationService {
         job.status = 'succeeded'
         job.completedAt = new Date()
         await this.jobRepository.save(job)
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
         await Promise.all(children.map((child) => this.dispatcher.dispatch(child, job.billingPrincipalId)))
         if (!children.length) {
             await this.rebuildCoordinator.scheduleAfterMap(job)
@@ -377,14 +402,12 @@ export class KnowledgeWikiGenerationService {
             await this.jobRepository.update(job.id, { status: 'stale', isCurrent: false, completedAt: new Date() })
             return
         }
-        const chunks = (document.chunks ?? [])
-            .filter((chunk) => !!chunk.id && !!chunk.pageContent)
-            .sort((left, right) => left.id.localeCompare(right.id))
+        const chunks = (document.chunks ?? []).filter((chunk) => !!chunk.id && !!chunk.pageContent)
         const batches = createKnowledgeWikiMapBatches(
             chunks,
             normalizeKnowledgebaseWikiConfig(knowledgebase.wikiConfig)
         )
-        const outputs: KnowledgeWikiPageContributionPayload[] = []
+        const outputs: KnowledgeWikiMapModelOutput['pages'] = []
         for (let ordinal = 0; ordinal < batches.length; ordinal++) {
             const batch = batches[ordinal]
             const mapOutput = await this.modelInvocationService.invokeMapModel(
@@ -396,119 +419,34 @@ export class KnowledgeWikiGenerationService {
             )
             outputs.push(...mapOutput.pages)
         }
-        const pages = mergeKnowledgeWikiMapPages(outputs)
         await this.mapResultRepository.delete({ sourceJobId: job.id })
-        const mapResults: KnowledgeWikiSourceMapResult[] = []
-        for (const payload of pages) {
-            const identity = createKnowledgeWikiMappedPageIdentity(payload.pageType, payload.canonicalName, document.id)
-            mapResults.push(
-                await this.mapResultRepository.save(
-                    this.mapResultRepository.create({
-                        tenantId: knowledgebase.tenantId,
-                        organizationId: knowledgebase.organizationId,
-                        knowledgebaseId: knowledgebase.id,
-                        sourceJobId: job.id,
-                        generationRevision: job.generationRevision,
-                        sourceLifecycleGeneration: job.sourceLifecycleGeneration,
-                        sourceDocumentIdSnapshot: document.id,
-                        sourceContentHash: document.contentHash,
-                        pageType: payload.pageType,
-                        canonicalName: payload.canonicalName,
-                        normalizedPageKey: identity.pageKey,
-                        payload
-                    })
-                )
-            )
-        }
-
-        const rebuildRoot = job.parentJobId
-            ? await this.jobRepository.findOne({ where: { id: job.parentJobId, type: 'rebuild', isCurrent: true } })
-            : null
-        if (rebuildRoot) {
-            await this.dispatcher.markSucceeded(job.id)
-            await this.rebuildCoordinator.scheduleAfterMap(rebuildRoot)
-            return
-        }
-
-        const affectedPageKeys = new Set(mapResults.map((result) => result.normalizedPageKey))
-        const previous = await this.contributionRepository.find({
-            where: { knowledgebaseId: knowledgebase.id, sourceDocumentIdSnapshot: document.id }
-        })
-        if (previous.length) {
-            const priorPages = await this.pageRepository.find({
-                where: { id: In(previous.map((item) => item.pageId)) }
-            })
-            priorPages.forEach((page) => affectedPageKeys.add(page.pageKey))
-        }
-        const reduceJobs: KnowledgeWikiJob[] = []
-        for (const pageKey of affectedPageKeys) {
-            const jobKey = `${job.jobKey}:reduce:${hashKnowledgeWikiValue(pageKey).slice(0, 20)}`
-            let child = await this.jobRepository.findOne({ where: { knowledgebaseId: knowledgebase.id, jobKey } })
-            if (!child) {
-                child = await this.jobRepository.save(
-                    this.jobRepository.create({
-                        tenantId: knowledgebase.tenantId,
-                        organizationId: knowledgebase.organizationId,
-                        knowledgebaseId: knowledgebase.id,
-                        rootJobId: job.rootJobId ?? job.id,
-                        parentJobId: job.id,
-                        sourceDocumentIdSnapshot: document.id,
-                        sourceLifecycleGeneration: job.sourceLifecycleGeneration,
-                        sourcePublicationEpoch: job.sourcePublicationEpoch,
-                        sourceContentHash: job.sourceContentHash,
-                        pageKey,
-                        jobKey,
-                        type: 'page_reduce',
-                        status: 'queued',
-                        isCurrent: true,
-                        generationRevision: job.generationRevision,
-                        generationAttempt: job.generationAttempt,
-                        executionAttempt: 0,
-                        configFingerprint: job.configFingerprint,
-                        generatorVersion: job.generatorVersion,
-                        billingPrincipalId: job.billingPrincipalId,
-                        spendEnvelope: job.spendEnvelope
-                    })
-                )
-            }
-            reduceJobs.push(child)
-        }
-        const finalizeKey = `${job.jobKey}:finalize`
-        let finalizeJob = await this.jobRepository.findOne({
-            where: { knowledgebaseId: knowledgebase.id, jobKey: finalizeKey }
-        })
-        if (!finalizeJob) {
-            finalizeJob = await this.jobRepository.save(
-                this.jobRepository.create({
+        for (let index = 0; index < outputs.length; index++) {
+            const { identity, ...payload } = outputs[index]
+            const candidateKey = String(index).padStart(12, '0')
+            await this.mapResultRepository.save(
+                this.mapResultRepository.create({
+                    id: uuidv5(`${job.id}:${job.generationAttempt}:${candidateKey}`, uuidv5.URL),
                     tenantId: knowledgebase.tenantId,
                     organizationId: knowledgebase.organizationId,
                     knowledgebaseId: knowledgebase.id,
-                    rootJobId: job.rootJobId ?? job.id,
-                    parentJobId: job.id,
-                    sourceDocumentIdSnapshot: document.id,
-                    sourceLifecycleGeneration: job.sourceLifecycleGeneration,
-                    sourcePublicationEpoch: job.sourcePublicationEpoch,
-                    sourceContentHash: job.sourceContentHash,
-                    jobKey: finalizeKey,
-                    type: 'finalize',
-                    status: 'queued',
-                    isCurrent: true,
+                    sourceJobId: job.id,
                     generationRevision: job.generationRevision,
-                    generationAttempt: job.generationAttempt,
-                    executionAttempt: 0,
-                    configFingerprint: job.configFingerprint,
-                    generatorVersion: job.generatorVersion,
-                    billingPrincipalId: job.billingPrincipalId,
-                    expectedChildren: reduceJobs.length
+                    sourceLifecycleGeneration: job.sourceLifecycleGeneration,
+                    sourceDocumentIdSnapshot: document.id,
+                    sourceContentHash: document.contentHash,
+                    pageType: payload.pageType,
+                    canonicalName: payload.canonicalName,
+                    candidateKey,
+                    normalizedPageKey: null,
+                    identity,
+                    payload
                 })
             )
         }
-        job.expectedChildren = reduceJobs.length + 1
-        job.status = 'succeeded'
-        job.completedAt = new Date()
-        await this.jobRepository.save(job)
-        await Promise.all(reduceJobs.map((child) => this.dispatcher.dispatch(child, job.billingPrincipalId)))
-        await this.dispatcher.dispatch(finalizeJob, job.billingPrincipalId, 1000)
+        const rebuildRoot = job.parentJobId
+            ? await this.jobRepository.findOne({ where: { id: job.parentJobId, type: 'rebuild', isCurrent: true } })
+            : null
+        await this.pageScheduler.completeMap(job, rebuildRoot)
     }
 
     private async invalidateSourcePages(knowledgebaseId: string, documentId: string) {
@@ -580,7 +518,7 @@ export class KnowledgeWikiGenerationService {
                 leaseExpiresAt: null
             }
         )
-        if (!failed.affected) return
+        if (!failed.affected || job.type === 'classify') return
         const readyPages = await this.pageRepository.count({
             where: { knowledgebaseId: job.knowledgebaseId, status: 'ready', activeVersionId: Not(IsNull()) }
         })

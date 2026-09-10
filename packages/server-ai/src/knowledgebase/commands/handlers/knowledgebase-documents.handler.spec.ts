@@ -404,42 +404,9 @@ describe('ImportKnowledgebaseArchiveHandler', () => {
             'attachments/inner/spec.pdf',
             'docs/contract.docx'
         ])
-        expect(
-            createdDrafts.map((draft) => ({
-                path: draft.metadata.archiveEntryPath,
-                parserConfig: draft.parserConfig
-            }))
-        ).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    path: 'attachments/inner/spec.pdf',
-                    parserConfig: expect.objectContaining({
-                        transformerType: 'pdf-visual',
-                        transformer: expect.objectContaining({
-                            renderPageImages: true,
-                            maxPages: 300,
-                            renderScale: 2
-                        }),
-                        textSplitterType: 'recursive-character',
-                        textSplitter: expect.objectContaining({
-                            chunkSize: 1000,
-                            chunkOverlap: 200
-                        })
-                    })
-                }),
-                expect.objectContaining({
-                    path: 'attachments/inner/sheet.xlsx',
-                    parserConfig: {}
-                }),
-                expect.objectContaining({
-                    path: 'docs/contract.docx',
-                    parserConfig: expect.objectContaining({
-                        transformerType: 'default',
-                        textSplitterType: 'recursive-character'
-                    })
-                })
-            ])
-        )
+        // Defaults are resolved by document ingestion, after the knowledgebase has been loaded.
+        // Materializing platform defaults in the archive adapter would mask the library's settings.
+        expect(createdDrafts.every((draft) => draft.parserConfig === undefined)).toBe(true)
         expect(createdDrafts.map((draft) => draft.name).sort()).toEqual(['contract.docx', 'sheet.xlsx', 'spec.pdf'])
         expect(createdDrafts.every((draft) => draft.metadata.archivePath === result.archive.filePath)).toBe(true)
         expect(result.documents).toHaveLength(3)

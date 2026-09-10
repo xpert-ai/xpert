@@ -14,9 +14,13 @@ import {
     KnowledgeWikiSourceMapResult,
     KnowledgeWikiSourceState
 } from './entities'
-import { KnowledgeWikiPageContributionPayload } from '@xpert-ai/contracts'
-import { hashKnowledgeWikiValue, isEligibleKnowledgeWikiSource } from './knowledge-wiki-generation.utils'
-import { createKnowledgeWikiMappedPageIdentity } from './knowledge-wiki-identity'
+import { KnowledgeWikiPageSourcePayload } from '@xpert-ai/contracts'
+import {
+    hashKnowledgeWikiValue,
+    isEligibleKnowledgeWikiSource,
+    orderKnowledgeWikiSourceChunks
+} from './knowledge-wiki-generation.utils'
+import { mergeResolvedWikiContributions } from './knowledge-wiki-dedup'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
 import { KnowledgeWikiJobFenceService } from './knowledge-wiki-job-fence.service'
 import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invocation.service'
@@ -79,41 +83,11 @@ export class KnowledgeWikiPageReduceService {
             : await this.mapResultRepository.find({
                   where: { sourceJobId: job.parentJobId, normalizedPageKey: job.pageKey }
               })
-        const mapResult = mapResults[0] ?? null
-        let page = await this.pageRepository.findOne({
+        const page = await this.pageRepository.findOne({
             where: { knowledgebaseId: knowledgebase.id, pageKey: job.pageKey }
         })
-        if (!page && mapResult) {
-            const identity = createKnowledgeWikiMappedPageIdentity(
-                mapResult.pageType,
-                mapResult.canonicalName,
-                mapResult.sourceDocumentIdSnapshot
-            )
-            try {
-                page = await this.pageRepository.save(
-                    this.pageRepository.create({
-                        tenantId: knowledgebase.tenantId,
-                        organizationId: knowledgebase.organizationId,
-                        knowledgebaseId: knowledgebase.id,
-                        pageKey: identity.pageKey,
-                        pageType: mapResult.pageType,
-                        canonicalName: mapResult.canonicalName,
-                        normalizedCanonicalName: identity.normalizedCanonicalName,
-                        slug: identity.slug,
-                        status: 'building',
-                        projectionStatus: 'pending',
-                        sourceCount: 0,
-                        inboundLinkCount: 0,
-                        outboundLinkCount: 0
-                    })
-                )
-            } catch {
-                page = await this.pageRepository.findOne({
-                    where: { knowledgebaseId: knowledgebase.id, pageKey: job.pageKey }
-                })
-            }
-        }
         if (!page) {
+            if (mapResults.length) throw new KnowledgeWikiError('knowledge_wiki_identity_invalid')
             await this.dispatcher.markSucceeded(job.id)
             return
         }
@@ -218,7 +192,11 @@ export class KnowledgeWikiPageReduceService {
                     title: output.title,
                     summary: output.summary,
                     contentMarkdown: output.contentMarkdown,
-                    aliases: output.aliases,
+                    aliases: [
+                        ...new Set(
+                            sources.flatMap((source) => [source.payload.canonicalName, ...source.payload.aliases])
+                        )
+                    ].filter((name) => name !== page.canonicalName),
                     contentHash: hashKnowledgeWikiValue(output),
                     status: 'building',
                     projectionStatus: 'pending'
@@ -272,10 +250,7 @@ export class KnowledgeWikiPageReduceService {
         mapResults: KnowledgeWikiSourceMapResult[],
         fullRebuild: boolean
     ) {
-        const payloads = new Map<
-            string,
-            { payload: KnowledgeWikiPageContributionPayload; lifecycleGeneration: number }
-        >()
+        const payloads = new Map<string, { payload: KnowledgeWikiPageSourcePayload; lifecycleGeneration: number }>()
         if (!fullRebuild && page.activeVersionId) {
             const existing = await this.contributionRepository.find({ where: { pageVersionId: page.activeVersionId } })
             for (const contribution of existing) {
@@ -287,10 +262,17 @@ export class KnowledgeWikiPageReduceService {
                 }
             }
         }
-        for (const mapResult of mapResults) {
-            payloads.set(mapResult.sourceDocumentIdSnapshot, {
-                payload: mapResult.payload,
-                lifecycleGeneration: mapResult.sourceLifecycleGeneration
+        const incoming = new Map<string, KnowledgeWikiSourceMapResult[]>()
+        for (const result of mapResults) {
+            const items = incoming.get(result.sourceDocumentIdSnapshot) ?? []
+            items.push(result)
+            incoming.set(result.sourceDocumentIdSnapshot, items)
+        }
+        for (const [documentId, results] of incoming) {
+            results.sort((a, b) => (a.candidateKey ?? '').localeCompare(b.candidateKey ?? ''))
+            payloads.set(documentId, {
+                payload: mergeResolvedWikiContributions(results.map((result) => result.payload)),
+                lifecycleGeneration: results[0].sourceLifecycleGeneration
             })
         }
         const documentIds = [...payloads.keys()]
@@ -315,15 +297,14 @@ export class KnowledgeWikiPageReduceService {
             ) {
                 return []
             }
-            const chunks = new Map((document.chunks ?? []).map((chunk) => [chunk.id, chunk]))
-            const evidence = configured.payload.facts.flatMap((fact, factIndex) =>
-                fact.sourceChunkIds.flatMap((chunkId) => {
-                    const chunk = chunks.get(chunkId)
-                    if (!chunk?.pageContent) return []
+            const chunks = orderKnowledgeWikiSourceChunks(document.chunks ?? [])
+            const evidence = chunks.flatMap((chunk) =>
+                configured.payload.facts.flatMap((fact, factIndex) => {
+                    if (!chunk.pageContent || !fact.sourceChunkIds.includes(chunk.id)) return []
                     return [
                         {
-                            sourceChunkId: chunkId,
-                            quote: chunk.pageContent.slice(0, 2000),
+                            sourceChunkId: chunk.id,
+                            quote: chunk.pageContent,
                             ordinal: factIndex,
                             sectionAnchor: `fact-${factIndex + 1}`
                         }

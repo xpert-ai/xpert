@@ -47,11 +47,26 @@ function createService(params: {
         ...params.pageRepository
     }
     const jobRepository = {
-        count: jest.fn().mockResolvedValue(0)
+        createQueryBuilder: jest.fn(() => ({
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getCount: jest.fn().mockResolvedValue(0)
+        }))
+    }
+    const recoveryQuery = {
+        innerJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        clone: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(0),
+        getMany: jest.fn().mockResolvedValue(params.invocations ?? [])
     }
     const invocationRepository = {
         count: jest.fn().mockResolvedValue(0),
-        find: jest.fn().mockResolvedValue(params.invocations ?? [])
+        createQueryBuilder: jest.fn(() => recoveryQuery)
     }
     const sourceStateRepository = {
         count: jest.fn().mockResolvedValue(0),

@@ -29,6 +29,8 @@ export interface IKnowledgebaseTask extends IBasePerTenantAndOrganizationEntityM
     documents?: Partial<IKnowledgeDocument>[]
     /** Propagates full conversion vs. snapshot-only rechunking through the background task. */
     processingMode?: KnowledgeDocumentProcessingMode
+    /** Server-created preview ID -> saved document ID bindings, grouped by source node. */
+    materializedSources?: Record<string, Record<string, string>>
   }
 
   /**

@@ -609,9 +609,9 @@
           </div>
         } @else if (filteredTemplates().length) {
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            @for (template of filteredTemplates(); track template.id) {
+            @for (template of visibleTemplates(); track template.id) {
               <article
-                class="flex min-h-64 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
+                class="group/template relative flex min-h-64 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
               >
                 <div class="flex min-w-0 items-center gap-3">
                   <emoji-avatar
@@ -632,7 +632,7 @@
                 <p class="mt-4 line-clamp-3 min-h-[60px] text-sm leading-5 text-muted-foreground">
                   {{ templateSummary(template) }}
                 </p>
-                <div class="mt-4 flex min-h-7 flex-wrap gap-2">
+                <div class="mt-auto flex min-h-7 flex-wrap gap-2 pr-32 pt-4">
                   <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                     {{ 'XP.Explore.AgentSquare.TemplateSource.' + templateSource(template) | translate }}
                   </span>
@@ -645,20 +645,30 @@
                     </span>
                   }
                 </div>
-                <div class="mt-auto pt-5">
-                  <button
-                    z-button
-                    zSize="sm"
-                    type="button"
-                    class="w-full cursor-pointer"
-                    (click)="openTemplate(template, $event)"
-                  >
-                    {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
-                  </button>
-                </div>
+                <button
+                  z-button
+                  zSize="sm"
+                  type="button"
+                  class="pointer-events-none absolute bottom-5 right-5 w-auto max-w-[calc(100%-2.5rem)] translate-y-1 cursor-pointer opacity-0 shadow-sm transition-all duration-200 group-hover/template:pointer-events-auto group-hover/template:translate-y-0 group-hover/template:opacity-100 group-focus-within/template:pointer-events-auto group-focus-within/template:translate-y-0 group-focus-within/template:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+                  (click)="openTemplate(template, $event)"
+                >
+                  {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
+                </button>
               </article>
             }
           </div>
+          @if (visibleTemplates().length < filteredTemplates().length) {
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              class="mt-4"
+              (click)="visibleTemplateCount.set(visibleTemplateCount() + 24)"
+            >
+              {{ 'XP.Knowledgebase.Wiki.Organization.LoadMore' | translate: { Default: 'Load more' } }}
+              ({{ visibleTemplates().length }} / {{ filteredTemplates().length }})
+            </button>
+          }
         } @else if (templateLoadError(); as error) {
           <div
             class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"

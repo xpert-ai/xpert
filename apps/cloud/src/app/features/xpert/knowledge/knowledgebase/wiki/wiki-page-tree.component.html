@@ -1,0 +1,59 @@
+<z-tree #tree [zData]="nodes()" [zSelectable]="true" (zNodeClick)="selectNode($event)">
+  <ng-template #nodeTemplate let-node>
+    @if (nodeData(node); as data) {
+      @switch (data.kind) {
+        @case ('folder') {
+          <z-icon zType="folder" class="size-4 shrink-0 text-text-tertiary" />
+          <span class="min-w-0 flex-1 truncate text-sm" [title]="data.folder.name">{{ data.folder.name }}</span>
+          <span class="text-xs text-text-tertiary">{{ data.count }}</span>
+          @if (canManage()) {
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon-sm"
+              [zDisabled]="organizing()"
+              (click)="$event.stopPropagation(); editFolder.emit(data.folder)"
+              [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.ManageFolder' | translate"
+            >
+              ⋯
+            </button>
+          }
+        }
+        @case ('unclassified') {
+          <z-icon zType="folder" class="size-4 shrink-0 text-text-tertiary" />
+          <span class="min-w-0 flex-1 truncate text-sm">{{
+            'XP.Knowledgebase.Wiki.Organization.Unclassified' | translate
+          }}</span>
+          <span class="text-xs text-text-tertiary">{{ data.count }}</span>
+        }
+        @case ('page') {
+          <z-icon
+            [zType]="
+              data.page.pageType === 'concept' ? 'lightbulb' : data.page.pageType === 'entity' ? 'tag' : 'file-text'
+            "
+            class="size-4 shrink-0 text-text-tertiary"
+          />
+          <span class="min-w-0 flex-1 truncate text-sm" [title]="data.page.title">{{ data.page.title }}</span>
+        }
+        @case ('more') {
+          @if (data.loading) {
+            <z-icon zType="loader-circle" class="size-4 shrink-0 animate-spin" />
+          }
+          <span class="min-w-0 flex-1 truncate text-xs text-text-tertiary" [title]="data.error || ''">
+            {{
+              (data.loading
+                ? 'XP.KEY_WORDS.Loading'
+                : data.error
+                  ? 'XP.ACTIONS.Retry'
+                  : 'XP.Knowledgebase.Wiki.Organization.LoadMore'
+              ) | translate
+            }}
+          </span>
+        }
+      }
+    }
+  </ng-template>
+</z-tree>
+@if (!nodes().length && !loading()) {
+  <p class="p-6 text-center text-sm text-text-tertiary">{{ 'XP.Knowledgebase.Wiki.Empty' | translate }}</p>
+}

@@ -1,3 +1,14 @@
+import { KnowledgeIdentityModule } from '../identity/knowledge-identity.module'
+import { KnowledgeWikiOrganizationService } from './knowledge-wiki-organization.service'
+import { KnowledgeWikiBrowseService } from './knowledge-wiki-browse.service'
+import { KnowledgeWikiClassificationService } from './knowledge-wiki-classification.service'
+import { KnowledgeWikiTaxonomyService } from './knowledge-wiki-taxonomy.service'
+import { KnowledgeWikiOrganizationController } from './knowledge-wiki-organization.controller'
+import {
+    KnowledgeWikiFolder,
+    KnowledgeWikiPlacement,
+    KnowledgeWikiTaxonomy
+} from './entities/knowledge-wiki-organization.entity'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
@@ -44,10 +55,17 @@ import { KnowledgeWikiRetractionService } from './knowledge-wiki-retraction.serv
 import { JOB_KNOWLEDGE_WIKI_GENERATION } from './types'
 import { KnowledgeWikiCommandHandlers } from './commands/handlers'
 
+import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
+import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-scheduler.service'
+
 @Module({
     imports: [
+        forwardRef(() => KnowledgeIdentityModule),
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgeWikiModule }]),
         TypeOrmModule.forFeature([
+            KnowledgeWikiFolder,
+            KnowledgeWikiPlacement,
+            KnowledgeWikiTaxonomy,
             Knowledgebase,
             KnowledgeDocument,
             KnowledgeDocumentChunk,
@@ -71,8 +89,14 @@ import { KnowledgeWikiCommandHandlers } from './commands/handlers'
         forwardRef(() => KnowledgeDocumentModule),
         BullModule.registerQueue({ name: JOB_KNOWLEDGE_WIKI_GENERATION })
     ],
-    controllers: [KnowledgeWikiController],
+    controllers: [KnowledgeWikiController, KnowledgeWikiOrganizationController],
     providers: [
+        KnowledgeWikiTaxonomyService,
+        KnowledgeWikiOrganizationService,
+        KnowledgeWikiBrowseService,
+        KnowledgeWikiClassificationService,
+        KnowledgeWikiIdentityResolverService,
+        KnowledgeWikiPageSchedulerService,
         KnowledgeWikiService,
         KnowledgeWikiGenerationService,
         KnowledgeWikiFinalizeService,

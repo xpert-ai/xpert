@@ -12,7 +12,7 @@ type KnowledgeWikiBillingStatus = 'pending' | 'delivered' | 'failed'
 @Entity('knowledge_wiki_model_invocation')
 @Index(['requestId'], { unique: true })
 @Index(['knowledgebaseId', 'status'])
-@Index(['jobId', 'generationAttempt', 'stage', 'callOrdinal'], { unique: true })
+@Index(['jobId', 'generationAttempt', 'stage', 'callOrdinal', 'inputFingerprint'], { unique: true })
 export class KnowledgeWikiModelInvocation extends TenantOrganizationBaseEntity {
     @ManyToOne(() => Knowledgebase, { nullable: false, onUpdate: 'CASCADE', onDelete: 'CASCADE' })
     @JoinColumn()
@@ -34,7 +34,7 @@ export class KnowledgeWikiModelInvocation extends TenantOrganizationBaseEntity {
     requestId: string
 
     @Column({ type: 'varchar', length: 32 })
-    stage: 'map' | 'reduce'
+    stage: 'map' | 'dedup' | 'reduce' | 'classify' | 'links'
 
     @Column({ type: 'int' })
     callOrdinal: number

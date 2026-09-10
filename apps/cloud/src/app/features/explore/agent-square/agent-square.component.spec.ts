@@ -160,7 +160,7 @@ describe('ExploreAgentSquareComponent', () => {
   let fixture: ComponentFixture<ExploreAgentSquareComponent>
   let marketplaceService: { findMarketplace: jest.Mock; requestAccess: jest.Mock }
   let applicationService: { getCatalog: jest.Mock }
-  let templateService: { getAll: jest.Mock }
+  let templateService: { getSummaries: jest.Mock }
   let dialog: { open: jest.Mock }
   let router: { navigate: jest.Mock }
   let matchMedia: jest.Mock
@@ -171,7 +171,7 @@ describe('ExploreAgentSquareComponent', () => {
       requestAccess: jest.fn(() => of({}))
     }
     applicationService = { getCatalog: jest.fn(() => of([])) }
-    templateService = { getAll: jest.fn(() => of({ categories: [], recommendedApps: [] })) }
+    templateService = { getSummaries: jest.fn(() => of([])) }
     dialog = { open: jest.fn(() => ({ closed: of(null) })) }
     router = { navigate: jest.fn() }
     matchMedia = jest.fn(() => ({ matches: false }))

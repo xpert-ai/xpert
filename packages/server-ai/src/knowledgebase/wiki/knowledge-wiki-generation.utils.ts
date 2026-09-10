@@ -1,7 +1,9 @@
+import { DocumentInterface } from '@langchain/core/documents'
 import {
+    buildChunkTree,
+    IDocChunkMetadata,
     KBDocumentStatusEnum,
     KDocumentSourceType,
-    KnowledgeWikiPageContributionPayload,
     normalizeKnowledgebaseWikiConfig
 } from '@xpert-ai/contracts'
 import { createHash } from 'node:crypto'
@@ -30,52 +32,53 @@ export function isEligibleKnowledgeWikiSource(document: KnowledgeDocument | null
     )
 }
 
-export function mergeKnowledgeWikiMapPages(pages: KnowledgeWikiPageContributionPayload[]) {
-    const merged = new Map<string, KnowledgeWikiPageContributionPayload>()
-    for (const page of pages) {
-        const key = `${page.pageType}:${page.canonicalName.normalize('NFKC').trim().toLowerCase()}`
-        const current = merged.get(key)
-        if (!current) {
-            merged.set(key, page)
-            continue
-        }
-        const facts = [...current.facts]
-        for (const fact of page.facts) {
-            const existing = facts.find((item) => item.text === fact.text)
-            if (existing) {
-                existing.sourceChunkIds = [...new Set([...existing.sourceChunkIds, ...fact.sourceChunkIds])]
-            } else {
-                facts.push(fact)
-            }
-        }
-        merged.set(key, {
-            ...current,
-            aliases: [...new Set([...current.aliases, ...page.aliases])].slice(0, 20),
-            facts: facts.slice(0, 100),
-            suggestedLinks: [...current.suggestedLinks, ...page.suggestedLinks].slice(0, 50)
-        })
-    }
-    return [...merged.values()]
-}
-
 export function createKnowledgeWikiMapBatches(
-    chunks: Array<Pick<KnowledgeDocumentChunk, 'id' | 'pageContent'>>,
+    chunks: Array<Pick<KnowledgeDocumentChunk, 'id' | 'pageContent'> & { metadata?: IDocChunkMetadata }>,
     config: ReturnType<typeof normalizeKnowledgebaseWikiConfig>
 ) {
     const maxCharacters = config.extractionGranularity === 'exhaustive' ? 24_000 : 36_000
     const batches: Array<Array<{ id: string; content: string }>> = []
     let current: Array<{ id: string; content: string }> = []
     let size = 0
-    for (const chunk of chunks) {
-        const item = { id: chunk.id, content: chunk.pageContent.slice(0, maxCharacters) }
-        if (current.length && size + item.content.length > maxCharacters) {
-            batches.push(current)
-            current = []
-            size = 0
+    for (const chunk of orderKnowledgeWikiSourceChunks(chunks)) {
+        for (let offset = 0; offset < chunk.pageContent.length; offset += maxCharacters) {
+            const item = { id: chunk.id, content: chunk.pageContent.slice(offset, offset + maxCharacters) }
+            if (current.length && size + item.content.length > maxCharacters) {
+                batches.push(current)
+                current = []
+                size = 0
+            }
+            current.push(item)
+            size += item.content.length
         }
-        current.push(item)
-        size += item.content.length
     }
     if (current.length) batches.push(current)
     return batches
+}
+
+export function orderKnowledgeWikiSourceChunks<
+    T extends Pick<KnowledgeDocumentChunk, 'id' | 'pageContent'> & { metadata?: IDocChunkMetadata }
+>(chunks: T[]): T[] {
+    const byLogicalId = new Map(chunks.map((chunk) => [chunk.metadata?.chunkId || chunk.id, chunk]))
+    const tree = buildChunkTree(
+        chunks.map((chunk) => ({
+            ...chunk,
+            metadata: { ...chunk.metadata, chunkId: chunk.metadata?.chunkId || chunk.id }
+        }))
+    )
+    const ordered: T[] = []
+    const seen = new Set<T>()
+    const visit = (nodes: DocumentInterface<IDocChunkMetadata>[]) => {
+        for (const node of nodes) {
+            const chunk = byLogicalId.get(node.metadata.chunkId)
+            if (chunk && !seen.has(chunk)) {
+                ordered.push(chunk)
+                seen.add(chunk)
+            }
+            visit(node.metadata.children ?? [])
+        }
+    }
+    visit(tree)
+    // Legacy or malformed hierarchy metadata must not cause source content to disappear.
+    return ordered.concat(chunks.filter((chunk) => !seen.has(chunk)))
 }

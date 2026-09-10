@@ -7,6 +7,8 @@ import { KnowledgeWikiPageReduceService } from './knowledge-wiki-page-reduce.ser
 import { KnowledgeWikiModelInvocationService } from './knowledge-wiki-model-invocation.service'
 import { KnowledgeWikiModule } from './knowledge-wiki.module'
 import { KnowledgeWikiReconcilerService } from './knowledge-wiki-reconciler.service'
+import { KnowledgeWikiIdentityResolverService } from './knowledge-wiki-identity-resolver.service'
+import { KnowledgeWikiPageSchedulerService } from './knowledge-wiki-page-scheduler.service'
 
 describe('KnowledgeWikiModule', () => {
     it('registers and constructs the worker and its extracted stages', async () => {
@@ -14,6 +16,8 @@ describe('KnowledgeWikiModule', () => {
         if (!Array.isArray(registered)) throw new Error('KnowledgeWikiModule providers are unavailable')
         const stages = [
             KnowledgeWikiGenerationService,
+            KnowledgeWikiIdentityResolverService,
+            KnowledgeWikiPageSchedulerService,
             KnowledgeWikiPageReduceService,
             KnowledgeWikiFinalizeService,
             KnowledgeWikiReconcilerService

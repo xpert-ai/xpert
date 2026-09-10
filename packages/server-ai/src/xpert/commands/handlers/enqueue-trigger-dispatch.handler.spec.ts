@@ -4,6 +4,25 @@ import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.
 import { XpertEnqueueTriggerDispatchHandler } from './enqueue-trigger-dispatch.handler'
 
 describe('XpertEnqueueTriggerDispatchHandler', () => {
+    it('preserves an explicit domain callback and its execution identity', async () => {
+        const { handler, xpertService, handoffQueue } = createHandler()
+        xpertService.findOne.mockResolvedValue({ id: 'pipeline', tenantId: 'tenant', organizationId: 'org' })
+        const callback = {
+            messageType: 'knowledge.pipeline_callback.v1',
+            context: { taskId: 'task', executionId: 'execution' }
+        }
+        await handler.execute(
+            new XpertEnqueueTriggerDispatchCommand(
+                'pipeline',
+                'user',
+                {
+                    [STATE_VARIABLE_HUMAN]: { input: 'Process pipeline' }
+                },
+                { isDraft: false, from: 'knowledge', executionId: 'execution', callback }
+            )
+        )
+        expect(handoffQueue.enqueue.mock.calls[0][0].payload.callback).toEqual(callback)
+    })
     function createHandler() {
         const xpertService = {
             findOne: jest.fn()

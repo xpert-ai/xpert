@@ -61,9 +61,11 @@ function fixture() {
     const pages = { findOne: jest.fn(async () => page), update: jest.fn(async () => ({ affected: 0 })) }
     const versions = { findOne: jest.fn(async () => version), update: jest.fn(), count: async () => 1 }
     const knowledgebase = Object.assign(new Knowledgebase(), { id: 'kb', wikiActiveRevision: 1 })
+    const knowledgebases = { findOneOrFail: async () => knowledgebase, update: jest.fn() }
     const dispatcher = { dispatch: jest.fn(), markSucceeded: jest.fn() }
     const projection = { stage: jest.fn(), retireSupersededVersions: jest.fn() }
     const service = Object.assign(Object.create(KnowledgeWikiFinalizeService.prototype), {
+        classification: { enqueuePublished: jest.fn() },
         jobRepository: jobs,
         pageRepository: pages,
         pageVersionRepository: versions,
@@ -78,7 +80,13 @@ function fixture() {
             transaction: async (work: (manager: object) => Promise<void>) =>
                 work({
                     getRepository: (entity: object) =>
-                        entity === KnowledgeWikiJob ? jobs : entity === KnowledgeWikiPage ? pages : versions
+                        entity === Knowledgebase
+                            ? knowledgebases
+                            : entity === KnowledgeWikiJob
+                              ? jobs
+                              : entity === KnowledgeWikiPage
+                                ? pages
+                                : versions
                 })
         }
     }) as KnowledgeWikiFinalizeService

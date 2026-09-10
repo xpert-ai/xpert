@@ -75,6 +75,7 @@ export type KnowledgeGraphEvidence = {
 }
 
 export interface IKnowledgeGraphEntity extends IBasePerTenantAndOrganizationEntityModel {
+  identityId?: string | null
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
   type: string
@@ -159,6 +160,7 @@ export interface IKnowledgeGraphIndexJob extends IBasePerTenantAndOrganizationEn
   result?: KnowledgeGraphIndexResult | null
   sourceContentHash?: string | null
   sourcePublicationEpoch?: number | null
+  extractionId?: string | null
   revision?: number | null
   totalChunks?: number | null
   processedChunks?: number | null

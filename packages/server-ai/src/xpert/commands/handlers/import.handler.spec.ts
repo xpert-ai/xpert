@@ -286,7 +286,16 @@ describe('XpertImportHandler', () => {
                         name: 'Imported Expert',
                         title: 'Imported Expert',
                         type: 'agent',
-                        agent: { key: 'Agent_imported' }
+                        agent: { key: 'Agent_imported' },
+                        options: {
+                            templateSource: {
+                                templateId: '@xpert-ai/plugin-example:assistant',
+                                templateKey: 'assistant',
+                                locale: 'zh-Hans',
+                                pluginVersion: '0.1.0',
+                                contentHash: 'role-body-1'
+                            }
+                        }
                     },
                     nodes: [
                         {
@@ -310,7 +319,10 @@ describe('XpertImportHandler', () => {
                     templateSource: expect.objectContaining({
                         templateId: '@xpert-ai/plugin-example:assistant',
                         templateKey: 'assistant',
-                        pluginName: '@xpert-ai/plugin-example'
+                        pluginName: '@xpert-ai/plugin-example',
+                        locale: 'zh-Hans',
+                        pluginVersion: '0.1.0',
+                        contentHash: 'role-body-1'
                     })
                 })
             })

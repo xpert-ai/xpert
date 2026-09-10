@@ -472,337 +472,39 @@
           }
 
           @case ('parser') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
-                <h1>{{ i18nPrefix + '.Sections.Parser' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Parser.Description' | translate }}</p>
-              </div>
-
-              <div class="kb-parser-engine-list">
-                @for (row of parserEngineRows; track row.key) {
-                  <div class="kb-parser-engine-row">
-                    <div class="kb-parser-engine-copy">
-                      <div class="kb-parser-engine-title">
-                        <i [class]="row.icon"></i>{{ i18nPrefix + '.' + row.labelKey | translate }}
-                      </div>
-                      <div class="kb-extension-list">
-                        @for (extension of row.extensions; track extension) {
-                          <span class="kb-extension-chip">{{ extension }}</span>
-                        }
-                      </div>
-                    </div>
-                    <div class="kb-parser-engine-control">
-                      <z-select
-                        class="kb-parser-engine-select"
-                        zSize="lg"
-                        [ngModel]="parserEngineSelections()[row.key]"
-                        (ngModelChange)="updateParserEngine(row.key, $event)"
-                      >
-                        @for (option of row.options; track option.value) {
-                          <z-select-item [zValue]="option.value">{{
-                            i18nPrefix + '.' + option.labelKey | translate
-                          }}</z-select-item>
-                        }
-                      </z-select>
-                      @if (row.hasHeaderToggle) {
-                        <z-checkbox class="kb-checkbox-row" [(ngModel)]="excelHeaderRow">
-                          {{ i18nPrefix + '.Parser.ExcelHeaderRow' | translate }}
-                        </z-checkbox>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            </section>
+            <xp-knowledge-processing-settings class="block min-w-0" [form]="processing" section="parser" />
           }
 
           @case ('chunk') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
-                <h1>{{ i18nPrefix + '.Sections.Chunk' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Chunk.Description' | translate }}</p>
-              </div>
-
-              <div class="kb-chunk-strategy-row">
-                <div class="kb-chunk-copy">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Strategy' | translate }}</div>
-                  <p>{{ i18nPrefix + '.Chunk.StrategyDescription' | translate }}</p>
-                </div>
-                <div class="kb-chunk-strategy-control">
-                  <z-select zSize="lg" [(ngModel)]="chunkStrategy">
-                    <z-select-item zValue="auto">{{ i18nPrefix + '.Chunk.Strategies.Auto' | translate }}</z-select-item>
-                    <z-select-item zValue="title">{{
-                      i18nPrefix + '.Chunk.Strategies.Title' | translate
-                    }}</z-select-item>
-                    <z-select-item zValue="structure">{{
-                      i18nPrefix + '.Chunk.Strategies.Structure' | translate
-                    }}</z-select-item>
-                    <z-select-item zValue="length">{{
-                      i18nPrefix + '.Chunk.Strategies.Length' | translate
-                    }}</z-select-item>
-                  </z-select>
-                  <button
-                    z-button
-                    zType="ghost"
-                    zSize="sm"
-                    type="button"
-                    class="kb-test-chunk-button"
-                    [attr.title]="i18nPrefix + '.Chunk.Test' | translate"
-                  >
-                    <i class="ri-play-circle-line"></i><span>{{ i18nPrefix + '.Chunk.Test' | translate }}</span>
-                  </button>
-                </div>
-              </div>
-
-              @if (chunkStrategy() === 'auto') {
-                <div class="kb-chunk-auto-note">
-                  <strong>{{ i18nPrefix + '.Chunk.AutoNoteLabel' | translate }}:</strong>
-                  {{ i18nPrefix + '.Chunk.AutoNote' | translate }}
-                </div>
-              }
-
-              <div class="kb-chunk-setting-row">
-                <div class="kb-chunk-copy">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Size' | translate }}</div>
-                  <p>
-                    {{ i18nPrefix + '.Chunk.SizeDescription' | translate }}<br />
-                    {{ i18nPrefix + '.Chunk.SizeRecommendation' | translate }}
-                  </p>
-                </div>
-                <div class="kb-range-control">
-                  <z-slider
-                    class="kb-range"
-                    [min]="100"
-                    [max]="4000"
-                    [step]="1"
-                    [attr.aria-label]="i18nPrefix + '.Chunk.Size' | translate"
-                    [(ngModel)]="chunkSize"
-                  />
-                  <div class="kb-range-ticks"><span>100</span><span>1000</span><span>2000</span><span>4000</span></div>
-                  <strong>{{ i18nPrefix + '.Chunk.CharacterCount' | translate: { count: chunkSize() ?? 512 } }}</strong>
-                </div>
-              </div>
-
-              <div class="kb-chunk-setting-row">
-                <div class="kb-chunk-copy">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Overlap' | translate }}</div>
-                  <p>{{ i18nPrefix + '.Chunk.OverlapDescription' | translate }}</p>
-                </div>
-                <div class="kb-range-control">
-                  <z-slider
-                    class="kb-range"
-                    [min]="0"
-                    [max]="500"
-                    [step]="1"
-                    [attr.aria-label]="i18nPrefix + '.Chunk.Overlap' | translate"
-                    [(ngModel)]="chunkOverlap"
-                  />
-                  <div class="kb-range-ticks"><span>0</span><span>250</span><span>500</span></div>
-                  <strong>{{
-                    i18nPrefix + '.Chunk.CharacterCount' | translate: { count: chunkOverlap() ?? 80 }
-                  }}</strong>
-                </div>
-              </div>
-
-              <div class="kb-chunk-setting-row kb-separator-row">
-                <div class="kb-chunk-copy">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.Separators' | translate }}</div>
-                  <p>{{ i18nPrefix + '.Chunk.SeparatorsDescription' | translate }}</p>
-                </div>
-                <div class="kb-separator-control">
-                  <z-tag-select
-                    class="kb-separator-select"
-                    mode="multiple"
-                    [options]="separatorTagOptions"
-                    [enableSuggestions]="true"
-                    [searchable]="false"
-                    [checkable]="true"
-                    [placeholder]="i18nPrefix + '.Chunk.AddSeparator' | translate"
-                    [value]="separators()"
-                    (valueChange)="updateSeparators($event)"
-                  />
-                </div>
-              </div>
-
-              <div
-                data-chunk-parent-child
-                class="mt-5 flex flex-col items-start justify-between gap-4 border-t border-divider-subtle pt-5 sm:flex-row sm:gap-6"
-              >
-                <div class="min-w-0">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Chunk.ParentChild' | translate }}</div>
-                  <p class="kb-help-text">{{ i18nPrefix + '.Chunk.ParentChildDescription' | translate }}</p>
-                </div>
-                <z-switch class="kb-primary-switch shrink-0" [(ngModel)]="parentChildChunkingEnabled" />
-              </div>
-
-              <z-accordion
-                data-chunk-advanced-options
-                displayDensity="compact"
-                displayMode="flat"
-                togglePosition="before"
-                class="mt-5 block border-y border-divider-subtle"
-              >
+            <xp-knowledge-processing-settings class="block min-w-0" [form]="processing" section="chunk" />
+            @if (workspaceId()) {
+              <z-accordion displayDensity="compact" displayMode="flat" togglePosition="before" class="block">
                 <z-accordion-item
-                  zValue="chunk-advanced-options"
+                  zValue="chunk-preview"
+                  [expanded]="previewOpen()"
+                  (expandedChange)="previewOpen.set($event)"
+                  [disabled]="processing.strategiesLoading()"
                   class="[&_[data-slot=accordion-body]>div]:px-0 [&_[data-slot=accordion-body]>div]:pb-0"
                 >
                   <z-accordion-header class="px-0 py-4 hover:text-text-primary">
                     <z-accordion-title class="text-sm font-normal text-text-secondary">
-                      {{ i18nPrefix + '.Chunk.AdvancedOptions' | translate }}
+                      {{ i18nPrefix + '.Chunk.Test' | translate }}
                     </z-accordion-title>
                   </z-accordion-header>
-
-                  <div class="flex flex-col border-t border-divider-subtle">
-                    <div
-                      data-chunk-max-tokens
-                      class="flex flex-col items-start justify-between gap-4 py-5 sm:flex-row sm:gap-6"
-                    >
-                      <div class="min-w-0">
-                        <div class="kb-field-title">{{ i18nPrefix + '.Chunk.MaxChunkTokens' | translate }}</div>
-                        <p class="kb-help-text">{{ i18nPrefix + '.Chunk.MaxChunkTokensDescription' | translate }}</p>
-                      </div>
-                      <input
-                        z-input
-                        zSize="lg"
-                        class="w-full shrink-0 sm:w-40"
-                        type="number"
-                        min="0"
-                        max="8192"
-                        step="1"
-                        [(ngModel)]="maxChunkTokens"
-                      />
-                    </div>
-
-                    <div
-                      data-chunk-language-hint
-                      class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
-                    >
-                      <div class="min-w-0">
-                        <div class="kb-field-title">{{ i18nPrefix + '.Chunk.LanguageHint' | translate }}</div>
-                        <p class="kb-help-text">{{ i18nPrefix + '.Chunk.LanguageHintDescription' | translate }}</p>
-                      </div>
-                      <z-select class="w-full shrink-0 sm:w-60" zSize="lg" [(ngModel)]="chunkLanguageHint">
-                        <z-select-item zValue="auto">{{
-                          i18nPrefix + '.Chunk.LanguageOptions.Auto' | translate
-                        }}</z-select-item>
-                        <z-select-item zValue="Chinese">{{
-                          i18nPrefix + '.Chunk.LanguageOptions.Chinese' | translate
-                        }}</z-select-item>
-                        <z-select-item zValue="English">{{
-                          i18nPrefix + '.Chunk.LanguageOptions.English' | translate
-                        }}</z-select-item>
-                      </z-select>
-                    </div>
-                  </div>
+                  @if (previewOpen()) {
+                    <xp-knowledge-chunk-preview [workspaceId]="workspaceId()" [config]="processing.config()" />
+                  }
                 </z-accordion-item>
               </z-accordion>
-            </section>
+            }
           }
 
           @case ('image') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
-                <h1>{{ i18nPrefix + '.Sections.Image' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Image.Description' | translate }}</p>
-              </div>
-              <div class="kb-panel kb-panel-post-create">
-                <div class="kb-field kb-field-inline">
-                  <div>
-                    <label class="kb-label">{{ i18nPrefix + '.Image.Enable' | translate }}</label>
-                    <p class="kb-help-text">{{ i18nPrefix + '.Image.EnableDescription' | translate }}</p>
-                  </div>
-                  <z-switch
-                    class="kb-primary-switch"
-                    [ngModel]="parserPreview().imageUnderstanding"
-                    (ngModelChange)="updateParserPreview('imageUnderstanding', $event)"
-                  />
-                </div>
-
-                <div class="mt-5 border-t border-divider-subtle py-5">
-                  <copilot-model-select
-                    class="block"
-                    [label]="i18nPrefix + '.Image.VisionModel' | translate"
-                    [modelType]="eAiModelTypeEnum.LLM"
-                    [features]="[eModelFeature.VISION]"
-                    [(ngModel)]="visionModel"
-                  />
-                </div>
-
-                <div
-                  data-image-language
-                  class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
-                >
-                  <div class="min-w-0 flex-1">
-                    <div class="kb-field-title">{{ i18nPrefix + '.Image.DescriptionLanguage' | translate }}</div>
-                    <p class="kb-help-text">{{ i18nPrefix + '.Image.DescriptionLanguageDescription' | translate }}</p>
-                  </div>
-                  <z-select class="w-full shrink-0 sm:w-60" zSize="lg" [(ngModel)]="imageDescriptionLanguage">
-                    <z-select-item zValue="auto">{{
-                      i18nPrefix + '.Image.LanguageOptions.Auto' | translate
-                    }}</z-select-item>
-                    <z-select-item zValue="Chinese">{{
-                      i18nPrefix + '.Image.LanguageOptions.Chinese' | translate
-                    }}</z-select-item>
-                    <z-select-item zValue="English">{{
-                      i18nPrefix + '.Image.LanguageOptions.English' | translate
-                    }}</z-select-item>
-                  </z-select>
-                </div>
-
-                <div
-                  data-image-requirements
-                  class="flex flex-col items-start justify-between gap-4 border-t border-divider-subtle py-5 sm:flex-row sm:gap-6"
-                >
-                  <div class="min-w-0 flex-1">
-                    <div class="kb-field-title">{{ i18nPrefix + '.Image.ParsingRequirements' | translate }}</div>
-                    <p class="kb-help-text">{{ i18nPrefix + '.Image.ParsingRequirementsDescription' | translate }}</p>
-                  </div>
-                  <div class="relative w-full shrink-0 sm:w-[28rem]">
-                    <textarea
-                      z-input
-                      class="kb-textarea min-h-28"
-                      maxlength="4000"
-                      [(ngModel)]="imageParsingRequirements"
-                      [placeholder]="i18nPrefix + '.Image.ParsingRequirementsPlaceholder' | translate"
-                    ></textarea>
-                    <div class="kb-counter">{{ imageParsingRequirements().length }}/4000</div>
-                  </div>
-                </div>
-
-                <p class="kb-inline-notice">
-                  <i class="ri-information-line"></i> {{ i18nPrefix + '.Image.PostCreateNotice' | translate }}
-                </p>
-              </div>
-            </section>
+            <xp-knowledge-processing-settings class="block min-w-0" [form]="processing" section="image" />
           }
 
           @case ('audio') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
-                <h1>{{ i18nPrefix + '.Sections.Audio' | translate }}</h1>
-                <p>{{ i18nPrefix + '.Audio.Description' | translate }}</p>
-              </div>
-              <div class="kb-placeholder-card">
-                <div class="kb-placeholder-icon"><i class="ri-volume-up-line"></i></div>
-                <div>
-                  <div class="kb-panel-title">{{ i18nPrefix + '.Audio.SpeechToText' | translate }}</div>
-                  <p class="kb-panel-description">
-                    {{ i18nPrefix + '.Audio.UnavailableDescription' | translate }}
-                  </p>
-                </div>
-                <span class="kb-status-badge kb-status-preview">{{
-                  i18nPrefix + '.Audio.FrontendPreview' | translate
-                }}</span>
-              </div>
-              <div class="kb-field mt-5">
-                <label class="kb-label">{{ i18nPrefix + '.Audio.ParserEngine' | translate }}</label>
-                <z-select zDisabled [zValue]="'unavailable'">
-                  <z-select-item zValue="unavailable">{{
-                    i18nPrefix + '.Audio.NotConnected' | translate
-                  }}</z-select-item>
-                </z-select>
-              </div>
-            </section>
+            <xp-knowledge-processing-settings class="block min-w-0" [form]="processing" section="audio" />
           }
 
           @case ('advanced') {
@@ -812,45 +514,12 @@
                 <p>{{ i18nPrefix + '.Advanced.Description' | translate }}</p>
               </div>
 
-              <div class="kb-advanced-switch-row">
-                <div>
-                  <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}</div>
-                  <p>{{ i18nPrefix + '.Advanced.QuestionGenerationDescription' | translate }}</p>
-                </div>
-                <z-switch class="kb-primary-switch" [(ngModel)]="questionGenerationEnabled" />
-              </div>
-
-              @if (questionGenerationEnabled()) {
-                <div class="kb-advanced-emphasis">
-                  <div class="kb-advanced-field kb-advanced-count-row">
-                    <div>
-                      <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionCount' | translate }}</div>
-                      <p>{{ i18nPrefix + '.Advanced.QuestionCountDescription' | translate }}</p>
-                    </div>
-                    <input
-                      z-input
-                      zSize="lg"
-                      class="kb-input kb-number-input"
-                      type="number"
-                      min="1"
-                      max="10"
-                      [(ngModel)]="questionCount"
-                    />
-                  </div>
-                  <div class="kb-advanced-field">
-                    <div class="kb-field-title">{{ i18nPrefix + '.Advanced.QuestionRequirements' | translate }}</div>
-                    <p>{{ i18nPrefix + '.Advanced.QuestionRequirementsDescription' | translate }}</p>
-                    <textarea
-                      z-input
-                      class="kb-textarea kb-advanced-textarea"
-                      maxlength="4000"
-                      [(ngModel)]="questionRequirements"
-                      [placeholder]="i18nPrefix + '.Advanced.QuestionRequirementsPlaceholder' | translate"
-                    ></textarea>
-                    <div class="kb-counter">{{ questionRequirements().length }}/4000</div>
-                  </div>
-                </div>
-              }
+              <xp-knowledge-processing-settings
+                class="block min-w-0"
+                [form]="processing"
+                section="questions"
+                [showHeading]="false"
+              />
 
               <div
                 data-automatic-tagging

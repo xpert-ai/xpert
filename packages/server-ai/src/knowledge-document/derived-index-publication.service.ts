@@ -2,7 +2,7 @@ import { IKnowledgebase } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { KnowledgeGraphEnqueueCommand } from '../graphrag/commands'
+import { KnowledgeGraphEnqueueCommand, KnowledgeGraphRetryDocumentCommand } from '../graphrag/commands'
 import { KnowledgeWikiEnqueueSourceCommand } from '../knowledgebase/wiki/commands'
 
 export type KnowledgeDocumentPublication = {
@@ -20,8 +20,6 @@ export class KnowledgeDerivedIndexPublicationService {
     constructor(private readonly commandBus: CommandBus) {}
 
     async publish(input: KnowledgeDocumentPublication) {
-        if (!input.contentChanged) return
-
         const context = {
             userId: input.userId,
             tenantId: input.knowledgebase.tenantId,
@@ -30,19 +28,29 @@ export class KnowledgeDerivedIndexPublicationService {
         }
         const results = await Promise.allSettled([
             this.commandBus.execute(
-                new KnowledgeGraphEnqueueCommand({
-                    ...context,
-                    documentIds: [input.documentId],
-                    reason: 'document'
-                })
+                input.contentChanged
+                    ? new KnowledgeGraphEnqueueCommand({
+                          ...context,
+                          documentIds: [input.documentId],
+                          reason: 'document'
+                      })
+                    : new KnowledgeGraphRetryDocumentCommand({
+                          knowledgebaseId: input.knowledgebase.id,
+                          documentId: input.documentId,
+                          userId: input.userId
+                      })
             ),
-            this.commandBus.execute(
-                new KnowledgeWikiEnqueueSourceCommand({
-                    ...context,
-                    documentId: input.documentId,
-                    reason: 'document'
-                })
-            )
+            ...(input.contentChanged
+                ? [
+                      this.commandBus.execute(
+                          new KnowledgeWikiEnqueueSourceCommand({
+                              ...context,
+                              documentId: input.documentId,
+                              reason: 'document'
+                          })
+                      )
+                  ]
+                : [])
         ])
 
         results.forEach((result, index) => {

@@ -66,6 +66,18 @@
       <p class="mt-3 break-words text-xs text-text-destructive" role="alert">
         {{ progress()?.error || ('XP.Knowledgebase.GraphDocumentProgress.FailureHint' | translate) }}
       </p>
+      <button
+        z-button
+        zType="outline"
+        zSize="sm"
+        class="mt-4"
+        data-graph-retry
+        [disabled]="retrying()"
+        [zLoading]="retrying()"
+        (click)="retry()"
+      >
+        {{ 'XP.Knowledgebase.GraphDocumentProgress.Retry' | translate }}
+      </button>
     } @else if (state() !== 'ready' && state() !== 'running' && state() !== 'queued' && state() !== 'loading') {
       <p class="mt-3 text-xs text-text-tertiary" data-graph-hint>
         {{ 'XP.Knowledgebase.GraphDocumentProgress.Hints.' + state() | translate }}

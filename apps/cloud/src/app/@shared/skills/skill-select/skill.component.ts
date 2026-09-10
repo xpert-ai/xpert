@@ -75,7 +75,8 @@ export class XpertSkillSelectComponent implements ControlValueAccessor {
         terms.every(
           (term) =>
             skill.name.toLowerCase().includes(term) ||
-            this.i18n.transform(skill.metadata?.description).toLowerCase().includes(term)
+            (this.i18n.transform(skill.metadata?.displayName) || '').toLowerCase().includes(term) ||
+            (this.i18n.transform(skill.metadata?.description) || '').toLowerCase().includes(term)
         )
       )
     }
