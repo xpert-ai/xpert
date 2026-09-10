@@ -1,3 +1,4 @@
+import { resolveAgentExecutionScope } from '../shared/agent/middleware-runtime/execution-scope'
 import { NotFoundException } from '@nestjs/common'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
@@ -96,6 +97,36 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
         await fsPromises.rm(rootPath, { recursive: true, force: true })
     })
 
+    it('accepts plugin-owned audit scopes without domain-specific IDs', async () => {
+        const api = service.createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
+        const request = candidateRequest()
+        const result = await api.issueCandidates({
+            ...request,
+            businessScope: {
+                namespace: 'example.document-review',
+                sourceDocumentId: 'source-1',
+                attributes: { subjectId: 'review-1' }
+            }
+        })
+        expect(result.candidates).toHaveLength(1)
+        await expect(
+            api.issueCandidates({
+                ...request,
+                businessScope: { namespace: '', sourceDocumentId: 'source-1', attributes: {} }
+            })
+        ).rejects.toThrow()
+        await expect(
+            api.issueCandidates({
+                ...request,
+                businessScope: {
+                    namespace: 'example.review',
+                    sourceDocumentId: 'source-1',
+                    attributes: { value: 'x'.repeat(513) }
+                }
+            })
+        ).rejects.toThrow()
+    })
+
     it('issues governed relative paths and injects bytes only inside the same Agent execution', async () => {
         const api = service.createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
         const result = await api.issueCandidates(candidateRequest())
@@ -161,7 +192,10 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
 
     it('binds visual candidates to the child Agent execution available at tool invocation time', async () => {
         const { executionId: _executionId, conversationId: _conversationId, ...graphBuildScope } = executionScope()
-        const api = service.createScopedApi(graphBuildScope, { workspaceFiles: workspaceFiles as never })
+        const api = service.createScopedApi(graphBuildScope, {
+            workspaceFiles: workspaceFiles as never,
+            resolveExecutionScope: () => resolveAgentExecutionScope(graphBuildScope)
+        })
 
         const result = await AsyncLocalStorageProviderSingleton.runWithConfig(
             {
@@ -196,6 +230,21 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
                         agentKey: 'Agent_RequirementEvidenceSpecialist'
                     }
                 },
+                () => api.prepareImages({ filePaths: [result.candidates[0].filePath] })
+            )
+        ).resolves.toEqual(
+            expect.objectContaining({ images: [expect.objectContaining({ visualAssetId: 'asset-page-2' })] })
+        )
+    })
+
+    it('keeps a platform caller scope fixed even when unrelated LangGraph context is present', async () => {
+        const scope = executionScope()
+        const api = service.createScopedApi(scope, { workspaceFiles: workspaceFiles as never })
+        scope.executionId = 'mutated-after-binding'
+        const result = await api.issueCandidates(candidateRequest())
+        await expect(
+            AsyncLocalStorageProviderSingleton.runWithConfig(
+                { configurable: { tenantId: 'another-tenant', executionId: 'unrelated-execution' } },
                 () => api.prepareImages({ filePaths: [result.candidates[0].filePath] })
             )
         ).resolves.toEqual(
@@ -341,9 +390,7 @@ function candidateRequest() {
         maxAssets: 3,
         businessScope: {
             namespace: 'bom.requirement-evidence' as const,
-            caseId: 'case-1',
-            baselineId: 'baseline-1',
-            runId: 'run-1',
+            attributes: { caseId: 'case-1', baselineId: 'baseline-1', runId: 'run-1' },
             sourceDocumentId: 'source-1'
         }
     }

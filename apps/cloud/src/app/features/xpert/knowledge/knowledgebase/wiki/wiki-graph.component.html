@@ -1,0 +1,235 @@
+<!-- Cytoscape adds an unlayered position:relative rule; keep absolute sizing on its wrapper. -->
+<div class="absolute inset-0">
+  <div
+    #canvas
+    class="relative h-full w-full"
+    [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.Graph' | translate"
+  ></div>
+</div>
+
+<div class="absolute left-4 right-4 top-4 z-10 flex items-center gap-2 sm:right-auto sm:w-80">
+  <z-combobox
+    class="min-w-0 flex-1 bg-background shadow-sm"
+    zWidth="full"
+    [value]="selectedId()"
+    [options]="pageOptions()"
+    [zDisabled]="loading() || !pageOptions().length"
+    [placeholder]="'XP.Knowledgebase.Wiki.Organization.SearchGraphPages' | translate"
+    [searchPlaceholder]="'XP.Knowledgebase.Wiki.Organization.SearchGraphPages' | translate"
+    [emptyText]="'XP.Knowledgebase.Wiki.Organization.NoMatchingPage' | translate"
+    [ariaLabel]="'XP.Knowledgebase.Wiki.Organization.SearchGraphPages' | translate"
+    (zValueChange)="select($event)"
+  />
+  <z-icon
+    zType="info"
+    class="shrink-0 text-text-tertiary"
+    [title]="'XP.Knowledgebase.Wiki.Organization.GraphHelp' | translate"
+  />
+</div>
+
+<aside
+  class="absolute right-4 top-20 z-10 w-44 rounded-lg border border-border bg-background/95 p-2 shadow-sm sm:top-4"
+  [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.Legend' | translate"
+>
+  <div class="space-y-0.5 border-b border-border pb-2">
+    @for (type of types; track type) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="sm"
+        class="w-full justify-start gap-2 text-xs"
+        [class]="pageType() === type ? 'bg-muted text-text-primary' : 'text-text-secondary'"
+        [attr.aria-pressed]="pageType() === type"
+        (click)="filterType(type)"
+      >
+        <span class="size-2.5 shrink-0 rounded-full" [ngClass]="typeStyles[type].dotClass"></span>
+        {{ 'XP.Knowledgebase.Wiki.PageType.' + type | translate }}
+      </button>
+    }
+  </div>
+  <div class="space-y-0.5 border-b border-border py-2">
+    <button z-button zType="ghost" zSize="sm" class="w-full justify-start text-xs" (click)="fit()">
+      <z-icon zType="fullscreen" class="size-3.5" />
+      {{ 'XP.Knowledgebase.Wiki.Organization.Fit' | translate }}
+    </button>
+    <button
+      z-button
+      zType="ghost"
+      zSize="sm"
+      class="w-full justify-start text-xs"
+      [attr.aria-pressed]="showArrows()"
+      (click)="showArrows.set(!showArrows())"
+    >
+      <z-icon zType="arrow-up-right" class="size-3.5" />
+      {{
+        (showArrows()
+          ? 'XP.Knowledgebase.Wiki.Organization.HideArrows'
+          : 'XP.Knowledgebase.Wiki.Organization.ShowArrows'
+        ) | translate
+      }}
+    </button>
+    <button
+      z-button
+      zType="ghost"
+      zSize="sm"
+      class="w-full justify-start text-xs"
+      [attr.aria-pressed]="includeIndex()"
+      (click)="toggleIndexes()"
+    >
+      <z-icon zType="book-open" class="size-3.5" />
+      {{
+        (includeIndex()
+          ? 'XP.Knowledgebase.Wiki.Organization.HideIndexes'
+          : 'XP.Knowledgebase.Wiki.Organization.ShowIndexes'
+        ) | translate
+      }}
+    </button>
+  </div>
+  <div class="space-y-1 px-2 pt-2 text-xs text-text-tertiary" aria-live="polite">
+    @if (neighborhood()) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="sm"
+        class="w-full justify-start text-xs"
+        (click)="neighborhoodPageId.set(null)"
+      >
+        <z-icon zType="arrow-left" class="size-3.5" />
+        {{ 'XP.Knowledgebase.Wiki.Organization.Overview' | translate }}
+      </button>
+      <button z-button zType="outline" zSize="sm" class="w-full text-xs" (click)="depth.set(depth() === 1 ? 2 : 1)">
+        {{ 'XP.Knowledgebase.Wiki.Organization.Hops' | translate: { count: depth() } }}
+      </button>
+    } @else {
+      <p>{{ 'XP.Knowledgebase.Wiki.Organization.Overview' | translate }}</p>
+    }
+    @if (graph(); as data) {
+      <p class="text-text-secondary">
+        {{
+          'XP.Knowledgebase.Wiki.Organization.GraphCounts'
+            | translate: { nodes: data.nodes.length, edges: data.edges.length }
+        }}
+      </p>
+      <p [class]="data.truncated ? 'text-text-warning' : ''">
+        {{
+          (data.truncated
+            ? 'XP.Knowledgebase.Wiki.Organization.Truncated'
+            : 'XP.Knowledgebase.Wiki.Organization.GraphComplete'
+          ) | translate
+        }}
+      </p>
+    }
+  </div>
+</aside>
+
+@if (loading() || error() || graph()?.nodes?.length === 0) {
+  <div class="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+    <div class="pointer-events-auto max-w-sm rounded-lg bg-background/95 p-4 text-center text-sm text-text-tertiary">
+      @if (loading()) {
+        <p role="status" class="flex items-center justify-center gap-2">
+          <z-icon zType="loader-circle" class="animate-spin" />{{
+            'XP.Knowledgebase.Wiki.Organization.Loading' | translate
+          }}
+        </p>
+      } @else if (error()) {
+        <p role="alert" class="mb-3 text-text-destructive">{{ error() }}</p>
+        <button z-button zType="outline" zSize="sm" (click)="refresh()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+      } @else {
+        <p>{{ 'XP.Knowledgebase.Wiki.Organization.EmptyGraph' | translate }}</p>
+      }
+    </div>
+  </div>
+}
+
+@if (selected(); as node) {
+  <section
+    class="absolute bottom-16 left-4 right-4 z-10 max-h-[45%] space-y-3 overflow-y-auto rounded-lg border border-border bg-background/95 p-4 shadow-sm sm:right-auto sm:w-80"
+    [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.PageDetails' | translate"
+  >
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <p class="mb-1 flex items-center gap-2 text-xs text-text-tertiary">
+          <span class="size-2 shrink-0 rounded-full" [ngClass]="typeStyles[node.pageType].dotClass"></span
+          >{{ 'XP.Knowledgebase.Wiki.PageType.' + node.pageType | translate }}
+        </p>
+        <h2 class="break-words font-semibold text-text-primary">{{ node.title }}</h2>
+      </div>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon-sm"
+        [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.CloseDetails' | translate"
+        (click)="clearSelection()"
+      >
+        <z-icon zType="x" />
+      </button>
+    </div>
+    <p class="text-sm text-text-secondary">{{ node.summary }}</p>
+    <div class="flex flex-wrap gap-2">
+      <button z-button zSize="sm" (click)="openPage.emit(node.id)">
+        {{ 'XP.Knowledgebase.Wiki.Organization.OpenPage' | translate }}
+      </button>
+      <button z-button zType="outline" zSize="sm" (click)="showNeighborhood()">
+        {{ 'XP.Knowledgebase.Wiki.Organization.Neighborhood' | translate }}
+      </button>
+    </div>
+    @if (detailLoading()) {
+      <p role="status" class="text-xs text-text-tertiary">
+        {{ 'XP.Knowledgebase.Wiki.Organization.Loading' | translate }}
+      </p>
+    }
+    @if (detailError()) {
+      <p role="alert" class="text-xs text-text-destructive">{{ detailError() }}</p>
+    }
+    @if (detail(); as page) {
+      @if (page.links.length || page.backlinks.length) {
+        <h3 class="border-t border-border pt-3 text-xs font-medium">
+          {{ 'XP.Knowledgebase.Wiki.Related' | translate }}
+        </h3>
+        @for (link of page.links; track $index) {
+          <button z-button zType="ghost" zSize="sm" class="w-full justify-start" (click)="openPage.emit(link.pageId)">
+            <span class="truncate">{{ link.label || link.title }}</span>
+          </button>
+        }
+        @for (link of page.backlinks; track $index) {
+          <button z-button zType="ghost" zSize="sm" class="w-full justify-start" (click)="openPage.emit(link.pageId)">
+            <z-icon zType="arrow-left" class="size-3.5" /><span class="truncate">{{ link.title }}</span>
+          </button>
+        }
+      }
+      <p class="text-xs text-text-tertiary">
+        {{ 'XP.Knowledgebase.Wiki.Organization.EvidenceCount' | translate: { count: page.evidence.length } }}
+      </p>
+    }
+  </section>
+}
+
+<div
+  class="absolute bottom-4 left-4 z-10 flex items-center gap-1 rounded-lg border border-border bg-background/95 p-1 shadow-sm"
+>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    (click)="zoom(1.2)"
+    [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.ZoomIn' | translate"
+  >
+    <z-icon zType="plus" />
+  </button>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    (click)="zoom(0.8)"
+    [attr.aria-label]="'XP.Knowledgebase.Wiki.Organization.ZoomOut' | translate"
+  >
+    <z-icon zType="minus" />
+  </button>
+  <span class="mx-1 h-4 w-px bg-border"></span>
+  <button z-button zType="ghost" zSize="sm" class="text-xs" (click)="layout()">
+    {{ 'XP.Knowledgebase.Wiki.Organization.Layout' | translate }}
+  </button>
+  <button z-button zType="ghost" zSize="sm" class="text-xs" [disabled]="loading()" (click)="refresh()">
+    {{ 'XP.Knowledgebase.Wiki.Organization.Refresh' | translate }}
+  </button>
+</div>

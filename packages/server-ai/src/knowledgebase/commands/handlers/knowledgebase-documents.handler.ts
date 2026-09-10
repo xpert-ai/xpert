@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { createHash } from 'node:crypto'
 import fsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -20,6 +21,7 @@ import {
     KnowledgebaseMoveDocumentResult,
     KnowledgebaseUploadedFile,
     KnowledgebaseReadImageResult,
+    KnowledgebaseReadTextResult,
     DocumentTransformerRegistry,
     WORKSPACE_FILES_SOURCE
 } from '@xpert-ai/plugin-sdk'
@@ -44,7 +46,8 @@ import {
     ReprocessKnowledgebaseDocumentsCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand,
-    ReadKnowledgebaseDocumentImageCommand
+    ReadKnowledgebaseDocumentImageCommand,
+    ReadKnowledgebaseDocumentTextCommand
 } from '../knowledgebase-documents.command'
 
 const DEFAULT_MAX_ARCHIVE_ENTRIES = 500
@@ -427,11 +430,7 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
                     type,
                     category,
                     ...managedFile,
-                    parserConfig: resolveKnowledgeDocumentParserConfig({
-                        type,
-                        category,
-                        parserConfig: document.parserConfig ?? input.parserConfig
-                    }),
+                    parserConfig: document.parserConfig ?? input.parserConfig,
                     metadata: {
                         ...(input.metadata ?? {}),
                         ...(document.metadata ?? {})
@@ -992,11 +991,7 @@ async function processArchiveFileEntry(input: ArchiveExtractionInput, entry: Arc
         fileUrl: uploaded.fileUrl,
         mimeType: uploaded.mimeType,
         size: String(buffer.length),
-        parserConfig: resolveKnowledgeDocumentParserConfig({
-            type,
-            category,
-            parserConfig: input.parserConfig
-        }),
+        parserConfig: input.parserConfig,
         metadata: {
             ...(input.metadata ?? {}),
             documentType: 'contract-reference-source',
@@ -1258,5 +1253,42 @@ function guessMimeType(type: string) {
             return 'text/plain'
         default:
             return undefined
+    }
+}
+
+@Injectable()
+@CommandHandler(ReadKnowledgebaseDocumentTextCommand)
+export class ReadKnowledgebaseDocumentTextHandler implements ICommandHandler<ReadKnowledgebaseDocumentTextCommand> {
+    constructor(private readonly documentService: KnowledgeDocumentService) {}
+
+    async execute(command: ReadKnowledgebaseDocumentTextCommand): Promise<KnowledgebaseReadTextResult> {
+        const { knowledgebaseId, documentId } = command.input
+        await this.documentService.assertDocumentReadAccess(documentId)
+        const document = await this.documentService.findOne(documentId)
+        if (document.knowledgebaseId !== knowledgebaseId) {
+            throw new BadRequestException(
+                t('knowledge:DocumentOutsideKnowledgebase', {
+                    defaultValue: 'The document is outside the selected knowledgebase'
+                })
+            )
+        }
+        const skip = Number.isSafeInteger(command.input.offset) ? Math.max(0, command.input.offset) : 0
+        const take = Math.min(normalizePositiveInteger(command.input.limit, 50), 100)
+        const result = await this.documentService.getChunks(documentId, { skip, take })
+        return {
+            knowledgebaseId,
+            documentId,
+            version: document.version ?? 1,
+            sourceHash: document.sourceHash,
+            total: result.total,
+            chunks: result.items.map((chunk) => {
+                const metadata: unknown = chunk.metadata
+                const rawPage =
+                    metadata && typeof metadata === 'object' && 'page' in metadata ? metadata.page : undefined
+                const page =
+                    typeof rawPage === 'number' && Number.isInteger(rawPage) && rawPage > 0 ? rawPage : undefined
+                return { id: chunk.id, text: chunk.pageContent, page, version: chunk.version ?? 1 }
+            })
+        }
     }
 }

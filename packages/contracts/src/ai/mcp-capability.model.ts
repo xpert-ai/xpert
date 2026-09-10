@@ -1,3 +1,4 @@
+import type { McpCapabilityApprovalMode } from './mcp-publication.model'
 import type { JSONValue } from '../core.model'
 
 export const MCP_CAPABILITY_DESCRIPTOR_VERSION = 1 as const
@@ -78,6 +79,8 @@ export interface McpToolCapabilityDescriptor extends McpCapabilityDescriptorBase
   inputSchema: McpJsonSchema
   outputSchema?: McpJsonSchema
   behavior: McpToolBehavior
+  /** Plugin default used when a Publication has no explicit approval override. */
+  defaultApprovalMode?: McpCapabilityApprovalMode
   annotations?: McpToolAnnotations
   appResourceKey?: string
   taskMode?: 'optional' | 'required'
@@ -138,3 +141,20 @@ type McpCapabilityDeclarationOf<TDescriptor extends McpCapabilityDescriptor> =
 
 /** Plugin-side declaration before the host binds it to a concrete toolset instance. */
 export type McpCapabilityDeclaration = McpCapabilityDeclarationOf<McpCapabilityDescriptor>
+
+/** Resolve the declaration default; callers must apply explicit Publication policy first. */
+export function defaultMcpToolApprovalMode(
+  descriptor: Pick<McpToolCapabilityDescriptor, 'behavior' | 'defaultApprovalMode'>
+): McpCapabilityApprovalMode {
+  return (
+    descriptor.defaultApprovalMode ??
+    (descriptor.behavior.risk === 'read' ? 'allow' : descriptor.behavior.risk === 'write' ? 'confirm' : 'deny')
+  )
+}
+
+/** Dangerous tools may run directly only when their owner explicitly declares that policy. */
+export function canAllowMcpToolDirectly(
+  descriptor: Pick<McpToolCapabilityDescriptor, 'behavior' | 'defaultApprovalMode'>
+): boolean {
+  return descriptor.behavior.risk !== 'dangerous' || descriptor.defaultApprovalMode === 'allow'
+}

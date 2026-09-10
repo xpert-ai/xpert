@@ -23,6 +23,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsDate, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import {
     Column,
+    DeleteDateColumn,
     Entity,
     Index,
     JoinColumn,
@@ -58,6 +59,7 @@ const bigintNumberTransformer = {
 @Index('IDX_knowledge_document_kb_folder', ['knowledgebaseId', 'folder'])
 @Index('IDX_knowledge_document_kb_type_mime', ['knowledgebaseId', 'type', 'mimeType'])
 @Index('IDX_knowledge_document_kb_category_source', ['knowledgebaseId', 'category', 'sourceType'])
+@Index('IDX_knowledge_document_kb_hard_delete_pending', ['knowledgebaseId', 'hardDeletePendingAt'])
 @Tree('closure-table')
 export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDocumentMetadata>
     extends TenantOrganizationBaseEntity
@@ -68,6 +70,23 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @IsOptional()
     @Column({ nullable: true })
     disabled?: boolean
+
+    @ApiPropertyOptional({ type: () => Date, readOnly: true })
+    @IsDate()
+    @IsOptional()
+    @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+    deletedAt?: Date | null
+
+    @ApiPropertyOptional({ type: () => Date, readOnly: true })
+    @IsDate()
+    @IsOptional()
+    @Column({ type: 'timestamptz', nullable: true })
+    hardDeletePendingAt?: Date | null
+
+    @ApiPropertyOptional({ type: () => Number, readOnly: true })
+    @IsNumber()
+    @Column({ type: 'int', default: 0 })
+    publicationEpoch: number
 
     @Optional()
     @Column({ type: 'varchar', nullable: true, length: 20 })
@@ -269,6 +288,10 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @Column({ nullable: true })
     jobId?: string
 
+    // Excluded from ordinary reads so a stale document snapshot cannot reclaim a newer attempt.
+    @Column({ type: 'varchar', nullable: true, select: false })
+    processingExecutionId?: string | null
+
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()
     @IsOptional()
@@ -332,13 +355,13 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
      */
     @ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
     @OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
-        cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+        cascade: ['insert', 'update', 'remove']
     })
     pages?: IKnowledgeDocumentPage[]
 
     @ApiProperty({ type: () => KnowledgeDocumentChunk, isArray: true })
     @OneToMany(() => KnowledgeDocumentChunk, (chunk) => chunk.document, {
-        cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+        cascade: ['insert', 'update', 'remove']
     })
     chunks?: IKnowledgeDocumentChunk[]
 

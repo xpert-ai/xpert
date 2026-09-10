@@ -1,5 +1,6 @@
 import { STATE_VARIABLE_HUMAN, type IWFNTrigger } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
+import type { AgentChatHandoffMessageCallbackTarget } from '@xpert-ai/plugin-sdk'
 
 /**
  * Enqueues one trigger-driven chat dispatch request into the handoff pipeline.
@@ -25,6 +26,7 @@ export class XpertEnqueueTriggerDispatchCommand implements ICommand {
             isDraft: boolean
             from: IWFNTrigger['from']
             executionId?: string
+            callback?: AgentChatHandoffMessageCallbackTarget
         }
     ) {}
 }

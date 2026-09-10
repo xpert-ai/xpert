@@ -3,7 +3,10 @@ import { join } from 'node:path'
 
 describe('XpertNewKnowledgeComponent layout', () => {
   const template = readFileSync(join(__dirname, 'new.component.html'), 'utf8')
+  const processingTemplate = readFileSync(join(__dirname, '../processing/processing-settings.component.html'), 'utf8')
+  const processingSource = readFileSync(join(__dirname, '../processing/processing-form.ts'), 'utf8')
   const source = readFileSync(join(__dirname, 'new.component.ts'), 'utf8')
+  const parserRows = readFileSync(join(__dirname, '../processing/parser-engine-rows.ts'), 'utf8')
 
   it('uses one retrieval settings section and hides the dedicated knowledge graph tab', () => {
     expect(source).toContain("key: 'retrieval'")
@@ -16,15 +19,23 @@ describe('XpertNewKnowledgeComponent layout', () => {
   })
 
   it('shows parent-child and advanced chunk controls in the chunk settings section', () => {
-    expect(template).toContain('data-chunk-parent-child')
-    expect(template).toContain('data-chunk-advanced-options')
-    expect(template).toContain('data-chunk-max-tokens')
-    expect(template).toContain('data-chunk-language-hint')
-    expect(template).toContain('togglePosition="before"')
-    expect(template).not.toContain('[expanded]="true"')
-    expect(source).toContain('readonly parentChildChunkingEnabled')
-    expect(source).toContain('readonly maxChunkTokens')
-    expect(source).toContain('readonly chunkLanguageHint')
+    expect(processingTemplate).toContain('data-chunk-parent-child')
+    expect(processingTemplate).toContain('data-chunk-advanced-options')
+    expect(processingTemplate).toContain('data-chunk-max-tokens')
+    expect(processingTemplate).toContain('data-chunk-language-hint')
+    expect(processingTemplate).toContain('togglePosition="before"')
+    expect(processingTemplate).not.toContain('[expanded]="true"')
+    expect(processingSource).toContain('const parentChildChunkingEnabled')
+    expect(processingSource).toContain('const maxChunkTokens')
+    expect(processingSource).toContain('const chunkLanguageHint')
+  })
+
+  it('keeps the bottom chunk preview connected to the current processing draft', () => {
+    const chunkSection = template.slice(template.indexOf("@case ('chunk')"), template.indexOf("@case ('image')"))
+    expect(chunkSection).toContain('<xp-knowledge-chunk-preview')
+    expect(chunkSection).toContain('[workspaceId]="workspaceId()"')
+    expect(chunkSection).toContain('[config]="processing.config()"')
+    expect(source).toContain('KnowledgeChunkPreviewComponent,')
   })
 
   it('reserves all documented parser engine file types', () => {
@@ -45,16 +56,14 @@ describe('XpertNewKnowledgeComponent layout', () => {
       'xlsm',
       'xmind'
     ]) {
-      expect(source).toContain(`key: '${parserType}'`)
+      expect(parserRows).toContain(`key: '${parserType}'`)
     }
   })
 
-  it('reserves image processing and automatic tag controls without persisting them', () => {
-    expect(template).toContain('data-image-language')
-    expect(template).toContain('data-image-requirements')
+  it('uses one image prompt template and keeps later advanced capabilities reserved', () => {
+    expect(processingTemplate).toContain('data-image-prompt')
     expect(template).toContain('data-automatic-tagging')
-    expect(source).toContain('readonly imageDescriptionLanguage')
-    expect(source).toContain('readonly imageParsingRequirements')
+    expect(processingSource).toContain('const imagePromptTemplate')
     expect(source).toContain('readonly automaticTaggingEnabled')
 
     const buildPayload = source.slice(source.indexOf('private buildPayload()'))

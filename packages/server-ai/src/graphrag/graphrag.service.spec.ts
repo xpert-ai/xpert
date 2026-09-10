@@ -1,3 +1,4 @@
+import { KnowledgeGraphExtractionService } from './graph-extraction.service'
 import { Queue } from 'bull'
 import { QueryBus } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
@@ -10,9 +11,11 @@ import { KnowledgeDocumentService } from '../knowledge-document/document.service
 import {
     KnowledgeGraphCommunity,
     KnowledgeGraphEntity,
+    KnowledgeGraphEntityContribution,
     KnowledgeGraphIndexJob,
     KnowledgeGraphMention,
-    KnowledgeGraphRelation
+    KnowledgeGraphRelation,
+    KnowledgeGraphRelationContribution
 } from './entities'
 import {
     GraphragService,
@@ -54,6 +57,34 @@ function deleteQueryBuilderMock() {
 }
 
 describe('GraphRAG service', () => {
+    it.each([
+        { enabled: true, documentNum: 0, expected: 'ready' },
+        { enabled: true, documentNum: 2, expected: 'rebuild_required' },
+        { enabled: false, documentNum: 0, expected: 'disabled' }
+    ])(
+        'repairs legacy disabled status in the read response: $enabled / $documentNum',
+        async ({ enabled, documentNum, expected }) => {
+            const repository = { count: jest.fn(async () => 0), find: jest.fn(async () => []) }
+            const service = Object.create(GraphragService.prototype) as GraphragService
+            Object.assign(service, {
+                knowledgebaseService: {
+                    findOne: jest.fn(async () => ({
+                        ...enabledKnowledgebase(),
+                        graphRag: { enabled },
+                        graphStatus: 'disabled',
+                        documentNum
+                    }))
+                },
+                entityRepository: repository,
+                relationRepository: repository,
+                mentionRepository: repository,
+                jobRepository: repository
+            })
+            const result = await service.getStatus('kb-1')
+            expect(result).toMatchObject({ enabled, status: expected, entityCount: 0, relationCount: 0 })
+        }
+    )
+
     it('normalizes entity names and types with stable explicit keys', () => {
         expect(normalizeKnowledgeGraphName('  OpenAI   Platform  ')).toBe('openai platform')
         expect(normalizeKnowledgeGraphType('Product Area')).toBe('product_area')
@@ -75,6 +106,8 @@ describe('GraphRAG service', () => {
                 {
                     entities: [
                         {
+                            candidateId: 'design',
+                            identity: { kind: 'concept', definition: 'A design method.', domain: null, scope: null },
                             name: 'User-Centered Design',
                             type: 'concept'
                         }
@@ -91,10 +124,8 @@ describe('GraphRAG service', () => {
                     entities: [],
                     relations: [
                         {
-                            sourceName: 'Designer',
-                            sourceType: 'role',
-                            targetName: 'Prototype',
-                            targetType: 'artifact',
+                            sourceCandidateId: 'designer',
+                            targetCandidateId: 'prototype',
                             type: 'creates',
                             evidence: [{ chunkId: 'missing-chunk' }]
                         }
@@ -109,6 +140,8 @@ describe('GraphRAG service', () => {
                 {
                     entities: [
                         {
+                            candidateId: 'design',
+                            identity: { kind: 'concept', definition: 'A design method.', domain: null, scope: null },
                             name: 'User-Centered Design',
                             type: 'concept',
                             evidence: [{ chunkId: 'chunk-1' }]
@@ -119,6 +152,40 @@ describe('GraphRAG service', () => {
                 new Set(['chunk-1'])
             )
         ).not.toThrow()
+    })
+
+    it('reports queue failure and persists failed graph status instead of leaving indexing forever', async () => {
+        const queueError = new Error('Redis unavailable')
+        const jobRepository = {
+            create: jest.fn((input: Partial<KnowledgeGraphIndexJob>) =>
+                Object.assign(new KnowledgeGraphIndexJob(), input)
+            ),
+            save: jest.fn(async (input: KnowledgeGraphIndexJob) => Object.assign(input, { id: 'job-1' })),
+            update: jest.fn().mockResolvedValue({ affected: 1 })
+        }
+        const knowledgebaseRepository = { update: jest.fn().mockResolvedValue({ affected: 1 }) }
+        const service = Object.create(GraphragService.prototype) as GraphragService
+        Object.assign(service, {
+            jobRepository,
+            knowledgebaseRepository,
+            knowledgebaseService: { findOne: jest.fn().mockResolvedValue({ id: 'kb-1', graphRag: { enabled: true } }) },
+            documentService: {
+                findAll: jest.fn().mockResolvedValue({ items: [{ id: 'doc-1', contentHash: 'hash' }] })
+            },
+            graphQueue: { add: jest.fn().mockRejectedValue(queueError) }
+        })
+
+        await expect(
+            service.enqueueDocuments({ knowledgebaseId: 'kb-1', documentIds: ['doc-1'], reason: 'document' })
+        ).rejects.toThrow('Redis unavailable')
+        expect(jobRepository.update).toHaveBeenCalledWith(
+            'job-1',
+            expect.objectContaining({ status: 'failed', dispatchError: 'Redis unavailable' })
+        )
+        expect(knowledgebaseRepository.update).toHaveBeenLastCalledWith('kb-1', {
+            graphStatus: 'failed',
+            graphIndexError: 'Redis unavailable'
+        })
     })
 
     it('does not enqueue graph jobs when GraphRAG is disabled', async () => {
@@ -153,7 +220,10 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            queue as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            queue as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            null
         )
 
         const jobs = await service.enqueueDocuments({
@@ -177,6 +247,14 @@ describe('GraphRAG service', () => {
                 .mockResolvedValueOnce({
                     entities: [
                         {
+                            candidateId: 'person',
+                            identity: {
+                                kind: 'entity',
+                                entityType: 'person',
+                                description: 'Alice in the source.',
+                                scope: null,
+                                identifiers: []
+                            },
                             name: 'Alice',
                             type: 'person',
                             evidence: [{ chunkId: 'chunk-1' }]
@@ -187,6 +265,14 @@ describe('GraphRAG service', () => {
                 .mockResolvedValueOnce({
                     entities: [
                         {
+                            candidateId: 'person',
+                            identity: {
+                                kind: 'entity',
+                                entityType: 'person',
+                                description: 'Bob in the source.',
+                                scope: null,
+                                identifiers: []
+                            },
                             name: 'Bob',
                             type: 'person',
                             evidence: [{ chunkId: 'chunk-5' }]
@@ -206,8 +292,13 @@ describe('GraphRAG service', () => {
                 throw new Error('Primary copilot fallback should not be used')
             })
         }
+        const job = Object.assign(new KnowledgeGraphIndexJob(), { id: 'job-1', knowledgebaseId: 'kb-1' })
         const jobRepository = {
-            update: jest.fn()
+            findOneOrFail: async () => job,
+            update: jest.fn(async (_criteria: unknown, patch: Partial<KnowledgeGraphIndexJob>) => {
+                Object.assign(job, patch)
+                return { affected: 1 }
+            })
         }
         const service = new GraphragService(
             repositoryMock<KnowledgeGraphEntity>(),
@@ -220,7 +311,14 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             queryBus as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            new KnowledgeGraphExtractionService(
+                jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
+                queryBus as unknown as QueryBus,
+                null
+            )
         )
         const knowledgebase = {
             ...enabledKnowledgebase(),
@@ -232,8 +330,8 @@ describe('GraphRAG service', () => {
             }
         }
 
-        await (service as any).extractDocumentGraph(
-            knowledgebase,
+        const output = await service['extractDocumentGraph'](
+            Object.assign(job, { knowledgebase }),
             Array.from({ length: 5 }, (_, index) => ({
                 id: `chunk-${index + 1}`,
                 documentId: 'doc-1',
@@ -242,36 +340,18 @@ describe('GraphRAG service', () => {
                     chunkId: `chunk-${index + 1}`
                 }
             })),
-            {
-                enabled: true,
-                extractionMaxCharacters: 5000
-            }
+            { enabled: true, extractionMaxCharacters: 5000 }
         )
 
+        expect(output.entities.map((entity) => entity.candidateId)).toEqual(['0:person', '4:person'])
         expect(queryBus.execute).toHaveBeenCalledTimes(1)
         expect(queryBus.execute.mock.calls[0][0]).toBeInstanceOf(CopilotModelGetChatModelQuery)
         expect(queryBus.execute.mock.calls[0][0].copilot).toBeNull()
         expect(queryBus.execute.mock.calls[0][0].copilotModel).toBe(knowledgebase.chatModel)
         expect(chatModel.withStructuredOutput).toHaveBeenCalled()
         expect(structuredModel.invoke).toHaveBeenCalledTimes(2)
-        expect(jobRepository.update).toHaveBeenNthCalledWith(
-            1,
-            {
-                knowledgebaseId: knowledgebase.id,
-                documentId: 'doc-1',
-                status: KnowledgeGraphIndexJobStatus.RUNNING
-            },
-            { processedChunks: 4 }
-        )
-        expect(jobRepository.update).toHaveBeenNthCalledWith(
-            2,
-            {
-                knowledgebaseId: knowledgebase.id,
-                documentId: 'doc-1',
-                status: KnowledgeGraphIndexJobStatus.RUNNING
-            },
-            { processedChunks: 5 }
-        )
+        expect(jobRepository.update).toHaveBeenNthCalledWith(1, 'job-1', { processedChunks: 4 })
+        expect(jobRepository.update).toHaveBeenNthCalledWith(2, 'job-1', { processedChunks: 5 })
     })
 
     it('fails an index job when extracted graph items have no source evidence', async () => {
@@ -298,11 +378,14 @@ describe('GraphRAG service', () => {
             organizationId: 'org-1',
             knowledgebaseId: 'kb-1',
             documentId: 'doc-1',
+            sourceContentHash: 'content-hash-1',
+            sourcePublicationEpoch: 2,
             revision: 4,
             knowledgebase
         })
         const jobRepository = {
             findOne: jest.fn(async () => graphJob),
+            findOneOrFail: jest.fn(async () => graphJob),
             update: jest.fn(async () => undefined),
             count: jest.fn(async (options: { where: { status: KnowledgeGraphIndexJobStatus } }) =>
                 options.where.status === KnowledgeGraphIndexJobStatus.FAILED ? 1 : 0
@@ -357,10 +440,29 @@ describe('GraphRAG service', () => {
             jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
             knowledgebaseRepository as unknown as Repository<Knowledgebase>,
             knowledgebaseService as unknown as KnowledgebaseService,
-            {} as unknown as KnowledgeDocumentService,
+            {
+                findOne: jest.fn(async () => ({
+                    id: 'doc-1',
+                    contentHash: 'content-hash-1',
+                    publicationEpoch: 2
+                }))
+            } as unknown as KnowledgeDocumentService,
             chunkService as unknown as KnowledgeDocumentChunkService,
             queryBus as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            {
+                find: jest.fn(async () => []),
+                delete: jest.fn()
+            } as unknown as Repository<KnowledgeGraphEntityContribution>,
+            {
+                find: jest.fn(async () => []),
+                delete: jest.fn()
+            } as unknown as Repository<KnowledgeGraphRelationContribution>,
+            new KnowledgeGraphExtractionService(
+                jobRepository as unknown as Repository<KnowledgeGraphIndexJob>,
+                queryBus as unknown as QueryBus,
+                null
+            )
         )
 
         await service.processIndexJob('job-1')
@@ -417,7 +519,10 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphEntityContribution>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>,
+            null
         )
 
         const entity = await service.createEntity('kb-1', {
@@ -492,7 +597,10 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            null
         )
 
         const entity = await service.hideEntity('kb-1', 'entity-1')
@@ -540,7 +648,10 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             {} as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphEntityContribution>,
+            { delete: jest.fn() } as unknown as Repository<KnowledgeGraphRelationContribution>,
+            null
         )
 
         await service.clearKnowledgebase('kb-1')
@@ -627,7 +738,10 @@ describe('GraphRAG service', () => {
             {} as unknown as KnowledgeDocumentService,
             chunkService as unknown as KnowledgeDocumentChunkService,
             { execute: jest.fn() } as unknown as QueryBus,
-            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>
+            { add: jest.fn() } as unknown as Queue<TKnowledgeGraphIndexQueueJob>,
+            repositoryMock<KnowledgeGraphEntityContribution>(),
+            repositoryMock<KnowledgeGraphRelationContribution>(),
+            null
         )
 
         const result = await service.getEntityChunks('kb-1', 'entity-1', {

@@ -76,6 +76,8 @@ export type TAgentMiddlewareMeta = {
   description?: I18nObject
   configSchema?: JsonSchemaObjectType
   features?: Array<TXpertFeatureKey | string>
+  /** Optional display labels keyed by declared Feature identifier; never grants capabilities. */
+  featureLabels?: Record<string, I18nObject>
   slashCommands?: SkillSlashCommand[]
   builtin?: boolean
   /**

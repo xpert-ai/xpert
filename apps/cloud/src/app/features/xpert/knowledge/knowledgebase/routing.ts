@@ -1,17 +1,15 @@
 import { Routes } from '@angular/router'
 import { KnowledgeConfigurationComponent } from './configuration/configuration.component'
 import { KnowledgeDocumentChunkComponent } from './documents/chunk/chunk.component'
-import { KnowledgeDocumentCreateComponent } from './documents/create/create.component'
 import { KnowledgeDocumentsComponent } from './documents/documents.component'
 import { KnowledgebaseComponent } from './knowledgebase.component'
-import { KnowledgeGraphComponent } from './graph/graph.component'
 import { KnowledgeTestComponent } from './test/test.component'
-import { KnowledgeDocumentPipelineComponent } from './documents/pipeline/pipeline.component'
 import { KnowledgebasePipelinesComponent } from './pipelines/pipelines.component'
-import { KnowledgeDocumentSettingsComponent } from './documents/settings/settings.component'
+import { KnowledgeDocumentSettingsRouteComponent } from './documents/settings/settings-route.component'
 import { KnowledgebasePipelineComponent } from './pipeline/pipeline.component'
 import { ExtensionHostViewPageComponent } from 'apps/cloud/src/app/@shared/view-extension'
 import { KnowledgeFAQComponent } from './faq/faq.component'
+import { knowledgebaseWikiGuard } from './knowledgebase-wiki.guard'
 
 export default [
   {
@@ -32,11 +30,13 @@ export default [
         children: [
           {
             path: 'create',
-            component: KnowledgeDocumentCreateComponent
+            redirectTo: '',
+            pathMatch: 'full'
           },
           {
             path: 'create-from-pipeline',
-            component: KnowledgeDocumentPipelineComponent
+            redirectTo: '',
+            pathMatch: 'full'
           },
           {
             path: ':id',
@@ -44,7 +44,7 @@ export default [
           },
           {
             path: ':id/settings',
-            component: KnowledgeDocumentSettingsComponent
+            component: KnowledgeDocumentSettingsRouteComponent
           }
         ]
       },
@@ -62,7 +62,14 @@ export default [
       },
       {
         path: 'graph',
-        component: KnowledgeGraphComponent
+        data: { preload: false },
+        loadComponent: () => import('./graph/graph.component').then((m) => m.KnowledgeGraphComponent)
+      },
+      {
+        path: 'wiki',
+        data: { preload: false },
+        canActivate: [knowledgebaseWikiGuard],
+        loadComponent: () => import('./wiki/wiki.component').then((m) => m.KnowledgeWikiComponent)
       },
       {
         path: 'view/:viewKey',

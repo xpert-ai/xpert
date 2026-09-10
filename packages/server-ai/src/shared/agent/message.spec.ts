@@ -515,6 +515,12 @@ describe('createHumanMessage', () => {
             },
             {
                 type: 'text',
+                text: expect.stringContaining(
+                    'workspacePath: /workspace/sessions/conversation-1/files/file-asset-1/diagram.png'
+                )
+            },
+            {
+                type: 'text',
                 text: 'Describe this image'
             }
         ])

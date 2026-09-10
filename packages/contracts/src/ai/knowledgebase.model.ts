@@ -1,3 +1,4 @@
+import type { TKBRetrievalSettings } from './xpert.model'
 import { ICopilotModel } from './copilot-model.model'
 import { I18nObject, TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -7,6 +8,7 @@ import { IIntegration } from '../integration.model'
 import { channelName } from '../agent/graph'
 import { IDocChunkMetadata } from './knowledge-doc-chunk.model'
 import type { GraphRagConfig, KnowledgeGraphStatus } from './knowledge-graph.model'
+import type { KnowledgebaseWikiConfig, KnowledgeWikiStatus, KnowledgeWikiAvailability } from './knowledge-wiki.model'
 
 /**
  * Non-internal types should remain the same as IntegrationEnum.
@@ -49,6 +51,9 @@ export const DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG = {
 
 export type KnowledgeRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
+/** Request-local content selection, independent of algorithms and persisted recall settings. */
+export type KnowledgeRetrievalContentScope = 'all' | 'original' | 'wiki'
+
 export enum KnowledgebaseStatusEnum {
   READY = 'ready',
   REBUILD_REQUIRED = 'rebuild_required',
@@ -68,6 +73,17 @@ export type KnowledgebaseParserConfig = {
   chunkSize: number | null
   chunkOverlap: number | null
   delimiter: string | null
+  pdfParser?: {
+    transformerType: string
+    transformerIntegration?: string
+    transformer?: { [key: string]: unknown }
+  }
+  textSplitterType?: string
+  textSplitter?: { [key: string]: unknown }
+  separators?: string[]
+  imageUnderstandingEnabled?: boolean
+  imageUnderstandingType?: string
+  imageUnderstanding?: { [key: string]: unknown }
 }
 
 /**
@@ -88,6 +104,20 @@ export type TKnowledgebase = {
    * Creation-time indexing behavior for FAQ knowledge bases.
    */
   faqConfig?: KnowledgebaseFAQConfig | null
+
+  /** Optional generated Wiki capability for Standard knowledgebases. */
+  wikiConfig?: KnowledgebaseWikiConfig | null
+  wikiStatus?: KnowledgeWikiStatus | null
+  wikiAvailability?: KnowledgeWikiAvailability | null
+  wikiRevision?: number | null
+  wikiActiveRevision?: number | null
+  wikiStagedRevision?: number | null
+  wikiBuildError?: string | null
+  wikiRebuildRequiredReason?: 'generator_upgrade' | null
+  wikiGeneratorVersion?: string | null
+  wikiConfigFingerprint?: string | null
+  canManageWiki?: boolean
+  canManageDocumentDeletions?: boolean
 
   /**
    * English | Chinese
@@ -124,6 +154,10 @@ export type TKnowledgebase = {
    */
   chatModel?: ICopilotModel | null
   chatModelId?: string | null
+
+  /** Optional dedicated LLM for Wiki generation. Falls back to chatModel when unset. */
+  wikiModel?: ICopilotModel | null
+  wikiModelId?: string | null
 
   embeddingCollectionName?: string | null
   embeddingModelFingerprint?: string | null
@@ -236,6 +270,8 @@ export enum KnowledgebasePermission {
  * Recall parameters
  */
 export type TKBRecallParams = {
+  /** Default content selection, used only when Wiki is enabled. */
+  contentScope?: KnowledgeRetrievalContentScope
   /**
    * Default retrieval mode for this knowledgebase.
    */
@@ -245,9 +281,13 @@ export type TKBRecallParams = {
    */
   topK?: number
   /**
-   * At least the similarity threshold
+   * Minimum vector similarity. Null disables the threshold.
    */
-  score?: number
+  score?: number | null
+  /**
+   * Minimum relevance score returned by the rerank model. Null disables the threshold.
+   */
+  rerankThreshold?: number | null
 
   /**
    * Weight in EnsembleRetriever
@@ -368,3 +408,29 @@ export const KNOWLEDGE_PROCESSING_MODE_NAME = 'processing_mode'
 export const KNOWLEDGE_DOCUMENTS_NAME = 'documents'
 export const KNOWLEDGE_FOLDER_ID_NAME = 'folder_id'
 export const KNOWLEDGE_STAGE_NAME = 'stage'
+
+/** Check the sources that can execute within the selected content scope. */
+export function hasEnabledKnowledgeRetrievalSource(
+  retrieval: Partial<IKnowledgebase & TKBRetrievalSettings> | null | undefined,
+  allowGraphRetrieval = true,
+  contentScope: KnowledgeRetrievalContentScope = retrieval?.recall?.contentScope ?? 'all'
+): boolean {
+  const mode = retrieval?.mode ?? retrieval?.recall?.mode ?? retrieval?.graphRag?.mode ?? 'vector'
+  const graphAvailable = allowGraphRetrieval && contentScope !== 'wiki' && retrieval?.graphRag?.enabled === true
+  if (mode === 'graph') return graphAvailable
+  const fusion = retrieval?.recall?.fusion ?? retrieval?.fusion
+  if (mode !== 'hybrid' || fusion?.mode !== 'weighted_rrf') {
+    return true
+  }
+
+  const weights = fusion.weights
+  const enabledWeights = [
+    weights?.vector === undefined ? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.vector : weights.vector,
+    graphAvailable ? (weights?.graph === undefined ? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.graph : weights.graph) : 0,
+    weights?.keyword === undefined ? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.keyword : weights.keyword
+  ]
+  return (
+    enabledWeights.every((weight) => typeof weight === 'number' && Number.isFinite(weight) && weight >= 0) &&
+    enabledWeights.some((weight) => weight > 0)
+  )
+}

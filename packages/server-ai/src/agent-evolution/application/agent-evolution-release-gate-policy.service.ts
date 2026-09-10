@@ -1,6 +1,6 @@
 import type { EvolutionReleaseGatePolicy, ReleasePackage } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 
 const STANDARD_GATE_POLICY: EvolutionReleaseGatePolicy = {
     profile: 'standard',
@@ -44,8 +44,8 @@ export class AgentEvolutionReleaseGatePolicyService {
     }
 
     forRelease(release: ReleasePackage): EvolutionReleaseGatePolicy {
-        if (release.gatePolicy) return release.gatePolicy
-        return this.snapshot(release.shadowMinimumSamples)
+        if (!release.gatePolicy) throw new BadRequestException('Release gate policy was not frozen')
+        return release.gatePolicy
     }
 
     manualTestProfileEnabled() {

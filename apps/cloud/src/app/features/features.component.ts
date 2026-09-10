@@ -53,6 +53,7 @@ import {
   XpertTypeEnum,
   routeAnimations
 } from '../@core'
+import { WorkbenchPresentationService } from '../@core/services/workbench-presentation.service'
 import { AppService } from '../app.service'
 import {
   createFeatureEntryOnboardingSteps,
@@ -113,6 +114,7 @@ export class FeaturesComponent implements OnInit {
   readonly activeScope = this.#scopeService.activeScope
 
   // States
+  readonly workbenchImmersive = inject(WorkbenchPresentationService).immersive
   readonly sidebarCollapsed = signal(true)
   readonly sidebarWidth = signal(this.readSidebarWidth())
   readonly sidebarResizing = signal(false)

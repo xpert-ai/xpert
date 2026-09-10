@@ -1,4 +1,4 @@
-import type { McpRequiredContext, McpToolBehavior } from '@xpert-ai/contracts'
+import type { McpCapabilityApprovalMode, McpRequiredContext, McpToolBehavior } from '@xpert-ai/contracts'
 import type { ZodTypeAny, infer as ZodInfer } from 'zod/v3'
 import type { McpTaskExecutionPolicy } from '../mcp/task'
 import type { ToolExecutionContext } from './tool-execution-context'
@@ -29,6 +29,7 @@ export interface XpertToolDefinition<
   outputSchema?: TOutputSchema
   exposure: XpertToolExposure
   behavior: McpToolBehavior
+  defaultApprovalMode?: McpCapabilityApprovalMode
   requiredContext: McpRequiredContext[]
   visibility?: XpertToolVisibility[]
   app?: XpertToolAppBinding

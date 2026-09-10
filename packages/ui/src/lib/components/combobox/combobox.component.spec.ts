@@ -36,6 +36,34 @@ class ComboboxProjectionHostComponent {
 }
 
 describe('ZardComboboxComponent', () => {
+  it('matches the dropdown to the actual trigger width, including after the layout changes', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [ComboboxProjectionHostComponent]
+    }).createComponent(ComboboxProjectionHostComponent)
+    const overlayContainer = TestBed.inject(OverlayContainer)
+    fixture.detectChanges()
+    const combobox = fixture.debugElement.query(By.directive(ZardComboboxComponent))
+      .componentInstance as ZardComboboxComponent
+    const trigger = combobox.buttonRef().nativeElement as HTMLButtonElement
+    const bounds = jest.spyOn(trigger, 'getBoundingClientRect')
+    bounds.mockReturnValue(new DOMRect(40, 80, 512, 32))
+
+    combobox.popoverDirective().show()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const pane = overlayContainer.getContainerElement().querySelector('.cdk-overlay-pane') as HTMLElement
+    expect(pane.style.width).toBe('512px')
+
+    combobox.popoverDirective().hide()
+    bounds.mockReturnValue(new DOMRect(16, 80, 280, 32))
+    combobox.popoverDirective().show()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(pane.style.width).toBe('280px')
+    fixture.destroy()
+    expect(overlayContainer.getContainerElement().querySelector('.cdk-overlay-pane')).toBeNull()
+  })
+
   it('renders projected option content inside command options', async () => {
     const fixture = TestBed.configureTestingModule({
       imports: [ComboboxProjectionHostComponent]

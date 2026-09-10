@@ -15,7 +15,7 @@ jest.mock('@cloud/app/@core', () => {
 
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { of, Subject } from 'rxjs'
+import { of, Subject, throwError } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -624,6 +624,48 @@ describe('RemoteComponentRendererComponent', () => {
     fixture.destroy()
     await Promise.resolve()
     expect(api.revokeViewFileAccessSession).toHaveBeenCalledWith('session-1')
+  })
+
+  it('revalidates a conversation change without replacing an identical iframe document', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: 'run-1' })
+    await flushRemoteEntry(fixture)
+    const frame: HTMLIFrameElement = fixture.nativeElement.querySelector('iframe')
+    const src = frame.getAttribute('src')
+    const instance = fixture.componentInstance.instanceId()
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: 'run-2' })
+    await flushRemoteEntry(fixture)
+    expect(api.getRemoteComponentEntry).toHaveBeenLastCalledWith('agent', 'assistant-1', manifest.key, {
+      projectId: 'project-1',
+      conversationId: 'run-2'
+    })
+    expect(fixture.nativeElement.querySelector('iframe')).toBe(frame)
+    expect(frame.getAttribute('src')).toBe(src)
+    expect(fixture.componentInstance.instanceId()).toBe(instance)
+    api.getRemoteComponentEntry.mockReturnValueOnce(of('<html>Updated automotive view</html>'))
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: 'run-3' })
+    await flushRemoteEntry(fixture)
+    expect(fixture.componentInstance.instanceId()).not.toBe(instance)
+    fixture.destroy()
+  })
+
+  it('removes the previous document when conversation access revalidation fails', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: 'run-1' })
+    await flushRemoteEntry(fixture)
+    expect(fixture.componentInstance.entryUrl()).toBeTruthy()
+    api.getRemoteComponentEntry.mockReturnValueOnce(throwError(() => new Error('Access denied')))
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-1', conversationId: 'run-2' })
+    await flushRemoteEntry(fixture)
+    expect(fixture.componentInstance.entryUrl()).toBeNull()
+    expect(fixture.componentInstance.error()).toBe('Access denied')
+    fixture.destroy()
   })
 
   it('updates Project runtime scope without replacing the mounted renderer and drops the old file session', async () => {

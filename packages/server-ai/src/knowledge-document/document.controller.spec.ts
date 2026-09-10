@@ -1,10 +1,13 @@
+import type { IKnowledgeDocument } from '@xpert-ai/contracts'
+import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { KBDocumentCategoryEnum } from '@xpert-ai/contracts'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, PipeTransform, Type } from '@nestjs/common'
+import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
 import { RequestContext } from '@xpert-ai/server-core'
 import { KnowledgeDocLoadCommand } from './commands'
 import { RagWebLoadCommand } from '../rag-web/commands'
@@ -133,6 +136,9 @@ describe('KnowledgeDocumentController chunk estimate', () => {
             assertKnowledgebaseReadAccess: jest.fn(),
             assertOwnedStorageFiles: jest.fn(),
             prepareExternalDocumentInputs: jest.fn(),
+            resolveNewDocumentParserConfig: jest.fn(async (document: Partial<IKnowledgeDocument>) =>
+                resolveKnowledgeDocumentParserConfig(document)
+            ),
             findOne: jest.fn(async () => persistedDocument)
         }
         const controller = new KnowledgeDocumentController(
@@ -325,6 +331,75 @@ describe('KnowledgeDocumentController parent knowledgebase access', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
 
         expect(service.findAll).not.toHaveBeenCalled()
+    })
+})
+
+describe('KnowledgeDocumentController detail query pipeline', () => {
+    function createController() {
+        const service = {
+            assertDocumentReadAccess: jest.fn(),
+            findOneByIdString: jest.fn().mockResolvedValue({ id: 'doc-1' })
+        }
+        const controller = new KnowledgeDocumentController(
+            service as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+        return { controller, service }
+    }
+
+    // Exercise the declared HTTP pipes: calling findById(undefined) skips the original bug.
+    async function parseRelations(raw: unknown) {
+        const metadata: {
+            [key: string]: { data?: string; pipes: Array<PipeTransform | Type<PipeTransform>> }
+        } = Reflect.getMetadata(ROUTE_ARGS_METADATA, KnowledgeDocumentController, 'findById')
+        const query = Object.values(metadata).find((argument) => argument.data === '$relations')
+        expect(query).toBeDefined()
+        let parsed = raw
+        for (const definition of query.pipes) {
+            const pipe = typeof definition === 'function' ? new definition() : definition
+            parsed = await pipe.transform(parsed, { type: 'query', data: '$relations' })
+        }
+        return parsed as Parameters<KnowledgeDocumentController['findById']>[1]
+    }
+
+    it.each([undefined, '[]', '["parent"]', '["knowledgebase.pipeline","storageFile"]'])(
+        'reads an authorized document with optional relations %s',
+        async (raw) => {
+            const { controller, service } = createController()
+            const result = await controller.findById('doc-1', await parseRelations(raw))
+
+            expect(result).toEqual({ id: 'doc-1' })
+            expect(service.assertDocumentReadAccess).toHaveBeenCalledWith('doc-1')
+            expect(service.findOneByIdString).toHaveBeenCalledWith('doc-1', {
+                select: undefined,
+                relations: raw === undefined ? [] : JSON.parse(raw)
+            })
+        }
+    )
+
+    it.each(['', 'invalid-json', 'null', '{}', '"parent"', '[1]', '["knowledgebase.integration"]'])(
+        'still rejects malformed or forbidden relations %s',
+        async (raw) => {
+            const { controller, service } = createController()
+            await expect(controller.findById('doc-1', await parseRelations(raw))).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
+            expect(service.findOneByIdString).not.toHaveBeenCalled()
+        }
+    )
+
+    it('does not bypass document access when relations are omitted', async () => {
+        const { controller, service } = createController()
+        service.assertDocumentReadAccess.mockRejectedValue(new ForbiddenException())
+        await expect(controller.findById('doc-1', await parseRelations(undefined))).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+        expect(service.findOneByIdString).not.toHaveBeenCalled()
     })
 })
 

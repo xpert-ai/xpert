@@ -85,6 +85,7 @@ jest.mock('../tree/tree.component', () => {
     @Input() canDownload?: boolean
     @Input() canDownloadDirectory?: boolean
     @Input() canDelete?: boolean
+    @Input() showRefresh?: boolean
     @Input() downloadingPaths?: Set<string>
     @Input() deletingPaths?: Set<string>
     @Input() emptyTitle?: string
@@ -94,6 +95,7 @@ jest.mock('../tree/tree.component', () => {
     @Output() readonly fileSelect = new EventEmitter<FileTreeNode>()
     @Output() readonly directoryToggle = new EventEmitter<FileTreeNode>()
     @Output() readonly uploadRequest = new EventEmitter<'file' | 'folder'>()
+    @Output() readonly refreshRequest = new EventEmitter<void>()
     @Output() readonly fileDownload = new EventEmitter<FileTreeNode>()
     @Output() readonly fileDelete = new EventEmitter<FileTreeNode>()
   }

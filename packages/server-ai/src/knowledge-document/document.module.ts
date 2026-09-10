@@ -19,13 +19,29 @@ import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeDocumentTransformSnapshotService } from './transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from './analysis-snapshot.service'
 import { KnowledgeDocumentVisualAssetsRuntimeService } from './visual-assets-runtime.service'
-import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtime.token'
+import {
+    KnowledgeDocumentDeletionCleanupReceipt,
+    KnowledgeDocumentDeletionIntent,
+    KnowledgeDocumentPublicationAttempt,
+    KnowledgeDocumentPublicationAttemptSource
+} from './deletion'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
-        TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage, KnowledgeDocumentChunk]),
+        TypeOrmModule.forFeature([
+            KnowledgeDocument,
+            KnowledgeDocumentPage,
+            KnowledgeDocumentChunk,
+            KnowledgeDocumentDeletionIntent,
+            KnowledgeDocumentDeletionCleanupReceipt,
+            KnowledgeDocumentPublicationAttempt,
+            KnowledgeDocumentPublicationAttemptSource
+        ]),
         DiscoveryModule,
+        RuntimeCapabilityModule,
         TenantModule,
         CqrsModule,
         UserModule,
@@ -45,10 +61,7 @@ import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtim
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
         KnowledgeDocumentVisualAssetsRuntimeService,
-        {
-            provide: KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
-            useExisting: KnowledgeDocumentVisualAssetsRuntimeService
-        },
+        KnowledgeDerivedIndexPublicationService,
         KnowledgeDocumentConsumer,
         ...CommandHandlers,
         ...QueryHandlers
@@ -58,7 +71,8 @@ import { KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME } from './visual-assets-runtim
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,
         KnowledgeDocumentAnalysisSnapshotService,
-        KNOWLEDGE_DOCUMENT_VISUAL_ASSETS_RUNTIME,
+        KnowledgeDocumentVisualAssetsRuntimeService,
+        KnowledgeDerivedIndexPublicationService,
         TypeOrmModule
     ]
 })

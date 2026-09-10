@@ -327,6 +327,9 @@ export type TXpertTemplateSource = {
   installedAt?: string
   lastSyncedAt?: string
   releaseNotes?: string
+  locale?: string
+  pluginVersion?: string
+  contentHash?: string
 }
 
 export type TXpertTemplateSyncResult = {
@@ -766,9 +769,9 @@ export type TChatOptions = {
    * Per-request runtime context forwarded to agent middleware/tools.
    */
   context?: Record<string, unknown>
-  /** Resolved runtime override for the Assistant Primary Agent only. */
+  /** Resolved Primary model; explicit and preference selections also supply Assistant base inheritance. */
   primaryCopilotModel?: TCopilotModel
-  /** Opaque Assistant model option id recorded for audit and retry. */
+  /** Trusted Assistant model selection, also recorded for audit and retry. */
   primaryModelId?: string
   /** Published Primary Agent key to which the override is restricted. */
   primaryAgentKey?: string

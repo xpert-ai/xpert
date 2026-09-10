@@ -1,7 +1,9 @@
+import { KnowledgeParserSettingsService } from '../knowledgebase/parser-settings.service'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import {
     IKnowledgeDocument,
+    DocumentTypeEnum,
     IKnowledgeDocumentChunk,
     IKnowledgeDocumentPage,
     IKnowledgebase,
@@ -11,6 +13,7 @@ import {
     KBDocumentStatusEnum,
     KDocumentSourceType,
     KnowledgeStructureEnum,
+    KnowledgebaseTypeEnum,
     VectorTypeEnum,
     classificateDocumentCategory
 } from '@xpert-ai/contracts'
@@ -29,16 +32,25 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import {
-    ChunkMetadata,
-    DocumentSourceRegistry,
-    mergeParentChildChunks,
-    TextSplitterRegistry
-} from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
+import { t } from 'i18next'
 import { compact, uniq } from 'lodash'
-import { DataSource, DeepPartial, FindOptionsWhere, In, Raw, Repository, UpdateResult } from 'typeorm'
+import {
+    DataSource,
+    DeepPartial,
+    EntityManager,
+    FindManyOptions,
+    FindOneOptions,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Raw,
+    Repository,
+    SaveOptions,
+    UpdateResult
+} from 'typeorm'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
 import type { KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase/vector-store'
 import { KnowledgeDocument } from './document.entity'
@@ -48,6 +60,7 @@ import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
 import { KnowledgeGraphClearDocumentCommand } from '../graphrag/commands'
+import { KnowledgeWikiRetractSourceCommand } from '../knowledgebase/wiki/commands'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import {
     computeKnowledgeDocumentChunkHash,
@@ -58,6 +71,8 @@ import {
 } from './document-hash'
 import { TDocChunkMetadata } from './types'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries/get-owned-storage-file.query'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentPublication } from './document-publication'
 
 type OriginalFileDownloadTarget = {
     absolutePath: string
@@ -346,8 +361,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     @Inject(DocumentSourceRegistry)
     private readonly docSourceRegistry: DocumentSourceRegistry
 
-    @Inject(TextSplitterRegistry)
-    private readonly textSplitterRegistry: TextSplitterRegistry
+    @Inject(KnowledgeParserSettingsService)
+    private readonly parserSettings: KnowledgeParserSettingsService
 
     @Inject(KnowledgeDocumentChunkService)
     private readonly chunkService: KnowledgeDocumentChunkService
@@ -365,9 +380,73 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        @InjectQueue('embedding-document') private docQueue: Queue
+        @InjectQueue('embedding-document') private docQueue: Queue,
+        private readonly derivedIndexPublicationService: KnowledgeDerivedIndexPublicationService
     ) {
         super(repo)
+    }
+
+    override async softRemove(
+        _id: KnowledgeDocument['id'],
+        _options?: FindOneOptions<KnowledgeDocument>,
+        _saveOptions?: SaveOptions
+    ): Promise<KnowledgeDocument> {
+        throw new ConflictException(
+            t('server-ai:Error.KnowledgeDocumentSoftDeleteUnavailable', {
+                defaultValue: 'Document soft deletion is unavailable until derived-data cleanup is enabled'
+            })
+        )
+    }
+
+    override async findAll(filter?: FindManyOptions<KnowledgeDocument>) {
+        return super.findAll(this.withReadableDocumentManyOptions(filter))
+    }
+
+    override async findOne(
+        id: string | number | FindOneOptions<KnowledgeDocument>,
+        options?: FindOneOptions<KnowledgeDocument>
+    ) {
+        if (typeof id === 'object') {
+            return super.findOne(this.withReadableDocumentOneOptions(id))
+        }
+        return super.findOne(id, this.withReadableDocumentOneOptions(options))
+    }
+
+    override async findOneByIdString(id: string, options?: FindOneOptions<KnowledgeDocument>) {
+        return super.findOneByIdString(id, this.withReadableDocumentOneOptions(options))
+    }
+
+    private withReadableDocumentManyOptions(
+        options?: FindManyOptions<KnowledgeDocument>
+    ): FindManyOptions<KnowledgeDocument> {
+        const where = options?.where
+        return {
+            ...(options ?? {}),
+            where: Array.isArray(where)
+                ? where.map((item) => this.readableDocumentWhere(item))
+                : this.readableDocumentWhere(where)
+        }
+    }
+
+    private withReadableDocumentOneOptions(
+        options?: FindOneOptions<KnowledgeDocument>
+    ): FindOneOptions<KnowledgeDocument> {
+        const where = options?.where
+        return {
+            ...(options ?? {}),
+            where: Array.isArray(where)
+                ? where.map((item) => this.readableDocumentWhere(item))
+                : this.readableDocumentWhere(where)
+        }
+    }
+
+    private readableDocumentWhere(
+        where: FindOptionsWhere<KnowledgeDocument> = {}
+    ): FindOptionsWhere<KnowledgeDocument> {
+        return {
+            ...where,
+            hardDeletePendingAt: IsNull()
+        }
     }
 
     /**
@@ -440,6 +519,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             delete document.processDuation
             delete document.processDuration
             delete document.jobId
+            delete document.processingExecutionId
             delete document.tokenNum
             delete document.chunkNum
 
@@ -608,8 +688,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
     }
 
-    async findAncestors(id: string) {
-        const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocument)
+    async findAncestors(id: string, manager?: EntityManager) {
+        const treeRepo = (manager ?? this.dataSource).getTreeRepository(KnowledgeDocument)
         const entity = await treeRepo.findOneBy({ id })
         if (!entity) {
             throw new NotFoundException(`Knowledge document "${id}" not found`)
@@ -742,22 +822,28 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         return this.createDocument(document as Partial<IKnowledgeDocument>)
     }
 
-    async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
+    async createDocument(document: Partial<IKnowledgeDocument>, manager?: EntityManager): Promise<KnowledgeDocument> {
         await this.prepareDocumentRelations(document)
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
-        document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
         document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
         document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
         document.processingHash ??= computeKnowledgeDocumentProcessingHash(document)
 
-        const doc = await super.create({
-            ...document
-        })
+        const doc = manager
+            ? await manager.getRepository(KnowledgeDocument).save(
+                  this.writeToCurrentScope({
+                      ...document,
+                      createdById: RequestContext.currentUserId(),
+                      updatedById: RequestContext.currentUserId()
+                  })
+              )
+            : await super.create({ ...document })
         // Init folder path for document entity
-        const parents = await this.findAncestors(doc.id)
+        const parents = await this.findAncestors(doc.id, manager)
         doc.folder = buildLogicalFolderPath(parents, doc.id)
-        await this.repository.save(doc)
+        await (manager?.getRepository(KnowledgeDocument) ?? this.repository).save(doc)
 
         return doc
     }
@@ -765,7 +851,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async createDocumentWithIncrementalSync(
         document: Partial<IKnowledgeDocument>
     ): Promise<IncrementalDocumentSyncItemResult> {
-        document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
         document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
         document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
         if (!(await this.isKnowledgebaseIncrementalSyncEnabled(document.knowledgebaseId))) {
@@ -785,7 +871,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async createBulkWithIncrementalSync(
-        documents: Partial<IKnowledgeDocument>[]
+        documents: Partial<IKnowledgeDocument>[],
+        manager?: EntityManager
     ): Promise<IncrementalDocumentSyncResult> {
         if (!documents?.length) {
             return {
@@ -796,34 +883,17 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 createdIds: []
             }
         }
-        documents.forEach((document) => {
-            document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        for (const document of documents) {
+            delete document.processingExecutionId
+            document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
             document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
             document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
-        })
+        }
         const knowledgebaseIds = uniq(compact(documents.map((document) => document.knowledgebaseId)))
         await Promise.all(
             knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId))
         )
         const incrementalSyncByKnowledgebaseId = await this.getIncrementalSyncEnabledByKnowledgebaseId(knowledgebaseIds)
-
-        // Update chunkStructure
-        const textSplitterType = documents[0].parserConfig?.textSplitterType
-        if (textSplitterType) {
-            const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
-            if (textSplitterStrategy) {
-                const structure = textSplitterStrategy.structure
-                const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
-                if (knowledgebase.structure && knowledgebase.structure !== structure) {
-                    throw new BadRequestException(
-                        `Inconsistent chunk structure between knowledgebase (${knowledgebase.structure}) and document (${structure})`
-                    )
-                }
-                if (!knowledgebase.structure) {
-                    await this.knowledgebaseService.updateKnowledgebase(knowledgebase.id, { structure })
-                }
-            }
-        }
 
         const result: IncrementalDocumentSyncResult = {
             documents: [],
@@ -838,9 +908,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 ? incrementalSyncByKnowledgebaseId.get(document.knowledgebaseId) === true
                 : false
             const synced = incrementalSyncEnabled
-                ? await this.createOrReuseSourceDocument(document)
+                ? await this.createOrReuseSourceDocument(document, manager)
                 : {
-                      document: await this.createDocument(document),
+                      document: await this.createDocument(document, manager),
                       shouldProcess: true,
                       action: 'created' as const
                   }
@@ -858,6 +928,26 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
 
         return result
+    }
+
+    async resolveNewDocumentParserConfig(document: Partial<IKnowledgeDocument>, persistStructure = false) {
+        if (document.type === DocumentTypeEnum.FOLDER) return document.parserConfig ?? {}
+        const knowledgebase = document.knowledgebaseId
+            ? await this.knowledgebaseService.findOneByIdString(document.knowledgebaseId)
+            : null
+        const config = resolveKnowledgeDocumentParserConfig(
+            document,
+            !knowledgebase?.type || knowledgebase.type === KnowledgebaseTypeEnum.Standard
+                ? knowledgebase?.parserConfig
+                : undefined
+        )
+        if (config.textSplitterType) {
+            const structure = await this.parserSettings.validateSplitter(config)
+            if (persistStructure && knowledgebase && knowledgebase.type === KnowledgebaseTypeEnum.Standard) {
+                await this.knowledgebaseService.ensureDocumentChunkStructure(knowledgebase.id, structure)
+            }
+        }
+        return config
     }
 
     private async isKnowledgebaseIncrementalSyncEnabled(knowledgebaseId: string | null | undefined) {
@@ -892,12 +982,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @param documents
      * @returns
      */
-    async createBulk(documents: Partial<IKnowledgeDocument>[]): Promise<KnowledgeDocument[]> {
-        return (await this.createBulkWithIncrementalSync(documents)).documents
+    async createBulk(documents: Partial<IKnowledgeDocument>[], manager?: EntityManager): Promise<KnowledgeDocument[]> {
+        return (await this.createBulkWithIncrementalSync(documents, manager)).documents
     }
 
     private async createOrReuseSourceDocument(
-        document: Partial<IKnowledgeDocument>
+        document: Partial<IKnowledgeDocument>,
+        manager?: EntityManager
     ): Promise<IncrementalDocumentSyncItemResult> {
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
@@ -906,9 +997,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         document.sourceKey = sourceKey
         document.sourceHash = sourceHash
 
-        const existing = await this.findExistingSourceDocument(document)
+        const existing = await this.findExistingSourceDocument(document, manager)
         if (!existing) {
-            const created = await this.createDocument(document)
+            const created = await this.createDocument(document, manager)
             return {
                 document: created,
                 shouldProcess: true,
@@ -928,7 +1019,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         const documentChanges = { ...document }
         delete documentChanges.id
         delete documentChanges.version
-        const updated = await this.save({
+        const changes: DeepPartial<KnowledgeDocument> = {
             ...existing,
             ...documentChanges,
             id: existing.id,
@@ -938,7 +1029,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             processingHash,
             chunkNum: existing.chunkNum,
             tokenNum: existing.tokenNum
-        } as DeepPartial<KnowledgeDocument>)
+        }
+        const updated = manager
+            ? await manager.getRepository(KnowledgeDocument).save(this.writeToCurrentScope(changes))
+            : await this.save(changes)
 
         return {
             document: updated,
@@ -947,7 +1041,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
     }
 
-    private async findExistingSourceDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument | null> {
+    private async findExistingSourceDocument(
+        document: Partial<IKnowledgeDocument>,
+        manager?: EntityManager
+    ): Promise<KnowledgeDocument | null> {
         if (!document.knowledgebaseId) {
             return null
         }
@@ -961,6 +1058,17 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             knowledgebaseId: document.knowledgebaseId,
             sourceType: document.sourceType,
             sourceKey
+        }
+
+        if (manager) {
+            return manager.findOne(KnowledgeDocument, {
+                where: {
+                    ...where,
+                    tenantId: RequestContext.currentTenantId(),
+                    organizationId: RequestContext.getOrganizationId() ?? IsNull()
+                },
+                order: { updatedAt: 'DESC' }
+            })
         }
 
         const { items } = await this.findAll({
@@ -1099,6 +1207,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         delete changes.createdAt
         delete changes.updatedAt
         delete changes.deletedAt
+        delete changes.publicationEpoch
+        delete changes.processingExecutionId
         delete changes.knowledgebase
         delete changes.storageFile
 
@@ -1553,6 +1663,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         })
         await vectorStore.addKnowledgeDocument(document, [chunk])
         await this.refreshDocumentContentHash(id)
+        await this.publishChunkMutation(document)
         return chunk
     }
 
@@ -1584,6 +1695,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 await vectorStore.partialUpdateFilterAttributes(document, [chunk])
             }
             await this.refreshDocumentContentHash(documentId)
+            await this.publishChunkMutation(document)
             return result
         } catch (err) {
             throw new BadRequestException(err.message)
@@ -1611,6 +1723,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             await vectorStore.partialUpdateFilterAttributes(document, [chunk])
         }
         await this.refreshDocumentContentHash(documentId)
+        await this.publishChunkMutation(document)
         return result
     }
 
@@ -1622,22 +1735,24 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async deleteChunk(documentId: string, id: string) {
-        const { vectorStore } = await this.getDocumentVectorStore(documentId)
+        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
         await this.assertChunkBelongsToDocument(documentId, id)
         // Delete entity
         await this.chunkService.delete(id)
         // Delete vector
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
+        await this.publishChunkMutation(document)
     }
 
     async deleteChunkWithVersion(documentId: string, id: string, expectedVersion?: number) {
         assertExpectedVersion(expectedVersion)
-        const { vectorStore } = await this.getDocumentVectorStore(documentId)
+        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
         await this.assertChunkBelongsToDocument(documentId, id)
         await this.chunkService.deleteWithVersion(id, expectedVersion)
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
+        await this.publishChunkMutation(document)
     }
 
     private async assertChunkBelongsToDocument(documentId: string, id: string) {
@@ -1678,9 +1793,23 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...chunk,
             contentHash: chunk.contentHash ?? computeKnowledgeDocumentChunkHash(chunk)
         }))
-        await this.updateDocument(documentId, {
-            contentHash: computeKnowledgeDocumentContentHash(chunks),
-            chunkNum: chunks.length
+        await writeKnowledgeDocumentPublication(
+            this as unknown as KnowledgeDocumentPublicationWriter,
+            documentId,
+            {
+                contentHash: computeKnowledgeDocumentContentHash(chunks),
+                chunkNum: chunks.length
+            },
+            true
+        )
+    }
+
+    private publishChunkMutation(document: KnowledgeDocument) {
+        return this.derivedIndexPublicationService.publish({
+            knowledgebase: document.knowledgebase,
+            documentId: document.id,
+            userId: RequestContext.currentUserId(),
+            contentChanged: true
         })
     }
 
@@ -1718,7 +1847,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             order: { createdAt: 'ASC' }
         })
 
-        if (document.contentHash && document.contentHash === contentHash) {
+        // Chunk rows are saved before vectors. Only a matching published hash proves those rows were indexed.
+        const recoverInterruptedSync =
+            existingChunks.length > 0 &&
+            (!document.contentHash ||
+                computeKnowledgeDocumentContentHash(sortChunksByDocumentOrder(existingChunks)) !== document.contentHash)
+        if (!recoverInterruptedSync && document.contentHash && document.contentHash === contentHash) {
             return {
                 chunks: existingChunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[],
                 embeddingChunks: [],
@@ -1739,16 +1873,20 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             incomingChunks,
             existingChunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
         )
-        const skippedCount = matches.filter((match) => match.operation === 'unchanged').length
+        const skippedCount = recoverInterruptedSync
+            ? 0
+            : matches.filter((match) => match.operation === 'unchanged').length
         const addedCount = matches.filter((match) => match.operation === 'added').length
-        const updatedCount = matches.filter((match) => match.operation === 'changed').length
+        const updatedCount = matches.filter(
+            (match) => match.operation === 'changed' || (recoverInterruptedSync && match.operation === 'unchanged')
+        ).length
         const chunksToPersist = matches.map((match) => ({
             ...match.chunk,
             documentId: document.id,
             knowledgebaseId: document.knowledgebaseId
         }))
         const changedIds = matches
-            .filter((match) => match.operation === 'changed' && match.chunk.id)
+            .filter((match) => (match.operation === 'changed' || recoverInterruptedSync) && match.chunk.id)
             .map((match) => match.chunk.id)
             .filter((id): id is string => !!id)
         const usedIds = new Set(matches.map((match) => match.previous?.id).filter((id): id is string => !!id))
@@ -1768,13 +1906,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         const changedChunkIds = new Set(
             matches
-                .filter((match) => match.operation !== 'unchanged')
+                .filter((match) => recoverInterruptedSync || match.operation !== 'unchanged')
                 .map((match) => getChunkLogicalId(match.chunk))
                 .filter((id): id is string => !!id)
         )
         const changedRowIds = new Set(
             matches
-                .filter((match) => match.operation !== 'unchanged')
+                .filter((match) => recoverInterruptedSync || match.operation !== 'unchanged')
                 .map((match) => match.chunk.id)
                 .filter((id): id is string => !!id)
         )
@@ -2049,6 +2187,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         Reflect.deleteProperty(document, 'createdAt')
         Reflect.deleteProperty(document, 'updatedAt')
         delete document.deletedAt
+        delete document.hardDeletePendingAt
+        delete document.publicationEpoch
+        delete document.processingExecutionId
         delete document.knowledgebase
         delete document.storageFile
         if (hasParent) {
@@ -2146,6 +2287,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         docs.forEach((item) => {
             item.jobId = job.id as string
+            item.processingExecutionId = null
             item.status = KBDocumentStatusEnum.RUNNING
             item.processMsg = ''
             item.progress = 0
@@ -2212,6 +2354,14 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async deleteDocumentArtifacts(document: KnowledgeDocument) {
+        await this.commandBus.execute(
+            new KnowledgeWikiRetractSourceCommand({
+                knowledgebaseId: document.knowledgebaseId,
+                documentId: document.id,
+                userId: RequestContext.currentUserId(),
+                reason: 'hard_deleted'
+            })
+        )
         const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, false)
         await vectorStore.deleteKnowledgeDocument(document)
         try {

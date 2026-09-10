@@ -1,3 +1,13 @@
+import { ActivatedRoute, Router } from '@angular/router'
+import { EvolutionChangePickerComponent } from '../shared/evolution-change-picker.component'
+import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
+import {
+  changeFilter,
+  evolutionEntries,
+  selectedEvolutionEntry,
+  selectedReplayEvaluation,
+  type EvolutionChangeFilter
+} from '../shared/evolution-change-presentation'
 import { CommonModule } from '@angular/common'
 import { DOCUMENT } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
@@ -14,12 +24,7 @@ import {
   ZardComboboxComponent,
   ZardInputDirective
 } from '@xpert-ai/headless-ui'
-import type {
-  EvolutionAuditEvent,
-  EvolutionReleaseGatePolicy,
-  ReleaseDeployment,
-  ReleaseRuntimeObservation
-} from '@xpert-ai/contracts'
+import type { EvolutionAuditEvent, ReleaseDeployment, ReleaseRuntimeObservation } from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import type { EChartsOption } from 'echarts'
 import { firstValueFrom } from 'rxjs'
@@ -39,22 +44,12 @@ interface ReleaseAction {
   enabled: boolean
 }
 
-const LEGACY_STANDARD_GATE_POLICY: EvolutionReleaseGatePolicy = {
-  profile: 'standard',
-  shadowMinimumSamples: 100,
-  shadowMinimumDurationHours: 72,
-  canaryMinimumSamples: 30,
-  canaryMinimumDurationHours: 24,
-  productionCanaryMinimumSamples: 30,
-  productionCanaryMinimumDurationHours: 24,
-  experienceMinimumSamples: 100,
-  experienceMinimumDurationHours: 168
-}
-
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-release',
   imports: [
+    EvolutionChangePickerComponent,
+    EvolutionChangePanelComponent,
     CommonModule,
     FormsModule,
     EchartsDirective,
@@ -70,6 +65,36 @@ const LEGACY_STANDARD_GATE_POLICY: EvolutionReleaseGatePolicy = {
 })
 export class AgentEvolutionReleaseComponent {
   readonly facade = inject(AgentEvolutionFacade)
+  private readonly route = inject(ActivatedRoute)
+  private readonly router = inject(Router)
+  readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
+  readonly changeType = computed(() => changeFilter(this.query().get('changeStatus')))
+  readonly entries = computed(() =>
+    evolutionEntries(this.facade.contextLifecycleRecords(), this.facade.visibleTargets(), 'release')
+  )
+  readonly selection = computed(() =>
+    selectedEvolutionEntry(this.entries(), this.changeType(), this.query().get('changeId'))
+  )
+  readonly resource = computed(
+    () => this.facade.contextChanges().find((item) => item.changeId === this.selection()?.id) ?? null
+  )
+  selectChange(id: string | null) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { changeId: id },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
+  }
+  filterChanges(type: EvolutionChangeFilter) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { changeStatus: type, changeType: null, changeId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
+  }
+
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
   readonly #document = inject(DOCUMENT)
@@ -84,11 +109,14 @@ export class AgentEvolutionReleaseComponent {
 
   readonly percent = percent
   readonly shortId = shortId
-  readonly release = this.facade.latestRelease
-  readonly gatePolicy = computed(() => this.release()?.gatePolicy ?? LEGACY_STANDARD_GATE_POLICY)
+  readonly release = computed(
+    () =>
+      this.facade.contextReleases().find((item) => item.releasePackageId === this.selection()?.releasePackageId) ?? null
+  )
+  readonly gatePolicy = computed(() => this.release()?.gatePolicy ?? null)
   readonly isAdministrator = computed(() => isEvolutionAdministratorRole(this.currentUser()?.role?.name))
   readonly showManualTestOverride = computed(
-    () => this.isAdministrator() && this.gatePolicy().profile === 'manual_test'
+    () => this.isAdministrator() && this.gatePolicy()?.profile === 'manual_test'
   )
   readonly canCreateManualTestOverride = computed(
     () =>
@@ -107,17 +135,13 @@ export class AgentEvolutionReleaseComponent {
       .canaryTestOverrides.filter((item) => item.releasePackageId === releasePackageId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
   })
-  readonly releaseOptions = computed(() => {
-    this.localeChange()
-    return this.facade.contextReleases().map((item) => ({
-      value: item.releasePackageId,
-      label: `${item.targetId} · ${item.targetVersionId} · ${this.#translate.instant(`XP.AgentEvolution.Status.${item.status}`, { Default: item.status })}`
-    }))
-  })
+
   readonly evaluation = computed(() => {
     const release = this.release()
-    return (
-      this.facade.dashboard().evaluations.find((evaluation) => evaluation.runId === release?.evaluationRunId) ?? null
+    return selectedReplayEvaluation(
+      this.facade.dashboard().evaluations,
+      this.resource()?.evaluation,
+      release?.candidateId
     )
   })
   readonly targetName = computed(() => {
@@ -214,7 +238,7 @@ export class AgentEvolutionReleaseComponent {
       governedDeployments.every((deployment) => !!deployment.completedAt && deployment.severeErrors === 0)
     const passed =
       release?.status === 'active' &&
-      this.evaluation()?.gate.passed === true &&
+      this.resource()?.evaluation?.passed === true &&
       deploymentGatePassed &&
       activePointer?.activeVersionId === release.targetVersionId
     return {
@@ -229,12 +253,12 @@ export class AgentEvolutionReleaseComponent {
     this.localeChange()
     const release = this.release()
     const target = this.target()
-    if (!release) return null
+    if (!release || !this.gatePolicy()) return null
     if (release.status === 'approved' && target?.capabilities.install)
       return this.releaseAction('InstallImmutableVersion')
     if (release.status === 'installed' && target?.capabilities.shadow) return this.releaseAction('StartShadow')
     if (release.status === 'shadow' && target?.capabilities.canary) {
-      const policy = this.gatePolicy()
+      const policy = this.gatePolicy()!
       return this.releaseAction(
         'StartCanary5',
         deploymentGatePassed(
@@ -247,7 +271,7 @@ export class AgentEvolutionReleaseComponent {
     }
     if (release.status === 'canary' && release.canaryPercent < 50) {
       const percent = release.canaryPercent === 5 ? 25 : 50
-      const policy = this.gatePolicy()
+      const policy = this.gatePolicy()!
       return {
         label: this.#translate.instant('XP.AgentEvolution.ExpandCanary', { percent }),
         description: this.#translate.instant('XP.AgentEvolution.ExpandCanaryDescription'),
@@ -260,7 +284,7 @@ export class AgentEvolutionReleaseComponent {
       }
     }
     if (release.status === 'canary') {
-      const policy = this.gatePolicy()
+      const policy = this.gatePolicy()!
       return this.releaseAction(
         'ActivateProduction',
         deploymentGatePassed(
@@ -276,7 +300,7 @@ export class AgentEvolutionReleaseComponent {
       release.status === 'active' &&
       !this.facade.dashboard().experiences.some((item) => item.sourceReleasePackageId === release.releasePackageId)
     ) {
-      const policy = this.gatePolicy()
+      const policy = this.gatePolicy()!
       const production = this.deployments().findLast((deployment) => deployment.channel === 'production')
       return this.releaseAction(
         'CreateStableExperience',
@@ -400,10 +424,6 @@ export class AgentEvolutionReleaseComponent {
       })
     )
     if (confirmed) await this.facade.runReleaseAction(release)
-  }
-
-  selectRelease(releasePackageId: string) {
-    this.facade.selectedReleasePackageId.set(releasePackageId || null)
   }
 
   async pause() {

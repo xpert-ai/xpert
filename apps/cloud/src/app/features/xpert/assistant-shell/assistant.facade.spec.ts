@@ -353,6 +353,25 @@ describe('XpertAssistantFacade', () => {
     })
   })
 
+  it('opens Wiki citation effects in the Wiki browser', () => {
+    createFacade('/xpert/x/xpert-1/agents')
+    const router = TestBed.inject(Router)
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+
+    latestRuntimeInput().onEffect?.({
+      name: KNOWLEDGEBASE_OPEN_CITATION_EFFECT,
+      data: {
+        knowledgebaseId: 'kb-wiki-1',
+        wikiPageId: 'page-1',
+        section: 'overview'
+      }
+    })
+
+    expect(navigate).toHaveBeenCalledWith(['/xpert/knowledges', 'kb-wiki-1', 'wiki'], {
+      queryParams: { wikiPageId: 'page-1', section: 'overview' }
+    })
+  })
+
   it('reads assistant id from the unified runtime config when configured', () => {
     const { facade } = createFacade('/xpert/x/xpert-1/agents')
 

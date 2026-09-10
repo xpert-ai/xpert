@@ -68,6 +68,16 @@ describe('MCP capability descriptor compatibility', () => {
         })
     })
 
+    it('hashes and reviews changes to declared invocation policy', () => {
+        const updated = descriptor({ defaultApprovalMode: 'allow' })
+        expect(hashMcpCapabilityDescriptor(descriptor())).not.toBe(hashMcpCapabilityDescriptor(updated))
+        expect(compareMcpCapabilityDescriptors(descriptor(), updated)).toMatchObject({
+            changed: true,
+            breaking: true,
+            reasons: ['tool default approval policy changed']
+        })
+    })
+
     it('requires review when provider instructions change and bounds their persisted size', () => {
         const updated = descriptor({ providerInstructions: 'Use resource references before search.' })
 

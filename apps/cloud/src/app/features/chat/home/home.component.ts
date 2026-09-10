@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { routeAnimations } from '@xpert-ai/headless-ui'
@@ -26,7 +26,6 @@ import { ChatHomeService } from '../home.service'
   ]
 })
 export class ChatHomeComponent {
-  readonly #homeService = inject(ChatHomeService)
   readonly #router = inject(Router)
   readonly #store = inject(Store)
 
@@ -47,10 +46,6 @@ export class ChatHomeComponent {
   readonly featureContextHydrationLoading = toSignal(this.#store.featureContextHydrationLoading$, {
     initialValue: this.#store.featureContextHydrationLoading
   })
-  readonly isCommonAssistantRoute = computed(() => {
-    const url = this.currentUrl()
-    return url === '/chat' || url === '/chat/x/common' || url.startsWith('/chat/x/common/')
-  })
 
   constructor() {
     effect(() => {
@@ -64,20 +59,6 @@ export class ChatHomeComponent {
       }
 
       void this.#router.navigateByUrl('/explore')
-    })
-
-    effect(() => {
-      if (!this.isCommonAssistantRoute()) {
-        return
-      }
-
-      if (this.#homeService.conversationId()) {
-        this.#homeService.conversationId.set(null)
-      }
-
-      if (this.#homeService.conversation()) {
-        this.#homeService.conversation.set(null)
-      }
     })
   }
 

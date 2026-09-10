@@ -1,3 +1,4 @@
+import { FEEDBACK_LEARNING_STRATEGY } from '@xpert-ai/contracts'
 import type {
     BuildEvolutionCandidateRequest,
     CandidateBuildResult,
@@ -22,6 +23,7 @@ export const CONFORMANCE_FIELD_MAPPING_TARGET = 'conformance.field_mapping'
 @EvolutionTargetProviderStrategy(CONFORMANCE_FIELD_MAPPING_TARGET)
 export class ConformanceFieldMappingProvider implements EvolutionTargetProvider {
     readonly descriptor = {
+        strategies: [structuredClone(FEEDBACK_LEARNING_STRATEGY)],
         targetId: CONFORMANCE_FIELD_MAPPING_TARGET,
         targetType: 'test_fixture' as const,
         displayName: 'Conformance Field Mapping',

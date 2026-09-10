@@ -1,4 +1,4 @@
-<div class="shrink-0 w-[588px] max-w-2xl flex flex-col px-6 py-3">
+<div class="min-h-0 shrink-0 w-[588px] max-w-2xl overflow-y-auto px-6 py-3">
   <div class="mb-4 flex flex-col justify-center">
     <h1 class="text-lg font-semibold text-text-primary">
       {{ 'XP.Knowledgebase.RetrievalTest' | translate: { Default: 'Retrieval Test' } }}
@@ -14,7 +14,7 @@
   @if (showRetrievalSettings()) {
     <z-accordion
       data-test-controls
-      class="mb-4 space-y-2"
+      class="block mb-4 space-y-2"
       displayDensity="compact"
       togglePosition="before"
       [multi]="true"
@@ -52,12 +52,13 @@
 
         <div class="border-t border-divider-subtle pt-3">
           <xp-knowledge-retrieval-settings
-            class="block max-h-[min(70vh,720px)] min-h-0 overflow-y-auto pr-1"
-            savable
-            [ngModel]="knowledgebase()"
+            class="block"
+            usage="test"
+            [disabled]="loading()"
+            [showContentScope]="showContentScope()"
+            [(ngModel)]="testSettings"
             [allowGraphRetrieval]="!isFAQ()"
             [defaultMode]="isFAQ() ? 'hybrid' : 'vector'"
-            (close)="onRetrievalSettingsClose($event, retrievalPanel)"
           />
         </div>
       </z-accordion-item>
@@ -132,7 +133,7 @@
   <div class="mb-3 mt-6 text-base font-semibold text-text-primary">
     {{ 'XP.Knowledgebase.TestRecords' | translate: { Default: 'Test Records' } }}
   </div>
-  <div class="grow overflow-y-auto">
+  <div>
     <table class="w-full border-collapse border-0 text-[13px] leading-4 text-text-secondary">
       <thead class="sticky top-0 h-7 text-sm font-medium uppercase leading-7 backdrop-blur-[5px]">
         <tr>

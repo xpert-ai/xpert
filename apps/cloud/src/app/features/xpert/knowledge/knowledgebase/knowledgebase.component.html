@@ -78,6 +78,20 @@
             <z-icon zType="hub" />
             <span class="hidden lg:inline">{{ 'XP.Knowledgebase.Graph' | translate: { Default: 'Graph' } }}</span>
           </a>
+          @if (wikiEnabled()) {
+            <a
+              z-tab-link
+              [routerLink]="['./', 'wiki']"
+              queryParamsHandling="preserve"
+              [routerLinkActiveOptions]="{ exact: false }"
+              routerLinkActive=""
+              #wikiActive="routerLinkActive"
+              [active]="wikiActive.isActive"
+            >
+              <z-icon zType="book-open" />
+              <span class="hidden lg:inline">Wiki</span>
+            </a>
+          }
         }
       }
       <a

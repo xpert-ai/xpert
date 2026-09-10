@@ -15,6 +15,8 @@ export type DocumentParserConfig = {
   replaceWhitespace?: boolean
   removeSensitive?: boolean
   textSplitterType?: string
+  /** Ordered literal separators. Unlike the legacy plugin string, commas need no escaping. */
+  separators?: string[]
   textSplitter?: {
     [key: string]: unknown
   }
@@ -24,6 +26,8 @@ export type DocumentParserConfig = {
     [key: string]: unknown
   }
   imageUnderstandingType?: string
+  /** False is an explicit opt-out; absence retains legacy per-format defaults. */
+  imageUnderstandingEnabled?: boolean
   imageUnderstandingIntegration?: string
   imageUnderstanding?: {
     [key: string]: unknown
@@ -35,6 +39,20 @@ export type DocumentTextParserConfig = DocumentParserConfig & {
   delimiter?: string
   chunkSize?: number | null
   chunkOverlap?: number | null
+}
+
+export type DocumentChunkSplitOptions = {
+  /** Ordered splitting priorities. An empty list splits only at maxChars; takes precedence over separator. */
+  separators?: string[]
+  /** Legacy single separator, used when separators is absent. */
+  separator?: string
+  /** Maximum character count; this splitter does not count tokens. */
+  maxChars?: number
+}
+
+export type DocumentParentChildParserConfig = {
+  parent: DocumentChunkSplitOptions & { mode?: 'paragraph' | 'full' }
+  child: DocumentChunkSplitOptions
 }
 
 export type SpreadsheetInterpretation = 'records' | 'form_document'
@@ -185,6 +203,15 @@ export type TDocSourceConfig = {
 export type TKnowledgeDocument = {
   disabled?: boolean
 
+  /** Soft-delete marker; ordinary read paths exclude these documents. */
+  deletedAt?: Date | null
+
+  /** Hard-delete writer gate. A pending document is never eligible for read or publication. */
+  hardDeletePendingAt?: Date | null
+
+  /** Monotonic fence captured by every document-derived writer. */
+  publicationEpoch?: number
+
   knowledgebaseId?: string
 
   /**
@@ -281,6 +308,9 @@ export type TKnowledgeDocument = {
    */
   jobId?: string
 
+  /** Server-owned pipeline attempt allowed to update this document on dispatch failure. */
+  processingExecutionId?: string | null
+
   options?: TDocumentWebOptions
 
   integrationId?: string
@@ -333,6 +363,9 @@ export interface StandardDocumentMetadata {
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
+  /** Internal index containers are not user-uploaded documents. */
+  systemManaged?: boolean
+  systemManagedType?: string
   transformSnapshot?: KnowledgeDocumentTransformSnapshotRef
   analysisSnapshot?: KnowledgeDocumentAnalysisSnapshotRef
   documentAnalysis?: DocumentAnalysisMetadata

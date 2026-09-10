@@ -8,6 +8,8 @@ export type KnowledgebaseCitationEffectTarget = {
   knowledgebaseId?: string
   documentId?: string
   faqId?: string
+  wikiPageId?: string
+  section?: string
   chunkId?: string
   page?: number
   sourceBlockIds?: string[]
@@ -37,21 +39,27 @@ export function getKnowledgebaseCitationTargetFromEffectEvent(
   const data = isRecord(event.data) ? event.data : null
   const citationUrl = readString(data?.['citationUrl'])
   const faqUrlTarget = parseFAQCitationUrl(citationUrl)
+  const wikiUrlTarget = parseWikiCitationUrl(citationUrl)
   const documentId = readString(data?.['documentId'])
-  const knowledgebaseId = readString(data?.['knowledgebaseId']) ?? faqUrlTarget?.knowledgebaseId
+  const knowledgebaseId =
+    readString(data?.['knowledgebaseId']) ?? faqUrlTarget?.knowledgebaseId ?? wikiUrlTarget?.knowledgebaseId
   const faqId = readString(data?.['faqId']) ?? faqUrlTarget?.faqId
+  const wikiPageId = readString(data?.['wikiPageId']) ?? wikiUrlTarget?.wikiPageId
+  const section = readString(data?.['section']) ?? wikiUrlTarget?.section
   const chunkId = readString(data?.['chunkId'])
   const page = readPositiveInteger(data?.['page'])
   const sourceBlockIds = readStringArray(data?.['sourceBlockIds'])
   const evidenceText = readString(data?.['evidenceText'])
   const documentName = readString(data?.['documentName'])
-  if (!documentId && !faqId) {
+  if (!documentId && !faqId && !wikiPageId) {
     return null
   }
 
   return {
     ...(documentId ? { documentId } : {}),
     ...(faqId ? { faqId } : {}),
+    ...(wikiPageId ? { wikiPageId } : {}),
+    ...(section ? { section } : {}),
     ...(knowledgebaseId ? { knowledgebaseId } : {}),
     ...(chunkId ? { chunkId } : {}),
     ...(page ? { page } : {}),
@@ -81,6 +89,8 @@ export function createKnowledgebaseCitationOpenHostEvent(
       target.documentId,
       target.chunkId,
       target.faqId,
+      target.wikiPageId,
+      target.section,
       receivedAt
     ]),
     type: ASSISTANT_CITATION_OPEN_EVENT,
@@ -101,6 +111,20 @@ function parseFAQCitationUrl(value: string | null) {
     const knowledgebaseId = readString(url.searchParams.get('knowledgebaseId'))
     const faqId = readString(url.searchParams.get('faqId'))
     return knowledgebaseId && faqId ? { knowledgebaseId, faqId } : null
+  } catch {
+    return null
+  }
+}
+
+function parseWikiCitationUrl(value: string | null) {
+  if (!value) return null
+  try {
+    const url = new URL(value, 'http://localhost')
+    const match = /^\/xpert\/knowledges\/([^/]+)\/wiki$/.exec(url.pathname)
+    const knowledgebaseId = match?.[1] ? decodeURIComponent(match[1]) : null
+    const wikiPageId = readString(url.searchParams.get('wikiPageId'))
+    const section = readString(url.searchParams.get('section'))
+    return knowledgebaseId && wikiPageId ? { knowledgebaseId, wikiPageId, ...(section ? { section } : {}) } : null
   } catch {
     return null
   }

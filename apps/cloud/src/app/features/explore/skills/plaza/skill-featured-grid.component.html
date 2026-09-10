@@ -36,7 +36,7 @@
         (keydown.enter)="open(featured)"
         (keydown.space)="open(featured)"
       >
-        <div class="flex min-h-36 gap-4 p-4">
+        <div class="relative flex min-h-36 gap-4 p-4">
           <div
             class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-primary"
           >
@@ -84,17 +84,25 @@
               }
             </div>
 
-            <div class="mt-4 flex items-center justify-between gap-3">
+            <div class="mt-4 flex min-h-8 items-center gap-3 pr-24">
               <span class="text-sm text-muted-foreground">
                 {{ featured.skill.stats?.downloads ?? '--' }}
                 {{ 'XP.Explore.AddedTimes' | translate: { Default: 'adds' } }}
               </span>
-              <button z-button zSize="sm" type="button" (click)="add(featured, $event)">
-                <z-icon zType="plus" zSize="sm" />
-                {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
-              </button>
             </div>
           </div>
+          <button
+            z-button
+            zSize="sm"
+            type="button"
+            class="pointer-events-none absolute bottom-4 right-4 w-auto translate-y-1 cursor-pointer opacity-0 shadow-sm transition-all duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+            (click)="add(featured, $event)"
+            (keydown.enter)="$event.stopPropagation()"
+            (keydown.space)="$event.stopPropagation()"
+          >
+            <z-icon zType="plus" zSize="sm" />
+            {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
+          </button>
         </div>
       </z-card>
     }

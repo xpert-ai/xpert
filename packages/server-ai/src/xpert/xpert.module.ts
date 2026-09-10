@@ -58,6 +58,7 @@ import { AssistantUserPreference } from './assistant-user-preference.entity'
 import { AssistantUserPreferenceService } from './assistant-user-preference.service'
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
 import { XpertProjectModule } from '../xpert-project/project.module'
+import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
 
 @Module({
     imports: [
@@ -87,6 +88,7 @@ import { XpertProjectModule } from '../xpert-project/project.module'
         SkillPackageModule,
         PromptWorkflowModule,
         ModelAccessModule,
+        WorkspaceFilesRuntimeModule,
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,

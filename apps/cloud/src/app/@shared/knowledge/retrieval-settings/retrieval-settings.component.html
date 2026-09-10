@@ -1,170 +1,166 @@
-<ng-template
-  #topKControl
-  let-label="label"
-  let-defaultLabel="defaultLabel"
-  let-tooltip="tooltip"
-  let-defaultTooltip="defaultTooltip"
-  let-scope="scope"
->
-  <div data-setting="retrieval-top-k" [attr.data-top-k-scope]="scope" class="min-w-0">
-    <div class="mb-2 flex items-center gap-1 system-xs-semibold text-text-secondary">
-      <div class="flex min-w-0 items-center gap-1">
-        <span class="truncate">{{ label | translate: { Default: defaultLabel } }}</span>
-        <i
-          class="ri-information-2-line shrink-0 text-text-tertiary"
-          [zTooltip]="tooltip | translate: { Default: defaultTooltip }"
-          zPosition="top"
-        ></i>
-      </div>
-    </div>
-    <div data-slider-input class="flex min-w-0 items-center gap-3">
-      <z-slider class="min-w-0 flex-1" [min]="1" [max]="100" [step]="1" [(ngModel)]="topK" />
-      <input
-        z-input
-        zSize="sm"
-        class="w-16 shrink-0 text-center"
-        type="number"
-        [min]="1"
-        [max]="100"
-        [step]="1"
-        [(ngModel)]="topK"
-      />
-    </div>
-  </div>
-</ng-template>
-
-<div class="@container/retrieval relative flex min-w-0 flex-col gap-3">
-  <nav
-    z-tab-nav-bar
-    zSize="sm"
-    [stretchTabs]="true"
-    class="mb-0 w-full shrink-0 overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5"
-    [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate: { Default: 'Retrieval mode' }"
+<ng-template #statusBadge let-active="active">
+  <z-badge
+    zType="outline"
+    [attr.data-retriever-status]="active ? 'active' : 'inactive'"
+    [class]="
+      active
+        ? 'h-5 shrink-0 border-state-success-hover bg-state-success-hover/20 text-text-success'
+        : 'h-5 shrink-0 border-divider-regular text-text-tertiary'
+    "
   >
-    @for (modeOption of retrievalModes(); track modeOption) {
-      <button
-        z-tab-link
-        type="button"
-        class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
-        [attr.data-retrieval-mode]="modeOption"
-        [active]="mode() === modeOption"
-        (click)="mode.set(modeOption)"
+    {{ (active ? 'XP.Knowledgebase.RetrieverActive' : 'XP.Knowledgebase.RetrieverInactive') | translate }}
+  </z-badge>
+</ng-template>
+<div class="@container/retrieval relative flex min-w-0 flex-col gap-6">
+  @if (showContentScope()) {
+    <div data-test-content-scope class="flex flex-col gap-2">
+      <label z-form-label>{{ 'XP.Knowledgebase.RetrievalContentScope' | translate }}</label>
+      <nav
+        z-tab-nav-bar
+        zSize="sm"
+        [stretchTabs]="true"
+        class="w-full overflow-hidden rounded-lg border border-divider-regular p-0.5"
+        [attr.aria-label]="'XP.Knowledgebase.RetrievalContentScope' | translate"
       >
-        @switch (modeOption) {
-          @case ('vector') {
-            {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate: { Default: 'Vector' } }}
-          }
-          @case ('keyword') {
-            {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate: { Default: 'Keyword' } }}
-          }
-          @case ('graph') {
-            {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate: { Default: 'Graph' } }}
-          }
-          @case ('hybrid') {
-            {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate: { Default: 'Hybrid' } }}
-          }
+        @for (scope of contentScopes; track scope) {
+          <button
+            z-tab-link
+            type="button"
+            class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+            [attr.data-content-scope]="scope"
+            [active]="contentScope() === scope"
+            [disabled]="disabled()"
+            [attr.disabled]="disabled() ? '' : null"
+            (click)="selectContentScope(scope)"
+          >
+            {{
+              'XP.Knowledgebase.RetrievalContent' +
+                (scope === 'all' ? 'All' : scope === 'original' ? 'Original' : 'Wiki') | translate
+            }}
+          </button>
         }
-      </button>
-    }
-  </nav>
-
-  <z-card data-retrieval-stage="recall" class="gap-0 border-divider-regular bg-components-panel-bg py-0 shadow-none">
-    <z-card-header class="flex flex-row items-start gap-3 border-b border-divider-regular px-4 py-3">
-      <z-badge
-        class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary p-0 text-primary-foreground"
-      >
-        1
-      </z-badge>
-      <div class="min-w-0">
-        <z-card-title class="system-sm-semibold text-text-primary">
-          {{ 'XP.Knowledgebase.RecallMethods' | translate: { Default: 'Recall methods' } }}
-        </z-card-title>
-        <z-card-subtitle class="mt-1 system-xs-regular text-text-tertiary">
-          {{
-            'XP.Knowledgebase.RecallMethodsDesc'
-              | translate: { Default: 'Recall candidate content before combining and reranking the results.' }
-          }}
-        </z-card-subtitle>
-      </div>
-    </z-card-header>
-
-    <z-card-content
-      data-retriever-grid
-      class="grid grid-cols-1 gap-3 p-3 @[560px]/retrieval:grid-flow-col @[560px]/retrieval:auto-cols-fr"
+      </nav>
+      @if (contentScope() === 'wiki') {
+        <p class="system-xs-regular text-text-tertiary">
+          {{ 'XP.Knowledgebase.RetrievalContentWikiHint' | translate }}
+        </p>
+      }
+    </div>
+  }
+  <div>
+    <h2 class="mb-1 system-sm-semibold text-text-primary">
+      {{
+        (usage() === 'test' ? 'XP.Knowledgebase.RetrievalMode' : 'XP.Knowledgebase.DefaultRetrievalMode') | translate
+      }}
+    </h2>
+    <p class="mb-3 system-xs-regular text-text-tertiary">
+      {{
+        (usage() === 'test'
+          ? 'XP.Knowledgebase.TestRetrievalSettingsHelp'
+          : 'XP.Knowledgebase.DefaultRetrievalModeHelp'
+        ) | translate
+      }}
+    </p>
+    <nav
+      z-tab-nav-bar
+      zSize="sm"
+      [stretchTabs]="true"
+      class="mb-0 w-full overflow-hidden rounded-lg border border-divider-regular bg-components-input-bg-normal p-0.5"
+      [attr.aria-label]="'XP.Knowledgebase.RetrievalMode' | translate"
     >
-      @if (vectorRetrieverActive()) {
+      @for (modeOption of retrievalModes(); track modeOption) {
+        <button
+          z-tab-link
+          type="button"
+          class="rounded-md border border-transparent data-[active=true]:border-components-option-card-option-selected-border data-[active=true]:bg-components-button-secondary-bg"
+          [attr.data-retrieval-mode]="modeOption"
+          [active]="mode() === modeOption"
+          [disabled]="modeOption === 'graph' && !graphAvailable()"
+          [attr.disabled]="modeOption === 'graph' && !graphAvailable() ? '' : null"
+          (click)="selectMode(modeOption)"
+        >
+          @switch (modeOption) {
+            @case ('vector') {
+              {{ 'XP.Knowledgebase.RetrievalMode_Vector' | translate }}
+            }
+            @case ('keyword') {
+              {{ 'XP.Knowledgebase.RetrievalMode_Keyword' | translate }}
+            }
+            @case ('graph') {
+              {{ 'XP.Knowledgebase.RetrievalMode_Graph' | translate }}
+            }
+            @case ('hybrid') {
+              {{ 'XP.Knowledgebase.RetrievalMode_Hybrid' | translate }}
+            }
+          }
+        </button>
+      }
+    </nav>
+    @if (allowGraphRetrieval() && !graphEnabled()) {
+      <p data-graph-unavailable class="mt-2 system-xs-regular text-text-tertiary">
+        {{
+          (wikiOnly() ? 'XP.Knowledgebase.RetrievalContentWikiHint' : 'XP.Knowledgebase.GraphRetrievalUnavailable')
+            | translate
+        }}
+      </p>
+    }
+  </div>
+  <section data-retrieval-stage="recall" class="min-w-0">
+    <div class="mb-3 flex items-start gap-3">
+      <span
+        class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground system-xs-semibold"
+        >1</span
+      >
+      <div>
+        <h3 class="system-sm-semibold text-text-primary">{{ 'XP.Knowledgebase.RecallMethods' | translate }}</h3>
+        <p class="mt-1 system-xs-regular text-text-tertiary">{{ 'XP.Knowledgebase.RecallSourcesHelp' | translate }}</p>
+      </div>
+    </div>
+    <div
+      data-retriever-grid
+      class="grid min-w-0 grid-cols-1 gap-3 @[560px]/retrieval:auto-cols-fr @[560px]/retrieval:grid-flow-col"
+    >
+      @if (mode() === 'vector' || mode() === 'hybrid') {
         <z-card
           data-retriever-card="vector"
-          class="h-full min-w-0 gap-0 border-divider-regular bg-components-card-bg py-0 shadow-none"
+          class="min-w-0 gap-0 border-divider-regular bg-components-card-bg py-0 shadow-none"
         >
-          <z-card-header
-            class="flex flex-row items-start justify-between gap-3 border-b border-divider-subtle px-4 py-3"
-          >
-            <div class="flex min-w-0 items-start gap-2">
-              <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-text-accent">
-                <i class="ri-focus-mode"></i>
-              </span>
-              <div class="min-w-0">
-                <z-card-title class="system-sm-semibold text-text-primary">
-                  {{ 'XP.Knowledgebase.VectorSearch' | translate: { Default: 'Vector Search' } }}
-                </z-card-title>
-                <z-card-subtitle class="mt-1 line-clamp-2 system-xs-regular text-text-tertiary">
-                  {{
-                    'XP.Knowledgebase.VectorSearchDesc'
-                      | translate
-                        : {
-                            Default:
-                              'Generate query embeddings and search for the text chunks most similar to the query.'
-                          }
-                  }}
-                </z-card-subtitle>
-              </div>
-            </div>
-            <z-badge
-              zType="outline"
-              [attr.data-retriever-status]="vectorRetrieverActive() ? 'active' : 'inactive'"
-              [class]="
-                vectorRetrieverActive()
-                  ? 'h-5 shrink-0 border-state-success-hover bg-state-success-hover/20 text-text-success'
-                  : 'h-5 shrink-0 border-divider-regular bg-components-panel-bg text-text-tertiary'
-              "
-            >
-              @if (vectorRetrieverActive()) {
-                {{ 'XP.Knowledgebase.RetrieverActive' | translate: { Default: 'In use' } }}
+          <z-card-header class="flex flex-row items-start justify-between gap-3 px-4 py-3">
+            <div class="min-w-0">
+              @if (mode() === 'hybrid') {
+                <z-checkbox
+                  [ngModel]="vectorRetrieverActive()"
+                  [zDisabled]="!rrfActive()"
+                  (ngModelChange)="setRetrieverEnabled('vector', $event)"
+                  ><span class="system-sm-semibold">{{ 'XP.Knowledgebase.VectorSearch' | translate }}</span></z-checkbox
+                >
               } @else {
-                {{ 'XP.Knowledgebase.RetrieverInactive' | translate: { Default: 'Not in use' } }}
+                <h4 class="system-sm-semibold">{{ 'XP.Knowledgebase.VectorSearch' | translate }}</h4>
               }
-            </z-badge>
+              <p class="mt-2 system-xs-regular text-text-tertiary">
+                {{ 'XP.Knowledgebase.VectorSearchDesc' | translate }}
+              </p>
+            </div>
+            <ng-container *ngTemplateOutlet="statusBadge; context: { active: vectorRetrieverActive() }" />
           </z-card-header>
-          <z-card-content class="flex flex-col gap-4 px-4 py-3">
-            <div data-setting="similarity-threshold" class="min-w-0">
-              <div class="mb-2 flex min-w-0 items-center justify-between gap-2">
-                <div class="flex min-w-0 items-center gap-1 system-xs-semibold text-text-secondary">
-                  <span class="truncate">
-                    {{ 'XP.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' } }}
-                  </span>
-                  <i
-                    class="ri-information-2-line shrink-0 text-text-tertiary"
-                    [zTooltip]="
-                      'XP.Knowledgebase.SimilarityThresholdInfo'
-                        | translate
-                          : {
-                              Default:
-                                'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'
-                            }
-                    "
-                    zPosition="top"
-                  ></i>
-                </div>
-                <z-switch [(ngModel)]="useScore" [disabled]="!vectorRetrieverActive() || rrfActive()" zSize="sm" />
+          <z-card-content class="border-t border-divider-subtle px-4 py-3">
+            <div data-setting="similarity-threshold">
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <span class="system-xs-semibold text-text-secondary">{{
+                  'XP.Knowledgebase.SimilarityThreshold' | translate
+                }}</span>
+                <z-switch [(ngModel)]="useScore" [disabled]="!vectorRetrieverActive()" zSize="sm"
+                  ><span class="sr-only">{{ 'XP.Knowledgebase.SimilarityThreshold' | translate }}</span></z-switch
+                >
               </div>
+
               <div data-slider-input class="flex min-w-0 items-center gap-3">
                 <z-slider
-                  class="min-w-0 flex-1"
+                  class="mx-3 min-w-0 flex-1"
                   [min]="0"
                   [max]="1"
                   [step]="0.01"
-                  [disabledInput]="!useScore() || !vectorRetrieverActive() || rrfActive()"
+                  [disabledInput]="!useScore() || !vectorRetrieverActive()"
                   [(ngModel)]="score"
                 />
                 <input
@@ -175,359 +171,224 @@
                   [min]="0"
                   [max]="1"
                   [step]="0.01"
-                  [disabled]="!useScore() || !vectorRetrieverActive() || rrfActive()"
+                  [disabled]="!useScore() || !vectorRetrieverActive()"
+                  [attr.aria-label]="'XP.Knowledgebase.SimilarityThreshold' | translate"
                   [(ngModel)]="score"
                 />
               </div>
+              <p class="mt-2 system-xs-regular text-text-tertiary">
+                {{ 'XP.Knowledgebase.VectorThresholdStageHelp' | translate }}
+              </p>
             </div>
-            <ng-container
-              *ngTemplateOutlet="
-                topKControl;
-                context: {
-                  label: 'XP.Knowledgebase.RecallTopK',
-                  defaultLabel: 'Recall Top K',
-                  tooltip: 'XP.Knowledgebase.RecallTopKTooltip',
-                  defaultTooltip: 'The maximum number of candidate text chunks returned by this retriever.',
-                  scope: 'retriever'
-                }
-              "
-            />
           </z-card-content>
         </z-card>
       }
-
-      @if (keywordRetrieverActive()) {
+      @if (mode() === 'keyword' || mode() === 'hybrid') {
         <z-card
           data-retriever-card="keyword"
-          class="h-full min-w-0 gap-0 border-divider-regular bg-components-card-bg py-0 shadow-none"
+          class="min-w-0 gap-0 border-divider-regular bg-components-card-bg py-0 shadow-none"
         >
-          <z-card-header
-            class="flex flex-row items-start justify-between gap-3 border-b border-divider-subtle px-4 py-3"
-          >
-            <div class="flex min-w-0 items-start gap-2">
-              <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-text-accent">
-                <i class="ri-text-snippet"></i>
-              </span>
-              <div class="min-w-0">
-                <z-card-title class="system-sm-semibold text-text-primary">
-                  {{ 'XP.Knowledgebase.KeywordSearch' | translate: { Default: 'Keyword Search' } }}
-                </z-card-title>
-                <z-card-subtitle class="mt-1 line-clamp-2 system-xs-regular text-text-tertiary">
-                  {{
-                    'XP.Knowledgebase.KeywordSearchDesc'
-                      | translate
-                        : { Default: 'Match exact terms and identifiers in indexed document titles and content.' }
-                  }}
-                </z-card-subtitle>
-              </div>
-            </div>
-            <z-badge
-              zType="outline"
-              [attr.data-retriever-status]="keywordRetrieverActive() ? 'active' : 'inactive'"
-              [class]="
-                keywordRetrieverActive()
-                  ? 'h-5 shrink-0 border-state-success-hover bg-state-success-hover/20 text-text-success'
-                  : 'h-5 shrink-0 border-divider-regular bg-components-panel-bg text-text-tertiary'
-              "
-            >
-              @if (keywordRetrieverActive()) {
-                {{ 'XP.Knowledgebase.RetrieverActive' | translate: { Default: 'In use' } }}
-              } @else {
-                {{ 'XP.Knowledgebase.RetrieverInactive' | translate: { Default: 'Not in use' } }}
-              }
-            </z-badge>
-          </z-card-header>
-          <z-card-content class="px-4 py-3">
-            <ng-container
-              *ngTemplateOutlet="
-                topKControl;
-                context: {
-                  label: 'XP.Knowledgebase.RecallTopK',
-                  defaultLabel: 'Recall Top K',
-                  tooltip: 'XP.Knowledgebase.RecallTopKTooltip',
-                  defaultTooltip: 'The maximum number of candidate text chunks returned by this retriever.',
-                  scope: 'retriever'
-                }
-              "
-            />
-          </z-card-content>
-        </z-card>
-      }
-
-      @if (graphRetrieverActive()) {
-        <z-card
-          data-retriever-card="graph"
-          class="h-full min-w-0 gap-0 border-divider-regular bg-components-card-bg py-0 shadow-none"
-        >
-          <z-card-header
-            class="flex flex-row items-start justify-between gap-3 border-b border-divider-subtle px-4 py-3"
-          >
-            <div class="flex min-w-0 items-start gap-2">
-              <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-text-accent">
-                <i class="ri-node-tree"></i>
-              </span>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1">
-                  <z-card-title class="system-sm-semibold text-text-primary">
-                    {{ 'XP.Knowledgebase.GraphRAG' | translate: { Default: 'GraphRAG' } }}
-                  </z-card-title>
-                  <i
-                    class="ri-information-2-line shrink-0 text-text-tertiary"
-                    [zTooltip]="
-                      'XP.Knowledgebase.GraphRAGInfo'
-                        | translate
-                          : {
-                              Default:
-                                'Graph retrieval recalls entities, expands their neighborhood, and returns source chunks with graph evidence.'
-                            }
-                    "
-                    zPosition="top"
-                  ></i>
-                </div>
-                <z-badge
-                  zType="outline"
-                  [attr.data-retriever-status]="graphRetrieverActive() ? 'active' : 'inactive'"
-                  [class]="
-                    graphRetrieverActive()
-                      ? 'mt-1 h-5 border-state-success-hover bg-state-success-hover/20 text-text-success'
-                      : 'mt-1 h-5 border-divider-regular bg-components-panel-bg text-text-tertiary'
-                  "
+          <z-card-header class="flex flex-row items-start justify-between gap-3 px-4 py-3">
+            <div class="min-w-0">
+              @if (mode() === 'hybrid') {
+                <z-checkbox
+                  [ngModel]="keywordRetrieverActive()"
+                  [zDisabled]="!rrfActive()"
+                  (ngModelChange)="setRetrieverEnabled('keyword', $event)"
+                  ><span class="system-sm-semibold">{{
+                    'XP.Knowledgebase.KeywordSearch' | translate
+                  }}</span></z-checkbox
                 >
-                  @if (graphRetrieverActive()) {
-                    {{ 'XP.Knowledgebase.RetrieverActive' | translate: { Default: 'In use' } }}
-                  } @else {
-                    {{ 'XP.Knowledgebase.RetrieverInactive' | translate: { Default: 'Not in use' } }}
-                  }
-                </z-badge>
-              </div>
+              } @else {
+                <h4 class="system-sm-semibold">{{ 'XP.Knowledgebase.KeywordSearch' | translate }}</h4>
+              }
+              <p class="mt-2 system-xs-regular text-text-tertiary">
+                {{ 'XP.Knowledgebase.KeywordSearchDesc' | translate }}
+              </p>
             </div>
-            <z-switch [(ngModel)]="graphEnabled" zSize="sm" />
+            <ng-container *ngTemplateOutlet="statusBadge; context: { active: keywordRetrieverActive() }" />
           </z-card-header>
-
-          @if (graphControlsVisible()) {
-            <z-card-content class="flex flex-col gap-4 px-4 py-3">
-              <div data-setting="entity-top-k" class="min-w-0">
-                <div class="mb-2 system-xs-semibold text-text-secondary">
-                  <span>{{ 'XP.Knowledgebase.EntityTopK' | translate: { Default: 'Entity Top K' } }}</span>
-                </div>
-                <div data-slider-input class="flex min-w-0 items-center gap-3">
-                  <z-slider
-                    class="min-w-0 flex-1"
-                    [min]="1"
-                    [max]="50"
-                    [step]="1"
-                    [disabledInput]="!graphEnabled()"
-                    [(ngModel)]="entityTopK"
-                  />
-                  <input
-                    z-input
-                    zSize="sm"
-                    class="w-16 shrink-0 text-center"
-                    type="number"
-                    [min]="1"
-                    [max]="50"
-                    [step]="1"
-                    [disabled]="!graphEnabled()"
-                    [(ngModel)]="entityTopK"
-                  />
-                </div>
-              </div>
-              <div data-setting="neighbor-hops" class="min-w-0">
-                <div class="mb-2 system-xs-semibold text-text-secondary">
-                  <span>{{ 'XP.Knowledgebase.NeighborHops' | translate: { Default: 'Neighbor Hops' } }}</span>
-                </div>
-                <div data-slider-input class="flex min-w-0 items-center gap-3">
-                  <z-slider
-                    class="min-w-0 flex-1"
-                    [min]="1"
-                    [max]="2"
-                    [step]="1"
-                    [disabledInput]="!graphEnabled()"
-                    [(ngModel)]="neighborHops"
-                  />
-                  <input
-                    z-input
-                    zSize="sm"
-                    class="w-16 shrink-0 text-center"
-                    type="number"
-                    [min]="1"
-                    [max]="2"
-                    [step]="1"
-                    [disabled]="!graphEnabled()"
-                    [(ngModel)]="neighborHops"
-                  />
-                </div>
-              </div>
-              @if (mode() !== 'hybrid') {
-                <ng-container
-                  *ngTemplateOutlet="
-                    topKControl;
-                    context: {
-                      label: 'XP.Knowledgebase.GraphChunkTopK',
-                      defaultLabel: 'Retrieved Chunk Top K',
-                      tooltip: 'XP.Knowledgebase.GraphChunkTopKTooltip',
-                      defaultTooltip:
-                        'The maximum number of source chunks returned after entity matching and neighborhood expansion.',
-                      scope: 'retriever'
-                    }
-                  "
-                />
-              }
-              @if (mode() === 'hybrid' && !rrfActive()) {
-                <div data-setting="legacy-graph-weight" class="min-w-0">
-                  <div class="mb-2 system-xs-semibold text-text-secondary">
-                    <span>{{ 'XP.Knowledgebase.GraphWeight' | translate: { Default: 'Graph Weight' } }}</span>
-                  </div>
-                  <div data-slider-input class="flex min-w-0 items-center gap-3">
-                    <z-slider
-                      class="min-w-0 flex-1"
-                      [min]="0"
-                      [max]="1"
-                      [step]="0.05"
-                      [disabledInput]="!graphEnabled()"
-                      [(ngModel)]="graphWeight"
-                    />
-                    <input
-                      z-input
-                      zSize="sm"
-                      class="w-16 shrink-0 text-center"
-                      type="number"
-                      [min]="0"
-                      [max]="1"
-                      [step]="0.05"
-                      [disabled]="!graphEnabled()"
-                      [(ngModel)]="graphWeight"
-                    />
-                  </div>
-                </div>
-              }
-            </z-card-content>
+          @if (mode() === 'hybrid' && !rrfActive()) {
+            <z-card-content class="border-t border-divider-subtle px-4 py-3 system-xs-regular text-text-tertiary">{{
+              'XP.Knowledgebase.KeywordRequiresRankFusion' | translate
+            }}</z-card-content>
           }
         </z-card>
       }
-    </z-card-content>
-  </z-card>
+      @if (allowGraphRetrieval() && (mode() === 'graph' || mode() === 'hybrid')) {
+        <z-card
+          data-retriever-card="graph"
+          class="min-w-0 gap-0 border-divider-regular bg-components-card-bg py-0 shadow-none"
+        >
+          <z-card-header class="flex flex-row items-start justify-between gap-3 px-4 py-3">
+            <div class="min-w-0">
+              @if (mode() === 'hybrid') {
+                <z-checkbox
+                  [ngModel]="graphRetrieverActive()"
+                  [zDisabled]="!rrfActive() || !graphAvailable()"
+                  (ngModelChange)="setRetrieverEnabled('graph', $event)"
+                  ><span class="system-sm-semibold">{{ 'XP.Knowledgebase.GraphRAG' | translate }}</span></z-checkbox
+                >
+              } @else {
+                <h4 class="system-sm-semibold">{{ 'XP.Knowledgebase.GraphRAG' | translate }}</h4>
+              }
+              <p class="mt-2 system-xs-regular text-text-tertiary">
+                {{ 'XP.Knowledgebase.GraphRecallHelp' | translate }}
+              </p>
+            </div>
+            <ng-container *ngTemplateOutlet="statusBadge; context: { active: graphRetrieverActive() }" />
+          </z-card-header>
+          <z-card-content class="space-y-4 border-t border-divider-subtle px-4 py-3">
+            @if (!graphAvailable()) {
+              <p class="system-xs-regular text-text-tertiary">
+                {{
+                  (wikiOnly()
+                    ? 'XP.Knowledgebase.RetrievalContentWikiHint'
+                    : 'XP.Knowledgebase.GraphRetrievalUnavailable'
+                  ) | translate
+                }}
+              </p>
+            } @else {
+              <div data-setting="entity-top-k">
+                <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+                  'XP.Knowledgebase.EntityTopK' | translate
+                }}</label>
 
-  @if (mode() === 'hybrid') {
-    <z-card data-retrieval-stage="fusion" class="gap-0 border-divider-regular bg-components-panel-bg py-0 shadow-none">
-      <z-card-header class="flex flex-row items-start justify-between gap-3 border-b border-divider-regular px-4 py-3">
-        <div class="flex min-w-0 items-start gap-3">
-          <z-badge
-            class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary p-0 text-primary-foreground"
-          >
-            2
-          </z-badge>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1">
-              <z-card-title class="system-sm-semibold text-text-primary">
-                {{ 'XP.Knowledgebase.FusionStrategy' | translate: { Default: 'Fusion strategy' } }}
-              </z-card-title>
-              <i
-                class="ri-information-2-line shrink-0 text-text-tertiary"
-                [zTooltip]="
-                  'XP.Knowledgebase.WeightedRRFInfo'
-                    | translate
-                      : {
-                          Default:
-                            'In Hybrid mode, merge enabled retrieval sources by rank. Leave it off to keep the existing weighted fusion behavior.'
-                        }
-                "
-                zPosition="top"
-              ></i>
-            </div>
-            <z-card-subtitle class="mt-1 system-xs-regular text-text-tertiary">
-              {{
-                'XP.Knowledgebase.FusionStrategyDesc'
-                  | translate: { Default: 'Combine multiple candidate lists into one ordered result set.' }
-              }}
-            </z-card-subtitle>
-          </div>
-        </div>
-        <div class="flex shrink-0 items-center gap-2">
-          <span class="hidden system-xs-semibold text-text-secondary @[640px]/retrieval:inline">
-            {{ 'XP.Knowledgebase.WeightedRRF' | translate: { Default: 'Weighted RRF' } }}
-          </span>
-          <z-switch [(ngModel)]="rrfEnabled" [disabled]="!allowGraphRetrieval()" zSize="sm" />
-        </div>
-      </z-card-header>
-
-      <z-card-content class="px-4 py-3">
-        @if (rrfActive()) {
-          <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3">
-            <div
-              data-setting="rrf-rank-constant"
-              class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
-            >
-              <div class="mb-3 system-xs-semibold text-text-secondary">
-                <span>{{ 'XP.Knowledgebase.RRFRankConstant' | translate: { Default: 'Rank Constant' } }}</span>
-              </div>
-              <div data-slider-input class="flex min-w-0 items-center gap-3">
-                <z-slider class="min-w-0 flex-1" [min]="0" [max]="100" [step]="1" [(ngModel)]="rrfRankConstant" />
-                <input
-                  z-input
-                  zSize="sm"
-                  class="w-16 shrink-0 text-center"
-                  type="number"
-                  [min]="0"
-                  [max]="100"
-                  [step]="1"
-                  [(ngModel)]="rrfRankConstant"
-                />
-              </div>
-            </div>
-            <div
-              data-setting="rrf-vector-weight"
-              class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
-            >
-              <div class="mb-3 system-xs-semibold text-text-secondary">
-                <span>{{ 'XP.Knowledgebase.RRFVectorWeight' | translate: { Default: 'Vector Weight' } }}</span>
-              </div>
-              <div data-slider-input class="flex min-w-0 items-center gap-3">
-                <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfVectorWeight" />
-                <input
-                  z-input
-                  zSize="sm"
-                  class="w-16 shrink-0 text-center"
-                  type="number"
-                  [min]="0"
-                  [max]="1"
-                  [step]="0.05"
-                  [(ngModel)]="rrfVectorWeight"
-                />
-              </div>
-            </div>
-            @if (allowGraphRetrieval()) {
-              <div
-                data-setting="rrf-graph-weight"
-                class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
-              >
-                <div class="mb-3 system-xs-semibold text-text-secondary">
-                  <span>{{ 'XP.Knowledgebase.RRFGraphWeight' | translate: { Default: 'Graph Weight' } }}</span>
-                </div>
                 <div data-slider-input class="flex min-w-0 items-center gap-3">
-                  <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfGraphWeight" />
+                  <z-slider
+                    class="mx-3 min-w-0 flex-1"
+                    [min]="1"
+                    [max]="50"
+                    [step]="1"
+                    [disabledInput]="!graphRetrieverActive()"
+                    [(ngModel)]="entityTopK"
+                  />
                   <input
                     z-input
                     zSize="sm"
                     class="w-16 shrink-0 text-center"
                     type="number"
-                    [min]="0"
-                    [max]="1"
-                    [step]="0.05"
-                    [(ngModel)]="rrfGraphWeight"
+                    [min]="1"
+                    [max]="50"
+                    [step]="1"
+                    [disabled]="!graphRetrieverActive()"
+                    [attr.aria-label]="'XP.Knowledgebase.EntityTopK' | translate"
+                    [(ngModel)]="entityTopK"
+                  />
+                </div>
+              </div>
+              <div data-setting="neighbor-hops">
+                <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+                  'XP.Knowledgebase.NeighborHops' | translate
+                }}</label>
+
+                <div data-slider-input class="flex min-w-0 items-center gap-3">
+                  <z-slider
+                    class="mx-3 min-w-0 flex-1"
+                    [min]="1"
+                    [max]="2"
+                    [step]="1"
+                    [disabledInput]="!graphRetrieverActive()"
+                    [(ngModel)]="neighborHops"
+                  />
+                  <input
+                    z-input
+                    zSize="sm"
+                    class="w-16 shrink-0 text-center"
+                    type="number"
+                    [min]="1"
+                    [max]="2"
+                    [step]="1"
+                    [disabled]="!graphRetrieverActive()"
+                    [attr.aria-label]="'XP.Knowledgebase.NeighborHops' | translate"
+                    [(ngModel)]="neighborHops"
                   />
                 </div>
               </div>
             }
-            <div
-              data-setting="rrf-keyword-weight"
-              class="rounded-lg border border-divider-subtle bg-components-card-bg p-3"
-            >
-              <div class="mb-3 system-xs-semibold text-text-secondary">
-                <span>{{ 'XP.Knowledgebase.RRFKeywordWeight' | translate: { Default: 'Keyword Weight' } }}</span>
-              </div>
+          </z-card-content>
+        </z-card>
+      }
+    </div>
+  </section>
+  @if (mode() === 'hybrid') {
+    <section data-retrieval-stage="fusion" class="border-t border-divider-subtle pt-5">
+      <div class="mb-3 flex items-start gap-3">
+        <span
+          class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground system-xs-semibold"
+          >2</span
+        >
+        <div>
+          <h3 class="system-sm-semibold text-text-primary">{{ 'XP.Knowledgebase.FusionStrategy' | translate }}</h3>
+          <p class="mt-1 system-xs-regular text-text-tertiary">
+            {{ 'XP.Knowledgebase.FusionStrategyDesc' | translate }}
+          </p>
+        </div>
+      </div>
+      <z-toggle-group
+        zType="outline"
+        zSize="sm"
+        [ngModel]="rrfEnabled() ? 'weighted_rrf' : 'legacy'"
+        (ngModelChange)="rrfEnabled.set($event === 'weighted_rrf')"
+      >
+        <z-toggle-group-item value="weighted_rrf">{{
+          'XP.Knowledgebase.RankFusionRecommended' | translate
+        }}</z-toggle-group-item>
+        <z-toggle-group-item value="legacy" [disabled]="!allowGraphRetrieval()">{{
+          'XP.Knowledgebase.LegacyFusionCompatibility' | translate
+        }}</z-toggle-group-item>
+      </z-toggle-group>
+      @if (rrfActive()) {
+        <p class="my-3 system-xs-regular text-text-tertiary">{{ 'XP.Knowledgebase.RRFWeightGuidance' | translate }}</p>
+        <div class="grid grid-cols-1 gap-4 @[560px]/retrieval:grid-cols-2">
+          <div data-setting="rrf-vector-weight">
+            <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+              'XP.Knowledgebase.RRFVectorWeight' | translate
+            }}</label>
+
+            <div data-slider-input class="flex min-w-0 items-center gap-3">
+              <z-slider class="mx-3 min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfVectorWeight" />
+              <input
+                z-input
+                zSize="sm"
+                class="w-16 shrink-0 text-center"
+                type="number"
+                [min]="0"
+                [max]="1"
+                [step]="0.05"
+                [attr.aria-label]="'XP.Knowledgebase.RRFVectorWeight' | translate"
+                [(ngModel)]="rrfVectorWeight"
+              />
+            </div>
+          </div>
+          <div data-setting="rrf-keyword-weight">
+            <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+              'XP.Knowledgebase.RRFKeywordWeight' | translate
+            }}</label>
+
+            <div data-slider-input class="flex min-w-0 items-center gap-3">
+              <z-slider class="mx-3 min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfKeywordWeight" />
+              <input
+                z-input
+                zSize="sm"
+                class="w-16 shrink-0 text-center"
+                type="number"
+                [min]="0"
+                [max]="1"
+                [step]="0.05"
+                [attr.aria-label]="'XP.Knowledgebase.RRFKeywordWeight' | translate"
+                [(ngModel)]="rrfKeywordWeight"
+              />
+            </div>
+          </div>
+          @if (graphAvailable()) {
+            <div data-setting="rrf-graph-weight">
+              <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+                'XP.Knowledgebase.RRFGraphWeight' | translate
+              }}</label>
+
               <div data-slider-input class="flex min-w-0 items-center gap-3">
-                <z-slider class="min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfKeywordWeight" />
+                <z-slider class="mx-3 min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="rrfGraphWeight" />
                 <input
                   z-input
                   zSize="sm"
@@ -536,153 +397,172 @@
                   [min]="0"
                   [max]="1"
                   [step]="0.05"
-                  [(ngModel)]="rrfKeywordWeight"
+                  [attr.aria-label]="'XP.Knowledgebase.RRFGraphWeight' | translate"
+                  [(ngModel)]="rrfGraphWeight"
                 />
               </div>
             </div>
-          </div>
-
-          <div
-            class="mt-3 flex items-start gap-2 rounded-lg bg-state-success-hover/10 px-3 py-2 system-xs-regular text-text-secondary"
-          >
-            <i class="ri-checkbox-circle-line mt-0.5 shrink-0 text-text-success"></i>
-            <span>
-              {{
-                'XP.Knowledgebase.RRFWeightGuidance'
-                  | translate
-                    : {
-                        Default:
-                          'Weights do not need to add up to 1; only their relative proportions affect RRF ordering.'
-                      }
-              }}
-            </span>
-          </div>
-
-          @if (useScore()) {
-            <div
-              class="mt-3 flex items-start gap-2 rounded-lg bg-background-default-subtle px-3 py-2 system-xs-regular text-text-warning"
-            >
-              <i class="ri-information-line mt-0.5 shrink-0"></i>
-              <span>{{
-                'XP.Knowledgebase.RRFThresholdIgnored'
-                  | translate
-                    : {
-                        Default:
-                          'Similarity Threshold is ignored by RRF because rank-fusion scores are not vector similarity scores.'
-                      }
-              }}</span>
-            </div>
           }
-          @if (!rrfHasEnabledRetriever()) {
-            <div
-              class="mt-3 flex items-start gap-2 rounded-lg bg-background-default-subtle px-3 py-2 system-xs-regular text-text-warning"
-            >
-              <i class="ri-error-warning-line mt-0.5 shrink-0"></i>
-              <span>{{
-                'XP.Knowledgebase.RRFPositiveWeightRequired'
-                  | translate: { Default: 'Set at least one retrieval source weight greater than zero.' }
-              }}</span>
-            </div>
-          }
-        } @else {
-          <div
-            class="flex items-start gap-2 rounded-lg border border-divider-subtle bg-components-card-bg px-3 py-2 system-xs-regular text-text-secondary"
-          >
-            <i class="ri-information-line mt-0.5 shrink-0 text-text-accent"></i>
-            <span>
-              {{
-                'XP.Knowledgebase.LegacyFusionActive'
-                  | translate: { Default: 'Legacy weighted fusion remains active until Weighted RRF is enabled.' }
-              }}
-            </span>
-          </div>
-        }
-      </z-card-content>
-    </z-card>
-  }
+          <div data-setting="rrf-rank-constant">
+            <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+              'XP.Knowledgebase.RRFRankConstant' | translate
+            }}</label>
 
-  <z-card data-retrieval-stage="rerank" class="gap-0 border-divider-regular bg-components-panel-bg py-0 shadow-none">
-    <z-card-header class="flex flex-row items-start justify-between gap-3 border-b border-divider-regular px-4 py-3">
-      <div class="flex min-w-0 items-start gap-3">
-        <z-badge
-          [attr.data-rerank-stage-number]="mode() === 'hybrid' ? 3 : 2"
-          class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary p-0 text-primary-foreground"
-        >
-          {{ mode() === 'hybrid' ? 3 : 2 }}
-        </z-badge>
-        <div class="min-w-0">
-          <div class="flex items-center gap-1">
-            <z-card-title class="system-sm-semibold text-text-primary">
-              {{ 'XP.Knowledgebase.Reranking' | translate: { Default: 'Reranking' } }}
-            </z-card-title>
-            <i
-              class="ri-information-2-line shrink-0 text-text-tertiary"
-              [zTooltip]="
-                'XP.Knowledgebase.RerankModelInfo'
-                  | translate
-                    : {
-                        Default:
-                          'Rerank model will reorder the candidate document list based on the semantic match with user query.'
-                      }
-              "
-              zPosition="top"
-            ></i>
+            <div data-slider-input class="flex min-w-0 items-center gap-3">
+              <z-slider class="mx-3 min-w-0 flex-1" [min]="0" [max]="100" [step]="1" [(ngModel)]="rrfRankConstant" />
+              <input
+                z-input
+                zSize="sm"
+                class="w-16 shrink-0 text-center"
+                type="number"
+                [min]="0"
+                [max]="100"
+                [step]="1"
+                [attr.aria-label]="'XP.Knowledgebase.RRFRankConstant' | translate"
+                [(ngModel)]="rrfRankConstant"
+              />
+            </div>
           </div>
-          <z-card-subtitle class="mt-1 system-xs-regular text-text-tertiary">
-            {{
-              'XP.Knowledgebase.RerankingDesc'
-                | translate: { Default: 'Refine the fused candidates before returning the final result.' }
-            }}
-          </z-card-subtitle>
         </div>
-      </div>
-      <z-switch [(ngModel)]="useRerank" zSize="sm" />
-    </z-card-header>
+      } @else {
+        <p class="my-3 system-xs-regular text-text-tertiary">
+          {{ 'XP.Knowledgebase.LegacyFusionSourcesHelp' | translate }}
+        </p>
+        @if (graphAvailable()) {
+          <div data-setting="legacy-graph-weight">
+            <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+              'XP.Knowledgebase.GraphWeight' | translate
+            }}</label>
 
-    @if (useRerank() || mode() === 'hybrid') {
-      <z-card-content class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] items-end gap-4 px-4 py-3">
-        @if (useRerank()) {
-          <div class="min-w-0">
-            <div class="system-xs-semibold text-text-secondary">
-              {{ 'XP.Knowledgebase.RerankModel' | translate: { Default: 'Rerank Model' } }}
+            <div data-slider-input class="flex min-w-0 items-center gap-3">
+              <z-slider class="mx-3 min-w-0 flex-1" [min]="0" [max]="1" [step]="0.05" [(ngModel)]="graphWeight" />
+              <input
+                z-input
+                zSize="sm"
+                class="w-16 shrink-0 text-center"
+                type="number"
+                [min]="0"
+                [max]="1"
+                [step]="0.05"
+                [attr.aria-label]="'XP.Knowledgebase.GraphWeight' | translate"
+                [(ngModel)]="graphWeight"
+              />
             </div>
-            <copilot-model-select
-              class="mt-2 block"
-              hiddenLabel
-              [modelType]="eAiModelTypeEnum.RERANK"
-              [(ngModel)]="rerankModel"
-            />
           </div>
         }
-        @if (mode() === 'hybrid') {
-          <ng-container
-            *ngTemplateOutlet="
-              topKControl;
-              context: {
-                label: 'XP.Knowledgebase.FinalResultTopK',
-                defaultLabel: 'Final Result Top K',
-                tooltip: 'XP.Knowledgebase.FinalResultTopKTooltip',
-                defaultTooltip: 'The maximum number of text chunks returned after fusion or reranking.',
-                scope: 'final'
-              }
-            "
-          />
-        }
-      </z-card-content>
-    }
-  </z-card>
+      }
+    </section>
+  }
+  <section data-retrieval-stage="rerank" class="border-t border-divider-subtle pt-5">
+    <div class="mb-3 flex items-start gap-3">
+      <span
+        [attr.data-rerank-stage-number]="mode() === 'hybrid' ? 3 : 2"
+        class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground system-xs-semibold"
+        >{{ mode() === 'hybrid' ? 3 : 2 }}</span
+      >
+      <div>
+        <h3 class="system-sm-semibold text-text-primary">{{ 'XP.Knowledgebase.RetrievalResults' | translate }}</h3>
+        <p class="mt-1 system-xs-regular text-text-tertiary">{{ 'XP.Knowledgebase.FinalRerankingHelp' | translate }}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 items-start gap-5 @[560px]/retrieval:grid-cols-2">
+      <div data-setting="retrieval-top-k" data-top-k-scope="shared">
+        <label z-form-label class="mb-2 block system-xs-semibold text-text-secondary">{{
+          'XP.Knowledgebase.RetrievalTopK' | translate
+        }}</label>
 
+        <div data-slider-input class="flex min-w-0 items-center gap-3">
+          <z-slider class="mx-3 min-w-0 flex-1" [min]="1" [max]="100" [step]="1" [(ngModel)]="topK" />
+          <input
+            z-input
+            zSize="sm"
+            class="w-16 shrink-0 text-center"
+            type="number"
+            [min]="1"
+            [max]="100"
+            [step]="1"
+            [attr.aria-label]="'XP.Knowledgebase.RetrievalTopK' | translate"
+            [(ngModel)]="topK"
+          />
+        </div>
+        <p class="mt-2 system-xs-regular text-text-tertiary">
+          {{ 'XP.Knowledgebase.SharedRetrievalTopKHelp' | translate }}
+        </p>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="system-xs-semibold text-text-secondary">{{ 'XP.Knowledgebase.Reranking' | translate }}</span>
+          <z-switch [(ngModel)]="useRerank" zSize="sm"
+            ><span class="sr-only">{{ 'XP.Knowledgebase.Reranking' | translate }}</span></z-switch
+          >
+        </div>
+        @if (useRerank()) {
+          <copilot-model-select
+            class="mt-3 block"
+            hiddenLabel
+            [modelType]="eAiModelTypeEnum.RERANK"
+            [(ngModel)]="rerankModel"
+          />
+          <div data-setting="rerank-threshold" class="mt-4">
+            <div class="mb-2 flex items-center justify-between gap-2">
+              <span class="system-xs-semibold text-text-secondary">{{
+                'XP.Knowledgebase.RerankThreshold' | translate
+              }}</span>
+              <z-switch [(ngModel)]="useRerankThreshold" zSize="sm"
+                ><span class="sr-only">{{ 'XP.Knowledgebase.RerankThreshold' | translate }}</span></z-switch
+              >
+            </div>
+            <div data-slider-input class="flex min-w-0 items-center gap-3">
+              <z-slider
+                class="mx-3 min-w-0 flex-1"
+                [min]="0"
+                [max]="1"
+                [step]="0.01"
+                [disabledInput]="!useRerankThreshold()"
+                [(ngModel)]="rerankThreshold"
+              />
+              <input
+                z-input
+                zSize="sm"
+                class="w-16 shrink-0 text-center"
+                type="number"
+                [min]="0"
+                [max]="1"
+                [step]="0.01"
+                [disabled]="!useRerankThreshold()"
+                [attr.aria-label]="'XP.Knowledgebase.RerankThreshold' | translate"
+                [(ngModel)]="rerankThreshold"
+              />
+            </div>
+            <p class="mt-2 system-xs-regular text-text-tertiary">
+              {{ 'XP.Knowledgebase.RerankThresholdHelp' | translate }}
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+  @if (!rrfHasEnabledRetriever()) {
+    <div
+      z-form-message
+      data-retrieval-error
+      role="alert"
+      class="flex items-start gap-2 rounded-lg bg-background-default-subtle px-3 py-2 system-xs-regular text-text-warning"
+    >
+      <i class="ri-error-warning-line mt-0.5 shrink-0"></i
+      ><span>{{ 'XP.Knowledgebase.RetrievalSourceRequired' | translate }}</span>
+    </div>
+  }
   @if (loading()) {
     <xp-spin class="absolute inset-0 z-20 size-full rounded-xl bg-components-card-bg/70" />
   }
 </div>
-
 @if (savable()) {
   <div
-    class="sticky bottom-0 z-10 mt-3 flex justify-end gap-2 border-t border-divider-subtle bg-components-card-bg px-2 py-3"
+    class="sticky bottom-0 z-10 mt-4 flex items-center justify-end gap-2 border-t border-divider-subtle bg-components-card-bg px-2 py-3"
   >
-    <button z-button type="button" zType="outline" zSize="sm" (click)="cancel()">
-      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+    <button z-button data-action="cancel" type="button" zType="outline" zSize="sm" (click)="cancel()">
+      {{ 'XP.ACTIONS.Cancel' | translate }}
     </button>
     <button
       z-button
@@ -693,7 +573,7 @@
       [zDisabled]="!rrfHasEnabledRetriever()"
       (click)="saveRetrievalSettings()"
     >
-      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      {{ 'XP.Knowledgebase.SaveDefaultRetrieval' | translate }}
     </button>
   </div>
 }

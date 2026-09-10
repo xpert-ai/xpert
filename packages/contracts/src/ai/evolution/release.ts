@@ -37,6 +37,7 @@ export interface ApprovalDecision {
   candidateId: string
   candidateHash: string
   evaluationRunId: string
+  strategyHash?: string
   scope: EvolutionScope
   decision: 'approved' | 'rejected'
   actorId: string
@@ -53,6 +54,7 @@ export interface ApprovalDecision {
 }
 
 export interface ReleasePackage {
+  publicationKind: 'staged_rollout'
   releasePackageId: string
   candidateId: string
   candidateHash: string

@@ -3,6 +3,7 @@ import type {
   I18nObject,
   JsonSchemaObjectType,
   McpRequiredContext,
+  McpCapabilityApprovalMode,
   McpToolBehavior,
   TAgentMiddlewareMeta
 } from '@xpert-ai/contracts'
@@ -13,6 +14,8 @@ import type { IAgentMiddlewareContext } from '../agent/middleware/strategy.inter
 import type { McpAppDefinition } from '../mcp/app'
 import type { ToolExecutionContext, ToolHostApi, ToolPrincipal } from '../toolset/tool-execution-context'
 import type { XpertToolAppBinding, XpertToolVisibility } from '../toolset/define-tool'
+import type { XpertToolResult } from '../toolset/tool-result'
+import type { XpertPreparedToolResult } from './prepared-result'
 import type { PromiseOrValue } from '../types'
 
 export type XpertBusinessToolSurface = 'middleware' | 'mcp'
@@ -49,6 +52,8 @@ export interface XpertToolProviderOptions {
 }
 
 export interface XpertMcpToolOptions {
+  /** Default for auto-published tools; explicit administrator policy takes precedence. */
+  defaultApprovalMode?: McpCapabilityApprovalMode
   behavior: McpToolBehavior
   requiredContext: readonly McpRequiredContext[]
   visibility?: readonly XpertToolVisibility[]
@@ -65,6 +70,8 @@ export interface XpertToolOptions<
   description: string
   inputSchema: TInputSchema
   outputSchema?: TOutputSchema
+  /** Opt in to standard content blocks; outputSchema validates structuredContent. */
+  resultFormat?: 'dto' | 'tool_result'
   /** true uses the class default, a string selects a declared group, false disables Middleware exposure. */
   middleware?: true | string | false
   /** MCP exposure is opt-in. */
@@ -95,7 +102,10 @@ export interface XpertBusinessToolContext {
 export type XpertDecoratedToolMethod<
   TInputSchema extends ZodTypeAny = ZodTypeAny,
   TOutputSchema extends ZodTypeAny = ZodTypeAny
-> = (input: ZodInfer<TInputSchema>, context: XpertBusinessToolContext) => PromiseOrValue<ZodInfer<TOutputSchema>>
+> = (
+  input: ZodInfer<TInputSchema>,
+  context: XpertBusinessToolContext
+) => PromiseOrValue<ZodInfer<TOutputSchema> | XpertToolResult<ZodInfer<TOutputSchema>> | XpertPreparedToolResult>
 
 export interface XpertToolProviderInstance {
   getMiddlewareExtensions?(

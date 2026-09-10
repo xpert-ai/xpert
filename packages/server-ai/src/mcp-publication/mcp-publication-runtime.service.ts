@@ -1,4 +1,8 @@
+import { runWithCapturedRequestContext } from '../shared/request-context'
+import { mcpInputSchema } from './mcp-input-schema'
 import {
+    defaultMcpToolApprovalMode,
+    canAllowMcpToolDirectly,
     MCP_PROTOCOL_VERSION,
     MCP_TASK_EXTENSION_ID,
     type McpAppCapabilityDescriptor,
@@ -165,7 +169,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                             }
                             throw error
                         }
-                        await applicationTracing.traceAsync(
+                        const executionUser = await applicationTracing.traceAsync(
                             'mcp.authorize',
                             { 'mcp.publication.id': publication.id },
                             () => this.publicationAuthorization.assertCanRun(publication, principal)
@@ -204,7 +208,21 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                         )
                         const nodeHandler = toNodeHandler(handler)
                         try {
-                            await nodeHandler(request, response, parsedBody)
+                            // File/Artifact capabilities read RequestContext. Restore only the user
+                            // verified for this call; a service account must not inherit an administrator.
+                            await runWithCapturedRequestContext(
+                                {
+                                    user: executionUser ?? null,
+                                    headers: {
+                                        'tenant-id': principal.tenantId,
+                                        ...(principal.organizationId
+                                            ? { 'organization-id': principal.organizationId }
+                                            : {}),
+                                        'x-request-id': requestId
+                                    }
+                                },
+                                () => nodeHandler(request, response, parsedBody)
+                            )
                             status = response.statusCode >= 400 ? 'error' : 'success'
                         } finally {
                             await handler.close()
@@ -339,7 +357,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
         requestId: string,
         traceId?: string
     ) {
-        const inputSchema = fromJsonSchema(descriptor.inputSchema as JsonSchemaType)
+        const inputSchema = mcpInputSchema(descriptor.inputSchema as JsonSchemaType)
         const outputSchema = descriptor.outputSchema
             ? fromJsonSchema(descriptor.outputSchema as JsonSchemaType)
             : undefined
@@ -1106,18 +1124,13 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
     }
 }
 
-function defaultApprovalMode(descriptor: McpToolCapabilityDescriptor) {
-    if (descriptor.behavior.risk === 'read') return 'allow'
-    if (descriptor.behavior.risk === 'write') return 'confirm'
-    return 'deny'
-}
-
 function effectiveApprovalMode(
     capability: McpPublicationCapability,
     descriptor: McpToolCapabilityDescriptor
 ): McpCapabilityApprovalMode {
-    const configured = capability.policy?.approvalMode ?? defaultApprovalMode(descriptor)
-    return descriptor.behavior.risk === 'dangerous' && configured === 'allow' ? 'deny' : configured
+    // Administrator overrides win; an owner-declared allow is required for dangerous tools.
+    const configured = capability.policy?.approvalMode ?? defaultMcpToolApprovalMode(descriptor)
+    return !canAllowMcpToolDirectly(descriptor) && configured === 'allow' ? 'deny' : configured
 }
 
 function isToolApprovalGranted(value: unknown) {

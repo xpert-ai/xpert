@@ -5,7 +5,7 @@ import {
     GetFileUnderstandingStatusQuery,
     ResolveAuthorizedFileAssetQuery,
     SearchFileChunksQuery
-} from '../../file-understanding'
+} from '../../file-understanding/queries'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { VolumeHandle } from '../volume'
 import { DefaultRuntimeCapabilityRegistry, ProjectAccessRuntimeCapability, RequestContext } from '@xpert-ai/plugin-sdk'

@@ -23,7 +23,7 @@ import {
   resolveI18nText,
   TXpertMarketplaceBusinessCategory,
   TXpertMarketplaceTechnicalCategory,
-  TXpertTemplate,
+  TXpertTemplateSummary,
   XpertMarketplaceBusinessCategories,
   XpertMarketplaceService,
   XpertTemplateService,
@@ -115,7 +115,9 @@ export class ExploreAgentSquareComponent {
   readonly selectedApplicationScopes = signal<ApplicationScope[]>([])
   readonly applicationSort = signal<CatalogSort>('comprehensive')
 
-  readonly templates = signal<TXpertTemplate[]>([])
+  readonly templates = signal<TXpertTemplateSummary[]>([])
+  readonly visibleTemplateCount = signal(24)
+  readonly visibleTemplates = computed(() => this.filteredTemplates().slice(0, this.visibleTemplateCount()))
   readonly loadingTemplates = signal(false)
   readonly templateLoadError = signal<string | null>(null)
   readonly selectedTemplateCategories = signal<string[]>([])
@@ -287,6 +289,10 @@ export class ExploreAgentSquareComponent {
   #carouselTimer: ReturnType<typeof setInterval> | null = null
 
   constructor() {
+    effect(() => {
+      this.filteredTemplates()
+      this.visibleTemplateCount.set(24)
+    })
     void this.loadFeaturedExperts()
     void this.loadApplications(this.catalog() !== 'applications')
 
@@ -395,8 +401,8 @@ export class ExploreAgentSquareComponent {
     this.loadingTemplates.set(true)
     this.templateLoadError.set(null)
     try {
-      const result = await firstValueFrom(this.#templateService.getAll())
-      this.templates.set(result.recommendedApps ?? [])
+      const result = await firstValueFrom(this.#templateService.getSummaries())
+      this.templates.set(result)
     } catch (error) {
       this.#templatesLoaded = false
       this.templates.set([])
@@ -702,19 +708,19 @@ export class ExploreAgentSquareComponent {
     return `XP.Explore.Application.Scope.${keys[scope]}`
   }
 
-  templateTitle(template: TXpertTemplate) {
+  templateTitle(template: TXpertTemplateSummary) {
     return this.localizedCatalogText(template.title) || this.localizedCatalogText(template.name)
   }
 
-  templateSummary(template: TXpertTemplate) {
+  templateSummary(template: TXpertTemplateSummary) {
     return this.localizedCatalogText(template.description)
   }
 
-  templateSource(template: TXpertTemplate): TemplateSource {
+  templateSource(template: TXpertTemplateSummary): TemplateSource {
     return template.source === 'plugin' ? 'plugin' : 'builtin'
   }
 
-  templateProvider(template: TXpertTemplate) {
+  templateProvider(template: TXpertTemplateSummary) {
     if (this.templateSource(template) === 'plugin') {
       return (
         template.pluginDisplayName ||
@@ -725,7 +731,7 @@ export class ExploreAgentSquareComponent {
     return this.#translate.instant('XP.Explore.AgentSquare.TemplateSource.builtin', { Default: 'Built in' })
   }
 
-  templateSearchText(template: TXpertTemplate) {
+  templateSearchText(template: TXpertTemplateSummary) {
     return [
       template.title,
       template.name,
@@ -739,7 +745,7 @@ export class ExploreAgentSquareComponent {
       .toLowerCase()
   }
 
-  openTemplate(template: TXpertTemplate, event?: Event) {
+  openTemplate(template: TXpertTemplateSummary, event?: Event) {
     event?.stopPropagation()
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {

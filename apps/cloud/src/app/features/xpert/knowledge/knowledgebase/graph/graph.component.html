@@ -33,22 +33,28 @@
               {{ 'XP.Knowledgebase.GraphChatModelFallback' | translate: { Default: 'Primary Copilot fallback' } }}
             }
           </span>
-          <a
+          <button
             z-button
+            type="button"
             zType="ghost"
             zSize="icon-sm"
             class="shrink-0"
-            [routerLink]="['/xpert/knowledges', knowledgebase()?.id, 'configuration']"
+            (click)="knowledgebaseComponent.openConfiguration('models')"
             [attr.aria-label]="'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' }"
             [title]="'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' }"
           >
             <z-icon zType="settings" />
-          </a>
+          </button>
         </div>
         <button z-button type="button" zType="outline" [disabled]="loading()" (click)="loadGraph()">
           <z-icon zType="refresh" [class.animate-spin]="loading()" />
           <span class="hidden 2xl:inline">{{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}</span>
         </button>
+        <xp-knowledge-graph-index-actions
+          [knowledgebaseId]="knowledgebase()?.id"
+          [(status)]="status"
+          (indexingComplete)="loadGraph(); knowledgebaseComponent.refresh()"
+        />
         <button z-button type="button" zType="outline" [disabled]="disabled()" (click)="openCreateEntity()">
           <z-icon zType="plus" />
           {{ 'XP.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
@@ -64,6 +70,19 @@
         </button>
       </div>
     </div>
+    @if (status()?.enabled && status()?.status === KnowledgeGraphStatus.REBUILD_REQUIRED) {
+      <p class="mt-3 text-sm text-text-warning">
+        {{
+          'XP.Knowledgebase.GraphRebuildRequiredHelp'
+            | translate
+              : {
+                  Default: 'Graph indexing is enabled. Rebuild the graph to include existing documents.'
+                }
+        }}
+      </p>
+    } @else if (status()?.status === KnowledgeGraphStatus.FAILED && status()?.error) {
+      <p class="mt-3 text-sm text-text-danger">{{ status()?.error }}</p>
+    }
   </header>
 
   <section class="shrink-0 border-b border-components-panel-border bg-components-card-bg px-5 py-3">
@@ -203,9 +222,17 @@
           [zTitle]="'XP.Knowledgebase.GraphDisabledTitle' | translate: { Default: 'GraphRAG is disabled' }"
           [zDescription]="
             'XP.Knowledgebase.GraphDisabledDesc'
-              | translate: { Default: 'Enable GraphRAG in configuration and rebuild the graph to use visualization.' }
+              | translate
+                : {
+                    Default:
+                      'Enable the knowledge graph in Basic information, then rebuild it here to index existing documents.'
+                  }
           "
-        />
+        >
+          <button z-button type="button" zType="outline" (click)="knowledgebaseComponent.openConfiguration('basic')">
+            {{ 'XP.Knowledgebase.OpenConfiguration' | translate: { Default: 'Open configuration' } }}
+          </button>
+        </z-empty>
       } @else if (empty()) {
         <z-empty
           class="h-full rounded-none border-0"

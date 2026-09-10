@@ -1,6 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { cx, mergeClasses, ZardButtonComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  cx,
+  mergeClasses,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  ZardMenuImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.component.variants'
 import { FileTreeNode, flattenFileTree } from './tree.utils'
@@ -13,7 +21,15 @@ export type FileTreeSurface = 'card' | 'plain'
   selector: 'xp-file-tree',
   templateUrl: './tree.component.html',
   styleUrls: ['./tree.component.css'],
-  imports: [CommonModule, TranslateModule, ZardButtonComponent, ZardLoaderComponent, ...ZardTooltipImports],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardLoaderComponent,
+    ...ZardMenuImports,
+    ...ZardTooltipImports
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-size]': 'zSize()',
@@ -34,6 +50,7 @@ export class FileTreeComponent {
   readonly canDownload = input(false)
   readonly canDownloadDirectory = input(false)
   readonly canDelete = input(false)
+  readonly showRefresh = input(false)
   readonly canUpload = input(false)
   readonly uploadDisabled = input(false)
   readonly uploading = input(false)
@@ -69,12 +86,6 @@ export class FileTreeComponent {
     mergeClasses('flex min-w-0 flex-1 items-center text-left', this.sizePreset().contentGap)
   )
   readonly itemIconClasses = computed(() => mergeClasses('shrink-0 text-text-tertiary', this.sizePreset().itemText))
-  readonly itemActionClasses = computed(() =>
-    mergeClasses(
-      'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
-      this.sizePreset().subtitleText
-    )
-  )
   readonly uploadActionClasses = computed(() =>
     mergeClasses(
       'inline-flex shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60',
@@ -92,6 +103,7 @@ export class FileTreeComponent {
   readonly fileDownload = output<FileTreeNode>()
   readonly fileDelete = output<FileTreeNode>()
   readonly uploadRequest = output<FileTreeUploadKind>()
+  readonly refreshRequest = output<void>()
 
   isActiveItem(item: FileTreeNode) {
     return this.activePath() === (item.fullPath || item.filePath)
@@ -111,6 +123,48 @@ export class FileTreeComponent {
       this.sizePreset().itemText,
       this.isActiveItem(item) ? 'font-medium text-text-primary' : 'text-text-secondary group-hover:text-text-primary'
     )
+  }
+
+  itemIconType(item: FileTreeNode) {
+    if (item.hasChildren) {
+      return item.expanded ? 'folder-open' : 'folder'
+    }
+
+    const path = (item.fullPath || item.filePath || '').toLowerCase()
+    const extension = path.includes('.') ? path.slice(path.lastIndexOf('.') + 1) : path
+
+    if (['md', 'mdx'].includes(extension)) {
+      return 'book-open-text'
+    }
+    if (['js', 'jsx', 'ts', 'tsx', 'py', 'sh', 'html', 'css', 'xml', 'json', 'yml', 'yaml'].includes(extension)) {
+      return 'code'
+    }
+    if (['xls', 'xlsx', 'csv', 'ods'].includes(extension)) {
+      return 'table_view'
+    }
+    if (['doc', 'docx', 'odt', 'rtf', 'txt'].includes(extension)) {
+      return 'file-text'
+    }
+    if (extension === 'pdf') {
+      return 'document_scanner'
+    }
+    if (['ppt', 'pptx', 'odp'].includes(extension)) {
+      return 'layers'
+    }
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(extension)) {
+      return 'square-library'
+    }
+    if (['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(extension)) {
+      return 'activity'
+    }
+    if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(extension)) {
+      return 'monitor'
+    }
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension)) {
+      return 'archive'
+    }
+
+    return 'file'
   }
 
   isDirectoryLoading(filePath: string | null | undefined) {
@@ -154,5 +208,9 @@ export class FileTreeComponent {
 
   onUploadClick(kind: FileTreeUploadKind) {
     this.uploadRequest.emit(kind)
+  }
+
+  onRefreshClick() {
+    this.refreshRequest.emit()
   }
 }

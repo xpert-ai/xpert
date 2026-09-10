@@ -1,24 +1,21 @@
-import { mapTranslationLanguage, USAGE_HOUR_FORMAT } from '@xpert-ai/contracts'
+import { mapTranslationLanguage } from '@xpert-ai/contracts'
 import { InvalidConfigurationException, RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
-import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ExceedingLimitException } from '../../../core/errors'
 import { ModelAccessService } from '../../../model-access'
 import { CopilotUsageService } from '../../../copilot-usage'
-import { formatInUTC0 } from '../../../shared/utils'
-import { CopilotUserService } from '../../copilot-user.service'
+import { CopilotTokenUsageDeliveryService } from '../../copilot-token-usage-delivery.service'
 import { CopilotTokenRecordCommand } from '../token-record.command'
 
 @CommandHandler(CopilotTokenRecordCommand)
 export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRecordCommand> {
     constructor(
         private readonly queryBus: QueryBus,
-        private readonly copilotUserService: CopilotUserService,
-        private readonly copilotOrganizationService: CopilotOrganizationService,
         private readonly modelAccessService: ModelAccessService,
         private readonly copilotUsageService: CopilotUsageService,
+        private readonly tokenUsageDeliveryService: CopilotTokenUsageDeliveryService,
         private readonly i18nService: I18nService
     ) {}
 
@@ -36,7 +33,6 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
         }
 
         if (tokenUsed > 0) {
-            const usageHour = formatInUTC0(new Date(), USAGE_HOUR_FORMAT)
             const copilot = await this.queryBus.execute(
                 new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider'])
             )
@@ -87,24 +83,8 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                     pricingBreakdown: input.pricingBreakdown
                 }
             )
-            // Record the token used by the organization or globally for the user
-            const record = await this.copilotUserService.upsert({
-                copilotId,
-                organizationId,
-                userId: billableUserId,
-                xpertId,
-                threadId,
-                orgId: copilot.organizationId,
-                provider: copilot.modelProvider.providerName,
-                model,
-                usageHour,
-                tokenLimit: copilot.tokenBalance,
-                tokenUsed,
-                priceUsed: input.priceUsed,
-                currency: input.currency
-            })
-
-            if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {
+            const delivery = await this.tokenUsageDeliveryService.deliver(input, copilot, billableUserId)
+            if (delivery.userTokenLimitExceeded) {
                 throw new ExceedingLimitException(
                     await this.i18nService.t('copilot.Error.TokenExceedsLimit', {
                         lang: mapTranslationLanguage(RequestContext.getLanguageCode())
@@ -112,27 +92,12 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                 )
             }
 
-            // Record the token usage of the user's organization for every Copilot source.
-            if (organizationId) {
-                const orgRecord = await this.copilotOrganizationService.upsert({
-                    tenantId: input.tenantId,
-                    tokenUsed: input.tokenUsed,
-                    organizationId,
-                    copilotId,
-                    provider: copilot.modelProvider.providerName,
-                    model,
-                    tokenLimit: copilot.tokenBalance,
-                    priceUsed: input.priceUsed,
-                    currency: input.currency
-                })
-
-                if (orgRecord.tokenLimit && orgRecord.tokenUsed >= orgRecord.tokenLimit) {
-                    throw new ExceedingLimitException(
-                        await this.i18nService.t('copilot.Error.TokenExceedsOrgLimit', {
-                            lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-                        })
-                    )
-                }
+            if (delivery.organizationTokenLimitExceeded) {
+                throw new ExceedingLimitException(
+                    await this.i18nService.t('copilot.Error.TokenExceedsOrgLimit', {
+                        lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+                    })
+                )
             }
         }
     }

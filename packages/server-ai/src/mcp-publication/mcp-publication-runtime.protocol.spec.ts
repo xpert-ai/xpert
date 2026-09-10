@@ -490,6 +490,44 @@ describe('McpPublicationRuntimeService protocol', () => {
         trace.mockRestore()
     })
 
+    it.each([writeToolCapability, dangerousToolCapability])(
+        'executes application-authorized tools on a legacy connection without elicitation',
+        async (factory) => {
+            const capability = factory()
+            if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+            capability.policy = null
+            capability.descriptorSnapshot.defaultApprovalMode = 'allow'
+            resolveRuntimeCapabilities.mockResolvedValue([capability])
+            const result = await legacyRequest(
+                'tools/call',
+                { name: capability.publicName, arguments: { query: 'MCP' } },
+                104
+            )
+            expect(result.body.error).toBeUndefined()
+            expect(result.body.result?.isError).not.toBe(true)
+            expect(result.body.result).not.toHaveProperty('inputRequests')
+            expect(executeTool).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it.each(['confirm', 'deny'] as const)(
+        'keeps an administrator %s override above the application default',
+        async (approvalMode) => {
+            const capability = writeToolCapability()
+            if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Expected tool')
+            capability.descriptorSnapshot.defaultApprovalMode = 'allow'
+            capability.policy = { approvalMode }
+            resolveRuntimeCapabilities.mockResolvedValue([capability])
+            const result = await request('tools/call', { name: 'generic_write', arguments: { query: 'MCP' } }, 105, {
+                name: 'generic_write',
+                clientCapabilities: { elicitation: { form: {} } }
+            })
+            expect(executeTool).not.toHaveBeenCalled()
+            if (approvalMode === 'confirm') expect(result.body.result?.resultType).toBe('input_required')
+            else expect(result.body.error ?? result.body.result?.isError).toBeTruthy()
+        }
+    )
+
     it('requires signed multi-round-trip approval before executing confirm-mode tools', async () => {
         resolveRuntimeCapabilities.mockResolvedValue([writeToolCapability()])
         const clientCapabilities = { elicitation: { form: {} } }
@@ -562,6 +600,93 @@ describe('McpPublicationRuntimeService protocol', () => {
         )
     })
 
+    it('rejects an expired confirmation before executing the tool', async () => {
+        resolveRuntimeCapabilities.mockResolvedValue([writeToolCapability()])
+        const clientCapabilities = { elicitation: { form: {} } }
+        const requested = await request('tools/call', { name: 'generic_write', arguments: { query: 'MCP' } }, 33, {
+            name: 'generic_write',
+            clientCapabilities
+        })
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11 * 60 * 1000)
+        try {
+            const expired = await request(
+                'tools/call',
+                {
+                    name: 'generic_write',
+                    arguments: { query: 'MCP' },
+                    requestState: requested.body.result?.requestState,
+                    inputResponses: { input: { action: 'accept', content: { approved: true } } }
+                },
+                34,
+                { name: 'generic_write', clientCapabilities }
+            )
+            expect(expired.body.error).toEqual(expect.objectContaining({ code: expect.any(Number) }))
+            expect(executeTool).not.toHaveBeenCalled()
+        } finally {
+            clock.mockRestore()
+        }
+    })
+
+    it('resumes a provider confirmation after the publication approval without accepting changed input', async () => {
+        resolveRuntimeCapabilities.mockResolvedValue([writeToolCapability()])
+        const clientCapabilities = { elicitation: { form: {} } }
+        const args = { name: 'generic_write', arguments: { query: 'MCP' } }
+        const options = { name: 'generic_write', clientCapabilities }
+        const previousImplementation = executeTool.getMockImplementation()
+        executeTool.mockImplementation(async (input) => {
+            await input.host.input.request({
+                type: 'form',
+                title: 'Publish drawing at revision 4',
+                schema: { type: 'object', properties: { confirmed: { type: 'boolean' } }, required: ['confirmed'] }
+            })
+            return { content: [{ type: 'text', text: 'Confirmed' }] }
+        })
+        const first = await request('tools/call', args, 101, options)
+        const second = await request(
+            'tools/call',
+            {
+                ...args,
+                requestState: first.body.result?.requestState,
+                inputResponses: { input: { action: 'accept', content: { approved: true } } }
+            },
+            102,
+            options
+        )
+        expect(second.body.result?.resultType).toBe('input_required')
+        expect(second.body.result?.inputRequests).toEqual(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    params: expect.objectContaining({ message: 'Publish drawing at revision 4' })
+                })
+            })
+        )
+        const changed = await request(
+            'tools/call',
+            {
+                ...args,
+                arguments: { query: 'different drawing' },
+                requestState: second.body.result?.requestState,
+                inputResponses: { input: { action: 'accept', content: { confirmed: true } } }
+            },
+            103,
+            options
+        )
+        expect(changed.body.result?.isError).toBe(true)
+        const final = await request(
+            'tools/call',
+            {
+                ...args,
+                requestState: second.body.result?.requestState,
+                inputResponses: { input: { action: 'accept', content: { confirmed: true } } }
+            },
+            104,
+            options
+        )
+        expect(final.body.result?.resultType).toBe('complete')
+        expect(final.body.result?.isError).not.toBe(true)
+        executeTool.mockImplementation(previousImplementation)
+    })
+
     it('continues a valid incoming W3C trace context through the shared tool runtime', async () => {
         const traceId = '4bf92f3577b34da6a3ce929d0e0e4736'
         const traceparent = `00-${traceId}-00f067aa0ba902b7-01`
@@ -604,6 +729,51 @@ describe('McpPublicationRuntimeService protocol', () => {
         expect(executeTool).toHaveBeenCalledWith(expect.objectContaining({ traceId }))
         expect(auditStart).toHaveBeenCalledWith(expect.objectContaining({ traceId }))
         remoteContext.mockRestore()
+    })
+
+    it('accepts declared minimal receipts and still rejects output outside the schema', async () => {
+        const capability = toolCapability()
+        if (capability.descriptorSnapshot.capabilityType !== 'tool') throw new Error('Invalid test fixture')
+        capability.descriptorSnapshot.outputSchema = {
+            type: 'object',
+            anyOf: [
+                {
+                    type: 'object',
+                    required: ['source'],
+                    properties: { source: { type: 'string' } },
+                    additionalProperties: false
+                },
+                {
+                    type: 'object',
+                    required: ['resultStatus', 'operationId'],
+                    properties: { resultStatus: { const: 'unavailable' }, operationId: { type: 'string' } },
+                    additionalProperties: false
+                }
+            ]
+        }
+        resolveRuntimeCapabilities.mockResolvedValue([capability])
+        const receipt = { resultStatus: 'unavailable', operationId: 'op' }
+        executeTool.mockResolvedValueOnce({
+            content: [{ type: 'text', text: JSON.stringify(receipt) }],
+            structuredContent: receipt
+        })
+        const result = await legacyRequest(
+            'tools/call',
+            { name: capability.publicName, arguments: { query: 'MCP' } },
+            200
+        )
+        expect(result.body.result).toMatchObject({ structuredContent: receipt })
+        expect(result.body.result.isError).not.toBe(true)
+        executeTool.mockResolvedValueOnce({
+            content: [{ type: 'text', text: '{}' }],
+            structuredContent: { resultStatus: 'unavailable', privateData: 'secret' }
+        })
+        const rejected = await legacyRequest(
+            'tools/call',
+            { name: capability.publicName, arguments: { query: 'MCP' } },
+            201
+        )
+        expect(rejected.body.result.isError).toBe(true)
     })
 
     it('requires App-linked tools to return both text fallback and structured content', async () => {

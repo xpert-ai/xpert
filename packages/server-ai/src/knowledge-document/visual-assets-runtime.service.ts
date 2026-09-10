@@ -1,3 +1,5 @@
+import { KnowledgeDocumentVisualAssetsRuntimeFactoryCapability } from '@xpert-ai/plugin-sdk'
+import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import type { Cache } from 'cache-manager'
@@ -5,10 +7,12 @@ import fsPromises from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
 import sharp from 'sharp'
-import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
+import { t } from 'i18next'
 import type {
-    AgentMiddlewareRuntimeScope,
+    RuntimeIdentityScope,
     KnowledgeDocumentVisualAssetsApi,
+    KnowledgeDocumentVisualAssetsRuntimeFactory,
+    KnowledgeDocumentVisualAssetsRuntimeDependencies,
     KnowledgeDocumentVisualCandidate,
     KnowledgeDocumentVisualCandidateReason,
     KnowledgeDocumentVisualCandidateRequest,
@@ -74,9 +78,7 @@ type AllowedVisualPathRecord = {
     knowledgeDocumentId: string
     documentFingerprint: string
     sourceDocumentId: string
-    caseId: string
-    baselineId: string
-    runId: string
+    businessScope: KnowledgeDocumentVisualCandidateRequest['businessScope']
     page?: number
     chunkId?: string
     sourceBlockIds: string[]
@@ -100,7 +102,8 @@ type LegacyAssetContext = {
 }
 
 @Injectable()
-export class KnowledgeDocumentVisualAssetsRuntimeService {
+@RuntimeCapabilityProvider(KnowledgeDocumentVisualAssetsRuntimeFactoryCapability)
+export class KnowledgeDocumentVisualAssetsRuntimeService implements KnowledgeDocumentVisualAssetsRuntimeFactory {
     constructor(
         @Inject(CACHE_MANAGER)
         private readonly cacheManager: Cache,
@@ -112,31 +115,50 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
     ) {}
 
     createScopedApi(
-        scope: AgentMiddlewareRuntimeScope,
-        dependencies: { workspaceFiles: WorkspaceFilesApi }
+        scope: RuntimeIdentityScope,
+        dependencies: KnowledgeDocumentVisualAssetsRuntimeDependencies
     ): KnowledgeDocumentVisualAssetsApi {
+        scope = { ...scope }
+        const { workspaceFiles, resolveExecutionScope } = dependencies
+        const resolveScope = resolveExecutionScope ?? (() => scope)
         const allowedPaths = new Map<string, AllowedVisualPathRecord>()
         return {
-            issueCandidates: (input) => this.issueCandidates(invocationScope(scope), input, allowedPaths),
-            prepareImages: (input) =>
-                this.prepareImages(invocationScope(scope), input.filePaths, allowedPaths, dependencies.workspaceFiles),
-            consumeImageBatch: (batchRef) => this.consumeImageBatch(invocationScope(scope), batchRef),
-            discardImageBatch: (batchRef) => this.discardImageBatch(invocationScope(scope), batchRef)
+            issueCandidates: (input) => this.issueCandidates(resolveScope(), input, allowedPaths),
+            prepareImages: (input) => this.prepareImages(resolveScope(), input.filePaths, allowedPaths, workspaceFiles),
+            consumeImageBatch: (batchRef) => this.consumeImageBatch(resolveScope(), batchRef),
+            discardImageBatch: (batchRef) => this.discardImageBatch(resolveScope(), batchRef)
         }
     }
 
     private async issueCandidates(
-        scope: AgentMiddlewareRuntimeScope,
+        scope: RuntimeIdentityScope,
         input: KnowledgeDocumentVisualCandidateRequest,
         allowedPaths: Map<string, AllowedVisualPathRecord>
     ) {
         const binding = requireExecutionBinding(scope)
         const maxAssets = Math.min(MAX_VISUAL_CANDIDATES, Math.max(1, Math.trunc(input.maxAssets)))
         if (!input.knowledgebaseId || !input.knowledgeDocumentId || !input.businessScope?.sourceDocumentId) {
-            throw new BadRequestException('A governed KnowledgeDocument and BOM evidence scope are required')
+            throw new BadRequestException(
+                t('server-ai:Error.VisualEvidenceScopeRequired', {
+                    defaultValue: 'A governed KnowledgeDocument and evidence scope are required'
+                })
+            )
         }
-        if (input.businessScope.namespace !== 'bom.requirement-evidence') {
-            throw new ForbiddenException('The visual asset business scope is not supported')
+        if (
+            !/^[a-z][a-z0-9_.-]{0,127}$/.test(input.businessScope.namespace) ||
+            !input.businessScope.attributes ||
+            Array.isArray(input.businessScope.attributes) ||
+            typeof input.businessScope.attributes !== 'object' ||
+            Object.keys(input.businessScope.attributes).length > 20 ||
+            Object.entries(input.businessScope.attributes).some(
+                ([key, value]) => !key || key.length > 128 || typeof value !== 'string' || value.length > 512
+            )
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.VisualEvidenceScopeInvalid', {
+                    defaultValue: 'The visual evidence audit scope is invalid'
+                })
+            )
         }
 
         const document = await this.requireDocument(input.knowledgeDocumentId, input.knowledgebaseId, binding)
@@ -158,9 +180,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
                 knowledgeDocumentId: input.knowledgeDocumentId,
                 documentFingerprint: catalog.documentFingerprint,
                 sourceDocumentId: input.businessScope.sourceDocumentId,
-                caseId: input.businessScope.caseId,
-                baselineId: input.businessScope.baselineId,
-                runId: input.businessScope.runId,
+                businessScope: { ...input.businessScope, attributes: { ...input.businessScope.attributes } },
                 ...(rankedAsset.asset.page ? { page: rankedAsset.asset.page } : {}),
                 ...(rankedAsset.chunkId ? { chunkId: rankedAsset.chunkId } : {}),
                 sourceBlockIds: rankedAsset.asset.sourceBlockIds,
@@ -177,7 +197,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
     }
 
     private async prepareImages(
-        scope: AgentMiddlewareRuntimeScope,
+        scope: RuntimeIdentityScope,
         rawFilePaths: string[],
         allowedPaths: Map<string, AllowedVisualPathRecord>,
         workspaceFiles: WorkspaceFilesApi
@@ -272,7 +292,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         }
     }
 
-    private async consumeImageBatch(scope: AgentMiddlewareRuntimeScope, batchRef: string) {
+    private async consumeImageBatch(scope: RuntimeIdentityScope, batchRef: string) {
         const binding = requireExecutionBinding(scope)
         const key = batchCacheKey(batchRef)
         const batch = await this.cacheManager.get<VisualImageBatchRecord>(key)
@@ -284,7 +304,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService {
         return batch.images
     }
 
-    private async discardImageBatch(scope: AgentMiddlewareRuntimeScope, batchRef: string) {
+    private async discardImageBatch(scope: RuntimeIdentityScope, batchRef: string) {
         const binding = requireExecutionBinding(scope)
         const key = batchCacheKey(batchRef)
         const batch = await this.cacheManager.get<VisualImageBatchRecord>(key)
@@ -639,7 +659,7 @@ function selectPdfFallbackPages(
     return [...pages]
 }
 
-function requireExecutionBinding(scope: AgentMiddlewareRuntimeScope): RequiredExecutionBinding {
+function requireExecutionBinding(scope: RuntimeIdentityScope): RequiredExecutionBinding {
     const tenantId = readString(scope.tenantId)
     const userId = readString(scope.userId)
     const xpertId = readString(scope.xpertId)
@@ -657,24 +677,6 @@ function requireExecutionBinding(scope: AgentMiddlewareRuntimeScope): RequiredEx
         conversationId,
         agentKey,
         executionId
-    }
-}
-
-function invocationScope(scope: AgentMiddlewareRuntimeScope): AgentMiddlewareRuntimeScope {
-    const configurable = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable
-    return {
-        ...scope,
-        tenantId: readString(configurable?.tenantId) ?? scope.tenantId,
-        organizationId: readString(configurable?.organizationId) ?? scope.organizationId,
-        userId: readString(configurable?.userId) ?? scope.userId,
-        xpertId: readString(configurable?.xpertId) ?? scope.xpertId,
-        conversationId:
-            readString(configurable?.conversationId) ??
-            readString(configurable?.conversation_id) ??
-            readString(scope.conversationId) ??
-            readString(configurable?.thread_id),
-        agentKey: readString(configurable?.agentKey) ?? scope.agentKey,
-        executionId: readString(configurable?.executionId) ?? scope.executionId
     }
 }
 

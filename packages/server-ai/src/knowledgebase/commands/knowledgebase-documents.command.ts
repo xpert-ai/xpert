@@ -1,4 +1,5 @@
 import {
+    KnowledgebaseProcessingOptionsInput,
     KnowledgebaseCreateDocumentsInput,
     KnowledgebaseCreateFolderInput,
     KnowledgebaseDeleteDocumentsInput,
@@ -7,6 +8,7 @@ import {
     KnowledgebaseListDocumentsInput,
     KnowledgebaseMoveDocumentInput,
     KnowledgebaseReadImageInput,
+    KnowledgebaseReadTextInput,
     KnowledgebaseReprocessDocumentsInput,
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput
@@ -56,4 +58,12 @@ export class DeleteKnowledgebaseDocumentsCommand {
 /** Server-only command for a scoped, original standalone image read. */
 export class ReadKnowledgebaseDocumentImageCommand {
     constructor(public readonly input: KnowledgebaseReadImageInput) {}
+}
+
+export class ReadKnowledgebaseDocumentTextCommand {
+    constructor(public readonly input: KnowledgebaseReadTextInput) {}
+}
+
+export class GetKnowledgebaseProcessingOptionsCommand {
+    constructor(public readonly input: KnowledgebaseProcessingOptionsInput) {}
 }

@@ -7,7 +7,6 @@ import { featureGate, hydrateFeatureContext } from '../feature-gate'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
-import { ChatCommonAssistantComponent } from './common/common.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
@@ -63,9 +62,10 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        component: ChatCommonAssistantComponent,
+        // Keep the redirect behind the parent auth guard before resolving user bindings.
         canActivate: [redirectToDefaultChatEntry()],
-        pathMatch: 'full'
+        pathMatch: 'full',
+        children: []
       },
       {
         path: 'x/welcome',
@@ -97,10 +97,9 @@ export const routes: Routes = [
       },
       {
         path: 'x/:name',
-        component: ChatXpertComponent,
-        data: {
-          title: 'Chat Xpert'
-        }
+        pathMatch: 'full',
+        redirectTo: ({ params, queryParams, fragment }) =>
+          inject(Router).createUrlTree(['/chat/x', params['name'], 'c'], { queryParams, fragment })
       },
       {
         path: 'c/:id',

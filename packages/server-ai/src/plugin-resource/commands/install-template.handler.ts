@@ -56,7 +56,11 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
 
     async execute(command: PluginTemplateInstallCommand): Promise<PluginResourceInstallResult> {
         await this.workspaceAccess.assertCanAuthor(command.workspaceId)
-        const template = await this.xpertTemplateService.getTemplateDetail(command.templateId, command.language)
+        const template = command.locale
+            ? await this.xpertTemplateService.getTemplateDetail(command.templateId, command.language, {
+                  locale: command.locale
+              })
+            : await this.xpertTemplateService.getTemplateDetail(command.templateId, command.language)
         const parsed = yaml.parse(template.export_data) as unknown
         const sandboxProviders = await this.xpertService.getSandboxProviders()
         const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic, sandboxProviders)

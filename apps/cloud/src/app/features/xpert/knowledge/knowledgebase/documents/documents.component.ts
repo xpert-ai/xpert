@@ -1,8 +1,20 @@
+import { DocumentImportMenuComponent } from './import/import-menu.component'
+import { KnowledgeDocumentDialogService } from './import/document-dialog.service'
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { NgTemplateOutlet } from '@angular/common'
-import { afterNextRender, Component, computed, effect, inject, model, signal, TemplateRef } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
@@ -62,9 +74,7 @@ import {
   MetadataFieldType,
   KDocumentSourceType,
   KnowledgebaseService,
-  KnowledgeGraphIndexJobStatus,
   KnowledgeGraphStatus,
-  KnowledgeGraphStatusResponse,
   KnowledgebaseStatusEnum,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
@@ -77,6 +87,11 @@ import { openWorkbenchFilePreviewDialog } from '../../../../assistant/workbench-
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { KnowledgeDocumentCoverPreviewComponent } from './document-cover-preview.component'
 import { validateOriginalFileResponse } from './original-file-preview'
+import { injectDocumentWikiProgress } from './document-wiki-status'
+import { DocumentWikiProgressComponent } from './document-wiki-progress.component'
+import { DocumentGraphProgressComponent } from './document-graph-progress.component'
+import { injectDocumentGraphProgress } from './document-graph-status'
+import { DocumentProgressColumnWidth, DocumentProgressWidthDirective } from './document-progress-column'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 48
@@ -243,6 +258,7 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
+    DocumentImportMenuComponent,
     RouterModule,
     FormsModule,
     NgTemplateOutlet,
@@ -261,7 +277,10 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
     XpCommonModule,
     KnowledgeDocIdComponent,
     XpI18nPipe,
-    KnowledgeDocumentCoverPreviewComponent
+    KnowledgeDocumentCoverPreviewComponent,
+    DocumentWikiProgressComponent,
+    DocumentGraphProgressComponent,
+    DocumentProgressWidthDirective
   ],
   animations: [
     trigger('detailExpand', [
@@ -274,7 +293,6 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
 export class KnowledgeDocumentsComponent {
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
-  eKnowledgeGraphIndexJobStatus = KnowledgeGraphIndexJobStatus
   eKnowledgeGraphStatus = KnowledgeGraphStatus
   eKnowledgebaseStatusEnum = KnowledgebaseStatusEnum
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
@@ -293,6 +311,7 @@ export class KnowledgeDocumentsComponent {
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly _dialog = inject(Dialog)
+  readonly documentDialogs = inject(KnowledgeDocumentDialogService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -315,6 +334,7 @@ export class KnowledgeDocumentsComponent {
   readonly hasPipeline = computed(() => !!this.pipeline()?.publishAt)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
+  private readonly destroyRef = inject(DestroyRef)
   readonly documentDelayRefresh$ = new Subject<void>()
   readonly knowledgebaseDelayRefresh$ = new Subject<void>()
 
@@ -323,7 +343,10 @@ export class KnowledgeDocumentsComponent {
   readonly documentInspectorMinWidth = DOCUMENT_INSPECTOR_MIN_WIDTH
   // One table-column model drives width, visibility, order, and sort affordances.
   readonly tableColumns = signal<DocumentTableColumn[]>(createDefaultDocumentColumns())
-  readonly visibleDocumentColumns = computed(() => this.tableColumns().filter((column) => column.visible))
+  readonly progressColumnWidth = new DocumentProgressColumnWidth()
+  readonly visibleDocumentColumns = computed(() =>
+    this.progressColumnWidth.fit(this.tableColumns().filter((column) => column.visible))
+  )
   readonly sortState = signal<DocumentTableSortState>({ active: null, direction: '' })
   readonly tableMinWidth = computed(
     () =>
@@ -362,16 +385,6 @@ export class KnowledgeDocumentsComponent {
   #moveDialogRef: DialogRef<unknown, unknown> | null = null
   isRateLimitReached = false
   readonly #data = signal<IKnowledgeDocument[]>([])
-  readonly graphJobs = signal<KnowledgeGraphStatusResponse['jobs']>([])
-  readonly graphJobByDocumentId = computed(() => {
-    const byDocumentId = new Map<string, NonNullable<KnowledgeGraphStatusResponse['jobs']>[number]>()
-    for (const job of this.graphJobs() ?? []) {
-      if (typeof job.documentId === 'string' && job.documentId) {
-        byDocumentId.set(job.documentId, job)
-      }
-    }
-    return byDocumentId
-  })
   readonly total = signal<number>(0)
   readonly selectionModel = new SelectionModel<string>(true, [])
   readonly search = model<string>()
@@ -392,6 +405,7 @@ export class KnowledgeDocumentsComponent {
       (browserDocument?.id === selectedDocumentId ? browserDocument : null)
     )
   })
+  readonly wikiDocumentProgress = injectDocumentWikiProgress(this.knowledgebase, this.#data, this.selectedDocument)
   /** Reuses the protected range-enabled endpoint so the inspector renders page one without downloading a whole PDF. */
   readonly selectedPdfPreviewSource = computed(() => {
     const document = this.selectedDocument()
@@ -425,6 +439,14 @@ export class KnowledgeDocumentsComponent {
 
     return [...rows].sort((a, b) => compareDocumentSortValues(a, b, sortState as ActiveDocumentTableSortState))
   })
+
+  readonly graphProgressRefresh = signal(0)
+  readonly graphDocumentProgress = injectDocumentGraphProgress(
+    this.knowledgebase,
+    this.filteredData,
+    this.selectedDocument,
+    this.graphProgressRefresh
+  )
 
   // Folders
   readonly parentFolder = toSignal(
@@ -551,7 +573,6 @@ export class KnowledgeDocumentsComponent {
           } else {
             this.resetFolderBrowser()
           }
-          this.refreshGraphJobs()
         })
     })
 
@@ -592,7 +613,6 @@ export class KnowledgeDocumentsComponent {
       // Knowledgebase-level polling is only needed for aggregate states such as GraphRAG indexing
       // and vector rebuild locks; normal document parsing can refresh the document list alone.
       this.knowledgebaseComponent.refresh()
-      this.refreshGraphJobs()
     })
   }
 
@@ -729,11 +749,15 @@ export class KnowledgeDocumentsComponent {
     this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
   }
 
-  uploadIntoFolder(document: IKnowledgeDocument) {
+  async uploadIntoFolder(document: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
     }
-    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
+    if (
+      await this.documentDialogs.importDocuments(this.knowledgebase(), document.id, () => this.vectorMutationLocked())
+    ) {
+      this.refresh()
+    }
   }
 
   private async selectFolderBrowserDocument(document: IKnowledgeDocument) {
@@ -1160,7 +1184,6 @@ export class KnowledgeDocumentsComponent {
 
   refresh() {
     this.refresh$.next(true)
-    this.refreshGraphJobs()
   }
 
   canDownloadOriginalFile(doc: IKnowledgeDocument) {
@@ -1292,30 +1315,6 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
-  refreshGraphJobs() {
-    const knowledgebase = this.knowledgebase()
-    if (!knowledgebase?.id || !knowledgebase.graphRag?.enabled) {
-      this.graphJobs.set([])
-      return
-    }
-
-    this.kbAPI
-      .getGraphStatus(knowledgebase.id)
-      .pipe(take(1))
-      .subscribe({
-        next: (status) => {
-          this.graphJobs.set(status.jobs ?? [])
-        },
-        error: () => {
-          this.graphJobs.set([])
-        }
-      })
-  }
-
-  graphJobStatus(documentId: string) {
-    return this.graphJobByDocumentId().get(documentId)
-  }
-
   backHome() {
     this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: null } })
   }
@@ -1347,24 +1346,6 @@ export class KnowledgeDocumentsComponent {
       }
     })
   }
-
-  createFromPipeline() {
-    if (this.vectorMutationLocked()) {
-      return
-    }
-    this.#router.navigate(['create-from-pipeline'], {
-      relativeTo: this.#route,
-      queryParams: { parentId: this.parentId() }
-    })
-  }
-
-  uploadDocuments() {
-    if (this.vectorMutationLocked()) {
-      return
-    }
-    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
-  }
-
   deleteDocument(doc: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
@@ -1693,23 +1674,28 @@ export class KnowledgeDocumentsComponent {
     }
     const pipelineDocs = documents.filter((doc) => !!doc.sourceConfig)
     if (pipelineDocs.length) {
+      const knowledgebaseId = this.knowledgebase().id
       calls.push(
-        this.kbAPI.createTask(this.knowledgebase().id, {
-          taskType: 'document_reprocess',
-          status: 'running', // Start processing immediately
-          documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
-        })
+        this.kbAPI
+          .createTask(knowledgebaseId, {
+            taskType: 'document_reprocess',
+            status: 'running', // Start processing immediately
+            documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
+          })
+          .pipe(switchMap((task) => this.kbAPI.pollTaskStatus(knowledgebaseId, task.id).pipe(startWith(task))))
       )
     }
     if (calls.length > 0) {
-      combineLatest(calls).subscribe({
-        next: (task) => {
-          this.refresh()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
+      combineLatest(calls)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (task) => {
+            this.refresh()
+          },
+          error: (err) => {
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
     }
   }
 
@@ -1724,14 +1710,13 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
-  openChunkSettings(document: IKnowledgeDocument) {
+  async openChunkSettings(document: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
     }
-    this.#router.navigate(['./', document.id, 'settings'], {
-      relativeTo: this.#route,
-      queryParams: { parentId: this.parentId() }
-    })
+    if (await this.documentDialogs.edit(document.id, () => this.vectorMutationLocked())) {
+      this.refresh()
+    }
   }
 
   // Metadata operations

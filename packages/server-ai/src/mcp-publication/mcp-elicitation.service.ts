@@ -1,3 +1,6 @@
+// Invariants: each resumed request is bound to its caller, tool and original arguments.
+// Replay accepted prompts in order only when their schemas and messages still match.
+// Keep accepted values in expiring server-side state, never in the signed client token.
 import type { JSONValue, McpJsonSchema, McpPrincipal, McpToolCapabilityDescriptor } from '@xpert-ai/contracts'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import { environment } from '@xpert-ai/server-config'
@@ -36,8 +39,20 @@ interface McpElicitationState {
     expiresAt: number
 }
 
+interface AcceptedMcpInput {
+    requestHash: string
+    content: JSONValue
+}
+
 interface PersistedMcpElicitationState extends McpElicitationState {
     request: ToolInputRequest
+    acceptedInputs: AcceptedMcpInput[]
+}
+
+interface McpInputSequence {
+    pending: PersistedMcpElicitationState | null
+    acceptedInputs: AcceptedMcpInput[]
+    index: number
 }
 
 export interface McpElicitationExecution {
@@ -115,6 +130,9 @@ export class McpElicitationService {
         if (verifiedState) {
             this.assertBinding(verifiedState, input, argumentsHash)
         }
+        const pending = verifiedState ? await this.read(verifiedState.stateId) : null
+        if (verifiedState && (!pending || pending.requestHash !== verifiedState.requestHash)) throw invalidState()
+        const sequence: McpInputSequence = { pending, acceptedInputs: [...(pending?.acceptedInputs ?? [])], index: 0 }
         const executionId = verifiedState?.executionId ?? randomUUID()
         return {
             executionId,
@@ -125,7 +143,7 @@ export class McpElicitationService {
                         request,
                         executionId,
                         argumentsHash,
-                        verifiedState
+                        sequence
                     })
             }
         }
@@ -142,14 +160,23 @@ export class McpElicitationService {
         request: ToolInputRequest
         executionId: string
         argumentsHash: string
-        verifiedState: McpElicitationState | null
+        sequence: McpInputSequence
     }): Promise<TValue> {
         const normalizedRequest = normalizeInputRequest(input.request)
         const requestHash = hashJson(normalizedRequest)
-        let persisted: PersistedMcpElicitationState | null = null
-        if (input.verifiedState) {
-            persisted = await this.read(input.verifiedState.stateId)
-            if (!persisted || persisted.requestHash !== requestHash) throw invalidState()
+        // A resumed call starts from the first prompt, including Publication-level approval.
+        // Replaying that prefix lets a later provider prompt consume its own response.
+        const prior = input.sequence.acceptedInputs[input.sequence.index++]
+        if (prior) {
+            if (prior.requestHash !== requestHash) throw invalidState()
+            return this.resolveResponse(normalizedRequest, { action: 'accept', content: prior.content }).kind ===
+                'accepted'
+                ? (prior.content as TValue)
+                : Promise.reject(invalidState())
+        }
+        const persisted = input.sequence.pending
+        if (persisted) {
+            if (persisted.requestHash !== requestHash) throw invalidState()
             const response = this.resolveResponse(
                 normalizedRequest,
                 input.context.mcpReq.inputResponses
@@ -158,6 +185,8 @@ export class McpElicitationService {
             )
             if (response.kind === 'accepted') {
                 await this.redis.del(stateKey(persisted.stateId))
+                input.sequence.pending = null
+                input.sequence.acceptedInputs.push({ requestHash, content: response.content })
                 return response.content as TValue
             }
             if (response.kind === 'declined' || response.kind === 'cancelled') {
@@ -181,8 +210,10 @@ export class McpElicitationService {
             requestHash,
             inputKey: 'input',
             expiresAt: Date.now() + ELICITATION_TTL_MS,
-            request: normalizedRequest
+            request: normalizedRequest,
+            acceptedInputs: input.sequence.acceptedInputs
         }
+        if (state.acceptedInputs.length > 8) throw invalidRequest()
         const ttl = Math.max(1, state.expiresAt - Date.now())
         await this.redis.set(stateKey(state.stateId), JSON.stringify(state), { PX: ttl })
         const requestState = await input.codec.mint(toSignedState(state), input.context)
@@ -381,7 +412,14 @@ function parsePersistedState(value: unknown): PersistedMcpElicitationState | nul
     const state = parseElicitationState(value)
     if (!state || typeof value !== 'object' || value === null) return null
     const request = parseInputRequest(Reflect.get(value, 'request'))
-    return request ? { ...state, request } : null
+    const acceptedInputs: unknown = Reflect.get(value, 'acceptedInputs') ?? []
+    if (!Array.isArray(acceptedInputs) || acceptedInputs.length > 8) return null
+    const parsed: AcceptedMcpInput[] = []
+    for (const entry of acceptedInputs) {
+        if (!isJsonObject(entry) || typeof entry.requestHash !== 'string' || entry.content === undefined) return null
+        parsed.push({ requestHash: entry.requestHash, content: entry.content })
+    }
+    return request ? { ...state, request, acceptedInputs: parsed } : null
 }
 
 function parseInputRequest(value: unknown): ToolInputRequest | null {
@@ -405,6 +443,7 @@ function isJsonObject(value: unknown): value is McpJsonSchema {
 function toSignedState(state: PersistedMcpElicitationState): McpElicitationState {
     const signed = { ...state }
     Reflect.deleteProperty(signed, 'request')
+    Reflect.deleteProperty(signed, 'acceptedInputs')
     return signed
 }
 

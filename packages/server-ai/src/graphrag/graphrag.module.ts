@@ -1,3 +1,5 @@
+import { KnowledgeGraphExtractionService } from './graph-extraction.service'
+import { KnowledgeIdentityModule } from '../knowledgebase/identity/knowledge-identity.module'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
@@ -11,26 +13,32 @@ import { CommandHandlers } from './commands/handlers'
 import {
     KnowledgeGraphCommunity,
     KnowledgeGraphEntity,
+    KnowledgeGraphEntityContribution,
     KnowledgeGraphIndexJob,
     KnowledgeGraphMention,
-    KnowledgeGraphRelation
+    KnowledgeGraphRelation,
+    KnowledgeGraphRelationContribution
 } from './entities'
 import { GraphragController } from './graphrag.controller'
 import { KnowledgeGraphIndexConsumer } from './graphrag.job'
 import { GraphragService } from './graphrag.service'
+import { GraphDocumentProgressService } from './document-progress.service'
 import { QueryHandlers } from './queries/handlers'
 import { JOB_KNOWLEDGE_GRAPH_INDEX } from './types'
 
 @Module({
     imports: [
+        forwardRef(() => KnowledgeIdentityModule),
         RouterModule.register([{ path: '/knowledgebase', module: GraphragModule }]),
         TypeOrmModule.forFeature([
             Knowledgebase,
             KnowledgeGraphCommunity,
             KnowledgeGraphEntity,
+            KnowledgeGraphEntityContribution,
             KnowledgeGraphIndexJob,
             KnowledgeGraphMention,
-            KnowledgeGraphRelation
+            KnowledgeGraphRelation,
+            KnowledgeGraphRelationContribution
         ]),
         CqrsModule,
         UserModule,
@@ -41,7 +49,14 @@ import { JOB_KNOWLEDGE_GRAPH_INDEX } from './types'
         })
     ],
     controllers: [GraphragController],
-    providers: [GraphragService, KnowledgeGraphIndexConsumer, ...CommandHandlers, ...QueryHandlers],
+    providers: [
+        KnowledgeGraphExtractionService,
+        GraphragService,
+        GraphDocumentProgressService,
+        KnowledgeGraphIndexConsumer,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ],
     exports: [GraphragService]
 })
 export class GraphragModule {}

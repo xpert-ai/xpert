@@ -1,7 +1,7 @@
 import { I18nObject, isEnableTool, IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { BaseToolset } from '../../toolset'
 import { OpenAPITool } from './tools/openapi-tool'
-import type { TToolModelUsageReporter } from '../../../shared'
+import type { TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
 
 export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
     providerName = 'openapi'

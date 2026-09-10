@@ -6,7 +6,8 @@ import axios, { AxiosResponse } from 'axios'
 import type { OperationObject, ParameterObject } from 'openapi-typescript/src/types'
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
 import { ApiBasedToolSchemaParser } from '../../../utils/parser'
-import { BaseTool, type TToolModelUsageReporter } from '../../../../shared'
+import type { TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
+import { BaseTool } from '../../../../shared/tools/toolset'
 
 const API_TOOL_DEFAULT_TIMEOUT = [
     parseInt(process.env.API_TOOL_DEFAULT_CONNECT_TIMEOUT || '10'),

@@ -21,7 +21,7 @@ describe('McpPublicationAuthorizationService', () => {
 
     it('checks current organization membership on every user request', async () => {
         findOne.mockResolvedValue(user(true))
-        await expect(service.assertCanRun(publication(), principal())).resolves.toBeUndefined()
+        await expect(service.assertCanRun(publication(), principal())).resolves.toEqual(user(true))
 
         findOne.mockResolvedValue(user(false))
         await expect(service.assertCanRun(publication(), principal())).rejects.toBeInstanceOf(ForbiddenException)
@@ -44,7 +44,7 @@ describe('McpPublicationAuthorizationService', () => {
         const tenantPublication = publication()
         tenantPublication.organizationId = null
 
-        await expect(service.assertCanRun(tenantPublication, principal())).resolves.toBeUndefined()
+        await expect(service.assertCanRun(tenantPublication, principal())).resolves.toEqual(user(true))
         expect(assertEnabled).toHaveBeenCalledWith(tenantPublication, principal().organizationId)
 
         assertEnabled.mockRejectedValueOnce(new ForbiddenException())
@@ -60,7 +60,7 @@ describe('McpPublicationAuthorizationService', () => {
             clientId: '10000000-0000-4000-8000-000000000006'
         }
 
-        await expect(service.assertCanRun(publication(), serviceAccount)).resolves.toBeUndefined()
+        await expect(service.assertCanRun(publication(), serviceAccount)).resolves.toBeNull()
         expect(findOne).not.toHaveBeenCalled()
     })
 })

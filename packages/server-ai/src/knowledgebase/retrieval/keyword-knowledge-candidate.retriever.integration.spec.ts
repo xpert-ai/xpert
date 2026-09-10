@@ -164,6 +164,7 @@ postgresDescribe('KeywordKnowledgeCandidateRetriever PostgreSQL integration', ()
             { id: 'doc-faq', name: '退款 FAQ' },
             { id: 'doc-wiki-title', name: '部署 Wiki 指南', type: 'md' },
             { id: 'doc-wiki-body', name: '运行手册', type: 'md' },
+            { id: 'doc-content-scope', name: 'Content scope fixture' },
             { id: 'doc-chinese', name: '成熟度资料' },
             { id: 'doc-identifier', name: '车辆信号' },
             { id: 'doc-short', name: 'AI 术语' },
@@ -185,6 +186,13 @@ postgresDescribe('KeywordKnowledgeCandidateRetriever PostgreSQL integration', ()
             { id: 'faq-content', documentId: 'doc-faq', pageContent: '退款条件是什么？购买后七天内可以申请退款。' },
             { id: 'wiki-title', documentId: 'doc-wiki-title', pageContent: '这是知识库目录页。' },
             { id: 'wiki-body', documentId: 'doc-wiki-body', pageContent: '生产环境部署步骤包括准备数据库和配置服务。' },
+            { id: 'scope-original', documentId: 'doc-content-scope', pageContent: 'contentscopetoken' },
+            {
+                id: 'scope-wiki',
+                documentId: 'doc-content-scope',
+                pageContent: 'A Wiki summary about contentscopetoken with more context.',
+                metadata: { contentKind: 'wiki' }
+            },
             { id: 'chinese-exact', documentId: 'doc-chinese', pageContent: '智能制造能力成熟度模型' },
             { id: 'identifier-exact', documentId: 'doc-identifier', pageContent: 'LSJWR4095RS105767' },
             { id: 'short-ai', documentId: 'doc-short', pageContent: 'AI 辅助检索能够召回专业缩写。' },
@@ -310,6 +318,17 @@ postgresDescribe('KeywordKnowledgeCandidateRetriever PostgreSQL integration', ()
         expect(result.failed).not.toBe(true)
         expect(result.candidates.map(({ document }) => document.metadata.chunkId)).toContain(expectedChunkId)
         expect(result.candidates.every(({ rank }, index) => rank === index + 1)).toBe(true)
+    })
+
+    it('applies content scope before keyword Top K, including legacy chunks without contentKind', async () => {
+        const input = request('contentscopetoken', { k: 1 })
+        const all = await retriever.retrieve(input)
+        const wiki = await retriever.retrieve({ ...input, contentScope: 'wiki' })
+        const original = await retriever.retrieve({ ...input, contentScope: 'original' })
+        expect(all.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['scope-original'])
+        expect(wiki.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['scope-wiki'])
+        expect(original.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['scope-original'])
+        expect([all, wiki, original].every((result) => !result.failed)).toBe(true)
     })
 
     it('does not run substring recall for a standalone two-character Chinese query', async () => {

@@ -219,7 +219,7 @@
               data-featured-expert-content
               [class]="
                 preview
-                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[68%] overflow-hidden rounded-b-[inherit] border-t border-border/60 bg-background/55 p-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/5 md:p-5'
+                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[68%] overflow-hidden rounded-b-[inherit] border-t border-border/70 bg-card p-4 text-card-foreground backdrop-blur-sm supports-[backdrop-filter]:bg-card/50 dark:supports-[backdrop-filter]:bg-card/50 md:p-5'
                   : 'relative z-10 flex h-full flex-col p-5'
               "
             >
@@ -454,13 +454,10 @@
             @for (item of filteredApplications(); track item.application.id) {
               @let screenshots = applicationScreenshots(item);
               @let screenshot = screenshots[0];
+              <!-- Reserve the preview area even without screenshots so application cards share one layout. -->
               <article
                 data-application-card
-                [class]="
-                  screenshot
-                    ? 'group/application relative h-[400px] max-h-[400px] overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors duration-200 hover:border-primary/60'
-                    : 'group/application relative self-start overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors duration-200 hover:border-primary/60'
-                "
+                class="group/application relative flex h-[400px] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors duration-200 hover:border-primary/60"
               >
                 @if (screenshot) {
                   <button
@@ -486,15 +483,20 @@
                       </span>
                     }
                   </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    [attr.aria-label]="applicationTitle(item)"
+                    (click)="openApplicationDetails(item)"
+                  >
+                    <xp-icon [icon]="item.application.icon ?? null" [size]="72" />
+                  </button>
                 }
 
                 <div
                   data-application-card-content
-                  [class]="
-                    screenshot
-                      ? 'absolute inset-x-0 bottom-0 z-10 flex flex-col border-t border-border/60 bg-background/55 p-4 shadow-xl backdrop-blur-sm supports-[backdrop-filter]:bg-background/5'
-                      : 'relative z-10 flex flex-col p-4'
-                  "
+                  class="relative z-10 mt-auto flex shrink-0 flex-col border-t border-border/70 bg-card p-4 text-card-foreground backdrop-blur-sm supports-[backdrop-filter]:bg-card/50 dark:supports-[backdrop-filter]:bg-card/50"
                 >
                   <div class="flex items-start justify-between gap-2.5">
                     <button
@@ -518,6 +520,11 @@
                     </button>
                     <span
                       class="shrink-0 rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                      [attr.title]="
+                        item.status.status === 'not_installed'
+                          ? ('XP.Explore.Application.SetupExplanation' | translate)
+                          : null
+                      "
                     >
                       {{ applicationStatusLabelKey(item.status.status) | translate }}
                     </span>
@@ -602,9 +609,9 @@
           </div>
         } @else if (filteredTemplates().length) {
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            @for (template of filteredTemplates(); track template.id) {
+            @for (template of visibleTemplates(); track template.id) {
               <article
-                class="flex min-h-64 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
+                class="group/template relative flex min-h-64 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
               >
                 <div class="flex min-w-0 items-center gap-3">
                   <emoji-avatar
@@ -625,7 +632,7 @@
                 <p class="mt-4 line-clamp-3 min-h-[60px] text-sm leading-5 text-muted-foreground">
                   {{ templateSummary(template) }}
                 </p>
-                <div class="mt-4 flex min-h-7 flex-wrap gap-2">
+                <div class="mt-auto flex min-h-7 flex-wrap gap-2 pr-32 pt-4">
                   <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                     {{ 'XP.Explore.AgentSquare.TemplateSource.' + templateSource(template) | translate }}
                   </span>
@@ -638,20 +645,30 @@
                     </span>
                   }
                 </div>
-                <div class="mt-auto pt-5">
-                  <button
-                    z-button
-                    zSize="sm"
-                    type="button"
-                    class="w-full cursor-pointer"
-                    (click)="openTemplate(template, $event)"
-                  >
-                    {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
-                  </button>
-                </div>
+                <button
+                  z-button
+                  zSize="sm"
+                  type="button"
+                  class="pointer-events-none absolute bottom-5 right-5 w-auto max-w-[calc(100%-2.5rem)] translate-y-1 cursor-pointer opacity-0 shadow-sm transition-all duration-200 group-hover/template:pointer-events-auto group-hover/template:translate-y-0 group-hover/template:opacity-100 group-focus-within/template:pointer-events-auto group-focus-within/template:translate-y-0 group-focus-within/template:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+                  (click)="openTemplate(template, $event)"
+                >
+                  {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
+                </button>
               </article>
             }
           </div>
+          @if (visibleTemplates().length < filteredTemplates().length) {
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              class="mt-4"
+              (click)="visibleTemplateCount.set(visibleTemplateCount() + 24)"
+            >
+              {{ 'XP.Knowledgebase.Wiki.Organization.LoadMore' | translate: { Default: 'Load more' } }}
+              ({{ visibleTemplates().length }} / {{ filteredTemplates().length }})
+            </button>
+          }
         } @else if (templateLoadError(); as error) {
           <div
             class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"

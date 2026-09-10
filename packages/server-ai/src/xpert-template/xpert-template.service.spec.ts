@@ -1411,6 +1411,73 @@ describe('XpertTemplateService', () => {
         expect(updatedBundleFingerprint).not.toBe(updatedYamlFingerprint)
     })
 
+    it('lists a scoped catalog without resolving bodies, then resolves only the chosen language', async () => {
+        const workspaceRoot = createTempDir()
+        const dataRoot = createTempDir()
+        seedBuiltinTemplates(workspaceRoot, {
+            templatesJson: { templates: { 'en-US': { categories: [], recommendedApps: [] } }, details: {} },
+            templatesMarketYaml: 'recommendedApps: []'
+        })
+        const resolveTemplate = jest.fn((_ctx: object, key: string, locale: string) => ({
+            key,
+            title: 'Resolved role',
+            type: XpertTypeEnum.Agent,
+            locale,
+            contentHash: 'body-v1',
+            pluginVersion: '0.1.0',
+            dslContent: JSON.stringify({ team: { name: key, agent: { prompt: locale } } })
+        }))
+        const { service } = createService({
+            serverRoot: workspaceRoot,
+            dataPath: dataRoot,
+            loadedPlugins: [
+                {
+                    organizationId: 'global',
+                    name: '@xpert-ai/agency',
+                    packageName: '@xpert-ai/agency@0.1.0',
+                    ctx: {},
+                    instance: {
+                        meta: { displayName: { en_US: 'Agency', zh_Hans: 'Agency roles' } },
+                        templates: {
+                            kind: 'catalog',
+                            resolveTemplate,
+                            listTemplates: () =>
+                                Array.from({ length: 110 }, (_, index) => ({
+                                    key: `role-${index}`,
+                                    title: `Role ${index}`,
+                                    category: 'engineering',
+                                    availableLocales: ['en-US', 'zh-Hans'],
+                                    defaultLocale: 'zh-Hans'
+                                }))
+                        }
+                    }
+                }
+            ]
+        })
+        const page = await service.getCatalog(LanguagesEnum.English, { offset: 24, limit: 24 })
+        expect(page.total).toBe(110)
+        expect(page.items).toHaveLength(24)
+        expect(page.items[0]).not.toHaveProperty('export_data')
+        expect(page.items[0]).not.toHaveProperty('dslContent')
+        expect(resolveTemplate).not.toHaveBeenCalled()
+        expect(await service.getMarketplaceRecommendedTemplates(LanguagesEnum.English)).toEqual([])
+        const detail = await service.getTemplateDetail('@xpert-ai/agency:role-7', LanguagesEnum.English, {
+            locale: 'zh-Hans'
+        })
+        expect(resolveTemplate).toHaveBeenCalledTimes(1)
+        expect(resolveTemplate).toHaveBeenCalledWith({}, 'role-7', 'zh-Hans')
+        expect(detail.locale).toBe('zh-Hans')
+        expect(detail.contentHash).toBe('body-v1')
+        expect(JSON.parse(detail.export_data).team.agent.prompt).toBe('zh-Hans')
+        await expect(service.getTemplateDetail('@xpert-ai/agency:missing', LanguagesEnum.English)).rejects.toThrow()
+        expect(resolveTemplate).toHaveBeenCalledTimes(1)
+        const preferred = await service.getTemplateDetail('@xpert-ai/agency:role-8', LanguagesEnum.English)
+        expect(resolveTemplate).toHaveBeenLastCalledWith({}, 'role-8', 'zh-Hans')
+        expect(preferred.locale).toBe('zh-Hans')
+        await service.getTemplateDetail('@xpert-ai/agency:role-8', LanguagesEnum.English, { locale: 'en-US' })
+        expect(resolveTemplate).toHaveBeenLastCalledWith({}, 'role-8', 'en-US')
+    })
+
     function createService({
         serverRoot,
         dataPath,

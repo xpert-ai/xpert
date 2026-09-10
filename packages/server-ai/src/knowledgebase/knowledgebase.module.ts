@@ -1,3 +1,6 @@
+import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
+import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
+import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
 import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
@@ -40,11 +43,28 @@ import {
     WeightedRrfFusion
 } from './retrieval'
 import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
+import {
+    KnowledgeWikiPage,
+    KnowledgeWikiPageEvidenceEntity,
+    KnowledgeWikiPageVersion,
+    KnowledgeWikiSourceState
+} from './wiki/entities'
+import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-scope.service'
+import { KnowledgeParserSettingsService } from './parser-settings.service'
+import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.processor'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
-        TypeOrmModule.forFeature([Knowledgebase, KnowledgebaseTask, KnowledgeRetrievalLog]),
+        TypeOrmModule.forFeature([
+            Knowledgebase,
+            KnowledgebaseTask,
+            KnowledgeRetrievalLog,
+            KnowledgeWikiPage,
+            KnowledgeWikiPageVersion,
+            KnowledgeWikiPageEvidenceEntity,
+            KnowledgeWikiSourceState
+        ]),
         DiscoveryModule,
         TenantModule,
         CqrsModule,
@@ -61,7 +81,12 @@ import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
     ],
     controllers: [KnowledgebaseController, KnowledgeFAQController],
     providers: [
+        KnowledgePipelineCallbackProcessor,
+        KnowledgeParserSettingsService,
         KnowledgebaseService,
+        KnowledgebaseRuntimeService,
+        KnowledgebaseDocumentsRuntimeService,
+        KnowledgebaseProvisioningRuntimeService,
         KnowledgebaseRebuildEmbeddingConsumer,
         KnowledgebaseTaskService,
         KnowledgeRetrievalLogService,
@@ -82,6 +107,7 @@ import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
         LegacyWeightedFusion,
         WeightedRrfFusion,
         KnowledgeFAQService,
+        KnowledgeWikiSearchScopeService,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,
         ...QueryHandlers,
@@ -90,6 +116,7 @@ import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
         ...Validators
     ],
     exports: [
+        KnowledgeParserSettingsService,
         KnowledgebaseService,
         KnowledgebaseTaskService,
         DocumentSourceRegistry,
@@ -100,7 +127,8 @@ import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
         KnowledgeFilterV2MigrationService,
         KnowledgeGraphFilterScopeService,
         KnowledgeKeywordIndexService,
-        KnowledgeFAQService
+        KnowledgeFAQService,
+        KnowledgeWikiSearchScopeService
     ]
 })
 export class KnowledgebaseModule {}

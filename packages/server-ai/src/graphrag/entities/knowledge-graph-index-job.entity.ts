@@ -2,6 +2,8 @@ import {
     IKnowledgebase,
     IKnowledgeDocument,
     IKnowledgeGraphIndexJob,
+    KnowledgeGraphIndexResult,
+    KnowledgeGraphIndexStage,
     KnowledgeGraphIndexJobStatus,
     KnowledgeGraphIndexJobType
 } from '@xpert-ai/contracts'
@@ -10,6 +12,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDate, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { Knowledgebase, KnowledgeDocument } from '../../core/entities/internal'
+import type { TKnowledgeGraphExtraction } from '../types'
 
 @Entity('knowledge_graph_index_job')
 @Index(['knowledgebaseId', 'documentId', 'status'])
@@ -48,6 +51,22 @@ export class KnowledgeGraphIndexJob extends TenantOrganizationBaseEntity impleme
     @Column({ nullable: true })
     documentId?: string | null
 
+    @Column({ type: 'varchar', length: 128, nullable: true })
+    sourceContentHash?: string | null
+
+    @Column({ type: 'int', nullable: true })
+    sourcePublicationEpoch?: number | null
+
+    @Column({ type: 'uuid', nullable: true })
+    extractionId?: string | null
+
+    // Keep model output durable for retries without including it in progress/list responses.
+    @Column({ type: 'jsonb', nullable: true, select: false })
+    extractionSnapshot?: TKnowledgeGraphExtraction | null
+
+    @Column({ type: 'text', nullable: true })
+    dispatchError?: string | null
+
     @ApiProperty({ type: () => String })
     @IsString()
     @Column({ type: 'varchar', length: 30 })
@@ -57,6 +76,12 @@ export class KnowledgeGraphIndexJob extends TenantOrganizationBaseEntity impleme
     @IsEnum(KnowledgeGraphIndexJobStatus)
     @Column({ type: 'varchar', length: 30, default: KnowledgeGraphIndexJobStatus.QUEUED })
     status: KnowledgeGraphIndexJobStatus
+
+    @Column({ type: 'varchar', length: 30, nullable: true })
+    stage?: KnowledgeGraphIndexStage | null
+
+    @Column({ type: 'varchar', length: 30, nullable: true })
+    result?: KnowledgeGraphIndexResult | null
 
     @ApiPropertyOptional({ type: () => Number })
     @IsNumber()

@@ -1,9 +1,18 @@
+import { dispatchKnowledgePipeline } from './task/pipeline-task'
+import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
+import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
+import { KnowledgeParserSettingsService } from './parser-settings.service'
+import {
+    incompatibleKnowledgeChunkStructure,
+    invalidKnowledgeParserConfig
+} from '../knowledge-document/parser-validation'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
-    channelName,
+    AiModelTypeEnum,
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentMetadata,
+    DocumentTypeEnum,
     genPipelineKnowledgeBaseKey,
     genPipelineSourceKey,
     IKnowledgebase,
@@ -13,22 +22,17 @@ import {
     IWFNProcessor,
     IWFNSource,
     KBDocumentStatusEnum,
-    KnowledgebaseChannel,
     KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
     KnowledgeProviderEnum,
-    KNOWLEDGE_SOURCES_NAME,
-    KnowledgeTask,
     mapTranslationLanguage,
-    STATE_VARIABLE_HUMAN,
     WorkflowNodeTypeEnum,
     XpertTypeEnum,
     genXpertTriggerKey,
     IWFNTrigger,
     KnowledgeStructureEnum,
-    XpertAgentExecutionStatusEnum,
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
@@ -38,12 +42,13 @@ import {
     IModelAccessResolution,
     TKBRetrievalSettings,
     KnowledgeFilterSources,
+    KnowledgeRetrievalContentScope,
     KnowledgeGraphStatus,
-    KNOWLEDGE_PROCESSING_MODE_NAME,
     KBMetadataFieldDef,
     MetadataFieldType,
     KnowledgeFilterJSONValue,
-    normalizeKnowledgebaseFAQRecall
+    normalizeKnowledgebaseFAQRecall,
+    normalizeKnowledgebaseWikiConfig
 } from '@xpert-ai/contracts'
 import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
 import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
@@ -97,6 +102,7 @@ import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert
 import { GetXpertWorkspaceQuery } from '../xpert-workspace/queries'
 import { XpertService } from '../xpert/xpert.service'
 import { Knowledgebase } from './knowledgebase.entity'
+import { assertKnowledgebaseRetrievalSettings } from './retrieval-settings-validation'
 import {
     createEmbeddingCollectionName,
     createEmbeddingFingerprint,
@@ -114,13 +120,17 @@ import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity'
 import { TDocChunkMetadata } from '../knowledge-document/types'
-import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
-import { XpertEnqueueTriggerDispatchCommand, XpertPublishTriggersCommand } from '../xpert/commands'
+import { XpertPublishTriggersCommand } from '../xpert/commands'
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
 import { KnowledgebaseDetailDTO } from './dto'
 import { KnowledgeFilterFieldDefinition } from './filter'
 import { AssertChatConversationAccessQuery } from '../chat-conversation/queries'
+import { assertNoClientWikiState, prepareKnowledgeWikiCreateState } from './wiki/knowledge-wiki-config'
+import {
+    KnowledgeWikiConfigurationUpdate,
+    prepareKnowledgeWikiConfiguration
+} from './wiki/knowledge-wiki-configuration'
 
 type TEmbeddingCopilotModel = Partial<TCopilotModel> & { id?: string }
 type TKnowledgebaseModelContext = {
@@ -132,7 +142,15 @@ function escapeKnowledgeFilterOptionLike(value: string) {
     return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
 }
 
-const KNOWLEDGEBASE_DETAIL_RELATIONS = ['copilotModel', 'chatModel', 'rerankModel', 'visionModel', 'xperts', 'pipeline']
+const KNOWLEDGEBASE_DETAIL_RELATIONS = [
+    'copilotModel',
+    'chatModel',
+    'wikiModel',
+    'rerankModel',
+    'visionModel',
+    'xperts',
+    'pipeline'
+]
 
 const KNOWLEDGEBASE_SAFE_READ_RELATIONS = new Set(['createdBy'])
 
@@ -211,6 +229,9 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     name: true,
     type: true,
     faqConfig: true,
+    wikiConfig: true,
+    wikiStatus: true,
+    wikiAvailability: true,
     structure: true,
     language: true,
     avatar: true,
@@ -219,6 +240,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     permission: true,
     copilotModelId: true,
     chatModelId: true,
+    wikiModelId: true,
     rerankModelId: true,
     visionModelId: true,
     documentNum: true,
@@ -240,6 +262,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     integrationId: true,
     copilotModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     chatModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
+    wikiModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     rerankModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     visionModel: KNOWLEDGEBASE_MODEL_DETAIL_SELECT,
     xperts: {
@@ -251,7 +274,8 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     pipeline: {
         id: true,
         publishAt: true,
-        version: true
+        version: true,
+        graph: true
     }
 }
 
@@ -278,6 +302,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     @Inject(KnowledgeDocumentService)
     private readonly documentService: KnowledgeDocumentService
+
+    @Inject(KnowledgeParserSettingsService)
+    private readonly parserSettings: KnowledgeParserSettingsService
 
     @Inject(TextSplitterRegistry)
     private readonly textSplitterRegistry: TextSplitterRegistry
@@ -409,6 +436,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         delete input.deletedAt
 
         input.type ??= KnowledgebaseTypeEnum.Standard
+        if (input.type === KnowledgebaseTypeEnum.Standard && input.parserConfig) {
+            input.structure = await this.parserSettings.validateSettings(input.parserConfig)
+        }
         if (input.type === KnowledgebaseTypeEnum.FAQ) {
             input.faqConfig = normalizeKnowledgebaseFAQConfig(input.faqConfig ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG)
             input.recall = normalizeKnowledgebaseFAQRecall(input.recall)
@@ -420,6 +450,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         } else {
             delete input.faqConfig
         }
+
+        input.graphStatus =
+            input.graphRag?.enabled === true ? KnowledgeGraphStatus.READY : KnowledgeGraphStatus.DISABLED
+        input.graphRevision = 0
+        input.graphIndexError = null
+
+        const wikiCreateState = prepareKnowledgeWikiCreateState(input)
+        Object.assign(input, wikiCreateState)
+        assertKnowledgebaseRetrievalSettings(input)
 
         // Check name
         const exist = await super.findOneOrFailByOptions({
@@ -469,8 +508,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             relations: KNOWLEDGEBASE_DETAIL_RELATIONS,
             select: KNOWLEDGEBASE_DETAIL_SELECT
         })
+        const canManage = await this.canManageKnowledgebase(id)
 
-        return new KnowledgebaseDetailDTO(knowledgebase)
+        return new KnowledgebaseDetailDTO({
+            ...knowledgebase,
+            canManageWiki: canManage,
+            canManageDocumentDeletions: canManage
+        })
     }
 
     async delete(criteria: string | FindOptionsWhere<Knowledgebase>): Promise<DeleteResult> {
@@ -588,7 +632,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return this.updateKnowledgebase(id, entity)
     }
 
-    async updateKnowledgebase(id: string, entity: Partial<Knowledgebase>) {
+    async updateWikiConfiguration(id: string, input: KnowledgeWikiConfigurationUpdate) {
+        return this.updateKnowledgebase(id, input.settings ?? {}, input)
+    }
+
+    async updateKnowledgebase(
+        id: string,
+        entity: Partial<Knowledgebase>,
+        wikiInput?: KnowledgeWikiConfigurationUpdate
+    ) {
         const _entity = await this.assertKnowledgebaseWriteAccess(id, {
             relations: [
                 'copilotModel',
@@ -599,7 +651,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 'chatModel.copilot.modelProvider',
                 'pendingCopilotModel',
                 'pendingCopilotModel.copilot',
-                'pendingCopilotModel.copilot.modelProvider'
+                'pendingCopilotModel.copilot.modelProvider',
+                ...(wikiInput ? ['wikiModel'] : [])
             ]
         })
         const changes = { ...entity }
@@ -643,6 +696,30 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 })
             )
         }
+        if (Object.prototype.hasOwnProperty.call(changes, 'wikiConfig')) {
+            throw new BadRequestException(
+                t('server-ai:Error.KnowledgebaseWikiConfigManagedSeparately', {
+                    defaultValue: 'Wiki configuration must be changed through the Wiki configuration API'
+                })
+            )
+        }
+        if (
+            Object.prototype.hasOwnProperty.call(changes, 'wikiModel') ||
+            Object.prototype.hasOwnProperty.call(changes, 'wikiModelId')
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.KnowledgebaseWikiConfigManagedSeparately', {
+                    defaultValue: 'Wiki configuration must be changed through the Wiki configuration API'
+                })
+            )
+        }
+        if (_entity.type === KnowledgebaseTypeEnum.Standard && changes.parserConfig) {
+            changes.structure = await this.parserSettings.validateSettings(changes.parserConfig)
+        }
+        if (changes.structure && changes.structure !== _entity.structure) {
+            await this.assertChunkStructureChange(_entity, changes.structure)
+        }
+        assertNoClientWikiState(changes)
         if (
             _entity.type === KnowledgebaseTypeEnum.FAQ &&
             (Object.prototype.hasOwnProperty.call(changes, 'recall') ||
@@ -692,6 +769,18 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             }
         }
 
+        const wikiPatch = wikiInput
+            ? prepareKnowledgeWikiConfiguration(
+                  _entity,
+                  wikiInput,
+                  Object.prototype.hasOwnProperty.call(changes, 'chatModel') ? changes.chatModel : _entity.chatModel
+              )
+            : {}
+
+        if ('recall' in changes || 'graphRag' in changes || wikiInput) {
+            assertKnowledgebaseRetrievalSettings({ ..._entity, ...changes, ...wikiPatch })
+        }
+
         try {
             if (Object.prototype.hasOwnProperty.call(changes, 'metadataSchema')) {
                 changes.metadataSchema = this.validateAndNormalizeMetadataSchema(changes.metadataSchema)
@@ -730,7 +819,19 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                     changes.graphIndexError = null
                 }
             }
-            assign(_entity, changes, embeddingPatch)
+            const generalModelChanged =
+                Object.prototype.hasOwnProperty.call(changes, 'chatModel') ||
+                Object.prototype.hasOwnProperty.call(changes, 'chatModelId')
+            if (
+                normalizeKnowledgebaseWikiConfig(_entity.wikiConfig).enabled &&
+                !_entity.wikiModelId &&
+                generalModelChanged
+            ) {
+                changes.wikiStatus = 'rebuild_required'
+                changes.wikiAvailability = _entity.wikiActiveRevision ? 'degraded' : 'unavailable'
+                changes.wikiBuildError = null
+            }
+            assign(_entity, changes, embeddingPatch, wikiPatch)
             _entity.updatedById = RequestContext.currentUserId()
             const saved = await super.save(_entity)
             if (embeddingPatch.status === KnowledgebaseStatusEnum.REBUILD_REQUIRED) {
@@ -844,8 +945,41 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         })
     }
 
+    private async assertChunkStructureChange(knowledgebase: Knowledgebase, structure: KnowledgeStructureEnum) {
+        if (!Object.values(KnowledgeStructureEnum).includes(structure)) {
+            throw invalidKnowledgeParserConfig('structure')
+        }
+        const documents = await this.documentService.findAll({
+            where: { knowledgebaseId: knowledgebase.id, type: Not(DocumentTypeEnum.FOLDER) },
+            ...(knowledgebase.structure
+                ? { take: 1 }
+                : { select: { id: true, type: true, category: true, parserConfig: true } })
+        })
+        if (knowledgebase.structure && documents.total > 0) throw incompatibleKnowledgeChunkStructure()
+        // Older single-document imports did not record the KB structure. Check their saved
+        // strategies before backfilling it, so defaults never reinterpret existing chunks.
+        for (const document of documents.items) {
+            const config = resolveKnowledgeDocumentParserConfig(document)
+            const existingStructure = config.textSplitterType
+                ? await this.parserSettings.validateSplitter(config)
+                : KnowledgeStructureEnum.General
+            if (existingStructure !== structure) throw incompatibleKnowledgeChunkStructure()
+        }
+    }
+
+    async ensureDocumentChunkStructure(knowledgebaseId: string, structure: KnowledgeStructureEnum) {
+        const knowledgebase = await this.findOneByIdString(knowledgebaseId)
+        if (!knowledgebase.structure) {
+            await this.assertChunkStructureChange(knowledgebase, structure)
+            // Claim the structure once so concurrent imports cannot install incompatible chunk trees.
+            await this.repository.update({ id: knowledgebaseId, structure: IsNull() }, { structure })
+        }
+        const current = knowledgebase.structure ?? (await this.findOneByIdString(knowledgebaseId)).structure
+        if (current !== structure) throw incompatibleKnowledgeChunkStructure()
+    }
+
     async getTextSplitterStrategies() {
-        return this.textSplitterRegistry.list().map((strategy) => strategy.meta)
+        return this.textSplitterRegistry.list().map((strategy) => ({ ...strategy.meta, structure: strategy.structure }))
     }
 
     async getDocumentTransformerStrategies() {
@@ -883,10 +1017,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         options: {
             query: string
             k?: number
-            score?: number
+            score?: number | null
+            rerankModel?: TCopilotModel | null
+            rerankThreshold?: number | null
             filters?: KnowledgeFilterSources
             variables?: Record<string, unknown>
             retrieval?: TKBRetrievalSettings
+            contentScope?: KnowledgeRetrievalContentScope
         }
     ) {
         const knowledgebase = await this.findOne(id)
@@ -1596,12 +1733,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return chatModel
     }
 
-    private getActiveVectorStoreRelations(requiredEmbeddings: boolean) {
+    private getActiveVectorStoreRelations(requiredEmbeddings: boolean, rerankEnabled = true) {
         return requiredEmbeddings
             ? [
-                  'rerankModel',
-                  'rerankModel.copilot',
-                  'rerankModel.copilot.modelProvider',
+                  ...(rerankEnabled ? ['rerankModel', 'rerankModel.copilot', 'rerankModel.copilot.modelProvider'] : []),
                   'copilotModel',
                   'copilotModel.copilot',
                   'copilotModel.copilot.modelProvider',
@@ -1616,12 +1751,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     private async findKnowledgebaseForActiveVectorStore(
         knowledgebaseId: IKnowledgebase | string,
-        requiredEmbeddings: boolean
+        requiredEmbeddings: boolean,
+        rerankEnabled = true
     ) {
         let knowledgebase: IKnowledgebase
         if (typeof knowledgebaseId === 'string') {
             knowledgebase = await this.findOne(knowledgebaseId, {
-                relations: this.getActiveVectorStoreRelations(requiredEmbeddings)
+                relations: this.getActiveVectorStoreRelations(requiredEmbeddings, rerankEnabled)
             })
         } else {
             knowledgebase = knowledgebaseId
@@ -1824,22 +1960,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             )
         }
 
-        let rerankModel: IRerank = null
-        if (rerankEnabled && knowledgebase.rerankModel) {
-            rerankModel = await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
-                new CopilotModelGetRerankQuery(knowledgebase.rerankModel.copilot, knowledgebase.rerankModel, {
-                    ...options.modelContext,
-                    tokenCallback: (token) => {
-                        // execution.tokens += (token ?? 0)
-                    }
-                })
-            )
-            if (!rerankModel) {
-                throw new AiModelNotFoundException(
-                    `Rerank model '${knowledgebase.rerankModel.model || knowledgebase.rerankModel.copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`
-                )
-            }
-        }
+        const rerankModel =
+            rerankEnabled && knowledgebase.rerankModel
+                ? await this.createRerankModel(knowledgebase, options.modelContext)
+                : null
 
         const store = await this.commandBus.execute(
             new RagCreateVStoreCommand(embeddings, {
@@ -1866,12 +1990,73 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         return vStore
     }
 
+    private async createRerankModel(
+        knowledgebase: Pick<IKnowledgebase, 'name'> & { rerankModel?: TCopilotModel },
+        modelContext?: TKnowledgebaseModelContext
+    ) {
+        const model = knowledgebase.rerankModel
+        const rerankModel = model
+            ? await this.queryBus.execute<CopilotModelGetRerankQuery, IRerank>(
+                  new CopilotModelGetRerankQuery(model.copilot, model, {
+                      ...modelContext,
+                      tokenCallback: (token) => {
+                          // execution.tokens += (token ?? 0)
+                      }
+                  })
+              )
+            : null
+        if (!rerankModel) {
+            const defaultValue = `Rerank model is not available for knowledgebase '${knowledgebase.name}'.`
+            throw new AiModelNotFoundException(
+                t('server-ai:Error.KnowledgeRerankModelUnavailable', {
+                    knowledgebase: knowledgebase.name,
+                    defaultValue
+                }) || defaultValue
+            )
+        }
+        return rerankModel
+    }
+
+    async getRerankModel(
+        knowledgebaseId: string,
+        modelContext?: TKnowledgebaseModelContext,
+        requestedModel?: TCopilotModel
+    ) {
+        const knowledgebase = await this.findOne(knowledgebaseId, {
+            relations: ['rerankModel', 'rerankModel.copilot', 'rerankModel.copilot.modelProvider']
+        })
+        if (requestedModel !== undefined) {
+            // Resolve the provider server-side; never trust client-supplied copilot credentials or relations.
+            if (
+                !requestedModel.copilotId ||
+                !requestedModel.model ||
+                requestedModel.modelType !== AiModelTypeEnum.RERANK
+            ) {
+                throw new BadRequestException('A rerank model and its copilot are required.')
+            }
+            const model = await this.ensureCopilotModel({
+                copilotId: requestedModel.copilotId,
+                model: requestedModel.model,
+                modelType: AiModelTypeEnum.RERANK,
+                options: requestedModel.options
+            })
+            return this.createRerankModel({ name: knowledgebase.name, rerankModel: model }, modelContext)
+        }
+        return this.createRerankModel(knowledgebase, modelContext)
+    }
+
     async getActiveVectorStore(
         knowledgebaseId: IKnowledgebase | string,
         requiredEmbeddings = false,
-        modelContext?: TKnowledgebaseModelContext
+        modelContext?: TKnowledgebaseModelContext,
+        options?: { rerankEnabled?: boolean }
     ) {
-        const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(knowledgebaseId, requiredEmbeddings)
+        const rerankEnabled = options?.rerankEnabled ?? true
+        const knowledgebase = await this.findKnowledgebaseForActiveVectorStore(
+            knowledgebaseId,
+            requiredEmbeddings,
+            rerankEnabled
+        )
         await this.ensureLegacyActiveEmbeddingState(knowledgebase, requiredEmbeddings, modelContext)
         const copilotModel = knowledgebase.copilotModel
         const collectionName = knowledgebase.embeddingCollectionName ?? knowledgebase.id
@@ -1880,7 +2065,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             copilotModel,
             collectionName,
             requiredEmbeddings,
-            rerankEnabled: true,
+            rerankEnabled,
             modelContext,
             embeddingMetadata: {
                 provider: this.getEmbeddingProviderName(copilotModel),
@@ -2041,41 +2226,20 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             relations: ['documents']
         })
         this.assertKnowledgebaseTaskSources(task, inputs.sources)
-        const execution = await this.commandBus.execute(
-            new XpertAgentExecutionUpsertCommand({
-                // threadId: conversation.threadId,
-                status: XpertAgentExecutionStatusEnum.RUNNING
-            })
+        const prepared = await prepareKnowledgePipelineDocuments(
+            task,
+            kb.pipeline?.graph,
+            inputs,
+            this.documentService,
+            this.taskService
         )
-        await this.taskService.update(taskId, { status: 'running', executionId: execution.id })
-        const sources = inputs.sources ? Object.keys(inputs.sources) : null
-
-        await this.commandBus.execute(
-            new XpertEnqueueTriggerDispatchCommand(
-                kb.pipelineId,
-                RequestContext.currentUserId(),
-                {
-                    [STATE_VARIABLE_HUMAN]: {
-                        input: 'Process knowledges pipeline'
-                    },
-                    [KnowledgebaseChannel]: {
-                        knowledgebaseId: knowledgebaseId,
-                        [KnowledgeTask]: taskId,
-                        [KNOWLEDGE_SOURCES_NAME]: sources,
-                        [KNOWLEDGE_PROCESSING_MODE_NAME]: inputs.mode ?? 'full',
-                        stage: inputs.stage
-                    },
-                    ...(sources ?? []).reduce(
-                        (obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }),
-                        {}
-                    )
-                },
-                {
-                    isDraft: inputs.isDraft,
-                    from: 'knowledge',
-                    executionId: execution.id
-                }
-            )
+        await dispatchKnowledgePipeline(
+            this.commandBus,
+            this.taskService,
+            knowledgebaseId,
+            kb.pipelineId,
+            taskId,
+            prepared
         )
     }
 
@@ -2099,6 +2263,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         options?: FindOneOptions<Knowledgebase>
     ): Promise<Knowledgebase> {
         return this.assertKnowledgebaseWriteAccessWithError(knowledgebaseId, options, knowledgebaseAccessDenied)
+    }
+
+    async canManageKnowledgebase(knowledgebaseId: string): Promise<boolean> {
+        try {
+            await this.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
+            return true
+        } catch (error) {
+            if (error instanceof ForbiddenException) return false
+            throw error
+        }
     }
 
     async assertKnowledgebaseTaskWriteAccess(

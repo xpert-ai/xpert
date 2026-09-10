@@ -1,3 +1,4 @@
+import { resolveAssistantExecutionModel, supportsAssistantPrimaryModelSelection } from '../../assistant-execution-model'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
 import {
@@ -32,8 +33,7 @@ import {
     TXpertChatState,
     TXpertChatResumeRequest,
     TXpertChatRetryRequest,
-    XpertAgentExecutionStatusEnum,
-    XpertTypeEnum
+    XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
@@ -120,10 +120,6 @@ function isInternalGoalRunInput(input: TChatRequestHuman | null | undefined): bo
         readBooleanMarker(metadata, 'internal') ||
         readBooleanMarker(metadata, 'xpertInternalGoalRun')
     )
-}
-
-function supportsAssistantPrimaryModelSelection(xpert: Partial<IXpert> | null | undefined): boolean {
-    return xpert?.type !== XpertTypeEnum.Knowledge
 }
 
 const STEER_FOLLOW_UP_TARGET_NOT_RUNNING_ERROR = 'Steer follow-up target execution is no longer running'
@@ -302,6 +298,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 : null
             if (
                 request.mode === 'queue' &&
+                !options?.isDraft &&
                 this.assistantModelSelectionService &&
                 xpertId &&
                 supportsAssistantPrimaryModelSelection(followUpXpert)
@@ -808,12 +805,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             // Resolve once at the root execution boundary. The audited snapshot is
             // then reused by resume/retry, so later preference or authoring changes
             // cannot silently switch the model inside an existing run.
-            primaryModelSelection = await this.resolvePrimaryModelSelection({
+            primaryModelSelection = await resolveAssistantExecutionModel(this.assistantModelSelectionService, {
                 request,
                 xpert: latestXpert,
                 runtimeAgentKey,
                 input,
-                sourceExecution: sourceModelExecution
+                sourceExecution: sourceModelExecution,
+                isDraft: Boolean(options?.isDraft),
+                primaryModelId: options?.primaryModelId
             })
             if (primaryModelSelection) {
                 applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
@@ -960,12 +959,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             await this.conversationThreadService?.advanceHead(activeThreadId, aiMessage.id)
         }
         if (request.action === 'resume') {
-            primaryModelSelection = await this.resolvePrimaryModelSelection({
+            primaryModelSelection = await resolveAssistantExecutionModel(this.assistantModelSelectionService, {
                 request,
                 xpert: latestXpert,
                 runtimeAgentKey,
                 input,
-                sourceExecution: sourceModelExecution
+                sourceExecution: sourceModelExecution,
+                isDraft: Boolean(options?.isDraft),
+                primaryModelId: options?.primaryModelId
             })
             if (primaryModelSelection) {
                 applicationMetrics.recordAssistantModelSelection(primaryModelSelection.source)
@@ -1465,50 +1466,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             'execution.id': executionId,
             'xpert.id': xpert.id,
             'project.id': options.projectId
-        })
-    }
-
-    private async resolvePrimaryModelSelection({
-        request,
-        xpert,
-        runtimeAgentKey,
-        input,
-        sourceExecution
-    }: {
-        request: TChatRequest
-        xpert: Partial<IXpert>
-        runtimeAgentKey: string
-        input: TChatRequestHuman | null
-        sourceExecution: IXpertAgentExecution | null
-    }): Promise<TAssistantPrimaryModelSelection | null> {
-        const primaryAgentKey = xpert.agent?.key
-        if (
-            !this.assistantModelSelectionService ||
-            !supportsAssistantPrimaryModelSelection(xpert) ||
-            !primaryAgentKey ||
-            runtimeAgentKey !== primaryAgentKey
-        ) {
-            return null
-        }
-
-        const metadata = sourceExecution?.metadata
-        if (request.action === 'resume') {
-            return this.assistantModelSelectionService.resolveSelection(xpert, {
-                continuationModelId: metadata?.primaryModelId,
-                continuationModelSnapshot: metadata?.primaryModelSnapshot,
-                continuationSource: metadata?.primaryModelSource,
-                ignorePreference: !metadata?.primaryModelId
-            })
-        }
-        if (request.action === 'retry') {
-            return this.assistantModelSelectionService.resolveSelection(xpert, {
-                retryModelId: metadata?.primaryModelId,
-                retryModelSnapshot: metadata?.primaryModelSnapshot,
-                ignorePreference: !metadata?.primaryModelId
-            })
-        }
-        return this.assistantModelSelectionService.resolveSelection(xpert, {
-            explicitModelId: typeof input?.model === 'string' ? input.model : undefined
         })
     }
 

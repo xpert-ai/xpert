@@ -5,6 +5,8 @@ import type {
   CreateEvolutionCanaryTestOverrideRequest,
   DatasetSnapshot,
   EvolutionCandidate,
+  EvolutionChange,
+  EvolutionLifecycleRecord,
   EvolutionJob,
   EvolutionPage,
   ImprovementProposal,
@@ -31,6 +33,12 @@ export class AgentEvolutionFacade {
   #scopeRevision = 0
   #loadRevision = 0
 
+  readonly lifecycleRecords = signal<EvolutionLifecycleRecord[]>([])
+  readonly contextLifecycleRecords = computed(() =>
+    this.lifecycleRecords().filter((item) => this.matchesContext(item.targetId))
+  )
+  readonly changes = signal<EvolutionChange[]>([])
+  readonly providerError = signal<string | null>(null)
   readonly dashboard = signal<AgentEvolutionDashboard>(EMPTY_EVOLUTION_DASHBOARD)
   readonly eventPage = signal<EvolutionPage<LearningEvent>>(EMPTY_PAGE)
   readonly candidatePage = signal<EvolutionPage<EvolutionCandidate>>(EMPTY_PAGE)
@@ -62,8 +70,9 @@ export class AgentEvolutionFacade {
   readonly contextProposals = computed(() =>
     this.dashboard().proposals.filter((item) => this.matchesContext(item.targetId))
   )
+  readonly contextChanges = computed(() => this.changes().filter((item) => this.matchesContext(item.targetId)))
   readonly contextCandidates = computed(() =>
-    this.dashboard().candidates.filter((item) => this.matchesContext(item.targetId))
+    this.dashboard().candidates.filter((item) => item.strategy && this.matchesContext(item.targetId))
   )
   readonly contextDatasets = computed(() =>
     this.dashboard().datasets.filter((item) => {
@@ -116,6 +125,9 @@ export class AgentEvolutionFacade {
     this.#scopeRevision++
     this.#loadRevision++
     this.dashboard.set(EMPTY_EVOLUTION_DASHBOARD)
+    this.lifecycleRecords.set([])
+    this.changes.set([])
+    this.providerError.set(null)
     this.eventPage.set(EMPTY_PAGE)
     this.candidatePage.set(EMPTY_PAGE)
     this.releasePage.set(EMPTY_PAGE)
@@ -147,7 +159,9 @@ export class AgentEvolutionFacade {
         datasets,
         evaluations,
         releases,
-        deployments
+        deployments,
+        providerRecords,
+        lifecycle
       ] = await Promise.all([
         firstValueFrom(this.#api.getDashboard()),
         firstValueFrom(this.#api.listTargets({ page: 1, pageSize: 100 })),
@@ -163,9 +177,16 @@ export class AgentEvolutionFacade {
         firstValueFrom(this.#api.listDatasets({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listEvaluations({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listReleases({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listDeployments({ page: 1, pageSize: 100 }))
+        firstValueFrom(this.#api.listDeployments({ page: 1, pageSize: 100 })),
+        firstValueFrom(this.#api.listChanges())
+          .then((value) => ({ value, error: null }))
+          .catch((error) => ({ value: [], error: getErrorMessage(error) })),
+        firstValueFrom(this.#api.listLifecycleRecords())
       ])
       if (scopeRevision !== this.#scopeRevision || loadRevision !== this.#loadRevision) return null
+      this.lifecycleRecords.set(lifecycle.items)
+      this.changes.set(providerRecords.value)
+      this.providerError.set(providerRecords.error)
       this.eventPage.set(events)
       this.candidatePage.set(candidates)
       this.releasePage.set(releases)
@@ -255,6 +276,7 @@ export class AgentEvolutionFacade {
       const diagnosis = analysis.diagnoses.find((item) => item.eventIds.includes(event.eventId))
       const proposal = await firstValueFrom(
         this.#api.createProposal({
+          strategyId: 'feedback_learning',
           targetId: event.targetId,
           scope: event.scope,
           eventIds: cluster?.eventIds ?? evidence.map((item) => item.eventId),
@@ -304,7 +326,7 @@ export class AgentEvolutionFacade {
   }
 
   async evaluateCandidate(candidate: EvolutionCandidate | null, dataset: DatasetSnapshot | null) {
-    if (!candidate || !dataset || candidate.status !== 'ready') {
+    if (!candidate || !dataset || !['ready', 'evaluating'].includes(candidate.status)) {
       this.#toastr.warning('XP.AgentEvolution.EvaluationPrerequisitesMissing', {
         Default: '请选择同一 Target/Scope 的 Ready Candidate 和 Golden Dataset Snapshot'
       })
@@ -315,14 +337,20 @@ export class AgentEvolutionFacade {
       return null
     }
     return this.withMutation(async () => {
-      const job = await firstValueFrom(
-        this.#api.evaluateCandidate({ candidateId: candidate.candidateId, datasetSnapshotId: dataset.snapshotId })
+      const step = candidate.strategy.definition.evaluations.find((item) => item.kind === 'golden_replay')
+      if (!step) return null
+      const current = this.contextChanges().find((item) => item.changeId === candidate.candidateId)
+      const record = await firstValueFrom(
+        this.#api.evaluateChange(candidate.candidateId, {
+          ...current?.datasetSnapshotIds,
+          [step.key]: dataset.snapshotId
+        })
       )
-      await this.waitForJob(job)
+      if (record.job) await this.waitForJob(record.job)
       await this.load({ silent: true })
       const evaluation = this.dashboard().evaluations.find((item) => item.candidateId === candidate.candidateId)
       this.selectedEvaluationRunId.set(evaluation?.runId ?? null)
-      return job
+      return record
     })
   }
 
@@ -351,7 +379,14 @@ export class AgentEvolutionFacade {
   ) {
     return this.withMutation(async () => {
       const approval = await firstValueFrom(
-        this.#api.decideApproval(candidateId, { evaluationRunId, decision, reason })
+        this.#api.decideChange(candidateId, {
+          candidateHash:
+            this.dashboard().candidates.find((item) => item.candidateId === candidateId)?.artifact.hash ?? '',
+          evaluationRunId:
+            this.lifecycleRecords().find((item) => item.id === candidateId)?.evaluation?.runId ?? evaluationRunId,
+          decision,
+          reason
+        })
       )
       await this.load({ silent: true })
       return approval
@@ -360,11 +395,9 @@ export class AgentEvolutionFacade {
 
   async packageRelease(candidateId: string, evaluationRunId: string, approvalIds: string[]) {
     return this.withMutation(async () => {
-      const release = await firstValueFrom(
-        this.#api.createReleasePackage({ candidateId, evaluationRunId, approvalIds })
-      )
+      const release = await firstValueFrom(this.#api.publishChange(candidateId))
       await this.load({ silent: true })
-      this.selectedReleasePackageId.set(release.releasePackageId)
+      this.selectedReleasePackageId.set(release.releasePackageId ?? null)
       return release
     })
   }

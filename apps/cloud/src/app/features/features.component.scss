@@ -43,8 +43,12 @@ $prefix: (ngm, shell);
 }
 
 .xp-features__sidenav {
-  @apply h-full duration-200 ease-in-out;
-  transition: width;
+  @apply h-full overflow-hidden;
+  transition: width 500ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .xp-features__sidenav-backdrop {

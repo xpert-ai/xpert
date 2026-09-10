@@ -19,7 +19,6 @@ import { XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { debouncedSignal, myRxResource, XpI18nPipe, nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { derivedAsync } from 'ngxtension/derived-async'
 import { distinctUntilChanged, map, of } from 'rxjs'
 import {
   AiModelTypeEnum,
@@ -40,7 +39,7 @@ import { injectCopilotProviderService } from '../../../@core/services/copilot-pr
 import { CopilotServerService } from '../../../@core/services/copilot-server.service'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
+import { ZardAlertComponent, ZardButtonComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { ModelFilterTag, providerModelDisplayTags, providerModelFilterTags } from '../model-tags'
 
 type ModelParameterRulesResourceValue = {
@@ -70,6 +69,7 @@ const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
     XpHighlightDirective,
     ModelParameterInputComponent,
     ZardAlertComponent,
+    ZardButtonComponent,
     ZardSearchInputComponent
   ],
   selector: 'copilot-model-select',
@@ -119,18 +119,19 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   readonly __copilotModel = computed(() => this.cva.value$() ?? this.copilotModel())
   readonly _copilotModel = computed(() => this.__copilotModel() ?? this.inheritModel())
 
-  readonly copilotWithModels = derivedAsync(() => {
+  readonly modelCatalog = myRxResource({
+    request: () => ({ type: this.modelType() }),
+    loader: ({ request }) => this.copilotServer.getCopilotModels(request.type)
+  })
+  readonly copilotWithModels = computed(() => {
     const copilot = this.copilot()
-    return this.copilotServer.getCopilotModels(this.modelType()).pipe(
-      map((copilots) => {
-        return copilots
-          ?.filter((_) => (copilot ? _.id === copilot.id : true))
-          .sort((a, b) => {
-            const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
-            return roleOrder[a.role] - roleOrder[b.role]
-          })
+    return this.modelCatalog
+      .value()
+      ?.filter((item) => !copilot || item.id === copilot.id)
+      .sort((a, b) => {
+        const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
+        return roleOrder[a.role] - roleOrder[b.role]
       })
-    )
   })
   readonly copilotWithModels$ = toObservable(this.copilotWithModels)
 
@@ -503,7 +504,11 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
   }
 
   getMenuWidth(container: HTMLElement | null | undefined) {
-    return container?.getBoundingClientRect().width || 0
+    const viewportWidth = this.getViewportRect()?.width ?? 1024
+    return Math.min(
+      Math.max(container?.getBoundingClientRect().width ?? 0, 520),
+      viewportWidth - MODEL_MENU_VIEWPORT_MARGIN * 2
+    )
   }
 
   getMenuMaxHeight(container: HTMLElement | null | undefined) {

@@ -179,6 +179,12 @@
                         </g>
                       </svg>
                     }
+                    @case (eXpertParameterTypeEnum.OBJECT) {
+                      <i class="ri-braces-line flex h-4 w-4 items-center justify-center text-text-tertiary"></i>
+                    }
+                    @case (eXpertParameterTypeEnum.ARRAY) {
+                      <i class="ri-brackets-line flex h-4 w-4 items-center justify-center text-text-tertiary"></i>
+                    }
                   }
                   <input
                     placeholder="name"

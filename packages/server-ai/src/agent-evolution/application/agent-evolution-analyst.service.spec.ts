@@ -1,3 +1,4 @@
+import { FEEDBACK_LEARNING_STRATEGY } from '@xpert-ai/contracts'
 import type { LearningEvent } from '@xpert-ai/contracts'
 import { AgentEvolutionAnalystService } from './agent-evolution-analyst.service'
 
@@ -33,11 +34,14 @@ describe('AgentEvolutionAnalystService', () => {
             saveDiagnosis: jest.fn().mockImplementation(async (_tenant, value) => ({ value })),
             saveEventCluster: jest.fn().mockImplementation(async (_tenant, value) => ({ value }))
         }
-        const service = new AgentEvolutionAnalystService(store as never)
+        const service = new AgentEvolutionAnalystService(
+            store as never,
+            { get: () => ({ descriptor: { strategies: [FEEDBACK_LEARNING_STRATEGY] } }) } as never
+        )
 
         const result = await service.diagnose(
             { tenantId: 'tenant-automotive', organizationId: 'org-automotive' },
-            { eventIds: events.map((event) => event.eventId) }
+            { strategyId: 'feedback_learning', eventIds: events.map((event) => event.eventId) }
         )
 
         expect(result.clusters).toHaveLength(1)

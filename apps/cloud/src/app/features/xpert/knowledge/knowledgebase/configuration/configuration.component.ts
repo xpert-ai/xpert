@@ -5,15 +5,22 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
-import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
+import { attrModel, injectConfirm, linkedModel } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardFormImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardFormImports,
+  ZardInputDirective,
+  ZardSwitchComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { omit } from 'lodash-es'
-import { filter, finalize, switchMap, take, timer } from 'rxjs'
+import { filter, finalize, firstValueFrom, switchMap, take, timer } from 'rxjs'
 import {
   AiModelTypeEnum,
+  DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
   ICopilotModel,
   IKnowledgebase,
   KnowledgeGraphStatus,
@@ -22,8 +29,10 @@ import {
   KnowledgebaseService,
   KnowledgebaseStatusEnum,
   KnowledgebaseTypeEnum,
+  KnowledgebaseWikiConfig,
   ModelFeature,
   normalizeKnowledgebaseFAQRecall,
+  normalizeKnowledgebaseWikiConfig,
   Store,
   ToastrService,
   getErrorMessage,
@@ -57,6 +66,9 @@ function hasRebuildingStatus(value: unknown): value is { status: KnowledgebaseSt
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     ZardSwitchComponent,
+    ZardInputDirective,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     KnowledgeRetrievalSettingsComponent
   ],
   animations: [routeAnimations]
@@ -76,10 +88,12 @@ export class KnowledgeConfigurationComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly #translate = inject(I18nService)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #confirm = injectConfirm()
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly isFAQ = computed(() => this.knowledgebase()?.type === KnowledgebaseTypeEnum.FAQ)
+  readonly isWiki = computed(() => normalizeKnowledgebaseWikiConfig(this.knowledgebase()?.wikiConfig).enabled)
   readonly rebuilding = computed(() => this.knowledgebase()?.status === KnowledgebaseStatusEnum.REBUILDING)
 
   readonly pristine = signal(true)
@@ -95,7 +109,15 @@ export class KnowledgeConfigurationComponent {
   readonly name = attrModel(this.knowledgebaseModel, 'name')
   readonly description = attrModel(this.knowledgebaseModel, 'description')
   readonly chatModel = attrModel(this.knowledgebaseModel, 'chatModel')
+  readonly wikiModel = attrModel(this.knowledgebaseModel, 'wikiModel')
   readonly visionModel = attrModel(this.knowledgebaseModel, 'visionModel')
+  readonly wikiConfig = linkedModel<KnowledgebaseWikiConfig>({
+    initialValue: DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
+    compute: () => normalizeKnowledgebaseWikiConfig(this.knowledgebase()?.wikiConfig),
+    update: (wikiConfig) => {
+      this.knowledgebaseModel.update((knowledgebase) => ({ ...knowledgebase, wikiConfig }))
+    }
+  })
   readonly copilotModel = linkedModel<Partial<ICopilotModel> | null>({
     initialValue: null,
     compute: () => this.knowledgebase()?.copilotModel ?? null,
@@ -189,14 +211,70 @@ export class KnowledgeConfigurationComponent {
     }
   }
 
-  save() {
-    if (this.rebuilding()) {
+  updateWikiConfig<K extends keyof KnowledgebaseWikiConfig>(key: K, value: KnowledgebaseWikiConfig[K]) {
+    this.wikiConfig.update((current) => ({ ...current, [key]: value }))
+  }
+
+  async save() {
+    if (this.rebuilding() || this.loading()) {
       return
     }
 
     const embeddingModelChanged = this.embeddingModelDraftChanged()
+    if (this.isWiki() && !(this.wikiModel() || this.chatModel())) {
+      this._toastrService.error('XP.Knowledgebase.WorkspaceConfiguration.Validation.WikiModelRequired', '', {
+        Default: 'Select a Wiki generation model or configure the general LLM.'
+      })
+      return
+    }
+    const confirmModelCharges = this.requiresPaidWikiRebuild()
+    if (confirmModelCharges) {
+      const knowledgebaseId = this.knowledgebase().id
+      this.loading.set(true)
+      try {
+        const confirmed = await firstValueFrom(
+          this.#confirm<boolean>({
+            title: this.#translate.instant('XP.Knowledgebase.Wiki.Rebuild'),
+            information: this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
+              Default: 'This Wiki change rebuilds existing content and may incur model charges. Continue?'
+            })
+          }),
+          { defaultValue: false }
+        )
+        if (
+          !confirmed ||
+          this.#destroyRef.destroyed ||
+          this.knowledgebase()?.id !== knowledgebaseId ||
+          this.rebuilding()
+        )
+          return
+      } catch (error) {
+        this._toastrService.error(getErrorMessage(error))
+        return
+      } finally {
+        this.loading.set(false)
+      }
+    }
     this.loading.set(true)
-    const payload = omit(this.knowledgebaseModel(), 'id') as Partial<IKnowledgebase>
+    const draft = this.knowledgebaseModel()
+    if (!draft) {
+      this.loading.set(false)
+      return
+    }
+    const payload: Partial<IKnowledgebase> = {
+      name: draft.name,
+      avatar: draft.avatar,
+      description: draft.description,
+      permission: draft.permission,
+      incrementalSyncEnabled: draft.incrementalSyncEnabled,
+      parserConfig: draft.parserConfig,
+      chatModel: draft.chatModel ?? null,
+      visionModel: draft.visionModel ?? null,
+      recall: draft.recall,
+      rerankModel: draft.rerankModel ?? null,
+      rerankModelId: draft.rerankModel?.id ?? draft.rerankModelId ?? null,
+      graphRag: draft.graphRag
+    }
     if (this.isFAQ()) {
       payload.recall = normalizeKnowledgebaseFAQRecall(payload.recall)
       payload.graphRag = {
@@ -221,7 +299,19 @@ export class KnowledgeConfigurationComponent {
       payload.visionModelId = null
     }
 
-    this.knowledgebaseService.update(this.knowledgebase().id, payload).subscribe({
+    const knowledgebaseId = this.knowledgebase().id
+    const request$ = this.isWiki()
+      ? this.knowledgebaseService.updateWikiConfiguration(knowledgebaseId, {
+          settings: payload,
+          wikiConfig: normalizeKnowledgebaseWikiConfig(this.wikiConfig()),
+          wikiModel: this.wikiModel() ?? null,
+          confirmModelCharges,
+          maxModelInvocations: Math.max(20, (this.knowledgebase()?.documentNum || 1) * 20),
+          maxEstimatedTokens: Math.max(200_000, (this.knowledgebase()?.documentNum || 1) * 200_000)
+        })
+      : this.knowledgebaseService.update(knowledgebaseId, payload)
+
+    request$.subscribe({
       next: (knowledgebase) => {
         this.loading.set(false)
         this._toastrService.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
@@ -237,6 +327,20 @@ export class KnowledgeConfigurationComponent {
         this.loading.set(false)
       }
     })
+  }
+
+  private requiresPaidWikiRebuild() {
+    const knowledgebase = this.knowledgebase()
+    if (!this.isWiki() || !knowledgebase?.documentNum) return false
+    const currentConfig = normalizeKnowledgebaseWikiConfig(knowledgebase.wikiConfig)
+    const nextConfig = normalizeKnowledgebaseWikiConfig(this.wikiConfig())
+    const currentModel = knowledgebase.wikiModel ?? knowledgebase.chatModel
+    const nextModel = this.wikiModel() ?? this.chatModel()
+    return (
+      JSON.stringify(currentConfig) !== JSON.stringify(nextConfig) ||
+      JSON.stringify(this.toComparableCopilotModelConfig(currentModel)) !==
+        JSON.stringify(this.toComparableCopilotModelConfig(nextModel))
+    )
   }
 
   private pollRebuildStatus() {

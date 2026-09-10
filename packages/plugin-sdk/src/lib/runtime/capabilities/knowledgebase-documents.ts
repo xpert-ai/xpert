@@ -1,4 +1,9 @@
-import { type I18nObject, JSONValue } from '@xpert-ai/contracts'
+import {
+  type I18nObject,
+  type DocumentTextParserConfig,
+  type DocumentSheetParserConfig,
+  JSONValue
+} from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { WorkspacePortableFileReference } from './workspace-files'
 
@@ -226,7 +231,48 @@ export type KnowledgebaseReadImageResult = {
   buffer: Buffer
 }
 
+/** Bounded, ordered source text. The host checks document read access on every page. */
+export type KnowledgebaseReadTextInput = {
+  knowledgebaseId: string
+  documentId: string
+  offset?: number
+  limit?: number
+}
+export type KnowledgebaseReadTextResult = {
+  knowledgebaseId: string
+  documentId: string
+  version: number
+  sourceHash?: string | null
+  total: number
+  chunks: Array<{ id: string; text: string; page?: number; version: number }>
+}
+
+export type KnowledgebaseProcessingOptionsInput = {
+  knowledgebaseId: string
+  fileName: string
+  /** Omit to use the Knowledge base's default for this file type. */
+  processor?: string
+  transformerIntegration?: string
+}
+
+export type KnowledgebaseProcessingOptionsResult = {
+  fileType: string
+  defaultProcessor: string
+  processor: string
+  defaultSource: 'knowledgebase' | 'platform'
+  providers: Array<{ name: string; label: I18nObject; integrationProvider?: string }>
+  integrations: Array<{ id: string; name: string; provider: string }>
+  integrationRequired: boolean
+  selectedIntegrationId?: string
+  /** Server-only resolved settings. Do not expose configuration/credentials to an iframe. */
+  parserConfig: DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
+}
+
 export interface KnowledgebaseDocumentsApi {
+  getProcessingOptions(input: KnowledgebaseProcessingOptionsInput): Promise<KnowledgebaseProcessingOptionsResult>
+
+  readText(input: KnowledgebaseReadTextInput): Promise<KnowledgebaseReadTextResult>
+
   listDocuments(input: KnowledgebaseListDocumentsInput): Promise<KnowledgebaseListDocumentsResult>
 
   createFolder(input: KnowledgebaseCreateFolderInput): Promise<KnowledgebaseCreateFolderResult>

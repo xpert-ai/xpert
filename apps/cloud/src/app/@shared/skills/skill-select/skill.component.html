@@ -70,7 +70,9 @@
 
         <div class="flex-1 space-y-1">
           <div class="flex items-center gap-2">
-            <div class="text-sm font-semibold leading-tight text-text-primary">{{ skill.name }}</div>
+            <div class="text-sm font-semibold leading-tight text-text-primary">
+              {{ (skill.metadata?.displayName | i18n) || skill.name }}
+            </div>
             @if (skill.visibility) {
               <span
                 class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-[2px] text-xs font-semibold uppercase tracking-wide text-text-tertiary"

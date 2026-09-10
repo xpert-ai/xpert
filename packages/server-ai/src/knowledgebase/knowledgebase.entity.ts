@@ -6,6 +6,9 @@ import {
     IXpert,
     KBMetadataFieldDef,
     KnowledgebaseFAQConfig,
+    KnowledgebaseWikiConfig,
+    KnowledgeWikiAvailability,
+    KnowledgeWikiStatus,
     KnowledgebaseParserConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
@@ -48,6 +51,66 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @IsOptional()
     @Column({ type: 'jsonb', nullable: true })
     faqConfig?: KnowledgebaseFAQConfig | null
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'jsonb', nullable: true })
+    wikiConfig?: KnowledgebaseWikiConfig | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'varchar', nullable: true, default: 'disabled' })
+    wikiStatus?: KnowledgeWikiStatus | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'varchar', nullable: true, default: 'unavailable' })
+    wikiAvailability?: KnowledgeWikiAvailability | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @IsOptional()
+    @Column({ type: 'int', nullable: true })
+    wikiRevision?: number | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @IsOptional()
+    @Column({ type: 'int', nullable: true })
+    wikiActiveRevision?: number | null
+
+    @ApiPropertyOptional({ type: () => Number })
+    @IsNumber()
+    @IsOptional()
+    @Column({ type: 'int', nullable: true })
+    wikiStagedRevision?: number | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'text', nullable: true })
+    wikiBuildError?: string | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'varchar', nullable: true })
+    wikiRebuildRequiredReason?: 'generator_upgrade' | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'varchar', nullable: true })
+    wikiGeneratorVersion?: string | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'varchar', nullable: true })
+    wikiConfigFingerprint?: string | null
 
     @ApiPropertyOptional({ enum: KnowledgeStructureEnum, enumName: 'KnowledgeStructureEnum' })
     @IsEnum(KnowledgeStructureEnum)
@@ -114,6 +177,21 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @IsOptional()
     @Column({ nullable: true })
     chatModelId?: string | null
+
+    @ApiPropertyOptional({ type: () => CopilotModel })
+    @OneToOne(() => CopilotModel, {
+        nullable: true,
+        cascade: true
+    })
+    @JoinColumn()
+    wikiModel?: ICopilotModel | null
+
+    @ApiPropertyOptional({ type: () => String })
+    @RelationId((it: Knowledgebase) => it.wikiModel)
+    @IsString()
+    @IsOptional()
+    @Column({ type: 'uuid', nullable: true })
+    wikiModelId?: string | null
 
     @ApiPropertyOptional({ type: () => String })
     @IsString()

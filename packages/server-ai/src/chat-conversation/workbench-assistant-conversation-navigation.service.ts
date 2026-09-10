@@ -39,7 +39,7 @@ export class WorkbenchAssistantConversationNavigationService {
         }
 
         const isExternalAssistant = !this.xpertBindingService.isSameXpert(requesterXpert, targetXpert)
-        if (isExternalAssistant && !(await this.isDirectRequiredExternalAssistant(requesterXpert, targetXpert))) {
+        if (isExternalAssistant && !(await this.isConnectedExternalAssistant(requesterXpert, targetXpert, projectId))) {
             throw navigationDenied()
         }
 
@@ -52,24 +52,46 @@ export class WorkbenchAssistantConversationNavigationService {
         }
     }
 
-    private async isDirectRequiredExternalAssistant(requesterXpert: IXpert, targetXpert: IXpert) {
-        const requesterAgentKey = resolvePrimaryAgentKey(requesterXpert)
-        if (!requesterAgentKey) {
-            return false
-        }
-
+    // Read navigation follows required Assistant edges; runtime tool grants remain direct-only.
+    // Conversation access, tenant scope and Project membership are checked independently.
+    private async isConnectedExternalAssistant(requesterXpert: IXpert, targetXpert: IXpert, projectId: string | null) {
         const scope = {
             tenantId: requesterXpert.tenantId,
             organizationId: requesterXpert.organizationId
         }
-        const candidates = await Promise.all(
-            directExternalAssistantIds(requesterXpert, requesterAgentKey).map((candidateId) =>
-                this.xpertBindingService.resolveCurrentById(candidateId, scope)
-            )
-        )
-        return candidates.some(
-            (candidate) => candidate !== null && this.xpertBindingService.isSameXpert(candidate, targetXpert)
-        )
+        const queue = [{ xpert: requesterXpert, depth: 0 }]
+        const visited = new Set([requesterXpert.id])
+        let remaining = 32
+        while (queue.length) {
+            const { xpert, depth } = queue.shift()!
+            const agentKey = resolvePrimaryAgentKey(xpert)
+            if (!agentKey || depth >= 8) continue
+            for (const id of directExternalAssistantIds(xpert, agentKey)) {
+                if (visited.has(id)) continue
+                if (remaining-- <= 0) return false
+                visited.add(id)
+                const candidate = await this.xpertBindingService.resolveCurrentById(id, scope)
+                if (
+                    !candidate ||
+                    candidate.tenantId !== scope.tenantId ||
+                    (candidate.organizationId ?? null) !== (scope.organizationId ?? null)
+                )
+                    continue
+                if (projectId) {
+                    try {
+                        await this.projectAccessService.assertCanReadXpert(projectId, candidate.id)
+                    } catch (error) {
+                        if (error instanceof ForbiddenException) continue
+                        throw error
+                    }
+                }
+                if (this.xpertBindingService.isSameXpert(candidate, targetXpert)) return true
+                if (id !== candidate.id && visited.has(candidate.id)) continue
+                visited.add(candidate.id)
+                queue.push({ xpert: candidate, depth: depth + 1 })
+            }
+        }
+        return false
     }
 }
 

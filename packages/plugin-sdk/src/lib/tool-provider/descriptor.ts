@@ -1,6 +1,8 @@
+import type { ZodEffects } from 'zod/v3'
 import type { ZodTypeAny } from 'zod/v3'
 import {
   MCP_CAPABILITY_VISIBILITIES,
+  MCP_CAPABILITY_APPROVAL_MODES,
   MCP_REQUIRED_CONTEXTS,
   MCP_TOOL_IDEMPOTENCY,
   MCP_TOOL_RISKS,
@@ -122,6 +124,12 @@ function validateProviderOptions(options: XpertToolProviderOptions) {
 }
 
 function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: string) {
+  if (options.resultFormat && options.resultFormat !== 'dto' && options.resultFormat !== 'tool_result') {
+    throw new Error(`Tool '${options.name}' declares an invalid resultFormat.`)
+  }
+  if (options.resultFormat === 'tool_result' && !options.outputSchema) {
+    throw new Error(`Tool '${options.name}' requires outputSchema for tool_result.`)
+  }
   if (!TOOL_NAME_PATTERN.test(options.name) || options.name.length > 191) {
     throw new Error(`Method '${methodName}' declares invalid Tool name '${options.name}'.`)
   }
@@ -137,6 +145,12 @@ function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: st
     throw new Error(`MCP Tool '${options.name}' requires at least one execution context.`)
   }
   if (options.mcp) {
+    if (
+      options.mcp.defaultApprovalMode !== undefined &&
+      !includesValue(MCP_CAPABILITY_APPROVAL_MODES, options.mcp.defaultApprovalMode)
+    ) {
+      throw new Error(`MCP Tool '${options.name}' declares invalid defaultApprovalMode.`)
+    }
     const behavior = options.mcp.behavior
     if (
       !includesValue(MCP_TOOL_RISKS, behavior?.risk) ||
@@ -174,6 +188,19 @@ function isRelativeHtmlEntry(entry: string) {
 function assertStrictObjectSchema(schema: ZodTypeAny, toolName: string, role: 'input' | 'output') {
   if (!schema || typeof Reflect.get(schema, 'parseAsync') !== 'function') {
     throw new Error(`Tool '${toolName}' requires a Zod ${role} schema.`)
+  }
+  // Refinements preserve the strict object shape while enforcing cross-field invariants.
+  // Plugins can load a different physical copy of Zod; use its explicit type tag.
+  while (schema._def.typeName === 'ZodEffects') {
+    const refinement = schema as ZodEffects<ZodTypeAny>
+    if (refinement._def.effect.type !== 'refinement') break
+    schema = refinement.innerType()
+  }
+  if (role === 'output' && schema._def.typeName === 'ZodUnion') {
+    // Recovery receipts may have a different shape, but every branch must reject extra fields.
+    const union = schema as import('zod/v3').ZodUnion<[ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]>
+    for (const option of union.options) assertStrictObjectSchema(option, toolName, role)
+    return
   }
   const definition = Reflect.get(schema, '_def')
   if (!definition || Reflect.get(definition, 'unknownKeys') !== 'strict') {

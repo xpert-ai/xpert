@@ -206,6 +206,8 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly currentXpertLabel = computed(() => {
     return this.getXpertLabel(this.currentXpert() ?? this.resolvedPreference())
   })
+  readonly assistantTitle = this.currentXpertLabel
+  readonly assistantAvatar = this.currentXpertAvatar
   readonly currentXpertDescription = computed(() => {
     return (
       this.currentXpert()?.description ||

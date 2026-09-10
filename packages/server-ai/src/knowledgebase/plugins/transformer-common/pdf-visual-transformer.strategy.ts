@@ -1,3 +1,4 @@
+import { invalidKnowledgeParserConfig } from '../../../knowledge-document/parser-validation'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
@@ -55,6 +56,7 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
     ]
 
     readonly meta = {
+        supportedFileTypes: ['pdf'],
         name: PdfVisual,
         label: {
             en_US: 'PDF Visual',
@@ -101,8 +103,16 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
         }
     }
 
-    async validateConfig(): Promise<void> {
-        //
+    async validateConfig(config: TPdfVisualTransformerConfig): Promise<void> {
+        if (config.renderPageImages !== undefined && typeof config.renderPageImages !== 'boolean') {
+            throw invalidKnowledgeParserConfig('renderPageImages')
+        }
+        if (config.maxPages !== undefined && (!Number.isSafeInteger(config.maxPages) || config.maxPages < 1)) {
+            throw invalidKnowledgeParserConfig('maxPages')
+        }
+        if (config.renderScale !== undefined && (!Number.isFinite(config.renderScale) || config.renderScale <= 0)) {
+            throw invalidKnowledgeParserConfig('renderScale')
+        }
     }
 
     async transformDocuments(

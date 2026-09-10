@@ -53,6 +53,9 @@ FROM node:20 AS production
 ENV NODE_OPTIONS="--max-old-space-size=2048" \
     NODE_ENV=production \
     API_BASE_URL=http://localhost:3000 \
+    CODE_XPERT_URL=https://code.xpertai.cn/ \
+    DEEP_RESEARCH_URL=https://research.xpertai.cn/ \
+    DATA_ONTOLOGY_URL=https://data.xpertai.cn/ \
     SENTRY_DSN= \
     DB_HOST=db \
     DB_NAME=postgres \

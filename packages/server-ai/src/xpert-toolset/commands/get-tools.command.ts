@@ -10,7 +10,7 @@ export class ToolsetGetToolsCommand implements ICommand {
     static readonly type = '[Xpert Toolset] Get tools'
 
     constructor(
-        public readonly ids: string[],
+        public readonly ids: string[] | null | undefined,
         public readonly environment?: {
             projectId?: string | null
             workspaceId?: string | null

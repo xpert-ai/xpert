@@ -1,3 +1,4 @@
+import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto'
 import {
     BadRequestException,
@@ -17,11 +18,14 @@ import { t } from 'i18next'
 import {
     assertConnectorDefinition,
     ConnectorStrategyRegistry,
+    ConnectorRuntimeFactoryCapability,
     getConnectorAuthorizationModes,
     getConnectorAuthMethods
 } from '@xpert-ai/plugin-sdk'
 import type {
-    AgentMiddlewareRuntimeScope,
+    ConnectorRuntimeFactory,
+    ConnectorRuntimeScope,
+    SelectedRuntimeConnectorBinding,
     ConnectorAuthorizationMode,
     ConnectorAuthMethodDefinition,
     ConnectorBinding,
@@ -139,11 +143,6 @@ export type XpertProjectMemberRemovedEvent = {
     actorId: string
 }
 
-export type SelectedRuntimeConnectorBinding = {
-    bindingId: string
-    provider: string
-}
-
 type StoredConnectorCredential = {
     version: 1
     authMethodId: string
@@ -170,7 +169,8 @@ type ConnectorProviderSelectOption = {
 const DEFAULT_STATE_TTL_MS = 10 * 60 * 1000
 
 @Injectable()
-export class ConnectorService {
+@RuntimeCapabilityProvider(ConnectorRuntimeFactoryCapability)
+export class ConnectorService implements ConnectorRuntimeFactory {
     private readonly encryptionKey = environment.secretsEncryptionKey
 
     constructor(
@@ -1502,7 +1502,12 @@ export class ConnectorService {
         }
     }
 
-    createScopedRuntimeApi(scope: AgentMiddlewareRuntimeScope): ConnectorRuntimeApi {
+    createScopedApi(scope: ConnectorRuntimeScope): ConnectorRuntimeApi {
+        scope = {
+            ...scope,
+            connectorBindingIds: [...(scope.connectorBindingIds ?? [])],
+            connectorProviders: [...(scope.connectorProviders ?? [])]
+        }
         return {
             getConnector: (input) => this.getRuntimeConnectorForScope(input, scope),
             getConnectorCredential: (input) => this.getRuntimeConnectorCredentialForScope(input, scope)
@@ -1511,7 +1516,7 @@ export class ConnectorService {
 
     async resolveSelectedRuntimeBindings(
         bindingIds: string[] | null | undefined,
-        scope: AgentMiddlewareRuntimeScope
+        scope: ConnectorRuntimeScope
     ): Promise<SelectedRuntimeConnectorBinding[]> {
         const selectedBindingIds = normalizeBindingIds(bindingIds)
         if (!selectedBindingIds.length) {
@@ -1584,22 +1589,31 @@ export class ConnectorService {
 
     async getRuntimeConnectorForScope(
         input: ConnectorRuntimeGetInput,
-        scope: AgentMiddlewareRuntimeScope
+        scope: ConnectorRuntimeScope
     ): Promise<ConnectorRuntimeCredential> {
         return this.projectLegacyRuntimeResponse(await this.getRuntimeConnectorCredentialForScope(input, scope))
     }
 
     async getRuntimeConnectorCredentialForScope(
         input: ConnectorRuntimeGetInput,
-        scope: AgentMiddlewareRuntimeScope
+        scope: ConnectorRuntimeScope
     ): Promise<ConnectorRuntimeCredentialV2> {
         const bindingIds = normalizeBindingIds(scope.connectorBindingIds)
         const requestedBindingId = input.bindingId ?? input.connectorId
-        if (!requestedBindingId || !bindingIds.includes(requestedBindingId)) {
+        // Legacy graph nodes pass only a provider. The host must explicitly
+        // enable that provider; a supplied ID always keeps the exact-ID path.
+        const authorized =
+            requestedBindingId != null
+                ? bindingIds.includes(requestedBindingId)
+                : Boolean(input.provider && scope.connectorProviders?.includes(input.provider))
+        if (!authorized) {
             throw new ForbiddenException(connectorAccessDeniedMessage())
         }
         this.assertRuntimeIdentityScope(scope)
-        const binding = await this.requireBinding(requestedBindingId, scope.tenantId ?? undefined)
+        const binding =
+            requestedBindingId != null
+                ? await this.requireBinding(requestedBindingId, scope.tenantId ?? undefined)
+                : await this.requireRuntimeProviderBinding(requiredConnectorText(input.provider, 'provider'), scope)
         let connection: BindingConnection | null = null
         try {
             if (input.provider && input.provider !== binding.provider) {
@@ -1623,6 +1637,24 @@ export class ConnectorService {
             )
             throw error
         }
+    }
+
+    private async requireRuntimeProviderBinding(provider: string, scope: ConnectorRuntimeScope) {
+        const xpert = await this.assertXpertRunAccess(requiredConnectorText(scope.xpertId, 'runtime.xpertId'))
+        if (!scope.projectId) {
+            return this.requireConnector({
+                workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId'),
+                provider
+            })
+        }
+        const bindings = await this.findBindings({ type: 'project', projectId: scope.projectId })
+        const binding = bindings.find((candidate) => candidate.provider === provider)
+        if (!binding) {
+            throw new NotFoundException(
+                t('server-ai:Error.ConnectorBindingNotFound', { defaultValue: 'Connector binding was not found' })
+            )
+        }
+        return binding
     }
 
     private async resolveRuntimeCredential(connection: BindingConnection): Promise<ConnectorRuntimeCredentialV2> {
@@ -1878,7 +1910,7 @@ export class ConnectorService {
         return xpert
     }
 
-    private async assertRuntimeBindingAccess(binding: Connector, scope: AgentMiddlewareRuntimeScope) {
+    private async assertRuntimeBindingAccess(binding: Connector, scope: ConnectorRuntimeScope) {
         const tenantId = requiredConnectorText(scope.tenantId, 'runtime.tenantId')
         const userId = requiredConnectorText(scope.userId, 'runtime.userId')
         const xpertId = requiredConnectorText(scope.xpertId, 'runtime.xpertId')
@@ -1917,7 +1949,7 @@ export class ConnectorService {
         }
     }
 
-    private assertRuntimeIdentityScope(scope: AgentMiddlewareRuntimeScope) {
+    private assertRuntimeIdentityScope(scope: ConnectorRuntimeScope) {
         requiredConnectorText(scope.tenantId, 'runtime.tenantId')
         requiredConnectorText(scope.userId, 'runtime.userId')
         requiredConnectorText(scope.xpertId, 'runtime.xpertId')
@@ -2158,7 +2190,7 @@ export class ConnectorService {
     private async recordRuntimeAudit(
         binding: Connector,
         accountId: string | null,
-        scope: AgentMiddlewareRuntimeScope,
+        scope: ConnectorRuntimeScope,
         outcome: ConnectorRuntimeAudit['outcome'],
         errorCode?: string
     ) {

@@ -16,25 +16,21 @@ import { CommandBus } from '@nestjs/cqrs'
 import { ChunkMetadata, countTokensSafe } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
-import { KnowledgeGraphEnqueueCommand } from '../graphrag/commands'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocLoadCommand } from './commands'
+import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
 import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
 import { guardEmbeddingInputDocuments } from './embedding-input-guard'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
+import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentProcessingMetadata } from './document-publication'
 
 /** Queue payload keeps processing mode durable across the HTTP/background-worker boundary. */
 type KnowledgeDocumentJobData = {
     userId: string
     docs: IKnowledgeDocument[]
     mode?: KnowledgeDocumentProcessingMode
-}
-
-/** Shallow update signature avoids TypeORM recursive type expansion in ts-jest. */
-type KnowledgeDocumentMetadataUpdater = {
-    update: (documentId: string, updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>) => Promise<unknown>
 }
 
 @Processor({
@@ -49,7 +45,8 @@ export class KnowledgeDocumentConsumer {
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
         private readonly userService: UserService,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly publicationService: KnowledgeDerivedIndexPublicationService
     ) {}
 
     @Process({ concurrency: 5 })
@@ -160,6 +157,12 @@ export class KnowledgeDocumentConsumer {
                     this.logger.debug(
                         `[Job: entity '${job.id}'] Document '${document.id}' unchanged; skipped embedding.`
                     )
+                    await this.publicationService.publish({
+                        knowledgebase,
+                        documentId: document.id,
+                        userId: job.data.userId,
+                        contentChanged: false
+                    })
                     continue
                 }
 
@@ -266,9 +269,6 @@ export class KnowledgeDocumentConsumer {
                             { tokens: totalTokenUsed }
                         )
                     }
-                    if (syncResult.contentChanged) {
-                        await this.enqueueGraphIndex(knowledgebase, document.id, job.data.userId)
-                    }
                 }
 
                 const processDuration = new Date().getTime() - processBeginAt.getTime()
@@ -289,8 +289,16 @@ export class KnowledgeDocumentConsumer {
                         lastIncrementalSync: syncResult
                             ? this.createIncrementalSyncMetadata(document, syncResult, embeddingTokenUsed)
                             : this.createSkippedIncrementalSyncMetadata(document)
-                    }
+                    },
+                    syncResult?.contentChanged === true
                 )
+
+                await this.publicationService.publish({
+                    knowledgebase,
+                    documentId: document.id,
+                    userId: job.data.userId,
+                    contentChanged: syncResult?.contentChanged === true
+                })
 
                 this.logger.debug(`[Job: entity '${job.id}'] End!`)
             } catch (err) {
@@ -354,38 +362,16 @@ export class KnowledgeDocumentConsumer {
     private async updateDocumentProcessingMetadata(
         documentId: string,
         updates: Partial<IKnowledgeDocument<KnowledgeDocumentMetadata>>,
-        metadataPatch?: Partial<KnowledgeDocumentMetadata>
+        metadataPatch?: Partial<KnowledgeDocumentMetadata>,
+        contentChanged?: boolean
     ) {
-        const updater = this.documentService as unknown as KnowledgeDocumentMetadataUpdater
-        if (!metadataPatch) {
-            return await updater.update(documentId, updates)
-        }
-
-        const current = await this.documentService.findOne(documentId, { select: { id: true, metadata: true } })
-        return await updater.update(documentId, {
-            ...updates,
-            metadata: {
-                ...(current.metadata ?? {}),
-                ...metadataPatch
-            }
-        })
-    }
-
-    private async enqueueGraphIndex(knowledgebase: IKnowledgebase, documentId: string, userId?: string) {
-        try {
-            await this.commandBus.execute(
-                new KnowledgeGraphEnqueueCommand({
-                    userId,
-                    tenantId: knowledgebase.tenantId,
-                    organizationId: knowledgebase.organizationId,
-                    knowledgebaseId: knowledgebase.id,
-                    documentIds: [documentId],
-                    reason: 'document'
-                })
-            )
-        } catch (error) {
-            this.logger.warn(`Failed to enqueue GraphRAG index for document '${documentId}': ${getErrorMessage(error)}`)
-        }
+        return writeKnowledgeDocumentProcessingMetadata(
+            this.documentService as unknown as KnowledgeDocumentPublicationWriter,
+            documentId,
+            updates,
+            metadataPatch,
+            contentChanged
+        )
     }
 
     async checkIfJobCancelled(docId: string): Promise<boolean> {

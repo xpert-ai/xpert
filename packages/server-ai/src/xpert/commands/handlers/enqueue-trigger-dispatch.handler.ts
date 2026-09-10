@@ -87,7 +87,7 @@ export class XpertEnqueueTriggerDispatchHandler implements ICommandHandler<Xpert
                     ...(params.isDraft ? { isDraft: true } : {}),
                     ...(params.executionId ? { execution: { id: params.executionId } } : {})
                 } as AgentChatDispatchPayload['options'],
-                callback: {
+                callback: params.callback ?? {
                     messageType: AGENT_CHAT_CALLBACK_NOOP_MESSAGE_TYPE
                 }
             },

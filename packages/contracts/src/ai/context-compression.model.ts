@@ -1,10 +1,11 @@
+import type { ContextCompressionReason } from '@xpert-ai/chatkit-types'
 import type { I18nText } from '../i18n.model'
 
 export const CONTEXT_COMPRESSION_COMPONENT_TYPE = 'context-compression'
 
 export type TContextCompressionComponentStatus = 'running' | 'success' | 'fail'
 
-export type TContextCompressionComponentReason = 'no_messages' | 'no_unprotected_history' | 'no_token_gain'
+export type TContextCompressionComponentReason = ContextCompressionReason
 
 export type TContextCompressionComponentData = {
   category: 'Tool'

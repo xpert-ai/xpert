@@ -21,6 +21,36 @@ export enum KnowledgeGraphIndexJobStatus {
 
 export type KnowledgeGraphIndexJobType = 'document' | 'rebuild'
 
+export type KnowledgeGraphIndexStage = 'extraction' | 'persistence' | 'indexing'
+export type KnowledgeGraphIndexResult = 'indexed' | 'empty' | 'superseded' | 'disabled'
+export type KnowledgeGraphDocumentStageState = 'pending' | 'running' | 'complete' | 'failed'
+export type KnowledgeGraphDocumentState =
+  | 'disabled'
+  | 'source_disabled'
+  | 'waiting_source'
+  | 'not_started'
+  | 'outdated'
+  | 'queued'
+  | 'running'
+  | 'ready'
+  | 'failed'
+  | 'cancelled'
+  | 'no_content'
+  | 'completed'
+
+export const KNOWLEDGE_GRAPH_DOCUMENT_STATUS_BATCH_SIZE = 100
+
+export type KnowledgeGraphDocumentsProgressResponse = { documents: KnowledgeGraphDocumentProgress[] }
+
+export type KnowledgeGraphDocumentProgress = {
+  documentId: string
+  state: KnowledgeGraphDocumentState
+  stages?: Record<KnowledgeGraphIndexStage, KnowledgeGraphDocumentStageState>
+  processedChunks?: number | null
+  totalChunks?: number | null
+  error?: string | null
+}
+
 export type GraphRagRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
 export type KnowledgeGraphItemOrigin = 'extracted' | 'manual' | 'curated'
@@ -45,6 +75,7 @@ export type KnowledgeGraphEvidence = {
 }
 
 export interface IKnowledgeGraphEntity extends IBasePerTenantAndOrganizationEntityModel {
+  identityId?: string | null
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
   type: string
@@ -125,6 +156,11 @@ export interface IKnowledgeGraphIndexJob extends IBasePerTenantAndOrganizationEn
   document?: IKnowledgeDocument | null
   type: KnowledgeGraphIndexJobType
   status: KnowledgeGraphIndexJobStatus
+  stage?: KnowledgeGraphIndexStage | null
+  result?: KnowledgeGraphIndexResult | null
+  sourceContentHash?: string | null
+  sourcePublicationEpoch?: number | null
+  extractionId?: string | null
   revision?: number | null
   totalChunks?: number | null
   processedChunks?: number | null

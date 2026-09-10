@@ -66,6 +66,10 @@ jest.mock('@xpert-ai/server-core', () => ({
         async save(entity: T | T[]) {
             return this.repository.save?.(entity)
         }
+
+        protected writeToCurrentScope(entity: Partial<T>) {
+            return { ...entity, tenantId: 'tenant-1', organizationId: 'org-1' }
+        }
     }
 }))
 
@@ -77,6 +81,7 @@ import {
     IKnowledgeDocumentChunk,
     KBDocumentStatusEnum,
     KnowledgebaseTypeEnum,
+    KnowledgeStructureEnum,
     classificateDocumentCategory
 } from '@xpert-ai/contracts'
 import { DataSource, Repository } from 'typeorm'
@@ -84,11 +89,16 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import type { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase'
 import type { KnowledgeWorkAreaResolver } from '../shared'
-import { computeKnowledgeDocumentChunkHash, computeKnowledgeDocumentProcessingHash } from './document-hash'
+import {
+    computeKnowledgeDocumentChunkHash,
+    computeKnowledgeDocumentContentHash,
+    computeKnowledgeDocumentProcessingHash
+} from './document-hash'
 import { KnowledgeDocument } from './document.entity'
 import { buildLogicalFolderPath, KnowledgeDocumentService } from './document.service'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
+import type { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 function createService(
     documents: Partial<KnowledgeDocument>[],
@@ -135,12 +145,18 @@ function createService(
         repo,
         dataSource as DataSource,
         knowledgeWorkAreaResolver,
-        (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
+        {
+            findOneByIdString: jest.fn(async () => null),
+            ensureDocumentChunkStructure: jest.fn(),
+            ...overrides?.knowledgebaseService
+        } as unknown as KnowledgebaseService,
         (overrides?.commandBus ?? {}) as CommandBus,
         (overrides?.queryBus ?? {}) as QueryBus,
-        {} as Queue
+        {} as Queue,
+        { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
     )
     Object.assign(service, {
+        parserSettings: { validateSplitter: jest.fn(async () => KnowledgeStructureEnum.General) },
         textSplitterRegistry: {
             get: jest.fn(() => null)
         }
@@ -149,6 +165,72 @@ function createService(
 }
 
 describe('KnowledgeDocumentService logical folder paths', () => {
+    it('does not let a document edit restore a stale publication epoch', async () => {
+        const update = jest.fn(async (_criteria: object, _patch: Partial<IKnowledgeDocument>) => ({ affected: 1 }))
+        const service = createService([], {
+            repo: {
+                update,
+                findOne: jest.fn(async () => ({ id: 'doc', knowledgebaseId: 'kb', version: 1, publicationEpoch: 8 }))
+            },
+            knowledgebaseService: { assertNotRebuilding: jest.fn() }
+        })
+        await service.updateWithVersion('doc', { publicationEpoch: 0 }, 1)
+        expect(update).toHaveBeenCalled()
+        expect(update.mock.calls[0][1]).not.toHaveProperty('publicationEpoch')
+    })
+
+    it.each(['create', 'update', 'updateWithVersion', 'delete', 'deleteWithVersion'])(
+        'advances the publication epoch together with the content hash after a chunk %s',
+        async (operation) => {
+            const update = jest.fn()
+            const service = createService([], { repo: { update } })
+            const chunk = {
+                id: 'chunk',
+                documentId: 'doc',
+                pageContent: 'content',
+                metadata: { chunkId: 'chunk' },
+                version: 1
+            }
+            const chunks = {
+                create: jest.fn(async () => chunk),
+                findOne: jest.fn(async () => chunk),
+                findAll: jest.fn(async () => ({ items: operation.startsWith('delete') ? [] : [chunk] })),
+                updateChunk: jest.fn(),
+                updateWithVersion: jest.fn(),
+                delete: jest.fn(),
+                deleteWithVersion: jest.fn()
+            }
+            Object.assign(service, { chunkService: chunks })
+            jest.spyOn(service, 'getDocumentVectorStore').mockResolvedValue({
+                document: { id: 'doc', knowledgebaseId: 'kb', knowledgebase: { id: 'kb' } },
+                vectorStore: {
+                    addKnowledgeDocument: jest.fn(),
+                    updateChunk: jest.fn(),
+                    partialUpdateFilterAttributes: jest.fn(),
+                    deleteChunk: jest.fn()
+                }
+            } as never)
+            if (operation === 'create') await service.createChunk('doc', chunk)
+            else if (operation === 'update') await service.updateChunk('doc', 'chunk', chunk)
+            else if (operation === 'updateWithVersion') await service.updateChunkWithVersion('doc', 'chunk', chunk)
+            else if (operation === 'delete') await service.deleteChunk('doc', 'chunk')
+            else await service.deleteChunkWithVersion('doc', 'chunk', 1)
+            expect(update).toHaveBeenCalledWith(
+                'doc',
+                expect.objectContaining({
+                    contentHash: expect.any(String),
+                    publicationEpoch: expect.any(Function)
+                })
+            )
+        }
+    )
+
+    it('keeps soft deletion closed until every derived-data participant is fail-closed', async () => {
+        const service = createService([])
+
+        await expect(service.softRemove('document-1')).rejects.toBeInstanceOf(ConflictException)
+    })
+
     it('orders ancestors from the root to the selected entity', async () => {
         const root = {
             id: 'folder-water',
@@ -837,6 +919,32 @@ describe('KnowledgeDocumentService optimistic locks', () => {
 })
 
 describe('KnowledgeDocumentService incremental ingestion', () => {
+    it('keeps new document, tree lookup and folder writes on the caller transaction', async () => {
+        const outsideSave = jest.fn()
+        const save = jest.fn(async (doc) => ({ ...doc, id: 'saved' }))
+        const service = createService([], {
+            repo: { save: outsideSave },
+            knowledgebaseService: {
+                assertNotRebuilding: jest.fn(),
+                findOneByIdString: jest.fn(async () => ({ id: 'kb', incrementalSyncEnabled: false }))
+            }
+        })
+        const findOneBy = jest.fn(async () => ({ id: 'saved' }))
+        const findAncestorsTree = jest.fn(async (doc) => doc)
+        const manager = {
+            getRepository: jest.fn(() => ({ save })),
+            getTreeRepository: jest.fn(() => ({ findOneBy, findAncestorsTree }))
+        }
+        await service.createBulk([{ knowledgebaseId: 'kb', name: 'test.md', type: 'md' }], manager as never)
+        expect(outsideSave).not.toHaveBeenCalled()
+        expect(save).toHaveBeenCalledTimes(2)
+        expect(save.mock.calls[0][0]).toEqual(
+            expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        )
+        expect(findOneBy).toHaveBeenCalledWith({ id: 'saved' })
+        expect(save.mock.calls[1][0]).toHaveProperty('folder')
+    })
+
     it('reuses unchanged source documents without scheduling processing', async () => {
         const incoming = {
             knowledgebaseId: 'kb-1',
@@ -1284,7 +1392,7 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             {
                 id: 'doc-1',
                 knowledgebaseId: 'kb-1',
-                contentHash: 'old-content-hash',
+                contentHash: computeKnowledgeDocumentContentHash([unchangedExisting, changedExisting, deletedExisting]),
                 chunks: [unchangedIncoming, changedIncoming, addedIncoming]
             } as IKnowledgeDocument,
             vectorStore
@@ -1301,7 +1409,43 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
         expect(result.embeddingChunks.map((chunk) => chunk.pageContent)).toEqual(
             expect.arrayContaining(['new content', 'added content'])
         )
+        expect(result.embeddingChunks).toHaveLength(2)
     })
+
+    it.each([null, 'previous-published-hash'])(
+        're-embeds persisted chunks after an interrupted sync (published hash: %s)',
+        async (contentHash) => {
+            const chunk = {
+                id: 'row-a',
+                pageContent: 'stored before embedding failed',
+                metadata: { chunkId: 'chunk-a', chunkIndex: 0 }
+            } as IKnowledgeDocumentChunk
+            chunk.contentHash = computeKnowledgeDocumentChunkHash(chunk)
+            const service = createService([])
+            Object.assign(service, {
+                chunkService: {
+                    findAll: jest.fn(async () => ({ items: [chunk] })),
+                    upsertBulk: jest.fn(async (chunks: IKnowledgeDocumentChunk[]) => chunks),
+                    delete: jest.fn(),
+                    findAllEmbeddingNodes: jest.fn((chunks: IKnowledgeDocumentChunk[]) => chunks)
+                }
+            })
+            const vectorStore = { deleteChunks: jest.fn() } as unknown as KnowledgeDocumentStore
+            const result = await service.syncChunksIncrementally(
+                {
+                    id: 'doc',
+                    knowledgebaseId: 'kb',
+                    contentHash,
+                    chunks: [chunk]
+                } as IKnowledgeDocument,
+                vectorStore
+            )
+            expect(result.embeddingChunks).toHaveLength(1)
+            expect(result.embeddingChunks[0].id).toBe('row-a')
+            expect(vectorStore.deleteChunks).toHaveBeenCalledWith(['row-a'])
+            expect(result.statistics).toMatchObject({ skipped: 0, updated: 1 })
+        }
+    )
 
     it('adds stored chunk versions to vector search results', async () => {
         const vectorStore = {
@@ -1482,5 +1626,60 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             ConflictException
         )
         expect(deleteWithVersion).not.toHaveBeenCalled()
+    })
+})
+
+describe('KnowledgeDocumentService knowledgebase parser defaults', () => {
+    it('snapshots library defaults for new ordinary documents and lets document overrides win', async () => {
+        const ensureDocumentChunkStructure = jest.fn()
+        const service = createService([], {
+            knowledgebaseService: {
+                findOneByIdString: jest.fn(async () => ({
+                    id: 'kb',
+                    type: KnowledgebaseTypeEnum.Standard,
+                    parserConfig: {
+                        chunkSize: 512,
+                        chunkOverlap: 80,
+                        delimiter: null,
+                        separators: ['！', '？'],
+                        imageUnderstandingEnabled: false,
+                        imageUnderstanding: { promptTemplate: '中文 {{context}}' },
+                        pdfParser: { transformerType: 'default' }
+                    }
+                })),
+                ensureDocumentChunkStructure
+            }
+        })
+        const config = await service.resolveNewDocumentParserConfig({ knowledgebaseId: 'kb', type: 'pdf' }, true)
+        expect(config.textSplitter).toMatchObject({ chunkSize: 512, chunkOverlap: 80, separators: ['！', '？'] })
+        expect(config.imageUnderstandingType).toBeUndefined()
+        expect(config.imageUnderstanding.promptTemplate).toBe('中文 {{context}}')
+        expect(config.transformerType).toBe('default')
+        expect(ensureDocumentChunkStructure).toHaveBeenCalledWith('kb', KnowledgeStructureEnum.General)
+        const override = await service.resolveNewDocumentParserConfig({
+            knowledgebaseId: 'kb',
+            type: 'pdf',
+            parserConfig: {
+                chunkSize: 1000,
+                chunkOverlap: 0,
+                imageUnderstandingEnabled: true
+            }
+        })
+        expect(override.textSplitter).toMatchObject({ chunkSize: 1000, chunkOverlap: 0 })
+        expect(override.imageUnderstandingType).toBe('vlm-default')
+        expect(ensureDocumentChunkStructure).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not claim a chunk structure for folders or mutate a library during a draft preview', async () => {
+        const ensureDocumentChunkStructure = jest.fn()
+        const service = createService([], {
+            knowledgebaseService: {
+                findOneByIdString: jest.fn(async () => ({ id: 'kb', type: KnowledgebaseTypeEnum.Standard })),
+                ensureDocumentChunkStructure
+            }
+        })
+        await service.resolveNewDocumentParserConfig({ knowledgebaseId: 'kb', type: 'folder' }, true)
+        await service.resolveNewDocumentParserConfig({ knowledgebaseId: 'kb', type: 'txt' })
+        expect(ensureDocumentChunkStructure).not.toHaveBeenCalled()
     })
 })

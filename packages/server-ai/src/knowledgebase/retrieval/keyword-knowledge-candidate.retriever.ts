@@ -9,6 +9,7 @@ import { compileKnowledgeFilterToPostgres } from '../filter'
 import { shiftKnowledgeFilterParameters } from '../filter/knowledge-graph-filter-scope'
 import { KnowledgeCandidateRetriever, KnowledgeRetrievalBatch, KnowledgeRetrievalRequest } from './types'
 import { KnowledgeKeywordIndexService } from './knowledge-keyword-index.service'
+import { postgresContentScopePredicate } from './content-scope'
 
 const MAX_KEYWORD_TERMS = 12
 const MAX_KEYWORD_CANDIDATES = 400
@@ -265,6 +266,7 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
                AND COALESCE(d."disabled", FALSE) = FALSE
                AND COALESCE(c."metadata" ->> 'enabled', 'true') <> 'false'
                AND (${compiledSql})
+               AND (${postgresContentScopePredicate(request.contentScope)})
                AND (${matchExpressions.join(' OR ')})
              ORDER BY "keywordScore" DESC, length(COALESCE(c."pageContent", '')) ASC, c."id"
              LIMIT ${limitParameter}`,
@@ -341,7 +343,8 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
                AND d."knowledgebaseId" = $3
                AND COALESCE(d."disabled", FALSE) = FALSE
                AND COALESCE(c."metadata" ->> 'enabled', 'true') <> 'false'
-               AND COALESCE(c."metadata" ->> 'chunkId', c."id"::text) = ANY($4::text[])`,
+               AND COALESCE(c."metadata" ->> 'chunkId', c."id"::text) = ANY($4::text[])
+               AND (${postgresContentScopePredicate(request.contentScope)})`,
             [request.scope.tenantId, request.scope.organizationId, request.knowledgebase.id, parentChunkIds]
         )
     }

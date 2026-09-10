@@ -14,6 +14,7 @@ interface TodoRow {
   target: string
   status: string
   route: string
+  queryParams?: { changeId: string }
   icon: string
 }
 
@@ -30,10 +31,10 @@ export class AgentEvolutionOverviewComponent {
   readonly shortId = shortId
 
   readonly passedEvaluations = computed(
-    () => this.facade.contextEvaluations().filter((evaluation) => evaluation.gate.passed).length
+    () => this.facade.contextLifecycleRecords().filter((record) => record.evaluation?.passed).length
   )
   readonly passRate = computed(() => {
-    const evaluations = this.facade.contextEvaluations()
+    const evaluations = this.facade.contextLifecycleRecords().filter((record) => !!record.evaluation)
     return evaluations.length ? this.passedEvaluations() / evaluations.length : 0
   })
   readonly severeErrors = computed(() =>
@@ -55,35 +56,20 @@ export class AgentEvolutionOverviewComponent {
         route: '../learning',
         icon: 'ri-lightbulb-flash-line'
       }))
-    const candidates = this.facade
-      .contextCandidates()
-      .filter((candidate) => !['packaged', 'rejected', 'expired'].includes(candidate.status))
-      .slice(0, 2)
-      .map<TodoRow>((candidate) => ({
-        typeKey: 'XP.AgentEvolution.Candidate',
-        title: shortId(candidate.candidateId),
-        titleKey: 'XP.AgentEvolution.CandidateTodoTitle',
-        titleParams: { id: shortId(candidate.candidateId) },
-        target: candidate.targetId,
-        status: candidate.status,
-        route: '../evaluation',
-        icon: 'ri-flask-line'
+    const changes = this.facade
+      .contextLifecycleRecords()
+      .filter((record) => !['effective', 'closed'].includes(record.phase))
+      .slice(0, 4)
+      .map<TodoRow>((record) => ({
+        typeKey: record.phase === 'publication' ? 'XP.AgentEvolution.Release' : 'XP.AgentEvolution.Candidate',
+        title: record.presentation?.title || record.title,
+        target: record.targetId,
+        status: record.status,
+        route: record.phase === 'publication' ? '../release' : '../evaluation',
+        queryParams: { changeId: record.id },
+        icon: record.phase === 'publication' ? 'ri-rocket-line' : 'ri-flask-line'
       }))
-    const releases = this.facade
-      .contextReleases()
-      .filter((release) => !['active', 'rolled_back', 'superseded'].includes(release.status))
-      .slice(0, 2)
-      .map<TodoRow>((release) => ({
-        typeKey: 'XP.AgentEvolution.Release',
-        title: shortId(release.releasePackageId),
-        titleKey: 'XP.AgentEvolution.ReleaseTodoTitle',
-        titleParams: { id: shortId(release.releasePackageId) },
-        target: release.targetId,
-        status: release.status,
-        route: '../release',
-        icon: 'ri-rocket-line'
-      }))
-    return [...proposals, ...candidates, ...releases]
+    return [...proposals, ...changes]
   })
 
   readonly loopStages = computed(() => {
@@ -102,13 +88,13 @@ export class AgentEvolutionOverviewComponent {
       },
       {
         labelKey: 'XP.AgentEvolution.CandidateVersions',
-        value: this.facade.contextCandidates().length,
+        value: this.facade.contextLifecycleRecords().filter((record) => !!record.candidate).length,
         icon: 'ri-flask-line',
         tone: 'text-text-accent'
       },
       {
         labelKey: 'XP.AgentEvolution.ReleaseRuns',
-        value: this.facade.contextReleases().length,
+        value: this.facade.contextLifecycleRecords().filter((record) => !!record.publication).length,
         icon: 'ri-rocket-line',
         tone: 'text-text-success'
       },

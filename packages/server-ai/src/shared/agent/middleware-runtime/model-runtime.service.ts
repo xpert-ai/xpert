@@ -8,7 +8,8 @@ import {
     IModelAccessResolution,
     IXpertAgentExecution,
     ModelUsagePricingContext,
-    mapTranslationLanguage
+    mapTranslationLanguage,
+    resolveModelParameterOptions
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
@@ -38,7 +39,7 @@ import { CopilotUsageService } from '../../../copilot-usage'
 import { ensureCopilotModelContextSize } from '../../../copilot-model/utils/context-size'
 import { applicationMetrics } from '../../../metrics'
 import { wrapAgentExecution } from '../execution'
-import { normalizeOptionalString } from './utils'
+import { normalizeOptionalString } from '../../runtime/runtime-input'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
@@ -128,6 +129,11 @@ export class AgentMiddlewareModelRuntimeService {
 
         if (copilotModel.modelType === AiModelTypeEnum.LLM) {
             ensureCopilotModelContextSize(copilotModel, modelProvider, modelName, customModels)
+            const rules =
+                modelProvider
+                    .getModelManager(copilotModel.modelType)
+                    ?.getParameterRules(modelName, customModels[0]?.modelProperties) ?? []
+            copilotModel.options = resolveModelParameterOptions(copilotModel.options, rules)
         }
 
         return modelProvider.getModelInstance(

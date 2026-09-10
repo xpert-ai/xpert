@@ -415,6 +415,18 @@ describe('XpertMcpPublicationsComponent', () => {
     expect(component.capabilityDrafts()[0].approvalMode).toBe('confirm')
   })
 
+  it('permits the explicit application default for a dangerous capability', async () => {
+    const { component } = await setup()
+    await component.loadCapabilityGroup('toolset-generic')
+    const draft = component.capabilityDrafts()[0]
+    if (draft.catalog.descriptor.capabilityType !== 'tool') throw new Error('Expected a tool capability')
+    draft.catalog.descriptor.behavior.risk = 'dangerous'
+    draft.catalog.descriptor.defaultApprovalMode = 'allow'
+    expect(component.canUseApprovalMode(draft, 'allow')).toBe(true)
+    component.setApprovalMode(draft, 'allow')
+    expect(component.capabilityDrafts()[0].approvalMode).toBe('allow')
+  })
+
   it('keeps a new secret only in one-time view state and never places it in client configuration', async () => {
     const { component, clipboard } = await setup()
     component.apiKeyForm.setValue({ name: 'Codex', scopes: ['tools:list', 'tools:call'], expiresAt: '' })

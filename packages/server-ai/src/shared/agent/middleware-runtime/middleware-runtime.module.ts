@@ -1,14 +1,11 @@
 import { forwardRef, Global, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN } from '@xpert-ai/plugin-sdk'
-import { ActorTokenModule } from '@xpert-ai/server-core'
+import { ActorTokenRuntimeModule } from '../../../actor-token/actor-token-runtime.module'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
-import { AgentMiddlewareAssistantTaskRuntimeService } from './assistant-task-runtime.service'
-import { AgentMiddlewareFileRuntimeService } from './file-runtime.service'
-import { AgentMiddlewareKnowledgeRuntimeService } from './knowledge-runtime.service'
+import { FileRuntimeModule } from '../../../file-understanding/runtime/file-runtime.module'
 import { AgentMiddlewareModelRuntimeService } from './model-runtime.service'
-import { VolumeModule } from '../../volume'
-import { WorkspaceFilesRuntimeCapabilityService } from '../../runtime/workspace-files-runtime-capability.service'
+import { WorkspaceFilesRuntimeModule } from '../../runtime/workspace-files-runtime.module'
 import { ConnectorModule } from '../../../connector/connector.module'
 import { ArtifactsModule } from '../../../artifacts/artifacts.module'
 import { CollaborationModule } from '../../../collaboration/collaboration.module'
@@ -21,20 +18,17 @@ import { RuntimeCapabilityModule } from '../../runtime'
     imports: [
         CqrsModule,
         RuntimeCapabilityModule,
-        VolumeModule,
+        WorkspaceFilesRuntimeModule,
+        FileRuntimeModule,
         ConnectorModule,
         ArtifactsModule,
         CollaborationModule,
         forwardRef(() => CopilotModule),
         CopilotUsageModule,
-        ActorTokenModule
+        ActorTokenRuntimeModule
     ],
     providers: [
-        WorkspaceFilesRuntimeCapabilityService,
         AgentMiddlewareModelRuntimeService,
-        AgentMiddlewareKnowledgeRuntimeService,
-        AgentMiddlewareFileRuntimeService,
-        AgentMiddlewareAssistantTaskRuntimeService,
         AgentMiddlewareRuntimeService,
         {
             provide: XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN,
@@ -46,7 +40,6 @@ import { RuntimeCapabilityModule } from '../../runtime'
         ArtifactsModule,
         CollaborationModule,
         AgentMiddlewareRuntimeService,
-        WorkspaceFilesRuntimeCapabilityService,
         XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN,
         RuntimeCapabilityModule
     ]

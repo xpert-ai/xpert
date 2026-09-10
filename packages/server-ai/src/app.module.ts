@@ -21,6 +21,7 @@ import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
+import { KnowledgeWikiModule } from './knowledgebase/wiki'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { SandboxModule } from './sandbox/sandbox.module'
 import { XpertModule } from './xpert'
@@ -56,6 +57,7 @@ import { MembershipModule } from './membership'
 import { ModelAccessModule } from './model-access'
 import { ModelGatewayModule } from './model-gateway'
 import { ArtifactsModule } from './artifacts'
+import { ActorTokenRuntimeModule } from './actor-token/actor-token-runtime.module'
 import { CollaborationModule } from './collaboration'
 import { WorkspaceFileAccessModule } from './workspace-file-access'
 import { AgentEvolutionModule } from './agent-evolution'
@@ -114,11 +116,13 @@ import { McpPublicationModule } from './mcp-publication'
         PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,
+        KnowledgeWikiModule,
         KnowledgeDocumentModule,
         RagVStoreModule,
         RagWebModule,
         SandboxModule,
         ArtifactsModule,
+        ActorTokenRuntimeModule,
         CollaborationModule,
         WorkspaceFileAccessModule,
         AgentEvolutionModule,

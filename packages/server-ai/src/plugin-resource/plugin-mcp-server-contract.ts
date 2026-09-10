@@ -7,6 +7,7 @@ import {
     MCPServerType,
     MCP_TOOL_IDEMPOTENCY,
     MCP_TOOL_RISKS,
+    MCP_CAPABILITY_APPROVAL_MODES,
     MCP_TOOL_SIDE_EFFECTS,
     McpCapabilityDeclaration,
     McpJsonSchema,
@@ -112,6 +113,7 @@ function parseCapabilityDeclaration(value: unknown, componentKey: string, index:
                 inputSchema,
                 ...(outputSchema ? { outputSchema } : {}),
                 behavior,
+                ...readDefaultApprovalMode(value, componentKey, index),
                 ...annotations,
                 ...(readStringField(value, 'appResourceKey')
                     ? { appResourceKey: readStringField(value, 'appResourceKey') }
@@ -433,4 +435,11 @@ function removeUndefinedPolicy(policy: XpertPluginMcpServerPolicy): XpertPluginM
         ...(policy.runtime ? { runtime: policy.runtime } : {}),
         ...(policy.tools && Object.keys(policy.tools).length ? { tools: policy.tools } : {})
     }
+}
+
+function readDefaultApprovalMode(value: object, componentKey: string, index: number) {
+    if (Reflect.get(value, 'defaultApprovalMode') === undefined) return {}
+    const defaultApprovalMode = readEnumField(value, 'defaultApprovalMode', MCP_CAPABILITY_APPROVAL_MODES)
+    if (!defaultApprovalMode) throw invalidCapability(componentKey, index)
+    return { defaultApprovalMode }
 }

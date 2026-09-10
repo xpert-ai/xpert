@@ -23,7 +23,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
-import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,6 +36,7 @@ import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless
     CdkMenuModule,
     CdkListboxModule,
     ContentLoaderModule,
+    ZardButtonComponent,
     ZardProgressBarComponent,
     ...ZardTooltipImports,
     KnowledgeDocIdComponent
@@ -98,6 +99,7 @@ export class KnowledgeDocumentCreateStep3Component {
     )
   )
   readonly cancel = computed(() => this.documents()?.some((_) => _.status === KBDocumentStatusEnum.CANCEL))
+  readonly failed = computed(() => this.documents()?.some((doc) => doc.status === KBDocumentStatusEnum.ERROR))
   readonly delayRefresh$ = new Subject<boolean>()
 
   constructor() {

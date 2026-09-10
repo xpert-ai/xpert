@@ -1,9 +1,9 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { PARAMTYPES_METADATA, SELF_DECLARED_DEPS_METADATA } from '@nestjs/common/constants'
 import { ModuleRef } from '@nestjs/core'
 import { RequestContext, encryptSecret } from '@xpert-ai/server-core'
 import { environment } from '@xpert-ai/server-config'
-import type { ConnectorStrategyRuntime } from '@xpert-ai/plugin-sdk'
+import type { ConnectorAuthorizationMode, ConnectorScope, ConnectorStrategyRuntime } from '@xpert-ai/plugin-sdk'
 import { FindOperator, type FindOptionsWhere } from 'typeorm'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
@@ -2015,6 +2015,144 @@ describe('ConnectorService', () => {
                 }
             )
         ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    describe('graph Connector provider resolution', () => {
+        const runtimeScope = () => ({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workspaceId: 'workspace-1',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1',
+            connectorProviders: ['example'],
+            connectorBindingIds: [] as string[]
+        })
+
+        async function connectTestBinding(
+            scope: ConnectorScope = { type: 'workspace', workspaceId: 'workspace-1' },
+            authorizationMode: ConnectorAuthorizationMode = 'shared'
+        ) {
+            strategy.definition = { ...strategy.definition, authorizationModes: ['shared', 'personal'] }
+            const binding = await service.createBinding({
+                scope,
+                provider: 'example',
+                authorizationMode
+            })
+            await service.connectBinding(binding.id, { redirectUri: 'https://xpert.test/callback', xpertId: 'xpert-1' })
+            const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
+            await service.completeOAuthCallback({ state, code: 'code' })
+            return binding
+        }
+
+        it('restores the legacy provider-only getConnector call for a host-enabled graph node', async () => {
+            const binding = await connectTestBinding()
+            await expect(
+                service
+                    .createScopedApi(runtimeScope())
+                    .getConnector({ workspaceId: 'workspace-1', provider: 'example' })
+            ).resolves.toEqual(expect.objectContaining({ connectorId: binding.id, accessToken: 'uat_secret' }))
+            expect(runtimeAudits.items).toEqual([
+                expect.objectContaining({ connectorId: binding.id, actorUserId: 'user-1', outcome: 'resolved' })
+            ])
+        })
+
+        it('does not grant provider lookup to an absent or disabled graph node', async () => {
+            await connectTestBinding()
+            const scope = { ...runtimeScope(), connectorProviders: [] }
+            await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
+        })
+
+        it('keeps pinned IDs exact and never falls back to the allowed provider', async () => {
+            const binding = await connectTestBinding()
+            const scope = { ...runtimeScope(), connectorBindingIds: [binding.id, 'missing-binding'] }
+            await expect(
+                service.getRuntimeConnectorForScope({ provider: 'example', connectorId: binding.id }, scope)
+            ).resolves.toEqual(expect.objectContaining({ connectorId: binding.id }))
+            await expect(
+                service.getRuntimeConnectorForScope({ provider: 'example', connectorId: 'unselected-binding' }, scope)
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(
+                service.getRuntimeConnectorForScope({ provider: 'example', connectorId: 'missing-binding' }, scope)
+            ).rejects.toBeInstanceOf(NotFoundException)
+        })
+
+        it('uses the authorized Xpert workspace instead of a caller-supplied workspace', async () => {
+            const binding = await connectTestBinding()
+            await expect(
+                service.getRuntimeConnectorForScope(
+                    { provider: 'example', workspaceId: 'other-workspace' },
+                    { ...runtimeScope(), workspaceId: 'other-workspace' }
+                )
+            ).resolves.toEqual(expect.objectContaining({ connectorId: binding.id, workspaceId: 'workspace-1' }))
+        })
+
+        it('never falls back to a Workspace connector during a Project run', async () => {
+            await connectTestBinding()
+            await expect(
+                service.getRuntimeConnectorForScope(
+                    { provider: 'example' },
+                    { ...runtimeScope(), projectId: 'project-1' }
+                )
+            ).rejects.toBeInstanceOf(NotFoundException)
+        })
+
+        it.each(['shared', 'personal'] as const)('resolves Project providers with %s authorization', async (mode) => {
+            const binding = await connectTestBinding({ type: 'project', projectId: 'project-1' }, mode)
+            const scope = { ...runtimeScope(), projectId: 'project-1' }
+            await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).resolves.toEqual(
+                expect.objectContaining({ bindingId: binding.id, projectId: 'project-1', authorizationMode: mode })
+            )
+            projectAccess.assertCanUseXpert.mockRejectedValueOnce(new ForbiddenException())
+            await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
+            if (mode === 'personal') {
+                currentUserId = 'user-2'
+                await expect(
+                    service.getRuntimeConnectorForScope({ provider: 'example' }, { ...scope, userId: 'user-2' })
+                ).rejects.toThrow()
+                personalGrants.items.splice(0)
+                currentUserId = 'user-1'
+                await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toThrow()
+            }
+        })
+
+        it('denies shared Workspace credentials to a non-member even with a graph provider grant', async () => {
+            await connectTestBinding()
+            currentUserId = 'user-2'
+            await expect(
+                service.getRuntimeConnectorForScope({ provider: 'example' }, { ...runtimeScope(), userId: 'user-2' })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        })
+
+        it.each(['user', 'organization', 'xpert', 'inactive'])('retains the %s access check', async (denied) => {
+            const binding = await connectTestBinding()
+            const scope = runtimeScope()
+            if (denied === 'user') currentUserId = 'user-2'
+            if (denied === 'organization') scope.organizationId = 'other-org'
+            if (denied === 'xpert')
+                publishedXpertAccess.getAccessiblePublishedXpert.mockRejectedValue(new ForbiddenException())
+            if (denied === 'inactive') connectors.items.find((item) => item.id === binding.id)!.status = 'disconnected'
+            await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toThrow()
+        })
+
+        it('snapshots provider grants when the scoped API is created', async () => {
+            await connectTestBinding()
+            const scope = runtimeScope()
+            const api = service.createScopedApi(scope)
+            scope.connectorProviders.length = 0
+            await expect(api.getConnector({ provider: 'example' })).resolves.toEqual(
+                expect.objectContaining({ accessToken: 'uat_secret' })
+            )
+            const deniedScope = { ...runtimeScope(), connectorProviders: [] as string[] }
+            const deniedApi = service.createScopedApi(deniedScope)
+            deniedScope.connectorProviders.push('example')
+            await expect(deniedApi.getConnector({ provider: 'example' })).rejects.toBeInstanceOf(ForbiddenException)
+        })
     })
 
     it('returns only Project bindings and sanitized auth forms in Project runtime options', async () => {

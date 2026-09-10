@@ -59,6 +59,8 @@ export interface EvolutionEventCluster {
 }
 
 export interface ImprovementProposal {
+  sourceKind: import('./strategy').EvolutionInputKind
+  strategy: import('./strategy').EvolutionStrategySnapshot
   proposalId: string
   revision: number
   targetId: string
