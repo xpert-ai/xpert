@@ -1,5 +1,14 @@
 import { KnowledgeIdentity } from '../../knowledgebase/identity/knowledge-identity.entity'
 import { KnowledgeIdentityObservation } from '../../knowledgebase/identity/knowledge-identity-observation.entity'
+import { ModelUsageDeliveryReceipt } from '../../copilot-usage/model-usage/model-usage-delivery-receipt.entity'
+import { KnowledgeGraphEntityContribution, KnowledgeGraphRelationContribution } from '../../graphrag/entities'
+import {
+    KnowledgeDocumentDeletionIntent,
+    KnowledgeDocumentDeletionCleanupReceipt,
+    KnowledgeDocumentPublicationAttempt,
+    KnowledgeDocumentPublicationAttemptSource
+} from '../../knowledge-document/deletion'
+import { MCP_PUBLICATION_ENTITIES } from '../../mcp-publication/entities'
 import {
     KnowledgeWikiJob,
     KnowledgeWikiModelInvocation,
@@ -107,6 +116,14 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ModelUsageDeliveryReceipt,
+    KnowledgeGraphEntityContribution,
+    KnowledgeGraphRelationContribution,
+    KnowledgeDocumentDeletionIntent,
+    KnowledgeDocumentDeletionCleanupReceipt,
+    KnowledgeDocumentPublicationAttempt,
+    KnowledgeDocumentPublicationAttemptSource,
+    ...MCP_PUBLICATION_ENTITIES,
     KnowledgeIdentity,
     KnowledgeIdentityObservation,
     KnowledgeWikiJob,
