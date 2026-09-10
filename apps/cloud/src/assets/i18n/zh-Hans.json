@@ -7696,6 +7696,13 @@
       }
     },
     "Xpert": {
+      "MiddlewareViewFeatures": "视图功能",
+      "MiddlewareFeatureUnnamed": "未提供能力名称",
+      "MiddlewareFeatureViewsLoading": "正在加载关联视图…",
+      "MiddlewareFeatureViewsUnavailable": "关联视图名称暂时无法加载，已提供的能力名称仍可查看。",
+      "MiddlewareViewFeaturesDescription": "此中间件声明的能力，仅供查看。工作台根据这些标识确定可用视图，实际访问还受权限和视图规则约束。",
+      "MiddlewareViewFeaturesUnavailable": "暂未获取到中间件元数据。",
+      "NoMiddlewareViewFeatures": "此中间件未声明视图功能。",
       "ModelSelection": {
         "PrimaryModel": "主模型",
         "PrimaryModelDescription": "当用户未选择其他模型时默认使用。",

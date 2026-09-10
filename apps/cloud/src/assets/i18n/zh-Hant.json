@@ -6035,6 +6035,13 @@
       }
     },
     "Xpert": {
+      "MiddlewareViewFeatures": "視圖功能",
+      "MiddlewareFeatureUnnamed": "未提供能力名稱",
+      "MiddlewareFeatureViewsLoading": "正在載入關聯視圖…",
+      "MiddlewareFeatureViewsUnavailable": "關聯視圖名稱暫時無法載入，已提供的能力名稱仍可查看。",
+      "MiddlewareViewFeaturesDescription": "此中間件宣告的能力，僅供查看。工作台根據這些識別碼確定可用視圖，實際存取仍受權限和視圖規則約束。",
+      "MiddlewareViewFeaturesUnavailable": "暫未取得中間件中繼資料。",
+      "NoMiddlewareViewFeatures": "此中間件未宣告視圖功能。",
       "ModelSelection": {
         "PrimaryModel": "主要模型",
         "PrimaryModelDescription": "當使用者未選擇其他模型時預設使用。",

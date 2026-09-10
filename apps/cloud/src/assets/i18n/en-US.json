@@ -2284,6 +2284,13 @@
       "UseExistingPersonalAccount": "Use my existing account"
     },
     "Xpert": {
+      "MiddlewareViewFeatures": "View features",
+      "MiddlewareFeatureUnnamed": "Capability name not provided",
+      "MiddlewareFeatureViewsLoading": "Loading linked views...",
+      "MiddlewareFeatureViewsUnavailable": "Linked view names are temporarily unavailable. Capability labels are shown where provided.",
+      "MiddlewareViewFeaturesDescription": "Read-only capabilities declared by this middleware. Workbench views use these identifiers for availability; access also depends on permissions and view rules.",
+      "MiddlewareViewFeaturesUnavailable": "Middleware metadata is not available.",
+      "NoMiddlewareViewFeatures": "This middleware declares no view features.",
       "IsolateWorkspaceDataByUser": "Isolate runtime data by user",
       "IsolateWorkspaceDataByUserHint": "When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.",
       "WorkspaceDataScope": "Runtime data scope",
