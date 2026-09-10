@@ -1,5 +1,20 @@
 # @xpert-ai/server-ai
 
+## 3.9.35
+
+### Patch Changes
+
+- 7b97fee: Restore knowledge pipeline source selection and previews, refresh documents immediately after saving, and track background processing failures. Persist imported documents and task bindings atomically, and prevent stale failure callbacks from overwriting a newer document execution.
+- 4c0f6d5: Authorize published assistant access for technical API principals using their owning user's permissions. Preserve the technical execution identity, file ownership, explicit user delegation, and credential audience boundaries.
+- Updated dependencies [3f72082]
+- Updated dependencies [7b97fee]
+- Updated dependencies [4be390b]
+- Updated dependencies [63cd444]
+- Updated dependencies [4e8c7ed]
+    - @xpert-ai/contracts@3.18.3
+    - @xpert-ai/plugin-sdk@3.18.4
+    - @xpert-ai/server-core@3.9.50
+
 ## 3.9.34
 
 ### Patch Changes

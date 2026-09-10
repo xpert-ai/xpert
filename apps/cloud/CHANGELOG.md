@@ -1,5 +1,17 @@
 # @xpert-ai/xpert-ui
 
+## 3.18.2
+
+### Patch Changes
+
+- 7b97fee: Restore knowledge pipeline source selection and previews, refresh documents immediately after saving, and track background processing failures. Persist imported documents and task bindings atomically, and prevent stale failure callbacks from overwriting a newer document execution.
+- 4be390b: Prepare the Xpert 3.18.4 patch release.
+
+  The target platform version is 3.18.4. Before publishing, align contracts,
+  plugin-sdk, and xpert-ui to this version in the release version PR, including
+  their internal dependency references, changelogs, and lockfile entries. Their
+  current versions differ, so patch bumps alone do not align the three anchors.
+
 ## 3.18.1
 
 ### Patch Changes
