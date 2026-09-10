@@ -1,16 +1,19 @@
 import { IXpert, IXpertAgent, TChatOptions, TCopilotModel } from '@xpert-ai/contracts'
 
 /**
- * Apply the request override only to the root Assistant's published Primary Agent.
- * Direct sub-Agent, swarm member, nested graph, and explicitly configured node models
- * must continue to use their authored configuration.
+ * Runtime selection replaces the root Assistant base model and Primary model.
+ * Other Agents inherit the base only when they have no authored model.
+ * Nested Assistants retain their own model configuration.
  */
 export function resolveEffectiveCopilotModel(
     team: IXpert,
     agent: IXpertAgent,
-    options: Pick<TChatOptions, 'xpertId' | 'primaryAgentKey' | 'primaryCopilotModel'>
+    options: Pick<TChatOptions, 'xpertId' | 'primaryAgentKey' | 'primaryCopilotModel' | 'primaryModelSource'>
 ): TCopilotModel | undefined {
-    const configuredModel = agent.copilotModel ?? team.copilotModel
+    const inheritsSelection =
+        options.xpertId === team.id &&
+        (options.primaryModelSource === 'explicit' || options.primaryModelSource === 'preference')
+    const assistantModel = inheritsSelection ? (options.primaryCopilotModel ?? team.copilotModel) : team.copilotModel
     if (
         options.primaryCopilotModel &&
         options.primaryAgentKey &&
@@ -19,5 +22,5 @@ export function resolveEffectiveCopilotModel(
     ) {
         return options.primaryCopilotModel
     }
-    return configuredModel
+    return agent.copilotModel ?? assistantModel
 }

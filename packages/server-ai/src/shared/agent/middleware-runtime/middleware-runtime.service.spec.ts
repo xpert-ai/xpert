@@ -262,7 +262,11 @@ describe('AgentMiddlewareRuntimeService', () => {
             copilotUsage as never
         )
         const fileRuntime = new FileRuntimeService(queryBus as never)
-        assistantTaskRuntime = new AssistantTaskRuntimeService(commandBus as never, queryBus as never)
+        assistantTaskRuntime = new AssistantTaskRuntimeService(
+            commandBus as never,
+            queryBus as never,
+            { get: jest.fn() } as never
+        )
         platformCapabilities
             .register(
                 KnowledgebaseRuntimeCapability,
@@ -2242,7 +2246,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 taskId: 'task-1',
                 context: { source: 'test' },
                 projectId: 'project-1',
-                execution: { id: 'execution-1' },
+                execution: { id: 'execution-1', metadata: { from: 'job', requesterXpertId: 'assistant-1' } },
                 streamPersistence: {
                     transport: 'redis-stream',
                     threadId: 'thread-1',

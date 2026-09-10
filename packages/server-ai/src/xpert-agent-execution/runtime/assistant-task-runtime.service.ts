@@ -1,3 +1,6 @@
+import { ModuleRef } from '@nestjs/core'
+import { AssistantModelSelectionService } from '../../xpert/assistant-model-selection.service'
+import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { randomUUID } from 'crypto'
 import {
     createRuntimeSkillCapabilityId,
@@ -59,8 +62,17 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
 
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly moduleRef: ModuleRef
     ) {}
+
+    async getModels(xpertId: string) {
+        const access = this.moduleRef.get(PublishedXpertAccessService, { strict: false })
+        const xpert = await access.getAccessiblePublishedXpert(xpertId, {
+            relations: ['agent', 'agent.copilotModel', 'copilotModel']
+        })
+        return this.moduleRef.get(AssistantModelSelectionService, { strict: false }).getModels(xpert)
+    }
 
     async getTaskStatus(
         input: AgentMiddlewareAssistantTaskStatusInput
@@ -210,6 +222,17 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
         const agentKey = externalBinding?.primaryAgentKey ?? normalizeOptionalString(input.agentKey)
         const executionAssistant = externalBinding ?? (await this.resolveAssistantExecutionDescriptor(xpertId))
 
+        const primaryModelId = normalizeOptionalString(input.modelId)
+        if (primaryModelId) {
+            const access = this.moduleRef.get(PublishedXpertAccessService, { strict: false })
+            const xpert = await access.getAccessiblePublishedXpert(xpertId, {
+                relations: ['agent', 'agent.copilotModel', 'copilotModel']
+            })
+            await this.moduleRef
+                .get(AssistantModelSelectionService, { strict: false })
+                .resolveSelection(xpert, { explicitModelId: primaryModelId, ignorePreference: true })
+        }
+
         // Resolve portable plugin skill references before creating any task rows.
         // This keeps invalid or cross-Agent selections from leaving partial runs.
         const resolvedAssistantTaskSkillSelection = await this.resolveAssistantTaskSkillSelection(
@@ -262,6 +285,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
                 metadata: {
                     from: 'job',
                     requesterXpertId,
+                    ...(primaryModelId ? { primaryModelId } : {}),
                     ...(input.correlation ? { correlation: input.correlation } : {})
                 }
             })
@@ -288,8 +312,9 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
                 ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
                 projectId: projectId ?? undefined,
                 context: input.context,
+                ...(primaryModelId ? { primaryModelId } : {}),
                 ...(assistantTaskSkillSelection ? { assistantTaskSkillSelection } : {}),
-                execution: { id: execution.id },
+                execution: { id: execution.id, metadata: execution.metadata },
                 streamPersistence: {
                     transport: 'redis-stream',
                     threadId: conversation.threadId,

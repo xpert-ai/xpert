@@ -124,7 +124,7 @@ export type TAgentExecutionMetadata = {
    * AI Model
    */
   model?: string
-  /** Opaque Assistant model option used by the Primary Agent. */
+  /** Opaque Assistant model option used by the base and Primary models. */
   primaryModelId?: string
   primaryModelSource?: import('./assistant-model.model').TAssistantPrimaryModelSelectionSource
   /** Sanitized model snapshot used to keep resume and retry deterministic. */

@@ -118,6 +118,8 @@ export type AgentMiddlewareCorrelatedExecution = {
 
 export type AgentMiddlewareAssistantTaskInput = {
   xpertId: string
+  /** Selects the Assistant base and Primary models; child Agents retain authored models. */
+  modelId?: string
   agentKey?: string
   /** Resolve an organization-owned external Assistant from the requester's published graph. */
   target?: AgentMiddlewareAssistantTaskTarget
@@ -164,6 +166,7 @@ export type AgentMiddlewareAssistantTaskCancelResult = {
 }
 
 export interface AgentMiddlewareAssistantTaskApi {
+  getModels?(xpertId: string): Promise<import('@xpert-ai/contracts').TAssistantModelsResponse>
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>
   /** Return only safe binding descriptors; internal Assistant instance IDs are intentionally omitted. */
   listExternalAssistantBindings?(

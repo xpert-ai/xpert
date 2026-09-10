@@ -16,6 +16,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 }))
 jest.mock('@xpert-ai/server-core', () => jest.requireActual('../../../../server/src/plugin/types'))
 jest.mock('../../xpert-project/services/project-purge.service', () => ({ XpertProjectPurgeService: class {} }))
+jest.mock('../../xpert/assistant-model-selection.service', () => ({ AssistantModelSelectionService: class {} }))
+jest.mock('../../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))
 
 import {
     AssistantTaskRuntimeCapability,
@@ -44,7 +46,7 @@ function fixture() {
     const knowledge = new KnowledgebaseRuntimeService(commands as never, queries as never)
     const documents = new KnowledgebaseDocumentsRuntimeService(commands as never)
     const provisioning = new KnowledgebaseProvisioningRuntimeService(commands as never)
-    const tasks = new AssistantTaskRuntimeService(commands as never, queries as never)
+    const tasks = new AssistantTaskRuntimeService(commands as never, queries as never, { get: jest.fn() } as never)
     const providers = [project, knowledge, documents, provisioning, tasks]
     const registry = new DefaultRuntimeCapabilityRegistry()
     const explorer = new RuntimeCapabilityProviderExplorer(
