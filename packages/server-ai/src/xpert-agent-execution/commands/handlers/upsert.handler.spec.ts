@@ -4,6 +4,21 @@ import { XpertAgentExecutionUpsertCommand } from '../upsert.command'
 import { XpertAgentExecutionUpsertHandler } from './upsert.handler'
 
 describe('XpertAgentExecutionUpsertHandler', () => {
+    it('binds a preallocated pipeline execution to its first authoritative Chat thread', async () => {
+        const service = {
+            findOneOrFailByIdString: jest.fn(async () => ({
+                success: true,
+                record: { id: 'execution-1', threadId: null }
+            })),
+            update: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn()
+        }
+        const handler = new XpertAgentExecutionUpsertHandler(service as never, {} as never, {} as never)
+        await handler.execute(new XpertAgentExecutionUpsertCommand({ id: 'execution-1', threadId: 'chat-thread' }))
+        expect(service.update).toHaveBeenCalledWith('execution-1', { id: 'execution-1', threadId: 'chat-thread' })
+        expect(service.create).not.toHaveBeenCalled()
+    })
     it('creates a caller-specified execution id when it does not exist', async () => {
         const service = {
             findOneOrFailByIdString: jest.fn(async () => ({ success: false })),

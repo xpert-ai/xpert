@@ -1,3 +1,5 @@
+import { dispatchKnowledgePipeline } from './task/pipeline-task'
+import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
 import {
@@ -8,7 +10,6 @@ import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     AiModelTypeEnum,
-    channelName,
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentMetadata,
     DocumentTypeEnum,
@@ -21,22 +22,17 @@ import {
     IWFNProcessor,
     IWFNSource,
     KBDocumentStatusEnum,
-    KnowledgebaseChannel,
     KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
     KnowledgeProviderEnum,
-    KNOWLEDGE_SOURCES_NAME,
-    KnowledgeTask,
     mapTranslationLanguage,
-    STATE_VARIABLE_HUMAN,
     WorkflowNodeTypeEnum,
     XpertTypeEnum,
     genXpertTriggerKey,
     IWFNTrigger,
     KnowledgeStructureEnum,
-    XpertAgentExecutionStatusEnum,
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
@@ -48,7 +44,6 @@ import {
     KnowledgeFilterSources,
     KnowledgeRetrievalContentScope,
     KnowledgeGraphStatus,
-    KNOWLEDGE_PROCESSING_MODE_NAME,
     KBMetadataFieldDef,
     MetadataFieldType,
     KnowledgeFilterJSONValue,
@@ -125,9 +120,8 @@ import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity'
 import { TDocChunkMetadata } from '../knowledge-document/types'
-import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
-import { XpertEnqueueTriggerDispatchCommand, XpertPublishTriggersCommand } from '../xpert/commands'
+import { XpertPublishTriggersCommand } from '../xpert/commands'
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
 import { KnowledgebaseDetailDTO } from './dto'
 import { KnowledgeFilterFieldDefinition } from './filter'
@@ -280,7 +274,8 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     pipeline: {
         id: true,
         publishAt: true,
-        version: true
+        version: true,
+        graph: true
     }
 }
 
@@ -2231,41 +2226,20 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             relations: ['documents']
         })
         this.assertKnowledgebaseTaskSources(task, inputs.sources)
-        const execution = await this.commandBus.execute(
-            new XpertAgentExecutionUpsertCommand({
-                // threadId: conversation.threadId,
-                status: XpertAgentExecutionStatusEnum.RUNNING
-            })
+        const prepared = await prepareKnowledgePipelineDocuments(
+            task,
+            kb.pipeline?.graph,
+            inputs,
+            this.documentService,
+            this.taskService
         )
-        await this.taskService.update(taskId, { status: 'running', executionId: execution.id })
-        const sources = inputs.sources ? Object.keys(inputs.sources) : null
-
-        await this.commandBus.execute(
-            new XpertEnqueueTriggerDispatchCommand(
-                kb.pipelineId,
-                RequestContext.currentUserId(),
-                {
-                    [STATE_VARIABLE_HUMAN]: {
-                        input: 'Process knowledges pipeline'
-                    },
-                    [KnowledgebaseChannel]: {
-                        knowledgebaseId: knowledgebaseId,
-                        [KnowledgeTask]: taskId,
-                        [KNOWLEDGE_SOURCES_NAME]: sources,
-                        [KNOWLEDGE_PROCESSING_MODE_NAME]: inputs.mode ?? 'full',
-                        stage: inputs.stage
-                    },
-                    ...(sources ?? []).reduce(
-                        (obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }),
-                        {}
-                    )
-                },
-                {
-                    isDraft: inputs.isDraft,
-                    from: 'knowledge',
-                    executionId: execution.id
-                }
-            )
+        await dispatchKnowledgePipeline(
+            this.commandBus,
+            this.taskService,
+            knowledgebaseId,
+            kb.pipelineId,
+            taskId,
+            prepared
         )
     }
 

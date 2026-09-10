@@ -5053,6 +5053,25 @@
       "Unavailable": "請先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "PipelineFlow": {
+        "Source": "選擇資料來源",
+        "Settings": "處理設定",
+        "Result": "處理結果",
+        "SourceHint": "選擇流水線中的資料來源，再上傳檔案或取得文件。",
+        "NoSources": "暫無可用資料來源，請確認已發佈的流水線包含資料來源節點。",
+        "PreviewLoading": "正在載入文件預覽…",
+        "PreviewEmpty": "此文件暫無可預覽內容。",
+        "ProcessingFailed": "部分文件處理失敗"
+      },
+      "PipelineProcessing": {
+        "SettingsHint": "本次匯入使用已發佈的流水線設定。如需調整，請編輯並重新發佈流水線。",
+        "Chunks": "個分塊",
+        "Loading": "正在執行流水線，產生分塊預覽…",
+        "Empty": "此文件未產生分塊，請檢查文件內容和流水線設定。",
+        "PreviewHint": "先預覽文件的分塊效果，確認後再開始匯入。",
+        "Retry": "重新預覽",
+        "Failed": "預覽失敗，請重試或檢查流水線。"
+      },
       "SharedProcessing": {
         "ParentChild": {
           "ParentTitle": "父塊 · 補充上下文",

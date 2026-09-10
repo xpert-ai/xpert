@@ -52,6 +52,7 @@ import {
     TXpertParameter,
     TXpertTeamNode,
     WorkflowNodeTypeEnum,
+    XpertTypeEnum,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -1045,7 +1046,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // State
         // State channel for knowledgebase pipeline
-        if (runtimeXpert.knowledgebase) {
+        // Runtime projections may omit the relation; pipeline state must survive regardless.
+        if (runtimeXpert.type === XpertTypeEnum.Knowledge || runtimeXpert.knowledgebase) {
             channels.push({
                 name: KnowledgebaseChannel,
                 annotation: Annotation<Record<string, unknown>>({

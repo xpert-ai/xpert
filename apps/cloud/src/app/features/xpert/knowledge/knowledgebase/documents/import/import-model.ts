@@ -10,6 +10,7 @@ import { v4 as uuid } from 'uuid'
 import { cloneDeep } from 'lodash-es'
 
 export type DocumentImportSource = 'files' | 'folder' | 'url' | 'crawl' | 'remote' | 'online' | 'pipeline'
+export type KnowledgePipelineImportResult = { taskId: string }
 export type ImportParserConfig = IKnowledgeDocument['parserConfig']
 export type ImportSettingsSection = 'parser' | 'chunks' | 'images'
 

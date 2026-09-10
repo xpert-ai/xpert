@@ -40,6 +40,7 @@ import { compact, uniq } from 'lodash'
 import {
     DataSource,
     DeepPartial,
+    EntityManager,
     FindManyOptions,
     FindOneOptions,
     FindOptionsWhere,
@@ -518,6 +519,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             delete document.processDuation
             delete document.processDuration
             delete document.jobId
+            delete document.processingExecutionId
             delete document.tokenNum
             delete document.chunkNum
 
@@ -686,8 +688,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
     }
 
-    async findAncestors(id: string) {
-        const treeRepo = this.dataSource.getTreeRepository(KnowledgeDocument)
+    async findAncestors(id: string, manager?: EntityManager) {
+        const treeRepo = (manager ?? this.dataSource).getTreeRepository(KnowledgeDocument)
         const entity = await treeRepo.findOneBy({ id })
         if (!entity) {
             throw new NotFoundException(`Knowledge document "${id}" not found`)
@@ -820,7 +822,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         return this.createDocument(document as Partial<IKnowledgeDocument>)
     }
 
-    async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
+    async createDocument(document: Partial<IKnowledgeDocument>, manager?: EntityManager): Promise<KnowledgeDocument> {
         await this.prepareDocumentRelations(document)
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
@@ -829,13 +831,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
         document.processingHash ??= computeKnowledgeDocumentProcessingHash(document)
 
-        const doc = await super.create({
-            ...document
-        })
+        const doc = manager
+            ? await manager.getRepository(KnowledgeDocument).save(
+                  this.writeToCurrentScope({
+                      ...document,
+                      createdById: RequestContext.currentUserId(),
+                      updatedById: RequestContext.currentUserId()
+                  })
+              )
+            : await super.create({ ...document })
         // Init folder path for document entity
-        const parents = await this.findAncestors(doc.id)
+        const parents = await this.findAncestors(doc.id, manager)
         doc.folder = buildLogicalFolderPath(parents, doc.id)
-        await this.repository.save(doc)
+        await (manager?.getRepository(KnowledgeDocument) ?? this.repository).save(doc)
 
         return doc
     }
@@ -863,7 +871,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @returns
      */
     async createBulkWithIncrementalSync(
-        documents: Partial<IKnowledgeDocument>[]
+        documents: Partial<IKnowledgeDocument>[],
+        manager?: EntityManager
     ): Promise<IncrementalDocumentSyncResult> {
         if (!documents?.length) {
             return {
@@ -875,6 +884,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             }
         }
         for (const document of documents) {
+            delete document.processingExecutionId
             document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
             document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
             document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
@@ -898,9 +908,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 ? incrementalSyncByKnowledgebaseId.get(document.knowledgebaseId) === true
                 : false
             const synced = incrementalSyncEnabled
-                ? await this.createOrReuseSourceDocument(document)
+                ? await this.createOrReuseSourceDocument(document, manager)
                 : {
-                      document: await this.createDocument(document),
+                      document: await this.createDocument(document, manager),
                       shouldProcess: true,
                       action: 'created' as const
                   }
@@ -972,12 +982,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @param documents
      * @returns
      */
-    async createBulk(documents: Partial<IKnowledgeDocument>[]): Promise<KnowledgeDocument[]> {
-        return (await this.createBulkWithIncrementalSync(documents)).documents
+    async createBulk(documents: Partial<IKnowledgeDocument>[], manager?: EntityManager): Promise<KnowledgeDocument[]> {
+        return (await this.createBulkWithIncrementalSync(documents, manager)).documents
     }
 
     private async createOrReuseSourceDocument(
-        document: Partial<IKnowledgeDocument>
+        document: Partial<IKnowledgeDocument>,
+        manager?: EntityManager
     ): Promise<IncrementalDocumentSyncItemResult> {
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
@@ -986,9 +997,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         document.sourceKey = sourceKey
         document.sourceHash = sourceHash
 
-        const existing = await this.findExistingSourceDocument(document)
+        const existing = await this.findExistingSourceDocument(document, manager)
         if (!existing) {
-            const created = await this.createDocument(document)
+            const created = await this.createDocument(document, manager)
             return {
                 document: created,
                 shouldProcess: true,
@@ -1008,7 +1019,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         const documentChanges = { ...document }
         delete documentChanges.id
         delete documentChanges.version
-        const updated = await this.save({
+        const changes: DeepPartial<KnowledgeDocument> = {
             ...existing,
             ...documentChanges,
             id: existing.id,
@@ -1018,7 +1029,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             processingHash,
             chunkNum: existing.chunkNum,
             tokenNum: existing.tokenNum
-        } as DeepPartial<KnowledgeDocument>)
+        }
+        const updated = manager
+            ? await manager.getRepository(KnowledgeDocument).save(this.writeToCurrentScope(changes))
+            : await this.save(changes)
 
         return {
             document: updated,
@@ -1027,7 +1041,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
     }
 
-    private async findExistingSourceDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument | null> {
+    private async findExistingSourceDocument(
+        document: Partial<IKnowledgeDocument>,
+        manager?: EntityManager
+    ): Promise<KnowledgeDocument | null> {
         if (!document.knowledgebaseId) {
             return null
         }
@@ -1041,6 +1058,17 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             knowledgebaseId: document.knowledgebaseId,
             sourceType: document.sourceType,
             sourceKey
+        }
+
+        if (manager) {
+            return manager.findOne(KnowledgeDocument, {
+                where: {
+                    ...where,
+                    tenantId: RequestContext.currentTenantId(),
+                    organizationId: RequestContext.getOrganizationId() ?? IsNull()
+                },
+                order: { updatedAt: 'DESC' }
+            })
         }
 
         const { items } = await this.findAll({
@@ -1180,6 +1208,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         delete changes.updatedAt
         delete changes.deletedAt
         delete changes.publicationEpoch
+        delete changes.processingExecutionId
         delete changes.knowledgebase
         delete changes.storageFile
 
@@ -1818,7 +1847,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             order: { createdAt: 'ASC' }
         })
 
-        if (document.contentHash && document.contentHash === contentHash) {
+        // Chunk rows are saved before vectors. Only a matching published hash proves those rows were indexed.
+        const recoverInterruptedSync =
+            existingChunks.length > 0 &&
+            (!document.contentHash ||
+                computeKnowledgeDocumentContentHash(sortChunksByDocumentOrder(existingChunks)) !== document.contentHash)
+        if (!recoverInterruptedSync && document.contentHash && document.contentHash === contentHash) {
             return {
                 chunks: existingChunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[],
                 embeddingChunks: [],
@@ -1839,16 +1873,20 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             incomingChunks,
             existingChunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
         )
-        const skippedCount = matches.filter((match) => match.operation === 'unchanged').length
+        const skippedCount = recoverInterruptedSync
+            ? 0
+            : matches.filter((match) => match.operation === 'unchanged').length
         const addedCount = matches.filter((match) => match.operation === 'added').length
-        const updatedCount = matches.filter((match) => match.operation === 'changed').length
+        const updatedCount = matches.filter(
+            (match) => match.operation === 'changed' || (recoverInterruptedSync && match.operation === 'unchanged')
+        ).length
         const chunksToPersist = matches.map((match) => ({
             ...match.chunk,
             documentId: document.id,
             knowledgebaseId: document.knowledgebaseId
         }))
         const changedIds = matches
-            .filter((match) => match.operation === 'changed' && match.chunk.id)
+            .filter((match) => (match.operation === 'changed' || recoverInterruptedSync) && match.chunk.id)
             .map((match) => match.chunk.id)
             .filter((id): id is string => !!id)
         const usedIds = new Set(matches.map((match) => match.previous?.id).filter((id): id is string => !!id))
@@ -1868,13 +1906,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         const changedChunkIds = new Set(
             matches
-                .filter((match) => match.operation !== 'unchanged')
+                .filter((match) => recoverInterruptedSync || match.operation !== 'unchanged')
                 .map((match) => getChunkLogicalId(match.chunk))
                 .filter((id): id is string => !!id)
         )
         const changedRowIds = new Set(
             matches
-                .filter((match) => match.operation !== 'unchanged')
+                .filter((match) => recoverInterruptedSync || match.operation !== 'unchanged')
                 .map((match) => match.chunk.id)
                 .filter((id): id is string => !!id)
         )
@@ -2151,6 +2189,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         delete document.deletedAt
         delete document.hardDeletePendingAt
         delete document.publicationEpoch
+        delete document.processingExecutionId
         delete document.knowledgebase
         delete document.storageFile
         if (hasParent) {
@@ -2248,6 +2287,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         docs.forEach((item) => {
             item.jobId = job.id as string
+            item.processingExecutionId = null
             item.status = KBDocumentStatusEnum.RUNNING
             item.processMsg = ''
             item.progress = 0

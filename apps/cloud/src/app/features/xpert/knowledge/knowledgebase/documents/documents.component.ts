@@ -4,7 +4,17 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { NgTemplateOutlet } from '@angular/common'
-import { afterNextRender, Component, computed, effect, inject, model, signal, TemplateRef } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
@@ -324,6 +334,7 @@ export class KnowledgeDocumentsComponent {
   readonly hasPipeline = computed(() => !!this.pipeline()?.publishAt)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
+  private readonly destroyRef = inject(DestroyRef)
   readonly documentDelayRefresh$ = new Subject<void>()
   readonly knowledgebaseDelayRefresh$ = new Subject<void>()
 
@@ -1663,23 +1674,28 @@ export class KnowledgeDocumentsComponent {
     }
     const pipelineDocs = documents.filter((doc) => !!doc.sourceConfig)
     if (pipelineDocs.length) {
+      const knowledgebaseId = this.knowledgebase().id
       calls.push(
-        this.kbAPI.createTask(this.knowledgebase().id, {
-          taskType: 'document_reprocess',
-          status: 'running', // Start processing immediately
-          documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
-        })
+        this.kbAPI
+          .createTask(knowledgebaseId, {
+            taskType: 'document_reprocess',
+            status: 'running', // Start processing immediately
+            documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
+          })
+          .pipe(switchMap((task) => this.kbAPI.pollTaskStatus(knowledgebaseId, task.id).pipe(startWith(task))))
       )
     }
     if (calls.length > 0) {
-      combineLatest(calls).subscribe({
-        next: (task) => {
-          this.refresh()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
+      combineLatest(calls)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (task) => {
+            this.refresh()
+          },
+          error: (err) => {
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
     }
   }
 

@@ -28,6 +28,7 @@ import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentPipelineStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentPipelineStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
+import { KnowledgePipelineImportResult } from '../import/import-model'
 
 @Component({
   standalone: true,
@@ -56,7 +57,7 @@ export class KnowledgeDocumentPipelineComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly documentsComponent = inject(KnowledgeDocumentsComponent)
   readonly integrationAPI = injectIntegrationAPI()
-  readonly dialogRef = inject<DialogRef<boolean>>(DialogRef, { optional: true })
+  readonly dialogRef = inject<DialogRef<KnowledgePipelineImportResult>>(DialogRef, { optional: true })
   readonly dialogData = inject<{ parentId: string | null }>(DIALOG_DATA, { optional: true })
   readonly routeParentId = injectQueryParams('parentId')
   readonly parentId = computed(() => (this.dialogRef ? this.dialogData?.parentId : this.routeParentId()))
@@ -137,7 +138,7 @@ export class KnowledgeDocumentPipelineComponent {
 
   close(completed = false) {
     if (this.submitting()) return
-    if (this.dialogRef) this.dialogRef.close(completed)
+    if (this.dialogRef) this.dialogRef.close(completed ? { taskId: this.taskId() } : undefined)
     else this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
   }
 

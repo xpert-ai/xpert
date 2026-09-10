@@ -17,7 +17,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { KnowledgeDocumentPipelineSettingsComponent } from '../settings/settings.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -25,6 +25,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
+    ZardButtonComponent,
     RouterModule,
     CdkMenuModule,
     FormsModule,

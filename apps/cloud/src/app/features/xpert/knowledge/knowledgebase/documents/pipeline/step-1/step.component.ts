@@ -5,7 +5,7 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { myRxResource, XpI18nPipe, omitBlank } from '@xpert-ai/headless-ui'
+import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { nonNullable } from '@xpert-ai/contracts'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
@@ -35,8 +35,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
-import { XpCheckboxComponent } from '@xpert-ai/headless-ui'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -53,7 +52,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ContentLoaderModule,
     MarkdownModule,
     XpI18nPipe,
-    XpCheckboxComponent,
+    ZardButtonComponent,
+    ZardCheckboxComponent,
     IconComponent,
     KnowledgeFilePreviewComponent,
     KnowledgeLocalFileComponent,
@@ -109,30 +109,37 @@ export class KnowledgeDocumentPipelineStep1Component {
   // local files
   readonly createFileTask = myRxResource({
     request: () => ({
-      taskId: this.taskId(),
+      knowledgebaseId: this.knowledgebaseId(),
+      parentId: this.parentId(),
       files: this.files()
         .map((file) => file.document())
         .filter(nonNullable)
     }),
     loader: ({ request }) => {
       return request.files.length > 0
-        ? this.knowledgebaseAPI.createTask(
-            this.knowledgebaseId(),
-            omitBlank({
-              id: request.taskId,
-              context: {
-                documents: request.files.map((file) => ({
-                  ...file,
-                  status: KBDocumentStatusEnum.WAITING,
-                  parent: this.parentId() ? { id: this.parentId() } : null
-                }))
-              }
-            })
-          )
+        ? this.knowledgebaseAPI.createTask(request.knowledgebaseId, {
+            context: {
+              documents: request.files.map((file) => ({
+                ...file,
+                status: KBDocumentStatusEnum.WAITING,
+                parent: request.parentId ? ({ id: request.parentId } as IKnowledgeDocument) : null
+              }))
+            }
+          })
         : null
     }
   })
   readonly selectedFile = model<KnowledgeFileUploader | null>(null)
+
+  readonly canContinue = computed(() => {
+    if (!this.selectedSource() || !this.taskId() || this.testing()) return false
+    return (
+      this.providerCategory() !== DocumentSourceProviderCategoryEnum.LocalFile ||
+      (this.files().length > 0 &&
+        this.files().every((file) => !!file.document()) &&
+        this.createFileTask.status() === 'success')
+    )
+  })
 
   // Web Crawl
   readonly selectedDocument = model<Partial<IKnowledgeDocument> | null>(null)
@@ -159,6 +166,7 @@ export class KnowledgeDocumentPipelineStep1Component {
   }
 
   nextStep() {
+    if (!this.canContinue()) return
     this.pipelineComponent.nextStep()
   }
 

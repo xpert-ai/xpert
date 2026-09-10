@@ -308,6 +308,9 @@ export type TKnowledgeDocument = {
    */
   jobId?: string
 
+  /** Server-owned pipeline attempt allowed to update this document on dispatch failure. */
+  processingExecutionId?: string | null
+
   options?: TDocumentWebOptions
 
   integrationId?: string
