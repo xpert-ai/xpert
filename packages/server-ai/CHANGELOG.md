@@ -11,7 +11,7 @@
 - Updated dependencies [4be390b]
 - Updated dependencies [63cd444]
 - Updated dependencies [4e8c7ed]
-    - @xpert-ai/contracts@3.18.3
+    - @xpert-ai/contracts@3.18.4
     - @xpert-ai/plugin-sdk@3.18.4
     - @xpert-ai/server-core@3.9.50
 

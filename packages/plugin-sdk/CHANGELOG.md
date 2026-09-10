@@ -8,19 +8,14 @@
 
   Restore role skill bindings when switching templates and preserve localized skill names during installation and selection.
 
-- 4be390b: Prepare the Xpert 3.18.4 patch release.
-
-  The target platform version is 3.18.4. Before publishing, align contracts,
-  plugin-sdk, and xpert-ui to this version in the release version PR, including
-  their internal dependency references, changelogs, and lockfile entries. Their
-  current versions differ, so patch bumps alone do not align the three anchors.
+- 4be390b: Release Xpert 3.18.4 with aligned contracts, plugin-sdk, and Web application versions.
 
 - 63cd444: Allow host-enabled graph Connector providers in scoped runtime credentials while preserving explicit binding checks. Existing Connector APIs remain compatible.
 - Updated dependencies [3f72082]
 - Updated dependencies [7b97fee]
 - Updated dependencies [4be390b]
 - Updated dependencies [4e8c7ed]
-  - @xpert-ai/contracts@3.18.3
+  - @xpert-ai/contracts@3.18.4
 
 ## 3.18.3
 
