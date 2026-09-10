@@ -56,7 +56,7 @@ import {
 import { KnowledgeWikiInvocationBudgetService } from './knowledge-wiki-invocation-budget.service'
 import {
     buildKnowledgeWikiDedupMessages,
-    knowledgeWikiDedupOutputSchema,
+    createKnowledgeWikiDedupOutputSchema,
     KnowledgeWikiDedupModelInput,
     KnowledgeWikiDedupModelOutput,
     parseKnowledgeWikiDedupOutput
@@ -69,11 +69,12 @@ type WikiModelResponse<T> =
           format: 'json'
           schema:
               | typeof knowledgeWikiMapOutputSchema
-              | typeof knowledgeWikiDedupOutputSchema
+              | ReturnType<typeof createKnowledgeWikiDedupOutputSchema>
               | typeof wikiClassificationSchema
               | ReturnType<typeof createWikiTaxonomyResponseSchema>
               | typeof knowledgeWikiRelationsSchema
           parseResponse?: (value: unknown) => T
+          retryInvalidResponse?: () => Promise<T>
       }
     | { format: 'markdown'; parseText: (text: string) => T }
 
@@ -222,16 +223,35 @@ export class KnowledgeWikiModelInvocationService {
         input: KnowledgeWikiDedupModelInput,
         ordinal: number
     ) {
-        return this.invokeModel<KnowledgeWikiDedupModelOutput>({
-            job,
-            knowledgebase,
-            stage: 'dedup',
-            ordinal,
-            inputFingerprint: hashKnowledgeWikiValue(input),
-            messages: buildKnowledgeWikiDedupMessages(input),
-            response: { format: 'json', schema: knowledgeWikiDedupOutputSchema },
-            parse: (value) => parseKnowledgeWikiDedupOutput(value, input)
-        })
+        const messages = buildKnowledgeWikiDedupMessages(input)
+        const run = (correction: boolean): Promise<KnowledgeWikiDedupModelOutput> =>
+            this.invokeModel<KnowledgeWikiDedupModelOutput>({
+                job,
+                knowledgebase,
+                stage: 'dedup',
+                ordinal,
+                inputFingerprint: hashKnowledgeWikiValue(
+                    correction ? { input, correction: 'identity-target-v1' } : input
+                ),
+                messages: correction
+                    ? messages.map((message) =>
+                          message.role === 'system'
+                              ? {
+                                    ...message,
+                                    content: `${message.content}\nThe previous response failed validation. Re-evaluate the item against the supplied candidates. Return JSON with decision same, different or uncertain and a short non-empty reason. For same, identityId must exactly match one candidates[].id; for different or uncertain, identityId must be null. Never match the item to itself or invent a target.`
+                                }
+                              : message
+                      )
+                    : messages,
+                response: {
+                    format: 'json',
+                    schema: createKnowledgeWikiDedupOutputSchema(input),
+                    // One correction is separately reserved, journaled and billed; replay uses the same request IDs.
+                    retryInvalidResponse: correction ? undefined : () => run(true)
+                },
+                parse: (value) => parseKnowledgeWikiDedupOutput(value, input)
+            })
+        return run(false)
     }
 
     invokeClassificationModel(
@@ -370,6 +390,9 @@ export class KnowledgeWikiModelInvocationService {
         const retryNotExecuted = invocation.status === 'failed' && invocation.reconciliationStatus === 'not_executed'
         if (invocation.status === 'failed' && invocation.errorCode === 'model_response_invalid') {
             await this.deliverBilling(invocation, input.knowledgebase, model)
+            if (input.response.format === 'json' && input.response.retryInvalidResponse) {
+                return input.response.retryInvalidResponse()
+            }
             throw this.invalidResponseError()
         }
         if (invocation.status !== 'prepared' && !retryNotExecuted) {
@@ -502,6 +525,9 @@ export class KnowledgeWikiModelInvocationService {
                     invocation.completedAt = new Date()
                     await this.invocationRepository.save(invocation)
                     await this.deliverBilling(invocation, input.knowledgebase, model)
+                    if (input.response.format === 'json' && input.response.retryInvalidResponse) {
+                        return input.response.retryInvalidResponse()
+                    }
                     throw error
                 }
                 const rejected = invocationStarted && !responseReceived && isProviderRequestRejected(error)

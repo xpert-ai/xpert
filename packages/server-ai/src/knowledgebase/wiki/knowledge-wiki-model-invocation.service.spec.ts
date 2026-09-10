@@ -902,6 +902,71 @@ describe('KnowledgeWikiModelInvocationService', () => {
         expect(withStructuredOutput).toHaveBeenCalledWith(expect.anything(), { name: 'knowledge_wiki_dedup' })
     })
 
+    it.each(['corrected', 'invalid', 'budget', 'network', 'billing'])(
+        'handles a self-target identity response with bounded, journaled correction: %s',
+        async (outcome) => {
+            const h = createHarness(
+                outcome === 'budget' ? { maxModelInvocations: 1, maxEstimatedTokens: 200_000 } : undefined
+            )
+            const descriptor = {
+                kind: 'concept' as const,
+                definition: 'Strategic planning.',
+                domain: null,
+                scope: null
+            }
+            const input = {
+                candidateId: 'source-hash',
+                canonicalName: 'Strategic planning',
+                aliases: [],
+                descriptor,
+                facts: [],
+                candidates: [{ id: 'existing-id', canonicalName: 'Planning', aliases: [], descriptor }]
+            }
+            const invalid = { decision: 'same', identityId: input.candidateId, reason: 'It maps to itself.' }
+            const corrected = { decision: 'different', identityId: null, reason: 'The existing concept is broader.' }
+            if (outcome === 'network') h.invoke.mockRejectedValueOnce(new Error('Connection lost'))
+            else h.invoke.mockResolvedValueOnce(invalid)
+            h.invoke.mockResolvedValue(outcome === 'invalid' ? invalid : corrected)
+            if (outcome === 'billing') h.commandBus.execute.mockRejectedValueOnce(new Error('Billing unavailable'))
+            const run = () => h.service.invokeDedupModel(job as never, knowledgebase as never, input, 0)
+            if (outcome === 'billing') {
+                await expect(run()).rejects.toThrow('Billing unavailable')
+                expect(h.invoke).toHaveBeenCalledTimes(1)
+                await expect(run()).resolves.toEqual(corrected)
+                expect(h.invocations.every((i) => i.billingStatus === 'delivered')).toBe(true)
+                return
+            }
+            if (outcome === 'corrected') {
+                await expect(run()).resolves.toEqual(corrected)
+                await expect(run()).resolves.toEqual(corrected)
+                expect(h.invocations.map((i) => i.status)).toEqual(['failed', 'succeeded'])
+                expect(h.invocations[0].errorCode).toBe('model_response_invalid')
+                expect(new Set(h.invocations.map((i) => i.requestId)).size).toBe(2)
+                expect(h.invocations.every((i) => i.billingStatus === 'delivered')).toBe(true)
+                expect(h.commandBus.execute).toHaveBeenCalledTimes(2)
+                expect(h.withStructuredOutput).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        properties: expect.objectContaining({
+                            identityId: { anyOf: [{ type: 'string', enum: ['existing-id'] }, { type: 'null' }] }
+                        })
+                    }),
+                    { name: 'knowledge_wiki_dedup' }
+                )
+                expect(h.invoke.mock.calls[0][0][1].content).not.toContain(input.candidateId)
+                expect(h.invoke.mock.calls[1][0][0].content).toContain('previous response')
+                expect(h.invoke.mock.calls[1][0].map((message: { role: string }) => message.role)).toEqual([
+                    'system',
+                    'user'
+                ])
+            } else {
+                await expect(run()).rejects.toThrow()
+                await expect(run()).rejects.toThrow()
+                expect(h.invocations.every((i) => i.status !== 'succeeded')).toBe(true)
+            }
+            expect(h.invoke).toHaveBeenCalledTimes(['budget', 'network'].includes(outcome) ? 1 : 2)
+        }
+    )
+
     it('does not cache an out-of-candidate identity as a successful decision', async () => {
         const { service, invoke, invocations } = createHarness()
         invoke.mockResolvedValue({ decision: 'same', identityId: 'foreign', reason: 'Invalid target.' })

@@ -13,6 +13,7 @@ export function parseWikiIdentityDescriptor(value: unknown): KnowledgeWikiIdenti
 }
 
 export {
+    createKnowledgeIdentityDedupOutputSchema as createKnowledgeWikiDedupOutputSchema,
     knowledgeIdentityDedupOutputSchema as knowledgeWikiDedupOutputSchema,
     KnowledgeIdentityDedupModelInput as KnowledgeWikiDedupModelInput,
     KnowledgeIdentityDedupModelOutput as KnowledgeWikiDedupModelOutput,
