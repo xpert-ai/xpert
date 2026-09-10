@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardSearchInputComponent } from '@xpert-ai/headless-ui'
+import { ZardSearchInputComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { IconDefinition, TAvatar } from '../../../../@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar/emoji-avatar/avatar.component'
 import { IconComponent } from 'apps/cloud/src/app/@shared/avatar/icon/icon.component'
@@ -25,7 +25,15 @@ export type BlankTemplateChoice = {
 @Component({
   selector: 'xpert-blank-template-selection',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, EmojiAvatarComponent, IconComponent, ZardSearchInputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    EmojiAvatarComponent,
+    IconComponent,
+    ZardSearchInputComponent,
+    ZardButtonComponent
+  ],
   template: `
     <div class="space-y-3">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -89,7 +97,7 @@ export type BlankTemplateChoice = {
         </div>
       } @else {
         <div class="grid gap-3 lg:grid-cols-2">
-          @for (template of filteredTemplates(); track template.id) {
+          @for (template of visibleTemplates(); track template.id) {
             <button
               type="button"
               class="group rounded-xl border bg-components-card-bg p-4 text-left transition-all"
@@ -137,12 +145,20 @@ export type BlankTemplateChoice = {
             </button>
           }
         </div>
+        @if (visibleTemplates().length < filteredTemplates().length) {
+          <button z-button zType="outline" type="button" (click)="visibleCount.set(visibleCount() + 24)">
+            {{ 'XP.Knowledgebase.Wiki.Organization.LoadMore' | translate: { Default: 'Load more' } }}
+            ({{ visibleTemplates().length }} / {{ filteredTemplates().length }})
+          </button>
+        }
       }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BlankTemplateSelectionComponent {
+  readonly visibleCount = model(24)
+  readonly visibleTemplates = computed(() => this.filteredTemplates().slice(0, this.visibleCount()))
   readonly templates = input<BlankTemplateChoice[]>([])
   readonly fixedCategory = input<string | null>(null, { alias: 'category' })
   readonly loading = input(false)
@@ -159,6 +175,10 @@ export class BlankTemplateSelectionComponent {
   readonly categories = computed(() => getBlankTemplateCategories(this.templates()))
 
   constructor() {
+    effect(() => {
+      this.filteredTemplates()
+      this.visibleCount.set(24)
+    })
     effect(() => {
       if (!this.showCategoryFilters()) {
         return

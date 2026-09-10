@@ -94,7 +94,10 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
       skills: extractExplicitSkillsFromMiddlewares(middlewareNodes),
       repositoryDefault: extractRepositoryDefaultFromMiddlewares(middlewareNodes),
       middlewares: middlewareNodes.map((node) => node.entity.provider).filter(Boolean),
-      middlewareRequired: extractMiddlewareRequiredSelections(middlewareNodes)
+      middlewareRequired: extractMiddlewareRequiredSelections(middlewareNodes),
+      preserveSkillsMiddleware: middlewareNodes.some(
+        (node) => node.entity.provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+      )
     })
   }
 }

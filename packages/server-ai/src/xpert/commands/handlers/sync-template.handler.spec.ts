@@ -70,6 +70,34 @@ describe('XpertSyncTemplateHandler', () => {
         }
     }
 
+    it('keeps the installed prompt language when the UI language changes', async () => {
+        const { handler, xpertTemplateService } = buildHandler(
+            {
+                id: 'xpert-1',
+                name: 'My role',
+                options: {
+                    templateSource: {
+                        templateId: '@xpert-ai/plugin-example:assistant',
+                        templateKey: 'assistant',
+                        locale: 'zh-Hans'
+                    }
+                }
+            },
+            { locale: 'zh-Hans', pluginVersion: '0.2.0', contentHash: 'revision-2' }
+        )
+        const result = await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+        expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith(
+            '@xpert-ai/plugin-example:assistant',
+            'en',
+            { locale: 'zh-Hans' }
+        )
+        expect(result.templateSource).toMatchObject({
+            locale: 'zh-Hans',
+            pluginVersion: '0.2.0',
+            contentHash: 'revision-2'
+        })
+    })
+
     it('resolves a legacy plugin template source and overwrites only the existing draft', async () => {
         const xpert = {
             id: 'xpert-1',

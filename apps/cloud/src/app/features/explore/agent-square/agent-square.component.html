@@ -609,7 +609,7 @@
           </div>
         } @else if (filteredTemplates().length) {
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            @for (template of filteredTemplates(); track template.id) {
+            @for (template of visibleTemplates(); track template.id) {
               <article
                 class="flex min-h-64 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
               >
@@ -659,6 +659,18 @@
               </article>
             }
           </div>
+          @if (visibleTemplates().length < filteredTemplates().length) {
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              class="mt-4"
+              (click)="visibleTemplateCount.set(visibleTemplateCount() + 24)"
+            >
+              {{ 'XP.Knowledgebase.Wiki.Organization.LoadMore' | translate: { Default: 'Load more' } }}
+              ({{ visibleTemplates().length }} / {{ filteredTemplates().length }})
+            </button>
+          }
         } @else if (templateLoadError(); as error) {
           <div
             class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"

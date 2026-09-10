@@ -105,6 +105,8 @@ export type XpertBlankWizardSelections = {
   repositoryDefault?: BlankRepositoryDefaultSelection | null
   middlewares?: string[]
   middlewareRequired?: Record<string, boolean>
+  // A template may provide the skill capability before any packages are selected.
+  preserveSkillsMiddleware?: boolean
 }
 
 export type KnowledgeBlankWizardSelections = {
@@ -150,12 +152,19 @@ export function normalizeBlankWizardSelections(
 ): Required<XpertBlankWizardSelections> {
   const skills = uniqueStrings(selections?.skills)
   const repositoryDefault = normalizeBlankRepositoryDefaultSelection(selections?.repositoryDefault)
-  const middlewares = normalizeBlankMiddlewareSelections(selections?.middlewares, skills, repositoryDefault)
+  const preserveSkillsMiddleware = selections?.preserveSkillsMiddleware ?? false
+  const middlewares = normalizeBlankMiddlewareSelections(
+    selections?.middlewares,
+    skills,
+    repositoryDefault,
+    preserveSkillsMiddleware
+  )
   return {
     triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
     skills,
     repositoryDefault,
+    preserveSkillsMiddleware,
     middlewares,
     middlewareRequired: normalizeBlankMiddlewareRequiredSelections(middlewares, selections?.middlewareRequired)
   }
@@ -846,7 +855,8 @@ export function normalizeBlankTriggerSelections(
 export function normalizeBlankMiddlewareSelections(
   middlewares?: string[] | null,
   skills?: string[] | null,
-  repositoryDefault?: BlankRepositoryDefaultSelection | null
+  repositoryDefault?: BlankRepositoryDefaultSelection | null,
+  preserveSkillsMiddleware = false
 ): string[] {
   const normalized = uniqueStrings(middlewares)
   const hasSkillsMiddleware = normalized.includes(BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
@@ -854,7 +864,7 @@ export function normalizeBlankMiddlewareSelections(
   const hasSkillSelection = !!skills?.length || !!normalizeBlankRepositoryDefaultSelection(repositoryDefault)
 
   return uniqueStrings(
-    hasSkillSelection
+    hasSkillSelection || (preserveSkillsMiddleware && hasSkillsMiddleware)
       ? hasSkillsMiddleware
         ? normalized
         : [...visibleMiddlewares, BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
