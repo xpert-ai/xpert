@@ -14,11 +14,10 @@ import {
     PluginTemplateApplicationSummary,
     resolveI18nText,
     WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
-    TAvatar,
     TKnowledgePipelineTemplate,
-    type TPromptWorkflow,
     TXpertExportedTemplate,
     TXpertTemplate,
+    TXpertTemplateCatalogQuery,
     XpertTemplatePluginDependencies,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
@@ -44,8 +43,13 @@ import { In, Repository } from 'typeorm'
 import { SkillRepositoryService } from '../skill-repository/skill-repository.service'
 import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
 import { XpertTemplate } from './xpert-template.entity'
-import { readXpertTemplateDslMetadata } from './xpert-template-dsl-metadata'
+import {
+    describePluginTemplate,
+    normalizePluginPackageName,
+    TXpertTemplateDescriptor
+} from './plugin-template-descriptor'
 import { resolvePluginApplicationConfigAssets } from '../plugin-resource/plugin-application-assets'
+import { isTemplateCatalogProvider, paginateTemplateCatalog } from './template-catalog'
 
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
@@ -61,34 +65,6 @@ const templateFiles = [
     'workspace-defaults.yaml'
 ] as const
 const builtinTemplateFiles = [...templateFiles, 'templates-market.yaml'] as const
-
-type TXpertTemplateDescriptor = {
-    id: string
-    key?: string
-    name?: string
-    type?: XpertTypeEnum | 'project'
-    title?: string
-    description?: string
-    avatar?: TAvatar
-    copilotModel?: TXpertTemplate['copilotModel']
-    category?: string
-    copyright?: string | null
-    privacyPolicy?: string | null
-    export_data?: string
-    targetApps?: string[]
-    targetAppMeta?: Record<string, any> | null
-    source?: string
-    pluginName?: string
-    pluginDisplayName?: string
-    order?: number
-    default?: boolean
-    startPrompts?: string[]
-    promptWorkflows?: TPromptWorkflow[]
-    releaseNotes?: string
-    xpertName?: string
-    dependencies?: XpertTemplatePluginDependencies
-    application?: PluginTemplateApplicationSummary
-}
 
 type TXpertTemplateGroup = {
     categories?: string[]
@@ -158,6 +134,7 @@ type TExportXpertTemplateInput = {
 type TXpertTemplateQuery = {
     targetApp?: string
     templateType?: string
+    locale?: string
 }
 
 const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
@@ -181,16 +158,6 @@ const TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX = 'template-bundle'
 const TEMPLATE_SKILL_BUNDLE_SKILL_FILE = 'SKILL.md'
 const TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER = 'local'
 const TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY = 'root/skills'
-
-/** Convert `<pkg>@1.2.3` -> `<pkg>` to align install/load paths. */
-const normalizePluginPackageName = (pluginName: string) => {
-    if (!pluginName.includes('@')) {
-        return pluginName
-    }
-
-    const lastAt = pluginName.lastIndexOf('@')
-    return lastAt > 0 ? pluginName.slice(0, lastAt) : pluginName
-}
 
 const isObjectValue = (value: unknown): value is object =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -387,6 +354,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             ),
             recommendedApps
         }
+    }
+
+    async getCatalog(language: LanguagesEnum, query: TXpertTemplateCatalogQuery = {}) {
+        const catalog = await this.getAll(language)
+        return paginateTemplateCatalog(
+            catalog.recommendedApps.map((item) => this.toXpertTemplate(item)),
+            query
+        )
     }
 
     async getMarketplaceRecommendedTemplates(
@@ -856,7 +831,21 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor | null> {
         const templates = await this.getPluginTemplates(language, query)
-        return this.findPluginTemplateById(templates, id)
+        const template = this.findPluginTemplateById(templates, id)
+        if (!template) return null
+        const plugin = this.getEffectivePluginRecords().find(
+            (record) => normalizePluginPackageName(record.packageName ?? record.name) === template.pluginName
+        )
+        const source = plugin?.instance?.templates
+        if (!plugin || !isTemplateCatalogProvider(source)) return template
+        const key = template.id.slice(template.pluginName.length + 1)
+        const contribution = await source.resolveTemplate(
+            plugin.ctx,
+            key,
+            query?.locale ?? template.defaultLocale ?? language
+        )
+        if (contribution.key !== key) throw new Error('Resolved template key does not match its catalog entry')
+        return this.toPluginTemplateDescriptor(plugin, contribution, language)
     }
 
     private findPluginTemplateById(templates: TXpertTemplateDescriptor[], id: string) {
@@ -962,7 +951,9 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
               : []
 
         return (contributions ?? [])
-            .map((contribution) => this.toPluginTemplateDescriptor(plugin, contribution, language))
+            .map((contribution) =>
+                this.toPluginTemplateDescriptor(plugin, contribution, language, isTemplateCatalogProvider(source))
+            )
             .filter((template): template is TXpertTemplateDescriptor => !!template)
             .filter((template) => this.matchesTemplateQuery(template, query))
     }
@@ -970,44 +961,16 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     private toPluginTemplateDescriptor(
         plugin: LoadedPluginRecord,
         contribution: XpertTemplateContribution,
-        language: LanguagesEnum
-    ): TXpertTemplateDescriptor | null {
-        const key = this.normalizeTemplateString(contribution?.key ?? contribution?.id)
-        const exportData = this.normalizeTemplateString(contribution?.export_data ?? contribution?.dslContent)
-        if (!key || !exportData) {
-            throw new Error(`Plugin template is missing key or DSL content`)
-        }
-
-        const pluginName = normalizePluginPackageName(
-            this.normalizeTemplateString(plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name) ?? ''
+        language: LanguagesEnum,
+        summaryOnly = false
+    ): TXpertTemplateDescriptor {
+        return describePluginTemplate(
+            plugin,
+            contribution,
+            language,
+            summaryOnly,
+            this.resolveTemplateApplication(plugin, contribution.key?.trim() || contribution.id?.trim())
         )
-        const namespacedId = `${pluginName}:${key}`
-        const targetApps = contribution.targetApps ?? plugin.instance?.meta?.targetApps
-        const targetAppMeta = contribution.targetAppMeta ?? plugin.instance?.meta?.targetAppMeta ?? null
-        const dslMetadata = readXpertTemplateDslMetadata(exportData, language)
-        const application = this.resolveTemplateApplication(plugin, key)
-
-        return {
-            ...contribution,
-            id: namespacedId,
-            key: namespacedId,
-            name: this.normalizeTemplateString(contribution.name) ?? key,
-            title: resolveI18nText(contribution.title ?? contribution.name, language) ?? dslMetadata.title ?? key,
-            description: dslMetadata.description ?? resolveI18nText(contribution.description, language) ?? '',
-            category: this.normalizeTemplateString(contribution.category) ?? 'Plugin',
-            copyright: contribution.copyright ?? null,
-            privacyPolicy: contribution.privacyPolicy ?? null,
-            export_data: exportData,
-            targetApps,
-            targetAppMeta,
-            source: 'plugin',
-            pluginName,
-            pluginDisplayName: this.normalizeTemplateString(plugin.instance?.meta?.displayName ?? pluginName),
-            dependencies: contribution.dependencies,
-            ...(application ? { application } : {}),
-            avatar: contribution.avatar ?? dslMetadata.avatar,
-            order: typeof contribution.order === 'number' ? contribution.order : Number.MAX_SAFE_INTEGER
-        }
     }
 
     /**

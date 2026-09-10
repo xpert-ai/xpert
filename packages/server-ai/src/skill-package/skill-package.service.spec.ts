@@ -153,6 +153,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { SkillPackageService } from './skill-package.service'
+import { SkillPackage } from './skill-package.entity'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     cleanupExtractedSkillArchive,
@@ -170,6 +171,7 @@ describe('SkillPackageService', () => {
         findOneInOrganizationOrTenant: jest.Mock
         findAll: jest.Mock
         create: jest.Mock
+        update: jest.Mock
         softDelete: jest.Mock
     }
     let skillRepositoryService: {
@@ -208,6 +210,7 @@ describe('SkillPackageService', () => {
 
         skillIndexService = {
             findOneInOrganizationOrTenant: jest.fn(),
+            update: jest.fn().mockResolvedValue({ affected: 1 }),
             findAll: jest.fn().mockResolvedValue({ items: [] }),
             create: jest.fn().mockImplementation(async (item: any) => item),
             softDelete: jest.fn().mockResolvedValue({ affected: 1 })
@@ -1199,6 +1202,52 @@ describe('SkillPackageService', () => {
         )
     })
 
+    it.each([false, true])(
+        'preserves plugin role presentation metadata on bundle publish (existing: %s)',
+        async (existing) => {
+            tempRoot = await mkdtemp(join(tmpdir(), 'skill-role-metadata-'))
+            const bundleRoot = join(tempRoot, 'bundle')
+            await mkdir(bundleRoot, { recursive: true })
+            const markdown = '---\nname: agency-role-id\ndescription: Role methods.\n---\n# Role\n'
+            await writeFile(join(bundleRoot, 'SKILL.md'), markdown)
+            ;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(join(tempRoot, 'workspace'))
+            ;(getOrganizationSharedSkillPath as jest.Mock).mockReturnValue(join(tempRoot, 'shared'))
+            const sharedSkillId = 'plugin:agency:skill:agency-role-id'
+            if (existing) {
+                repository.findOne.mockResolvedValue({
+                    id: 'skill-role',
+                    workspaceId: 'workspace-1',
+                    sharedSkillId,
+                    packagePath: 'agency-role-id',
+                    metadata: { name: 'agency-role-id', provenance: { templateBundleHash: 'old' } }
+                })
+            }
+            createSpy.mockImplementationOnce(async (item) =>
+                Object.assign(new SkillPackage(), item, { id: 'skill-role' })
+            )
+            const displayName = { en_US: 'Anthropologist', zh_Hans: '\u4eba\u7c7b\u5b66\u5bb6' }
+            const description = { en_US: 'Cultural research.', zh_Hans: '\u6587\u5316\u7814\u7a76' }
+            await service.syncTemplateSkillBundle('workspace-1', {
+                bundleRootPath: bundleRoot,
+                sharedSkillId,
+                metadata: { displayName, description }
+            })
+            const published = jest.mocked(service.update).mock.calls.find(([, value]) => 'publishAt' in value)
+            expect(published?.[1]).toEqual(
+                expect.objectContaining({
+                    metadata: expect.objectContaining({ name: 'agency-role-id', displayName, description })
+                })
+            )
+            expect(skillIndexService.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'Anthropologist',
+                    description: 'Cultural research.'
+                })
+            )
+            await expect(readFile(join(tempRoot, 'workspace/agency-role-id/SKILL.md'), 'utf8')).resolves.toBe(markdown)
+        }
+    )
+
     it('skips template bundle republish when the stored bundle hash is still current', async () => {
         tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-template-bundle-current-'))
         const bundleRoot = join(tempRoot, 'bundle')
@@ -1257,6 +1306,56 @@ describe('SkillPackageService', () => {
         })
         expect(createSpy).not.toHaveBeenCalled()
         expect(service.update).not.toHaveBeenCalled()
+        expect(skillIndexService.create).not.toHaveBeenCalled()
+    })
+
+    it('repairs installed role names and their shared index without republishing unchanged files', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'skill-role-existing-metadata-'))
+        const bundleRoot = join(tempRoot, 'bundle')
+        await mkdir(bundleRoot, { recursive: true })
+        await writeFile(
+            join(bundleRoot, 'SKILL.md'),
+            '---\nname: agency-role-id\ndescription: Role methods.\n---\n# Role\n'
+        )
+        const input = { bundleRootPath: bundleRoot, sharedSkillId: 'plugin:agency:skill:agency-role-id' }
+        skillRepositoryService.findAll.mockResolvedValue({
+            items: [{ id: 'repo-public', provider: 'workspace-public' }]
+        })
+        const { hash } = await service.syncTemplateSkillBundle('workspace-1', input, { validateOnly: true })
+        repository.findOne.mockResolvedValue({
+            id: 'skill-role',
+            workspaceId: 'workspace-1',
+            sharedSkillId: input.sharedSkillId,
+            metadata: {
+                name: 'agency-role-id',
+                displayName: { en_US: 'agency-role-id' },
+                provenance: { templateBundleHash: hash }
+            }
+        })
+        skillIndexService.findAll.mockResolvedValue({
+            items: [
+                {
+                    id: 'role-index',
+                    repositoryId: 'repo-public',
+                    skillId: input.sharedSkillId,
+                    name: 'agency-role-id',
+                    description: 'Role methods.'
+                }
+            ]
+        })
+        const displayName = { en_US: 'Anthropologist', zh_Hans: '\u4eba\u7c7b\u5b66\u5bb6' }
+        const result = await service.syncTemplateSkillBundle('workspace-1', { ...input, metadata: { displayName } })
+        expect(result.status).toBe('updated')
+        expect(service.update).toHaveBeenCalledWith(
+            'skill-role',
+            expect.objectContaining({
+                metadata: expect.objectContaining({ name: 'agency-role-id', displayName })
+            })
+        )
+        expect(skillIndexService.update).toHaveBeenCalledWith(
+            'role-index',
+            expect.objectContaining({ name: 'Anthropologist' })
+        )
         expect(skillIndexService.create).not.toHaveBeenCalled()
     })
 

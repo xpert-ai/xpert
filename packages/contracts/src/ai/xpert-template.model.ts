@@ -110,6 +110,11 @@ export type TTemplate = {
   startPrompts?: string[]
   promptWorkflows?: TPromptWorkflow[]
   releaseNotes?: string
+  availableLocales?: string[]
+  defaultLocale?: string
+  locale?: string
+  pluginVersion?: string
+  contentHash?: string
   xpertName?: string
   dependencies?: XpertTemplatePluginDependencies
   /** Trusted plugin App explicitly linked to this Assistant template. */
@@ -121,6 +126,24 @@ export type TXpertTemplate = TTemplate & {
   // icon: IconDefinition | string
   type: XpertTypeEnum | 'project'
   copilotModel?: Partial<TCopilotModel>
+}
+
+export type TXpertTemplateSummary = Omit<TXpertTemplate, 'export_data'>
+
+export interface TXpertTemplateCatalogQuery {
+  search?: string
+  category?: string
+  pluginName?: string
+  offset?: number
+  limit?: number
+}
+
+export interface TXpertTemplateCatalogPage {
+  items: TXpertTemplateSummary[]
+  total: number
+  offset: number
+  limit: number
+  categories: string[]
 }
 
 export interface IXpertMCPTemplate extends TTemplate {

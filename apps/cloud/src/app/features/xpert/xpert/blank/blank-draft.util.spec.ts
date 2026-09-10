@@ -75,7 +75,8 @@ describe('blank draft util', () => {
       skills: ['Skill A'],
       repositoryDefault: null,
       middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER],
-      middlewareRequired: {}
+      middlewareRequired: {},
+      preserveSkillsMiddleware: false
     })
 
     expect(hasBlankWizardSelections()).toBe(false)
@@ -90,7 +91,8 @@ describe('blank draft util', () => {
       skills: [],
       repositoryDefault: null,
       middlewares: ['guard'],
-      middlewareRequired: {}
+      middlewareRequired: {},
+      preserveSkillsMiddleware: false
     })
     expect(
       normalizeBlankTriggerSelections(
@@ -145,7 +147,8 @@ describe('blank draft util', () => {
         disabledSkillIds: ['skill-b']
       },
       middlewares: [BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER],
-      middlewareRequired: {}
+      middlewareRequired: {},
+      preserveSkillsMiddleware: false
     })
     expect(
       hasBlankWizardSelections({
