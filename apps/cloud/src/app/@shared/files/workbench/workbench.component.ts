@@ -138,6 +138,7 @@ export class FileWorkbenchComponent {
   readonly rootId = input<string | null | undefined>(null)
   readonly rootLabel = input<string | null | undefined>(null)
   readonly layout = input<FileWorkbenchLayout>('default')
+  readonly showTreeRefresh = input(false)
   readonly navigationTitle = input<string | null>(null)
   readonly treeTitle = input<string | null>(null)
   readonly searchPlaceholder = input<string | null>(null)
@@ -303,6 +304,15 @@ export class FileWorkbenchComponent {
 
   toggleFileTree() {
     this.fileTreeVisible.update((visible) => !visible)
+  }
+
+  async refreshFileTree() {
+    const rootId = this.rootId()
+    if (!rootId || this.treeLoading()) {
+      return
+    }
+
+    await this.refreshRootTree(rootId)
   }
 
   async guardDirtyBefore(action: () => Promise<void> | void) {

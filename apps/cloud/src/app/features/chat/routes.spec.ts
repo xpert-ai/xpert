@@ -147,6 +147,33 @@ describe('chat routes', () => {
     expect(route?.component).toBe(ChatXpertComponent)
   })
 
+  it('redirects assistant entry urls to ChatKit while preserving view context and fragments', () => {
+    const route = children.find((item) => item.path === 'x/:name')
+    const redirect = route?.redirectTo
+    if (typeof redirect !== 'function') throw new Error('Expected an assistant entry redirect')
+    const queryParams = { view: 'pbom_library', viewSelection: 'pbom-1', viewParameters: '{"tab":"features"}' }
+
+    runInInjectionContext(injector, () =>
+      redirect({
+        params: { name: 'document-bom-masterdata-v060-20260907' },
+        queryParams,
+        fragment: 'features',
+        routeConfig: route,
+        url: [],
+        outlet: 'primary',
+        data: {},
+        title: undefined
+      })
+    )
+
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/chat/x', 'document-bom-masterdata-v060-20260907', 'c'], {
+      queryParams,
+      fragment: 'features'
+    })
+    expect(route?.pathMatch).toBe('full')
+    expect(route?.component).toBeUndefined()
+  })
+
   it('routes direct xpert workbench urls to the ChatKit workbench component', () => {
     const route = children.find((item) => item.matcher && item.component === ChatXpertWorkbenchComponent)
     const entryMatch = route?.matcher?.(

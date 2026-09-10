@@ -284,10 +284,12 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
     }
 
     private resolveImportTemplateSource(command: XpertImportCommand, draft: XpertDraftDslDTO) {
+        const identity = createTemplateSourceFromIds(command.options.templateId, command.options.sourceTemplateId)
+        const embedded = resolveTemplateSourceFromOptions(draft.team.options)
+        // The selected ID owns identity; only its matching DSL may supply locale/revision metadata.
         const source =
             command.options.templateSource ??
-            createTemplateSourceFromIds(command.options.templateId, command.options.sourceTemplateId) ??
-            resolveTemplateSourceFromOptions(draft.team.options)
+            (identity ? { ...(embedded?.templateId === identity.templateId ? embedded : {}), ...identity } : embedded)
         if (!source) {
             return null
         }

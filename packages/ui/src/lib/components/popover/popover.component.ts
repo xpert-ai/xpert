@@ -3,6 +3,7 @@ import { TemplatePortal } from '@angular/cdk/portal'
 import { isPlatformBrowser } from '@angular/common'
 import {
   ChangeDetectionStrategy,
+  booleanAttribute,
   Component,
   computed,
   DestroyRef,
@@ -82,6 +83,7 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
   private overlayRef?: OverlayRef
   private overlayRefSubscription?: Subscription
   private listeners: (() => void)[] = []
+  private triggerResizeObserver?: ResizeObserver
 
   readonly zTrigger = input<ZardPopoverTrigger>('click')
   readonly zContent = input.required<TemplateRef<unknown>>()
@@ -89,6 +91,7 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
   readonly zOrigin = input<ElementRef>()
   readonly zVisible = input<boolean>(false)
   readonly zOverlayClickable = input<boolean>(true)
+  readonly zMatchTriggerWidth = input(false, { transform: booleanAttribute })
   readonly zVisibleChange = output<boolean>()
 
   private readonly isVisible = signal(false)
@@ -129,6 +132,7 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.triggerResizeObserver?.disconnect()
     this.unlistenAll()
     this.overlayRefSubscription?.unsubscribe()
     this.overlayRef?.dispose()
@@ -143,8 +147,13 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
       this.createOverlay()
     }
 
+    this.updateTriggerWidth()
     const templatePortal = new TemplatePortal(this.zContent(), this.viewContainerRef)
     this.overlayRef?.attach(templatePortal)
+    if (this.zMatchTriggerWidth() && typeof ResizeObserver !== 'undefined') {
+      this.triggerResizeObserver = new ResizeObserver(() => this.updateTriggerWidth())
+      this.triggerResizeObserver.observe(this.nativeElement)
+    }
     this.isVisible.set(true)
     this.zVisibleChange.emit(true)
   }
@@ -154,6 +163,8 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
       return
     }
 
+    this.triggerResizeObserver?.disconnect()
+    this.triggerResizeObserver = undefined
     this.overlayRef?.detach()
     this.isVisible.set(false)
     this.zVisibleChange.emit(false)
@@ -164,6 +175,13 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
       this.hide()
     } else {
       this.show()
+    }
+  }
+
+  private updateTriggerWidth() {
+    if (this.zMatchTriggerWidth() && this.overlayRef) {
+      this.overlayRef.updateSize({ width: this.nativeElement.getBoundingClientRect().width })
+      if (this.overlayRef.hasAttached()) this.overlayRef.updatePosition()
     }
   }
 

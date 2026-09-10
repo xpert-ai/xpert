@@ -1,4 +1,5 @@
 import { provideHttpClient } from '@angular/common/http'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
@@ -87,6 +88,7 @@ describe('Wiki settings form', () => {
   }
 
   afterEach(() => {
+    TestBed.inject(OverlayContainer).ngOnDestroy()
     http?.verify()
     TestBed.resetTestingModule()
     jest.clearAllMocks()
@@ -116,14 +118,28 @@ describe('Wiki settings form', () => {
       Array.from(root.querySelectorAll('textarea[maxlength="4000"]')).map((input) => input.getAttribute('maxlength'))
     ).toEqual(['4000', '4000'])
 
-    const confirm = jest.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
     const save = element<HTMLButtonElement>('button.btn-primary')
     expect(save.disabled).toBe(false)
     save.click()
+    fixture.detectChanges()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RebuildConfirm')
+    expect(confirm).not.toHaveBeenCalled()
+    expect(save.disabled).toBe(true)
     http.expectNone('/api/knowledgebase/kb-1/wiki/config')
+    overlay.querySelector<HTMLButtonElement>('[data-testid="z-cancel-button"]').click()
+    await settle()
+    expect(save.disabled).toBe(false)
     save.click()
+    fixture.detectChanges()
+    void fixture.componentInstance.save()
+    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
+    http.expectNone('/api/knowledgebase/kb-1/wiki/config')
+    overlay.querySelector<HTMLButtonElement>('[data-testid="z-ok-button"]').click()
+    await settle()
     const request = http.expectOne('/api/knowledgebase/kb-1/wiki/config')
-    expect(confirm).toHaveBeenCalledTimes(2)
+    expect(confirm).not.toHaveBeenCalled()
     expect(request.request.method).toBe('PUT')
     expect(request.request.body).toMatchObject({
       settings: { name: 'Wiki test', chatModel: llm },

@@ -24,9 +24,9 @@ jest.mock('apps/cloud/src/app/@shared/skills', () => {
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { PluginAPIService, Store } from '@cloud/app/@core/state'
-import { AiModelTypeEnum, AiProviderRole, PLUGIN_RESOURCE_ERROR_CODE } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AiProviderRole, PLUGIN_RESOURCE_ERROR_CODE, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, of, throwError } from 'rxjs'
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs'
 import { NgxPermissionsService } from 'ngx-permissions'
 import {
   AIPermissionsEnum,
@@ -84,7 +84,7 @@ type BlankSpecContext = {
     getAllInOrg: jest.Mock
   }
   templateService: {
-    getAll: jest.Mock
+    getSummaries: jest.Mock
     getAllKnowledgePipelines: jest.Mock
     getKnowledgePipelineTemplate: jest.Mock
     getTemplate: jest.Mock
@@ -149,7 +149,7 @@ function buildExpectedClawPrompt() {
   ].join('\n')
 }
 
-function createAgentTemplateYaml() {
+function createAgentTemplateYaml(skills: string[] = ['writer']) {
   return `
 team:
   name: template-agent
@@ -210,8 +210,7 @@ nodes:
       provider: ${BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER}
       title: Skills Middleware
       options:
-        skills:
-          - writer
+        skills: ${JSON.stringify(skills)}
 connections:
   - key: Trigger_schedule/Agent_primary
     type: edge
@@ -666,7 +665,7 @@ async function createComponent(
     )
   }
   const templateService = {
-    getAll: jest.fn(() => of({ categories: ['Agent'], recommendedApps: agentTemplates })),
+    getSummaries: jest.fn(() => of(agentTemplates)),
     getAllKnowledgePipelines: jest.fn(() => of({ categories: ['Pipeline'], templates: [] })),
     getKnowledgePipelineTemplate: jest.fn(),
     getTemplate: jest.fn(() => of(agentTemplateDetail))
@@ -1247,6 +1246,30 @@ describe('XpertNewBlankComponent', () => {
     expect(xpertService.importDSL).not.toHaveBeenCalled()
   })
 
+  it('uses the template default language without requesting a language override', async () => {
+    const agent = { key: 'Agent_role', prompt: 'Chinese role body' }
+    const { component, templateService } = await createComponent(
+      { type: XpertTypeEnum.Agent, initialTemplateId: 'role', initialStartMode: 'template' },
+      {
+        agentTemplateDetail: {
+          id: 'role',
+          title: 'Chinese role',
+          description: 'Default Chinese prompt',
+          locale: 'zh-Hans',
+          availableLocales: ['en-US', 'zh-Hans'],
+          defaultLocale: 'zh-Hans',
+          export_data: JSON.stringify({
+            team: { name: 'role', title: 'Chinese role', type: 'agent', agent },
+            nodes: [{ type: 'agent', key: agent.key, entity: agent, position: { x: 0, y: 0 } }],
+            connections: []
+          })
+        }
+      }
+    )
+    expect(templateService.getTemplate).toHaveBeenLastCalledWith('role')
+    expect(component.selectedTemplateDraft()?.team.agent.prompt).toBe('Chinese role body')
+  })
+
   it('loads the selected agent template into the wizard state', async () => {
     const { component, fixture, templateService } = await createComponent(
       {
@@ -1404,6 +1427,141 @@ describe('XpertNewBlankComponent', () => {
     const importedDraft = xpertService.importDSL.mock.calls[0][0]
     const skillsMiddleware = findSkillsMiddlewareNode(importedDraft)
     expect(skillsMiddleware.entity.options.skills).toEqual(expect.arrayContaining(['writer', 'skill-package-canvas']))
+  })
+
+  it.each([false, true])(
+    'restores role bindings after switching templates and back (other has skill: %s)',
+    async (otherHasSkill) => {
+      const role = createPluginSkillTemplateDetail({ export_data: createAgentTemplateYaml([]) })
+      const { component, fixture, templateService, xpertService, pluginAPI, toastr } = await createComponent(
+        {
+          allowWorkspaceSelection: true,
+          allowedModes: [XpertTypeEnum.Agent],
+          completionMode: 'create',
+          initialStartMode: 'template',
+          initialTemplateId: 'role-a',
+          lockStartMode: true,
+          lockType: true,
+          type: XpertTypeEnum.Agent
+        },
+        {
+          agentTemplateDetail: role,
+          pluginSkillInstallResult: createPluginSkillInstallResult('skill-role-a'),
+          selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+          workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+        }
+      )
+      const prepareSkills = () =>
+        component.onAgentStepChange({
+          selectedIndex: component.agentSkillStepIndex()
+        } as Parameters<typeof component.onAgentStepChange>[0])
+      await prepareSkills()
+      const other = otherHasSkill
+        ? createPluginSkillTemplateDetail({
+            export_data: createAgentTemplateYaml([]).replaceAll('Agent_primary', 'Agent_second'),
+            dependencies: { skills: [{ componentKey: 'canvas-agent-skill', targetAgentKey: 'Agent_second' }] }
+          })
+        : { export_data: createAgentTemplateYaml([]) }
+      templateService.getTemplate.mockReturnValue(of(other))
+      pluginAPI.installResourcesToWorkspace.mockReturnValue(of(createPluginSkillInstallResult('skill-role-b')))
+      component.selectedTemplateId.set('role-b')
+      fixture.detectChanges()
+      await fixture.whenStable()
+      await flushPromises()
+      await prepareSkills()
+      templateService.getTemplate.mockReturnValue(of(role))
+      component.selectedTemplateId.set('role-a')
+      fixture.detectChanges()
+      await fixture.whenStable()
+      await flushPromises()
+      await prepareSkills()
+      await component.create()
+      expect(toastr.error).not.toHaveBeenCalled()
+      expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalledTimes(otherHasSkill ? 2 : 1)
+      expect(xpertService.importDSL).toHaveBeenCalledTimes(1)
+      const draft: TXpertTeamDraft = xpertService.importDSL.mock.calls[0][0]
+      expect(findSkillsMiddlewareNode(draft).entity.options.skills).toEqual(['skill-role-a'])
+    }
+  )
+
+  it.each([false, true])(
+    'ignores an old role installation after selecting another template (failure: %s)',
+    async (failure) => {
+      const { component, fixture, templateService, pluginAPI, toastr } = await createComponent(
+        {
+          allowWorkspaceSelection: true,
+          allowedModes: [XpertTypeEnum.Agent],
+          completionMode: 'create',
+          initialStartMode: 'template',
+          initialTemplateId: 'role-a',
+          lockStartMode: true,
+          lockType: true,
+          type: XpertTypeEnum.Agent
+        },
+        {
+          agentTemplateDetail: createPluginSkillTemplateDetail({ export_data: createAgentTemplateYaml([]) }),
+          selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+          workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+        }
+      )
+      const result = new Subject<ReturnType<typeof createPluginSkillInstallResult>>()
+      pluginAPI.installResourcesToWorkspace.mockReturnValue(result)
+      const preparing = component.onAgentStepChange({
+        selectedIndex: component.agentSkillStepIndex()
+      } as Parameters<typeof component.onAgentStepChange>[0])
+      templateService.getTemplate.mockReturnValue(of({ export_data: createAgentTemplateYaml([]) }))
+      component.selectedTemplateId.set('role-b')
+      fixture.detectChanges()
+      await fixture.whenStable()
+      await flushPromises()
+      if (failure) result.error(new Error('Old role installation failed'))
+      else result.next(createPluginSkillInstallResult('skill-role-a'))
+      await preparing
+      expect(component.templatePluginSkillBindings()).toEqual([])
+      expect(component.selectedExplicitSkills()).toEqual([])
+      expect(component.templatePluginSkillInstallError()).toBeNull()
+      expect(toastr.error).not.toHaveBeenCalled()
+    }
+  )
+
+  it('defaults only to the template role skill when creating directly with existing workspace skills', async () => {
+    const { component, pluginAPI, skillPackageService, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent,
+        initialStartMode: 'template',
+        initialTemplateId: '@xpert-ai/plugin-canvas:canvas-assistant',
+        lockStartMode: true,
+        lockType: true,
+        allowWorkspaceSelection: true,
+        allowedModes: [XpertTypeEnum.Agent]
+      },
+      {
+        agentTemplateDetail: createPluginSkillTemplateDetail({
+          export_data: createAgentTemplateYaml([]).replace(
+            '  copilotModel:\n    modelType: llm',
+            '  copilotModel:\n    copilotId: copilot-primary\n    modelType: llm'
+          )
+        }),
+        pluginSkillInstallResult: createPluginSkillInstallResult('skill-package-canvas'),
+        basicForm: null,
+        workspaceSkills: [{ id: 'pdf' }, { id: 'slides' }],
+        selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+        workspaces: [{ id: 'workspace-1', name: 'Workspace One' }]
+      }
+    )
+
+    await component.createDirectly()
+
+    expect(pluginAPI.installResourcesToWorkspace).toHaveBeenCalledTimes(1)
+    expect(skillPackageService.installRepositoryPackages).not.toHaveBeenCalled()
+    expect(component.selectedExplicitSkills()).toEqual(['skill-package-canvas'])
+    expect(component.selectedRepositoryDefault()).toBeNull()
+    expect(xpertService.importDSL).toHaveBeenCalledTimes(1)
+    const draft: TXpertTeamDraft = xpertService.importDSL.mock.calls[0][0]
+    const middleware = findSkillsMiddlewareNode(draft)
+    expect(middleware.entity.options.skills).toEqual(['skill-package-canvas'])
+    expect(middleware.entity.options.repositoryDefault).toBeUndefined()
   })
 
   it('binds a plugin template skill to a non-primary Agent Skills Middleware', async () => {
@@ -2900,6 +3058,67 @@ describe('XpertNewBlankComponent', () => {
       status: 'published'
     })
   })
+
+  it.each([false, true])(
+    'retains template skills middleware without packages (switch workspace: %s)',
+    async (switchWorkspace) => {
+      const { component, fixture, xpertService } = await createComponent(
+        { allowWorkspaceSelection: true, completionMode: 'create', type: XpertTypeEnum.Agent },
+        {
+          agentTemplates: [{ id: 'template-agent', name: 'template-agent', type: XpertTypeEnum.Agent }],
+          agentTemplateDetail: { export_data: createAgentTemplateYaml([]) },
+          selectedWorkspace: { id: 'workspace-1', name: 'Workspace One' },
+          workspaces: [
+            { id: 'workspace-1', name: 'Workspace One' },
+            { id: 'workspace-2', name: 'Workspace Two' }
+          ]
+        }
+      )
+      component.setStartMode('template')
+      component.selectedTemplateId.set('template-agent')
+      fixture.detectChanges()
+      await fixture.whenStable()
+      await flushPromises()
+
+      expect(component.selectedSkills()).toEqual([])
+      expect(component.selectedMiddlewares()).toContain(BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+      component.toggleSkill('writer', true)
+      if (switchWorkspace) {
+        component.workspaceId.set('workspace-2')
+        fixture.detectChanges()
+        await fixture.whenStable()
+        await flushPromises()
+      } else {
+        component.toggleSkill('writer', false)
+      }
+      component.toggleMiddleware('guard', false)
+      component.toggleMiddleware('guard', true)
+      expect(component.selectedSkills()).toEqual([])
+      expect(component.selectedMiddlewares()).toContain(BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+
+      await component.create()
+      expect(xpertService.importDSL).toHaveBeenCalledTimes(1)
+      const draft: TXpertTeamDraft = xpertService.importDSL.mock.calls[0][0]
+      const middleware = findSkillsMiddlewareNode(draft)
+      expect(middleware).toBeDefined()
+      expect(middleware.entity.required).toBe(true)
+      expect(middleware.entity.options?.skills ?? []).toEqual([])
+      expect(draft.nodes.filter((node) => node.key === middleware.key)).toHaveLength(1)
+      expect(draft.connections).toContainEqual(
+        expect.objectContaining({
+          type: 'workflow',
+          from: 'Agent_primary',
+          to: middleware.key
+        })
+      )
+      expect(draft.team.agent?.options?.middlewares?.order).toContain(middleware.key)
+
+      component.setStartMode('blank')
+      component.toggleSkill('writer', true)
+      component.toggleSkill('writer', false)
+      expect(component.selectedMiddlewares()).not.toContain(BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+    }
+  )
 
   it('auto-enables required middleware features when importing a template', async () => {
     const importedXpert = createAgentXpert('imported-xpert')

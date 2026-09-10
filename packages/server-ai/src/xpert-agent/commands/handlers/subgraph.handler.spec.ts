@@ -25,7 +25,7 @@ import {
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime/index'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { IAgentMiddlewareContext, RequestContext } from '@xpert-ai/plugin-sdk'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { setModelVisionSupport } from '../../../copilot-model/model-capabilities'
 import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
@@ -81,6 +81,12 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
         const commandBus = {
             execute: jest.fn(async (command: unknown) => {
                 if (command instanceof XpertAgentSubgraphCommand) {
+                    expect(command.options).toMatchObject({
+                        conversationId: 'conversation-1',
+                        projectId: 'project-1',
+                        workspaceRoot: '/workspace',
+                        workspacePath: '/workspace/task'
+                    })
                     return {
                         graph: childGraph,
                         nextNodes: [],
@@ -136,6 +142,10 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
                 },
                 options: {
                     leaderKey: 'agent-1',
+                    conversationId: 'conversation-1',
+                    projectId: 'project-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace/task',
                     isDraft: true,
                     subscriber
                 },
@@ -1146,7 +1156,8 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
     function createHandler(
         graph: TestGraph,
         registryGet = jest.fn(),
-        selectedRuntimeBindings: Array<{ bindingId: string; provider: string }> = []
+        selectedRuntimeBindings: Array<{ bindingId: string; provider: string }> = [],
+        createScopedApi = jest.fn().mockReturnValue({})
     ) {
         const commandBus = {
             execute: jest.fn(async (command) => {
@@ -1188,7 +1199,7 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             null,
             null,
             {
-                createScopedApi: jest.fn().mockReturnValue({}),
+                createScopedApi,
                 resolveSelectedConnectorRuntimeBindings: jest.fn().mockResolvedValue(selectedRuntimeBindings)
             } as unknown as AgentMiddlewareRuntimeService,
             { findOne: jest.fn(async (id: string) => ({ id })) } as never
@@ -1293,6 +1304,72 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
             })
         )
     })
+
+    it.each([false, true])(
+        'preserves the graph Connector node with a repeated runtime selection: %s',
+        async (selected) => {
+            const { graph, command } = createCommand({ fileUnderstanding: { enabled: false } })
+            const connectorNode = {
+                type: 'workflow',
+                key: 'connector-1',
+                entity: {
+                    key: 'connector-1',
+                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                    provider: 'ConnectorMiddleware',
+                    required: true,
+                    options: { provider: 'github' },
+                    tools: { disabled_tool: { enabled: false } }
+                }
+            }
+            const runtimeGraph = {
+                nodes: [...graph.nodes, connectorNode],
+                connections: [{ type: 'workflow', from: 'agent-1', to: 'connector-1' }]
+            }
+            command.options.runtimeCapabilities = {
+                mode: 'allowlist',
+                skills: { ids: [] },
+                plugins: { nodeKeys: [] },
+                connectors: { bindingIds: selected ? ['binding-1'] : [] }
+            }
+            const middleware = {
+                name: 'ConnectorMiddleware',
+                tools: ['enabled_tool', 'disabled_tool', 'user_disabled_tool'].map((name) =>
+                    tool(async () => '', { name, description: name, schema: z.object({}) })
+                )
+            }
+            command.options.toolPreferences = {
+                version: 1,
+                middlewares: {
+                    'connector-1': { provider: 'ConnectorMiddleware', disabledTools: ['user_disabled_tool'] }
+                }
+            }
+            let toolMap: IAgentMiddlewareContext['tools']
+            const createMiddleware = jest.fn((_options: unknown, context: IAgentMiddlewareContext) => {
+                toolMap = context.tools
+                return middleware
+            })
+            const registryGet = jest.fn().mockReturnValue({ meta: { name: 'ConnectorMiddleware' }, createMiddleware })
+            const createScopedApi = jest.fn().mockReturnValue({})
+            const handler = createHandler(
+                runtimeGraph,
+                registryGet,
+                selected ? [{ bindingId: 'binding-1', provider: 'github' }] : [],
+                createScopedApi
+            )
+
+            await handler.execute(command)
+
+            expect(createMiddleware).toHaveBeenCalledTimes(1)
+            expect(createMiddleware).toHaveBeenCalledWith(
+                { provider: 'github' },
+                expect.objectContaining({ node: expect.objectContaining({ key: 'connector-1', required: true }) })
+            )
+            expect(middleware.tools.map(({ name }) => name)).toEqual(['enabled_tool'])
+            expect([...toolMap.keys()]).toEqual(['enabled_tool'])
+            expect(createScopedApi).toHaveBeenCalledWith(expect.objectContaining({ connectorProviders: ['github'] }))
+            expect(registryGet).not.toHaveBeenCalledWith('ConnectorRuntime:github', undefined)
+        }
+    )
 })
 
 describe('XpertAgentSubgraphHandler invalid tool call diagnostics', () => {

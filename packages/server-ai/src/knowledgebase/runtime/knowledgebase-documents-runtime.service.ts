@@ -3,6 +3,8 @@ import { CommandBus } from '@nestjs/cqrs'
 import {
     KnowledgebaseDocumentsRuntimeCapability,
     type KnowledgebaseDocumentsApi,
+    KnowledgebaseProcessingOptionsInput,
+    KnowledgebaseProcessingOptionsResult,
     KnowledgebaseCreateDocumentsInput,
     KnowledgebaseCreateDocumentsResult,
     KnowledgebaseCreateFolderInput,
@@ -27,6 +29,7 @@ import {
     KnowledgebaseUploadedFile
 } from '@xpert-ai/plugin-sdk'
 import {
+    GetKnowledgebaseProcessingOptionsCommand,
     CreateKnowledgebaseFolderCommand,
     CreateKnowledgebaseDocumentsCommand,
     DeleteKnowledgebaseDocumentsCommand,
@@ -46,6 +49,12 @@ import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capabili
 @RuntimeCapabilityProvider(KnowledgebaseDocumentsRuntimeCapability)
 export class KnowledgebaseDocumentsRuntimeService implements KnowledgebaseDocumentsApi {
     constructor(private readonly commandBus: CommandBus) {}
+
+    async getProcessingOptions(
+        input: KnowledgebaseProcessingOptionsInput
+    ): Promise<KnowledgebaseProcessingOptionsResult> {
+        return this.commandBus.execute(new GetKnowledgebaseProcessingOptionsCommand(input))
+    }
 
     async uploadFile(input: KnowledgebaseUploadFileInput): Promise<KnowledgebaseUploadedFile> {
         return this.commandBus.execute(new UploadKnowledgebaseDocumentFileCommand(input))

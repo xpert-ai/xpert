@@ -24,6 +24,17 @@ describe('ToolsetGetToolsHandler', () => {
 
     afterEach(() => jest.restoreAllMocks())
 
+    it.each([{ ids: null }, { ids: undefined }, { ids: [] }])(
+        'supports an unconfigured legacy toolset list: %p',
+        async ({ ids }) => {
+            loadToolsets.mockImplementation((request) =>
+                ToolRuntimeService.prototype.loadToolsets.call({} as never, request)
+            )
+            await expect(handler.execute(new ToolsetGetToolsCommand(ids))).resolves.toEqual([])
+            expect(loadToolsets).toHaveBeenCalledWith(expect.objectContaining({ toolsetIds: [] }))
+        }
+    )
+
     it('adapts the current Agent identity and environment to an explicit runtime request', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')

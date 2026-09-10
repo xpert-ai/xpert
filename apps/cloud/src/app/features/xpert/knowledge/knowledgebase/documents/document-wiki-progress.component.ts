@@ -1,9 +1,9 @@
 import { NgClass } from '@angular/common'
-import { Component, computed, effect, inject, input, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { KnowledgeWikiDocumentProgress, KnowledgeWikiDocumentStageState } from '@xpert-ai/contracts'
-import { ZardButtonComponent, ZardIconComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
+import { injectConfirm, ZardButtonComponent, ZardIconComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { KnowledgeWikiService, ToastrService } from '../../../../../@core'
 
@@ -61,6 +61,8 @@ export class DocumentWikiProgressComponent {
   readonly #api = inject(KnowledgeWikiService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
+  readonly #confirm = injectConfirm()
+  readonly #destroyRef = inject(DestroyRef)
 
   constructor() {
     effect(() => {
@@ -74,13 +76,18 @@ export class DocumentWikiProgressComponent {
     const action = this.progress()?.retry
     if (!action || this.busy() || this.retriedJobId() === action.jobId) return
     const id = this.knowledgebaseId()
-    if (
-      action.requiresAdditionalChargeConfirmation &&
-      !window.confirm(this.#translate.instant('XP.Knowledgebase.Wiki.RetryChargeConfirm'))
-    )
-      return
     this.busy.set(true)
     try {
+      if (action.requiresAdditionalChargeConfirmation) {
+        const confirmed = await firstValueFrom(
+          this.#confirm<boolean>({
+            title: this.#translate.instant('XP.ACTIONS.Retry'),
+            information: this.#translate.instant('XP.Knowledgebase.Wiki.RetryChargeConfirm')
+          }),
+          { defaultValue: false }
+        )
+        if (!confirmed || this.#destroyRef.destroyed || this.knowledgebaseId() !== id) return
+      }
       await firstValueFrom(this.#api.retryJob(id, action.jobId, action.requiresAdditionalChargeConfirmation))
       if (this.knowledgebaseId() === id) this.retriedJobId.set(action.jobId)
     } catch (error) {

@@ -1,3 +1,4 @@
+import { FEEDBACK_LEARNING_STRATEGY } from '@xpert-ai/contracts'
 import type {
     ActiveCapabilityPointer,
     ApprovalDecision,
@@ -469,6 +470,14 @@ export class AgentEvolutionService {
         now: string
     ) {
         const proposal: ImprovementProposal = {
+            sourceKind: 'learning_events',
+            strategy: {
+                riskLevel: 'R1',
+                definition: structuredClone(FEEDBACK_LEARNING_STRATEGY),
+                hash: hashEvolutionValue(JSON.stringify(FEEDBACK_LEARNING_STRATEGY)),
+                providerKey: CONFORMANCE_FIELD_MAPPING_TARGET,
+                providerVersion: '1.0.0'
+            },
             proposalId: `IP-${simulationId}`,
             revision: 1,
             targetId: CONFORMANCE_FIELD_MAPPING_TARGET,
@@ -528,6 +537,7 @@ export class AgentEvolutionService {
             throw new BadRequestException(`Candidate validation failed: ${validation.failureCodes.join(', ')}`)
         }
         const candidate: EvolutionCandidate = {
+            strategy: proposal.strategy,
             candidateId: `CAND-${simulationId}`,
             targetId: proposal.targetId,
             baseVersionId: baseline.versionId,
@@ -645,6 +655,7 @@ export class AgentEvolutionService {
         if (metrics.severeErrors > 0) blockingReasons.push('severe_errors_present')
         if (metrics.p95LatencyMs > 100) blockingReasons.push('p95_latency_exceeded')
         const evaluation: EvaluationRun = {
+            evaluatorKind: 'golden_replay',
             runId,
             targetId: candidate.targetId,
             scope: candidate.targetScope,
@@ -732,6 +743,7 @@ export class AgentEvolutionService {
         now: string
     ) {
         const release: ReleasePackage = {
+            publicationKind: 'staged_rollout',
             releasePackageId: `RP-${simulationId}`,
             candidateId: candidate.candidateId,
             candidateHash: candidate.artifact.hash,

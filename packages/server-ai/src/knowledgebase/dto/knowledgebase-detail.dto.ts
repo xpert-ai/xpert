@@ -66,6 +66,9 @@ class KnowledgebasePipelineDetailDTO implements Partial<IXpert> {
     @Expose()
     declare version?: string
 
+    @Expose()
+    declare graph?: IXpert['graph']
+
     constructor(partial: Partial<IXpert>) {
         Object.assign(this, partial)
     }

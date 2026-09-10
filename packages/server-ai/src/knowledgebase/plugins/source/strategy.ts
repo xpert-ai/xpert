@@ -2,29 +2,29 @@ import { Document } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { Command, END } from '@langchain/langgraph'
 import {
-	channelName,
-	IEnvironment,
-	IIntegration,
-	IWFNSource,
-	IWorkflowNode,
-	TAgentRunnableConfigurable,
-	TXpertGraph,
-	TXpertParameter,
-	TXpertTeamNode,
-	WorkflowNodeTypeEnum,
-	XpertParameterTypeEnum,
-	KnowledgebaseChannel,
-	KnowledgeTask,
-	KNOWLEDGE_SOURCES_NAME,
-	KNOWLEDGE_DOCUMENTS_NAME,
-	KBDocumentStatusEnum,
-	IKnowledgeDocument,
-	IXpertAgentExecution,
-	STATE_VARIABLE_HUMAN,
-	IKnowledgebaseTask,
-	KNOWLEDGE_FOLDER_ID_NAME,
-	DocumentSourceProviderCategoryEnum,
-	TWorkflowNodeMeta
+    channelName,
+    IEnvironment,
+    IIntegration,
+    IWFNSource,
+    IWorkflowNode,
+    TAgentRunnableConfigurable,
+    TXpertGraph,
+    TXpertParameter,
+    TXpertTeamNode,
+    WorkflowNodeTypeEnum,
+    XpertParameterTypeEnum,
+    KnowledgebaseChannel,
+    KnowledgeTask,
+    KNOWLEDGE_SOURCES_NAME,
+    KNOWLEDGE_DOCUMENTS_NAME,
+    KBDocumentStatusEnum,
+    IKnowledgeDocument,
+    IXpertAgentExecution,
+    STATE_VARIABLE_HUMAN,
+    IKnowledgebaseTask,
+    KNOWLEDGE_FOLDER_ID_NAME,
+    DocumentSourceProviderCategoryEnum,
+    TWorkflowNodeMeta
 } from '@xpert-ai/contracts'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { getErrorMessage, omit, shortuuid } from '@xpert-ai/server-common'
@@ -105,292 +105,317 @@ export function resolveWorkflowSourceDocumentSourceKey(input: {
 @Injectable()
 @WorkflowNodeStrategy(WorkflowNodeTypeEnum.SOURCE)
 export class WorkflowSourceNodeStrategy implements IWorkflowNodeStrategy {
-	readonly meta: TWorkflowNodeMeta = {
-		name: WorkflowNodeTypeEnum.SOURCE,
-		label: {
-			en_US: 'Document Source',
-			zh_Hans: '文档源'
-		},
-		icon: null,
-		configSchema: {
-			type: 'object',
-			properties: {},
-			required: []
-		}
-	}
+    readonly meta: TWorkflowNodeMeta = {
+        name: WorkflowNodeTypeEnum.SOURCE,
+        label: {
+            en_US: 'Document Source',
+            zh_Hans: '文档源'
+        },
+        icon: null,
+        configSchema: {
+            type: 'object',
+            properties: {},
+            required: []
+        }
+    }
 
-	@Inject(KnowledgebaseTaskService)
-	private readonly taskService: KnowledgebaseTaskService
+    @Inject(KnowledgebaseTaskService)
+    private readonly taskService: KnowledgebaseTaskService
 
-	@Inject(KnowledgeDocumentService)
-	private readonly documentService: KnowledgeDocumentService
+    @Inject(KnowledgeDocumentService)
+    private readonly documentService: KnowledgeDocumentService
 
-	constructor(
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {}
 
-	create(payload: {
-		graph: TXpertGraph
-		node: TXpertTeamNode & { type: 'workflow' }
-		xpertId: string
-		environment: IEnvironment
-		isDraft: boolean
-	}) {
-		const { graph, node, xpertId, environment, isDraft } = payload
-		const entity = node.entity as IWFNSource
+    create(payload: {
+        graph: TXpertGraph
+        node: TXpertTeamNode & { type: 'workflow' }
+        xpertId: string
+        environment: IEnvironment
+        isDraft: boolean
+    }) {
+        const { graph, node, xpertId, environment, isDraft } = payload
+        const entity = node.entity as IWFNSource
 
-		return {
-			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
-				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
-				const stateEnv = stateWithEnvironment(state, environment)
+        return {
+            graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
+                const configurable: TAgentRunnableConfigurable = config.configurable
+                const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+                const stateEnv = stateWithEnvironment(state, environment)
 
-				const knowledgebaseState = state[KnowledgebaseChannel]
-				// console.log('================== Source Node state ===================')
-				// console.log(JSON.stringify(state, null, 2))
-				// console.log('================== Source Node End ===================')
+                const knowledgebaseState = state[KnowledgebaseChannel]
+                // console.log('================== Source Node state ===================')
+                // console.log(JSON.stringify(state, null, 2))
+                // console.log('================== Source Node End ===================')
 
-				let knowledgeTaskId = knowledgebaseState?.[KnowledgeTask]
-				const knowledgebaseId = knowledgebaseState?.['knowledgebaseId']
-				const stage = knowledgebaseState?.['stage']
-				const isTest = stage === 'preview' || isDraft
-				const knowledgeSources = knowledgebaseState?.[KNOWLEDGE_SOURCES_NAME] as string[]
-				const folderId = knowledgebaseState?.[KNOWLEDGE_FOLDER_ID_NAME] as string
-				// Skip this node if the source is not in the selected knowledge sources
-				if (knowledgeSources && !knowledgeSources.includes(node.key)) {
-					return new Command({
-						goto: END
-					})
-				}
+                let knowledgeTaskId = knowledgebaseState?.[KnowledgeTask]
+                const knowledgebaseId = knowledgebaseState?.['knowledgebaseId']
+                const stage = knowledgebaseState?.['stage']
+                const isTest = stage === 'preview' || isDraft
+                const knowledgeSources = knowledgebaseState?.[KNOWLEDGE_SOURCES_NAME] as string[]
+                const folderId = knowledgebaseState?.[KNOWLEDGE_FOLDER_ID_NAME] as string
+                // Skip this node if the source is not in the selected knowledge sources
+                if (knowledgeSources && !knowledgeSources.includes(node.key)) {
+                    return new Command({
+                        goto: END
+                    })
+                }
 
-				const execution: IXpertAgentExecution = {
-									category: 'workflow',
-									type: WorkflowNodeTypeEnum.SOURCE,
-									inputs: entity.config,
-									parentId: executionId,
-									threadId: thread_id,
-									checkpointNs: checkpoint_ns,
-									checkpointId: checkpoint_id,
-									agentKey: node.key,
-									title: entity.title
-								}
-				return await wrapAgentExecution<any>(
-					async () => {
-						let documents: IKnowledgeDocument[] = null
+                const execution: IXpertAgentExecution = {
+                    category: 'workflow',
+                    type: WorkflowNodeTypeEnum.SOURCE,
+                    inputs: entity.config,
+                    parentId: executionId,
+                    threadId: thread_id,
+                    checkpointNs: checkpoint_ns,
+                    checkpointId: checkpoint_id,
+                    agentKey: node.key,
+                    title: entity.title
+                }
+                return await wrapAgentExecution<any>(
+                    async () => {
+                        let documents: IKnowledgeDocument[] = null
 
-						// If the node has already loaded documents
-						const cachedDocuments = state[channelName(node.key)]?.[KNOWLEDGE_DOCUMENTS_NAME] as string[]
-						if (cachedDocuments?.length) {
-							// Create as formal documents during non-testing phases
-							const task = await this.taskService.findOne(knowledgeTaskId, { relations: ['documents'] })
-							const _docs = task.context?.documents?.filter(doc => cachedDocuments.includes(doc.id)) ?? []
-							if (isTest) {
-								return {
-									state: {
-										[channelName(node.key)]: {
-											[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(_docs),
-											[ERROR_CHANNEL_NAME]: null
-										},
-									}
-								}
-							}
+                        // If the node has already loaded documents
+                        const cachedDocuments = state[channelName(node.key)]?.[KNOWLEDGE_DOCUMENTS_NAME] as string[]
+                        if (cachedDocuments?.length) {
+                            // Create as formal documents during non-testing phases
+                            const task = await this.taskService.findOne(knowledgeTaskId, { relations: ['documents'] })
+                            const _docs =
+                                task.context?.documents?.filter((doc) => cachedDocuments.includes(doc.id)) ?? []
+                            if (isTest) {
+                                return {
+                                    state: {
+                                        [channelName(node.key)]: {
+                                            [DOCUMENTS_CHANNEL_NAME]: serializeDocuments(_docs),
+                                            [ERROR_CHANNEL_NAME]: null
+                                        }
+                                    }
+                                }
+                            }
 
-							if (task.context?.documents) {
-								if (_docs.length > 0) {
-									documents = await this.documentService.createBulk(_docs.map((doc) => {
-										return {
-											...omit(doc, 'id'),
-											sourceConfig: {
-												key: node.key,
-											},
-											status: KBDocumentStatusEnum.WAITING,
-											knowledgebaseId,
-											sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
-											// pages: doc.pages?.map(page => omit(page, 'id')),
-											tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
-										}
-									}))
-								}
-							} else {
-								documents = task.documents.filter(doc => cachedDocuments.includes(doc.id))
-								documents.forEach(doc => {
-									doc.sourceType = entity.provider as DocumentSourceProviderCategoryEnum
-									doc.sourceConfig = { key: node.key }
-									doc.status = KBDocumentStatusEnum.RUNNING
-									if (doc.tasks?.findIndex(t => t.id === knowledgeTaskId) < 0) {
-										doc.tasks.push({id: knowledgeTaskId} as IKnowledgebaseTask)
-									}
-								})
-								if (documents.length > 0) {
-								  await this.documentService.save(documents)
-								}
-							}
-							
-							return {
-								state: {
-									[channelName(node.key)]: {
-										[DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents),
-										[ERROR_CHANNEL_NAME]: null
-									},
-								},
-								output: documents?.map((doc) => {
-									doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-									// doc.pages = doc.pages?.slice(0, 2)
-									return doc
-								})
-							}
-						}
+                            if (task.context?.materializedSources?.[node.key]) {
+                                const bindings = task.context.materializedSources[node.key]
+                                const ids = cachedDocuments.map((id) => bindings[id] ?? id)
+                                documents = task.documents.filter((doc) => ids.includes(doc.id))
+                            } else if (task.context?.documents) {
+                                if (_docs.length > 0) {
+                                    documents = await this.documentService.createBulk(
+                                        _docs.map((doc) => {
+                                            return {
+                                                ...omit(doc, 'id'),
+                                                sourceConfig: {
+                                                    key: node.key
+                                                },
+                                                status: KBDocumentStatusEnum.WAITING,
+                                                knowledgebaseId,
+                                                sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
+                                                // pages: doc.pages?.map(page => omit(page, 'id')),
+                                                tasks: [{ id: knowledgeTaskId } as IKnowledgebaseTask]
+                                            }
+                                        })
+                                    )
+                                }
+                            } else {
+                                documents = task.documents.filter((doc) => cachedDocuments.includes(doc.id))
+                                documents.forEach((doc) => {
+                                    doc.sourceType = entity.provider as DocumentSourceProviderCategoryEnum
+                                    doc.sourceConfig = { key: node.key }
+                                    doc.status = KBDocumentStatusEnum.RUNNING
+                                    if (doc.tasks?.findIndex((t) => t.id === knowledgeTaskId) < 0) {
+                                        doc.tasks.push({ id: knowledgeTaskId } as IKnowledgebaseTask)
+                                    }
+                                })
+                                if (documents.length > 0) {
+                                    await this.documentService.save(documents)
+                                }
+                            }
 
-						const strategy = await this.queryBus.execute<KnowledgeStrategyQuery, IDocumentSourceStrategy>(
-							new KnowledgeStrategyQuery({
-								type: 'source',
-								name: entity.provider
-							})
-						)
-						const permissions: { integration?: IIntegration } = {}
-						if (strategy.permissions) {
-							const integrationPermission = strategy.permissions.find(
-								(permission) => permission.type === 'integration'
-							)
-							if (integrationPermission) {
-								const integration = await this.queryBus.execute<GetIntegrationQuery, IIntegration>(
-									new GetIntegrationQuery(entity.integrationId)
-								)
-								permissions[integrationPermission.type] = integration
-							}
-						}
-						
-						// Transform parameters with state
-						const parameters = entity.config ? await deepTransformValue(entity.config, async (v) => {
-							return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(stateEnv)
-						}) : {}
+                            return {
+                                state: {
+                                    [channelName(node.key)]: {
+                                        [DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents),
+                                        [ERROR_CHANNEL_NAME]: null
+                                    }
+                                },
+                                output: documents?.map((doc) => {
+                                    doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
+                                    // doc.pages = doc.pages?.slice(0, 2)
+                                    return doc
+                                })
+                            }
+                        }
 
-						const results = await strategy.loadDocuments({
-							...parameters,
-							[STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN]
-						}, permissions)
+                        const strategy = await this.queryBus.execute<KnowledgeStrategyQuery, IDocumentSourceStrategy>(
+                            new KnowledgeStrategyQuery({
+                                type: 'source',
+                                name: entity.provider
+                            })
+                        )
+                        const permissions: { integration?: IIntegration } = {}
+                        if (strategy.permissions) {
+                            const integrationPermission = strategy.permissions.find(
+                                (permission) => permission.type === 'integration'
+                            )
+                            if (integrationPermission) {
+                                const integration = await this.queryBus.execute<GetIntegrationQuery, IIntegration>(
+                                    new GetIntegrationQuery(entity.integrationId)
+                                )
+                                permissions[integrationPermission.type] = integration
+                            }
+                        }
 
-						documents = results.map((doc) => ({
-							id: doc.id || shortuuid(),
-							sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
-							sourceKey: resolveWorkflowSourceDocumentSourceKey({
-								document: doc,
-								sourceType: entity.provider,
-								sourceConfigKey: node.key
-							}),
-							sourceConfig: {
-								key: node.key
-							},
-							type: doc.metadata.type,
-							name: doc.metadata.originalName || doc.metadata.title,
-							filePath: doc.metadata.filePath,
-							fileUrl: doc.metadata.fileUrl,
-							category: doc.metadata.category,
-							mimeType: doc.metadata.mimeType,
-							status: KBDocumentStatusEnum.WAITING,
-							metadata: doc.metadata,
-							draft: doc.pageContent ?
-								{
-									chunks: [
-										{
-											pageContent: doc.pageContent,
-											metadata: {
-												...(doc.metadata || {}),
-												chunkId: shortuuid(),
-											},
-										}
-									]
-								} : null,
-							parent: folderId ? { id: folderId } : null,
-						} as IKnowledgeDocument))
-						
-						if (isTest) {
-							if (!knowledgeTaskId) {
-								// create a new task id if not exists
-								const task = await this.taskService.createTask(knowledgebaseId, {
-									taskType: 'preprocess',
-									context: {
-										documents
-									}
-								})
+                        // Transform parameters with state
+                        const parameters = entity.config
+                            ? await deepTransformValue(entity.config, async (v) => {
+                                  return await PromptTemplate.fromTemplate(v, { templateFormat: 'mustache' }).format(
+                                      stateEnv
+                                  )
+                              })
+                            : {}
 
-								knowledgeTaskId = task.id
-							} else {
-								await this.taskService.upsertDocuments(knowledgeTaskId, documents)
-							}
-						} else {
-							documents = await this.documentService.createBulk(documents.map((doc) => {
-								return {
-									...omit(doc, 'id'),
-									status: KBDocumentStatusEnum.WAITING,
-									// taskId: KnowledgeTaskId,
-									knowledgebaseId,
-									// pages: doc.pages?.map(page => omit(page, 'id')),
-									tasks: [{id: knowledgeTaskId} as IKnowledgebaseTask]
-								}
-							}))
-						}
+                        const results = await strategy.loadDocuments(
+                            {
+                                ...parameters,
+                                [STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN]
+                            },
+                            permissions
+                        )
 
-						return {
-							state: {
-								[channelName(node.key)]: {
-									[DOCUMENTS_CHANNEL_NAME]: serializeDocuments((documents ?? results)),
-									[ERROR_CHANNEL_NAME]: null
-								},
-								[KnowledgebaseChannel]: {
-									[KnowledgeTask]: knowledgeTaskId,
-									knowledgebaseId,
-								}
-							},
-							output: (documents ?? results).map((doc) => {
-								doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
-								// doc.pages = doc.pages?.slice(0, 2)
-								return doc
-							})
-						}
-					},
-					{
-						commandBus: this.commandBus,
-						queryBus: this.queryBus,
-						subscriber: subscriber,
-						execution,
-						catchError: async (error) => {
-							await this.taskService.update(knowledgeTaskId, { status: 'failed', error: getErrorMessage(error) })
-						}
-					})()
-			}),
-			ends: [END],
-			navigator: async (state, config) => {
-				if (state[channelName(node.key)]['error']) {
-					return (
-						graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-						END
-					)
-				}
+                        documents = results.map(
+                            (doc) =>
+                                ({
+                                    id: doc.id || shortuuid(),
+                                    sourceType: entity.provider as DocumentSourceProviderCategoryEnum,
+                                    sourceKey: resolveWorkflowSourceDocumentSourceKey({
+                                        document: doc,
+                                        sourceType: entity.provider,
+                                        sourceConfigKey: node.key
+                                    }),
+                                    sourceConfig: {
+                                        key: node.key
+                                    },
+                                    type: doc.metadata.type,
+                                    name: doc.metadata.originalName || doc.metadata.title,
+                                    filePath: doc.metadata.filePath,
+                                    fileUrl: doc.metadata.fileUrl,
+                                    category: doc.metadata.category,
+                                    mimeType: doc.metadata.mimeType,
+                                    status: KBDocumentStatusEnum.WAITING,
+                                    metadata: doc.metadata,
+                                    draft: doc.pageContent
+                                        ? {
+                                              chunks: [
+                                                  {
+                                                      pageContent: doc.pageContent,
+                                                      metadata: {
+                                                          ...(doc.metadata || {}),
+                                                          chunkId: shortuuid()
+                                                      }
+                                                  }
+                                              ]
+                                          }
+                                        : null,
+                                    parent: folderId ? { id: folderId } : null
+                                }) as IKnowledgeDocument
+                        )
 
-				if (!state[channelName(node.key)][DOCUMENTS_CHANNEL_NAME]) {
-					return END
-				}
-	
-				return nextWorkflowNodes(graph, node.key, state)
-			}
-		}
-	}
+                        if (isTest) {
+                            if (!knowledgeTaskId) {
+                                // create a new task id if not exists
+                                const task = await this.taskService.createTask(knowledgebaseId, {
+                                    taskType: 'preprocess',
+                                    context: {
+                                        documents
+                                    }
+                                })
 
-	outputVariables(entity: IWorkflowNode): TXpertParameter[] {
-		const source = entity as IWFNSource
-		return [
-			...(source.parameters ?? []),
-			createDocumentsParameter(DOCUMENTS_CHANNEL_NAME),
-			{
-				type: XpertParameterTypeEnum.STRING,
-				name: ERROR_CHANNEL_NAME,
-				title: 'Error',
-				description: {
-					en_US: 'Error info',
-					zh_Hans: '错误信息'
-				}
-			},
-		]
-	}
+                                knowledgeTaskId = task.id
+                            } else {
+                                await this.taskService.upsertDocuments(knowledgeTaskId, documents)
+                            }
+                        } else {
+                            documents = await this.documentService.createBulk(
+                                documents.map((doc) => {
+                                    return {
+                                        ...omit(doc, 'id'),
+                                        status: KBDocumentStatusEnum.WAITING,
+                                        // taskId: KnowledgeTaskId,
+                                        knowledgebaseId,
+                                        // pages: doc.pages?.map(page => omit(page, 'id')),
+                                        tasks: [{ id: knowledgeTaskId } as IKnowledgebaseTask]
+                                    }
+                                })
+                            )
+                        }
+
+                        return {
+                            state: {
+                                [channelName(node.key)]: {
+                                    [DOCUMENTS_CHANNEL_NAME]: serializeDocuments(documents ?? results),
+                                    [ERROR_CHANNEL_NAME]: null
+                                },
+                                [KnowledgebaseChannel]: {
+                                    [KnowledgeTask]: knowledgeTaskId,
+                                    knowledgebaseId
+                                }
+                            },
+                            output: (documents ?? results).map((doc) => {
+                                doc.chunks = doc.chunks?.slice(0, 2) // only return first 2 chunks for preview
+                                // doc.pages = doc.pages?.slice(0, 2)
+                                return doc
+                            })
+                        }
+                    },
+                    {
+                        commandBus: this.commandBus,
+                        queryBus: this.queryBus,
+                        subscriber: subscriber,
+                        execution,
+                        catchError: async (error) => {
+                            await this.taskService.update(knowledgeTaskId, {
+                                status: 'failed',
+                                error: getErrorMessage(error)
+                            })
+                        }
+                    }
+                )()
+            }),
+            ends: [END],
+            navigator: async (state, config) => {
+                if (state[channelName(node.key)]['error']) {
+                    return (
+                        graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)
+                            ?.to ?? END
+                    )
+                }
+
+                if (!state[channelName(node.key)][DOCUMENTS_CHANNEL_NAME]) {
+                    return END
+                }
+
+                return nextWorkflowNodes(graph, node.key, state)
+            }
+        }
+    }
+
+    outputVariables(entity: IWorkflowNode): TXpertParameter[] {
+        const source = entity as IWFNSource
+        return [
+            ...(source.parameters ?? []),
+            createDocumentsParameter(DOCUMENTS_CHANNEL_NAME),
+            {
+                type: XpertParameterTypeEnum.STRING,
+                name: ERROR_CHANNEL_NAME,
+                title: 'Error',
+                description: {
+                    en_US: 'Error info',
+                    zh_Hans: '错误信息'
+                }
+            }
+        ]
+    }
 }

@@ -423,6 +423,13 @@ export async function createHumanMessage(
             content: [
                 ...imageReferenceParts,
                 ...fileParts,
+                // Vision bytes alone do not expose a scoped locator for document tools.
+                ...files
+                    .filter((file) => file.mimeType?.startsWith('image') && file.fileAsset?.id)
+                    .map((file) => ({
+                        type: 'text' as const,
+                        text: buildFileUnderstandingPrompt(file, null)
+                    })),
                 {
                     type: 'text',
                     text: finalText

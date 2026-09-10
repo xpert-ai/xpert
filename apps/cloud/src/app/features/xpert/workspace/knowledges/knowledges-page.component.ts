@@ -1,4 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
+import { KnowledgeDocumentDialogService } from '../../knowledge/knowledgebase/documents/import/document-dialog.service'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -31,6 +32,7 @@ type DocumentSort = 'updatedAt' | 'name'
 })
 export class XpertWorkspaceKnowledgesPageComponent {
   readonly #dialog = inject(Dialog)
+  readonly #documentDialogs = inject(KnowledgeDocumentDialogService)
   readonly #router = inject(Router)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #knowledgeDocumentService = inject(KnowledgeDocumentService)
@@ -203,12 +205,11 @@ export class XpertWorkspaceKnowledgesPageComponent {
     }
   }
 
-  createDocument() {
-    const id = this.activeKnowledgebaseId()
-    if (id && this.canWriteActiveKnowledgebase()) {
-      void this.#router.navigate(['/xpert/knowledges', id, 'documents', 'create'], {
-        queryParams: { returnTo: this.workspaceReturnTo() }
-      })
+  async createDocument() {
+    const knowledgebase = this.activeKnowledgebase()
+    if (knowledgebase && this.canWriteActiveKnowledgebase()) {
+      if (await this.#documentDialogs.importDocuments(knowledgebase, null, () => !this.canWriteActiveKnowledgebase()))
+        this.refresh()
     }
   }
 

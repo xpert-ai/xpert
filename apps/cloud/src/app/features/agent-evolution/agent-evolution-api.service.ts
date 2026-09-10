@@ -2,6 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_AGENT_EVOLUTION } from '@cloud/app/@core/constants/app.constants'
 import type {
+  EvolutionChange,
+  EvolutionLifecycleRecord,
   ActiveCapabilityPointer,
   ApprovalDecision,
   BuildCandidateCommand,
@@ -37,6 +39,39 @@ import type { AgentEvolutionDashboard } from './agent-evolution.types'
 @Injectable({ providedIn: 'root' })
 export class AgentEvolutionApiService {
   readonly #http = inject(HttpClient)
+
+  evaluateChange(id: string, datasetSnapshotIds?: Record<string, string>) {
+    return this.#http.post<EvolutionLifecycleRecord>(
+      `${API_AGENT_EVOLUTION}/changes/${encodeURIComponent(id)}/evaluations`,
+      { datasetSnapshotIds }
+    )
+  }
+  decideChange(
+    id: string,
+    body: { candidateHash: string; evaluationRunId: string; decision: 'approved' | 'rejected'; reason: string }
+  ) {
+    return this.#http.post<EvolutionLifecycleRecord>(
+      `${API_AGENT_EVOLUTION}/changes/${encodeURIComponent(id)}/decisions`,
+      body
+    )
+  }
+  publishChange(id: string) {
+    return this.#http.post<EvolutionLifecycleRecord>(
+      `${API_AGENT_EVOLUTION}/changes/${encodeURIComponent(id)}/publication`,
+      {}
+    )
+  }
+  listLifecycleRecords() {
+    return this.#http.get<{ items: EvolutionLifecycleRecord[]; total: number }>(`${API_AGENT_EVOLUTION}/changes`, {
+      params: { pageSize: 200 }
+    })
+  }
+
+  listChanges(targetId?: string) {
+    return this.#http.get<EvolutionChange[]>(`${API_AGENT_EVOLUTION}/changes/records`, {
+      params: targetId && targetId !== 'all' ? new HttpParams().set('targetId', targetId) : new HttpParams()
+    })
+  }
 
   getDashboard() {
     return this.#http.get<AgentEvolutionDashboard>(`${API_AGENT_EVOLUTION}/dashboard`)
@@ -103,7 +138,10 @@ export class AgentEvolutionApiService {
   }
 
   diagnose(eventIds: string[]) {
-    return this.#http.post<EvolutionAnalysisResult>(`${API_AGENT_EVOLUTION}/diagnoses`, { eventIds })
+    return this.#http.post<EvolutionAnalysisResult>(`${API_AGENT_EVOLUTION}/diagnoses`, {
+      eventIds,
+      strategyId: 'feedback_learning'
+    })
   }
 
   createProposal(request: CreateImprovementProposalRequest) {

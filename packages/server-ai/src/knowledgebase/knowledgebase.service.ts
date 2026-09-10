@@ -1,10 +1,18 @@
+import { dispatchKnowledgePipeline } from './task/pipeline-task'
+import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
+import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
+import { KnowledgeParserSettingsService } from './parser-settings.service'
+import {
+    incompatibleKnowledgeChunkStructure,
+    invalidKnowledgeParserConfig
+} from '../knowledge-document/parser-validation'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     AiModelTypeEnum,
-    channelName,
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentMetadata,
+    DocumentTypeEnum,
     genPipelineKnowledgeBaseKey,
     genPipelineSourceKey,
     IKnowledgebase,
@@ -14,22 +22,17 @@ import {
     IWFNProcessor,
     IWFNSource,
     KBDocumentStatusEnum,
-    KnowledgebaseChannel,
     KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
     KnowledgeProviderEnum,
-    KNOWLEDGE_SOURCES_NAME,
-    KnowledgeTask,
     mapTranslationLanguage,
-    STATE_VARIABLE_HUMAN,
     WorkflowNodeTypeEnum,
     XpertTypeEnum,
     genXpertTriggerKey,
     IWFNTrigger,
     KnowledgeStructureEnum,
-    XpertAgentExecutionStatusEnum,
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
@@ -41,7 +44,6 @@ import {
     KnowledgeFilterSources,
     KnowledgeRetrievalContentScope,
     KnowledgeGraphStatus,
-    KNOWLEDGE_PROCESSING_MODE_NAME,
     KBMetadataFieldDef,
     MetadataFieldType,
     KnowledgeFilterJSONValue,
@@ -118,9 +120,8 @@ import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { KnowledgeDocumentService } from '../knowledge-document/document.service'
 import { KnowledgeDocumentChunk } from '../knowledge-document/chunk/chunk.entity'
 import { TDocChunkMetadata } from '../knowledge-document/types'
-import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
-import { XpertEnqueueTriggerDispatchCommand, XpertPublishTriggersCommand } from '../xpert/commands'
+import { XpertPublishTriggersCommand } from '../xpert/commands'
 import { JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING, TKnowledgebaseRebuildEmbeddingJob } from './types'
 import { KnowledgebaseDetailDTO } from './dto'
 import { KnowledgeFilterFieldDefinition } from './filter'
@@ -273,7 +274,8 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     pipeline: {
         id: true,
         publishAt: true,
-        version: true
+        version: true,
+        graph: true
     }
 }
 
@@ -300,6 +302,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     @Inject(KnowledgeDocumentService)
     private readonly documentService: KnowledgeDocumentService
+
+    @Inject(KnowledgeParserSettingsService)
+    private readonly parserSettings: KnowledgeParserSettingsService
 
     @Inject(TextSplitterRegistry)
     private readonly textSplitterRegistry: TextSplitterRegistry
@@ -431,6 +436,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         delete input.deletedAt
 
         input.type ??= KnowledgebaseTypeEnum.Standard
+        if (input.type === KnowledgebaseTypeEnum.Standard && input.parserConfig) {
+            input.structure = await this.parserSettings.validateSettings(input.parserConfig)
+        }
         if (input.type === KnowledgebaseTypeEnum.FAQ) {
             input.faqConfig = normalizeKnowledgebaseFAQConfig(input.faqConfig ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG)
             input.recall = normalizeKnowledgebaseFAQRecall(input.recall)
@@ -705,6 +713,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 })
             )
         }
+        if (_entity.type === KnowledgebaseTypeEnum.Standard && changes.parserConfig) {
+            changes.structure = await this.parserSettings.validateSettings(changes.parserConfig)
+        }
+        if (changes.structure && changes.structure !== _entity.structure) {
+            await this.assertChunkStructureChange(_entity, changes.structure)
+        }
         assertNoClientWikiState(changes)
         if (
             _entity.type === KnowledgebaseTypeEnum.FAQ &&
@@ -931,8 +945,41 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         })
     }
 
+    private async assertChunkStructureChange(knowledgebase: Knowledgebase, structure: KnowledgeStructureEnum) {
+        if (!Object.values(KnowledgeStructureEnum).includes(structure)) {
+            throw invalidKnowledgeParserConfig('structure')
+        }
+        const documents = await this.documentService.findAll({
+            where: { knowledgebaseId: knowledgebase.id, type: Not(DocumentTypeEnum.FOLDER) },
+            ...(knowledgebase.structure
+                ? { take: 1 }
+                : { select: { id: true, type: true, category: true, parserConfig: true } })
+        })
+        if (knowledgebase.structure && documents.total > 0) throw incompatibleKnowledgeChunkStructure()
+        // Older single-document imports did not record the KB structure. Check their saved
+        // strategies before backfilling it, so defaults never reinterpret existing chunks.
+        for (const document of documents.items) {
+            const config = resolveKnowledgeDocumentParserConfig(document)
+            const existingStructure = config.textSplitterType
+                ? await this.parserSettings.validateSplitter(config)
+                : KnowledgeStructureEnum.General
+            if (existingStructure !== structure) throw incompatibleKnowledgeChunkStructure()
+        }
+    }
+
+    async ensureDocumentChunkStructure(knowledgebaseId: string, structure: KnowledgeStructureEnum) {
+        const knowledgebase = await this.findOneByIdString(knowledgebaseId)
+        if (!knowledgebase.structure) {
+            await this.assertChunkStructureChange(knowledgebase, structure)
+            // Claim the structure once so concurrent imports cannot install incompatible chunk trees.
+            await this.repository.update({ id: knowledgebaseId, structure: IsNull() }, { structure })
+        }
+        const current = knowledgebase.structure ?? (await this.findOneByIdString(knowledgebaseId)).structure
+        if (current !== structure) throw incompatibleKnowledgeChunkStructure()
+    }
+
     async getTextSplitterStrategies() {
-        return this.textSplitterRegistry.list().map((strategy) => strategy.meta)
+        return this.textSplitterRegistry.list().map((strategy) => ({ ...strategy.meta, structure: strategy.structure }))
     }
 
     async getDocumentTransformerStrategies() {
@@ -2179,41 +2226,20 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             relations: ['documents']
         })
         this.assertKnowledgebaseTaskSources(task, inputs.sources)
-        const execution = await this.commandBus.execute(
-            new XpertAgentExecutionUpsertCommand({
-                // threadId: conversation.threadId,
-                status: XpertAgentExecutionStatusEnum.RUNNING
-            })
+        const prepared = await prepareKnowledgePipelineDocuments(
+            task,
+            kb.pipeline?.graph,
+            inputs,
+            this.documentService,
+            this.taskService
         )
-        await this.taskService.update(taskId, { status: 'running', executionId: execution.id })
-        const sources = inputs.sources ? Object.keys(inputs.sources) : null
-
-        await this.commandBus.execute(
-            new XpertEnqueueTriggerDispatchCommand(
-                kb.pipelineId,
-                RequestContext.currentUserId(),
-                {
-                    [STATE_VARIABLE_HUMAN]: {
-                        input: 'Process knowledges pipeline'
-                    },
-                    [KnowledgebaseChannel]: {
-                        knowledgebaseId: knowledgebaseId,
-                        [KnowledgeTask]: taskId,
-                        [KNOWLEDGE_SOURCES_NAME]: sources,
-                        [KNOWLEDGE_PROCESSING_MODE_NAME]: inputs.mode ?? 'full',
-                        stage: inputs.stage
-                    },
-                    ...(sources ?? []).reduce(
-                        (obj, key) => ({ ...obj, [channelName(key)]: { documents: inputs.sources[key].documents } }),
-                        {}
-                    )
-                },
-                {
-                    isDraft: inputs.isDraft,
-                    from: 'knowledge',
-                    executionId: execution.id
-                }
-            )
+        await dispatchKnowledgePipeline(
+            this.commandBus,
+            this.taskService,
+            knowledgebaseId,
+            kb.pipelineId,
+            taskId,
+            prepared
         )
     }
 

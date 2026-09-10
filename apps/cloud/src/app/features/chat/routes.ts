@@ -97,10 +97,9 @@ export const routes: Routes = [
       },
       {
         path: 'x/:name',
-        component: ChatXpertComponent,
-        data: {
-          title: 'Chat Xpert'
-        }
+        pathMatch: 'full',
+        redirectTo: ({ params, queryParams, fragment }) =>
+          inject(Router).createUrlTree(['/chat/x', params['name'], 'c'], { queryParams, fragment })
       },
       {
         path: 'c/:id',

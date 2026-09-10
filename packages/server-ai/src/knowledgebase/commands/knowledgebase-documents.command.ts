@@ -1,4 +1,5 @@
 import {
+    KnowledgebaseProcessingOptionsInput,
     KnowledgebaseCreateDocumentsInput,
     KnowledgebaseCreateFolderInput,
     KnowledgebaseDeleteDocumentsInput,
@@ -61,4 +62,8 @@ export class ReadKnowledgebaseDocumentImageCommand {
 
 export class ReadKnowledgebaseDocumentTextCommand {
     constructor(public readonly input: KnowledgebaseReadTextInput) {}
+}
+
+export class GetKnowledgebaseProcessingOptionsCommand {
+    constructor(public readonly input: KnowledgebaseProcessingOptionsInput) {}
 }

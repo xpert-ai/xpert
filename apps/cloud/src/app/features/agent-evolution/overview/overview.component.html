@@ -19,7 +19,7 @@
       </p>
     </div>
     @if (todos().length) {
-      <a z-button zType="secondary" [routerLink]="todos()[0].route">{{
+      <a z-button zType="secondary" [routerLink]="todos()[0].route" [queryParams]="todos()[0].queryParams">{{
         'XP.AgentEvolution.ProcessTodo' | translate
       }}</a>
     }
@@ -45,7 +45,7 @@
           ><i class="ri-flask-line text-base"></i>
         </div>
         <div class="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
-          {{ facade.contextCandidates().length }}
+          {{ facade.contextLifecycleRecords().length }}
         </div>
         <p class="mt-1 text-xs text-text-success">
           {{ 'XP.AgentEvolution.ProposalsInValidation' | translate: { count: facade.contextProposals().length } }}
@@ -135,7 +135,7 @@
                       }}</z-badge>
                     </td>
                     <td class="px-5 py-3.5 text-right">
-                      <a z-button zType="ghost" zSize="sm" [routerLink]="todo.route">{{
+                      <a z-button zType="ghost" zSize="sm" [routerLink]="todo.route" [queryParams]="todo.queryParams">{{
                         'XP.AgentEvolution.View' | translate
                       }}</a>
                     </td>

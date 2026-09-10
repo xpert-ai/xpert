@@ -70,7 +70,7 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
         })
     })
 
-    it('rejects a Project Assistant that is not directly connected to the requester Agent', async () => {
+    it('rejects a Project Assistant that is not connected to the requester Agent', async () => {
         assertAccess.mockResolvedValue({
             id: 'conversation-1',
             threadId: 'thread-1',
@@ -81,6 +81,66 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
         })
 
         await expect(service.resolve('conversation-1', requester.id)).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    function useNestedChain() {
+        const root = createXpert('root', 'root', { externalXpertIds: ['engineer'] })
+        const engineer = createXpert('engineer', 'engineer', { externalXpertIds: [target.id] })
+        const assistants = [root, engineer, target]
+        resolveCurrentById.mockImplementation(async (id: string) =>
+            id === 'role-assistant-old' ? target : (assistants.find((item) => item.id === id) ?? null)
+        )
+        return { root, engineer }
+    }
+
+    it('opens an authorized specialist conversation through required nested Assistant edges', async () => {
+        const { root, engineer } = useNestedChain()
+        await expect(service.resolve('conversation-1', root.id)).resolves.toMatchObject({
+            xpertId: target.id,
+            threadId: 'thread-1',
+            isExternalAssistant: true
+        })
+        expect(assertCanReadXpert).toHaveBeenCalledWith('project-1', engineer.id)
+        for (const call of resolveCurrentById.mock.calls) {
+            expect(call[1]).toEqual({ tenantId: 'tenant-1', organizationId: 'organization-1' })
+        }
+    })
+
+    it('does not traverse an intermediate Assistant outside the authorized Project', async () => {
+        const { root, engineer } = useNestedChain()
+        assertCanReadXpert.mockImplementation(async (_projectId: string, id: string) => {
+            if (id === engineer.id) throw new ForbiddenException()
+        })
+        await expect(service.resolve('conversation-1', root.id)).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it.each(['tenantId', 'organizationId'] as const)('does not traverse a cross-scope %s', async (key) => {
+        const { root, engineer } = useNestedChain()
+        engineer[key] = 'outside-scope'
+        await expect(service.resolve('conversation-1', root.id)).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('does not follow optional edges or connections from a different Agent', async () => {
+        const { root, engineer } = useNestedChain()
+        engineer.graph.connections[0].required = false
+        await expect(service.resolve('conversation-1', root.id)).rejects.toBeInstanceOf(ForbiddenException)
+        engineer.graph.connections[0].required = true
+        engineer.graph.connections[0].from = 'Other_Agent'
+        await expect(service.resolve('conversation-1', root.id)).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('terminates cyclic graphs without granting access to an unrelated conversation', async () => {
+        const { root, engineer } = useNestedChain()
+        engineer.graph.nodes.find((node) => node.type === 'xpert')!.key = root.id
+        engineer.graph.connections[0].to = root.id
+        await expect(service.resolve('conversation-1', root.id)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(resolveCurrentById).toHaveBeenCalledTimes(3)
+    })
+
+    it('checks conversation access before resolving any Assistant graph', async () => {
+        assertAccess.mockRejectedValue(new ForbiddenException())
+        await expect(service.resolve('conversation-1', requester.id)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(resolveCurrentById).not.toHaveBeenCalled()
     })
 
     it('keeps a conversation in the requester Assistant family non-external', async () => {

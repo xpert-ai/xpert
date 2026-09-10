@@ -217,3 +217,74 @@
     </div>
   }
 </div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<section class="p-4 space-y-3" aria-labelledby="middleware-features-heading" data-middleware-features>
+  <div class="flex items-center gap-2">
+    <h3 id="middleware-features-heading" class="font-bold text-text-primary">
+      {{ 'XP.Xpert.MiddlewareViewFeatures' | translate: { Default: 'View features' } }}
+    </h3>
+    @if (providerMeta()) {
+      <span class="text-xs tabular-nums text-text-tertiary">{{ middlewareFeatures().length }}</span>
+    }
+  </div>
+  <p class="text-sm leading-5 text-text-tertiary">
+    {{
+      'XP.Xpert.MiddlewareViewFeaturesDescription'
+        | translate
+          : {
+              Default:
+                'Read-only capabilities declared by this middleware. Workbench views use these identifiers for availability; access also depends on permissions and view rules.'
+            }
+    }}
+  </p>
+  @if (!providerMeta()) {
+    <p class="text-sm text-text-tertiary">
+      {{
+        'XP.Xpert.MiddlewareViewFeaturesUnavailable' | translate: { Default: 'Middleware metadata is not available.' }
+      }}
+    </p>
+  } @else if (!middlewareFeatures().length) {
+    <p class="text-sm text-text-tertiary">
+      {{ 'XP.Xpert.NoMiddlewareViewFeatures' | translate: { Default: 'This middleware declares no view features.' } }}
+    </p>
+  } @else {
+    <ul class="divide-y divide-divider-subtle">
+      @for (feature of middlewareFeatures(); track feature.key) {
+        <li class="flex items-center gap-2 py-2 text-text-secondary">
+          <i class="ri-layout-grid-line shrink-0 text-text-tertiary" aria-hidden="true"></i>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium leading-5 text-text-primary">
+              @if (feature.views.length) {
+                @for (view of feature.views; track view.key) {
+                  <span class="block">{{ view.title | i18n }}</span>
+                }
+              } @else if (feature.label) {
+                {{ feature.label | i18n }}
+              } @else {
+                {{ 'XP.Xpert.MiddlewareFeatureUnnamed' | translate: { Default: 'Capability name not provided' } }}
+              }
+            </div>
+            <code class="block select-text break-all text-xs leading-5 text-text-tertiary">{{ feature.key }}</code>
+          </div>
+        </li>
+      }
+    </ul>
+    @if (loadingFeatureViews()) {
+      <p class="text-xs text-text-tertiary">
+        {{ 'XP.Xpert.MiddlewareFeatureViewsLoading' | translate: { Default: 'Loading linked views...' } }}
+      </p>
+    } @else if (featureViewsError()) {
+      <p class="text-xs text-text-tertiary">
+        {{
+          'XP.Xpert.MiddlewareFeatureViewsUnavailable'
+            | translate
+              : {
+                  Default: 'Linked view names are temporarily unavailable. Capability labels are shown where provided.'
+                }
+        }}
+      </p>
+    }
+  }
+</section>

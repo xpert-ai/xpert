@@ -86,6 +86,7 @@ export interface EvaluationGateResult {
 }
 
 export interface EvaluationRun {
+  evaluatorKind: 'golden_replay'
   runId: string
   targetId?: string
   scope?: EvolutionScope

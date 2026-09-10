@@ -17,10 +17,9 @@ export type KnowledgeDocumentVisualTextAnchor = {
 }
 
 export type KnowledgeDocumentVisualBusinessScope = {
-  namespace: 'bom.requirement-evidence'
-  caseId: string
-  baselineId: string
-  runId: string
+  /** Plugin-owned audit namespace; document authorization remains host-owned. */
+  namespace: string
+  attributes: Record<string, string>
   sourceDocumentId: string
 }
 

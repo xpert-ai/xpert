@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common'
+import { KnowledgeWikiClassificationService } from './knowledge-wiki-classification.service'
+import { Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { DataSource, IsNull, Not, Repository } from 'typeorm'
@@ -23,6 +24,7 @@ import { KnowledgeWikiError } from './knowledge-wiki-error'
 // Lock the knowledgebase before pages, matching identity resolution's lock order.
 @Injectable()
 export class KnowledgeWikiFinalizeService {
+    @Inject(KnowledgeWikiClassificationService) private readonly classification: KnowledgeWikiClassificationService
     constructor(
         @InjectRepository(KnowledgeWikiJob) private readonly jobRepository: Repository<KnowledgeWikiJob>,
         @InjectRepository(KnowledgeWikiPage) private readonly pageRepository: Repository<KnowledgeWikiPage>,
@@ -183,6 +185,7 @@ export class KnowledgeWikiFinalizeService {
                     wikiGeneratorVersion: job.generatorVersion,
                     wikiBuildError: null
                 })
+                await this.classification.enqueuePublished(manager, knowledgebase, job, candidates)
             })
         } catch (error) {
             if (!(error instanceof KnowledgeWikiError) || error.code !== 'knowledge_wiki_publication_conflict')

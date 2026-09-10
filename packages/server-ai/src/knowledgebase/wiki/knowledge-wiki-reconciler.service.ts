@@ -8,6 +8,7 @@ import { Knowledgebase } from '../knowledgebase.entity'
 import { KnowledgeWikiJob, KnowledgeWikiPage } from './entities'
 import { KNOWLEDGE_WIKI_GENERATOR_VERSION } from './knowledge-wiki-config'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
+import { retireSupersededKnowledgeWikiJobs } from './knowledge-wiki-job-current'
 import { KnowledgeWikiProjectionService } from './knowledge-wiki-projection.service'
 
 const RECONCILE_INTERVAL_MS = 30_000
@@ -34,6 +35,7 @@ export class KnowledgeWikiReconcilerService {
         if (this.running) return
         this.running = true
         try {
+            await retireSupersededKnowledgeWikiJobs(this.jobRepository)
             const now = new Date()
             const [dispatchFailures, expiredLeases] = await Promise.all([
                 this.jobRepository.find({
@@ -88,7 +90,7 @@ export class KnowledgeWikiReconcilerService {
 
     private async reconcileKnowledgebaseFailures() {
         const failedJobs = await this.jobRepository.find({
-            where: { status: 'failed', isCurrent: true },
+            where: { status: 'failed', isCurrent: true, type: Not('classify') },
             select: { knowledgebaseId: true, error: true },
             order: { updatedAt: 'DESC' },
             take: RECONCILE_BATCH_SIZE

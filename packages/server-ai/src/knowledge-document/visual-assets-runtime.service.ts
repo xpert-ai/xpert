@@ -7,6 +7,7 @@ import fsPromises from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
 import sharp from 'sharp'
+import { t } from 'i18next'
 import type {
     RuntimeIdentityScope,
     KnowledgeDocumentVisualAssetsApi,
@@ -77,9 +78,7 @@ type AllowedVisualPathRecord = {
     knowledgeDocumentId: string
     documentFingerprint: string
     sourceDocumentId: string
-    caseId: string
-    baselineId: string
-    runId: string
+    businessScope: KnowledgeDocumentVisualCandidateRequest['businessScope']
     page?: number
     chunkId?: string
     sourceBlockIds: string[]
@@ -139,10 +138,27 @@ export class KnowledgeDocumentVisualAssetsRuntimeService implements KnowledgeDoc
         const binding = requireExecutionBinding(scope)
         const maxAssets = Math.min(MAX_VISUAL_CANDIDATES, Math.max(1, Math.trunc(input.maxAssets)))
         if (!input.knowledgebaseId || !input.knowledgeDocumentId || !input.businessScope?.sourceDocumentId) {
-            throw new BadRequestException('A governed KnowledgeDocument and BOM evidence scope are required')
+            throw new BadRequestException(
+                t('server-ai:Error.VisualEvidenceScopeRequired', {
+                    defaultValue: 'A governed KnowledgeDocument and evidence scope are required'
+                })
+            )
         }
-        if (input.businessScope.namespace !== 'bom.requirement-evidence') {
-            throw new ForbiddenException('The visual asset business scope is not supported')
+        if (
+            !/^[a-z][a-z0-9_.-]{0,127}$/.test(input.businessScope.namespace) ||
+            !input.businessScope.attributes ||
+            Array.isArray(input.businessScope.attributes) ||
+            typeof input.businessScope.attributes !== 'object' ||
+            Object.keys(input.businessScope.attributes).length > 20 ||
+            Object.entries(input.businessScope.attributes).some(
+                ([key, value]) => !key || key.length > 128 || typeof value !== 'string' || value.length > 512
+            )
+        ) {
+            throw new BadRequestException(
+                t('server-ai:Error.VisualEvidenceScopeInvalid', {
+                    defaultValue: 'The visual evidence audit scope is invalid'
+                })
+            )
         }
 
         const document = await this.requireDocument(input.knowledgeDocumentId, input.knowledgebaseId, binding)
@@ -164,9 +180,7 @@ export class KnowledgeDocumentVisualAssetsRuntimeService implements KnowledgeDoc
                 knowledgeDocumentId: input.knowledgeDocumentId,
                 documentFingerprint: catalog.documentFingerprint,
                 sourceDocumentId: input.businessScope.sourceDocumentId,
-                caseId: input.businessScope.caseId,
-                baselineId: input.businessScope.baselineId,
-                runId: input.businessScope.runId,
+                businessScope: { ...input.businessScope, attributes: { ...input.businessScope.attributes } },
                 ...(rankedAsset.asset.page ? { page: rankedAsset.asset.page } : {}),
                 ...(rankedAsset.chunkId ? { chunkId: rankedAsset.chunkId } : {}),
                 sourceBlockIds: rankedAsset.asset.sourceBlockIds,

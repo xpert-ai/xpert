@@ -1,8 +1,8 @@
 # Agent Evolution Framework 实施基线
 
 > 文档状态：已落地的架构与后续演进基线
-> 版本：V2.0
-> 更新日期：2026-08-14
+> 版本：V4.0
+> 更新日期：2026-09-08
 > 适用范围：Xpert Platform、`@xpert-ai/contracts`、`@xpert-ai/plugin-sdk`、Xpert Cloud 与领域 Evolution Provider
 
 ## 0. 最终决策
@@ -28,9 +28,9 @@ Xpert Platform
 两条不可突破的原则：
 
 1. Evolution Agent 不直接修改生产 Prompt、规则、代码或业务表。
-2. Candidate 只有经过 Golden Replay、治理审批和受控发布后，才可以成为新的不可变 Production Capability Version。
+2. Candidate 只有经过目标声明的冻结评测、治理审批和受控发布后，才可以成为可使用的新版本。运行能力继续要求 Golden Replay 与原有分阶段发布门槛。
 
-审批不等于上线：
+运行能力审批不等于上线：
 
 ```text
 Candidate
@@ -43,6 +43,44 @@ Candidate
 → CAS 切换 Active Pointer
 → Production
 ```
+
+## 0.1 策略驱动的统一进化（2026-09-08）
+
+平台用同一组 Proposal、Candidate、EvaluationRun、ApprovalDecision、ReleasePackage、Job 和 Audit 实体执行所有进化策略。`EvolutionChange`（`contractVersion: 3`）是这些权威记录的组合契约，`EvolutionLifecycleRecord` 是页面投影；没有业务专用资源变更表，也没有新旧协议适配器。
+
+策略按阶段组合，来源不决定发布方式：
+
+| 内置策略            | 学习                                                | 候选               | 自动评测                       | 发布与生效                               |
+| ------------------- | --------------------------------------------------- | ------------------ | ------------------------------ | ---------------------------------------- |
+| `feedback_learning` | 合格反馈聚合：至少 3 条、2 个主体、90 天内、L2 以上 | 已声明的变更集构建 | Golden Replay                  | 原 Shadow／Canary 与 Active Pointer 门禁 |
+| `evidence_driven`   | 不适用                                              | 业务证据生成草稿   | 目标声明的必测项               | 受控版本发布，目标声明生效方式           |
+| `human_proposal`    | 不适用                                              | 人工提案生成候选   | 按策略不适用，不显示为测试通过 | 人工批准后发布与生效                     |
+
+以上为预设组合。目标可声明其他合法组合，例如反馈学习、目标草稿、领域检查与版本写入。平台验证阶段能力和目标允许的策略，不按业务名称分支。当前所有策略仍要求人工审批；无学习、无自动质量评测不表示可绕过结构合法性、权限、基线和幂等写入校验。
+
+每次请求冻结 `strategy.definition`、风险等级、Provider 身份及版本、策略哈希、来源、基线、候选和评测引用。目标只允许注册的策略；业务调用者不能自行降低必测项或审批要求。BOM 新增特征只开放 `evidence_driven@bom.features/2`，不得切换到免自动评测策略绕过工程检查。既有特征别名和单位规则采用反馈学习策略。
+
+### 执行接口
+
+- `EvolutionStrategyService` 校验策略组合并冻结版本。
+- `EvolutionChangeService` 统一准备、构建、评测、人工决定和发布意图。
+- `EvolutionEvaluationExecutor` 执行目标检查或 Golden Replay，并记录实际运行与汇总评测；多个评测步骤由冻结策略指定。
+- `EvolutionPublicationExecutor` 创建受控版本或原生发布包。原运行时继续负责安装、Shadow、Canary、暂停及 CAS 激活。
+- Provider 的 `draftBuilder`、`checkEvaluator`、`versionPublisher`、`presenter` 提供阶段能力；复用原 `candidateBuilder`、`replayEvaluator` 和 `releaseProvider`，不复制完整生命周期。
+
+SDK `platform.agent-evolution.changes` 提供 `prepare/get/list/decide/publish`，平台 API `/agent-evolution/changes` 提供统一记录及评测、人工决定和发布操作。原学习、候选和评测 API 同样委托统一引擎，不再构成独立进化通道。只接受当前策略契约，没有旧模式字段推断和兼容回退。
+
+### 页面与状态
+
+仍使用概览、学习与建议、候选与评测、发布与运行四个 Tab。详情显示学习、候选、评测、审核、发布、生效六个阶段及对应策略；不适用阶段明确标识。页面按目标和统一发布状态筛选，不固化“主数据”等领域类型。
+
+发布状态和生效状态分别记录。Shadow／Canary 属于“发布中”，Canary 的详细状态仍可见；Active Pointer 完成切换后才为“已发布／已生效”。受控版本写入完成为“已发布”，业务采用状态由 Provider 提供，不能把发布回执等同于所有产品已升级。
+
+候选、测试或基线变化使原审批不可复用。发布意图先持久化，再执行幂等写入；回执失败重试必须返回原版本。风险和审批要求随策略快照冻结。历史不含策略快照的实验记录不进入当前执行列表，不进行推断式迁移。
+
+实现入口：`packages/contracts/src/ai/evolution/strategy.ts`、`change.ts`、`packages/server-ai/src/agent-evolution/changes` 与 `packages/plugin-sdk/src/lib/evolution/runtime-capability.ts`。
+
+下文章节中的学习事件门槛、Golden Dataset、Shadow／Canary 描述反馈学习预设和运行时能力；不是所有策略都必须执行的固定流程。
 
 ## 1. 为什么属于 Platform 通用能力
 

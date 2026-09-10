@@ -12,6 +12,7 @@ import {
 import { KNOWLEDGE_WIKI_GENERATOR_VERSION } from './knowledge-wiki-config'
 import { hashKnowledgeWikiValue } from './knowledge-wiki-generation.utils'
 import { KnowledgeWikiJobDispatcherService } from './knowledge-wiki-job-dispatcher.service'
+import { retireSupersededKnowledgeWikiJobs } from './knowledge-wiki-job-current'
 import { KnowledgeWikiProjectionService } from './knowledge-wiki-projection.service'
 import { KnowledgeWikiRetractSourceInput } from './types'
 
@@ -98,6 +99,7 @@ export class KnowledgeWikiRetractionService {
         }
         state.desiredRootJobId = job.id
         await this.sourceStateRepository.save(state)
+        await retireSupersededKnowledgeWikiJobs(this.jobRepository, knowledgebase.id)
         await this.dispatcher.dispatch(job, input.userId)
         return job
     }

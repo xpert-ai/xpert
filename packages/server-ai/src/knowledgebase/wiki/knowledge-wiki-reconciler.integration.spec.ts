@@ -21,14 +21,21 @@ postgresDescribe('Wiki undispatched job recovery', () => {
             password: process.env.DB_PASS ?? 'ocap_password',
             database: process.env.DB_NAME ?? 'ocap',
             schema,
+            extra: { options: `-c search_path=${schema},public` },
             entities: [
                 new EntitySchema<KnowledgeWikiJob>({
                     name: KnowledgeWikiJob.name,
                     target: KnowledgeWikiJob,
-                    tableName: 'knowledgebase_wiki_job',
+                    tableName: 'knowledge_wiki_job',
                     columns: {
                         id: { type: 'uuid', primary: true },
                         knowledgebaseId: { type: 'uuid' },
+                        tenantId: { type: 'uuid', nullable: true },
+                        organizationId: { type: 'uuid', nullable: true },
+                        rootJobId: { type: 'uuid', nullable: true },
+                        sourceDocumentIdSnapshot: { type: 'uuid', nullable: true },
+                        sourceLifecycleGeneration: { type: 'int', nullable: true },
+                        type: { type: 'varchar', default: 'source_map' },
                         billingPrincipalId: { type: 'uuid' },
                         status: { type: 'varchar' },
                         isCurrent: { type: 'boolean' },
@@ -37,6 +44,9 @@ postgresDescribe('Wiki undispatched job recovery', () => {
                         dispatchError: { type: 'varchar', nullable: true },
                         error: { type: 'varchar', nullable: true },
                         leaseExpiresAt: { type: 'timestamptz', nullable: true },
+                        lockedAt: { type: 'timestamptz', nullable: true },
+                        heartbeatAt: { type: 'timestamptz', nullable: true },
+                        completedAt: { type: 'timestamptz', nullable: true },
                         updatedAt: { type: 'timestamptz', updateDate: true }
                     }
                 })
@@ -45,6 +55,9 @@ postgresDescribe('Wiki undispatched job recovery', () => {
         await db.initialize()
         await db.query(`CREATE SCHEMA "${schema}"`)
         await db.synchronize()
+        await db.query(`CREATE TABLE "${schema}".knowledge_wiki_source_state (
+            "knowledgebaseId" uuid, "tenantId" uuid, "organizationId" uuid,
+            "sourceDocumentIdSnapshot" uuid, "lifecycleGeneration" int, "desiredRootJobId" uuid)`)
     })
     afterAll(async () => {
         if (db?.isInitialized) {

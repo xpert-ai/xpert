@@ -1,177 +1,160 @@
-<div class="flex justify-center w-full max-h-full h-full overflow-y-auto">
-  <div class="grow shrink-0 h-full max-w-[960px] overflow-y-auto px-14 sm:px-16">
+<div class="flex min-h-0 w-full flex-1 flex-col">
+  <div class="min-h-0 flex-1 overflow-y-auto px-6 py-6 lg:px-8">
     <ng-content select="[header]"></ng-content>
-
-    <div class="mx-auto max-w-[640px]">
-      <div class="pt-10">
-        <div class="mb-1 text-xl leading-[22px] font-semibold text-text-primary">
-          🎉 {{ 'XP.Knowledgebase.DocumentUploaded' | translate: { Default: 'Document uploaded' } }}
+    <div class="mx-auto grid max-w-5xl gap-8 lg:grid-cols-3">
+      <section class="min-w-0 lg:col-span-2">
+        <div class="mb-6 flex items-start gap-3">
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
+          >
+            <i class="ri-file-check-line text-xl" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-text-primary">
+              {{ 'XP.Knowledgebase.DocumentUploaded' | translate: { Default: 'Document uploaded' } }}
+            </h3>
+            <p class="mt-2 text-sm leading-6 text-text-tertiary">
+              {{
+                'XP.Knowledgebase.DocumentUploadedKB'
+                  | translate: { Default: 'Documents have been uploaded to the knowledgebase:' }
+              }}
+              <span class="font-medium text-text-secondary">{{ knowledgebase().name }}</span>
+            </p>
+          </div>
         </div>
-        <div class="mb-7 text-[13px] leading-4 text-text-tertiary">
-          {{
-            'XP.Knowledgebase.DocumentUploadedKB'
-              | translate: { Default: 'Documents have been uploaded to the knowledgebase:' }
-          }}
-          {{ knowledgebase().name }}
-          {{
-            'XP.Knowledgebase.YouFindItIn'
-              | translate: { Default: ', you can find it in the document list of the knowledgebase.' }
-          }}
-        </div>
-      </div>
-      <div class="h-5 flex items-center mb-3">
-        <div class="flex items-center justify-between text-text-primary font-medium text-sm mr-2">
+        <div class="mb-2 flex items-center justify-between gap-3 border-b border-divider-subtle pb-3">
+          <h4 class="text-sm font-medium text-text-primary">
+            @if (waited() || running()) {
+              {{ 'XP.Knowledgebase.Embedding' | translate: { Default: 'Embedding' } }}
+            } @else if (failed()) {
+              {{ 'XP.Knowledgebase.PipelineFlow.ProcessingFailed' | translate }}
+            } @else if (cancel()) {
+              {{ 'XP.Knowledgebase.EmbedCancelled' | translate: { Default: 'Embedding cancelled' } }}
+            } @else if (documents()?.length) {
+              {{ 'XP.Knowledgebase.EmbedCompleted' | translate: { Default: 'Embedding completed' } }}
+            } @else {
+              {{ 'XP.Knowledgebase.ProcessingDocuments' | translate: { Default: 'Processing Documents' } }}
+            }
+          </h4>
           @if (waited() || running()) {
             <button
+              z-button
+              zType="outline"
+              zSize="sm"
               type="button"
-              class="btn btn-small pressable danger w-7 h-7 justify-center mr-1"
-              [zTooltip]="
-                'XP.Knowledgebase.StopEmbed'
-                  | translate: { Default: 'Terminate embedding and start from scratch if you need to embed again' }
-              "
-              zPosition="top"
               (click)="stopJob()"
+              [zTooltip]="'XP.Knowledgebase.StopEmbed' | translate: { Default: 'Stop processing' }"
             >
-              <i class="ri-stop-circle-line text-lg"></i>
+              <i class="ri-stop-circle-line text-text-destructive" aria-hidden="true"></i
+              >{{ 'XP.ACTIONS.Stop' | translate: { Default: 'Stop' } }}
             </button>
-            {{ 'XP.Knowledgebase.Embedding' | translate: { Default: 'Embedding' } }}...
-          } @else if (cancel()) {
-            {{ 'XP.Knowledgebase.EmbedCancelled' | translate: { Default: 'Embed Cancelled' } }}
-          } @else {
-            {{ 'XP.Knowledgebase.EmbedCompleted' | translate: { Default: 'Embed Completed' } }}
           }
         </div>
-      </div>
-      <div class="flex flex-col gap-0.5 pb-2">
-        @for (item of documents(); track item.id) {
-          <div class="relative h-[26px] bg-background-default-subtle rounded-md overflow-hidden">
-            <div class="flex gap-1 pl-[6px] pr-2 h-full items-center z-[1]">
-              <knowledge-doc-id [doc]="item" class="grow text-text-secondary" />
-
-              @if (item.status === 'running') {
-                <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-              } @else if (item.status === 'finish') {
-                <i class="ri-checkbox-circle-fill text-text-success"></i>
-              } @else if (item.status === 'error') {
-                <i class="ri-close-circle-fill text-text-destructive" [zTooltip]="item.processMsg" zPosition="top"></i>
+        <div class="divide-y divide-divider-subtle">
+          @for (item of documents(); track item.id) {
+            <div class="min-w-0 py-3">
+              <div class="flex min-w-0 items-center gap-3">
+                <knowledge-doc-id [doc]="item" class="min-w-0 flex-1 text-sm text-text-secondary" />
+                @if (item.status === 'running' || item.status === 'embedding') {
+                  <i class="ri-loader-2-line animate-spin text-text-tertiary" aria-hidden="true"></i>
+                } @else if (item.status === 'finish') {
+                  <i class="ri-checkbox-circle-line text-text-success" aria-hidden="true"></i>
+                } @else if (item.status === 'error') {
+                  <i
+                    class="ri-error-warning-line text-text-destructive"
+                    [zTooltip]="item.processMsg"
+                    aria-hidden="true"
+                  ></i>
+                } @else {
+                  <span class="text-xs text-text-tertiary">{{ item.progress || 0 }}%</span>
+                }
+              </div>
+              @if (item.status === 'error' && item.processMsg) {
+                <p role="alert" class="mt-2 break-words text-xs text-text-destructive">{{ item.processMsg }}</p>
+              }
+              @if (item.status === 'running' || item.status === 'embedding') {
+                <z-progress-bar class="mt-3 block" zSize="sm" [progress]="item.progress || 0" />
               }
             </div>
-
-            @if (item.status === 'running') {
-              <z-progress-bar
-                class="absolute bottom-0 left-0 w-full"
-                zShape="square"
-                zSize="sm"
-                [progress]="item.progress"
-                [zType]="item.progress === 100 ? 'default' : 'accent'"
-              />
-            }
-          </div>
-        } @empty {
-          <bullet-list-content-loader class="w-72" />
-        }
-      </div>
-      <hr class="my-3 h-[1px] bg-divider-subtle border-0" />
-      <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'XP.Knowledgebase.ChunkMode' | translate: { Default: 'Chunk Mode' } }}
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            @if (chunkModeStandard()) {
-              {{ 'XP.Knowledgebase.ChunkModeStandard' | translate: { Default: 'Standard' } }}
-            } @else {
-              {{ 'XP.Knowledgebase.ChunkModeCustom' | translate: { Default: 'Custom' } }}
-            }
-          </div>
+          } @empty {
+            <bullet-list-content-loader class="block w-full py-4" />
+          }
         </div>
-
-        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'XP.Knowledgebase.ChunkDelimiter' | translate: { Default: 'Delimiter' } }}
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            {{ parserConfig()?.delimiter }}
-          </div>
-        </div>
-        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'XP.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' } }}
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            {{ parserConfig()?.chunkSize }}
-          </div>
-        </div>
-        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'XP.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' } }}
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            {{ parserConfig()?.chunkOverlap }}
-          </div>
-        </div>
-
-        <div class="flex gap-1 py-0.5 min-h-5 text-sm !items-start pt-1">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            {{ 'XP.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            @if (parserConfig()?.replaceWhitespace) {
-              <span
-                >{{
-                  'XP.Knowledgebase.ReplaceWhiteChar'
-                    | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
-                }}.
-              </span>
-            }
-            @if (parserConfig()?.removeSensitive) {
-              <span>{{
-                'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' }
-              }}</span>
-            }
-          </div>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 my-10">
-        <!-- <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-fit">
-          <i class="ri-terminal-box-line"></i>
-          <span>Access the API</span></button
-        > -->
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-fit" (click)="apply()">
-          <span>{{ 'XP.Knowledgebase.GotoDocuments' | translate: { Default: 'Goto documents' } }}</span>
-          <i class="ri-arrow-right-line"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-  <div class="shrink-0 pt-[88px] pr-8 text-sm">
-    <div class="flex flex-col gap-3 w-[328px] p-6 text-text-tertiary bg-background-default-subtle rounded-xl">
-      <div class="flex justify-center items-center w-10 h-10 bg-components-card-bg rounded-[10px] shadow-lg">
-        <i class="ri-book-open-line text-xl text-purple-500"></i>
-      </div>
-      <div class="text-base font-semibold text-text-secondary">
-        {{ 'XP.Knowledgebase.WhatDoNext' | translate: { Default: 'What to do next' } }}
-      </div>
-      <div class="text-text-tertiary">
-        {{
-          'XP.Knowledgebase.DoNextDesc'
-            | translate
-              : {
-                  Default:
-                    'Once the documents have been embedded, the knowledgebase can be added to the digital expert agents for use as context.'
+        <dl class="mt-6 divide-y divide-divider-subtle border-t border-divider-subtle text-sm">
+          @if (parserConfig()?.delimiter) {
+            <div class="grid grid-cols-2 gap-4 py-3">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.ChunkDelimiter' | translate: { Default: 'Delimiter' } }}
+              </dt>
+              <dd class="break-words">{{ parserConfig().delimiter }}</dd>
+            </div>
+          }
+          @if (parserConfig()?.chunkSize) {
+            <div class="grid grid-cols-2 gap-4 py-3">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk size' } }}
+              </dt>
+              <dd>{{ parserConfig().chunkSize }}</dd>
+            </div>
+          }
+          @if (parserConfig()?.chunkOverlap != null) {
+            <div class="grid grid-cols-2 gap-4 py-3">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk overlap' } }}
+              </dt>
+              <dd>{{ parserConfig().chunkOverlap }}</dd>
+            </div>
+          }
+          @if (parserConfig()?.replaceWhitespace || parserConfig()?.removeSensitive) {
+            <div class="grid grid-cols-2 gap-4 py-3">
+              <dt class="text-text-tertiary">
+                {{ 'XP.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
+              </dt>
+              <dd class="space-y-2 text-text-secondary">
+                @if (parserConfig().replaceWhitespace) {
+                  <p>
+                    {{ 'XP.Knowledgebase.ReplaceWhiteChar' | translate: { Default: 'Replace consecutive whitespace' } }}
+                  </p>
                 }
-        }}
-      </div>
-      <div class="w-full flex justify-end pt-2">
+                @if (parserConfig().removeSensitive) {
+                  <p>
+                    {{ 'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove URLs and email addresses' } }}
+                  </p>
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+      </section>
+      <aside class="min-w-0 border-t border-divider-subtle pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+        <div class="flex items-center gap-2 text-sm font-semibold">
+          <i class="ri-book-open-line text-text-tertiary" aria-hidden="true"></i
+          >{{ 'XP.Knowledgebase.WhatDoNext' | translate: { Default: 'What to do next' } }}
+        </div>
+        <p class="mt-3 text-sm leading-6 text-text-tertiary">
+          {{
+            'XP.Knowledgebase.DoNextDesc'
+              | translate: { Default: 'After processing, use this knowledgebase as context for your agents.' }
+          }}
+        </p>
         <a
-          class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500"
+          z-button
+          zType="outline"
+          class="mt-5"
           [href]="'/xpert/w/' + workspaceId()"
           target="_blank"
+          rel="noopener noreferrer"
         >
-          {{ 'XP.Knowledgebase.GotoWorkspace' | translate: { Default: 'Goto workspace' } }}
-          <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
+          {{ 'XP.Knowledgebase.GotoWorkspace' | translate: { Default: 'Go to workspace' }
+          }}<i class="ri-external-link-line" aria-hidden="true"></i>
         </a>
-      </div>
+      </aside>
     </div>
   </div>
+  <footer class="flex shrink-0 items-center justify-end gap-3 border-t border-divider-subtle px-6 py-4">
+    <button z-button type="button" (click)="apply()">
+      {{ 'XP.Knowledgebase.GotoDocuments' | translate: { Default: 'Go to documents' }
+      }}<i class="ri-arrow-right-line" aria-hidden="true"></i>
+    </button>
+  </footer>
 </div>

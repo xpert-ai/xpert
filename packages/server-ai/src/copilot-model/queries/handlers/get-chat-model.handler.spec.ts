@@ -292,6 +292,7 @@ describe('CopilotModelGetChatModelHandler', () => {
 
         await handler.execute(query)
 
+        expect(query.copilotModel.options).toEqual(getModelInstance.mock.calls[0][1].options)
         expect(getModelInstance.mock.calls[0][1].options).toEqual({
             temperature: 0.3,
             enable_thinking: true

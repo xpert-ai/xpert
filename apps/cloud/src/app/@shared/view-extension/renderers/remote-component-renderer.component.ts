@@ -1,3 +1,4 @@
+import { createRemoteTheme, type RemoteComponentTheme, type RemoteComponentThemeMode } from './remote-component-theme'
 import { CommonModule, DOCUMENT } from '@angular/common'
 import {
   Component,
@@ -41,13 +42,6 @@ import {
 
 const REMOTE_COMPONENT_CHANNEL = 'xpertai.remote_component'
 const REMOTE_COMPONENT_PROTOCOL_VERSION = 1
-
-type RemoteComponentThemeMode = 'light' | 'dark'
-
-type RemoteComponentTheme = {
-  mode: RemoteComponentThemeMode
-  tokens: Record<string, string>
-}
 
 type RemoteComponentDebugState = {
   enabled: boolean
@@ -171,6 +165,7 @@ export class RemoteComponentRendererComponent {
   #initializedInstanceId: string | null = null
   #entryObjectUrl: string | null = null
   // Keep the fetched HTML so the renderer can reuse the exact same payload if a blob iframe stays blank.
+  #documentIdentity: string | null = null
   #entryHtml: string | null = null
   // Debounces the blank-frame check across both entry assignment and iframe load events.
   #srcdocFallbackTimer: number | null = null
@@ -213,8 +208,13 @@ export class RemoteComponentRendererComponent {
       if (entryIdentity === this.#loadedEntryIdentity) {
         return
       }
+      const documentIdentity = JSON.stringify([hostType, hostId, manifest.key, runtimeScope?.projectId ?? null])
+      const preserveDocument = documentIdentity === this.#documentIdentity
+      this.#documentIdentity = documentIdentity
       this.#loadedEntryIdentity = entryIdentity
-      void untracked(() => this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key, runtimeScope))
+      void untracked(() =>
+        this.loadEntry(++this.#entryRequestId, hostType, hostId, manifest.key, runtimeScope, preserveDocument)
+      )
     })
 
     effect(() => {
@@ -253,14 +253,17 @@ export class RemoteComponentRendererComponent {
     hostType: string,
     hostId: string,
     viewKey: string,
-    runtimeScope: XpertViewRuntimeScopeInput | null
+    runtimeScope: XpertViewRuntimeScopeInput | null,
+    preserveDocument = false
   ) {
     this.error.set(null)
-    this.clearEntryUrl()
-    this.requestedHeight.set(520)
-    this.viewportBound.set(false)
-    this.updateViewportHeight()
-    this.#instanceNonce.set(createBrowserId())
+    if (!preserveDocument) this.clearEntryUrl()
+    if (!preserveDocument) {
+      this.requestedHeight.set(520)
+      this.viewportBound.set(false)
+      this.updateViewportHeight()
+    }
+    if (!preserveDocument) this.#instanceNonce.set(createBrowserId())
     this.resetFileAccessSession()
 
     try {
@@ -270,11 +273,18 @@ export class RemoteComponentRendererComponent {
       if (requestId !== this.#entryRequestId) {
         return
       }
+      // Revalidate access for the new conversation before reusing its unchanged UI document.
+      if (preserveDocument && html === this.#entryHtml && this.entryUrl()) {
+        if (this.#initializedInstanceId === this.instanceId()) this.sendInitToFrame()
+        return
+      }
+      if (preserveDocument) this.#instanceNonce.set(createBrowserId())
       this.setEntryHtml(html)
     } catch (error) {
       if (requestId !== this.#entryRequestId) {
         return
       }
+      this.clearEntryUrl()
       this.error.set(getErrorMessage(error))
     }
   }
@@ -896,129 +906,4 @@ function getAvailableFrameHeight(frame?: HTMLIFrameElement, fillAvailableHeight 
   }
 
   return Math.max(520, viewportHeight - frameTop - 24)
-}
-
-function createRemoteTheme(document: Document, mode: RemoteComponentThemeMode): RemoteComponentTheme {
-  const rootStyle = document.defaultView?.getComputedStyle(document.documentElement)
-  const bodyStyle = document.defaultView?.getComputedStyle(document.body)
-  const background = readThemeColor(document, rootStyle, '--background', mode === 'dark' ? '#16181c' : '#fff')
-  const foreground = readThemeColor(document, rootStyle, '--foreground', mode === 'dark' ? '#e3e3e3' : '#18181b')
-  const card = readThemeColor(document, rootStyle, '--card', background)
-  const cardForeground = readThemeColor(document, rootStyle, '--card-foreground', foreground)
-  const popover = readThemeColor(document, rootStyle, '--popover', card)
-  const popoverForeground = readThemeColor(document, rootStyle, '--popover-foreground', cardForeground)
-  const muted = readThemeColor(document, rootStyle, '--muted', mode === 'dark' ? '#26272b' : '#f4f4f5')
-  const mutedForeground = readThemeColor(
-    document,
-    rootStyle,
-    '--muted-foreground',
-    mode === 'dark' ? '#a3a3a3' : '#71717a'
-  )
-  const secondary = readThemeColor(document, rootStyle, '--secondary', muted)
-  const secondaryForeground = readThemeColor(document, rootStyle, '--secondary-foreground', foreground)
-  const accent = readThemeColor(document, rootStyle, '--accent', muted)
-  const accentForeground = readThemeColor(document, rootStyle, '--accent-foreground', foreground)
-  const primary = readThemeColor(document, rootStyle, '--primary', mode === 'dark' ? '#3b82f6' : '#18181b')
-  const primaryForeground = readThemeColor(document, rootStyle, '--primary-foreground', '#fff')
-  const destructive = readThemeColor(document, rootStyle, '--destructive', mode === 'dark' ? '#f87171' : '#dc2626')
-  const success = readThemeColor(document, rootStyle, '--success', '#047857')
-  const radius = readThemeValue(rootStyle, '--radius', '0.625rem')
-
-  return {
-    mode,
-    tokens: {
-      fontFamily:
-        readThemeValue(rootStyle, '--font-sans') ||
-        bodyStyle?.fontFamily ||
-        'Inter, ui-sans-serif, system-ui, sans-serif',
-      colorBackground: background,
-      colorForeground: foreground,
-      colorCard: card,
-      colorCardForeground: cardForeground,
-      colorPopover: popover,
-      colorPopoverForeground: popoverForeground,
-      colorSecondary: secondary,
-      colorSecondaryForeground: secondaryForeground,
-      colorMuted: muted,
-      colorMutedForeground: mutedForeground,
-      colorAccent: accent,
-      colorAccentForeground: accentForeground,
-      colorBorder: readThemeColor(document, rootStyle, '--border', mode === 'dark' ? '#27272a' : '#e4e4e7'),
-      colorInput: readThemeColor(document, rootStyle, '--input', mode === 'dark' ? '#52525b' : '#d4d4d8'),
-      colorPrimary: primary,
-      colorPrimaryForeground: primaryForeground,
-      colorDestructive: destructive,
-      colorDestructiveForeground: readThemeColor(document, rootStyle, '--destructive-foreground', primaryForeground),
-      colorDestructiveBackground:
-        mode === 'dark'
-          ? 'color-mix(in srgb, var(--xui-color-destructive) 18%, var(--xui-color-background))'
-          : 'color-mix(in srgb, var(--xui-color-destructive) 9%, var(--xui-color-background))',
-      colorSuccess: success,
-      colorSuccessBackground:
-        mode === 'dark'
-          ? 'color-mix(in srgb, var(--xui-color-success) 18%, var(--xui-color-background))'
-          : 'color-mix(in srgb, var(--xui-color-success) 9%, var(--xui-color-background))',
-      colorWarning: readThemeColor(document, rootStyle, '--warning', primary),
-      colorInfo: readThemeColor(document, rootStyle, '--info', primary),
-      colorRing: readThemeColor(document, rootStyle, '--ring', primary),
-      colorChart1: readThemeColor(document, rootStyle, '--chart-1', primary),
-      colorChart2: readThemeColor(document, rootStyle, '--chart-2', success),
-      colorChart3: readThemeColor(document, rootStyle, '--chart-3', primary),
-      colorChart4: readThemeColor(document, rootStyle, '--chart-4', destructive),
-      colorChart5: readThemeColor(document, rootStyle, '--chart-5', accentForeground),
-      radiusSm: `calc(${radius} - 4px)`,
-      radiusMd: `calc(${radius} - 2px)`,
-      radiusLg: radius,
-      fontSizeXs: readThemeValue(rootStyle, '--workbench-extension-font-size-xs', '0.75rem'),
-      fontSizeSm: readThemeValue(rootStyle, '--workbench-extension-font-size-sm', '0.8125rem'),
-      fontSizeMd: readThemeValue(rootStyle, '--workbench-extension-font-size-md', '0.875rem'),
-      fontSizeLg: readThemeValue(rootStyle, '--workbench-extension-font-size-lg', '1rem'),
-      fontSizeControl: readThemeValue(rootStyle, '--workbench-extension-font-size-control', '0.8125rem'),
-      fontSizeButton: readThemeValue(rootStyle, '--workbench-extension-font-size-button', '0.8125rem'),
-      fontSizeTable: readThemeValue(rootStyle, '--workbench-extension-font-size-table', '0.8125rem'),
-      controlHeight: readThemeValue(rootStyle, '--workbench-extension-control-height', '2rem'),
-      buttonHeight: readThemeValue(rootStyle, '--workbench-extension-button-height', '2rem'),
-      buttonHeightSm: readThemeValue(rootStyle, '--workbench-extension-button-height-sm', '1.75rem')
-    }
-  }
-}
-
-function readThemeValue(style: CSSStyleDeclaration | null | undefined, name: string, fallback = '') {
-  return style?.getPropertyValue(name).trim() || fallback
-}
-
-function readThemeColor(
-  document: Document,
-  style: CSSStyleDeclaration | null | undefined,
-  name: string,
-  fallback: string
-) {
-  const value = readThemeValue(style, name)
-  if (!value) {
-    return fallback
-  }
-  if (value.startsWith('var(')) {
-    return resolveCssColor(document, value) ?? fallback
-  }
-  if (/^(#|rgb|hsl|oklch|color-mix)/i.test(value)) {
-    return value
-  }
-  return resolveCssColor(document, value) ?? `hsl(${value})`
-}
-
-function resolveCssColor(document: Document, value: string) {
-  const view = document.defaultView
-  if (!view) {
-    return null
-  }
-  const probe = document.createElement('span')
-  const probeHost = document.body ?? document.documentElement
-  probe.style.color = value
-  if (!probe.style.color) {
-    return null
-  }
-  probeHost.appendChild(probe)
-  const computedColor = view.getComputedStyle(probe).color
-  probe.remove()
-  return computedColor && computedColor !== value ? computedColor : null
 }

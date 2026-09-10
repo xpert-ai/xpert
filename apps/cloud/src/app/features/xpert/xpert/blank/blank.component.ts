@@ -150,7 +150,7 @@ type BlankWorkflowNodeOption = {
 
 type BlankTemplateCatalog = {
   choices: BlankTemplateChoice[]
-  items: Array<TXpertTemplate | TKnowledgePipelineTemplate>
+  items: Array<Omit<TXpertTemplate, 'export_data'> | TKnowledgePipelineTemplate>
 }
 
 type BlankWorkspaceSkillItem = {
@@ -449,9 +449,9 @@ export class XpertNewBlankComponent {
     { initialValue: [] as IXpertWorkspace[] }
   )
   readonly agentTemplateCatalog = toSignal(
-    this.templateService.getAll().pipe(
-      map(({ recommendedApps }) => {
-        const items = recommendedApps.filter((template) => template.type === XpertTypeEnum.Agent)
+    this.templateService.getSummaries().pipe(
+      map((summaries) => {
+        const items = summaries.filter((template) => template.type === XpertTypeEnum.Agent)
         return {
           choices: items.map((template) => ({
             id: template.id,
@@ -689,6 +689,7 @@ export class XpertNewBlankComponent {
   readonly selectedExplicitSkills = model<string[]>([])
   readonly selectedRepositoryDefault = signal<BlankRepositoryDefaultSelection | null>(null)
   readonly selectedMiddlewares = model<string[]>([])
+  readonly preserveSkillsMiddleware = signal(false)
   readonly selectedMiddlewareRequired = signal<Record<string, boolean>>({})
   readonly middlewareSearch = signal('')
   readonly selectedKnowledgeTriggers = model<BlankTriggerSelection[]>([])
@@ -698,7 +699,7 @@ export class XpertNewBlankComponent {
   readonly selectedUnderstandings = model<string[]>([])
   readonly selectedWorkflowNodes = model<BlankWorkflowStarterNodeKey[]>([])
   readonly preparedSkillWorkspaces = signal<Set<string>>(new Set())
-  readonly preparedTemplatePluginSkillDependencies = signal<Set<string>>(new Set())
+  readonly preparedTemplatePluginSkillDependencies = signal<Map<string, BlankTemplatePluginSkillBinding[]>>(new Map())
   readonly preparedTemplateToolsetDependencies = signal<BlankTemplateToolsetPreparation | null>(null)
   readonly loadedTemplateToolsetDependencyKey = signal<string | null>(null)
   readonly templateToolsetSelectionStates = signal<BlankTemplateToolsetSelectionState[]>([])
@@ -907,7 +908,8 @@ export class XpertNewBlankComponent {
       triggers: this.selectedTriggers(),
       skills: this.selectedExplicitSkills(),
       repositoryDefault: this.selectedRepositoryDefault(),
-      middlewares: this.selectedMiddlewares()
+      middlewares: this.selectedMiddlewares(),
+      preserveSkillsMiddleware: this.preserveSkillsMiddleware()
     })
   )
 
@@ -1298,7 +1300,8 @@ export class XpertNewBlankComponent {
     const middlewares = normalizeBlankMiddlewareSelections(
       this.toggleValue(this.selectedMiddlewares(), provider, enabled),
       this.selectedExplicitSkills(),
-      this.selectedRepositoryDefault()
+      this.selectedRepositoryDefault(),
+      this.preserveSkillsMiddleware()
     )
     this.selectedMiddlewares.set(middlewares)
     this.syncMiddlewareRequiredSelections(middlewares)
@@ -1611,6 +1614,7 @@ export class XpertNewBlankComponent {
   }
 
   private applyBlankDefaults() {
+    this.templatePluginSkillBindings.set([])
     this.name.set(undefined)
     this.description.set(undefined)
     this.avatar.set(undefined)
@@ -1647,7 +1651,7 @@ export class XpertNewBlankComponent {
     this.templateLoadError.set(null)
     this.templatePluginSkillInstallError.set(null)
     this.clearTemplateToolsetSelections()
-    this.preparedTemplatePluginSkillDependencies.set(new Set())
+    this.preparedTemplatePluginSkillDependencies.set(new Map())
   }
 
   private async initializeDraftIfNeeded(xpert: IXpert): Promise<DraftPreparationResult> {
@@ -1867,7 +1871,8 @@ export class XpertNewBlankComponent {
       skills: this.selectedExplicitSkills(),
       repositoryDefault: this.selectedRepositoryDefault(),
       middlewares: this.selectedMiddlewares(),
-      middlewareRequired: this.selectedMiddlewareRequired()
+      middlewareRequired: this.selectedMiddlewareRequired(),
+      preserveSkillsMiddleware: this.preserveSkillsMiddleware()
     }
   }
 
@@ -1981,12 +1986,14 @@ export class XpertNewBlankComponent {
   }
 
   private applyAgentSkillSelections(selections: BlankAgentSkillSelections) {
+    this.preserveSkillsMiddleware.set(selections.preserveSkillsMiddleware ?? false)
     this.selectedExplicitSkills.set(selections.skills)
     this.selectedRepositoryDefault.set(cloneRepositoryDefaultSelection(selections.repositoryDefault))
     const middlewares = normalizeBlankMiddlewareSelections(
       selections.middlewares,
       selections.skills,
-      selections.repositoryDefault
+      selections.repositoryDefault,
+      selections.preserveSkillsMiddleware
     )
     this.selectedMiddlewares.set(middlewares)
     this.selectedMiddlewareRequired.set(
@@ -2001,15 +2008,14 @@ export class XpertNewBlankComponent {
     // and their idempotency keys so switching back to a workspace refreshes
     // the IDs instead of reusing bindings resolved for another workspace.
     this.templatePluginSkillBindings.set([])
-    this.preparedTemplatePluginSkillDependencies.set(new Set())
+    this.preparedTemplatePluginSkillDependencies.set(new Map())
     this.clearTemplateToolsetSelections()
     this.applyAgentSkillSelections({
       skills: [],
       repositoryDefault: null,
-      middlewares: this.selectedMiddlewares().filter(
-        (provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
-      ),
-      middlewareRequired: this.selectedMiddlewareRequired()
+      middlewares: this.selectedMiddlewares(),
+      middlewareRequired: this.selectedMiddlewareRequired(),
+      preserveSkillsMiddleware: this.preserveSkillsMiddleware()
     })
   }
 
@@ -2065,6 +2071,13 @@ export class XpertNewBlankComponent {
   private async prepareAgentSkillStep() {
     const workspaceId = this.workspaceId()
     if (!workspaceId || this.installingSkillPackage()) {
+      return
+    }
+
+    // Template-declared packages define its defaults; do not also select the
+    // workspace's unrelated shared skills or repository-wide defaults.
+    if (this.templatePluginSkillDependencyGroups().length) {
+      await this.prepareTemplatePluginSkillsForCurrentWorkspace()
       return
     }
 
@@ -2142,7 +2155,13 @@ export class XpertNewBlankComponent {
     }
 
     const dependencyKey = this.templatePluginSkillDependencyInstallKey(workspaceId, groups)
-    if (this.preparedTemplatePluginSkillDependencies().has(dependencyKey)) {
+    const isCurrentSelection = () =>
+      this.workspaceId() === workspaceId &&
+      this.templatePluginSkillDependencyInstallKey(workspaceId, this.templatePluginSkillDependencyGroups()) ===
+        dependencyKey
+    const prepared = this.preparedTemplatePluginSkillDependencies().get(dependencyKey)
+    if (prepared) {
+      this.restoreTemplatePluginSkillBindings(prepared)
       this.templatePluginSkillInstallError.set(null)
       return true
     }
@@ -2155,8 +2174,6 @@ export class XpertNewBlankComponent {
     this.templatePluginSkillInstallError.set(null)
 
     try {
-      const primaryAgentKey = this.selectedTemplateDraft()?.team?.agent?.key
-      const primarySkillPackageIds: string[] = []
       const skillBindings: BlankTemplatePluginSkillBinding[] = []
       for (const group of groups) {
         const result = await firstValueFrom(
@@ -2168,6 +2185,10 @@ export class XpertNewBlankComponent {
             .pipe(take(1))
         )
 
+        // Do not bind a completed request into a different template or workspace.
+        if (!isCurrentSelection()) {
+          return false
+        }
         const skillInstallations = result.installations.filter(
           (installation) =>
             installation.componentType === PLUGIN_COMPONENT_TYPE.SKILL &&
@@ -2200,27 +2221,17 @@ export class XpertNewBlankComponent {
             runtimeId: installation.runtimeId,
             ...(component.targetAgentKey ? { targetAgentKey: component.targetAgentKey } : {})
           })
-          // selectedExplicitSkills configures the primary Agent. Keep an
-          // explicitly targeted specialist skill out of that primary grant;
-          // applyTemplatePluginSkillBindings authorizes its target instead.
-          if (!component.targetAgentKey || component.targetAgentKey === primaryAgentKey) {
-            primarySkillPackageIds.push(installation.runtimeId)
-          }
         }
       }
 
-      if (primarySkillPackageIds.length) {
-        this.selectedExplicitSkills.set(
-          Array.from(new Set([...this.selectedExplicitSkills(), ...primarySkillPackageIds]))
-        )
-      }
-      this.templatePluginSkillBindings.set(skillBindings)
-
-      this.preparedTemplatePluginSkillDependencies.update((value) => new Set([...value, dependencyKey]))
-      this.refreshAgentSkillMiddlewareSelections()
+      this.preparedTemplatePluginSkillDependencies.update((value) => new Map(value).set(dependencyKey, skillBindings))
+      this.restoreTemplatePluginSkillBindings(skillBindings)
       this.refreshSkills()
       return true
     } catch (error) {
+      if (!isCurrentSelection()) {
+        return false
+      }
       const localizedError = resolveTemplatePluginSkillInstallError(error)
       const message = localizedError
         ? (this.#translate.instant(localizedError.key, { Default: localizedError.defaultMessage }) as string)
@@ -2234,6 +2245,16 @@ export class XpertNewBlankComponent {
     } finally {
       this.installingSkillPackage.set(false)
     }
+  }
+
+  private restoreTemplatePluginSkillBindings(bindings: BlankTemplatePluginSkillBinding[]) {
+    const primaryAgentKey = this.selectedTemplateDraft()?.team?.agent?.key
+    const primarySkillIds = bindings
+      .filter((binding) => !binding.targetAgentKey || binding.targetAgentKey === primaryAgentKey)
+      .map((binding) => binding.runtimeId)
+    this.selectedExplicitSkills.update((skills) => [...new Set([...skills, ...primarySkillIds])])
+    this.templatePluginSkillBindings.set(bindings)
+    this.refreshAgentSkillMiddlewareSelections()
   }
 
   /**
@@ -2680,7 +2701,8 @@ export class XpertNewBlankComponent {
     const middlewares = normalizeBlankMiddlewareSelections(
       this.selectedMiddlewares(),
       this.selectedExplicitSkills(),
-      this.selectedRepositoryDefault()
+      this.selectedRepositoryDefault(),
+      this.preserveSkillsMiddleware()
     )
     this.selectedMiddlewares.set(middlewares)
     this.syncMiddlewareRequiredSelections(middlewares)
@@ -2698,6 +2720,7 @@ type BlankAgentSkillSelections = {
   repositoryDefault: BlankRepositoryDefaultSelection | null
   middlewares: string[]
   middlewareRequired?: Record<string, boolean>
+  preserveSkillsMiddleware?: boolean
 }
 
 function cloneRepositoryDefaultSelection(

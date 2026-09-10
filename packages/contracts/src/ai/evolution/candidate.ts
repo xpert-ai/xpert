@@ -12,6 +12,9 @@ export type EvolutionCandidateStatus =
   | 'expired'
 
 export interface EvolutionCandidate {
+  definition?: Omit<import('./change').EvolutionChangeCandidate, 'artifact'>
+  evaluationRunId?: string
+  strategy: import('./strategy').EvolutionStrategySnapshot
   candidateId: string
   targetId: string
   baseVersionId: string

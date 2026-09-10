@@ -16,6 +16,9 @@ export class KnowledgeWikiJob extends TenantOrganizationBaseEntity {
     @Column({ type: 'uuid' })
     knowledgebaseId: string
 
+    @Column({ type: 'jsonb', nullable: true })
+    classification?: import('@xpert-ai/contracts').KnowledgeWikiClassificationInput | null
+
     @Column({ type: 'uuid', nullable: true })
     rootJobId?: string | null
 

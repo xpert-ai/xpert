@@ -1,428 +1,219 @@
-<div class="py-4 flex w-full grow overflow-hidden">
-  <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
-    @if (onlySheet() && transformerType() === 'default') {
-      <div class="system-md-semibold mb-3 flex items-center justify-between gap-3">
-        <div class="flex-1">
-          <span>{{ 'XP.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
-          <i
-            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [zTooltip]="
-              'XP.Knowledgebase.SpreadsheetProcessorFirst'
+<div [class]="section() === 'all' ? 'py-4 flex w-full grow overflow-hidden' : 'w-full'">
+  <div
+    [class]="
+      section() === 'all' ? 'grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto' : 'flex min-w-0 flex-col gap-2'
+    "
+  >
+    @if (usesPlatformSpreadsheetParser()) {
+      @if (section() !== 'images') {
+        <div class="system-md-semibold mb-3 flex items-center justify-between gap-3">
+          <div class="flex-1">
+            <span>{{ 'XP.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
+            <i
+              class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+              [zTooltip]="
+                'XP.Knowledgebase.SpreadsheetProcessorFirst'
+                  | translate
+                    : {
+                        Default:
+                          'Spreadsheet parsing settings apply only to the platform default transformer. Select another transformer to use its own extraction and chunking settings.'
+                      }
+              "
+              zPosition="top"
+            ></i>
+          </div>
+          <xp-select
+            class="w-52"
+            [placeholder]="'XP.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
+            [(ngModel)]="transformerType"
+            [selectOptions]="documentTransformerStrategies()"
+            [nullable]="false"
+          />
+        </div>
+
+        <div class="flex px-4 py-2 font-body bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-text-secondary">
+          {{
+            spreadsheetInterpretation() === 'records'
+              ? ('XP.Knowledgebase.OnlyIndexedFields'
+                | translate
+                  : { Default: 'Only indexed fields can be searched; other fields remain available in metadata.' })
+              : ('XP.Knowledgebase.SpreadsheetFormHint'
                 | translate
                   : {
                       Default:
-                        'Spreadsheet parsing settings apply only to the platform default transformer. Select another transformer to use its own extraction and chunking settings.'
+                        'Form-document mode preserves worksheet context and cell coordinates. The application that uploads the document should choose this mode explicitly.'
+                    })
+          }}
+        </div>
+
+        <div class="system-md-semibold mb-1 flex items-center gap-2">
+          <span>{{ 'XP.Knowledgebase.SpreadsheetParsing' | translate: { Default: 'Spreadsheet parsing' } }}</span>
+          <i
+            class="ri-information-2-line text-text-tertiary hover:text-text-primary"
+            [zTooltip]="
+              'XP.Knowledgebase.SpreadsheetParsingDesc'
+                | translate
+                  : {
+                      Default:
+                        'This is a generic parser configuration. Business applications decide which mode to send; the knowledge base does not infer business document types.'
                     }
             "
             zPosition="top"
           ></i>
         </div>
-        <xp-select
-          class="w-52"
-          [placeholder]="'XP.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
-          [(ngModel)]="transformerType"
-          [selectOptions]="documentTransformerStrategies()"
-          [nullable]="false"
-        />
-      </div>
 
-      <div class="flex px-4 py-2 font-body bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-text-secondary">
-        {{
-          spreadsheetInterpretation() === 'records'
-            ? ('XP.Knowledgebase.OnlyIndexedFields'
-              | translate
-                : { Default: 'Only indexed fields can be searched; other fields remain available in metadata.' })
-            : ('XP.Knowledgebase.SpreadsheetFormHint'
-              | translate
-                : {
-                    Default:
-                      'Form-document mode preserves worksheet context and cell coordinates. The application that uploads the document should choose this mode explicitly.'
-                  })
-        }}
-      </div>
-
-      <div class="system-md-semibold mb-1 flex items-center gap-2">
-        <span>{{ 'XP.Knowledgebase.SpreadsheetParsing' | translate: { Default: 'Spreadsheet parsing' } }}</span>
-        <i
-          class="ri-information-2-line text-text-tertiary hover:text-text-primary"
-          [zTooltip]="
-            'XP.Knowledgebase.SpreadsheetParsingDesc'
-              | translate
-                : {
-                    Default:
-                      'This is a generic parser configuration. Business applications decide which mode to send; the knowledge base does not infer business document types.'
-                  }
-          "
-          zPosition="top"
-        ></i>
-      </div>
-
-      <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4 space-y-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <div class="text-sm text-text-secondary">
-              {{ 'XP.Knowledgebase.SpreadsheetInterpretation' | translate: { Default: 'Interpretation' } }}
-            </div>
-            <xp-select
-              class="w-full"
-              [(ngModel)]="spreadsheetInterpretation"
-              [selectOptions]="spreadsheetInterpretationOptions"
-              [nullable]="false"
-            />
-          </div>
-
-          @if (spreadsheetInterpretation() === 'form_document') {
+        <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
               <div class="text-sm text-text-secondary">
-                {{ 'XP.Knowledgebase.SpreadsheetContextUnit' | translate: { Default: 'Context unit' } }}
+                {{ 'XP.Knowledgebase.SpreadsheetInterpretation' | translate: { Default: 'Interpretation' } }}
               </div>
               <xp-select
                 class="w-full"
-                [(ngModel)]="spreadsheetContextUnit"
-                [selectOptions]="spreadsheetContextUnitOptions"
+                [(ngModel)]="spreadsheetInterpretation"
+                [selectOptions]="spreadsheetInterpretationOptions"
                 [nullable]="false"
               />
             </div>
 
-            <div class="space-y-1.5">
+            @if (spreadsheetInterpretation() === 'form_document') {
+              <div class="space-y-1.5">
+                <div class="text-sm text-text-secondary">
+                  {{ 'XP.Knowledgebase.SpreadsheetContextUnit' | translate: { Default: 'Context unit' } }}
+                </div>
+                <xp-select
+                  class="w-full"
+                  [(ngModel)]="spreadsheetContextUnit"
+                  [selectOptions]="spreadsheetContextUnitOptions"
+                  [nullable]="false"
+                />
+              </div>
+
+              <div class="space-y-1.5">
+                <xp-input
+                  simple
+                  type="number"
+                  [label]="
+                    'XP.Knowledgebase.SpreadsheetMaxChunkTokens' | translate: { Default: 'Maximum tokens per chunk' }
+                  "
+                  [(ngModel)]="spreadsheetMaxChunkTokens"
+                />
+              </div>
+
+              <div class="space-y-1.5">
+                <div class="text-sm text-text-secondary">
+                  {{ 'XP.Knowledgebase.SpreadsheetOversizePolicy' | translate: { Default: 'Oversize policy' } }}
+                </div>
+                <xp-select
+                  class="w-full"
+                  [(ngModel)]="spreadsheetOversizePolicy"
+                  [selectOptions]="spreadsheetOversizePolicyOptions"
+                  [nullable]="false"
+                />
+              </div>
+            }
+
+            <div class="space-y-1.5 col-span-2">
               <xp-input
                 simple
-                type="number"
-                [label]="
-                  'XP.Knowledgebase.SpreadsheetMaxChunkTokens' | translate: { Default: 'Maximum tokens per chunk' }
+                [label]="'XP.Knowledgebase.SpreadsheetIncludedSheets' | translate: { Default: 'Included worksheets' }"
+                [placeholder]="
+                  'XP.Knowledgebase.SpreadsheetIncludedSheetsHint'
+                    | translate: { Default: 'Use * for all, or comma-separated worksheet names' }
                 "
-                [(ngModel)]="spreadsheetMaxChunkTokens"
+                [(ngModel)]="spreadsheetIncludeSheets"
               />
             </div>
+          </div>
 
-            <div class="space-y-1.5">
-              <div class="text-sm text-text-secondary">
-                {{ 'XP.Knowledgebase.SpreadsheetOversizePolicy' | translate: { Default: 'Oversize policy' } }}
-              </div>
-              <xp-select
-                class="w-full"
-                [(ngModel)]="spreadsheetOversizePolicy"
-                [selectOptions]="spreadsheetOversizePolicyOptions"
-                [nullable]="false"
-              />
-            </div>
-          }
-
-          <div class="space-y-1.5 col-span-2">
-            <xp-input
-              simple
-              [label]="'XP.Knowledgebase.SpreadsheetIncludedSheets' | translate: { Default: 'Included worksheets' }"
-              [placeholder]="
-                'XP.Knowledgebase.SpreadsheetIncludedSheetsHint'
-                  | translate: { Default: 'Use * for all, or comma-separated worksheet names' }
-              "
-              [(ngModel)]="spreadsheetIncludeSheets"
-            />
+          <div class="flex flex-col items-start gap-3 pt-1">
+            <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetIncludeHiddenSheets">
+              {{ 'XP.Knowledgebase.IncludeHiddenSheets' | translate: { Default: 'Include hidden worksheets' } }}
+            </z-checkbox>
+            @if (spreadsheetInterpretation() === 'form_document') {
+              <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetPreserveMergedCells">
+                {{ 'XP.Knowledgebase.PreserveMergedCells' | translate: { Default: 'Preserve merged-cell ranges' } }}
+              </z-checkbox>
+              <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetEmitCellAnchors">
+                {{ 'XP.Knowledgebase.EmitCellAnchors' | translate: { Default: 'Emit cell coordinates in content' } }}
+              </z-checkbox>
+            }
           </div>
         </div>
 
-        <div class="flex flex-col items-start gap-3 pt-1">
-          <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetIncludeHiddenSheets">
-            {{ 'XP.Knowledgebase.IncludeHiddenSheets' | translate: { Default: 'Include hidden worksheets' } }}
-          </z-checkbox>
-          @if (spreadsheetInterpretation() === 'form_document') {
-            <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetPreserveMergedCells">
-              {{ 'XP.Knowledgebase.PreserveMergedCells' | translate: { Default: 'Preserve merged-cell ranges' } }}
-            </z-checkbox>
-            <z-checkbox displayDensity="cosy" [(ngModel)]="spreadsheetEmitCellAnchors">
-              {{ 'XP.Knowledgebase.EmitCellAnchors' | translate: { Default: 'Emit cell coordinates in content' } }}
-            </z-checkbox>
-          }
+        <div class="mt-4 flex flex-wrap items-center justify-end gap-2" [hidden]="section() !== 'all'">
+          <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
+            <z-icon zType="search" />
+            {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
+          </button>
+          <ng-content select="[inline-actions]"></ng-content>
         </div>
-      </div>
-
-      <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-        <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
-          <z-icon zType="search" />
-          {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
-        </button>
-        <ng-content select="[inline-actions]"></ng-content>
-      </div>
+      }
     } @else {
-      <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
-        <div class="flex-1">
-          <span>{{ 'XP.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
+      @if (section() === 'all' || section() === 'parser') {
+        <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
+          <div class="flex-1">
+            <span>{{ 'XP.Knowledgebase.TransformerSettings' | translate: { Default: 'Transformer Settings' } }}</span>
 
-          <i
-            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [zTooltip]="
-              'XP.Knowledgebase.TransformerSettingsDesc'
-                | translate: { Default: 'Configure the document transformer to extract the file content.' }
-            "
-            zPosition="top"
-          ></i>
-        </div>
-
-        @if (transformerStrategy()?.meta.helpUrl; as helpUrl) {
-          <a
-            [href]="helpUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
-          >
-            {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
-            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
-            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
-          </a>
-        }
-        <xp-select
-          class="flex-1 w-52"
-          [placeholder]="'XP.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
-          [(ngModel)]="transformerType"
-          [selectOptions]="documentTransformerStrategies()"
-        >
-          <div icon>
-            @if (transformerStrategy()?.meta.icon; as icon) {
-              <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
-            }
+            <i
+              class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+              [zTooltip]="
+                'XP.Knowledgebase.TransformerSettingsDesc'
+                  | translate: { Default: 'Configure the document transformer to extract the file content.' }
+              "
+              zPosition="top"
+            ></i>
           </div>
-          <ng-template #option let-option>
-            <div class="relative flex">
-              @if (option._icon; as icon) {
-                <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="icon" size="24" />
-              }
-              <div class="flex flex-col gap-1">
-                <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-                <div
-                  class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
-                  [title]="option.description | i18n"
-                >
-                  {{ option.description | i18n }}
-                </div>
-              </div>
-            </div>
-          </ng-template>
-        </xp-select>
-      </div>
 
-      <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
-        <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
-          <div class="flex justify-center items-center">
-            <div
-              class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+          @if (transformerStrategy()?.meta.helpUrl; as helpUrl) {
+            <a
+              [href]="helpUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
             >
+              {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+              <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+              <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+            </a>
+          }
+          <xp-select
+            class="flex-1 w-52"
+            [placeholder]="'XP.Knowledgebase.SelectTransformer' | translate: { Default: 'Select a transformer' }"
+            [(ngModel)]="transformerType"
+            [selectOptions]="documentTransformerStrategies()"
+          >
+            <div icon>
               @if (transformerStrategy()?.meta.icon; as icon) {
-                <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
-              } @else {
-                <i class="ri-equalizer-3-line"></i>
+                <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
               }
             </div>
-          </div>
-
-          @if (transformerStrategy(); as transformerStrategy) {
-            <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
-              <div class="text-text-secondary system-md-semibold">
-                {{ transformerStrategy.meta.label | i18n }}
-              </div>
-              <div
-                class="text-text-tertiary system-xs-regular truncate"
-                [title]="transformerStrategy.meta.description | i18n"
-              >
-                {{ transformerStrategy.meta.description | i18n }}
-              </div>
-            </div>
-
-            @if (transformerIntegration(); as integration) {
-              <div class="w-48 shrink-0">
-                <xp-integration-select
-                  class="grow"
-                  [placeholder]="
-                    'XP.Knowledgebase.NoIntegrationUseEnv'
-                      | translate: { Default: 'Default environment configuration will be used' }
-                  "
-                  [provider]="transformerIntegrationProvider()"
-                  [(ngModel)]="transformerIntegrationId"
-                >
-                  @if (transformerIntegrationId()) {
-                    <div icon class="inline-block mr-1.5 xpert-status-indicator xpert-status-indicator--success"></div>
-                  }
-                </xp-integration-select>
-              </div>
-            }
-          }
-        </div>
-        <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
-          @if (transformerConfigSchema(); as transformerConfigSchema) {
-            <json-schema-form
-              class="grid grid-cols-2 gap-2"
-              [schema]="transformerConfigSchema"
-              [controlDefaults]="compactControlDefaults"
-              [(ngModel)]="transformer"
-            />
-          }
-        </div>
-      </div>
-
-      <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
-
-      <div class="system-md-semibold mb-1 flex justify-between items-center">
-        <div class="flex-1">
-          <span>
-            {{ 'XP.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
-          </span>
-          <i
-            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [zTooltip]="'XP.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }"
-            zPosition="top"
-          ></i>
-        </div>
-
-        @if (textSplitterStrategy()?.helpUrl; as helpUrl) {
-          <a
-            [href]="helpUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
-          >
-            {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
-            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
-            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
-          </a>
-        }
-        <xp-select
-          class="w-52"
-          [(ngModel)]="textSplitterType"
-          [selectOptions]="textSplitterStrategies()"
-          [nullable]="false"
-        >
-          <div icon>
-            @if (textSplitterStrategy()?.icon; as icon) {
-              <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
-            }
-          </div>
-          <ng-template #option let-option>
-            <div class="relative flex">
-              @if (option._icon) {
-                <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="option._icon" size="24" />
-              }
-              <div class="flex flex-col gap-1">
-                <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-                <div
-                  class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
-                  [title]="option.description | i18n"
-                >
-                  {{ option.description | i18n }}
+            <ng-template #option let-option>
+              <div class="relative flex">
+                @if (option._icon; as icon) {
+                  <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="icon" size="24" />
+                }
+                <div class="flex flex-col gap-1">
+                  <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+                  <div
+                    class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
+                    [title]="option.description | i18n"
+                  >
+                    {{ option.description | i18n }}
+                  </div>
                 </div>
               </div>
-            </div>
-          </ng-template>
-        </xp-select>
-      </div>
-
-      <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
-        @if (textSplitterStrategy(); as textSplitterStrategy) {
-          <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer">
-            <div class="px-2 flex justify-center items-center">
-              <div
-                class="w-8 h-8 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
-              >
-                <i class="ri-equalizer-3-line"></i>
-              </div>
-            </div>
-
-            <div class="flex-1 space-y-0.5 py-3 pr-4 overflow-hidden">
-              <div class="text-text-secondary system-md-semibold">
-                {{ textSplitterStrategy.label | i18n }}
-              </div>
-              <div
-                class="text-text-tertiary system-xs-regular truncate"
-                [title]="textSplitterStrategy.description | i18n"
-              >
-                {{ textSplitterStrategy.description | i18n }}
-              </div>
-            </div>
-          </div>
-        }
-        <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
-          <div class="flex flex-col gap-y-4">
-            <json-schema-form
-              class="grid grid-cols-2 gap-2"
-              [schema]="textSplitterConfigSchema()"
-              [controlDefaults]="compactControlDefaults"
-              [ngModel]="textSplitter()"
-              (ngModelChange)="textSplitter.set($event)"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
-
-      <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
-        <div class="flex-1">
-          <z-switch zSize="sm" class="inline-flex items-center mr-1" [(ngModel)]="enableImageUnderstanding" />
-          <span>{{ 'XP.Knowledgebase.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}</span>
-
-          <i
-            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [zTooltip]="
-              'XP.Knowledgebase.ImageUnderstandingDesc'
-                | translate
-                  : { Default: 'Extract text and metadata from images using OCR and image recognition technologies.' }
-            "
-            zPosition="top"
-          ></i>
+            </ng-template>
+          </xp-select>
         </div>
 
-        @if (imageUnderstandingStrategy()?.meta.helpUrl; as helpUrl) {
-          <a
-            [href]="helpUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
-          >
-            {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
-            <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
-            <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
-          </a>
-        }
-        <xp-select
-          class="flex-1 w-52"
-          [placeholder]="
-            'XP.Knowledgebase.SelectImageUnderstandingTool'
-              | translate: { Default: 'Select a image understanding tool' }
-          "
-          [(ngModel)]="imageUnderstandingType"
-          [disabled]="!enableImageUnderstanding()"
-          [selectOptions]="imageUnderstandingStrategies()"
-        >
-          <div icon>
-            @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
-              <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
-            }
-          </div>
-          <ng-template #option let-option>
-            <div class="relative flex">
-              @if (option._icon) {
-                <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="option._icon" size="24" />
-              }
-              <div class="flex flex-col gap-1">
-                <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
-                <div
-                  class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
-                  [title]="option.description | i18n"
-                >
-                  {{ option.description | i18n }}
-                </div>
-              </div>
-            </div>
-          </ng-template>
-        </xp-select>
-      </div>
-
-      @if (enableImageUnderstanding()) {
         <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
           <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
             <div class="flex justify-center items-center">
               <div
                 class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
               >
-                @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
+                @if (transformerStrategy()?.meta.icon; as icon) {
                   <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
                 } @else {
                   <i class="ri-equalizer-3-line"></i>
@@ -430,20 +221,20 @@
               </div>
             </div>
 
-            @if (imageUnderstandingStrategy(); as imageUnderstandingStrategy) {
+            @if (transformerStrategy(); as transformerStrategy) {
               <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
                 <div class="text-text-secondary system-md-semibold">
-                  {{ imageUnderstandingStrategy.meta.label | i18n }}
+                  {{ transformerStrategy.meta.label | i18n }}
                 </div>
                 <div
                   class="text-text-tertiary system-xs-regular truncate"
-                  [title]="imageUnderstandingStrategy.meta.description | i18n"
+                  [title]="transformerStrategy.meta.description | i18n"
                 >
-                  {{ imageUnderstandingStrategy.meta.description | i18n }}
+                  {{ transformerStrategy.meta.description | i18n }}
                 </div>
               </div>
 
-              @if (imageUnderstandingIntegration(); as integration) {
+              @if (transformerIntegration(); as integration) {
                 <div class="w-48 shrink-0">
                   <xp-integration-select
                     class="grow"
@@ -451,11 +242,14 @@
                       'XP.Knowledgebase.NoIntegrationUseEnv'
                         | translate: { Default: 'Default environment configuration will be used' }
                     "
-                    [provider]="imageUnderstandingIntegrationProvider()"
-                    [(ngModel)]="imageUnderstandingIntegrationId"
+                    [provider]="transformerIntegrationProvider()"
+                    [(ngModel)]="transformerIntegrationId"
                   >
-                    @if (imageUnderstandingIntegrationId()) {
-                      <div class="inline-block mr-1.5 xpert-status-indicator xpert-status-indicator--success"></div>
+                    @if (transformerIntegrationId()) {
+                      <div
+                        icon
+                        class="inline-block mr-1.5 xpert-status-indicator xpert-status-indicator--success"
+                      ></div>
                     }
                   </xp-integration-select>
                 </div>
@@ -463,52 +257,279 @@
             }
           </div>
           <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
-            @if (requireVisionModel()) {
-              <div>
-                <div>
-                  {{ 'XP.Pipeline.VisionModel' | translate: { Default: 'Vision Model' } }}
-                  <span class="text-text-destructive">*</span>
-                </div>
-                <copilot-model-select
-                  hiddenLabel
-                  [modelType]="eModelType.LLM"
-                  [features]="[eModelFeature.VISION]"
-                  [(ngModel)]="imageUnderstandingModel"
-                  [inheritModel]="kbVisionModel()"
-                />
-              </div>
-            }
-            @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
+            @if (transformerType() && transformerConfigSchema(); as transformerConfigSchema) {
               <json-schema-form
                 class="grid grid-cols-2 gap-2"
-                [schema]="imageUnderstandingConfigSchema"
+                [schema]="transformerConfigSchema"
                 [controlDefaults]="compactControlDefaults"
-                [(ngModel)]="imageUnderstanding"
+                [(ngModel)]="transformer"
               />
             }
           </div>
         </div>
       }
+      @if (section() === 'all' || section() === 'chunks') {
+        <div class="system-md-semibold mb-1 flex justify-between items-center">
+          <div class="flex-1">
+            <span>
+              {{ 'XP.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
+            </span>
+            <i
+              class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+              [zTooltip]="
+                'XP.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }
+              "
+              zPosition="top"
+            ></i>
+          </div>
 
-      <div class="w-full h-[1px] shrink-0 my-4 bg-divider-regular"></div>
-
-      <div class="system-md-semibold mb-1 flex justify-between items-center">
-        <div class="flex-1">
-          <span>
-            {{ 'XP.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
-          </span>
-          <i
-            class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [zTooltip]="
-              'XP.Knowledgebase.TextPreprocessingRulesDesc' | translate: { Default: 'Configure text processing rules.' }
-            "
-            zPosition="top"
-          ></i>
+          @if (textSplitterStrategy()?.helpUrl; as helpUrl) {
+            <a
+              [href]="helpUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
+            >
+              {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+              <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+              <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+            </a>
+          }
+          <xp-select
+            class="w-52"
+            [(ngModel)]="textSplitterType"
+            [selectOptions]="textSplitterStrategies()"
+            [nullable]="false"
+          >
+            <div icon>
+              @if (textSplitterStrategy()?.icon; as icon) {
+                <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
+              }
+            </div>
+            <ng-template #option let-option>
+              <div class="relative flex">
+                @if (option._icon) {
+                  <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="option._icon" size="24" />
+                }
+                <div class="flex flex-col gap-1">
+                  <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+                  <div
+                    class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
+                    [title]="option.description | i18n"
+                  >
+                    {{ option.description | i18n }}
+                  </div>
+                </div>
+              </div>
+            </ng-template>
+          </xp-select>
         </div>
-      </div>
 
-      <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4">
-        <!-- <div class="flex gap-3">
+        <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+          @if (textSplitterStrategy(); as textSplitterStrategy) {
+            <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer">
+              <div class="px-2 flex justify-center items-center">
+                <div
+                  class="w-8 h-8 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+                >
+                  <i class="ri-equalizer-3-line"></i>
+                </div>
+              </div>
+
+              <div class="flex-1 space-y-0.5 py-3 pr-4 overflow-hidden">
+                <div class="text-text-secondary system-md-semibold">
+                  {{ textSplitterStrategy.label | i18n }}
+                </div>
+                <div
+                  class="text-text-tertiary system-xs-regular truncate"
+                  [title]="textSplitterStrategy.description | i18n"
+                >
+                  {{ textSplitterStrategy.description | i18n }}
+                </div>
+              </div>
+            </div>
+          }
+          <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+            <div class="flex flex-col gap-y-4">
+              <json-schema-form
+                class="grid grid-cols-2 gap-2"
+                [schema]="textSplitterConfigSchema()"
+                [controlDefaults]="compactControlDefaults"
+                [ngModel]="textSplitter()"
+                (ngModelChange)="textSplitter.set($event)"
+              />
+              @if (textSplitterType() === 'recursive-character') {
+                <z-tag-select
+                  mode="tags"
+                  [allowCreate]="true"
+                  [tokenSeparators]="[]"
+                  [options]="separatorOptions()"
+                  [compareWith]="compareSeparators"
+                  [value]="separators()"
+                  (valueChange)="updateSeparators($event)"
+                />
+              }
+            </div>
+          </div>
+        </div>
+      }
+      @if (section() === 'all' || section() === 'images') {
+        <div class="system-md-semibold mb-1 flex justify-between items-center gap-2">
+          <div class="flex-1">
+            <z-switch zSize="sm" class="inline-flex items-center mr-1" [(ngModel)]="enableImageUnderstanding" />
+            <span>{{ 'XP.Knowledgebase.ImageUnderstanding' | translate: { Default: 'Image Understanding' } }}</span>
+
+            <i
+              class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+              [zTooltip]="
+                'XP.Knowledgebase.ImageUnderstandingDesc'
+                  | translate
+                    : { Default: 'Extract text and metadata from images using OCR and image recognition technologies.' }
+              "
+              zPosition="top"
+            ></i>
+          </div>
+
+          @if (imageUnderstandingStrategy()?.meta.helpUrl; as helpUrl) {
+            <a
+              [href]="helpUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group inline-flex items-center text-xs hover:underline text-primary-400 hover:text-primary-600"
+            >
+              {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+              <i class="ri-book-open-line ml-1 justify-center items-center flex group-hover:hidden"></i>
+              <i class="ri-book-open-fill ml-1 justify-center items-center hidden group-hover:flex"></i>
+            </a>
+          }
+          <xp-select
+            class="flex-1 w-52"
+            [placeholder]="
+              'XP.Knowledgebase.SelectImageUnderstandingTool'
+                | translate: { Default: 'Select a image understanding tool' }
+            "
+            [(ngModel)]="imageUnderstandingType"
+            [disabled]="!enableImageUnderstanding()"
+            [selectOptions]="imageUnderstandingStrategies()"
+          >
+            <div icon>
+              @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
+                <xp-icon class="flex w-5 h-5 shrink-0 mr-2" [icon]="icon" size="16" />
+              }
+            </div>
+            <ng-template #option let-option>
+              <div class="relative flex">
+                @if (option._icon) {
+                  <xp-icon class="flex w-8 h-8 shrink-0 mr-2" [icon]="option._icon" size="24" />
+                }
+                <div class="flex flex-col gap-1">
+                  <div class="text-text-primary text-sm leading-5">{{ option.label | i18n }}</div>
+                  <div
+                    class="text-text-tertiary text-xs font-body leading-3 line-clamp-3"
+                    [title]="option.description | i18n"
+                  >
+                    {{ option.description | i18n }}
+                  </div>
+                </div>
+              </div>
+            </ng-template>
+          </xp-select>
+        </div>
+
+        @if (enableImageUnderstanding()) {
+          <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+            <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer p-3">
+              <div class="flex justify-center items-center">
+                <div
+                  class="w-10 h-10 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-components-input-bg-normal"
+                >
+                  @if (imageUnderstandingStrategy()?.meta.icon; as icon) {
+                    <xp-icon class="!flex w-8 h-8 shrink-0 justify-center items-center" [icon]="icon" />
+                  } @else {
+                    <i class="ri-equalizer-3-line"></i>
+                  }
+                </div>
+              </div>
+
+              @if (imageUnderstandingStrategy(); as imageUnderstandingStrategy) {
+                <div class="flex-1 space-y-0.5 px-4 overflow-hidden">
+                  <div class="text-text-secondary system-md-semibold">
+                    {{ imageUnderstandingStrategy.meta.label | i18n }}
+                  </div>
+                  <div
+                    class="text-text-tertiary system-xs-regular truncate"
+                    [title]="imageUnderstandingStrategy.meta.description | i18n"
+                  >
+                    {{ imageUnderstandingStrategy.meta.description | i18n }}
+                  </div>
+                </div>
+
+                @if (imageUnderstandingIntegration(); as integration) {
+                  <div class="w-48 shrink-0">
+                    <xp-integration-select
+                      class="grow"
+                      [placeholder]="
+                        'XP.Knowledgebase.NoIntegrationUseEnv'
+                          | translate: { Default: 'Default environment configuration will be used' }
+                      "
+                      [provider]="imageUnderstandingIntegrationProvider()"
+                      [(ngModel)]="imageUnderstandingIntegrationId"
+                    >
+                      @if (imageUnderstandingIntegrationId()) {
+                        <div class="inline-block mr-1.5 xpert-status-indicator xpert-status-indicator--success"></div>
+                      }
+                    </xp-integration-select>
+                  </div>
+                }
+              }
+            </div>
+            <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+              @if (requireVisionModel()) {
+                <div>
+                  <div>
+                    {{ 'XP.Pipeline.VisionModel' | translate: { Default: 'Vision Model' } }}
+                    <span class="text-text-destructive">*</span>
+                  </div>
+                  <copilot-model-select
+                    hiddenLabel
+                    [modelType]="eModelType.LLM"
+                    [features]="[eModelFeature.VISION]"
+                    [(ngModel)]="imageUnderstandingModel"
+                    [inheritModel]="kbVisionModel()"
+                  />
+                </div>
+              }
+              @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
+                <json-schema-form
+                  class="grid grid-cols-2 gap-2"
+                  [schema]="imageUnderstandingConfigSchema"
+                  [controlDefaults]="compactControlDefaults"
+                  [(ngModel)]="imageUnderstanding"
+                />
+              }
+            </div>
+          </div>
+        }
+      }
+      @if (section() === 'all' || section() === 'chunks') {
+        <div class="system-md-semibold mb-1 flex justify-between items-center">
+          <div class="flex-1">
+            <span>
+              {{ 'XP.Knowledgebase.TextPreprocessingRules' | translate: { Default: 'Text preprocessing rules' } }}
+            </span>
+            <i
+              class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
+              [zTooltip]="
+                'XP.Knowledgebase.TextPreprocessingRulesDesc'
+                  | translate: { Default: 'Configure text processing rules.' }
+              "
+              zPosition="top"
+            ></i>
+          </div>
+        </div>
+
+        <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4">
+          <!-- <div class="flex gap-3">
           <div class="space-y-2 flex-1">
             <xp-input [label]="'XP.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}"
               [placeholder]="'XP.Knowledgebase.ChunkDelimiterDefault' | translate: {Default: '\\n\\n \\n &quot; &quot;'}"
@@ -525,87 +546,90 @@
               [(ngModel)]="chunkOverlap" />
           </div>
         </div> -->
-        <div class="mt-1 flex flex-col items-start gap-3">
-          <z-checkbox displayDensity="cosy" [(ngModel)]="replaceWhitespace">
-            {{
-              'XP.Knowledgebase.ReplaceWhiteChar'
-                | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
-            }}
-          </z-checkbox>
-          <z-checkbox displayDensity="cosy" [(ngModel)]="removeSensitive">
-            {{ 'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' } }}
-          </z-checkbox>
+          <div class="mt-1 flex flex-col items-start gap-3">
+            <z-checkbox displayDensity="cosy" [(ngModel)]="replaceWhitespace">
+              {{
+                'XP.Knowledgebase.ReplaceWhiteChar'
+                  | translate: { Default: 'Replace consecutive spaces, newlines, and tabs' }
+              }}
+            </z-checkbox>
+            <z-checkbox displayDensity="cosy" [(ngModel)]="removeSensitive">
+              {{ 'XP.Knowledgebase.RemoveEmailUrls' | translate: { Default: 'Remove all URLs and email addresses' } }}
+            </z-checkbox>
+          </div>
         </div>
-      </div>
 
-      <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-        <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
-          <z-icon zType="search" />
-          {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
-        </button>
-        <ng-content select="[inline-actions]"></ng-content>
-      </div>
+        <div class="mt-4 flex flex-wrap items-center justify-end gap-2" [hidden]="section() !== 'all'">
+          <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
+            <z-icon zType="search" />
+            {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
+          </button>
+          <ng-content select="[inline-actions]"></ng-content>
+        </div>
+      }
     }
     <ng-content select="[actions]"></ng-content>
   </div>
 
-  <div
-    class="grow max-w-[60%] relative flex flex-col pl-4 border-l border-y border-solid border-divider-regular rounded-xl"
-  >
-    <header class="py-2 pr-4 border-b border-divider-subtle">
-      <div>
-        <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
-          {{ 'XP.Knowledgebase.Preview' | translate: { Default: 'Preview' } }}
-        </div>
-        <div class="flex items-center gap-1">
-          <div
-            class="flex items-center h-6 px-1 rounded-md hover:bg-hover-bg select-none text-text-secondary"
-            [cdkMenuTriggerFor]="docsMenu"
-          >
-            <div class="flex items-center space-x-0.5 font-body text-sm text-text-secondary hover:text-text-primary">
-              <!-- @else if(selectedWebDoc()) {
+  @if (section() === 'all') {
+    <div
+      class="grow max-w-[60%] relative flex flex-col pl-4 border-l border-y border-solid border-divider-regular rounded-xl"
+    >
+      <header class="py-2 pr-4 border-b border-divider-subtle">
+        <div>
+          <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
+            {{ 'XP.Knowledgebase.Preview' | translate: { Default: 'Preview' } }}
+          </div>
+          <div class="flex items-center gap-1">
+            <div
+              class="flex items-center h-6 px-1 rounded-md hover:bg-hover-bg select-none text-text-secondary"
+              [cdkMenuTriggerFor]="docsMenu"
+            >
+              <div class="flex items-center space-x-0.5 font-body text-sm text-text-secondary hover:text-text-primary">
+                <!-- @else if(selectedWebDoc()) {
                 <div>{{selectedWebDoc().metadata.title}}</div>
               } -->
-              @if (selectedDocument(); as doc) {
-                <knowledge-doc-id [doc]="doc" />
-              } @else {
-                <div>
-                  {{ 'XP.Knowledgebase.SelectFilePreview' | translate: { Default: 'Select file to preview' } }}
-                </div>
-              }
-              <i class="ri-arrow-down-s-line"></i>
+                @if (selectedDocument(); as doc) {
+                  <knowledge-doc-id [doc]="doc" />
+                } @else {
+                  <div>
+                    {{ 'XP.Knowledgebase.SelectFilePreview' | translate: { Default: 'Select file to preview' } }}
+                  </div>
+                }
+                <i class="ri-arrow-down-s-line"></i>
+              </div>
             </div>
-          </div>
-          <!-- @if (estimateFile()) {
+            <!-- @if (estimateFile()) {
             <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">
               {{estimateFile().docs.length}} {{'XP.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
             </div>
           } -->
 
-          <i
-            class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
-            [class.!text-primary-500]="preview()"
-            [zTooltip]="'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
-            zPosition="top"
-            (click)="toggleAllPreview()"
-          ></i>
+            <i
+              class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
+              [class.!text-primary-500]="preview()"
+              [zTooltip]="'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
+              zPosition="top"
+              (click)="toggleAllPreview()"
+            ></i>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    @if (selectedDocument()) {
-      <xp-knowledge-document-preview
-        class="pb-4 w-full grow space-y-6"
-        [(document)]="selectedDocument"
-        [parserConfig]="parserConfig()"
-        [preview]="preview()"
-      />
-    }
-    <!-- @if (selectedWebDoc()) {
+      @if (selectedDocument()) {
+        <xp-knowledge-document-preview
+          class="pb-4 w-full grow space-y-6"
+          [(document)]="selectedDocument"
+          [parserConfig]="parserConfig()"
+          [preview]="preview()"
+        />
+      }
+      <!-- @if (selectedWebDoc()) {
       <xpert-knowledge-document-webpages [item]="selectedWebDoc()" 
             [parserConfig]="parserConfig()"/>
     } -->
-  </div>
+    </div>
+  }
 </div>
 
 <ng-template #docsMenu>

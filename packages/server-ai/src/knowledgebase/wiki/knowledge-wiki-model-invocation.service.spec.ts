@@ -1,5 +1,7 @@
-import { ChatOpenAI } from '@langchain/openai'
+import { ChatOpenAI, ChatOpenAICompletions } from '@langchain/openai'
+import { AIMessage } from '@langchain/core/messages'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import { Logger } from '@nestjs/common'
 import i18next from 'i18next'
 import { DataSource, EntityManager } from 'typeorm'
 import { KnowledgeWikiJob, KnowledgeWikiModelInvocation } from './entities'
@@ -75,6 +77,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
             ]
         }))
         const withStructuredOutput = jest.fn(() => ({ invoke }))
+        const textInvoke = jest.fn().mockResolvedValue(new AIMessage('SUMMARY: Summary\n\n# Page\n\nBody.'))
         const modelRuntime = {
             createModelClient: jest.fn().mockImplementation(async (_model, options) => {
                 options.usageCallback({
@@ -84,7 +87,8 @@ describe('KnowledgeWikiModelInvocationService', () => {
                     totalTokens: 15
                 })
                 return {
-                    withStructuredOutput
+                    withStructuredOutput,
+                    invoke: textInvoke
                 }
             })
         }
@@ -102,6 +106,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
             modelRuntime,
             commandBus,
             invoke,
+            textInvoke,
             jobs,
             withStructuredOutput
         }
@@ -129,6 +134,323 @@ describe('KnowledgeWikiModelInvocationService', () => {
             modelType: AiModelTypeEnum.LLM
         }
     }
+
+    it('classifies every supplied page and replays grouped placements without another model call', async () => {
+        const { service, invoke, withStructuredOutput, invocations, commandBus } = createHarness()
+        const a = '00000000-0000-4000-8000-000000000001'
+        const b = '00000000-0000-4000-8000-000000000002'
+        const input = { pages: [a, b].map((id) => ({ id, title: 'Operations', summary: '', content: 'Runbook' })) }
+        invoke.mockResolvedValue({
+            folders: [{ name: 'Operations', description: 'Runbooks' }],
+            pageFolders: { [a]: 0, [b]: 0 }
+        })
+        const run = () => service.invokeTaxonomyModel(job as never, knowledgebase as never, input)
+        const output = {
+            folders: [{ name: 'Operations', description: 'Runbooks', pageIds: [a, b] }],
+            unclassifiedPageIds: []
+        }
+        await expect(run()).resolves.toEqual(output)
+        await expect(run()).resolves.toEqual(output)
+        expect(invocations[0].structuredOutput).toEqual(output)
+        expect(invoke).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(withStructuredOutput).toHaveBeenCalledWith(
+            expect.objectContaining({
+                properties: expect.objectContaining({ pageFolders: expect.objectContaining({ required: [a, b] }) })
+            }),
+            { name: 'knowledge_wiki_classify' }
+        )
+    })
+
+    it('records the exact invalid classification result without changing it or calling the model again', async () => {
+        const { service, invoke, invocations, commandBus } = createHarness()
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined)
+        try {
+            const id = '00000000-0000-4000-8000-000000000001'
+            const result = { folders: [], pageFolders: { [id]: 0 } }
+            invoke.mockResolvedValue(result)
+            const run = () =>
+                service.invokeTaxonomyModel(job as never, knowledgebase as never, {
+                    pages: [{ id, title: 'Operations', summary: '', content: 'Runbook' }]
+                })
+            await expect(run()).rejects.toThrow()
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('unknown_folder_index'))
+            expect(JSON.parse(warn.mock.calls[0][0])).toMatchObject({
+                event: 'wiki.classification.response_invalid',
+                output: result,
+                detail: [id, '0']
+            })
+            expect(invocations[0]).toMatchObject({ status: 'failed', errorCode: 'model_response_invalid' })
+            await expect(run()).rejects.toThrow()
+            expect(invoke).toHaveBeenCalledTimes(1)
+            expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        } finally {
+            warn.mockRestore()
+        }
+    })
+
+    it('recovers omitted relations from facts and replays both saved invocations without another charge', async () => {
+        const { service, invoke, invocations, commandBus } = createHarness()
+        invoke
+            .mockResolvedValueOnce({
+                pages: ['Knowledge management', 'Tacit knowledge'].map((name) => ({
+                    schemaVersion: 1,
+                    pageType: 'concept',
+                    identity: { kind: 'concept', definition: name, domain: null, scope: null },
+                    canonicalName: name,
+                    aliases: [],
+                    summary: name,
+                    facts: [
+                        {
+                            text: 'Knowledge management includes making tacit knowledge explicit.',
+                            sourceChunkIds: ['chunk-1']
+                        }
+                    ],
+                    suggestedLinks: []
+                }))
+            })
+            .mockResolvedValueOnce({ links: [{ sourceIndex: 0, targetIndex: 1, factIndices: [0], label: 'includes' }] })
+        const run = () =>
+            service.invokeMapModel(
+                job as never,
+                knowledgebase as never,
+                'doc',
+                [{ id: 'chunk-1', content: 'Knowledge management includes making tacit knowledge explicit.' }],
+                0
+            )
+        const output = await run()
+        expect(output.pages[0].suggestedLinks).toEqual([
+            { targetType: 'concept', targetCanonicalName: 'Tacit knowledge', label: 'includes' }
+        ])
+        await expect(run()).resolves.toEqual(output)
+        expect(invocations.map((item) => item.stage)).toEqual(['map', 'links'])
+        expect(invoke).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+    })
+
+    it('preserves first-generation Markdown and replays the canonical result without another call or charge', async () => {
+        const { service, textInvoke, withStructuredOutput, invocations, commandBus } = createHarness()
+        const original =
+            '# Page\n\nBody with "a b" and literal \\n.\n\n- First\n- Second\n\n```python\nvalue = "a b"\n```'
+        textInvoke.mockResolvedValue(new AIMessage(`SUMMARY: Summary\n\n${original}`))
+        const run = () =>
+            service.invokeReduceModel(
+                job as never,
+                knowledgebase as never,
+                { pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                [],
+                'format-case'
+            )
+        await expect(run()).resolves.toEqual({ title: 'Page', summary: 'Summary', contentMarkdown: original })
+        await expect(run()).resolves.toEqual({ title: 'Page', summary: 'Summary', contentMarkdown: original })
+        expect(invocations.map((item) => item.stage)).toEqual(['reduce'])
+        expect(textInvoke).toHaveBeenCalledTimes(1)
+        expect(withStructuredOutput).not.toHaveBeenCalled()
+        expect(invocations[0].structuredOutput).toEqual({
+            title: 'Page',
+            summary: 'Summary',
+            contentMarkdown: original
+        })
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('reads a previously stored JSON-contract result without regenerating or rewriting it', async () => {
+        const { service, textInvoke, invoke, invocations, commandBus } = createHarness()
+        const output = { title: 'Legacy title', summary: 'Summary', contentMarkdown: '## Old collapsed body.' }
+        invocations.push(
+            Object.assign(new KnowledgeWikiModelInvocation(), {
+                id: 'legacy-invocation',
+                requestId: 'knowledge-wiki:job-1:0:reduce:0:legacy-cache',
+                status: 'succeeded',
+                billingStatus: 'delivered',
+                structuredOutput: output
+            })
+        )
+        await expect(
+            service.invokeReduceModel(
+                job as never,
+                knowledgebase as never,
+                { pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                [],
+                'legacy-cache'
+            )
+        ).resolves.toEqual(output)
+        expect(textInvoke).not.toHaveBeenCalled()
+        expect(invoke).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it.each(
+        [false, true].flatMap((streaming) => [
+            { streaming, markdown: '# PageBody text.## DetailsMore text.', malformed: true },
+            { streaming, markdown: '# Page\n\nBody "a b" and \\n.\n\n## Details\n\nMore text.', malformed: false },
+            { streaming, markdown: '', malformed: true }
+        ])
+    )(
+        'logs the original model text even when Wiki output validation fails (%j)',
+        async ({ streaming, markdown, malformed }) => {
+            const { service, modelRuntime, invocations } = createHarness()
+            const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined)
+            const output = { title: 'Page', summary: 'Summary', contentMarkdown: markdown }
+            const raw = `SUMMARY: Summary\n\n${markdown}`
+            const usage = { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+            const fetch = jest.fn(async (_url: unknown, _init?: RequestInit) => {
+                if (streaming) {
+                    const events = (raw.match(/[\s\S]{1,3}/g) ?? []).map((content) => ({
+                        id: 'completion-diagnostic',
+                        object: 'chat.completion.chunk',
+                        created: 1,
+                        model: 'qwen3.7-flash',
+                        choices: [{ index: 0, delta: { role: 'assistant', content }, finish_reason: null }]
+                    }))
+                    const end = {
+                        id: 'completion-diagnostic',
+                        object: 'chat.completion.chunk',
+                        created: 1,
+                        model: 'qwen3.7-flash',
+                        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+                        usage
+                    }
+                    return new Response(
+                        [...events, end].map((event) => `data: ${JSON.stringify(event)}\n\n`).join('') +
+                            'data: [DONE]\n\n',
+                        {
+                            headers: { 'Content-Type': 'text/event-stream' }
+                        }
+                    )
+                }
+                return new Response(
+                    JSON.stringify({
+                        id: 'completion-diagnostic',
+                        object: 'chat.completion',
+                        created: 1,
+                        model: 'qwen3.7-flash',
+                        usage,
+                        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: raw } }]
+                    }),
+                    { headers: { 'Content-Type': 'application/json' } }
+                )
+            })
+            const clientOptions = {
+                apiKey: 'offline-test-key',
+                model: 'qwen3.7-flash',
+                streaming,
+                maxRetries: 0,
+                configuration: { baseURL: 'https://wiki-sdk-test.invalid/v1', fetch }
+            }
+            const completions = new ChatOpenAICompletions(clientOptions)
+            // Streaming invokes SDK token estimation; keep the fixture independent of tokenizer downloads.
+            jest.spyOn(completions, 'getNumTokens').mockResolvedValue(1)
+            modelRuntime.createModelClient.mockResolvedValue(new ChatOpenAI({ ...clientOptions, completions }))
+            try {
+                const run = () =>
+                    service.invokeReduceModel(
+                        job as never,
+                        knowledgebase as never,
+                        { id: 'page-1', pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                        [],
+                        'diagnostic-case'
+                    )
+                if (malformed) {
+                    await expect(run()).rejects.toThrow()
+                } else {
+                    await expect(run()).resolves.toEqual(output)
+                    await expect(run()).resolves.toEqual(output)
+                }
+                const events = log.mock.calls.map(([message]) => JSON.parse(String(message)))
+                const rawEvents = events.filter((event) => event.event === 'wiki.reduce.raw')
+                expect(rawEvents).toHaveLength(1)
+                expect(rawEvents[0]).toMatchObject({
+                    knowledgebaseId: 'kb-1',
+                    jobId: 'job-1',
+                    generationAttempt: 0,
+                    inputFingerprint: 'diagnostic-case',
+                    model: 'qwen',
+                    output: { generations: [[{ text: raw }]] }
+                })
+                const parsedEvents = events.filter((event) => event.event === 'wiki.reduce.parsed')
+                if (malformed) {
+                    expect(parsedEvents).toHaveLength(0)
+                    expect(invocations[0]).toMatchObject({
+                        status: 'failed',
+                        reconciliationStatus: 'not_available',
+                        errorCode: 'model_response_invalid'
+                    })
+                } else {
+                    expect(parsedEvents).toHaveLength(2)
+                    expect(parsedEvents[0]).toMatchObject({
+                        knowledgebaseId: 'kb-1',
+                        jobId: 'job-1',
+                        pageId: 'page-1',
+                        generationAttempt: 0,
+                        inputFingerprint: 'diagnostic-case',
+                        contentLength: markdown.length,
+                        lineFeedCount: markdown.split('\n').length - 1,
+                        output
+                    })
+                }
+                expect(fetch).toHaveBeenCalledTimes(1)
+                const request = JSON.parse(String(fetch.mock.calls[0][1]?.body))
+                expect(request).not.toHaveProperty('response_format')
+                expect(request).not.toHaveProperty('tools')
+                expect(request.messages[0].content).toContain('actual line breaks')
+                expect(invocations).toHaveLength(1)
+            } finally {
+                log.mockRestore()
+            }
+        }
+    )
+
+    it('bills an invalid completed response once, blocks automatic replay and permits a new explicit attempt', async () => {
+        const { service, textInvoke, invocations, commandBus } = createHarness()
+        textInvoke.mockResolvedValueOnce(new AIMessage('SUMMARY: Summary\n\n# PageBody without line breaks.'))
+        const run = (generationAttempt = 0) =>
+            service.invokeReduceModel(
+                { ...job, generationAttempt } as never,
+                knowledgebase as never,
+                { pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                [],
+                'invalid-response'
+            )
+        await expect(run()).rejects.toThrow('separate lines')
+        expect(invocations[0]).toMatchObject({
+            status: 'failed',
+            reconciliationStatus: 'not_available',
+            errorCode: 'model_response_invalid',
+            billingStatus: 'delivered',
+            tokenUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 }
+        })
+        await expect(run()).rejects.toThrow('returned invalid content')
+        expect(textInvoke).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        await expect(run(1)).resolves.toEqual({ title: 'Page', summary: 'Summary', contentMarkdown: '# Page\n\nBody.' })
+        expect(textInvoke).toHaveBeenCalledTimes(2)
+        expect(invocations).toHaveLength(2)
+    })
+
+    it('keeps the invalid-response state when billing delivery needs to be retried', async () => {
+        const { service, textInvoke, invocations, commandBus } = createHarness()
+        textInvoke.mockResolvedValue(new AIMessage('No response envelope.'))
+        commandBus.execute.mockRejectedValueOnce(new Error('Billing unavailable'))
+        const run = () =>
+            service.invokeReduceModel(
+                job as never,
+                knowledgebase as never,
+                { pageKey: 'concept:page', canonicalName: 'Page' } as never,
+                [],
+                'billing-retry'
+            )
+        await expect(run()).rejects.toThrow('Billing unavailable')
+        expect(invocations[0]).toMatchObject({
+            status: 'failed',
+            errorCode: 'model_response_invalid',
+            billingStatus: 'failed'
+        })
+        await service.settleFailedResponseBilling(job as never, knowledgebase as never)
+        await expect(run()).rejects.toThrow('returned invalid content')
+        expect(invocations[0].billingStatus).toBe('delivered')
+        expect(textInvoke).toHaveBeenCalledTimes(1)
+    })
 
     it('resolves prefixed citations against the supplied chunks on both new and cached model results', async () => {
         const { service, invoke, commandBus } = createHarness()
@@ -371,12 +693,9 @@ describe('KnowledgeWikiModelInvocationService', () => {
         expect(invocations[0]).toMatchObject({ status: 'indeterminate', reconciliationStatus: 'indeterminate' })
     })
 
-    it('sends precompiled map and reduce schemas through the real SDK using only a fake HTTP transport', async () => {
+    it('sends structured Map and plain Markdown Reduce requests through the real SDK with fake HTTP', async () => {
         const { service, modelRuntime } = createHarness()
-        const responses = [
-            { pages: [] },
-            { title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert', aliases: [] }
-        ]
+        const responses = [JSON.stringify({ pages: [] }), 'SUMMARY: An AI platform.\n\n# Xpert\n\nAn AI platform.']
         const fetch = jest.fn().mockImplementation(
             async () =>
                 new Response(
@@ -389,7 +708,7 @@ describe('KnowledgeWikiModelInvocationService', () => {
                             {
                                 index: 0,
                                 finish_reason: 'stop',
-                                message: { role: 'assistant', content: JSON.stringify(responses.shift()) }
+                                message: { role: 'assistant', content: responses.shift() }
                             }
                         ]
                     }),
@@ -452,8 +771,15 @@ describe('KnowledgeWikiModelInvocationService', () => {
                 [],
                 'reduce-1'
             )
-        ).resolves.toEqual({ title: 'Xpert', summary: 'An AI platform.', contentMarkdown: '## Xpert' })
+        ).resolves.toEqual({
+            title: 'Xpert',
+            summary: 'An AI platform.',
+            contentMarkdown: '# Xpert\n\nAn AI platform.'
+        })
         expect(fetch).toHaveBeenCalledTimes(2)
+        const reduceRequest = JSON.parse(fetch.mock.calls[1][1].body)
+        expect(reduceRequest).not.toHaveProperty('response_format')
+        expect(reduceRequest).not.toHaveProperty('tools')
     })
 
     it('stops new model calls when the confirmed invocation budget has been used', async () => {
@@ -575,6 +901,71 @@ describe('KnowledgeWikiModelInvocationService', () => {
         expect(invocations[0].stage).toBe('dedup')
         expect(withStructuredOutput).toHaveBeenCalledWith(expect.anything(), { name: 'knowledge_wiki_dedup' })
     })
+
+    it.each(['corrected', 'invalid', 'budget', 'network', 'billing'])(
+        'handles a self-target identity response with bounded, journaled correction: %s',
+        async (outcome) => {
+            const h = createHarness(
+                outcome === 'budget' ? { maxModelInvocations: 1, maxEstimatedTokens: 200_000 } : undefined
+            )
+            const descriptor = {
+                kind: 'concept' as const,
+                definition: 'Strategic planning.',
+                domain: null,
+                scope: null
+            }
+            const input = {
+                candidateId: 'source-hash',
+                canonicalName: 'Strategic planning',
+                aliases: [],
+                descriptor,
+                facts: [],
+                candidates: [{ id: 'existing-id', canonicalName: 'Planning', aliases: [], descriptor }]
+            }
+            const invalid = { decision: 'same', identityId: input.candidateId, reason: 'It maps to itself.' }
+            const corrected = { decision: 'different', identityId: null, reason: 'The existing concept is broader.' }
+            if (outcome === 'network') h.invoke.mockRejectedValueOnce(new Error('Connection lost'))
+            else h.invoke.mockResolvedValueOnce(invalid)
+            h.invoke.mockResolvedValue(outcome === 'invalid' ? invalid : corrected)
+            if (outcome === 'billing') h.commandBus.execute.mockRejectedValueOnce(new Error('Billing unavailable'))
+            const run = () => h.service.invokeDedupModel(job as never, knowledgebase as never, input, 0)
+            if (outcome === 'billing') {
+                await expect(run()).rejects.toThrow('Billing unavailable')
+                expect(h.invoke).toHaveBeenCalledTimes(1)
+                await expect(run()).resolves.toEqual(corrected)
+                expect(h.invocations.every((i) => i.billingStatus === 'delivered')).toBe(true)
+                return
+            }
+            if (outcome === 'corrected') {
+                await expect(run()).resolves.toEqual(corrected)
+                await expect(run()).resolves.toEqual(corrected)
+                expect(h.invocations.map((i) => i.status)).toEqual(['failed', 'succeeded'])
+                expect(h.invocations[0].errorCode).toBe('model_response_invalid')
+                expect(new Set(h.invocations.map((i) => i.requestId)).size).toBe(2)
+                expect(h.invocations.every((i) => i.billingStatus === 'delivered')).toBe(true)
+                expect(h.commandBus.execute).toHaveBeenCalledTimes(2)
+                expect(h.withStructuredOutput).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        properties: expect.objectContaining({
+                            identityId: { anyOf: [{ type: 'string', enum: ['existing-id'] }, { type: 'null' }] }
+                        })
+                    }),
+                    { name: 'knowledge_wiki_dedup' }
+                )
+                expect(h.invoke.mock.calls[0][0][1].content).not.toContain(input.candidateId)
+                expect(h.invoke.mock.calls[1][0][0].content).toContain('previous response')
+                expect(h.invoke.mock.calls[1][0].map((message: { role: string }) => message.role)).toEqual([
+                    'system',
+                    'user'
+                ])
+            } else {
+                await expect(run()).rejects.toThrow()
+                await expect(run()).rejects.toThrow()
+                expect(h.invocations.every((i) => i.status !== 'succeeded')).toBe(true)
+            }
+            expect(h.invoke).toHaveBeenCalledTimes(['budget', 'network'].includes(outcome) ? 1 : 2)
+        }
+    )
 
     it('does not cache an out-of-candidate identity as a successful decision', async () => {
         const { service, invoke, invocations } = createHarness()

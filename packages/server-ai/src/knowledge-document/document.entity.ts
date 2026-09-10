@@ -288,6 +288,10 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @Column({ nullable: true })
     jobId?: string
 
+    // Excluded from ordinary reads so a stale document snapshot cannot reclaim a newer attempt.
+    @Column({ type: 'varchar', nullable: true, select: false })
+    processingExecutionId?: string | null
+
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()
     @IsOptional()

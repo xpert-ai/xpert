@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { IconComponent } from '@cloud/app/@shared/avatar'
@@ -10,14 +10,17 @@ import { attrModel, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/head
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { isEqual, uniq } from 'lodash-es'
+import { forkJoin, map, of } from 'rxjs'
 import {
   injectXpertAgentAPI,
   isMiddlewareToolEnabled,
   IXpertTool,
   IWFNMiddleware,
-  TVariableAssigner
+  TVariableAssigner,
+  ViewExtensionApiService
 } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { middlewareFeatureItems } from './middleware-features'
 
 @Component({
   selector: 'xpert-workflow-middleware',
@@ -39,6 +42,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 })
 export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent {
   readonly agentAPI = injectXpertAgentAPI()
+  readonly #viewApi = inject(ViewExtensionApiService)
   readonly agentConfig = this.studioService.agentConfig
 
   // Models
@@ -61,6 +65,19 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
 
   readonly providerMeta = computed(() => this.agentMiddlewares()?.find((m) => m.meta.name === this.provider())?.meta)
   readonly configSchema = computed(() => this.providerMeta()?.configSchema)
+  readonly #views = myRxResource({
+    request: () => ({ xpertId: this.xpertId(), provider: this.provider(), connections: this.connections() }),
+    loader: ({ request }) =>
+      request.xpertId
+        ? forkJoin([
+            this.#viewApi.getSlotViews('agent', request.xpertId, 'agent.workbench.fixed', { isDraft: true }),
+            this.#viewApi.getSlotViews('agent', request.xpertId, 'agent.workbench.main', { isDraft: true })
+          ]).pipe(map(([fixed, main]) => [...main, ...fixed]))
+        : of([])
+  })
+  readonly middlewareFeatures = computed(() => middlewareFeatureItems(this.providerMeta(), this.#views.value() ?? []))
+  readonly loadingFeatureViews = computed(() => this.#views.status() === 'loading')
+  readonly featureViewsError = this.#views.error
   readonly #middlewareToolsRes = myRxResource({
     options: {
       debounceTime: 500,

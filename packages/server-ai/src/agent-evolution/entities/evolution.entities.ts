@@ -1,4 +1,7 @@
 import type {
+    StoredEvolutionProposal,
+    StoredEvaluationRun,
+    StoredReleasePackage,
     ActiveCapabilityPointer,
     ApprovalDecision,
     CapabilityVersion,
@@ -187,8 +190,12 @@ export class EvolutionExperienceEntity extends EvolutionScopedEntity {
 }
 
 @Entity('agent_evolution_proposal')
+@Index('UX_evolution_proposal_request', ['tenantId', 'organizationId', 'targetId', 'requestId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'proposalId', 'revision'], { unique: true })
 export class ImprovementProposalEntity extends EvolutionScopedEntity {
+    @Column({ type: 'varchar', nullable: true })
+    requestId?: string | null
+
     @Column({ type: 'varchar' })
     proposalId: string
 
@@ -202,7 +209,7 @@ export class ImprovementProposalEntity extends EvolutionScopedEntity {
     status: ImprovementProposal['status']
 
     @Column({ type: 'json' })
-    value: ImprovementProposal
+    value: StoredEvolutionProposal
 }
 
 @Entity('agent_evolution_candidate')
@@ -258,7 +265,7 @@ export class EvaluationRunEntity extends TenantOrganizationBaseEntity {
     gatePassed: boolean
 
     @Column({ type: 'json' })
-    value: EvaluationRun
+    value: StoredEvaluationRun
 }
 
 @Entity('agent_evolution_approval')
@@ -293,10 +300,10 @@ export class ReleasePackageEntity extends EvolutionScopedEntity {
     targetId: string
 
     @Column({ type: 'varchar' })
-    status: EvolutionReleaseStatus
+    status: StoredReleasePackage['status']
 
     @Column({ type: 'json' })
-    value: ReleasePackage
+    value: StoredReleasePackage
 }
 
 @Entity('agent_evolution_release_deployment')

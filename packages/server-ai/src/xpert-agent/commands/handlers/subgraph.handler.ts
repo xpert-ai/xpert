@@ -43,7 +43,6 @@ import {
     IXpertAgentExecution,
     KnowledgebaseChannel,
     mapTranslationLanguage,
-    normalizeMiddlewareProvider,
     STATE_VARIABLE_HUMAN,
     stringifyMessageContent,
     TAgentRunnableConfigurable,
@@ -53,6 +52,7 @@ import {
     TXpertParameter,
     TXpertTeamNode,
     WorkflowNodeTypeEnum,
+    XpertTypeEnum,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -151,10 +151,8 @@ import {
 } from './invalid-tool-call-diagnostics'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { resolveToolRuntimeScope } from '../../../tool-runtime/workspace-scope'
-import {
-    CONNECTOR_MIDDLEWARE_NAME,
-    connectorRuntimeMiddlewareProvider
-} from '../../../xpert-middleware/connector.middleware'
+import { connectorRuntimeMiddlewareProvider } from '../../../xpert-middleware/connector.middleware'
+import { getConnectorMiddlewareScope } from '../../../shared/agent/connector-runtime'
 
 const XPERT_TITLE_MIDDLEWARE_NODE_KEY = '__xpert_title_middleware__'
 const FILE_UNDERSTANDING_MIDDLEWARE_NODE_KEY = '__file_understanding_middleware__'
@@ -481,6 +479,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     options: {
                         leaderKey: agent.key,
                         isDraft: command.options.isDraft,
+                        conversationId: options.conversationId,
+                        projectId: options.projectId,
+                        workspaceRoot: options.workspaceRoot,
+                        workspacePath: options.workspacePath,
                         subscriber
                     },
                     thread_id,
@@ -590,6 +592,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     options: {
                         leaderKey: parentKey,
                         isDraft: command.options.isDraft,
+                        conversationId: options.conversationId,
+                        projectId: options.projectId,
+                        workspaceRoot: options.workspaceRoot,
+                        workspacePath: options.workspacePath,
                         subscriber
                     },
                     thread_id,
@@ -811,7 +817,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
         const selectedRuntimeConnectorBindings =
             await this.agentMiddlewareRuntimeService.resolveSelectedConnectorRuntimeBindings(middlewareRuntimeScope)
-        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi(middlewareRuntimeScope)
+        const { additionalBindings, ...connectorScope } = getConnectorMiddlewareScope(
+            visibleMiddlewareNodes,
+            selectedRuntimeConnectorBindings
+        )
+        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
+            ...middlewareRuntimeScope,
+            ...connectorScope
+        })
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> = {
             tenantId: runtimeXpert.tenantId,
             organizationId: runtimeOrganizationId,
@@ -857,7 +870,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 middleware: fileUnderstandingMiddleware
             })
         }
-        for (const binding of selectedRuntimeConnectorBindings) {
+        for (const binding of additionalBindings) {
             const runtimeProvider = connectorRuntimeMiddlewareProvider(binding.provider)
             const strategy = (() => {
                 try {
@@ -904,12 +917,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const visibleMiddlewareEntries = visibleMiddlewareNodes.reduce<
             Array<{ key: string; middleware: AgentMiddleware }>
         >((entries, node, index) => {
-            const entity = node.entity as IWFNMiddleware
-            const isGraphConnectorMiddleware =
-                normalizeMiddlewareProvider(entity.provider) === CONNECTOR_MIDDLEWARE_NAME
-            if (isRuntimeCapabilitiesAllowlist(options.runtimeCapabilities) && isGraphConnectorMiddleware) {
-                return entries
-            }
             const middleware = visibleAgentMiddlewares[index]
             if (middleware) entries.push({ key: node.key, middleware })
             return entries
@@ -1047,7 +1054,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // State
         // State channel for knowledgebase pipeline
-        if (runtimeXpert.knowledgebase) {
+        // Runtime projections may omit the relation; pipeline state must survive regardless.
+        if (runtimeXpert.type === XpertTypeEnum.Knowledge || runtimeXpert.knowledgebase) {
             channels.push({
                 name: KnowledgebaseChannel,
                 annotation: Annotation<Record<string, unknown>>({
@@ -1857,7 +1865,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         agent: IXpertAgent,
         config: TAgentSubgraphParams & {
             xpert: Partial<IXpert>
-            options: {
+            options: Pick<
+                XpertAgentSubgraphCommand['options'],
+                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath'
+            > & {
                 leaderKey: string
                 isDraft: boolean
                 subscriber: Subscriber<MessageEvent>
@@ -1894,6 +1905,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 isStart: isTool,
                 leaderKey,
                 isDraft: config.options.isDraft,
+                conversationId: options.conversationId,
+                projectId: options.projectId,
+                workspaceRoot: options.workspaceRoot,
+                workspacePath: options.workspacePath,
                 subscriber,
                 execution,
                 variables,

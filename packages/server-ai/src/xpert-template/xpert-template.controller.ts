@@ -42,6 +42,24 @@ export class XpertTemplateController {
         return this.service.getAll(LanguagesMap[language] ?? language, { targetApp, templateType })
     }
 
+    @Get('catalog')
+    async getCatalog(
+        @I18nLang() language: LanguagesEnum,
+        @Query('search') search?: string,
+        @Query('category') category?: string,
+        @Query('pluginName') pluginName?: string,
+        @Query('offset') offset?: string,
+        @Query('limit') limit?: string
+    ) {
+        return this.service.getCatalog(LanguagesMap[language] ?? language, {
+            search,
+            category,
+            pluginName,
+            offset: Number(offset ?? 0),
+            limit: Number(limit ?? 48)
+        })
+    }
+
     @Get('mcps')
     async getMCPTemplates(
         @I18nLang() language: LanguagesEnum,
@@ -96,7 +114,8 @@ export class XpertTemplateController {
                 input.workspaceId,
                 LanguagesMap[language] ?? language,
                 input.basic,
-                input.publish
+                input.publish,
+                input.locale
             )
         )
     }
@@ -106,9 +125,14 @@ export class XpertTemplateController {
         @I18nLang() language: LanguagesEnum,
         @Param('id') id: string,
         @Query('targetApp') targetApp?: string,
-        @Query('templateType') templateType?: string
+        @Query('templateType') templateType?: string,
+        @Query('locale') locale?: string
     ) {
-        return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language, { targetApp, templateType })
+        return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language, {
+            targetApp,
+            templateType,
+            locale
+        })
     }
 }
 
@@ -116,6 +140,7 @@ function parseTemplateInstallInput(value: unknown): {
     workspaceId: string
     basic?: PluginTemplateInstallBasic
     publish: boolean
+    locale?: string
 } {
     if (!isObjectValue(value)) {
         throw new BadRequestException('Request body is required')
@@ -131,6 +156,7 @@ function parseTemplateInstallInput(value: unknown): {
     return {
         workspaceId,
         publish,
+        locale: readStringField(value, 'locale') || undefined,
         ...(basic ? { basic } : {})
     }
 }

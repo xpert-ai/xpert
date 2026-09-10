@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-draft",
-  "version": "12.0.2",
+  "version": "12.0.3",
   "private": true,
   "xpert": {
     "plugin": {
@@ -22,7 +22,7 @@
     "@nestjs/common": "*",
     "@nestjs/config": "*",
     "@nestjs/core": "*",
-    "@xpert-ai/chatkit-types": "~0.5.5",
+    "@xpert-ai/chatkit-types": "~0.5.8",
     "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

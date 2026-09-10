@@ -16,6 +16,13 @@ describe('AgentEvolutionApiService', () => {
 
   afterEach(() => httpMock.verify())
 
+  it('binds datasets to named evaluation steps in the frozen strategy', () => {
+    service.evaluateChange('EVO-1', { functional: 'DS-1', regression: 'DS-2' }).subscribe()
+    const request = httpMock.expectOne('/api/agent-evolution/changes/EVO-1/evaluations')
+    expect(request.request.body).toEqual({ datasetSnapshotIds: { functional: 'DS-1', regression: 'DS-2' } })
+    request.flush({})
+  })
+
   it('loads the native Cloud dashboard from the shared Agent Evolution API', () => {
     let response = null
     service.getDashboard().subscribe((value) => (response = value))

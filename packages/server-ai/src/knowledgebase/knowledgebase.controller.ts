@@ -7,6 +7,7 @@ import {
     KnowledgeFilterSources,
     KnowledgeRetrievalContentScope,
     KnowledgeDocumentProcessingMode,
+    KnowledgeChunkPreviewInput,
     TCopilotModel,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
@@ -55,6 +56,7 @@ import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
 import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
+import { KnowledgeParserSettingsService } from './parser-settings.service'
 
 @ApiTags('Knowledgebase')
 @ApiBearerAuth()
@@ -71,6 +73,15 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 
     @Inject(KnowledgeWorkAreaResolver)
     private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver
+
+    @Inject(KnowledgeParserSettingsService)
+    private readonly parserSettings: KnowledgeParserSettingsService
+
+    @UseGuards(WorkspaceAuthoringGuard)
+    @Post('by-workspace/:workspaceId/preview-chunks')
+    previewChunks(@Body() input: KnowledgeChunkPreviewInput) {
+        return this.parserSettings.preview(input)
+    }
 
     constructor(
         private readonly service: KnowledgebaseService,

@@ -38,7 +38,11 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
         const templateId = resolveTemplateLookupId(currentSource)
         let template
         try {
-            template = await this.xpertTemplateService.getTemplateDetail(templateId, language)
+            template = currentSource.locale
+                ? await this.xpertTemplateService.getTemplateDetail(templateId, language, {
+                      locale: currentSource.locale
+                  })
+                : await this.xpertTemplateService.getTemplateDetail(templateId, language)
         } catch {
             throw new BadRequestException(
                 `Source template '${templateId}' is not available. Refresh or reinstall its plugin first.`

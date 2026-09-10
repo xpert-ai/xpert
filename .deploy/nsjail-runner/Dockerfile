@@ -45,8 +45,11 @@ FROM python:3.12-slim-bookworm
 RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
     apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
       ca-certificates \
+      conntrack \
+      iproute2 \
       libnl-route-3-200 \
       libprotobuf32 \
+      nftables \
       util-linux && \
     rm -rf /var/lib/apt/lists/*
 
@@ -67,6 +70,7 @@ RUN mkdir -p \
       /opt/xpert-rootfs/dev/zero
 
 COPY .deploy/nsjail-runner/runner.py /app/runner.py
+COPY .deploy/nsjail-runner/network.py /app/network.py
 COPY .deploy/nsjail-runner/net_proxy.py /app/net_proxy.py
 COPY .deploy/nsjail-runner/poc_validate.py /app/poc_validate.py
 COPY .deploy/nsjail-runner/seccomp.policy /etc/xpert-nsjail/seccomp.policy

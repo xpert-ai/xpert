@@ -4,14 +4,7 @@ export const RecursiveCharacter = 'recursive-character'
 export const MarkdownRecursive = 'markdown-recursive'
 export const ParentChild = 'parent-child'
 
-export type TextSplitOptions = {
-    separator?: string // Delimiters/identifiers used to separate blocks, such as "\n", "\n\n", regular expressions, etc.
-    maxChars?: number
-}
-
-export type TParentChildConfig = {
-    parent: TextSplitOptions & {
-        mode?: 'paragraph' | 'full' // Split mode, split by paragraph or document as a whole chunk
-    }
-    child: TextSplitOptions
-}
+export type {
+    DocumentChunkSplitOptions as TextSplitOptions,
+    DocumentParentChildParserConfig as TParentChildConfig
+} from '@xpert-ai/contracts'

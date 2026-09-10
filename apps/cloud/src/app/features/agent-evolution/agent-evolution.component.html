@@ -59,7 +59,16 @@
       [tabPanel]="tabPanel"
     >
       @for (tab of tabs; track tab.path) {
-        <a z-tab-link [routerLink]="[tab.path]" routerLinkActive #active="routerLinkActive" [active]="active.isActive">
+        <a
+          z-tab-link
+          [routerLink]="[tab.path]"
+          [queryParams]="tab.path === 'evaluation' || tab.path === 'release' ? changeNavigationQuery() : {}"
+          routerLinkActive
+          #active="routerLinkActive"
+          [routerLinkActiveOptions]="tabMatchOptions"
+          ariaCurrentWhenActive="page"
+          [active]="active.isActive"
+        >
           <i [class]="tab.icon"></i>
           {{ tab.labelKey | translate }}
         </a>

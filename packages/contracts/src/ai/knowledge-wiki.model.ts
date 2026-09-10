@@ -50,6 +50,7 @@ export type KnowledgeWikiPageStatus = 'building' | 'ready' | 'stale' | 'failed' 
 export type KnowledgeWikiProjectionStatus = 'pending' | 'ready' | 'failed' | 'disabled'
 
 export type KnowledgeWikiJobType =
+  | 'classify'
   | 'source_map'
   | 'identity_resolve'
   | 'page_reduce'
@@ -265,7 +266,12 @@ function isWikiContribution(value: unknown, aggregated: boolean): value is Knowl
   )
 }
 
+export type KnowledgeWikiPageGroup = 'knowledge' | 'summary'
+
 export type KnowledgeWikiPageListParams = {
+  pageGroup?: KnowledgeWikiPageGroup
+  folderId?: string
+  unclassified?: boolean
   search?: string
   pageType?: KnowledgeWikiPageType
   status?: KnowledgeWikiPageStatus
@@ -275,6 +281,7 @@ export type KnowledgeWikiPageListParams = {
 
 export type KnowledgeWikiPageListItem = {
   identityId?: string | null
+  placement?: import('./knowledge-wiki-organization.model').KnowledgeWikiPlacement
   id: string
   pageKey: string
   pageType: KnowledgeWikiPageType

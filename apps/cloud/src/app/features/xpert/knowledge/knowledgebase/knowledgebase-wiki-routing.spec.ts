@@ -46,7 +46,7 @@ describe('Wiki direct-route activation', () => {
           {
             path: 'xpert/knowledges/:id',
             children: [
-              { ...wikiRoute, component: WikiStub },
+              { ...wikiRoute, loadComponent: undefined, component: WikiStub },
               { path: 'documents', component: DocumentsStub }
             ]
           }

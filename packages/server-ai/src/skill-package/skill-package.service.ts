@@ -845,16 +845,28 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
             const metadataOverrides = normalizeSkillMetadataOverrides(input.metadata)
             if (existingSkillPackage?.id && metadataOverrides) {
                 const metadata = this.mergeInstalledMetadata(existingSkillPackage.metadata, metadataOverrides)
-                if (!isSkillMetadataEqual(existingSkillPackage.metadata, metadata)) {
+                const metadataChanged = !isSkillMetadataEqual(existingSkillPackage.metadata, metadata)
+                const presentation = {
+                    name: readI18nText(metadataOverrides.displayName) || existingIndex.name,
+                    description: readI18nText(metadataOverrides.description) || existingIndex.description
+                }
+                const indexChanged =
+                    presentation.name !== existingIndex.name || presentation.description !== existingIndex.description
+                if (metadataChanged) {
                     await this.update(existingSkillPackage.id, {
                         workspaceId,
                         metadata
                     } as Partial<SkillPackage>)
+                }
+                if (indexChanged) {
+                    await this.skillIndexService.update(existingIndex.id, presentation)
+                }
+                if (metadataChanged || indexChanged) {
                     return {
                         status: 'updated',
                         hash: bundleHash,
                         sharedSkillId,
-                        index: existingIndex
+                        index: { ...existingIndex, ...presentation }
                     }
                 }
             }
@@ -923,10 +935,16 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
         }
 
         try {
-            const sharedMetadata = this.normalizeTemplateSharedSkillInputFromFrontmatter(frontmatter, skillBaseName)
-            const metadata = this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser, {
-                templateBundleHash: bundleHash
-            })
+            const sharedMetadata = this.normalizeTemplateSharedSkillInputFromFrontmatter(
+                frontmatter,
+                skillBaseName,
+                input.metadata
+            )
+            // Publication must preserve the plugin's localized presentation metadata.
+            const metadata = mergeSkillMetadataOverrides(
+                this.mergeSharedMetadata(skillPackage, sharedMetadata, currentUser, { templateBundleHash: bundleHash }),
+                input.metadata
+            )
             const sourcePath = absolutePackagePath
 
             const publishedIndex = await this.publishSharedSkillPackage(skillPackage, sourcePath, metadata, {
@@ -1476,14 +1494,15 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 
     private normalizeTemplateSharedSkillInputFromFrontmatter(
         frontmatter: WorkspaceSkillFrontmatter,
-        fallbackName: string
+        fallbackName: string,
+        metadata?: Partial<SkillMetadata> | null
     ): SharedSkillMetadataInput {
-        const displayName = frontmatter.name?.trim() || fallbackName.trim()
+        const displayName = readI18nText(metadata?.displayName) || frontmatter.name?.trim() || fallbackName.trim()
         if (!displayName) {
             throw new BadRequestException('Template skill bundle is missing a skill name')
         }
 
-        const description = frontmatter.description?.trim()
+        const description = readI18nText(metadata?.description) || frontmatter.description?.trim()
         if (!description) {
             throw new BadRequestException('Template skill bundle is missing a skill description')
         }

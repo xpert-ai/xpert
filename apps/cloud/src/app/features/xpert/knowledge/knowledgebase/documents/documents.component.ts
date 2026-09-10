@@ -1,8 +1,20 @@
+import { DocumentImportMenuComponent } from './import/import-menu.component'
+import { KnowledgeDocumentDialogService } from './import/document-dialog.service'
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { NgTemplateOutlet } from '@angular/common'
-import { afterNextRender, Component, computed, effect, inject, model, signal, TemplateRef } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
@@ -246,6 +258,7 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
+    DocumentImportMenuComponent,
     RouterModule,
     FormsModule,
     NgTemplateOutlet,
@@ -298,6 +311,7 @@ export class KnowledgeDocumentsComponent {
   readonly knowledgeDocumentAPI = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly _dialog = inject(Dialog)
+  readonly documentDialogs = inject(KnowledgeDocumentDialogService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -320,6 +334,7 @@ export class KnowledgeDocumentsComponent {
   readonly hasPipeline = computed(() => !!this.pipeline()?.publishAt)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
+  private readonly destroyRef = inject(DestroyRef)
   readonly documentDelayRefresh$ = new Subject<void>()
   readonly knowledgebaseDelayRefresh$ = new Subject<void>()
 
@@ -734,11 +749,15 @@ export class KnowledgeDocumentsComponent {
     this.#router.navigate(['.'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
   }
 
-  uploadIntoFolder(document: IKnowledgeDocument) {
+  async uploadIntoFolder(document: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
     }
-    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: document.id } })
+    if (
+      await this.documentDialogs.importDocuments(this.knowledgebase(), document.id, () => this.vectorMutationLocked())
+    ) {
+      this.refresh()
+    }
   }
 
   private async selectFolderBrowserDocument(document: IKnowledgeDocument) {
@@ -1327,24 +1346,6 @@ export class KnowledgeDocumentsComponent {
       }
     })
   }
-
-  createFromPipeline() {
-    if (this.vectorMutationLocked()) {
-      return
-    }
-    this.#router.navigate(['create-from-pipeline'], {
-      relativeTo: this.#route,
-      queryParams: { parentId: this.parentId() }
-    })
-  }
-
-  uploadDocuments() {
-    if (this.vectorMutationLocked()) {
-      return
-    }
-    this.#router.navigate(['create'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
-  }
-
   deleteDocument(doc: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
@@ -1673,23 +1674,28 @@ export class KnowledgeDocumentsComponent {
     }
     const pipelineDocs = documents.filter((doc) => !!doc.sourceConfig)
     if (pipelineDocs.length) {
+      const knowledgebaseId = this.knowledgebase().id
       calls.push(
-        this.kbAPI.createTask(this.knowledgebase().id, {
-          taskType: 'document_reprocess',
-          status: 'running', // Start processing immediately
-          documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
-        })
+        this.kbAPI
+          .createTask(knowledgebaseId, {
+            taskType: 'document_reprocess',
+            status: 'running', // Start processing immediately
+            documents: pipelineDocs.map((doc) => ({ id: doc.id }) as IKnowledgeDocument)
+          })
+          .pipe(switchMap((task) => this.kbAPI.pollTaskStatus(knowledgebaseId, task.id).pipe(startWith(task))))
       )
     }
     if (calls.length > 0) {
-      combineLatest(calls).subscribe({
-        next: (task) => {
-          this.refresh()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
+      combineLatest(calls)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (task) => {
+            this.refresh()
+          },
+          error: (err) => {
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
     }
   }
 
@@ -1704,14 +1710,13 @@ export class KnowledgeDocumentsComponent {
     })
   }
 
-  openChunkSettings(document: IKnowledgeDocument) {
+  async openChunkSettings(document: IKnowledgeDocument) {
     if (this.vectorMutationLocked()) {
       return
     }
-    this.#router.navigate(['./', document.id, 'settings'], {
-      relativeTo: this.#route,
-      queryParams: { parentId: this.parentId() }
-    })
+    if (await this.documentDialogs.edit(document.id, () => this.vectorMutationLocked())) {
+      this.refresh()
+    }
   }
 
   // Metadata operations
