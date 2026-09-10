@@ -1,5 +1,7 @@
 {
     "Error": {
+        "DocumentProcessorUnavailable": "\u6240\u9009\u6587\u6863\u89e3\u6790\u5f15\u64ce\u4e0d\u53ef\u7528\uff0c\u8bf7\u5237\u65b0\u89e3\u6790\u914d\u7f6e\u3002",
+        "DocumentParserIntegrationUnavailable": "\u6240\u9009\u7cfb\u7edf\u96c6\u6210\u4e0d\u53ef\u7528\u6216\u4e0d\u5c5e\u4e8e\u5f53\u524d\u89e3\u6790\u5f15\u64ce\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9\u53ef\u7528\u8fde\u63a5\u3002",
         "KnowledgeGraphDocumentStatusBatchInvalid": "请提供 1 至 {{max}} 个文档 UUID。",
         "KnowledgeRetrievalSourceRequired": "请选择至少一种适用于当前检索内容且权重大于零的检索方式。",
         "KnowledgeRerankModelUnavailable": "知识库“{{knowledgebase}}”的重排模型不可用。",

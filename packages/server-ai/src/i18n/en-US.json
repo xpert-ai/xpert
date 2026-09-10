@@ -1,5 +1,7 @@
 {
     "Error": {
+        "DocumentProcessorUnavailable": "The selected document parser is unavailable. Refresh the parser settings.",
+        "DocumentParserIntegrationUnavailable": "The selected integration is unavailable or does not belong to this parser. Select an available connection.",
         "KnowledgeGraphDocumentStatusBatchInvalid": "Provide between 1 and {{max}} document UUIDs.",
         "KnowledgeRetrievalSourceRequired": "Select at least one retrieval source available for the selected content scope with a positive weight.",
         "KnowledgeRerankModelUnavailable": "Rerank model is not available for knowledgebase '{{knowledgebase}}'.",

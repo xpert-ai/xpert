@@ -1,3 +1,4 @@
+import { GetKnowledgebaseProcessingOptionsHandler } from './knowledgebase-processing-options.handler'
 import { DeleteAgentKnowledgeChunksHandler } from './delete-agent-knowledge-chunks.handler'
 import { KnowledgebaseClearHandler } from './knowledge.clear.handler'
 import {
@@ -19,6 +20,7 @@ import { WriteAgentKnowledgeChunkHandler } from './write-agent-knowledge-chunk.h
 import { EnsureKnowledgebasesHandler } from './ensure-knowledgebases.handler'
 
 export const CommandHandlers = [
+    GetKnowledgebaseProcessingOptionsHandler,
     EnsureKnowledgebasesHandler,
     CreateKnowledgebaseDocumentsHandler,
     CreateKnowledgebaseFolderHandler,
