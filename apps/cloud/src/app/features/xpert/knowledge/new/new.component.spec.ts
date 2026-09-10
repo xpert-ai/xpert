@@ -1,4 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { of, throwError } from 'rxjs'
@@ -58,7 +59,55 @@ describe('XpertNewKnowledgeComponent', () => {
   }
 
   afterEach(() => {
+    TestBed.inject(OverlayContainer).ngOnDestroy()
     TestBed.resetTestingModule()
+    jest.restoreAllMocks()
+  })
+
+  it.each([false, true])('uses dialog approval for a paid Wiki settings change (approved: %s)', async (approved) => {
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb-1',
+        name: 'Wiki',
+        documentNum: 2,
+        type: KnowledgebaseTypeEnum.Standard,
+        copilotModel: { id: 'embedding-1' },
+        chatModel: { id: 'llm-1' },
+        wikiConfig: { enabled: true, extractionGranularity: 'standard' }
+      }
+    })
+    component.updateWikiConfig('extractionGranularity', 'exhaustive')
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
+    const api = TestBed.inject(KnowledgebaseService)
+    const parentDialog = TestBed.inject(DialogRef)
+    parentDialog.disableClose = false
+    const pending = component.save()
+    await component.save()
+    TestBed.tick()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
+    expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RebuildConfirm')
+    expect(api.updateWikiConfiguration).not.toHaveBeenCalled()
+    expect(parentDialog.disableClose).toBe(true)
+    overlay.querySelector<HTMLButtonElement>(`[data-testid="z-${approved ? 'ok' : 'cancel'}-button"]`).click()
+    await pending
+    expect(parentDialog.disableClose).toBe(false)
+    expect(component.loading()).toBe(false)
+    if (approved) {
+      expect(api.updateWikiConfiguration).toHaveBeenCalledTimes(1)
+      expect(api.updateWikiConfiguration).toHaveBeenCalledWith(
+        'kb-1',
+        expect.objectContaining({
+          confirmModelCharges: true,
+          wikiConfig: expect.objectContaining({ extractionGranularity: 'exhaustive' })
+        })
+      )
+      expect(parentDialog.close).toHaveBeenCalled()
+    } else {
+      expect(api.updateWikiConfiguration).not.toHaveBeenCalled()
+      expect(parentDialog.close).not.toHaveBeenCalled()
+    }
   })
 
   it('keeps an empty initial name invalid after selecting an embedding model', () => {
@@ -90,7 +139,7 @@ describe('XpertNewKnowledgeComponent', () => {
       }
     })
 
-    expect(component.indexStrategyLocked()).toBe(true)
+    expect(component.processing.indexStrategyLocked()).toBe(true)
     component.toggleWiki()
     expect(component.wikiEnabled()).toBe(false)
   })
@@ -214,5 +263,83 @@ describe('XpertNewKnowledgeComponent', () => {
     expect(TestBed.inject(DialogRef).close).not.toHaveBeenCalled()
     expect(TestBed.inject(ToastrService).error).toHaveBeenCalled()
     expect(component.loading()).toBe(false)
+  })
+  it('saves and reopens the full first-batch parser settings', () => {
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb-1',
+        name: 'Settings',
+        type: KnowledgebaseTypeEnum.Standard,
+        workspaceId: 'workspace-1',
+        copilotModel: { id: 'embedding' }
+      }
+    })
+    component.processing.chunkSize.set(512)
+    component.processing.chunkOverlap.set(0)
+    component.processing.updateSeparators(['\\n\\n', '！', '？', ',', ''])
+    component.processing.selectChunkStrategy('markdown-recursive')
+    component.processing.splitterOptions.set({ headerToSplitOn: 2 })
+    component.processing.imageUnderstandingEnabled.set(false)
+    component.processing.imagePromptTemplate.set('请用中文解析图片：{{context}}')
+    component.processing.selectPdfParser('pdf-visual')
+    component.processing.pdfParserOptions.set({ renderPageImages: false, maxPages: 20 })
+    component.save()
+    const service = component.knowledgebaseService
+    const input = jest.mocked(service.updateWikiConfiguration).mock.calls[0][1]
+    expect(input.settings.parserConfig).toMatchObject({
+      chunkSize: 512,
+      chunkOverlap: 0,
+      separators: ['\\n\\n', '！', '？', ',', ''],
+      textSplitterType: 'markdown-recursive',
+      textSplitter: { headerToSplitOn: 2 },
+      imageUnderstandingEnabled: false,
+      imageUnderstanding: { promptTemplate: '请用中文解析图片：{{context}}' },
+      pdfParser: { transformerType: 'pdf-visual', transformer: { renderPageImages: false, maxPages: 20 } }
+    })
+    TestBed.resetTestingModule()
+    const editor = createComponent({ knowledgebase: { id: 'kb-1', ...input.settings } })
+    expect(editor.processing.chunkOverlap()).toBe(0)
+    expect(editor.processing.separators()).toEqual(['\\n\\n', '！', '？', ',', ''])
+    expect(editor.processing.chunkStrategy()).toBe('markdown-recursive')
+    expect(editor.processing.imagePromptTemplate()).toBe('请用中文解析图片：{{context}}')
+    expect(editor.processing.pdfParserOptions()).toEqual({ renderPageImages: false, maxPages: 20 })
+  })
+
+  it('stores the existing parent-child strategy parameters and preserves empty separators', () => {
+    const component = createComponent({
+      knowledgebase: { id: 'kb-1', name: 'Parent', copilotModel: { id: 'embedding' } }
+    })
+    component.processing.toggleParentChild(true)
+    component.processing.parentChild.controls.parent.controls.mode.setValue('full')
+    component.processing.parentChild.controls.child.patchValue({ maxChars: 100, separators: ['\\n', ','] })
+    component.processing.updateSeparators([])
+    component.save()
+    const input = jest.mocked(component.knowledgebaseService.updateWikiConfiguration).mock.calls[0][1]
+    expect(input.settings.parserConfig).toMatchObject({
+      textSplitterType: 'parent-child',
+      textSplitter: { parent: { mode: 'full' }, child: { maxChars: 100, separators: ['\\n', ','] } },
+      separators: []
+    })
+  })
+
+  it('defaults image understanding to off when no preference is stored', () => {
+    const component = createComponent({
+      knowledgebase: { id: 'kb-1', name: 'Inherited', copilotModel: { id: 'embedding' } }
+    })
+    component.save()
+    const input = jest.mocked(component.knowledgebaseService.updateWikiConfiguration).mock.calls[0][1]
+    expect(input.settings.parserConfig.imageUnderstandingEnabled).toBe(false)
+    expect(input.settings.parserConfig.imageUnderstandingType).toBeUndefined()
+  })
+
+  it('rejects overlap that is not smaller than the chunk size', () => {
+    const component = createComponent({
+      knowledgebase: { id: 'kb-1', name: 'Invalid', copilotModel: { id: 'embedding' } }
+    })
+    component.processing.chunkSize.set(512)
+    component.processing.chunkOverlap.set(512)
+    component.save()
+    expect(component.knowledgebaseService.updateWikiConfiguration).not.toHaveBeenCalled()
+    expect(component.activeSection()).toBe('chunk')
   })
 })

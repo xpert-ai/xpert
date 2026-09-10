@@ -1,6 +1,7 @@
+import { validateChunkLimits, validateSeparators } from '../../../knowledge-document/parser-validation'
 import { Document } from '@langchain/core/documents'
 import { RecursiveCharacterTextSplitter, RecursiveCharacterTextSplitterParams } from '@langchain/textsplitters'
-import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
+import { decodeKnowledgeSeparators, IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'
@@ -9,7 +10,7 @@ import { RecursiveCharacter } from './types'
 @Injectable()
 @TextSplitterStrategy(RecursiveCharacter)
 export class RecursiveCharacterStrategy implements ITextSplitterStrategy<
-    Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string }
+    Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string | string[] }
 > {
     readonly structure = KnowledgeStructureEnum.General
     readonly meta = {
@@ -71,20 +72,21 @@ export class RecursiveCharacterStrategy implements ITextSplitterStrategy<
         }
     }
 
-    async validateConfig(): Promise<void> {
-        //
+    async validateConfig(options: {
+        chunkSize?: unknown
+        chunkOverlap?: unknown
+        separators?: unknown
+    }): Promise<void> {
+        validateChunkLimits(options)
+        validateSeparators(options.separators)
     }
 
     async splitDocuments(
         documents: Document[],
-        options: Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string }
+        options: Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string | string[] }
     ): Promise<{ chunks: Document<ChunkMetadata>[] }> {
-        const separators = options.separators
-            ? options.separators
-                  .replace(/,,/g, '\0')
-                  .split(',')
-                  .map((s) => s.replace(/\0/g, ','))
-            : [`\n\n`, `\n`, ' ', '']
+        const separators = decodeKnowledgeSeparators(options.separators)
+        if (!separators.includes('')) separators.push('')
         const splitter = new RecursiveCharacterTextSplitter({ ...options, separators })
         const chunks = await splitter.splitDocuments(documents)
         const chunkDocuments: Document<ChunkMetadata>[] = chunks.map(

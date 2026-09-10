@@ -4,7 +4,9 @@ import {
     DocumentSheetParserConfig,
     DocumentTextParserConfig,
     IKnowledgeDocument,
-    KBDocumentCategoryEnum
+    KBDocumentCategoryEnum,
+    KnowledgebaseParserConfig,
+    knowledgebaseDocumentParserDefaults
 } from '@xpert-ai/contracts'
 
 export type ResolvedKnowledgeDocumentParserConfig = DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
@@ -62,7 +64,8 @@ const IMAGE_EXTENSIONS = new Set([
 ])
 
 export function resolveKnowledgeDocumentParserConfig(
-    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig'>
+    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig'>,
+    knowledgebaseDefaults?: KnowledgebaseParserConfig | null
 ): ResolvedKnowledgeDocumentParserConfig {
     const type = normalizeDocumentType(document.type)
     const category =
@@ -70,7 +73,22 @@ export function resolveKnowledgeDocumentParserConfig(
         (type ? classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>) : KBDocumentCategoryEnum.Text)
     const defaults = defaultParserConfigFor(type, category)
     const explicit = sanitizeParserConfigForDocument(document.parserConfig, type, category)
-    return mergeParserConfig(defaults, explicit)
+    const inherited =
+        category === KBDocumentCategoryEnum.Text || category === KBDocumentCategoryEnum.Image
+            ? sanitizeParserConfigForDocument(
+                  knowledgebaseDocumentParserDefaults(knowledgebaseDefaults, type),
+                  type,
+                  category
+              )
+            : {}
+    const effective = mergeParserConfig(mergeParserConfig(defaults, inherited), explicit)
+    const result = mergeParserConfig(defaults, effective)
+    if (result.imageUnderstandingEnabled === false) {
+        delete result.imageUnderstandingType
+    } else if (result.imageUnderstandingEnabled === true && !result.imageUnderstandingType) {
+        result.imageUnderstandingType = 'vlm-default'
+    }
+    return result
 }
 
 function defaultParserConfigFor(type: string, category: IKnowledgeDocument['category'] | undefined) {
@@ -96,113 +114,103 @@ function defaultParserConfigFor(type: string, category: IKnowledgeDocument['cate
 }
 
 function sanitizeParserConfigForDocument(
-    parserConfig: IKnowledgeDocument['parserConfig'] | null | undefined,
+    config: IKnowledgeDocument['parserConfig'] | null | undefined,
     type: string,
     category: IKnowledgeDocument['category'] | undefined
-) {
-    if (!parserConfig || typeof parserConfig !== 'object') {
-        return {} satisfies DocumentParserConfig
-    }
+): ResolvedKnowledgeDocumentParserConfig {
+    if (!config) return {}
+    const transformerType = normalizeString(config.transformerType)
+    const transformer =
+        transformerType && !(transformerType === 'pdf-visual' && type !== 'pdf')
+            ? defined({
+                  transformerType,
+                  transformerIntegration: config.transformerIntegration,
+                  transformer: config.transformer
+              })
+            : {}
+    const splitter = defined({ textSplitterType: config.textSplitterType, textSplitter: config.textSplitter })
     if (category === KBDocumentCategoryEnum.Sheet) {
-        const sheetConfig = pickDefined(parserConfig, [
-            'fields',
-            'indexedFields',
-            'spreadsheet',
-            'transformerType',
-            'transformerIntegration',
-            'transformer',
-            'textSplitterType',
-            'textSplitter'
-        ]) as ResolvedKnowledgeDocumentParserConfig
-        const transformerType = normalizeString(sheetConfig.transformerType)
-        if (!transformerType) {
-            delete sheetConfig.transformerType
-            delete sheetConfig.transformerIntegration
-            delete sheetConfig.transformer
-        }
-        return sheetConfig
+        return defined({
+            fields: config.fields,
+            indexedFields: config.indexedFields,
+            spreadsheet: config.spreadsheet,
+            ...splitter,
+            ...transformer
+        })
     }
-
-    const common = pickDefined(parserConfig, [
-        'pages',
-        'replaceWhitespace',
-        'removeSensitive',
-        'textSplitterType',
-        'textSplitter',
-        'delimiter',
-        'chunkSize',
-        'chunkOverlap',
-        'imageUnderstandingType',
-        'imageUnderstandingIntegration',
-        'imageUnderstanding',
-        'imageUnderstandingModel'
-    ]) as ResolvedKnowledgeDocumentParserConfig
-
-    const transformerType = normalizeString(parserConfig.transformerType)
-    if (!transformerType) {
-        return common
-    }
-    if (transformerType === 'pdf-visual' && type !== 'pdf') {
-        return common
-    }
-    return {
-        ...common,
-        transformerType,
-        ...(parserConfig.transformerIntegration ? { transformerIntegration: parserConfig.transformerIntegration } : {}),
-        ...(parserConfig.transformer ? { transformer: parserConfig.transformer } : {})
-    } satisfies ResolvedKnowledgeDocumentParserConfig
+    const characterLimits = defined({
+        chunkSize: config.chunkSize ?? undefined,
+        chunkOverlap: config.chunkOverlap ?? undefined,
+        ...(config.delimiter ? { separators: config.delimiter.split(' ') } : {}),
+        ...(config.separators !== undefined ? { separators: [...config.separators] } : {})
+    })
+    const textSplitter =
+        Object.keys(characterLimits).length || config.textSplitter
+            ? {
+                  ...characterLimits,
+                  ...defined(config.textSplitter ?? {}),
+                  ...(config.separators !== undefined ? { separators: [...config.separators] } : {})
+              }
+            : undefined
+    return defined({
+        pages: config.pages,
+        replaceWhitespace: config.replaceWhitespace,
+        removeSensitive: config.removeSensitive,
+        ...splitter,
+        textSplitter,
+        delimiter: config.delimiter,
+        separators: config.separators,
+        chunkSize: config.chunkSize,
+        chunkOverlap: config.chunkOverlap,
+        imageUnderstandingEnabled: config.imageUnderstandingEnabled,
+        imageUnderstandingType: config.imageUnderstandingType,
+        imageUnderstandingIntegration: config.imageUnderstandingIntegration,
+        imageUnderstanding: config.imageUnderstanding,
+        imageUnderstandingModel: config.imageUnderstandingModel,
+        ...transformer
+    })
 }
 
 function mergeParserConfig(
     defaults: ResolvedKnowledgeDocumentParserConfig,
     explicit: ResolvedKnowledgeDocumentParserConfig
-) {
-    const transformerTypeChanged = Boolean(
-        explicit.transformerType && explicit.transformerType !== defaults.transformerType
-    )
-    const merged = {
+): ResolvedKnowledgeDocumentParserConfig {
+    const transformerChanged = !!explicit.transformerType && explicit.transformerType !== defaults.transformerType
+    const splitterChanged = !!explicit.textSplitterType && explicit.textSplitterType !== defaults.textSplitterType
+    const understandingChanged =
+        !!explicit.imageUnderstandingType && explicit.imageUnderstandingType !== defaults.imageUnderstandingType
+    const result = defined({
         ...defaults,
         ...explicit,
-        textSplitter: mergeOptionalObject(defaults.textSplitter, explicit.textSplitter),
-        transformer: transformerTypeChanged
+        textSplitter: splitterChanged
+            ? explicit.textSplitter
+            : mergeOptions(defaults.textSplitter, explicit.textSplitter),
+        transformer: transformerChanged
             ? explicit.transformer
-            : mergeOptionalObject(defaults.transformer, explicit.transformer),
-        spreadsheet: mergeOptionalObject(defaults.spreadsheet, explicit.spreadsheet),
-        imageUnderstanding: mergeOptionalObject(defaults.imageUnderstanding, explicit.imageUnderstanding)
-    } satisfies ResolvedKnowledgeDocumentParserConfig
-    return dropUndefinedNested(merged)
-}
-
-function mergeOptionalObject<T extends Record<string, unknown> | undefined>(defaults: T, explicit: T) {
-    if (!defaults && !explicit) {
-        return undefined
+            : mergeOptions(defaults.transformer, explicit.transformer),
+        spreadsheet: mergeOptions(defaults.spreadsheet, explicit.spreadsheet),
+        imageUnderstanding: understandingChanged
+            ? explicit.imageUnderstanding
+            : mergeOptions(defaults.imageUnderstanding, explicit.imageUnderstanding)
+    })
+    if (explicit.separators === undefined && explicit.textSplitter?.separators !== undefined) {
+        delete result.separators
+        delete result.delimiter
     }
-    return {
-        ...(defaults ?? {}),
-        ...(explicit ?? {})
+    return result
+}
+
+function mergeOptions<T extends object>(defaults: T | undefined, explicit: T | undefined): T | undefined {
+    if (!defaults && !explicit) return undefined
+    return { ...defaults, ...explicit } as T
+}
+
+function defined<T extends object>(input: T): T {
+    const result = { ...input }
+    for (const key of Object.keys(result) as Array<keyof T>) {
+        if (result[key] === undefined) delete result[key]
     }
-}
-
-function pickDefined(source: Record<string, unknown>, keys: string[]) {
-    return keys.reduce<Record<string, unknown>>((result, key) => {
-        if (source[key] !== undefined) {
-            result[key] = source[key]
-        }
-        return result
-    }, {})
-}
-
-function dropUndefinedNested<T extends Record<string, unknown>>(input: T) {
-    return Object.entries(input).reduce<Record<string, unknown>>((result, [key, value]) => {
-        if (value === undefined) {
-            return result
-        }
-        result[key] =
-            value && typeof value === 'object' && !Array.isArray(value)
-                ? dropUndefinedNested(value as Record<string, unknown>)
-                : value
-        return result
-    }, {}) as T
+    return result
 }
 
 function normalizeDocumentType(type: unknown) {

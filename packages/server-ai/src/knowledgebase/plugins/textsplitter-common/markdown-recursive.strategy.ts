@@ -1,3 +1,8 @@
+import {
+    invalidKnowledgeParserConfig,
+    validateChunkLimits,
+    validateSeparators
+} from '../../../knowledge-document/parser-validation'
 import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
@@ -97,8 +102,23 @@ export class MarkdownRecursiveStrategy implements ITextSplitterStrategy<
         }
     }
 
-    async validateConfig(): Promise<void> {
-        //
+    async validateConfig(options: {
+        chunkSize?: unknown
+        chunkOverlap?: unknown
+        separators?: unknown
+        headerToSplitOn?: unknown
+    }): Promise<void> {
+        validateChunkLimits(options)
+        validateSeparators(options.separators)
+        if (
+            options.headerToSplitOn !== undefined &&
+            (typeof options.headerToSplitOn !== 'number' ||
+                !Number.isInteger(options.headerToSplitOn) ||
+                options.headerToSplitOn < 1 ||
+                options.headerToSplitOn > 6)
+        ) {
+            throw invalidKnowledgeParserConfig('headerToSplitOn (1–6)')
+        }
     }
 
     async splitDocuments(

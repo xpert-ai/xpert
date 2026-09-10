@@ -290,7 +290,13 @@
                     }
                   </span>
                   @if (action.canRetry) {
-                    <button z-button zType="outline" type="button" (click)="retry(action)">
+                    <button
+                      z-button
+                      zType="outline"
+                      type="button"
+                      [disabled]="rebuilding() || retryingJobIds().includes(action.jobId)"
+                      (click)="retry(action)"
+                    >
                       {{ 'XP.ACTIONS.Retry' | translate: { Default: 'Retry' } }}
                     </button>
                   }

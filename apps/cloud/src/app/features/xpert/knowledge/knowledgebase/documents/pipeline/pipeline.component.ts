@@ -1,3 +1,5 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { SelectionModel } from '@angular/cdk/collections'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -33,6 +35,7 @@ import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
   templateUrl: './pipeline.component.html',
   styleUrls: ['./pipeline.component.scss'],
   imports: [
+    ZardButtonComponent,
     FormsModule,
     TranslateModule,
     RouterModule,
@@ -53,7 +56,10 @@ export class KnowledgeDocumentPipelineComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly documentsComponent = inject(KnowledgeDocumentsComponent)
   readonly integrationAPI = injectIntegrationAPI()
-  readonly parentId = injectQueryParams('parentId')
+  readonly dialogRef = inject<DialogRef<boolean>>(DialogRef, { optional: true })
+  readonly dialogData = inject<{ parentId: string | null }>(DIALOG_DATA, { optional: true })
+  readonly routeParentId = injectQueryParams('parentId')
+  readonly parentId = computed(() => (this.dialogRef ? this.dialogData?.parentId : this.routeParentId()))
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebaseId = this.knowledgebaseComponent.paramId
@@ -61,6 +67,7 @@ export class KnowledgeDocumentPipelineComponent {
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
   readonly loading = signal(false)
+  readonly submitting = signal(false)
 
   readonly step = signal(1)
 
@@ -127,6 +134,18 @@ export class KnowledgeDocumentPipelineComponent {
   //     console.log('taskid: ', this.taskId())
   //   })
   // }
+
+  close(completed = false) {
+    if (this.submitting()) return
+    if (this.dialogRef) this.dialogRef.close(completed)
+    else this.#router.navigate(['..'], { relativeTo: this.#route, queryParams: { parentId: this.parentId() } })
+  }
+
+  processed() {
+    this.submitting.set(false)
+    if (this.dialogRef) this.close(true)
+    else this.nextStep()
+  }
 
   nextStep() {
     this.step.update((n) => n + 1)

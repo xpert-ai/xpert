@@ -49,10 +49,15 @@ export interface IDocumentSourceProvider extends IDocumentNodeProvider {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IDocumentProcessorProvider extends IDocumentNodeProvider {}
+export interface IDocumentProcessorProvider extends IDocumentNodeProvider {
+  /** Explicit file extensions supported for per-format knowledgebase defaults. */
+  supportedFileTypes?: string[]
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IDocumentChunkerProvider extends IDocumentNodeProvider {}
+export interface IDocumentChunkerProvider extends IDocumentNodeProvider {
+  structure?: KnowledgeStructureEnum
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IDocumentUnderstandingProvider extends IDocumentNodeProvider {}

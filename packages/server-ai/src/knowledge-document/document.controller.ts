@@ -564,6 +564,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
             // Reload saved documents so snapshot paths and source identity always come from the
             // tenant-scoped database entity; only the draft parser settings come from the preview.
             const persisted = entity.id ? await this.service.findOne(entity.id) : null
+            if (!persisted) {
+                entity.parserConfig = await this.service.resolveNewDocumentParserConfig(entity)
+            }
             const previewDocument = persisted
                 ? ({ ...persisted, parserConfig: entity.parserConfig } as IKnowledgeDocument)
                 : (entity as IKnowledgeDocument)

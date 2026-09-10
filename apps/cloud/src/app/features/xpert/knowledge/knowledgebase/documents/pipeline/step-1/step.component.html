@@ -15,14 +15,15 @@
       <div class="system-md-semibold text-text-primary">
         {{ 'XP.Knowledgebase.ChooseADataSource' | translate: { Default: 'Choose a Data Source' } }}
       </div>
-      <a [routerLink]="['../']" class="cursor-pointer">
+      <div class="cursor-pointer">
         <button
           type="button"
           class="btn disabled:btn-disabled btn-secondary-accent btn-medium absolute -left-11 top-3.5 size-9 rounded-full p-0"
+          (click)="pipelineComponent.close()"
         >
           <i class="ri-corner-up-left-line"></i>
         </button>
-      </a>
+      </div>
       <div class="absolute w-[100px] h-[100px] rounded-full bg-blue-500 blur-[80px] left-8 top-0 opacity-20"></div>
     </div>
     <div class="grow overflow-y-auto">

@@ -13,6 +13,8 @@ import {
   IDocumentUnderstandingProvider,
   IKnowledgebase,
   KnowledgebaseWikiConfig,
+  KnowledgeChunkPreviewInput,
+  KnowledgeChunkPreviewResult,
   IKnowledgeGraphEntity,
   IKnowledgeGraphMention,
   IKnowledgeGraphRelation,
@@ -134,6 +136,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
 
   getTextSplitterStrategies() {
     return this.httpClient.get<IDocumentChunkerProvider[]>(this.apiBaseUrl + '/text-splitter/strategies')
+  }
+
+  previewChunks(workspaceId: string, input: KnowledgeChunkPreviewInput) {
+    return this.httpClient.post<KnowledgeChunkPreviewResult>(
+      this.apiBaseUrl + '/by-workspace/' + workspaceId + '/preview-chunks',
+      input
+    )
   }
 
   getDocumentTransformerStrategies() {

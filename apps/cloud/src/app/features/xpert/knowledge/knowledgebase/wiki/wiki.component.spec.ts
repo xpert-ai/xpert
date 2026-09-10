@@ -1,5 +1,6 @@
 import { signal } from '@angular/core'
 import { Dialog } from '@angular/cdk/dialog'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { ComponentFixture, DeferBlockBehavior, TestBed } from '@angular/core/testing'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
@@ -29,7 +30,8 @@ describe('Wiki recovery messages', () => {
     getPages: jest.fn(() => of({ items: [], total: 0 })),
     getClassifications: jest.fn(() => of([])),
     classify: jest.fn(),
-    retryJob: jest.fn(() => of({}))
+    retryJob: jest.fn(() => of({})),
+    rebuild: jest.fn(() => of({}))
   }
 
   async function render(
@@ -71,7 +73,10 @@ describe('Wiki recovery messages', () => {
         provideNoopAnimations(),
         provideRouter([]),
         { provide: KnowledgeWikiService, useValue: service },
-        { provide: KnowledgebaseComponent, useValue: { paramId: signal('kb-1'), knowledgebase: signal(undefined) } },
+        {
+          provide: KnowledgebaseComponent,
+          useValue: { paramId: signal('kb-1'), knowledgebase: signal(undefined), documentNum: signal(2) }
+        },
         { provide: ToastrService, useValue: { danger: jest.fn() } }
       ]
     })
@@ -102,8 +107,10 @@ describe('Wiki recovery messages', () => {
 
   afterEach(() => {
     fixture?.destroy()
+    TestBed.inject(OverlayContainer).ngOnDestroy()
     jest.restoreAllMocks()
     service.retryJob.mockClear()
+    service.rebuild.mockClear()
     TestBed.resetTestingModule()
   })
 
@@ -214,16 +221,74 @@ describe('Wiki recovery messages', () => {
     }
   )
 
-  it('still requires confirmation for an uncertain provider outcome', async () => {
-    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
-    const root = await render('indeterminate')
-    expect(root.textContent).toContain('a retry may add a charge')
-    Array.from(root.querySelectorAll('button'))
-      .find((button) => button.textContent.trim() === 'Retry')
-      .click()
-    await fixture.whenStable()
-    expect(confirm).toHaveBeenCalledTimes(1)
+  it.each(['z-cancel-button', 'z-close-header-button'])(
+    'does not retry an uncertain provider outcome after dismissing the dialog with %s',
+    async (dismissal) => {
+      const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
+      const root = await render('indeterminate')
+      expect(root.textContent).toContain('a retry may add a charge')
+      Array.from(root.querySelectorAll('button'))
+        .find((button) => button.textContent.trim() === 'Retry')
+        .click()
+      fixture.detectChanges()
+      const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+      expect(confirm).not.toHaveBeenCalled()
+      expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RetryChargeConfirm')
+      overlay.querySelector<HTMLButtonElement>(`[data-testid="${dismissal}"]`).click()
+      await fixture.whenStable()
+      expect(service.retryJob).not.toHaveBeenCalled()
+    }
+  )
+
+  it('authorizes one paid retry only after accepting the dialog', async () => {
+    await render('indeterminate')
+    jest.spyOn(window, 'confirm').mockReturnValue(false)
+    const component = fixture.componentInstance
+    const action = component.recoveryActions()[0]
+    const response = new Subject<object>()
+    service.retryJob.mockReturnValueOnce(response)
+    const pending = component.retry(action)
+    await component.retry(action)
+    fixture.detectChanges()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
     expect(service.retryJob).not.toHaveBeenCalled()
+    overlay.querySelector<HTMLButtonElement>('[data-testid="z-ok-button"]').click()
+    await fixture.whenStable()
+    await component.retry(action)
+    expect(service.retryJob).toHaveBeenCalledTimes(1)
+    expect(service.retryJob).toHaveBeenCalledWith('kb-1', 'job-1', true)
+    response.next({})
+    response.complete()
+    await pending
+  })
+
+  it.each([false, true])('requires dialog approval before a full rebuild (approved: %s)', async (approved) => {
+    await render('indeterminate')
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false)
+    const component = fixture.componentInstance
+    const action = { ...component.recoveryActions()[0], recommendedAction: 'full_rebuild' as const }
+    const pending = component.retry(action)
+    await component.rebuild()
+    fixture.detectChanges()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
+    expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RebuildConfirm')
+    expect(confirm).not.toHaveBeenCalled()
+    expect(service.rebuild).not.toHaveBeenCalled()
+    overlay.querySelector<HTMLButtonElement>(`[data-testid="z-${approved ? 'ok' : 'cancel'}-button"]`).click()
+    await pending
+    await fixture.whenStable()
+    if (approved) {
+      expect(service.rebuild).toHaveBeenCalledWith('kb-1', {
+        confirmModelCharges: true,
+        maxModelInvocations: 40,
+        maxEstimatedTokens: 400_000
+      })
+    } else {
+      expect(service.rebuild).not.toHaveBeenCalled()
+    }
+    expect(component.rebuilding()).toBe(false)
   })
 
   it('distinguishes provider rejection from a request that was not sent', async () => {

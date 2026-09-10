@@ -1,0 +1,121 @@
+<form class="flex max-h-[85dvh] w-[min(44rem,calc(100vw-2rem))] flex-col" [formGroup]="form" (ngSubmit)="load()">
+  <header class="flex items-center justify-between gap-4 border-b border-divider-subtle px-6 py-4">
+    <h2 class="text-lg font-semibold">{{ title() | translate }}</h2>
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      (click)="dialogRef.close()"
+      [attr.aria-label]="prefix + '.Close' | translate"
+    >
+      <i class="ri-close-line text-lg"></i>
+    </button>
+  </header>
+  <div class="min-h-0 space-y-5 overflow-auto p-6">
+    <fieldset class="space-y-5" [disabled]="busy()" [attr.inert]="busy() ? '' : null">
+      @if (mode === 'remote') {
+        <z-form-field>
+          <label z-form-label>{{ prefix + '.Provider' | translate }}</label>
+          <z-select
+            [(ngModel)]="remoteProvider"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="changeRemoteProvider()"
+            [disabled]="loadingSchema() || busy()"
+          >
+            @for (strategy of remoteStrategies(); track strategy.meta.name) {
+              <z-select-item [zValue]="strategy.meta.name">{{ strategy.meta.label | i18n }}</z-select-item>
+            }
+          </z-select>
+        </z-form-field>
+        @if (remoteStrategy(); as strategy) {
+          <json-schema-form
+            class="grid grid-cols-1 gap-4"
+            [schema]="strategy.meta.configSchema"
+            [(ngModel)]="remoteConfig"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="invalidateResults()"
+          />
+        } @else if (!loadingSchema()) {
+          <p class="text-sm text-text-secondary">{{ prefix + '.NoRemoteProvider' | translate }}</p>
+        }
+      } @else {
+        <z-form-field>
+          <label z-form-label for="import-source-url">{{ prefix + '.Url' | translate }}</label>
+          <input z-input id="import-source-url" type="url" formControlName="url" placeholder="https://example.com" />
+          @if (form.controls.url.touched && form.controls.url.invalid) {
+            <p class="text-sm text-text-destructive">{{ prefix + '.InvalidUrl' | translate }}</p>
+          }
+        </z-form-field>
+        @if (mode === 'crawl') {
+          <z-form-field>
+            <label z-form-label>{{ prefix + '.Provider' | translate }}</label>
+            <z-select [(ngModel)]="provider" [ngModelOptions]="{ standalone: true }" [disabled]="busy()">
+              @for (option of providers; track option.value) {
+                <z-select-item [zValue]="option.value">{{ option.label | i18n }}</z-select-item>
+              }
+            </z-select>
+          </z-form-field>
+          @if (schema()?.integrationProvider) {
+            <z-form-field>
+              <label z-form-label>{{ prefix + '.Integration' | translate }}</label>
+              <z-select
+                [(ngModel)]="integrationId"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="invalidateResults()"
+                [disabled]="busy()"
+              >
+                @for (item of integrations(); track item.id) {
+                  <z-select-item [zValue]="item.id">{{ item.name }}</z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+          }
+          @for (parameter of visibleParameters(); track parameter.name) {
+            <parameter
+              [schema]="parameter"
+              [ngModel]="params()[parameter.name]"
+              (ngModelChange)="updateParam(parameter.name, $event)"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          }
+        } @else {
+          <p class="text-sm text-text-secondary">{{ prefix + '.QuickUrlHint' | translate }}</p>
+        }
+      }
+    </fieldset>
+    @if (loadingSchema()) {
+      <p role="status" class="text-sm text-text-secondary">{{ prefix + '.Loading' | translate }}</p>
+    }
+    @if (error()) {
+      <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
+    }
+    @if (results().length) {
+      <div class="space-y-3 border-t border-divider-subtle pt-4">
+        <p class="text-sm font-medium">{{ prefix + '.SelectResults' | translate }}</p>
+        @for (document of results(); track $index) {
+          <z-checkbox
+            [ngModel]="selected().has($index)"
+            (ngModelChange)="toggle($index, $event)"
+            [ngModelOptions]="{ standalone: true }"
+            >{{ document.name }}</z-checkbox
+          >
+        }
+      </div>
+    }
+  </div>
+  <footer class="flex justify-end gap-3 border-t border-divider-subtle px-6 py-4">
+    <button z-button zType="outline" type="button" (click)="dialogRef.close()">
+      {{ prefix + '.Cancel' | translate }}
+    </button>
+    @if (results().length) {
+      <button z-button type="button" [disabled]="!selected().size || busy()" (click)="confirm()">
+        {{ prefix + '.AddSelected' | translate }}
+      </button>
+    } @else {
+      <button z-button type="submit" [disabled]="loadingSchema() || busy() || (mode === 'remote' && !remoteStrategy())">
+        {{ prefix + (busy() ? '.Loading' : '.Confirm') | translate }}
+      </button>
+    }
+  </footer>
+</form>

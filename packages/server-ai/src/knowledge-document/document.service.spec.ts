@@ -77,6 +77,7 @@ import {
     IKnowledgeDocumentChunk,
     KBDocumentStatusEnum,
     KnowledgebaseTypeEnum,
+    KnowledgeStructureEnum,
     classificateDocumentCategory
 } from '@xpert-ai/contracts'
 import { DataSource, Repository } from 'typeorm'
@@ -136,13 +137,18 @@ function createService(
         repo,
         dataSource as DataSource,
         knowledgeWorkAreaResolver,
-        (overrides?.knowledgebaseService ?? {}) as KnowledgebaseService,
+        {
+            findOneByIdString: jest.fn(async () => null),
+            ensureDocumentChunkStructure: jest.fn(),
+            ...overrides?.knowledgebaseService
+        } as unknown as KnowledgebaseService,
         (overrides?.commandBus ?? {}) as CommandBus,
         (overrides?.queryBus ?? {}) as QueryBus,
         {} as Queue,
         { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
     )
     Object.assign(service, {
+        parserSettings: { validateSplitter: jest.fn(async () => KnowledgeStructureEnum.General) },
         textSplitterRegistry: {
             get: jest.fn(() => null)
         }
@@ -1550,5 +1556,60 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             ConflictException
         )
         expect(deleteWithVersion).not.toHaveBeenCalled()
+    })
+})
+
+describe('KnowledgeDocumentService knowledgebase parser defaults', () => {
+    it('snapshots library defaults for new ordinary documents and lets document overrides win', async () => {
+        const ensureDocumentChunkStructure = jest.fn()
+        const service = createService([], {
+            knowledgebaseService: {
+                findOneByIdString: jest.fn(async () => ({
+                    id: 'kb',
+                    type: KnowledgebaseTypeEnum.Standard,
+                    parserConfig: {
+                        chunkSize: 512,
+                        chunkOverlap: 80,
+                        delimiter: null,
+                        separators: ['！', '？'],
+                        imageUnderstandingEnabled: false,
+                        imageUnderstanding: { promptTemplate: '中文 {{context}}' },
+                        pdfParser: { transformerType: 'default' }
+                    }
+                })),
+                ensureDocumentChunkStructure
+            }
+        })
+        const config = await service.resolveNewDocumentParserConfig({ knowledgebaseId: 'kb', type: 'pdf' }, true)
+        expect(config.textSplitter).toMatchObject({ chunkSize: 512, chunkOverlap: 80, separators: ['！', '？'] })
+        expect(config.imageUnderstandingType).toBeUndefined()
+        expect(config.imageUnderstanding.promptTemplate).toBe('中文 {{context}}')
+        expect(config.transformerType).toBe('default')
+        expect(ensureDocumentChunkStructure).toHaveBeenCalledWith('kb', KnowledgeStructureEnum.General)
+        const override = await service.resolveNewDocumentParserConfig({
+            knowledgebaseId: 'kb',
+            type: 'pdf',
+            parserConfig: {
+                chunkSize: 1000,
+                chunkOverlap: 0,
+                imageUnderstandingEnabled: true
+            }
+        })
+        expect(override.textSplitter).toMatchObject({ chunkSize: 1000, chunkOverlap: 0 })
+        expect(override.imageUnderstandingType).toBe('vlm-default')
+        expect(ensureDocumentChunkStructure).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not claim a chunk structure for folders or mutate a library during a draft preview', async () => {
+        const ensureDocumentChunkStructure = jest.fn()
+        const service = createService([], {
+            knowledgebaseService: {
+                findOneByIdString: jest.fn(async () => ({ id: 'kb', type: KnowledgebaseTypeEnum.Standard })),
+                ensureDocumentChunkStructure
+            }
+        })
+        await service.resolveNewDocumentParserConfig({ knowledgebaseId: 'kb', type: 'folder' }, true)
+        await service.resolveNewDocumentParserConfig({ knowledgebaseId: 'kb', type: 'txt' })
+        expect(ensureDocumentChunkStructure).not.toHaveBeenCalled()
     })
 })

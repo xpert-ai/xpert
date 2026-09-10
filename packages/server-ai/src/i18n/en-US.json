@@ -1,5 +1,7 @@
 {
     "Error": {
+        "KnowledgebaseChunkStructureConflict": "This knowledgebase already uses a different chunk structure. Keep its structure or use a new knowledgebase.",
+        "InvalidKnowledgeParserConfig": "Invalid or unavailable document processing setting: {{field}}",
         "KnowledgebaseWikiMarkdownResponseInvalid": "Wiki generation must return a SUMMARY line followed by a Markdown title and body on separate lines.",
         "KnowledgebaseWikiModelResponseInvalid": "The Wiki model returned invalid content. Retry the failed generation task.",
         "KnowledgebaseWikiRelationsInvalid": "Wiki relations reference an invalid page or unsupported source fact.",

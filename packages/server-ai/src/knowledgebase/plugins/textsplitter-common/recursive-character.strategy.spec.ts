@@ -56,3 +56,14 @@ describe('RecursiveCharacterStrategy', () => {
         }
     })
 })
+
+it('uses every delimiter and enforces the size with an empty delimiter list', async () => {
+    const strategy = new RecursiveCharacterStrategy()
+    const text = '甲乙丙丁！戊己庚辛？壬癸子丑；寅卯辰巳'
+    const run = (separators: string[]) =>
+        strategy.splitDocuments([new Document({ pageContent: text })], { chunkSize: 6, chunkOverlap: 0, separators })
+    const result = await run(['！', '？', '；'])
+    expect(result.chunks.length).toBeGreaterThan(2)
+    expect(result.chunks.every((chunk) => chunk.pageContent.length <= 6)).toBe(true)
+    expect((await run([])).chunks.every((chunk) => chunk.pageContent.length <= 6)).toBe(true)
+})

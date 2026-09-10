@@ -44,6 +44,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     ]
 
     readonly meta = {
+        supportedFileTypes: ['pdf'],
         name: Default,
         label: {
             en_US: 'Default',

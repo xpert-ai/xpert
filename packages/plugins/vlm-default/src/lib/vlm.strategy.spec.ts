@@ -1,3 +1,6 @@
+import { FakeListChatModel } from '@langchain/core/utils/testing'
+import type { IKnowledgeDocument } from '@xpert-ai/contracts'
+import type { XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
 import { VlmDefaultStrategy } from './vlm.strategy'
 
@@ -74,5 +77,43 @@ describe('VlmDefaultStrategy', () => {
         message: 'vision model rejected the image'
       })
     ])
+  })
+})
+
+describe('VLM prompt template execution', () => {
+  async function run(promptTemplate?: string) {
+    const visionModel = new FakeListChatModel({ responses: ['A Chinese image description'] })
+    const invoke = jest.spyOn(visionModel, 'invoke')
+    const source = 'Product specifications\n\n![diagram](https://files.local/image.png)'
+    const document = {
+      chunks: [new Document({ pageContent: source, metadata: { chunkId: 'source' } })],
+      metadata: { assets: [{ type: 'image', filePath: 'image.png', url: 'https://files.local/image.png' }] }
+    } as IKnowledgeDocument
+    await new VlmDefaultStrategy().understandImages(document, {
+      stage: 'test',
+      promptTemplate,
+      visionModel,
+      permissions: { fileSystem: { readFile: async () => Buffer.from('image') } as unknown as XpFileSystem }
+    })
+    expect(invoke).toHaveBeenCalledTimes(1)
+    const messages = invoke.mock.calls[0][0]
+    if (!Array.isArray(messages)) throw new Error('Expected chat messages')
+    return { messages, source }
+  }
+
+  it('passes the requested language and requirements with all context placeholders replaced to the model', async () => {
+    const { messages, source } = await run('请用中文提取图片中的表格。上下文：{{context}}\n再次参考：{{context}}')
+    expect(messages[0]).toEqual({
+      role: 'system',
+      content: `请用中文提取图片中的表格。上下文：${source}\n再次参考：${source}`
+    })
+  })
+
+  it('uses exactly the same default prompt for omitted, empty and whitespace templates', async () => {
+    const omitted = await run()
+    for (const template of ['', '   ']) {
+      const result = await run(template)
+      expect(result.messages[0]).toEqual(omitted.messages[0])
+    }
   })
 })

@@ -124,6 +124,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly chunkerStrategy = computed(() =>
     this.textSplitterStrategies().find((strategy) => strategy.name === this.chunkerNode()?.entity.provider)
   )
+  readonly canPreview = computed(() => !!this.taskId() && !!this.selectedSource()?.key && !!this.chunkerNode())
   readonly chunkerConfigSchema = computed(() => this.chunkerStrategy()?.configSchema ?? null)
   readonly hasChunkerConfigFields = computed(() => jsonSchemaHasConfigFields(this.chunkerConfigSchema()))
   readonly chunkerConfig = computed(() => ({
@@ -159,6 +160,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   }
 
   previewChunks() {
+    if (!this.canPreview() || this.previewing()) return
     this.previewing.set(true)
     this.task.set(null)
     this.previewSub?.unsubscribe()

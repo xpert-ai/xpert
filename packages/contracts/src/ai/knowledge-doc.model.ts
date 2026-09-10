@@ -15,6 +15,8 @@ export type DocumentParserConfig = {
   replaceWhitespace?: boolean
   removeSensitive?: boolean
   textSplitterType?: string
+  /** Ordered literal separators. Unlike the legacy plugin string, commas need no escaping. */
+  separators?: string[]
   textSplitter?: {
     [key: string]: unknown
   }
@@ -24,6 +26,8 @@ export type DocumentParserConfig = {
     [key: string]: unknown
   }
   imageUnderstandingType?: string
+  /** False is an explicit opt-out; absence retains legacy per-format defaults. */
+  imageUnderstandingEnabled?: boolean
   imageUnderstandingIntegration?: string
   imageUnderstanding?: {
     [key: string]: unknown
@@ -35,6 +39,20 @@ export type DocumentTextParserConfig = DocumentParserConfig & {
   delimiter?: string
   chunkSize?: number | null
   chunkOverlap?: number | null
+}
+
+export type DocumentChunkSplitOptions = {
+  /** Ordered splitting priorities. An empty list splits only at maxChars; takes precedence over separator. */
+  separators?: string[]
+  /** Legacy single separator, used when separators is absent. */
+  separator?: string
+  /** Maximum character count; this splitter does not count tokens. */
+  maxChars?: number
+}
+
+export type DocumentParentChildParserConfig = {
+  parent: DocumentChunkSplitOptions & { mode?: 'paragraph' | 'full' }
+  child: DocumentChunkSplitOptions
 }
 
 export type SpreadsheetInterpretation = 'records' | 'form_document'

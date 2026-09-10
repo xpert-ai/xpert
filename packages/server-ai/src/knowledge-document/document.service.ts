@@ -1,7 +1,9 @@
+import { KnowledgeParserSettingsService } from '../knowledgebase/parser-settings.service'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
 import {
     IKnowledgeDocument,
+    DocumentTypeEnum,
     IKnowledgeDocumentChunk,
     IKnowledgeDocumentPage,
     IKnowledgebase,
@@ -11,6 +13,7 @@ import {
     KBDocumentStatusEnum,
     KDocumentSourceType,
     KnowledgeStructureEnum,
+    KnowledgebaseTypeEnum,
     VectorTypeEnum,
     classificateDocumentCategory
 } from '@xpert-ai/contracts'
@@ -29,12 +32,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import {
-    ChunkMetadata,
-    DocumentSourceRegistry,
-    mergeParentChildChunks,
-    TextSplitterRegistry
-} from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { t } from 'i18next'
@@ -362,8 +360,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     @Inject(DocumentSourceRegistry)
     private readonly docSourceRegistry: DocumentSourceRegistry
 
-    @Inject(TextSplitterRegistry)
-    private readonly textSplitterRegistry: TextSplitterRegistry
+    @Inject(KnowledgeParserSettingsService)
+    private readonly parserSettings: KnowledgeParserSettingsService
 
     @Inject(KnowledgeDocumentChunkService)
     private readonly chunkService: KnowledgeDocumentChunkService
@@ -826,7 +824,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.prepareDocumentRelations(document)
         await this.completeDocumentSystemAttributes(document)
         await this.validateDocumentMetadataInput(document)
-        document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
         document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
         document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
         document.processingHash ??= computeKnowledgeDocumentProcessingHash(document)
@@ -845,7 +843,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async createDocumentWithIncrementalSync(
         document: Partial<IKnowledgeDocument>
     ): Promise<IncrementalDocumentSyncItemResult> {
-        document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
         document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
         document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
         if (!(await this.isKnowledgebaseIncrementalSyncEnabled(document.knowledgebaseId))) {
@@ -876,34 +874,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 createdIds: []
             }
         }
-        documents.forEach((document) => {
-            document.parserConfig = resolveKnowledgeDocumentParserConfig(document)
+        for (const document of documents) {
+            document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
             document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
             document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
-        })
+        }
         const knowledgebaseIds = uniq(compact(documents.map((document) => document.knowledgebaseId)))
         await Promise.all(
             knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId))
         )
         const incrementalSyncByKnowledgebaseId = await this.getIncrementalSyncEnabledByKnowledgebaseId(knowledgebaseIds)
-
-        // Update chunkStructure
-        const textSplitterType = documents[0].parserConfig?.textSplitterType
-        if (textSplitterType) {
-            const textSplitterStrategy = this.textSplitterRegistry.get(textSplitterType)
-            if (textSplitterStrategy) {
-                const structure = textSplitterStrategy.structure
-                const knowledgebase = await this.knowledgebaseService.findOneByIdString(documents[0].knowledgebaseId)
-                if (knowledgebase.structure && knowledgebase.structure !== structure) {
-                    throw new BadRequestException(
-                        `Inconsistent chunk structure between knowledgebase (${knowledgebase.structure}) and document (${structure})`
-                    )
-                }
-                if (!knowledgebase.structure) {
-                    await this.knowledgebaseService.updateKnowledgebase(knowledgebase.id, { structure })
-                }
-            }
-        }
 
         const result: IncrementalDocumentSyncResult = {
             documents: [],
@@ -938,6 +918,26 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
 
         return result
+    }
+
+    async resolveNewDocumentParserConfig(document: Partial<IKnowledgeDocument>, persistStructure = false) {
+        if (document.type === DocumentTypeEnum.FOLDER) return document.parserConfig ?? {}
+        const knowledgebase = document.knowledgebaseId
+            ? await this.knowledgebaseService.findOneByIdString(document.knowledgebaseId)
+            : null
+        const config = resolveKnowledgeDocumentParserConfig(
+            document,
+            !knowledgebase?.type || knowledgebase.type === KnowledgebaseTypeEnum.Standard
+                ? knowledgebase?.parserConfig
+                : undefined
+        )
+        if (config.textSplitterType) {
+            const structure = await this.parserSettings.validateSplitter(config)
+            if (persistStructure && knowledgebase && knowledgebase.type === KnowledgebaseTypeEnum.Standard) {
+                await this.knowledgebaseService.ensureDocumentChunkStructure(knowledgebase.id, structure)
+            }
+        }
+        return config
     }
 
     private async isKnowledgebaseIncrementalSyncEnabled(knowledgebaseId: string | null | undefined) {

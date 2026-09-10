@@ -28,6 +28,7 @@ import {
   KnowledgeWikiStatusResponse
 } from '@xpert-ai/contracts'
 import {
+  injectConfirm,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardIconComponent,
@@ -68,6 +69,8 @@ export class KnowledgeWikiComponent {
   readonly #router = inject(Router)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
+  readonly #confirm = injectConfirm()
+  readonly retryingJobIds = signal<string[]>([])
 
   readonly #dialog = inject(Dialog)
   readonly #destroyRef = inject(DestroyRef)
@@ -533,14 +536,18 @@ export class KnowledgeWikiComponent {
   async rebuild() {
     const knowledgebaseId = this.knowledgebaseId()
     if (!knowledgebaseId || this.rebuilding()) return
-    const confirmed = window.confirm(
-      this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
-        Default: 'Rebuilding Wiki content calls the configured model and may incur charges. Continue?'
-      })
-    )
-    if (!confirmed) return
     this.rebuilding.set(true)
     try {
+      const confirmed = await firstValueFrom(
+        this.#confirm<boolean>({
+          title: this.#translate.instant('XP.Knowledgebase.Wiki.Rebuild'),
+          information: this.#translate.instant('XP.Knowledgebase.Wiki.RebuildConfirm', {
+            Default: 'Rebuilding Wiki content calls the configured model and may incur charges. Continue?'
+          })
+        }),
+        { defaultValue: false }
+      )
+      if (!confirmed || this.#destroyRef.destroyed || this.knowledgebaseId() !== knowledgebaseId) return
       await firstValueFrom(
         this.#service.rebuild(knowledgebaseId, {
           confirmModelCharges: true,
@@ -558,27 +565,34 @@ export class KnowledgeWikiComponent {
 
   async retry(action: KnowledgeWikiRecoveryAction) {
     const knowledgebaseId = this.knowledgebaseId()
-    if (!knowledgebaseId || !action.canRetry) return
+    if (!knowledgebaseId || !action.canRetry || this.rebuilding() || this.retryingJobIds().includes(action.jobId))
+      return
     if (action.recommendedAction === 'full_rebuild') {
       await this.rebuild()
       return
     }
-    let confirmed = true
-    if (action.requiresAdditionalChargeConfirmation) {
-      confirmed = window.confirm(
-        this.#translate.instant('XP.Knowledgebase.Wiki.RetryChargeConfirm', {
-          Default: 'The provider may already have charged the previous call. Retry and allow an additional charge?'
-        })
-      )
-    }
-    if (!confirmed) return
+    this.retryingJobIds.update((ids) => [...ids, action.jobId])
     try {
+      if (action.requiresAdditionalChargeConfirmation) {
+        const confirmed = await firstValueFrom(
+          this.#confirm<boolean>({
+            title: this.#translate.instant('XP.ACTIONS.Retry'),
+            information: this.#translate.instant('XP.Knowledgebase.Wiki.RetryChargeConfirm', {
+              Default: 'The provider may already have charged the previous call. Retry and allow an additional charge?'
+            })
+          }),
+          { defaultValue: false }
+        )
+        if (!confirmed || this.#destroyRef.destroyed || this.knowledgebaseId() !== knowledgebaseId) return
+      }
       await firstValueFrom(
         this.#service.retryJob(knowledgebaseId, action.jobId, action.requiresAdditionalChargeConfirmation)
       )
       await this.refresh()
     } catch (error) {
       this.#toastr.danger(error)
+    } finally {
+      this.retryingJobIds.update((ids) => ids.filter((id) => id !== action.jobId))
     }
   }
 
