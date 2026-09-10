@@ -481,6 +481,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     options: {
                         leaderKey: agent.key,
                         isDraft: command.options.isDraft,
+                        conversationId: options.conversationId,
+                        projectId: options.projectId,
+                        workspaceRoot: options.workspaceRoot,
+                        workspacePath: options.workspacePath,
                         subscriber
                     },
                     thread_id,
@@ -590,6 +594,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     options: {
                         leaderKey: parentKey,
                         isDraft: command.options.isDraft,
+                        conversationId: options.conversationId,
+                        projectId: options.projectId,
+                        workspaceRoot: options.workspaceRoot,
+                        workspacePath: options.workspacePath,
                         subscriber
                     },
                     thread_id,
@@ -1857,7 +1865,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         agent: IXpertAgent,
         config: TAgentSubgraphParams & {
             xpert: Partial<IXpert>
-            options: {
+            options: Pick<
+                XpertAgentSubgraphCommand['options'],
+                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath'
+            > & {
                 leaderKey: string
                 isDraft: boolean
                 subscriber: Subscriber<MessageEvent>
@@ -1894,6 +1905,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 isStart: isTool,
                 leaderKey,
                 isDraft: config.options.isDraft,
+                conversationId: options.conversationId,
+                projectId: options.projectId,
+                workspaceRoot: options.workspaceRoot,
+                workspacePath: options.workspacePath,
                 subscriber,
                 execution,
                 variables,

@@ -81,6 +81,12 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
         const commandBus = {
             execute: jest.fn(async (command: unknown) => {
                 if (command instanceof XpertAgentSubgraphCommand) {
+                    expect(command.options).toMatchObject({
+                        conversationId: 'conversation-1',
+                        projectId: 'project-1',
+                        workspaceRoot: '/workspace',
+                        workspacePath: '/workspace/task'
+                    })
                     return {
                         graph: childGraph,
                         nextNodes: [],
@@ -136,6 +142,10 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
                 },
                 options: {
                     leaderKey: 'agent-1',
+                    conversationId: 'conversation-1',
+                    projectId: 'project-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace/task',
                     isDraft: true,
                     subscriber
                 },
