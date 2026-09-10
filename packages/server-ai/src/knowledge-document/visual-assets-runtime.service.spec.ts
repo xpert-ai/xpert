@@ -97,6 +97,36 @@ describe('KnowledgeDocumentVisualAssetsRuntimeService', () => {
         await fsPromises.rm(rootPath, { recursive: true, force: true })
     })
 
+    it('accepts plugin-owned audit scopes without domain-specific IDs', async () => {
+        const api = service.createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
+        const request = candidateRequest()
+        const result = await api.issueCandidates({
+            ...request,
+            businessScope: {
+                namespace: 'example.document-review',
+                sourceDocumentId: 'source-1',
+                attributes: { subjectId: 'review-1' }
+            }
+        })
+        expect(result.candidates).toHaveLength(1)
+        await expect(
+            api.issueCandidates({
+                ...request,
+                businessScope: { namespace: '', sourceDocumentId: 'source-1', attributes: {} }
+            })
+        ).rejects.toThrow()
+        await expect(
+            api.issueCandidates({
+                ...request,
+                businessScope: {
+                    namespace: 'example.review',
+                    sourceDocumentId: 'source-1',
+                    attributes: { value: 'x'.repeat(513) }
+                }
+            })
+        ).rejects.toThrow()
+    })
+
     it('issues governed relative paths and injects bytes only inside the same Agent execution', async () => {
         const api = service.createScopedApi(executionScope(), { workspaceFiles: workspaceFiles as never })
         const result = await api.issueCandidates(candidateRequest())
@@ -360,9 +390,7 @@ function candidateRequest() {
         maxAssets: 3,
         businessScope: {
             namespace: 'bom.requirement-evidence' as const,
-            caseId: 'case-1',
-            baselineId: 'baseline-1',
-            runId: 'run-1',
+            attributes: { caseId: 'case-1', baselineId: 'baseline-1', runId: 'run-1' },
             sourceDocumentId: 'source-1'
         }
     }

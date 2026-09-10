@@ -564,9 +564,7 @@ describe('AgentMiddlewareRuntimeService', () => {
                 maxAssets: 3,
                 businessScope: {
                     namespace: 'bom.requirement-evidence',
-                    caseId: 'case-1',
-                    baselineId: 'baseline-1',
-                    runId: 'run-1',
+                    attributes: { caseId: 'case-1', baselineId: 'baseline-1', runId: 'run-1' },
                     sourceDocumentId: 'source-1'
                 }
             })
