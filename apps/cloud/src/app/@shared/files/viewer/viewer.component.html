@@ -168,6 +168,16 @@
           [editable]="mode() === 'edit'"
           (dirtyChange)="spreadsheetDirtyChange.emit($event)"
         />
+      } @else if (pptx() && documentBuffer()) {
+        <xp-pptx-editor
+          class="h-full"
+          [documentBuffer]="documentBuffer()"
+          [fileName]="displayFileName() || filePath() || 'presentation.pptx'"
+          [editable]="mode() === 'edit'"
+          (dirtyChange)="pptxDirtyChange.emit($event)"
+          (editorError)="pptxError.emit($event)"
+          (saveRequest)="save.emit()"
+        />
       } @else if (mode() === 'edit' && editable()) {
         @if (docx() && documentBuffer()) {
           <xp-docx-editor

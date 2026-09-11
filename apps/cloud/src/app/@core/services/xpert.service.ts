@@ -227,6 +227,13 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, { path, content })
   }
 
+  saveWorkspaceBinaryFile(id: string, path: string, file: Blob) {
+    const formData = new FormData()
+    formData.append('file', file, path.split('/').pop() || 'workspace-file')
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/workspace/file/save-binary`, formData)
+  }
+
   uploadWorkspaceFileToFolder(id: string, file: File, path = '') {
     const formData = new FormData()
     formData.append('file', file)

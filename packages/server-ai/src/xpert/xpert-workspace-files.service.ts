@@ -37,6 +37,11 @@ export class XpertWorkspaceFilesService {
         return client.saveFile('', filePath, content)
     }
 
+    async saveBinary(xpertId: string, filePath: string, content: Buffer) {
+        const client = await this.createClient(xpertId)
+        return client.saveBinaryFile('', filePath, content)
+    }
+
     async uploadToFolder(
         xpertId: string,
         folderPath: string,

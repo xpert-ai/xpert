@@ -122,6 +122,7 @@ jest.mock('../viewer/viewer.component', () => {
     @Input() editable?: boolean
     @Input() markdown?: boolean
     @Input() docx?: boolean
+    @Input() pptx?: boolean
     @Input() documentBuffer?: ArrayBuffer | null
     @Input() spreadsheet?: boolean
     @Input() dirty?: boolean
@@ -140,6 +141,8 @@ jest.mock('../viewer/viewer.component', () => {
     @Output() readonly documentSave = new EventEmitter<File>()
     @Output() readonly documentError = new EventEmitter<Error>()
     @Output() readonly spreadsheetDirtyChange = new EventEmitter<boolean>()
+    @Output() readonly pptxDirtyChange = new EventEmitter<boolean>()
+    @Output() readonly pptxError = new EventEmitter<Error>()
     @Output() readonly discard = new EventEmitter<void>()
     @Output() readonly save = new EventEmitter<void>()
     @Output() readonly refresh = new EventEmitter<void>()
@@ -178,6 +181,22 @@ jest.mock('../viewer/viewer.component', () => {
     }
 
     reloadDocx() {
+      return undefined
+    }
+
+    exportPptxFile() {
+      return Promise.resolve(
+        new File(['updated presentation'], this.filePath?.split('/').pop() || 'presentation.pptx', {
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        })
+      )
+    }
+
+    reloadPptx() {
+      return undefined
+    }
+
+    markPptxSaved() {
       return undefined
     }
   }

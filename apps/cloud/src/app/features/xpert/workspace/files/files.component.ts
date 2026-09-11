@@ -9,6 +9,7 @@ import {
   FileWorkbenchFileDownloader,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
+  FileWorkbenchBinaryFileSaver,
   FileWorkbenchFileUploader,
   FileWorkbenchFilesLoader
 } from '../../../../@shared/files'
@@ -51,6 +52,10 @@ export class XpertWorkspaceFilesComponent {
 
   readonly saveFile: FileWorkbenchFileSaver = (path, content) => {
     return this.#xpertService.saveWorkspaceFile(this.requireXpertId(), path, content)
+  }
+
+  readonly saveBinaryFile: FileWorkbenchBinaryFileSaver = (path, file) => {
+    return this.#xpertService.saveWorkspaceBinaryFile(this.requireXpertId(), path, file)
   }
 
   readonly uploadFile: FileWorkbenchFileUploader = (file, path) => {
