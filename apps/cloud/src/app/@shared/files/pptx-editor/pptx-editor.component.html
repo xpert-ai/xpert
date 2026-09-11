@@ -1,0 +1,1046 @@
+<div class="xp-pptx-editor" [class.is-thumbnails-hidden]="!showThumbnails()">
+  @if (loading()) {
+    <xp-spin class="absolute inset-0 z-10 flex items-center justify-center bg-components-panel-bg/80" />
+  } @else if (error()) {
+    <div class="flex h-full w-full items-center justify-center p-6">
+      <div class="max-w-lg text-center text-sm text-text-tertiary">
+        <i class="ri-slideshow-line text-4xl"></i>
+        <div class="mt-3 font-medium text-text-primary">
+          {{ 'XP.Files.PptxOpenFailed' | translate: { Default: 'Unable to open this presentation.' } }}
+        </div>
+      </div>
+    </div>
+  } @else if (deck(); as presentation) {
+    <aside class="xp-pptx-editor__slides">
+      <div class="xp-pptx-editor__slides-scroll">
+        @for (slide of presentation.slides; track slide.path; let index = $index) {
+          <button
+            type="button"
+            class="xp-pptx-editor__thumbnail"
+            [class.is-active]="selectedSlideIndex() === index"
+            [class.is-hidden]="slide.hidden"
+            [attr.aria-label]="'Slide ' + (index + 1)"
+            (click)="selectSlide(index)"
+          >
+            <span
+              class="xp-pptx-editor__thumbnail-canvas"
+              [style.aspect-ratio]="presentation.width + ' / ' + presentation.height"
+              [style.background]="slide.background || 'Canvas'"
+            >
+              @for (shape of slide.shapes; track shape.id) {
+                @if (!shape.deleted) {
+                  <span class="xp-pptx-editor__thumbnail-shape" [ngStyle]="thumbnailShapeStyle(shape, presentation)">
+                    @if (shape.kind === 'line') {
+                      <svg
+                        class="xp-pptx-editor__line"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                      >
+                        <line
+                          x1="0"
+                          y1="0"
+                          x2="100"
+                          y2="100"
+                          [attr.stroke]="shape.stroke || 'currentColor'"
+                          [attr.stroke-width]="lineStrokeWidth(shape, true)"
+                          stroke-linecap="round"
+                          vector-effect="non-scaling-stroke"
+                        />
+                      </svg>
+                    }
+                    @if (shape.kind === 'image' && shape.imageSrc) {
+                      <img [src]="shape.imageSrc" alt="" [ngStyle]="imageStyle(shape)" />
+                    }
+                    @if (shape.text) {
+                      {{ shape.text }}
+                    }
+                  </span>
+                }
+              }
+            </span>
+            <span class="xp-pptx-editor__thumbnail-number">{{ index + 1 }}</span>
+          </button>
+        }
+      </div>
+    </aside>
+    <main class="xp-pptx-editor__main">
+      @if (editable()) {
+        <div class="xp-pptx-editor__toolbar" (click)="$event.stopPropagation()">
+          <div class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--quick">
+            <button type="button" title="Save" aria-label="Save" [disabled]="!dirty()" (click)="requestSave()">
+              <i class="ri-save-line"></i>
+            </button>
+            <button type="button" title="Undo" aria-label="Undo" [disabled]="!canUndo()" (click)="undo()">
+              <i class="ri-arrow-go-back-line"></i>
+            </button>
+            <button type="button" title="Redo" aria-label="Redo" [disabled]="!canRedo()" (click)="redo()">
+              <i class="ri-arrow-go-forward-line"></i>
+            </button>
+            <button
+              type="button"
+              class="xp-pptx-editor__autosave"
+              [class.is-on]="autoSave()"
+              title="Auto save"
+              (click)="toggleAutoSave()"
+            >
+              <span class="xp-pptx-editor__switch" aria-hidden="true"></span><span>自动保存</span>
+            </button>
+          </div>
+          <div class="xp-pptx-editor__toolbar-tabs" aria-label="Presentation tools">
+            @for (tab of toolbarTabs; track tab) {
+              <button type="button" [class.is-active]="activeToolbarTab() === tab" (click)="selectToolbarTab(tab)">
+                {{ tab }}
+              </button>
+            }
+          </div>
+          @if (activeToolbarTab() === '开始') {
+            <div class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format">
+              <label class="xp-pptx-editor__select-label" title="Font">
+                <select
+                  [disabled]="!selectedShape()"
+                  [value]="selectedShape()?.fontFamily || 'Arial'"
+                  (change)="setFontFamily($any($event.target).value)"
+                >
+                  <option>Arial</option>
+                  <option>Calibri</option>
+                  <option>Times New Roman</option>
+                  <option>Aptos</option>
+                  <option>Aptos Display</option>
+                </select>
+              </label>
+              <label class="xp-pptx-editor__size-label" title="Font size">
+                <input
+                  type="number"
+                  min="1"
+                  max="144"
+                  [disabled]="!selectedShape()"
+                  [value]="selectedFontSize()"
+                  (change)="setFontSize($any($event.target).value)"
+                />
+              </label>
+              <button
+                type="button"
+                title="Cut element"
+                aria-label="Cut element"
+                [disabled]="!selectedShape()"
+                (click)="cutSelectedShape()"
+              >
+                <i class="ri-scissors-cut-line"></i>
+              </button>
+              <button
+                type="button"
+                title="Copy element"
+                aria-label="Copy element"
+                [disabled]="!selectedShape()"
+                (click)="copySelectedShape()"
+              >
+                <i class="ri-file-copy-line"></i>
+              </button>
+              <button
+                type="button"
+                title="Paste element"
+                aria-label="Paste element"
+                [disabled]="!canPasteShape()"
+                (click)="pasteCopiedShape()"
+              >
+                <i class="ri-clipboard-line"></i>
+              </button>
+              <button
+                type="button"
+                title="Increase font size"
+                aria-label="Increase font size"
+                [disabled]="!selectedShape()"
+                (click)="adjustFontSize(2)"
+              >
+                <i class="ri-font-size-2"></i>
+              </button>
+              <button
+                type="button"
+                title="Decrease font size"
+                aria-label="Decrease font size"
+                [disabled]="!selectedShape()"
+                (click)="adjustFontSize(-2)"
+              >
+                <i class="ri-font-size"></i>
+              </button>
+              <button
+                type="button"
+                title="Bold"
+                aria-label="Bold"
+                [class.is-active]="selectedShape()?.bold"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextFormat('bold')"
+              >
+                <i class="ri-bold"></i>
+              </button>
+              <button
+                type="button"
+                title="Italic"
+                aria-label="Italic"
+                [class.is-active]="selectedShape()?.italic"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextFormat('italic')"
+              >
+                <i class="ri-italic"></i>
+              </button>
+              <button
+                type="button"
+                title="Underline"
+                aria-label="Underline"
+                [class.is-active]="selectedShape()?.underline"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextFormat('underline')"
+              >
+                <i class="ri-underline"></i>
+              </button>
+              <button
+                type="button"
+                title="Strikethrough"
+                aria-label="Strikethrough"
+                [class.is-active]="selectedShape()?.strike"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextFormat('strike')"
+              >
+                <i class="ri-strikethrough-2"></i>
+              </button>
+              <button
+                type="button"
+                title="Superscript"
+                aria-label="Superscript"
+                [class.is-active]="selectedShape()?.superscript"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextFormat('superscript')"
+              >
+                <i class="ri-superscript-2"></i>
+              </button>
+              <button
+                type="button"
+                title="Subscript"
+                aria-label="Subscript"
+                [class.is-active]="selectedShape()?.subscript"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextFormat('subscript')"
+              >
+                <i class="ri-subscript-2"></i>
+              </button>
+              <label class="xp-pptx-editor__color-label" title="Font color"
+                ><input
+                  type="color"
+                  [disabled]="!selectedShape()"
+                  [value]="selectedShape()?.textColor || 'black'"
+                  (input)="setTextColor($any($event.target).value)"
+              /></label>
+              <button
+                type="button"
+                title="Align left"
+                aria-label="Align left"
+                [class.is-active]="selectedShape()?.textAlign === 'left'"
+                [disabled]="!selectedShape()"
+                (click)="setTextAlign('left')"
+              >
+                <i class="ri-align-left"></i>
+              </button>
+              <button
+                type="button"
+                title="Align center"
+                aria-label="Align center"
+                [class.is-active]="selectedShape()?.textAlign === 'center'"
+                [disabled]="!selectedShape()"
+                (click)="setTextAlign('center')"
+              >
+                <i class="ri-align-center"></i>
+              </button>
+              <button
+                type="button"
+                title="Align right"
+                aria-label="Align right"
+                [class.is-active]="selectedShape()?.textAlign === 'right'"
+                [disabled]="!selectedShape()"
+                (click)="setTextAlign('right')"
+              >
+                <i class="ri-align-right"></i>
+              </button>
+              <button
+                type="button"
+                title="Align top"
+                aria-label="Align top"
+                [class.is-active]="selectedShape()?.verticalAlign === 'top'"
+                [disabled]="!selectedShape()"
+                (click)="setVerticalAlign('top')"
+              >
+                <i class="ri-align-top"></i>
+              </button>
+              <button
+                type="button"
+                title="Align middle"
+                aria-label="Align middle"
+                [class.is-active]="selectedShape()?.verticalAlign === 'middle'"
+                [disabled]="!selectedShape()"
+                (click)="setVerticalAlign('middle')"
+              >
+                <i class="ri-align-item-vertical-center-line"></i>
+              </button>
+              <button
+                type="button"
+                title="Align bottom"
+                aria-label="Align bottom"
+                [class.is-active]="selectedShape()?.verticalAlign === 'bottom'"
+                [disabled]="!selectedShape()"
+                (click)="setVerticalAlign('bottom')"
+              >
+                <i class="ri-align-bottom"></i>
+              </button>
+              <button
+                type="button"
+                title="Wrap text"
+                aria-label="Wrap text"
+                [class.is-active]="selectedShape()?.wrap"
+                [disabled]="!selectedShape()"
+                (click)="toggleTextWrap()"
+              >
+                <i class="ri-text-wrap"></i>
+              </button>
+              <button
+                type="button"
+                title="Find and replace"
+                aria-label="Find and replace"
+                [disabled]="!editable()"
+                (click)="findReplace()"
+              >
+                <i class="ri-search-line"></i>
+              </button>
+              <button
+                type="button"
+                title="Paste text"
+                aria-label="Paste text"
+                [disabled]="!selectedShape()"
+                (click)="pasteText()"
+              >
+                <i class="ri-clipboard-fill"></i>
+              </button>
+            </div>
+          } @else if (activeToolbarTab() === '插入') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              <button type="button" title="Insert text box" (click)="addTextBox()">
+                <i class="ri-text"></i><span>文本框</span>
+              </button>
+              <button type="button" title="Insert image" (click)="insertImage()">
+                <i class="ri-image-add-line"></i><span>图片</span>
+              </button>
+              <label class="xp-pptx-editor__table-size" title="Table size">
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  [value]="tableRows()"
+                  (change)="setTableRows($any($event.target).value)"
+                  aria-label="Table rows"
+                />
+                <span>×</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  [value]="tableColumns()"
+                  (change)="setTableColumns($any($event.target).value)"
+                  aria-label="Table columns"
+                />
+              </label>
+              <button type="button" title="Insert table" (click)="addTable()">
+                <i class="ri-table-2"></i><span>插入表格</span>
+              </button>
+              <button
+                type="button"
+                title="Duplicate shape"
+                [disabled]="!selectedShape()"
+                (click)="duplicateSelectedShape()"
+              >
+                <i class="ri-file-copy-line"></i><span>复制</span>
+              </button>
+              <button type="button" title="Delete shape" [disabled]="!selectedShape()" (click)="deleteSelectedShape()">
+                <i class="ri-delete-bin-line"></i><span>删除</span>
+              </button>
+              <button type="button" title="New slide" (click)="addBlankSlide()">
+                <i class="ri-file-add-line"></i><span>新建幻灯片</span>
+              </button>
+              <button type="button" title="Duplicate slide" (click)="duplicateCurrentSlide()">
+                <i class="ri-pages-line"></i><span>复制幻灯片</span>
+              </button>
+              <button
+                type="button"
+                title="Delete slide"
+                [disabled]="presentation.slides.length <= 1"
+                (click)="deleteCurrentSlide()"
+              >
+                <i class="ri-delete-bin-6-line"></i><span>删除幻灯片</span>
+              </button>
+              <button
+                type="button"
+                title="Move slide earlier"
+                [disabled]="selectedSlideIndex() === 0"
+                (click)="moveCurrentSlide(-1)"
+              >
+                <i class="ri-arrow-left-line"></i><span>前移</span>
+              </button>
+              <button
+                type="button"
+                title="Move slide later"
+                [disabled]="selectedSlideIndex() === presentation.slides.length - 1"
+                (click)="moveCurrentSlide(1)"
+              >
+                <i class="ri-arrow-right-line"></i><span>后移</span>
+              </button>
+            </div>
+          } @else if (activeToolbarTab() === '绘图') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              <button
+                type="button"
+                title="Select"
+                [class.is-active]="drawingTool() === 'select'"
+                (click)="setDrawingTool('select')"
+              >
+                <i class="ri-cursor-line"></i><span>选择</span>
+              </button>
+              <button
+                type="button"
+                title="Pen"
+                [class.is-active]="drawingTool() === 'pen'"
+                (click)="setDrawingTool('pen')"
+              >
+                <i class="ri-pencil-line"></i><span>画笔</span>
+              </button>
+              <button
+                type="button"
+                title="Highlighter"
+                [class.is-active]="drawingTool() === 'highlighter'"
+                (click)="setDrawingTool('highlighter')"
+              >
+                <i class="ri-mark-pen-line"></i><span>荧光笔</span>
+              </button>
+              <button
+                type="button"
+                title="Eraser"
+                [class.is-active]="drawingTool() === 'eraser'"
+                [disabled]="!inkCount()"
+                (click)="setDrawingTool('eraser')"
+              >
+                <i class="ri-eraser-line"></i><span>橡皮擦</span>
+              </button>
+              <label class="xp-pptx-editor__color-control" title="Ink color"
+                ><input
+                  type="color"
+                  [value]="drawingColor()"
+                  (input)="setDrawingColor($any($event.target).value)"
+                /><span>笔颜色</span></label
+              >
+              <label class="xp-pptx-editor__select-label" title="Ink width">
+                <select
+                  [value]="drawingWidth()"
+                  (change)="setDrawingWidth($any($event.target).value)"
+                  aria-label="Ink width"
+                >
+                  <option value="1">1 px</option>
+                  <option value="2">2 px</option>
+                  <option value="3.5">3.5 px</option>
+                  <option value="5">5 px</option>
+                  <option value="6">6 px</option>
+                  <option value="10">10 px</option>
+                  <option value="16">16 px</option>
+                </select>
+              </label>
+              <button type="button" title="Clear ink" [disabled]="!inkCount()" (click)="clearInk()">
+                <i class="ri-delete-bin-line"></i><span>清除墨迹</span>
+              </button>
+              <button type="button" title="Rectangle" (click)="addShape('rect')">
+                <i class="ri-rectangle-line"></i><span>矩形</span>
+              </button>
+              <button type="button" title="Rounded rectangle" (click)="addShape('roundRect')">
+                <i class="ri-rounded-corner"></i><span>圆角矩形</span>
+              </button>
+              <button type="button" title="Ellipse" (click)="addShape('ellipse')">
+                <i class="ri-checkbox-blank-circle-line"></i><span>椭圆</span>
+              </button>
+              <button type="button" title="Diamond" (click)="addShape('diamond')">
+                <i class="ri-shape-2-line"></i><span>菱形</span>
+              </button>
+              <button type="button" title="Triangle" (click)="addShape('triangle')">
+                <i class="ri-triangle-line"></i><span>三角形</span>
+              </button>
+              <button type="button" title="Hexagon" (click)="addShape('hexagon')">
+                <i class="ri-hexagon-line"></i><span>六边形</span>
+              </button>
+              <label class="xp-pptx-editor__color-control" title="Fill"
+                ><input
+                  type="color"
+                  [disabled]="!selectedShape()"
+                  [value]="selectedShape()?.fill || defaultFillColor"
+                  (input)="setShapeFill($any($event.target).value)"
+                /><span>填充</span></label
+              >
+              <label class="xp-pptx-editor__color-control" title="Outline"
+                ><input
+                  type="color"
+                  [disabled]="!selectedShape()"
+                  [value]="selectedShape()?.stroke || defaultStrokeColor"
+                  (input)="setShapeStroke($any($event.target).value)"
+                /><span>轮廓</span></label
+              >
+              <button type="button" title="No outline" [disabled]="!selectedShape()" (click)="clearShapeStroke()">
+                <i class="ri-close-circle-line"></i><span>无轮廓</span>
+              </button>
+              <button type="button" title="Align left" [disabled]="!selectedShape()" (click)="alignSelected('left')">
+                <i class="ri-align-left"></i>
+              </button>
+              <button type="button" title="Center" [disabled]="!selectedShape()" (click)="alignSelected('center')">
+                <i class="ri-align-item-horizontal-center-line"></i>
+              </button>
+              <button type="button" title="Align right" [disabled]="!selectedShape()" (click)="alignSelected('right')">
+                <i class="ri-align-right"></i>
+              </button>
+              <button type="button" title="Align top" [disabled]="!selectedShape()" (click)="alignSelected('top')">
+                <i class="ri-align-top"></i>
+              </button>
+              <button
+                type="button"
+                title="Align middle"
+                [disabled]="!selectedShape()"
+                (click)="alignSelected('middle')"
+              >
+                <i class="ri-align-item-vertical-center-line"></i>
+              </button>
+              <button
+                type="button"
+                title="Align bottom"
+                [disabled]="!selectedShape()"
+                (click)="alignSelected('bottom')"
+              >
+                <i class="ri-align-bottom"></i>
+              </button>
+              <button type="button" title="Rotate clockwise" [disabled]="!selectedShape()" (click)="rotateSelected(90)">
+                <i class="ri-clockwise-2-line"></i><span>旋转</span>
+              </button>
+              <button
+                type="button"
+                title="Flip horizontal"
+                [disabled]="!selectedShape()"
+                (click)="flipSelected('horizontal')"
+              >
+                <i class="ri-flip-horizontal-line"></i><span>水平翻转</span>
+              </button>
+              <button
+                type="button"
+                title="Bring forward"
+                [disabled]="!selectedShape()"
+                (click)="moveSelectedLayer('forward')"
+              >
+                <i class="ri-bring-forward"></i>
+              </button>
+              <button
+                type="button"
+                title="Send backward"
+                [disabled]="!selectedShape()"
+                (click)="moveSelectedLayer('backward')"
+              >
+                <i class="ri-send-backward"></i>
+              </button>
+              <button
+                type="button"
+                title="Bring to front"
+                [disabled]="!selectedShape()"
+                (click)="moveSelectedLayer('front')"
+              >
+                <i class="ri-stack-line"></i><span>置于顶层</span>
+              </button>
+              <button
+                type="button"
+                title="Send to back"
+                [disabled]="!selectedShape()"
+                (click)="moveSelectedLayer('back')"
+              >
+                <i class="ri-stack-fill"></i><span>置于底层</span>
+              </button>
+            </div>
+          } @else if (activeToolbarTab() === '视图') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              <button
+                type="button"
+                title="Thumbnail pane"
+                [class.is-active]="showThumbnails()"
+                (click)="showThumbnails.set(!showThumbnails())"
+              >
+                <i class="ri-layout-left-line"></i><span>缩略图</span>
+              </button>
+              <button
+                type="button"
+                title="Gridlines"
+                [class.is-active]="showGrid()"
+                (click)="showGrid.set(!showGrid())"
+              >
+                <i class="ri-grid-line"></i><span>网格线</span>
+              </button>
+              <button
+                type="button"
+                title="Guides"
+                [class.is-active]="showGuides()"
+                (click)="showGuides.set(!showGuides())"
+              >
+                <i class="ri-focus-3-line"></i><span>参考线</span>
+              </button>
+              <button type="button" title="Reading view" (click)="startSlideshow()">
+                <i class="ri-book-open-line"></i><span>阅读视图</span>
+              </button>
+              <button type="button" title="Fit slide" (click)="resetZoom()">
+                <i class="ri-fullscreen-line"></i><span>适应画布</span>
+              </button>
+              <button type="button" title="Zoom out" (click)="updateZoom(zoom() * 100 - 10)">
+                <i class="ri-zoom-out-line"></i><span>缩小</span>
+              </button>
+              <button type="button" title="Zoom in" (click)="updateZoom(zoom() * 100 + 10)">
+                <i class="ri-zoom-in-line"></i><span>放大</span>
+              </button>
+            </div>
+          } @else if (activeToolbarTab() === '审阅') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              <button type="button" title="Find and replace" [disabled]="!editable()" (click)="findReplace()">
+                <i class="ri-search-line"></i><span>查找替换</span>
+              </button>
+            </div>
+          } @else if (activeToolbarTab() === '设计') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              @for (theme of themePresets; track theme.id) {
+                <button
+                  type="button"
+                  class="xp-pptx-editor__theme"
+                  [style.background]="theme.background"
+                  [style.color]="theme.text"
+                  [style.border-color]="theme.accent"
+                  [title]="'应用主题 ' + theme.name"
+                  (click)="applyDeckEdit('theme', theme.id)"
+                >
+                  <strong>Aa</strong><span [style.background]="theme.accent"></span><small>{{ theme.name }}</small>
+                </button>
+              }
+              <label class="xp-pptx-editor__color-control" title="Slide background"
+                ><input
+                  type="color"
+                  [disabled]="!editable()"
+                  [value]="selectedSlideBackground()"
+                  (input)="applyDeckEdit('background', $any($event.target).value)"
+                /><span>页面背景</span></label
+              >
+              <label class="xp-pptx-editor__select-label" title="Slide size">
+                <select
+                  [value]="presentation.width / presentation.height > 1.5 ? '16:9' : '4:3'"
+                  (change)="applyDeckEdit('slideSize', $any($event.target).value)"
+                >
+                  <option value="16:9">宽屏 16:9</option>
+                  <option value="4:3">标准 4:3</option>
+                </select>
+              </label>
+            </div>
+          } @else if (activeToolbarTab() === '切换') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              @for (transition of transitions; track transition.value) {
+                <button
+                  type="button"
+                  [class.is-active]="(selectedSlide()?.transition || 'none') === transition.value"
+                  [title]="transition.label"
+                  (click)="applyDeckEdit('transition', transition.value)"
+                >
+                  <i class="ri-skip-forward-mini-line"></i><span>{{ transition.label }}</span>
+                </button>
+              }
+              <button
+                type="button"
+                title="Apply to all slides"
+                (click)="applyDeckEdit('transitionAll', selectedSlide()?.transition || 'none')"
+              >
+                <i class="ri-stack-line"></i><span>应用到全部</span>
+              </button>
+            </div>
+          } @else if (activeToolbarTab() === '动画') {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              <button type="button" title="Preview selected slide" (click)="startSlideshow()">
+                <i class="ri-play-line"></i><span>预览放映</span>
+              </button>
+              @for (animation of animations; track animation.value) {
+                <button
+                  type="button"
+                  [class.is-active]="(selectedShape()?.animation?.effect || 'none') === animation.value"
+                  [disabled]="!selectedShape()"
+                  [title]="animation.label"
+                  (click)="applyDeckEdit('animationEffect', animation.value)"
+                >
+                  <i class="ri-star-line"></i><span>{{ animation.label }}</span>
+                </button>
+              }
+              <label class="xp-pptx-editor__select-label" title="Animation start">
+                <select
+                  [disabled]="!selectedShape()?.animation"
+                  [value]="selectedShape()?.animation?.trigger || 'onClick'"
+                  (change)="applyDeckEdit('animationTrigger', $any($event.target).value)"
+                >
+                  @for (trigger of animationTriggers; track trigger.value) {
+                    <option [value]="trigger.value">{{ trigger.label }}</option>
+                  }
+                </select>
+              </label>
+              <label class="xp-pptx-editor__timing" title="Animation duration">
+                <span>持续</span>
+                <input
+                  type="number"
+                  min="0.1"
+                  max="30"
+                  step="0.1"
+                  [disabled]="!selectedShape()?.animation"
+                  [value]="(selectedShape()?.animation?.durationMs || 700) / 1000"
+                  (change)="applyDeckEdit('animationDuration', $any($event.target).value)"
+                />
+                <span>秒</span>
+              </label>
+              <label class="xp-pptx-editor__timing" title="Animation delay">
+                <span>延迟</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  step="0.1"
+                  [disabled]="!selectedShape()?.animation"
+                  [value]="(selectedShape()?.animation?.delayMs || 0) / 1000"
+                  (change)="applyDeckEdit('animationDelay', $any($event.target).value)"
+                />
+                <span>秒</span>
+              </label>
+            </div>
+          } @else {
+            <div
+              class="xp-pptx-editor__toolbar-group xp-pptx-editor__toolbar-group--format xp-pptx-editor__toolbar-group--actions"
+            >
+              <button type="button" title="Start slideshow from beginning" (click)="startSlideshow(true)">
+                <i class="ri-play-circle-line"></i><span>从头开始</span>
+              </button>
+              <button type="button" title="Start slideshow from current slide" (click)="startSlideshow()">
+                <i class="ri-slideshow-line"></i><span>从当前页放映</span>
+              </button>
+              <button
+                type="button"
+                title="Hide slide"
+                [class.is-active]="selectedSlide()?.hidden"
+                (click)="applyDeckEdit('hidden', !selectedSlide()?.hidden)"
+              >
+                <i class="ri-eye-off-line"></i><span>{{ selectedSlide()?.hidden ? '取消隐藏' : '隐藏幻灯片' }}</span>
+              </button>
+            </div>
+          }
+          <span class="xp-pptx-editor__slide-count"
+            >{{ selectedSlideIndex() + 1 }} / {{ presentation.slides.length }}</span
+          >
+          <div class="xp-pptx-editor__zoom-controls">
+            <button type="button" title="Zoom out" aria-label="Zoom out" (click)="updateZoom(zoom() * 100 - 10)">
+              <i class="ri-subtract-line"></i>
+            </button>
+            <button type="button" class="xp-pptx-editor__zoom-value" (click)="resetZoom()">{{ zoomLabel() }}</button>
+            <button type="button" title="Zoom in" aria-label="Zoom in" (click)="updateZoom(zoom() * 100 + 10)">
+              <i class="ri-add-line"></i>
+            </button>
+            <button type="button" title="Fit slide" aria-label="Fit slide" (click)="resetZoom()">
+              <i class="ri-fullscreen-line"></i>
+            </button>
+          </div>
+        </div>
+      }
+      <div #stageHost class="xp-pptx-editor__stage-viewport" (click)="clearSelection($event)">
+        @if (selectedSlide(); as slide) {
+          <div class="xp-pptx-editor__stage-inner">
+            <div
+              class="xp-pptx-editor__canvas"
+              [class.has-grid]="showGrid()"
+              [class.has-guides]="showGuides()"
+              [style.width.px]="canvasSize().width"
+              [style.height.px]="canvasSize().height"
+              [style.background]="slide.background || 'Canvas'"
+              [attr.aria-label]="fileName()"
+            >
+              @for (shape of slide.shapes; track shape.id) {
+                @if (!shape.deleted) {
+                  <div
+                    class="xp-pptx-editor__shape"
+                    [class.is-ink]="shape.editorKind === 'ink'"
+                    [class.is-line]="shape.kind === 'line'"
+                    [class.is-table]="shape.kind === 'table'"
+                    [class.is-round-rect]="shape.geometry === 'roundRect'"
+                    [class.is-ellipse]="shape.geometry === 'ellipse'"
+                    [class.is-diamond]="shape.geometry === 'diamond'"
+                    [class.is-triangle]="shape.geometry === 'triangle'"
+                    [class.is-hexagon]="shape.geometry === 'hexagon'"
+                    [class.is-text]="shape.paragraphs.length > 0"
+                    [style.z-index]="shape.editorKind === 'ink' ? 4 : null"
+                    [class.is-selected]="selectedShapeId() === shape.id"
+                    [class.is-editing]="editingShapeId() === shape.id"
+                    [ngStyle]="shapeStyle(shape, presentation)"
+                    (click)="selectShape(shape, $event)"
+                    (pointerdown)="onShapePointerDown(shape, $event)"
+                    (dblclick)="beginTextEdit(shape, $event)"
+                  >
+                    <xp-pptx-polygon [shape]="shape" />
+                    @if (shape.kind === 'line') {
+                      <svg
+                        class="xp-pptx-editor__line"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                      >
+                        <line
+                          x1="0"
+                          y1="0"
+                          x2="100"
+                          y2="100"
+                          [attr.stroke]="shape.stroke || 'currentColor'"
+                          [attr.stroke-width]="lineStrokeWidth(shape)"
+                          stroke-linecap="round"
+                          vector-effect="non-scaling-stroke"
+                        />
+                      </svg>
+                    }
+                    @if (shape.kind === 'image' && shape.imageSrc) {
+                      <img class="xp-pptx-editor__image" [src]="shape.imageSrc" alt="" [ngStyle]="imageStyle(shape)" />
+                    }
+                    @if (shape.kind === 'table' && shape.table) {
+                      <xp-pptx-table
+                        [shape]="shape"
+                        [editing]="editable() && shape.editable"
+                        (cellEditStart)="beginTableCellEdit(shape, $event)"
+                        (cellInput)="updateTableCell(shape, $event.rowIndex, $event.cellIndex, $event.value)"
+                        (cellEditEnd)="finishTableCellEdit(shape)"
+                      />
+                    } @else if (editable() && shape.editable && editingShapeId() === shape.id) {
+                      <textarea
+                        class="xp-pptx-editor__textarea"
+                        [readonly]="!editable()"
+                        [style.padding]="textPadding(shape, presentation)"
+                        [ngModel]="shape.text"
+                        (ngModelChange)="updateShape(shape, $event)"
+                        (blur)="finishTextEdit(shape)"
+                      ></textarea>
+                    } @else if (shape.paragraphs.length) {
+                      <div
+                        class="xp-pptx-editor__text"
+                        [style.padding]="textPadding(shape, presentation)"
+                        [style.justify-content]="
+                          shape.verticalAlign === 'middle'
+                            ? 'center'
+                            : shape.verticalAlign === 'bottom'
+                              ? 'flex-end'
+                              : 'flex-start'
+                        "
+                      >
+                        @for (paragraph of shape.paragraphs; track $index) {
+                          <div
+                            class="xp-pptx-editor__paragraph"
+                            [style.text-align]="paragraph.align"
+                            [style.white-space]="shape.wrap ? 'pre-wrap' : 'pre'"
+                            [style.overflow-wrap]="shape.wrap ? 'anywhere' : 'normal'"
+                          >
+                            @for (run of paragraph.runs; track $index) {
+                              <span
+                                [style.font-size]="runFontSize(run, shape, presentation)"
+                                [style.font-family]="run.fontFamily || 'Arial, sans-serif'"
+                                [style.color]="run.color"
+                                [style.font-weight]="run.bold ? '700' : '400'"
+                                [style.font-style]="run.italic ? 'italic' : 'normal'"
+                                [style.text-decoration]="runTextDecoration(run)"
+                                [style.vertical-align]="run.superscript ? 'super' : run.subscript ? 'sub' : 'baseline'"
+                                >{{ run.text }}</span
+                              >
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                  @if (selectedShapeId() === shape.id && editable() && shape.editable) {
+                    <div class="xp-pptx-editor__selection-frame" [ngStyle]="selectionFrameStyle(shape, presentation)">
+                      <span
+                        class="xp-pptx-editor__resize-handle"
+                        (pointerdown)="onResizePointerDown(shape, $event)"
+                        (click)="$event.stopPropagation()"
+                        aria-label="Resize"
+                      ></span>
+                    </div>
+                  }
+                }
+              }
+              <svg
+                class="xp-pptx-editor__ink-layer"
+                [class.is-active]="editable() && drawingTool() !== 'select'"
+                [attr.viewBox]="'0 0 ' + presentation.width + ' ' + presentation.height"
+                aria-label="Drawing canvas"
+                (pointerdown)="onInkPointerDown($event)"
+                (pointermove)="onInkPointerMove($event)"
+                (pointerup)="onInkPointerUp()"
+              >
+                @if (inkPreviewPoints()) {
+                  <polyline
+                    [attr.points]="inkPreviewPoints()"
+                    fill="none"
+                    [attr.stroke]="drawingColor()"
+                    [attr.stroke-width]="inkPreviewStrokeWidth()"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    [attr.opacity]="drawingTool() === 'highlighter' ? 0.35 : 1"
+                  />
+                }
+              </svg>
+            </div>
+          </div>
+        }
+      </div>
+    </main>
+    @if (slideshowSlide(); as slide) {
+      <div class="xp-pptx-editor__slideshow" role="dialog" aria-modal="true" [attr.aria-label]="fileName()">
+        <div class="xp-pptx-editor__slideshow-toolbar">
+          <button
+            type="button"
+            title="Previous slide"
+            aria-label="Previous slide"
+            [disabled]="slideshowSlideIndex() === 0"
+            (click)="stepSlideshow(-1)"
+          >
+            <i class="ri-arrow-left-line"></i>
+          </button>
+          <span>{{ (slideshowSlideIndex() ?? 0) + 1 }} / {{ presentation.slides.length }}</span>
+          <button
+            type="button"
+            title="Next slide"
+            aria-label="Next slide"
+            [disabled]="slideshowSlideIndex() === presentation.slides.length - 1"
+            (click)="stepSlideshow(1)"
+          >
+            <i class="ri-arrow-right-line"></i>
+          </button>
+          <button type="button" title="Close slideshow" aria-label="Close slideshow" (click)="closeSlideshow()">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+        <div class="xp-pptx-editor__slideshow-stage">
+          <div
+            class="xp-pptx-editor__slideshow-canvas"
+            [ngClass]="transitionClasses(slide.transition)"
+            [style.--xp-pptx-slide-ratio]="presentation.width / presentation.height"
+            [style.aspect-ratio]="presentation.width + ' / ' + presentation.height"
+            [style.background]="slide.background || 'Canvas'"
+          >
+            @for (shape of slide.shapes; track shape.id) {
+              @if (!shape.deleted) {
+                <div
+                  class="xp-pptx-editor__shape"
+                  [class.is-line]="shape.kind === 'line'"
+                  [class.is-table]="shape.kind === 'table'"
+                  [class.is-round-rect]="shape.geometry === 'roundRect'"
+                  [class.is-ellipse]="shape.geometry === 'ellipse'"
+                  [class.is-diamond]="shape.geometry === 'diamond'"
+                  [class.is-triangle]="shape.geometry === 'triangle'"
+                  [class.is-hexagon]="shape.geometry === 'hexagon'"
+                  [ngStyle]="shapeStyle(shape, presentation)"
+                  [ngClass]="animationClasses(shape)"
+                  [style.animation-duration]="animationTime(shape, 'duration')"
+                  [style.animation-delay]="animationTime(shape, 'delay')"
+                >
+                  @if (shape.kind === 'line') {
+                    <svg
+                      class="xp-pptx-editor__line"
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                    >
+                      <line
+                        x1="0"
+                        y1="0"
+                        x2="100"
+                        y2="100"
+                        [attr.stroke]="shape.stroke || 'currentColor'"
+                        [attr.stroke-width]="lineStrokeWidth(shape)"
+                        stroke-linecap="round"
+                        vector-effect="non-scaling-stroke"
+                      />
+                    </svg>
+                  }
+                  @if (shape.kind === 'image' && shape.imageSrc) {
+                    <img class="xp-pptx-editor__image" [src]="shape.imageSrc" alt="" [ngStyle]="imageStyle(shape)" />
+                  }
+                  @if (shape.kind === 'table' && shape.table; as table) {
+                    <table class="xp-pptx-editor__table">
+                      <tbody>
+                        @for (row of table.rows; track $index) {
+                          <tr>
+                            @for (cell of row; track $index) {
+                              <td [attr.colspan]="cell.colSpan" [attr.rowspan]="cell.rowSpan">{{ cell.text }}</td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else if (shape.paragraphs.length) {
+                    <div
+                      class="xp-pptx-editor__text"
+                      [style.padding]="textPadding(shape, presentation)"
+                      [style.justify-content]="
+                        shape.verticalAlign === 'middle'
+                          ? 'center'
+                          : shape.verticalAlign === 'bottom'
+                            ? 'flex-end'
+                            : 'flex-start'
+                      "
+                      [style.overflow-wrap]="shape.wrap ? 'anywhere' : 'normal'"
+                    >
+                      @for (paragraph of shape.paragraphs; track $index) {
+                        <div
+                          class="xp-pptx-editor__paragraph"
+                          [style.text-align]="paragraph.align"
+                          [style.white-space]="shape.wrap ? 'pre-wrap' : 'pre'"
+                          [style.overflow-wrap]="shape.wrap ? 'anywhere' : 'normal'"
+                        >
+                          @for (run of paragraph.runs; track $index) {
+                            <span
+                              [style.font-size]="runFontSize(run, shape, presentation)"
+                              [style.font-family]="run.fontFamily || 'Arial, sans-serif'"
+                              [style.color]="run.color"
+                              [style.font-weight]="run.bold ? '700' : '400'"
+                              [style.font-style]="run.italic ? 'italic' : 'normal'"
+                              [style.text-decoration]="runTextDecoration(run)"
+                              [style.vertical-align]="run.superscript ? 'super' : run.subscript ? 'sub' : 'baseline'"
+                              >{{ run.text }}</span
+                            >
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="flex h-full w-full items-center justify-center text-sm text-text-tertiary">
+      {{ 'XP.Files.PptxNotLoaded' | translate: { Default: 'No presentation loaded.' } }}
+    </div>
+  }
+</div>
