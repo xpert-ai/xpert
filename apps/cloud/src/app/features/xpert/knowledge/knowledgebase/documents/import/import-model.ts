@@ -7,7 +7,7 @@ import {
   TRagWebOptions
 } from '@xpert-ai/contracts'
 import { v4 as uuid } from 'uuid'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, pick } from 'lodash-es'
 
 export type DocumentImportSource = 'files' | 'folder' | 'url' | 'crawl' | 'remote' | 'online' | 'pipeline'
 export type KnowledgePipelineImportResult = { taskId: string }
@@ -26,6 +26,26 @@ export const DOCUMENT_IMPORT_SOURCES = [
 
 export function quickWebOptions(url: string): TRagWebOptions {
   return { url: url.trim(), params: { mode: 'scrape' } }
+}
+
+/** Shared chunk controls own these fields; spreadsheet conversion and image settings retain their own draft. */
+export function mergeSheetProcessingConfig(
+  sheetConfig: ImportParserConfig,
+  processingConfig: ImportParserConfig
+): ImportParserConfig {
+  return {
+    ...sheetConfig,
+    ...pick(processingConfig, [
+      'textSplitterType',
+      'textSplitter',
+      'chunkSize',
+      'chunkOverlap',
+      'maxChunkTokens',
+      'delimiter',
+      'separators',
+      'questionGeneration'
+    ])
+  }
 }
 
 export function buildImportDocuments(
@@ -47,10 +67,10 @@ export function buildImportDocuments(
     parent: parentId ? ({ id: parentId } as IKnowledgeDocument) : null,
     parserConfig: cloneDeep(
       document.category === KBDocumentCategoryEnum.Sheet
-        ? {
-            ...(options?.sheetParserConfig ?? (onlySheet ? config : (document.parserConfig ?? {}))),
-            ...(config.questionGeneration ? { questionGeneration: config.questionGeneration } : {})
-          }
+        ? mergeSheetProcessingConfig(
+            options?.sheetParserConfig ?? (onlySheet ? config : (document.parserConfig ?? {})),
+            config
+          )
         : {
             ...config,
             ...(document.type?.replace(/^\./, '').toLowerCase() === 'pdf' ? options?.pdfParser : {}),

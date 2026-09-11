@@ -188,14 +188,14 @@
           @if (onlySheet()) {
             <xp-knowledge-document-create-settings
               class="block min-w-0"
-              [hidden]="section() === 'audio' || section() === 'questions'"
+              [hidden]="section() === 'chunks' || section() === 'audio' || section() === 'questions'"
               [knowledgebaseValue]="data.knowledgebase"
               [section]="settingsSection()"
               [documents]="documents()"
               [(parserConfig)]="sheetParserConfig"
             />
           }
-          @if (!onlySheet() || section() === 'audio' || section() === 'questions') {
+          @if (!onlySheet() || section() === 'chunks' || section() === 'audio' || section() === 'questions') {
             <xp-knowledge-processing-settings
               class="block min-w-0"
               [form]="processing"

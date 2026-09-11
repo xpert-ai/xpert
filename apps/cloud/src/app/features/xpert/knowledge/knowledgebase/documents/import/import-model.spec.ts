@@ -34,7 +34,7 @@ describe('document import payloads', () => {
       'kb',
       null
     )
-    expect(docs[0].parserConfig).toEqual({ indexedFields: ['name'] })
+    expect(docs[0].parserConfig).toEqual({ indexedFields: ['name'], chunkSize: 512 })
     expect(docs[1].parserConfig).toEqual({ chunkSize: 512 })
     expect(docs[1].parent).toBeNull()
   })
@@ -76,7 +76,35 @@ describe('document import payloads', () => {
     })
     expect(docs[1].parserConfig.transformerType).toBeUndefined()
     expect(docs[1].parserConfig.chunkSize).toBe(800)
-    expect(docs[2].parserConfig).toEqual({ indexedFields: ['sku'] })
+    expect(docs[2].parserConfig).toEqual({ indexedFields: ['sku'], chunkSize: 800 })
+  })
+  it('applies shared chunk settings to mixed batches without replacing spreadsheet conversion settings', () => {
+    const sheetConfig = {
+      indexedFields: ['sku'],
+      spreadsheet: { includeSheets: ['Orders'] },
+      transformerType: 'sheet-transformer',
+      imageUnderstandingEnabled: false,
+      textSplitterType: 'recursive-character',
+      textSplitter: { chunkSize: 1000 }
+    }
+    const docs = buildImportDocuments(
+      [
+        { category: KBDocumentCategoryEnum.Sheet, parserConfig: sheetConfig },
+        { category: KBDocumentCategoryEnum.Text }
+      ],
+      { textSplitterType: 'auto', textSplitter: { chunkSize: 800, chunkOverlap: 40 }, maxChunkTokens: 256 },
+      'kb',
+      null
+    )
+    expect(docs[0].parserConfig).toEqual({
+      ...sheetConfig,
+      textSplitterType: 'auto',
+      textSplitter: { chunkSize: 800, chunkOverlap: 40 },
+      maxChunkTokens: 256
+    })
+    docs[0].parserConfig.spreadsheet.includeSheets.push('Other')
+    expect(sheetConfig.spreadsheet.includeSheets).toEqual(['Orders'])
+    expect(sheetConfig.textSplitterType).toBe('recursive-character')
   })
   it('uses the existing single-page crawl mode for quick URLs', () => {
     expect(quickWebOptions(' https://example.com/a ')).toEqual({
