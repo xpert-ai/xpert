@@ -2,6 +2,16 @@ import { AiModelTypeEnum, KBDocumentCategoryEnum, KnowledgebaseParserConfig } fr
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 describe('resolveKnowledgeDocumentParserConfig precedence', () => {
+    it('round-trips the public language hint without moving it into splitter options', () => {
+        const document = {
+            type: 'txt',
+            parserConfig: { textSplitterType: 'auto', chunkLanguageHint: 'Chinese' as const }
+        }
+        const config = resolveKnowledgeDocumentParserConfig(document)
+        expect(config).toHaveProperty('chunkLanguageHint', 'Chinese')
+        expect(config.textSplitter).not.toHaveProperty('chunkLanguageHint')
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'txt', parserConfig: config })).toEqual(config)
+    })
     it('defaults text documents to auto while keeping explicit choices and spreadsheet handling', () => {
         for (const type of ['txt', 'md', 'pdf', 'docx']) {
             expect(resolveKnowledgeDocumentParserConfig({ type }).textSplitterType).toBe('auto')

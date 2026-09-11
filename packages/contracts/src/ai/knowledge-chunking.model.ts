@@ -2,8 +2,8 @@
 export const DEFAULT_KNOWLEDGE_TEXT_SPLITTER = 'auto'
 
 /** Shared revision for structured execution diagnostics and cache invalidation. */
-export const KNOWLEDGE_CHUNKING_ALGORITHM_VERSION = 3
-export type KnowledgeChunkingAlgorithmVersion = 1 | 2 | typeof KNOWLEDGE_CHUNKING_ALGORITHM_VERSION
+export const KNOWLEDGE_CHUNKING_ALGORITHM_VERSION = 4
+export type KnowledgeChunkingAlgorithmVersion = 1 | 2 | 3 | typeof KNOWLEDGE_CHUNKING_ALGORITHM_VERSION
 
 /** Built-in strategies that auto routing may select. External providers remain manually selectable. */
 export type KnowledgeChunkingStrategy = 'recursive-character' | 'markdown-recursive' | 'structure-aware'
@@ -59,4 +59,21 @@ export interface KnowledgeStructuredChunkOptions {
   chunkSize?: number
   chunkOverlap?: number
   separators?: string | string[]
+}
+
+/** Language affects natural text boundaries, never strategy selection. */
+export type KnowledgeChunkLanguage = 'Chinese' | 'English' | 'Mixed'
+export type KnowledgeChunkLanguageHint = 'auto' | Exclude<KnowledgeChunkLanguage, 'Mixed'>
+
+export interface KnowledgeChunkLanguageDetection {
+  /** Absent when the bounded sample contains no identifiable natural text. */
+  detectedLanguage?: KnowledgeChunkLanguage
+  sampledCodeUnits: number
+  naturalUnits: number
+}
+
+export interface KnowledgeChunkLanguageDecision extends KnowledgeChunkLanguageDetection {
+  sourceIndexes: number[]
+  languageHint: KnowledgeChunkLanguageHint
+  resolvedLanguage: KnowledgeChunkLanguage
 }

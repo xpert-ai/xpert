@@ -14,6 +14,7 @@ import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plu
 import {
     invalidKnowledgeParserConfig,
     validateMaxChunkTokens,
+    validateChunkLanguageHint,
     validateSeparators
 } from '../knowledge-document/parser-validation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
@@ -60,6 +61,7 @@ export class KnowledgeParserSettingsService {
 
     async validateSplitter(config: DocumentParserConfig): Promise<KnowledgeStructureEnum> {
         validateMaxChunkTokens(config.maxChunkTokens)
+        validateChunkLanguageHint(config.chunkLanguageHint)
         validateQuestionGeneration(config.questionGeneration)
         const name = config.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER
         const splitter = this.splitters.get(name)
@@ -90,6 +92,6 @@ export class KnowledgeParserSettingsService {
                 }
             })
         ])
-        return { chunks: buildChunkTree(result.chunks), ...(result.decisions ? { decisions: result.decisions } : {}) }
+        return { ...result, chunks: buildChunkTree(result.chunks) }
     }
 }

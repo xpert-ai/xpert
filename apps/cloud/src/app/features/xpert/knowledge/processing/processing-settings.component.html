@@ -249,6 +249,9 @@
                   {{ i18nPrefix + '.Chunk.Separators' | translate }}
                 </div>
                 <p>{{ i18nPrefix + '.Chunk.SeparatorsDescription' | translate }}</p>
+                @if (form().splitterProvider()?.supportsLanguageHint) {
+                  <p>{{ 'XP.Knowledgebase.Chunking.Language.SeparatorsHelp' | translate }}</p>
+                }
               </div>
               <div class="min-w-0 w-full">
                 <z-tag-select
@@ -374,13 +377,13 @@
                     {{ i18nPrefix + '.Chunk.LanguageHintDescription' | translate }}
                   </p>
                   <p class="mt-1 text-xs leading-5 text-text-tertiary">
-                    {{ i18nPrefix + '.Implemented.LaterOptions' | translate }}
+                    {{ 'XP.Knowledgebase.Chunking.Language.Scope' | translate }}
                   </p>
                 </div>
                 <z-select
                   class="w-full shrink-0 sm:w-60"
                   zSize="lg"
-                  [disabled]="true"
+                  [zDisabled]="!form().splitterProvider()?.supportsLanguageHint"
                   [(ngModel)]="form().chunkLanguageHint"
                 >
                   <z-select-item zValue="auto">{{

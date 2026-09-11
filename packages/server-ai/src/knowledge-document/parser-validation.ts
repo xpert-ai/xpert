@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
+import type { KnowledgeChunkLanguageHint } from '@xpert-ai/contracts'
 
 export function invalidKnowledgeParserConfig(field: string) {
     return new BadRequestException(
@@ -49,4 +50,10 @@ export function incompatibleKnowledgeChunkStructure() {
                 'This knowledgebase already uses a different chunk structure. Keep its structure or use a new knowledgebase.'
         })
     )
+}
+
+export function validateChunkLanguageHint(value: unknown): asserts value is KnowledgeChunkLanguageHint | undefined {
+    if (value !== undefined && value !== 'auto' && value !== 'Chinese' && value !== 'English') {
+        throw invalidKnowledgeParserConfig('chunkLanguageHint (auto, Chinese, English)')
+    }
 }

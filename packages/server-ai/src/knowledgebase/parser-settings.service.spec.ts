@@ -51,6 +51,31 @@ function setup() {
 }
 
 describe('KnowledgeParserSettingsService', () => {
+    it('returns public language diagnostics and uses the same boundaries as actual document processing', async () => {
+        const { service, splitters } = setup()
+        const text = '\u8fd9\u662f\u4e00\u4e2a\u4e2d\u6587\u53e5\u5b50\u3002'.repeat(30)
+        const parserConfig = {
+            ...defaults,
+            separators: undefined,
+            chunkSize: 80,
+            chunkLanguageHint: 'Chinese' as const,
+            maxChunkTokens: 48
+        }
+        const preview = await service.preview({ type: 'txt', text, parserConfig })
+        const actual = await splitKnowledgeDocuments(splitters, { type: 'txt', parserConfig }, [
+            new Document({ pageContent: text, metadata: { chunkId: 'source', contentFormat: 'text' } })
+        ])
+        expect(preview.languages[0]).toMatchObject({
+            languageHint: 'Chinese',
+            detectedLanguage: 'Chinese',
+            resolvedLanguage: 'Chinese'
+        })
+        expect(preview.chunks.map((chunk) => chunk.pageContent)).toEqual(
+            actual.chunks.map((chunk) => chunk.pageContent)
+        )
+        const invalid = { ...defaults, chunkLanguageHint: 'French' } as unknown as KnowledgebaseParserConfig
+        await expect(service.validateSettings(invalid)).rejects.toThrow()
+    })
     it('previews unconfigured Markdown through auto and preserves an explicit length strategy', async () => {
         const { service } = setup()
         const text = '| Name | Value |\n| --- | --- |\n| A | B |'

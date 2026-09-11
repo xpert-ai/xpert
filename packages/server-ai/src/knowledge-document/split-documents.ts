@@ -8,14 +8,19 @@ import { TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { TDocChunkMetadata } from './types'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import { invalidKnowledgeParserConfig, validateMaxChunkTokens } from './parser-validation'
-import { executeKnowledgeSplitter } from './execute-splitter'
+import {
+    executeKnowledgeSplitter,
+    resolveKnowledgeLanguage,
+    type KnowledgeSplitterExecutionContext
+} from './execute-splitter'
 
 /** Shared by persisted document processing and the read-only settings preview. */
 export async function splitKnowledgeDocuments(
     registry: Pick<TextSplitterRegistry, 'get'>,
     document: Pick<IKnowledgeDocument, 'type' | 'category' | 'parserConfig'> & { id?: string },
     chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
-    parserConfig?: DocumentTextParserConfig
+    parserConfig?: DocumentTextParserConfig,
+    context: Pick<KnowledgeSplitterExecutionContext, 'languageDetection'> = {}
 ) {
     const documentParserConfig = resolveKnowledgeDocumentParserConfig(document)
     const maxChunkTokens =
@@ -27,6 +32,7 @@ export async function splitKnowledgeDocuments(
         documentParserConfig.textSplitterType || parserConfig?.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER
     const textSplitter = registry.get(textSplitterType)
     if (!textSplitter) throw invalidKnowledgeParserConfig(textSplitterType)
+    const languageDetection = context.languageDetection ?? resolveKnowledgeLanguage(textSplitter, chunks)
     const originalContents = textSplitter.meta?.chunkingCapabilities
         ? chunks.map((chunk) => chunk.pageContent)
         : undefined
@@ -105,7 +111,9 @@ export async function splitKnowledgeDocuments(
             delete options.maxChunkTokens
         }
         return executeKnowledgeSplitter(textSplitter, chunks, options, {
+            languageDetection,
             maxChunkTokens,
+            languageHint: documentParserConfig.chunkLanguageHint ?? parserConfig?.chunkLanguageHint,
             category: document.category,
             documentId: document.id
         })

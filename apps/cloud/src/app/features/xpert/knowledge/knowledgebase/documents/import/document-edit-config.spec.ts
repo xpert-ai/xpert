@@ -1,5 +1,17 @@
 import { documentProcessingDraft, editedDocumentParserConfig } from './document-edit-config'
 
+it('inherits, overrides and reopens public document language settings', () => {
+  const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, chunkLanguageHint: 'Chinese' as const }
+  expect(documentProcessingDraft({ type: 'txt' }, defaults).chunkLanguageHint).toBe('Chinese')
+  const document = { type: 'txt', parserConfig: { chunkLanguageHint: 'English' as const } }
+  const draft = { ...defaults, ...documentProcessingDraft(document, defaults) }
+  expect(draft.chunkLanguageHint).toBe('English')
+  const saved = editedDocumentParserConfig(document, draft, defaults)
+  expect(saved.chunkLanguageHint).toBe('English')
+  expect(saved.textSplitter).not.toHaveProperty('chunkLanguageHint')
+  expect(documentProcessingDraft({ ...document, parserConfig: saved }, defaults).chunkLanguageHint).toBe('English')
+})
+
 describe('editing document processing settings', () => {
   it('inherits the library token budget and preserves an explicit per-document opt-out when reopening and saving', () => {
     const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 256 }

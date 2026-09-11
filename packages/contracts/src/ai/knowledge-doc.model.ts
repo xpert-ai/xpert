@@ -1,3 +1,4 @@
+import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
@@ -14,6 +15,8 @@ import { I18nObject } from '../types'
 export type DocumentParserConfig = {
   /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
   maxChunkTokens?: number
+  /** Public natural-language boundary hint; absence means auto. */
+  chunkLanguageHint?: KnowledgeChunkLanguageHint
   questionGeneration?: KnowledgeQuestionGenerationConfig
   pages?: number[][]
   replaceWhitespace?: boolean

@@ -16,8 +16,7 @@ const DEFAULT_RECURSIVE_TEXT_SPLITTER = {
     textSplitterType: 'recursive-character',
     textSplitter: {
         chunkSize: 1000,
-        chunkOverlap: 200,
-        separators: '\\n\\n,\\n, ,'
+        chunkOverlap: 200
     }
 } satisfies DocumentParserConfig
 
@@ -164,6 +163,7 @@ function sanitizeParserConfigForDocument(
     return defined({
         pages: config.pages,
         maxChunkTokens: config.maxChunkTokens,
+        chunkLanguageHint: config.chunkLanguageHint,
         questionGeneration: config.questionGeneration,
         replaceWhitespace: config.replaceWhitespace,
         removeSensitive: config.removeSensitive,

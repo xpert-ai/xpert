@@ -6607,6 +6607,20 @@
         "Failed": "预览失败，请重试或检查流水线。"
       },
       "Chunking": {
+        "Language": {
+          "Hint": "\u8bed\u8a00\u63d0\u793a",
+          "Detected": "\u5b9e\u9645\u8bc6\u522b",
+          "Scope": "\u7528\u4e8e\u81ea\u52a8\u3001\u7ed3\u6784\u611f\u77e5\u3001Markdown \u9012\u5f52\u548c\u9012\u5f52\u5b57\u7b26\u5207\u7247\u7684\u6b63\u6587\u8fb9\u754c\uff1b\u7236\u5b50\u5206\u5757\u6682\u4e0d\u652f\u6301\u3002",
+          "SeparatorsHelp": "\u81ea\u5b9a\u4e49\u5206\u9694\u7b26\u4f18\u5148\u4e8e\u8bed\u8a00\u63d0\u793a\uff1b\u672a\u914d\u7f6e\u81ea\u5b9a\u4e49\u5206\u9694\u7b26\u65f6\uff0c\u6309\u6240\u9009\u8bed\u8a00\u5207\u5206\u6b63\u6587\u3002",
+          "Values": {
+            "auto": "\u81ea\u52a8\u68c0\u6d4b",
+            "Chinese": "\u4e2d\u6587",
+            "English": "\u82f1\u6587",
+            "Mixed": "\u4e2d\u82f1\u6df7\u5408",
+            "Unknown": "\u6682\u65e0\u53ef\u8bc6\u522b\u6b63\u6587"
+          }
+        },
+
         "TargetSize": "目标块大小（字符）",
         "TargetHelp": "组合相邻短段落时参考此大小；完整结构满足 Token 上限时，可以超过目标字符数。",
         "AutoSizeHelp": "结构感知将此值作为目标大小；现有标题和长度策略保留原大小规则。预览会显示实际采用的策略。",

@@ -4,6 +4,7 @@ import type {
     KnowledgeChunkingDecision,
     KnowledgeChunkingWarning,
     KnowledgeChunkSourceRange,
+    KnowledgeChunkLanguage,
     TDocumentAsset
 } from '@xpert-ai/contracts'
 import { countTextTokens, type ChunkMetadata } from '@xpert-ai/plugin-sdk'
@@ -11,6 +12,7 @@ import { v4 as uuid } from 'uuid'
 import { splitTextByTokens } from '../../../knowledge-document/token-limited-chunks'
 import { invalidKnowledgeParserConfig } from '../../../knowledge-document/parser-validation'
 import type { StructuredDocument, StructuredSource, StructuredUnit } from './structured-document'
+import { sentenceRanges } from './language-boundaries'
 
 interface Fragment {
     source: StructuredSource
@@ -32,7 +34,8 @@ export function createStructureChunks(
     target: number,
     overlap: number,
     maxTokens?: number,
-    separators: string[] = ['\n\n', '\n', ' ', '']
+    separators: string[] = ['\n\n', '\n', ' ', ''],
+    language?: KnowledgeChunkLanguage
 ): Document<ChunkMetadata>[] {
     const output: Document<ChunkMetadata>[] = []
     let headings: StructuredUnit[] = []
@@ -312,28 +315,36 @@ export function createStructureChunks(
         flushRows()
     }
 
-    function splitParagraph(fragment: Fragment, contexts: Fragment[], priorities: string[]) {
+    function splitParagraph(fragment: Fragment, contexts: Fragment[], priorities: string[], useLanguage = true) {
         if (fits(render([fragment], contexts))) {
             emit([fragment], contexts, ['structure-split'], '', true)
             return
         }
         const text = content(fragment)
+        const sentences = language && useLanguage ? sentenceRanges(text, language) : []
+        const useSentences = sentences.length > 1
         const index = priorities.findIndex((separator) => separator && text.includes(separator))
-        if (index < 0) {
+        if (!useSentences && index < 0) {
             bounded(fragment, contexts, '', true)
             return
         }
         const separator = priorities[index]
-        const parts: Fragment[] = []
+        const parts: Fragment[] = useSentences
+            ? sentences.map((part) => ({
+                  ...fragment,
+                  start: fragment.start + part.start,
+                  end: fragment.start + part.end
+              }))
+            : []
         let start = 0
-        let end = text.indexOf(separator)
+        let end = useSentences ? -1 : text.indexOf(separator)
         while (end >= 0) {
             end += separator.length
             parts.push({ ...fragment, start: fragment.start + start, end: fragment.start + end })
             start = end
             end = text.indexOf(separator, start)
         }
-        if (start < text.length) parts.push({ ...fragment, start: fragment.start + start })
+        if (!useSentences && start < text.length) parts.push({ ...fragment, start: fragment.start + start })
         let pendingPart: Fragment | undefined
         const flushPart = () => {
             if (!pendingPart) return
@@ -347,7 +358,8 @@ export function createStructureChunks(
         for (const part of parts) {
             const combined = pendingPart ? { ...pendingPart, end: part.end } : part
             if (pendingPart && !fits(render([combined], contexts))) flushPart()
-            if (!fits(render([part], contexts))) splitParagraph(part, contexts, priorities.slice(index + 1))
+            if (!fits(render([part], contexts)))
+                splitParagraph(part, contexts, useSentences ? priorities : priorities.slice(index + 1), false)
             else pendingPart = pendingPart ? { ...pendingPart, end: part.end } : part
         }
         flushPart()

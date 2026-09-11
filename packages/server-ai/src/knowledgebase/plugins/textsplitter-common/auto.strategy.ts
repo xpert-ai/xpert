@@ -35,7 +35,7 @@ export class AutoTextSplitterStrategy implements ITextSplitterStrategy<unknown> 
         documents: DocumentInterface<ChunkMetadata>[],
         options?: unknown,
         context: TextSplitterExecutionContext = {}
-    ): Promise<Required<TextSplitterResult>> {
+    ): Promise<TextSplitterResult & Required<Pick<TextSplitterResult, 'decisions'>>> {
         const config = parseStructuredOptions(options)
         validateMaxChunkTokens(context.maxChunkTokens)
         const groups = analyzeStructuredDocuments(documents)
@@ -84,11 +84,16 @@ export class AutoTextSplitterStrategy implements ITextSplitterStrategy<unknown> 
                     .map((source) => source.document)
                 const result =
                     resolved === 'markdown-recursive'
-                        ? await this.markdown.splitDocuments(input, {
-                              chunkSize: config.chunkSize,
-                              chunkOverlap: config.chunkOverlap
-                          })
-                        : await this.recursive.splitDocuments(input, config)
+                        ? await this.markdown.splitDocuments(
+                              input,
+                              {
+                                  chunkSize: config.chunkSize,
+                                  chunkOverlap: config.chunkOverlap,
+                                  separators: config.separators
+                              },
+                              context
+                          )
+                        : await this.recursive.splitDocuments(input, config, context)
                 chunks.push(...result.chunks.map((chunk) => traceLegacyChunk(chunk, decision)))
                 chunks.push(
                     ...group.sources

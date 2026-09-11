@@ -43,7 +43,7 @@ export class StructureAwareStrategy implements ITextSplitterStrategy<unknown> {
         groups: StructuredDocument[],
         options?: unknown,
         context: TextSplitterExecutionContext = {}
-    ): Promise<Required<TextSplitterResult>> {
+    ): Promise<TextSplitterResult & Required<Pick<TextSplitterResult, 'decisions'>>> {
         const config = parseStructuredOptions(options)
         validateMaxChunkTokens(context.maxChunkTokens)
         const chunks: DocumentInterface<ChunkMetadata>[] = []
@@ -65,7 +65,10 @@ export class StructureAwareStrategy implements ITextSplitterStrategy<unknown> {
                         config.chunkSize,
                         config.chunkOverlap,
                         context.maxChunkTokens,
-                        typeof config.separators === 'string' ? [config.separators] : config.separators
+                        typeof config.separators === 'string' ? [config.separators] : config.separators,
+                        config.separators === undefined
+                            ? (context.resolvedLanguages?.get(group.sources[0].document) ?? context.resolvedLanguage)
+                            : undefined
                     )
                 )
             } else {
@@ -76,7 +79,8 @@ export class StructureAwareStrategy implements ITextSplitterStrategy<unknown> {
                                 !source.document.metadata.mediaType || source.document.metadata.mediaType === 'text'
                         )
                         .map((source) => source.document),
-                    config
+                    config,
+                    context
                 )
                 chunks.push(...result.chunks.map((chunk) => traceLegacyChunk(chunk, decision)))
             }

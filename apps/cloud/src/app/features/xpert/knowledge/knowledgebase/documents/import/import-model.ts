@@ -41,6 +41,7 @@ export function mergeSheetProcessingConfig(
       'chunkSize',
       'chunkOverlap',
       'maxChunkTokens',
+      'chunkLanguageHint',
       'delimiter',
       'separators',
       'questionGeneration'

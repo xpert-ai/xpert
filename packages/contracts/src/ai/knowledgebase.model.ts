@@ -1,3 +1,4 @@
+import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { TKBRetrievalSettings } from './xpert.model'
 import { ICopilotModel } from './copilot-model.model'
@@ -71,6 +72,8 @@ export enum KnowledgeStructureEnum {
 export type KnowledgebaseParserConfig = {
   /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
   maxChunkTokens?: number
+  /** Public natural-language boundary hint; absence means auto. */
+  chunkLanguageHint?: KnowledgeChunkLanguageHint
   questionGeneration?: KnowledgeQuestionGenerationConfig
   pages?: number[][]
   embeddingBatchSize?: number
