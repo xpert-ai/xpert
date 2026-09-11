@@ -3,6 +3,11 @@ import os from 'os'
 import path from 'path'
 import JSZip from 'jszip'
 import { loadDocxStructuredMarkdown } from './docx-outline'
+import { Document } from '@langchain/core/documents'
+import { AutoTextSplitterStrategy } from '../textsplitter-common/auto.strategy'
+import { StructureAwareStrategy } from '../textsplitter-common/structure-aware.strategy'
+import { RecursiveCharacterStrategy } from '../textsplitter-common/recursive-character.strategy'
+import { MarkdownRecursiveStrategy } from '../textsplitter-common/markdown-recursive.strategy'
 
 describe('loadDocxStructuredMarkdown', () => {
     it('preserves docx table of contents entries and heading structure', async () => {
@@ -10,10 +15,27 @@ describe('loadDocxStructuredMarkdown', () => {
 
         const result = await loadDocxStructuredMarkdown(filePath)
         const markdown = result?.documents[0]?.pageContent ?? ''
+        expect(result?.documents[0]?.metadata.contentFormat).toBe('markdown')
 
         expect(markdown).toContain('- 1.4 扫码枪无法工作 ...... 6')
         expect(markdown).toContain('## 1.4 扫码枪无法工作')
         expect(markdown).not.toMatch(/^6$/m)
+        const recursive = new RecursiveCharacterStrategy()
+        const auto = new AutoTextSplitterStrategy(
+            new StructureAwareStrategy(recursive),
+            new MarkdownRecursiveStrategy(),
+            recursive
+        )
+        const options = { chunkSize: 1000, chunkOverlap: 0 }
+        const converted = await auto.splitDocuments(result.documents, options)
+        const pasted = await auto.splitDocuments(
+            [new Document({ pageContent: markdown, metadata: { chunkId: 'pasted', contentFormat: 'markdown' } })],
+            options
+        )
+        expect(converted.decisions).toEqual(pasted.decisions)
+        expect(converted.chunks.map((chunk) => chunk.pageContent)).toEqual(
+            pasted.chunks.map((chunk) => chunk.pageContent)
+        )
     })
 
     it('extracts embedded images as ordered assets and keeps image references in document order', async () => {

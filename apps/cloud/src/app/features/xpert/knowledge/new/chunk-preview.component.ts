@@ -42,6 +42,38 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
         <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
       }
       @if (result(); as result) {
+        @for (decision of result.decisions ?? []; track $index) {
+          <div
+            class="space-y-1 border-l-2 border-divider-subtle pl-3 text-sm text-text-secondary"
+            data-chunking-decision
+          >
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.RequestedStrategy' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Strategies.' + decision.requestedStrategy | translate }}
+            </p>
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.AppliedStrategy' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Strategies.' + decision.resolvedStrategy | translate }}
+            </p>
+            <p>{{ 'XP.Knowledgebase.Chunking.Reasons.' + decision.reason | translate }}</p>
+            <p class="text-xs text-text-tertiary">
+              {{
+                'XP.Knowledgebase.Chunking.StructureCounts'
+                  | translate
+                    : {
+                        tables: decision.blockCounts.table ?? 0,
+                        lists: decision.blockCounts.list ?? 0,
+                        code: decision.blockCounts.code ?? 0
+                      }
+              }}
+            </p>
+            @for (warning of decision.warnings; track warning) {
+              <p class="text-xs text-text-tertiary">
+                {{ 'XP.Knowledgebase.Chunking.Warnings.' + warning | translate }}
+              </p>
+            }
+          </div>
+        }
         <p class="text-sm text-text-secondary">
           {{ prefix + '.PreviewCount' | translate: { count: result.chunks.length } }}
         </p>
@@ -49,6 +81,16 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
           @for (chunk of result.chunks; track chunk.metadata.chunkId; let index = $index) {
             <div class="border-b border-divider-subtle py-3">
               <div class="text-sm font-medium">{{ index + 1 }} · {{ chunk.pageContent.length }}</div>
+              @if (chunk.metadata.chunking?.headingPath?.length) {
+                <p class="text-xs text-text-tertiary">
+                  {{ chunk.metadata.chunking.headingPath.join(' / ') }}
+                </p>
+              }
+              @if (chunk.metadata.chunking?.continued) {
+                <span class="text-xs text-text-tertiary">{{
+                  'XP.Knowledgebase.Chunking.Continuation' | translate
+                }}</span>
+              }
               @if (chunk.metadata.tokens !== undefined) {
                 <div class="text-xs text-text-tertiary">
                   {{ prefix + '.PreviewTokens' | translate: { count: chunk.metadata.tokens } }}

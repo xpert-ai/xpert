@@ -14,6 +14,8 @@ import { KnowledgeParserSettingsService } from './parser-settings.service'
 import { RecursiveCharacterStrategy } from './plugins/textsplitter-common/recursive-character.strategy'
 import { MarkdownRecursiveStrategy } from './plugins/textsplitter-common/markdown-recursive.strategy'
 import { ParentChildStrategy } from './plugins/textsplitter-common/parent-child.strategy'
+import { StructureAwareStrategy } from './plugins/textsplitter-common/structure-aware.strategy'
+import { AutoTextSplitterStrategy } from './plugins/textsplitter-common/auto.strategy'
 import { countTokensSafe } from '../../../plugin-sdk/src/lib/ai-model/utils/tokenizer'
 
 const defaults: KnowledgebaseParserConfig = {
@@ -24,7 +26,16 @@ const defaults: KnowledgebaseParserConfig = {
 }
 
 function setup() {
-    const strategies = [new RecursiveCharacterStrategy(), new MarkdownRecursiveStrategy(), new ParentChildStrategy()]
+    const recursive = new RecursiveCharacterStrategy()
+    const markdown = new MarkdownRecursiveStrategy()
+    const structured = new StructureAwareStrategy(recursive)
+    const strategies = [
+        recursive,
+        markdown,
+        new ParentChildStrategy(),
+        structured,
+        new AutoTextSplitterStrategy(structured, markdown, recursive)
+    ]
     const splitters = {
         get: (name: string) => strategies.find((strategy) => strategy.meta.name === name)
     } as unknown as TextSplitterRegistry
@@ -40,6 +51,18 @@ function setup() {
 }
 
 describe('KnowledgeParserSettingsService', () => {
+    it('previews unconfigured Markdown through auto and preserves an explicit length strategy', async () => {
+        const { service } = setup()
+        const text = '| Name | Value |\n| --- | --- |\n| A | B |'
+        const automatic = await service.preview({ type: 'md', text, parserConfig: defaults })
+        expect(automatic.decisions[0]).toMatchObject({ requestedStrategy: 'auto', resolvedStrategy: 'structure-aware' })
+        const explicit = await service.preview({
+            type: 'md',
+            text,
+            parserConfig: { ...defaults, textSplitterType: 'recursive-character' }
+        })
+        expect(explicit.decisions).toBeUndefined()
+    })
     it('retains character limits and existing overlap with the additional token cap, and preserves disabled output', async () => {
         const { service } = setup()
         const parserConfig = { ...defaults, chunkSize: 12, chunkOverlap: 3, separators: [] }
@@ -61,7 +84,7 @@ describe('KnowledgeParserSettingsService', () => {
         }
     })
 
-    it.each(['recursive-character', 'markdown-recursive', 'parent-child'])(
+    it.each(['recursive-character', 'markdown-recursive', 'parent-child', 'auto', 'structure-aware'])(
         'enforces the token budget in both preview and ingestion for %s',
         async (textSplitterType) => {
             const { service, splitters } = setup()

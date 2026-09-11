@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto'
-import { IKnowledgeDocument, IKnowledgeDocumentChunk, KnowledgeDocumentTransformerIdentity } from '@xpert-ai/contracts'
+import {
+    IDocChunkMetadata,
+    IKnowledgeDocument,
+    IKnowledgeDocumentChunk,
+    KnowledgeDocumentTransformerIdentity
+} from '@xpert-ai/contracts'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
+import { knowledgeChunkingRevision } from './chunking-revision'
 
 const VOLATILE_CHUNK_METADATA_KEYS = new Set([
     'questionGeneration',
@@ -81,10 +87,19 @@ export function computeStableHash(value: unknown) {
     return createHash('sha256').update(stableJson).digest('hex')
 }
 
-export function computeKnowledgeDocumentChunkHash(chunk: Pick<IKnowledgeDocumentChunk, 'pageContent' | 'metadata'>) {
+export function computeKnowledgeDocumentChunkHash(
+    chunk: Pick<IKnowledgeDocumentChunk<IDocChunkMetadata>, 'pageContent' | 'metadata'>
+) {
+    const metadata: Partial<IDocChunkMetadata> = chunk.metadata ?? {}
+    let hashMetadata: object = metadata
+    if (metadata.chunking) {
+        // A document-level diagnostic fingerprint must not invalidate otherwise unchanged chunks.
+        const { inputHash, ...stableChunking } = metadata.chunking
+        hashMetadata = { ...metadata, chunking: stableChunking }
+    }
     return computeStableHash({
         pageContent: chunk.pageContent ?? '',
-        metadata: normalizeStableValue(chunk.metadata ?? {}, VOLATILE_CHUNK_METADATA_KEYS)
+        metadata: normalizeStableValue(hashMetadata, VOLATILE_CHUNK_METADATA_KEYS)
     })
 }
 
@@ -172,7 +187,9 @@ export function computeKnowledgeDocumentProcessingHash(
         >
     >
 ) {
+    const chunkingRevision = knowledgeChunkingRevision(resolveKnowledgeDocumentParserConfig(document).textSplitterType)
     return computeStableHash({
+        ...(chunkingRevision ? { chunkingRevision } : {}),
         sourceKey: resolveKnowledgeDocumentSourceKey(document),
         sourceHash: resolveKnowledgeDocumentSourceHash(document),
         sourceType: document.sourceType ?? null,

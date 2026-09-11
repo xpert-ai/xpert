@@ -2,6 +2,31 @@ import { AiModelTypeEnum, KBDocumentCategoryEnum, KnowledgebaseParserConfig } fr
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 describe('resolveKnowledgeDocumentParserConfig precedence', () => {
+    it('defaults text documents to auto while keeping explicit choices and spreadsheet handling', () => {
+        for (const type of ['txt', 'md', 'pdf', 'docx']) {
+            expect(resolveKnowledgeDocumentParserConfig({ type }).textSplitterType).toBe('auto')
+        }
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet })
+                .textSplitterType
+        ).toBeUndefined()
+        const explicit = resolveKnowledgeDocumentParserConfig({
+            type: 'txt',
+            parserConfig: { textSplitterType: 'recursive-character' }
+        })
+        expect(explicit.textSplitterType).toBe('recursive-character')
+        expect(explicit.textSplitter).toMatchObject({ chunkSize: 1000, chunkOverlap: 200 })
+        expect(
+            resolveKnowledgeDocumentParserConfig(
+                { type: 'txt' },
+                { chunkSize: 512, chunkOverlap: 80, delimiter: null, textSplitterType: 'markdown-recursive' }
+            ).textSplitterType
+        ).toBe('markdown-recursive')
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'txt', parserConfig: { textSplitterType: 'parent-child' } })
+                .textSplitterType
+        ).toBe('parent-child')
+    })
     it('inherits question settings while preserving an explicit per-document opt-out', () => {
         const questionGeneration = {
             enabled: true,

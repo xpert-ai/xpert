@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
   AiModelTypeEnum,
+  DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
   DocumentSheetParserConfig,
   decodeKnowledgeSeparators,
   DocumentSpreadsheetParserConfig,
@@ -90,7 +91,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly #understandingStrategies = toSignal(this.knowledgebaseAPI.understandingStrategies$)
 
   // Text Splitter
-  readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', 'recursive-character')
+  readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', DEFAULT_KNOWLEDGE_TEXT_SPLITTER)
   readonly textSplitter = attrModel(this.parserConfig, 'textSplitter')
   readonly separators = linkedModel<string[]>({
     initialValue: [],
