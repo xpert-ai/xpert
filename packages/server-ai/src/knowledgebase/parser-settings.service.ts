@@ -1,3 +1,4 @@
+import { validateQuestionGeneration } from '../knowledge-document/questions/question-generation'
 import { Injectable } from '@nestjs/common'
 import { Document } from '@langchain/core/documents'
 import {
@@ -9,7 +10,11 @@ import {
     KnowledgeStructureEnum
 } from '@xpert-ai/contracts'
 import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
-import { invalidKnowledgeParserConfig, validateSeparators } from '../knowledge-document/parser-validation'
+import {
+    invalidKnowledgeParserConfig,
+    validateMaxChunkTokens,
+    validateSeparators
+} from '../knowledge-document/parser-validation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { splitKnowledgeDocuments } from '../knowledge-document/split-documents'
 
@@ -53,6 +58,8 @@ export class KnowledgeParserSettingsService {
     }
 
     async validateSplitter(config: DocumentParserConfig): Promise<KnowledgeStructureEnum> {
+        validateMaxChunkTokens(config.maxChunkTokens)
+        validateQuestionGeneration(config.questionGeneration)
         const name = config.textSplitterType || 'recursive-character'
         const splitter = this.splitters.get(name)
         if (!splitter) throw invalidKnowledgeParserConfig(name)

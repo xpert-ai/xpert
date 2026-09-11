@@ -11,7 +11,7 @@ import {
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
 import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
-import { Document, DocumentInterface } from '@langchain/core/documents'
+import { Document } from '@langchain/core/documents'
 import sharp from 'sharp'
 import { v4 as uuid } from 'uuid'
 import { SvgIcon, VlmDefault } from './types'
@@ -94,7 +94,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
   }
 
   async understandImages(
-    doc: IKnowledgeDocument<ChunkMetadata>,
+    doc: IKnowledgeDocument<Partial<ChunkMetadata>>,
     config: VlmDefaultConfig
   ): Promise<TImageUnderstandingResult> {
     await this.validateConfig(config)
@@ -103,33 +103,29 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     if (!client) {
       throw new Error('Vision Model is required')
     }
-    const params = {
-      files: doc.metadata?.assets?.filter((asset) => asset.type === 'image') ?? [],
-      chunks: doc.chunks as DocumentInterface<ChunkMetadata>[]
-    }
-
-    const tree = buildChunkTree(doc.chunks)
+    const files = doc.metadata?.assets?.filter((asset) => asset.type === 'image') ?? []
+    // Keep every source chunk; only leaf chunks need image descriptions.
+    const chunks: Document<ChunkMetadata>[] = (doc.chunks ?? []).map((chunk) => ({
+      ...chunk,
+      metadata: { ...chunk.metadata, chunkId: chunk.metadata.chunkId ?? chunk.id ?? uuid() }
+    }))
+    const sourceOrder = new Map(chunks.map((chunk, index) => [chunk.metadata.chunkId, index]))
+    const tree = buildChunkTree(chunks)
     const leaves = collectTreeLeaves(tree)
 
-    const chunks: Document<Partial<ChunkMetadata>>[] = []
     const warnings: ImageUnderstandingWarning[] = []
-    // const pages : Document<Partial<ChunkMetadata>>[] = []
 
     for await (const chunk of leaves) {
       const assets: string[] = []
-      chunk.metadata['chunkId'] ??= uuid()
       const parentChunkId = String(chunk.metadata['chunkId'])
-      const parentChunkIndex = getNumber(chunk.metadata['chunkIndex'], chunks.length)
+      const parentChunkIndex = getNumber(chunk.metadata['chunkIndex'], sourceOrder.get(parentChunkId) ?? 0)
       let imageOffset = 0
-
-      // Source Document Block
-      chunks.push(chunk)
 
       // Find image tags inside the chunk
       const matches = Array.from(chunk.pageContent.matchAll(IMAGE_REGEX))
       for (const match of matches) {
         const url = match[1] // image-url.png
-        const asset = params.files.find((a) => a.url === url)
+        const asset = files.find((a) => a.url === url)
         if (asset && !assets.some((_) => _ === asset.url)) {
           let description: string
           try {
@@ -170,7 +166,6 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
 
     return {
       chunks,
-      // pages,
       metadata: {
         warnings
       }

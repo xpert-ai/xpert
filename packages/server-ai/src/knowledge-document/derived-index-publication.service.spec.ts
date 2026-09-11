@@ -1,3 +1,4 @@
+import { KnowledgeQuestionsEnqueueCommand } from './questions/question-generation.command'
 import { CommandBus } from '@nestjs/cqrs'
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
 import { KnowledgeGraphEnqueueCommand, KnowledgeGraphRetryDocumentCommand } from '../graphrag/commands'
@@ -22,14 +23,18 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
             contentChanged: true
         })
 
-        expect(commandBus.execute).toHaveBeenCalledTimes(2)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeGraphEnqueueCommand)
-        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeWikiEnqueueSourceCommand)
+        expect(commandBus.execute).toHaveBeenCalledTimes(3)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeQuestionsEnqueueCommand)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeGraphEnqueueCommand)
+        expect(commandBus.execute.mock.calls[2][0]).toBeInstanceOf(KnowledgeWikiEnqueueSourceCommand)
     })
 
     it('keeps the source publication successful when one derived index rejects', async () => {
         const commandBus = {
-            execute: jest.fn().mockRejectedValueOnce(new Error('graph unavailable')).mockResolvedValueOnce(undefined)
+            execute: jest
+                .fn()
+                .mockRejectedValueOnce(new Error('questions unavailable'))
+                .mockResolvedValueOnce(undefined)
         }
         const service = new KnowledgeDerivedIndexPublicationService(commandBus as unknown as CommandBus)
 
@@ -47,7 +52,8 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
                 contentChanged: true
             })
         ).resolves.toBeUndefined()
-        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute).toHaveBeenCalledTimes(3)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeQuestionsEnqueueCommand)
     })
 
     it('checks failed Graph recovery without regenerating Wiki when the source hash did not change', async () => {
@@ -67,9 +73,9 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
             contentChanged: false
         })
 
-        expect(commandBus.execute).toHaveBeenCalledTimes(1)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeGraphRetryDocumentCommand)
-        expect(commandBus.execute.mock.calls[0][0].input).toEqual({
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeGraphRetryDocumentCommand)
+        expect(commandBus.execute.mock.calls[1][0].input).toEqual({
             knowledgebaseId: 'kb-1',
             documentId: 'document-1',
             userId: 'user-1'

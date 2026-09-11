@@ -1,5 +1,8 @@
 import { dispatchKnowledgePipeline } from './task/pipeline-task'
 import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
+import { buildQuestionVectors } from '../knowledge-document/questions/question-vectors'
+import { recordRebuiltQuestionVectors } from '../knowledge-document/questions/question-rebuild'
+import { questionSourceHash } from '../knowledge-document/questions/question-generation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
 import {
@@ -18,6 +21,7 @@ import {
     IKnowledgebase,
     IKnowledgebaseTask,
     IKnowledgeDocument,
+    IKnowledgeDocumentChunk,
     IWFNKnowledgeBase,
     IWFNProcessor,
     IWFNSource,
@@ -1483,6 +1487,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             throw new BadRequestException(`Chunk '${missingContent.id}' has no pageContent for embedding rebuild`)
         }
 
+        const questionRebuilds: Array<{
+            chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>
+            write: ReturnType<typeof buildQuestionVectors>
+        }> = []
         const embeddingItems =
             knowledgebase.type === KnowledgebaseTypeEnum.FAQ
                 ? embeddingChunks.flatMap((chunk) => {
@@ -1505,7 +1513,24 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                       })
                       return write.chunks.map((item, index) => ({ chunk: item, id: write.ids[index] }))
                   })
-                : embeddingChunks.map((chunk) => ({ chunk, id: chunk.id }))
+                : embeddingChunks.flatMap((chunk) => {
+                      const source = { chunk, id: chunk.id }
+                      const state = chunk.metadata?.questionGeneration
+                      if (
+                          !chunk.document ||
+                          state?.status !== 'ready' ||
+                          state.sourceHash !== questionSourceHash(chunk)
+                      )
+                          return [source]
+                      const write = buildQuestionVectors(
+                          chunk.document,
+                          chunk,
+                          state,
+                          vectorStore.embeddingModelContextSize
+                      )
+                      questionRebuilds.push({ chunk, write })
+                      return [source, ...write.chunks.map((item, index) => ({ chunk: item, id: write.ids[index] }))]
+                  })
 
         const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
         let count = 0
@@ -1520,6 +1545,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             count++
         }
 
+        for (const { chunk, write } of questionRebuilds) {
+            await recordRebuiltQuestionVectors(chunkRepository, chunk, write)
+        }
         return this.promoteEmbeddingRebuild(data.knowledgebaseId, data.rebuildTaskId, data.pendingEmbeddingRevision)
     }
 

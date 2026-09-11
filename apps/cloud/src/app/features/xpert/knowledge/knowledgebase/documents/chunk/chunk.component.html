@@ -169,6 +169,9 @@
       </div>
 
       <div class="px-4 overflow-auto" waIntersectionObserver waIntersectionThreshold="0.5">
+        <ng-template #questionPanel let-chunk let-label="label">
+          <xp-knowledge-chunk-questions [documentId]="documentId()" [chunk]="chunk" [chunkLabel]="label" />
+        </ng-template>
         <ul class="example-list-wrapping m-2">
           @for (chunk of chunks(); track chunk.id; let i = $index; let last = $last) {
             <li
@@ -178,7 +181,12 @@
               [class.ring-primary-300]="isTargetChunk(chunk)"
               [class.bg-primary-50]="isTargetChunk(chunk)"
             >
-              <xp-knowledge-chunk [chunk]="chunk" [index]="i" [preview]="preview()" />
+              <xp-knowledge-chunk
+                [chunk]="chunk"
+                [index]="i"
+                [preview]="preview()"
+                [footerTemplate]="questionGenerationEnabled() ? questionPanel : null"
+              />
               <div
                 class="absolute top-0.5 right-0.5 z-20 hidden group-hover/chunk:flex items-center gap-x-0.5 p-1 rounded-[10px] border-[0.5px] border-components-button-secondary-border bg-components-button-secondary-bg shadow-md backdrop-blur-[5px]"
               >

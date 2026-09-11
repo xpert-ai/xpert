@@ -2,7 +2,8 @@ import { DocumentTextParserConfig, IKnowledgeDocument, IKnowledgeDocumentChunk }
 import { TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { TDocChunkMetadata } from './types'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
-import { invalidKnowledgeParserConfig } from './parser-validation'
+import { invalidKnowledgeParserConfig, validateMaxChunkTokens } from './parser-validation'
+import { limitChunkTokens } from './token-limited-chunks'
 
 /** Shared by persisted document processing and the read-only settings preview. */
 export async function splitKnowledgeDocuments(
@@ -12,6 +13,11 @@ export async function splitKnowledgeDocuments(
     parserConfig?: DocumentTextParserConfig
 ) {
     const documentParserConfig = resolveKnowledgeDocumentParserConfig(document)
+    const maxChunkTokens =
+        documentParserConfig.maxChunkTokens === undefined
+            ? parserConfig?.maxChunkTokens
+            : documentParserConfig.maxChunkTokens
+    validateMaxChunkTokens(maxChunkTokens)
     // Text Preprocessing
     if (documentParserConfig.replaceWhitespace) {
         chunks.forEach((doc) => {
@@ -81,6 +87,6 @@ export async function splitKnowledgeDocuments(
         await textSplitter.validateConfig?.(options)
         const result = await textSplitter.splitDocuments(chunks, options)
 
-        return result
+        return { ...result, chunks: limitChunkTokens(result.chunks, maxChunkTokens) }
     }
 }

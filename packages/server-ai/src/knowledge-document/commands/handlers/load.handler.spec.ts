@@ -5,10 +5,130 @@ import { KnowledgeDocLoadCommand } from '../load.command'
 import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { KnowledgeDocLoadHandler } from './load.handler'
+import { RecursiveCharacterStrategy } from '../../../knowledgebase/plugins/textsplitter-common/recursive-character.strategy'
+import { countTextTokens } from '@xpert-ai/plugin-sdk'
+import { computeObjectHash } from '@xpert-ai/server-core'
+import { pick } from '@xpert-ai/server-common'
 
 describe('KnowledgeDocLoadHandler', () => {
+    it('reuses chunk cache only while the token cap is unchanged, including when disabling it', async () => {
+        const handler = new KnowledgeDocLoadHandler(
+            {} as unknown as KnowledgebaseService,
+            {} as unknown as CommandBus,
+            {} as unknown as QueryBus
+        )
+        const text = '中文 English 文档分块测试。'.repeat(20)
+        const source = new Document({ pageContent: text, metadata: { chunkId: 'source' } })
+        const cache = new Map<string, Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>>()
+        Object.assign(handler, {
+            knowledgeWorkAreaResolver: { resolve: async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }) },
+            transformSnapshotService: { load: async () => [{ chunks: [source] }] },
+            textSplitterRegistry: { get: () => new RecursiveCharacterStrategy() },
+            cacheManager: {
+                get: async (key: string) => cache.get(key),
+                set: async (key: string, value: Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>) =>
+                    cache.set(key, value)
+            }
+        })
+        const split = jest.spyOn(handler, 'splitDocuments')
+        const run = (maxChunkTokens: number) =>
+            handler.execute(
+                new KnowledgeDocLoadCommand({
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        name: 'text.txt',
+                        type: 'txt',
+                        filePath: 'text.txt',
+                        category: KBDocumentCategoryEnum.Text,
+                        parserConfig: {
+                            chunkSize: 1000,
+                            chunkOverlap: 0,
+                            maxChunkTokens,
+                            imageUnderstandingEnabled: false
+                        }
+                    } as IKnowledgeDocument,
+                    mode: 'rechunk',
+                    stage: 'test'
+                })
+            )
+        const first = await run(16)
+        const cached = await run(16)
+        expect(cached).toEqual(first)
+        expect(split).toHaveBeenCalledTimes(1)
+        const smaller = await run(8)
+        expect(split).toHaveBeenCalledTimes(2)
+        expect(smaller.chunks.length).toBeGreaterThan(first.chunks.length)
+        expect(smaller.chunks.every((chunk) => countTextTokens(chunk.pageContent) <= 8)).toBe(true)
+        const disabled = await run(0)
+        expect(split).toHaveBeenCalledTimes(3)
+        expect(disabled.chunks.map((chunk) => chunk.pageContent)).toEqual([text])
+    })
+
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('ignores legacy image results missing parents and reuses the refreshed complete result', async () => {
+        const parent = new Document({
+            pageContent: 'Full context',
+            metadata: { chunkId: 'parent', type: 'parent' as const }
+        })
+        const child = new Document({
+            pageContent: '![diagram](https://files.local/image.png)',
+            metadata: { chunkId: 'child', type: 'child' as const, parentId: 'parent' }
+        })
+        const chunks = [parent, child]
+        const transformed = {
+            chunks: [parent],
+            metadata: { assets: [{ type: 'image', url: 'https://files.local/image.png', filePath: 'image.png' }] }
+        }
+        const doc = {
+            id: 'doc',
+            knowledgebaseId: 'kb',
+            name: 'manual.docx',
+            type: 'docx',
+            filePath: 'manual.docx',
+            category: KBDocumentCategoryEnum.Text,
+            parserConfig: { imageUnderstandingEnabled: true, imageUnderstandingType: 'vlm-default' }
+        } as IKnowledgeDocument
+        const parserConfig = resolveKnowledgeDocumentParserConfig(doc)
+        const legacyKey =
+            'knowledges:understanding:' +
+            computeObjectHash({
+                document: { ...transformed, chunks },
+                parserConfig: pick(parserConfig, [
+                    'imageUnderstandingType',
+                    'imageUnderstandingIntegration',
+                    'imageUnderstanding'
+                ]),
+                stage: 'test'
+            })
+        const cache = new Map<string, { chunks: Document[] }>([[legacyKey, { chunks: [child] }]])
+        const understandImages = jest.fn(async () => ({ chunks }))
+        const handler = new KnowledgeDocLoadHandler(
+            {} as unknown as KnowledgebaseService,
+            { execute: async () => ({}) } as unknown as CommandBus,
+            {} as unknown as QueryBus
+        )
+        Object.assign(handler, {
+            knowledgeWorkAreaResolver: { resolve: async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }) },
+            transformSnapshotService: { load: async () => [transformed] },
+            imageUnderstandingRegistry: {
+                get: () => ({ permissions: [], requiresVisionModel: async () => false, understandImages })
+            },
+            cacheManager: {
+                get: async (key: string) => cache.get(key),
+                set: async (key: string, value: { chunks: Document[] }) => cache.set(key, value)
+            }
+        })
+        jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks })
+        const run = () => handler.execute(new KnowledgeDocLoadCommand({ doc, mode: 'rechunk', stage: 'test' }))
+
+        expect((await run()).chunks).toEqual(chunks)
+        expect((await run()).chunks).toEqual(chunks)
+        expect(understandImages).toHaveBeenCalledTimes(1)
+        expect(cache.get(legacyKey)).toEqual({ chunks: [child] })
     })
 
     it('merges plugin image metadata without replacing host-owned snapshot references', async () => {

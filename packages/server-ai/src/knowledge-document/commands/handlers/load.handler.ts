@@ -220,6 +220,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     parserConfig: pick(docParserConfig, [
                         'textSplitterType',
                         'textSplitter',
+                        'maxChunkTokens',
                         'replaceWhitespace',
                         'removeSensitive'
                     ]),
@@ -260,7 +261,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             ]),
                             stage
                         }
-                        const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
+                        // Older VLM cache entries omit text parents from parent-child chunks.
+                        const cacheKey = 'knowledges:understanding:v2:' + computeObjectHash(imageCacheConfig)
                         let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
                         if (!imgTransformed) {
                             const imageUnderstanding = this.imageUnderstandingRegistry.get(

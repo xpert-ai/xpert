@@ -80,7 +80,9 @@ export function resolveKnowledgeDocumentParserConfig(
                   type,
                   category
               )
-            : {}
+            : category === KBDocumentCategoryEnum.Sheet
+              ? defined({ questionGeneration: knowledgebaseDefaults?.questionGeneration })
+              : {}
     const effective = mergeParserConfig(mergeParserConfig(defaults, inherited), explicit)
     const result = mergeParserConfig(defaults, effective)
     if (result.imageUnderstandingEnabled === false) {
@@ -131,6 +133,7 @@ function sanitizeParserConfigForDocument(
     const splitter = defined({ textSplitterType: config.textSplitterType, textSplitter: config.textSplitter })
     if (category === KBDocumentCategoryEnum.Sheet) {
         return defined({
+            questionGeneration: config.questionGeneration,
             fields: config.fields,
             indexedFields: config.indexedFields,
             spreadsheet: config.spreadsheet,
@@ -154,6 +157,8 @@ function sanitizeParserConfigForDocument(
             : undefined
     return defined({
         pages: config.pages,
+        maxChunkTokens: config.maxChunkTokens,
+        questionGeneration: config.questionGeneration,
         replaceWhitespace: config.replaceWhitespace,
         removeSensitive: config.removeSensitive,
         ...splitter,

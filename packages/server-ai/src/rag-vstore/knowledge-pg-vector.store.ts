@@ -26,6 +26,79 @@ export type StructuredVectorSearchResult = {
  * `d` (knowledge_document) and `c` (knowledge_document_chunk).
  */
 export class KnowledgePGVectorStore extends PGVectorStore {
+    async getByIds(ids: string[]): Promise<Document[]> {
+        if (!ids.length) return []
+        const collectionId = this.collectionTableName ? await this.getOrCreateCollection() : null
+        const rows = (
+            await this.pool.query(
+                `SELECT * FROM ${this.computedTableName}
+             WHERE "${this.idColumnName}" = ANY($1::uuid[])
+             ${collectionId ? 'AND "collection_id" = $2' : ''}`,
+                collectionId ? [ids, collectionId] : [ids]
+            )
+        ).rows
+        return rows.map(
+            (row) =>
+                new Document({
+                    id: row[this.idColumnName],
+                    pageContent: row[this.contentColumnName],
+                    metadata: row[this.metadataColumnName]
+                })
+        )
+    }
+
+    override async similaritySearchVectorWithScore(
+        vector: number[],
+        k: number,
+        filter?: Record<string, unknown>
+    ): Promise<[Document, number][]> {
+        if (filter?.sourceOnly !== true) return super.similaritySearchVectorWithScore(vector, k, filter)
+        const parameters: unknown[] = [`[${vector.join(',')}]`, k]
+        const bind = (value: unknown) => {
+            parameters.push(value)
+            return `$${parameters.length}`
+        }
+        const predicates = [`"${this.metadataColumnName}" ->> 'questionGenerationId' IS NULL`]
+        const collectionId = this.collectionTableName ? await this.getOrCreateCollection() : null
+        if (collectionId) predicates.push(`"collection_id" = ${bind(collectionId)}`)
+        for (const [key, value] of Object.entries(filter)) {
+            if (key === 'sourceOnly') continue
+            const path = `"${this.metadataColumnName}" ->> ${bind(key)}`
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                if ('in' in value && Array.isArray(value.in)) {
+                    predicates.push(`${path} = ANY(${bind(value.in)}::text[])`)
+                } else if ('notIn' in value && Array.isArray(value.notIn)) {
+                    predicates.push(`NOT (${path} = ANY(${bind(value.notIn)}::text[]))`)
+                } else if ('arrayContains' in value && Array.isArray(value.arrayContains)) {
+                    predicates.push(`${path.replace('->>', '->')} ?| ${bind(value.arrayContains)}::text[]`)
+                } else {
+                    throw new Error(
+                        t('server-ai:Error.KnowledgeSourceVectorFilterUnsupported', {
+                            defaultValue: 'Unsupported source vector metadata filter.'
+                        })
+                    )
+                }
+            } else {
+                predicates.push(`${path} = ${bind(value)}`)
+            }
+        }
+        const rows = (
+            await this.pool.query(
+                `SELECT *, "${this.vectorColumnName}" ${this.computedOperatorString} $1 AS "_distance"
+             FROM ${this.computedTableName} WHERE ${predicates.join(' AND ')} ORDER BY "_distance" ASC LIMIT $2`,
+                parameters
+            )
+        ).rows
+        return rows.map((row) => [
+            new Document({
+                id: row[this.idColumnName],
+                pageContent: row[this.contentColumnName],
+                metadata: row[this.metadataColumnName]
+            }),
+            Number(row._distance)
+        ])
+    }
+
     // Stable chunk IDs must survive a retry after vector insertion but before publication.
     // Upsert atomically; never delete a published vector before its replacement succeeds.
     override async addVectors(vectors: number[][], documents: Document[], options?: { ids?: string[] }) {
@@ -84,10 +157,18 @@ export class KnowledgePGVectorStore extends PGVectorStore {
         k: number,
         filter: StructuredVectorSearchFilter
     ): Promise<StructuredVectorSearchResult> {
+        const embedding = await this.embeddings.embedQuery(query)
+        return this.structuredSimilaritySearchVectorWithScore(embedding, k, filter)
+    }
+
+    async structuredSimilaritySearchVectorWithScore(
+        embedding: number[],
+        k: number,
+        filter: StructuredVectorSearchFilter
+    ): Promise<StructuredVectorSearchResult> {
         if (!filter.postgres) {
             throw new Error('PGVector structured search requires a PostgreSQL filter.')
         }
-        const embedding = await this.embeddings.embedQuery(query)
         const embeddingString = `[${embedding.join(',')}]`
         const collectionId = this.collectionTableName ? await this.getOrCreateCollection() : null
         const compiled = filter.postgres

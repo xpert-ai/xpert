@@ -3,7 +3,7 @@ import { buildImportDocuments, quickWebOptions, remoteSourceDocuments } from './
 
 describe('document import payloads', () => {
   it('isolates batch settings and location while preserving source identity', () => {
-    const config = { chunkSize: 512, imageUnderstandingEnabled: false }
+    const config = { chunkSize: 512, maxChunkTokens: 128, imageUnderstandingEnabled: false }
     const input = [
       {
         id: 'temporary',
@@ -38,6 +38,23 @@ describe('document import payloads', () => {
     expect(docs[1].parserConfig).toEqual({ chunkSize: 512 })
     expect(docs[1].parent).toBeNull()
   })
+  it('preserves question generation across text and sheet documents in the same batch', () => {
+    const questionGeneration = { enabled: false, questionCount: 3 }
+    const docs = buildImportDocuments(
+      [
+        { type: 'txt', category: KBDocumentCategoryEnum.Text },
+        { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet, parserConfig: { indexedFields: ['name'] } }
+      ],
+      { questionGeneration },
+      'kb',
+      null
+    )
+    expect(docs.every((doc) => doc.parserConfig.questionGeneration.enabled === false)).toBe(true)
+    expect(docs[1].parserConfig.indexedFields).toEqual(['name'])
+    docs[1].parserConfig.questionGeneration.questionCount = 5
+    expect(questionGeneration.questionCount).toBe(3)
+  })
+
   it('applies the PDF parser only to PDFs and preserves a mixed spreadsheet configuration', () => {
     const visionModel = { model: 'vision' }
     const docs = buildImportDocuments(

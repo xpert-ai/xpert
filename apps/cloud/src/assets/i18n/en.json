@@ -4959,7 +4959,8 @@
           "PreviewLoading": "Splitting…",
           "PreviewRun": "Preview chunks",
           "PreviewCount": "{{count}} chunks / parent chunks; child chunks are indented below",
-          "InvalidLimits": "Chunk size must be a positive integer. Overlap must be non-negative and smaller than the chunk size."
+          "InvalidLimits": "Chunk size must be a positive integer. Overlap must be non-negative and smaller than the chunk size.",
+          "PreviewTokens": "{{count}} tokens (cl100k_base)"
         },
         "Close": "Close",
         "NavigationLabel": "Knowledge base settings navigation",
@@ -5142,7 +5143,7 @@
           "ParentChildDescription": "Use small child chunks for precise retrieval and larger parent chunks for context. Recommended for long documents and complex questions.",
           "AdvancedOptions": "Advanced options",
           "MaxChunkTokens": "Maximum tokens per chunk",
-          "MaxChunkTokensDescription": "Optional token cap per chunk (0-8192). Set to 0 to disable it and continue splitting by character count.",
+          "MaxChunkTokensDescription": "Additional token cap after character splitting (0–8192); 0 disables it. Uses cl100k_base for both preview and processing. Applies to text retrieval chunks, including child chunks; context parents stay intact.",
           "LanguageHint": "Language hint",
           "LanguageHintDescription": "Choose the language the chunker should prefer, or leave automatic detection enabled.",
           "LanguageOptions": {
@@ -5161,7 +5162,8 @@
             "Question": "Question mark (?)",
             "ChineseSemicolon": "Chinese semicolon (；)",
             "EnglishSemicolon": "English semicolon (;)"
-          }
+          },
+          "InvalidTokenLimit": "Enter an integer from 0 to 8192. Use 0 to disable the token cap."
         },
         "Image": {
           "Description": "Configure image understanding to extract text and meaning from images.",
@@ -5215,8 +5217,8 @@
           "Description": "Configure question generation and other advanced features.",
           "QuestionGeneration": "AI question generation",
           "QuestionGenerationDescription": "Use a large language model to generate related questions for each chunk and improve recall. Enabling this increases parsing time.",
-          "QuestionCount": "Questions to generate",
-          "QuestionCountDescription": "Number of questions generated for each document chunk (1-10).",
+          "QuestionCount": "Maximum questions to generate",
+          "QuestionCountDescription": "Maximum questions generated per chunk (1-10). Fewer or no questions may be generated if the content is insufficient; questions are not invented to meet the limit.",
           "QuestionRequirements": "Question generation requirements",
           "QuestionRequirementsDescription": "Specify the audience, scenario, and wording while the system maintains a stable output format.",
           "QuestionRequirementsPlaceholder": "For example: Generate natural-language questions commonly asked by support customers and avoid exam-style wording...",
@@ -5663,7 +5665,25 @@
       "VectorSearchDesc": "Create a query embedding and find the most similar document chunks.",
       "VectorSearch": "Vector search",
       "NeighborHops": "Neighborhood hops",
-      "EntityTopK": "Entity Top K"
+      "EntityTopK": "Entity Top K",
+      "Questions": {
+        "Title": "AI-generated questions",
+        "Help": "Generate alternative search questions after chunking. Questions add retrieval indexes; answers and citations still use the source text. This uses additional model calls and embeddings.",
+        "Model": "Question generation model",
+        "MissingModel": "Select a question generation model.",
+        "InvalidSettings": "Enter an integer from 1 to 10 and at most 4,000 characters of instructions.",
+        "Child": "Child chunk {{index}}",
+        "Generating": "Generating and indexing questions…",
+        "Empty": "No generated questions.",
+        "ManageHelp": "Questions help retrieve source chunks. Generating again may incur model and embedding charges.",
+        "Regenerate": "Regenerate questions",
+        "Generate": "Generate questions",
+        "Retry": "Retry questions",
+        "Loading": "Loading question status...",
+        "DisabledHelp": "AI question generation is turned off. Enable it in the document processing settings to generate or retry questions.",
+        "RetryIndexHelp": "Generated questions have been saved. If the source and settings are unchanged, retrying reuses them and only rebuilds their retrieval indexes. Embedding charges may apply.",
+        "InsufficientContent": "This chunk has no meaningful information for source-grounded search questions. No questions were generated."
+      }
     },
     "Certification": {
       "Entry": "Certification entry",

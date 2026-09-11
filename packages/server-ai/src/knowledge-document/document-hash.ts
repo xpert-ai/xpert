@@ -3,6 +3,10 @@ import { IKnowledgeDocument, IKnowledgeDocumentChunk, KnowledgeDocumentTransform
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 const VOLATILE_CHUNK_METADATA_KEYS = new Set([
+    'questionGeneration',
+    'questionGenerationId',
+    'questionSourceChunkId',
+    'generatedQuestionId',
     'chunkId',
     'parentId',
     'children',

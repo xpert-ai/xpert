@@ -47,7 +47,10 @@ export function buildImportDocuments(
     parent: parentId ? ({ id: parentId } as IKnowledgeDocument) : null,
     parserConfig: cloneDeep(
       document.category === KBDocumentCategoryEnum.Sheet
-        ? (options?.sheetParserConfig ?? (onlySheet ? config : (document.parserConfig ?? {})))
+        ? {
+            ...(options?.sheetParserConfig ?? (onlySheet ? config : (document.parserConfig ?? {}))),
+            ...(config.questionGeneration ? { questionGeneration: config.questionGeneration } : {})
+          }
         : {
             ...config,
             ...(document.type?.replace(/^\./, '').toLowerCase() === 'pdf' ? options?.pdfParser : {}),

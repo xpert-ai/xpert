@@ -492,7 +492,11 @@
                     </z-accordion-title>
                   </z-accordion-header>
                   @if (previewOpen()) {
-                    <xp-knowledge-chunk-preview [workspaceId]="workspaceId()" [config]="processing.config()" />
+                    <xp-knowledge-chunk-preview
+                      [workspaceId]="workspaceId()"
+                      [config]="processing.config()"
+                      [configInvalid]="processing.validation()?.section === 'chunk'"
+                    />
                   }
                 </z-accordion-item>
               </z-accordion>
@@ -523,7 +527,8 @@
 
               <div
                 data-automatic-tagging
-                class="mt-7 flex flex-col items-start justify-between gap-4 border-y border-divider-subtle py-6 sm:flex-row sm:gap-8"
+                class="mt-7 flex flex-col items-start justify-between gap-4 border-b border-divider-subtle py-6 sm:flex-row sm:gap-8"
+                [class]="processing.questionGenerationEnabled() ? 'border-t' : ''"
               >
                 <div class="min-w-0 flex-1">
                   <div class="kb-field-title">{{ i18nPrefix + '.Advanced.AutomaticTagging' | translate }}</div>

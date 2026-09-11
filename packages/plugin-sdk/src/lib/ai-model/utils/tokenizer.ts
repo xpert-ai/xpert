@@ -3,6 +3,41 @@ import { getEncoding, encodingForModel, getEncodingNameForModel } from 'js-tikto
 
 const encodingCache = new Map<string, ReturnType<typeof getEncoding>>()
 
+/** Exact, model-independent text count for hard chunk limits. Treat special-token spellings as literal document text. */
+function textEncoding() {
+  const cacheKey = 'encoding:cl100k_base'
+  let encoder = encodingCache.get(cacheKey)
+  if (!encoder) {
+    encoder = getEncoding('cl100k_base')
+    encodingCache.set(cacheKey, encoder)
+  }
+  return encoder
+}
+
+export function countTextTokens(text: string): number {
+  if (!text) return 0
+  // A hard limit must fail if tokenization fails, never fall back to an estimate.
+  return textEncoding().encode(text, [], []).length
+}
+
+/** Token boundaries that also end on complete Unicode characters, in UTF-16 source offsets. */
+export function textTokenBoundaries(text: string): { offset: number; tokens: number }[] {
+  const encoder = textEncoding()
+  const tokens = encoder.encode(text, [], [])
+  const boundaries = [{ offset: 0, tokens: 0 }]
+  let offset = 0
+  let start = 0
+  for (let end = 1; end <= tokens.length; end++) {
+    const decoded = encoder.decode(tokens.slice(start, end))
+    if (!decoded || !text.startsWith(decoded, offset)) continue
+    offset += decoded.length
+    boundaries.push({ offset, tokens: end })
+    start = end
+  }
+  if (offset !== text.length) throw new Error('Tokenization could not preserve the source text.')
+  return boundaries
+}
+
 /**
  * Fallback token estimation method.
  *

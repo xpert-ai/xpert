@@ -1,3 +1,4 @@
+import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { TKBRetrievalSettings } from './xpert.model'
 import { ICopilotModel } from './copilot-model.model'
 import { I18nObject, TAvatar } from '../types'
@@ -68,6 +69,9 @@ export enum KnowledgeStructureEnum {
 }
 
 export type KnowledgebaseParserConfig = {
+  /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
+  maxChunkTokens?: number
+  questionGeneration?: KnowledgeQuestionGenerationConfig
   pages?: number[][]
   embeddingBatchSize?: number
   chunkSize: number | null

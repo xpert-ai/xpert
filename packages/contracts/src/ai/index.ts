@@ -84,3 +84,5 @@ export * from './mcp-auth.model'
 export * from './mcp-audit.model'
 
 export * from './knowledge-wiki-organization.model'
+
+export * from './knowledge-question.model'

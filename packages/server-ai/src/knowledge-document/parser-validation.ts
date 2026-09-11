@@ -21,6 +21,15 @@ export function validateChunkLimits(options: { chunkSize?: unknown; chunkOverlap
     }
 }
 
+export function validateMaxChunkTokens(value: unknown): asserts value is number | undefined {
+    if (
+        value !== undefined &&
+        (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > 8192)
+    ) {
+        throw invalidKnowledgeParserConfig('maxChunkTokens (0–8192)')
+    }
+}
+
 export function validateSeparators(value: unknown) {
     if (
         value !== undefined &&

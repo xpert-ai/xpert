@@ -44,6 +44,32 @@ describe('processing settings file-type visibility', () => {
     return { fixture, rows, form, root }
   }
 
+  it('edits the token cap with an enabled validated control', async () => {
+    const { fixture, root, form } = setup()
+    fixture.componentRef.setInput('section', 'chunk')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const trigger = root.querySelector<HTMLElement>('z-accordion-header')
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const input = root.querySelector<HTMLInputElement>('[data-chunk-max-tokens] input')
+    expect(input.disabled).toBe(false)
+    for (const value of ['64', '0', '-1', '']) {
+      input.value = value
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      fixture.detectChanges()
+      await fixture.whenStable()
+      if (value === '64' || value === '0') {
+        expect(form.config().maxChunkTokens).toBe(Number(value))
+        expect(form.validation()).toBeNull()
+      } else {
+        expect(form.validation()?.key).toContain('InvalidTokenLimit')
+        expect(root.querySelector('[data-chunk-max-tokens]').textContent).toContain('InvalidTokenLimit')
+      }
+    }
+  })
+
   it('shows all parser types for knowledgebase defaults', async () => {
     const { fixture, rows } = setup()
     fixture.detectChanges()

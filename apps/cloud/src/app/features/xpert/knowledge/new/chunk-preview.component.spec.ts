@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { of, Subject, throwError } from 'rxjs'
 import { KnowledgebaseService, KnowledgeChunkPreviewResult } from '../../../../@core'
 import { KnowledgeChunkPreviewComponent } from './chunk-preview.component'
@@ -17,6 +18,61 @@ describe('KnowledgeChunkPreviewComponent', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('renders retrieval children and their token counts from the API metadata tree', async () => {
+    TestBed.configureTestingModule({
+      imports: [KnowledgeChunkPreviewComponent, TranslateModule.forRoot()],
+      providers: [{ provide: KnowledgebaseService, useValue: {} }]
+    })
+    const translate = TestBed.inject(TranslateService)
+    translate.setTranslation('en', {
+      'XP.Knowledgebase.WorkspaceConfiguration.Implemented.PreviewTokens': '{{count}} tokens'
+    })
+    translate.use('en')
+    const fixture = TestBed.createComponent(KnowledgeChunkPreviewComponent)
+    fixture.componentRef.setInput('workspaceId', 'workspace')
+    fixture.componentRef.setInput('config', { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 16 })
+    fixture.detectChanges()
+    fixture.componentInstance.result.set({
+      chunks: [
+        {
+          pageContent: 'parent context',
+          metadata: {
+            chunkId: 'parent',
+            children: [
+              {
+                pageContent: 'retrieval child text',
+                metadata: { chunkId: 'child', parentId: 'parent', tokens: 8 }
+              }
+            ]
+          }
+        }
+      ]
+    })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const root: HTMLElement = fixture.nativeElement
+    expect(root.textContent).toContain('retrieval child text')
+    expect(root.textContent).toContain('8 tokens')
+  })
+
+  it('blocks invalid settings and includes the current token cap in the next valid preview', async () => {
+    const { fixture, component, service } = setup()
+    fixture.componentRef.setInput('configInvalid', true)
+    fixture.detectChanges()
+    await component.preview()
+    expect(service.previewChunks).not.toHaveBeenCalled()
+    fixture.componentRef.setInput('configInvalid', false)
+    fixture.componentRef.setInput('config', { ...component.config(), maxChunkTokens: 64 })
+    fixture.detectChanges()
+    await component.preview()
+    expect(service.previewChunks).toHaveBeenCalledWith(
+      'workspace',
+      expect.objectContaining({
+        parserConfig: expect.objectContaining({ maxChunkTokens: 64 })
+      })
+    )
+  })
 
   it('sends the current unsaved configuration to the read-only preview endpoint', async () => {
     const { component, service } = setup()

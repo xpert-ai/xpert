@@ -10,7 +10,7 @@ import {
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum
 } from '@xpert-ai/contracts'
-import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
+import { countTextTokens, RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { UserService } from '@xpert-ai/server-core'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
@@ -18,8 +18,15 @@ import { KnowledgebaseService } from '../knowledgebase'
 import { KnowledgeDocLoadCommand } from './commands'
 import { computeKnowledgeDocumentProcessingHash } from './document-hash'
 import { KnowledgeDocumentConsumer } from './document.job'
+import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
 import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+
+function readyProcessing() {
+    const ready = new KnowledgeProcessingReadyService()
+    ready.onApplicationBootstrap()
+    return ready
+}
 
 let mockContextActive = false
 
@@ -90,13 +97,15 @@ describe('KnowledgeDocumentConsumer', () => {
             }))
         }
         const commandBus = {}
+        const lifecycle = new KnowledgeProcessingReadyService()
         const consumer = new KnowledgeDocumentConsumer(
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             userService as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            lifecycle
         )
         const processJob = jest.spyOn(consumer, '_processJob').mockResolvedValue({})
         const job = {
@@ -106,7 +115,12 @@ describe('KnowledgeDocumentConsumer', () => {
             }
         } as Job<{ userId: string; docs: IKnowledgeDocument[] }>
 
-        await expect(consumer.process(job)).resolves.toEqual({})
+        const processing = consumer.process(job)
+        await Promise.resolve()
+        expect(userService.findOne).not.toHaveBeenCalled()
+        expect(processJob).not.toHaveBeenCalled()
+        lifecycle.onApplicationBootstrap()
+        await expect(processing).resolves.toEqual({})
 
         expect(knowledgebaseService.findOne).toHaveBeenCalled()
         expect(processJob).toHaveBeenCalled()
@@ -150,7 +164,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -199,7 +214,7 @@ describe('KnowledgeDocumentConsumer', () => {
         )
     })
 
-    it('merges skipped incremental sync statistics into document metadata without overwriting existing metadata', async () => {
+    it('repairs source token statistics on unchanged documents without embedding again or losing metadata', async () => {
         const document = {
             id: 'doc-1',
             name: 'policy.md',
@@ -214,7 +229,7 @@ describe('KnowledgeDocumentConsumer', () => {
             type: 'md',
             filePath: 'policy.md',
             chunks: [
-                { id: 'chunk-1', pageContent: 'chunk 1', metadata: { chunkId: 'chunk-1' } },
+                { id: 'chunk-1', pageContent: 'Unicode <|endoftext|>', metadata: { chunkId: 'chunk-1', tokens: 1 } },
                 { id: 'chunk-2', pageContent: 'chunk 2', metadata: { chunkId: 'chunk-2' } }
             ]
         } satisfies Partial<IKnowledgeDocument>
@@ -224,6 +239,8 @@ describe('KnowledgeDocumentConsumer', () => {
         }
         const documentService = {
             findOne: jest.fn(async () => document),
+            findAllEmbeddingNodes: jest.fn(async () => document.chunks),
+            updateChunkMetadataBulk: jest.fn(),
             update: jest.fn()
         }
         const commandBus = {
@@ -236,7 +253,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            publication as unknown as KnowledgeDerivedIndexPublicationService
+            publication as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -261,10 +279,18 @@ describe('KnowledgeDocumentConsumer', () => {
             expect.objectContaining({ documentId: 'doc-1', contentChanged: false })
         )
         expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(KnowledgeDocLoadCommand))
+        expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(CopilotTokenRecordCommand))
+        expect(documentService.updateChunkMetadataBulk).toHaveBeenCalledWith(
+            document.chunks.map((chunk) => ({
+                id: chunk.id,
+                metadata: { chunkId: chunk.metadata.chunkId, tokens: countTextTokens(chunk.pageContent) }
+            }))
+        )
         expect(documentService.update).toHaveBeenCalledWith(
             'doc-1',
             expect.objectContaining({
                 status: KBDocumentStatusEnum.FINISH,
+                tokenNum: document.chunks.reduce((sum, chunk) => sum + countTextTokens(chunk.pageContent), 0),
                 metadata: expect.objectContaining({
                     owner: 'alice',
                     lastIncrementalSync: expect.objectContaining({
@@ -341,7 +367,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -369,7 +396,11 @@ describe('KnowledgeDocumentConsumer', () => {
         expect(documentService.syncChunksIncrementally).toHaveBeenCalled()
     })
 
-    it('writes chunk incremental sync statistics and actual embedding token usage into document metadata', async () => {
+    it.each([
+        { content: 'added content', searchContent: undefined },
+        { content: 'Unicode e\u0301 \ud83d\ude00 <|endoftext|> '.repeat(8), searchContent: undefined },
+        { content: 'Full source row with additional display fields', searchContent: 'Indexed field' }
+    ])('keeps source tokens separate from embedding usage: %j', async ({ content, searchContent }) => {
         const document = {
             id: 'doc-1',
             name: 'policy.md',
@@ -385,7 +416,11 @@ describe('KnowledgeDocumentConsumer', () => {
         } satisfies Partial<IKnowledgeDocument>
         const allChunks = [
             { id: 'chunk-old', pageContent: 'kept content', metadata: { chunkId: 'chunk-old' } },
-            { id: 'chunk-added', pageContent: 'added content', metadata: { chunkId: 'chunk-added' } },
+            {
+                id: 'chunk-added',
+                pageContent: content,
+                metadata: { chunkId: 'chunk-added', tokens: countTextTokens(content), searchContent }
+            },
             { id: 'chunk-updated', pageContent: 'updated content', metadata: { chunkId: 'chunk-updated' } }
         ]
         const embeddingChunks = [allChunks[1], allChunks[2]]
@@ -447,7 +482,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -497,10 +533,17 @@ describe('KnowledgeDocumentConsumer', () => {
             })
         )
         expect(documentService.updateChunkMetadataBulk).toHaveBeenCalledWith(
-            embeddingChunks.map((chunk) => ({
+            [allChunks[0], allChunks[2]].map((chunk) => ({
                 id: chunk.id,
-                metadata: chunk.metadata
+                metadata: { chunkId: chunk.metadata.chunkId, tokens: countTextTokens(chunk.pageContent) }
             }))
+        )
+        expect(allChunks[1].metadata.tokens).toBe(countTextTokens(content))
+        expect(documentService.update).toHaveBeenCalledWith(
+            'doc-1',
+            expect.objectContaining({
+                tokenNum: allChunks.reduce((sum, chunk) => sum + countTextTokens(chunk.pageContent), 0)
+            })
         )
         expect(documentService.save).not.toHaveBeenCalledWith(
             expect.arrayContaining([
@@ -568,7 +611,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -657,7 +701,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-bom',

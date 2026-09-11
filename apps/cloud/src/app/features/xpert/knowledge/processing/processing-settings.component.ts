@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
@@ -10,6 +10,7 @@ import {
   ZardAccordionImports,
   ZardButtonComponent,
   ZardInputDirective,
+  ZardFormImports,
   ZardSelectImports,
   ZardSliderComponent,
   ZardSwitchComponent,
@@ -24,6 +25,7 @@ import { ParentChildChunkSettingsComponent } from './parent-child-settings.compo
   selector: 'xp-knowledge-processing-settings',
   imports: [
     FormsModule,
+    ReactiveFormsModule,
     TranslateModule,
     JSONSchemaFormComponent,
     IntegrationSelectComponent,
@@ -32,6 +34,7 @@ import { ParentChildChunkSettingsComponent } from './parent-child-settings.compo
     ...ZardAccordionImports,
     ZardButtonComponent,
     ZardInputDirective,
+    ...ZardFormImports,
     ...ZardSelectImports,
     ZardSliderComponent,
     ZardSwitchComponent,

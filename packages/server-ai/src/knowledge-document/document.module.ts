@@ -1,3 +1,7 @@
+import { JOB_KNOWLEDGE_QUESTIONS } from './questions/question-generation.command'
+import { KnowledgeQuestionGenerationService } from './questions/question-generation.service'
+import { KnowledgeQuestionGenerationController } from './questions/question-generation.controller'
+import { KnowledgeQuestionsConsumer, KnowledgeQuestionsEnqueueHandler } from './questions/question-generation.job'
 import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
@@ -27,6 +31,7 @@ import {
 } from './deletion'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
+import { KnowledgeProcessingLifecycleModule } from './processing-lifecycle.module'
 
 @Module({
     imports: [
@@ -44,18 +49,20 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         RuntimeCapabilityModule,
         TenantModule,
         CqrsModule,
+        KnowledgeProcessingLifecycleModule,
         UserModule,
         StorageFileModule,
         forwardRef(() => CopilotModule),
         IntegrationModule,
         forwardRef(() => KnowledgebaseModule),
 
-        BullModule.registerQueue({
-            name: JOB_EMBEDDING_DOCUMENT
-        })
+        BullModule.registerQueue({ name: JOB_EMBEDDING_DOCUMENT }, { name: JOB_KNOWLEDGE_QUESTIONS })
     ],
-    controllers: [KnowledgeDocumentController],
+    controllers: [KnowledgeDocumentController, KnowledgeQuestionGenerationController],
     providers: [
+        KnowledgeQuestionGenerationService,
+        KnowledgeQuestionsConsumer,
+        KnowledgeQuestionsEnqueueHandler,
         KnowledgeDocumentService,
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,

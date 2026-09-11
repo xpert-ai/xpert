@@ -1,7 +1,55 @@
-import { KBDocumentCategoryEnum, KnowledgebaseParserConfig } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, KBDocumentCategoryEnum, KnowledgebaseParserConfig } from '@xpert-ai/contracts'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 describe('resolveKnowledgeDocumentParserConfig precedence', () => {
+    it('inherits question settings while preserving an explicit per-document opt-out', () => {
+        const questionGeneration = {
+            enabled: true,
+            questionCount: 3,
+            customInstructions: 'For new employees',
+            model: { copilotId: 'd349f858-50c2-4b41-a422-e74e265b4569', model: 'chat', modelType: AiModelTypeEnum.LLM }
+        }
+        const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, questionGeneration }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'pdf' }, defaults).questionGeneration).toEqual(
+            questionGeneration
+        )
+        const config = resolveKnowledgeDocumentParserConfig(
+            { type: 'txt', parserConfig: { questionGeneration: { enabled: false } } },
+            defaults
+        )
+        expect(config.questionGeneration).toEqual({ enabled: false })
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }, defaults)
+                .questionGeneration
+        ).toEqual(questionGeneration)
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'txt', parserConfig: config }, defaults).questionGeneration
+        ).toEqual({ enabled: false })
+    })
+    it('inherits token limits while preserving document overrides, including zero, across repeated normalization', () => {
+        const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 256 }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'txt' }, defaults).maxChunkTokens).toBe(256)
+        for (const maxChunkTokens of [0, 128]) {
+            const config = resolveKnowledgeDocumentParserConfig(
+                { type: 'pdf', parserConfig: { maxChunkTokens } },
+                defaults
+            )
+            expect(config.maxChunkTokens).toBe(maxChunkTokens)
+            expect(
+                resolveKnowledgeDocumentParserConfig({ type: 'pdf', parserConfig: config }, defaults).maxChunkTokens
+            ).toBe(maxChunkTokens)
+        }
+        const sheet = resolveKnowledgeDocumentParserConfig(
+            {
+                type: 'xlsx',
+                category: KBDocumentCategoryEnum.Sheet,
+                parserConfig: { maxChunkTokens: 128, spreadsheet: { maxChunkTokens: 5000 } }
+            },
+            defaults
+        )
+        expect(sheet.maxChunkTokens).toBeUndefined()
+        expect(sheet.spreadsheet.maxChunkTokens).toBe(5000)
+    })
     it('does not overwrite explicit character limits with built-in nested defaults', () => {
         const config = resolveKnowledgeDocumentParserConfig({
             type: 'txt',

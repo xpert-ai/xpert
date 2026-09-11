@@ -1,3 +1,4 @@
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, throwError } from 'rxjs'
@@ -29,6 +30,76 @@ describe('shared knowledge processing draft', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('omits inactive invalid question fields from the saved config and retains the draft on re-enable', () => {
+    const { form } = setup()
+    form.questionGenerationEnabled.set(true)
+    form.questionCountControl.setValue(0)
+    form.questionRequirementsControl.setValue('x'.repeat(4001))
+    form.questionGenerationEnabled.set(false)
+    expect(form.validation()).toBeNull()
+    expect(form.config().questionGeneration).toEqual({ enabled: false })
+    form.questionGenerationEnabled.set(true)
+    expect(form.questionCount()).toBe(0)
+    expect(form.questionRequirements()).toHaveLength(4001)
+  })
+
+  it('preserves valid saved question settings while generation is disabled', () => {
+    const questionGeneration = {
+      enabled: false,
+      questionCount: 5,
+      customInstructions: 'Use procurement terminology',
+      model: { copilotId: 'd349f858-50c2-4b41-a422-e74e265b4569', model: 'chat', modelType: AiModelTypeEnum.LLM }
+    }
+    const { form } = setup({ config: { questionGeneration } })
+    expect(form.config().questionGeneration).toEqual(questionGeneration)
+  })
+
+  it('keeps question generation opt-in and round-trips its model, count and instructions', () => {
+    const { form } = setup()
+    expect(form.config().questionGeneration.enabled).toBe(false)
+    form.questionGenerationEnabled.set(true)
+    expect(form.validation()?.key).toContain('MissingModel')
+    form.questionModel.set({
+      copilotId: 'd349f858-50c2-4b41-a422-e74e265b4569',
+      model: 'chat',
+      modelType: AiModelTypeEnum.LLM
+    })
+    form.questionCountControl.setValue(5)
+    form.questionRequirementsControl.setValue('Use procurement terminology')
+    expect(form.validation()).toBeNull()
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    expect(reopened.config().questionGeneration).toEqual(form.config().questionGeneration)
+    for (const count of [0, 11, 1.5, null]) {
+      form.questionCountControl.setValue(count)
+      expect(form.validation()?.key).toContain('InvalidSettings')
+    }
+    form.questionCountControl.setValue(3)
+    form.questionRequirementsControl.setValue('x'.repeat(4001))
+    expect(form.validation()?.key).toContain('InvalidSettings')
+    form.questionGenerationEnabled.set(false)
+    expect(form.validation()).toBeNull()
+  })
+
+  it('persists the token cap, supports explicit zero and rejects invalid values in both structures', () => {
+    const { form } = setup({ config: { maxChunkTokens: 256 } })
+    expect(form.maxChunkTokens()).toBe(256)
+    form.maxChunkTokensControl.setValue(128)
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    expect(reopened.maxChunkTokens()).toBe(128)
+    for (const parentChild of [false, true]) {
+      form.toggleParentChild(parentChild)
+      for (const invalid of [null, -1, 1.5, 8193, NaN]) {
+        form.maxChunkTokensControl.setValue(invalid)
+        expect(form.validation()?.key).toContain('InvalidTokenLimit')
+      }
+      for (const valid of [0, 1, 128, 8192]) {
+        form.maxChunkTokensControl.setValue(valid)
+        expect(form.config().maxChunkTokens).toBe(valid)
+        expect(form.validation()).toBeNull()
+      }
+    }
+  })
 
   it('defaults images to off even if an old strategy or a vision model exists', () => {
     const { form } = setup({ config: { imageUnderstandingType: 'vlm-default' }, visionModel: { model: 'vision' } })

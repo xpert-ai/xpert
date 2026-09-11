@@ -734,7 +734,13 @@
         "ProjectTaskXpertRequired": "项目自动化必须绑定一个项目数字专家。",
         "ProjectXpertRequired": "该数字专家不属于此项目。",
         "XpertTaskAccessDenied": "你无权访问该数字专家定时任务。",
-        "XpertTaskNotFound": "未找到请求的数字专家任务。"
+        "XpertTaskNotFound": "未找到请求的数字专家任务。",
+        "ChunkTokenLimitTooSmall": "Token 上限过小，无法容纳一个完整字符，请提高上限后重试。",
+        "KnowledgeQuestionsInvalidResponse": "模型未返回有效的问题列表，请重试。",
+        "KnowledgeQuestionsBusy": "问题正在生成，请稍后重试。",
+        "KnowledgeQuestionsStale": "原文分块已更新，请重新生成问题。",
+        "KnowledgeQuestionsUnavailable": "请先启用 AI 问题生成，并完成此文本分块的处理。",
+        "KnowledgeSourceVectorFilterUnsupported": "不支持此原文分块向量筛选条件。"
     },
     "Mcp": {
         "Test": {

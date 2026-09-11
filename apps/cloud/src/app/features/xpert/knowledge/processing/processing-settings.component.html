@@ -307,9 +307,6 @@
               </z-accordion-title>
             </z-accordion-header>
 
-            <p class="mt-1 text-xs leading-5 text-text-tertiary">
-              {{ i18nPrefix + '.Implemented.LaterOptions' | translate }}
-            </p>
             <div class="flex flex-col border-t border-divider-subtle">
               <div
                 data-chunk-max-tokens
@@ -323,17 +320,24 @@
                     {{ i18nPrefix + '.Chunk.MaxChunkTokensDescription' | translate }}
                   </p>
                 </div>
-                <input
-                  z-input
-                  zSize="lg"
-                  class="w-full shrink-0 sm:w-40"
-                  type="number"
-                  min="0"
-                  max="8192"
-                  step="1"
-                  [disabled]="true"
-                  [(ngModel)]="form().maxChunkTokens"
-                />
+                <z-form-field appearance="standard" class="w-full shrink-0 grid-cols-1 border-0 pb-0 sm:w-40">
+                  <z-form-label class="sr-only">{{ i18nPrefix + '.Chunk.MaxChunkTokens' | translate }}</z-form-label>
+                  <input
+                    z-input
+                    zSize="lg"
+                    type="number"
+                    min="0"
+                    max="8192"
+                    step="1"
+                    [formControl]="form().maxChunkTokensControl"
+                    [attr.aria-label]="i18nPrefix + '.Chunk.MaxChunkTokens' | translate"
+                  />
+                  @if (form().maxChunkTokensControl.invalid && form().maxChunkTokensControl.dirty) {
+                    <z-form-message zType="error">{{
+                      i18nPrefix + '.Chunk.InvalidTokenLimit' | translate
+                    }}</z-form-message>
+                  }
+                </z-form-field>
               </div>
 
               <div
@@ -346,6 +350,9 @@
                   </div>
                   <p class="mt-1 text-xs leading-5 text-text-tertiary">
                     {{ i18nPrefix + '.Chunk.LanguageHintDescription' | translate }}
+                  </p>
+                  <p class="mt-1 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.Implemented.LaterOptions' | translate }}
                   </p>
                 </div>
                 <z-select
@@ -467,67 +474,60 @@
     }
 
     @case ('questions') {
-      <section class="block min-w-0 w-full">
+      <section class="block w-full min-w-0">
         @if (showHeading()) {
-          <div
-            class="mb-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
-          >
-            <h1>{{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}</h1>
-          </div>
+          <h1 class="text-2xl font-semibold">{{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}</h1>
         }
-        <p class="mt-1 text-xs leading-5 text-text-tertiary mb-6">
-          {{ i18nPrefix + '.Implemented.LaterOptions' | translate }}
-        </p>
-        <div
-          class="flex items-start justify-between gap-6 border-b border-divider-subtle pb-7 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary"
-        >
+        <div class="flex items-start justify-between gap-6 border-b border-divider-subtle py-5">
           <div>
-            <div class="text-lg font-semibold leading-7 text-text-primary">
-              {{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}
-            </div>
-            <p>{{ i18nPrefix + '.Advanced.QuestionGenerationDescription' | translate }}</p>
+            <div class="text-lg font-semibold">{{ i18nPrefix + '.Advanced.QuestionGeneration' | translate }}</div>
+            <p class="mt-2 text-sm leading-6 text-text-tertiary">{{ 'XP.Knowledgebase.Questions.Help' | translate }}</p>
           </div>
-          <z-switch class="shrink-0" [(ngModel)]="form().questionGenerationEnabled" />
+          <z-switch [(ngModel)]="form().questionGenerationEnabled" />
         </div>
-
         @if (form().questionGenerationEnabled()) {
-          <div class="mt-6 border-l-4 border-components-button-primary-border pl-7">
-            <div class="mb-7 flex flex-col items-start gap-4 @min-[24rem]:flex-row">
-              <div class="min-w-0 flex-1 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
-                <div class="text-lg font-semibold leading-7 text-text-primary">
-                  {{ i18nPrefix + '.Advanced.QuestionCount' | translate }}
-                </div>
-                <p>{{ i18nPrefix + '.Advanced.QuestionCountDescription' | translate }}</p>
-              </div>
-              <div class="w-28 shrink-0">
-                <input
-                  z-input
-                  zSize="lg"
-                  class="w-full"
-                  type="number"
-                  min="1"
-                  max="10"
-                  [(ngModel)]="form().questionCount"
-                />
-              </div>
-            </div>
-            <div class="relative [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
-              <div class="text-lg font-semibold leading-7 text-text-primary">
-                {{ i18nPrefix + '.Advanced.QuestionRequirements' | translate }}
-              </div>
-              <p>{{ i18nPrefix + '.Advanced.QuestionRequirementsDescription' | translate }}</p>
-              <textarea
-                z-input
-                class="min-h-28 w-full resize-y mt-4 min-h-32"
-                maxlength="4000"
-                [(ngModel)]="form().questionRequirements"
-                [placeholder]="i18nPrefix + '.Advanced.QuestionRequirementsPlaceholder' | translate"
-              ></textarea>
-              <div class="absolute bottom-2 right-2 text-xs text-text-quaternary">
-                {{ form().questionRequirements().length }}/4000
-              </div>
-            </div>
+          <div class="py-5">
+            <copilot-model-select
+              class="block"
+              [label]="'XP.Knowledgebase.Questions.Model' | translate"
+              [modelType]="eAiModelTypeEnum.LLM"
+              [(ngModel)]="form().questionModel"
+            />
           </div>
+          <z-form-field class="block py-5">
+            <z-form-label>{{ i18nPrefix + '.Advanced.QuestionCount' | translate }}</z-form-label>
+            <input
+              z-input
+              id="question-count"
+              type="number"
+              min="1"
+              max="10"
+              class="mt-2 w-28"
+              [formControl]="form().questionCountControl"
+            />
+            <p class="mt-2 text-sm text-text-tertiary">
+              {{ i18nPrefix + '.Advanced.QuestionCountDescription' | translate }}
+            </p>
+            @if (form().questionCountControl.invalid) {
+              <z-form-message zType="error">{{
+                'XP.Knowledgebase.Questions.InvalidSettings' | translate
+              }}</z-form-message>
+            }
+          </z-form-field>
+          <z-form-field class="block py-5">
+            <z-form-label>{{ i18nPrefix + '.Advanced.QuestionRequirements' | translate }}</z-form-label>
+            <p class="my-2 text-sm text-text-tertiary">
+              {{ i18nPrefix + '.Advanced.QuestionRequirementsDescription' | translate }}
+            </p>
+            <textarea
+              z-input
+              id="question-instructions"
+              class="min-h-28 w-full resize-y"
+              maxlength="4000"
+              [formControl]="form().questionRequirementsControl"
+              [placeholder]="i18nPrefix + '.Advanced.QuestionRequirementsPlaceholder' | translate"
+            ></textarea>
+          </z-form-field>
         }
       </section>
     }
