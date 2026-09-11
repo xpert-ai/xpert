@@ -35,7 +35,7 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
         <label z-form-label for="chunk-preview-text">{{ prefix + '.PreviewText' | translate }}</label>
         <textarea z-input id="chunk-preview-text" rows="6" maxlength="100000" formControlName="text"></textarea>
       </z-form-field>
-      <button z-button type="submit" class="self-start" [disabled]="loading() || form.invalid">
+      <button z-button type="submit" class="self-start" [disabled]="loading() || form.invalid || configInvalid()">
         {{ (loading() ? prefix + '.PreviewLoading' : prefix + '.PreviewRun') | translate }}
       </button>
       @if (error()) {
@@ -49,12 +49,22 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
           @for (chunk of result.chunks; track chunk.metadata.chunkId; let index = $index) {
             <div class="border-b border-divider-subtle py-3">
               <div class="text-sm font-medium">{{ index + 1 }} · {{ chunk.pageContent.length }}</div>
+              @if (chunk.metadata.tokens !== undefined) {
+                <div class="text-xs text-text-tertiary">
+                  {{ prefix + '.PreviewTokens' | translate: { count: chunk.metadata.tokens } }}
+                </div>
+              }
               <pre class="whitespace-pre-wrap break-words text-sm text-text-secondary">{{ chunk.pageContent }}</pre>
-              @for (child of chunk.children ?? []; track child.metadata.chunkId; let childIndex = $index) {
+              @for (child of chunk.metadata.children ?? []; track child.metadata.chunkId; let childIndex = $index) {
                 <div class="ml-4 border-l border-divider-subtle pl-3 pt-2">
                   <span class="text-xs text-text-tertiary"
                     >{{ index + 1 }}.{{ childIndex + 1 }} · {{ child.pageContent.length }}</span
                   >
+                  @if (child.metadata.tokens !== undefined) {
+                    <span class="ml-2 text-xs text-text-tertiary">{{
+                      prefix + '.PreviewTokens' | translate: { count: child.metadata.tokens }
+                    }}</span>
+                  }
                   <pre class="whitespace-pre-wrap break-words text-sm text-text-secondary">{{ child.pageContent }}</pre>
                 </div>
               }
@@ -69,6 +79,7 @@ export class KnowledgeChunkPreviewComponent {
   readonly prefix = 'XP.Knowledgebase.WorkspaceConfiguration.Implemented'
   readonly workspaceId = input.required<string>()
   readonly config = input.required<KnowledgebaseParserConfig>()
+  readonly configInvalid = input(false)
   readonly service = inject(KnowledgebaseService)
   readonly form = inject(NonNullableFormBuilder).group({
     text: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100000)]],
@@ -82,6 +93,7 @@ export class KnowledgeChunkPreviewComponent {
   constructor() {
     effect(() => {
       this.config()
+      this.configInvalid()
       this.revision++
       this.result.set(null)
     })
@@ -92,7 +104,7 @@ export class KnowledgeChunkPreviewComponent {
   }
 
   async preview() {
-    if (this.loading() || this.form.invalid) return
+    if (this.loading() || this.form.invalid || this.configInvalid()) return
     const revision = this.revision
     this.loading.set(true)
     this.error.set('')

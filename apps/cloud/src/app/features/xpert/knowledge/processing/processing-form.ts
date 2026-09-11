@@ -1,4 +1,6 @@
 import { computed, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl, Validators } from '@angular/forms'
 import { cloneDeep } from 'lodash-es'
 import { firstValueFrom, take } from 'rxjs'
 import {
@@ -84,16 +86,34 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
           : ['\\n\\n', '\\n', '。', '！', '？', '；', ';'])
   )
   const parentChildChunkingEnabled = computed(() => chunkStrategy() === 'parent-child')
-  // Token limits and language hints remain reserved for the second batch.
-  const maxChunkTokens = signal<number | null>(0)
+  const maxChunkTokensControl = new FormControl(initialConfig.maxChunkTokens ?? 0, [
+    Validators.required,
+    Validators.min(0),
+    Validators.max(8192),
+    Validators.pattern(/^\d+$/)
+  ])
+  const maxChunkTokens = toSignal(maxChunkTokensControl.valueChanges, { initialValue: maxChunkTokensControl.value })
+  // Language hints remain reserved for a later batch.
   const chunkLanguageHint = signal<'auto' | 'Chinese' | 'English'>('auto')
 
   const { separatorOptions, compareSeparators, displaySeparator, separatorTagOptions, separatorLabelKey } =
     createSeparatorSelectOptions()
 
-  const questionGenerationEnabled = signal(true)
-  const questionCount = signal<number | null>(3)
-  const questionRequirements = signal('')
+  const questionGenerationEnabled = signal(initialConfig.questionGeneration?.enabled ?? false)
+  const questionModel = signal<ICopilotModel | undefined>(initialConfig.questionGeneration?.model)
+  const questionCountControl = new FormControl(initialConfig.questionGeneration?.questionCount ?? 3, [
+    Validators.required,
+    Validators.min(1),
+    Validators.max(10),
+    Validators.pattern(/^\d+$/)
+  ])
+  const questionCount = toSignal(questionCountControl.valueChanges, { initialValue: questionCountControl.value })
+  const questionRequirementsControl = new FormControl(initialConfig.questionGeneration?.customInstructions ?? '', [
+    Validators.maxLength(4000)
+  ])
+  const questionRequirements = toSignal(questionRequirementsControl.valueChanges, {
+    initialValue: questionRequirementsControl.value
+  })
   const imageUnderstandingEnabled = signal<boolean>(initialConfig?.imageUnderstandingEnabled ?? false)
   const imagePromptTemplate = signal(
     typeof initialConfig?.imageUnderstanding?.promptTemplate === 'string'
@@ -161,6 +181,26 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     ...initialConfig,
     chunkSize: chunkSize(),
     chunkOverlap: chunkOverlap(),
+    maxChunkTokens: maxChunkTokens() ?? 0,
+    questionGeneration: {
+      enabled: questionGenerationEnabled(),
+      questionCount:
+        questionGenerationEnabled() || (Number.isSafeInteger(questionCount()) && questionCountControl.valid)
+          ? (questionCount() ?? 3)
+          : undefined,
+      customInstructions:
+        questionGenerationEnabled() || (questionRequirements()?.length ?? 0) <= 4000
+          ? (questionRequirements() ?? '')
+          : undefined,
+      model: questionModel()
+        ? {
+            copilotId: questionModel().copilotId,
+            model: questionModel().model,
+            modelType: questionModel().modelType,
+            options: questionModel().options
+          }
+        : undefined
+    },
     delimiter: delimiter() || null,
     separators: [...separators()],
     textSplitterType: chunkStrategy(),
@@ -183,10 +223,31 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
           }
   }))
 
+  function validateQuestions(): { section: KnowledgeProcessingSection; key: string } | null {
+    if (questionGenerationEnabled() && (!questionModel()?.copilotId || !questionModel()?.model)) {
+      return { section: 'questions', key: 'XP.Knowledgebase.Questions.MissingModel' }
+    }
+    if (
+      questionGenerationEnabled() &&
+      (!Number.isSafeInteger(questionCount()) ||
+        questionCountControl.invalid ||
+        (questionRequirements()?.length ?? 0) > 4000)
+    ) {
+      return { section: 'questions', key: 'XP.Knowledgebase.Questions.InvalidSettings' }
+    }
+    return null
+  }
+
   function validate({ checkPdfParser = true }: { checkPdfParser?: boolean } = {}): {
     section: KnowledgeProcessingSection
     key: string
   } | null {
+    const questionsError = validateQuestions()
+    if (questionsError) return questionsError
+    // Read the signal so validation recomputes on reactive control edits.
+    if (!Number.isSafeInteger(maxChunkTokens()) || maxChunkTokensControl.invalid) {
+      return { section: 'chunk', key: PROCESSING_I18N_PREFIX + '.Chunk.InvalidTokenLimit' }
+    }
     if (parentChildChunkingEnabled() && parentChild.invalid()) {
       return { section: 'chunk', key: 'XP.Knowledgebase.SharedProcessing.ParentChild.InvalidLimits' }
     }
@@ -237,12 +298,17 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     separators,
     parentChildChunkingEnabled,
     maxChunkTokens,
+    maxChunkTokensControl,
     chunkLanguageHint,
     separatorOptions,
     compareSeparators,
     displaySeparator,
     separatorTagOptions,
     questionGenerationEnabled,
+    questionModel,
+    validateQuestions,
+    questionCountControl,
+    questionRequirementsControl,
     questionCount,
     questionRequirements,
     imageUnderstandingEnabled,

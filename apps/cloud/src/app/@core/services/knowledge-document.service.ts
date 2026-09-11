@@ -1,3 +1,4 @@
+import type { KnowledgeChunkQuestions } from '@xpert-ai/contracts'
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -176,6 +177,25 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
       {
         params: new HttpParams().append('data', JSON.stringify(params))
       }
+    )
+  }
+
+  getChunkQuestions(documentId: string, chunkId: string) {
+    return this.httpClient.get<{ enabled: boolean; state?: KnowledgeChunkQuestions }>(
+      `${this.apiBaseUrl}/${documentId}/chunk/${chunkId}/questions`
+    )
+  }
+
+  regenerateChunkQuestions(documentId: string, chunkId: string) {
+    return this.httpClient.post<{ queued: boolean }>(
+      `${this.apiBaseUrl}/${documentId}/chunk/${chunkId}/questions/regenerate`,
+      {}
+    )
+  }
+
+  deleteChunkQuestion(documentId: string, chunkId: string, questionId: string) {
+    return this.httpClient.delete<KnowledgeChunkQuestions>(
+      `${this.apiBaseUrl}/${documentId}/chunk/${chunkId}/questions/${questionId}`
     )
   }
 

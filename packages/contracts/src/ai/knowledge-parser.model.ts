@@ -19,6 +19,8 @@ export function knowledgebaseDocumentParserDefaults(
 ): DocumentTextParserConfig {
   if (!config) return {}
   return {
+    ...(config.questionGeneration ? { questionGeneration: { ...config.questionGeneration } } : {}),
+    ...(config.maxChunkTokens !== undefined ? { maxChunkTokens: config.maxChunkTokens } : {}),
     ...(config.chunkSize != null ? { chunkSize: config.chunkSize } : {}),
     ...(config.chunkOverlap != null ? { chunkOverlap: config.chunkOverlap } : {}),
     ...(config.delimiter != null ? { delimiter: config.delimiter } : {}),

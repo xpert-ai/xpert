@@ -13,7 +13,7 @@ import { UserService } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ChunkMetadata, countTokensSafe } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, countTextTokens } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
@@ -25,6 +25,7 @@ import { guardEmbeddingInputDocuments } from './embedding-input-guard'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentProcessingMetadata } from './document-publication'
+import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
 
 /** Queue payload keeps processing mode durable across the HTTP/background-worker boundary. */
 type KnowledgeDocumentJobData = {
@@ -46,11 +47,13 @@ export class KnowledgeDocumentConsumer {
         private readonly documentService: KnowledgeDocumentService,
         private readonly userService: UserService,
         private readonly commandBus: CommandBus,
-        private readonly publicationService: KnowledgeDerivedIndexPublicationService
+        private readonly publicationService: KnowledgeDerivedIndexPublicationService,
+        private readonly lifecycle: KnowledgeProcessingReadyService
     ) {}
 
     @Process({ concurrency: 5 })
     async process(job: Job<KnowledgeDocumentJobData>) {
+        await this.lifecycle.waitUntilReady()
         const user = await this.userService.findOne(job.data.userId, { relations: ['role'] })
         const firstDoc = job.data.docs[0]
         if (!firstDoc) {
@@ -138,6 +141,7 @@ export class KnowledgeDocumentConsumer {
                     document.processingHash === processingHash &&
                     document.contentHash
                 ) {
+                    const sourceTokens = await this.updateSourceTokenCounts(document)
                     const processDuration = new Date().getTime() - processBeginAt.getTime()
                     await this.updateDocumentProcessingMetadata(
                         document.id,
@@ -148,9 +152,11 @@ export class KnowledgeDocumentConsumer {
                             processDuation: processDuration,
                             progress: 100,
                             processingHash,
-                            sourceHash
+                            sourceHash,
+                            tokenNum: sourceTokens
                         },
                         {
+                            tokens: sourceTokens,
                             lastIncrementalSync: this.createSkippedIncrementalSyncMetadata(document)
                         }
                     )
@@ -194,7 +200,7 @@ export class KnowledgeDocumentConsumer {
                     )
                     document.chunks = syncResult.chunks
                     chunks = syncResult.embeddingChunks as Document<ChunkMetadata>[]
-                    totalTokenUsed = await this.countEmbeddingTokens(document)
+                    totalTokenUsed = await this.updateSourceTokenCounts(document)
                     await this.updateDocumentProcessingMetadata(
                         document.id,
                         {
@@ -212,21 +218,13 @@ export class KnowledgeDocumentConsumer {
                     let count = 0
                     while (batchSize * count < chunks.length) {
                         const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
-                        // Count and Record token usage for embedding
-                        // Use searchContent when present, otherwise fall back to full pageContent
+                        // Embedding usage may count searchContent; source chunk statistics always count pageContent.
                         let tokenUsed = 0
                         batch.forEach((chunk) => {
                             const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
-                            chunk.metadata.tokens = countTokensSafe(contentForEmbedding)
-                            tokenUsed += chunk.metadata.tokens
+                            tokenUsed += countTextTokens(contentForEmbedding)
                         })
                         embeddingTokenUsed += tokenUsed
-                        await this.documentService.updateChunkMetadataBulk(
-                            batch.map((chunk) => ({
-                                id: chunk.id,
-                                metadata: chunk.metadata
-                            }))
-                        )
                         await this.commandBus.execute(
                             new CopilotTokenRecordCommand({
                                 tenantId: knowledgebase.tenantId,
@@ -317,12 +315,17 @@ export class KnowledgeDocumentConsumer {
         return {}
     }
 
-    private async countEmbeddingTokens(document: IKnowledgeDocument) {
+    private async updateSourceTokenCounts(document: IKnowledgeDocument) {
+        const updates = (document.chunks ?? []).flatMap((chunk) => {
+            const tokens = countTextTokens(chunk.pageContent)
+            if (chunk.metadata?.tokens === tokens) return []
+            chunk.metadata = { ...chunk.metadata, tokens }
+            return [{ id: chunk.id, metadata: { chunkId: chunk.metadata.chunkId, tokens } }]
+        })
+        if (updates.length) await this.documentService.updateChunkMetadataBulk(updates)
         const chunks = await this.documentService.findAllEmbeddingNodes(document)
-        return chunks.reduce((tokens, chunk) => {
-            const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
-            return tokens + countTokensSafe(contentForEmbedding)
-        }, 0)
+        // Sum searchable leaves so parent context is not counted twice.
+        return chunks.reduce((tokens, chunk) => tokens + countTextTokens(chunk.pageContent), 0)
     }
 
     private createSkippedIncrementalSyncMetadata(

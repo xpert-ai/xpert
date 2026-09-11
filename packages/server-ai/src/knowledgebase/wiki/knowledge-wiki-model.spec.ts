@@ -3,6 +3,7 @@ import i18next from 'i18next'
 import {
     buildKnowledgeWikiMapMessages,
     buildKnowledgeWikiReduceMessages,
+    createKnowledgeWikiMapOutputSchema,
     knowledgeWikiMapOutputSchema,
     parseKnowledgeWikiMapOutput,
     parseKnowledgeWikiReduceOutput,
@@ -32,6 +33,16 @@ describe('knowledge Wiki model boundary', () => {
         })
     }
 
+    it('constrains model citations to exact source IDs from this batch', () => {
+        const schema = createKnowledgeWikiMapOutputSchema([{ id: 'chunk-1' }])
+        expect(schema.safeParse(mapOutput(['chunk-1'])).success).toBe(true)
+        for (const id of ['foreign', 'id:chunk-1', 'id":"chunk-1"']) {
+            expect(schema.safeParse(mapOutput([id])).success).toBe(false)
+        }
+        expect(createKnowledgeWikiMapOutputSchema([]).safeParse({ pages: [] }).success).toBe(true)
+        expect(createKnowledgeWikiMapOutputSchema([]).safeParse(mapOutput(['chunk-1'])).success).toBe(false)
+    })
+
     it('retains valid citations, deduplicates a known prefix, and excludes references outside this batch', () => {
         const output = mapOutput(['chunk-1', 'id:chunk-1', 'id:chunk-2', 'id:foreign-chunk'])
 
@@ -51,6 +62,16 @@ describe('knowledge Wiki model boundary', () => {
             resolveKnowledgeWikiMapSources(mapOutput(['id:chunk-1']), [{ id: 'id:chunk-1' }, { id: 'chunk-1' }])
                 .pages[0].facts[0].sourceChunkIds
         ).toEqual(['id:chunk-1'])
+    })
+
+    it('normalizes the known copied JSON id envelope only against the current batch', () => {
+        expect(
+            resolveKnowledgeWikiMapSources(mapOutput(['id":"chunk-1"']), [{ id: 'chunk-1' }]).pages[0].facts[0]
+                .sourceChunkIds
+        ).toEqual(['chunk-1'])
+        for (const id of ['id":"foreign"', 'prose id":"chunk-1"', 'id":"chunk-1", "extra":true', 'id":"id:chunk-1"']) {
+            expect(() => resolveKnowledgeWikiMapSources(mapOutput([id]), [{ id: 'chunk-1' }])).toThrow()
+        }
     })
 
     it.each(['chunk-2', 'id:chunk-2', 'id:id:chunk-1', 'ID:chunk-1', '1', 'Strategy'])(
@@ -125,12 +146,17 @@ describe('knowledge Wiki model boundary', () => {
         })
 
         const raw = await client
-            .withStructuredOutput(knowledgeWikiMapOutputSchema, {
+            .withStructuredOutput(createKnowledgeWikiMapOutputSchema([{ id: 'chunk-1' }]), {
                 name: 'knowledge_wiki_map'
             })
             .invoke('Extract the supplied Wiki facts.')
 
         expect(fetch).toHaveBeenCalledTimes(1)
+        const request = JSON.parse(fetch.mock.calls[0][1].body)
+        expect(
+            request.response_format.json_schema.schema.properties.pages.items.properties.facts.items.properties
+                .sourceChunkIds.items.enum
+        ).toEqual(['chunk-1'])
         expect(parseKnowledgeWikiMapOutput(raw).pages[0].suggestedLinks).toEqual([
             { targetType: 'concept', targetCanonicalName: 'AI' }
         ])

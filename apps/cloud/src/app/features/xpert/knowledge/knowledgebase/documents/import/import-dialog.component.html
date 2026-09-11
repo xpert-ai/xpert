@@ -151,8 +151,10 @@
             <span class="min-w-0"
               ><span class="block text-sm font-medium">{{ prefix + '.' + item.key | translate }}</span>
               <span class="mt-1 block text-xs text-text-tertiary">
-                @if (!item.available || item.id === 'audio' || item.id === 'questions') {
+                @if (!item.available || item.id === 'audio') {
                   {{ prefix + '.Unavailable' | translate }}
+                } @else if (item.id === 'questions') {
+                  {{ prefix + (processing.questionGenerationEnabled() ? '.Enabled' : '.Disabled') | translate }}
                 } @else if (item.id === 'chunks' && chunkSize()) {
                   {{ prefix + '.ChunkSummary' | translate: { size: chunkSize() } }}
                 } @else if (item.id === 'images') {

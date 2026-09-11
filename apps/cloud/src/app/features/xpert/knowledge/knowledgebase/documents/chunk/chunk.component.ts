@@ -1,3 +1,4 @@
+import { KnowledgeChunkQuestionsComponent } from './chunk-questions.component'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -5,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectConfirmDelete, myRxResource, XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { nonBlank } from '@xpert-ai/contracts'
+import { knowledgebaseDocumentParserDefaults, nonBlank } from '@xpert-ai/contracts'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeChunkComponent, KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
@@ -58,6 +59,7 @@ import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.co
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent,
+    KnowledgeChunkQuestionsComponent,
     CopyComponent,
     KnowledgeDocumentAnalysisPreviewComponent
   ]
@@ -123,6 +125,14 @@ export class KnowledgeDocumentChunkComponent {
   })
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
   readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
+  readonly questionGenerationEnabled = computed(() => {
+    const document = this.document()
+    if (!document) return false
+    const config =
+      document.parserConfig?.questionGeneration ??
+      knowledgebaseDocumentParserDefaults(this.knowledgebase()?.parserConfig, document.type).questionGeneration
+    return config?.enabled === true
+  })
   readonly docEnabled = model(false)
 
   readonly loading = signal(false)

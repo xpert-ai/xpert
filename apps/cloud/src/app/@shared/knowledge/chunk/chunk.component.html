@@ -119,9 +119,9 @@
               <div class="self-stretch">
                 <div class="h-full mx-[7px] w-[2px] bg-text-accent-secondary"></div>
               </div>
-              <p class="flex w-full flex-col leading-6 gap-y-2">
+              <div class="flex min-w-0 w-full flex-col leading-6 gap-y-2">
                 @for (chunk of children; track chunk; let j = $index) {
-                  <span class="group relative break-all">
+                  <div class="group relative min-w-0">
                     <div class="inline-flex items-center">
                       <span
                         class="bg-hover-bg-alt px-1 uppercase text-text-tertiary border border-divider-regular group-hover:bg-accent-500 group-hover:text-text-primary"
@@ -161,9 +161,12 @@
                         </button>
                       </div>
                     }
-                  </span>
+                    <ng-container
+                      *ngTemplateOutlet="footerTemplate(); context: { $implicit: chunk, label: 'C-' + (j + 1) }"
+                    />
+                  </div>
                 }
-              </p>
+              </div>
             </div>
           }
         </div>
@@ -178,4 +181,7 @@
       </div>
     }
   </div>
+  @if (!children()?.length) {
+    <ng-container *ngTemplateOutlet="footerTemplate(); context: { $implicit: chunk() }" />
+  }
 </div>

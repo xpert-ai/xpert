@@ -5436,7 +5436,8 @@
           "PreviewLoading": "正在分块…",
           "PreviewRun": "测试分块效果",
           "PreviewCount": "共 {{count}} 个普通块 / 父块，下方缩进显示子块",
-          "InvalidLimits": "分块大小必须是正整数，重叠值必须大于等于 0 且小于分块大小。"
+          "InvalidLimits": "分块大小必须是正整数，重叠值必须大于等于 0 且小于分块大小。",
+          "PreviewTokens": "{{count}} tokens (cl100k_base)"
         },
         "Close": "關閉",
         "NavigationLabel": "知識庫設置導航",
@@ -5619,7 +5620,7 @@
           "ParentChildDescription": "使用較小的子塊進行精確召回，並用較大的父塊補充上下文；推薦用於長文件和複雜問答。",
           "AdvancedOptions": "高級選項",
           "MaxChunkTokens": "每塊 Token 上限",
-          "MaxChunkTokensDescription": "每個分塊的可選 Token 上限（0–8192）。設為 0 時關閉，繼續按字元數切分。",
+          "MaxChunkTokensDescription": "在字元分塊基礎上進一步限制 Token 數（0–8192），0 表示關閉。預覽與處理統一按 cl100k_base 計數。適用於一般文字塊及檢索子塊，父塊上下文保持完整。",
           "LanguageHint": "語言提示",
           "LanguageHintDescription": "指定分塊器優先識別的語言，或保留自動檢測。",
           "LanguageOptions": {
@@ -5638,7 +5639,8 @@
             "Question": "問號 (?)",
             "ChineseSemicolon": "中文分號 (；)",
             "EnglishSemicolon": "英文分號 (;)"
-          }
+          },
+          "InvalidTokenLimit": "請輸入 0–8192 的整數，0 表示關閉 Token 上限。"
         },
         "Image": {
           "Description": "配置圖片理解策略，幫助知識庫擷取圖片中的文字和語義。",
@@ -5692,8 +5694,8 @@
           "Description": "配置問題產生等進階功能。",
           "QuestionGeneration": "AI 問題產生",
           "QuestionGenerationDescription": "解析文件時調用大模型為每個分塊產生相關問題，提高檢索召回率。啟用後會增加文件解析耗時。",
-          "QuestionCount": "產生問題數量",
-          "QuestionCountDescription": "每個文件分塊產生的問題數量（1–10）。",
+          "QuestionCount": "最多產生問題數",
+          "QuestionCountDescription": "每個分塊最多產生的問題數（1–10）。內容不足時可能少產生或不產生，不會為湊數編造問題。",
           "QuestionRequirements": "問題產生要求",
           "QuestionRequirementsDescription": "指定問題面向的人群、場景和表達方式，系統仍維持穩定輸出格式。",
           "QuestionRequirementsPlaceholder": "例如：產生客服使用者常問的自然語言問題，避免考試題式表達...",
@@ -6158,7 +6160,25 @@
       "GraphWeight": "圖譜權重",
       "NeighborHops": "鄰域跳數",
       "EntityTopK": "實體 Top K",
-      "GraphRAG": "GraphRAG"
+      "GraphRAG": "GraphRAG",
+      "Questions": {
+        "Title": "AI 問題生成",
+        "Help": "切塊後生成使用者可能提出的問題，增加檢索入口。回答和引用仍使用原文。開啟後會增加模型呼叫和向量化用量。",
+        "Model": "問題生成模型",
+        "MissingModel": "請選擇問題生成模型。",
+        "InvalidSettings": "問題數量須為 1–10 的整數，額外要求不超過 4000 字元。",
+        "Child": "子塊 {{index}}",
+        "Generating": "正在生成問題並建立索引…",
+        "Empty": "暫無生成的問題。",
+        "ManageHelp": "這些問題用於輔助檢索原文。重新生成可能產生模型呼叫和向量化費用。",
+        "Regenerate": "重新生成問題",
+        "Generate": "生成問題",
+        "Retry": "重試問題生成",
+        "Loading": "正在載入問題狀態…",
+        "DisabledHelp": "AI 問題生成已關閉。如需生成或重試，請在文件處理設定中開啟。",
+        "RetryIndexHelp": "已儲存生成的問題。原文和設定未變時，重試會重用這些問題，僅重建檢索索引，可能產生向量化費用。",
+        "InsufficientContent": "目前分塊缺少可用於檢索的有效資訊，本次未生成問題。"
+      }
     },
     "Integration": {
       "Integration": "集成",

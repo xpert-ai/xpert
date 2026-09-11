@@ -89,7 +89,11 @@ export class DocumentImportDialogComponent {
   readonly sheetParserConfig = model<ImportParserConfig>(
     this.editing ? cloneDeep(this.data.editDocument.parserConfig ?? {}) : {}
   )
-  readonly activeParserConfig = computed(() => (this.onlySheet() ? this.sheetParserConfig() : this.parserConfig()))
+  readonly activeParserConfig = computed(() =>
+    this.onlySheet()
+      ? { ...this.sheetParserConfig(), questionGeneration: this.parserConfig().questionGeneration }
+      : this.parserConfig()
+  )
   readonly section = signal('parser')
   readonly settingsSection = computed<ImportSettingsSection>(() =>
     this.section() === 'images' ? 'images' : this.section() === 'chunks' ? 'chunks' : 'parser'
@@ -143,7 +147,7 @@ export class DocumentImportDialogComponent {
     if (!this.documents().length) return null
     if (this.onlySheet()) {
       const error = this.settings()?.configurationError()
-      return error ? this.prefix + '.' + error : null
+      return this.processing.validateQuestions()?.key || (error ? this.prefix + '.' + error : null)
     }
     return (
       this.processing.strategiesError() ||
@@ -253,7 +257,7 @@ export class DocumentImportDialogComponent {
         )
       } else {
         const parserConfig = this.onlySheet()
-          ? cloneDeep(this.sheetParserConfig())
+          ? cloneDeep(this.activeParserConfig())
           : editedDocumentParserConfig(
               document,
               this.processing.config(),

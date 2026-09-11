@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, effect, input, signal } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, input, signal, TemplateRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -31,6 +31,10 @@ export class KnowledgeChunkComponent {
     transform: booleanAttribute
   })
   readonly preview = input<boolean>()
+  readonly footerTemplate = input<TemplateRef<{
+    $implicit: IKnowledgeDocumentChunk<DocumentMetadata>
+    label?: string
+  }> | null>(null)
   readonly showMetadata = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

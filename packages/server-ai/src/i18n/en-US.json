@@ -734,7 +734,13 @@
         "ProjectTaskXpertRequired": "A Project automation must be bound to a Project Xpert.",
         "ProjectXpertRequired": "The Xpert is not part of this Project.",
         "XpertTaskAccessDenied": "You cannot access this Xpert task.",
-        "XpertTaskNotFound": "The requested Xpert task was not found."
+        "XpertTaskNotFound": "The requested Xpert task was not found.",
+        "ChunkTokenLimitTooSmall": "The token limit cannot fit a complete character. Increase the limit and try again.",
+        "KnowledgeQuestionsInvalidResponse": "The model did not return a valid question list. Retry generation.",
+        "KnowledgeQuestionsBusy": "Questions are being generated. Try again later.",
+        "KnowledgeQuestionsStale": "The source chunk changed. Regenerate its questions.",
+        "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
+        "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter."
     },
     "Mcp": {
         "Test": {

@@ -1,3 +1,4 @@
+import { KnowledgeQuestionsEnqueueCommand } from './questions/question-generation.command'
 import { IKnowledgebase } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
@@ -28,6 +29,9 @@ export class KnowledgeDerivedIndexPublicationService {
         }
         const results = await Promise.allSettled([
             this.commandBus.execute(
+                new KnowledgeQuestionsEnqueueCommand({ documentId: input.documentId, userId: input.userId })
+            ),
+            this.commandBus.execute(
                 input.contentChanged
                     ? new KnowledgeGraphEnqueueCommand({
                           ...context,
@@ -55,7 +59,7 @@ export class KnowledgeDerivedIndexPublicationService {
 
         results.forEach((result, index) => {
             if (result.status === 'rejected') {
-                const target = index === 0 ? 'GraphRAG' : 'Wiki'
+                const target = ['Questions', 'GraphRAG', 'Wiki'][index]
                 this.logger.warn(
                     `${target} publication failed for document '${input.documentId}': ${getErrorMessage(result.reason)}`
                 )

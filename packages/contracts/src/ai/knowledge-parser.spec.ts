@@ -1,6 +1,16 @@
 import { decodeKnowledgeSeparators, knowledgebaseDocumentParserDefaults } from './knowledge-parser.model'
 
 describe('knowledge parser shared configuration', () => {
+  it('copies token budgets including an explicit opt-out without creating an override for old settings', () => {
+    const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null }
+    expect(knowledgebaseDocumentParserDefaults(defaults)).not.toHaveProperty('maxChunkTokens')
+    for (const maxChunkTokens of [0, 256]) {
+      expect(knowledgebaseDocumentParserDefaults({ ...defaults, maxChunkTokens })).toHaveProperty(
+        'maxChunkTokens',
+        maxChunkTokens
+      )
+    }
+  })
   it('decodes all ordered separators while preserving literal commas and empty lists', () => {
     expect(decodeKnowledgeSeparators(['\\n\\n', '!', '?', ',', '\\t'])).toEqual(['\n\n', '!', '?', ',', '\t'])
     expect(decodeKnowledgeSeparators([])).toEqual([])

@@ -1,3 +1,4 @@
+import type { KnowledgeChunkQuestions } from './knowledge-question.model'
 import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
@@ -169,6 +170,8 @@ export type KnowledgeDocumentAnalysisPreview =
 
 export interface IDocChunkMetadata {
   chunkId: string
+  /** Optional text used only for embedding; pageContent remains the source evidence. */
+  searchContent?: string
   parentId?: string | null
   children?: DocumentInterface<IDocChunkMetadata>[]
 
@@ -203,6 +206,11 @@ export interface IDocChunkMetadata {
   /**
    * Whether the chunk is represented as a vector in the vector store
    */
+  questionGeneration?: KnowledgeChunkQuestions
+  /** Only present on question vector projections; the source chunk remains authoritative. */
+  questionGenerationId?: string
+  questionSourceChunkId?: string
+  generatedQuestionId?: string
   isVector?: boolean
   score?: number
   relevanceScore?: number

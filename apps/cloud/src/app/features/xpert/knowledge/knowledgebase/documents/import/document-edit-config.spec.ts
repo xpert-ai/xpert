@@ -1,6 +1,14 @@
 import { documentProcessingDraft, editedDocumentParserConfig } from './document-edit-config'
 
 describe('editing document processing settings', () => {
+  it('inherits the library token budget and preserves an explicit per-document opt-out when reopening and saving', () => {
+    const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 256 }
+    expect(documentProcessingDraft({ type: 'txt' }, defaults).maxChunkTokens).toBe(256)
+    const document = { type: 'pdf', parserConfig: { maxChunkTokens: 0 } }
+    const draft = documentProcessingDraft(document, defaults)
+    expect(draft.maxChunkTokens).toBe(0)
+    expect(editedDocumentParserConfig(document, { ...defaults, ...draft }, defaults).maxChunkTokens).toBe(0)
+  })
   it('prefers document overrides and keeps provider-specific options isolated from defaults', () => {
     const draft = documentProcessingDraft(
       {

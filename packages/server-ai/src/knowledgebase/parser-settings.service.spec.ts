@@ -1,4 +1,5 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('../../../plugin-sdk/src/lib/ai-model/utils/tokenizer'),
     TextSplitterStrategy: () => () => undefined,
     TextSplitterRegistry: class {},
     DocumentTransformerRegistry: class {}
@@ -13,6 +14,7 @@ import { KnowledgeParserSettingsService } from './parser-settings.service'
 import { RecursiveCharacterStrategy } from './plugins/textsplitter-common/recursive-character.strategy'
 import { MarkdownRecursiveStrategy } from './plugins/textsplitter-common/markdown-recursive.strategy'
 import { ParentChildStrategy } from './plugins/textsplitter-common/parent-child.strategy'
+import { countTokensSafe } from '../../../plugin-sdk/src/lib/ai-model/utils/tokenizer'
 
 const defaults: KnowledgebaseParserConfig = {
     chunkSize: 32,
@@ -38,6 +40,94 @@ function setup() {
 }
 
 describe('KnowledgeParserSettingsService', () => {
+    it('retains character limits and existing overlap with the additional token cap, and preserves disabled output', async () => {
+        const { service } = setup()
+        const parserConfig = { ...defaults, chunkSize: 12, chunkOverlap: 3, separators: [] }
+        const input = {
+            type: 'txt' as const,
+            text: 'a simple long English sentence that spans multiple chunks',
+            parserConfig
+        }
+        const original = await service.preview(input)
+        const disabled = await service.preview({ ...input, parserConfig: { ...parserConfig, maxChunkTokens: 0 } })
+        const looseCap = await service.preview({ ...input, parserConfig: { ...parserConfig, maxChunkTokens: 8192 } })
+        const content = (result: typeof original) => result.chunks.map((chunk) => chunk.pageContent)
+        expect(content(disabled)).toEqual(content(original))
+        expect(content(looseCap)).toEqual(content(original))
+        const tightCap = await service.preview({ ...input, parserConfig: { ...parserConfig, maxChunkTokens: 2 } })
+        for (const chunk of tightCap.chunks) {
+            expect(chunk.pageContent.length).toBeLessThanOrEqual(12)
+            expect(chunk.metadata.tokens).toBeLessThanOrEqual(2)
+        }
+    })
+
+    it.each(['recursive-character', 'markdown-recursive', 'parent-child'])(
+        'enforces the token budget in both preview and ingestion for %s',
+        async (textSplitterType) => {
+            const { service, splitters } = setup()
+            const parserConfig = {
+                ...defaults,
+                chunkSize: 1000,
+                maxChunkTokens: 16,
+                textSplitterType,
+                textSplitter: { parent: { mode: 'full' }, child: { maxChars: 1000 } }
+            }
+            const text = '# Header\n\n' + '中文检索 mixed English 🧑🏽‍💻，这是完整的测试文本。'.repeat(12)
+            const preview = await service.preview({ type: 'md', text, parserConfig })
+            const formal = await splitKnowledgeDocuments(
+                splitters,
+                { type: 'md', parserConfig: resolveKnowledgeDocumentParserConfig({ type: 'md' }, parserConfig) },
+                [
+                    new Document({
+                        pageContent: text,
+                        metadata: { documentId: 'doc', chunkId: 'source', contentFormat: 'markdown' }
+                    })
+                ]
+            )
+            const leaves = formal.chunks.filter((chunk) => chunk.metadata.type !== 'parent')
+            expect(leaves.length).toBeGreaterThan(1)
+            for (const chunk of leaves) {
+                expect(countTokensSafe(chunk.pageContent)).toBeLessThanOrEqual(16)
+                expect(chunk.pageContent).not.toMatch(
+                    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u
+                )
+            }
+            const shape = (chunks: typeof preview.chunks) =>
+                chunks.map((chunk) => ({
+                    text: chunk.pageContent,
+                    children: chunk.metadata.children?.map((child) => child.pageContent)
+                }))
+            expect(shape(preview.chunks)).toEqual(shape(buildChunkTree(formal.chunks)))
+            if (textSplitterType === 'parent-child') {
+                const parent = formal.chunks.find((chunk) => chunk.metadata.type === 'parent')
+                expect(parent.pageContent).toBe(text)
+                expect(leaves.every((chunk) => chunk.metadata.parentId === parent.metadata.chunkId)).toBe(true)
+                for (const child of leaves) {
+                    expect(parent.pageContent.slice(child.metadata.startOffset, child.metadata.endOffset)).toBe(
+                        child.pageContent
+                    )
+                }
+            }
+        }
+    )
+
+    it.each([-1, 1.5, 8193, NaN, Infinity, null, '32'])(
+        'rejects invalid token caps (%p) for saving, preview and document processing',
+        async (value) => {
+            const { service, splitters } = setup()
+            const parserConfig = { ...defaults, maxChunkTokens: value } as KnowledgebaseParserConfig
+            await expect(service.validateSettings(parserConfig)).rejects.toThrow()
+            await expect(service.preview({ type: 'txt', text: 'test', parserConfig })).rejects.toThrow()
+            await expect(
+                splitKnowledgeDocuments(
+                    splitters,
+                    { type: 'txt', parserConfig: resolveKnowledgeDocumentParserConfig({ type: 'txt' }, parserConfig) },
+                    [new Document({ pageContent: 'test' })]
+                )
+            ).rejects.toThrow()
+        }
+    )
+
     it.each(['recursive-character', 'markdown-recursive', 'parent-child'])(
         'previews %s with the same configuration and splitter as ingestion',
         async (textSplitterType) => {

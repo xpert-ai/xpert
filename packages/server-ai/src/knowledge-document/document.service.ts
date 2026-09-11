@@ -1,3 +1,5 @@
+import { questionVectorIds } from './questions/question-vectors'
+import { questionSourceHash } from './questions/question-generation'
 import { KnowledgeParserSettingsService } from '../knowledgebase/parser-settings.service'
 import fsPromises from 'node:fs/promises'
 import path from 'node:path'
@@ -1574,7 +1576,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 total: pageTotal
             }
         } else {
-            const result = await vectorStore.getChunks(id, params)
+            let sourceChunkIds: string[] | undefined
+            if (vectorStore.vectorStoreType === VectorTypeEnum.MILVUS) {
+                const { items: sources } = await this.chunkService.findAll({
+                    where: { documentId: id },
+                    select: { id: true }
+                })
+                sourceChunkIds = sources.map((chunk) => chunk.id)
+            }
+            const result = await vectorStore.getChunks(id, { ...params, sourceChunkIds })
             const items = await this.attachStoredChunkState(
                 result.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
             )
@@ -1649,6 +1659,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         const metadata = {
             ...(entity.metadata ?? {})
         } as TDocChunkMetadata
+        delete metadata.questionGeneration
+        delete metadata.questionGenerationId
+        delete metadata.questionSourceChunkId
+        delete metadata.generatedQuestionId
         validateMetadataAgainstSchema(metadata, document.knowledgebase?.metadataSchema, 'chunk')
         const contentHash = computeKnowledgeDocumentChunkHash({
             pageContent: entity.pageContent,
@@ -1683,6 +1697,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
             const result = await this.chunkService.updateChunk(id, chunk)
             if (requiresChunkReembedding(entity)) {
+                if (questionSourceHash(current) !== questionSourceHash(chunk)) {
+                    await vectorStore.deleteChunks(questionVectorIds([current]))
+                }
                 await vectorStore.updateChunk(
                     id,
                     {
@@ -1711,6 +1728,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
         const result = await this.chunkService.updateWithVersion(id, chunk, expectedVersion)
         if (requiresChunkReembedding(entity)) {
+            if (questionSourceHash(current) !== questionSourceHash(chunk)) {
+                await vectorStore.deleteChunks(questionVectorIds([current]))
+            }
             await vectorStore.updateChunk(
                 id,
                 {
@@ -1736,10 +1756,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      */
     async deleteChunk(documentId: string, id: string) {
         const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-        await this.assertChunkBelongsToDocument(documentId, id)
+        const current = await this.assertChunkBelongsToDocument(documentId, id)
         // Delete entity
         await this.chunkService.delete(id)
         // Delete vector
+        await vectorStore.deleteChunks(questionVectorIds([current]))
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
         await this.publishChunkMutation(document)
@@ -1748,8 +1769,9 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async deleteChunkWithVersion(documentId: string, id: string, expectedVersion?: number) {
         assertExpectedVersion(expectedVersion)
         const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-        await this.assertChunkBelongsToDocument(documentId, id)
+        const current = await this.assertChunkBelongsToDocument(documentId, id)
         await this.chunkService.deleteWithVersion(id, expectedVersion)
+        await vectorStore.deleteChunks(questionVectorIds([current]))
         await vectorStore.deleteChunk(id)
         await this.refreshDocumentContentHash(documentId)
         await this.publishChunkMutation(document)
@@ -1773,6 +1795,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             ...(stored.metadata ?? {}),
             ...(entity.metadata ?? {})
         } as TDocChunkMetadata
+        metadata.questionGeneration = stored.metadata?.questionGeneration
+        delete metadata.questionGenerationId
+        delete metadata.questionSourceChunkId
+        delete metadata.generatedQuestionId
         const pageContent = entity.pageContent ?? stored.pageContent
         const merged = {
             ...stored,
@@ -1895,7 +1921,20 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         ) as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
         const removedIds = removedChunks.map((chunk) => chunk.id).filter((id): id is string => !!id)
 
-        await vectorStore.deleteChunks([...removedIds, ...changedIds])
+        await vectorStore.deleteChunks([
+            ...removedIds,
+            ...changedIds,
+            ...questionVectorIds([
+                ...removedChunks,
+                ...matches
+                    .filter(
+                        (match) =>
+                            match.operation === 'changed' &&
+                            questionSourceHash(match.previous) !== questionSourceHash(match.chunk)
+                    )
+                    .map((match) => match.previous)
+            ])
+        ])
 
         const savedChunks = (await this.chunkService.upsertBulk(
             chunksToPersist
@@ -1945,6 +1984,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 chunkId: chunk.metadata?.chunkId || chunk.id || `chunk-${index}`,
                 chunkIndex: getFiniteNumber(chunk.metadata?.chunkIndex) ?? index
             } as TDocChunkMetadata
+            delete metadata.questionGeneration
+            delete metadata.questionGenerationId
+            delete metadata.questionSourceChunkId
+            delete metadata.generatedQuestionId
             const prepared = {
                 ...chunk,
                 metadata
@@ -2087,7 +2130,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             id: existing.id,
             metadata: {
                 ...incomingMetadata,
-                chunkId: existingLogicalId ?? incomingMetadata.chunkId
+                chunkId: existingLogicalId ?? incomingMetadata.chunkId,
+                questionGeneration: existing.metadata?.questionGeneration
             },
             parent: existing.parent
         }
@@ -2137,6 +2181,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             const current = currentById.get(chunk.id)
             if (!current) throw new NotFoundException(`Knowledge chunk '${chunk.id}' was not found.`)
             const metadata = { ...(current.metadata ?? {}), ...(chunk.metadata ?? {}) } as TDocChunkMetadata
+            metadata.questionGeneration = current.metadata?.questionGeneration
+            delete metadata.questionGenerationId
+            delete metadata.questionSourceChunkId
+            delete metadata.generatedQuestionId
             const document = documentById.get(current.documentId)
             validateMetadataAgainstSchema(metadata, document?.knowledgebase?.metadataSchema, 'chunk')
             return { ...current, metadata }
