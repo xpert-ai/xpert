@@ -21,7 +21,12 @@ import { XpTreeSelectComponent } from '@cloud/app/@shared/form-fields/tree-selec
 import { KnowledgeDocumentCreateSettingsComponent } from '../create/settings/settings.component'
 import { createKnowledgeProcessingForm, KnowledgeProcessingSection } from '../../../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../../../processing/processing-settings.component'
-import { buildImportDocuments, ImportParserConfig, ImportSettingsSection } from './import-model'
+import {
+  buildImportDocuments,
+  ImportParserConfig,
+  ImportSettingsSection,
+  mergeSheetProcessingConfig
+} from './import-model'
 import { buildImportFolderTree, IMPORT_ROOT_FOLDER } from './import-folder-tree'
 import { documentFileType } from '../../../processing/document-file-types'
 import { documentProcessingDraft, editedDocumentParserConfig } from './document-edit-config'
@@ -90,9 +95,7 @@ export class DocumentImportDialogComponent {
     this.editing ? cloneDeep(this.data.editDocument.parserConfig ?? {}) : {}
   )
   readonly activeParserConfig = computed(() =>
-    this.onlySheet()
-      ? { ...this.sheetParserConfig(), questionGeneration: this.parserConfig().questionGeneration }
-      : this.parserConfig()
+    this.onlySheet() ? mergeSheetProcessingConfig(this.sheetParserConfig(), this.parserConfig()) : this.parserConfig()
   )
   readonly section = signal('parser')
   readonly settingsSection = computed<ImportSettingsSection>(() =>
@@ -147,7 +150,12 @@ export class DocumentImportDialogComponent {
     if (!this.documents().length) return null
     if (this.onlySheet()) {
       const error = this.settings()?.configurationError()
-      return this.processing.validateQuestions()?.key || (error ? this.prefix + '.' + error : null)
+      const sharedError = this.processing.validate({ checkPdfParser: false })
+      return (
+        this.processing.strategiesError() ||
+        (sharedError?.section === 'chunk' || sharedError?.section === 'questions' ? sharedError.key : null) ||
+        (error ? this.prefix + '.' + error : null)
+      )
     }
     return (
       this.processing.strategiesError() ||

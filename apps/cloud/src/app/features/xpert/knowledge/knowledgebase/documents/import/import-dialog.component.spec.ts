@@ -3,8 +3,11 @@ jest.mock('../create/settings/settings.component', () => ({ KnowledgeDocumentCre
 jest.mock('../pipeline/settings/settings.component', () => ({ KnowledgeDocumentPipelineSettingsComponent: class {} }))
 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { NO_ERRORS_SCHEMA } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { TranslateService } from '@ngx-translate/core'
+import { FormsModule } from '@angular/forms'
+import { By } from '@angular/platform-browser'
+import { TranslateModule } from '@ngx-translate/core'
 import { of, Subject, throwError } from 'rxjs'
 import {
   IKnowledgeDocument,
@@ -20,7 +23,8 @@ describe('DocumentImportDialogComponent', () => {
   async function setup(
     graphEnabled = false,
     editDocument?: IKnowledgeDocument,
-    structure = KnowledgeStructureEnum.General
+    structure = KnowledgeStructureEnum.General,
+    renderTemplate = false
   ) {
     const knowledgebase = {
       id: 'kb',
@@ -46,12 +50,15 @@ describe('DocumentImportDialogComponent', () => {
       getTextSplitterStrategies: () =>
         of([
           { name: 'recursive-character', structure: KnowledgeStructureEnum.General },
+          { name: 'auto', structure: KnowledgeStructureEnum.General },
+          { name: 'structure-aware', structure: KnowledgeStructureEnum.General },
           { name: 'parent-child', structure: KnowledgeStructureEnum.ParentChild }
         ]),
       getDocumentTransformerStrategies: () => of([]),
       createTask: jest.fn(() => of({}))
     }
     TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot()],
       providers: [
         {
           provide: DIALOG_DATA,
@@ -65,14 +72,17 @@ describe('DocumentImportDialogComponent', () => {
         },
         { provide: DialogRef, useValue: ref },
         { provide: KnowledgeDocumentService, useValue: api },
-        { provide: TranslateService, useValue: { instant: (key: string) => key } },
         {
           provide: KnowledgebaseService,
           useValue: kbAPI
         }
       ]
     })
-    TestBed.overrideComponent(DocumentImportDialogComponent, { set: { template: '', imports: [] } })
+    TestBed.overrideComponent(DocumentImportDialogComponent, {
+      set: renderTemplate
+        ? { imports: [FormsModule, TranslateModule], schemas: [NO_ERRORS_SCHEMA] }
+        : { template: '', imports: [] }
+    })
     const fixture = TestBed.createComponent(DocumentImportDialogComponent)
     fixture.detectChanges()
     await fixture.whenStable()
@@ -285,16 +295,125 @@ describe('DocumentImportDialogComponent', () => {
     expect(component.chunkSize()).toBe(800)
   })
 
-  it('keeps spreadsheet and text batch settings separate when sources change', async () => {
+  it('shares chunk settings while preserving spreadsheet parser settings when sources change', async () => {
     const { component } = await setup()
     component.processing.chunkSize.set(800)
     component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Sheet, type: 'xlsx' }])
-    expect(component.activeParserConfig()).toEqual({})
+    expect(component.activeParserConfig()).toMatchObject({ chunkSize: 800 })
     component.sheetParserConfig.set({ spreadsheet: { interpretation: 'form_document' } })
     component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Text, type: 'txt' }])
     expect(component.activeParserConfig()).toMatchObject({ chunkSize: 800 })
+    expect(component.activeParserConfig().spreadsheet).toBeUndefined()
     component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Sheet, type: 'xlsx' }])
-    expect(component.activeParserConfig()).toEqual({ spreadsheet: { interpretation: 'form_document' } })
+    expect(component.activeParserConfig()).toMatchObject({
+      chunkSize: 800,
+      spreadsheet: { interpretation: 'form_document' }
+    })
+  })
+
+  it('renders the shared chunk form for spreadsheets and keeps the parser settings on their existing page', async () => {
+    const { component, fixture } = await setup(
+      false,
+      { id: 'sheet', type: 'xlsx', category: KBDocumentCategoryEnum.Sheet, version: 1 } as IKnowledgeDocument,
+      KnowledgeStructureEnum.General,
+      true
+    )
+    const legacy = fixture.debugElement.query(By.css('xp-knowledge-document-create-settings'))
+    expect(legacy.properties['hidden']).toBe(false)
+    component.section.set('chunks')
+    fixture.detectChanges()
+    const shared = fixture.debugElement.query(By.css('xp-knowledge-processing-settings'))
+    expect(shared).not.toBeNull()
+    expect(shared.properties['section']).toBe('chunk')
+    expect(shared.properties['form']).toBe(component.processing)
+    expect(legacy.properties['hidden']).toBe(true)
+    component.section.set('parser')
+    fixture.detectChanges()
+    expect(legacy.properties['hidden']).toBe(false)
+    expect(fixture.debugElement.query(By.css('xp-knowledge-processing-settings'))).toBeNull()
+  })
+
+  it('saves shared chunk settings for a sheet import alongside existing spreadsheet and image settings', async () => {
+    const { component, api, knowledgebase } = await setup()
+    component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Sheet, type: 'xlsx' }])
+    component.sheetParserConfig.set({
+      spreadsheet: { interpretation: 'records', includeSheets: ['Orders'] },
+      indexedFields: ['sku'],
+      imageUnderstandingEnabled: true
+    })
+    component.processing.selectChunkStrategy('auto')
+    component.processing.chunkSize.set(800)
+    component.processing.chunkOverlap.set(40)
+    component.processing.maxChunkTokensControl.setValue(256)
+    await component.submit()
+    expect(api.createBulk).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          parserConfig: expect.objectContaining({
+            textSplitterType: 'auto',
+            textSplitter: { chunkSize: 800, chunkOverlap: 40 },
+            chunkSize: 800,
+            chunkOverlap: 40,
+            maxChunkTokens: 256,
+            spreadsheet: { interpretation: 'records', includeSheets: ['Orders'] },
+            indexedFields: ['sku'],
+            imageUnderstandingEnabled: true
+          })
+        })
+      ],
+      true
+    )
+    expect(knowledgebase.parserConfig.chunkSize).toBe(512)
+  })
+
+  it('saves and restores shared sheet chunk settings when editing an existing document', async () => {
+    const document = {
+      id: 'sheet',
+      type: 'xlsx',
+      category: KBDocumentCategoryEnum.Sheet,
+      version: 1,
+      parserConfig: {
+        textSplitterType: 'auto',
+        textSplitter: { chunkSize: 900, chunkOverlap: 50 },
+        indexedFields: ['sku'],
+        spreadsheet: { interpretation: 'records' }
+      }
+    } as IKnowledgeDocument
+    const { component, api } = await setup(false, document)
+    expect(component.processing.chunkSize()).toBe(900)
+    component.processing.selectChunkStrategy('structure-aware')
+    component.processing.chunkSize.set(700)
+    component.processing.maxChunkTokensControl.setValue(128)
+    await component.saveAndProcess('full')
+    const saved = api.updateBulk.mock.calls[0][0][0].parserConfig
+    expect(saved).toMatchObject({
+      textSplitterType: 'structure-aware',
+      chunkSize: 700,
+      maxChunkTokens: 128,
+      textSplitter: { chunkSize: 700, chunkOverlap: 50 },
+      indexedFields: ['sku'],
+      spreadsheet: { interpretation: 'records' }
+    })
+    expect(api.startParsing).toHaveBeenCalledWith('sheet', 'full')
+    TestBed.resetTestingModule()
+    const reopened = await setup(false, { ...document, parserConfig: saved })
+    expect(reopened.component.processing.chunkStrategy()).toBe('structure-aware')
+    expect(reopened.component.processing.chunkSize()).toBe(700)
+    expect(reopened.component.processing.maxChunkTokens()).toBe(128)
+  })
+
+  it('blocks invalid shared chunk parameters for sheets before submitting', async () => {
+    const { component, api } = await setup()
+    component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Sheet, type: 'xlsx' }])
+    component.processing.maxChunkTokensControl.setValue(-1)
+    expect(component.configurationError()).toContain('InvalidTokenLimit')
+    await component.submit()
+    expect(api.createBulk).not.toHaveBeenCalled()
+    component.processing.maxChunkTokensControl.setValue(0)
+    component.processing.chunkOverlap.set(512)
+    expect(component.configurationError()).toContain('InvalidLimits')
+    component.processing.chunkOverlap.set(80)
+    expect(component.ready()).toBe(true)
   })
 
   it('prevents duplicate submit while a request is pending', async () => {
