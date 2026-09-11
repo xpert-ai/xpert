@@ -68,7 +68,7 @@ export function limitChunkTokens(
     })
 }
 
-function splitTextByTokens(text: string, budget: number) {
+export function splitTextByTokens(text: string, budget: number) {
     const boundaries = textTokenBoundaries(text)
     const parts: { start: number; end: number; tokens: number }[] = []
     let start = 0

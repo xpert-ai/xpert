@@ -162,15 +162,30 @@
           </p>
         }
         <p class="mt-1 text-xs leading-5 text-text-tertiary">{{ defaultsHint() | translate }}</p>
+        @if (form().splitterProvider()?.chunkingCapabilities) {
+          <p class="mt-2 text-sm text-text-secondary">{{ form().splitterProvider()?.description | i18n }}</p>
+        }
         @if (!form().parentChildChunkingEnabled()) {
           <div class="grid grid-cols-1 gap-6 border-b border-divider-subtle py-7 @min-[32rem]:grid-cols-2">
             <div class="min-w-0 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
               <div class="text-lg font-semibold leading-7 text-text-primary">
-                {{ i18nPrefix + '.Chunk.Size' | translate }}
+                {{
+                  (form().chunkSizeMeaning() === 'maximum'
+                    ? i18nPrefix + '.Chunk.Size'
+                    : 'XP.Knowledgebase.Chunking.TargetSize'
+                  ) | translate
+                }}
               </div>
               <p>
-                {{ i18nPrefix + '.Chunk.SizeDescription' | translate }}<br />
-                {{ i18nPrefix + '.Chunk.SizeRecommendation' | translate }}
+                @if (form().chunkSizeMeaning() === 'maximum') {
+                  {{ i18nPrefix + '.Chunk.SizeDescription' | translate }}<br />
+                  {{ i18nPrefix + '.Chunk.SizeRecommendation' | translate }}
+                } @else {
+                  {{
+                    'XP.Knowledgebase.Chunking.' +
+                      (form().chunkSizeMeaning() === 'target' ? 'TargetHelp' : 'AutoSizeHelp') | translate
+                  }}
+                }
               </p>
             </div>
             <div
@@ -198,7 +213,14 @@
               <div class="text-lg font-semibold leading-7 text-text-primary">
                 {{ i18nPrefix + '.Chunk.Overlap' | translate }}
               </div>
-              <p>{{ i18nPrefix + '.Chunk.OverlapDescription' | translate }}</p>
+              <p>
+                {{
+                  (form().chunkSizeMeaning() === 'maximum'
+                    ? i18nPrefix + '.Chunk.OverlapDescription'
+                    : 'XP.Knowledgebase.Chunking.OverlapHelp'
+                  ) | translate
+                }}
+              </p>
             </div>
             <div
               class="relative flex min-w-0 w-full flex-col items-end gap-1 [&_strong]:text-lg [&_strong]:font-semibold [&_strong]:text-text-primary"
@@ -220,7 +242,7 @@
             </div>
           </div>
 
-          @if (form().chunkStrategy() === 'recursive-character') {
+          @if (form().supportsSeparators()) {
             <div class="space-y-4 pt-7">
               <div class="min-w-0 [&_p]:mt-1 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-text-tertiary">
                 <div class="text-lg font-semibold leading-7 text-text-primary">

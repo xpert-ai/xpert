@@ -57,6 +57,12 @@ export interface IDocumentProcessorProvider extends IDocumentNodeProvider {
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IDocumentChunkerProvider extends IDocumentNodeProvider {
   structure?: KnowledgeStructureEnum
+  /** Optional capabilities; absence keeps the legacy provider form and execution behavior. */
+  chunkingCapabilities?: {
+    size: 'target' | 'strategy-dependent' | 'maximum'
+    separators: boolean
+    tokenBudget: boolean
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

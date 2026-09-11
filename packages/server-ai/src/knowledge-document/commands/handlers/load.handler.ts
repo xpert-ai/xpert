@@ -1,4 +1,5 @@
 import { splitKnowledgeDocuments } from '../../split-documents'
+import { knowledgeChunkingRevision } from '../../chunking-revision'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     DocumentSheetParserConfig,
@@ -216,6 +217,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             for await (const transItem of transformed) {
                 // Chunker with caching
                 const chunkerCacheConfig = {
+                    ...(knowledgeChunkingRevision(docParserConfig.textSplitterType)
+                        ? { chunkingRevision: knowledgeChunkingRevision(docParserConfig.textSplitterType) }
+                        : {}),
                     document: transItem,
                     parserConfig: pick(docParserConfig, [
                         'textSplitterType',

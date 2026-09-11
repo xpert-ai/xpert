@@ -1,6 +1,7 @@
 import type { DocumentTextParserConfig } from './knowledge-doc.model'
 import type { KnowledgebaseParserConfig } from './knowledgebase.model'
 import type { IKnowledgeDocumentChunk, IDocChunkMetadata } from './knowledge-doc-chunk.model'
+import type { KnowledgeChunkingDecision } from './knowledge-chunking.model'
 
 export interface KnowledgeChunkPreviewInput {
   text: string
@@ -10,6 +11,7 @@ export interface KnowledgeChunkPreviewInput {
 
 export interface KnowledgeChunkPreviewResult {
   chunks: IKnowledgeDocumentChunk<IDocChunkMetadata>[]
+  decisions?: KnowledgeChunkingDecision[]
 }
 
 /** Only copy configured defaults; do not turn built-in defaults into document overrides. */

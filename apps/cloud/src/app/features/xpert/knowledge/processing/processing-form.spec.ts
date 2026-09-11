@@ -8,6 +8,7 @@ import { createKnowledgeProcessingForm, KnowledgeProcessingFormOptions } from '.
 describe('shared knowledge processing draft', () => {
   function setup(options: KnowledgeProcessingFormOptions = {}) {
     const splitters = new BehaviorSubject([
+      { name: 'auto', structure: KnowledgeStructureEnum.General },
       { name: 'recursive-character', structure: KnowledgeStructureEnum.General },
       { name: 'parent-child', structure: KnowledgeStructureEnum.ParentChild }
     ])
@@ -30,6 +31,62 @@ describe('shared knowledge processing draft', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('defaults to auto, preserves explicit strategies and restores auto after leaving parent-child mode', () => {
+    const { form } = setup()
+    expect(form.config().textSplitterType).toBe('auto')
+    form.toggleParentChild(true)
+    expect(form.config().textSplitterType).toBe('parent-child')
+    form.toggleParentChild(false)
+    expect(form.config().textSplitterType).toBe('auto')
+    for (const textSplitterType of ['recursive-character', 'markdown-recursive', 'structure-aware', 'parent-child']) {
+      const saved = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: { textSplitterType } }))
+      expect(saved.config().textSplitterType).toBe(textSplitterType)
+    }
+    const parentChild = TestBed.runInInjectionContext(() =>
+      createKnowledgeProcessingForm({ structure: KnowledgeStructureEnum.ParentChild })
+    )
+    expect(parentChild.config().textSplitterType).toBe('parent-child')
+  })
+
+  it('round-trips new strategies, exposes their capabilities and keeps the token cap in the common form', () => {
+    const { form } = setup({ config: { maxChunkTokens: 64 } })
+    form.splitterProviders.set(
+      ['auto', 'structure-aware'].map((name) => ({
+        name,
+        label: { en_US: name },
+        structure: KnowledgeStructureEnum.General,
+        chunkingCapabilities: {
+          size: name === 'auto' ? 'strategy-dependent' : 'target',
+          separators: true,
+          tokenBudget: true
+        },
+        configSchema: {
+          type: 'object',
+          properties: {
+            chunkSize: { type: 'number' },
+            maxChunkTokens: { type: 'number' },
+            separators: { type: 'array' }
+          }
+        }
+      }))
+    )
+    for (const strategy of ['auto', 'structure-aware']) {
+      form.selectChunkStrategy(strategy)
+      form.splitterOptions.set({ maxChunkTokens: 1 })
+      expect(form.supportsSeparators()).toBe(true)
+      expect(form.chunkSizeMeaning()).toBe(strategy === 'auto' ? 'strategy-dependent' : 'target')
+      expect(form.splitterSchema()).toBeNull()
+      const config = form.config()
+      expect(config.maxChunkTokens).toBe(64)
+      expect(config.textSplitter.maxChunkTokens).toBeUndefined()
+      const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config }))
+      expect(reopened.config().textSplitterType).toBe(strategy)
+      expect(reopened.config().maxChunkTokens).toBe(64)
+    }
+    form.selectChunkStrategy('recursive-character')
+    expect(form.chunkSizeMeaning()).toBe('maximum')
+  })
 
   it('omits inactive invalid question fields from the saved config and retains the draft on re-enable', () => {
     const { form } = setup()
@@ -164,7 +221,7 @@ describe('shared knowledge processing draft', () => {
   })
 
   it('omits an empty extra schema while retaining plugin-specific fields', () => {
-    const { form } = setup()
+    const { form } = setup({ config: { textSplitterType: 'recursive-character' } })
     form.splitterProviders.set([
       {
         name: 'recursive-character',

@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { Document } from '@langchain/core/documents'
 import {
     buildChunkTree,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentParserConfig,
     KnowledgebaseParserConfig,
     KnowledgeChunkPreviewInput,
@@ -60,7 +61,7 @@ export class KnowledgeParserSettingsService {
     async validateSplitter(config: DocumentParserConfig): Promise<KnowledgeStructureEnum> {
         validateMaxChunkTokens(config.maxChunkTokens)
         validateQuestionGeneration(config.questionGeneration)
-        const name = config.textSplitterType || 'recursive-character'
+        const name = config.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER
         const splitter = this.splitters.get(name)
         if (!splitter) throw invalidKnowledgeParserConfig(name)
         await splitter.validateConfig(config.textSplitter ?? {})
@@ -85,10 +86,10 @@ export class KnowledgeParserSettingsService {
                 metadata: {
                     documentId: 'preview',
                     chunkId: 'preview-source',
-                    ...(input.type === 'md' ? { contentFormat: 'markdown' } : {})
+                    contentFormat: input.type === 'md' ? 'markdown' : 'text'
                 }
             })
         ])
-        return { chunks: buildChunkTree(result.chunks) }
+        return { chunks: buildChunkTree(result.chunks), ...(result.decisions ? { decisions: result.decisions } : {}) }
     }
 }

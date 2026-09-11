@@ -1,4 +1,5 @@
 import type { KnowledgeChunkQuestions } from './knowledge-question.model'
+import type { KnowledgeChunkingMetadata } from './knowledge-chunking.model'
 import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
@@ -57,6 +58,8 @@ export type DocumentLayoutMetadata = {
   blockId: string
   order: number
   type: DocumentAnalysisBlockType
+  /** Explicit semantic heading level, when the converter provides it. */
+  headingLevel?: number
   providerType?: string
   providerSubType?: string
   bounds?: DocumentAnalysisBounds
@@ -170,6 +173,10 @@ export type KnowledgeDocumentAnalysisPreview =
 
 export interface IDocChunkMetadata {
   chunkId: string
+  documentId?: string
+  chunking?: KnowledgeChunkingMetadata
+  /** Preprocessing or a legacy splitter cannot provide exact offsets into the saved converter output. */
+  sourceMapping?: 'coarse'
   /** Optional text used only for embedding; pageContent remains the source evidence. */
   searchContent?: string
   parentId?: string | null

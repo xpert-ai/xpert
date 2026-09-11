@@ -768,6 +768,37 @@
         "Retry": "Retry preview",
         "Failed": "The preview failed. Try again or check the pipeline."
       },
+      "Chunking": {
+        "TargetSize": "Target chunk size (characters)",
+        "TargetHelp": "Combine short paragraphs up to this target. A complete structure may exceed it when it fits the token ceiling.",
+        "AutoSizeHelp": "Structure-aware splitting treats this as a target; existing heading and length strategies keep their own size rules. Preview shows the selected strategy.",
+        "OverlapHelp": "Structure-aware splitting overlaps only text continuation fragments when the budget allows. Complete tables, lists and code blocks are not duplicated. Other strategies keep their existing overlap rules.",
+        "AppliedStrategy": "Applied strategy",
+        "RequestedStrategy": "Selected strategy",
+        "Continuation": "Continuation fragment",
+        "StructureCounts": "{{tables}} tables · {{lists}} lists · {{code}} code blocks",
+        "Strategies": {
+          "auto": "Automatic",
+          "structure-aware": "Structure-aware",
+          "markdown-recursive": "Split by heading",
+          "recursive-character": "Split by length"
+        },
+        "Reasons": {
+          "structured-blocks": "Structured blocks were detected.",
+          "markdown-headings": "Headings supported by the Markdown splitter were detected.",
+          "layout-headings": "Heading boundaries require structural splitting.",
+          "plain-text": "No applicable structure was found; using the existing length splitter.",
+          "missing-structure": "Structure-aware splitting is unavailable for this content; using the existing length splitter.",
+          "explicit-structure": "Using the selected structure-aware strategy."
+        },
+        "Warnings": {
+          "structure-split": "An oversized structure was split into continuation fragments.",
+          "context-reduced": "Repeated context was reduced to satisfy the token ceiling.",
+          "coarse-provenance": "Only coarse source locations are available for some content.",
+          "unsupported-structure": "Some structures are retained as text because their internal boundaries are unavailable.",
+          "missing-format": "The converter did not declare a content format. This fragment is treated as plain text."
+        }
+      },
       "SharedProcessing": {
         "ParentChild": {
           "ParentTitle": "Parent chunks · Context",

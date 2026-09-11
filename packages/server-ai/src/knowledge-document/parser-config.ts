@@ -1,5 +1,6 @@
 import {
     classificateDocumentCategory,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentParserConfig,
     DocumentSheetParserConfig,
     DocumentTextParserConfig,
@@ -20,12 +21,17 @@ const DEFAULT_RECURSIVE_TEXT_SPLITTER = {
     }
 } satisfies DocumentParserConfig
 
+const DEFAULT_TEXT_SPLITTER = {
+    ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    textSplitterType: DEFAULT_KNOWLEDGE_TEXT_SPLITTER
+} satisfies DocumentParserConfig
+
 const DEFAULT_IMAGE_UNDERSTANDING_CONFIG = {
     imageUnderstandingType: 'vlm-default'
 } satisfies DocumentParserConfig
 
 const DEFAULT_PDF_VISUAL_PARSER_CONFIG = {
-    ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    ...DEFAULT_TEXT_SPLITTER,
     ...DEFAULT_IMAGE_UNDERSTANDING_CONFIG,
     transformerType: 'pdf-visual',
     transformer: {
@@ -36,7 +42,7 @@ const DEFAULT_PDF_VISUAL_PARSER_CONFIG = {
 } satisfies DocumentParserConfig
 
 const DEFAULT_TEXT_DOCUMENT_PARSER_CONFIG = {
-    ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    ...DEFAULT_TEXT_SPLITTER,
     transformerType: 'default'
 } satisfies DocumentParserConfig
 
@@ -188,7 +194,9 @@ function mergeParserConfig(
         ...defaults,
         ...explicit,
         textSplitter: splitterChanged
-            ? explicit.textSplitter
+            ? explicit.textSplitterType === 'recursive-character'
+                ? mergeOptions(DEFAULT_RECURSIVE_TEXT_SPLITTER.textSplitter, explicit.textSplitter)
+                : explicit.textSplitter
             : mergeOptions(defaults.textSplitter, explicit.textSplitter),
         transformer: transformerChanged
             ? explicit.transformer

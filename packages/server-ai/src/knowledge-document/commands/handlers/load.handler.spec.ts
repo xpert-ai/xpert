@@ -219,7 +219,7 @@ describe('KnowledgeDocLoadHandler', () => {
             chunks
         )
 
-        expect(textSplitterRegistry.get).toHaveBeenCalledWith('recursive-character')
+        expect(textSplitterRegistry.get).toHaveBeenCalledWith('auto')
         expect(splitDocuments).toHaveBeenCalledWith(
             chunks,
             expect.objectContaining({

@@ -8,8 +8,26 @@ import {
     resolveKnowledgeDocumentSourceKey
 } from './document-hash'
 import { TDocChunkMetadata } from './types'
+import * as chunkingRevision from './chunking-revision'
 
 describe('knowledge document hashes', () => {
+    it.each(['auto', 'structure-aware'])('expires %s processing results with stale version diagnostics', (provider) => {
+        const document = {
+            sourceHash: 'source-hash',
+            type: 'md',
+            parserConfig: { textSplitterType: provider }
+        }
+        const current = computeKnowledgeDocumentProcessingHash(document)
+        const revision = jest.spyOn(chunkingRevision, 'knowledgeChunkingRevision').mockReturnValue('structured-2')
+        let previous: string
+        try {
+            previous = computeKnowledgeDocumentProcessingHash(document)
+        } finally {
+            revision.mockRestore()
+        }
+        expect(current).not.toBe(previous)
+    })
+
     it('keeps stable hashes for equivalent object key ordering', () => {
         expect(
             computeStableHash({
@@ -125,6 +143,32 @@ describe('knowledge document hashes', () => {
                 }
             } as IKnowledgeDocument)
         )
+    })
+
+    it('ignores the document diagnostic fingerprint but retains chunk provenance in the hash', () => {
+        const chunk = {
+            pageContent: 'unchanged section',
+            metadata: {
+                chunkId: 'chunk-1',
+                chunking: {
+                    inputHash: 'original-document',
+                    requestedStrategy: 'auto' as const,
+                    resolvedStrategy: 'structure-aware' as const,
+                    reason: 'structured-blocks' as const,
+                    algorithmVersion: 1 as const,
+                    headingPath: ['# Section'],
+                    sourceRanges: [{ sourceIndex: 0, startOffset: 0, endOffset: 17 }],
+                    warnings: []
+                }
+            }
+        }
+        const updated = {
+            ...chunk,
+            metadata: { ...chunk.metadata, chunking: { ...chunk.metadata.chunking, inputHash: 'updated-document' } }
+        }
+        expect(computeKnowledgeDocumentChunkHash(updated)).toBe(computeKnowledgeDocumentChunkHash(chunk))
+        updated.metadata.chunking.sourceRanges = [{ sourceIndex: 0, startOffset: 20, endOffset: 37 }]
+        expect(computeKnowledgeDocumentChunkHash(updated)).not.toBe(computeKnowledgeDocumentChunkHash(chunk))
     })
 
     it('keeps transform fingerprint when only chunker config changes', () => {

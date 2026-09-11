@@ -5,6 +5,7 @@ import { cloneDeep } from 'lodash-es'
 import { firstValueFrom, take } from 'rxjs'
 import {
   decodeKnowledgeSeparators,
+  DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
   getErrorMessage,
   ICopilotModel,
   IDocumentChunkerProvider,
@@ -58,8 +59,13 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     const schema = splitterProvider()?.configSchema
     if (!schema) return null
     const { chunkSize, chunkOverlap, separators, ...properties } = schema.properties ?? {}
+    if (splitterProvider()?.chunkingCapabilities?.tokenBudget) delete properties.maxChunkTokens
     return Object.keys(properties).length ? { ...schema, properties } : null
   })
+  const chunkSizeMeaning = computed(() => splitterProvider()?.chunkingCapabilities?.size ?? 'maximum')
+  const supportsSeparators = computed(
+    () => splitterProvider()?.chunkingCapabilities?.separators ?? chunkStrategy() === 'recursive-character'
+  )
   const chunkSize = signal<number | null>(
     typeof initialConfig?.textSplitter?.chunkSize === 'number'
       ? initialConfig.textSplitter.chunkSize
@@ -73,7 +79,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
   const delimiter = signal<string>(initialConfig?.delimiter ?? '\n\n')
   const chunkStrategy = signal(
     initialConfig?.textSplitterType ??
-      (options.structure === KnowledgeStructureEnum.ParentChild ? 'parent-child' : 'recursive-character')
+      (options.structure === KnowledgeStructureEnum.ParentChild ? 'parent-child' : DEFAULT_KNOWLEDGE_TEXT_SPLITTER)
   )
   const storedSeparators = initialConfig.textSplitter?.separators
   const separators = signal<string[]>(
@@ -153,7 +159,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
 
   function toggleParentChild(enabled: boolean) {
     if (indexStrategyLocked()) return
-    selectChunkStrategy(enabled ? 'parent-child' : 'recursive-character')
+    selectChunkStrategy(enabled ? 'parent-child' : DEFAULT_KNOWLEDGE_TEXT_SPLITTER)
   }
 
   function addSeparator(value: string) {
@@ -177,6 +183,15 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     separators.update((current) => current.filter((separator) => separator !== value))
   }
 
+  const serializedSplitter = computed(() => {
+    const options = parentChildChunkingEnabled()
+      ? { ...splitterOptions(), ...parentChild.config() }
+      : { ...splitterOptions(), chunkSize: chunkSize(), chunkOverlap: chunkOverlap() }
+    if (splitterProvider()?.chunkingCapabilities?.tokenBudget && 'maxChunkTokens' in options) {
+      delete options.maxChunkTokens
+    }
+    return options
+  })
   const config = computed<KnowledgebaseParserConfig>(() => ({
     ...initialConfig,
     chunkSize: chunkSize(),
@@ -204,9 +219,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     delimiter: delimiter() || null,
     separators: [...separators()],
     textSplitterType: chunkStrategy(),
-    textSplitter: parentChildChunkingEnabled()
-      ? { ...splitterOptions(), ...parentChild.config() }
-      : { ...splitterOptions(), chunkSize: chunkSize(), chunkOverlap: chunkOverlap() },
+    textSplitter: serializedSplitter(),
     imageUnderstandingEnabled: imageUnderstandingEnabled(),
     imageUnderstandingType: initialConfig?.imageUnderstandingType,
     imageUnderstanding: {
@@ -291,6 +304,8 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     parentChild,
     splitterOptions,
     splitterSchema,
+    chunkSizeMeaning,
+    supportsSeparators,
     chunkSize,
     chunkOverlap,
     delimiter,

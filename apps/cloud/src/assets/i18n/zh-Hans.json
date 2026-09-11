@@ -6606,6 +6606,37 @@
         "Retry": "重新预览",
         "Failed": "预览失败，请重试或检查流水线。"
       },
+      "Chunking": {
+        "TargetSize": "目标块大小（字符）",
+        "TargetHelp": "组合相邻短段落时参考此大小；完整结构满足 Token 上限时，可以超过目标字符数。",
+        "AutoSizeHelp": "结构感知将此值作为目标大小；现有标题和长度策略保留原大小规则。预览会显示实际采用的策略。",
+        "OverlapHelp": "结构感知仅在预算允许时重叠同一文本单元的续片，不重复完整表格、列表或代码块；其他策略沿用原有重叠规则。",
+        "AppliedStrategy": "实际采用策略",
+        "RequestedStrategy": "选择的策略",
+        "Continuation": "续片",
+        "StructureCounts": "{{tables}} 张表格 · {{lists}} 个列表 · {{code}} 个代码块",
+        "Strategies": {
+          "auto": "自动",
+          "structure-aware": "结构感知",
+          "markdown-recursive": "按标题切分",
+          "recursive-character": "按长度切分"
+        },
+        "Reasons": {
+          "structured-blocks": "检测到需要保留的结构单元。",
+          "markdown-headings": "检测到现有 Markdown 策略支持的标题。",
+          "layout-headings": "标题边界需要使用结构感知处理。",
+          "plain-text": "未检测到适用结构，采用现有长度切分。",
+          "missing-structure": "当前内容缺少可用结构，已回退到现有长度切分。",
+          "explicit-structure": "按选择的结构感知策略处理。"
+        },
+        "Warnings": {
+          "structure-split": "部分结构因超限被拆成续片。",
+          "context-reduced": "为满足 Token 上限，减少了重复携带的上下文。",
+          "coarse-provenance": "部分内容只能提供较粗的来源位置。",
+          "unsupported-structure": "部分结构缺少内部边界信息，已保留为文本。",
+          "missing-format": "转换结果未声明内容格式，此片段按普通文本处理。"
+        }
+      },
       "SharedProcessing": {
         "ParentChild": {
           "ParentTitle": "父块 · 补充上下文",

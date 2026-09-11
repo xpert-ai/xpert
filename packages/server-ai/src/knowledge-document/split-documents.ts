@@ -1,14 +1,19 @@
-import { DocumentTextParserConfig, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import {
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
+    DocumentTextParserConfig,
+    IKnowledgeDocument,
+    IKnowledgeDocumentChunk
+} from '@xpert-ai/contracts'
 import { TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
 import { TDocChunkMetadata } from './types'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import { invalidKnowledgeParserConfig, validateMaxChunkTokens } from './parser-validation'
-import { limitChunkTokens } from './token-limited-chunks'
+import { executeKnowledgeSplitter } from './execute-splitter'
 
 /** Shared by persisted document processing and the read-only settings preview. */
 export async function splitKnowledgeDocuments(
     registry: Pick<TextSplitterRegistry, 'get'>,
-    document: Pick<IKnowledgeDocument, 'type' | 'category' | 'parserConfig'>,
+    document: Pick<IKnowledgeDocument, 'type' | 'category' | 'parserConfig'> & { id?: string },
     chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
     parserConfig?: DocumentTextParserConfig
 ) {
@@ -18,6 +23,14 @@ export async function splitKnowledgeDocuments(
             ? parserConfig?.maxChunkTokens
             : documentParserConfig.maxChunkTokens
     validateMaxChunkTokens(maxChunkTokens)
+    const textSplitterType =
+        documentParserConfig.textSplitterType || parserConfig?.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER
+    const textSplitter = registry.get(textSplitterType)
+    if (!textSplitter) throw invalidKnowledgeParserConfig(textSplitterType)
+    const originalContents = textSplitter.meta?.chunkingCapabilities
+        ? chunks.map((chunk) => chunk.pageContent)
+        : undefined
+    if (originalContents) chunks = chunks.map((chunk) => ({ ...chunk, metadata: { ...chunk.metadata } }))
     // Text Preprocessing
     if (documentParserConfig.replaceWhitespace) {
         chunks.forEach((doc) => {
@@ -55,6 +68,16 @@ export async function splitKnowledgeDocuments(
             doc.pageContent = page
         })
     }
+    if (originalContents) {
+        chunks.forEach((chunk, index) => {
+            if (chunk.pageContent !== originalContents[index]) {
+                delete chunk.metadata.markdownSourceMap
+                delete chunk.metadata.startOffset
+                delete chunk.metadata.endOffset
+                chunk.metadata.sourceMapping = 'coarse'
+            }
+        })
+    }
 
     // Process the document in chunks
     let chunkSize: number, chunkOverlap: number
@@ -69,13 +92,6 @@ export async function splitKnowledgeDocuments(
         chunkOverlap = 100
     }
     const delimiter = documentParserConfig.delimiter || parserConfig?.delimiter
-    const textSplitterType =
-        documentParserConfig.textSplitterType || parserConfig?.textSplitterType || 'recursive-character'
-
-    const textSplitter = registry.get(textSplitterType)
-    if (!textSplitter) {
-        throw invalidKnowledgeParserConfig(textSplitterType)
-    }
     if (textSplitter) {
         const options = {
             chunkSize,
@@ -84,9 +100,14 @@ export async function splitKnowledgeDocuments(
             ...(parserConfig?.textSplitter ?? {}),
             ...(documentParserConfig.textSplitter ?? {})
         }
-        await textSplitter.validateConfig?.(options)
-        const result = await textSplitter.splitDocuments(chunks, options)
-
-        return { ...result, chunks: limitChunkTokens(result.chunks, maxChunkTokens) }
+        // The node schema envelope is only for standalone pipelines; document settings have a public cap.
+        if (textSplitter.meta?.chunkingCapabilities?.tokenBudget && 'maxChunkTokens' in options) {
+            delete options.maxChunkTokens
+        }
+        return executeKnowledgeSplitter(textSplitter, chunks, options, {
+            maxChunkTokens,
+            category: document.category,
+            documentId: document.id
+        })
     }
 }
