@@ -10,7 +10,10 @@ import {
 } from '../../../knowledge-document/parser-validation'
 
 /** Parse JSON/plugin options once at the strategy boundary; downstream code consumes typed fields. */
-export function parseStructuredOptions(value: unknown): Required<KnowledgeStructuredChunkOptions> {
+export function parseStructuredOptions(
+    value: unknown
+): Required<Pick<KnowledgeStructuredChunkOptions, 'chunkSize' | 'chunkOverlap'>> &
+    Pick<KnowledgeStructuredChunkOptions, 'separators'> {
     if (value === undefined) value = {}
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalidKnowledgeParserConfig('textSplitter')
     const chunkSize = 'chunkSize' in value ? value.chunkSize : undefined
@@ -33,19 +36,24 @@ export function parseStructuredOptions(value: unknown): Required<KnowledgeStruct
     return {
         chunkSize: typeof chunkSize === 'number' ? chunkSize : 1000,
         chunkOverlap: typeof chunkOverlap === 'number' ? chunkOverlap : 100,
-        separators: decodeKnowledgeSeparators(
-            typeof separators === 'string'
-                ? separators
-                : Array.isArray(separators) && separators.every((item): item is string => typeof item === 'string')
-                  ? separators
-                  : undefined
-        )
+        separators:
+            separators === undefined
+                ? undefined
+                : decodeKnowledgeSeparators(
+                      typeof separators === 'string'
+                          ? separators
+                          : Array.isArray(separators) &&
+                              separators.every((item): item is string => typeof item === 'string')
+                            ? separators
+                            : undefined
+                  )
     }
 }
 
 export function structuredProvider(name: 'auto' | 'structure-aware'): IDocumentChunkerProvider {
     return {
         name,
+        supportsLanguageHint: true,
         label:
             name === 'auto'
                 ? { en_US: 'Automatic', zh_Hans: '\u81ea\u52a8' }
@@ -91,7 +99,6 @@ export function structuredProvider(name: 'auto' | 'structure-aware'): IDocumentC
                 separators: {
                     type: 'array',
                     items: { type: 'string' },
-                    default: ['\n\n', '\n', ' ', ''],
                     title: {
                         en_US: 'Text fallback separators',
                         zh_Hans: '\u6587\u672c\u56de\u9000\u5206\u9694\u7b26'

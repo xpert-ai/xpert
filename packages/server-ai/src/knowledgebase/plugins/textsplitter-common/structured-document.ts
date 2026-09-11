@@ -87,7 +87,7 @@ export function analyzeStructuredDocuments(documents: DocumentInterface<ChunkMet
     return groups
 }
 
-function parseSource(source: StructuredSource, warnings: KnowledgeChunkingWarning[]): StructuredUnit[] {
+export function parseSource(source: StructuredSource, warnings: KnowledgeChunkingWarning[]): StructuredUnit[] {
     const { pageContent, metadata } = source.document
     if (!pageContent.trim()) return []
     const format = metadata.contentFormat
@@ -172,7 +172,7 @@ function parseLayout(value: unknown): DocumentLayoutMetadata | undefined {
     return value as DocumentLayoutMetadata
 }
 
-function parseMarkdown(source: StructuredSource, warnings: KnowledgeChunkingWarning[]): StructuredUnit[] {
+export function parseMarkdown(source: StructuredSource, warnings: KnowledgeChunkingWarning[]): StructuredUnit[] {
     const text = source.document.pageContent
     // Marked normalizes line endings. Map every normalized boundary back to the original evidence.
     const offsets: number[] = [0]
@@ -286,6 +286,50 @@ function tokenKind(token: Token): KnowledgeChunkBlockType {
         default:
             return 'other'
     }
+}
+
+/** The caller must bound the source before lexing; use the same Markdown grammar as structural routing. */
+export function* naturalLanguageUnits(document: DocumentInterface<ChunkMetadata>): Generator<string> {
+    const layout = parseLayout(document.metadata.documentLayout)
+    if (layout && !['text', 'title'].includes(layout.type)) return
+    yield* naturalTokens(markdown.lexer(document.pageContent))
+}
+
+function* naturalTokens(tokens: Token[]): Generator<string> {
+    let formulaEnd: string | undefined
+    for (const token of tokens) {
+        // An unclosed formula at the sample boundary must not become prose. Inspect prose tokens
+        // only: dollar strings inside a code fence must not hide the natural text after that fence.
+        if (token.type === 'paragraph' || token.type === 'text') {
+            if (formulaEnd) {
+                if (token.raw.includes(formulaEnd)) formulaEnd = undefined
+                continue
+            }
+            const opening = /^\s*(\$\$|\\\[)/.exec(token.raw)
+            if (opening) {
+                const ending = opening[1] === '$$' ? '$$' : '\\]'
+                if (!token.raw.slice(opening[0].length).includes(ending)) formulaEnd = ending
+                continue
+            }
+        }
+        if (formulaEnd) continue
+        if (token.type === 'list') {
+            for (const item of token.items) yield* naturalTokens(item.tokens)
+        } else if (token.type === 'heading' || token.type === 'paragraph' || token.type === 'text') {
+            yield token.tokens ? inlineNaturalText(token.tokens) : token.text
+        }
+    }
+}
+
+function inlineNaturalText(tokens: Token[]): string {
+    return tokens
+        .map((token) => {
+            if (token.type === 'codespan' || token.type === 'image' || token.type === 'html') return ' '
+            if (token.type === 'escape') return token.raw
+            if ('tokens' in token && token.tokens) return inlineNaturalText(token.tokens)
+            return 'text' in token && typeof token.text === 'string' ? token.text : ' '
+        })
+        .join('')
 }
 
 export function lineRanges(unit: Pick<StructuredUnit, 'text' | 'start'>) {

@@ -86,7 +86,11 @@ it('honors explicit pipeline zero over inherited limits and removes the envelope
         { chunkSize: 1000, chunkOverlap: 0, maxChunkTokens: 0 },
         { maxChunkTokens: 8 }
     )
-    expect(spy).toHaveBeenLastCalledWith(expect.any(Array), { chunkSize: 1000, chunkOverlap: 0 }, { maxChunkTokens: 0 })
+    expect(spy).toHaveBeenLastCalledWith(
+        expect.any(Array),
+        { chunkSize: 1000, chunkOverlap: 0 },
+        expect.objectContaining({ maxChunkTokens: 0 })
+    )
     spy.mockRestore()
 })
 

@@ -1,11 +1,17 @@
 import { validateChunkLimits, validateSeparators } from '../../../knowledge-document/parser-validation'
 import { Document } from '@langchain/core/documents'
-import { RecursiveCharacterTextSplitter, RecursiveCharacterTextSplitterParams } from '@langchain/textsplitters'
-import { decodeKnowledgeSeparators, IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
+import { RecursiveCharacterTextSplitterParams } from '@langchain/textsplitters'
+import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
-import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
+import {
+    ChunkMetadata,
+    ITextSplitterStrategy,
+    TextSplitterStrategy,
+    type TextSplitterExecutionContext
+} from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'
 import { RecursiveCharacter } from './types'
+import { createLanguageTextSplitter } from './language-text-splitter'
 
 @Injectable()
 @TextSplitterStrategy(RecursiveCharacter)
@@ -15,6 +21,7 @@ export class RecursiveCharacterStrategy implements ITextSplitterStrategy<
     readonly structure = KnowledgeStructureEnum.General
     readonly meta = {
         name: RecursiveCharacter,
+        supportsLanguageHint: true,
         label: {
             en_US: 'Recursive Character',
             zh_Hans: '递归字符'
@@ -64,8 +71,7 @@ export class RecursiveCharacterStrategy implements ITextSplitterStrategy<
                     description: {
                         en_US: 'Comma-separated list of delimiters to use for splitting. Double commas are escaped as commas',
                         zh_Hans: '用于拆分的分隔符列表，以逗号分隔。双逗号转义为逗号'
-                    },
-                    default: `\\n\\n,\\n, ,`
+                    }
                 }
             },
             required: []
@@ -83,12 +89,14 @@ export class RecursiveCharacterStrategy implements ITextSplitterStrategy<
 
     async splitDocuments(
         documents: Document[],
-        options: Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string | string[] }
+        options: Partial<Omit<RecursiveCharacterTextSplitterParams, 'separators'>> & { separators?: string | string[] },
+        context?: TextSplitterExecutionContext
     ): Promise<{ chunks: Document<ChunkMetadata>[] }> {
-        const separators = decodeKnowledgeSeparators(options.separators)
-        if (!separators.includes('')) separators.push('')
-        const splitter = new RecursiveCharacterTextSplitter({ ...options, separators })
-        const chunks = await splitter.splitDocuments(documents)
+        const chunks: Document[] = []
+        for (const document of documents) {
+            const splitter = createLanguageTextSplitter(options, document, context)
+            chunks.push(...(await splitter.splitDocuments([document])))
+        }
         const chunkDocuments: Document<ChunkMetadata>[] = chunks.map(
             (chunk, index) =>
                 new Document<ChunkMetadata>({

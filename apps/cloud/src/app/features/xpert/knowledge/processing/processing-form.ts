@@ -11,6 +11,7 @@ import {
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
   KnowledgebaseParserConfig,
+  KnowledgeChunkLanguageHint,
   KnowledgebaseService,
   KnowledgeStructureEnum
 } from '@cloud/app/@core'
@@ -89,7 +90,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
         ? decodeKnowledgeSeparators(storedSeparators)
         : initialConfig.delimiter != null
           ? initialConfig.delimiter.split(' ')
-          : ['\\n\\n', '\\n', '。', '！', '？', '；', ';'])
+          : [])
   )
   const parentChildChunkingEnabled = computed(() => chunkStrategy() === 'parent-child')
   const maxChunkTokensControl = new FormControl(initialConfig.maxChunkTokens ?? 0, [
@@ -99,8 +100,10 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     Validators.pattern(/^\d+$/)
   ])
   const maxChunkTokens = toSignal(maxChunkTokensControl.valueChanges, { initialValue: maxChunkTokensControl.value })
-  // Language hints remain reserved for a later batch.
-  const chunkLanguageHint = signal<'auto' | 'Chinese' | 'English'>('auto')
+  const chunkLanguageHint = signal<KnowledgeChunkLanguageHint>(initialConfig.chunkLanguageHint ?? 'auto')
+  const separatorsConfigured = signal(
+    initialConfig.separators !== undefined || storedSeparators !== undefined || initialConfig.delimiter != null
+  )
 
   const { separatorOptions, compareSeparators, displaySeparator, separatorTagOptions, separatorLabelKey } =
     createSeparatorSelectOptions()
@@ -166,6 +169,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     if (!value || separators().includes(value)) {
       return
     }
+    separatorsConfigured.set(true)
     separators.update((current) => [...current, value])
   }
 
@@ -175,11 +179,13 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     }
 
     const nextSeparators = value.filter((separator): separator is string => typeof separator === 'string')
+    separatorsConfigured.set(true)
     separators.set(nextSeparators)
     delimiter.set(nextSeparators[0] || '\n\n')
   }
 
   function removeSeparator(value: string) {
+    separatorsConfigured.set(true)
     separators.update((current) => current.filter((separator) => separator !== value))
   }
 
@@ -197,6 +203,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     chunkSize: chunkSize(),
     chunkOverlap: chunkOverlap(),
     maxChunkTokens: maxChunkTokens() ?? 0,
+    chunkLanguageHint: chunkLanguageHint(),
     questionGeneration: {
       enabled: questionGenerationEnabled(),
       questionCount:
@@ -216,8 +223,8 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
           }
         : undefined
     },
-    delimiter: delimiter() || null,
-    separators: [...separators()],
+    delimiter: separatorsConfigured() ? delimiter() || null : null,
+    separators: separatorsConfigured() ? [...separators()] : undefined,
     textSplitterType: chunkStrategy(),
     textSplitter: serializedSplitter(),
     imageUnderstandingEnabled: imageUnderstandingEnabled(),

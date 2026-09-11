@@ -9,8 +9,64 @@ import { RecursiveCharacterStrategy } from '../../../knowledgebase/plugins/texts
 import { countTextTokens } from '@xpert-ai/plugin-sdk'
 import { computeObjectHash } from '@xpert-ai/server-core'
 import { pick } from '@xpert-ai/server-common'
+import * as language from '../../chunk-language'
 
 describe('KnowledgeDocLoadHandler', () => {
+    it('detects once across batches and invalidates batch caches when the public hint or document language changes', async () => {
+        const detector = jest.spyOn(language, 'detectChunkLanguage')
+        const handler = new KnowledgeDocLoadHandler({} as KnowledgebaseService, {} as CommandBus, {} as QueryBus)
+        const first = new Document({ pageContent: 'Common introduction.', metadata: { chunkId: 'first' } })
+        let body = 'This is the English body. It has multiple sentences. These sentences describe configuration.'
+        const cache = new Map<string, Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>>()
+        Object.assign(handler, {
+            knowledgeWorkAreaResolver: { resolve: async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }) },
+            transformSnapshotService: {
+                load: async () => [
+                    { chunks: [first] },
+                    { chunks: [new Document({ pageContent: body, metadata: { chunkId: 'body' } })] }
+                ]
+            },
+            textSplitterRegistry: { get: () => new RecursiveCharacterStrategy() },
+            cacheManager: {
+                get: async (key: string) => cache.get(key),
+                set: async (key: string, value: Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>) =>
+                    cache.set(key, value)
+            }
+        })
+        const split = jest.spyOn(handler, 'splitDocuments')
+        const run = (chunkLanguageHint: 'auto' | 'Chinese' = 'auto') =>
+            handler.execute(
+                new KnowledgeDocLoadCommand({
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'txt',
+                        name: 'text.txt',
+                        filePath: 'text.txt',
+                        parserConfig: {
+                            chunkLanguageHint,
+                            chunkSize: 80,
+                            chunkOverlap: 0,
+                            imageUnderstandingEnabled: false
+                        }
+                    } as IKnowledgeDocument,
+                    mode: 'rechunk',
+                    stage: 'test'
+                })
+            )
+        await run()
+        expect(detector).toHaveBeenCalledTimes(1)
+        expect(split).toHaveBeenCalledTimes(2)
+        await run()
+        expect(split).toHaveBeenCalledTimes(2)
+        await run('Chinese')
+        expect(split).toHaveBeenCalledTimes(4)
+        body = '\u8fd9\u662f\u4e2d\u6587\u6b63\u6587\u3002'.repeat(10)
+        await run()
+        // Even the unchanged introduction must use the new document-level language decision.
+        expect(split).toHaveBeenCalledTimes(6)
+        expect(detector).toHaveBeenCalledTimes(4)
+    })
     it('reuses chunk cache only while the token cap is unchanged, including when disabling it', async () => {
         const handler = new KnowledgeDocLoadHandler(
             {} as unknown as KnowledgebaseService,
@@ -225,7 +281,7 @@ describe('KnowledgeDocLoadHandler', () => {
             expect.objectContaining({
                 chunkSize: 1000,
                 chunkOverlap: 200,
-                separators: '\\n\\n,\\n, ,'
+                separators: undefined
             })
         )
         expect(result).toEqual({ chunks })

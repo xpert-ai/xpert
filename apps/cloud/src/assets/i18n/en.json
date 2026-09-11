@@ -4569,6 +4569,20 @@
         "Failed": "The preview failed. Try again or check the pipeline."
       },
       "Chunking": {
+        "Language": {
+          "Hint": "Language hint",
+          "Detected": "Detected language",
+          "Scope": "Applies to natural text boundaries in automatic, structure-aware, Markdown recursive and recursive character chunking. Parent-child chunking is unchanged.",
+          "SeparatorsHelp": "Custom separators take priority over the language hint. Without custom separators, natural text uses the selected language.",
+          "Values": {
+            "auto": "Auto detect",
+            "Chinese": "Chinese",
+            "English": "English",
+            "Mixed": "Chinese-English mixed",
+            "Unknown": "No identifiable natural text"
+          }
+        },
+
         "TargetSize": "Target chunk size (characters)",
         "TargetHelp": "Combine short paragraphs up to this target. A complete structure may exceed it when it fits the token ceiling.",
         "AutoSizeHelp": "Structure-aware splitting treats this as a target; existing heading and length strategies keep their own size rules. Preview shows the selected strategy.",

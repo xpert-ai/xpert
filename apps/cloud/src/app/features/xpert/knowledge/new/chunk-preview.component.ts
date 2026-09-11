@@ -42,6 +42,18 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
         <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
       }
       @if (result(); as result) {
+        @for (language of result.languages ?? []; track $index) {
+          <div class="space-y-1 text-sm text-text-secondary" data-chunk-language>
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.Language.Hint' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Language.Values.' + language.languageHint | translate }}
+            </p>
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.Language.Detected' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Language.Values.' + (language.detectedLanguage ?? 'Unknown') | translate }}
+            </p>
+          </div>
+        }
         @for (decision of result.decisions ?? []; track $index) {
           <div
             class="space-y-1 border-l-2 border-divider-subtle pl-3 text-sm text-text-secondary"

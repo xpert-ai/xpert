@@ -1,6 +1,15 @@
 import { decodeKnowledgeSeparators, knowledgebaseDocumentParserDefaults } from './knowledge-parser.model'
 
 describe('knowledge parser shared configuration', () => {
+  it('copies public language hints while leaving old configurations unset', () => {
+    const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null }
+    expect(knowledgebaseDocumentParserDefaults(defaults).chunkLanguageHint).toBeUndefined()
+    for (const chunkLanguageHint of ['auto', 'Chinese', 'English'] as const) {
+      const config = knowledgebaseDocumentParserDefaults({ ...defaults, chunkLanguageHint })
+      expect(config.chunkLanguageHint).toBe(chunkLanguageHint)
+      expect(config.textSplitter).not.toHaveProperty('chunkLanguageHint')
+    }
+  })
   it('copies token budgets including an explicit opt-out without creating an override for old settings', () => {
     const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null }
     expect(knowledgebaseDocumentParserDefaults(defaults)).not.toHaveProperty('maxChunkTokens')

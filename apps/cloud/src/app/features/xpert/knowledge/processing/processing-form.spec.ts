@@ -32,6 +32,28 @@ describe('shared knowledge processing draft', () => {
 
   afterEach(() => TestBed.resetTestingModule())
 
+  it('saves and restores all public language hints without serializing implicit separators', () => {
+    const { form } = setup()
+    expect(form.chunkLanguageHint()).toBe('auto')
+    expect(form.config().separators).toBeUndefined()
+    expect(form.config().delimiter).toBeNull()
+    for (const chunkLanguageHint of ['auto', 'Chinese', 'English'] as const) {
+      form.chunkLanguageHint.set(chunkLanguageHint)
+      const config = form.config()
+      expect(config.chunkLanguageHint).toBe(chunkLanguageHint)
+      expect(config.textSplitter).not.toHaveProperty('chunkLanguageHint')
+      const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config }))
+      expect(reopened.chunkLanguageHint()).toBe(chunkLanguageHint)
+      expect(reopened.config().separators).toBeUndefined()
+    }
+    form.updateSeparators([';'])
+    expect(form.config().separators).toEqual([';'])
+    form.chunkLanguageHint.set('Chinese')
+    expect(form.config().separators).toEqual([';'])
+    form.updateSeparators([])
+    expect(form.config().separators).toEqual([])
+  })
+
   it('defaults to auto, preserves explicit strategies and restores auto after leaving parent-child mode', () => {
     const { form } = setup()
     expect(form.config().textSplitterType).toBe('auto')

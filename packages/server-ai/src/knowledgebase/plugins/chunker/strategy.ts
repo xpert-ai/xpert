@@ -156,6 +156,7 @@ export class WorkflowChunkerNodeStrategy implements IWorkflowNodeStrategy {
 
                             const result = await executeKnowledgeSplitter(strategy, splitDocs, parameters, {
                                 maxChunkTokens: doc.parserConfig?.maxChunkTokens,
+                                languageHint: doc.parserConfig?.chunkLanguageHint,
                                 category: doc.category,
                                 documentId: doc.id
                             })

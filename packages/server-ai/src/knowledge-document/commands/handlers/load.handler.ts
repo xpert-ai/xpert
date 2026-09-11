@@ -1,8 +1,10 @@
 import { splitKnowledgeDocuments } from '../../split-documents'
+import { resolveKnowledgeLanguage, type KnowledgeSplitterExecutionContext } from '../../execute-splitter'
 import { knowledgeChunkingRevision } from '../../chunking-revision'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     DocumentSheetParserConfig,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentTextParserConfig,
     IKnowledgeDocument,
     IKnowledgeDocumentChunk,
@@ -214,9 +216,18 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             }
 
             const chunks = []
+            const languageDetection = resolveKnowledgeLanguage(
+                this.textSplitterRegistry?.get(docParserConfig.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER),
+                {
+                    *[Symbol.iterator]() {
+                        for (const item of transformed) yield* item.chunks ?? []
+                    }
+                }
+            )
             for await (const transItem of transformed) {
                 // Chunker with caching
                 const chunkerCacheConfig = {
+                    ...(languageDetection ? { detectedLanguage: languageDetection.detectedLanguage ?? null } : {}),
                     ...(knowledgeChunkingRevision(docParserConfig.textSplitterType)
                         ? { chunkingRevision: knowledgeChunkingRevision(docParserConfig.textSplitterType) }
                         : {}),
@@ -225,6 +236,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         'textSplitterType',
                         'textSplitter',
                         'maxChunkTokens',
+                        'chunkLanguageHint',
                         'replaceWhitespace',
                         'removeSensitive'
                     ]),
@@ -237,7 +249,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 if (!splitted) {
                     splitted = await this.splitDocuments(
                         doc,
-                        transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+                        transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[],
+                        undefined,
+                        { languageDetection }
                     )
                     await this.cacheManager.set(cacheKey, splitted, 60 * 10 * 1000) // 10 min
                 }
@@ -418,9 +432,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
     async splitDocuments(
         document: IKnowledgeDocument,
         chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
-        parserConfig?: DocumentTextParserConfig
+        parserConfig?: DocumentTextParserConfig,
+        context?: Pick<KnowledgeSplitterExecutionContext, 'languageDetection'>
     ) {
-        return splitKnowledgeDocuments(this.textSplitterRegistry, document, chunks, parserConfig)
+        return splitKnowledgeDocuments(this.textSplitterRegistry, document, chunks, parserConfig, context)
     }
 
     async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeHandle): Promise<Record<string, any>[]> {

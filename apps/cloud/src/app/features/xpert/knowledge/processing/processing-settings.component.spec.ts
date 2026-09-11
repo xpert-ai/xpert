@@ -2,6 +2,8 @@ jest.mock('@cloud/app/@shared/copilot', () => ({ CopilotModelSelectComponent: cl
 
 import { NO_ERRORS_SCHEMA } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
+import { By } from '@angular/platform-browser'
+import { ZardSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { KnowledgebaseService } from '@cloud/app/@core'
@@ -68,6 +70,31 @@ describe('processing settings file-type visibility', () => {
         expect(root.querySelector('[data-chunk-max-tokens]').textContent).toContain('InvalidTokenLimit')
       }
     }
+  })
+
+  it('enables and saves the language selection only for supported splitters', async () => {
+    const { fixture, root, form } = setup()
+    form.splitterProviders.set([{ name: 'auto', supportsLanguageHint: true }, { name: 'parent-child' }])
+    fixture.componentRef.setInput('section', 'chunk')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    root.querySelector<HTMLElement>('z-accordion-header').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const select = fixture.debugElement
+      .query(By.css('[data-chunk-language-hint] z-select'))
+      .injector.get(ZardSelectComponent)
+    const trigger = root.querySelector<HTMLButtonElement>('[data-chunk-language-hint] button[role="combobox"]')
+    expect(trigger.disabled).toBe(false)
+    expect(root.querySelector('[data-chunk-language-hint]').textContent).not.toContain('LaterOptions')
+    select.selectItem('Chinese', 'Chinese')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(form.config().chunkLanguageHint).toBe('Chinese')
+    form.chunkStrategy.set('parent-child')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(trigger.disabled).toBe(true)
   })
 
   it('shows all parser types for knowledgebase defaults', async () => {

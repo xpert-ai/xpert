@@ -37,6 +37,16 @@ describe('KnowledgeChunkPreviewComponent', () => {
       fixture.componentRef.setInput('config', { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 16 })
       fixture.detectChanges()
       fixture.componentInstance.result.set({
+        languages: [
+          {
+            languageHint: 'auto',
+            detectedLanguage: 'Mixed',
+            resolvedLanguage: 'Mixed',
+            sourceIndexes: [0],
+            sampledCodeUnits: 100,
+            naturalUnits: 2
+          }
+        ],
         decisions: [
           {
             inputHash: 'source-hash',
@@ -84,6 +94,9 @@ describe('KnowledgeChunkPreviewComponent', () => {
       fixture.detectChanges()
       await fixture.whenStable()
       const root: HTMLElement = fixture.nativeElement
+      expect(root.querySelector('[data-chunk-language]').textContent).toContain('Language.Hint')
+      expect(root.querySelector('[data-chunk-language]').textContent).toContain('Language.Values.auto')
+      expect(root.querySelector('[data-chunk-language]').textContent).toContain('Language.Values.Mixed')
       expect(root.textContent).toContain('retrieval child text')
       expect(root.textContent).toContain('8 tokens')
       expect(root.textContent).toContain('# Inventory')
@@ -104,13 +117,13 @@ describe('KnowledgeChunkPreviewComponent', () => {
     await component.preview()
     expect(service.previewChunks).not.toHaveBeenCalled()
     fixture.componentRef.setInput('configInvalid', false)
-    fixture.componentRef.setInput('config', { ...component.config(), maxChunkTokens: 64 })
+    fixture.componentRef.setInput('config', { ...component.config(), maxChunkTokens: 64, chunkLanguageHint: 'Chinese' })
     fixture.detectChanges()
     await component.preview()
     expect(service.previewChunks).toHaveBeenCalledWith(
       'workspace',
       expect.objectContaining({
-        parserConfig: expect.objectContaining({ maxChunkTokens: 64 })
+        parserConfig: expect.objectContaining({ maxChunkTokens: 64, chunkLanguageHint: 'Chinese' })
       })
     )
   })
