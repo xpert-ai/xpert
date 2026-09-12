@@ -539,18 +539,12 @@
                 <z-switch class="kb-primary-switch shrink-0" [(ngModel)]="automaticTaggingEnabled" />
               </div>
 
-              <div class="kb-advanced-field kb-table-metadata-field">
-                <div class="kb-field-title">{{ i18nPrefix + '.Advanced.TableMetadataRequirements' | translate }}</div>
-                <p>{{ i18nPrefix + '.Advanced.TableMetadataRequirementsDescription' | translate }}</p>
-                <textarea
-                  z-input
-                  class="kb-textarea kb-advanced-textarea"
-                  maxlength="4000"
-                  [(ngModel)]="tableMetadataRequirements"
-                  [placeholder]="i18nPrefix + '.Advanced.TableMetadataRequirementsPlaceholder' | translate"
-                ></textarea>
-                <div class="kb-counter">{{ tableMetadataRequirements().length }}/4000</div>
-              </div>
+              <xp-knowledge-processing-settings
+                class="block min-w-0 pt-5"
+                [form]="processing"
+                section="table"
+                [showHeading]="false"
+              />
             </section>
           }
 

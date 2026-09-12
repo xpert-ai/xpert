@@ -13,7 +13,11 @@ export function documentProcessingDraft(
 ): Partial<KnowledgebaseParserConfig> {
   const inherited = knowledgebaseDocumentParserDefaults(defaults, documentFileType(document))
   const explicit = document.parserConfig ?? {}
-  const config = { ...inherited, ...explicit }
+  const config = {
+    ...inherited,
+    ...explicit,
+    spreadsheet: { ...inherited.spreadsheet, ...explicit.spreadsheet }
+  }
   for (const key of ['textSplitter', 'transformer', 'imageUnderstanding'] as const) {
     const typeKey = `${key}Type` as const
     config[key] =

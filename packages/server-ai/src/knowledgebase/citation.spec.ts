@@ -1,6 +1,45 @@
-import { createKnowledgebaseCitationFromDocument } from './citation'
+import { createKnowledgebaseCitationFromDocument, formatKnowledgebaseRetrievalToolOutput } from './citation'
 
 describe('knowledgebase citation', () => {
+    it('does not expose embedding-only table descriptions through pure keyword evidence', () => {
+        const output = formatKnowledgebaseRetrievalToolOutput(
+            [
+                {
+                    pageContent: 'original row',
+                    metadata: {
+                        documentId: 'doc',
+                        chunkId: 'row',
+                        tableSource: { tableId: 'sheet:0', rowNumber: 2 },
+                        searchContent: 'embedding-only explanation'
+                    }
+                }
+            ],
+            'kb'
+        )
+        expect(output).toContain('original row')
+        expect(output).not.toContain('embedding-only explanation')
+    })
+    it('provides table meaning to answers while citing the original row', () => {
+        const doc = {
+            pageContent: '{"amt":10}',
+            metadata: {
+                documentId: 'table-doc',
+                chunkId: 'row-2',
+                tableSource: { tableId: 'sheet:0', rowNumber: 2 },
+                tableContext: {
+                    tableId: 'sheet:0',
+                    resultHash: 'result',
+                    sheetName: 'Orders',
+                    summary: 'Sales orders',
+                    columns: [{ columnId: 'A', key: 'amt', description: 'Order amount', unit: 'CNY' }]
+                }
+            }
+        }
+        const citation = createKnowledgebaseCitationFromDocument(doc, 1, 'kb-1')
+        expect(citation.snippet).toBe(doc.pageContent)
+        expect(citation.citationUrl).toContain('documentId=table-doc&chunkId=row-2')
+        expect(formatKnowledgebaseRetrievalToolOutput([doc], 'kb-1')).toContain('Order amount')
+    })
     it('links FAQ results to their canonical FAQ entry', () => {
         const citation = createKnowledgebaseCitationFromDocument(
             {

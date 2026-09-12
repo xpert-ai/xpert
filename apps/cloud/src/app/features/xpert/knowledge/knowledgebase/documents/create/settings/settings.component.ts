@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
@@ -15,8 +15,10 @@ import {
   KBDocumentCategoryEnum,
   KDocumentSourceType,
   KnowledgebaseService,
-  ModelFeature
+  ModelFeature,
+  isNativeKnowledgeTableDocument
 } from '@cloud/app/@core'
+import { documentFileType } from '../../../../processing/document-file-types'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { attrModel, linkedModel, XpI18nPipe, XpInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
@@ -76,6 +78,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly knowledgebaseAPI = inject(KnowledgebaseService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent, { optional: true })
   readonly knowledgebaseValue = input<IKnowledgebase>()
+  readonly documentConfigIsResolved = input(false)
   readonly section = input<'all' | 'parser' | 'chunks' | 'images'>('all')
 
   // Input Models
@@ -141,6 +144,15 @@ export class KnowledgeDocumentCreateSettingsComponent {
     compute: () => (this.spreadsheet()?.contextUnit === 'sheet' ? 'sheet' : 'workbook'),
     update: (value) => this.spreadsheet.update((state) => ({ ...(state ?? {}), contextUnit: value }))
   })
+  readonly spreadsheetFirstRowAsHeader = attrModel(this.spreadsheet, 'firstRowAsHeader', true)
+  readonly showExcelHeader = computed(() =>
+    this.documents()?.some(
+      (document) =>
+        isNativeKnowledgeTableDocument({ ...document, parserConfig: this.parserConfig() }) &&
+        ['xls', 'xlsx'].includes(documentFileType(document))
+    )
+  )
+  readonly tablePreview = viewChild(KnowledgeDocumentPreviewComponent)
   readonly spreadsheetOversizePolicy = attrModel(this.spreadsheet, 'oversizePolicy', 'sheet')
   readonly spreadsheetMaxChunkTokens = attrModel(this.spreadsheet, 'maxChunkTokens', 6000)
   readonly spreadsheetIncludeHiddenSheets = attrModel(this.spreadsheet, 'includeHiddenSheets', false)
@@ -295,8 +307,11 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly configurationError = computed(() => {
     if (this.section() === 'all' || !this.documents()?.length) return null
     if (!this.#documentTransformerStrategies() || !this.#textSplitterStrategies()) return 'Loading'
-    if (this.transformerType() && !this.transformerStrategy()) return 'InvalidParser'
-    if (this.usesPlatformSpreadsheetParser()) return null
+    if (this.transformerType() && this.transformerType() !== 'default' && !this.transformerStrategy())
+      return 'InvalidParser'
+    if (this.usesPlatformSpreadsheetParser()) {
+      return this.tablePreview()?.invalidIndexedFields().length ? 'InvalidIndexedFields' : null
+    }
     if (!this.textSplitterStrategy()) return 'InvalidChunker'
     if (this.enableImageUnderstanding()) {
       if (!this.#understandingStrategies()) return 'Loading'
@@ -331,6 +346,12 @@ export class KnowledgeDocumentCreateSettingsComponent {
   //     this.preview()
   //   })
   // }
+
+  updatePreviewConfig(config: IKnowledgeDocument['parserConfig']) {
+    if (!this.documentConfigIsResolved()) {
+      this.parserConfig.update((current) => ({ ...current, indexedFields: config.indexedFields }))
+    }
+  }
 
   onPreview() {
     if (!this.selectedDocument()) {

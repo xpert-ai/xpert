@@ -5068,6 +5068,34 @@
       "Unavailable": "請先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "TableMetadata": {
+        "Title": "表格中繼資料",
+        "Scope": "適用於預設解析器的 CSV/XLS/XLSX 記錄模式。表單文件、自訂解析器、文字模式及管線暫不支援。",
+        "RequirementsHelp": "可補充業務背景，留空使用預設要求。新匯入或明確重新處理時，使用知識庫 LLM 產生表格說明和欄位說明。",
+        "InvalidRequirements": "表格中繼資料產生要求不能超過 4000 字。",
+        "InvalidIndexedFields": "已選索引欄位與目前表格不一致，請預覽後重新選擇。",
+        "NoIndexedFields": "請至少選擇一個索引欄位。",
+        "ReprocessHint": "可透過文件處理設定重新處理，重試中繼資料產生。",
+        "Column": "欄位",
+        "Description": "欄位說明",
+        "Unit": "單位",
+        "ValueMeanings": "值含義",
+        "Dimensions": "{{rows}} 列 · {{columns}} 欄",
+        "NotGenerated": "尚未產生表格中繼資料。",
+        "SelectAllFields": "選擇目前全部欄位",
+        "Status": {
+          "generating": "正在產生",
+          "generated": "已產生，等待索引",
+          "ready": "已就緒",
+          "failed": "產生失敗",
+          "skipped": "已略過"
+        },
+        "Reason": {
+          "missing_model": "請設定知識庫 LLM 後產生表格中繼資料。",
+          "no_data": "沒有可用於產生中繼資料的資料。",
+          "unsupported": "目前解析模式不支援表格中繼資料。"
+        }
+      },
       "PipelineFlow": {
         "Source": "選擇資料來源",
         "Settings": "處理設定",
@@ -5115,6 +5143,8 @@
         "BatchOtherFormats": "此格式使用現有文件解析流程。"
       },
       "Import": {
+        "TableMetadata": "表格中繼資料",
+        "InvalidIndexedFields": "已選索引欄位與目前表格不一致，請預覽後重新選擇。",
         "EditDefaultsHint": "這裡的修改只作用於目前文件，儲存後執行所選處理操作。",
         "Close": "關閉",
         "Cancel": "取消",
@@ -5593,6 +5623,8 @@
             "Builtin": "內置",
             "SimpleDefault": "Simple（預設）"
           },
+          "FirstRowAsHeader": "首列作為標頭",
+          "FirstRowAsHeaderHelp": "僅適用於 Excel 記錄模式。使用範圍的首列提供欄名；關閉後首列保留為資料，欄名使用 A/B/C。",
           "ExcelHeaderRow": "將首列作為欄位標題，並保留在每列上下文中。"
         },
         "Chunk": {

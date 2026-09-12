@@ -4,7 +4,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
-import { AiModelTypeEnum, IKnowledgeDocument, ModelFeature } from '@cloud/app/@core'
+import { AiModelTypeEnum, IKnowledgeDocument, ModelFeature, isNativeKnowledgeTableDocument } from '@cloud/app/@core'
 import {
   XpI18nPipe,
   ZardAccordionImports,
@@ -56,6 +56,13 @@ export class KnowledgeProcessingSettingsComponent {
       (row) => this.documents() === null || row.extensions.some((extension) => this.fileTypes().has(extension.slice(1)))
     )
   )
+  readonly nativeTableDocuments = computed(() => this.documents()?.filter(isNativeKnowledgeTableDocument) ?? [])
+  readonly showExcelHeader = computed(
+    () =>
+      this.documents() === null ||
+      this.nativeTableDocuments().some((document) => ['xls', 'xlsx'].includes(documentFileType(document)))
+  )
+  readonly showTableMetadata = computed(() => this.documents() === null || this.nativeTableDocuments().length > 0)
   readonly i18nPrefix = PROCESSING_I18N_PREFIX
   readonly eAiModelTypeEnum = AiModelTypeEnum
   readonly eModelFeature = ModelFeature

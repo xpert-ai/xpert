@@ -1,6 +1,19 @@
 import { decodeKnowledgeSeparators, knowledgebaseDocumentParserDefaults } from './knowledge-parser.model'
 
 describe('knowledge parser shared configuration', () => {
+  it('preserves explicit table header opt-out and empty default generation guidance', () => {
+    const config = knowledgebaseDocumentParserDefaults({
+      chunkSize: 512,
+      chunkOverlap: 0,
+      delimiter: null,
+      spreadsheet: { firstRowAsHeader: false },
+      tableMetadataRequirements: ''
+    })
+    expect(config.spreadsheet).toEqual({ firstRowAsHeader: false })
+    expect(config.tableMetadataRequirements).toBe('')
+    expect(knowledgebaseDocumentParserDefaults()).not.toHaveProperty('spreadsheet')
+    expect(knowledgebaseDocumentParserDefaults()).not.toHaveProperty('tableMetadataRequirements')
+  })
   it('copies public language hints while leaving old configurations unset', () => {
     const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null }
     expect(knowledgebaseDocumentParserDefaults(defaults).chunkLanguageHint).toBeUndefined()

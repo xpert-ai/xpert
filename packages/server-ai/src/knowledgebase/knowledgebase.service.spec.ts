@@ -149,6 +149,19 @@ function createService(params: {
 }
 
 describe('KnowledgebaseService', () => {
+    it('rejects user schemas that claim the server-owned table metadata key', async () => {
+        const service = createService({
+            repository: { findOne: jest.fn().mockResolvedValue(null), delete: jest.fn() },
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+        await expect(
+            service.create({
+                name: 'Tables',
+                metadataSchema: [{ key: 'tableMetadata', type: 'object', scope: 'document' }]
+            })
+        ).rejects.toThrow(BadRequestException)
+    })
     beforeEach(() => {
         jest.clearAllMocks()
     })

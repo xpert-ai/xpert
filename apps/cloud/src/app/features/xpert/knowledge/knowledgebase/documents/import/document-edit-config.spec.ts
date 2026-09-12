@@ -76,3 +76,18 @@ describe('editing document processing settings', () => {
     expect(config.transformer).not.toHaveProperty('dpi')
   })
 })
+
+it('inherits library table defaults while preserving explicit header false and an empty requirement', () => {
+  const draft = documentProcessingDraft(
+    {
+      type: 'xlsx',
+      parserConfig: {
+        spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] },
+        tableMetadataRequirements: ''
+      }
+    },
+    { spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: 'Default requirement' }
+  )
+  expect(draft.spreadsheet).toEqual({ firstRowAsHeader: false, includeSheets: ['Orders'] })
+  expect(draft.tableMetadataRequirements).toBe('')
+})

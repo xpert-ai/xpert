@@ -1,4 +1,5 @@
 import type { KnowledgeChunkQuestions } from './knowledge-question.model'
+import type { KnowledgeTableContext } from './knowledge-table.model'
 import type { KnowledgeChunkingMetadata } from './knowledge-chunking.model'
 import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
@@ -172,6 +173,9 @@ export type KnowledgeDocumentAnalysisPreview =
     }
 
 export interface IDocChunkMetadata {
+  tableSource?: { tableId: string; rowNumber: number; range?: string }
+  tableMetadataResultHash?: string
+  tableContext?: KnowledgeTableContext
   chunkId: string
   documentId?: string
   chunking?: KnowledgeChunkingMetadata

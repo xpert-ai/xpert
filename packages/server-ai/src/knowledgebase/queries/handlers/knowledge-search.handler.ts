@@ -44,6 +44,7 @@ import {
 import { filterFAQNegativeMatches, materializeFAQResult } from '../../faq/faq-result'
 import { KnowledgeWikiSearchScopeService } from '../../wiki/knowledge-wiki-search-scope.service'
 import { filterKnowledgeContentScope, parseKnowledgeRetrievalContentScope } from '../../retrieval/content-scope'
+import { KnowledgeTableContextService, tableContextText } from '../../retrieval/table-context.service'
 
 function getBatchDocuments(batch: KnowledgeRetrievalBatch): DocumentInterface<DocumentMetadata>[] {
     return batch.candidates.map(({ document }) => document)
@@ -63,6 +64,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
     @Inject(KnowledgeRetrievalLogService)
     private readonly retrievalLogService: KnowledgeRetrievalLogService
+
+    @Inject(KnowledgeTableContextService)
+    private readonly tableContextService: KnowledgeTableContextService
 
     @Inject(KnowledgeWikiSearchScopeService)
     @Optional()
@@ -158,6 +162,10 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                             docs = []
                         }
                         docs = filterKnowledgeContentScope(docs, contentScope)
+                        const mode = resolveRetrievalMode(kb, retrieval)
+                        if ((mode === 'vector' || mode === 'hybrid') && docs.some((doc) => doc.metadata.tableSource)) {
+                            docs = await this.tableContextService.hydrate(kb, docs)
+                        }
                         filterDiagnostics = searchResult.diagnostics
                         if (requestedScope !== undefined) filterDiagnostics.contentScope = contentScope
                         docs = await this.finalizeRetrievalResults(
@@ -593,7 +601,8 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                 const rerankModel = await (requestedRerankModel
                     ? this.knowledgebaseService.getRerankModel(kb.id, modelContext, requestedRerankModel)
                     : this.knowledgebaseService.getRerankModel(kb.id, modelContext))
-                const rerankedDocs = await rerankModel.rerank(merged, query, {
+                const rankingDocuments = merged.map((doc) => ({ ...doc, pageContent: tableContextText(doc) }))
+                const rerankedDocs = await rerankModel.rerank(rankingDocuments, query, {
                     topN: Math.min(merged.length, topK),
                     ...(rerankThreshold == null ? {} : { scoreThreshold: rerankThreshold })
                 })

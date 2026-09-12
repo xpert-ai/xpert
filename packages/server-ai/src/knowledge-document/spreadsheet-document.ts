@@ -1,8 +1,9 @@
 import { Document } from '@langchain/core/documents'
-import type { DocumentSpreadsheetParserConfig } from '@xpert-ai/contracts'
+import type { DocumentSpreadsheetParserConfig, KnowledgeTableSource } from '@xpert-ai/contracts'
 import { countTokensSafe } from '@xpert-ai/plugin-sdk'
 import type { LoadedSpreadsheetSheet, LoadedSpreadsheetWorkbook } from '@xpert-ai/server-common'
 import { v4 as uuid } from 'uuid'
+import { invalidKnowledgeTableIndexedFields } from './parser-validation'
 
 const DEFAULT_MAX_CHUNK_TOKENS = 6000
 const MIN_MAX_CHUNK_TOKENS = 256
@@ -48,16 +49,71 @@ export function createSpreadsheetFormDocuments(input: {
     )
 }
 
-export function createSpreadsheetRecordDocuments(input: {
+type SpreadsheetRecordInput = {
     documentId: string
     workbook: LoadedSpreadsheetWorkbook
     config?: DocumentSpreadsheetParserConfig
     indexedFields?: string[]
-}): Document[] {
-    const sheets = selectSheets(input.workbook.sheets, input.config ?? {})
+    /** The original first-sheet path includes its first sheet even when hidden. */
+    legacy?: boolean
+}
+
+export function createSpreadsheetRecordDocuments(input: SpreadsheetRecordInput): Document[] {
+    return createRecordChunks(input, selectSheets(input.workbook.sheets, input.config ?? {}))
+}
+
+export function createSpreadsheetRecordResult(input: SpreadsheetRecordInput): {
+    chunks: Document[]
+    tables: KnowledgeTableSource[]
+} {
+    const sheets = input.legacy
+        ? input.workbook.sheets.slice(0, 1)
+        : selectSheets(input.workbook.sheets, input.config ?? {})
+    if (input.indexedFields?.length) {
+        const available = new Set(sheets.flatMap((sheet) => sheet.columns.map((column) => column.key)))
+        const unknown = input.indexedFields.filter((field) => !available.has(field))
+        if (unknown.length) throw invalidKnowledgeTableIndexedFields(unknown)
+        for (const sheet of sheets) {
+            if (sheet.records.length && !sheet.columns.some((column) => input.indexedFields.includes(column.key))) {
+                throw invalidKnowledgeTableIndexedFields(input.indexedFields, sheet.name)
+            }
+        }
+    }
+    const tables: KnowledgeTableSource[] = sheets
+        .filter((sheet) => sheet.range)
+        .map((sheet) => ({
+            tableId: `sheet:${sheet.index}`,
+            sheetName: sheet.name,
+            range: sheet.range!,
+            ...(sheet.headerRow !== undefined ? { headerRow: sheet.headerRow } : {}),
+            rowCount: sheet.records.length,
+            columns: sheet.columns.map((column) => {
+                const values = sheet.records.map((record) => record[column.key]).filter((value) => value != null)
+                return {
+                    ...column,
+                    ...(values.length && values.every((value) => typeof value === 'boolean')
+                        ? { valueType: 'boolean' as const }
+                        : {})
+                }
+            }),
+            samples: sheet.records.slice(0, 10).map((record, index) => ({
+                rowNumber: sheet.recordRows[index],
+                values: Object.fromEntries(
+                    sheet.columns.map((column) => [column.columnId, sampleValue(record[column.key])])
+                )
+            }))
+        }))
+    return { tables, chunks: createRecordChunks(input, sheets, true) }
+}
+
+function createRecordChunks(input: SpreadsheetRecordInput, sheets: LoadedSpreadsheetSheet[], tableSources = false) {
     let chunkIndex = 0
     return sheets.flatMap((sheet) =>
-        sheet.records.map((record) => {
+        sheet.records.map((record, recordIndex) => {
+            const rowNumber = sheet.recordRows[recordIndex]
+            const tableId = `sheet:${sheet.index}`
+            const firstColumn = sheet.columns[0]?.columnId
+            const lastColumn = sheet.columns.at(-1)?.columnId
             const metadata: Record<string, unknown> = {
                 raw: record,
                 documentId: input.documentId,
@@ -66,16 +122,40 @@ export function createSpreadsheetRecordDocuments(input: {
                 spreadsheetInterpretation: 'records',
                 spreadsheetSourceUnit: 'row',
                 sheetName: sheet.name,
+                ...(tableSources
+                    ? {
+                          tableSource: {
+                              tableId,
+                              rowNumber,
+                              ...(firstColumn && lastColumn
+                                  ? { range: `${firstColumn}${rowNumber}:${lastColumn}${rowNumber}` }
+                                  : {})
+                          }
+                      }
+                    : {}),
                 sourceBlockIds: [`sheet:${encodeURIComponent(sheet.name)}:record:${chunkIndex}`]
             }
             if (input.indexedFields?.length) {
                 metadata.searchContent = JSON.stringify(
-                    Object.fromEntries(input.indexedFields.map((field) => [field, record[field]]))
+                    tableSources
+                        ? Object.fromEntries(
+                              sheet.columns
+                                  .filter((column) => input.indexedFields.includes(column.key))
+                                  .map((column) => [column.key, record[column.key] ?? null])
+                          )
+                        : Object.fromEntries(input.indexedFields.map((field) => [field, record[field]]))
                 )
             }
             return new Document({ pageContent: JSON.stringify(record), metadata })
         })
     )
+}
+
+function sampleValue(value: unknown): string | number | boolean | null {
+    if (value instanceof Date) return value.toISOString()
+    if (typeof value === 'string' || typeof value === 'boolean') return value
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    return null
 }
 
 function selectSheets(sheets: LoadedSpreadsheetSheet[], config: DocumentSpreadsheetParserConfig) {

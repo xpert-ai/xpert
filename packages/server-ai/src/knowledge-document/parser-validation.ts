@@ -11,6 +11,51 @@ export function invalidKnowledgeParserConfig(field: string) {
     )
 }
 
+export function invalidKnowledgeTableIndexedFields(fields: string[], sheetName?: string) {
+    return new BadRequestException(
+        t('server-ai:Error.InvalidKnowledgeTableIndexedFields', {
+            defaultValue:
+                'Selected table columns are unavailable in {{sheetName}}: {{fields}}. Preview the table and select valid columns.',
+            fields: fields.join(', '),
+            sheetName: sheetName ?? ''
+        })
+    )
+}
+
+export function validateKnowledgeTableSettings(
+    config?: {
+        spreadsheet?: unknown
+        tableMetadataRequirements?: unknown
+        indexedFields?: unknown
+    } | null
+) {
+    if (!config) return
+    const spreadsheet = config.spreadsheet
+    if (spreadsheet !== undefined) {
+        if (!spreadsheet || typeof spreadsheet !== 'object' || Array.isArray(spreadsheet)) {
+            throw invalidKnowledgeParserConfig('spreadsheet')
+        }
+        if (
+            'firstRowAsHeader' in spreadsheet &&
+            spreadsheet.firstRowAsHeader !== undefined &&
+            typeof spreadsheet.firstRowAsHeader !== 'boolean'
+        ) {
+            throw invalidKnowledgeParserConfig('spreadsheet.firstRowAsHeader')
+        }
+    }
+    const requirements = config.tableMetadataRequirements
+    if (requirements !== undefined && (typeof requirements !== 'string' || requirements.length > 4000)) {
+        throw invalidKnowledgeParserConfig('tableMetadataRequirements (0-4000)')
+    }
+    const fields = config.indexedFields
+    if (
+        fields !== undefined &&
+        (!Array.isArray(fields) || fields.some((field) => typeof field !== 'string' || !field))
+    ) {
+        throw invalidKnowledgeParserConfig('indexedFields')
+    }
+}
+
 export function validateChunkLimits(options: { chunkSize?: unknown; chunkOverlap?: unknown }) {
     const size = options.chunkSize ?? 1000
     const overlap = options.chunkOverlap ?? 200

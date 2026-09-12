@@ -51,6 +51,22 @@ function setup() {
 }
 
 describe('KnowledgeParserSettingsService', () => {
+    it('validates spreadsheet headers and bounded table metadata instructions on save', async () => {
+        const { service } = setup()
+        await expect(
+            service.validateSettings({
+                ...defaults,
+                spreadsheet: { firstRowAsHeader: false },
+                tableMetadataRequirements: ''
+            })
+        ).resolves.toBe(KnowledgeStructureEnum.General)
+        await expect(
+            service.validateSettings({ ...defaults, tableMetadataRequirements: 'x'.repeat(4001) })
+        ).rejects.toThrow()
+        await expect(
+            service.validateSettings({ ...defaults, spreadsheet: { firstRowAsHeader: 'false' } } as never)
+        ).rejects.toThrow()
+    })
     it('returns public language diagnostics and uses the same boundaries as actual document processing', async () => {
         const { service, splitters } = setup()
         const text = '\u8fd9\u662f\u4e00\u4e2a\u4e2d\u6587\u53e5\u5b50\u3002'.repeat(30)

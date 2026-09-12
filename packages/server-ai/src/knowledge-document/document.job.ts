@@ -6,7 +6,10 @@ import {
     KnowledgeDocumentProcessingMode,
     KnowledgeDocumentLastIncrementalSync,
     KBDocumentStatusEnum,
-    KnowledgeDocumentMetadata
+    KnowledgeDocumentMetadata,
+    KnowledgeTableMetadata,
+    KnowledgeTableSource,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { UserService } from '@xpert-ai/server-core'
@@ -20,12 +23,18 @@ import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/i
 import { KnowledgeDocLoadCommand } from './commands'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
-import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
+import {
+    computeKnowledgeDocumentProcessingHash,
+    computeStableHash,
+    resolveKnowledgeDocumentSourceHash
+} from './document-hash'
 import { guardEmbeddingInputDocuments } from './embedding-input-guard'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentProcessingMetadata } from './document-publication'
 import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
+import { KnowledgeTableMetadataService, TableMetadataStaleError } from './tables/table-metadata.service'
+import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 /** Queue payload keeps processing mode durable across the HTTP/background-worker boundary. */
 type KnowledgeDocumentJobData = {
@@ -40,6 +49,9 @@ type KnowledgeDocumentJobData = {
 })
 export class KnowledgeDocumentConsumer {
     private readonly logger = new Logger(KnowledgeDocumentConsumer.name)
+
+    @Inject(KnowledgeTableMetadataService)
+    private readonly tableMetadata: KnowledgeTableMetadataService
 
     constructor(
         @Inject(JOB_REF) jobRef: Job,
@@ -80,7 +92,13 @@ export class KnowledgeDocumentConsumer {
     private async processInRequestContext(job: Job<KnowledgeDocumentJobData>) {
         const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
         const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, {
-            relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
+            relations: [
+                'copilotModel',
+                'copilotModel.copilot',
+                'copilotModel.copilot.modelProvider',
+                'chatModel',
+                'chatModel.referencedModel'
+            ]
         })
 
         return this._processJob(knowledgebase, job.data.docs, job)
@@ -127,6 +145,8 @@ export class KnowledgeDocumentConsumer {
 
         for await (const doc of job.data.docs) {
             const document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
+            const nativeTable = isNativeKnowledgeTableDocument(document)
+            if (nativeTable && String(document.jobId ?? '') !== String(job.id)) continue
             let processBeginAt: Date | null = null
 
             try {
@@ -134,12 +154,14 @@ export class KnowledgeDocumentConsumer {
                 processBeginAt = new Date()
                 const processingHash = computeKnowledgeDocumentProcessingHash(document)
                 const sourceHash = resolveKnowledgeDocumentSourceHash(document)
-                await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
+                if (!nativeTable)
+                    await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
 
                 if (
                     document.status === KBDocumentStatusEnum.FINISH &&
                     document.processingHash === processingHash &&
-                    document.contentHash
+                    document.contentHash &&
+                    (!isNativeKnowledgeTableDocument(document) || this.tableMetadata.canSkip(document, knowledgebase))
                 ) {
                     const sourceTokens = await this.updateSourceTokenCounts(document)
                     const processDuration = new Date().getTime() - processBeginAt.getTime()
@@ -174,7 +196,7 @@ export class KnowledgeDocumentConsumer {
 
                 const data = await this.commandBus.execute<
                     KnowledgeDocLoadCommand,
-                    { chunks: Document<ChunkMetadata>[] }
+                    { chunks: Document<ChunkMetadata>[]; tables?: KnowledgeTableSource[] }
                 >(
                     new KnowledgeDocLoadCommand({
                         doc: document,
@@ -187,13 +209,38 @@ export class KnowledgeDocumentConsumer {
                 let totalTokenUsed = 0
                 let embeddingTokenUsed = 0
                 let syncResult: IncrementalChunkSyncResult | null = null
+                let tableState: KnowledgeTableMetadata | undefined
                 if (chunks) {
-                    chunks = guardEmbeddingInputDocuments(
-                        chunks,
+                    const tableSourceFingerprint = nativeTable
+                        ? computeStableHash({
+                              tables: data.tables,
+                              rows: chunks.map((chunk) => ({
+                                  content: chunk.pageContent,
+                                  source: chunk.metadata.tableSource
+                              }))
+                          })
+                        : undefined
+                    const embeddingContextSize =
                         knowledgebase.copilotModel?.options?.context_size ??
-                            knowledgebase.copilotModel?.referencedModel?.options?.context_size
-                    )
+                        knowledgebase.copilotModel?.referencedModel?.options?.context_size
+                    chunks = guardEmbeddingInputDocuments(chunks, embeddingContextSize)
+                    if (nativeTable) {
+                        tableState = await this.tableMetadata.prepare(
+                            document,
+                            knowledgebase,
+                            data.tables ?? [],
+                            tableSourceFingerprint
+                        )
+                        chunks = this.tableMetadata.project(
+                            chunks,
+                            tableState,
+                            embeddingContextSize,
+                            resolveKnowledgeDocumentParserConfig(document).indexedFields
+                        )
+                        await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
+                    }
                     this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
+                    if (tableState) await this.tableMetadata.assertIndexCurrent(document, tableState)
                     syncResult = await this.documentService.syncChunksIncrementally(
                         { ...document, chunks },
                         vectorStore
@@ -217,6 +264,7 @@ export class KnowledgeDocumentConsumer {
                     const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
                     let count = 0
                     while (batchSize * count < chunks.length) {
+                        if (tableState) await this.tableMetadata.assertIndexCurrent(document, tableState)
                         const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
                         // Embedding usage may count searchContent; source chunk statistics always count pageContent.
                         let tokenUsed = 0
@@ -248,14 +296,17 @@ export class KnowledgeDocumentConsumer {
                         if (await this.checkIfJobCancelled(doc.id)) {
                             this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
                             const processDuration = new Date().getTime() - processBeginAt.getTime()
-                            await this.documentService.update(doc.id, {
-                                status: KBDocumentStatusEnum.CANCEL,
-                                processMsg: '',
-                                processDuration,
-                                processDuation: processDuration,
-                                progress: Number(progress),
-                                metadata: { ...doc.metadata, tokens: totalTokenUsed }
-                            })
+                            await this.updateDocumentProcessingMetadata(
+                                doc.id,
+                                {
+                                    status: KBDocumentStatusEnum.CANCEL,
+                                    processMsg: '',
+                                    processDuration,
+                                    processDuation: processDuration,
+                                    progress: Number(progress)
+                                },
+                                { tokens: totalTokenUsed }
+                            )
                             return
                         }
                         await this.updateDocumentProcessingMetadata(
@@ -269,6 +320,10 @@ export class KnowledgeDocumentConsumer {
                     }
                 }
 
+                if (tableState) {
+                    await this.tableMetadata.assertIndexCurrent(document, tableState)
+                    await this.tableMetadata.markApplied(document, tableState)
+                }
                 const processDuration = new Date().getTime() - processBeginAt.getTime()
                 await this.updateDocumentProcessingMetadata(
                     doc.id,
@@ -300,6 +355,10 @@ export class KnowledgeDocumentConsumer {
 
                 this.logger.debug(`[Job: entity '${job.id}'] End!`)
             } catch (err) {
+                if (err instanceof TableMetadataStaleError) {
+                    this.logger.debug(`[Job: entity '${job.id}'] Superseded table generation for '${document.id}'`)
+                    continue
+                }
                 this.logger.debug(`[Job: entity '${job.id}'] Error!`)
                 const processDuration = processBeginAt ? new Date().getTime() - processBeginAt.getTime() : null
                 await this.documentService.update(document.id, {

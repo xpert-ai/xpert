@@ -34,7 +34,11 @@ describe('document import payloads', () => {
       'kb',
       null
     )
-    expect(docs[0].parserConfig).toEqual({ indexedFields: ['name'], chunkSize: 512 })
+    expect(docs[0].parserConfig).toEqual({
+      indexedFields: ['name'],
+      chunkSize: 512,
+      spreadsheet: { interpretation: 'records', includeSheets: ['*'] }
+    })
     expect(docs[1].parserConfig).toEqual({ chunkSize: 512 })
     expect(docs[1].parent).toBeNull()
   })
@@ -76,7 +80,11 @@ describe('document import payloads', () => {
     })
     expect(docs[1].parserConfig.transformerType).toBeUndefined()
     expect(docs[1].parserConfig.chunkSize).toBe(800)
-    expect(docs[2].parserConfig).toEqual({ indexedFields: ['sku'], chunkSize: 800 })
+    expect(docs[2].parserConfig).toEqual({
+      indexedFields: ['sku'],
+      chunkSize: 800,
+      spreadsheet: { interpretation: 'records', includeSheets: ['*'] }
+    })
   })
   it('applies shared chunk settings to mixed batches without replacing spreadsheet conversion settings', () => {
     const sheetConfig = {
@@ -98,6 +106,7 @@ describe('document import payloads', () => {
     )
     expect(docs[0].parserConfig).toEqual({
       ...sheetConfig,
+      spreadsheet: { ...sheetConfig.spreadsheet, interpretation: 'records' },
       textSplitterType: 'auto',
       textSplitter: { chunkSize: 800, chunkOverlap: 40 },
       maxChunkTokens: 256
@@ -106,6 +115,30 @@ describe('document import payloads', () => {
     expect(sheetConfig.spreadsheet.includeSheets).toEqual(['Orders'])
     expect(sheetConfig.textSplitterType).toBe('recursive-character')
   })
+  it('inherits table defaults while keeping per-document false headers and blank instructions unless batch edits override them', () => {
+    const documents = [
+      {
+        type: 'xlsx',
+        category: KBDocumentCategoryEnum.Sheet,
+        parserConfig: {
+          spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] },
+          tableMetadataRequirements: ''
+        }
+      },
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }
+    ]
+    const defaults = { spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: 'Default instructions' }
+    const inherited = buildImportDocuments(documents, defaults, 'kb', null)
+    expect(inherited[0].parserConfig.spreadsheet.firstRowAsHeader).toBe(false)
+    expect(inherited[0].parserConfig.tableMetadataRequirements).toBe('')
+    expect(inherited[1].parserConfig).toMatchObject(defaults)
+    const edited = buildImportDocuments(documents, defaults, 'kb', null, {
+      tableOverrides: { firstRowAsHeader: true, tableMetadataRequirements: 'New instructions' }
+    })
+    expect(edited[0].parserConfig.spreadsheet.firstRowAsHeader).toBe(true)
+    expect(edited[0].parserConfig.tableMetadataRequirements).toBe('New instructions')
+  })
+
   it('uses the existing single-page crawl mode for quick URLs', () => {
     expect(quickWebOptions(' https://example.com/a ')).toEqual({
       url: 'https://example.com/a',
@@ -119,7 +152,10 @@ describe('document import payloads', () => {
       'kb',
       null
     )
-    expect(docs[0].parserConfig).toEqual({ indexedFields: ['sku'] })
+    expect(docs[0].parserConfig).toEqual({
+      indexedFields: ['sku'],
+      spreadsheet: { interpretation: 'records', includeSheets: ['*'] }
+    })
   })
   it('turns remote text results into document pages, never file uploaders', () => {
     const docs = remoteSourceDocuments([{ pageContent: 'Hello', metadata: { source: '/data/a.txt' } }])
@@ -130,4 +166,9 @@ describe('document import payloads', () => {
     })
     expect(() => remoteSourceDocuments([{ title: 'invalid' }])).toThrow()
   })
+})
+
+it('persists displayed record defaults for new spreadsheet imports', () => {
+  const [document] = buildImportDocuments([{ category: KBDocumentCategoryEnum.Sheet }], {}, 'kb', null)
+  expect(document.parserConfig.spreadsheet).toMatchObject({ interpretation: 'records', includeSheets: ['*'] })
 })

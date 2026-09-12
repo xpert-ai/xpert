@@ -1,3 +1,4 @@
+import type { KnowledgeTableColumn } from '@xpert-ai/contracts'
 import chardet from 'chardet'
 import fsPromises from 'fs/promises'
 import iconv from 'iconv-lite'
@@ -132,7 +133,7 @@ export async function loadCsvWithAutoEncoding(filePath: string) {
   return jsonData
 }
 
-export async function loadExcel(filePath: string) {
+export async function loadExcel(filePath: string, options?: { firstRowAsHeader?: boolean }) {
   const workbook = XLSX.readFile(filePath, {
     type: 'file',
     cellDates: true,
@@ -140,7 +141,7 @@ export async function loadExcel(filePath: string) {
   })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
 
-  const jsonData = XLSX.utils.sheet_to_json(sheet)
+  const jsonData = XLSX.utils.sheet_to_json(sheet, options?.firstRowAsHeader === false ? { header: 'A' } : undefined)
 
   return jsonData
 }
@@ -153,16 +154,27 @@ export interface LoadedSpreadsheetCell {
 }
 
 export interface LoadedSpreadsheetSheet {
+  index: number
   name: string
   range?: string
   hidden: boolean
   merges: string[]
   cells: LoadedSpreadsheetCell[]
   records: Record<string, unknown>[]
+  recordRows: number[]
+  headerRow?: number
+  columns: KnowledgeTableColumn[]
 }
 
 export interface LoadedSpreadsheetWorkbook {
   sheets: LoadedSpreadsheetSheet[]
+}
+
+export class SpreadsheetSourceRowError extends Error {
+  constructor() {
+    super()
+    this.name = 'SpreadsheetSourceRowError'
+  }
 }
 
 /**
@@ -170,15 +182,31 @@ export interface LoadedSpreadsheetWorkbook {
  * intended for form-like workbooks where values in nearby cells form one document,
  * rather than independent database records.
  */
-export async function loadExcelWorkbook(filePath: string): Promise<LoadedSpreadsheetWorkbook> {
-  const workbook = XLSX.readFile(filePath, {
-    type: 'file',
-    cellDates: true,
-    cellNF: false
-  })
+export async function loadExcelWorkbook(
+  filePath: string,
+  options?: { firstRowAsHeader?: boolean }
+): Promise<LoadedSpreadsheetWorkbook> {
+  return loadTableWorkbook(filePath, { format: 'excel', sheetMode: 'all', ...options })
+}
+
+/** Preserve the legacy first-sheet/raw-value path independently of header interpretation. */
+export async function loadTableWorkbook(
+  filePath: string,
+  options: { format: 'excel' | 'csv'; sheetMode: 'legacy' | 'all'; firstRowAsHeader?: boolean }
+): Promise<LoadedSpreadsheetWorkbook> {
+  const workbook =
+    options.format === 'csv'
+      ? XLSX.read(await decodeCsv(filePath), { type: 'string' })
+      : XLSX.readFile(filePath, { type: 'file', cellDates: true, cellNF: false })
+  const firstRowAsHeader = options.format === 'csv' || options.firstRowAsHeader !== false
+  const names = options.sheetMode === 'legacy' ? workbook.SheetNames.slice(0, 1) : workbook.SheetNames
+  const recordOptions: XLSX.Sheet2JSONOpts = {
+    ...(options.sheetMode === 'all' ? { defval: null, raw: false } : {}),
+    ...(!firstRowAsHeader ? { header: 'A' } : {})
+  }
 
   return {
-    sheets: workbook.SheetNames.map((name, index) => {
+    sheets: names.map((name, index) => {
       const sheet = workbook.Sheets[name]
       const visibility = workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0
       const cells = Object.entries(sheet)
@@ -197,19 +225,64 @@ export async function loadExcelWorkbook(filePath: string): Promise<LoadedSpreads
         .filter((cell) => cell.value.trim().length > 0)
         .sort((left, right) => left.row - right.row || left.column - right.column)
 
+      const records = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, recordOptions)
+      const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null
       return {
+        index,
         name,
         range: sheet['!ref'],
         hidden: visibility !== 0,
         merges: (sheet['!merges'] ?? []).map((merge) => XLSX.utils.encode_range(merge)),
         cells,
-        records: XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-          defval: null,
-          raw: false
+        records,
+        recordRows: records.map((record) => {
+          const row: unknown = Object.getOwnPropertyDescriptor(record, '__rowNum__')?.value
+          if (typeof row !== 'number') throw new SpreadsheetSourceRowError()
+          return row + 1
+        }),
+        ...(firstRowAsHeader && range ? { headerRow: range.s.r + 1 } : {}),
+        columns: spreadsheetColumns(sheet, firstRowAsHeader).map((column) => {
+          // Inspect native cells, before raw:false converts booleans to display strings.
+          const cells = records
+            .map((record) => {
+              const row: unknown = Object.getOwnPropertyDescriptor(record, '__rowNum__')?.value
+              if (typeof row !== 'number') throw new SpreadsheetSourceRowError()
+              return sheet[XLSX.utils.encode_cell({ r: row, c: column.column - 1 })] as XLSX.CellObject | undefined
+            })
+            .filter((cell) => cell && cell.v != null && cell.t !== 'z')
+          return {
+            ...column,
+            ...(cells.length && cells.every((cell) => cell.t === 'b') ? { valueType: 'boolean' as const } : {})
+          }
         })
       }
     })
   }
+}
+
+async function decodeCsv(filePath: string) {
+  const buffer = await fsPromises.readFile(filePath)
+  return iconv.decode(buffer, chardet.detect(buffer) || 'utf8')
+}
+
+/** Use the parser's header mapping even for header-only sheets and numeric/duplicate column labels. */
+function spreadsheetColumns(sheet: XLSX.WorkSheet, firstRowAsHeader: boolean): LoadedSpreadsheetSheet['columns'] {
+  if (!sheet['!ref']) return []
+  const range = XLSX.utils.decode_range(sheet['!ref'])
+  const headerSheet: XLSX.WorkSheet = {}
+  const dataRow = range.s.r + (firstRowAsHeader ? 1 : 0)
+  headerSheet['!ref'] = XLSX.utils.encode_range({ s: range.s, e: { r: dataRow, c: range.e.c } })
+  for (let column = range.s.c; column <= range.e.c; column++) {
+    const headerAddress = XLSX.utils.encode_cell({ r: range.s.r, c: column })
+    if (firstRowAsHeader && sheet[headerAddress]) headerSheet[headerAddress] = sheet[headerAddress]
+    headerSheet[XLSX.utils.encode_cell({ r: dataRow, c: column })] = { t: 'n', v: column + 1 }
+  }
+  const row = XLSX.utils.sheet_to_json<Record<string, unknown>>(headerSheet, firstRowAsHeader ? {} : { header: 'A' })[0]
+  return Object.entries(row ?? {})
+    .flatMap(([key, column]) =>
+      typeof column === 'number' ? [{ columnId: XLSX.utils.encode_col(column - 1), key, label: key, column }] : []
+    )
+    .sort((left, right) => left.column - right.column)
 }
 
 function formatSpreadsheetValue(value: unknown): string {

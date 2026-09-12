@@ -1,5 +1,10 @@
 {
     "Error": {
+        "KnowledgeTableMetadataReservedKey": "tableMetadata is reserved for generated table descriptions.",
+        "KnowledgeTableMetadataInvalidResponse": "The model returned invalid table metadata.",
+        "KnowledgeTableMetadataStale": "The table or its processing settings changed. Reprocess the document.",
+        "KnowledgeTableMetadataInputTooLarge": "The table metadata input exceeds the model context budget.",
+        "InvalidKnowledgeTableIndexedFields": "Selected table columns are unavailable in {{sheetName}}: {{fields}}. Preview the table and select valid columns.",
         "VisualEvidenceScopeRequired": "A governed KnowledgeDocument and evidence scope are required",
         "VisualEvidenceScopeInvalid": "The visual evidence audit scope is invalid",
 

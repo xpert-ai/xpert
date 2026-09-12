@@ -188,7 +188,6 @@ export class XpertNewKnowledgeComponent {
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
 
   readonly automaticTaggingEnabled = model(false)
-  readonly tableMetadataRequirements = model('')
 
   readonly retrieval = model<Partial<IKnowledgebase & TKBRetrievalSettings>>({
     recall: this.isFAQ()
@@ -401,7 +400,11 @@ export class XpertNewKnowledgeComponent {
 
     const processingError = !this.isFAQ() && this.processing.validation()
     if (processingError) {
-      this.activeSection.set(processingError.section === 'questions' ? 'advanced' : processingError.section)
+      this.activeSection.set(
+        processingError.section === 'questions' || processingError.section === 'table'
+          ? 'advanced'
+          : processingError.section
+      )
       this.#toastr.error(this.#translate.instant(processingError.key))
       return false
     }

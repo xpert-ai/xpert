@@ -6,7 +6,7 @@ import { By } from '@angular/platform-browser'
 import { ZardSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { KnowledgebaseService } from '@cloud/app/@core'
+import { KnowledgebaseService, KBDocumentCategoryEnum } from '@cloud/app/@core'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
@@ -95,6 +95,28 @@ describe('processing settings file-type visibility', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     expect(trigger.disabled).toBe(true)
+  })
+
+  it('shows the header control only for supported Excel record documents', async () => {
+    const { fixture, root } = setup()
+    for (const document of [
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet },
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Text },
+      { type: 'csv', category: KBDocumentCategoryEnum.Sheet },
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet, parserConfig: { transformerType: 'external' } },
+      {
+        type: 'xlsx',
+        category: KBDocumentCategoryEnum.Sheet,
+        parserConfig: { spreadsheet: { interpretation: 'form_document' } }
+      }
+    ]) {
+      fixture.componentRef.setInput('documents', [document])
+      fixture.detectChanges()
+      await fixture.whenStable()
+      expect(!!root.querySelector('[data-excel-header]')).toBe(
+        document.type === 'xlsx' && document.category === KBDocumentCategoryEnum.Sheet && !document.parserConfig
+      )
+    }
   })
 
   it('shows all parser types for knowledgebase defaults', async () => {

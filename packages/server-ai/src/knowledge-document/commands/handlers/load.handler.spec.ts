@@ -10,8 +10,100 @@ import { countTextTokens } from '@xpert-ai/plugin-sdk'
 import { computeObjectHash } from '@xpert-ai/server-core'
 import { pick } from '@xpert-ai/server-common'
 import * as language from '../../chunk-language'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import * as XLSX from 'xlsx'
 
 describe('KnowledgeDocLoadHandler', () => {
+    it('parses native Excel headers and table sources together while retaining the legacy first worksheet', async () => {
+        const directory = await mkdtemp(join(tmpdir(), 'knowledge-table-load-'))
+        try {
+            const workbook = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(
+                workbook,
+                XLSX.utils.aoa_to_sheet([
+                    ['Name', 'Value'],
+                    ['First', 0]
+                ]),
+                'One'
+            )
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['Other'], ['Second']]), 'Two')
+            const filePath = join(directory, 'table.xlsx')
+            XLSX.writeFile(workbook, filePath)
+            const handler = new KnowledgeDocLoadHandler({} as never, {} as never, {} as never)
+            Object.assign(handler, {
+                knowledgeWorkAreaResolver: { resolve: async () => ({ volume: { path: () => filePath } }) }
+            })
+            const result = await handler.execute(
+                new KnowledgeDocLoadCommand({
+                    stage: 'test',
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'xlsx',
+                        category: KBDocumentCategoryEnum.Sheet,
+                        name: 'table.xlsx',
+                        filePath: 'table.xlsx',
+                        parserConfig: { spreadsheet: { firstRowAsHeader: false } }
+                    } as IKnowledgeDocument
+                })
+            )
+            expect(result.chunks.map((chunk) => chunk.pageContent)).toEqual([
+                '{"A":"Name","B":"Value"}',
+                '{"A":"First","B":0}'
+            ])
+            expect(result).toMatchObject({ tables: [{ tableId: 'sheet:0', sheetName: 'One', rowCount: 2 }] })
+            expect(result.chunks[0].metadata.tableSource).toEqual({ tableId: 'sheet:0', rowNumber: 1, range: 'A1:B1' })
+            const selected = await handler.execute(
+                new KnowledgeDocLoadCommand({
+                    stage: 'prod',
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'xlsx',
+                        category: KBDocumentCategoryEnum.Sheet,
+                        name: 'table.xlsx',
+                        filePath: 'table.xlsx',
+                        parserConfig: { spreadsheet: { interpretation: 'records', includeSheets: ['Two'] } }
+                    } as IKnowledgeDocument
+                })
+            )
+            expect(selected.chunks.map((chunk) => chunk.pageContent)).toEqual(['{"Other":"Second"}'])
+            expect(selected.tables).toMatchObject([{ tableId: 'sheet:1', sheetName: 'Two', headerRow: 1, rowCount: 1 }])
+        } finally {
+            await rm(directory, { recursive: true, force: true })
+        }
+    })
+    it('keeps CSV column headers even when Excel first-row headers are disabled', async () => {
+        const directory = await mkdtemp(join(tmpdir(), 'knowledge-csv-load-'))
+        try {
+            const filePath = join(directory, 'table.csv')
+            await writeFile(filePath, 'Name,Count\nAlice,0\n')
+            const handler = new KnowledgeDocLoadHandler({} as never, {} as never, {} as never)
+            Object.assign(handler, {
+                knowledgeWorkAreaResolver: { resolve: async () => ({ volume: { path: () => filePath } }) }
+            })
+            const result = await handler.execute(
+                new KnowledgeDocLoadCommand({
+                    stage: 'test',
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'csv',
+                        category: KBDocumentCategoryEnum.Sheet,
+                        name: 'renamed.xlsx',
+                        filePath: 'table.csv',
+                        parserConfig: { spreadsheet: { firstRowAsHeader: false } }
+                    } as IKnowledgeDocument
+                })
+            )
+            expect(result.chunks.map((chunk) => chunk.pageContent)).toEqual(['{"Name":"Alice","Count":0}'])
+            expect(result.tables[0]).toMatchObject({ headerRow: 1, rowCount: 1 })
+        } finally {
+            await rm(directory, { recursive: true, force: true })
+        }
+    })
     it('detects once across batches and invalidates batch caches when the public hint or document language changes', async () => {
         const detector = jest.spyOn(language, 'detectChunkLanguage')
         const handler = new KnowledgeDocLoadHandler({} as KnowledgebaseService, {} as CommandBus, {} as QueryBus)

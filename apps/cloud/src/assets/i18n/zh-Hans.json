@@ -6587,6 +6587,34 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "TableMetadata": {
+        "Title": "表格元数据",
+        "Scope": "适用于默认解析器的 CSV/XLS/XLSX 记录模式。表单文档、自定义解析器、文本模式和流水线暂不支持。",
+        "RequirementsHelp": "可补充业务背景，留空使用默认要求。新导入或显式重处理时，使用知识库 LLM 生成表说明和列说明。",
+        "InvalidRequirements": "表格元数据生成要求不能超过 4000 字。",
+        "InvalidIndexedFields": "已选索引列与当前表格不一致，请预览后重新选择。",
+        "NoIndexedFields": "请至少选择一个索引列。",
+        "ReprocessHint": "可通过文档处理设置重新处理，重试元数据生成。",
+        "Column": "列",
+        "Description": "字段说明",
+        "Unit": "单位",
+        "ValueMeanings": "值含义",
+        "Dimensions": "{{rows}} 行 · {{columns}} 列",
+        "NotGenerated": "尚未生成表格元数据。",
+        "SelectAllFields": "选择当前全部列",
+        "Status": {
+          "generating": "正在生成",
+          "generated": "已生成，等待索引",
+          "ready": "已就绪",
+          "failed": "生成失败",
+          "skipped": "已跳过"
+        },
+        "Reason": {
+          "missing_model": "请配置知识库 LLM 后生成表格元数据。",
+          "no_data": "没有可用于生成元数据的数据。",
+          "unsupported": "当前解析模式不支持表格元数据。"
+        }
+      },
       "PipelineFlow": {
         "Source": "选择数据源",
         "Settings": "处理设置",
@@ -6679,6 +6707,8 @@
         "BatchOtherFormats": "此格式使用现有文档解析流程。"
       },
       "Import": {
+        "TableMetadata": "表格元数据",
+        "InvalidIndexedFields": "已选索引列与当前表格不一致，请预览后重新选择。",
         "EditDefaultsHint": "这里的修改只作用于当前文档，保存后执行所选处理操作。",
         "Close": "关闭",
         "Cancel": "取消",
@@ -7199,6 +7229,8 @@
             "Builtin": "内置",
             "SimpleDefault": "Simple（默认）"
           },
+          "FirstRowAsHeader": "首行作为表头",
+          "FirstRowAsHeaderHelp": "仅适用于 Excel 记录模式。使用区域的首行提供列名；关闭后首行保留为数据，列名使用 A/B/C。",
           "ExcelHeaderRow": "将首行作为列标题，并保留在每行上下文中。"
         },
         "Chunk": {

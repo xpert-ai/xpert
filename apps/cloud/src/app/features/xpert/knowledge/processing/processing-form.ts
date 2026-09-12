@@ -20,7 +20,7 @@ import { createParentChildChunkForm } from './parent-child-form'
 import { createSeparatorSelectOptions } from './separator-options'
 
 export const PROCESSING_I18N_PREFIX = 'XP.Knowledgebase.WorkspaceConfiguration'
-export type KnowledgeProcessingSection = 'parser' | 'chunk' | 'image' | 'audio' | 'questions'
+export type KnowledgeProcessingSection = 'parser' | 'chunk' | 'image' | 'audio' | 'questions' | 'table'
 export interface KnowledgeProcessingFormOptions {
   config?: Partial<KnowledgebaseParserConfig>
   visionModel?: ICopilotModel
@@ -107,6 +107,14 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
 
   const { separatorOptions, compareSeparators, displaySeparator, separatorTagOptions, separatorLabelKey } =
     createSeparatorSelectOptions()
+
+  const firstRowAsHeader = signal(initialConfig.spreadsheet?.firstRowAsHeader ?? true)
+  const tableMetadataRequirementsControl = new FormControl(initialConfig.tableMetadataRequirements ?? '', [
+    Validators.maxLength(4000)
+  ])
+  const tableMetadataRequirements = toSignal(tableMetadataRequirementsControl.valueChanges, {
+    initialValue: tableMetadataRequirementsControl.value
+  })
 
   const questionGenerationEnabled = signal(initialConfig.questionGeneration?.enabled ?? false)
   const questionModel = signal<ICopilotModel | undefined>(initialConfig.questionGeneration?.model)
@@ -200,6 +208,8 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
   })
   const config = computed<KnowledgebaseParserConfig>(() => ({
     ...initialConfig,
+    spreadsheet: { ...initialConfig.spreadsheet, firstRowAsHeader: firstRowAsHeader() },
+    tableMetadataRequirements: tableMetadataRequirements() ?? '',
     chunkSize: chunkSize(),
     chunkOverlap: chunkOverlap(),
     maxChunkTokens: maxChunkTokens() ?? 0,
@@ -262,6 +272,9 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     section: KnowledgeProcessingSection
     key: string
   } | null {
+    if ((tableMetadataRequirements()?.length ?? 0) > 4000 || tableMetadataRequirementsControl.invalid) {
+      return { section: 'table', key: 'XP.Knowledgebase.TableMetadata.InvalidRequirements' }
+    }
     const questionsError = validateQuestions()
     if (questionsError) return questionsError
     // Read the signal so validation recomputes on reactive control edits.
@@ -326,6 +339,9 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     compareSeparators,
     displaySeparator,
     separatorTagOptions,
+    firstRowAsHeader,
+    tableMetadataRequirementsControl,
+    tableMetadataRequirements,
     questionGenerationEnabled,
     questionModel,
     validateQuestions,
