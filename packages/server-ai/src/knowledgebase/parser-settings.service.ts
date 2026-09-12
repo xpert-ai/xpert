@@ -15,7 +15,8 @@ import {
     invalidKnowledgeParserConfig,
     validateMaxChunkTokens,
     validateChunkLanguageHint,
-    validateSeparators
+    validateSeparators,
+    validateKnowledgeTableSettings
 } from '../knowledge-document/parser-validation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { splitKnowledgeDocuments } from '../knowledge-document/split-documents'
@@ -31,6 +32,7 @@ export class KnowledgeParserSettingsService {
         if (!config || typeof config !== 'object' || Array.isArray(config)) {
             throw invalidKnowledgeParserConfig('parserConfig')
         }
+        validateKnowledgeTableSettings(config)
         validateSeparators(config.separators)
         if (config.separators !== undefined && !Array.isArray(config.separators)) {
             throw invalidKnowledgeParserConfig('separators')
@@ -60,6 +62,7 @@ export class KnowledgeParserSettingsService {
     }
 
     async validateSplitter(config: DocumentParserConfig): Promise<KnowledgeStructureEnum> {
+        validateKnowledgeTableSettings(config)
         validateMaxChunkTokens(config.maxChunkTokens)
         validateChunkLanguageHint(config.chunkLanguageHint)
         validateQuestionGeneration(config.questionGeneration)

@@ -75,6 +75,12 @@ import { TDocChunkMetadata } from './types'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries/get-owned-storage-file.query'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentPublication } from './document-publication'
+import {
+    protectTableChunkMetadata,
+    withoutGeneratedTableMetadata,
+    writePublicDocumentMetadata
+} from './table-metadata-input'
+import { validateKnowledgeTableSettings } from './parser-validation'
 
 type OriginalFileDownloadTarget = {
     absolutePath: string
@@ -934,6 +940,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
     async resolveNewDocumentParserConfig(document: Partial<IKnowledgeDocument>, persistStructure = false) {
         if (document.type === DocumentTypeEnum.FOLDER) return document.parserConfig ?? {}
+        validateKnowledgeTableSettings(document.parserConfig)
         const knowledgebase = document.knowledgebaseId
             ? await this.knowledgebaseService.findOneByIdString(document.knowledgebaseId)
             : null
@@ -1192,6 +1199,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.knowledgebaseService.assertNotRebuilding(current.knowledgebaseId)
 
         const changes = { ...entity }
+        if (changes.parserConfig !== undefined) validateKnowledgeTableSettings(changes.parserConfig)
         if (changes.knowledgebaseId && changes.knowledgebaseId !== current.knowledgebaseId) {
             throw new BadRequestException('knowledgebaseId cannot be changed after a document is created')
         }
@@ -1234,6 +1242,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             changes.mimeType = normalizeMimeType(changes.mimeType) as string
         }
         if (changes.metadata) {
+            changes.metadata = withoutGeneratedTableMetadata(changes.metadata)
             const knowledgebase = await this.knowledgebaseService.findOne(current.knowledgebaseId)
             validateMetadataAgainstSchema(changes.metadata, knowledgebase.metadataSchema, 'document')
         }
@@ -1252,10 +1261,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         const affectedDocumentIds = [id]
         const result = await this.dataSource.transaction(async (manager) => {
             const repository = manager.getRepository(KnowledgeDocument) as unknown as VersionedKnowledgeDocumentUpdater
-            const updateResult = await repository.update({ id, version: expectedVersion }, patch)
+            const { metadata, ...versionedPatch } = patch
+            const updateResult = await repository.update({ id, version: expectedVersion }, versionedPatch)
             if (!updateResult.affected) {
                 throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
             }
+            if (metadata !== undefined) await writePublicDocumentMetadata(manager, id, metadata)
             if (oldPrefix && newPrefix && oldPrefix !== newPrefix) {
                 const descendants: Array<{ id: string }> = await manager.query(
                     `SELECT "id" FROM "knowledge_document"
@@ -1663,6 +1674,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         delete metadata.questionGenerationId
         delete metadata.questionSourceChunkId
         delete metadata.generatedQuestionId
+        protectTableChunkMetadata(metadata)
         validateMetadataAgainstSchema(metadata, document.knowledgebase?.metadataSchema, 'chunk')
         const contentHash = computeKnowledgeDocumentChunkHash({
             pageContent: entity.pageContent,
@@ -1800,6 +1812,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         delete metadata.questionSourceChunkId
         delete metadata.generatedQuestionId
         const pageContent = entity.pageContent ?? stored.pageContent
+        protectTableChunkMetadata(metadata, stored.metadata, pageContent !== stored.pageContent)
         const merged = {
             ...stored,
             id,
@@ -2211,6 +2224,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async validateDocumentMetadataInput(document: Partial<IKnowledgeDocument>) {
+        document.metadata = withoutGeneratedTableMetadata(document.metadata)
         if (!document.metadata || !document.knowledgebaseId) return
         const knowledgebase =
             document.knowledgebase?.metadataSchema != null

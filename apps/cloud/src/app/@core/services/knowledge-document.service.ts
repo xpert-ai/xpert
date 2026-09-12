@@ -1,4 +1,4 @@
-import type { KnowledgeChunkQuestions } from '@xpert-ai/contracts'
+import type { KnowledgeChunkQuestions, KnowledgeTablePreview } from '@xpert-ai/contracts'
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -151,6 +151,10 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
 
   estimate(doc: Partial<IKnowledgeDocument>) {
     return this.httpClient.post<IKnowledgeDocumentChunk[]>(this.apiBaseUrl + `/estimate`, doc)
+  }
+
+  estimateTable(doc: Partial<IKnowledgeDocument>) {
+    return this.httpClient.post<KnowledgeTablePreview>(this.apiBaseUrl + '/estimate-table', doc)
   }
 
   getStatus(ids: string[]) {

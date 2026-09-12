@@ -32,6 +32,7 @@ import {
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
 import { KnowledgeProcessingLifecycleModule } from './processing-lifecycle.module'
+import { KnowledgeTableMetadataService } from './tables/table-metadata.service'
 
 @Module({
     imports: [
@@ -60,6 +61,7 @@ import { KnowledgeProcessingLifecycleModule } from './processing-lifecycle.modul
     ],
     controllers: [KnowledgeDocumentController, KnowledgeQuestionGenerationController],
     providers: [
+        KnowledgeTableMetadataService,
         KnowledgeQuestionGenerationService,
         KnowledgeQuestionsConsumer,
         KnowledgeQuestionsEnqueueHandler,
@@ -74,6 +76,7 @@ import { KnowledgeProcessingLifecycleModule } from './processing-lifecycle.modul
         ...QueryHandlers
     ],
     exports: [
+        KnowledgeTableMetadataService,
         KnowledgeDocumentService,
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,

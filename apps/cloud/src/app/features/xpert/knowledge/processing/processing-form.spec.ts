@@ -32,6 +32,27 @@ describe('shared knowledge processing draft', () => {
 
   afterEach(() => TestBed.resetTestingModule())
 
+  it('round-trips false headers and optional table instructions without changing spreadsheet mode', () => {
+    const { form } = setup({
+      config: {
+        spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] },
+        tableMetadataRequirements: 'Explain units'
+      }
+    })
+    expect(form.firstRowAsHeader()).toBe(false)
+    expect(form.config().spreadsheet).toEqual({ firstRowAsHeader: false, includeSheets: ['Orders'] })
+    expect(form.tableMetadataRequirements()).toBe('Explain units')
+    form.tableMetadataRequirementsControl.setValue('')
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    expect(reopened.tableMetadataRequirements()).toBe('')
+    expect(reopened.firstRowAsHeader()).toBe(false)
+    expect(reopened.config().spreadsheet.interpretation).toBeUndefined()
+    form.tableMetadataRequirementsControl.setValue('x'.repeat(4001))
+    expect(form.validation()).toEqual({ section: 'table', key: 'XP.Knowledgebase.TableMetadata.InvalidRequirements' })
+    form.tableMetadataRequirementsControl.setValue('x'.repeat(4000))
+    expect(form.validation()).toBeNull()
+  })
+
   it('saves and restores all public language hints without serializing implicit separators', () => {
     const { form } = setup()
     expect(form.chunkLanguageHint()).toBe('auto')

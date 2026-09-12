@@ -905,6 +905,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 throw new BadRequestException(`Metadata schema field ${index + 1} is invalid.`)
             }
             const key = typeof definition.key === 'string' ? definition.key.trim() : ''
+            if (key === 'tableMetadata') {
+                throw new BadRequestException(t('server-ai:Error.KnowledgeTableMetadataReservedKey'))
+            }
             if (!key || key.length > 128 || !/^[\p{L}\p{N}_-]+$/u.test(key)) {
                 throw new BadRequestException(
                     `Metadata field key '${key}' must be 1-128 letters, numbers, underscores or hyphens.`

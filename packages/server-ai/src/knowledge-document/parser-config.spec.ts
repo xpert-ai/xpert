@@ -109,6 +109,43 @@ describe('resolveKnowledgeDocumentParserConfig precedence', () => {
 })
 
 describe('resolveKnowledgeDocumentParserConfig for spreadsheets', () => {
+    it('inherits table requirements and Excel header defaults without changing the legacy interpretation', () => {
+        const defaults = {
+            chunkSize: 512,
+            chunkOverlap: 0,
+            delimiter: null,
+            spreadsheet: { firstRowAsHeader: false },
+            tableMetadataRequirements: 'Describe units'
+        }
+        const excel = resolveKnowledgeDocumentParserConfig(
+            { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet },
+            defaults
+        )
+        expect(excel).toEqual({ spreadsheet: { firstRowAsHeader: false }, tableMetadataRequirements: 'Describe units' })
+        expect(
+            resolveKnowledgeDocumentParserConfig(
+                {
+                    type: 'xlsx',
+                    category: KBDocumentCategoryEnum.Sheet,
+                    parserConfig: { spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: '' }
+                },
+                defaults
+            )
+        ).toEqual({ spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: '' })
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'csv', category: KBDocumentCategoryEnum.Sheet }, defaults)
+        ).toEqual({ tableMetadataRequirements: 'Describe units' })
+        expect(
+            resolveKnowledgeDocumentParserConfig(
+                {
+                    type: 'xlsx',
+                    category: KBDocumentCategoryEnum.Sheet,
+                    parserConfig: { spreadsheet: { interpretation: 'form_document' } }
+                },
+                defaults
+            )
+        ).toEqual({ spreadsheet: { interpretation: 'form_document' } })
+    })
     it('retains platform spreadsheet interpretation settings', () => {
         expect(
             resolveKnowledgeDocumentParserConfig({

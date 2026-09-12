@@ -7,7 +7,8 @@ import {
     IKnowledgeDocument,
     KBDocumentCategoryEnum,
     KnowledgebaseParserConfig,
-    knowledgebaseDocumentParserDefaults
+    knowledgebaseDocumentParserDefaults,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
 
 export type ResolvedKnowledgeDocumentParserConfig = DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
@@ -69,7 +70,7 @@ const IMAGE_EXTENSIONS = new Set([
 ])
 
 export function resolveKnowledgeDocumentParserConfig(
-    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig'>,
+    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig' | 'sourceConfig'>,
     knowledgebaseDefaults?: KnowledgebaseParserConfig | null
 ): ResolvedKnowledgeDocumentParserConfig {
     const type = normalizeDocumentType(document.type)
@@ -78,6 +79,7 @@ export function resolveKnowledgeDocumentParserConfig(
         (type ? classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>) : KBDocumentCategoryEnum.Text)
     const defaults = defaultParserConfigFor(type, category)
     const explicit = sanitizeParserConfigForDocument(document.parserConfig, type, category)
+    const nativeTable = isNativeKnowledgeTableDocument({ ...document, type, category, parserConfig: explicit })
     const inherited =
         category === KBDocumentCategoryEnum.Text || category === KBDocumentCategoryEnum.Image
             ? sanitizeParserConfigForDocument(
@@ -86,7 +88,19 @@ export function resolveKnowledgeDocumentParserConfig(
                   category
               )
             : category === KBDocumentCategoryEnum.Sheet
-              ? defined({ questionGeneration: knowledgebaseDefaults?.questionGeneration })
+              ? defined({
+                    questionGeneration: knowledgebaseDefaults?.questionGeneration,
+                    ...(nativeTable
+                        ? {
+                              tableMetadataRequirements: knowledgebaseDefaults?.tableMetadataRequirements,
+                              ...(type !== 'csv' && knowledgebaseDefaults?.spreadsheet
+                                  ? {
+                                        spreadsheet: { ...knowledgebaseDefaults.spreadsheet }
+                                    }
+                                  : {})
+                          }
+                        : {})
+                })
               : {}
     const effective = mergeParserConfig(mergeParserConfig(defaults, inherited), explicit)
     const result = mergeParserConfig(defaults, effective)
@@ -138,6 +152,7 @@ function sanitizeParserConfigForDocument(
     const splitter = defined({ textSplitterType: config.textSplitterType, textSplitter: config.textSplitter })
     if (category === KBDocumentCategoryEnum.Sheet) {
         return defined({
+            tableMetadataRequirements: config.tableMetadataRequirements,
             questionGeneration: config.questionGeneration,
             fields: config.fields,
             indexedFields: config.indexedFields,

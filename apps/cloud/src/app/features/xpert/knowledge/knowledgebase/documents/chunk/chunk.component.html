@@ -169,6 +169,9 @@
       </div>
 
       <div class="px-4 overflow-auto" waIntersectionObserver waIntersectionThreshold="0.5">
+        @if (document()) {
+          <xp-knowledge-table-metadata [document]="document()" />
+        }
         <ng-template #questionPanel let-chunk let-label="label">
           <xp-knowledge-chunk-questions [documentId]="documentId()" [chunk]="chunk" [chunkLabel]="label" />
         </ng-template>

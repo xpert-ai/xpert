@@ -1,4 +1,4 @@
-import type { DocumentTextParserConfig } from './knowledge-doc.model'
+import type { DocumentTextParserConfig, DocumentSheetParserConfig } from './knowledge-doc.model'
 import type { KnowledgebaseParserConfig } from './knowledgebase.model'
 import type { IKnowledgeDocumentChunk, IDocChunkMetadata } from './knowledge-doc-chunk.model'
 import type { KnowledgeChunkingDecision, KnowledgeChunkLanguageDecision } from './knowledge-chunking.model'
@@ -19,9 +19,13 @@ export interface KnowledgeChunkPreviewResult {
 export function knowledgebaseDocumentParserDefaults(
   config?: KnowledgebaseParserConfig | null,
   documentType?: string
-): DocumentTextParserConfig {
+): DocumentTextParserConfig & Partial<DocumentSheetParserConfig> {
   if (!config) return {}
   return {
+    ...(config.spreadsheet ? { spreadsheet: { ...config.spreadsheet } } : {}),
+    ...(config.tableMetadataRequirements !== undefined
+      ? { tableMetadataRequirements: config.tableMetadataRequirements }
+      : {}),
     ...(config.questionGeneration ? { questionGeneration: { ...config.questionGeneration } } : {}),
     ...(config.chunkLanguageHint !== undefined ? { chunkLanguageHint: config.chunkLanguageHint } : {}),
     ...(config.maxChunkTokens !== undefined ? { maxChunkTokens: config.maxChunkTokens } : {}),

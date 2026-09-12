@@ -9,9 +9,19 @@ import {
     IKnowledgeDocument,
     IKnowledgeDocumentChunk,
     KBDocumentCategoryEnum,
-    KBDocumentStatusEnum
+    KBDocumentStatusEnum,
+    KnowledgeTableSource,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
-import { getErrorMessage, loadCsvWithAutoEncoding, loadExcel, loadExcelWorkbook, pick } from '@xpert-ai/server-common'
+import {
+    getErrorMessage,
+    loadCsvWithAutoEncoding,
+    loadExcel,
+    loadExcelWorkbook,
+    loadTableWorkbook,
+    SpreadsheetSourceRowError,
+    pick
+} from '@xpert-ai/server-common'
 import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -40,7 +50,12 @@ import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
 import { resolveKnowledgeDocumentTransformerIdentity } from '../../document-hash'
 import { KnowledgeDocumentTransformSnapshotService } from '../../transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from '../../analysis-snapshot.service'
-import { createSpreadsheetFormDocuments, createSpreadsheetRecordDocuments } from '../../spreadsheet-document'
+import {
+    createSpreadsheetFormDocuments,
+    createSpreadsheetRecordDocuments,
+    createSpreadsheetRecordResult
+} from '../../spreadsheet-document'
+import { invalidKnowledgeParserConfig, validateKnowledgeTableSettings } from '../../parser-validation'
 
 type ImageUnderstandingWarning = {
     type: 'image_understanding_skipped' | 'image_understanding_failed'
@@ -83,8 +98,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         private readonly queryBus: QueryBus
     ) {}
 
-    public async execute(command: KnowledgeDocLoadCommand): Promise<{ chunks: Document[]; pages?: Document[] }> {
+    public async execute(
+        command: KnowledgeDocLoadCommand
+    ): Promise<{ chunks: Document[]; pages?: Document[]; tables?: KnowledgeTableSource[] }> {
         const { doc, stage, mode = 'full' } = command.input
+        validateKnowledgeTableSettings(doc.parserConfig)
         const docParserConfig = resolveKnowledgeDocumentParserConfig(doc)
 
         let visionModel: BaseChatModel | undefined
@@ -99,6 +117,26 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             documentId: doc.id
         })
         const volumeClient = workArea.volume
+
+        if (isNativeKnowledgeTableDocument({ ...doc, parserConfig: docParserConfig })) {
+            const format = doc.type.replace(/^\./, '').toLowerCase() === 'csv' ? 'csv' : 'excel'
+            const legacy = format === 'csv' || docParserConfig.spreadsheet?.interpretation !== 'records'
+            const workbook = await loadTableWorkbook(volumeClient.path(doc.filePath), {
+                format,
+                sheetMode: legacy ? 'legacy' : 'all',
+                firstRowAsHeader: docParserConfig.spreadsheet?.firstRowAsHeader
+            }).catch((error: unknown) => {
+                if (error instanceof SpreadsheetSourceRowError) throw invalidKnowledgeParserConfig('table source row')
+                throw error
+            })
+            return createSpreadsheetRecordResult({
+                documentId: doc.id,
+                workbook,
+                config: docParserConfig.spreadsheet,
+                indexedFields: docParserConfig.indexedFields,
+                legacy
+            })
+        }
 
         const hasCustomSheetTransformer = Boolean(
             docParserConfig.transformerType && docParserConfig.transformerType !== 'default'

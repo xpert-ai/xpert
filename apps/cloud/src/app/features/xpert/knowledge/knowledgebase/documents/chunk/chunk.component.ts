@@ -1,3 +1,4 @@
+import { KnowledgeTableMetadataComponent } from './table-metadata.component'
 import { KnowledgeChunkQuestionsComponent } from './chunk-questions.component'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -60,6 +61,7 @@ import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.co
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent,
     KnowledgeChunkQuestionsComponent,
+    KnowledgeTableMetadataComponent,
     CopyComponent,
     KnowledgeDocumentAnalysisPreviewComponent
   ]
@@ -153,7 +155,9 @@ export class KnowledgeDocumentChunkComponent {
 
   // Metadata schema
   readonly metadataSchema = computed(() => this.knowledgebase()?.metadataSchema || [])
-  readonly documentMetadataSchema = computed(() => this.metadataSchema().filter((field) => field.scope !== 'chunk'))
+  readonly documentMetadataSchema = computed(() =>
+    this.metadataSchema().filter((field) => field.scope !== 'chunk' && field.key !== 'tableMetadata')
+  )
   readonly chunkMetadataSchema = computed(() => this.metadataSchema().filter((field) => field.scope === 'chunk'))
   readonly showMetadata = signal(false)
   readonly editMetadata = signal(false)
@@ -543,11 +547,13 @@ export class KnowledgeDocumentChunkComponent {
   }
 
   saveMetadata() {
+    const metadata = { ...this.metadata() }
+    delete metadata.tableMetadata
     this.loading.set(true)
     this.knowledgeDocumentService
       .update(this.document().id, {
         version: this.document().version,
-        metadata: this.metadata()
+        metadata
       })
       .subscribe({
         next: () => {

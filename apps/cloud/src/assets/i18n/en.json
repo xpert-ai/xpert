@@ -4549,6 +4549,34 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "TableMetadata": {
+        "Title": "Table metadata",
+        "Scope": "Available for CSV/XLS/XLSX record tables using the default parser. Form documents, custom parsers, text mode and pipelines are not supported.",
+        "RequirementsHelp": "Optional business guidance. Leave blank to use the default rules. New imports and explicit reprocessing use the knowledge base LLM to generate table and column descriptions.",
+        "InvalidRequirements": "Table metadata requirements must not exceed 4000 characters.",
+        "InvalidIndexedFields": "Selected columns no longer match this table. Preview the table and select valid columns.",
+        "NoIndexedFields": "Select at least one column to index.",
+        "ReprocessHint": "Use the document processing settings to reprocess and retry metadata generation.",
+        "Column": "Column",
+        "Description": "Description",
+        "Unit": "Unit",
+        "ValueMeanings": "Value meanings",
+        "Dimensions": "{{rows}} rows · {{columns}} columns",
+        "NotGenerated": "Metadata has not been generated.",
+        "SelectAllFields": "Select all current columns",
+        "Status": {
+          "generating": "Generating",
+          "generated": "Generated, waiting for indexing",
+          "ready": "Ready",
+          "failed": "Generation failed",
+          "skipped": "Skipped"
+        },
+        "Reason": {
+          "missing_model": "Configure the knowledge base LLM to generate table metadata.",
+          "no_data": "No data is available for metadata generation.",
+          "unsupported": "This parsing mode does not support table metadata."
+        }
+      },
       "PipelineFlow": {
         "Source": "Data source",
         "Settings": "Processing settings",
@@ -4641,6 +4669,8 @@
         "BatchOtherFormats": "Use the existing document parser for this format."
       },
       "Import": {
+        "TableMetadata": "Table metadata",
+        "InvalidIndexedFields": "Selected columns no longer match this table. Preview the table and select valid columns.",
         "EditDefaultsHint": "Settings apply only to this document. Saving starts the selected processing operation.",
         "Close": "Close",
         "Cancel": "Cancel",
@@ -5161,6 +5191,8 @@
             "Builtin": "Built-in",
             "SimpleDefault": "Simple (default)"
           },
+          "FirstRowAsHeader": "Use the first row as headers",
+          "FirstRowAsHeaderHelp": "Excel record mode only. The first row of the used range supplies column names. When disabled, keep that row as data and use A/B/C column keys.",
           "ExcelHeaderRow": "Use the first row as column headers and retain it in each row's context."
         },
         "Chunk": {

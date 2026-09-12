@@ -1,5 +1,34 @@
 <div class="@container block min-w-0">
   @switch (section()) {
+    @case ('table') {
+      <section class="block min-w-0 w-full" data-table-metadata-settings>
+        <p class="mb-4 text-sm text-text-tertiary">{{ 'XP.Knowledgebase.TableMetadata.Scope' | translate }}</p>
+        @if (showTableMetadata()) {
+          <z-form-field class="block py-4">
+            <z-form-label>{{ i18nPrefix + '.Advanced.TableMetadataRequirements' | translate }}</z-form-label>
+            <p class="my-2 text-sm text-text-tertiary">
+              {{ 'XP.Knowledgebase.TableMetadata.RequirementsHelp' | translate }}
+            </p>
+            <textarea
+              z-input
+              class="min-h-28 w-full resize-y"
+              maxlength="4000"
+              [formControl]="form().tableMetadataRequirementsControl"
+              [placeholder]="i18nPrefix + '.Advanced.TableMetadataRequirementsPlaceholder' | translate"
+            ></textarea>
+            <p class="mt-1 text-right text-xs text-text-tertiary">
+              {{ form().tableMetadataRequirements()?.length ?? 0 }}/4000
+            </p>
+            @if (form().tableMetadataRequirementsControl.invalid) {
+              <z-form-message zType="error">{{
+                'XP.Knowledgebase.TableMetadata.InvalidRequirements' | translate
+              }}</z-form-message>
+            }
+          </z-form-field>
+        }
+      </section>
+    }
+
     @case ('parser') {
       <section class="block min-w-0 w-full">
         @if (showHeading()) {
@@ -88,12 +117,23 @@
                   }
                 </div>
               </div>
-              <span class="text-sm text-text-tertiary">{{
-                (scope() === 'documents'
-                  ? 'XP.Knowledgebase.SharedProcessing.BatchOtherFormats'
-                  : i18nPrefix + '.Implemented.OtherFormats'
-                ) | translate
-              }}</span>
+              @if (row.key === 'excel' && showExcelHeader()) {
+                <div class="space-y-2" data-excel-header>
+                  <z-switch [ngModel]="form().firstRowAsHeader()" (ngModelChange)="form().firstRowAsHeader.set($event)">
+                    {{ i18nPrefix + '.Parser.FirstRowAsHeader' | translate }}
+                  </z-switch>
+                  <p class="text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.Parser.FirstRowAsHeaderHelp' | translate }}
+                  </p>
+                </div>
+              } @else {
+                <span class="text-sm text-text-tertiary">{{
+                  (scope() === 'documents'
+                    ? 'XP.Knowledgebase.SharedProcessing.BatchOtherFormats'
+                    : i18nPrefix + '.Implemented.OtherFormats'
+                  ) | translate
+                }}</span>
+              }
             </div>
           }
         </div>

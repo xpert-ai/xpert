@@ -6,6 +6,10 @@ import {
     IKnowledgeDocument,
     IModelAccessResolution,
     KBDocumentStatusEnum,
+    KBDocumentCategoryEnum,
+    KnowledgeTableMetadata,
+    KnowledgeTableSource,
+    KnowledgebaseTypeEnum,
     ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum
@@ -21,6 +25,11 @@ import { KnowledgeDocumentConsumer } from './document.job'
 import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
 import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+import { projectTableMetadata } from './tables/table-metadata'
+import { TableMetadataStaleError } from './tables/table-metadata.service'
+import { conservativeEmbeddingTokenCount } from './embedding-input-guard'
+import { Document } from '@langchain/core/documents'
+import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 
 function readyProcessing() {
     const ready = new KnowledgeProcessingReadyService()
@@ -60,6 +69,11 @@ jest.mock('../knowledgebase', () => ({
 
 jest.mock('./document.service', () => ({
     KnowledgeDocumentService: class KnowledgeDocumentService {}
+}))
+
+jest.mock('./tables/table-metadata.service', () => ({
+    KnowledgeTableMetadataService: class {},
+    TableMetadataStaleError: class extends Error {}
 }))
 
 describe('KnowledgeDocumentConsumer', () => {
@@ -725,5 +739,186 @@ describe('KnowledgeDocumentConsumer', () => {
         expect(
             guardedChunks.every((chunk: { pageContent: string }) => Array.from(chunk.pageContent).length <= 192)
         ).toBe(true)
+    })
+})
+
+describe('KnowledgeDocumentConsumer table processing', () => {
+    function fixture() {
+        const document: IKnowledgeDocument = {
+            id: 'table-doc',
+            name: 'Orders.csv',
+            parserId: 'default',
+            filePath: 'Orders.csv',
+            type: 'csv',
+            category: KBDocumentCategoryEnum.Sheet,
+            status: KBDocumentStatusEnum.RUNNING,
+            jobId: 'table-job',
+            sourceHash: 'source',
+            version: 1,
+            tenantId: 'tenant',
+            organizationId: 'org',
+            knowledgebaseId: 'kb',
+            metadata: {},
+            parserConfig: { indexedFields: ['amount'] }
+        }
+        const source: KnowledgeTableSource = {
+            tableId: 'orders',
+            sheetName: 'Orders',
+            range: 'A1:A2',
+            rowCount: 1,
+            columns: [{ columnId: 'A', key: 'amount', label: 'amount', column: 1 }],
+            samples: []
+        }
+        const state: KnowledgeTableMetadata = {
+            schemaVersion: 1,
+            status: 'generated',
+            generationId: 'g',
+            inputHash: 'i',
+            resultHash: 'r',
+            updatedAt: '',
+            tables: [{ ...source, summary: 'Orders', columns: [{ ...source.columns[0], description: 'Order amount' }] }]
+        }
+        let savedChunks: Document<ChunkMetadata>[] = []
+        const chunks = [
+            new Document<ChunkMetadata>({
+                pageContent: 'Full source row including display-only fields',
+                metadata: {
+                    chunkId: 'row',
+                    searchContent: 'x'.repeat(200),
+                    tableSource: { tableId: 'orders', rowNumber: 2 }
+                }
+            })
+        ]
+        const vectorStore = { embeddingModel: 'embedding', addKnowledgeDocument: jest.fn() }
+        const knowledgebaseService = { getActiveVectorStore: jest.fn(async () => vectorStore) }
+        const documentService = {
+            findOne: jest.fn(async () => document),
+            update: jest.fn(),
+            updateChunkMetadataBulk: jest.fn(),
+            findAllEmbeddingNodes: jest.fn(async () => savedChunks),
+            syncChunksIncrementally: jest.fn(async (input: IKnowledgeDocument) => {
+                savedChunks = input.chunks
+                return {
+                    chunks: savedChunks,
+                    embeddingChunks: savedChunks,
+                    removedChunks: [],
+                    contentHash: 'new-content',
+                    contentChanged: true,
+                    statistics: {
+                        total: savedChunks.length,
+                        added: savedChunks.length,
+                        updated: 0,
+                        skipped: 0,
+                        deleted: 0
+                    }
+                }
+            })
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) =>
+                command instanceof KnowledgeDocLoadCommand ? { chunks, tables: [source] } : {}
+            )
+        }
+        const publication = { publish: jest.fn() }
+        const metadata = {
+            canSkip: jest.fn(() => false),
+            prepare: jest.fn(async () => state),
+            assertIndexCurrent: jest.fn(async () => undefined),
+            project: projectTableMetadata,
+            markApplied: jest.fn(async () => true)
+        }
+        const consumer = new KnowledgeDocumentConsumer(
+            null,
+            knowledgebaseService as unknown as KnowledgebaseService,
+            documentService as unknown as KnowledgeDocumentService,
+            {} as UserService,
+            commandBus as unknown as CommandBus,
+            publication as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
+        )
+        Object.assign(consumer, { tableMetadata: metadata })
+        const knowledgebase = {
+            id: 'kb',
+            name: 'Orders',
+            type: KnowledgebaseTypeEnum.Standard,
+            tenantId: 'tenant',
+            organizationId: 'org',
+            parserConfig: { embeddingBatchSize: 10 },
+            copilotModel: { copilot: { id: 'copilot' }, options: { context_size: 128 } }
+        } as IKnowledgebase
+        const run = () =>
+            consumer._processJob(knowledgebase, [document], {
+                id: 'table-job',
+                data: { userId: 'user', docs: [document] }
+            } as Job)
+        return { run, document, source, state, metadata, documentService, vectorStore, publication, commandBus }
+    }
+
+    it('guards original rows before enrichment and publishes the result only after successful embedding', async () => {
+        const f = fixture()
+        await f.run()
+        const chunks = f.documentService.syncChunksIncrementally.mock.calls[0][0].chunks
+        expect(chunks).toHaveLength(3)
+        expect(chunks.every((chunk) => chunk.pageContent === 'Full source row including display-only fields')).toBe(
+            true
+        )
+        expect(chunks.every((chunk) => conservativeEmbeddingTokenCount(chunk.metadata.searchContent) <= 96)).toBe(true)
+        expect(chunks.every((chunk) => chunk.metadata.tableMetadataResultHash === 'r')).toBe(true)
+        expect(f.metadata.prepare).toHaveBeenCalledWith(
+            f.document,
+            expect.any(Object),
+            [f.source],
+            expect.stringMatching(/^[a-f0-9]{64}$/)
+        )
+        expect(f.metadata.markApplied.mock.invocationCallOrder[0]).toBeGreaterThan(
+            f.vectorStore.addKnowledgeDocument.mock.invocationCallOrder[0]
+        )
+        expect(f.publication.publish).toHaveBeenCalled()
+    })
+
+    it('leaves parsed rows available when optional metadata generation fails', async () => {
+        const f = fixture()
+        f.state.status = 'failed'
+        delete f.state.resultHash
+        await f.run()
+        expect(f.vectorStore.addKnowledgeDocument).toHaveBeenCalled()
+        expect(f.documentService.update).toHaveBeenCalledWith(
+            'table-doc',
+            expect.objectContaining({ status: KBDocumentStatusEnum.FINISH })
+        )
+    })
+
+    it('does not mark generated metadata applied when embedding fails', async () => {
+        const f = fixture()
+        f.vectorStore.addKnowledgeDocument.mockRejectedValueOnce(new Error('index unavailable'))
+        await f.run()
+        expect(f.metadata.markApplied).not.toHaveBeenCalled()
+        expect(f.publication.publish).not.toHaveBeenCalled()
+    })
+
+    it('never adopts the new job identity when a superseded job loads the document again', async () => {
+        const f = fixture()
+        f.document.jobId = 'new-job'
+        await f.run()
+        expect(f.commandBus.execute).not.toHaveBeenCalled()
+        expect(f.documentService.update).not.toHaveBeenCalled()
+        expect(f.metadata.prepare).not.toHaveBeenCalled()
+    })
+
+    it('does not turn a superseded generation into a document failure or overwrite its chunks', async () => {
+        const f = fixture()
+        f.metadata.prepare.mockRejectedValueOnce(new TableMetadataStaleError())
+        await f.run()
+        expect(f.documentService.syncChunksIncrementally).not.toHaveBeenCalled()
+        expect(f.documentService.update).not.toHaveBeenCalled()
+    })
+
+    it('stops before replacing chunks if a newer job takes ownership after generation', async () => {
+        const f = fixture()
+        f.metadata.assertIndexCurrent.mockRejectedValueOnce(new TableMetadataStaleError())
+        await f.run()
+        expect(f.documentService.syncChunksIncrementally).not.toHaveBeenCalled()
+        expect(f.vectorStore.addKnowledgeDocument).not.toHaveBeenCalled()
+        expect(f.metadata.markApplied).not.toHaveBeenCalled()
     })
 })
