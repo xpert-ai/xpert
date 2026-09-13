@@ -1,3 +1,4 @@
+import { isCurrentQuestionVector } from '../../knowledge-document/questions/question-vectors'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import {
     IKnowledgeDocumentChunk,
@@ -8,7 +9,7 @@ import {
 import { environment } from '@xpert-ai/server-config'
 import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
-import { Raw } from 'typeorm'
+import { In, Raw } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/chunk.service'
 import { KnowledgebaseService } from '../knowledgebase.service'
@@ -22,6 +23,9 @@ type VectorSearchResult = {
     candidateDocumentCount?: number
     candidateChunkCount?: number
 }
+
+// Bound work when projections fill the window but there are fewer source chunks than Top K.
+const MAX_PROJECTION_SEARCH_EXPANSIONS = 4
 
 @Injectable()
 export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetriever {
@@ -40,6 +44,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             rerankEnabled: false
         })
         const requestedTopK = k ?? kb.recall?.topK ?? 10
+        const searchStore = vectorStore.createSearchSession?.(query) ?? vectorStore
         const vectorTopK =
             kb.type === KnowledgebaseTypeEnum.FAQ
                 ? requestedTopK * KNOWLEDGE_FAQ_MAX_LOGICAL_VECTOR_COUNT
@@ -54,7 +59,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                 const compiled = prepared.effective
                     ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
                     : { sql: 'TRUE', parameters: [] }
-                return vectorStore.structuredSimilaritySearchWithScore(query, topK, {
+                return searchStore.structuredSimilaritySearchWithScore(query, topK, {
                     postgres: {
                         ...compiled,
                         sql:
@@ -79,7 +84,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                     .map((part, index) => (index === 0 ? part : `(${part})`))
                     .join(' and ')
                 const [result, candidates] = await Promise.all([
-                    vectorStore.structuredSimilaritySearchWithScore(query, topK, {
+                    searchStore.structuredSimilaritySearchWithScore(query, topK, {
                         milvus: {
                             expression,
                             values: compiled.values
@@ -110,20 +115,42 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                     `Vector store '${environment.vectorStore}' does not support knowledge filter v2.`
                 )
             }
-            return { items: await vectorStore.similaritySearchWithScore(query, topK) }
+            return { items: await searchStore.similaritySearchWithScore(query, topK) }
         }
 
+        const filterQuestions = async (items: [DocumentInterface, number][]) => {
+            const ids = items
+                .filter(([doc]) => doc.metadata.questionGenerationId)
+                .map(([doc]) => doc.metadata.questionSourceChunkId)
+            if (!ids.length) return items
+            const { items: sources } = await this.chunkService.findAll({
+                where: { knowledgebaseId: kb.id, id: In(ids) }
+            })
+            const byId = new Map(sources.map((chunk) => [chunk.id, chunk]))
+            return items.filter(([doc]) => {
+                if (!doc.metadata.questionGenerationId) return true
+                const source = byId.get(doc.metadata.questionSourceChunkId)
+                return source && source.metadata?.enabled !== false && isCurrentQuestionVector(doc.metadata, source)
+            })
+        }
         let currentTopK = vectorTopK
         let searchResult = await search(currentTopK)
-        if (kb.type === KnowledgebaseTypeEnum.FAQ) {
-            while (
-                searchResult.items.length === currentTopK &&
-                countDistinctChunkIds(searchResult.items) < requestedTopK
-            ) {
-                currentTopK *= 2
-                searchResult = await search(currentTopK)
-            }
+        let validItems = await filterQuestions(searchResult.items)
+        // Multiple question vectors must not crowd other source chunks out of Top K.
+        let expansions = 0
+        while (
+            expansions < MAX_PROJECTION_SEARCH_EXPANSIONS &&
+            searchResult.items.length === currentTopK &&
+            (kb.type === KnowledgebaseTypeEnum.FAQ ||
+                searchResult.items.some(([doc]) => doc.metadata.questionGenerationId)) &&
+            countDistinctChunkIds(validItems) < requestedTopK
+        ) {
+            expansions++
+            currentTopK *= 2
+            searchResult = await search(currentTopK)
+            validItems = await filterQuestions(searchResult.items)
         }
+        searchResult.items = validItems
         const score = request.score === undefined ? kb.recall?.score : request.score
         const items =
             score == null ? searchResult.items : searchResult.items.filter(([, distance]) => 1 - distance >= score)
@@ -177,6 +204,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             chunks.forEach((chunk) => {
                 if (chunk.metadata?.enabled === false || chunk.document?.disabled) return
                 const doc = chunkMap.get(chunk.metadata.chunkId)
+                if (!doc || !isCurrentQuestionVector(doc.metadata, chunk)) return
                 if (doc) {
                     chunk.metadata.score = doc.metadata.score
                     chunk.metadata.tokens = doc.metadata.tokens
@@ -215,7 +243,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                     if (child.metadata?.enabled === false) return false
                     const doc = chunkMap.get(child.metadata.chunkId)
                     const rank = vectorRankByChunkId.get(child.metadata.chunkId)
-                    if (!doc || rank === undefined) return false
+                    if (!doc || rank === undefined || !isCurrentQuestionVector(doc.metadata, child)) return false
                     child.metadata.score = doc.metadata.score
                     child.metadata.tokens = doc.metadata.tokens
                     candidateRank = candidateRank === undefined ? rank : Math.min(candidateRank, rank)

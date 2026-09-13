@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { ITag, OrganizationBaseCrudService, TagCategoryEnum } from '@cloud/app/@core/state'
-import { BehaviorSubject, Observable } from 'rxjs'
-import { map, shareReplay, switchMap } from 'rxjs/operators'
+import { BehaviorSubject, combineLatest, Observable } from 'rxjs'
+import { getTagTargets, ITagDirectoryItem } from '@xpert-ai/contracts'
+import { distinctUntilChanged, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
 import { API_TAG } from '../constants/app.constants'
 import { toSignal } from '@angular/core/rxjs-interop'
 
@@ -13,7 +14,7 @@ export class TagService extends OrganizationBaseCrudService<ITag> {
   /**
    * All categories
    */
-  readonly #categories$ = this.refresh$.pipe(
+  readonly #categories$ = combineLatest([this.refresh$, this.store.selectActiveScope()]).pipe(
     switchMap(() => this.httpClient.get<{ category: string }[]>(this.apiBaseUrl + `/categories`)),
     shareReplay(1)
   )
@@ -36,24 +37,34 @@ export class TagService extends OrganizationBaseCrudService<ITag> {
   }
 
   getAllByCategory(category?: TagCategoryEnum) {
+    return this.getCatalogByCategory(category).pipe(map((tags) => tags.filter((tag) => tag.isActive !== false)))
+  }
+
+  /** Include inactive definitions so existing selections can display their current status. */
+  getCatalogByCategory(category?: TagCategoryEnum) {
     if (!this.#categories.get(category ?? '')) {
       this.#categories.set(
         category ?? '',
-        this.refresh$.pipe(
+        combineLatest([
+          this.refresh$,
+          this.store.selectActiveScope().pipe(distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)))
+        ]).pipe(
           switchMap(() =>
-            this.getAll({
-              where: {
-                category
-              }
-            })
+            this.getAll().pipe(
+              map(({ items }) => items.filter((tag) => !category || getTagTargets(tag).includes(category))),
+              startWith([] as ITag[])
+            )
           ),
-          map(({ items }) => items),
           shareReplay(1)
         )
       )
     }
 
     return this.#categories.get(category ?? '')
+  }
+
+  getDirectory() {
+    return this.httpClient.get<ITagDirectoryItem[]>(this.apiBaseUrl + '/directory')
   }
 
   // getAll(category?: string) {
@@ -83,6 +94,5 @@ export class TagService extends OrganizationBaseCrudService<ITag> {
 
 export function injectTags(category: TagCategoryEnum) {
   const tagService = inject(TagService)
-
   return toSignal(tagService.getAllByCategory(category))
 }

@@ -182,6 +182,11 @@ function sanitizeKnowledgebaseCitationMetadata(metadata: Record<string, unknown>
         raw: _raw,
         ...bounded
     } = metadata
+    if (bounded.tableSource) {
+        // Embedding projections are not answer evidence; only hydrated tableContext is eligible.
+        const { searchContent: _searchContent, ...source } = bounded
+        return source
+    }
     return bounded
 }
 

@@ -293,7 +293,13 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     }
 
     async processMarkdown(url: string): Promise<Document<ChunkMetadata>[]> {
-        return this.processText(url)
+        return (await this.processText(url)).map(
+            (document) =>
+                new Document({
+                    pageContent: document.pageContent,
+                    metadata: { ...document.metadata, contentFormat: 'markdown' }
+                })
+        )
     }
 
     async processPdf(url: string): Promise<Document<ChunkMetadata>[]> {
@@ -341,12 +347,24 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             }
         }
         const loader = new DocxLoader(filePath)
-        return toChunkDocuments(await loader.load())
+        return toChunkDocuments(await loader.load()).map(
+            (document) =>
+                new Document({
+                    pageContent: document.pageContent,
+                    metadata: { ...document.metadata, contentFormat: 'text' }
+                })
+        )
     }
 
     async processText(url: string): Promise<Document<ChunkMetadata>[]> {
         const loader = new TextLoader(url)
-        return toChunkDocuments(await loader.load())
+        return toChunkDocuments(await loader.load()).map(
+            (document) =>
+                new Document({
+                    pageContent: document.pageContent,
+                    metadata: { ...document.metadata, contentFormat: 'text' }
+                })
+        )
     }
 
     async processPPT(url: string): Promise<Document<ChunkMetadata>[]> {

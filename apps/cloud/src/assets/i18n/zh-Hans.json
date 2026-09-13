@@ -247,6 +247,87 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "TagDirectory": {
+      "Version": "版本",
+      "UnnamedExpert": "未命名数字专家",
+      "UnpublishedExpert": "未发布",
+      "HistoricalExpert": "历史版本",
+      "DeletedExpert": "已删除",
+      "LoadingExperts": "正在加载数字专家…",
+      "NoVisibleExperts": "当前没有可查看的数字专家关联。",
+      "MoreExperts": "加载更多",
+      "VisibleExpertsOnly": "仅显示你有权查看的数字专家。",
+      "NoSelectableTags": "没有可选标签",
+      "RemoveSelection": "移除标签：{{name}}",
+      "UsageExplanation": "按当前范围内的关联记录计数，包含历史版本和保留的已删除记录。同一数字专家的多个版本会分别计数，不代表不同专家的数量。",
+      "PermissionReadOnly": "当前账号没有标签管理权限，请联系管理员授权。",
+      "SystemReadOnly": "系统标签由系统维护，不能在此编辑。",
+      "TenantScope": "当前租户 · 供下属组织共享",
+      "Tenant": "当前租户",
+      "TenantDescription": "统一维护租户共享标签，下属组织可以使用，由租户管理员管理。",
+      "Title": "标签",
+      "Description": "统一管理知识库和数字专家的分类标签。",
+      "LegacyTargetsRetained": "此标签的历史用途已保留，保存不会移除这些用途或已有的关联。",
+      "Create": "新建标签",
+      "Status": "状态",
+      "all": "全部",
+      "active": "启用",
+      "disabled": "停用",
+      "Scope": "当前组织与租户共享",
+      "Search": "搜索标签名称或说明…",
+      "Targets": "适用对象",
+      "AllTargets": "适用对象：全部",
+      "AllSources": "来源：全部",
+      "Source": "来源",
+      "Organization": "当前组织",
+      "Shared": "租户共享",
+      "ReadOnly": "你可以查看标签目录。新建、编辑和删除标签需要标签管理权限。",
+      "Retry": "重试",
+      "Loading": "正在加载标签…",
+      "Name": "标签名称",
+      "Usage": "使用情况",
+      "Actions": "操作",
+      "Unspecified": "未指定",
+      "System": "系统标签",
+      "UsageCount": "{{count}} 条关联",
+      "Empty": "没有找到匹配的标签，请调整关键词或筛选条件。",
+      "Results": "显示 {{visible}} / {{total}} 个标签",
+      "Edit": "编辑标签",
+      "usage": "查看关联",
+      "disable": "停用标签",
+      "enable": "启用标签",
+      "delete": "删除标签",
+      "Close": "关闭",
+      "TagDescription": "说明",
+      "Translations": "多语言显示名称（选填）",
+      "Chinese": "中文",
+      "NoDescription": "暂无说明",
+      "SharedReadOnly": "租户共享标签在组织范围内只读。请切换到租户范围，在「设置 → 租户 → 标签」中由有标签管理权限的租户管理员编辑。",
+      "UsageByTarget": "按适用对象汇总关联",
+      "Unused": "尚未关联任何内容",
+      "RetainAssociations": "停用后将不能再选择此标签，已有内容的标签关联会保留。",
+      "Saving": "保存中…",
+      "Save": "保存",
+      "ConfirmAction": "确认",
+      "InvalidForm": "请填写标签名称（最多 100 个字符），至少选择一个适用对象，说明不超过 500 个字符。",
+      "NameRequired": "请填写标签名称，不超过 100 个字符。",
+      "Duplicate": "当前范围内已存在同名标签，请使用已有标签。",
+      "Saved": "标签目录已更新。",
+      "Target": {
+        "xpert": "数字专家",
+        "knowledgebase": "知识库",
+        "toolset": "工具集",
+        "indicator": "指标",
+        "story": "故事",
+        "people": "人员与组织",
+        "integration": "系统集成"
+      },
+      "Confirm": {
+        "disable": "停用后不能再选择此标签。已有标签关联会保留，稍后可以重新启用。",
+        "enable": "启用后，可在适用对象中再次选择此标签。",
+        "delete": "此标签尚未关联内容，确认后将从当前范围内永久删除。"
+      }
+    },
     "AssistantProfile": {
       "Title": "Assistant 资料",
       "Close": "关闭资料",
@@ -6587,6 +6668,34 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "TableMetadata": {
+        "Title": "表格元数据",
+        "Scope": "适用于默认解析器的 CSV/XLS/XLSX 记录模式。表单文档、自定义解析器、文本模式和流水线暂不支持。",
+        "RequirementsHelp": "可补充业务背景，留空使用默认要求。新导入或显式重处理时，使用知识库 LLM 生成表说明和列说明。",
+        "InvalidRequirements": "表格元数据生成要求不能超过 4000 字。",
+        "InvalidIndexedFields": "已选索引列与当前表格不一致，请预览后重新选择。",
+        "NoIndexedFields": "请至少选择一个索引列。",
+        "ReprocessHint": "可通过文档处理设置重新处理，重试元数据生成。",
+        "Column": "列",
+        "Description": "字段说明",
+        "Unit": "单位",
+        "ValueMeanings": "值含义",
+        "Dimensions": "{{rows}} 行 · {{columns}} 列",
+        "NotGenerated": "尚未生成表格元数据。",
+        "SelectAllFields": "选择当前全部列",
+        "Status": {
+          "generating": "正在生成",
+          "generated": "已生成，等待索引",
+          "ready": "已就绪",
+          "failed": "生成失败",
+          "skipped": "已跳过"
+        },
+        "Reason": {
+          "missing_model": "请配置知识库 LLM 后生成表格元数据。",
+          "no_data": "没有可用于生成元数据的数据。",
+          "unsupported": "当前解析模式不支持表格元数据。"
+        }
+      },
       "PipelineFlow": {
         "Source": "选择数据源",
         "Settings": "处理设置",
@@ -6605,6 +6714,51 @@
         "PreviewHint": "先预览文档的分块效果，确认后再开始导入。",
         "Retry": "重新预览",
         "Failed": "预览失败，请重试或检查流水线。"
+      },
+      "Chunking": {
+        "Language": {
+          "Hint": "\u8bed\u8a00\u63d0\u793a",
+          "Detected": "\u5b9e\u9645\u8bc6\u522b",
+          "Scope": "\u7528\u4e8e\u81ea\u52a8\u3001\u7ed3\u6784\u611f\u77e5\u3001Markdown \u9012\u5f52\u548c\u9012\u5f52\u5b57\u7b26\u5207\u7247\u7684\u6b63\u6587\u8fb9\u754c\uff1b\u7236\u5b50\u5206\u5757\u6682\u4e0d\u652f\u6301\u3002",
+          "SeparatorsHelp": "\u81ea\u5b9a\u4e49\u5206\u9694\u7b26\u4f18\u5148\u4e8e\u8bed\u8a00\u63d0\u793a\uff1b\u672a\u914d\u7f6e\u81ea\u5b9a\u4e49\u5206\u9694\u7b26\u65f6\uff0c\u6309\u6240\u9009\u8bed\u8a00\u5207\u5206\u6b63\u6587\u3002",
+          "Values": {
+            "auto": "\u81ea\u52a8\u68c0\u6d4b",
+            "Chinese": "\u4e2d\u6587",
+            "English": "\u82f1\u6587",
+            "Mixed": "\u4e2d\u82f1\u6df7\u5408",
+            "Unknown": "\u6682\u65e0\u53ef\u8bc6\u522b\u6b63\u6587"
+          }
+        },
+
+        "TargetSize": "目标块大小（字符）",
+        "TargetHelp": "组合相邻短段落时参考此大小；完整结构满足 Token 上限时，可以超过目标字符数。",
+        "AutoSizeHelp": "结构感知将此值作为目标大小；现有标题和长度策略保留原大小规则。预览会显示实际采用的策略。",
+        "OverlapHelp": "结构感知仅在预算允许时重叠同一文本单元的续片，不重复完整表格、列表或代码块；其他策略沿用原有重叠规则。",
+        "AppliedStrategy": "实际采用策略",
+        "RequestedStrategy": "选择的策略",
+        "Continuation": "续片",
+        "StructureCounts": "{{tables}} 张表格 · {{lists}} 个列表 · {{code}} 个代码块",
+        "Strategies": {
+          "auto": "自动",
+          "structure-aware": "结构感知",
+          "markdown-recursive": "按标题切分",
+          "recursive-character": "按长度切分"
+        },
+        "Reasons": {
+          "structured-blocks": "检测到需要保留的结构单元。",
+          "markdown-headings": "检测到现有 Markdown 策略支持的标题。",
+          "layout-headings": "标题边界需要使用结构感知处理。",
+          "plain-text": "未检测到适用结构，采用现有长度切分。",
+          "missing-structure": "当前内容缺少可用结构，已回退到现有长度切分。",
+          "explicit-structure": "按选择的结构感知策略处理。"
+        },
+        "Warnings": {
+          "structure-split": "部分结构因超限被拆成续片。",
+          "context-reduced": "为满足 Token 上限，减少了重复携带的上下文。",
+          "coarse-provenance": "部分内容只能提供较粗的来源位置。",
+          "unsupported-structure": "部分结构缺少内部边界信息，已保留为文本。",
+          "missing-format": "转换结果未声明内容格式，此片段按普通文本处理。"
+        }
       },
       "SharedProcessing": {
         "ParentChild": {
@@ -6634,6 +6788,8 @@
         "BatchOtherFormats": "此格式使用现有文档解析流程。"
       },
       "Import": {
+        "TableMetadata": "表格元数据",
+        "InvalidIndexedFields": "已选索引列与当前表格不一致，请预览后重新选择。",
         "EditDefaultsHint": "这里的修改只作用于当前文档，保存后执行所选处理操作。",
         "Close": "关闭",
         "Cancel": "取消",
@@ -6997,7 +7153,8 @@
           "PreviewLoading": "正在分块…",
           "PreviewRun": "测试分块效果",
           "PreviewCount": "共 {{count}} 个普通块 / 父块，下方缩进显示子块",
-          "InvalidLimits": "分块大小必须是正整数，重叠值必须大于等于 0 且小于分块大小。"
+          "InvalidLimits": "分块大小必须是正整数，重叠值必须大于等于 0 且小于分块大小。",
+          "PreviewTokens": "{{count}} tokens (cl100k_base)"
         },
         "Close": "关闭",
         "NavigationLabel": "知识库设置导航",
@@ -7153,6 +7310,8 @@
             "Builtin": "内置",
             "SimpleDefault": "Simple（默认）"
           },
+          "FirstRowAsHeader": "首行作为表头",
+          "FirstRowAsHeaderHelp": "仅适用于 Excel 记录模式。使用区域的首行提供列名；关闭后首行保留为数据，列名使用 A/B/C。",
           "ExcelHeaderRow": "将首行作为列标题，并保留在每行上下文中。"
         },
         "Chunk": {
@@ -7180,7 +7339,7 @@
           "ParentChildDescription": "使用较小的子块进行精确召回，并用较大的父块补充上下文；推荐用于长文档和复杂问答。",
           "AdvancedOptions": "高级选项",
           "MaxChunkTokens": "每块 Token 上限",
-          "MaxChunkTokensDescription": "每个分块的可选 Token 上限（0–8192）。设为 0 时关闭，继续按字符数切分。",
+          "MaxChunkTokensDescription": "在字符分块基础上进一步限制 Token 数（0–8192），0 表示关闭。预览与处理统一按 cl100k_base 计数。适用于普通文本块及检索子块，父块上下文保持完整。",
           "LanguageHint": "语言提示",
           "LanguageHintDescription": "指定分块器优先识别的语言，或保留自动检测。",
           "LanguageOptions": {
@@ -7199,7 +7358,8 @@
             "Question": "问号 (?)",
             "ChineseSemicolon": "中文分号 (；)",
             "EnglishSemicolon": "英文分号 (;)"
-          }
+          },
+          "InvalidTokenLimit": "请输入 0–8192 的整数，0 表示关闭 Token 上限。"
         },
         "Image": {
           "Description": "配置图片理解策略，帮助知识库提取图片中的文字和语义。",
@@ -7253,8 +7413,8 @@
           "Description": "配置问题生成等高级功能。",
           "QuestionGeneration": "AI 问题生成",
           "QuestionGenerationDescription": "解析文档时调用大模型为每个分块生成相关问题，提高检索召回率。启用后会增加文档解析耗时。",
-          "QuestionCount": "生成问题数量",
-          "QuestionCountDescription": "每个文档分块生成的问题数量（1–10）。",
+          "QuestionCount": "最多生成问题数",
+          "QuestionCountDescription": "每个分块最多生成的问题数（1–10）。内容不足时可能少生成或不生成，不会为凑数编造问题。",
           "QuestionRequirements": "问题生成要求",
           "QuestionRequirementsDescription": "指定问题面向的人群、场景和表达方式，系统仍维持稳定输出格式。",
           "QuestionRequirementsPlaceholder": "例如：生成客服用户常问的自然语言问题，避免考试题式表达...",
@@ -7945,7 +8105,25 @@
       "SharedRetrievalTopKHelp": "各路召回与最终返回结果共用这一数量上限。",
       "RetrievalSourceRequired": "请填写有效权重，并至少选择一路可用的检索方式。",
       "SaveDefaultRetrieval": "保存为知识库默认配置",
-      "GraphRebuildRequiredHelp": "知识图谱已启用，请重建图谱以索引已有文档。"
+      "GraphRebuildRequiredHelp": "知识图谱已启用，请重建图谱以索引已有文档。",
+      "Questions": {
+        "Title": "AI 问题生成",
+        "Help": "切块后生成用户可能提出的问题，增加检索入口。回答和引用仍使用原文。开启后会增加模型调用和向量化用量。",
+        "Model": "问题生成模型",
+        "MissingModel": "请选择问题生成模型。",
+        "InvalidSettings": "问题数量须为 1–10 的整数，额外要求不超过 4000 字符。",
+        "Child": "子块 {{index}}",
+        "Generating": "正在生成问题并建立索引…",
+        "Empty": "暂无生成的问题。",
+        "ManageHelp": "这些问题用于辅助检索原文。重新生成可能产生模型调用和向量化费用。",
+        "Regenerate": "重新生成问题",
+        "Generate": "生成问题",
+        "Retry": "重试问题生成",
+        "Loading": "正在加载问题状态…",
+        "DisabledHelp": "AI 问题生成已关闭。如需生成或重试，请在文档处理设置中开启。",
+        "RetryIndexHelp": "已保存生成的问题。原文和配置未变时，重试会复用这些问题，仅重建检索索引，可能产生向量化费用。",
+        "InsufficientContent": "当前分块缺少可用于检索的有效信息，本次未生成问题。"
+      }
     },
     "Integration": {
       "Integration": "集成",

@@ -1,5 +1,18 @@
 {
     "Error": {
+        "InvalidTagUsagePage": "Invalid tag usage page.",
+        "TagAssociationUnavailable": "A selected tag is unavailable for this resource. Refresh the tag list and select again.",
+        "InvalidTagInput": "Invalid tag fields.",
+        "TagNameExists": "A tag with this name already exists in this scope.",
+        "TagTargetInUse": "A target still uses this tag and cannot be removed.",
+        "TagInUse": "This tag is in use. Disable it instead of deleting it.",
+        "TagUsageUnsupported": "Cannot safely inspect this tag relationship.",
+        "TagUseStatus": "Use tag status to enable or disable a tag.",
+        "KnowledgeTableMetadataReservedKey": "tableMetadata is reserved for generated table descriptions.",
+        "KnowledgeTableMetadataInvalidResponse": "The model returned invalid table metadata.",
+        "KnowledgeTableMetadataStale": "The table or its processing settings changed. Reprocess the document.",
+        "KnowledgeTableMetadataInputTooLarge": "The table metadata input exceeds the model context budget.",
+        "InvalidKnowledgeTableIndexedFields": "Selected table columns are unavailable in {{sheetName}}: {{fields}}. Preview the table and select valid columns.",
         "VisualEvidenceScopeRequired": "A governed KnowledgeDocument and evidence scope are required",
         "VisualEvidenceScopeInvalid": "The visual evidence audit scope is invalid",
 
@@ -734,7 +747,13 @@
         "ProjectTaskXpertRequired": "A Project automation must be bound to a Project Xpert.",
         "ProjectXpertRequired": "The Xpert is not part of this Project.",
         "XpertTaskAccessDenied": "You cannot access this Xpert task.",
-        "XpertTaskNotFound": "The requested Xpert task was not found."
+        "XpertTaskNotFound": "The requested Xpert task was not found.",
+        "ChunkTokenLimitTooSmall": "The token limit cannot fit a complete character. Increase the limit and try again.",
+        "KnowledgeQuestionsInvalidResponse": "The model did not return a valid question list. Retry generation.",
+        "KnowledgeQuestionsBusy": "Questions are being generated. Try again later.",
+        "KnowledgeQuestionsStale": "The source chunk changed. Regenerate its questions.",
+        "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
+        "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter."
     },
     "Mcp": {
         "Test": {

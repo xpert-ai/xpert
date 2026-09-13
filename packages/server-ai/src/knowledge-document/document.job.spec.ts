@@ -6,11 +6,15 @@ import {
     IKnowledgeDocument,
     IModelAccessResolution,
     KBDocumentStatusEnum,
+    KBDocumentCategoryEnum,
+    KnowledgeTableMetadata,
+    KnowledgeTableSource,
+    KnowledgebaseTypeEnum,
     ModelAccessChannelEnum,
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum
 } from '@xpert-ai/contracts'
-import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
+import { countTextTokens, RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
 import { UserService } from '@xpert-ai/server-core'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
@@ -18,8 +22,20 @@ import { KnowledgebaseService } from '../knowledgebase'
 import { KnowledgeDocLoadCommand } from './commands'
 import { computeKnowledgeDocumentProcessingHash } from './document-hash'
 import { KnowledgeDocumentConsumer } from './document.job'
+import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
 import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
+import { projectTableMetadata } from './tables/table-metadata'
+import { TableMetadataStaleError } from './tables/table-metadata.service'
+import { conservativeEmbeddingTokenCount } from './embedding-input-guard'
+import { Document } from '@langchain/core/documents'
+import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
+
+function readyProcessing() {
+    const ready = new KnowledgeProcessingReadyService()
+    ready.onApplicationBootstrap()
+    return ready
+}
 
 let mockContextActive = false
 
@@ -53,6 +69,11 @@ jest.mock('../knowledgebase', () => ({
 
 jest.mock('./document.service', () => ({
     KnowledgeDocumentService: class KnowledgeDocumentService {}
+}))
+
+jest.mock('./tables/table-metadata.service', () => ({
+    KnowledgeTableMetadataService: class {},
+    TableMetadataStaleError: class extends Error {}
 }))
 
 describe('KnowledgeDocumentConsumer', () => {
@@ -90,13 +111,15 @@ describe('KnowledgeDocumentConsumer', () => {
             }))
         }
         const commandBus = {}
+        const lifecycle = new KnowledgeProcessingReadyService()
         const consumer = new KnowledgeDocumentConsumer(
             null,
             knowledgebaseService as unknown as KnowledgebaseService,
             documentService as unknown as KnowledgeDocumentService,
             userService as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            lifecycle
         )
         const processJob = jest.spyOn(consumer, '_processJob').mockResolvedValue({})
         const job = {
@@ -106,7 +129,12 @@ describe('KnowledgeDocumentConsumer', () => {
             }
         } as Job<{ userId: string; docs: IKnowledgeDocument[] }>
 
-        await expect(consumer.process(job)).resolves.toEqual({})
+        const processing = consumer.process(job)
+        await Promise.resolve()
+        expect(userService.findOne).not.toHaveBeenCalled()
+        expect(processJob).not.toHaveBeenCalled()
+        lifecycle.onApplicationBootstrap()
+        await expect(processing).resolves.toEqual({})
 
         expect(knowledgebaseService.findOne).toHaveBeenCalled()
         expect(processJob).toHaveBeenCalled()
@@ -150,7 +178,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -199,7 +228,7 @@ describe('KnowledgeDocumentConsumer', () => {
         )
     })
 
-    it('merges skipped incremental sync statistics into document metadata without overwriting existing metadata', async () => {
+    it('repairs source token statistics on unchanged documents without embedding again or losing metadata', async () => {
         const document = {
             id: 'doc-1',
             name: 'policy.md',
@@ -214,7 +243,7 @@ describe('KnowledgeDocumentConsumer', () => {
             type: 'md',
             filePath: 'policy.md',
             chunks: [
-                { id: 'chunk-1', pageContent: 'chunk 1', metadata: { chunkId: 'chunk-1' } },
+                { id: 'chunk-1', pageContent: 'Unicode <|endoftext|>', metadata: { chunkId: 'chunk-1', tokens: 1 } },
                 { id: 'chunk-2', pageContent: 'chunk 2', metadata: { chunkId: 'chunk-2' } }
             ]
         } satisfies Partial<IKnowledgeDocument>
@@ -224,6 +253,8 @@ describe('KnowledgeDocumentConsumer', () => {
         }
         const documentService = {
             findOne: jest.fn(async () => document),
+            findAllEmbeddingNodes: jest.fn(async () => document.chunks),
+            updateChunkMetadataBulk: jest.fn(),
             update: jest.fn()
         }
         const commandBus = {
@@ -236,7 +267,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            publication as unknown as KnowledgeDerivedIndexPublicationService
+            publication as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -261,10 +293,18 @@ describe('KnowledgeDocumentConsumer', () => {
             expect.objectContaining({ documentId: 'doc-1', contentChanged: false })
         )
         expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(KnowledgeDocLoadCommand))
+        expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(CopilotTokenRecordCommand))
+        expect(documentService.updateChunkMetadataBulk).toHaveBeenCalledWith(
+            document.chunks.map((chunk) => ({
+                id: chunk.id,
+                metadata: { chunkId: chunk.metadata.chunkId, tokens: countTextTokens(chunk.pageContent) }
+            }))
+        )
         expect(documentService.update).toHaveBeenCalledWith(
             'doc-1',
             expect.objectContaining({
                 status: KBDocumentStatusEnum.FINISH,
+                tokenNum: document.chunks.reduce((sum, chunk) => sum + countTextTokens(chunk.pageContent), 0),
                 metadata: expect.objectContaining({
                     owner: 'alice',
                     lastIncrementalSync: expect.objectContaining({
@@ -341,7 +381,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -369,7 +410,11 @@ describe('KnowledgeDocumentConsumer', () => {
         expect(documentService.syncChunksIncrementally).toHaveBeenCalled()
     })
 
-    it('writes chunk incremental sync statistics and actual embedding token usage into document metadata', async () => {
+    it.each([
+        { content: 'added content', searchContent: undefined },
+        { content: 'Unicode e\u0301 \ud83d\ude00 <|endoftext|> '.repeat(8), searchContent: undefined },
+        { content: 'Full source row with additional display fields', searchContent: 'Indexed field' }
+    ])('keeps source tokens separate from embedding usage: %j', async ({ content, searchContent }) => {
         const document = {
             id: 'doc-1',
             name: 'policy.md',
@@ -385,7 +430,11 @@ describe('KnowledgeDocumentConsumer', () => {
         } satisfies Partial<IKnowledgeDocument>
         const allChunks = [
             { id: 'chunk-old', pageContent: 'kept content', metadata: { chunkId: 'chunk-old' } },
-            { id: 'chunk-added', pageContent: 'added content', metadata: { chunkId: 'chunk-added' } },
+            {
+                id: 'chunk-added',
+                pageContent: content,
+                metadata: { chunkId: 'chunk-added', tokens: countTextTokens(content), searchContent }
+            },
             { id: 'chunk-updated', pageContent: 'updated content', metadata: { chunkId: 'chunk-updated' } }
         ]
         const embeddingChunks = [allChunks[1], allChunks[2]]
@@ -447,7 +496,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -497,10 +547,17 @@ describe('KnowledgeDocumentConsumer', () => {
             })
         )
         expect(documentService.updateChunkMetadataBulk).toHaveBeenCalledWith(
-            embeddingChunks.map((chunk) => ({
+            [allChunks[0], allChunks[2]].map((chunk) => ({
                 id: chunk.id,
-                metadata: chunk.metadata
+                metadata: { chunkId: chunk.metadata.chunkId, tokens: countTextTokens(chunk.pageContent) }
             }))
+        )
+        expect(allChunks[1].metadata.tokens).toBe(countTextTokens(content))
+        expect(documentService.update).toHaveBeenCalledWith(
+            'doc-1',
+            expect.objectContaining({
+                tokenNum: allChunks.reduce((sum, chunk) => sum + countTextTokens(chunk.pageContent), 0)
+            })
         )
         expect(documentService.save).not.toHaveBeenCalledWith(
             expect.arrayContaining([
@@ -568,7 +625,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-1',
@@ -657,7 +715,8 @@ describe('KnowledgeDocumentConsumer', () => {
             documentService as unknown as KnowledgeDocumentService,
             {} as unknown as UserService,
             commandBus as unknown as CommandBus,
-            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
+            { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
         )
         const job = {
             id: 'job-bom',
@@ -680,5 +739,186 @@ describe('KnowledgeDocumentConsumer', () => {
         expect(
             guardedChunks.every((chunk: { pageContent: string }) => Array.from(chunk.pageContent).length <= 192)
         ).toBe(true)
+    })
+})
+
+describe('KnowledgeDocumentConsumer table processing', () => {
+    function fixture() {
+        const document: IKnowledgeDocument = {
+            id: 'table-doc',
+            name: 'Orders.csv',
+            parserId: 'default',
+            filePath: 'Orders.csv',
+            type: 'csv',
+            category: KBDocumentCategoryEnum.Sheet,
+            status: KBDocumentStatusEnum.RUNNING,
+            jobId: 'table-job',
+            sourceHash: 'source',
+            version: 1,
+            tenantId: 'tenant',
+            organizationId: 'org',
+            knowledgebaseId: 'kb',
+            metadata: {},
+            parserConfig: { indexedFields: ['amount'] }
+        }
+        const source: KnowledgeTableSource = {
+            tableId: 'orders',
+            sheetName: 'Orders',
+            range: 'A1:A2',
+            rowCount: 1,
+            columns: [{ columnId: 'A', key: 'amount', label: 'amount', column: 1 }],
+            samples: []
+        }
+        const state: KnowledgeTableMetadata = {
+            schemaVersion: 1,
+            status: 'generated',
+            generationId: 'g',
+            inputHash: 'i',
+            resultHash: 'r',
+            updatedAt: '',
+            tables: [{ ...source, summary: 'Orders', columns: [{ ...source.columns[0], description: 'Order amount' }] }]
+        }
+        let savedChunks: Document<ChunkMetadata>[] = []
+        const chunks = [
+            new Document<ChunkMetadata>({
+                pageContent: 'Full source row including display-only fields',
+                metadata: {
+                    chunkId: 'row',
+                    searchContent: 'x'.repeat(200),
+                    tableSource: { tableId: 'orders', rowNumber: 2 }
+                }
+            })
+        ]
+        const vectorStore = { embeddingModel: 'embedding', addKnowledgeDocument: jest.fn() }
+        const knowledgebaseService = { getActiveVectorStore: jest.fn(async () => vectorStore) }
+        const documentService = {
+            findOne: jest.fn(async () => document),
+            update: jest.fn(),
+            updateChunkMetadataBulk: jest.fn(),
+            findAllEmbeddingNodes: jest.fn(async () => savedChunks),
+            syncChunksIncrementally: jest.fn(async (input: IKnowledgeDocument) => {
+                savedChunks = input.chunks
+                return {
+                    chunks: savedChunks,
+                    embeddingChunks: savedChunks,
+                    removedChunks: [],
+                    contentHash: 'new-content',
+                    contentChanged: true,
+                    statistics: {
+                        total: savedChunks.length,
+                        added: savedChunks.length,
+                        updated: 0,
+                        skipped: 0,
+                        deleted: 0
+                    }
+                }
+            })
+        }
+        const commandBus = {
+            execute: jest.fn(async (command: unknown) =>
+                command instanceof KnowledgeDocLoadCommand ? { chunks, tables: [source] } : {}
+            )
+        }
+        const publication = { publish: jest.fn() }
+        const metadata = {
+            canSkip: jest.fn(() => false),
+            prepare: jest.fn(async () => state),
+            assertIndexCurrent: jest.fn(async () => undefined),
+            project: projectTableMetadata,
+            markApplied: jest.fn(async () => true)
+        }
+        const consumer = new KnowledgeDocumentConsumer(
+            null,
+            knowledgebaseService as unknown as KnowledgebaseService,
+            documentService as unknown as KnowledgeDocumentService,
+            {} as UserService,
+            commandBus as unknown as CommandBus,
+            publication as unknown as KnowledgeDerivedIndexPublicationService,
+            readyProcessing()
+        )
+        Object.assign(consumer, { tableMetadata: metadata })
+        const knowledgebase = {
+            id: 'kb',
+            name: 'Orders',
+            type: KnowledgebaseTypeEnum.Standard,
+            tenantId: 'tenant',
+            organizationId: 'org',
+            parserConfig: { embeddingBatchSize: 10 },
+            copilotModel: { copilot: { id: 'copilot' }, options: { context_size: 128 } }
+        } as IKnowledgebase
+        const run = () =>
+            consumer._processJob(knowledgebase, [document], {
+                id: 'table-job',
+                data: { userId: 'user', docs: [document] }
+            } as Job)
+        return { run, document, source, state, metadata, documentService, vectorStore, publication, commandBus }
+    }
+
+    it('guards original rows before enrichment and publishes the result only after successful embedding', async () => {
+        const f = fixture()
+        await f.run()
+        const chunks = f.documentService.syncChunksIncrementally.mock.calls[0][0].chunks
+        expect(chunks).toHaveLength(3)
+        expect(chunks.every((chunk) => chunk.pageContent === 'Full source row including display-only fields')).toBe(
+            true
+        )
+        expect(chunks.every((chunk) => conservativeEmbeddingTokenCount(chunk.metadata.searchContent) <= 96)).toBe(true)
+        expect(chunks.every((chunk) => chunk.metadata.tableMetadataResultHash === 'r')).toBe(true)
+        expect(f.metadata.prepare).toHaveBeenCalledWith(
+            f.document,
+            expect.any(Object),
+            [f.source],
+            expect.stringMatching(/^[a-f0-9]{64}$/)
+        )
+        expect(f.metadata.markApplied.mock.invocationCallOrder[0]).toBeGreaterThan(
+            f.vectorStore.addKnowledgeDocument.mock.invocationCallOrder[0]
+        )
+        expect(f.publication.publish).toHaveBeenCalled()
+    })
+
+    it('leaves parsed rows available when optional metadata generation fails', async () => {
+        const f = fixture()
+        f.state.status = 'failed'
+        delete f.state.resultHash
+        await f.run()
+        expect(f.vectorStore.addKnowledgeDocument).toHaveBeenCalled()
+        expect(f.documentService.update).toHaveBeenCalledWith(
+            'table-doc',
+            expect.objectContaining({ status: KBDocumentStatusEnum.FINISH })
+        )
+    })
+
+    it('does not mark generated metadata applied when embedding fails', async () => {
+        const f = fixture()
+        f.vectorStore.addKnowledgeDocument.mockRejectedValueOnce(new Error('index unavailable'))
+        await f.run()
+        expect(f.metadata.markApplied).not.toHaveBeenCalled()
+        expect(f.publication.publish).not.toHaveBeenCalled()
+    })
+
+    it('never adopts the new job identity when a superseded job loads the document again', async () => {
+        const f = fixture()
+        f.document.jobId = 'new-job'
+        await f.run()
+        expect(f.commandBus.execute).not.toHaveBeenCalled()
+        expect(f.documentService.update).not.toHaveBeenCalled()
+        expect(f.metadata.prepare).not.toHaveBeenCalled()
+    })
+
+    it('does not turn a superseded generation into a document failure or overwrite its chunks', async () => {
+        const f = fixture()
+        f.metadata.prepare.mockRejectedValueOnce(new TableMetadataStaleError())
+        await f.run()
+        expect(f.documentService.syncChunksIncrementally).not.toHaveBeenCalled()
+        expect(f.documentService.update).not.toHaveBeenCalled()
+    })
+
+    it('stops before replacing chunks if a newer job takes ownership after generation', async () => {
+        const f = fixture()
+        f.metadata.assertIndexCurrent.mockRejectedValueOnce(new TableMetadataStaleError())
+        await f.run()
+        expect(f.documentService.syncChunksIncrementally).not.toHaveBeenCalled()
+        expect(f.vectorStore.addKnowledgeDocument).not.toHaveBeenCalled()
+        expect(f.metadata.markApplied).not.toHaveBeenCalled()
     })
 })

@@ -24,6 +24,8 @@ export type TVectorSearchParams = {
     filter?: Record<string, unknown>
     /** Return the exact stored/vector chunk used by an evidence reference. */
     targetChunkId?: string
+    /** Internal canonical source ids for backends whose projection metadata can be overwritten by partial updates. */
+    sourceChunkIds?: string[]
 }
 
 type TEnabledVectorFilter = VectorStore['FilterType'] & {
@@ -66,6 +68,13 @@ export function createCollectionScopedVectorId(collectionName: string, chunkId: 
 
 export class KnowledgeDocumentStore {
     private model: string | null = null
+
+    get embeddingModelContextSize() {
+        return (
+            this.knowledgebase.copilotModel?.options?.context_size ??
+            this.knowledgebase.copilotModel?.referencedModel?.options?.context_size
+        )
+    }
 
     get embeddingModel() {
         return this.embeddingMetadata.model ?? getCopilotModel(this.knowledgebase)
@@ -172,12 +181,30 @@ export class KnowledgeDocumentStore {
      * Find all chunks of a document, filter by metadata
      */
     async getChunks(knowledgeId: string, options: TVectorSearchParams) {
-        const docs = await this.vStore.similaritySearch(options.search || '*', 10000, {
+        const filter = {
             ...(options.filter ?? {}),
             knowledgeId
-        })
+        }
+        const store = this.vStore as VectorStore & {
+            filterString?: (filter: Record<string, unknown>) => string
+            primaryField?: string
+        }
+        const sourceIds = options.sourceChunkIds?.map((id) => this.createVectorId(id))
+        const sourceFilter =
+            this.vStore._vectorstoreType?.() === 'milvus' && store.filterString
+                ? `(${store.filterString(filter)}) and ${
+                      sourceIds?.length && store.primaryField
+                          ? `${store.primaryField} in ${JSON.stringify(sourceIds)}`
+                          : 'not (exists filterAttributes["chunkMetadata"]["questionGenerationId"])'
+                  }`
+                : this.vStore._vectorstoreType?.() === 'pgvector'
+                  ? { ...filter, sourceOnly: true }
+                  : filter
+        const docs = await this.vStore.similaritySearch(options.search || '*', 10000, sourceFilter)
         // Restore full pageContent for table documents
-        const restoredDocs = docs.map((doc) => this.restorePageContent(doc))
+        const restoredDocs = docs
+            .filter((doc) => !doc.metadata.questionGenerationId)
+            .map((doc) => this.restorePageContent(doc))
         const skip = options.skip ?? 0
         return {
             items: options.take ? restoredDocs.slice(skip, skip + options.take) : restoredDocs,
@@ -186,8 +213,22 @@ export class KnowledgeDocumentStore {
     }
 
     async getChunk(id: string) {
-        const docs = await this.vStore.similaritySearch('*', 1, { chunkId: id })
-        return docs[0] ? this.restorePageContent(docs[0]) : undefined
+        const store = this.vStore as VectorStore & {
+            getByIds?: (ids: string[]) => Promise<DocumentInterface[]>
+            primaryField?: string
+        }
+        const physicalId = this.createVectorId(id)
+        if (store.getByIds) {
+            const docs = await store.getByIds([physicalId])
+            return docs[0] ? this.restorePageContent(docs[0]) : undefined
+        }
+        const filter =
+            this.vStore._vectorstoreType?.() === 'milvus' && store.primaryField
+                ? `${store.primaryField} == ${JSON.stringify(physicalId)}`
+                : { chunkId: id }
+        const docs = await this.vStore.similaritySearch('*', 1, filter)
+        const source = docs.find((doc) => !doc.metadata.questionGenerationId)
+        return source ? this.restorePageContent(source) : undefined
     }
 
     async deleteChunk(id: string) {
@@ -261,6 +302,39 @@ export class KnowledgeDocumentStore {
         return {
             ...result,
             items: result.items.map(([doc, score]) => [this.restorePageContent(doc), score])
+        }
+    }
+
+    /** Request-local embedding reuse; no shared model or store state is changed by expansion. */
+    createSearchSession(query: string) {
+        let embedding: Promise<number[]> | undefined
+        const getEmbedding = () => (embedding ??= this.vStore.embeddings.embedQuery(query))
+        const store = this.vStore as VectorStore & {
+            structuredSimilaritySearchVectorWithScore?: (
+                embedding: number[],
+                k: number,
+                filter: StructuredVectorSearchFilter
+            ) => Promise<StructuredVectorSearchResult>
+        }
+        return {
+            similaritySearchWithScore: this.similaritySearchWithScore.bind(this),
+            structuredSimilaritySearchWithScore: async (
+                text: string,
+                k: number,
+                filter: StructuredVectorSearchFilter
+            ): Promise<StructuredVectorSearchResult> => {
+                let result: StructuredVectorSearchResult
+                if (store.structuredSimilaritySearchVectorWithScore) {
+                    result = await store.structuredSimilaritySearchVectorWithScore(await getEmbedding(), k, filter)
+                } else if (store._vectorstoreType() === 'milvus' && filter.milvus) {
+                    result = {
+                        items: await store.similaritySearchVectorWithScore(await getEmbedding(), k, filter.milvus)
+                    }
+                } else {
+                    return this.structuredSimilaritySearchWithScore(text, k, filter)
+                }
+                return { ...result, items: result.items.map(([doc, score]) => [this.restorePageContent(doc), score]) }
+            }
         }
     }
 

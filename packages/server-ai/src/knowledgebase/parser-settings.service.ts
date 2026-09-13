@@ -1,7 +1,9 @@
+import { validateQuestionGeneration } from '../knowledge-document/questions/question-generation'
 import { Injectable } from '@nestjs/common'
 import { Document } from '@langchain/core/documents'
 import {
     buildChunkTree,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentParserConfig,
     KnowledgebaseParserConfig,
     KnowledgeChunkPreviewInput,
@@ -9,7 +11,13 @@ import {
     KnowledgeStructureEnum
 } from '@xpert-ai/contracts'
 import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
-import { invalidKnowledgeParserConfig, validateSeparators } from '../knowledge-document/parser-validation'
+import {
+    invalidKnowledgeParserConfig,
+    validateMaxChunkTokens,
+    validateChunkLanguageHint,
+    validateSeparators,
+    validateKnowledgeTableSettings
+} from '../knowledge-document/parser-validation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { splitKnowledgeDocuments } from '../knowledge-document/split-documents'
 
@@ -24,6 +32,7 @@ export class KnowledgeParserSettingsService {
         if (!config || typeof config !== 'object' || Array.isArray(config)) {
             throw invalidKnowledgeParserConfig('parserConfig')
         }
+        validateKnowledgeTableSettings(config)
         validateSeparators(config.separators)
         if (config.separators !== undefined && !Array.isArray(config.separators)) {
             throw invalidKnowledgeParserConfig('separators')
@@ -53,7 +62,11 @@ export class KnowledgeParserSettingsService {
     }
 
     async validateSplitter(config: DocumentParserConfig): Promise<KnowledgeStructureEnum> {
-        const name = config.textSplitterType || 'recursive-character'
+        validateKnowledgeTableSettings(config)
+        validateMaxChunkTokens(config.maxChunkTokens)
+        validateChunkLanguageHint(config.chunkLanguageHint)
+        validateQuestionGeneration(config.questionGeneration)
+        const name = config.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER
         const splitter = this.splitters.get(name)
         if (!splitter) throw invalidKnowledgeParserConfig(name)
         await splitter.validateConfig(config.textSplitter ?? {})
@@ -78,10 +91,10 @@ export class KnowledgeParserSettingsService {
                 metadata: {
                     documentId: 'preview',
                     chunkId: 'preview-source',
-                    ...(input.type === 'md' ? { contentFormat: 'markdown' } : {})
+                    contentFormat: input.type === 'md' ? 'markdown' : 'text'
                 }
             })
         ])
-        return { chunks: buildChunkTree(result.chunks) }
+        return { ...result, chunks: buildChunkTree(result.chunks) }
     }
 }

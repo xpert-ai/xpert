@@ -5,10 +5,278 @@ import { KnowledgeDocLoadCommand } from '../load.command'
 import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { KnowledgeDocLoadHandler } from './load.handler'
+import { RecursiveCharacterStrategy } from '../../../knowledgebase/plugins/textsplitter-common/recursive-character.strategy'
+import { countTextTokens } from '@xpert-ai/plugin-sdk'
+import { computeObjectHash } from '@xpert-ai/server-core'
+import { pick } from '@xpert-ai/server-common'
+import * as language from '../../chunk-language'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import * as XLSX from 'xlsx'
 
 describe('KnowledgeDocLoadHandler', () => {
+    it('parses native Excel headers and table sources together while retaining the legacy first worksheet', async () => {
+        const directory = await mkdtemp(join(tmpdir(), 'knowledge-table-load-'))
+        try {
+            const workbook = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(
+                workbook,
+                XLSX.utils.aoa_to_sheet([
+                    ['Name', 'Value'],
+                    ['First', 0]
+                ]),
+                'One'
+            )
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['Other'], ['Second']]), 'Two')
+            const filePath = join(directory, 'table.xlsx')
+            XLSX.writeFile(workbook, filePath)
+            const handler = new KnowledgeDocLoadHandler({} as never, {} as never, {} as never)
+            Object.assign(handler, {
+                knowledgeWorkAreaResolver: { resolve: async () => ({ volume: { path: () => filePath } }) }
+            })
+            const result = await handler.execute(
+                new KnowledgeDocLoadCommand({
+                    stage: 'test',
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'xlsx',
+                        category: KBDocumentCategoryEnum.Sheet,
+                        name: 'table.xlsx',
+                        filePath: 'table.xlsx',
+                        parserConfig: { spreadsheet: { firstRowAsHeader: false } }
+                    } as IKnowledgeDocument
+                })
+            )
+            expect(result.chunks.map((chunk) => chunk.pageContent)).toEqual([
+                '{"A":"Name","B":"Value"}',
+                '{"A":"First","B":0}'
+            ])
+            expect(result).toMatchObject({ tables: [{ tableId: 'sheet:0', sheetName: 'One', rowCount: 2 }] })
+            expect(result.chunks[0].metadata.tableSource).toEqual({ tableId: 'sheet:0', rowNumber: 1, range: 'A1:B1' })
+            const selected = await handler.execute(
+                new KnowledgeDocLoadCommand({
+                    stage: 'prod',
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'xlsx',
+                        category: KBDocumentCategoryEnum.Sheet,
+                        name: 'table.xlsx',
+                        filePath: 'table.xlsx',
+                        parserConfig: { spreadsheet: { interpretation: 'records', includeSheets: ['Two'] } }
+                    } as IKnowledgeDocument
+                })
+            )
+            expect(selected.chunks.map((chunk) => chunk.pageContent)).toEqual(['{"Other":"Second"}'])
+            expect(selected.tables).toMatchObject([{ tableId: 'sheet:1', sheetName: 'Two', headerRow: 1, rowCount: 1 }])
+        } finally {
+            await rm(directory, { recursive: true, force: true })
+        }
+    })
+    it('keeps CSV column headers even when Excel first-row headers are disabled', async () => {
+        const directory = await mkdtemp(join(tmpdir(), 'knowledge-csv-load-'))
+        try {
+            const filePath = join(directory, 'table.csv')
+            await writeFile(filePath, 'Name,Count\nAlice,0\n')
+            const handler = new KnowledgeDocLoadHandler({} as never, {} as never, {} as never)
+            Object.assign(handler, {
+                knowledgeWorkAreaResolver: { resolve: async () => ({ volume: { path: () => filePath } }) }
+            })
+            const result = await handler.execute(
+                new KnowledgeDocLoadCommand({
+                    stage: 'test',
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'csv',
+                        category: KBDocumentCategoryEnum.Sheet,
+                        name: 'renamed.xlsx',
+                        filePath: 'table.csv',
+                        parserConfig: { spreadsheet: { firstRowAsHeader: false } }
+                    } as IKnowledgeDocument
+                })
+            )
+            expect(result.chunks.map((chunk) => chunk.pageContent)).toEqual(['{"Name":"Alice","Count":0}'])
+            expect(result.tables[0]).toMatchObject({ headerRow: 1, rowCount: 1 })
+        } finally {
+            await rm(directory, { recursive: true, force: true })
+        }
+    })
+    it('detects once across batches and invalidates batch caches when the public hint or document language changes', async () => {
+        const detector = jest.spyOn(language, 'detectChunkLanguage')
+        const handler = new KnowledgeDocLoadHandler({} as KnowledgebaseService, {} as CommandBus, {} as QueryBus)
+        const first = new Document({ pageContent: 'Common introduction.', metadata: { chunkId: 'first' } })
+        let body = 'This is the English body. It has multiple sentences. These sentences describe configuration.'
+        const cache = new Map<string, Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>>()
+        Object.assign(handler, {
+            knowledgeWorkAreaResolver: { resolve: async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }) },
+            transformSnapshotService: {
+                load: async () => [
+                    { chunks: [first] },
+                    { chunks: [new Document({ pageContent: body, metadata: { chunkId: 'body' } })] }
+                ]
+            },
+            textSplitterRegistry: { get: () => new RecursiveCharacterStrategy() },
+            cacheManager: {
+                get: async (key: string) => cache.get(key),
+                set: async (key: string, value: Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>) =>
+                    cache.set(key, value)
+            }
+        })
+        const split = jest.spyOn(handler, 'splitDocuments')
+        const run = (chunkLanguageHint: 'auto' | 'Chinese' = 'auto') =>
+            handler.execute(
+                new KnowledgeDocLoadCommand({
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        type: 'txt',
+                        name: 'text.txt',
+                        filePath: 'text.txt',
+                        parserConfig: {
+                            chunkLanguageHint,
+                            chunkSize: 80,
+                            chunkOverlap: 0,
+                            imageUnderstandingEnabled: false
+                        }
+                    } as IKnowledgeDocument,
+                    mode: 'rechunk',
+                    stage: 'test'
+                })
+            )
+        await run()
+        expect(detector).toHaveBeenCalledTimes(1)
+        expect(split).toHaveBeenCalledTimes(2)
+        await run()
+        expect(split).toHaveBeenCalledTimes(2)
+        await run('Chinese')
+        expect(split).toHaveBeenCalledTimes(4)
+        body = '\u8fd9\u662f\u4e2d\u6587\u6b63\u6587\u3002'.repeat(10)
+        await run()
+        // Even the unchanged introduction must use the new document-level language decision.
+        expect(split).toHaveBeenCalledTimes(6)
+        expect(detector).toHaveBeenCalledTimes(4)
+    })
+    it('reuses chunk cache only while the token cap is unchanged, including when disabling it', async () => {
+        const handler = new KnowledgeDocLoadHandler(
+            {} as unknown as KnowledgebaseService,
+            {} as unknown as CommandBus,
+            {} as unknown as QueryBus
+        )
+        const text = '中文 English 文档分块测试。'.repeat(20)
+        const source = new Document({ pageContent: text, metadata: { chunkId: 'source' } })
+        const cache = new Map<string, Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>>()
+        Object.assign(handler, {
+            knowledgeWorkAreaResolver: { resolve: async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }) },
+            transformSnapshotService: { load: async () => [{ chunks: [source] }] },
+            textSplitterRegistry: { get: () => new RecursiveCharacterStrategy() },
+            cacheManager: {
+                get: async (key: string) => cache.get(key),
+                set: async (key: string, value: Awaited<ReturnType<KnowledgeDocLoadHandler['splitDocuments']>>) =>
+                    cache.set(key, value)
+            }
+        })
+        const split = jest.spyOn(handler, 'splitDocuments')
+        const run = (maxChunkTokens: number) =>
+            handler.execute(
+                new KnowledgeDocLoadCommand({
+                    doc: {
+                        id: 'doc',
+                        knowledgebaseId: 'kb',
+                        name: 'text.txt',
+                        type: 'txt',
+                        filePath: 'text.txt',
+                        category: KBDocumentCategoryEnum.Text,
+                        parserConfig: {
+                            chunkSize: 1000,
+                            chunkOverlap: 0,
+                            maxChunkTokens,
+                            imageUnderstandingEnabled: false
+                        }
+                    } as IKnowledgeDocument,
+                    mode: 'rechunk',
+                    stage: 'test'
+                })
+            )
+        const first = await run(16)
+        const cached = await run(16)
+        expect(cached).toEqual(first)
+        expect(split).toHaveBeenCalledTimes(1)
+        const smaller = await run(8)
+        expect(split).toHaveBeenCalledTimes(2)
+        expect(smaller.chunks.length).toBeGreaterThan(first.chunks.length)
+        expect(smaller.chunks.every((chunk) => countTextTokens(chunk.pageContent) <= 8)).toBe(true)
+        const disabled = await run(0)
+        expect(split).toHaveBeenCalledTimes(3)
+        expect(disabled.chunks.map((chunk) => chunk.pageContent)).toEqual([text])
+    })
+
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('ignores legacy image results missing parents and reuses the refreshed complete result', async () => {
+        const parent = new Document({
+            pageContent: 'Full context',
+            metadata: { chunkId: 'parent', type: 'parent' as const }
+        })
+        const child = new Document({
+            pageContent: '![diagram](https://files.local/image.png)',
+            metadata: { chunkId: 'child', type: 'child' as const, parentId: 'parent' }
+        })
+        const chunks = [parent, child]
+        const transformed = {
+            chunks: [parent],
+            metadata: { assets: [{ type: 'image', url: 'https://files.local/image.png', filePath: 'image.png' }] }
+        }
+        const doc = {
+            id: 'doc',
+            knowledgebaseId: 'kb',
+            name: 'manual.docx',
+            type: 'docx',
+            filePath: 'manual.docx',
+            category: KBDocumentCategoryEnum.Text,
+            parserConfig: { imageUnderstandingEnabled: true, imageUnderstandingType: 'vlm-default' }
+        } as IKnowledgeDocument
+        const parserConfig = resolveKnowledgeDocumentParserConfig(doc)
+        const legacyKey =
+            'knowledges:understanding:' +
+            computeObjectHash({
+                document: { ...transformed, chunks },
+                parserConfig: pick(parserConfig, [
+                    'imageUnderstandingType',
+                    'imageUnderstandingIntegration',
+                    'imageUnderstanding'
+                ]),
+                stage: 'test'
+            })
+        const cache = new Map<string, { chunks: Document[] }>([[legacyKey, { chunks: [child] }]])
+        const understandImages = jest.fn(async () => ({ chunks }))
+        const handler = new KnowledgeDocLoadHandler(
+            {} as unknown as KnowledgebaseService,
+            { execute: async () => ({}) } as unknown as CommandBus,
+            {} as unknown as QueryBus
+        )
+        Object.assign(handler, {
+            knowledgeWorkAreaResolver: { resolve: async () => ({ volume: {}, tmpPath: { serverPath: '/tmp' } }) },
+            transformSnapshotService: { load: async () => [transformed] },
+            imageUnderstandingRegistry: {
+                get: () => ({ permissions: [], requiresVisionModel: async () => false, understandImages })
+            },
+            cacheManager: {
+                get: async (key: string) => cache.get(key),
+                set: async (key: string, value: { chunks: Document[] }) => cache.set(key, value)
+            }
+        })
+        jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks })
+        const run = () => handler.execute(new KnowledgeDocLoadCommand({ doc, mode: 'rechunk', stage: 'test' }))
+
+        expect((await run()).chunks).toEqual(chunks)
+        expect((await run()).chunks).toEqual(chunks)
+        expect(understandImages).toHaveBeenCalledTimes(1)
+        expect(cache.get(legacyKey)).toEqual({ chunks: [child] })
     })
 
     it('merges plugin image metadata without replacing host-owned snapshot references', async () => {
@@ -99,13 +367,13 @@ describe('KnowledgeDocLoadHandler', () => {
             chunks
         )
 
-        expect(textSplitterRegistry.get).toHaveBeenCalledWith('recursive-character')
+        expect(textSplitterRegistry.get).toHaveBeenCalledWith('auto')
         expect(splitDocuments).toHaveBeenCalledWith(
             chunks,
             expect.objectContaining({
                 chunkSize: 1000,
                 chunkOverlap: 200,
-                separators: '\\n\\n,\\n, ,'
+                separators: undefined
             })
         )
         expect(result).toEqual({ chunks })

@@ -1,3 +1,5 @@
+import { KnowledgeTableMetadataComponent } from './table-metadata.component'
+import { KnowledgeChunkQuestionsComponent } from './chunk-questions.component'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -5,7 +7,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectConfirmDelete, myRxResource, XpCommonModule } from '@xpert-ai/headless-ui'
 import { effectAction, linkedModel, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { nonBlank } from '@xpert-ai/contracts'
+import { knowledgebaseDocumentParserDefaults, nonBlank } from '@xpert-ai/contracts'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeChunkComponent, KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
@@ -58,6 +60,8 @@ import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.co
     NgModelChangeDebouncedDirective,
     KnowledgeDocIdComponent,
     KnowledgeChunkComponent,
+    KnowledgeChunkQuestionsComponent,
+    KnowledgeTableMetadataComponent,
     CopyComponent,
     KnowledgeDocumentAnalysisPreviewComponent
   ]
@@ -123,6 +127,14 @@ export class KnowledgeDocumentChunkComponent {
   })
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
   readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
+  readonly questionGenerationEnabled = computed(() => {
+    const document = this.document()
+    if (!document) return false
+    const config =
+      document.parserConfig?.questionGeneration ??
+      knowledgebaseDocumentParserDefaults(this.knowledgebase()?.parserConfig, document.type).questionGeneration
+    return config?.enabled === true
+  })
   readonly docEnabled = model(false)
 
   readonly loading = signal(false)
@@ -143,7 +155,9 @@ export class KnowledgeDocumentChunkComponent {
 
   // Metadata schema
   readonly metadataSchema = computed(() => this.knowledgebase()?.metadataSchema || [])
-  readonly documentMetadataSchema = computed(() => this.metadataSchema().filter((field) => field.scope !== 'chunk'))
+  readonly documentMetadataSchema = computed(() =>
+    this.metadataSchema().filter((field) => field.scope !== 'chunk' && field.key !== 'tableMetadata')
+  )
   readonly chunkMetadataSchema = computed(() => this.metadataSchema().filter((field) => field.scope === 'chunk'))
   readonly showMetadata = signal(false)
   readonly editMetadata = signal(false)
@@ -533,11 +547,13 @@ export class KnowledgeDocumentChunkComponent {
   }
 
   saveMetadata() {
+    const metadata = { ...this.metadata() }
+    delete metadata.tableMetadata
     this.loading.set(true)
     this.knowledgeDocumentService
       .update(this.document().id, {
         version: this.document().version,
-        metadata: this.metadata()
+        metadata
       })
       .subscribe({
         next: () => {

@@ -63,6 +63,16 @@
         </div>
 
         <div class="rounded-xl shadow-xs border-[1.5px] mb-2 p-4 space-y-4">
+          @if (showExcelHeader()) {
+            <div class="space-y-2" data-excel-header>
+              <z-switch [(ngModel)]="spreadsheetFirstRowAsHeader">
+                {{ 'XP.Knowledgebase.WorkspaceConfiguration.Parser.FirstRowAsHeader' | translate }}
+              </z-switch>
+              <p class="text-xs text-text-tertiary">
+                {{ 'XP.Knowledgebase.WorkspaceConfiguration.Parser.FirstRowAsHeaderHelp' | translate }}
+              </p>
+            </div>
+          }
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
               <div class="text-sm text-text-secondary">
@@ -141,7 +151,10 @@
           </div>
         </div>
 
-        <div class="mt-4 flex flex-wrap items-center justify-end gap-2" [hidden]="section() !== 'all'">
+        <div
+          class="mt-4 flex flex-wrap items-center justify-end gap-2"
+          [hidden]="section() !== 'all' && section() !== 'parser'"
+        >
           <button z-button zType="outline" zSize="lg" type="button" (click)="onPreview()">
             <z-icon zType="search" />
             {{ 'XP.Knowledgebase.PreviewChunk' | translate: { Default: 'Preview Chunk' } }}
@@ -571,9 +584,14 @@
     <ng-content select="[actions]"></ng-content>
   </div>
 
-  @if (section() === 'all') {
+  @if (section() === 'all' || (usesPlatformSpreadsheetParser() && section() === 'parser')) {
     <div
-      class="grow max-w-[60%] relative flex flex-col pl-4 border-l border-y border-solid border-divider-regular rounded-xl"
+      class="relative flex flex-col border-divider-regular"
+      [class]="
+        section() === 'all'
+          ? 'grow max-w-[60%] pl-4 border-l border-y rounded-xl'
+          : 'mt-4 max-h-96 overflow-auto border-t'
+      "
     >
       <header class="py-2 pr-4 border-b border-divider-subtle">
         <div>
@@ -620,7 +638,9 @@
         <xp-knowledge-document-preview
           class="pb-4 w-full grow space-y-6"
           [(document)]="selectedDocument"
-          [parserConfig]="parserConfig()"
+          [parserConfig]="documentConfigIsResolved() ? selectedDocument().parserConfig : parserConfig()"
+          (parserConfigChange)="updatePreviewConfig($event)"
+          [knowledgebaseValue]="knowledgebase()"
           [preview]="preview()"
         />
       }

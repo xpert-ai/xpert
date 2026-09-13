@@ -11,7 +11,8 @@ const transformSeedPackages = [
     'ali-oss',
     'form-data-encoder',
     'nanoid',
-    'jose'
+    'jose',
+    'marked'
 ]
 
 const readPackageJson = (packageName: string): Record<string, any> | null => {

@@ -54,6 +54,18 @@ export const knowledgeWikiMapOutputSchema = z.object({
     pages: z.array(mapPageSchema).max(200)
 })
 
+export function createKnowledgeWikiMapOutputSchema(chunks: ReadonlyArray<{ id: string }>) {
+    const ids = [...new Set(chunks.map((chunk) => chunk.id))]
+    const [first, ...rest] = ids
+    const sourceId = first === undefined ? z.never() : z.enum([first, ...rest])
+    const fact = mapPageSchema.shape.facts.element.extend({
+        sourceChunkIds: z.array(sourceId).min(1).max(KNOWLEDGE_WIKI_MAX_SOURCE_CHUNKS_PER_FACT)
+    })
+    return knowledgeWikiMapOutputSchema.extend({
+        pages: z.array(mapPageSchema.extend({ facts: z.array(fact).max(KNOWLEDGE_WIKI_MAX_FACTS) })).max(200)
+    })
+}
+
 // The provider requires nullable fields; persisted contributions may omit an absent label.
 const storedMapOutputSchema = z.object({
     pages: z
@@ -104,8 +116,8 @@ export function resolveKnowledgeWikiMapSources(
                 ...new Set(
                     fact.sourceChunkIds.flatMap((id) => {
                         if (allowedChunkIds.has(id)) return [id]
-                        // Only accept the known prefix if the remainder is an exact ID in this batch.
-                        const unprefixed = id.startsWith('id:') ? id.slice(3) : null
+                        // Normalize only known envelopes, never extract an ID from arbitrary text.
+                        const unprefixed = id.startsWith('id:') ? id.slice(3) : /^id":"([^"\\]+)"$/.exec(id)?.[1]
                         return unprefixed && allowedChunkIds.has(unprefixed) ? [unprefixed] : []
                     })
                 )
@@ -189,7 +201,7 @@ export function buildKnowledgeWikiMapMessages(input: {
                 'For entities record an explicit entityType (unknown when unsupported), identifying description and scope. Only record identifiers explicitly present in the source; namespace must include the issuer and scope.',
                 'For concepts record the definition, domain and scope. Use null for unsupported domain/scope; do not equate related or broader concepts.',
                 'Every fact must cite one or more chunk IDs that exist in SOURCE_DATA.',
-                'Copy the exact chunks[].id values into sourceChunkIds. Do not add prefixes such as "id:" or use titles, ordinals, or IDs from other batches.',
+                'Copy only the exact chunks[].id string values into sourceChunkIds, without the JSON field name, quotes or prefixes such as "id:". Never use titles, ordinals, or IDs from other batches.',
                 'Populate suggestedLinks for explicit relationships supported by the cited facts, using the target pageType and exact canonicalName. Include components, dependencies, applications and comparisons when stated in the source; do not link merely because pages share a source or similar words.',
                 granularity,
                 input.config.extractionFocus ? `Extraction focus: ${input.config.extractionFocus}` : '',

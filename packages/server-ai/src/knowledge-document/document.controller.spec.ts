@@ -262,6 +262,60 @@ describe('KnowledgeDocumentController chunk estimate', () => {
     })
 })
 
+describe('KnowledgeDocumentController table estimate', () => {
+    it('authorizes the source and returns schema without samples while allowing stale column selection to be corrected', async () => {
+        const persisted = {
+            id: 'doc-1',
+            knowledgebaseId: 'kb-1',
+            category: KBDocumentCategoryEnum.Sheet,
+            type: 'xlsx',
+            name: 'saved.xlsx',
+            filePath: 'saved.xlsx',
+            parserConfig: {}
+        }
+        const service = { assertDocumentReadAccess: jest.fn(), findOne: jest.fn(async () => persisted) }
+        const table = {
+            tableId: 'sheet:0',
+            sheetName: 'One',
+            range: 'A1:B2',
+            rowCount: 2,
+            columns: [{ columnId: 'A', column: 1, key: 'A', label: 'A' }],
+            samples: [{ rowNumber: 1, values: { A: 'Name' } }]
+        }
+        const execute = jest.fn(async (_command: KnowledgeDocLoadCommand) => ({ tables: [table], chunks: [] }))
+        const controller = new KnowledgeDocumentController(
+            service as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            { execute } as never,
+            {} as never,
+            {} as never
+        )
+        const preview = await controller.estimateTable({
+            id: 'doc-1',
+            filePath: '/foreign.xlsx',
+            parserConfig: {
+                indexedFields: ['PreviousHeader'],
+                spreadsheet: { firstRowAsHeader: false }
+            }
+        })
+        expect(service.assertDocumentReadAccess).toHaveBeenCalledWith('doc-1')
+        const command = execute.mock.calls[0][0] as KnowledgeDocLoadCommand
+        expect(command.input).toMatchObject({
+            stage: 'test',
+            mode: 'full',
+            doc: {
+                filePath: 'saved.xlsx',
+                parserConfig: { spreadsheet: { firstRowAsHeader: false } }
+            }
+        })
+        expect(command.input.doc.parserConfig.indexedFields).toBeUndefined()
+        expect(preview.tables[0]).not.toHaveProperty('samples')
+        expect(preview.tables[0].columns).toEqual(table.columns)
+    })
+})
+
 describe('KnowledgeDocumentController parent knowledgebase access', () => {
     function createController() {
         const service = {

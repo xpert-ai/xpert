@@ -1,8 +1,10 @@
+import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
+import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { TKBRetrievalSettings } from './xpert.model'
 import { ICopilotModel } from './copilot-model.model'
 import { I18nObject, TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
-import { IKnowledgeDocument } from './knowledge-doc.model'
+import { IKnowledgeDocument, type DocumentSpreadsheetParserConfig } from './knowledge-doc.model'
 import { IXpert } from './xpert.model'
 import { IIntegration } from '../integration.model'
 import { channelName } from '../agent/graph'
@@ -68,6 +70,13 @@ export enum KnowledgeStructureEnum {
 }
 
 export type KnowledgebaseParserConfig = {
+  spreadsheet?: Pick<DocumentSpreadsheetParserConfig, 'firstRowAsHeader'>
+  tableMetadataRequirements?: string
+  /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
+  maxChunkTokens?: number
+  /** Public natural-language boundary hint; absence means auto. */
+  chunkLanguageHint?: KnowledgeChunkLanguageHint
+  questionGeneration?: KnowledgeQuestionGenerationConfig
   pages?: number[][]
   embeddingBatchSize?: number
   chunkSize: number | null

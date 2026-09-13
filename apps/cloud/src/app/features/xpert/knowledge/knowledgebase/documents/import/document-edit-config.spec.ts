@@ -1,6 +1,26 @@
 import { documentProcessingDraft, editedDocumentParserConfig } from './document-edit-config'
 
+it('inherits, overrides and reopens public document language settings', () => {
+  const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, chunkLanguageHint: 'Chinese' as const }
+  expect(documentProcessingDraft({ type: 'txt' }, defaults).chunkLanguageHint).toBe('Chinese')
+  const document = { type: 'txt', parserConfig: { chunkLanguageHint: 'English' as const } }
+  const draft = { ...defaults, ...documentProcessingDraft(document, defaults) }
+  expect(draft.chunkLanguageHint).toBe('English')
+  const saved = editedDocumentParserConfig(document, draft, defaults)
+  expect(saved.chunkLanguageHint).toBe('English')
+  expect(saved.textSplitter).not.toHaveProperty('chunkLanguageHint')
+  expect(documentProcessingDraft({ ...document, parserConfig: saved }, defaults).chunkLanguageHint).toBe('English')
+})
+
 describe('editing document processing settings', () => {
+  it('inherits the library token budget and preserves an explicit per-document opt-out when reopening and saving', () => {
+    const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 256 }
+    expect(documentProcessingDraft({ type: 'txt' }, defaults).maxChunkTokens).toBe(256)
+    const document = { type: 'pdf', parserConfig: { maxChunkTokens: 0 } }
+    const draft = documentProcessingDraft(document, defaults)
+    expect(draft.maxChunkTokens).toBe(0)
+    expect(editedDocumentParserConfig(document, { ...defaults, ...draft }, defaults).maxChunkTokens).toBe(0)
+  })
   it('prefers document overrides and keeps provider-specific options isolated from defaults', () => {
     const draft = documentProcessingDraft(
       {
@@ -55,4 +75,19 @@ describe('editing document processing settings', () => {
     })
     expect(config.transformer).not.toHaveProperty('dpi')
   })
+})
+
+it('inherits library table defaults while preserving explicit header false and an empty requirement', () => {
+  const draft = documentProcessingDraft(
+    {
+      type: 'xlsx',
+      parserConfig: {
+        spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] },
+        tableMetadataRequirements: ''
+      }
+    },
+    { spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: 'Default requirement' }
+  )
+  expect(draft.spreadsheet).toEqual({ firstRowAsHeader: false, includeSheets: ['Orders'] })
+  expect(draft.tableMetadataRequirements).toBe('')
 })

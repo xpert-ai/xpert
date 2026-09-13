@@ -82,6 +82,7 @@ function toKeywordDocument(row: KeywordParentRow | KeywordCandidateRow, keywordS
         pageContent: row.pageContent ?? '',
         metadata: {
             ...(row.metadata ?? {}),
+            documentId: row.documentId,
             chunkId: row.chunkId,
             keywordScore,
             score: keywordScore,

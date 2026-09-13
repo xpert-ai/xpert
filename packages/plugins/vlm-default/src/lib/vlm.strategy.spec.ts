@@ -1,5 +1,5 @@
 import { FakeListChatModel } from '@langchain/core/utils/testing'
-import type { IKnowledgeDocument } from '@xpert-ai/contracts'
+import { buildChunkTree } from '@xpert-ai/contracts'
 import type { XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
 import { VlmDefaultStrategy } from './vlm.strategy'
@@ -18,6 +18,67 @@ jest.mock('sharp', () =>
 )
 
 describe('VlmDefaultStrategy', () => {
+  it.each(['success', 'failure', 'no-images'] as const)(
+    'preserves text parents and children when image understanding has %s',
+    async (outcome) => {
+      const image = '![diagram](https://files.local/image.png)'
+      const parent = new Document({
+        pageContent: `Complete context\n${image}\nAdditional explanation`,
+        metadata: { chunkId: 'parent', type: 'parent', chunkIndex: 0, enabled: true }
+      })
+      const child = new Document({
+        pageContent: image,
+        metadata: { chunkId: 'child', type: 'child', parentId: 'parent', chunkIndex: 0 }
+      })
+      const sibling = new Document({
+        pageContent: 'Additional explanation',
+        metadata: { chunkId: 'sibling', type: 'child', parentId: 'parent', chunkIndex: 1 }
+      })
+      const sourceChunks = [parent, child, sibling]
+      const visionModel = new FakeListChatModel({ responses: ['Image description'] })
+      const invoke = jest.spyOn(visionModel, 'invoke')
+      if (outcome === 'failure') invoke.mockRejectedValue(new Error('Vision request failed'))
+      const fileSystem = { readFile: jest.fn(async () => Buffer.from('image')) } as unknown as XpFileSystem
+      const result = await new VlmDefaultStrategy().understandImages(
+        {
+          name: 'manual.docx',
+          filePath: 'manual.docx',
+          type: 'docx',
+          parserId: 'default',
+          parserConfig: {},
+          chunks: sourceChunks,
+          metadata: {
+            assets:
+              outcome === 'no-images'
+                ? []
+                : [{ type: 'image', url: 'https://files.local/image.png', filePath: 'image.png' }]
+          }
+        },
+        { stage: 'prod', visionModel, permissions: { fileSystem } }
+      )
+
+      expect(result.chunks.filter((chunk) => chunk.metadata.mediaType !== 'image')).toEqual(sourceChunks)
+      expect(result.chunks).toHaveLength(outcome === 'success' ? 4 : 3)
+      expect(invoke).toHaveBeenCalledTimes(outcome === 'no-images' ? 0 : 1)
+      const ids = new Set(result.chunks.map((chunk) => chunk.metadata.chunkId))
+      expect(result.chunks.every((chunk) => !chunk.metadata.parentId || ids.has(chunk.metadata.parentId))).toBe(true)
+      const tree = buildChunkTree(
+        result.chunks.map((chunk) => {
+          const chunkId = chunk.metadata.chunkId
+          if (!chunkId) throw new Error('Output chunks must have a chunk ID')
+          return { ...chunk, metadata: { ...chunk.metadata, chunkId } }
+        })
+      )
+      expect(tree).toHaveLength(1)
+      expect(tree[0].metadata.chunkId).toBe('parent')
+      expect(tree[0].metadata.children.map((chunk) => chunk.metadata.chunkId)).toEqual(['child', 'sibling'])
+      const imageChildren = tree[0].metadata.children[0].metadata.children
+      expect(imageChildren).toHaveLength(outcome === 'success' ? 1 : 0)
+      if (outcome === 'success') expect(imageChildren[0].metadata.mediaType).toBe('image')
+      expect(sourceChunks.every((chunk) => !('children' in chunk.metadata))).toBe(true)
+    }
+  )
+
   it('keeps source chunks and returns warnings when a single image fails', async () => {
     const strategy = new VlmDefaultStrategy()
     const chunk = new Document({
@@ -86,9 +147,14 @@ describe('VLM prompt template execution', () => {
     const invoke = jest.spyOn(visionModel, 'invoke')
     const source = 'Product specifications\n\n![diagram](https://files.local/image.png)'
     const document = {
+      name: 'manual.docx',
+      filePath: 'manual.docx',
+      type: 'docx',
+      parserId: 'default',
+      parserConfig: {},
       chunks: [new Document({ pageContent: source, metadata: { chunkId: 'source' } })],
-      metadata: { assets: [{ type: 'image', filePath: 'image.png', url: 'https://files.local/image.png' }] }
-    } as IKnowledgeDocument
+      metadata: { assets: [{ type: 'image' as const, filePath: 'image.png', url: 'https://files.local/image.png' }] }
+    }
     await new VlmDefaultStrategy().understandImages(document, {
       stage: 'test',
       promptTemplate,

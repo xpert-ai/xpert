@@ -1,14 +1,27 @@
 import { splitKnowledgeDocuments } from '../../split-documents'
+import { resolveKnowledgeLanguage, type KnowledgeSplitterExecutionContext } from '../../execute-splitter'
+import { knowledgeChunkingRevision } from '../../chunking-revision'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     DocumentSheetParserConfig,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentTextParserConfig,
     IKnowledgeDocument,
     IKnowledgeDocumentChunk,
     KBDocumentCategoryEnum,
-    KBDocumentStatusEnum
+    KBDocumentStatusEnum,
+    KnowledgeTableSource,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
-import { getErrorMessage, loadCsvWithAutoEncoding, loadExcel, loadExcelWorkbook, pick } from '@xpert-ai/server-common'
+import {
+    getErrorMessage,
+    loadCsvWithAutoEncoding,
+    loadExcel,
+    loadExcelWorkbook,
+    loadTableWorkbook,
+    SpreadsheetSourceRowError,
+    pick
+} from '@xpert-ai/server-common'
 import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -37,7 +50,12 @@ import { resolveKnowledgeDocumentParserConfig } from '../../parser-config'
 import { resolveKnowledgeDocumentTransformerIdentity } from '../../document-hash'
 import { KnowledgeDocumentTransformSnapshotService } from '../../transform-snapshot.service'
 import { KnowledgeDocumentAnalysisSnapshotService } from '../../analysis-snapshot.service'
-import { createSpreadsheetFormDocuments, createSpreadsheetRecordDocuments } from '../../spreadsheet-document'
+import {
+    createSpreadsheetFormDocuments,
+    createSpreadsheetRecordDocuments,
+    createSpreadsheetRecordResult
+} from '../../spreadsheet-document'
+import { invalidKnowledgeParserConfig, validateKnowledgeTableSettings } from '../../parser-validation'
 
 type ImageUnderstandingWarning = {
     type: 'image_understanding_skipped' | 'image_understanding_failed'
@@ -80,8 +98,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         private readonly queryBus: QueryBus
     ) {}
 
-    public async execute(command: KnowledgeDocLoadCommand): Promise<{ chunks: Document[]; pages?: Document[] }> {
+    public async execute(
+        command: KnowledgeDocLoadCommand
+    ): Promise<{ chunks: Document[]; pages?: Document[]; tables?: KnowledgeTableSource[] }> {
         const { doc, stage, mode = 'full' } = command.input
+        validateKnowledgeTableSettings(doc.parserConfig)
         const docParserConfig = resolveKnowledgeDocumentParserConfig(doc)
 
         let visionModel: BaseChatModel | undefined
@@ -96,6 +117,26 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             documentId: doc.id
         })
         const volumeClient = workArea.volume
+
+        if (isNativeKnowledgeTableDocument({ ...doc, parserConfig: docParserConfig })) {
+            const format = doc.type.replace(/^\./, '').toLowerCase() === 'csv' ? 'csv' : 'excel'
+            const legacy = format === 'csv' || docParserConfig.spreadsheet?.interpretation !== 'records'
+            const workbook = await loadTableWorkbook(volumeClient.path(doc.filePath), {
+                format,
+                sheetMode: legacy ? 'legacy' : 'all',
+                firstRowAsHeader: docParserConfig.spreadsheet?.firstRowAsHeader
+            }).catch((error: unknown) => {
+                if (error instanceof SpreadsheetSourceRowError) throw invalidKnowledgeParserConfig('table source row')
+                throw error
+            })
+            return createSpreadsheetRecordResult({
+                documentId: doc.id,
+                workbook,
+                config: docParserConfig.spreadsheet,
+                indexedFields: docParserConfig.indexedFields,
+                legacy
+            })
+        }
 
         const hasCustomSheetTransformer = Boolean(
             docParserConfig.transformerType && docParserConfig.transformerType !== 'default'
@@ -213,13 +254,27 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             }
 
             const chunks = []
+            const languageDetection = resolveKnowledgeLanguage(
+                this.textSplitterRegistry?.get(docParserConfig.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER),
+                {
+                    *[Symbol.iterator]() {
+                        for (const item of transformed) yield* item.chunks ?? []
+                    }
+                }
+            )
             for await (const transItem of transformed) {
                 // Chunker with caching
                 const chunkerCacheConfig = {
+                    ...(languageDetection ? { detectedLanguage: languageDetection.detectedLanguage ?? null } : {}),
+                    ...(knowledgeChunkingRevision(docParserConfig.textSplitterType)
+                        ? { chunkingRevision: knowledgeChunkingRevision(docParserConfig.textSplitterType) }
+                        : {}),
                     document: transItem,
                     parserConfig: pick(docParserConfig, [
                         'textSplitterType',
                         'textSplitter',
+                        'maxChunkTokens',
+                        'chunkLanguageHint',
                         'replaceWhitespace',
                         'removeSensitive'
                     ]),
@@ -232,7 +287,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 if (!splitted) {
                     splitted = await this.splitDocuments(
                         doc,
-                        transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
+                        transItem.chunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[],
+                        undefined,
+                        { languageDetection }
                     )
                     await this.cacheManager.set(cacheKey, splitted, 60 * 10 * 1000) // 10 min
                 }
@@ -260,7 +317,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             ]),
                             stage
                         }
-                        const cacheKey = 'knowledges:understanding:' + computeObjectHash(imageCacheConfig)
+                        // Older VLM cache entries omit text parents from parent-child chunks.
+                        const cacheKey = 'knowledges:understanding:v2:' + computeObjectHash(imageCacheConfig)
                         let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
                         if (!imgTransformed) {
                             const imageUnderstanding = this.imageUnderstandingRegistry.get(
@@ -412,9 +470,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
     async splitDocuments(
         document: IKnowledgeDocument,
         chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
-        parserConfig?: DocumentTextParserConfig
+        parserConfig?: DocumentTextParserConfig,
+        context?: Pick<KnowledgeSplitterExecutionContext, 'languageDetection'>
     ) {
-        return splitKnowledgeDocuments(this.textSplitterRegistry, document, chunks, parserConfig)
+        return splitKnowledgeDocuments(this.textSplitterRegistry, document, chunks, parserConfig, context)
     }
 
     async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeHandle): Promise<Record<string, any>[]> {

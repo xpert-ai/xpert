@@ -15,7 +15,10 @@ import {
     isVideoType,
     KBDocumentCategoryEnum,
     KBDocumentStatusEnum,
-    TRagWebOptions
+    TRagWebOptions,
+    KnowledgeTablePreview,
+    KnowledgeTableSource,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
 import {
     CrudController,
@@ -78,6 +81,7 @@ import { resolveKnowledgeDocumentTransformerIdentity } from './document-hash'
 import { t } from 'i18next'
 import { resolveHttpByteRange } from '../shared/utils/http-byte-range'
 import { userDocumentListWhere } from './document-list-filter'
+import { invalidKnowledgeParserConfig, validateKnowledgeTableSettings } from './parser-validation'
 
 function parseExpectedVersion(version: unknown) {
     if (typeof version === 'number' && Number.isInteger(version) && version > 0) {
@@ -541,36 +545,10 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Post('estimate')
     async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
-        entity.parserConfig ??= {}
-        if (entity.id) {
-            await this.service.assertDocumentReadAccess(entity.id)
-        } else {
-            await this.service.assertKnowledgebaseReadAccess(requireKnowledgebaseId(entity))
-            if (entity.storageFileId) {
-                await this.service.assertOwnedStorageFiles([entity.storageFileId])
-            }
-            await this.service.prepareExternalDocumentInputs([entity])
-        }
+        await this.authorizeDocumentPreview(entity)
         try {
-            entity.category ??= isDocumentSheet(entity.type)
-                ? KBDocumentCategoryEnum.Sheet
-                : isImageType(entity.type)
-                  ? KBDocumentCategoryEnum.Image
-                  : isVideoType(entity.type)
-                    ? KBDocumentCategoryEnum.Video
-                    : isAudioType(entity.type)
-                      ? KBDocumentCategoryEnum.Audio
-                      : KBDocumentCategoryEnum.Text
-            // Reload saved documents so snapshot paths and source identity always come from the
-            // tenant-scoped database entity; only the draft parser settings come from the preview.
-            const persisted = entity.id ? await this.service.findOne(entity.id) : null
-            if (!persisted) {
-                entity.parserConfig = await this.service.resolveNewDocumentParserConfig(entity)
-            }
-            const previewDocument = persisted
-                ? ({ ...persisted, parserConfig: entity.parserConfig } as IKnowledgeDocument)
-                : (entity as IKnowledgeDocument)
-            let result: { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }
+            const { persisted, document: previewDocument } = await this.resolveDocumentPreview(entity)
+            let result: Awaited<ReturnType<KnowledgeDocumentController['loadPreviewDocument']>>
 
             if (persisted) {
                 try {
@@ -594,10 +572,63 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         }
     }
 
+    @Post('estimate-table')
+    async estimateTable(@Body() entity: Partial<IKnowledgeDocument>): Promise<KnowledgeTablePreview> {
+        await this.authorizeDocumentPreview(entity)
+        try {
+            const { document } = await this.resolveDocumentPreview(entity)
+            if (!isNativeKnowledgeTableDocument(document)) {
+                throw invalidKnowledgeParserConfig('native CSV/XLS/XLSX record table')
+            }
+            // Schema preview must still work after a header change invalidates the selected column keys.
+            const { indexedFields, ...parserConfig } = document.parserConfig
+            const result = await this.loadPreviewDocument({ ...document, parserConfig }, 'full')
+            return {
+                tables: (result.tables ?? []).map(({ samples, ...table }) => table),
+                chunks: buildChunkTree(result.chunks)
+            }
+        } catch (error) {
+            throw new BadRequestException(getErrorMessage(error))
+        }
+    }
+
+    private async authorizeDocumentPreview(entity: Partial<IKnowledgeDocument>) {
+        entity.parserConfig ??= {}
+        if (entity.id) {
+            await this.service.assertDocumentReadAccess(entity.id)
+        } else {
+            await this.service.assertKnowledgebaseReadAccess(requireKnowledgebaseId(entity))
+            if (entity.storageFileId) await this.service.assertOwnedStorageFiles([entity.storageFileId])
+            await this.service.prepareExternalDocumentInputs([entity])
+        }
+    }
+
+    private async resolveDocumentPreview(entity: Partial<IKnowledgeDocument>) {
+        entity.category ??= isDocumentSheet(entity.type)
+            ? KBDocumentCategoryEnum.Sheet
+            : isImageType(entity.type)
+              ? KBDocumentCategoryEnum.Image
+              : isVideoType(entity.type)
+                ? KBDocumentCategoryEnum.Video
+                : isAudioType(entity.type)
+                  ? KBDocumentCategoryEnum.Audio
+                  : KBDocumentCategoryEnum.Text
+        validateKnowledgeTableSettings(entity.parserConfig)
+        // Only draft parser settings may override a saved document's authorized source and identity.
+        const persisted = entity.id ? await this.service.findOne(entity.id) : null
+        if (!persisted) entity.parserConfig = await this.service.resolveNewDocumentParserConfig(entity)
+        return {
+            persisted,
+            document: persisted
+                ? ({ ...persisted, parserConfig: entity.parserConfig } as IKnowledgeDocument)
+                : (entity as IKnowledgeDocument)
+        }
+    }
+
     private loadPreviewDocument(document: IKnowledgeDocument, mode: KnowledgeDocumentProcessingMode) {
         return this.commandBus.execute<
             KnowledgeDocLoadCommand,
-            { pages: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[] }
+            { pages?: Document<ChunkMetadata>[]; chunks: Document<ChunkMetadata>[]; tables?: KnowledgeTableSource[] }
         >(new KnowledgeDocLoadCommand({ doc: document, stage: 'test', mode }))
     }
 

@@ -28,7 +28,7 @@ function document(chunkId: string, score: number): DocumentInterface<DocumentMet
     return { pageContent: chunkId, metadata: { chunkId, score } }
 }
 
-function createHarness(overrides: Partial<IKnowledgebase> = {}) {
+function createHarness(overrides: Partial<IKnowledgebase> = {}, tableRows = false) {
     const knowledgebase = {
         id: 'kb-1',
         name: 'Knowledgebase',
@@ -42,6 +42,14 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}) {
         [document('vector-high', 0.9), 0.1],
         [document('vector-low', 0.3), 0.7]
     ]
+    if (tableRows)
+        vectorItems.forEach(([doc]) =>
+            Object.assign(doc.metadata, {
+                documentId: 'document-1',
+                tableSource: { tableId: 'sheet:0', rowNumber: 2 },
+                tableMetadataResultHash: 'result'
+            })
+        )
     const vectorStore = {
         embeddingModel: 'embedding-model',
         structuredSimilaritySearchWithScore: jest.fn(async (_query: string, topK: number) => ({
@@ -98,6 +106,14 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}) {
                 chunkId: 'keyword-hit',
                 pageContent: 'keyword-hit',
                 documentId: 'document-1',
+                ...(tableRows
+                    ? {
+                          metadata: {
+                              tableSource: { tableId: 'sheet:0', rowNumber: 3 },
+                              tableMetadataResultHash: 'result'
+                          }
+                      }
+                    : {}),
                 keywordScore: 0.2
             }
         ])
@@ -119,6 +135,28 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}) {
     )
     const retrievalLogService = { create: jest.fn() }
     Object.defineProperty(handler, 'retrievalLogService', { value: retrievalLogService })
+    const tableContextService = {
+        hydrate: jest.fn(async (_kb: IKnowledgebase, candidates: DocumentInterface<DocumentMetadata>[]) =>
+            candidates.map((candidate) =>
+                candidate.metadata.tableSource
+                    ? {
+                          ...candidate,
+                          metadata: {
+                              ...candidate.metadata,
+                              tableContext: {
+                                  tableId: 'sheet:0',
+                                  resultHash: 'result',
+                                  sheetName: 'Orders',
+                                  summary: 'Sales orders',
+                                  columns: [{ columnId: 'A', key: 'amt', description: 'Order amount' }]
+                              }
+                          }
+                      }
+                    : candidate
+            )
+        )
+    }
+    Object.defineProperty(handler, 'tableContextService', { value: tableContextService })
     const execute = (input: Partial<KnowledgeSearchQuery['input']> = {}) =>
         handler.execute(
             new KnowledgeSearchQuery({
@@ -137,7 +175,8 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}) {
         keywordDataSource,
         getActiveVectorStore,
         getRerankModel,
-        retrievalLogService
+        retrievalLogService,
+        tableContextService
     }
 }
 
@@ -153,13 +192,61 @@ describe('Knowledge retrieval finalization', () => {
     })
 
     it('gives temporary FAQ reranking the same candidates as a saved model', async () => {
-        const recall = { mode: 'vector' as const, topK: 1 }
-        const temporary = createHarness({ type: KnowledgebaseTypeEnum.FAQ, recall })
-        const saved = createHarness({ type: KnowledgebaseTypeEnum.FAQ, recall, rerankModelId: 'saved-model' })
-        const result = await temporary.execute({ rerankModel: { model: 'test-rerank', copilotId: 'copilot-1' }, k: 1 })
-        const expected = await saved.execute({ k: 1 })
-        expect(result).toEqual(expected)
-        expect(result.documents[0].metadata.chunkId).toBe('vector-low')
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(1000)
+        try {
+            const recall = { mode: 'vector' as const, topK: 1 }
+            const temporary = createHarness({ type: KnowledgebaseTypeEnum.FAQ, recall })
+            const saved = createHarness({ type: KnowledgebaseTypeEnum.FAQ, recall, rerankModelId: 'saved-model' })
+            const result = await temporary.execute({
+                rerankModel: { model: 'test-rerank', copilotId: 'copilot-1' },
+                k: 1
+            })
+            const expected = await saved.execute({ k: 1 })
+            expect(result).toEqual(expected)
+            expect(result.documents[0].metadata.chunkId).toBe('vector-low')
+        } finally {
+            clock.mockRestore()
+        }
+    })
+
+    it.each<KnowledgeRetrievalMode>(['vector', 'hybrid'])(
+        'hydrates %s table candidates before reranking while returning original rows',
+        async (mode) => {
+            const { execute, vectorStore, tableContextService } = createHarness(
+                {
+                    rerankModelId: 'rerank',
+                    recall: { topK: 5, fusion: { mode: 'weighted_rrf', weights: { vector: 1, graph: 0, keyword: 1 } } }
+                },
+                true
+            )
+            const result = await execute({ retrieval: { mode } })
+            expect(tableContextService.hydrate).toHaveBeenCalledTimes(1)
+            const ranked = vectorStore.rerank.mock.calls[0][0]
+            const tableResults = result.documents.filter((doc) => doc.metadata.tableSource)
+            expect(tableResults.length).toBeGreaterThan(0)
+            for (const doc of tableResults) {
+                expect(doc.pageContent).toBe(doc.metadata.chunkId)
+                expect(doc.metadata.tableContext?.columns[0].description).toBe('Order amount')
+                expect(ranked.find((item) => item.metadata.chunkId === doc.metadata.chunkId)?.pageContent).toContain(
+                    'Order amount'
+                )
+            }
+            if (mode === 'hybrid') expect(tableResults.some((doc) => doc.metadata.chunkId === 'keyword-hit')).toBe(true)
+        }
+    )
+
+    it('keeps pure keyword retrieval and reranking on original row content', async () => {
+        const { execute, vectorStore, tableContextService } = createHarness(
+            {
+                rerankModelId: 'rerank',
+                recall: { topK: 5, fusion: { mode: 'weighted_rrf', weights: { vector: 1, graph: 0, keyword: 1 } } }
+            },
+            true
+        )
+        const result = await execute({ retrieval: { mode: 'keyword' } })
+        expect(tableContextService.hydrate).not.toHaveBeenCalled()
+        expect(result.documents[0].metadata.tableContext).toBeUndefined()
+        expect(vectorStore.rerank.mock.calls[0][0][0].pageContent).toBe('keyword-hit')
     })
 
     const originalVectorStore = environment.vectorStore

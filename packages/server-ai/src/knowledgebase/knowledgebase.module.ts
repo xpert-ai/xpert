@@ -51,6 +51,7 @@ import {
 } from './wiki/entities'
 import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-scope.service'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
+import { KnowledgeTableContextService } from './retrieval/table-context.service'
 import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.processor'
 
 @Module({
@@ -83,6 +84,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
     providers: [
         KnowledgePipelineCallbackProcessor,
         KnowledgeParserSettingsService,
+        KnowledgeTableContextService,
         KnowledgebaseService,
         KnowledgebaseRuntimeService,
         KnowledgebaseDocumentsRuntimeService,

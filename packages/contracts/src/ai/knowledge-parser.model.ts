@@ -1,6 +1,7 @@
-import type { DocumentTextParserConfig } from './knowledge-doc.model'
+import type { DocumentTextParserConfig, DocumentSheetParserConfig } from './knowledge-doc.model'
 import type { KnowledgebaseParserConfig } from './knowledgebase.model'
 import type { IKnowledgeDocumentChunk, IDocChunkMetadata } from './knowledge-doc-chunk.model'
+import type { KnowledgeChunkingDecision, KnowledgeChunkLanguageDecision } from './knowledge-chunking.model'
 
 export interface KnowledgeChunkPreviewInput {
   text: string
@@ -10,15 +11,24 @@ export interface KnowledgeChunkPreviewInput {
 
 export interface KnowledgeChunkPreviewResult {
   chunks: IKnowledgeDocumentChunk<IDocChunkMetadata>[]
+  decisions?: KnowledgeChunkingDecision[]
+  languages?: KnowledgeChunkLanguageDecision[]
 }
 
 /** Only copy configured defaults; do not turn built-in defaults into document overrides. */
 export function knowledgebaseDocumentParserDefaults(
   config?: KnowledgebaseParserConfig | null,
   documentType?: string
-): DocumentTextParserConfig {
+): DocumentTextParserConfig & Partial<DocumentSheetParserConfig> {
   if (!config) return {}
   return {
+    ...(config.spreadsheet ? { spreadsheet: { ...config.spreadsheet } } : {}),
+    ...(config.tableMetadataRequirements !== undefined
+      ? { tableMetadataRequirements: config.tableMetadataRequirements }
+      : {}),
+    ...(config.questionGeneration ? { questionGeneration: { ...config.questionGeneration } } : {}),
+    ...(config.chunkLanguageHint !== undefined ? { chunkLanguageHint: config.chunkLanguageHint } : {}),
+    ...(config.maxChunkTokens !== undefined ? { maxChunkTokens: config.maxChunkTokens } : {}),
     ...(config.chunkSize != null ? { chunkSize: config.chunkSize } : {}),
     ...(config.chunkOverlap != null ? { chunkOverlap: config.chunkOverlap } : {}),
     ...(config.delimiter != null ? { delimiter: config.delimiter } : {}),

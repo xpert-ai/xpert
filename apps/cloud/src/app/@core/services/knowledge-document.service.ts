@@ -1,3 +1,4 @@
+import type { KnowledgeChunkQuestions, KnowledgeTablePreview } from '@xpert-ai/contracts'
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -152,6 +153,10 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.post<IKnowledgeDocumentChunk[]>(this.apiBaseUrl + `/estimate`, doc)
   }
 
+  estimateTable(doc: Partial<IKnowledgeDocument>) {
+    return this.httpClient.post<KnowledgeTablePreview>(this.apiBaseUrl + '/estimate-table', doc)
+  }
+
   getStatus(ids: string[]) {
     return this.httpClient.get<IKnowledgeDocument[]>(this.apiBaseUrl + `/status`, {
       params: new HttpParams().append(`ids`, ids.join(','))
@@ -176,6 +181,25 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
       {
         params: new HttpParams().append('data', JSON.stringify(params))
       }
+    )
+  }
+
+  getChunkQuestions(documentId: string, chunkId: string) {
+    return this.httpClient.get<{ enabled: boolean; state?: KnowledgeChunkQuestions }>(
+      `${this.apiBaseUrl}/${documentId}/chunk/${chunkId}/questions`
+    )
+  }
+
+  regenerateChunkQuestions(documentId: string, chunkId: string) {
+    return this.httpClient.post<{ queued: boolean }>(
+      `${this.apiBaseUrl}/${documentId}/chunk/${chunkId}/questions/regenerate`,
+      {}
+    )
+  }
+
+  deleteChunkQuestion(documentId: string, chunkId: string, questionId: string) {
+    return this.httpClient.delete<KnowledgeChunkQuestions>(
+      `${this.apiBaseUrl}/${documentId}/chunk/${chunkId}/questions/${questionId}`
     )
   }
 

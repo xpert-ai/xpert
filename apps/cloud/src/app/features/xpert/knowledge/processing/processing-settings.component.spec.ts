@@ -2,9 +2,11 @@ jest.mock('@cloud/app/@shared/copilot', () => ({ CopilotModelSelectComponent: cl
 
 import { NO_ERRORS_SCHEMA } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
+import { By } from '@angular/platform-browser'
+import { ZardSelectComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { KnowledgebaseService } from '@cloud/app/@core'
+import { KnowledgebaseService, KBDocumentCategoryEnum } from '@cloud/app/@core'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
@@ -43,6 +45,79 @@ describe('processing settings file-type visibility', () => {
       Array.from(root.querySelectorAll('[data-parser-type]')).map((element) => element.getAttribute('data-parser-type'))
     return { fixture, rows, form, root }
   }
+
+  it('edits the token cap with an enabled validated control', async () => {
+    const { fixture, root, form } = setup()
+    fixture.componentRef.setInput('section', 'chunk')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const trigger = root.querySelector<HTMLElement>('z-accordion-header')
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const input = root.querySelector<HTMLInputElement>('[data-chunk-max-tokens] input')
+    expect(input.disabled).toBe(false)
+    for (const value of ['64', '0', '-1', '']) {
+      input.value = value
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      fixture.detectChanges()
+      await fixture.whenStable()
+      if (value === '64' || value === '0') {
+        expect(form.config().maxChunkTokens).toBe(Number(value))
+        expect(form.validation()).toBeNull()
+      } else {
+        expect(form.validation()?.key).toContain('InvalidTokenLimit')
+        expect(root.querySelector('[data-chunk-max-tokens]').textContent).toContain('InvalidTokenLimit')
+      }
+    }
+  })
+
+  it('enables and saves the language selection only for supported splitters', async () => {
+    const { fixture, root, form } = setup()
+    form.splitterProviders.set([{ name: 'auto', supportsLanguageHint: true }, { name: 'parent-child' }])
+    fixture.componentRef.setInput('section', 'chunk')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    root.querySelector<HTMLElement>('z-accordion-header').click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const select = fixture.debugElement
+      .query(By.css('[data-chunk-language-hint] z-select'))
+      .injector.get(ZardSelectComponent)
+    const trigger = root.querySelector<HTMLButtonElement>('[data-chunk-language-hint] button[role="combobox"]')
+    expect(trigger.disabled).toBe(false)
+    expect(root.querySelector('[data-chunk-language-hint]').textContent).not.toContain('LaterOptions')
+    select.selectItem('Chinese', 'Chinese')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(form.config().chunkLanguageHint).toBe('Chinese')
+    form.chunkStrategy.set('parent-child')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(trigger.disabled).toBe(true)
+  })
+
+  it('shows the header control only for supported Excel record documents', async () => {
+    const { fixture, root } = setup()
+    for (const document of [
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet },
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Text },
+      { type: 'csv', category: KBDocumentCategoryEnum.Sheet },
+      { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet, parserConfig: { transformerType: 'external' } },
+      {
+        type: 'xlsx',
+        category: KBDocumentCategoryEnum.Sheet,
+        parserConfig: { spreadsheet: { interpretation: 'form_document' } }
+      }
+    ]) {
+      fixture.componentRef.setInput('documents', [document])
+      fixture.detectChanges()
+      await fixture.whenStable()
+      expect(!!root.querySelector('[data-excel-header]')).toBe(
+        document.type === 'xlsx' && document.category === KBDocumentCategoryEnum.Sheet && !document.parserConfig
+      )
+    }
+  })
 
   it('shows all parser types for knowledgebase defaults', async () => {
     const { fixture, rows } = setup()

@@ -6,25 +6,35 @@ import {
     KnowledgeDocumentProcessingMode,
     KnowledgeDocumentLastIncrementalSync,
     KBDocumentStatusEnum,
-    KnowledgeDocumentMetadata
+    KnowledgeDocumentMetadata,
+    KnowledgeTableMetadata,
+    KnowledgeTableSource,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { UserService } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ChunkMetadata, countTokensSafe } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, countTextTokens } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocLoadCommand } from './commands'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { IncrementalChunkSyncResult, KnowledgeDocumentService } from './document.service'
-import { computeKnowledgeDocumentProcessingHash, resolveKnowledgeDocumentSourceHash } from './document-hash'
+import {
+    computeKnowledgeDocumentProcessingHash,
+    computeStableHash,
+    resolveKnowledgeDocumentSourceHash
+} from './document-hash'
 import { guardEmbeddingInputDocuments } from './embedding-input-guard'
 import { JOB_EMBEDDING_DOCUMENT } from './types'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentProcessingMetadata } from './document-publication'
+import { KnowledgeProcessingReadyService } from './processing-lifecycle.module'
+import { KnowledgeTableMetadataService, TableMetadataStaleError } from './tables/table-metadata.service'
+import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 /** Queue payload keeps processing mode durable across the HTTP/background-worker boundary. */
 type KnowledgeDocumentJobData = {
@@ -40,17 +50,22 @@ type KnowledgeDocumentJobData = {
 export class KnowledgeDocumentConsumer {
     private readonly logger = new Logger(KnowledgeDocumentConsumer.name)
 
+    @Inject(KnowledgeTableMetadataService)
+    private readonly tableMetadata: KnowledgeTableMetadataService
+
     constructor(
         @Inject(JOB_REF) jobRef: Job,
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
         private readonly userService: UserService,
         private readonly commandBus: CommandBus,
-        private readonly publicationService: KnowledgeDerivedIndexPublicationService
+        private readonly publicationService: KnowledgeDerivedIndexPublicationService,
+        private readonly lifecycle: KnowledgeProcessingReadyService
     ) {}
 
     @Process({ concurrency: 5 })
     async process(job: Job<KnowledgeDocumentJobData>) {
+        await this.lifecycle.waitUntilReady()
         const user = await this.userService.findOne(job.data.userId, { relations: ['role'] })
         const firstDoc = job.data.docs[0]
         if (!firstDoc) {
@@ -77,7 +92,13 @@ export class KnowledgeDocumentConsumer {
     private async processInRequestContext(job: Job<KnowledgeDocumentJobData>) {
         const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
         const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, {
-            relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']
+            relations: [
+                'copilotModel',
+                'copilotModel.copilot',
+                'copilotModel.copilot.modelProvider',
+                'chatModel',
+                'chatModel.referencedModel'
+            ]
         })
 
         return this._processJob(knowledgebase, job.data.docs, job)
@@ -124,6 +145,8 @@ export class KnowledgeDocumentConsumer {
 
         for await (const doc of job.data.docs) {
             const document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
+            const nativeTable = isNativeKnowledgeTableDocument(document)
+            if (nativeTable && String(document.jobId ?? '') !== String(job.id)) continue
             let processBeginAt: Date | null = null
 
             try {
@@ -131,13 +154,16 @@ export class KnowledgeDocumentConsumer {
                 processBeginAt = new Date()
                 const processingHash = computeKnowledgeDocumentProcessingHash(document)
                 const sourceHash = resolveKnowledgeDocumentSourceHash(document)
-                await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
+                if (!nativeTable)
+                    await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
 
                 if (
                     document.status === KBDocumentStatusEnum.FINISH &&
                     document.processingHash === processingHash &&
-                    document.contentHash
+                    document.contentHash &&
+                    (!isNativeKnowledgeTableDocument(document) || this.tableMetadata.canSkip(document, knowledgebase))
                 ) {
+                    const sourceTokens = await this.updateSourceTokenCounts(document)
                     const processDuration = new Date().getTime() - processBeginAt.getTime()
                     await this.updateDocumentProcessingMetadata(
                         document.id,
@@ -148,9 +174,11 @@ export class KnowledgeDocumentConsumer {
                             processDuation: processDuration,
                             progress: 100,
                             processingHash,
-                            sourceHash
+                            sourceHash,
+                            tokenNum: sourceTokens
                         },
                         {
+                            tokens: sourceTokens,
                             lastIncrementalSync: this.createSkippedIncrementalSyncMetadata(document)
                         }
                     )
@@ -168,7 +196,7 @@ export class KnowledgeDocumentConsumer {
 
                 const data = await this.commandBus.execute<
                     KnowledgeDocLoadCommand,
-                    { chunks: Document<ChunkMetadata>[] }
+                    { chunks: Document<ChunkMetadata>[]; tables?: KnowledgeTableSource[] }
                 >(
                     new KnowledgeDocLoadCommand({
                         doc: document,
@@ -181,20 +209,45 @@ export class KnowledgeDocumentConsumer {
                 let totalTokenUsed = 0
                 let embeddingTokenUsed = 0
                 let syncResult: IncrementalChunkSyncResult | null = null
+                let tableState: KnowledgeTableMetadata | undefined
                 if (chunks) {
-                    chunks = guardEmbeddingInputDocuments(
-                        chunks,
+                    const tableSourceFingerprint = nativeTable
+                        ? computeStableHash({
+                              tables: data.tables,
+                              rows: chunks.map((chunk) => ({
+                                  content: chunk.pageContent,
+                                  source: chunk.metadata.tableSource
+                              }))
+                          })
+                        : undefined
+                    const embeddingContextSize =
                         knowledgebase.copilotModel?.options?.context_size ??
-                            knowledgebase.copilotModel?.referencedModel?.options?.context_size
-                    )
+                        knowledgebase.copilotModel?.referencedModel?.options?.context_size
+                    chunks = guardEmbeddingInputDocuments(chunks, embeddingContextSize)
+                    if (nativeTable) {
+                        tableState = await this.tableMetadata.prepare(
+                            document,
+                            knowledgebase,
+                            data.tables ?? [],
+                            tableSourceFingerprint
+                        )
+                        chunks = this.tableMetadata.project(
+                            chunks,
+                            tableState,
+                            embeddingContextSize,
+                            resolveKnowledgeDocumentParserConfig(document).indexedFields
+                        )
+                        await this.documentService.update(document.id, { processBeginAt, processingHash, sourceHash })
+                    }
                     this.logger.debug(`Embeddings document '${document.name}' size: ${chunks.length}`)
+                    if (tableState) await this.tableMetadata.assertIndexCurrent(document, tableState)
                     syncResult = await this.documentService.syncChunksIncrementally(
                         { ...document, chunks },
                         vectorStore
                     )
                     document.chunks = syncResult.chunks
                     chunks = syncResult.embeddingChunks as Document<ChunkMetadata>[]
-                    totalTokenUsed = await this.countEmbeddingTokens(document)
+                    totalTokenUsed = await this.updateSourceTokenCounts(document)
                     await this.updateDocumentProcessingMetadata(
                         document.id,
                         {
@@ -211,22 +264,15 @@ export class KnowledgeDocumentConsumer {
                     const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
                     let count = 0
                     while (batchSize * count < chunks.length) {
+                        if (tableState) await this.tableMetadata.assertIndexCurrent(document, tableState)
                         const batch = chunks.slice(batchSize * count, batchSize * (count + 1))
-                        // Count and Record token usage for embedding
-                        // Use searchContent when present, otherwise fall back to full pageContent
+                        // Embedding usage may count searchContent; source chunk statistics always count pageContent.
                         let tokenUsed = 0
                         batch.forEach((chunk) => {
                             const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
-                            chunk.metadata.tokens = countTokensSafe(contentForEmbedding)
-                            tokenUsed += chunk.metadata.tokens
+                            tokenUsed += countTextTokens(contentForEmbedding)
                         })
                         embeddingTokenUsed += tokenUsed
-                        await this.documentService.updateChunkMetadataBulk(
-                            batch.map((chunk) => ({
-                                id: chunk.id,
-                                metadata: chunk.metadata
-                            }))
-                        )
                         await this.commandBus.execute(
                             new CopilotTokenRecordCommand({
                                 tenantId: knowledgebase.tenantId,
@@ -250,14 +296,17 @@ export class KnowledgeDocumentConsumer {
                         if (await this.checkIfJobCancelled(doc.id)) {
                             this.logger.debug(`[Job: entity '${job.id}'] Cancelled`)
                             const processDuration = new Date().getTime() - processBeginAt.getTime()
-                            await this.documentService.update(doc.id, {
-                                status: KBDocumentStatusEnum.CANCEL,
-                                processMsg: '',
-                                processDuration,
-                                processDuation: processDuration,
-                                progress: Number(progress),
-                                metadata: { ...doc.metadata, tokens: totalTokenUsed }
-                            })
+                            await this.updateDocumentProcessingMetadata(
+                                doc.id,
+                                {
+                                    status: KBDocumentStatusEnum.CANCEL,
+                                    processMsg: '',
+                                    processDuration,
+                                    processDuation: processDuration,
+                                    progress: Number(progress)
+                                },
+                                { tokens: totalTokenUsed }
+                            )
                             return
                         }
                         await this.updateDocumentProcessingMetadata(
@@ -271,6 +320,10 @@ export class KnowledgeDocumentConsumer {
                     }
                 }
 
+                if (tableState) {
+                    await this.tableMetadata.assertIndexCurrent(document, tableState)
+                    await this.tableMetadata.markApplied(document, tableState)
+                }
                 const processDuration = new Date().getTime() - processBeginAt.getTime()
                 await this.updateDocumentProcessingMetadata(
                     doc.id,
@@ -302,6 +355,10 @@ export class KnowledgeDocumentConsumer {
 
                 this.logger.debug(`[Job: entity '${job.id}'] End!`)
             } catch (err) {
+                if (err instanceof TableMetadataStaleError) {
+                    this.logger.debug(`[Job: entity '${job.id}'] Superseded table generation for '${document.id}'`)
+                    continue
+                }
                 this.logger.debug(`[Job: entity '${job.id}'] Error!`)
                 const processDuration = processBeginAt ? new Date().getTime() - processBeginAt.getTime() : null
                 await this.documentService.update(document.id, {
@@ -317,12 +374,17 @@ export class KnowledgeDocumentConsumer {
         return {}
     }
 
-    private async countEmbeddingTokens(document: IKnowledgeDocument) {
+    private async updateSourceTokenCounts(document: IKnowledgeDocument) {
+        const updates = (document.chunks ?? []).flatMap((chunk) => {
+            const tokens = countTextTokens(chunk.pageContent)
+            if (chunk.metadata?.tokens === tokens) return []
+            chunk.metadata = { ...chunk.metadata, tokens }
+            return [{ id: chunk.id, metadata: { chunkId: chunk.metadata.chunkId, tokens } }]
+        })
+        if (updates.length) await this.documentService.updateChunkMetadataBulk(updates)
         const chunks = await this.documentService.findAllEmbeddingNodes(document)
-        return chunks.reduce((tokens, chunk) => {
-            const contentForEmbedding = chunk.metadata?.searchContent ?? chunk.pageContent
-            return tokens + countTokensSafe(contentForEmbedding)
-        }, 0)
+        // Sum searchable leaves so parent context is not counted twice.
+        return chunks.reduce((tokens, chunk) => tokens + countTextTokens(chunk.pageContent), 0)
     }
 
     private createSkippedIncrementalSyncMetadata(

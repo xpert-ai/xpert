@@ -62,4 +62,27 @@ postgresDescribe('Knowledge PGVector repeatable writes', () => {
             (await pool.query('SELECT content,vector::text,metadata FROM pg_temp.wiki_vector_fixture')).rows
         ).toEqual([{ content: 'After', vector: '[0,1]', metadata: { revision: 2 } }])
     })
+
+    it('filters projections before Top K and reads a source by its exact physical id', async () => {
+        const questionId = '00000000-0000-4000-8000-000000000003'
+        await store.addVectors(
+            [
+                [1, 0],
+                [1, 0],
+                [0, 1]
+            ],
+            [
+                new Document({
+                    pageContent: 'Question',
+                    metadata: { knowledgeId: 'doc', questionGenerationId: 'g', chunkId: id }
+                }),
+                new Document({ pageContent: 'Source A', metadata: { knowledgeId: 'doc', chunkId: id } }),
+                new Document({ pageContent: 'Source B', metadata: { knowledgeId: 'doc', chunkId: otherId } })
+            ],
+            { ids: [questionId, id, otherId] }
+        )
+        const result = await store.similaritySearch('Source', 2, { knowledgeId: 'doc', sourceOnly: true })
+        expect(result.map((document) => document.pageContent)).toEqual(['Source A', 'Source B'])
+        expect((await store.getByIds([id])).map((document) => document.pageContent)).toEqual(['Source A'])
+    })
 })

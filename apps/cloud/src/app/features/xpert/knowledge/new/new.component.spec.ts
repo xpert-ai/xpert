@@ -274,6 +274,8 @@ describe('XpertNewKnowledgeComponent', () => {
         copilotModel: { id: 'embedding' }
       }
     })
+    component.processing.firstRowAsHeader.set(false)
+    component.processing.tableMetadataRequirementsControl.setValue('Explain table units')
     component.processing.chunkSize.set(512)
     component.processing.chunkOverlap.set(0)
     component.processing.updateSeparators(['\\n\\n', '！', '？', ',', ''])
@@ -287,6 +289,8 @@ describe('XpertNewKnowledgeComponent', () => {
     const service = component.knowledgebaseService
     const input = jest.mocked(service.updateWikiConfiguration).mock.calls[0][1]
     expect(input.settings.parserConfig).toMatchObject({
+      spreadsheet: { firstRowAsHeader: false },
+      tableMetadataRequirements: 'Explain table units',
       chunkSize: 512,
       chunkOverlap: 0,
       separators: ['\\n\\n', '！', '？', ',', ''],
@@ -298,6 +302,8 @@ describe('XpertNewKnowledgeComponent', () => {
     })
     TestBed.resetTestingModule()
     const editor = createComponent({ knowledgebase: { id: 'kb-1', ...input.settings } })
+    expect(editor.processing.firstRowAsHeader()).toBe(false)
+    expect(editor.processing.tableMetadataRequirements()).toBe('Explain table units')
     expect(editor.processing.chunkOverlap()).toBe(0)
     expect(editor.processing.separators()).toEqual(['\\n\\n', '！', '？', ',', ''])
     expect(editor.processing.chunkStrategy()).toBe('markdown-recursive')
