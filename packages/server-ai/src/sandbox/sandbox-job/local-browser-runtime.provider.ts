@@ -4,6 +4,7 @@ import { access, chmod, lstat, mkdir, open, readFile, realpath, unlink } from 'n
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { localDocumentFontEnvironment } from './local-document-fonts'
 import { Injectable } from '@nestjs/common'
 import {
     isDevelopmentSandboxRuntimeEnvironment,
@@ -217,7 +218,9 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             workspaceRoot: await realpath(workspaceRoot),
             runnerPath: assets.runnerPath,
             nodePath: assets.nodePath,
-            environment: assets.environment,
+            environment: localRuntimeConfiguration(options.definition.name).requiresLibreOffice
+                ? await localDocumentFontEnvironment(workspaceRoot, assets.environment)
+                : assets.environment,
             trustedCommand: options.definition.command,
             hardDeadlineMs: options.hardDeadlineMs
         })
@@ -771,6 +774,8 @@ function localRuntimeEnvironment(additions: NodeJS.ProcessEnv = {}): NodeJS.Proc
         'TMP',
         'TEMP',
         'XDG_CACHE_HOME',
+        'FONTCONFIG_FILE',
+        'FONTCONFIG_PATH',
         'PLAYWRIGHT_BROWSERS_PATH',
         'LANG',
         'LC_ALL',

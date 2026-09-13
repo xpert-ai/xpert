@@ -57,6 +57,56 @@ describe('SandboxCopyTreeHandler', () => {
         await rm(tempDir, { recursive: true, force: true })
     })
 
+    it('serializes concurrent skill copies and retains every tree version in the shared runtime cache', async () => {
+        await writeFile(join(tempDir, 'SKILL.md'), 'shared skill')
+        const volumeRoot = await mkdtemp(join(tmpdir(), 'sandbox-copy-tree-concurrent-'))
+        let versions: Record<string, string> = {}
+        cacheManager.get.mockImplementation(async () => ({ ...versions }))
+        cacheManager.set.mockImplementation(async (_key: string, value: Record<string, string>) => {
+            versions = { ...value }
+        })
+        const sandbox = {
+            backend,
+            workspaceBinding: { volumeRoot, workspaceRoot: '/workspace', workspacePath: '/workspace' }
+        }
+        const handler = new SandboxCopyTreeHandler(cacheManager as never)
+        const command = (name: string) =>
+            new SandboxCopyTreeCommand(sandbox as never, {
+                version: 'v1',
+                localPath: tempDir,
+                containerPath: `/workspace/.xpert/skills/${name}`,
+                overwrite: true
+            })
+        try {
+            const results = await Promise.all(
+                ['a', 'a', 'b', 'a', 'b', 'a'].map((name) => handler.execute(command(name)))
+            )
+            expect(results.filter((result) => result.status === 'success')).toHaveLength(2)
+            expect(results.filter((result) => result.status === 'skipped')).toHaveLength(4)
+            expect(versions).toEqual({ '/workspace/.xpert/skills/a': 'v1', '/workspace/.xpert/skills/b': 'v1' })
+            await expect(readFile(join(volumeRoot, '.xpert/skills/a/SKILL.md'), 'utf8')).resolves.toBe('shared skill')
+            await expect(readFile(join(volumeRoot, '.xpert/skills/b/SKILL.md'), 'utf8')).resolves.toBe('shared skill')
+        } finally {
+            await rm(volumeRoot, { recursive: true, force: true })
+        }
+    })
+
+    it('allows a queued copy after a failed copy instead of poisoning the runtime queue', async () => {
+        await writeFile(join(tempDir, 'SKILL.md'), 'retry content')
+        backend.uploadFiles.mockRejectedValueOnce(new Error('temporary upload failure')).mockResolvedValue([])
+        const handler = new SandboxCopyTreeHandler(cacheManager as never)
+        const command = () =>
+            new SandboxCopyTreeCommand({ backend } as never, {
+                version: 'v1',
+                localPath: tempDir,
+                containerPath: '/workspace/.xpert/skills/a'
+            })
+        const results = await Promise.allSettled([handler.execute(command()), handler.execute(command())])
+        expect(results[0]).toMatchObject({ status: 'rejected' })
+        expect(results[1]).toMatchObject({ status: 'fulfilled', value: { status: 'success' } })
+        expect(backend.uploadFiles).toHaveBeenCalledTimes(2)
+    })
+
     it('copies a local directory tree directly when the sandbox workspace is locally mapped', async () => {
         await mkdir(join(tempDir, 'scripts'), { recursive: true })
         await writeFile(join(tempDir, 'SKILL.md'), 'alpha')
