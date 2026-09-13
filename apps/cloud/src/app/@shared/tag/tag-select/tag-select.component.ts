@@ -1,15 +1,28 @@
-import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectionStrategy, Component, forwardRef, inject, input, model } from '@angular/core'
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  forwardRef,
+  inject,
+  input,
+  model,
+  signal
+} from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { XpHighlightDirective } from '@xpert-ai/headless-ui'
+import {
+  XpHighlightDirective,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardIconComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
+import { debounceTime, switchMap } from 'rxjs'
 import { ITag, TagCategoryEnum, TagService } from '../../../@core'
-import { TagComponent } from '../tag/tag.component'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -17,13 +30,15 @@ import { XpI18nPipe } from '@xpert-ai/headless-ui'
   imports: [
     CommonModule,
     TranslateModule,
-    CdkListboxModule,
     NgxFloatUiModule,
     FormsModule,
     ReactiveFormsModule,
     XpHighlightDirective,
     XpI18nPipe,
-    TagComponent
+    ZardButtonComponent,
+    ZardCheckboxComponent,
+    ZardIconComponent,
+    ZardInputDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-select',
@@ -48,49 +63,66 @@ export class TagSelectComponent implements ControlValueAccessor {
     transform: booleanAttribute
   })
 
-  readonly tags = derivedAsync(() => {
-    return this.tagService.getAllByCategory(this.category())
+  readonly selectedTags = model<ITag[]>([])
+  readonly disabled = signal(false)
+  readonly catalog = toSignal(
+    toObservable(this.category).pipe(switchMap((category) => this.tagService.getCatalogByCategory(category))),
+    { initialValue: [] }
+  )
+  readonly displayedTags = computed(() => {
+    const current = new Map(this.catalog().map((tag) => [tag.id, tag]))
+    return this.selectedTags().map((tag) => current.get(tag.id) ?? tag)
   })
 
-  readonly selectedTags = model<ITag[]>([])
-
   readonly searchControl = new FormControl('')
-  readonly tags$ = toSignal(
-    toObservable(this.category).pipe(
-      switchMap((category) => this.tagService.getAllByCategory(category)),
-      combineLatestWith(this.searchControl.valueChanges.pipe(startWith(''), debounceTime(300))),
-      map(([tags, text]) => {
-        return text ? tags.filter((_) => _.name.toLowerCase().includes(text.toLowerCase())) : tags
-      })
+  readonly search = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300)), { initialValue: '' })
+  readonly options = computed(() => {
+    const query = this.search()?.trim().toLocaleLowerCase()
+    return this.catalog().filter(
+      (tag) => tag.isActive !== false && (!query || tag.name?.toLocaleLowerCase().includes(query))
     )
-  )
+  })
 
   private _onChange: (value: ITag[]) => void
-  private _onTouched: (value: ITag[]) => void
+  private _onTouched: () => void
 
-  selectTags(event: ListboxValueChangeEvent<ITag>) {
-    this.selectedTags.set([...event.value])
-    this._onChange?.(this.selectedTags())
+  selectTag(tag: ITag, checked: boolean) {
+    if (checked === this.checkedWith(tag)) return
+    if (checked && !this.options().some((option) => option.id === tag.id)) return
+    // A candidate toggle must not replace selections hidden by status, search or catalog loading.
+    this.changeSelection(
+      checked ? [...this.selectedTags(), tag] : this.selectedTags().filter((selected) => selected.id !== tag.id)
+    )
+  }
+
+  removeTag(tag: ITag, event: Event) {
+    event.stopPropagation()
+    this.changeSelection(this.selectedTags().filter((selected) => selected.id !== tag.id))
+  }
+
+  private changeSelection(tags: ITag[]) {
+    if (this.disabled()) return
+    this.selectedTags.set(tags)
+    this._onChange?.(tags)
+    this._onTouched?.()
   }
 
   writeValue(obj: ITag[]): void {
-    this.selectedTags.set(obj)
+    this.selectedTags.set(obj ?? [])
   }
-  registerOnChange(fn: any): void {
+  registerOnChange(fn: (value: ITag[]) => void): void {
     this._onChange = fn
   }
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this._onTouched = fn
   }
-  setDisabledState?(isDisabled: boolean): void {
-    //
-  }
-
-  listboxCompareWith(tag1: ITag, tag2: ITag) {
-    return tag1.id === tag2.id
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled.set(isDisabled)
+    if (isDisabled) this.searchControl.disable({ emitEvent: false })
+    else this.searchControl.enable({ emitEvent: false })
   }
 
   checkedWith(value: ITag) {
-    return this.selectedTags()?.some((_) => this.listboxCompareWith(_, value))
+    return this.selectedTags().some((tag) => tag.id === value.id)
   }
 }

@@ -26,6 +26,7 @@ import {
   ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
+  ITagXpertUsage,
   TFile,
   TFileDirectory,
   IUserGroup,
@@ -130,6 +131,12 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   constructor() {
     super(API_XPERT_ROLE)
+  }
+
+  getTagUsage(tagId: string, skip = 0) {
+    return this.httpClient.get<{ items: ITagXpertUsage[]; total: number }>(`${this.apiBaseUrl}/tag-usage/${tagId}`, {
+      params: { skip }
+    })
   }
 
   create(entity: Partial<IXpert>) {

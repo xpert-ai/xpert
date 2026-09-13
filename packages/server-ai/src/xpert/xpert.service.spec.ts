@@ -39,9 +39,10 @@ jest.mock('./types', () => ({
     }
 }))
 
-import { DEFAULT_XPERT_WORKSPACE_DATA_SCOPE } from '@xpert-ai/contracts'
+import { DEFAULT_XPERT_WORKSPACE_DATA_SCOPE, TagCategoryEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { In, IsNull } from 'typeorm'
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
 import type { Xpert } from './xpert.entity'
@@ -52,10 +53,16 @@ describe('XpertService command facade', () => {
     })
 
     function createService() {
+        const tagRepository = {
+            find: jest.fn().mockResolvedValue([]),
+            findOne: jest.fn().mockResolvedValue({ id: 'tag-1' })
+        }
         const repository = {
+            manager: { getRepository: jest.fn(() => tagRepository) },
             create: jest.fn((entity) => entity),
             findOne: jest.fn(),
             findAll: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+            findAndCount: jest.fn().mockResolvedValue([[], 0]),
             save: jest.fn(),
             find: jest.fn(),
             findOneBy: jest.fn(),
@@ -63,6 +70,8 @@ describe('XpertService command facade', () => {
             createQueryBuilder: jest.fn().mockReturnValue({
                 innerJoin: jest.fn().mockReturnThis(),
                 where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                getRawMany: jest.fn().mockResolvedValue([]),
                 select: jest.fn().mockReturnThis(),
                 getMany: jest.fn().mockResolvedValue([]),
                 leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -74,6 +83,7 @@ describe('XpertService command facade', () => {
             findAll: jest.fn()
         }
         const workspaceAccessService = {
+            findAccessibleWorkspaces: jest.fn().mockResolvedValue([]),
             assertCanAuthor: jest.fn(),
             buildAccess: jest.fn(async (workspace: { id: string; organizationId?: string | null }) => ({
                 workspace,
@@ -119,9 +129,186 @@ describe('XpertService command facade', () => {
             triggerRegistry,
             queryBus,
             workspaceAccessService,
-            userGroupService
+            userGroupService,
+            tagRepository
         }
     }
+
+    describe('tag usage names', () => {
+        beforeEach(() => {
+            jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        })
+
+        it('returns only names and version status for visible associations, including historical records', async () => {
+            const { service, repository, workspaceAccessService, tagRepository } = createService()
+            workspaceAccessService.findAccessibleWorkspaces.mockResolvedValue([
+                { id: 'allowed', tenantId: 'tenant-1', organizationId: 'org-1' },
+                { id: 'other-org', tenantId: 'tenant-1', organizationId: 'org-2' },
+                { id: 'other-tenant', tenantId: 'tenant-2', organizationId: 'org-1' }
+            ])
+            repository.findAndCount.mockResolvedValue([
+                [
+                    {
+                        id: 'v2',
+                        name: 'finance-agent',
+                        title: ' Finance Assistant ',
+                        version: 'v2',
+                        latest: true,
+                        draft: { secret: 'not for catalog' }
+                    },
+                    { id: 'v1', name: 'finance-agent', title: '', version: 'v1', latest: false, deletedAt: new Date() }
+                ],
+                2
+            ])
+            expect(await service.getTagUsage('tag-1')).toEqual({
+                items: [
+                    { id: 'v2', name: 'Finance Assistant', version: 'v2', latest: true, deleted: false },
+                    { id: 'v1', name: 'finance-agent', version: 'v1', latest: false, deleted: true }
+                ],
+                total: 2
+            })
+            expect(tagRepository.findOne).toHaveBeenCalledWith({
+                where: [
+                    { id: 'tag-1', tenantId: 'tenant-1', organizationId: IsNull() },
+                    { id: 'tag-1', tenantId: 'tenant-1', organizationId: 'org-1' }
+                ],
+                select: ['id']
+            })
+            expect(repository.findAndCount).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: [
+                        {
+                            tenantId: 'tenant-1',
+                            organizationId: 'org-1',
+                            tags: { id: 'tag-1' },
+                            workspaceId: IsNull(),
+                            createdById: 'user-1'
+                        },
+                        {
+                            tenantId: 'tenant-1',
+                            organizationId: 'org-1',
+                            tags: { id: 'tag-1' },
+                            workspaceId: In(['allowed'])
+                        }
+                    ],
+                    withDeleted: true,
+                    take: 20,
+                    skip: 0
+                })
+            )
+        })
+
+        it('keeps tenant tag lookup tenant-only while using accessible organization workspaces for its associations', async () => {
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(undefined)
+            const { service, repository, workspaceAccessService, tagRepository } = createService()
+            workspaceAccessService.findAccessibleWorkspaces.mockResolvedValue([
+                { id: 'member-workspace', tenantId: 'tenant-1', organizationId: 'org-1' }
+            ])
+            await service.getTagUsage('shared', 20)
+            expect(tagRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 'shared', tenantId: 'tenant-1', organizationId: IsNull() },
+                select: ['id']
+            })
+            expect(workspaceAccessService.findAccessibleWorkspaces).toHaveBeenCalledWith(undefined, {
+                includeOrganizationWorkspacesInTenantScope: true
+            })
+            expect(repository.findAndCount).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: [
+                        { tenantId: 'tenant-1', tags: { id: 'shared' }, workspaceId: IsNull(), createdById: 'user-1' },
+                        { tenantId: 'tenant-1', tags: { id: 'shared' }, workspaceId: In(['member-workspace']) }
+                    ],
+                    skip: 20,
+                    take: 20
+                })
+            )
+        })
+
+        it('does not fall back to all experts when no workspace is readable', async () => {
+            const { service, repository } = createService()
+            await service.getTagUsage('tag-1')
+            expect(repository.findAndCount.mock.calls[0][0].where).toEqual([
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    tags: { id: 'tag-1' },
+                    workspaceId: IsNull(),
+                    createdById: 'user-1'
+                }
+            ])
+        })
+
+        it('rejects unavailable tags before loading any expert names', async () => {
+            const { service, repository, tagRepository, workspaceAccessService } = createService()
+            tagRepository.findOne.mockResolvedValue(null)
+            await expect(service.getTagUsage('other-scope')).rejects.toBeInstanceOf(NotFoundException)
+            expect(workspaceAccessService.findAccessibleWorkspaces).not.toHaveBeenCalled()
+            expect(repository.findAndCount).not.toHaveBeenCalled()
+        })
+
+        it('requires a signed-in tenant context', async () => {
+            const { service, repository } = createService()
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(undefined)
+            await expect(service.getTagUsage('tag-1')).rejects.toBeInstanceOf(ForbiddenException)
+            expect(repository.findAndCount).not.toHaveBeenCalled()
+        })
+
+        it.each([-1, 0.5, NaN, Infinity])('rejects invalid page offset %s', async (skip) => {
+            const { service, repository } = createService()
+            await expect(service.getTagUsage('tag-1', skip)).rejects.toBeInstanceOf(BadRequestException)
+            expect(repository.findAndCount).not.toHaveBeenCalled()
+        })
+    })
+
+    it('rejects adding a stopped tag when saving an existing expert', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const { service, repository, tagRepository } = createService()
+        repository.findOne.mockResolvedValue({ id: 'xpert-1', tags: [] })
+        tagRepository.find.mockResolvedValue([
+            {
+                id: '11111111-1111-4111-8111-111111111111',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                category: 'xpert',
+                isActive: false
+            }
+        ])
+
+        await expect(
+            service.updateXpert('xpert-1', {
+                tags: [{ id: '11111111-1111-4111-8111-111111111111', isActive: true }]
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(repository.save).not.toHaveBeenCalled()
+    })
+
+    it.each(['create', 'save'] as const)('validates new tag IDs through %s too', async (method) => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const { service, repository } = createService()
+        const entity = { tags: [{ id: '11111111-1111-4111-8111-111111111111' }] } as Xpert
+        await expect(service[method](entity)).rejects.toBeInstanceOf(BadRequestException)
+        expect(repository.save).not.toHaveBeenCalled()
+    })
+
+    it('preserves stored retired tags on update and version backup but rejects them on a new expert', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        const { service, repository, tagRepository } = createService()
+        const tags = [{ id: '11111111-1111-4111-8111-111111111111', isActive: false, category: TagCategoryEnum.XPERT }]
+        repository.findOne.mockResolvedValue({ id: 'xpert-1', tags })
+        repository.createQueryBuilder().getRawMany.mockResolvedValue(tags)
+        repository.save.mockImplementation(async (entity: Xpert) => entity)
+
+        await expect(service.updateXpert('xpert-1', { title: 'New title' })).resolves.toMatchObject({ tags })
+        await expect(service.createVersionBackup({ tags, version: '1' }, 'xpert-1')).resolves.toMatchObject({ tags })
+        expect(tagRepository.find).not.toHaveBeenCalled()
+        expect(repository.save).toHaveBeenCalledTimes(2)
+        await expect(service.create({ tags })).rejects.toBeInstanceOf(BadRequestException)
+        expect(repository.save).toHaveBeenCalledTimes(2)
+    })
 
     it('finds the xpert linked to a principal user in the current tenant', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
