@@ -1,11 +1,12 @@
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Module } from '@nestjs/common';
-import { RouterModule } from '@nestjs/core';
-import { TagService } from './tag.service';
-import { TagController } from './tag.controller';
-import { Tag } from './tag.entity';
-import { UserModule } from '../user/user.module';
-import { TenantModule } from '../tenant/tenant.module';
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { Module } from '@nestjs/common'
+import { RouterModule } from '@nestjs/core'
+import { TagService } from './tag.service'
+import { TagManagementService } from './tag-management.service'
+import { TagController } from './tag.controller'
+import { Tag } from './tag.entity'
+import { UserModule } from '../user/user.module'
+import { TenantModule } from '../tenant/tenant.module'
 
 @Module({
 	imports: [
@@ -15,7 +16,7 @@ import { TenantModule } from '../tenant/tenant.module';
 		TenantModule
 	],
 	controllers: [TagController],
-	providers: [TagService],
+	providers: [TagService, TagManagementService],
 	exports: [TagService]
 })
 export class TagModule {}

@@ -1,5 +1,13 @@
 {
     "Error": {
+        "InvalidTagUsagePage": "标签关联分页参数无效。",
+        "TagAssociationUnavailable": "所选标签已停用、不在可用范围内或不适用于此对象，请刷新标签列表后重新选择。",
+        "InvalidTagInput": "标签字段不合法。",
+        "TagNameExists": "当前范围内已存在同名标签。",
+        "TagTargetInUse": "仍有内容使用此标签，不能移除该适用对象。",
+        "TagInUse": "此标签仍在使用，请选择停用。",
+        "TagUsageUnsupported": "暂不支持查询此类标签关联。",
+        "TagUseStatus": "请通过标签状态启用或停用标签。",
         "KnowledgeTableMetadataReservedKey": "tableMetadata 为服务端生成的表格说明保留，不能用作自定义元数据字段。",
         "KnowledgeTableMetadataInvalidResponse": "模型返回的表格元数据无效。",
         "KnowledgeTableMetadataStale": "表格或处理设置已更改，请重新处理文档。",

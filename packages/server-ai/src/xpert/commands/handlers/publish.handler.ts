@@ -145,6 +145,11 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         })
         this.check(draft)
 
+        // Reject stale selections before backing up versions or writing agents.
+        if (draft.team?.tags != null) {
+            await this.xpertService.validateTagAssociations({ ...xpert, tags: draft.team.tags })
+        }
+
         // Back up the current version
         if (newVersion && currentVersion) {
             await this.saveTeamVersion(xpert, version)
@@ -189,7 +194,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         team.version = version
         await this.xpertService.save(team)
         // backup old version
-        const newTeam = await this.xpertService.create(oldTeam)
+        const newTeam = await this.xpertService.createVersionBackup(oldTeam, team.id)
 
         // Copy all agents
         for await (const agent of team.agents) {

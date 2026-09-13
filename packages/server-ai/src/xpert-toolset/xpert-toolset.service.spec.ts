@@ -5,6 +5,7 @@ jest.mock('./provider/builtin', () => ({
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Test } from '@nestjs/testing'
+import { BadRequestException } from '@nestjs/common'
 import { I18nService } from 'nestjs-i18n'
 import { IBuiltinTool, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
@@ -18,6 +19,74 @@ import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 
 describe('XpertToolsetService', () => {
+    afterEach(() => jest.restoreAllMocks())
+
+    function tagWriteFixture() {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        const query = {
+            innerJoin: jest.fn().mockReturnThis(),
+            select: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getRawMany: jest.fn().mockResolvedValue([])
+        }
+        const tag = {
+            id: '11111111-1111-4111-8111-111111111111',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            category: 'toolset',
+            isActive: false
+        }
+        const tagRepository = { find: jest.fn().mockResolvedValue([tag]) }
+        const entity = { id: 'toolset-1', workspaceId: 'workspace-1', tags: [{ id: tag.id }] }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({ ...entity, tags: [] }),
+            create: jest.fn((input) => input),
+            save: jest.fn(async (input) => input),
+            createQueryBuilder: jest.fn(() => query),
+            manager: { getRepository: jest.fn(() => tagRepository) }
+        }
+        const workspaceAccess = {
+            assertCan: jest.fn().mockResolvedValue({
+                workspace: { id: 'workspace-1', tenantId: 'tenant-1', organizationId: 'org-1' }
+            })
+        }
+        const service = new XpertToolsetService(
+            repository as unknown as ConstructorParameters<typeof XpertToolsetService>[0],
+            workspaceAccess as unknown as ConstructorParameters<typeof XpertToolsetService>[1],
+            {} as I18nService,
+            {} as CommandBus,
+            {} as QueryBus,
+            {} as AgentMiddlewareRuntimeService
+        )
+        return { service, repository, entity, tag, tagRepository, query }
+    }
+
+    it.each(['create', 'save', 'update'] as const)(
+        'rejects a newly associated stopped tag through %s',
+        async (method) => {
+            const { service, repository, entity } = tagWriteFixture()
+            const result = method === 'update' ? service.update(entity.id, entity) : service[method](entity)
+            await expect(result).rejects.toBeInstanceOf(BadRequestException)
+            expect(repository.save).not.toHaveBeenCalled()
+        }
+    )
+
+    it('accepts enabled toolset tags and retains stopped historical associations', async () => {
+        const { service, repository, entity, tag, query, tagRepository } = tagWriteFixture()
+        tag.isActive = true
+        await expect(service.create(entity)).resolves.toMatchObject({ tags: entity.tags })
+        tag.isActive = false
+        query.getRawMany.mockResolvedValue([{ id: tag.id }])
+        repository.findOne.mockResolvedValue(entity)
+        tagRepository.find.mockClear()
+        await expect(service.update(entity.id, { name: 'Renamed' })).resolves.toMatchObject({
+            name: 'Renamed',
+            tags: entity.tags
+        })
+        expect(tagRepository.find).not.toHaveBeenCalled()
+    })
+
     it('hydrates persisted builtin tools with the latest provider schema', async () => {
         const latestSchema = {
             type: 'object',

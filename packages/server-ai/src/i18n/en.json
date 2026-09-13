@@ -1,5 +1,13 @@
 {
     "Error": {
+        "InvalidTagUsagePage": "Invalid tag usage page.",
+        "TagAssociationUnavailable": "A selected tag is unavailable for this resource. Refresh the tag list and select again.",
+        "InvalidTagInput": "Invalid tag fields.",
+        "TagNameExists": "A tag with this name already exists in this scope.",
+        "TagTargetInUse": "A target still uses this tag and cannot be removed.",
+        "TagInUse": "This tag is in use. Disable it instead of deleting it.",
+        "TagUsageUnsupported": "Cannot safely inspect this tag relationship.",
+        "TagUseStatus": "Use tag status to enable or disable a tag.",
         "KnowledgeTableMetadataReservedKey": "tableMetadata is reserved for generated table descriptions.",
         "KnowledgeTableMetadataInvalidResponse": "The model returned invalid table metadata.",
         "KnowledgeTableMetadataStale": "The table or its processing settings changed. Reprocess the document.",
