@@ -9,6 +9,7 @@ import {
   XpI18nPipe,
   ZardAccordionImports,
   ZardButtonComponent,
+  ZardCheckboxComponent,
   ZardInputDirective,
   ZardFormImports,
   ZardSelectImports,
@@ -33,6 +34,7 @@ import { ParentChildChunkSettingsComponent } from './parent-child-settings.compo
     XpI18nPipe,
     ...ZardAccordionImports,
     ZardButtonComponent,
+    ZardCheckboxComponent,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports,
@@ -52,9 +54,15 @@ export class KnowledgeProcessingSettingsComponent {
   readonly fileTypes = computed(() => new Set((this.documents() ?? []).map(documentFileType)))
   readonly showPdfParser = computed(() => this.documents() === null || this.fileTypes().has('pdf'))
   readonly parserRows = computed(() =>
-    this.form().parserEngineRows.filter(
-      (row) => this.documents() === null || row.extensions.some((extension) => this.fileTypes().has(extension.slice(1)))
-    )
+    this.form()
+      .parserFormats()
+      .map((row) => ({
+        ...row,
+        extensions: row.extensions.filter(
+          (extension) => this.documents() === null || this.fileTypes().has(extension.slice(1))
+        )
+      }))
+      .filter((row) => row.extensions.length > 0)
   )
   readonly nativeTableDocuments = computed(() => this.documents()?.filter(isNativeKnowledgeTableDocument) ?? [])
   readonly showExcelHeader = computed(

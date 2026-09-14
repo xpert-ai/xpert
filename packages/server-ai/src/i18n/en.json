@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgeParserOriginalFileRequired": "This parser requires the original file. Upload the file before selecting a file parser.",
         "KnowledgeTagConfigInvalid": "Invalid automatic tagging settings. Select a valid language model.",
 
         "KnowledgeTagResponseBudget": "Automatic tagging response exceeds the output budget.",

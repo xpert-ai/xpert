@@ -281,7 +281,67 @@ describe('KnowledgeParserSettingsService', () => {
             ...defaults,
             pdfParser: { transformerType: 'pdf-provider', transformer: { renderPageImages: false } }
         })
-        expect(validateConfig).toHaveBeenCalledWith({ stage: 'test', renderPageImages: false })
+        expect(validateConfig).toHaveBeenCalledWith({ stage: 'test', renderPageImages: false, permissions: {} })
+    })
+
+    it('validates all format entries and refuses an inaccessible or wrong-provider integration', async () => {
+        const { service, validateConfig } = setup()
+        const execute = jest.fn(async () => ({ integration: { id: 'connection', provider: 'ocr' } }))
+        Object.assign(service, { commandBus: { execute } })
+        await service.validateSettings({
+            ...defaults,
+            parsers: {
+                pdf: {
+                    transformerType: 'integrated-pdf',
+                    transformerIntegration: 'connection',
+                    transformer: { quality: 'high' }
+                },
+                docx: { transformerType: 'word-only' }
+            }
+        })
+        expect(validateConfig).toHaveBeenCalledWith(
+            expect.objectContaining({
+                quality: 'high',
+                permissions: { integration: { id: 'connection', provider: 'ocr' } }
+            })
+        )
+        execute.mockResolvedValue({ integration: { id: 'connection', provider: 'other-service' } })
+        await expect(
+            service.validateSettings({
+                ...defaults,
+                parsers: {
+                    pdf: { transformerType: 'integrated-pdf', transformerIntegration: 'connection' }
+                }
+            })
+        ).rejects.toThrow()
+        execute.mockRejectedValue(new Error('No access to integration'))
+        await expect(
+            service.validateSettings({
+                ...defaults,
+                parsers: {
+                    pdf: { transformerType: 'integrated-pdf', transformerIntegration: 'connection' }
+                }
+            })
+        ).rejects.toThrow('No access to integration')
+        await expect(
+            service.validateSettings({ ...defaults, parsers: { docx: { transformerType: 'pdf-provider' } } })
+        ).rejects.toThrow()
+        await expect(
+            service.validateSettings({ ...defaults, parsers: { PDF: { transformerType: 'pdf-provider' } } })
+        ).rejects.toThrow()
+    })
+
+    it('rejects document table parsers that would discard record semantics', async () => {
+        const { service } = setup()
+        await expect(
+            service.validateDocument({
+                type: 'xlsx',
+                parserConfig: {
+                    transformerType: 'markdown-table',
+                    spreadsheet: { interpretation: 'records' }
+                }
+            })
+        ).rejects.toThrow()
     })
 
     it('rejects empty or excessive preview input before splitting', async () => {

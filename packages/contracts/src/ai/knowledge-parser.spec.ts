@@ -1,3 +1,5 @@
+import { isNativeKnowledgeTableDocument } from './knowledge-table.model'
+import { KBDocumentCategoryEnum } from './knowledge-doc.model'
 import { decodeKnowledgeSeparators, knowledgebaseDocumentParserDefaults } from './knowledge-parser.model'
 
 describe('knowledge parser shared configuration', () => {
@@ -60,4 +62,50 @@ describe('knowledge parser shared configuration', () => {
     })
     expect(knowledgebaseDocumentParserDefaults(defaults, 'txt')).not.toHaveProperty('transformerType')
   })
+})
+
+describe('per-format knowledgebase parsers', () => {
+  it('maps MIME types to the matching format and preserves other defaults', () => {
+    const config = {
+      chunkSize: 800,
+      chunkOverlap: 80,
+      delimiter: null,
+      parsers: {
+        docx: {
+          transformerType: 'office',
+          transformerIntegration: 'office-connection',
+          transformer: { mode: 'layout' }
+        }
+      }
+    }
+    expect(
+      knowledgebaseDocumentParserDefaults(
+        config,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
+    ).toMatchObject({
+      chunkSize: 800,
+      transformerType: 'office',
+      transformerIntegration: 'office-connection'
+    })
+    expect(knowledgebaseDocumentParserDefaults(config, 'pdf')).not.toHaveProperty('transformerType')
+  })
+
+  it('lets the format map override or explicitly clear the legacy PDF selection', () => {
+    const config = { chunkSize: 800, chunkOverlap: 80, delimiter: null, pdfParser: { transformerType: 'legacy-pdf' } }
+    expect(
+      knowledgebaseDocumentParserDefaults({ ...config, parsers: { pdf: { transformerType: 'new-pdf' } } }, '.PDF')
+        .transformerType
+    ).toBe('new-pdf')
+    expect(
+      knowledgebaseDocumentParserDefaults({ ...config, parsers: { pdf: null } }, 'pdf').transformerType
+    ).toBeUndefined()
+    expect(knowledgebaseDocumentParserDefaults(config, 'pdf').transformerType).toBe('legacy-pdf')
+  })
+})
+
+it('keeps builtin table parsing in records mode and excludes custom converters', () => {
+  const document = { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }
+  expect(isNativeKnowledgeTableDocument({ ...document, parserConfig: { transformerType: 'builtin' } })).toBe(true)
+  expect(isNativeKnowledgeTableDocument({ ...document, parserConfig: { transformerType: 'cloud' } })).toBe(false)
 })

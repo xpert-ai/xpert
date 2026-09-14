@@ -3,6 +3,8 @@ import {
   KBDocumentCategoryEnum,
   KDocumentSourceType,
   KnowledgebaseParserConfig,
+  knowledgebaseParserSelection,
+  knowledgeDocumentFileType,
   TCopilotModel,
   TRagWebOptions
 } from '@xpert-ai/contracts'
@@ -12,7 +14,6 @@ import { cloneDeep, pick } from 'lodash-es'
 export type DocumentImportSource = 'files' | 'folder' | 'url' | 'crawl' | 'remote' | 'online' | 'pipeline'
 export type KnowledgePipelineImportResult = { taskId: string }
 export type ImportParserConfig = IKnowledgeDocument['parserConfig']
-export type ImportSettingsSection = 'parser' | 'chunks' | 'images'
 
 export const DOCUMENT_IMPORT_SOURCES = [
   { id: 'files', key: 'UploadFiles', icon: 'ri-upload-2-line', available: true },
@@ -80,6 +81,7 @@ export function buildImportDocuments(
   parentId: string | null,
   options?: {
     pdfParser?: KnowledgebaseParserConfig['pdfParser']
+    parsers?: KnowledgebaseParserConfig['parsers']
     visionModel?: TCopilotModel
     sheetParserConfig?: ImportParserConfig
     tableOverrides?: { firstRowAsHeader?: boolean; tableMetadataRequirements?: string }
@@ -96,7 +98,7 @@ export function buildImportDocuments(
         ? importedSheetConfig(document, config, onlySheet, options)
         : {
             ...config,
-            ...(document.type?.replace(/^\./, '').toLowerCase() === 'pdf' ? options?.pdfParser : {}),
+            ...knowledgebaseParserSelection(options, knowledgeDocumentFileType(document)),
             ...(options?.visionModel ? { imageUnderstandingModel: options.visionModel } : {})
           }
     )
@@ -130,6 +132,7 @@ function importedSheetConfig(
     merged.tableMetadataRequirements
   return {
     ...newSheetImportConfig(merged),
+    ...knowledgebaseParserSelection(options, knowledgeDocumentFileType(document)),
     ...(firstRowAsHeader !== undefined
       ? { spreadsheet: { ...newSheetImportConfig(merged).spreadsheet, firstRowAsHeader } }
       : {}),

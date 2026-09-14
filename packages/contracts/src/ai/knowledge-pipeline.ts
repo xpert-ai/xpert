@@ -50,8 +50,12 @@ export interface IDocumentSourceProvider extends IDocumentNodeProvider {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IDocumentProcessorProvider extends IDocumentNodeProvider {
+  /** Where new parser options are configured; omitted keeps legacy document-level forms. */
+  configScope?: 'document' | 'integration'
   /** Explicit file extensions supported for per-format knowledgebase defaults. */
   supportedFileTypes?: string[]
+  /** Converter already extracts image text; run an additional image pass only when explicitly enabled. */
+  providesImageText?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

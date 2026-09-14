@@ -13,6 +13,20 @@ it('inherits, overrides and reopens public document language settings', () => {
 })
 
 describe('editing document processing settings', () => {
+  it('reopens legacy cleared parser fields using the library parser and its integration', () => {
+    const selection = {
+      transformerType: 'mineru',
+      transformerIntegration: 'mineru-connection',
+      transformer: { isOcr: false }
+    }
+    const draft = documentProcessingDraft(
+      { type: 'pdf', parserConfig: { transformerType: null, transformer: null, transformerIntegration: null } },
+      { parsers: { pdf: selection } }
+    )
+    expect(draft.parsers.pdf).toEqual(selection)
+    expect(draft.pdfParser).toEqual(selection)
+  })
+
   it('inherits the library token budget and preserves an explicit per-document opt-out when reopening and saving', () => {
     const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 256 }
     expect(documentProcessingDraft({ type: 'txt' }, defaults).maxChunkTokens).toBe(256)
@@ -90,4 +104,55 @@ it('inherits library table defaults while preserving explicit header false and a
   )
   expect(draft.spreadsheet).toEqual({ firstRowAsHeader: false, includeSheets: ['Orders'] })
   expect(draft.tableMetadataRequirements).toBe('')
+})
+
+it('switches an image parser, drops old connection/options, and restores the current library choice', () => {
+  const defaults = {
+    chunkSize: 512,
+    chunkOverlap: 0,
+    delimiter: null,
+    parsers: { png: { transformerType: 'baidu-paddleocr-vl', transformerIntegration: 'baidu' } }
+  }
+  const doc = {
+    type: 'png',
+    parserConfig: { transformerType: 'mineru', transformerIntegration: 'mineru', transformer: { isOcr: true } }
+  }
+  const reopened = documentProcessingDraft(doc, defaults)
+  expect(reopened.parsers.png.transformerType).toBe('mineru')
+  const selected = editedDocumentParserConfig(
+    doc,
+    { ...defaults, parsers: { png: { transformerType: 'builtin' } } },
+    defaults
+  )
+  expect(selected).toMatchObject({ transformerType: 'builtin', transformerIntegration: null, transformer: null })
+  const inherited = editedDocumentParserConfig(doc, { ...defaults, parsers: { png: null } }, defaults)
+  expect(inherited).toMatchObject({
+    transformerType: 'baidu-paddleocr-vl',
+    transformerIntegration: 'baidu',
+    transformer: null
+  })
+})
+
+it('does not resurrect old library options when reopening a document using another integration', () => {
+  const defaults = {
+    chunkSize: 512,
+    chunkOverlap: 80,
+    delimiter: null,
+    parsers: {
+      pdf: {
+        transformerType: 'mineru',
+        transformerIntegration: 'old',
+        transformer: { modelVersion: 'pipeline', isOcr: false }
+      }
+    }
+  }
+  const document = {
+    type: 'pdf',
+    parserConfig: { transformerType: 'mineru', transformerIntegration: 'new', transformer: {} }
+  }
+  const draft = { ...defaults, ...documentProcessingDraft(document, defaults) }
+  expect(draft.parsers.pdf.transformer).toEqual({})
+  const saved = editedDocumentParserConfig(document, draft, defaults)
+  expect(saved.transformer).toEqual({})
+  expect(saved.transformerIntegration).toBe('new')
 })

@@ -90,3 +90,5 @@ export * from './knowledge-wiki-organization.model'
 export * from './knowledge-question.model'
 
 export * from './knowledge-tag.model'
+
+export * from './knowledge-parser-selection'

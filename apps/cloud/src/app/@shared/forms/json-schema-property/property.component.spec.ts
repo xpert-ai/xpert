@@ -258,3 +258,39 @@ describe('JSONSchemaPropertyComponent', () => {
     expect(fixture.componentInstance.value$()).toBe('2048x2048')
   }))
 })
+
+describe('JSONSchemaPropertyComponent checkbox rendering', () => {
+  beforeEach(async () => {
+    TestBed.resetTestingModule()
+    await TestBed.configureTestingModule({
+      imports: [JSONSchemaPropertyComponent, TranslateModule.forRoot()],
+      providers: [JsonSchemaFormOptions]
+    }).compileComponents()
+  })
+  afterEach(() => TestBed.resetTestingModule())
+  it('renders checkbox fields inline and preserves false values and readonly state', fakeAsync(() => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+    fixture.componentRef.setInput('schema', {
+      type: 'boolean',
+      title: 'OCR',
+      default: true,
+      'x-ui': { component: 'checkbox' }
+    })
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('z-checkbox input')
+    expect(input).not.toBeNull()
+    expect(input.checked).toBe(true)
+    expect(fixture.nativeElement.querySelector('z-switch')).toBeNull()
+    input.click()
+    tick()
+    fixture.detectChanges()
+    expect(input.checked).toBe(false)
+    fixture.componentRef.setInput('readonly', true)
+    fixture.detectChanges()
+    expect(input.disabled).toBe(true)
+  }))
+})

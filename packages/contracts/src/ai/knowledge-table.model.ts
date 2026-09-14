@@ -80,7 +80,9 @@ export function isNativeKnowledgeTableDocument(
     ) &&
     !document.sourceConfig &&
     document.parserConfig?.spreadsheet?.interpretation !== 'form_document' &&
-    (!document.parserConfig?.transformerType || document.parserConfig.transformerType === 'default')
+    (!document.parserConfig?.transformerType ||
+      document.parserConfig.transformerType === 'default' ||
+      document.parserConfig.transformerType === 'builtin')
   )
 }
 

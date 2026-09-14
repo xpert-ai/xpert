@@ -1,3 +1,4 @@
+import { knowledgebaseParserSelection } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { IntegrationService } from '@xpert-ai/server-core'
@@ -24,11 +25,17 @@ export class GetKnowledgebaseProcessingOptionsHandler implements ICommandHandler
             .slice(1)
             .toLowerCase()
         const configured = knowledgebase.parserConfig
-        const defaults = resolveKnowledgeDocumentParserConfig({ type: fileType, parserConfig: configured })
+        const hasFormatRule =
+            Object.prototype.hasOwnProperty.call(configured?.parsers ?? {}, fileType) ||
+            (fileType === 'pdf' && configured?.pdfParser !== undefined)
+        const defaults = resolveKnowledgeDocumentParserConfig(
+            { type: fileType, parserConfig: hasFormatRule ? undefined : configured },
+            configured
+        )
         const defaultProcessor = defaults.transformerType || 'default'
         const processor = input.processor?.trim() || defaultProcessor
         const providers = (await this.knowledgebaseService.getDocumentTransformerStrategies())
-            .filter(({ meta }) => meta.name !== 'pdf-visual' || fileType === 'pdf')
+            .filter(({ meta }) => meta.supportedFileTypes?.includes(fileType))
             .map(({ meta, integration }) => ({
                 name: meta.name,
                 label: meta.label,
@@ -81,7 +88,8 @@ export class GetKnowledgebaseProcessingOptionsHandler implements ICommandHandler
             defaultProcessor,
             processor,
             defaultSource:
-                configured && 'transformerType' in configured && configured.transformerType
+                knowledgebaseParserSelection(configured, fileType) ||
+                (!hasFormatRule && configured && 'transformerType' in configured && configured.transformerType)
                     ? 'knowledgebase'
                     : 'platform',
             providers,

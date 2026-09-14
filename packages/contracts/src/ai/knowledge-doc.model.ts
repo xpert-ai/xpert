@@ -378,6 +378,9 @@ export interface StandardDocumentMetadata {
 }
 
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
+  /** Server-owned identity and label of the last completed document conversion. */
+  parser?: string
+  parserLabel?: I18nObject
   /** Server-owned generated table descriptions and publication state. */
   tableMetadata?: KnowledgeTableMetadata
   /** Existing source summary, available to optional document classifiers. */

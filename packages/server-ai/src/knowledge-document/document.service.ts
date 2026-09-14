@@ -65,6 +65,8 @@ import { KnowledgeGraphClearDocumentCommand } from '../graphrag/commands'
 import { KnowledgeWikiRetractSourceCommand } from '../knowledgebase/wiki/commands'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 import {
+    computeStableHash,
+    resolveKnowledgeDocumentTransformerIdentity,
     computeKnowledgeDocumentChunkHash,
     computeKnowledgeDocumentContentHash,
     computeKnowledgeDocumentProcessingHash,
@@ -950,6 +952,10 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 ? knowledgebase?.parserConfig
                 : undefined
         )
+        await this.parserSettings.validateDocument(
+            { ...document, parserConfig: config },
+            document.parserConfig?.transformerType
+        )
         if (config.textSplitterType) {
             const structure = await this.parserSettings.validateSplitter(config)
             if (persistStructure && knowledgebase && knowledgebase.type === KnowledgebaseTypeEnum.Standard) {
@@ -1189,6 +1195,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                 name: true,
                 folder: true,
                 sourceType: true,
+                category: true,
+                parserConfig: true,
                 type: true
             },
             relations: ['parent']
@@ -1199,7 +1207,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.knowledgebaseService.assertNotRebuilding(current.knowledgebaseId)
 
         const changes = { ...entity }
-        if (changes.parserConfig !== undefined) validateKnowledgeTableSettings(changes.parserConfig)
+        if (changes.parserConfig !== undefined) {
+            validateKnowledgeTableSettings(changes.parserConfig)
+            const next = { ...current, parserConfig: changes.parserConfig }
+            if (
+                computeStableHash(resolveKnowledgeDocumentTransformerIdentity(current)) !==
+                computeStableHash(resolveKnowledgeDocumentTransformerIdentity(next))
+            ) {
+                await this.parserSettings.validateDocument(next)
+            }
+        }
         if (changes.knowledgebaseId && changes.knowledgebaseId !== current.knowledgebaseId) {
             throw new BadRequestException('knowledgebaseId cannot be changed after a document is created')
         }

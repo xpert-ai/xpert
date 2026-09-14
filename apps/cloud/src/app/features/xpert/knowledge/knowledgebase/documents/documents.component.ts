@@ -94,6 +94,7 @@ import { DocumentWikiProgressComponent } from './document-wiki-progress.componen
 import { DocumentGraphProgressComponent } from './document-graph-progress.component'
 import { injectDocumentGraphProgress } from './document-graph-status'
 import { DocumentProgressColumnWidth, DocumentProgressWidthDirective } from './document-progress-column'
+import { documentParserLabel } from './document-parser-label'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 48
@@ -904,28 +905,12 @@ export class KnowledgeDocumentsComponent {
   }
 
   selectedDocumentProvider(document: IKnowledgeDocument) {
-    const metadata = document.metadata
-    const analysis = metadata?.documentAnalysis
-    const snapshot = metadata?.analysisSnapshot
-    const transformer = metadata?.transformSnapshot?.transformer
-    const provider = [
-      analysis?.provider ?? snapshot?.provider ?? transformer?.provider,
-      analysis?.engine ?? snapshot?.engine
-    ]
-      .filter(Boolean)
-      .join(' · ')
-
-    if (provider) {
-      return provider
-    }
-
-    if (document.processMsg?.includes('PaddleOCR')) {
-      return 'Baidu Cloud · PaddleOCR-VL'
-    }
-    if (document.processMsg?.includes('Unlimited-OCR')) {
-      return 'Baidu Cloud · Unlimited-OCR'
-    }
-    return ''
+    return documentParserLabel(
+      document,
+      this.#translate.language(),
+      this.#translate.translate('XP.Knowledgebase.WorkspaceConfiguration.Implemented.BuiltinParser'),
+      this.#translate.translate('XP.Knowledgebase.ParserNotRecorded')
+    )
   }
 
   selectedDocumentSize(document: IKnowledgeDocument) {
