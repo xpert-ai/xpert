@@ -1,4 +1,5 @@
 import { KnowledgeTableMetadataComponent } from './table-metadata.component'
+import { KnowledgeTagsComponent } from '../../../tags/knowledge-tags.component'
 import { KnowledgeChunkQuestionsComponent } from './chunk-questions.component'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -45,6 +46,7 @@ import { KnowledgeDocumentAnalysisPreviewComponent } from './analysis-preview.co
   templateUrl: './chunk.component.html',
   styleUrls: ['./chunk.component.scss'],
   imports: [
+    KnowledgeTagsComponent,
     FormsModule,
     TranslateModule,
     CdkMenuModule,

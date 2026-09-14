@@ -1,5 +1,9 @@
 {
     "Error": {
+        "KnowledgeTagConfigInvalid": "自动标签配置无效，请选择有效的语言模型。",
+
+        "KnowledgeTagResponseBudget": "自动标签响应超出长度限制。",
+        "KnowledgeTagResponseInvalid": "自动标签返回了无效的 JSON 结果。",
         "InvalidTagUsagePage": "标签关联分页参数无效。",
         "TagAssociationUnavailable": "所选标签已停用、不在可用范围内或不适用于此对象，请刷新标签列表后重新选择。",
         "InvalidTagInput": "标签字段不合法。",

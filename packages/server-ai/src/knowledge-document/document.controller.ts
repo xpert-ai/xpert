@@ -110,6 +110,8 @@ function inlineContentDisposition(fileName: string) {
 const KNOWLEDGE_DOCUMENT_SAFE_READ_RELATIONS = new Set([
     'parent',
     'storageFile',
+    'tagAssignments',
+    'tagAssignments.tag',
     'knowledgebase',
     'knowledgebase.pipeline'
 ])

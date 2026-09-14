@@ -258,4 +258,23 @@ describe('Tag catalog management', () => {
 		await service.remove('tag-1')
 		expect(repository.delete).toHaveBeenCalledWith({ id: 'tag-1', tenantId: 'tenant-1', organizationId: 'org-1' })
 	})
+	it('counts explicit knowledgebase/document links and prevents deleting used definitions', async () => {
+		const { service, repository, query, metadata } = setup()
+		for (const tableName of ['knowledgebase_tag', 'knowledge_document_tag']) {
+			metadata.push({ tableName, target: tableName, relations: [] } as unknown as EntityMetadata)
+		}
+		query.getRawMany.mockResolvedValue([{ tagId: 'tag-1', count: '2' }])
+		expect((await service.directory())[0].usage).toEqual([{ target: 'knowledgebase', count: 4 }])
+		expect(query.andWhere).toHaveBeenCalledWith('link.tenantId = :tenantId', { tenantId: 'tenant-1' })
+		expect(query.andWhere).toHaveBeenCalledWith('link.organizationId = :organizationId', {
+			organizationId: 'org-1'
+		})
+		await expect(service.remove('tag-1')).rejects.toBeInstanceOf(BadRequestException)
+		expect(repository.delete).not.toHaveBeenCalled()
+		repository.findOne.mockResolvedValue(tag({ targets: ['knowledgebase', TagCategoryEnum.XPERT] }))
+		await expect(service.write({ targets: [TagCategoryEnum.XPERT] }, 'tag-1')).rejects.toBeInstanceOf(
+			BadRequestException
+		)
+		expect(repository.save).not.toHaveBeenCalled()
+	})
 })

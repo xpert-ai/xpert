@@ -1,3 +1,4 @@
+import { KnowledgeDocumentTag } from '../knowledgebase/tags/document-tag.entity'
 import {
     TDocumentWebOptions,
     IIntegration,
@@ -287,6 +288,17 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @Optional()
     @Column({ nullable: true })
     jobId?: string
+
+    // Manual tag edits invalidate classifiers that started before the edit.
+    @Column({ type: 'int', default: 0, select: false })
+    tagRevision: number
+
+    @Column({ type: 'varchar', length: 64, nullable: true, select: false })
+    autoTaggingInputHash?: string | null
+
+    // Association writes remain owned by KnowledgeTagService, not document CRUD.
+    @OneToMany(() => KnowledgeDocumentTag, (assignment) => assignment.document, { persistence: false })
+    tagAssignments?: KnowledgeDocumentTag[]
 
     // Excluded from ordinary reads so a stale document snapshot cannot reclaim a newer attempt.
     @Column({ type: 'varchar', nullable: true, select: false })

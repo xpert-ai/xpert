@@ -79,3 +79,6 @@ export * from '../../model-gateway/model-gateway-publication.entity'
 export * from '../../model-gateway/model-gateway-api-key.entity'
 export * from '../../model-gateway/model-gateway-settings.entity'
 export * from '../../model-gateway/model-gateway-call.entity'
+
+export * from '../../knowledgebase/tags/knowledgebase-tag.entity'
+export * from '../../knowledgebase/tags/document-tag.entity'
