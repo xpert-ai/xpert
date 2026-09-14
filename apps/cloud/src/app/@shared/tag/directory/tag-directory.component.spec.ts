@@ -1,3 +1,4 @@
+import { KnowledgeTagsService } from '../../../@core/services/knowledge-tags.service'
 import { By } from '@angular/platform-browser'
 import { TenantTagMaintainComponent } from '../../../features/setting/tenant/maintain/maintain.component'
 import { TestBed } from '@angular/core/testing'
@@ -42,9 +43,11 @@ describe('TagDirectoryComponent', () => {
   const permissions = new BehaviorSubject([{ permission: PermissionsEnum.ORG_TAGS_EDIT, enabled: true }])
   let service: { getDirectory: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock; refresh: jest.Mock }
   const toastr = { success: jest.fn() }
+  const knowledgeTags = { usage: jest.fn() }
   const xpertService = { getTagUsage: jest.fn() }
   beforeEach(async () => {
     TestBed.resetTestingModule()
+    knowledgeTags.usage.mockReset().mockReturnValue(of({ items: [], total: 0 }))
     toastr.success.mockClear()
     xpertService.getTagUsage.mockReset().mockReturnValue(of({ items: [], total: 0 }))
     scope.next({ level: RequestScopeLevel.ORGANIZATION, organizationId: 'org-1' })
@@ -59,6 +62,7 @@ describe('TagDirectoryComponent', () => {
     await TestBed.configureTestingModule({
       imports: [NoopAnimationsModule, TranslateModule.forRoot(), TagDirectoryComponent, TenantTagMaintainComponent],
       providers: [
+        { provide: KnowledgeTagsService, useValue: knowledgeTags },
         { provide: TagService, useValue: service },
         { provide: ToastrService, useValue: toastr },
         { provide: XpertAPIService, useValue: xpertService },
@@ -81,6 +85,42 @@ describe('TagDirectoryComponent', () => {
     fixture.detectChanges()
     return fixture
   }
+
+  it('shows knowledgebase names, candidate links and document counts with independent pagination', async () => {
+    knowledgeTags.usage.mockReturnValueOnce(
+      of({ items: [{ id: 'kb1', name: 'Financial Knowledge', candidate: true, documentCount: 4 }], total: 2 })
+    )
+    const fixture = await render()
+    fixture.componentInstance.open('usage', { ...tags[0], usage: [{ target: 'knowledgebase', count: 6 }] })
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(document.body.textContent).toContain('Financial Knowledge')
+    expect(knowledgeTags.usage).toHaveBeenCalledWith('finance', 0)
+    knowledgeTags.usage.mockReturnValueOnce(
+      of({ items: [{ id: 'kb2', name: 'Contracts', candidate: false, documentCount: 1 }], total: 2 })
+    )
+    await fixture.componentInstance.loadKnowledgeUsage(true)
+    expect(knowledgeTags.usage).toHaveBeenLastCalledWith('finance', 1)
+    expect(fixture.componentInstance.knowledgeUsage()).toHaveLength(2)
+    fixture.componentInstance.close()
+  })
+
+  it('preserves summary on knowledge lookup failure and discards stale responses after switching tags', async () => {
+    const fixture = await render()
+    knowledgeTags.usage.mockReturnValueOnce(throwError(() => new Error('offline')))
+    fixture.componentInstance.open('usage', { ...tags[0], usage: [{ target: 'knowledgebase', count: 6 }] })
+    await fixture.whenStable()
+    expect(fixture.componentInstance.knowledgeUsageError()).toContain('offline')
+    const pending = new Subject<{ items: []; total: number }>()
+    knowledgeTags.usage.mockReturnValueOnce(pending)
+    const request = fixture.componentInstance.loadKnowledgeUsage()
+    fixture.componentInstance.open('usage', tags[1])
+    pending.next({ items: [], total: 99 })
+    pending.complete()
+    await request
+    expect(fixture.componentInstance.knowledgeUsageTotal()).toBe(0)
+    fixture.componentInstance.close()
+  })
 
   it('lists the actual expert name and each associated version when viewing tag usage', async () => {
     xpertService.getTagUsage.mockReturnValue(

@@ -28,3 +28,10 @@ export interface IKnowledgeDocumentTag {
 export const KNOWLEDGE_AUTOMATIC_TAG_CANDIDATES = 50
 export const KNOWLEDGE_AUTOMATIC_TAG_MAXIMUM = 10
 export const KNOWLEDGE_AUTOMATIC_TAG_TEXT_BUDGET = 12000
+
+export interface ITagKnowledgebaseUsage {
+  id: string
+  name: string
+  candidate: boolean
+  documentCount: number
+}
