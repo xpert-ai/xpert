@@ -70,34 +70,63 @@
                   }}
                 </p>
               </div>
-              <z-select
-                class="w-full"
-                [ngModel]="form().pdfParserType()"
-                (ngModelChange)="form().selectPdfParser($event)"
-                [disabled]="form().strategiesLoading()"
-              >
-                <z-select-item zValue="inherit">{{
-                  i18nPrefix + '.Implemented.InheritParser' | translate
-                }}</z-select-item>
-                @for (provider of form().pdfProviders(); track provider.meta.name) {
-                  <z-select-item [zValue]="provider.meta.name">{{ provider.meta.label | i18n }}</z-select-item>
+              <div class="space-y-3">
+                <z-select
+                  class="w-full"
+                  [ngModel]="form().pdfParserType()"
+                  (ngModelChange)="form().selectPdfParser($event)"
+                  [zLabel]="
+                    form().isBuiltinParser('pdf') ? (i18nPrefix + '.Implemented.BuiltinParser' | translate) : ''
+                  "
+                  [zDisabled]="!form().strategiesLoaded()"
+                >
+                  @if (form().builtinAvailable('pdf') && form().pdfParserType() !== 'pdf-visual') {
+                    <z-select-item zValue="builtin">{{
+                      i18nPrefix + '.Implemented.BuiltinParser' | translate
+                    }}</z-select-item>
+                  }
+                  @for (provider of form().pdfProviders(); track provider.meta.name) {
+                    @if (
+                      !['default', 'pdf-visual'].includes(provider.meta.name) ||
+                      form().pdfParserType() === provider.meta.name
+                    ) {
+                      <z-select-item [zValue]="provider.meta.name">{{
+                        provider.meta.name === 'pdf-visual'
+                          ? (i18nPrefix + '.Implemented.BuiltinParser' | translate)
+                          : (provider.meta.label | i18n)
+                      }}</z-select-item>
+                    }
+                  }
+                  @if (form().strategiesLoaded() && !form().pdfProvider()) {
+                    <z-select-item [zValue]="form().pdfParserType()">{{
+                      form().pdfParserType() === 'builtin'
+                        ? (i18nPrefix + '.Implemented.BuiltinParser' | translate)
+                        : form().pdfParserType()
+                    }}</z-select-item>
+                  }
+                </z-select>
+                @if (form().pdfProvider(); as provider) {
+                  @if (provider.integration; as integration) {
+                    <xp-integration-select
+                      [provider]="integration.service"
+                      [ngModel]="form().pdfIntegration()"
+                      (ngModelChange)="form().selectParserIntegration('pdf', $event)"
+                    />
+                  }
+                  @if (form().parserSchema('pdf'); as schema) {
+                    <json-schema-form
+                      class="grid grid-cols-2 gap-4"
+                      [schema]="schema"
+                      [(ngModel)]="form().pdfParserOptions"
+                    />
+                  }
+                } @else if (form().strategiesLoaded()) {
+                  <p role="alert" class="text-text-destructive">
+                    {{ i18nPrefix + '.Implemented.ProviderUnavailable' | translate }}: {{ form().pdfParserType() }}
+                  </p>
                 }
-              </z-select>
+              </div>
             </div>
-            @if (form().pdfProvider(); as provider) {
-              @if (provider.integration; as integration) {
-                <xp-integration-select [provider]="integration.service" [(ngModel)]="form().pdfIntegration" />
-              }
-              <json-schema-form
-                class="grid grid-cols-2 gap-4 py-4"
-                [schema]="provider.meta.configSchema"
-                [(ngModel)]="form().pdfParserOptions"
-              />
-            } @else if (form().pdfParserType() !== 'inherit' && form().strategiesLoaded()) {
-              <p role="alert" class="text-text-destructive">
-                {{ i18nPrefix + '.Implemented.ProviderUnavailable' | translate }}: {{ form().pdfParserType() }}
-              </p>
-            }
           }
           @for (row of parserRows(); track row.key) {
             <div
@@ -106,7 +135,8 @@
             >
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-3 text-base font-semibold leading-6 text-text-primary">
-                  <i [class]="row.icon"></i>{{ i18nPrefix + '.' + row.labelKey | translate }}
+                  <i [class]="row.icon"></i
+                  >{{ row.labelKey ? (i18nPrefix + '.' + row.labelKey | translate) : row.key.toUpperCase() }}
                 </div>
                 <div class="mt-2 flex flex-wrap gap-2">
                   @for (extension of row.extensions; track extension) {
@@ -117,23 +147,91 @@
                   }
                 </div>
               </div>
-              @if (row.key === 'excel' && showExcelHeader()) {
-                <div class="space-y-2" data-excel-header>
-                  <z-switch [ngModel]="form().firstRowAsHeader()" (ngModelChange)="form().firstRowAsHeader.set($event)">
-                    {{ i18nPrefix + '.Parser.FirstRowAsHeader' | translate }}
-                  </z-switch>
-                  <p class="text-xs leading-5 text-text-tertiary">
-                    {{ i18nPrefix + '.Parser.FirstRowAsHeaderHelp' | translate }}
+              <div class="space-y-3">
+                <z-select
+                  class="w-full"
+                  [ngModel]="form().parserGroupType(row)"
+                  (ngModelChange)="form().selectParserGroup(row, $event)"
+                  [zLabel]="
+                    form().parserGroupType(row) === 'builtin'
+                      ? (i18nPrefix + '.Implemented.BuiltinParser' | translate)
+                      : ''
+                  "
+                  [zPlaceholder]="
+                    i18nPrefix +
+                      (form().parserGroupMixed(row)
+                        ? '.Implemented.MixedParserSelection'
+                        : form().strategiesLoaded() && !form().parserGroupProviders(row).length
+                          ? '.Implemented.NoParser'
+                          : '.Implemented.SelectParser') | translate
+                  "
+                  [zDisabled]="
+                    !form().strategiesLoaded() ||
+                    (!form().parserGroupProviders(row).length && !form().parserGroupType(row))
+                  "
+                >
+                  @for (provider of form().parserGroupProviders(row); track provider.meta.name) {
+                    <z-select-item [zValue]="provider.meta.name === 'default' ? 'builtin' : provider.meta.name">{{
+                      provider.meta.name === 'default'
+                        ? (i18nPrefix + '.Implemented.BuiltinParser' | translate)
+                        : (provider.meta.label | i18n)
+                    }}</z-select-item>
+                  }
+                  @if (form().strategiesLoaded() && form().parserGroupType(row) && !form().parserGroupProvider(row)) {
+                    <z-select-item [zValue]="form().parserGroupType(row)">{{
+                      form().parserGroupType(row) === 'builtin'
+                        ? (i18nPrefix + '.Implemented.BuiltinParser' | translate)
+                        : form().parserGroupType(row)
+                    }}</z-select-item>
+                  }
+                </z-select>
+                @if (form().parserGroupProvider(row); as provider) {
+                  @if (provider.integration; as integration) {
+                    <xp-integration-select
+                      [provider]="integration.service"
+                      [ngModel]="form().parserGroupIntegration(row)"
+                      (ngModelChange)="form().selectParserGroupIntegration(row, $event)"
+                    />
+                  }
+                  @if (form().parserGroupSchema(row); as schema) {
+                    <json-schema-form
+                      class="grid grid-cols-2 gap-4"
+                      [schema]="schema"
+                      [ngModel]="form().parserGroupOptions(row)"
+                      (ngModelChange)="form().updateParserGroupOptions(row, $event)"
+                    />
+                  }
+                } @else if (form().parserGroupType(row) && form().strategiesLoaded()) {
+                  <p role="alert" class="text-text-destructive">
+                    {{ i18nPrefix + '.Implemented.ProviderUnavailable' | translate }}: {{ form().parserGroupType(row) }}
                   </p>
-                </div>
-              } @else {
-                <span class="text-sm text-text-tertiary">{{
-                  (scope() === 'documents'
-                    ? 'XP.Knowledgebase.SharedProcessing.BatchOtherFormats'
-                    : i18nPrefix + '.Implemented.OtherFormats'
-                  ) | translate
-                }}</span>
-              }
+                } @else if (form().strategiesLoaded() && !form().parserGroupProviders(row).length) {
+                  <p class="text-xs text-text-tertiary">{{ i18nPrefix + '.Implemented.NoFormatParser' | translate }}</p>
+                }
+                @if (form().parserGroupFallbacks(row).length) {
+                  <p data-parser-fallback class="text-xs text-text-tertiary">
+                    {{
+                      i18nPrefix + '.Implemented.GroupParserFallback'
+                        | translate: { formats: form().parserGroupFallbacks(row).join(', ') }
+                    }}
+                  </p>
+                }
+                @if (form().parserGroupMixed(row)) {
+                  <p class="text-xs text-text-tertiary">
+                    {{ i18nPrefix + '.Implemented.MixedParserSettings' | translate }}
+                  </p>
+                }
+                @if (row.hasHeaderToggle && showExcelHeader() && form().parserGroupType(row) === 'builtin') {
+                  <z-checkbox
+                    data-excel-header
+                    displayDensity="compact"
+                    [ngModel]="form().firstRowAsHeader()"
+                    (ngModelChange)="form().firstRowAsHeader.set($event)"
+                  >
+                    {{ i18nPrefix + '.Parser.FirstRowAsHeader' | translate }}
+                  </z-checkbox>
+                }
+              </div>
             </div>
           }
         </div>

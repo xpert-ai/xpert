@@ -70,7 +70,16 @@ export enum KnowledgeStructureEnum {
   QA = 'qa'
 }
 
+export type KnowledgeParserSelection = {
+  transformerType: string
+  transformerIntegration?: string
+  transformer?: { [key: string]: unknown }
+}
+
 export type KnowledgebaseParserConfig = {
+  /** Canonical extension -> parser. Null explicitly restores system defaults, including legacy PDF settings. */
+  parsers?: { [format: string]: KnowledgeParserSelection | null }
+
   spreadsheet?: Pick<DocumentSpreadsheetParserConfig, 'firstRowAsHeader'>
   tableMetadataRequirements?: string
   /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
@@ -83,11 +92,8 @@ export type KnowledgebaseParserConfig = {
   chunkSize: number | null
   chunkOverlap: number | null
   delimiter: string | null
-  pdfParser?: {
-    transformerType: string
-    transformerIntegration?: string
-    transformer?: { [key: string]: unknown }
-  }
+  /** Legacy PDF selection; parsers.pdf takes precedence when present. */
+  pdfParser?: KnowledgeParserSelection
   textSplitterType?: string
   textSplitter?: { [key: string]: unknown }
   separators?: string[]

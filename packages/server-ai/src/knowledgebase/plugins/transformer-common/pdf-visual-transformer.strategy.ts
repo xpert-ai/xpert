@@ -59,8 +59,8 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
         supportedFileTypes: ['pdf'],
         name: PdfVisual,
         label: {
-            en_US: 'PDF Visual',
-            zh_Hans: 'PDF 图文'
+            en_US: 'Builtin PDF visual',
+            zh_Hans: '内置 PDF 图文'
         },
         description: {
             en_US: 'Extract PDF text and render page images for downstream OCR or VLM understanding.',

@@ -1,5 +1,8 @@
 import {
     classificateDocumentCategory,
+    BUILTIN_KNOWLEDGE_PARSER,
+    knowledgeDocumentFileType,
+    knowledgebaseParserSelection,
     DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentParserConfig,
     DocumentSheetParserConfig,
@@ -73,7 +76,7 @@ export function resolveKnowledgeDocumentParserConfig(
     document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig' | 'sourceConfig'>,
     knowledgebaseDefaults?: KnowledgebaseParserConfig | null
 ): ResolvedKnowledgeDocumentParserConfig {
-    const type = normalizeDocumentType(document.type)
+    const type = knowledgeDocumentFileType({ type: document.type })
     const category =
         document.category ??
         (type ? classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>) : KBDocumentCategoryEnum.Text)
@@ -89,6 +92,7 @@ export function resolveKnowledgeDocumentParserConfig(
               )
             : category === KBDocumentCategoryEnum.Sheet
               ? defined({
+                    ...knowledgebaseParserSelection(knowledgebaseDefaults, type),
                     questionGeneration: knowledgebaseDefaults?.questionGeneration,
                     ...(nativeTable
                         ? {
@@ -102,7 +106,19 @@ export function resolveKnowledgeDocumentParserConfig(
                         : {})
                 })
               : {}
-    const effective = mergeParserConfig(mergeParserConfig(defaults, inherited), explicit)
+    const expandBuiltin = (config: ResolvedKnowledgeDocumentParserConfig): ResolvedKnowledgeDocumentParserConfig =>
+        config.transformerType === BUILTIN_KNOWLEDGE_PARSER
+            ? {
+                  ...config,
+                  transformerType: type === 'pdf' ? 'pdf-visual' : 'default',
+                  transformer:
+                      type === 'pdf'
+                          ? { ...DEFAULT_PDF_VISUAL_PARSER_CONFIG.transformer, ...config.transformer }
+                          : config.transformer,
+                  transformerIntegration: undefined
+              }
+            : config
+    const effective = mergeParserConfig(mergeParserConfig(defaults, expandBuiltin(inherited)), expandBuiltin(explicit))
     const result = mergeParserConfig(defaults, effective)
     if (result.imageUnderstandingEnabled === false) {
         delete result.imageUnderstandingType
@@ -202,6 +218,8 @@ function mergeParserConfig(
     explicit: ResolvedKnowledgeDocumentParserConfig
 ): ResolvedKnowledgeDocumentParserConfig {
     const transformerChanged = !!explicit.transformerType && explicit.transformerType !== defaults.transformerType
+    const integrationChanged =
+        !!explicit.transformerIntegration && explicit.transformerIntegration !== defaults.transformerIntegration
     const splitterChanged = !!explicit.textSplitterType && explicit.textSplitterType !== defaults.textSplitterType
     const understandingChanged =
         !!explicit.imageUnderstandingType && explicit.imageUnderstandingType !== defaults.imageUnderstandingType
@@ -213,9 +231,13 @@ function mergeParserConfig(
                 ? mergeOptions(DEFAULT_RECURSIVE_TEXT_SPLITTER.textSplitter, explicit.textSplitter)
                 : explicit.textSplitter
             : mergeOptions(defaults.textSplitter, explicit.textSplitter),
-        transformer: transformerChanged
-            ? explicit.transformer
-            : mergeOptions(defaults.transformer, explicit.transformer),
+        transformerIntegration: transformerChanged
+            ? explicit.transformerIntegration
+            : (explicit.transformerIntegration ?? defaults.transformerIntegration),
+        transformer:
+            transformerChanged || integrationChanged
+                ? explicit.transformer
+                : mergeOptions(defaults.transformer, explicit.transformer),
         spreadsheet: mergeOptions(defaults.spreadsheet, explicit.spreadsheet),
         imageUnderstanding: understandingChanged
             ? explicit.imageUnderstanding
@@ -239,10 +261,6 @@ function defined<T extends object>(input: T): T {
         if (result[key] === undefined) delete result[key]
     }
     return result
-}
-
-function normalizeDocumentType(type: unknown) {
-    return normalizeString(type).replace(/^\./, '')
 }
 
 function normalizeString(value: unknown) {

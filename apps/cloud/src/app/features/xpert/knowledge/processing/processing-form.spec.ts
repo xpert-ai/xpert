@@ -1,4 +1,4 @@
-import { AiModelTypeEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, BUILTIN_KNOWLEDGE_FILE_TYPES } from '@xpert-ai/contracts'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, throwError } from 'rxjs'
@@ -16,6 +16,7 @@ describe('shared knowledge processing draft', () => {
       getTextSplitterStrategies: jest.fn(() => splitters),
       getDocumentTransformerStrategies: jest.fn(() =>
         of([
+          { meta: { name: 'default', supportedFileTypes: BUILTIN_KNOWLEDGE_FILE_TYPES } },
           { meta: { name: 'pdf-visual', supportedFileTypes: ['pdf'] } },
           { meta: { name: 'text-only', supportedFileTypes: ['txt'] } }
         ])
@@ -31,6 +32,162 @@ describe('shared knowledge processing draft', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('groups related formats and saves unsupported image types with the builtin parser', async () => {
+    const { form } = setup()
+    await form.loadStrategies()
+    form.parserProviders.update((providers) => [
+      ...providers,
+      {
+        meta: {
+          name: 'baidu-paddleocr-vl',
+          label: 'Baidu OCR',
+          supportedFileTypes: ['jpg', 'jpeg', 'png', 'bmp', 'tif', 'tiff'],
+          configScope: 'integration',
+          configSchema: { type: 'object', properties: {} }
+        },
+        integration: { service: 'baidu-ocr' }
+      }
+    ])
+    const row = form.parserFormats().find((row) => row.key === 'image')
+    expect(row?.extensions).toEqual(expect.arrayContaining(['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+    form.selectParserGroup(row, 'baidu-paddleocr-vl')
+    form.selectParserGroupIntegration(row, 'baidu-connection')
+    for (const format of ['jpg', 'jpeg', 'png', 'bmp', 'tif', 'tiff']) {
+      expect(form.config().parsers[format]).toEqual({
+        transformerType: 'baidu-paddleocr-vl',
+        transformer: {},
+        transformerIntegration: 'baidu-connection'
+      })
+    }
+    for (const format of ['gif', 'webp']) {
+      expect(form.config().parsers[format]).toEqual({ transformerType: 'builtin', transformer: {} })
+    }
+    expect(form.parserGroupFallbacks(row)).toEqual(expect.arrayContaining(['.gif', '.webp']))
+    expect(form.validation()).toBeNull()
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    reopened.parserProviders.set(form.parserProviders())
+    expect(reopened.parserGroupType(row)).toBe('baidu-paddleocr-vl')
+    expect(reopened.parserGroupIntegration(row)).toBe('baidu-connection')
+    expect(reopened.parserGroupMixed(row)).toBe(false)
+  })
+
+  it('limits grouped edits to the imported extensions and preserves existing per-format settings on open', async () => {
+    const { form } = setup({
+      config: {
+        parsers: {
+          jpg: { transformerType: 'first', transformerIntegration: 'original', transformer: { flag: false } },
+          png: { transformerType: 'second', transformerIntegration: 'another' }
+        }
+      }
+    })
+    await form.loadStrategies()
+    const row = form.parserFormats().find((row) => row.key === 'image')
+    const before = form.config().parsers
+    expect(form.parserGroupType(row)).toBe('')
+    expect(form.parserGroupMixed(row)).toBe(true)
+    expect(form.config().parsers).toEqual(before)
+    form.selectParserGroup({ ...row, extensions: ['.png'] }, 'builtin')
+    expect(form.config().parsers.png.transformerType).toBe('builtin')
+    expect(form.config().parsers.jpg).toEqual(before.jpg)
+  })
+
+  it('offers only declared formats and persists independent parser drafts when switching engines', async () => {
+    const { form } = setup({
+      config: {
+        parsers: {
+          txt: { transformerType: 'removed', transformerIntegration: 'old', transformer: { stale: true } }
+        }
+      }
+    })
+    await form.loadStrategies()
+    expect(form.providersFor('txt').map((provider) => provider.meta.name)).toEqual(['default', 'text-only'])
+    expect(form.providersFor('doc')).toEqual([])
+    expect(form.validation()?.section).toBe('parser')
+    form.selectParser('txt', 'text-only')
+    expect(form.config().parsers.txt).toEqual({ transformerType: 'text-only', transformer: {} })
+    expect(form.validation()).toBeNull()
+    form.updateParser('txt', { transformer: { custom: true } })
+    expect(form.config().parsers.txt.transformer).toEqual({ custom: true })
+    form.selectParser('txt', 'builtin')
+    expect(form.config().parsers.txt).toEqual({ transformerType: 'builtin', transformer: {} })
+    expect(form.config().parsers.pdf.transformerType).toBe('builtin')
+  })
+
+  it('displays and saves builtin defaults while leaving unsupported formats unselected', async () => {
+    const { form } = setup({ config: { parsers: { pdf: null, docx: null } } })
+    await form.loadStrategies()
+    expect(form.pdfParserType()).toBe('builtin')
+    expect(form.pdfProvider().meta.name).toBe('pdf-visual')
+    expect(form.parserType('docx')).toBe('builtin')
+    expect(form.config().parsers.docx.transformerType).toBe('builtin')
+    expect(form.parserType('doc')).toBe('')
+    expect(form.config().parsers.doc).toBeUndefined()
+    expect(form.validation()).toBeNull()
+  })
+
+  it('keeps configured engines and options when reopening instead of replacing them with builtin defaults', async () => {
+    const { form } = setup({
+      config: {
+        pdfParser: {
+          transformerType: 'mineru',
+          transformerIntegration: 'mineru-connection',
+          transformer: { isOcr: false }
+        },
+        parsers: {
+          docx: {
+            transformerType: 'word-parser',
+            transformerIntegration: 'word-connection',
+            transformer: { mode: 'layout' }
+          }
+        }
+      }
+    })
+    await form.loadStrategies()
+    expect(form.pdfParserType()).toBe('mineru')
+    expect(form.pdfIntegration()).toBe('mineru-connection')
+    expect(form.pdfParserOptions()).toEqual({ isOcr: false })
+    expect(form.parserType('docx')).toBe('word-parser')
+    expect(form.parserOptions('docx')).toEqual({ mode: 'layout' })
+    expect(form.parserIntegration('docx')).toBe('word-connection')
+    expect(form.validation()?.section).toBe('parser')
+  })
+
+  it('keeps old integration-owned parameters until a different integration is chosen', async () => {
+    const { form, api } = setup({
+      config: {
+        parsers: {
+          pdf: { transformerType: 'mineru', transformerIntegration: 'old', transformer: { isOcr: false } },
+          png: { transformerType: 'mineru', transformerIntegration: 'old', transformer: { modelVersion: 'pipeline' } }
+        }
+      }
+    })
+    api.getDocumentTransformerStrategies.mockReturnValue(
+      of([
+        {
+          meta: {
+            name: 'mineru',
+            supportedFileTypes: ['pdf', 'png'],
+            configScope: 'integration',
+            configSchema: { type: 'object', properties: { isOcr: { type: 'boolean', default: true } } }
+          }
+        }
+      ])
+    )
+    await form.loadStrategies()
+    expect(form.parserSchema('pdf')).toBeUndefined()
+    expect(form.pdfParserOptions()).toEqual({ isOcr: false })
+    expect(form.parserOptions('png')).toEqual({ modelVersion: 'pipeline' })
+    form.selectParserIntegration('pdf', 'old')
+    expect(form.pdfParserOptions()).toEqual({ isOcr: false })
+    form.selectParserIntegration('pdf', 'new')
+    form.selectParserIntegration('png', 'new')
+    expect(form.pdfParserOptions()).toEqual({})
+    expect(form.parserOptions('png')).toEqual({})
+    expect(form.config().parsers.pdf.transformerIntegration).toBe('new')
+    form.selectParser('png', 'mineru')
+    expect(form.parserOptions('png')).toEqual({})
+  })
 
   it('round-trips false headers and optional table instructions without changing spreadsheet mode', () => {
     const { form } = setup({
@@ -364,7 +521,7 @@ describe('shared knowledge processing draft', () => {
     await form.loadStrategies()
     expect(form.strategiesLoading()).toBe(false)
     expect(form.strategiesLoaded()).toBe(true)
-    expect(form.pdfProviders().map((provider) => provider.meta.name)).toEqual(['pdf-visual'])
+    expect(form.pdfProviders().map((provider) => provider.meta.name)).toEqual(['default', 'pdf-visual'])
     form.selectPdfParser('text-only')
     expect(form.validation()?.section).toBe('parser')
     form.selectPdfParser('pdf-visual')

@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgeParserOriginalFileRequired": "此解析器需要原始文件，请先上传文件。已抓取的网页内容不能直接交给文件解析器。",
         "KnowledgeTagConfigInvalid": "自动标签配置无效，请选择有效的语言模型。",
 
         "KnowledgeTagResponseBudget": "自动标签响应超出长度限制。",

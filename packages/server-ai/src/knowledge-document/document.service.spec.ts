@@ -157,7 +157,10 @@ function createService(
         { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
     )
     Object.assign(service, {
-        parserSettings: { validateSplitter: jest.fn(async () => KnowledgeStructureEnum.General) },
+        parserSettings: {
+            validateDocument: jest.fn(async () => undefined),
+            validateSplitter: jest.fn(async () => KnowledgeStructureEnum.General)
+        },
         textSplitterRegistry: {
             get: jest.fn(() => null)
         }
@@ -166,6 +169,41 @@ function createService(
 }
 
 describe('KnowledgeDocumentService logical folder paths', () => {
+    it('does not require a removed parser when only changing chunk settings', async () => {
+        const parserConfig = {
+            transformerType: 'removed-parser',
+            transformerIntegration: 'old-connection',
+            transformer: { mode: 'layout' },
+            chunkSize: 500
+        }
+        const service = createService([], {
+            repo: {
+                update: jest.fn(async () => ({ affected: 1 })),
+                findOne: jest.fn(async () => ({
+                    id: 'doc',
+                    knowledgebaseId: 'kb',
+                    type: 'pdf',
+                    version: 1,
+                    parserConfig
+                }))
+            },
+            knowledgebaseService: { assertNotRebuilding: jest.fn() }
+        })
+        const validateDocument = jest.fn(async () => {
+            throw new Error('Parser is unavailable')
+        })
+        Object.assign(service, { parserSettings: { validateDocument } })
+        await service.updateWithVersion('doc', { parserConfig: { ...parserConfig, chunkSize: 800 } }, 1)
+        expect(validateDocument).not.toHaveBeenCalled()
+        await expect(
+            service.updateWithVersion(
+                'doc',
+                { parserConfig: { ...parserConfig, transformerType: 'different-parser' } },
+                1
+            )
+        ).rejects.toThrow('Parser is unavailable')
+    })
+
     it('does not let a document edit restore a stale publication epoch', async () => {
         const update = jest.fn(async (_criteria: object, _patch: Partial<IKnowledgeDocument>) => ({ affected: 1 }))
         const service = createService([], {
