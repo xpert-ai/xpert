@@ -435,7 +435,8 @@ function formatCodeReference(reference: CodeReferenceLike): string {
     const location = `${reference.path}:${getCodeReferenceRange(reference)}`
     const language = isNonEmptyString(reference.language) ? reference.language.trim() : ''
 
-    return [`[${location}]`, `\`\`\`${language}`, reference.text, '```'].join('\n')
+    const source = [reference.label?.trim(), location].filter(Boolean).join(' - ')
+    return [`[${source}]`, `\`\`\`${language}`, reference.text, '```'].join('\n')
 }
 
 function formatQuoteReference(reference: QuoteReferenceLike): string {

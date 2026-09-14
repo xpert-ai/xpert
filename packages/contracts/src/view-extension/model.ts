@@ -660,3 +660,15 @@ export interface XpertViewActionResult<TData = unknown> {
   data?: TData
   refresh?: boolean
 }
+
+/** Append text selections to the current draft without sending or replacing it. */
+export const ASSISTANT_COMPOSER_APPEND_REFERENCES_COMMAND = 'assistant.composer.append_references'
+export type AssistantComposerReference = {
+  id?: string
+  label?: string
+  text: string
+} & (
+  | { type: 'code'; path: string; startLine: number; endLine: number; language?: string }
+  | { type: 'quote'; source?: string; messageId?: string }
+)
+export type AssistantComposerAppendReferencesPayload = { references: AssistantComposerReference[] }

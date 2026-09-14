@@ -250,3 +250,17 @@ describe('human-input references', () => {
         )
     })
 })
+
+describe('code reference labels', () => {
+    it('preserves the user-selected action label together with the real file location', () => {
+        const references = normalizeReferences([
+            { type: 'code', path: 'theme.css', startLine: 2, endLine: 4, text: 'body {}', label: 'Explain' }
+        ])
+        expect(buildReferencedPrompt(references)).toContain('[Explain - theme.css:2-4]')
+        expect(
+            buildReferencedPrompt(
+                normalizeReferences([{ type: 'code', path: 'theme.css', startLine: 2, endLine: 4, text: 'body {}' }])
+            )
+        ).toContain('[theme.css:2-4]')
+    })
+})

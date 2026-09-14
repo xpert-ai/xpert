@@ -1,3 +1,4 @@
+import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
@@ -210,6 +211,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #workbenchViewUrlState = inject(ClawXpertWorkbenchViewUrlState)
   readonly #projectApi = inject(XpertProjectApiService)
   readonly #responseActive = signal(false)
+  #unregisterComposerCommand: (() => void) | null = null
   #unregisterAssistantCommand: (() => void) | null = null
   #unregisterAssistantContextCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
@@ -611,6 +613,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   constructor() {
     effect((onCleanup) => {
       if (this.immersiveWorkbench()) onCleanup(this.#presentation.enter())
+    })
+    this.#unregisterComposerCommand = registerAssistantComposerAppendReferencesCommand(this.#clientCommands, {
+      getControl: () => this.control(),
+      isReady: () => this.facade.viewState() === 'ready'
     })
     this.#unregisterAssistantCommand = registerAssistantChatSendMessageCommand(this.#clientCommands, {
       getControl: () => this.control(),
@@ -1037,6 +1043,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.#unregisterComposerCommand?.()
+    this.#unregisterComposerCommand = null
     this.#unregisterAssistantCommand?.()
     this.#unregisterAssistantCommand = null
     this.#unregisterAssistantContextCommand?.()
