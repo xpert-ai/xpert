@@ -1,7 +1,7 @@
 import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
 import { KnowledgeDocumentTag } from './tags/document-tag.entity'
 import { KnowledgeTagService } from './tags/knowledge-tag.service'
-import { KnowledgeTagController } from './tags/knowledge-tag.controller'
+import { KnowledgeTagController, KnowledgeTagUsageController } from './tags/knowledge-tag.controller'
 import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
 import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
 import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
@@ -87,7 +87,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
             name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
         })
     ],
-    controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController],
+    controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController, KnowledgeTagUsageController],
     providers: [
         KnowledgeTagService,
         KnowledgePipelineCallbackProcessor,

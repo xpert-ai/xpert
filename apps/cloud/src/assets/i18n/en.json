@@ -43,6 +43,12 @@
   },
   "XP": {
     "TagDirectory": {
+      "KnowledgeCandidate": "Knowledgebase candidate",
+      "KnowledgeDocuments": "{{count}} linked documents",
+      "LoadingKnowledge": "Loading knowledgebases…",
+      "NoVisibleKnowledge": "No visible linked knowledgebases",
+      "MoreKnowledge": "Load more knowledgebases",
+      "VisibleKnowledgeOnly": "Only knowledgebases you can read are listed; association totals may include other inaccessible records.",
       "Version": "Version",
       "UnnamedExpert": "Unnamed digital expert",
       "UnpublishedExpert": "Unpublished",

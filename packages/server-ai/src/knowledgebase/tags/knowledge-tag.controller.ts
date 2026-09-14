@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, Put } from '@nestjs/common'
+import { Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Put, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { UUIDValidationPipe } from '@xpert-ai/server-core'
 import { KnowledgeTagService } from './knowledge-tag.service'
@@ -54,5 +54,20 @@ export class KnowledgeTagController {
         @Param('tagId', UUIDValidationPipe) tagId: string
     ) {
         return this.tags.setManual(knowledgebaseId, documentId, tagId, true)
+    }
+}
+
+@ApiTags('KnowledgeTags')
+@ApiBearerAuth()
+@Controller('tag-usage')
+export class KnowledgeTagUsageController {
+    constructor(private readonly tags: KnowledgeTagService) {}
+
+    @Get(':tagId')
+    usage(
+        @Param('tagId', UUIDValidationPipe) tagId: string,
+        @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number
+    ) {
+        return this.tags.usage(tagId, skip)
     }
 }

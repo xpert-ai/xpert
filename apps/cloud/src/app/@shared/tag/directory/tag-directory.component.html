@@ -228,11 +228,13 @@
       <z-icon zType="link" class="mr-2" />{{ 'XP.TagDirectory.usage' | translate }}
     </button>
     <button z-menu-item (click)="open(tag.isActive === false ? 'enable' : 'disable', tag)">
+      <z-icon [zType]="tag.isActive === false ? 'circle-check' : 'ban'" class="mr-2" />
       {{ (tag.isActive === false ? 'XP.TagDirectory.enable' : 'XP.TagDirectory.disable') | translate }}
     </button>
     @if (!total(tag)) {
       <button z-menu-item zType="destructive" (click)="open('delete', tag)">
-        {{ 'XP.TagDirectory.delete' | translate }}
+        <z-icon zType="trash" class="mr-2 text-destructive!" />
+        <span class="text-destructive">{{ 'XP.TagDirectory.delete' | translate }}</span>
       </button>
     }
   </div></ng-template
@@ -334,6 +336,55 @@
                   <span>{{ 'XP.TagDirectory.Target.' + usage.target | translate }}</span>
                   <span>{{ 'XP.TagDirectory.UsageCount' | translate: { count: usage.count } }}</span>
                 </div>
+                @if (usage.target === 'knowledgebase') {
+                  <ul class="mt-3 space-y-3">
+                    @for (kb of knowledgeUsage(); track kb.id) {
+                      <li class="space-y-1">
+                        <p class="font-medium">{{ kb.name }}</p>
+                        <p class="text-xs text-text-tertiary">
+                          @if (kb.candidate) {
+                            <span class="mr-2">{{ 'XP.TagDirectory.KnowledgeCandidate' | translate }}</span>
+                          }
+                          {{ 'XP.TagDirectory.KnowledgeDocuments' | translate: { count: kb.documentCount } }}
+                        </p>
+                      </li>
+                    }
+                  </ul>
+                  @if (knowledgeUsageLoading()) {
+                    <p role="status" class="mt-3 text-xs text-text-tertiary">
+                      {{ 'XP.TagDirectory.LoadingKnowledge' | translate }}
+                    </p>
+                  } @else if (knowledgeUsageError()) {
+                    <p role="alert" class="mt-3 text-xs text-text-destructive">{{ knowledgeUsageError() }}</p>
+                    <button
+                      z-button
+                      zType="outline"
+                      zSize="sm"
+                      (click)="loadKnowledgeUsage(knowledgeUsage().length > 0)"
+                    >
+                      {{ 'XP.TagDirectory.Retry' | translate }}
+                    </button>
+                  } @else if (!knowledgeUsage().length) {
+                    <p class="mt-3 text-xs text-text-tertiary">
+                      {{ 'XP.TagDirectory.NoVisibleKnowledge' | translate }}
+                    </p>
+                  }
+                  @if (knowledgeUsage().length < knowledgeUsageTotal() && !knowledgeUsageError()) {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
+                      class="mt-3"
+                      [disabled]="knowledgeUsageLoading()"
+                      (click)="loadKnowledgeUsage(true)"
+                    >
+                      {{ 'XP.TagDirectory.MoreKnowledge' | translate }}
+                    </button>
+                  }
+                  <p class="mt-3 text-xs text-text-tertiary">
+                    {{ 'XP.TagDirectory.VisibleKnowledgeOnly' | translate }}
+                  </p>
+                }
                 @if (usage.target === 'xpert') {
                   <ul class="mt-3 space-y-3">
                     @for (expert of xpertUsage(); track expert.id) {

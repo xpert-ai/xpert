@@ -1,13 +1,19 @@
 import { API_PREFIX } from '../state'
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { IKnowledgeDocumentTag, KnowledgeTagCatalog } from '@xpert-ai/contracts'
+import { IKnowledgeDocumentTag, KnowledgeTagCatalog, IPagination, ITagKnowledgebaseUsage } from '@xpert-ai/contracts'
 
 @Injectable({ providedIn: 'root' })
 export class KnowledgeTagsService {
   private readonly http = inject(HttpClient)
   private url(knowledgebaseId: string) {
     return `${API_PREFIX}/knowledgebase/${knowledgebaseId}`
+  }
+
+  usage(tagId: string, skip = 0) {
+    return this.http.get<IPagination<ITagKnowledgebaseUsage>>(`${API_PREFIX}/knowledgebase/tag-usage/${tagId}`, {
+      params: { skip }
+    })
   }
 
   list(knowledgebaseId: string) {

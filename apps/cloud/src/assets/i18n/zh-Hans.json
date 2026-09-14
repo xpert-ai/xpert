@@ -248,6 +248,12 @@
   },
   "XP": {
     "TagDirectory": {
+      "KnowledgeCandidate": "知识库候选关联",
+      "KnowledgeDocuments": "{{count}} 篇关联文档",
+      "LoadingKnowledge": "正在加载知识库…",
+      "NoVisibleKnowledge": "没有可查看的关联知识库",
+      "MoreKnowledge": "加载更多知识库",
+      "VisibleKnowledgeOnly": "仅显示你有权读取的知识库；关联总数还包括其他不可见记录。",
       "Version": "版本",
       "UnnamedExpert": "未命名数字专家",
       "UnpublishedExpert": "未发布",

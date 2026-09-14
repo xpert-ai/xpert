@@ -2,15 +2,17 @@
 // candidate reads hold shared locks until association commit, so disable/delete cannot race additions.
 import {
     IKnowledgeDocumentTag,
+    ITagKnowledgebaseUsage,
+    IPagination,
     ITag,
     KnowledgeTagCatalog,
     KBDocumentStatusEnum,
     KNOWLEDGE_AUTOMATIC_TAG_CANDIDATES
 } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Tag } from '@xpert-ai/server-core'
-import { EntityManager, Repository } from 'typeorm'
+import { RequestContext, Tag } from '@xpert-ai/server-core'
+import { EntityManager, IsNull, Repository } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgeDocument } from '../../knowledge-document/document.entity'
 import { AutomaticTagSelection, normalizeAutomaticTagging } from '../../knowledge-document/tags/automatic-tagging'
@@ -27,6 +29,55 @@ export class KnowledgeTagService {
         @InjectRepository(Tag) private readonly tags: Repository<Tag>,
         private readonly knowledgebases: KnowledgebaseService
     ) {}
+
+    async usage(tagId: string, skip = 0): Promise<IPagination<ITagKnowledgebaseUsage>> {
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        if (!tenantId || !RequestContext.currentUserId()) throw new ForbiddenException()
+        if (!Number.isSafeInteger(skip) || skip < 0)
+            throw new BadRequestException(t('server-ai:Error.InvalidTagUsagePage'))
+        const shared = { id: tagId, tenantId, organizationId: IsNull() }
+        if (
+            !(await this.tags.findOne({
+                where: organizationId ? [shared, { ...shared, organizationId }] : shared,
+                select: ['id']
+            }))
+        )
+            throw new NotFoundException()
+        // Aggregate identifiers only; authorize each parent before disclosing its name or counts.
+        const rows: Array<{ id: string; candidate: boolean; documentCount: string }> = await this.tags.manager.query(
+            `
+            SELECT "id", bool_or("candidate") AS "candidate", sum("documentCount")::text AS "documentCount"
+            FROM (
+                SELECT "knowledgebaseId" AS "id", true AS "candidate", 0 AS "documentCount"
+                FROM knowledgebase_tag WHERE "tagId" = $1 AND "tenantId" = $2
+                    AND ($3::uuid IS NULL OR "organizationId" = $3)
+                UNION ALL
+                SELECT d."knowledgebaseId" AS "id", false AS "candidate", 1 AS "documentCount"
+                FROM knowledge_document_tag link JOIN knowledge_document d ON d.id = link."documentId" AND d."tenantId" = link."tenantId"
+                WHERE link."tagId" = $1 AND link."tenantId" = $2
+                    AND ($3::uuid IS NULL OR link."organizationId" = $3)
+            ) usage GROUP BY "id"`,
+            [tagId, tenantId, organizationId ?? null]
+        )
+        const items: ITagKnowledgebaseUsage[] = []
+        for (const row of rows) {
+            try {
+                const kb = await this.knowledgebases.findOne(row.id)
+                if (kb.tenantId !== tenantId || (organizationId && kb.organizationId !== organizationId)) continue
+                items.push({
+                    id: kb.id,
+                    name: kb.name,
+                    candidate: row.candidate,
+                    documentCount: Number(row.documentCount)
+                })
+            } catch (error) {
+                if (!(error instanceof ForbiddenException) && !(error instanceof NotFoundException)) throw error
+            }
+        }
+        items.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+        return { items: items.slice(skip, skip + 20), total: items.length }
+    }
 
     async list(knowledgebaseId: string): Promise<KnowledgeTagCatalog> {
         const kb = await this.knowledgebases.findOne(knowledgebaseId)

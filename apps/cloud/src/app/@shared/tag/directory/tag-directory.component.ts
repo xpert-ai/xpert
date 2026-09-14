@@ -1,3 +1,4 @@
+import { KnowledgeTagsService } from '../../../@core/services/knowledge-tags.service'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import {
   ChangeDetectionStrategy,
@@ -17,6 +18,7 @@ import {
   getTagTargets,
   ITagDirectoryItem,
   ITagXpertUsage,
+  ITagKnowledgebaseUsage,
   PermissionsEnum,
   resolveI18nText,
   TagCategoryEnum,
@@ -91,6 +93,13 @@ export class TagDirectoryComponent {
   readonly ascending = signal(true)
   readonly selected = signal<ITagDirectoryItem | null>(null)
   readonly mode = signal<PanelMode>('edit')
+  private readonly knowledgeTags = inject(KnowledgeTagsService)
+  readonly knowledgeUsage = signal<ITagKnowledgebaseUsage[]>([])
+  readonly knowledgeUsageTotal = signal(0)
+  readonly knowledgeUsageLoading = signal(false)
+  readonly knowledgeUsageError = signal('')
+  private knowledgeUsageRequest = 0
+
   readonly xpertUsage = signal<ITagXpertUsage[]>([])
   readonly xpertUsageTotal = signal(0)
   readonly xpertUsageLoading = signal(false)
@@ -216,17 +225,44 @@ export class TagDirectoryComponent {
     ref.closed.subscribe(() => {
       if (this.ref === ref) this.resetUsage()
     })
+    if (mode === 'usage' && tag?.usage.some((usage) => usage.target === 'knowledgebase' && usage.count))
+      void this.loadKnowledgeUsage()
     if (mode === 'usage' && tag?.usage.some((usage) => usage.target === TagCategoryEnum.XPERT && usage.count)) {
       void this.loadXpertUsage()
     }
   }
 
   private resetUsage() {
+    this.knowledgeUsageRequest++
+    this.knowledgeUsage.set([])
+    this.knowledgeUsageTotal.set(0)
+    this.knowledgeUsageLoading.set(false)
+    this.knowledgeUsageError.set('')
     this.usageRequest++
     this.xpertUsage.set([])
     this.xpertUsageTotal.set(0)
     this.xpertUsageLoading.set(false)
     this.xpertUsageError.set('')
+  }
+
+  async loadKnowledgeUsage(more = false) {
+    const tag = this.selected()
+    if (!tag || this.mode() !== 'usage' || this.knowledgeUsageLoading()) return
+    const request = ++this.knowledgeUsageRequest
+    const scope = this.scope()
+    this.knowledgeUsageLoading.set(true)
+    this.knowledgeUsageError.set('')
+    try {
+      const page = await firstValueFrom(this.knowledgeTags.usage(tag.id, more ? this.knowledgeUsage().length : 0))
+      if (request !== this.knowledgeUsageRequest || scope !== this.scope()) return
+      this.knowledgeUsage.set(more ? [...this.knowledgeUsage(), ...page.items] : page.items)
+      this.knowledgeUsageTotal.set(page.total)
+    } catch (error) {
+      if (request === this.knowledgeUsageRequest && scope === this.scope())
+        this.knowledgeUsageError.set(getErrorMessage(error))
+    } finally {
+      if (request === this.knowledgeUsageRequest) this.knowledgeUsageLoading.set(false)
+    }
   }
 
   async loadXpertUsage(more = false) {
