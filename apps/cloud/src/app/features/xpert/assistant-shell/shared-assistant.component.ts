@@ -1,3 +1,4 @@
+import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, DestroyRef, inject } from '@angular/core'
 import { Router } from '@angular/router'
@@ -35,6 +36,10 @@ export class XpertSharedAssistantComponent {
   readonly status = this.#facade.status
 
   constructor() {
+    const unregisterComposer = registerAssistantComposerAppendReferencesCommand(this.#clientCommands, {
+      getControl: () => this.control(),
+      isReady: () => this.status() === 'ready'
+    })
     const unregisterAssistant = registerAssistantChatSendMessageCommand(this.#clientCommands, {
       getControl: () => this.control(),
       isReady: () => this.status() === 'ready'
@@ -54,6 +59,7 @@ export class XpertSharedAssistantComponent {
     })
 
     this.#destroyRef.onDestroy(() => {
+      unregisterComposer()
       unregisterAssistant()
       unregisterFileOpen()
       unregisterAssistantContext()
