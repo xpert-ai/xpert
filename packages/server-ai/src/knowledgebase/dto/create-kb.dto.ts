@@ -141,6 +141,11 @@ export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
     @IsOptional()
     wikiModel?: ICopilotModel | null
 
+    @ApiPropertyOptional({ type: () => Object })
+    @IsObject()
+    @IsOptional()
+    automaticTagging?: IKnowledgebase['automaticTagging']
+
     constructor(partial: IKnowledgebase) {
         Object.assign(this, partial)
     }

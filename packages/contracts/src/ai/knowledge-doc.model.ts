@@ -1,3 +1,4 @@
+import type { IKnowledgeDocumentTag } from './knowledge-tag.model'
 import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { KnowledgeTableMetadata } from './knowledge-table.model'
@@ -344,6 +345,8 @@ export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = Knowle
   extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
   parent?: IKnowledgeDocument | null
   children?: IKnowledgeDocument[]
+  /** Existing manual and automatic associations, included when requested for display. */
+  tagAssignments?: IKnowledgeDocumentTag[]
   knowledgebase?: IKnowledgebase
 
   draft?: TKnowledgeDocument
@@ -377,6 +380,8 @@ export interface StandardDocumentMetadata {
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
   /** Server-owned generated table descriptions and publication state. */
   tableMetadata?: KnowledgeTableMetadata
+  /** Existing source summary, available to optional document classifiers. */
+  summary?: string
   /** Internal index containers are not user-uploaded documents. */
   systemManaged?: boolean
   systemManagedType?: string

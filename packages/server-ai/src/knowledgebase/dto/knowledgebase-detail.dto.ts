@@ -77,6 +77,9 @@ class KnowledgebasePipelineDetailDTO implements Partial<IXpert> {
 @Exclude()
 export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     @Expose()
+    declare automaticTagging?: IKnowledgebase['automaticTagging']
+
+    @Expose()
     declare id: string
 
     @Expose()

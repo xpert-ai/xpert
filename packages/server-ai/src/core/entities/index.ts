@@ -1,3 +1,5 @@
+import { KnowledgebaseTag } from '../../knowledgebase/tags/knowledgebase-tag.entity'
+import { KnowledgeDocumentTag } from '../../knowledgebase/tags/document-tag.entity'
 import { KnowledgeIdentity } from '../../knowledgebase/identity/knowledge-identity.entity'
 import { KnowledgeIdentityObservation } from '../../knowledgebase/identity/knowledge-identity-observation.entity'
 import { ModelUsageDeliveryReceipt } from '../../copilot-usage/model-usage/model-usage-delivery-receipt.entity'
@@ -119,6 +121,8 @@ export const ALL_AI_ENTITIES = [
     ModelUsageDeliveryReceipt,
     KnowledgeGraphEntityContribution,
     KnowledgeGraphRelationContribution,
+    KnowledgebaseTag,
+    KnowledgeDocumentTag,
     KnowledgeDocumentDeletionIntent,
     KnowledgeDocumentDeletionCleanupReceipt,
     KnowledgeDocumentPublicationAttempt,

@@ -1,3 +1,4 @@
+import type { KnowledgeAutomaticTaggingConfig } from './knowledge-tag.model'
 import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { TKBRetrievalSettings } from './xpert.model'
@@ -146,6 +147,8 @@ export type TKnowledgebase = {
    * These are machine-readable identifiers, not user-facing search tags.
    */
   applicationTags?: string[]
+
+  automaticTagging?: KnowledgeAutomaticTaggingConfig | null
   /**
    * Public in tenant or in organization or private
    * @default private

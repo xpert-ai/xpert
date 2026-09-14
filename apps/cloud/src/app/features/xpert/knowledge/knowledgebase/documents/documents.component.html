@@ -229,6 +229,11 @@
                         </a>
                       }
                     }
+                    @case ('tagAssignments') {
+                      <xp-document-tags-cell
+                        [assignments]="liveDocumentTags().get(element.id) ?? element.tagAssignments"
+                      />
+                    }
                     @case ('contents') {
                       @if (element.sourceType === eKDocumentSourceType.FOLDER) {
                         <div class="flex items-center gap-2 text-xs text-text-secondary">

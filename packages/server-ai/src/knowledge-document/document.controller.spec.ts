@@ -350,6 +350,34 @@ describe('KnowledgeDocumentController parent knowledgebase access', () => {
         expect(service.findAll).toHaveBeenCalledWith(expect.objectContaining({ relations: ['parent'] }))
     })
 
+    it('allows tag display relations through the authorized list query only', async () => {
+        const { controller, service } = createController()
+        await controller.findAll({
+            where: { knowledgebaseId: 'kb-owner' },
+            relations: ['tagAssignments', 'tagAssignments.tag'],
+            take: 20,
+            skip: 0,
+            order: {},
+            withDeleted: false
+        })
+        expect(service.assertKnowledgebaseReadAccess).toHaveBeenCalledWith('kb-owner')
+        expect(service.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                relations: ['tagAssignments', 'tagAssignments.tag']
+            })
+        )
+        await expect(
+            controller.findAll({
+                where: { knowledgebaseId: 'kb-owner' },
+                relations: ['tagAssignments.document.knowledgebase'] as never,
+                take: 20,
+                skip: 0,
+                order: {},
+                withDeleted: false
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
     it.each([
         [[{ knowledgebaseId: 'kb-owner' }, { name: 'victim.pdf' }]],
         [[{ knowledgebaseId: 'kb-owner' }, { knowledgebaseId: 'kb-victim' }]]

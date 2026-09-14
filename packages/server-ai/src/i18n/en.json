@@ -1,5 +1,9 @@
 {
     "Error": {
+        "KnowledgeTagConfigInvalid": "Invalid automatic tagging settings. Select a valid language model.",
+
+        "KnowledgeTagResponseBudget": "Automatic tagging response exceeds the output budget.",
+        "KnowledgeTagResponseInvalid": "Automatic tagging returned an invalid JSON response.",
         "InvalidTagUsagePage": "Invalid tag usage page.",
         "TagAssociationUnavailable": "A selected tag is unavailable for this resource. Refresh the tag list and select again.",
         "InvalidTagInput": "Invalid tag fields.",

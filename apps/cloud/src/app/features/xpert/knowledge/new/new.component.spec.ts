@@ -58,6 +58,25 @@ describe('XpertNewKnowledgeComponent', () => {
     return TestBed.runInInjectionContext(() => new XpertNewKnowledgeComponent())
   }
 
+  it('saves automatic tagging settings and restores them when editing', async () => {
+    const config = { enabled: true, maxTags: 5, confidenceThreshold: 0.85, allowWithManualTags: true }
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb-1',
+        name: 'Documents',
+        type: KnowledgebaseTypeEnum.Standard,
+        copilotModel: { id: 'embedding' },
+        automaticTagging: config
+      }
+    })
+    expect(component.automaticTagging()).toEqual(config)
+    await component.save()
+    expect(TestBed.inject(KnowledgebaseService).updateWikiConfiguration).toHaveBeenCalledWith(
+      'kb-1',
+      expect.objectContaining({ settings: expect.objectContaining({ automaticTagging: config }) })
+    )
+  })
+
   afterEach(() => {
     TestBed.inject(OverlayContainer).ngOnDestroy()
     TestBed.resetTestingModule()

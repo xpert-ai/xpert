@@ -141,6 +141,32 @@ export class TagManagementService {
 				}
 			}
 		}
+		// Explicit knowledge associations carry provenance, so they are entities rather than ManyToMany junctions.
+		for (const metadata of manager.connection.entityMetadatas) {
+			if (!['knowledgebase_tag', 'knowledge_document_tag'].includes(metadata.tableName)) continue
+			const query = manager
+				.createQueryBuilder()
+				.from(metadata.target, 'link')
+				.select('link.tagId', 'tagId')
+				.addSelect('COUNT(*)', 'count')
+				.where('link.tagId IN (:...ids)', { ids })
+				.andWhere('link.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
+				.groupBy('link.tagId')
+			if (currentOrganization && RequestContext.getOrganizationId()) {
+				query.andWhere('link.organizationId = :organizationId', {
+					organizationId: RequestContext.getOrganizationId()
+				})
+			}
+			const counts = await query.getRawMany<{ tagId: string; count: string }>()
+			for (const row of counts) {
+				const entries = result.get(row.tagId) ?? []
+				const entry = entries.find((item) => item.target === 'knowledgebase')
+				if (entry) entry.count += Number(row.count)
+				else entries.push({ target: 'knowledgebase', count: Number(row.count) })
+				result.set(row.tagId, entries)
+			}
+		}
+
 		return result
 	}
 

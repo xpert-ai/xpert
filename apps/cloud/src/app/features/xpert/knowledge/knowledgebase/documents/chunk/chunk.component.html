@@ -116,6 +116,14 @@
   }
 </div>
 
+@if (document() && knowledgebase()?.id) {
+  <xp-knowledge-tags
+    class="block px-4 border-b border-divider-subtle"
+    [knowledgebaseId]="knowledgebase().id"
+    [documentId]="document().id"
+  />
+}
+
 @if (evidenceExcerpt()) {
   <aside
     class="mx-4 mt-3 flex shrink-0 items-start gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-text-secondary"

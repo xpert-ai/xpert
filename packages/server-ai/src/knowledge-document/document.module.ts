@@ -1,3 +1,7 @@
+import { JOB_KNOWLEDGE_AUTO_TAGGING } from './tags/automatic-tagging.command'
+import { KnowledgeAutoTaggingConsumer, KnowledgeAutoTaggingEnqueueHandler } from './tags/automatic-tagging.job'
+import { KnowledgeAutomaticTaggingService } from './tags/automatic-tagging.service'
+import { CopilotModelModule } from '../copilot-model/copilot-model.module'
 import { JOB_KNOWLEDGE_QUESTIONS } from './questions/question-generation.command'
 import { KnowledgeQuestionGenerationService } from './questions/question-generation.service'
 import { KnowledgeQuestionGenerationController } from './questions/question-generation.controller'
@@ -46,6 +50,7 @@ import { KnowledgeTableMetadataService } from './tables/table-metadata.service'
             KnowledgeDocumentPublicationAttempt,
             KnowledgeDocumentPublicationAttemptSource
         ]),
+        CopilotModelModule,
         DiscoveryModule,
         RuntimeCapabilityModule,
         TenantModule,
@@ -57,11 +62,18 @@ import { KnowledgeTableMetadataService } from './tables/table-metadata.service'
         IntegrationModule,
         forwardRef(() => KnowledgebaseModule),
 
-        BullModule.registerQueue({ name: JOB_EMBEDDING_DOCUMENT }, { name: JOB_KNOWLEDGE_QUESTIONS })
+        BullModule.registerQueue(
+            { name: JOB_KNOWLEDGE_AUTO_TAGGING },
+            { name: JOB_EMBEDDING_DOCUMENT },
+            { name: JOB_KNOWLEDGE_QUESTIONS }
+        )
     ],
     controllers: [KnowledgeDocumentController, KnowledgeQuestionGenerationController],
     providers: [
         KnowledgeTableMetadataService,
+        KnowledgeAutoTaggingConsumer,
+        KnowledgeAutoTaggingEnqueueHandler,
+        KnowledgeAutomaticTaggingService,
         KnowledgeQuestionGenerationService,
         KnowledgeQuestionsConsumer,
         KnowledgeQuestionsEnqueueHandler,
