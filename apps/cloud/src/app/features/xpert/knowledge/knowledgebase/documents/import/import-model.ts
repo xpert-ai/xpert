@@ -3,16 +3,17 @@ import {
   KBDocumentCategoryEnum,
   KDocumentSourceType,
   KnowledgebaseParserConfig,
+  knowledgebaseParserSelection,
+  knowledgeDocumentFileType,
   TCopilotModel,
   TRagWebOptions
 } from '@xpert-ai/contracts'
 import { v4 as uuid } from 'uuid'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, pick } from 'lodash-es'
 
 export type DocumentImportSource = 'files' | 'folder' | 'url' | 'crawl' | 'remote' | 'online' | 'pipeline'
 export type KnowledgePipelineImportResult = { taskId: string }
 export type ImportParserConfig = IKnowledgeDocument['parserConfig']
-export type ImportSettingsSection = 'parser' | 'chunks' | 'images'
 
 export const DOCUMENT_IMPORT_SOURCES = [
   { id: 'files', key: 'UploadFiles', icon: 'ri-upload-2-line', available: true },
@@ -28,6 +29,51 @@ export function quickWebOptions(url: string): TRagWebOptions {
   return { url: url.trim(), params: { mode: 'scrape' } }
 }
 
+/** Shared controls own chunking and table defaults; conversion settings retain their own draft. */
+export function mergeSheetProcessingConfig(
+  sheetConfig: ImportParserConfig,
+  processingConfig: ImportParserConfig
+): ImportParserConfig {
+  return {
+    ...sheetConfig,
+    ...pick(processingConfig, [
+      'textSplitterType',
+      'textSplitter',
+      'chunkSize',
+      'chunkOverlap',
+      'maxChunkTokens',
+      'chunkLanguageHint',
+      'delimiter',
+      'separators',
+      'questionGeneration',
+      'tableMetadataRequirements'
+    ]),
+    ...(sheetConfig?.spreadsheet || processingConfig?.spreadsheet
+      ? {
+          spreadsheet: {
+            ...processingConfig?.spreadsheet,
+            ...sheetConfig?.spreadsheet,
+            ...(processingConfig?.spreadsheet?.firstRowAsHeader !== undefined
+              ? { firstRowAsHeader: processingConfig.spreadsheet.firstRowAsHeader }
+              : {})
+          }
+        }
+      : {})
+  }
+}
+
+/** Snapshot displayed defaults for import or explicit settings saves; reading a stored document does not mutate it. */
+export function newSheetImportConfig(config: ImportParserConfig): ImportParserConfig {
+  return {
+    ...config,
+    spreadsheet: {
+      interpretation: 'records',
+      includeSheets: ['*'],
+      ...config?.spreadsheet
+    }
+  }
+}
+
 export function buildImportDocuments(
   documents: Partial<IKnowledgeDocument>[],
   config: ImportParserConfig,
@@ -35,8 +81,10 @@ export function buildImportDocuments(
   parentId: string | null,
   options?: {
     pdfParser?: KnowledgebaseParserConfig['pdfParser']
+    parsers?: KnowledgebaseParserConfig['parsers']
     visionModel?: TCopilotModel
     sheetParserConfig?: ImportParserConfig
+    tableOverrides?: { firstRowAsHeader?: boolean; tableMetadataRequirements?: string }
   }
 ): Partial<IKnowledgeDocument>[] {
   const onlySheet =
@@ -47,14 +95,49 @@ export function buildImportDocuments(
     parent: parentId ? ({ id: parentId } as IKnowledgeDocument) : null,
     parserConfig: cloneDeep(
       document.category === KBDocumentCategoryEnum.Sheet
-        ? (options?.sheetParserConfig ?? (onlySheet ? config : (document.parserConfig ?? {})))
+        ? importedSheetConfig(document, config, onlySheet, options)
         : {
             ...config,
-            ...(document.type?.replace(/^\./, '').toLowerCase() === 'pdf' ? options?.pdfParser : {}),
+            ...knowledgebaseParserSelection(options, knowledgeDocumentFileType(document)),
             ...(options?.visionModel ? { imageUnderstandingModel: options.visionModel } : {})
           }
     )
   }))
+}
+
+function importedSheetConfig(
+  document: Partial<IKnowledgeDocument>,
+  config: ImportParserConfig,
+  onlySheet: boolean,
+  options: Parameters<typeof buildImportDocuments>[4]
+): ImportParserConfig {
+  const batchConfig = options?.sheetParserConfig ?? (onlySheet ? config : {})
+  const merged = mergeSheetProcessingConfig(
+    {
+      ...document.parserConfig,
+      ...batchConfig,
+      ...(document.parserConfig?.spreadsheet || batchConfig.spreadsheet
+        ? { spreadsheet: { ...document.parserConfig?.spreadsheet, ...batchConfig.spreadsheet } }
+        : {})
+    },
+    config
+  )
+  const firstRowAsHeader =
+    options?.tableOverrides?.firstRowAsHeader ??
+    document.parserConfig?.spreadsheet?.firstRowAsHeader ??
+    merged.spreadsheet?.firstRowAsHeader
+  const requirements =
+    options?.tableOverrides?.tableMetadataRequirements ??
+    document.parserConfig?.tableMetadataRequirements ??
+    merged.tableMetadataRequirements
+  return {
+    ...newSheetImportConfig(merged),
+    ...knowledgebaseParserSelection(options, knowledgeDocumentFileType(document)),
+    ...(firstRowAsHeader !== undefined
+      ? { spreadsheet: { ...newSheetImportConfig(merged).spreadsheet, firstRowAsHeader } }
+      : {}),
+    ...(requirements !== undefined ? { tableMetadataRequirements: requirements } : {})
+  }
 }
 
 /** The remote-source test API returns text pages, not KnowledgeFileUploader instances. */

@@ -1,5 +1,37 @@
 {
     "Error": {
+        "KnowledgeParserEmptyFile": "The uploaded file is empty. Upload a file containing content.",
+        "KnowledgeParserEmptyText": "No readable text was found. Check whether the file contains only whitespace or blank pages.",
+        "KnowledgeParserInvalidDocument": "The file is damaged, encrypted, or does not match its extension. Open it locally and export it again.",
+        "KnowledgeParserInputTooLarge": "The file exceeds the 100 MB conversion limit. Split it before uploading.",
+        "KnowledgeParserOutputTooLarge": "The converted content exceeds the output limit. Split the document and retry.",
+        "KnowledgeParserOcrRequired": "No text was recognized. Enable image understanding with an available vision model, or select an OCR parser.",
+        "KnowledgeParserOriginalFileRequired": "This parser requires the original file. Upload the file before selecting a file parser.",
+        "KnowledgeTagConfigInvalid": "Invalid automatic tagging settings. Select a valid language model.",
+
+        "KnowledgeTagResponseBudget": "Automatic tagging response exceeds the output budget.",
+        "KnowledgeTagResponseInvalid": "Automatic tagging returned an invalid JSON response.",
+        "InvalidTagUsagePage": "Invalid tag usage page.",
+        "TagAssociationUnavailable": "A selected tag is unavailable for this resource. Refresh the tag list and select again.",
+        "InvalidTagInput": "Invalid tag fields.",
+        "TagNameExists": "A tag with this name already exists in this scope.",
+        "TagTargetInUse": "A target still uses this tag and cannot be removed.",
+        "TagInUse": "This tag is in use. Disable it instead of deleting it.",
+        "TagUsageUnsupported": "Cannot safely inspect this tag relationship.",
+        "TagUseStatus": "Use tag status to enable or disable a tag.",
+        "KnowledgeTableMetadataReservedKey": "tableMetadata is reserved for generated table descriptions.",
+        "KnowledgeTableMetadataInvalidResponse": "The model returned invalid table metadata.",
+        "KnowledgeTableMetadataStale": "The table or its processing settings changed. Reprocess the document.",
+        "KnowledgeTableMetadataInputTooLarge": "The table metadata input exceeds the model context budget.",
+        "InvalidKnowledgeTableIndexedFields": "Selected table columns are unavailable in {{sheetName}}: {{fields}}. Preview the table and select valid columns.",
+        "McpPersonalFilesIdentityRequired": "Personal MCP files require an authenticated user and no Project or Xpert binding.",
+        "McpRuntimeConfigurationInvalid": "The MCP runtime configuration is invalid.",
+        "McpFileRequired": "A non-empty file is required.",
+        "McpFileNameInvalid": "The file name is invalid.",
+        "McpFilePathInvalid": "A relative workspace file path is required.",
+        "McpFileAccessDenied": "Personal files must be enabled and the authenticated user must have the required file scope.",
+        "McpFileTooLarge": "MCP binary file transfer is limited to 256 MiB per file.",
+        "McpTaskExecutionChanged": "The MCP task execution scope, configuration, or capability is no longer available. Start a new request.",
         "VisualEvidenceScopeRequired": "A governed KnowledgeDocument and evidence scope are required",
         "VisualEvidenceScopeInvalid": "The visual evidence audit scope is invalid",
 
@@ -734,7 +766,13 @@
         "ProjectTaskXpertRequired": "A Project automation must be bound to a Project Xpert.",
         "ProjectXpertRequired": "The Xpert is not part of this Project.",
         "XpertTaskAccessDenied": "You cannot access this Xpert task.",
-        "XpertTaskNotFound": "The requested Xpert task was not found."
+        "XpertTaskNotFound": "The requested Xpert task was not found.",
+        "ChunkTokenLimitTooSmall": "The token limit cannot fit a complete character. Increase the limit and try again.",
+        "KnowledgeQuestionsInvalidResponse": "The model did not return a valid question list. Retry generation.",
+        "KnowledgeQuestionsBusy": "Questions are being generated. Try again later.",
+        "KnowledgeQuestionsStale": "The source chunk changed. Regenerate its questions.",
+        "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
+        "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter."
     },
     "Mcp": {
         "Test": {

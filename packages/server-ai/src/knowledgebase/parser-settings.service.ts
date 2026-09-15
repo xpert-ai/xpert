@@ -1,20 +1,41 @@
-import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { PluginPermissionsCommand } from './commands/plugin-permissions.command'
+import {
+    knowledgeParserProvider,
+    validateParserIntegration,
+    validateTableParserSelection
+} from '../knowledge-document/parser-provider'
+import { validateQuestionGeneration } from '../knowledge-document/questions/question-generation'
+import { Inject, Injectable } from '@nestjs/common'
 import { Document } from '@langchain/core/documents'
 import {
     buildChunkTree,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentParserConfig,
     KnowledgebaseParserConfig,
+    KnowledgeParserSelection,
+    IKnowledgeDocument,
+    knowledgeDocumentFileType,
     KnowledgeChunkPreviewInput,
     KnowledgeChunkPreviewResult,
     KnowledgeStructureEnum
 } from '@xpert-ai/contracts'
-import { DocumentTransformerRegistry, TextSplitterRegistry } from '@xpert-ai/plugin-sdk'
-import { invalidKnowledgeParserConfig, validateSeparators } from '../knowledge-document/parser-validation'
+import { DocumentTransformerRegistry, TextSplitterRegistry, TDocumentTransformerConfig } from '@xpert-ai/plugin-sdk'
+import {
+    invalidKnowledgeParserConfig,
+    validateMaxChunkTokens,
+    validateChunkLanguageHint,
+    validateSeparators,
+    validateKnowledgeTableSettings
+} from '../knowledge-document/parser-validation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { splitKnowledgeDocuments } from '../knowledge-document/split-documents'
 
 @Injectable()
 export class KnowledgeParserSettingsService {
+    @Inject(CommandBus)
+    private readonly commandBus: CommandBus
+
     constructor(
         private readonly splitters: TextSplitterRegistry,
         private readonly transformers: DocumentTransformerRegistry
@@ -24,6 +45,7 @@ export class KnowledgeParserSettingsService {
         if (!config || typeof config !== 'object' || Array.isArray(config)) {
             throw invalidKnowledgeParserConfig('parserConfig')
         }
+        validateKnowledgeTableSettings(config)
         validateSeparators(config.separators)
         if (config.separators !== undefined && !Array.isArray(config.separators)) {
             throw invalidKnowledgeParserConfig('separators')
@@ -35,25 +57,82 @@ export class KnowledgeParserSettingsService {
         if (prompt !== undefined && (typeof prompt !== 'string' || prompt.length > 4000)) {
             throw invalidKnowledgeParserConfig('promptTemplate')
         }
-        if (config.pdfParser) {
-            const pdf = config.pdfParser
-            const provider = this.transformers.get(pdf.transformerType)
-            if (!provider?.meta.supportedFileTypes?.includes('pdf')) {
-                throw invalidKnowledgeParserConfig(pdf.transformerType || 'pdfParser')
+        if (
+            config.parsers !== undefined &&
+            (!config.parsers || typeof config.parsers !== 'object' || Array.isArray(config.parsers))
+        ) {
+            throw invalidKnowledgeParserConfig('parsers')
+        }
+        if (config.pdfParser && !Object.prototype.hasOwnProperty.call(config.parsers ?? {}, 'pdf')) {
+            await this.validateSelection('pdf', config.pdfParser)
+        }
+        for (const [format, selection] of Object.entries(config.parsers ?? {})) {
+            if (!format || knowledgeDocumentFileType({ type: format }) !== format || !/^[a-z0-9]+$/.test(format)) {
+                throw invalidKnowledgeParserConfig(`parsers.${format}`)
             }
-            if (
-                provider.permissions?.some((permission) => permission.type === 'integration') &&
-                !pdf.transformerIntegration
-            ) {
-                throw invalidKnowledgeParserConfig('transformerIntegration')
-            }
-            await provider.validateConfig({ ...pdf.transformer, stage: 'test' })
+            if (selection !== null) await this.validateSelection(format, selection)
         }
         return this.validateSplitter(resolveKnowledgeDocumentParserConfig({ type: 'txt' }, config))
     }
 
+    async validateSelection(type: string, selection: KnowledgeParserSelection, allowLegacy = false) {
+        if (
+            !selection ||
+            typeof selection !== 'object' ||
+            Array.isArray(selection) ||
+            typeof selection.transformerType !== 'string' ||
+            !selection.transformerType.trim() ||
+            (selection.transformer !== undefined &&
+                selection.transformer !== null &&
+                (typeof selection.transformer !== 'object' || Array.isArray(selection.transformer))) ||
+            (selection.transformerIntegration != null && typeof selection.transformerIntegration !== 'string')
+        ) {
+            throw invalidKnowledgeParserConfig(`parsers.${type}`)
+        }
+        const provider = knowledgeParserProvider(this.transformers, type, selection, allowLegacy)
+        const integrationPermissions =
+            provider.permissions?.filter((permission) => permission.type === 'integration') ?? []
+        if (integrationPermissions.length && !selection.transformerIntegration) {
+            throw invalidKnowledgeParserConfig('transformerIntegration')
+        }
+        const permissions = integrationPermissions.length
+            ? await this.commandBus.execute<
+                  PluginPermissionsCommand,
+                  NonNullable<TDocumentTransformerConfig['permissions']>
+              >(
+                  new PluginPermissionsCommand(integrationPermissions, {
+                      knowledgebaseId: '',
+                      integrationId: selection.transformerIntegration
+                  })
+              )
+            : {}
+        const config = { ...selection.transformer, stage: 'test' as const, permissions }
+        validateParserIntegration(provider, config)
+        await provider.validateConfig(config)
+    }
+
+    async validateDocument(document: Partial<IKnowledgeDocument>, requestedParser?: string) {
+        validateTableParserSelection(document)
+        const parser = document.parserConfig
+        if (parser?.transformerType) {
+            await this.validateSelection(
+                knowledgeDocumentFileType(document),
+                {
+                    transformerType: requestedParser || parser.transformerType,
+                    transformerIntegration: parser.transformerIntegration ?? undefined,
+                    transformer: parser.transformer ?? undefined
+                },
+                true
+            )
+        }
+    }
+
     async validateSplitter(config: DocumentParserConfig): Promise<KnowledgeStructureEnum> {
-        const name = config.textSplitterType || 'recursive-character'
+        validateKnowledgeTableSettings(config)
+        validateMaxChunkTokens(config.maxChunkTokens)
+        validateChunkLanguageHint(config.chunkLanguageHint)
+        validateQuestionGeneration(config.questionGeneration)
+        const name = config.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER
         const splitter = this.splitters.get(name)
         if (!splitter) throw invalidKnowledgeParserConfig(name)
         await splitter.validateConfig(config.textSplitter ?? {})
@@ -78,10 +157,10 @@ export class KnowledgeParserSettingsService {
                 metadata: {
                     documentId: 'preview',
                     chunkId: 'preview-source',
-                    ...(input.type === 'md' ? { contentFormat: 'markdown' } : {})
+                    contentFormat: input.type === 'md' ? 'markdown' : 'text'
                 }
             })
         ])
-        return { chunks: buildChunkTree(result.chunks) }
+        return { ...result, chunks: buildChunkTree(result.chunks) }
     }
 }

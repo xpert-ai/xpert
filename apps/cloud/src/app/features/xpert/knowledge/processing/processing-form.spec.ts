@@ -1,3 +1,4 @@
+import { AiModelTypeEnum, BUILTIN_KNOWLEDGE_FILE_TYPES } from '@xpert-ai/contracts'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, of, throwError } from 'rxjs'
@@ -7,6 +8,7 @@ import { createKnowledgeProcessingForm, KnowledgeProcessingFormOptions } from '.
 describe('shared knowledge processing draft', () => {
   function setup(options: KnowledgeProcessingFormOptions = {}) {
     const splitters = new BehaviorSubject([
+      { name: 'auto', structure: KnowledgeStructureEnum.General },
       { name: 'recursive-character', structure: KnowledgeStructureEnum.General },
       { name: 'parent-child', structure: KnowledgeStructureEnum.ParentChild }
     ])
@@ -14,6 +16,7 @@ describe('shared knowledge processing draft', () => {
       getTextSplitterStrategies: jest.fn(() => splitters),
       getDocumentTransformerStrategies: jest.fn(() =>
         of([
+          { meta: { name: 'default', supportedFileTypes: BUILTIN_KNOWLEDGE_FILE_TYPES } },
           { meta: { name: 'pdf-visual', supportedFileTypes: ['pdf'] } },
           { meta: { name: 'text-only', supportedFileTypes: ['txt'] } }
         ])
@@ -29,6 +32,331 @@ describe('shared knowledge processing draft', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it('groups related formats and saves unsupported image types with the builtin parser', async () => {
+    const { form } = setup()
+    await form.loadStrategies()
+    form.parserProviders.update((providers) => [
+      ...providers,
+      {
+        meta: {
+          name: 'baidu-paddleocr-vl',
+          label: 'Baidu OCR',
+          supportedFileTypes: ['jpg', 'jpeg', 'png', 'bmp', 'tif', 'tiff'],
+          configScope: 'integration',
+          configSchema: { type: 'object', properties: {} }
+        },
+        integration: { service: 'baidu-ocr' }
+      }
+    ])
+    const row = form.parserFormats().find((row) => row.key === 'image')
+    expect(row?.extensions).toEqual(expect.arrayContaining(['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+    form.selectParserGroup(row, 'baidu-paddleocr-vl')
+    form.selectParserGroupIntegration(row, 'baidu-connection')
+    for (const format of ['jpg', 'jpeg', 'png', 'bmp', 'tif', 'tiff']) {
+      expect(form.config().parsers[format]).toEqual({
+        transformerType: 'baidu-paddleocr-vl',
+        transformer: {},
+        transformerIntegration: 'baidu-connection'
+      })
+    }
+    for (const format of ['gif', 'webp']) {
+      expect(form.config().parsers[format]).toEqual({ transformerType: 'builtin', transformer: {} })
+    }
+    expect(form.parserGroupFallbacks(row)).toEqual(expect.arrayContaining(['.gif', '.webp']))
+    expect(form.validation()).toBeNull()
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    reopened.parserProviders.set(form.parserProviders())
+    expect(reopened.parserGroupType(row)).toBe('baidu-paddleocr-vl')
+    expect(reopened.parserGroupIntegration(row)).toBe('baidu-connection')
+    expect(reopened.parserGroupMixed(row)).toBe(false)
+  })
+
+  it('limits grouped edits to the imported extensions and preserves existing per-format settings on open', async () => {
+    const { form } = setup({
+      config: {
+        parsers: {
+          jpg: { transformerType: 'first', transformerIntegration: 'original', transformer: { flag: false } },
+          png: { transformerType: 'second', transformerIntegration: 'another' }
+        }
+      }
+    })
+    await form.loadStrategies()
+    const row = form.parserFormats().find((row) => row.key === 'image')
+    const before = form.config().parsers
+    expect(form.parserGroupType(row)).toBe('')
+    expect(form.parserGroupMixed(row)).toBe(true)
+    expect(form.config().parsers).toEqual(before)
+    form.selectParserGroup({ ...row, extensions: ['.png'] }, 'builtin')
+    expect(form.config().parsers.png.transformerType).toBe('builtin')
+    expect(form.config().parsers.jpg).toEqual(before.jpg)
+  })
+
+  it('offers only declared formats and persists independent parser drafts when switching engines', async () => {
+    const { form } = setup({
+      config: {
+        parsers: {
+          txt: { transformerType: 'removed', transformerIntegration: 'old', transformer: { stale: true } }
+        }
+      }
+    })
+    await form.loadStrategies()
+    expect(form.providersFor('txt').map((provider) => provider.meta.name)).toEqual(['default', 'text-only'])
+    expect(form.providersFor('doc')).toEqual([])
+    expect(form.validation()?.section).toBe('parser')
+    form.selectParser('txt', 'text-only')
+    expect(form.config().parsers.txt).toEqual({ transformerType: 'text-only', transformer: {} })
+    expect(form.validation()).toBeNull()
+    form.updateParser('txt', { transformer: { custom: true } })
+    expect(form.config().parsers.txt.transformer).toEqual({ custom: true })
+    form.selectParser('txt', 'builtin')
+    expect(form.config().parsers.txt).toEqual({ transformerType: 'builtin', transformer: {} })
+    expect(form.config().parsers.pdf.transformerType).toBe('builtin')
+  })
+
+  it('displays and saves builtin defaults while leaving unsupported formats unselected', async () => {
+    const { form } = setup({ config: { parsers: { pdf: null, docx: null } } })
+    await form.loadStrategies()
+    expect(form.pdfParserType()).toBe('builtin')
+    expect(form.pdfProvider().meta.name).toBe('pdf-visual')
+    expect(form.parserType('docx')).toBe('builtin')
+    expect(form.config().parsers.docx.transformerType).toBe('builtin')
+    expect(form.parserType('doc')).toBe('')
+    expect(form.config().parsers.doc).toBeUndefined()
+    expect(form.validation()).toBeNull()
+  })
+
+  it('keeps configured engines and options when reopening instead of replacing them with builtin defaults', async () => {
+    const { form } = setup({
+      config: {
+        pdfParser: {
+          transformerType: 'mineru',
+          transformerIntegration: 'mineru-connection',
+          transformer: { isOcr: false }
+        },
+        parsers: {
+          docx: {
+            transformerType: 'word-parser',
+            transformerIntegration: 'word-connection',
+            transformer: { mode: 'layout' }
+          }
+        }
+      }
+    })
+    await form.loadStrategies()
+    expect(form.pdfParserType()).toBe('mineru')
+    expect(form.pdfIntegration()).toBe('mineru-connection')
+    expect(form.pdfParserOptions()).toEqual({ isOcr: false })
+    expect(form.parserType('docx')).toBe('word-parser')
+    expect(form.parserOptions('docx')).toEqual({ mode: 'layout' })
+    expect(form.parserIntegration('docx')).toBe('word-connection')
+    expect(form.validation()?.section).toBe('parser')
+  })
+
+  it('keeps old integration-owned parameters until a different integration is chosen', async () => {
+    const { form, api } = setup({
+      config: {
+        parsers: {
+          pdf: { transformerType: 'mineru', transformerIntegration: 'old', transformer: { isOcr: false } },
+          png: { transformerType: 'mineru', transformerIntegration: 'old', transformer: { modelVersion: 'pipeline' } }
+        }
+      }
+    })
+    api.getDocumentTransformerStrategies.mockReturnValue(
+      of([
+        {
+          meta: {
+            name: 'mineru',
+            supportedFileTypes: ['pdf', 'png'],
+            configScope: 'integration',
+            configSchema: { type: 'object', properties: { isOcr: { type: 'boolean', default: true } } }
+          }
+        }
+      ])
+    )
+    await form.loadStrategies()
+    expect(form.parserSchema('pdf')).toBeUndefined()
+    expect(form.pdfParserOptions()).toEqual({ isOcr: false })
+    expect(form.parserOptions('png')).toEqual({ modelVersion: 'pipeline' })
+    form.selectParserIntegration('pdf', 'old')
+    expect(form.pdfParserOptions()).toEqual({ isOcr: false })
+    form.selectParserIntegration('pdf', 'new')
+    form.selectParserIntegration('png', 'new')
+    expect(form.pdfParserOptions()).toEqual({})
+    expect(form.parserOptions('png')).toEqual({})
+    expect(form.config().parsers.pdf.transformerIntegration).toBe('new')
+    form.selectParser('png', 'mineru')
+    expect(form.parserOptions('png')).toEqual({})
+  })
+
+  it('round-trips false headers and optional table instructions without changing spreadsheet mode', () => {
+    const { form } = setup({
+      config: {
+        spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] },
+        tableMetadataRequirements: 'Explain units'
+      }
+    })
+    expect(form.firstRowAsHeader()).toBe(false)
+    expect(form.config().spreadsheet).toEqual({ firstRowAsHeader: false, includeSheets: ['Orders'] })
+    expect(form.tableMetadataRequirements()).toBe('Explain units')
+    form.tableMetadataRequirementsControl.setValue('')
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    expect(reopened.tableMetadataRequirements()).toBe('')
+    expect(reopened.firstRowAsHeader()).toBe(false)
+    expect(reopened.config().spreadsheet.interpretation).toBeUndefined()
+    form.tableMetadataRequirementsControl.setValue('x'.repeat(4001))
+    expect(form.validation()).toEqual({ section: 'table', key: 'XP.Knowledgebase.TableMetadata.InvalidRequirements' })
+    form.tableMetadataRequirementsControl.setValue('x'.repeat(4000))
+    expect(form.validation()).toBeNull()
+  })
+
+  it('saves and restores all public language hints without serializing implicit separators', () => {
+    const { form } = setup()
+    expect(form.chunkLanguageHint()).toBe('auto')
+    expect(form.config().separators).toBeUndefined()
+    expect(form.config().delimiter).toBeNull()
+    for (const chunkLanguageHint of ['auto', 'Chinese', 'English'] as const) {
+      form.chunkLanguageHint.set(chunkLanguageHint)
+      const config = form.config()
+      expect(config.chunkLanguageHint).toBe(chunkLanguageHint)
+      expect(config.textSplitter).not.toHaveProperty('chunkLanguageHint')
+      const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config }))
+      expect(reopened.chunkLanguageHint()).toBe(chunkLanguageHint)
+      expect(reopened.config().separators).toBeUndefined()
+    }
+    form.updateSeparators([';'])
+    expect(form.config().separators).toEqual([';'])
+    form.chunkLanguageHint.set('Chinese')
+    expect(form.config().separators).toEqual([';'])
+    form.updateSeparators([])
+    expect(form.config().separators).toEqual([])
+  })
+
+  it('defaults to auto, preserves explicit strategies and restores auto after leaving parent-child mode', () => {
+    const { form } = setup()
+    expect(form.config().textSplitterType).toBe('auto')
+    form.toggleParentChild(true)
+    expect(form.config().textSplitterType).toBe('parent-child')
+    form.toggleParentChild(false)
+    expect(form.config().textSplitterType).toBe('auto')
+    for (const textSplitterType of ['recursive-character', 'markdown-recursive', 'structure-aware', 'parent-child']) {
+      const saved = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: { textSplitterType } }))
+      expect(saved.config().textSplitterType).toBe(textSplitterType)
+    }
+    const parentChild = TestBed.runInInjectionContext(() =>
+      createKnowledgeProcessingForm({ structure: KnowledgeStructureEnum.ParentChild })
+    )
+    expect(parentChild.config().textSplitterType).toBe('parent-child')
+  })
+
+  it('round-trips new strategies, exposes their capabilities and keeps the token cap in the common form', () => {
+    const { form } = setup({ config: { maxChunkTokens: 64 } })
+    form.splitterProviders.set(
+      ['auto', 'structure-aware'].map((name) => ({
+        name,
+        label: { en_US: name },
+        structure: KnowledgeStructureEnum.General,
+        chunkingCapabilities: {
+          size: name === 'auto' ? 'strategy-dependent' : 'target',
+          separators: true,
+          tokenBudget: true
+        },
+        configSchema: {
+          type: 'object',
+          properties: {
+            chunkSize: { type: 'number' },
+            maxChunkTokens: { type: 'number' },
+            separators: { type: 'array' }
+          }
+        }
+      }))
+    )
+    for (const strategy of ['auto', 'structure-aware']) {
+      form.selectChunkStrategy(strategy)
+      form.splitterOptions.set({ maxChunkTokens: 1 })
+      expect(form.supportsSeparators()).toBe(true)
+      expect(form.chunkSizeMeaning()).toBe(strategy === 'auto' ? 'strategy-dependent' : 'target')
+      expect(form.splitterSchema()).toBeNull()
+      const config = form.config()
+      expect(config.maxChunkTokens).toBe(64)
+      expect(config.textSplitter.maxChunkTokens).toBeUndefined()
+      const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config }))
+      expect(reopened.config().textSplitterType).toBe(strategy)
+      expect(reopened.config().maxChunkTokens).toBe(64)
+    }
+    form.selectChunkStrategy('recursive-character')
+    expect(form.chunkSizeMeaning()).toBe('maximum')
+  })
+
+  it('omits inactive invalid question fields from the saved config and retains the draft on re-enable', () => {
+    const { form } = setup()
+    form.questionGenerationEnabled.set(true)
+    form.questionCountControl.setValue(0)
+    form.questionRequirementsControl.setValue('x'.repeat(4001))
+    form.questionGenerationEnabled.set(false)
+    expect(form.validation()).toBeNull()
+    expect(form.config().questionGeneration).toEqual({ enabled: false })
+    form.questionGenerationEnabled.set(true)
+    expect(form.questionCount()).toBe(0)
+    expect(form.questionRequirements()).toHaveLength(4001)
+  })
+
+  it('preserves valid saved question settings while generation is disabled', () => {
+    const questionGeneration = {
+      enabled: false,
+      questionCount: 5,
+      customInstructions: 'Use procurement terminology',
+      model: { copilotId: 'd349f858-50c2-4b41-a422-e74e265b4569', model: 'chat', modelType: AiModelTypeEnum.LLM }
+    }
+    const { form } = setup({ config: { questionGeneration } })
+    expect(form.config().questionGeneration).toEqual(questionGeneration)
+  })
+
+  it('keeps question generation opt-in and round-trips its model, count and instructions', () => {
+    const { form } = setup()
+    expect(form.config().questionGeneration.enabled).toBe(false)
+    form.questionGenerationEnabled.set(true)
+    expect(form.validation()?.key).toContain('MissingModel')
+    form.questionModel.set({
+      copilotId: 'd349f858-50c2-4b41-a422-e74e265b4569',
+      model: 'chat',
+      modelType: AiModelTypeEnum.LLM
+    })
+    form.questionCountControl.setValue(5)
+    form.questionRequirementsControl.setValue('Use procurement terminology')
+    expect(form.validation()).toBeNull()
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    expect(reopened.config().questionGeneration).toEqual(form.config().questionGeneration)
+    for (const count of [0, 11, 1.5, null]) {
+      form.questionCountControl.setValue(count)
+      expect(form.validation()?.key).toContain('InvalidSettings')
+    }
+    form.questionCountControl.setValue(3)
+    form.questionRequirementsControl.setValue('x'.repeat(4001))
+    expect(form.validation()?.key).toContain('InvalidSettings')
+    form.questionGenerationEnabled.set(false)
+    expect(form.validation()).toBeNull()
+  })
+
+  it('persists the token cap, supports explicit zero and rejects invalid values in both structures', () => {
+    const { form } = setup({ config: { maxChunkTokens: 256 } })
+    expect(form.maxChunkTokens()).toBe(256)
+    form.maxChunkTokensControl.setValue(128)
+    const reopened = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm({ config: form.config() }))
+    expect(reopened.maxChunkTokens()).toBe(128)
+    for (const parentChild of [false, true]) {
+      form.toggleParentChild(parentChild)
+      for (const invalid of [null, -1, 1.5, 8193, NaN]) {
+        form.maxChunkTokensControl.setValue(invalid)
+        expect(form.validation()?.key).toContain('InvalidTokenLimit')
+      }
+      for (const valid of [0, 1, 128, 8192]) {
+        form.maxChunkTokensControl.setValue(valid)
+        expect(form.config().maxChunkTokens).toBe(valid)
+        expect(form.validation()).toBeNull()
+      }
+    }
+  })
 
   it('defaults images to off even if an old strategy or a vision model exists', () => {
     const { form } = setup({ config: { imageUnderstandingType: 'vlm-default' }, visionModel: { model: 'vision' } })
@@ -93,7 +421,7 @@ describe('shared knowledge processing draft', () => {
   })
 
   it('omits an empty extra schema while retaining plugin-specific fields', () => {
-    const { form } = setup()
+    const { form } = setup({ config: { textSplitterType: 'recursive-character' } })
     form.splitterProviders.set([
       {
         name: 'recursive-character',
@@ -193,7 +521,7 @@ describe('shared knowledge processing draft', () => {
     await form.loadStrategies()
     expect(form.strategiesLoading()).toBe(false)
     expect(form.strategiesLoaded()).toBe(true)
-    expect(form.pdfProviders().map((provider) => provider.meta.name)).toEqual(['pdf-visual'])
+    expect(form.pdfProviders().map((provider) => provider.meta.name)).toEqual(['default', 'pdf-visual'])
     form.selectPdfParser('text-only')
     expect(form.validation()?.section).toBe('parser')
     form.selectPdfParser('pdf-visual')

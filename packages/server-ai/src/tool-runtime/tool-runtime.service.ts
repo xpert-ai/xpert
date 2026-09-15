@@ -3,6 +3,7 @@ import { BaseStore } from '@langchain/langgraph'
 import {
     JSONValue,
     McpCapabilityDescriptor,
+    McpPublicationRuntimeConfiguration,
     XpertToolsetCategoryEnum,
     type XpertWorkspaceDataScope
 } from '@xpert-ai/contracts'
@@ -45,6 +46,8 @@ import { persistedToolsetWhere } from './toolset-scope'
 import { resolveToolRuntimeScope } from './workspace-scope'
 
 export interface ToolRuntimeEnvironment {
+    /** Validated Publication configuration supplied by the host, never tool arguments. */
+    mcpRuntime?: McpPublicationRuntimeConfiguration | null
     projectId?: string | null
     conversationId?: string
     xpertId?: string | null
@@ -200,7 +203,8 @@ export class ToolRuntimeService {
                         executionId: request.executionId,
                         usageCallback: usageRecorder?.usageCallback
                     },
-                    request.workspaceDataScope
+                    request.workspaceDataScope,
+                    request.mcpRuntime?.files
                 )
                 const scopedModelRuntime = this.modelRuntime.createScopedApi(runtimeScope)
                 const hasWorkspaceScope = Boolean(runtimeScope.catalog && runtimeScope.scopeId)
@@ -521,11 +525,11 @@ export class ToolRuntimeService {
             if (request.capabilityType === 'resource') {
                 const resource = definitions.resources?.find((item) => item.key === request.capabilityKey)
                 if (!resource) throw capabilityNotFound(request)
-                return resource.read(context)
+                return resource.read({ ...context, resourceUri: request.uri })
             }
             const template = definitions.resourceTemplates?.find((item) => item.key === request.capabilityKey)
             if (!template) throw capabilityNotFound(request)
-            return template.read(request.arguments ?? {}, context)
+            return template.read(request.arguments ?? {}, { ...context, resourceUri: request.uri })
         })
     }
 

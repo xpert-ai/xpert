@@ -58,6 +58,25 @@ describe('XpertNewKnowledgeComponent', () => {
     return TestBed.runInInjectionContext(() => new XpertNewKnowledgeComponent())
   }
 
+  it('saves automatic tagging settings and restores them when editing', async () => {
+    const config = { enabled: true, maxTags: 5, confidenceThreshold: 0.85, allowWithManualTags: true }
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb-1',
+        name: 'Documents',
+        type: KnowledgebaseTypeEnum.Standard,
+        copilotModel: { id: 'embedding' },
+        automaticTagging: config
+      }
+    })
+    expect(component.automaticTagging()).toEqual(config)
+    await component.save()
+    expect(TestBed.inject(KnowledgebaseService).updateWikiConfiguration).toHaveBeenCalledWith(
+      'kb-1',
+      expect.objectContaining({ settings: expect.objectContaining({ automaticTagging: config }) })
+    )
+  })
+
   afterEach(() => {
     TestBed.inject(OverlayContainer).ngOnDestroy()
     TestBed.resetTestingModule()
@@ -274,6 +293,8 @@ describe('XpertNewKnowledgeComponent', () => {
         copilotModel: { id: 'embedding' }
       }
     })
+    component.processing.firstRowAsHeader.set(false)
+    component.processing.tableMetadataRequirementsControl.setValue('Explain table units')
     component.processing.chunkSize.set(512)
     component.processing.chunkOverlap.set(0)
     component.processing.updateSeparators(['\\n\\n', '！', '？', ',', ''])
@@ -287,6 +308,8 @@ describe('XpertNewKnowledgeComponent', () => {
     const service = component.knowledgebaseService
     const input = jest.mocked(service.updateWikiConfiguration).mock.calls[0][1]
     expect(input.settings.parserConfig).toMatchObject({
+      spreadsheet: { firstRowAsHeader: false },
+      tableMetadataRequirements: 'Explain table units',
       chunkSize: 512,
       chunkOverlap: 0,
       separators: ['\\n\\n', '！', '？', ',', ''],
@@ -298,6 +321,8 @@ describe('XpertNewKnowledgeComponent', () => {
     })
     TestBed.resetTestingModule()
     const editor = createComponent({ knowledgebase: { id: 'kb-1', ...input.settings } })
+    expect(editor.processing.firstRowAsHeader()).toBe(false)
+    expect(editor.processing.tableMetadataRequirements()).toBe('Explain table units')
     expect(editor.processing.chunkOverlap()).toBe(0)
     expect(editor.processing.separators()).toEqual(['\\n\\n', '！', '？', ',', ''])
     expect(editor.processing.chunkStrategy()).toBe('markdown-recursive')

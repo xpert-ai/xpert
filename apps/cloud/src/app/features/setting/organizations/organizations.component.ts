@@ -36,7 +36,7 @@ import {
   ZardSwitchComponent
 } from '@xpert-ai/headless-ui'
 import { OrgAvatarComponent, OrgAvatarEditorComponent } from '@cloud/app/@shared/organization'
-import { TagMaintainComponent } from '@cloud/app/@shared/tag'
+import { TagDirectoryComponent } from '../../../@shared/tag/directory/tag-directory.component'
 import { CommonModule } from '@angular/common'
 import { OrganizationMembersComponent } from './organization-members/organization-members.component'
 import { OrganizationUserGroupsComponent } from './organization-user-groups/organization-user-groups.component'
@@ -63,7 +63,7 @@ type OrganizationDetailsTab = 'general' | 'members' | 'user-groups' | 'controls'
     OrgAvatarEditorComponent,
     OrgAvatarComponent,
     XpTableComponent,
-    TagMaintainComponent,
+    TagDirectoryComponent,
     OrganizationMembersComponent,
     OrganizationUserGroupsComponent,
     SMTPComponent

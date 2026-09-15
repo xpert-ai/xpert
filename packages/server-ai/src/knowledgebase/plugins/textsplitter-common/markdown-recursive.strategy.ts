@@ -5,7 +5,12 @@ import {
 } from '../../../knowledge-document/parser-validation'
 import { IconType, KnowledgeStructureEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
-import { ChunkMetadata, ITextSplitterStrategy, TextSplitterStrategy } from '@xpert-ai/plugin-sdk'
+import {
+    ChunkMetadata,
+    ITextSplitterStrategy,
+    TextSplitterStrategy,
+    type TextSplitterExecutionContext
+} from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
 import { v4 as uuid } from 'uuid'
 import { MarkdownRecursiveTextSplitter, MarkdownRecursiveTextSplitterOptions } from './MarkdownRecursiveTextSplitter'
@@ -19,6 +24,7 @@ export class MarkdownRecursiveStrategy implements ITextSplitterStrategy<
     readonly structure = KnowledgeStructureEnum.General
     readonly meta = {
         name: MarkdownRecursive,
+        supportsLanguageHint: true,
         label: {
             en_US: 'Markdown Recursive',
             zh_Hans: 'Markdown 递归'
@@ -123,12 +129,17 @@ export class MarkdownRecursiveStrategy implements ITextSplitterStrategy<
 
     async splitDocuments(
         documents: Document[],
-        options: Partial<Omit<MarkdownRecursiveTextSplitterOptions, 'headersToSplitOn'> & { headerToSplitOn: number }>
+        options: Partial<Omit<MarkdownRecursiveTextSplitterOptions, 'headersToSplitOn'> & { headerToSplitOn: number }>,
+        context?: TextSplitterExecutionContext
     ) {
-        const splitter = new MarkdownRecursiveTextSplitter({
-            ...options,
-            headersToSplitOn: options.headerToSplitOn && [...Array(options.headerToSplitOn).keys()].map((x) => x + 1)
-        })
+        const splitter = new MarkdownRecursiveTextSplitter(
+            {
+                ...options,
+                headersToSplitOn:
+                    options.headerToSplitOn && [...Array(options.headerToSplitOn).keys()].map((x) => x + 1)
+            },
+            context
+        )
         const chunks = await splitter.transformDocuments(documents)
         return {
             chunks: chunks.map(

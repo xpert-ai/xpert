@@ -82,6 +82,7 @@ import {
     KBDocumentStatusEnum,
     KnowledgebaseTypeEnum,
     KnowledgeStructureEnum,
+    VectorTypeEnum,
     classificateDocumentCategory
 } from '@xpert-ai/contracts'
 import { DataSource, Repository } from 'typeorm'
@@ -156,7 +157,10 @@ function createService(
         { publish: jest.fn() } as unknown as KnowledgeDerivedIndexPublicationService
     )
     Object.assign(service, {
-        parserSettings: { validateSplitter: jest.fn(async () => KnowledgeStructureEnum.General) },
+        parserSettings: {
+            validateDocument: jest.fn(async () => undefined),
+            validateSplitter: jest.fn(async () => KnowledgeStructureEnum.General)
+        },
         textSplitterRegistry: {
             get: jest.fn(() => null)
         }
@@ -165,6 +169,41 @@ function createService(
 }
 
 describe('KnowledgeDocumentService logical folder paths', () => {
+    it('does not require a removed parser when only changing chunk settings', async () => {
+        const parserConfig = {
+            transformerType: 'removed-parser',
+            transformerIntegration: 'old-connection',
+            transformer: { mode: 'layout' },
+            chunkSize: 500
+        }
+        const service = createService([], {
+            repo: {
+                update: jest.fn(async () => ({ affected: 1 })),
+                findOne: jest.fn(async () => ({
+                    id: 'doc',
+                    knowledgebaseId: 'kb',
+                    type: 'pdf',
+                    version: 1,
+                    parserConfig
+                }))
+            },
+            knowledgebaseService: { assertNotRebuilding: jest.fn() }
+        })
+        const validateDocument = jest.fn(async () => {
+            throw new Error('Parser is unavailable')
+        })
+        Object.assign(service, { parserSettings: { validateDocument } })
+        await service.updateWithVersion('doc', { parserConfig: { ...parserConfig, chunkSize: 800 } }, 1)
+        expect(validateDocument).not.toHaveBeenCalled()
+        await expect(
+            service.updateWithVersion(
+                'doc',
+                { parserConfig: { ...parserConfig, transformerType: 'different-parser' } },
+                1
+            )
+        ).rejects.toThrow('Parser is unavailable')
+    })
+
     it('does not let a document edit restore a stale publication epoch', async () => {
         const update = jest.fn(async (_criteria: object, _patch: Partial<IKnowledgeDocument>) => ({ affected: 1 }))
         const service = createService([], {
@@ -207,7 +246,8 @@ describe('KnowledgeDocumentService logical folder paths', () => {
                     addKnowledgeDocument: jest.fn(),
                     updateChunk: jest.fn(),
                     partialUpdateFilterAttributes: jest.fn(),
-                    deleteChunk: jest.fn()
+                    deleteChunk: jest.fn(),
+                    deleteChunks: jest.fn()
                 }
             } as never)
             if (operation === 'create') await service.createChunk('doc', chunk)
@@ -1368,6 +1408,18 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
                 metadata: { chunkId: 'chunk-deleted', chunkIndex: 3 }
             } as IKnowledgeDocumentChunk)
         } as IKnowledgeDocumentChunk
+        const questions = {
+            status: 'ready' as const,
+            generationId: 'generation',
+            sourceHash: 'source',
+            inputHash: 'input',
+            updatedAt: '2026-09-10T00:00:00Z',
+            questions: [{ id: 'q1', question: 'Question?' }],
+            vectorIds: ['question-unchanged']
+        }
+        unchangedExisting.metadata.questionGeneration = questions
+        changedExisting.metadata.questionGeneration = { ...questions, vectorIds: ['question-changed'] }
+        deletedExisting.metadata.questionGeneration = { ...questions, vectorIds: ['question-deleted'] }
         const service = createService([])
         Object.assign(service, {
             chunkService: {
@@ -1406,6 +1458,11 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
             deleted: 1
         })
         expect(vectorStore.deleteChunks).toHaveBeenCalledWith(expect.arrayContaining(['row-b', 'row-deleted']))
+        expect(result.chunks.find((chunk) => chunk.id === 'row-a').metadata.questionGeneration).toEqual(questions)
+        expect(vectorStore.deleteChunks).toHaveBeenCalledWith(
+            expect.arrayContaining(['question-changed', 'question-deleted'])
+        )
+        expect(vectorStore.deleteChunks).not.toHaveBeenCalledWith(expect.arrayContaining(['question-unchanged']))
         expect(result.embeddingChunks.map((chunk) => chunk.pageContent)).toEqual(
             expect.arrayContaining(['new content', 'added content'])
         )
@@ -1497,6 +1554,26 @@ describe('KnowledgeDocumentService incremental ingestion', () => {
                 contentHash: 'chunk-content-hash'
             })
         )
+    })
+
+    it('limits Milvus management searches to canonical source ids in the requested document', async () => {
+        const vectorStore = {
+            vectorStoreType: VectorTypeEnum.MILVUS,
+            getChunks: jest.fn(async () => ({ items: [], total: 0 }))
+        }
+        const service = createService([], {
+            knowledgebaseService: { getActiveVectorStore: jest.fn(async () => vectorStore) }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'doc-1', knowledgebase: {} } as KnowledgeDocument)
+        const findAll = jest.fn(async () => ({ items: [{ id: 'source-id' }] }))
+        Object.assign(service, { chunkService: { findAll } })
+        await service.getChunks('doc-1', { search: 'matched', take: 20 })
+        expect(findAll).toHaveBeenCalledWith({ where: { documentId: 'doc-1' }, select: { id: true } })
+        expect(vectorStore.getChunks).toHaveBeenCalledWith('doc-1', {
+            search: 'matched',
+            take: 20,
+            sourceChunkIds: ['source-id']
+        })
     })
 
     it('returns stored document chunks in chunkIndex order when not searching', async () => {

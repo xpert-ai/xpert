@@ -39,6 +39,7 @@ import { FilePanelMode, FileViewerComponent } from '../viewer/viewer.component'
 import { resolveFilePreviewKind, toFilePreviewSource, type FilePreviewKind } from '../preview/file-preview.utils'
 import { isSpreadsheetEditorFile } from '../spreadsheet-editor/spreadsheet-file.utils'
 import { isDocxEditorFile } from '../docx-editor/docx-file.utils'
+import { isPptxEditorFile } from '../pptx-editor/pptx-file.utils'
 
 type DirtyDialogAction = 'save' | 'discard' | 'cancel'
 export type FileWorkbenchTreeItem = FileTreeNode
@@ -52,6 +53,7 @@ type AsyncValue<T> = T | Promise<T> | Observable<T>
 export type FileWorkbenchFilesLoader = (path?: string) => AsyncValue<TFileDirectory[] | null | undefined>
 export type FileWorkbenchFileLoader = (path: string) => AsyncValue<TFile | null | undefined>
 export type FileWorkbenchFileSaver = (path: string, content: string) => AsyncValue<TFile>
+export type FileWorkbenchBinaryFileSaver = (path: string, file: Blob) => AsyncValue<TFile>
 export type FileWorkbenchFileDeleter = (path: string) => AsyncValue<void>
 export type FileWorkbenchFileUploader = (file: File, path: string) => AsyncValue<unknown>
 export type FileWorkbenchDownloadPayload =
@@ -111,7 +113,8 @@ const DEFAULT_EDITABLE_EXTENSIONS = [
   'css',
   'xml',
   'env',
-  'docx'
+  'docx',
+  'pptx'
 ]
 
 const DEFAULT_MARKDOWN_EXTENSIONS = ['md', 'mdx']
@@ -145,6 +148,7 @@ export class FileWorkbenchComponent {
   readonly filesLoader = input<FileWorkbenchFilesLoader | null>(null)
   readonly fileLoader = input<FileWorkbenchFileLoader | null>(null)
   readonly fileSaver = input<FileWorkbenchFileSaver | null>(null)
+  readonly binaryFileSaver = input<FileWorkbenchBinaryFileSaver | null>(null)
   readonly fileDeleter = input<FileWorkbenchFileDeleter | null>(null)
   readonly fileUploader = input<FileWorkbenchFileUploader | null>(null)
   readonly fileDownloader = input<FileWorkbenchFileDownloader | null>(null)
@@ -179,6 +183,7 @@ export class FileWorkbenchComponent {
   readonly documentBuffer = signal<ArrayBuffer | null>(null)
   readonly docxDirty = signal(false)
   readonly spreadsheetDirty = signal(false)
+  readonly pptxDirty = signal(false)
   readonly panelMode = signal<FilePanelMode>('view')
   readonly selectedTreeItem = signal<{ path: string; isDirectory: boolean } | null>(null)
   readonly treeActivePath = computed(() => this.selectedTreeItem()?.path ?? this.activeFilePath())
@@ -200,6 +205,9 @@ export class FileWorkbenchComponent {
     if (isDocxEditorFile(path)) {
       return !!this.fileUploader() && !!this.documentBuffer()
     }
+    if (isPptxEditorFile(path)) {
+      return !!this.binaryFileSaver() && !!this.documentBuffer()
+    }
     return !!this.fileSaver() && this.fileReadable() && this.isEditableFile(path)
   })
   readonly isMarkdownFile = computed(() => {
@@ -208,6 +216,7 @@ export class FileWorkbenchComponent {
   })
   readonly isSpreadsheetFile = computed(() => isSpreadsheetEditorFile(this.activeFilePath()))
   readonly isDocxFile = computed(() => isDocxEditorFile(this.activeFilePath()))
+  readonly isPptxFile = computed(() => isPptxEditorFile(this.activeFilePath()))
   readonly dirty = computed(
     () =>
       this.isActiveFileEditable() &&
@@ -215,7 +224,9 @@ export class FileWorkbenchComponent {
         ? this.spreadsheetDirty()
         : this.isDocxFile()
           ? this.docxDirty()
-          : this.draftContent() !== (this.activeFile()?.contents ?? ''))
+          : this.isPptxFile()
+            ? this.pptxDirty()
+            : this.draftContent() !== (this.activeFile()?.contents ?? ''))
   )
   readonly canDeleteFiles = computed(() => !!this.fileDeleter())
   readonly canUploadFiles = computed(() => !!this.fileUploader() && !!this.rootId())
@@ -424,12 +435,20 @@ export class FileWorkbenchComponent {
       return
     }
 
+    if (this.isPptxFile()) {
+      this.pptxDirty.set(false)
+      this.fileViewer()?.reloadPptx()
+      this.panelMode.set('view')
+      return
+    }
+
     this.draftContent.set(this.activeFile()?.contents ?? '')
     this.panelMode.set('view')
   }
 
   async saveActiveFile(savedDocument?: File) {
     const fileSaver = this.fileSaver()
+    const binaryFileSaver = this.binaryFileSaver()
     const filePath = this.activeFilePath()
     if (!filePath || !this.isActiveFileEditable() || !this.dirty()) {
       return true
@@ -471,6 +490,24 @@ export class FileWorkbenchComponent {
         const objectUrl = URL.createObjectURL(file)
         this.setActivePreviewResource({ objectUrl, url: objectUrl, buffer: null })
         this.spreadsheetDirty.set(false)
+      } else if (this.isPptxFile()) {
+        const fileViewer = this.fileViewer()
+        if (!binaryFileSaver || !fileViewer) {
+          throw new Error('PPTX editor is not ready')
+        }
+
+        const file = savedDocument ?? (await fileViewer.exportPptxFile())
+        if (!file) {
+          throw new Error('PPTX editor did not return a file')
+        }
+
+        const saved = await resolveAsyncValue(binaryFileSaver(filePath, file))
+        this.activeFile.set(saved)
+        this.documentBuffer.set(await file.arrayBuffer())
+        const objectUrl = URL.createObjectURL(file)
+        this.setActivePreviewResource({ objectUrl, url: objectUrl, buffer: null })
+        fileViewer.markPptxSaved()
+        this.pptxDirty.set(false)
       } else {
         if (!fileSaver) {
           return false
@@ -641,6 +678,7 @@ export class FileWorkbenchComponent {
         this.documentBuffer.set(null)
         this.docxDirty.set(false)
         this.spreadsheetDirty.set(false)
+        this.pptxDirty.set(false)
         this.panelMode.set('view')
 
         const preferredFile = findPreferredFile(this.fileTree(), (path) => this.isEditableFile(path))
@@ -723,6 +761,7 @@ export class FileWorkbenchComponent {
     this.documentBuffer.set(null)
     this.docxDirty.set(false)
     this.spreadsheetDirty.set(false)
+    this.pptxDirty.set(false)
     this.panelMode.set('view')
 
     try {
@@ -902,6 +941,7 @@ export class FileWorkbenchComponent {
       this.documentBuffer.set(previewResource.buffer)
       this.docxDirty.set(false)
       this.spreadsheetDirty.set(false)
+      this.pptxDirty.set(false)
       const activePath = file.filePath || filePath
       const opensInEditor = isSpreadsheetEditorFile(activePath)
         ? !!previewResource.url
@@ -951,6 +991,12 @@ export class FileWorkbenchComponent {
     filePath: string,
     item?: FileTreeNode
   ): Promise<FileWorkbenchDownloadPayload | null | undefined> {
+    if (this.activeFilePath() === filePath && this.isPptxFile() && this.pptxDirty()) {
+      const file = await this.fileViewer()?.exportPptxFile()
+      if (file) {
+        return { kind: 'blob', blob: file, fileName: file.name }
+      }
+    }
     const fileDownloader = this.fileDownloader()
     if (fileDownloader) {
       const payload = await resolveAsyncValue(fileDownloader(filePath, item))
@@ -1006,6 +1052,7 @@ export class FileWorkbenchComponent {
     this.documentBuffer.set(null)
     this.docxDirty.set(false)
     this.spreadsheetDirty.set(false)
+    this.pptxDirty.set(false)
     this.panelMode.set('view')
     this.selectedTreeItem.set(null)
   }
@@ -1055,7 +1102,7 @@ export class FileWorkbenchComponent {
     )
 
     if (directUrl) {
-      if (previewKind === 'document') {
+      if (previewKind === 'document' || previewKind === 'presentation') {
         return this.resolveDocumentUrl(directUrl)
       }
 
@@ -1093,7 +1140,7 @@ export class FileWorkbenchComponent {
     }
 
     if (payload.kind === 'url') {
-      if (previewKind === 'document') {
+      if (previewKind === 'document' || previewKind === 'presentation') {
         return this.resolveDocumentUrl(payload.url)
       }
 
@@ -1108,7 +1155,7 @@ export class FileWorkbenchComponent {
     return {
       objectUrl,
       url: objectUrl,
-      buffer: previewKind === 'document' ? await payload.blob.arrayBuffer() : null
+      buffer: previewKind === 'document' || previewKind === 'presentation' ? await payload.blob.arrayBuffer() : null
     }
   }
 
@@ -1308,6 +1355,7 @@ function requiresPreviewUrl(previewKind: FilePreviewKind, hasContents: boolean) 
 
   return (
     previewKind === 'document' ||
+    previewKind === 'presentation' ||
     previewKind === 'image' ||
     previewKind === 'pdf' ||
     previewKind === 'audio' ||

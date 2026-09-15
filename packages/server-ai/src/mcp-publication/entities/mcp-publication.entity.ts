@@ -2,6 +2,7 @@ import type {
     IMcpPublication,
     McpAuthMethod,
     McpPublicationReviewStatus,
+    McpPublicationRuntimeConfiguration,
     McpPublicationStatus
 } from '@xpert-ai/contracts'
 import { MCP_PROTOCOL_VERSION } from '@xpert-ai/contracts'
@@ -27,6 +28,9 @@ export class McpPublication extends TenantOrganizationBaseEntity implements IMcp
 
     @Column({ type: 'text', nullable: true })
     instructions?: string | null
+
+    @Column({ type: 'json', nullable: true })
+    runtime?: McpPublicationRuntimeConfiguration | null
 
     @Column({ type: 'varchar', length: 20, default: MCP_PROTOCOL_VERSION })
     protocolVersion: typeof MCP_PROTOCOL_VERSION

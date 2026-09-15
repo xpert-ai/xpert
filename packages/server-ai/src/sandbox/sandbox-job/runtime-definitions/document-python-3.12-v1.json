@@ -1,0 +1,41 @@
+{
+    "name": "document/python-3.12/v1",
+    "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
+    "contractVersion": "1",
+    "sandboxRuntimeVersion": "1.2.1",
+    "timeoutMs": 300000,
+    "hardDeadlineMs": 360000,
+    "resources": {
+        "cpu": 2,
+        "memoryMb": 4096,
+        "shmSizeMb": 256,
+        "tempDiskMb": 4096
+    },
+    "networkPolicy": {
+        "mode": "none"
+    },
+    "security": {
+        "runAsNonRoot": true,
+        "readOnlyRootFilesystem": true,
+        "noNewPrivileges": true,
+        "dropCapabilities": "all"
+    },
+    "requirements": {
+        "isolation": "hardened",
+        "ephemeral": true,
+        "resourceLimits": true,
+        "networkPolicy": true,
+        "readOnlyRootFilesystem": true
+    },
+    "expectedManifest": {
+        "sandboxRuntimeVersion": "1.2.1",
+        "imageFamily": "document-python",
+        "profileName": "document/python-3.12/v1",
+        "contractVersion": "1",
+        "nodeVersion": "20.20.2",
+        "pythonVersion": "3.12.10",
+        "markitdownVersion": "0.1.7",
+        "requirementsSha256": "afe6c48f4d4fdacdc99a4f3500013635f0043a129934bf8ef261f82bb8896960",
+        "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec"
+    }
+}

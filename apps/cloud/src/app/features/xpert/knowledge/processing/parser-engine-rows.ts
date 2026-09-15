@@ -1,4 +1,12 @@
-export const RESERVED_PARSER_ROWS = [
+export interface ParserEngineRow {
+  key: string
+  labelKey: string
+  extensions: string[]
+  icon: string
+  hasHeaderToggle?: boolean
+}
+
+export const RESERVED_PARSER_ROWS: ParserEngineRow[] = [
   {
     key: 'word',
     labelKey: 'Parser.FileTypes.Word',
@@ -39,7 +47,7 @@ export const RESERVED_PARSER_ROWS = [
   {
     key: 'markdown',
     labelKey: 'Parser.FileTypes.Markdown',
-    extensions: ['.md', '.markdown'],
+    extensions: ['.md', '.markdown', '.mdx'],
     icon: 'ri-markdown-line'
   },
   {
@@ -57,7 +65,21 @@ export const RESERVED_PARSER_ROWS = [
   {
     key: 'image',
     labelKey: 'Parser.FileTypes.Image',
-    extensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'],
+    extensions: [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.bmp',
+      '.tif',
+      '.tiff',
+      '.webp',
+      '.apng',
+      '.avif',
+      '.heic',
+      '.heif',
+      '.svg'
+    ],
     icon: 'ri-image-line'
   },
   {

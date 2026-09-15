@@ -8,13 +8,14 @@ import { XpertDatabasesQuery } from '../get-databases.query'
 import { XpertDatabasesQueryHandler } from './xpert-databases.handler'
 
 describe('XpertDatabasesQueryHandler', () => {
-    it('returns only data sources matching the requested protocol', async () => {
+    it('returns visible SQL sources regardless of their creator', async () => {
         const dataSourceService = Object.create(DataSourceService.prototype) as DataSourceService
-        dataSourceService.findMyAll = jest.fn().mockResolvedValue({
+        dataSourceService.findAll = jest.fn().mockResolvedValue({
             items: [
                 Object.assign(new DataSource(), {
                     id: 'sql-source',
                     name: 'SQL source',
+                    createdById: 'another-user',
                     type: { type: 'postgres', protocol: 'sql' }
                 }),
                 Object.assign(new DataSource(), {
@@ -25,6 +26,7 @@ describe('XpertDatabasesQueryHandler', () => {
             ],
             total: 2
         })
+        dataSourceService.findMyAll = jest.fn().mockResolvedValue({ items: [], total: 0 })
         const handler = new XpertDatabasesQueryHandler(dataSourceService)
 
         await expect(handler.execute(new XpertDatabasesQuery({ protocol: 'sql' }))).resolves.toEqual([
@@ -35,5 +37,7 @@ describe('XpertDatabasesQueryHandler', () => {
                 protocol: 'sql'
             }
         ])
+        expect(dataSourceService.findAll).toHaveBeenCalledWith({ relations: ['type'] })
+        expect(dataSourceService.findMyAll).not.toHaveBeenCalled()
     })
 })

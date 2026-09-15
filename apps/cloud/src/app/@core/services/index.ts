@@ -76,3 +76,5 @@ export * from './skill-package.service'
 export * from './view-extension-api.service'
 export * from './plugin-application.service'
 export * from './workbench-presentation.service'
+
+export * from './knowledge-tags.service'

@@ -27,6 +27,10 @@ type SandboxCopyTreeRuntime = {
 @CommandHandler(SandboxCopyTreeCommand)
 export class SandboxCopyTreeHandler implements ICommandHandler<SandboxCopyTreeCommand> {
     private readonly logger = new Logger(SandboxCopyTreeHandler.name)
+    // All Agents sharing a runtime also share its skill directories and version
+    // cache. Serialize copies there so overwrite cannot remove another copy's
+    // files, and independent skill updates cannot lose each other's cache keys.
+    private readonly pendingCopies = new Map<string, Promise<unknown>>()
 
     constructor(
         @Inject(CACHE_MANAGER)
@@ -34,6 +38,19 @@ export class SandboxCopyTreeHandler implements ICommandHandler<SandboxCopyTreeCo
     ) {}
 
     async execute(command: SandboxCopyTreeCommand) {
+        const backend = this.getSandboxBackend(command.sandbox)
+        const key = this.getVersionCacheKey(backend.id, command.sandbox)
+        const previous = this.pendingCopies.get(key) ?? Promise.resolve()
+        const pending = previous.catch(() => undefined).then(() => this.copyTree(command))
+        this.pendingCopies.set(key, pending)
+        try {
+            return await pending
+        } finally {
+            if (this.pendingCopies.get(key) === pending) this.pendingCopies.delete(key)
+        }
+    }
+
+    private async copyTree(command: SandboxCopyTreeCommand) {
         const { localPath, containerPath, version, overwrite = true } = command.copyTree
         const totalStart = Date.now()
         const backend = this.getSandboxBackend(command.sandbox)

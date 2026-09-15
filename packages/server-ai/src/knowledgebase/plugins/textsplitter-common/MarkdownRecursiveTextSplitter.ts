@@ -1,8 +1,8 @@
 import { Document, BaseDocumentTransformer } from '@langchain/core/documents'
-import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
 import type { DocumentMarkdownSourceMapEntry, TDocumentAsset } from '@xpert-ai/contracts'
-import type { ChunkMetadata } from '@xpert-ai/plugin-sdk'
+import type { ChunkMetadata, TextSplitterExecutionContext } from '@xpert-ai/plugin-sdk'
 import { v4 as uuid } from 'uuid'
+import { createLanguageTextSplitter } from './language-text-splitter'
 
 export interface MarkdownHeader {
     level: number
@@ -15,6 +15,7 @@ export interface MarkdownRecursiveTextSplitterOptions {
     headersToSplitOn?: number[]
     stripHeader?: boolean // Whether to remove the header line in the chunk
     addHeadersToChunk?: boolean // Whether to add the header to the chunk content
+    separators?: string | string[]
 }
 
 /**
@@ -28,7 +29,10 @@ export class MarkdownRecursiveTextSplitter extends BaseDocumentTransformer {
     private stripHeader: boolean
     private addHeadersToChunk: boolean
 
-    constructor(options: MarkdownRecursiveTextSplitterOptions = {}) {
+    constructor(
+        private readonly options: MarkdownRecursiveTextSplitterOptions = {},
+        private readonly context?: TextSplitterExecutionContext
+    ) {
         super()
         this.chunkSize = options.chunkSize ?? 1000
         this.chunkOverlap = options.chunkOverlap ?? 200
@@ -50,10 +54,15 @@ export class MarkdownRecursiveTextSplitter extends BaseDocumentTransformer {
             const { markdownSourceMap, ...sourceMetadata } = doc.metadata as Partial<ChunkMetadata>
             let sectionSearchOffset = 0
 
-            const splitter = new RecursiveCharacterTextSplitter({
-                chunkSize: this.chunkSize,
-                chunkOverlap: this.chunkOverlap
-            })
+            const splitter = createLanguageTextSplitter(
+                {
+                    chunkSize: this.chunkSize,
+                    chunkOverlap: this.chunkOverlap,
+                    separators: this.options.separators
+                },
+                doc,
+                this.context
+            )
 
             for (const section of sections) {
                 const sectionOffset = locateContent(doc.pageContent, section.content, sectionSearchOffset)

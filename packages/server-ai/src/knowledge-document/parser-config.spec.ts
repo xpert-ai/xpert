@@ -1,7 +1,115 @@
-import { KBDocumentCategoryEnum, KnowledgebaseParserConfig } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, KBDocumentCategoryEnum, KnowledgebaseParserConfig } from '@xpert-ai/contracts'
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 describe('resolveKnowledgeDocumentParserConfig precedence', () => {
+    it('does not apply options from the old connection after explicitly selecting a different integration', () => {
+        const inherited: KnowledgebaseParserConfig = {
+            chunkSize: 512,
+            chunkOverlap: 80,
+            delimiter: null,
+            parsers: {
+                pdf: {
+                    transformerType: 'mineru',
+                    transformerIntegration: 'old',
+                    transformer: { modelVersion: 'pipeline', isOcr: false }
+                }
+            }
+        }
+        const document = {
+            type: 'pdf',
+            parserConfig: { transformerType: 'mineru', transformerIntegration: 'new', transformer: {} }
+        }
+        expect(resolveKnowledgeDocumentParserConfig(document, inherited).transformer).toEqual({})
+        document.parserConfig.transformerIntegration = 'old'
+        expect(resolveKnowledgeDocumentParserConfig(document, inherited).transformer).toEqual({
+            modelVersion: 'pipeline',
+            isOcr: false
+        })
+    })
+
+    it('round-trips the public language hint without moving it into splitter options', () => {
+        const document = {
+            type: 'txt',
+            parserConfig: { textSplitterType: 'auto', chunkLanguageHint: 'Chinese' as const }
+        }
+        const config = resolveKnowledgeDocumentParserConfig(document)
+        expect(config).toHaveProperty('chunkLanguageHint', 'Chinese')
+        expect(config.textSplitter).not.toHaveProperty('chunkLanguageHint')
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'txt', parserConfig: config })).toEqual(config)
+    })
+    it('defaults text documents to auto while keeping explicit choices and spreadsheet handling', () => {
+        for (const type of ['txt', 'md', 'pdf', 'docx']) {
+            expect(resolveKnowledgeDocumentParserConfig({ type }).textSplitterType).toBe('auto')
+        }
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet })
+                .textSplitterType
+        ).toBeUndefined()
+        const explicit = resolveKnowledgeDocumentParserConfig({
+            type: 'txt',
+            parserConfig: { textSplitterType: 'recursive-character' }
+        })
+        expect(explicit.textSplitterType).toBe('recursive-character')
+        expect(explicit.textSplitter).toMatchObject({ chunkSize: 1000, chunkOverlap: 200 })
+        expect(
+            resolveKnowledgeDocumentParserConfig(
+                { type: 'txt' },
+                { chunkSize: 512, chunkOverlap: 80, delimiter: null, textSplitterType: 'markdown-recursive' }
+            ).textSplitterType
+        ).toBe('markdown-recursive')
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'txt', parserConfig: { textSplitterType: 'parent-child' } })
+                .textSplitterType
+        ).toBe('parent-child')
+    })
+    it('inherits question settings while preserving an explicit per-document opt-out', () => {
+        const questionGeneration = {
+            enabled: true,
+            questionCount: 3,
+            customInstructions: 'For new employees',
+            model: { copilotId: 'd349f858-50c2-4b41-a422-e74e265b4569', model: 'chat', modelType: AiModelTypeEnum.LLM }
+        }
+        const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, questionGeneration }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'pdf' }, defaults).questionGeneration).toEqual(
+            questionGeneration
+        )
+        const config = resolveKnowledgeDocumentParserConfig(
+            { type: 'txt', parserConfig: { questionGeneration: { enabled: false } } },
+            defaults
+        )
+        expect(config.questionGeneration).toEqual({ enabled: false })
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }, defaults)
+                .questionGeneration
+        ).toEqual(questionGeneration)
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'txt', parserConfig: config }, defaults).questionGeneration
+        ).toEqual({ enabled: false })
+    })
+    it('inherits token limits while preserving document overrides, including zero, across repeated normalization', () => {
+        const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, maxChunkTokens: 256 }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'txt' }, defaults).maxChunkTokens).toBe(256)
+        for (const maxChunkTokens of [0, 128]) {
+            const config = resolveKnowledgeDocumentParserConfig(
+                { type: 'pdf', parserConfig: { maxChunkTokens } },
+                defaults
+            )
+            expect(config.maxChunkTokens).toBe(maxChunkTokens)
+            expect(
+                resolveKnowledgeDocumentParserConfig({ type: 'pdf', parserConfig: config }, defaults).maxChunkTokens
+            ).toBe(maxChunkTokens)
+        }
+        const sheet = resolveKnowledgeDocumentParserConfig(
+            {
+                type: 'xlsx',
+                category: KBDocumentCategoryEnum.Sheet,
+                parserConfig: { maxChunkTokens: 128, spreadsheet: { maxChunkTokens: 5000 } }
+            },
+            defaults
+        )
+        expect(sheet.maxChunkTokens).toBeUndefined()
+        expect(sheet.spreadsheet.maxChunkTokens).toBe(5000)
+    })
     it('does not overwrite explicit character limits with built-in nested defaults', () => {
         const config = resolveKnowledgeDocumentParserConfig({
             type: 'txt',
@@ -26,6 +134,43 @@ describe('resolveKnowledgeDocumentParserConfig precedence', () => {
 })
 
 describe('resolveKnowledgeDocumentParserConfig for spreadsheets', () => {
+    it('inherits table requirements and Excel header defaults without changing the legacy interpretation', () => {
+        const defaults = {
+            chunkSize: 512,
+            chunkOverlap: 0,
+            delimiter: null,
+            spreadsheet: { firstRowAsHeader: false },
+            tableMetadataRequirements: 'Describe units'
+        }
+        const excel = resolveKnowledgeDocumentParserConfig(
+            { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet },
+            defaults
+        )
+        expect(excel).toEqual({ spreadsheet: { firstRowAsHeader: false }, tableMetadataRequirements: 'Describe units' })
+        expect(
+            resolveKnowledgeDocumentParserConfig(
+                {
+                    type: 'xlsx',
+                    category: KBDocumentCategoryEnum.Sheet,
+                    parserConfig: { spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: '' }
+                },
+                defaults
+            )
+        ).toEqual({ spreadsheet: { firstRowAsHeader: true }, tableMetadataRequirements: '' })
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'csv', category: KBDocumentCategoryEnum.Sheet }, defaults)
+        ).toEqual({ tableMetadataRequirements: 'Describe units' })
+        expect(
+            resolveKnowledgeDocumentParserConfig(
+                {
+                    type: 'xlsx',
+                    category: KBDocumentCategoryEnum.Sheet,
+                    parserConfig: { spreadsheet: { interpretation: 'form_document' } }
+                },
+                defaults
+            )
+        ).toEqual({ spreadsheet: { interpretation: 'form_document' } })
+    })
     it('retains platform spreadsheet interpretation settings', () => {
         expect(
             resolveKnowledgeDocumentParserConfig({
@@ -158,5 +303,66 @@ describe('new document knowledgebase defaults', () => {
         expect(
             resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }, defaults)
         ).toEqual({})
+    })
+})
+
+describe('per-format parser routing', () => {
+    it.each(['gif', 'webp'])('routes grouped %s defaults to builtin instead of the selected image plugin', (type) => {
+        const defaults: KnowledgebaseParserConfig = {
+            chunkSize: 1000,
+            chunkOverlap: 200,
+            delimiter: null,
+            parsers: {
+                png: { transformerType: 'baidu-paddleocr-vl', transformerIntegration: 'baidu' },
+                gif: { transformerType: 'builtin', transformer: {} },
+                webp: { transformerType: 'builtin', transformer: {} }
+            }
+        }
+        const config = resolveKnowledgeDocumentParserConfig({ type: `image/${type}` }, defaults)
+        expect(config.transformerType).toBe('default')
+        expect(config.transformerIntegration).toBeUndefined()
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'image/png' }, defaults)).toMatchObject({
+            transformerType: 'baidu-paddleocr-vl',
+            transformerIntegration: 'baidu'
+        })
+    })
+
+    it('inherits image parsers and clears the previous integration on a document override', () => {
+        const defaults = {
+            chunkSize: 1000,
+            chunkOverlap: 200,
+            delimiter: null,
+            parsers: {
+                png: { transformerType: 'cloud-ocr', transformerIntegration: 'cloud', transformer: { quality: 'high' } }
+            }
+        }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'image/png' }, defaults)).toMatchObject({
+            transformerType: 'cloud-ocr',
+            transformerIntegration: 'cloud'
+        })
+        const config = resolveKnowledgeDocumentParserConfig(
+            { type: 'png', parserConfig: { transformerType: 'default' } },
+            defaults
+        )
+        expect(config.transformerType).toBe('default')
+        expect(config.transformerIntegration).toBeUndefined()
+        expect(config.transformer).toBeUndefined()
+    })
+
+    it('uses builtin PDF defaults and retains native table behavior for an explicit builtin selection', () => {
+        const defaults = {
+            chunkSize: 1000,
+            chunkOverlap: 200,
+            delimiter: null,
+            parsers: { pdf: { transformerType: 'builtin' }, xlsx: { transformerType: 'builtin' } }
+        }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'pdf' }, defaults)).toMatchObject({
+            transformerType: 'pdf-visual',
+            transformer: { renderPageImages: true }
+        })
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }, defaults)
+                .transformerType
+        ).toBe('default')
     })
 })

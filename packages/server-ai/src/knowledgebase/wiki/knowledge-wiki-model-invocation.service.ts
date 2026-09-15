@@ -40,7 +40,7 @@ import { isUsableKnowledgeWikiModel, resolveKnowledgeWikiModel } from './knowled
 import {
     buildKnowledgeWikiMapMessages,
     buildKnowledgeWikiReduceMessages,
-    knowledgeWikiMapOutputSchema,
+    createKnowledgeWikiMapOutputSchema,
     parseKnowledgeWikiMapOutput,
     parseKnowledgeWikiReduceOutput,
     parseKnowledgeWikiReduceText,
@@ -68,7 +68,7 @@ type WikiModelResponse<T> =
     | {
           format: 'json'
           schema:
-              | typeof knowledgeWikiMapOutputSchema
+              | ReturnType<typeof createKnowledgeWikiMapOutputSchema>
               | ReturnType<typeof createKnowledgeWikiDedupOutputSchema>
               | typeof wikiClassificationSchema
               | ReturnType<typeof createWikiTaxonomyResponseSchema>
@@ -147,7 +147,7 @@ export class KnowledgeWikiModelInvocationService {
                 chunks,
                 config: normalizeKnowledgebaseWikiConfig(knowledgebase.wikiConfig)
             }),
-            response: { format: 'json', schema: knowledgeWikiMapOutputSchema },
+            response: { format: 'json', schema: createKnowledgeWikiMapOutputSchema(chunks) },
             parse: parseKnowledgeWikiMapOutput
         })
         // Validate after persisting the known response; citation errors must not imply an uncertain provider charge.

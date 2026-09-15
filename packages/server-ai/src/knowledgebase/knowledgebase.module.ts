@@ -1,7 +1,11 @@
+import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
+import { KnowledgeDocumentTag } from './tags/document-tag.entity'
+import { KnowledgeTagService } from './tags/knowledge-tag.service'
+import { KnowledgeTagController, KnowledgeTagUsageController } from './tags/knowledge-tag.controller'
 import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
 import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
 import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
-import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
+import { DatabaseModule, IntegrationModule, Tag, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
@@ -51,12 +55,16 @@ import {
 } from './wiki/entities'
 import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-scope.service'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
+import { KnowledgeTableContextService } from './retrieval/table-context.service'
 import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.processor'
 
 @Module({
     imports: [
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
         TypeOrmModule.forFeature([
+            Tag,
+            KnowledgebaseTag,
+            KnowledgeDocumentTag,
             Knowledgebase,
             KnowledgebaseTask,
             KnowledgeRetrievalLog,
@@ -79,10 +87,12 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
             name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
         })
     ],
-    controllers: [KnowledgebaseController, KnowledgeFAQController],
+    controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController, KnowledgeTagUsageController],
     providers: [
+        KnowledgeTagService,
         KnowledgePipelineCallbackProcessor,
         KnowledgeParserSettingsService,
+        KnowledgeTableContextService,
         KnowledgebaseService,
         KnowledgebaseRuntimeService,
         KnowledgebaseDocumentsRuntimeService,
@@ -116,6 +126,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
         ...Validators
     ],
     exports: [
+        KnowledgeTagService,
         KnowledgeParserSettingsService,
         KnowledgebaseService,
         KnowledgebaseTaskService,

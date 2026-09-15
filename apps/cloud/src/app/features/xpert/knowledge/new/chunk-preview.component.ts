@@ -35,13 +35,57 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
         <label z-form-label for="chunk-preview-text">{{ prefix + '.PreviewText' | translate }}</label>
         <textarea z-input id="chunk-preview-text" rows="6" maxlength="100000" formControlName="text"></textarea>
       </z-form-field>
-      <button z-button type="submit" class="self-start" [disabled]="loading() || form.invalid">
+      <button z-button type="submit" class="self-start" [disabled]="loading() || form.invalid || configInvalid()">
         {{ (loading() ? prefix + '.PreviewLoading' : prefix + '.PreviewRun') | translate }}
       </button>
       @if (error()) {
         <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
       }
       @if (result(); as result) {
+        @for (language of result.languages ?? []; track $index) {
+          <div class="space-y-1 text-sm text-text-secondary" data-chunk-language>
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.Language.Hint' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Language.Values.' + language.languageHint | translate }}
+            </p>
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.Language.Detected' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Language.Values.' + (language.detectedLanguage ?? 'Unknown') | translate }}
+            </p>
+          </div>
+        }
+        @for (decision of result.decisions ?? []; track $index) {
+          <div
+            class="space-y-1 border-l-2 border-divider-subtle pl-3 text-sm text-text-secondary"
+            data-chunking-decision
+          >
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.RequestedStrategy' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Strategies.' + decision.requestedStrategy | translate }}
+            </p>
+            <p>
+              {{ 'XP.Knowledgebase.Chunking.AppliedStrategy' | translate }}:
+              {{ 'XP.Knowledgebase.Chunking.Strategies.' + decision.resolvedStrategy | translate }}
+            </p>
+            <p>{{ 'XP.Knowledgebase.Chunking.Reasons.' + decision.reason | translate }}</p>
+            <p class="text-xs text-text-tertiary">
+              {{
+                'XP.Knowledgebase.Chunking.StructureCounts'
+                  | translate
+                    : {
+                        tables: decision.blockCounts.table ?? 0,
+                        lists: decision.blockCounts.list ?? 0,
+                        code: decision.blockCounts.code ?? 0
+                      }
+              }}
+            </p>
+            @for (warning of decision.warnings; track warning) {
+              <p class="text-xs text-text-tertiary">
+                {{ 'XP.Knowledgebase.Chunking.Warnings.' + warning | translate }}
+              </p>
+            }
+          </div>
+        }
         <p class="text-sm text-text-secondary">
           {{ prefix + '.PreviewCount' | translate: { count: result.chunks.length } }}
         </p>
@@ -49,12 +93,32 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSelectImp
           @for (chunk of result.chunks; track chunk.metadata.chunkId; let index = $index) {
             <div class="border-b border-divider-subtle py-3">
               <div class="text-sm font-medium">{{ index + 1 }} · {{ chunk.pageContent.length }}</div>
+              @if (chunk.metadata.chunking?.headingPath?.length) {
+                <p class="text-xs text-text-tertiary">
+                  {{ chunk.metadata.chunking.headingPath.join(' / ') }}
+                </p>
+              }
+              @if (chunk.metadata.chunking?.continued) {
+                <span class="text-xs text-text-tertiary">{{
+                  'XP.Knowledgebase.Chunking.Continuation' | translate
+                }}</span>
+              }
+              @if (chunk.metadata.tokens !== undefined) {
+                <div class="text-xs text-text-tertiary">
+                  {{ prefix + '.PreviewTokens' | translate: { count: chunk.metadata.tokens } }}
+                </div>
+              }
               <pre class="whitespace-pre-wrap break-words text-sm text-text-secondary">{{ chunk.pageContent }}</pre>
-              @for (child of chunk.children ?? []; track child.metadata.chunkId; let childIndex = $index) {
+              @for (child of chunk.metadata.children ?? []; track child.metadata.chunkId; let childIndex = $index) {
                 <div class="ml-4 border-l border-divider-subtle pl-3 pt-2">
                   <span class="text-xs text-text-tertiary"
                     >{{ index + 1 }}.{{ childIndex + 1 }} · {{ child.pageContent.length }}</span
                   >
+                  @if (child.metadata.tokens !== undefined) {
+                    <span class="ml-2 text-xs text-text-tertiary">{{
+                      prefix + '.PreviewTokens' | translate: { count: child.metadata.tokens }
+                    }}</span>
+                  }
                   <pre class="whitespace-pre-wrap break-words text-sm text-text-secondary">{{ child.pageContent }}</pre>
                 </div>
               }
@@ -69,6 +133,7 @@ export class KnowledgeChunkPreviewComponent {
   readonly prefix = 'XP.Knowledgebase.WorkspaceConfiguration.Implemented'
   readonly workspaceId = input.required<string>()
   readonly config = input.required<KnowledgebaseParserConfig>()
+  readonly configInvalid = input(false)
   readonly service = inject(KnowledgebaseService)
   readonly form = inject(NonNullableFormBuilder).group({
     text: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100000)]],
@@ -82,6 +147,7 @@ export class KnowledgeChunkPreviewComponent {
   constructor() {
     effect(() => {
       this.config()
+      this.configInvalid()
       this.revision++
       this.result.set(null)
     })
@@ -92,7 +158,7 @@ export class KnowledgeChunkPreviewComponent {
   }
 
   async preview() {
-    if (this.loading() || this.form.invalid) return
+    if (this.loading() || this.form.invalid || this.configInvalid()) return
     const revision = this.revision
     this.loading.set(true)
     this.error.set('')

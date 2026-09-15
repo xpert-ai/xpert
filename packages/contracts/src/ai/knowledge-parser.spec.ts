@@ -1,6 +1,40 @@
+import { isNativeKnowledgeTableDocument } from './knowledge-table.model'
+import { KBDocumentCategoryEnum } from './knowledge-doc.model'
 import { decodeKnowledgeSeparators, knowledgebaseDocumentParserDefaults } from './knowledge-parser.model'
 
 describe('knowledge parser shared configuration', () => {
+  it('preserves explicit table header opt-out and empty default generation guidance', () => {
+    const config = knowledgebaseDocumentParserDefaults({
+      chunkSize: 512,
+      chunkOverlap: 0,
+      delimiter: null,
+      spreadsheet: { firstRowAsHeader: false },
+      tableMetadataRequirements: ''
+    })
+    expect(config.spreadsheet).toEqual({ firstRowAsHeader: false })
+    expect(config.tableMetadataRequirements).toBe('')
+    expect(knowledgebaseDocumentParserDefaults()).not.toHaveProperty('spreadsheet')
+    expect(knowledgebaseDocumentParserDefaults()).not.toHaveProperty('tableMetadataRequirements')
+  })
+  it('copies public language hints while leaving old configurations unset', () => {
+    const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null }
+    expect(knowledgebaseDocumentParserDefaults(defaults).chunkLanguageHint).toBeUndefined()
+    for (const chunkLanguageHint of ['auto', 'Chinese', 'English'] as const) {
+      const config = knowledgebaseDocumentParserDefaults({ ...defaults, chunkLanguageHint })
+      expect(config.chunkLanguageHint).toBe(chunkLanguageHint)
+      expect(config.textSplitter).not.toHaveProperty('chunkLanguageHint')
+    }
+  })
+  it('copies token budgets including an explicit opt-out without creating an override for old settings', () => {
+    const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null }
+    expect(knowledgebaseDocumentParserDefaults(defaults)).not.toHaveProperty('maxChunkTokens')
+    for (const maxChunkTokens of [0, 256]) {
+      expect(knowledgebaseDocumentParserDefaults({ ...defaults, maxChunkTokens })).toHaveProperty(
+        'maxChunkTokens',
+        maxChunkTokens
+      )
+    }
+  })
   it('decodes all ordered separators while preserving literal commas and empty lists', () => {
     expect(decodeKnowledgeSeparators(['\\n\\n', '!', '?', ',', '\\t'])).toEqual(['\n\n', '!', '?', ',', '\t'])
     expect(decodeKnowledgeSeparators([])).toEqual([])
@@ -28,4 +62,50 @@ describe('knowledge parser shared configuration', () => {
     })
     expect(knowledgebaseDocumentParserDefaults(defaults, 'txt')).not.toHaveProperty('transformerType')
   })
+})
+
+describe('per-format knowledgebase parsers', () => {
+  it('maps MIME types to the matching format and preserves other defaults', () => {
+    const config = {
+      chunkSize: 800,
+      chunkOverlap: 80,
+      delimiter: null,
+      parsers: {
+        docx: {
+          transformerType: 'office',
+          transformerIntegration: 'office-connection',
+          transformer: { mode: 'layout' }
+        }
+      }
+    }
+    expect(
+      knowledgebaseDocumentParserDefaults(
+        config,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
+    ).toMatchObject({
+      chunkSize: 800,
+      transformerType: 'office',
+      transformerIntegration: 'office-connection'
+    })
+    expect(knowledgebaseDocumentParserDefaults(config, 'pdf')).not.toHaveProperty('transformerType')
+  })
+
+  it('lets the format map override or explicitly clear the legacy PDF selection', () => {
+    const config = { chunkSize: 800, chunkOverlap: 80, delimiter: null, pdfParser: { transformerType: 'legacy-pdf' } }
+    expect(
+      knowledgebaseDocumentParserDefaults({ ...config, parsers: { pdf: { transformerType: 'new-pdf' } } }, '.PDF')
+        .transformerType
+    ).toBe('new-pdf')
+    expect(
+      knowledgebaseDocumentParserDefaults({ ...config, parsers: { pdf: null } }, 'pdf').transformerType
+    ).toBeUndefined()
+    expect(knowledgebaseDocumentParserDefaults(config, 'pdf').transformerType).toBe('legacy-pdf')
+  })
+})
+
+it('keeps builtin table parsing in records mode and excludes custom converters', () => {
+  const document = { type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }
+  expect(isNativeKnowledgeTableDocument({ ...document, parserConfig: { transformerType: 'builtin' } })).toBe(true)
+  expect(isNativeKnowledgeTableDocument({ ...document, parserConfig: { transformerType: 'cloud' } })).toBe(false)
 })

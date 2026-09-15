@@ -1,4 +1,22 @@
 <div class="h-full flex flex-col overflow-auto">
+  @if (error()) {
+    <p role="alert" class="p-4 text-sm text-text-destructive">{{ error() }}</p>
+  }
+  @if (invalidIndexedFields().length) {
+    <div role="alert" class="space-y-2 p-3 text-sm text-text-destructive">
+      <p>
+        {{ 'XP.Knowledgebase.TableMetadata.InvalidIndexedFields' | translate }}: {{ invalidIndexedFields().join(', ') }}
+      </p>
+      <button z-button zType="outline" type="button" (click)="selectAllFields()">
+        {{ 'XP.Knowledgebase.TableMetadata.SelectAllFields' | translate }}
+      </button>
+    </div>
+  }
+  @if (selectionError()) {
+    <p role="alert" class="p-3 text-sm text-text-destructive">
+      {{ 'XP.Knowledgebase.TableMetadata.NoIndexedFields' | translate }}
+    </p>
+  }
   @if (isRecordSpreadsheet()) {
     <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
       <thead class="">
@@ -13,11 +31,18 @@
                   {{ field.label }}
                 </div>
                 <div class="inline-block font-normal">
-                  <xp-checkbox
-                    [label]="'XP.Knowledgebase.Index' | translate: { Default: 'Index' }"
-                    [ngModel]="this.allIndexed() || sheetParserConfig()?.indexedFields?.includes(field.value)"
+                  <z-checkbox
+                    [ngModel]="allIndexed() || effectiveConfig()?.indexedFields?.includes(field.value)"
                     (ngModelChange)="updateIndexed(field.value, $event)"
-                  />
+                    [disabled]="
+                      loading() ||
+                      fields().length === 1 ||
+                      (!allIndexed() &&
+                        effectiveConfig().indexedFields?.length === 1 &&
+                        effectiveConfig().indexedFields?.includes(field.value))
+                    "
+                    >{{ 'XP.Knowledgebase.Index' | translate }}</z-checkbox
+                  >
                 </div>
               </div>
             </th>
@@ -32,14 +57,15 @@
                 scope="col"
                 class="px-6 py-1 font-medium text-text-primary whitespace-nowrap bg-background-default-subtle/50 dark:text-white dark:bg-gray-800/50"
               >
-                {{ doc.metadata.raw?.[field.value] || 'N/A' }}
+                {{ doc.metadata.raw?.[field.value] ?? '' }}
               </td>
             }
           </tr>
 
           <tr>
             <td scope="col" [attr.colspan]="fields().length" class="px-6 pb-4 pt-2 text-sm font-mono">
-              {{ doc.pageContent || 'No content available' }}
+              {{ doc.metadata.tableSource?.tableId }} {{ doc.metadata.tableSource?.range }}
+              {{ doc.pageContent }}
             </td>
           </tr>
         }

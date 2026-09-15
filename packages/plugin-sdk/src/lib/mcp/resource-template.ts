@@ -1,7 +1,6 @@
 import type { McpRequiredContext } from '@xpert-ai/contracts'
-import type { ToolExecutionContext } from '../toolset/tool-execution-context'
 import type { McpCompletionHandler } from './completion'
-import type { McpResourceReadResult } from './resource'
+import type { McpResourceReadResult, ResourceReadContext } from './resource'
 
 export interface McpResourceTemplateArgument {
   required: boolean
@@ -19,7 +18,7 @@ export interface McpResourceTemplateDefinition {
   cacheTtlMs?: number
   read(
     arguments_: Record<string, string>,
-    context: ToolExecutionContext
+    context: ResourceReadContext
   ): McpResourceReadResult | Promise<McpResourceReadResult>
   complete?: McpCompletionHandler
 }

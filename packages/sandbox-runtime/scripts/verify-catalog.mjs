@@ -33,6 +33,11 @@ for (const entry of catalog.images) {
   const runnerSha256 = createHash('sha256').update(runner).digest('hex')
   const manifest = await readJson(image.manifest)
   const runtimeDefinition = await readJson(image.runtimeDefinition)
+  const requirementsSha256 = image.pythonRequirements
+    ? createHash('sha256')
+        .update(await readFile(path.join(packageRoot, image.pythonRequirements)))
+        .digest('hex')
+    : undefined
   let modelCatalogSha256
   if (image.resourceCatalog) {
     const resourceCatalogBytes = await readFile(path.join(packageRoot, image.resourceCatalog))
@@ -42,6 +47,12 @@ for (const entry of catalog.images) {
   }
   if (manifest.sandboxRuntimeVersion !== packageJson.version)
     fail(`${entry.family} runtime version differs from package version.`)
+  if (
+    requirementsSha256 &&
+    (manifest.requirementsSha256 !== requirementsSha256 ||
+      runtimeDefinition.expectedManifest?.requirementsSha256 !== requirementsSha256)
+  )
+    fail(`${entry.family} Python dependency lock is stale. Run sync:metadata.`)
   if (manifest.runnerHostSha256 !== runnerSha256)
     fail(`${entry.family} Runner Host SHA-256 is stale. Run "pnpm --filter @xpert-ai/sandbox-runtime sync:metadata".`)
   if (manifest.profileName !== image.profileName || manifest.contractVersion !== image.runtimeContractVersion)

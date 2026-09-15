@@ -1,3 +1,6 @@
+import type { KnowledgeChunkQuestions } from './knowledge-question.model'
+import type { KnowledgeTableContext } from './knowledge-table.model'
+import type { KnowledgeChunkingMetadata } from './knowledge-chunking.model'
 import { DocumentInterface } from '@langchain/core/documents'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
@@ -56,6 +59,8 @@ export type DocumentLayoutMetadata = {
   blockId: string
   order: number
   type: DocumentAnalysisBlockType
+  /** Explicit semantic heading level, when the converter provides it. */
+  headingLevel?: number
   providerType?: string
   providerSubType?: string
   bounds?: DocumentAnalysisBounds
@@ -168,7 +173,16 @@ export type KnowledgeDocumentAnalysisPreview =
     }
 
 export interface IDocChunkMetadata {
+  tableSource?: { tableId: string; rowNumber: number; range?: string }
+  tableMetadataResultHash?: string
+  tableContext?: KnowledgeTableContext
   chunkId: string
+  documentId?: string
+  chunking?: KnowledgeChunkingMetadata
+  /** Preprocessing or a legacy splitter cannot provide exact offsets into the saved converter output. */
+  sourceMapping?: 'coarse'
+  /** Optional text used only for embedding; pageContent remains the source evidence. */
+  searchContent?: string
   parentId?: string | null
   children?: DocumentInterface<IDocChunkMetadata>[]
 
@@ -203,6 +217,11 @@ export interface IDocChunkMetadata {
   /**
    * Whether the chunk is represented as a vector in the vector store
    */
+  questionGeneration?: KnowledgeChunkQuestions
+  /** Only present on question vector projections; the source chunk remains authoritative. */
+  questionGenerationId?: string
+  questionSourceChunkId?: string
+  generatedQuestionId?: string
   isVector?: boolean
   score?: number
   relevanceScore?: number

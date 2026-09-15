@@ -229,6 +229,11 @@
                         </a>
                       }
                     }
+                    @case ('tagAssignments') {
+                      <xp-document-tags-cell
+                        [assignments]="liveDocumentTags().get(element.id) ?? element.tagAssignments"
+                      />
+                    }
                     @case ('contents') {
                       @if (element.sourceType === eKDocumentSourceType.FOLDER) {
                         <div class="flex items-center gap-2 text-xs text-text-secondary">
@@ -310,13 +315,18 @@
                                   </z-badge>
                                 }
                                 @case (eKBDocumentStatusEnum.FINISH) {
-                                  <z-badge
-                                    zType="outline"
-                                    zShape="pill"
-                                    class="border-text-success/30 bg-text-success/10 text-text-success"
+                                  <xp-parser-coverage
+                                    [diagnostics]="element.metadata?.parserDiagnostics"
+                                    [compact]="true"
                                   >
-                                    {{ 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }}
-                                  </z-badge>
+                                    <z-badge
+                                      zType="outline"
+                                      zShape="pill"
+                                      class="border-text-success/30 bg-text-success/10 text-text-success"
+                                    >
+                                      {{ 'XP.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }}
+                                    </z-badge>
+                                  </xp-parser-coverage>
                                 }
                                 @case (eKBDocumentStatusEnum.ERROR) {
                                   <z-badge
@@ -713,14 +723,16 @@
           <div class="flex items-center gap-2">
             @switch (document.status) {
               @case (eKBDocumentStatusEnum.FINISH) {
-                <z-badge
-                  zType="outline"
-                  zShape="pill"
-                  class="border-text-success/30 bg-text-success/10 text-text-success"
-                >
-                  <z-icon zType="circle" class="mr-1 inline size-2 fill-current" />
-                  {{ 'XP.Knowledgebase.ParsingComplete' | translate: { Default: 'Parsing complete' } }}
-                </z-badge>
+                <xp-parser-coverage [diagnostics]="document.metadata?.parserDiagnostics" [compact]="true">
+                  <z-badge
+                    zType="outline"
+                    zShape="pill"
+                    class="border-text-success/30 bg-text-success/10 text-text-success"
+                  >
+                    <z-icon zType="circle" class="mr-1 inline size-2 fill-current" />
+                    {{ 'XP.Knowledgebase.ParsingComplete' | translate: { Default: 'Parsing complete' } }}
+                  </z-badge>
+                </xp-parser-coverage>
               }
               @case (eKBDocumentStatusEnum.ERROR) {
                 <z-badge zType="destructive" zShape="pill">
@@ -827,10 +839,19 @@
                     {{ 'XP.Knowledgebase.ProcessingResult' | translate: { Default: 'Result' } }}
                   </dt>
                   <dd class="font-medium text-text-primary">
-                    {{
-                      documentStatusLabelKey(document.status)
-                        | translate: { Default: documentStatusDefaultLabel(document.status) }
-                    }}
+                    <xp-parser-coverage
+                      [diagnostics]="
+                        document.status === eKBDocumentStatusEnum.FINISH
+                          ? document.metadata?.parserDiagnostics
+                          : undefined
+                      "
+                      [compact]="true"
+                    >
+                      {{
+                        documentStatusLabelKey(document.status)
+                          | translate: { Default: documentStatusDefaultLabel(document.status) }
+                      }}
+                    </xp-parser-coverage>
                   </dd>
                 </div>
               }
@@ -852,6 +873,8 @@
               </div>
             </dl>
           </section>
+
+          <xp-parser-coverage [diagnostics]="document.metadata?.parserDiagnostics" />
 
           <section class="mt-6 grid grid-cols-3 gap-2.5">
             <button

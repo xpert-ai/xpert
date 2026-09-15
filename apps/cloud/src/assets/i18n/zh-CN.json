@@ -1944,6 +1944,8 @@
       "Unavailable": "请先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "ParserCoverageIncomplete": "完成，但有内容未识别",
+      "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
       "PipelineFlow": {
         "Source": "选择数据源",
         "Settings": "处理设置",

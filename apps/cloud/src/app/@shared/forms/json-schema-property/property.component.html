@@ -1,75 +1,77 @@
 @if (visible()) {
-  <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
-    <div class="flex min-w-0 flex-1 items-start">
-      @if (label(); as title) {
-        <div class="min-w-0 break-all py-1 leading-5">
-          @if (required()) {
-            <span class="text-text-destructive">*</span>
-          }
-          {{ title | i18n }}
-        </div>
-      } @else if (arrayItem()) {
-        <div class="min-w-0 break-all py-1 leading-5 text-text-secondary">
-          {{ 'XP.KEY_WORDS.ArrayItemTitle' | translate: arrayItemTitleParams() }}
-        </div>
-      }
-      @if (hasCustomWidget()) {
-        @if (propertyDescription(); as desc) {
-          <i
-            class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
-            [zTooltip]="desc | i18n"
-            zPosition="top"
-          ></i>
+  @if (xUiComponent() !== 'checkbox' || arrayItem()) {
+    <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
+      <div class="flex min-w-0 flex-1 items-start">
+        @if (xUiComponent() !== 'checkbox' && label(); as title) {
+          <div class="min-w-0 break-all py-1 leading-5">
+            @if (required()) {
+              <span class="text-text-destructive">*</span>
+            }
+            {{ title | i18n }}
+          </div>
+        } @else if (arrayItem()) {
+          <div class="min-w-0 break-all py-1 leading-5 text-text-secondary">
+            {{ 'XP.KEY_WORDS.ArrayItemTitle' | translate: arrayItemTitleParams() }}
+          </div>
         }
+        @if (hasCustomWidget()) {
+          @if (propertyDescription(); as desc) {
+            <i
+              class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
+              [zTooltip]="desc | i18n"
+              zPosition="top"
+            ></i>
+          }
+        }
+        @if (xUiHelp(); as helpUrl) {
+          <a
+            class="inline-flex items-center ml-2 text-sm text-text-tertiary opacity-80 hover:text-primary-500 hover:underline"
+            [href]="helpUrl | i18n"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i class="ri-book-open-line"></i>
+          </a>
+        }
+      </div>
+
+      @if (type() === 'array' && !enum() && !hasCustomWidget()) {
+        <button class="btn btn-small justify-center w-6 h-6" [disabled]="readonly()" (click)="addArray()">
+          <i class="ri-add-line"></i>
+        </button>
       }
-      @if (xUiHelp(); as helpUrl) {
-        <a
-          class="inline-flex items-center ml-2 text-sm text-text-tertiary opacity-80 hover:text-primary-500 hover:underline"
-          [href]="helpUrl | i18n"
-          target="_blank"
-          rel="noopener noreferrer"
+      @if (collapsibleObject()) {
+        @let collapseLabel =
+          objectCollapsed()
+            ? ('XP.KEY_WORDS.Expand' | translate: { Default: 'Expand' })
+            : ('XP.KEY_WORDS.Collapse' | translate: { Default: 'Collapse' });
+        <button
+          type="button"
+          class="btn btn-ghost btn-small flex h-6 w-6 shrink-0 items-center justify-center"
+          [attr.aria-label]="collapseLabel"
+          [attr.aria-expanded]="!objectCollapsed()"
+          [zTooltip]="collapseLabel"
+          zPosition="top"
+          (click)="toggleObjectCollapsed()"
         >
-          <i class="ri-book-open-line"></i>
-        </a>
+          <i [class]="objectCollapsed() ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"></i>
+        </button>
+      }
+      @if (arrayItem() && !readonly()) {
+        @let deleteLabel = 'XP.KEY_WORDS.DELETE' | translate: { Default: 'Delete' };
+        <button
+          type="button"
+          class="btn btn-ghost btn-small danger pointer-events-none flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover/item:pointer-events-auto group-hover/item:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+          [attr.aria-label]="deleteLabel"
+          [zTooltip]="deleteLabel"
+          zPosition="top"
+          (click)="removeItem.emit()"
+        >
+          <i class="ri-delete-bin-line"></i>
+        </button>
       }
     </div>
-
-    @if (type() === 'array' && !enum() && !hasCustomWidget()) {
-      <button class="btn btn-small justify-center w-6 h-6" [disabled]="readonly()" (click)="addArray()">
-        <i class="ri-add-line"></i>
-      </button>
-    }
-    @if (collapsibleObject()) {
-      @let collapseLabel =
-        objectCollapsed()
-          ? ('XP.KEY_WORDS.Expand' | translate: { Default: 'Expand' })
-          : ('XP.KEY_WORDS.Collapse' | translate: { Default: 'Collapse' });
-      <button
-        type="button"
-        class="btn btn-ghost btn-small flex h-6 w-6 shrink-0 items-center justify-center"
-        [attr.aria-label]="collapseLabel"
-        [attr.aria-expanded]="!objectCollapsed()"
-        [zTooltip]="collapseLabel"
-        zPosition="top"
-        (click)="toggleObjectCollapsed()"
-      >
-        <i [class]="objectCollapsed() ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'"></i>
-      </button>
-    }
-    @if (arrayItem() && !readonly()) {
-      @let deleteLabel = 'XP.KEY_WORDS.DELETE' | translate: { Default: 'Delete' };
-      <button
-        type="button"
-        class="btn btn-ghost btn-small danger pointer-events-none flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover/item:pointer-events-auto group-hover/item:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
-        [attr.aria-label]="deleteLabel"
-        [zTooltip]="deleteLabel"
-        zPosition="top"
-        (click)="removeItem.emit()"
-      >
-        <i class="ri-delete-bin-line"></i>
-      </button>
-    }
-  </div>
+  }
 
   @if (hasCustomWidget()) {
     <xp-json-schema-widget-outlet
@@ -86,6 +88,24 @@
     />
   } @else {
     @switch (xUiComponent()) {
+      @case ('checkbox') {
+        <z-checkbox
+          displayDensity="compact"
+          [zDisabled]="readonly()"
+          [ngModel]="value$()"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="update($event)"
+        >
+          @if (required()) {
+            <span class="text-text-destructive">*</span>
+          }
+          {{ label() | i18n }}
+          @if (propertyDescription(); as desc) {
+            <i class="ri-information-line ml-2 text-text-tertiary" [zTooltip]="desc | i18n"></i>
+          }
+        </z-checkbox>
+      }
+
       @case ('remoteSelect') {
         <xpert-remote-select
           class="w-full h-9"

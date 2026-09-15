@@ -60,18 +60,23 @@ describe('XpertNewKnowledgeComponent layout', () => {
     }
   })
 
-  it('uses one image prompt template and keeps later advanced capabilities reserved', () => {
+  it('uses one image prompt template and persists automatic tagging while keeping later advanced capabilities reserved', () => {
     expect(processingTemplate).toContain('data-image-prompt')
     expect(template).toContain('data-automatic-tagging')
     expect(processingSource).toContain('const imagePromptTemplate')
-    expect(source).toContain('readonly automaticTaggingEnabled')
+    expect(source).toContain('readonly automaticTagging')
 
     const buildPayload = source.slice(source.indexOf('private buildPayload()'))
     expect(buildPayload).not.toContain('imageDescriptionLanguage')
     expect(buildPayload).not.toContain('imageParsingRequirements')
-    expect(buildPayload).not.toContain('automaticTaggingEnabled')
+    expect(buildPayload).toContain('automaticTagging: this.automaticTagging()')
     expect(buildPayload).not.toContain('parentChildChunkingEnabled')
     expect(buildPayload).not.toContain('maxChunkTokens')
     expect(buildPayload).not.toContain('chunkLanguageHint')
+  })
+  it('exposes existing tag selection inside the current settings dialog', () => {
+    const template = readFileSync(join(__dirname, 'new.component.html'), 'utf8')
+    expect(template).toContain('<xp-knowledge-tags')
+    expect(template).toContain('[knowledgebaseId]="tagKnowledgebaseId"')
   })
 })

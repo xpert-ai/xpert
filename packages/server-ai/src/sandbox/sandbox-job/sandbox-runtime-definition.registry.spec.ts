@@ -7,6 +7,14 @@ import {
 } from './sandbox-runtime-definition.registry'
 
 describe('SandboxRuntimeDefinitionRegistry', () => {
+    it('declares a pinned offline Python document profile', () => {
+        const definition = new SandboxRuntimeDefinitionRegistry().require('document/python-3.12/v1')
+        expect(definition.expectedManifest.pythonVersion).toBe('3.12.10')
+        expect(definition.expectedManifest.markitdownVersion).toBe('0.1.7')
+        expect(definition.expectedManifest.requirementsSha256).toMatch(/^[a-f0-9]{64}$/)
+        expect(definition.networkPolicy.mode).toBe('none')
+        expect(definition.security.readOnlyRootFilesystem).toBe(true)
+    })
     it('loads the provider-neutral Browser Runtime Definition from the OSS Core catalog', () => {
         const definition = new SandboxRuntimeDefinitionRegistry().require(DEFAULT_BROWSER_RUNTIME_PROFILE)
         expect(definition.command).toEqual(['node', '/opt/xpert/sandbox-runtime/runner-host.mjs'])

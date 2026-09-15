@@ -1,3 +1,7 @@
+import type { IKnowledgeDocumentTag } from './knowledge-tag.model'
+import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
+import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
+import type { KnowledgeTableMetadata } from './knowledge-table.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
@@ -11,6 +15,13 @@ import { TCopilotModel } from './copilot-model.model'
 import { I18nObject } from '../types'
 
 export type DocumentParserConfig = {
+  /** Optional business guidance; an empty value uses the default table metadata prompt. */
+  tableMetadataRequirements?: string
+  /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
+  maxChunkTokens?: number
+  /** Public natural-language boundary hint; absence means auto. */
+  chunkLanguageHint?: KnowledgeChunkLanguageHint
+  questionGeneration?: KnowledgeQuestionGenerationConfig
   pages?: number[][]
   replaceWhitespace?: boolean
   removeSensitive?: boolean
@@ -65,6 +76,8 @@ export type SpreadsheetOutputFormat = 'anchored_markdown'
  * Custom document transformers take precedence over this configuration.
  */
 export type DocumentSpreadsheetParserConfig = {
+  /** Native Excel record parsing only. Absence preserves the legacy first-row header behavior. */
+  firstRowAsHeader?: boolean
   interpretation?: SpreadsheetInterpretation
   contextUnit?: SpreadsheetContextUnit
   oversizePolicy?: SpreadsheetOversizePolicy
@@ -332,6 +345,8 @@ export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = Knowle
   extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
   parent?: IKnowledgeDocument | null
   children?: IKnowledgeDocument[]
+  /** Existing manual and automatic associations, included when requested for display. */
+  tagAssignments?: IKnowledgeDocumentTag[]
   knowledgebase?: IKnowledgebase
 
   draft?: TKnowledgeDocument
@@ -362,7 +377,25 @@ export interface StandardDocumentMetadata {
   lastIncrementalSync?: KnowledgeDocumentLastIncrementalSync
 }
 
+/** Page coverage reported by the parser and completed by the shared image-understanding stage. */
+export type DocumentParserDiagnostics = {
+  schemaVersion: 1
+  pages: {
+    page: number
+    status: 'text' | 'blank' | 'needs-ocr' | 'recognized'
+    imagePaths: string[]
+  }[]
+}
+
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
+  /** Server-owned identity and label of the last completed document conversion. */
+  parser?: string
+  parserLabel?: I18nObject
+  parserDiagnostics?: DocumentParserDiagnostics
+  /** Server-owned generated table descriptions and publication state. */
+  tableMetadata?: KnowledgeTableMetadata
+  /** Existing source summary, available to optional document classifiers. */
+  summary?: string
   /** Internal index containers are not user-uploaded documents. */
   systemManaged?: boolean
   systemManagedType?: string
@@ -383,7 +416,14 @@ export interface IKnowledgeDocumentUpdateInput extends Partial<IKnowledgeDocumen
 export interface IKnowledgeDocumentFindInput extends IBasePerTenantAndOrganizationEntityModel, IKnowledgeDocument {}
 
 export function isDocumentSheet(type: string): boolean {
-  return ['csv', 'xls', 'xlsx', 'ods', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(type)
+  return [
+    'csv',
+    'xls',
+    'xlsx',
+    'ods',
+    'vnd.ms-excel',
+    'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ].includes(type)
 }
 
 export function isImageType(type: string): boolean {

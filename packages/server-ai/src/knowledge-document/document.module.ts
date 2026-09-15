@@ -1,3 +1,11 @@
+import { JOB_KNOWLEDGE_AUTO_TAGGING } from './tags/automatic-tagging.command'
+import { KnowledgeAutoTaggingConsumer, KnowledgeAutoTaggingEnqueueHandler } from './tags/automatic-tagging.job'
+import { KnowledgeAutomaticTaggingService } from './tags/automatic-tagging.service'
+import { CopilotModelModule } from '../copilot-model/copilot-model.module'
+import { JOB_KNOWLEDGE_QUESTIONS } from './questions/question-generation.command'
+import { KnowledgeQuestionGenerationService } from './questions/question-generation.service'
+import { KnowledgeQuestionGenerationController } from './questions/question-generation.controller'
+import { KnowledgeQuestionsConsumer, KnowledgeQuestionsEnqueueHandler } from './questions/question-generation.job'
 import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
@@ -27,6 +35,8 @@ import {
 } from './deletion'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.module'
+import { KnowledgeProcessingLifecycleModule } from './processing-lifecycle.module'
+import { KnowledgeTableMetadataService } from './tables/table-metadata.service'
 
 @Module({
     imports: [
@@ -40,22 +50,33 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
             KnowledgeDocumentPublicationAttempt,
             KnowledgeDocumentPublicationAttemptSource
         ]),
+        CopilotModelModule,
         DiscoveryModule,
         RuntimeCapabilityModule,
         TenantModule,
         CqrsModule,
+        KnowledgeProcessingLifecycleModule,
         UserModule,
         StorageFileModule,
         forwardRef(() => CopilotModule),
         IntegrationModule,
         forwardRef(() => KnowledgebaseModule),
 
-        BullModule.registerQueue({
-            name: JOB_EMBEDDING_DOCUMENT
-        })
+        BullModule.registerQueue(
+            { name: JOB_KNOWLEDGE_AUTO_TAGGING },
+            { name: JOB_EMBEDDING_DOCUMENT },
+            { name: JOB_KNOWLEDGE_QUESTIONS }
+        )
     ],
-    controllers: [KnowledgeDocumentController],
+    controllers: [KnowledgeDocumentController, KnowledgeQuestionGenerationController],
     providers: [
+        KnowledgeTableMetadataService,
+        KnowledgeAutoTaggingConsumer,
+        KnowledgeAutoTaggingEnqueueHandler,
+        KnowledgeAutomaticTaggingService,
+        KnowledgeQuestionGenerationService,
+        KnowledgeQuestionsConsumer,
+        KnowledgeQuestionsEnqueueHandler,
         KnowledgeDocumentService,
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,
@@ -67,6 +88,7 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         ...QueryHandlers
     ],
     exports: [
+        KnowledgeTableMetadataService,
         KnowledgeDocumentService,
         KnowledgeDocumentChunkService,
         KnowledgeDocumentTransformSnapshotService,

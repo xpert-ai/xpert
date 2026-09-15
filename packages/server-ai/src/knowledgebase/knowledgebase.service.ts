@@ -1,5 +1,10 @@
+import { rethrowParserError } from '../knowledge-document/parser-error'
+import { prepareAutomaticTaggingConfig } from './tags/automatic-tagging-config'
 import { dispatchKnowledgePipeline } from './task/pipeline-task'
 import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
+import { buildQuestionVectors } from '../knowledge-document/questions/question-vectors'
+import { recordRebuiltQuestionVectors } from '../knowledge-document/questions/question-rebuild'
+import { questionSourceHash } from '../knowledge-document/questions/question-generation'
 import { resolveKnowledgeDocumentParserConfig } from '../knowledge-document/parser-config'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
 import {
@@ -18,6 +23,7 @@ import {
     IKnowledgebase,
     IKnowledgebaseTask,
     IKnowledgeDocument,
+    IKnowledgeDocumentChunk,
     IWFNKnowledgeBase,
     IWFNProcessor,
     IWFNSource,
@@ -36,6 +42,7 @@ import {
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
+    knowledgeDocumentFileType,
     KnowledgeDocumentProcessingMode,
     KDocumentSourceType,
     IUser,
@@ -237,6 +244,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     avatar: true,
     description: true,
     applicationTags: true,
+    automaticTagging: true,
     permission: true,
     copilotModelId: true,
     chatModelId: true,
@@ -422,6 +430,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     async create(entity: Partial<IKnowledgebase>) {
         const input = { ...entity }
+        if ('automaticTagging' in input) input.automaticTagging = prepareAutomaticTaggingConfig(input.automaticTagging)
         delete input.id
         delete input.createdById
         delete input.createdBy
@@ -656,6 +665,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             ]
         })
         const changes = { ...entity }
+        if ('automaticTagging' in changes)
+            changes.automaticTagging = prepareAutomaticTaggingConfig(changes.automaticTagging)
         delete changes.id
         delete changes.tenantId
         delete changes.tenant
@@ -901,6 +912,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                 throw new BadRequestException(`Metadata schema field ${index + 1} is invalid.`)
             }
             const key = typeof definition.key === 'string' ? definition.key.trim() : ''
+            if (key === 'tableMetadata') {
+                throw new BadRequestException(t('server-ai:Error.KnowledgeTableMetadataReservedKey'))
+            }
             if (!key || key.length > 128 || !/^[\p{L}\p{N}_-]+$/u.test(key)) {
                 throw new BadRequestException(
                     `Metadata field key '${key}' must be 1-128 letters, numbers, underscores or hyphens.`
@@ -1483,6 +1497,10 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             throw new BadRequestException(`Chunk '${missingContent.id}' has no pageContent for embedding rebuild`)
         }
 
+        const questionRebuilds: Array<{
+            chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>
+            write: ReturnType<typeof buildQuestionVectors>
+        }> = []
         const embeddingItems =
             knowledgebase.type === KnowledgebaseTypeEnum.FAQ
                 ? embeddingChunks.flatMap((chunk) => {
@@ -1505,7 +1523,24 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
                       })
                       return write.chunks.map((item, index) => ({ chunk: item, id: write.ids[index] }))
                   })
-                : embeddingChunks.map((chunk) => ({ chunk, id: chunk.id }))
+                : embeddingChunks.flatMap((chunk) => {
+                      const source = { chunk, id: chunk.id }
+                      const state = chunk.metadata?.questionGeneration
+                      if (
+                          !chunk.document ||
+                          state?.status !== 'ready' ||
+                          state.sourceHash !== questionSourceHash(chunk)
+                      )
+                          return [source]
+                      const write = buildQuestionVectors(
+                          chunk.document,
+                          chunk,
+                          state,
+                          vectorStore.embeddingModelContextSize
+                      )
+                      questionRebuilds.push({ chunk, write })
+                      return [source, ...write.chunks.map((item, index) => ({ chunk: item, id: write.ids[index] }))]
+                  })
 
         const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
         let count = 0
@@ -1520,6 +1555,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             count++
         }
 
+        for (const { chunk, write } of questionRebuilds) {
+            await recordRebuiltQuestionVectors(chunkRepository, chunk, write)
+        }
         return this.promoteEmbeddingRebuild(data.knowledgebaseId, data.rebuildTaskId, data.pendingEmbeddingRevision)
     }
 
@@ -2505,12 +2543,25 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             })
         )
 
-        const results = await strategy.transformDocuments(input, {
-            ...(entity.config ?? {}),
-            stage: isDraft ? 'test' : 'prod',
-            tempDir: workArea.tmpPath.serverPath,
-            permissions
-        })
+        const results = await strategy
+            .transformDocuments(
+                input.map((document) => ({ ...document, type: knowledgeDocumentFileType(document) })),
+                {
+                    ...(entity.config ?? {}),
+                    stage: isDraft ? 'test' : 'prod',
+                    tempDir: workArea.tmpPath.serverPath,
+                    fileScope: {
+                        tenantId: RequestContext.currentTenantId(),
+                        organizationId: RequestContext.getOrganizationId(),
+                        userId: RequestContext.currentUserId(),
+                        catalog: 'knowledges' as const,
+                        knowledgeId: knowledgebaseId,
+                        scopeId: knowledgebaseId
+                    },
+                    permissions
+                }
+            )
+            .catch(rethrowParserError)
 
         return results
     }

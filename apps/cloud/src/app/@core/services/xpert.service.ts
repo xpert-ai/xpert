@@ -26,6 +26,7 @@ import {
   ICopilotUsageOverview,
   ICopilotStore,
   IIntegration,
+  ITagXpertUsage,
   TFile,
   TFileDirectory,
   IUserGroup,
@@ -132,6 +133,12 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     super(API_XPERT_ROLE)
   }
 
+  getTagUsage(tagId: string, skip = 0) {
+    return this.httpClient.get<{ items: ITagXpertUsage[]; total: number }>(`${this.apiBaseUrl}/tag-usage/${tagId}`, {
+      params: { skip }
+    })
+  }
+
   create(entity: Partial<IXpert>) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl, entity).pipe(tap(() => this.refresh()))
   }
@@ -225,6 +232,13 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   saveWorkspaceFile(id: string, path: string, content: string) {
     return this.httpClient.put<TFile>(this.apiBaseUrl + `/${id}/workspace/file`, { path, content })
+  }
+
+  saveWorkspaceBinaryFile(id: string, path: string, file: Blob) {
+    const formData = new FormData()
+    formData.append('file', file, path.split('/').pop() || 'workspace-file')
+    formData.append('path', path)
+    return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/workspace/file/save-binary`, formData)
   }
 
   uploadWorkspaceFileToFolder(id: string, file: File, path = '') {

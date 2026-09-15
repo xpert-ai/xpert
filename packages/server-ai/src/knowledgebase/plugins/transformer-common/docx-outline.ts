@@ -106,6 +106,7 @@ export async function loadDocxStructuredMarkdown(
                     chunkId: uuid(),
                     chunkIndex: 0,
                     parser: 'docx-ooxml',
+                    contentFormat: 'markdown',
                     outlineEnhanced: true,
                     assets: resolvedImages.assets
                 }

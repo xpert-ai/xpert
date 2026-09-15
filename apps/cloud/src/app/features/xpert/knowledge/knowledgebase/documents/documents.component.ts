@@ -1,3 +1,6 @@
+import { ParserCoverageComponent } from './parser-coverage.component'
+import { injectDocumentTags } from '../../tags/document-tags-refresh'
+import { DocumentTagsCellComponent } from '../../tags/document-tags-cell.component'
 import { DocumentImportMenuComponent } from './import/import-menu.component'
 import { KnowledgeDocumentDialogService } from './import/document-dialog.service'
 import { animate, state, style, transition, trigger } from '@angular/animations'
@@ -92,6 +95,7 @@ import { DocumentWikiProgressComponent } from './document-wiki-progress.componen
 import { DocumentGraphProgressComponent } from './document-graph-progress.component'
 import { injectDocumentGraphProgress } from './document-graph-status'
 import { DocumentProgressColumnWidth, DocumentProgressWidthDirective } from './document-progress-column'
+import { documentParserLabel } from './document-parser-label'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 const SELECT_COLUMN_WIDTH = 48
@@ -105,6 +109,7 @@ const DOCUMENT_COLUMNS_STORAGE_KEY = 'xpert.knowledge.documents.table.columns.v3
 
 type DocumentTableColumnKey =
   | 'name'
+  | 'tagAssignments'
   | 'type'
   | 'contents'
   | 'createdAtRelative'
@@ -172,6 +177,17 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
     visible: true,
     hideable: false,
     sortable: true,
+    resizable: true
+  },
+  {
+    key: 'tagAssignments',
+    labelKey: 'XP.KEY_WORDS.Tags',
+    defaultLabel: 'Tags',
+    width: 240,
+    minWidth: 160,
+    visible: true,
+    hideable: true,
+    sortable: false,
     resizable: true
   },
   {
@@ -244,6 +260,7 @@ const DEFAULT_DOCUMENT_COLUMNS: DocumentTableColumn[] = [
 
 const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledgeDocument) => unknown> = {
   name: (document) => document.name,
+  tagAssignments: () => '',
   type: (document) => document.type,
   contents: () => '',
   createdAtRelative: (document) => document.updatedAt ?? document.createdAt,
@@ -258,6 +275,8 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
+    ParserCoverageComponent,
+    DocumentTagsCellComponent,
     DocumentImportMenuComponent,
     RouterModule,
     FormsModule,
@@ -405,6 +424,8 @@ export class KnowledgeDocumentsComponent {
       (browserDocument?.id === selectedDocumentId ? browserDocument : null)
     )
   })
+  readonly liveDocumentTags = injectDocumentTags(this.knowledgebase, this.#data)
+
   readonly wikiDocumentProgress = injectDocumentWikiProgress(this.knowledgebase, this.#data, this.selectedDocument)
   /** Reuses the protected range-enabled endpoint so the inspector renders page one without downloading a whole PDF. */
   readonly selectedPdfPreviewSource = computed(() => {
@@ -520,7 +541,7 @@ export class KnowledgeDocumentsComponent {
                   'metadata'
                 ],
                 where,
-                relations: ['storageFile'],
+                relations: ['storageFile', 'tagAssignments', 'tagAssignments.tag'],
                 order: {
                   updatedAt: OrderTypeEnum.DESC
                 }
@@ -886,28 +907,12 @@ export class KnowledgeDocumentsComponent {
   }
 
   selectedDocumentProvider(document: IKnowledgeDocument) {
-    const metadata = document.metadata
-    const analysis = metadata?.documentAnalysis
-    const snapshot = metadata?.analysisSnapshot
-    const transformer = metadata?.transformSnapshot?.transformer
-    const provider = [
-      analysis?.provider ?? snapshot?.provider ?? transformer?.provider,
-      analysis?.engine ?? snapshot?.engine
-    ]
-      .filter(Boolean)
-      .join(' · ')
-
-    if (provider) {
-      return provider
-    }
-
-    if (document.processMsg?.includes('PaddleOCR')) {
-      return 'Baidu Cloud · PaddleOCR-VL'
-    }
-    if (document.processMsg?.includes('Unlimited-OCR')) {
-      return 'Baidu Cloud · Unlimited-OCR'
-    }
-    return ''
+    return documentParserLabel(
+      document,
+      this.#translate.language(),
+      this.#translate.translate('XP.Knowledgebase.WorkspaceConfiguration.Implemented.BuiltinParser'),
+      this.#translate.translate('XP.Knowledgebase.ParserNotRecorded')
+    )
   }
 
   selectedDocumentSize(document: IKnowledgeDocument) {
@@ -1912,6 +1917,14 @@ function loadDocumentColumns(): DocumentTableColumn[] {
         }
       })
       .filter((column): column is DocumentTableColumn => !!column)
+
+    // Add the new display column beside the name without resetting existing preferences.
+    const tagsColumn = defaultsByKey.get('tagAssignments')
+    const nameIndex = restored.findIndex((column) => column.key === 'name')
+    if (tagsColumn && nameIndex >= 0) {
+      restored.splice(nameIndex + 1, 0, { ...tagsColumn })
+      defaultsByKey.delete('tagAssignments')
+    }
 
     return [...restored, ...defaultsByKey.values().map((column) => ({ ...column }))]
   } catch {

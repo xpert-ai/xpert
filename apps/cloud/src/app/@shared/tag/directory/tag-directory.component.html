@@ -1,0 +1,476 @@
+<div class="space-y-6" [attr.aria-busy]="loading()">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0 space-y-2">
+      <h2 class="flex items-center gap-3 text-2xl font-semibold text-text-primary">
+        {{ 'XP.TagDirectory.Title' | translate }}
+        <span class="rounded-md border border-divider-regular px-2 py-0.5 text-sm font-normal">{{
+          tags().length
+        }}</span>
+      </h2>
+      <p class="text-sm text-text-tertiary">
+        {{ (isTenantScope() ? 'XP.TagDirectory.TenantDescription' : 'XP.TagDirectory.Description') | translate }}
+      </p>
+    </div>
+    @if (canCreate()) {
+      <button z-button (click)="open('edit')" [disabled]="loading() || saving()">
+        <z-icon zType="add" class="mr-2" />{{ 'XP.TagDirectory.Create' | translate }}
+      </button>
+    }
+  </div>
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div
+      class="inline-flex gap-1 rounded-lg bg-hover-bg p-1"
+      role="group"
+      [attr.aria-label]="'XP.TagDirectory.Status' | translate"
+    >
+      @for (option of statusOptions; track option) {
+        <button
+          z-button
+          [zType]="status() === option ? 'outline' : 'ghost'"
+          [attr.aria-pressed]="status() === option"
+          (click)="status.set(option)"
+        >
+          {{ 'XP.TagDirectory.' + option | translate }}<span class="ml-2 text-text-tertiary">{{ count(option) }}</span>
+        </button>
+      }
+    </div>
+    <span class="flex items-center gap-2 text-xs text-text-tertiary"
+      ><z-icon zType="users" />{{
+        (isTenantScope() ? 'XP.TagDirectory.TenantScope' : 'XP.TagDirectory.Scope') | translate
+      }}</span
+    >
+  </div>
+  <div class="flex flex-wrap gap-3">
+    <div class="relative min-w-48 flex-1">
+      <z-icon zType="search" class="absolute left-3 top-2.5 text-text-tertiary" /><input
+        z-input
+        class="w-full pl-10"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        [placeholder]="'XP.TagDirectory.Search' | translate"
+        [attr.aria-label]="'XP.TagDirectory.Search' | translate"
+      />
+    </div>
+    <z-select
+      class="w-44"
+      [ngModel]="targetFilter()"
+      (ngModelChange)="targetFilter.set($event)"
+      [attr.aria-label]="'XP.TagDirectory.Targets' | translate"
+    >
+      <z-select-item zValue="all">{{ 'XP.TagDirectory.AllTargets' | translate }}</z-select-item>
+      @for (target of targets; track target) {
+        <z-select-item [zValue]="target">{{ 'XP.TagDirectory.Target.' + target | translate }}</z-select-item>
+      }
+    </z-select>
+    @if (!isTenantScope()) {
+      <z-select
+        class="w-40"
+        [ngModel]="sourceFilter()"
+        (ngModelChange)="sourceFilter.set($event)"
+        [attr.aria-label]="'XP.TagDirectory.Source' | translate"
+      >
+        <z-select-item zValue="all">{{ 'XP.TagDirectory.AllSources' | translate }}</z-select-item>
+        <z-select-item zValue="org">{{ 'XP.TagDirectory.Organization' | translate }}</z-select-item>
+        <z-select-item zValue="tenant">{{ 'XP.TagDirectory.Shared' | translate }}</z-select-item>
+      </z-select>
+    }
+  </div>
+  @if (!canCreate()) {
+    <p class="rounded-lg border border-divider-regular p-3 text-sm text-text-tertiary">
+      {{ 'XP.TagDirectory.ReadOnly' | translate }}
+    </p>
+  }
+  @if (error()) {
+    <div role="alert" class="space-y-3 rounded-lg border border-divider-regular p-5">
+      <p class="text-text-destructive">{{ error() }}</p>
+      <button z-button zType="outline" (click)="load()">{{ 'XP.TagDirectory.Retry' | translate }}</button>
+    </div>
+  } @else if (loading()) {
+    <div class="space-y-4 rounded-lg border border-divider-regular p-6" role="status">
+      <p class="text-sm text-text-tertiary">{{ 'XP.TagDirectory.Loading' | translate }}</p>
+      @for (row of [1, 2, 3]; track row) {
+        <div class="h-12 animate-pulse rounded-md bg-hover-bg motion-reduce:animate-none"></div>
+      }
+    </div>
+  } @else {
+    <div class="overflow-x-auto rounded-xl border border-divider-regular">
+      <table class="w-full min-w-[680px] text-left text-sm" [attr.aria-label]="'XP.TagDirectory.Title' | translate">
+        <thead class="bg-hover-bg text-text-tertiary">
+          <tr>
+            <th class="px-4 py-3 font-normal" [attr.aria-sort]="ascending() ? 'ascending' : 'descending'">
+              <button z-button zType="ghost" class="px-0" (click)="ascending.set(!ascending())">
+                {{ 'XP.TagDirectory.Name' | translate }}<z-icon zType="chevrons-up-down" class="ml-1" />
+              </button>
+            </th>
+            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Targets' | translate }}</th>
+            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Source' | translate }}</th>
+            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Usage' | translate }}</th>
+            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Status' | translate }}</th>
+            <th class="w-12">
+              <span class="sr-only">{{ 'XP.TagDirectory.Actions' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-divider-regular">
+          @for (tag of visible(); track tag.id) {
+            <tr class="hover:bg-hover-bg/50" [attr.data-tag-id]="tag.id">
+              <td class="max-w-72 px-4 py-5">
+                <div class="flex min-w-0 items-center gap-3">
+                  <div class="min-w-0">
+                    <button
+                      class="max-w-full truncate text-left font-medium hover:underline"
+                      (click)="open('usage', tag)"
+                    >
+                      {{ displayName(tag) }}
+                    </button>
+                    <p class="truncate text-xs text-text-tertiary" [title]="tag.description || ''">
+                      {{ tag.description }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td class="max-w-60 px-4 py-5">
+                <div class="flex flex-wrap gap-1">
+                  @for (target of targetNames(tag); track target) {
+                    <span class="whitespace-nowrap rounded border border-divider-regular px-1.5 py-0.5 text-xs">{{
+                      'XP.TagDirectory.Target.' + target | translate
+                    }}</span>
+                  } @empty {
+                    <span class="text-text-tertiary">{{ 'XP.TagDirectory.Unspecified' | translate }}</span>
+                  }
+                </div>
+              </td>
+              <td class="whitespace-nowrap px-4 py-5 text-xs text-text-tertiary">
+                {{
+                  (tag.organizationId
+                    ? 'XP.TagDirectory.Organization'
+                    : isTenantScope()
+                      ? 'XP.TagDirectory.Tenant'
+                      : 'XP.TagDirectory.Shared'
+                  ) | translate
+                }}
+                @if (tag.isSystem) {
+                  <span class="block">{{ 'XP.TagDirectory.System' | translate }}</span>
+                }
+              </td>
+              <td class="whitespace-nowrap px-4 py-5">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  class="px-0 text-text-tertiary"
+                  [zTooltip]="'XP.TagDirectory.UsageExplanation' | translate"
+                  (click)="open('usage', tag)"
+                >
+                  {{ 'XP.TagDirectory.UsageCount' | translate: { count: total(tag) }
+                  }}<z-icon zType="chevron-right" class="ml-1" />
+                </button>
+              </td>
+              <td class="whitespace-nowrap px-4 py-5">
+                <span
+                  class="inline-flex items-center gap-2 text-xs"
+                  [class]="tag.isActive === false ? 'text-text-tertiary' : 'text-text-success'"
+                  ><span class="size-1.5 rounded-full bg-current"></span
+                  >{{
+                    (tag.isActive === false ? 'XP.TagDirectory.disabled' : 'XP.TagDirectory.active') | translate
+                  }}</span
+                >
+              </td>
+              <td class="pr-3">
+                @if (editable(tag)) {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    z-menu
+                    [zMenuTriggerFor]="actions"
+                    [zMenuTriggerData]="{ tag: tag }"
+                    [disabled]="saving()"
+                    [attr.aria-label]="'XP.TagDirectory.Actions' | translate"
+                  >
+                    <z-icon zType="more_vert" />
+                  </button>
+                } @else {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    [zTooltip]="readOnlyReason(tag)"
+                    [attr.aria-label]="readOnlyReason(tag)"
+                    (click)="open('usage', tag)"
+                  >
+                    <z-icon zType="lock" class="text-text-tertiary" />
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="px-6 py-14 text-center text-text-tertiary">
+                {{ 'XP.TagDirectory.Empty' | translate }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-text-tertiary" aria-live="polite">
+      {{ 'XP.TagDirectory.Results' | translate: { visible: visible().length, total: tags().length } }}
+    </p>
+  }
+</div>
+<ng-template #actions let-tag="tag"
+  ><div z-menu-content class="min-w-40 p-1">
+    <button z-menu-item (click)="open('edit', tag)">
+      <z-icon zType="edit" class="mr-2" />{{ 'XP.TagDirectory.Edit' | translate }}
+    </button>
+    <button z-menu-item (click)="open('usage', tag)">
+      <z-icon zType="link" class="mr-2" />{{ 'XP.TagDirectory.usage' | translate }}
+    </button>
+    <button z-menu-item (click)="open(tag.isActive === false ? 'enable' : 'disable', tag)">
+      <z-icon [zType]="tag.isActive === false ? 'circle-check' : 'ban'" class="mr-2" />
+      {{ (tag.isActive === false ? 'XP.TagDirectory.enable' : 'XP.TagDirectory.disable') | translate }}
+    </button>
+    @if (!total(tag)) {
+      <button z-menu-item zType="destructive" (click)="open('delete', tag)">
+        <z-icon zType="trash" class="mr-2 text-destructive!" />
+        <span class="text-destructive">{{ 'XP.TagDirectory.delete' | translate }}</span>
+      </button>
+    }
+  </div></ng-template
+>
+<ng-template #panel>
+  <div class="flex max-h-[90vh] w-[480px] max-w-full flex-col">
+    <header class="flex shrink-0 items-start justify-between gap-4 border-b border-divider-regular p-6">
+      <div>
+        <h3 class="text-lg font-semibold">
+          {{
+            (mode() === 'edit'
+              ? selected()
+                ? 'XP.TagDirectory.Edit'
+                : 'XP.TagDirectory.Create'
+              : 'XP.TagDirectory.' + mode()
+            ) | translate
+          }}
+        </h3>
+        @if (selected()) {
+          <p class="mt-1 text-sm text-text-tertiary">{{ displayName(selected()) }}</p>
+        }
+      </div>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        (click)="close()"
+        [disabled]="saving()"
+        [attr.aria-label]="'XP.TagDirectory.Close' | translate"
+      >
+        <z-icon zType="close" />
+      </button>
+    </header>
+    <div class="min-h-0 flex-1 overflow-y-auto p-6">
+      @if (mode() === 'edit') {
+        <form id="tag-directory-form" [formGroup]="form" (ngSubmit)="save()" class="space-y-5">
+          <z-form-field
+            ><label z-form-label for="tag-directory-name">{{ 'XP.TagDirectory.Name' | translate }}</label
+            ><input z-input id="tag-directory-name" formControlName="name" maxlength="100" /><z-form-control
+              [errorMessage]="form.controls.name.touched && form.controls.name.invalid ? text('NameRequired') : ''"
+          /></z-form-field>
+          <z-form-field
+            ><label z-form-label for="tag-directory-description">{{
+              'XP.TagDirectory.TagDescription' | translate
+            }}</label
+            ><textarea
+              z-input
+              id="tag-directory-description"
+              formControlName="description"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </z-form-field>
+          <fieldset class="space-y-2">
+            <legend class="mb-2 text-sm font-medium">{{ 'XP.TagDirectory.Targets' | translate }}</legend>
+            <div class="grid grid-cols-2 gap-3">
+              @for (target of targets; track target) {
+                <z-checkbox
+                  [ngModel]="form.controls.targets.value.includes(target)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setTarget(target, $event)"
+                  >{{ 'XP.TagDirectory.Target.' + target | translate }}</z-checkbox
+                >
+              }
+            </div>
+            @if (hasLegacyTargets()) {
+              <p class="text-xs text-text-tertiary">{{ 'XP.TagDirectory.LegacyTargetsRetained' | translate }}</p>
+            }
+          </fieldset>
+          <details>
+            <summary class="cursor-pointer text-sm text-text-tertiary">
+              {{ 'XP.TagDirectory.Translations' | translate }}
+            </summary>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+              <z-form-field
+                ><label z-form-label for="tag-directory-en">English</label
+                ><input z-input id="tag-directory-en" formControlName="en_US" maxlength="100" /></z-form-field
+              ><z-form-field
+                ><label z-form-label for="tag-directory-zh">{{ 'XP.TagDirectory.Chinese' | translate }}</label
+                ><input z-input id="tag-directory-zh" formControlName="zh_Hans" maxlength="100"
+              /></z-form-field>
+            </div>
+          </details>
+        </form>
+      } @else if (mode() === 'usage') {
+        @if (selected(); as tag) {
+          <p class="mb-5 text-sm text-text-tertiary">{{ tag.description || text('NoDescription') }}</p>
+          @if (!editable(tag)) {
+            <p class="mb-5 rounded-lg border border-divider-regular p-3 text-sm text-text-tertiary">
+              {{ readOnlyReason(tag) }}
+            </p>
+          }
+          <h4 class="mb-3 text-sm font-medium">{{ 'XP.TagDirectory.UsageByTarget' | translate }}</h4>
+          <p class="mb-3 text-xs text-text-tertiary">{{ 'XP.TagDirectory.UsageExplanation' | translate }}</p>
+          <ul class="divide-y divide-divider-regular">
+            @for (usage of tag.usage; track usage.target) {
+              <li class="py-3 text-sm">
+                <div class="flex items-center justify-between">
+                  <span>{{ 'XP.TagDirectory.Target.' + usage.target | translate }}</span>
+                  <span>{{ 'XP.TagDirectory.UsageCount' | translate: { count: usage.count } }}</span>
+                </div>
+                @if (usage.target === 'knowledgebase') {
+                  <ul class="mt-3 space-y-3">
+                    @for (kb of knowledgeUsage(); track kb.id) {
+                      <li class="space-y-1">
+                        <p class="font-medium">{{ kb.name }}</p>
+                        <p class="text-xs text-text-tertiary">
+                          @if (kb.candidate) {
+                            <span class="mr-2">{{ 'XP.TagDirectory.KnowledgeCandidate' | translate }}</span>
+                          }
+                          {{ 'XP.TagDirectory.KnowledgeDocuments' | translate: { count: kb.documentCount } }}
+                        </p>
+                      </li>
+                    }
+                  </ul>
+                  @if (knowledgeUsageLoading()) {
+                    <p role="status" class="mt-3 text-xs text-text-tertiary">
+                      {{ 'XP.TagDirectory.LoadingKnowledge' | translate }}
+                    </p>
+                  } @else if (knowledgeUsageError()) {
+                    <p role="alert" class="mt-3 text-xs text-text-destructive">{{ knowledgeUsageError() }}</p>
+                    <button
+                      z-button
+                      zType="outline"
+                      zSize="sm"
+                      (click)="loadKnowledgeUsage(knowledgeUsage().length > 0)"
+                    >
+                      {{ 'XP.TagDirectory.Retry' | translate }}
+                    </button>
+                  } @else if (!knowledgeUsage().length) {
+                    <p class="mt-3 text-xs text-text-tertiary">
+                      {{ 'XP.TagDirectory.NoVisibleKnowledge' | translate }}
+                    </p>
+                  }
+                  @if (knowledgeUsage().length < knowledgeUsageTotal() && !knowledgeUsageError()) {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
+                      class="mt-3"
+                      [disabled]="knowledgeUsageLoading()"
+                      (click)="loadKnowledgeUsage(true)"
+                    >
+                      {{ 'XP.TagDirectory.MoreKnowledge' | translate }}
+                    </button>
+                  }
+                  <p class="mt-3 text-xs text-text-tertiary">
+                    {{ 'XP.TagDirectory.VisibleKnowledgeOnly' | translate }}
+                  </p>
+                }
+                @if (usage.target === 'xpert') {
+                  <ul class="mt-3 space-y-3">
+                    @for (expert of xpertUsage(); track expert.id) {
+                      <li class="flex items-start justify-between gap-3" [attr.data-xpert-id]="expert.id">
+                        <span class="min-w-0 break-words font-medium">{{ expert.name || text('UnnamedExpert') }}</span>
+                        <span class="flex shrink-0 flex-wrap justify-end gap-1 text-xs text-text-tertiary">
+                          <span class="rounded border border-divider-regular px-1.5 py-0.5">
+                            @if (expert.version) {
+                              {{ 'XP.TagDirectory.Version' | translate }} {{ expert.version }}
+                            } @else {
+                              {{ 'XP.TagDirectory.UnpublishedExpert' | translate }}
+                            }
+                          </span>
+                          @if (!expert.latest) {
+                            <span class="rounded border border-divider-regular px-1.5 py-0.5">{{
+                              'XP.TagDirectory.HistoricalExpert' | translate
+                            }}</span>
+                          }
+                          @if (expert.deleted) {
+                            <span class="rounded border border-divider-regular px-1.5 py-0.5">{{
+                              'XP.TagDirectory.DeletedExpert' | translate
+                            }}</span>
+                          }
+                        </span>
+                      </li>
+                    }
+                  </ul>
+                  @if (xpertUsageLoading()) {
+                    <p role="status" class="mt-3 text-xs text-text-tertiary">
+                      {{ 'XP.TagDirectory.LoadingExperts' | translate }}
+                    </p>
+                  } @else if (xpertUsageError()) {
+                    <div class="mt-3 space-y-2">
+                      <p role="alert" class="text-xs text-text-destructive">{{ xpertUsageError() }}</p>
+                      <button z-button zType="outline" zSize="sm" (click)="loadXpertUsage(xpertUsage().length > 0)">
+                        {{ 'XP.TagDirectory.Retry' | translate }}
+                      </button>
+                    </div>
+                  } @else if (!xpertUsage().length) {
+                    <p class="mt-3 text-xs text-text-tertiary">{{ 'XP.TagDirectory.NoVisibleExperts' | translate }}</p>
+                  }
+                  @if (xpertUsage().length < xpertUsageTotal() && !xpertUsageError()) {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="sm"
+                      class="mt-3"
+                      [disabled]="xpertUsageLoading()"
+                      (click)="loadXpertUsage(true)"
+                    >
+                      {{ 'XP.TagDirectory.MoreExperts' | translate }}
+                    </button>
+                  }
+                  <p class="mt-3 text-xs text-text-tertiary">{{ 'XP.TagDirectory.VisibleExpertsOnly' | translate }}</p>
+                }
+              </li>
+            } @empty {
+              <li class="py-8 text-center text-sm text-text-tertiary">{{ 'XP.TagDirectory.Unused' | translate }}</li>
+            }
+          </ul>
+          <p class="mt-5 text-xs text-text-tertiary">{{ 'XP.TagDirectory.RetainAssociations' | translate }}</p>
+        }
+      } @else {
+        <p class="text-sm text-text-secondary">{{ 'XP.TagDirectory.Confirm.' + mode() | translate }}</p>
+      }
+    </div>
+    <footer class="shrink-0 space-y-3 border-t border-divider-regular p-5">
+      @if (panelError()) {
+        <p role="alert" class="max-h-24 overflow-y-auto break-words text-sm text-text-destructive">
+          {{ panelError() }}
+        </p>
+      }
+      <div class="flex justify-end gap-2">
+        <button z-button zType="outline" [disabled]="saving()" (click)="close()">
+          {{ 'XP.TagDirectory.Close' | translate }}
+        </button>
+        @if (mode() === 'edit') {
+          <button z-button type="submit" form="tag-directory-form" [disabled]="saving() || !canCreate()">
+            {{ (saving() ? 'XP.TagDirectory.Saving' : 'XP.TagDirectory.Save') | translate }}
+          </button>
+        } @else if (mode() !== 'usage') {
+          <button z-button [disabled]="saving()" (click)="confirm()">
+            {{ (saving() ? 'XP.TagDirectory.Saving' : 'XP.TagDirectory.ConfirmAction') | translate }}
+          </button>
+        }
+      </div>
+    </footer>
+  </div>
+</ng-template>

@@ -35,6 +35,8 @@ export * from './rag'
 export * from './rag-web'
 export * from './knowledgebase.model'
 export * from './knowledge-parser.model'
+export * from './knowledge-table.model'
+export * from './knowledge-chunking.model'
 export * from './knowledge-faq.model'
 export * from './knowledge-wiki.model'
 export * from './knowledge-deletion.model'
@@ -84,3 +86,9 @@ export * from './mcp-auth.model'
 export * from './mcp-audit.model'
 
 export * from './knowledge-wiki-organization.model'
+
+export * from './knowledge-question.model'
+
+export * from './knowledge-tag.model'
+
+export * from './knowledge-parser-selection'

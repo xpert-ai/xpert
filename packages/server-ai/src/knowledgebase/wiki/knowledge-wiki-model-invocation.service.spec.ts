@@ -452,39 +452,42 @@ describe('KnowledgeWikiModelInvocationService', () => {
         expect(textInvoke).toHaveBeenCalledTimes(1)
     })
 
-    it('resolves prefixed citations against the supplied chunks on both new and cached model results', async () => {
-        const { service, invoke, commandBus } = createHarness()
-        invoke.mockResolvedValue({
-            pages: [
-                {
-                    schemaVersion: 1,
-                    pageType: 'concept',
-                    identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
-                    canonicalName: 'Strategy',
-                    aliases: [],
-                    summary: 'A documented strategy.',
-                    facts: [{ text: 'The strategy has an owner.', sourceChunkIds: ['id:chunk-1'] }],
-                    suggestedLinks: []
-                }
-            ]
-        })
-        const run = () =>
-            service.invokeMapModel(
-                job as never,
-                knowledgebase as never,
-                'strategy.pdf',
-                [{ id: 'chunk-1', content: 'The strategy has an owner.' }],
-                0
-            )
+    it.each(['id:chunk-1', 'id":"chunk-1"'])(
+        'grounds %s on new and cached output without another model call',
+        async (sourceId) => {
+            const { service, invoke, commandBus } = createHarness()
+            invoke.mockResolvedValue({
+                pages: [
+                    {
+                        schemaVersion: 1,
+                        pageType: 'concept',
+                        identity: { kind: 'concept', definition: 'A documented strategy.', domain: null, scope: null },
+                        canonicalName: 'Strategy',
+                        aliases: [],
+                        summary: 'A documented strategy.',
+                        facts: [{ text: 'The strategy has an owner.', sourceChunkIds: [sourceId] }],
+                        suggestedLinks: []
+                    }
+                ]
+            })
+            const run = () =>
+                service.invokeMapModel(
+                    job as never,
+                    knowledgebase as never,
+                    'strategy.pdf',
+                    [{ id: 'chunk-1', content: 'The strategy has an owner.' }],
+                    0
+                )
 
-        const first = await run()
-        const replay = await run()
+            const first = await run()
+            const replay = await run()
 
-        expect(first.pages[0].facts).toEqual([{ text: 'The strategy has an owner.', sourceChunkIds: ['chunk-1'] }])
-        expect(replay).toEqual(first)
-        expect(invoke).toHaveBeenCalledTimes(1)
-        expect(commandBus.execute).toHaveBeenCalledTimes(1)
-    })
+            expect(first.pages[0].facts).toEqual([{ text: 'The strategy has an owner.', sourceChunkIds: ['chunk-1'] }])
+            expect(replay).toEqual(first)
+            expect(invoke).toHaveBeenCalledTimes(1)
+            expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        }
+    )
 
     it('reports unusable citations as a validation failure without replaying or misclassifying the model call', async () => {
         const { service, invoke, invocations, commandBus } = createHarness()

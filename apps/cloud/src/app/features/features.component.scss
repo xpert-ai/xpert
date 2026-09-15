@@ -29,8 +29,11 @@ $prefix: (ngm, shell);
 :host {
   @include token-utils.create-token-values($prefix, get-token-slots());
 
-  flex: 1;
+  display: flex;
+  flex: 1 1 0%;
   height: 100%;
+  min-width: 0;
+  width: 100%;
   max-width: 100%;
 }
 

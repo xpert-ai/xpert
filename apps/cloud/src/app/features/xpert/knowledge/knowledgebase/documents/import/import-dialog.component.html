@@ -151,8 +151,10 @@
             <span class="min-w-0"
               ><span class="block text-sm font-medium">{{ prefix + '.' + item.key | translate }}</span>
               <span class="mt-1 block text-xs text-text-tertiary">
-                @if (!item.available || item.id === 'audio' || item.id === 'questions') {
+                @if (!item.available || item.id === 'audio') {
                   {{ prefix + '.Unavailable' | translate }}
+                } @else if (item.id === 'questions') {
+                  {{ prefix + (processing.questionGenerationEnabled() ? '.Enabled' : '.Disabled') | translate }}
                 } @else if (item.id === 'chunks' && chunkSize()) {
                   {{ prefix + '.ChunkSummary' | translate: { size: chunkSize() } }}
                 } @else if (item.id === 'images') {
@@ -165,12 +167,7 @@
                           : '.Inherited') | translate
                   }}
                 } @else {
-                  {{
-                    prefix +
-                      ((onlySheet() ? activeParserConfig().transformerType : processing.config().pdfParser)
-                        ? '.Customized'
-                        : '.Inherited') | translate
-                  }}
+                  {{ prefix + (processing.config().parsers ? '.Customized' : '.Inherited') | translate }}
                 }
               </span>
             </span>
@@ -183,21 +180,22 @@
           {{ (editing ? prefix + '.EditDefaultsHint' : prefix + '.DefaultsHint') | translate }}
         </p>
         <fieldset class="min-w-0" [disabled]="busy()" [hidden]="!activeSection().available">
-          @if (onlySheet()) {
+          @if (onlySheet() && section() === 'images') {
             <xp-knowledge-document-create-settings
               class="block min-w-0"
-              [hidden]="section() === 'audio' || section() === 'questions'"
               [knowledgebaseValue]="data.knowledgebase"
-              [section]="settingsSection()"
-              [documents]="documents()"
-              [(parserConfig)]="sheetParserConfig"
+              section="images"
+              [documents]="documentsWithParserConfig()"
+              [documentConfigIsResolved]="true"
+              [parserConfig]="activeParserConfig()"
+              (parserConfigChange)="updateSheetParserConfig($event)"
             />
           }
-          @if (!onlySheet() || section() === 'audio' || section() === 'questions') {
+          @if (!onlySheet() || section() !== 'images') {
             <xp-knowledge-processing-settings
               class="block min-w-0"
               [form]="processing"
-              [documents]="pendingDocuments()"
+              [documents]="onlySheet() ? documentsWithParserConfig() : pendingDocuments()"
               [section]="processingSection()"
               scope="documents"
               [showHeading]="false"
@@ -229,7 +227,7 @@
             | translate
         "
       >
-        <button z-button zType="outline" [disabled]="!ready() || !canRechunk()" (click)="saveAndProcess('rechunk')">
+        <button z-button zType="outline" [disabled]="!rechunkReady()" (click)="saveAndProcess('rechunk')">
           {{ 'XP.Knowledgebase.RechunkOnly' | translate }}
         </button>
       </span>

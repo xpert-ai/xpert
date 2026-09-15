@@ -1,12 +1,17 @@
 import {
     classificateDocumentCategory,
+    BUILTIN_KNOWLEDGE_PARSER,
+    knowledgeDocumentFileType,
+    knowledgebaseParserSelection,
+    DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
     DocumentParserConfig,
     DocumentSheetParserConfig,
     DocumentTextParserConfig,
     IKnowledgeDocument,
     KBDocumentCategoryEnum,
     KnowledgebaseParserConfig,
-    knowledgebaseDocumentParserDefaults
+    knowledgebaseDocumentParserDefaults,
+    isNativeKnowledgeTableDocument
 } from '@xpert-ai/contracts'
 
 export type ResolvedKnowledgeDocumentParserConfig = DocumentTextParserConfig & Partial<DocumentSheetParserConfig>
@@ -15,9 +20,13 @@ const DEFAULT_RECURSIVE_TEXT_SPLITTER = {
     textSplitterType: 'recursive-character',
     textSplitter: {
         chunkSize: 1000,
-        chunkOverlap: 200,
-        separators: '\\n\\n,\\n, ,'
+        chunkOverlap: 200
     }
+} satisfies DocumentParserConfig
+
+const DEFAULT_TEXT_SPLITTER = {
+    ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    textSplitterType: DEFAULT_KNOWLEDGE_TEXT_SPLITTER
 } satisfies DocumentParserConfig
 
 const DEFAULT_IMAGE_UNDERSTANDING_CONFIG = {
@@ -25,7 +34,7 @@ const DEFAULT_IMAGE_UNDERSTANDING_CONFIG = {
 } satisfies DocumentParserConfig
 
 const DEFAULT_PDF_VISUAL_PARSER_CONFIG = {
-    ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    ...DEFAULT_TEXT_SPLITTER,
     ...DEFAULT_IMAGE_UNDERSTANDING_CONFIG,
     transformerType: 'pdf-visual',
     transformer: {
@@ -36,7 +45,7 @@ const DEFAULT_PDF_VISUAL_PARSER_CONFIG = {
 } satisfies DocumentParserConfig
 
 const DEFAULT_TEXT_DOCUMENT_PARSER_CONFIG = {
-    ...DEFAULT_RECURSIVE_TEXT_SPLITTER,
+    ...DEFAULT_TEXT_SPLITTER,
     transformerType: 'default'
 } satisfies DocumentParserConfig
 
@@ -64,15 +73,16 @@ const IMAGE_EXTENSIONS = new Set([
 ])
 
 export function resolveKnowledgeDocumentParserConfig(
-    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig'>,
+    document: Pick<Partial<IKnowledgeDocument>, 'type' | 'category' | 'parserConfig' | 'sourceConfig'>,
     knowledgebaseDefaults?: KnowledgebaseParserConfig | null
 ): ResolvedKnowledgeDocumentParserConfig {
-    const type = normalizeDocumentType(document.type)
+    const type = knowledgeDocumentFileType({ type: document.type })
     const category =
         document.category ??
         (type ? classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>) : KBDocumentCategoryEnum.Text)
     const defaults = defaultParserConfigFor(type, category)
     const explicit = sanitizeParserConfigForDocument(document.parserConfig, type, category)
+    const nativeTable = isNativeKnowledgeTableDocument({ ...document, type, category, parserConfig: explicit })
     const inherited =
         category === KBDocumentCategoryEnum.Text || category === KBDocumentCategoryEnum.Image
             ? sanitizeParserConfigForDocument(
@@ -80,8 +90,35 @@ export function resolveKnowledgeDocumentParserConfig(
                   type,
                   category
               )
-            : {}
-    const effective = mergeParserConfig(mergeParserConfig(defaults, inherited), explicit)
+            : category === KBDocumentCategoryEnum.Sheet
+              ? defined({
+                    ...knowledgebaseParserSelection(knowledgebaseDefaults, type),
+                    questionGeneration: knowledgebaseDefaults?.questionGeneration,
+                    ...(nativeTable
+                        ? {
+                              tableMetadataRequirements: knowledgebaseDefaults?.tableMetadataRequirements,
+                              ...(type !== 'csv' && knowledgebaseDefaults?.spreadsheet
+                                  ? {
+                                        spreadsheet: { ...knowledgebaseDefaults.spreadsheet }
+                                    }
+                                  : {})
+                          }
+                        : {})
+                })
+              : {}
+    const expandBuiltin = (config: ResolvedKnowledgeDocumentParserConfig): ResolvedKnowledgeDocumentParserConfig =>
+        config.transformerType === BUILTIN_KNOWLEDGE_PARSER
+            ? {
+                  ...config,
+                  transformerType: type === 'pdf' ? 'pdf-visual' : 'default',
+                  transformer:
+                      type === 'pdf'
+                          ? { ...DEFAULT_PDF_VISUAL_PARSER_CONFIG.transformer, ...config.transformer }
+                          : config.transformer,
+                  transformerIntegration: undefined
+              }
+            : config
+    const effective = mergeParserConfig(mergeParserConfig(defaults, expandBuiltin(inherited)), expandBuiltin(explicit))
     const result = mergeParserConfig(defaults, effective)
     if (result.imageUnderstandingEnabled === false) {
         delete result.imageUnderstandingType
@@ -131,6 +168,8 @@ function sanitizeParserConfigForDocument(
     const splitter = defined({ textSplitterType: config.textSplitterType, textSplitter: config.textSplitter })
     if (category === KBDocumentCategoryEnum.Sheet) {
         return defined({
+            tableMetadataRequirements: config.tableMetadataRequirements,
+            questionGeneration: config.questionGeneration,
             fields: config.fields,
             indexedFields: config.indexedFields,
             spreadsheet: config.spreadsheet,
@@ -154,6 +193,9 @@ function sanitizeParserConfigForDocument(
             : undefined
     return defined({
         pages: config.pages,
+        maxChunkTokens: config.maxChunkTokens,
+        chunkLanguageHint: config.chunkLanguageHint,
+        questionGeneration: config.questionGeneration,
         replaceWhitespace: config.replaceWhitespace,
         removeSensitive: config.removeSensitive,
         ...splitter,
@@ -176,6 +218,8 @@ function mergeParserConfig(
     explicit: ResolvedKnowledgeDocumentParserConfig
 ): ResolvedKnowledgeDocumentParserConfig {
     const transformerChanged = !!explicit.transformerType && explicit.transformerType !== defaults.transformerType
+    const integrationChanged =
+        !!explicit.transformerIntegration && explicit.transformerIntegration !== defaults.transformerIntegration
     const splitterChanged = !!explicit.textSplitterType && explicit.textSplitterType !== defaults.textSplitterType
     const understandingChanged =
         !!explicit.imageUnderstandingType && explicit.imageUnderstandingType !== defaults.imageUnderstandingType
@@ -183,11 +227,17 @@ function mergeParserConfig(
         ...defaults,
         ...explicit,
         textSplitter: splitterChanged
-            ? explicit.textSplitter
+            ? explicit.textSplitterType === 'recursive-character'
+                ? mergeOptions(DEFAULT_RECURSIVE_TEXT_SPLITTER.textSplitter, explicit.textSplitter)
+                : explicit.textSplitter
             : mergeOptions(defaults.textSplitter, explicit.textSplitter),
-        transformer: transformerChanged
-            ? explicit.transformer
-            : mergeOptions(defaults.transformer, explicit.transformer),
+        transformerIntegration: transformerChanged
+            ? explicit.transformerIntegration
+            : (explicit.transformerIntegration ?? defaults.transformerIntegration),
+        transformer:
+            transformerChanged || integrationChanged
+                ? explicit.transformer
+                : mergeOptions(defaults.transformer, explicit.transformer),
         spreadsheet: mergeOptions(defaults.spreadsheet, explicit.spreadsheet),
         imageUnderstanding: understandingChanged
             ? explicit.imageUnderstanding
@@ -211,10 +261,6 @@ function defined<T extends object>(input: T): T {
         if (result[key] === undefined) delete result[key]
     }
     return result
-}
-
-function normalizeDocumentType(type: unknown) {
-    return normalizeString(type).replace(/^\./, '')
 }
 
 function normalizeString(value: unknown) {

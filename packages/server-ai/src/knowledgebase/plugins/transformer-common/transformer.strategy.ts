@@ -3,7 +3,13 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
-import { IconType, IKnowledgeDocument, KBDocumentCategoryEnum } from '@xpert-ai/contracts'
+import {
+    BUILTIN_KNOWLEDGE_FILE_TYPES,
+    IconType,
+    IKnowledgeDocument,
+    KBDocumentCategoryEnum,
+    knowledgeDocumentFileType
+} from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
     ChunkMetadata,
@@ -44,11 +50,11 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     ]
 
     readonly meta = {
-        supportedFileTypes: ['pdf'],
+        supportedFileTypes: BUILTIN_KNOWLEDGE_FILE_TYPES,
         name: Default,
         label: {
-            en_US: 'Default',
-            zh_Hans: '默认'
+            en_US: 'Builtin text',
+            zh_Hans: '内置文本解析'
         },
         description: {
             en_US: 'Default text transformer.',
@@ -109,7 +115,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             const runtimeFileUrl = resolvedFile.runtimeFileUrl
 
             let data: DocumentInterface[]
-            const extension = file.name?.split('.').pop()
+            const extension = knowledgeDocumentFileType(file) || file.name?.split('.').pop()
             switch (extension?.toLowerCase()) {
                 case 'md':
                 case 'mdx':
@@ -135,6 +141,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
                 case 'pptx':
                     data = await this.processPPT(fileAbsPath)
                     break
+                case 'csv':
+                case 'xls':
                 case 'xlsx':
                     data = await this.processExcel(fileAbsPath)
                     break
@@ -293,7 +301,13 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     }
 
     async processMarkdown(url: string): Promise<Document<ChunkMetadata>[]> {
-        return this.processText(url)
+        return (await this.processText(url)).map(
+            (document) =>
+                new Document({
+                    pageContent: document.pageContent,
+                    metadata: { ...document.metadata, contentFormat: 'markdown' }
+                })
+        )
     }
 
     async processPdf(url: string): Promise<Document<ChunkMetadata>[]> {
@@ -341,12 +355,24 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
             }
         }
         const loader = new DocxLoader(filePath)
-        return toChunkDocuments(await loader.load())
+        return toChunkDocuments(await loader.load()).map(
+            (document) =>
+                new Document({
+                    pageContent: document.pageContent,
+                    metadata: { ...document.metadata, contentFormat: 'text' }
+                })
+        )
     }
 
     async processText(url: string): Promise<Document<ChunkMetadata>[]> {
         const loader = new TextLoader(url)
-        return toChunkDocuments(await loader.load())
+        return toChunkDocuments(await loader.load()).map(
+            (document) =>
+                new Document({
+                    pageContent: document.pageContent,
+                    metadata: { ...document.metadata, contentFormat: 'text' }
+                })
+        )
     }
 
     async processPPT(url: string): Promise<Document<ChunkMetadata>[]> {

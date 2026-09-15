@@ -12,6 +12,13 @@ import { instanceToPlain } from 'class-transformer'
 import { KnowledgebaseDetailDTO } from './knowledgebase-detail.dto'
 
 describe('KnowledgebaseDetailDTO', () => {
+    it('exposes saved automatic tagging settings in the detail response', () => {
+        const automaticTagging = { enabled: true, maxTags: 5, confidenceThreshold: 0.8, allowWithManualTags: false }
+        expect(instanceToPlain(new KnowledgebaseDetailDTO({ id: 'kb', automaticTagging }))).toMatchObject({
+            automaticTagging
+        })
+    })
+
     it('preserves published source nodes for document import without exposing draft or linked expert graphs', () => {
         const source: IWFNSource<{ fileExtensions: string[] }> = {
             id: 'source-1',

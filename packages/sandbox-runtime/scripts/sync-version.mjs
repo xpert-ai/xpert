@@ -22,6 +22,11 @@ for (const entry of catalog.images) {
   const runnerPath = image.runner ?? path.join('images', entry.family, 'runtime', 'runner-host.mjs')
   const runner = await readFile(path.join(packageRoot, runnerPath))
   const runnerHostSha256 = createHash('sha256').update(runner).digest('hex')
+  const requirementsSha256 = image.pythonRequirements
+    ? createHash('sha256')
+        .update(await readFile(path.join(packageRoot, image.pythonRequirements)))
+        .digest('hex')
+    : undefined
   let modelCatalogSha256
   if (image.resourceCatalog) {
     const resourceCatalog = await readJson(image.resourceCatalog)
@@ -50,6 +55,7 @@ for (const entry of catalog.images) {
   const manifest = await readJson(image.manifest)
   manifest.sandboxRuntimeVersion = suite.version
   manifest.runnerHostSha256 = runnerHostSha256
+  if (requirementsSha256) manifest.requirementsSha256 = requirementsSha256
   if (modelCatalogSha256) manifest.modelCatalogSha256 = modelCatalogSha256
   await writeJson(image.manifest, manifest)
   const runtimeDefinition = await readJson(image.runtimeDefinition)
@@ -57,6 +63,7 @@ for (const entry of catalog.images) {
   if (runtimeDefinition.expectedManifest) {
     runtimeDefinition.expectedManifest.sandboxRuntimeVersion = suite.version
     runtimeDefinition.expectedManifest.runnerHostSha256 = runnerHostSha256
+    if (requirementsSha256) runtimeDefinition.expectedManifest.requirementsSha256 = requirementsSha256
     if (modelCatalogSha256) runtimeDefinition.expectedManifest.modelCatalogSha256 = modelCatalogSha256
   }
   await writeJson(image.runtimeDefinition, runtimeDefinition)

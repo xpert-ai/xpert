@@ -3,7 +3,7 @@ import { ConfigService } from '@xpert-ai/server-config'
 import { Injectable, Logger, Type, Inject, NotFoundException } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
+import { DeepPartial, FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
 import {
     IBuiltinTool,
@@ -28,6 +28,7 @@ import { createBuiltinToolset } from './provider/builtin'
 import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
+import { assertValidTagAssociations } from '../shared/tag-associations'
 
 const DEFAULT_MCP_AVATAR: TAvatar = {
     url:
@@ -96,7 +97,17 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
     async update(id: string, entity: Partial<XpertToolset>) {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
-        return await super.save(_entity)
+        return await this.save(_entity)
+    }
+
+    async create(entity: DeepPartial<XpertToolset>, ...options: unknown[]) {
+        await assertValidTagAssociations(this.repository, this.workspaceAccessService, entity, TagCategoryEnum.TOOLSET)
+        return super.create(entity, ...options)
+    }
+
+    async save(entity: DeepPartial<XpertToolset>) {
+        await assertValidTagAssociations(this.repository, this.workspaceAccessService, entity, TagCategoryEnum.TOOLSET)
+        return super.save(entity)
     }
 
     async getAllByWorkspace(

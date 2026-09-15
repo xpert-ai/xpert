@@ -2307,6 +2307,8 @@
       "Logout": "退出賬號",
       "Integration": "集成",
       "HOME": {
+        "ParserCoverageIncomplete": "完成，但有內容未識別",
+        "ParserCoveragePages": "第 {{pages}} 頁仍有內容未識別。請開啟圖像理解並設定可用的視覺模型，或選擇 OCR 解析器後重新處理。",
         "TODAY": "今天",
         "Catalog": "目錄",
         "Trending": "熱門",
@@ -5068,6 +5070,34 @@
       "Unavailable": "請先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "TableMetadata": {
+        "Title": "表格中繼資料",
+        "Scope": "適用於預設解析器的 CSV/XLS/XLSX 記錄模式。表單文件、自訂解析器、文字模式及管線暫不支援。",
+        "RequirementsHelp": "可補充業務背景，留空使用預設要求。新匯入或明確重新處理時，使用知識庫 LLM 產生表格說明和欄位說明。",
+        "InvalidRequirements": "表格中繼資料產生要求不能超過 4000 字。",
+        "InvalidIndexedFields": "已選索引欄位與目前表格不一致，請預覽後重新選擇。",
+        "NoIndexedFields": "請至少選擇一個索引欄位。",
+        "ReprocessHint": "可透過文件處理設定重新處理，重試中繼資料產生。",
+        "Column": "欄位",
+        "Description": "欄位說明",
+        "Unit": "單位",
+        "ValueMeanings": "值含義",
+        "Dimensions": "{{rows}} 列 · {{columns}} 欄",
+        "NotGenerated": "尚未產生表格中繼資料。",
+        "SelectAllFields": "選擇目前全部欄位",
+        "Status": {
+          "generating": "正在產生",
+          "generated": "已產生，等待索引",
+          "ready": "已就緒",
+          "failed": "產生失敗",
+          "skipped": "已略過"
+        },
+        "Reason": {
+          "missing_model": "請設定知識庫 LLM 後產生表格中繼資料。",
+          "no_data": "沒有可用於產生中繼資料的資料。",
+          "unsupported": "目前解析模式不支援表格中繼資料。"
+        }
+      },
       "PipelineFlow": {
         "Source": "選擇資料來源",
         "Settings": "處理設定",
@@ -5115,6 +5145,8 @@
         "BatchOtherFormats": "此格式使用現有文件解析流程。"
       },
       "Import": {
+        "TableMetadata": "表格中繼資料",
+        "InvalidIndexedFields": "已選索引欄位與目前表格不一致，請預覽後重新選擇。",
         "EditDefaultsHint": "這裡的修改只作用於目前文件，儲存後執行所選處理操作。",
         "Close": "關閉",
         "Cancel": "取消",
@@ -5419,7 +5451,14 @@
           "LoadingStrategies": "正在加载可用策略…",
           "Retry": "重试",
           "PdfHelp": "为新导入的 PDF 选择默认解析器，文档可以单独覆盖。",
-          "InheritParser": "使用平台 PDF 默认设置",
+          "SelectParser": "請選擇解析器",
+          "NoParser": "暫無可用解析器",
+          "BuiltinParser": "内置解析器",
+          "MissingIntegration": "请为解析器选择可用集成。",
+          "GroupParserFallback": "{{formats}} 不受所選解析器支援，將使用系統預設解析器。",
+          "MixedParserSettings": "此組已有不同設定；重新選擇解析器後統一套用。",
+          "MixedParserSelection": "已設定多個解析器",
+          "NoFormatParser": "当前没有可用解析器声明支持此格式。",
           "ProviderUnavailable": "此策略不可用，请重新选择",
           "OtherFormats": "使用现有文档解析流程；库级选择待接入",
           "DefaultsHelp": "设置作为后续导入文档的默认值；文档显式配置优先。已有文档不会自动重建。",
@@ -5436,7 +5475,8 @@
           "PreviewLoading": "正在分块…",
           "PreviewRun": "测试分块效果",
           "PreviewCount": "共 {{count}} 个普通块 / 父块，下方缩进显示子块",
-          "InvalidLimits": "分块大小必须是正整数，重叠值必须大于等于 0 且小于分块大小。"
+          "InvalidLimits": "分块大小必须是正整数，重叠值必须大于等于 0 且小于分块大小。",
+          "PreviewTokens": "{{count}} tokens (cl100k_base)"
         },
         "Close": "關閉",
         "NavigationLabel": "知識庫設置導航",
@@ -5592,6 +5632,8 @@
             "Builtin": "內置",
             "SimpleDefault": "Simple（預設）"
           },
+          "FirstRowAsHeader": "首列作為標頭",
+          "FirstRowAsHeaderHelp": "僅適用於 Excel 記錄模式。使用範圍的首列提供欄名；關閉後首列保留為資料，欄名使用 A/B/C。",
           "ExcelHeaderRow": "將首列作為欄位標題，並保留在每列上下文中。"
         },
         "Chunk": {
@@ -5619,7 +5661,7 @@
           "ParentChildDescription": "使用較小的子塊進行精確召回，並用較大的父塊補充上下文；推薦用於長文件和複雜問答。",
           "AdvancedOptions": "高級選項",
           "MaxChunkTokens": "每塊 Token 上限",
-          "MaxChunkTokensDescription": "每個分塊的可選 Token 上限（0–8192）。設為 0 時關閉，繼續按字元數切分。",
+          "MaxChunkTokensDescription": "在字元分塊基礎上進一步限制 Token 數（0–8192），0 表示關閉。預覽與處理統一按 cl100k_base 計數。適用於一般文字塊及檢索子塊，父塊上下文保持完整。",
           "LanguageHint": "語言提示",
           "LanguageHintDescription": "指定分塊器優先識別的語言，或保留自動檢測。",
           "LanguageOptions": {
@@ -5638,7 +5680,8 @@
             "Question": "問號 (?)",
             "ChineseSemicolon": "中文分號 (；)",
             "EnglishSemicolon": "英文分號 (;)"
-          }
+          },
+          "InvalidTokenLimit": "請輸入 0–8192 的整數，0 表示關閉 Token 上限。"
         },
         "Image": {
           "Description": "配置圖片理解策略，幫助知識庫擷取圖片中的文字和語義。",
@@ -5692,8 +5735,8 @@
           "Description": "配置問題產生等進階功能。",
           "QuestionGeneration": "AI 問題產生",
           "QuestionGenerationDescription": "解析文件時調用大模型為每個分塊產生相關問題，提高檢索召回率。啟用後會增加文件解析耗時。",
-          "QuestionCount": "產生問題數量",
-          "QuestionCountDescription": "每個文件分塊產生的問題數量（1–10）。",
+          "QuestionCount": "最多產生問題數",
+          "QuestionCountDescription": "每個分塊最多產生的問題數（1–10）。內容不足時可能少產生或不產生，不會為湊數編造問題。",
           "QuestionRequirements": "問題產生要求",
           "QuestionRequirementsDescription": "指定問題面向的人群、場景和表達方式，系統仍維持穩定輸出格式。",
           "QuestionRequirementsPlaceholder": "例如：產生客服使用者常問的自然語言問題，避免考試題式表達...",
@@ -5798,6 +5841,7 @@
       "PageRangeQuotaExceeded": "第 {{start}}–{{end}} 頁：額度不足",
       "ProcessingResult": "處理結果",
       "ParsingEngine": "解析引擎",
+      "ParserNotRecorded": "未記錄解析器",
       "LastRun": "最後執行",
       "Provider": "提供商",
       "ProcessingStages": "處理階段",
@@ -6158,7 +6202,25 @@
       "GraphWeight": "圖譜權重",
       "NeighborHops": "鄰域跳數",
       "EntityTopK": "實體 Top K",
-      "GraphRAG": "GraphRAG"
+      "GraphRAG": "GraphRAG",
+      "Questions": {
+        "Title": "AI 問題生成",
+        "Help": "切塊後生成使用者可能提出的問題，增加檢索入口。回答和引用仍使用原文。開啟後會增加模型呼叫和向量化用量。",
+        "Model": "問題生成模型",
+        "MissingModel": "請選擇問題生成模型。",
+        "InvalidSettings": "問題數量須為 1–10 的整數，額外要求不超過 4000 字元。",
+        "Child": "子塊 {{index}}",
+        "Generating": "正在生成問題並建立索引…",
+        "Empty": "暫無生成的問題。",
+        "ManageHelp": "這些問題用於輔助檢索原文。重新生成可能產生模型呼叫和向量化費用。",
+        "Regenerate": "重新生成問題",
+        "Generate": "生成問題",
+        "Retry": "重試問題生成",
+        "Loading": "正在載入問題狀態…",
+        "DisabledHelp": "AI 問題生成已關閉。如需生成或重試，請在文件處理設定中開啟。",
+        "RetryIndexHelp": "已儲存生成的問題。原文和設定未變時，重試會重用這些問題，僅重建檢索索引，可能產生向量化費用。",
+        "InsufficientContent": "目前分塊缺少可用於檢索的有效資訊，本次未生成問題。"
+      }
     },
     "Integration": {
       "Integration": "集成",

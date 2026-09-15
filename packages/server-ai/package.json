@@ -73,6 +73,7 @@
         "lodash": "^4.17.21",
         "lodash-es": "^4.17.21",
         "lucide-react": "^1.21.0",
+        "marked": "^17.0.2",
         "mime-types": "2.1.35",
         "nestjs-i18n": "^10.5.1",
         "node-pty": "^1.0.0",

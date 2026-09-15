@@ -1,3 +1,6 @@
+import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
+import { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
+import { AutomaticTaggingSettingsComponent } from '../tags/automatic-tagging-settings.component'
 import { createKnowledgeProcessingForm } from '../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
 import { KnowledgeChunkPreviewComponent } from './chunk-preview.component'
@@ -81,6 +84,8 @@ type KnowledgeDialogData = {
   selector: 'xp-new-knowledge',
   standalone: true,
   imports: [
+    AutomaticTaggingSettingsComponent,
+    KnowledgeTagsComponent,
     KnowledgeProcessingSettingsComponent,
     KnowledgeChunkPreviewComponent,
     CommonModule,
@@ -187,8 +192,10 @@ export class XpertNewKnowledgeComponent {
   readonly embeddingBatchSize = model<number | null>(this.#initialKnowledgebase?.parserConfig?.embeddingBatchSize ?? 16)
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
 
-  readonly automaticTaggingEnabled = model(false)
-  readonly tableMetadataRequirements = model('')
+  readonly tagKnowledgebaseId = this.#initialKnowledgebase?.id
+  readonly automaticTagging = model<KnowledgeAutomaticTaggingConfig>(
+    this.#initialKnowledgebase?.automaticTagging ?? { enabled: false }
+  )
 
   readonly retrieval = model<Partial<IKnowledgebase & TKBRetrievalSettings>>({
     recall: this.isFAQ()
@@ -401,7 +408,11 @@ export class XpertNewKnowledgeComponent {
 
     const processingError = !this.isFAQ() && this.processing.validation()
     if (processingError) {
-      this.activeSection.set(processingError.section === 'questions' ? 'advanced' : processingError.section)
+      this.activeSection.set(
+        processingError.section === 'questions' || processingError.section === 'table'
+          ? 'advanced'
+          : processingError.section
+      )
       this.#toastr.error(this.#translate.instant(processingError.key))
       return false
     }
@@ -467,7 +478,8 @@ export class XpertNewKnowledgeComponent {
       rerankModelId: retrieval.rerankModel?.id ?? retrieval.rerankModelId ?? null,
       graphRag,
       parserConfig: this.isFAQ() ? this.#initialKnowledgebase?.parserConfig : this.buildParserConfig(),
-      incrementalSyncEnabled: this.incrementalSyncEnabled()
+      incrementalSyncEnabled: this.incrementalSyncEnabled(),
+      automaticTagging: this.automaticTagging()
     }
 
     if (!this.isEditMode()) {
