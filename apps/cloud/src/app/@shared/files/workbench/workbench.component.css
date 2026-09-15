@@ -1,5 +1,8 @@
 :host {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
   height: 100%;
   min-height: 0;
   gap: 1rem;
@@ -50,6 +53,13 @@
 }
 
 @media (min-width: 640px) {
+  /* The host collapses to one column when the tree is hidden. Hide the
+   * navigation explicitly so its base display:flex rule cannot leave it as
+   * the first row of that single-column layout. */
+  :host(.xp-file-workbench--tree-hidden) .xp-file-workbench__navigation {
+    display: none;
+  }
+
   :host(.xp-file-workbench--library) {
     gap: 0;
     grid-template-columns: minmax(250px, 296px) minmax(0, 1fr);
@@ -57,10 +67,6 @@
 
   :host(.xp-file-workbench--library.xp-file-workbench--tree-hidden) {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  :host(.xp-file-workbench--library.xp-file-workbench--tree-hidden) .xp-file-workbench__navigation {
-    display: none;
   }
 
   :host(.xp-file-workbench--library:not(.xp-file-workbench--tree-hidden)) .xp-file-workbench__navigation {
