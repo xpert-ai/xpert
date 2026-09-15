@@ -8,6 +8,7 @@ export const MCP_TASK_EXTENSION_ID = 'io.modelcontextprotocol/tasks' as const
 
 export const MCP_HTTP_CORS_REQUEST_HEADERS = [
   'MCP-Protocol-Version',
+  'Mcp-Session-Id',
   'Mcp-Method',
   'Mcp-Name',
   'Traceparent',
@@ -16,7 +17,12 @@ export const MCP_HTTP_CORS_REQUEST_HEADERS = [
   'X-Request-Id'
 ] as const
 
-export const MCP_HTTP_CORS_EXPOSED_HEADERS = ['WWW-Authenticate', 'MCP-Protocol-Version', 'X-Request-Id'] as const
+export const MCP_HTTP_CORS_EXPOSED_HEADERS = [
+  'WWW-Authenticate',
+  'MCP-Protocol-Version',
+  'Mcp-Session-Id',
+  'X-Request-Id'
+] as const
 
 export const MCP_PUBLICATION_STATUSES = ['draft', 'active', 'disabled'] as const
 export type McpPublicationStatus = (typeof MCP_PUBLICATION_STATUSES)[number]
