@@ -21,7 +21,8 @@
           "node packages/sandbox-runtime/scripts/install-ai-resources.test.mjs",
           "node packages/sandbox-runtime/images/browser/tests/runner-host.test.mjs",
           "node packages/sandbox-runtime/images/browser-video/tests/runtime-contract.test.mjs",
-          "node packages/sandbox-runtime/images/document/tests/runtime-contract.test.mjs"
+          "node packages/sandbox-runtime/images/document/tests/runtime-contract.test.mjs",
+          "node --test packages/sandbox-runtime/images/document-python/tests/runtime-contract.test.mjs"
         ],
         "parallel": false,
         "cwd": "."

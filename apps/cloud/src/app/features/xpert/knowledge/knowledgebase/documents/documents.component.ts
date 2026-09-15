@@ -1,3 +1,4 @@
+import { ParserCoverageComponent } from './parser-coverage.component'
 import { injectDocumentTags } from '../../tags/document-tags-refresh'
 import { DocumentTagsCellComponent } from '../../tags/document-tags-cell.component'
 import { DocumentImportMenuComponent } from './import/import-menu.component'
@@ -274,6 +275,7 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
+    ParserCoverageComponent,
     DocumentTagsCellComponent,
     DocumentImportMenuComponent,
     RouterModule,

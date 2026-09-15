@@ -836,6 +836,8 @@
       }
     },
     "Knowledgebase": {
+      "ParserCoverageIncomplete": "Completed with unrecognized content",
+      "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "AutomaticTagging": {
         "Title": "Automatic tagging",
         "Description": "After processing, classify documents using only the existing tags selected for this knowledgebase.",

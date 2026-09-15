@@ -7,7 +7,7 @@ import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.servi
 import { KnowledgeDocLoadHandler } from './load.handler'
 import { RecursiveCharacterStrategy } from '../../../knowledgebase/plugins/textsplitter-common/recursive-character.strategy'
 import { countTextTokens } from '@xpert-ai/plugin-sdk'
-import { computeObjectHash } from '@xpert-ai/server-core'
+import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
 import { pick } from '@xpert-ai/server-common'
 import * as language from '../../chunk-language'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -430,6 +430,9 @@ describe('KnowledgeDocLoadHandler', () => {
     })
 
     it('falls back to text chunks and records a warning when image understanding cannot resolve a vision model', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         const transformedChunk = new Document({
             pageContent: 'Page text\n\n![Page 1](https://files.local/page-1.png)',
             metadata: {
@@ -526,6 +529,9 @@ describe('KnowledgeDocLoadHandler', () => {
                     category: KBDocumentCategoryEnum.Text,
                     knowledgebaseId: 'kb-1',
                     filePath: 'manual.pdf',
+                    parserConfig: {
+                        transformer: { fileScope: { tenantId: 'forged-tenant', scopeId: 'forged-kb' } }
+                    },
                     status: KBDocumentStatusEnum.RUNNING
                 } as any,
                 stage: 'prod'
@@ -533,6 +539,19 @@ describe('KnowledgeDocLoadHandler', () => {
         )
 
         expect(result.chunks).toEqual([splitChunk])
+        expect(transformer.transformDocuments).toHaveBeenCalledWith(
+            expect.any(Array),
+            expect.objectContaining({
+                fileScope: {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'user-1',
+                    catalog: 'knowledges',
+                    knowledgeId: 'kb-1',
+                    scopeId: 'kb-1'
+                }
+            })
+        )
         expect(knowledgebaseService.getVisionModel).toHaveBeenCalledWith('kb-1', undefined)
         expect(kbDocumentService.update).toHaveBeenCalledWith(
             'doc-1',
@@ -828,6 +847,21 @@ describe('selected knowledge parsers execute the selected provider', () => {
             )
         return { run, mineru, baidu, get, snapshotLoad, execute }
     }
+
+    it.each([
+        ['plain', 'txt'],
+        ['text/plain; charset=utf-8', 'txt'],
+        ['vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx'],
+        ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'pptx']
+    ])('normalizes uploaded type %s at the transformer boundary', async (type, extension) => {
+        const f = fixture()
+        f.mineru.meta.supportedFileTypes = [extension]
+        await f.run(type, 'mineru', 'mineru-connection')
+        expect(f.mineru.transformDocuments).toHaveBeenCalledWith(
+            [expect.objectContaining({ type: extension })],
+            expect.anything()
+        )
+    })
 
     it('sends the selected connection and options to the matching parser and invalidates conversion cache on changes', async () => {
         const f = fixture()

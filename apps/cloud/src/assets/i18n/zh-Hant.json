@@ -2307,6 +2307,8 @@
       "Logout": "退出賬號",
       "Integration": "集成",
       "HOME": {
+        "ParserCoverageIncomplete": "完成，但有內容未識別",
+        "ParserCoveragePages": "第 {{pages}} 頁仍有內容未識別。請開啟圖像理解並設定可用的視覺模型，或選擇 OCR 解析器後重新處理。",
         "TODAY": "今天",
         "Catalog": "目錄",
         "Trending": "熱門",
