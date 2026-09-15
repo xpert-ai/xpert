@@ -1,11 +1,11 @@
 @reference "../../../../../styles/tailwind-reference.css";
 
 :host {
-  @apply block h-full min-h-0 overflow-hidden;
+  @apply flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden;
 }
 
 .workspace-files-page {
-  @apply flex h-full min-h-0 flex-col overflow-hidden bg-background-body;
+  @apply flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-background-body;
 }
 
 .workspace-files-page__workbench {
