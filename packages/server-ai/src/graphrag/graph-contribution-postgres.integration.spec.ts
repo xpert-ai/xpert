@@ -11,6 +11,10 @@ import {
     KnowledgeGraphRelationContribution
 } from './entities'
 import { GraphragService } from './graphrag.service'
+import { KnowledgeIdentity } from '../knowledgebase/identity/knowledge-identity.entity'
+import { KnowledgeIdentityObservation } from '../knowledgebase/identity/knowledge-identity-observation.entity'
+import { persistStructuredGraph } from './structured-graph-writer'
+import { toStructuredExtraction } from './structured-graph-model'
 
 const postgresDescribe = process.env.KNOWLEDGE_GRAPH_PG_E2E === '1' ? describe : describe.skip
 const schema = `graph_contributions_${randomUUID().replace(/-/g, '')}`
@@ -22,7 +26,8 @@ const common = {
     organizationId: { type: 'uuid' },
     description: { type: 'text', nullable: true },
     confidence: { type: 'float', nullable: true },
-    revision: { type: 'int' }
+    revision: { type: 'int' },
+    metadata: { type: 'jsonb', nullable: true }
 } satisfies { [key: string]: EntitySchemaColumnOptions }
 const identity = {
     ...common,
@@ -35,7 +40,8 @@ const contribution = {
     ...common,
     sourceDocumentIdSnapshot: { type: 'uuid' },
     sourceContentHash: { type: 'varchar' },
-    sourcePublicationEpoch: { type: 'int' }
+    sourcePublicationEpoch: { type: 'int' },
+    properties: { type: 'jsonb', nullable: true }
 } satisfies { [key: string]: EntitySchemaColumnOptions }
 
 postgresDescribe('Graph contribution concurrency', () => {
@@ -54,6 +60,41 @@ postgresDescribe('Graph contribution concurrency', () => {
             schema,
             extra: { options: `-c search_path=${schema}`, statement_timeout: 5000 },
             entities: [
+                new EntitySchema<KnowledgeIdentity>({
+                    name: KnowledgeIdentity.name,
+                    target: KnowledgeIdentity,
+                    tableName: 'knowledge_identity',
+                    columns: {
+                        id: common.id,
+                        knowledgebaseId: common.knowledgebaseId,
+                        tenantId: common.tenantId,
+                        organizationId: common.organizationId,
+                        kind: { type: 'varchar' },
+                        revision: common.revision
+                    }
+                }),
+                new EntitySchema<KnowledgeIdentityObservation>({
+                    name: KnowledgeIdentityObservation.name,
+                    target: KnowledgeIdentityObservation,
+                    tableName: 'knowledge_identity_observation',
+                    columns: {
+                        id: common.id,
+                        knowledgebaseId: common.knowledgebaseId,
+                        tenantId: common.tenantId,
+                        organizationId: common.organizationId,
+                        identityId: { type: 'uuid' },
+                        sourceDocumentIdSnapshot: { type: 'uuid' },
+                        sourceContentHash: { type: 'varchar' },
+                        sourcePublicationEpoch: { type: 'int' },
+                        consumer: { type: 'varchar' },
+                        extractionId: { type: 'uuid' },
+                        isCurrent: { type: 'boolean' },
+                        candidateKey: { type: 'varchar' },
+                        sourceKey: { type: 'varchar' },
+                        payload: { type: 'jsonb' },
+                        decision: { type: 'jsonb' }
+                    }
+                }),
                 new EntitySchema<KnowledgeGraphMention>({
                     name: KnowledgeGraphMention.name,
                     target: KnowledgeGraphMention,
@@ -145,6 +186,106 @@ postgresDescribe('Graph contribution concurrency', () => {
             sourcePublicationEpoch: 1,
             revision: 1
         })
+
+    it('publishes exact identities, retries idempotently and retracts only its own source atomically', async () => {
+        const a = job(),
+            b = job(),
+            chunkId = randomUUID(),
+            materialKey = randomUUID()
+        const makeSnapshot = (source: KnowledgeGraphIndexJob) =>
+            toStructuredExtraction({
+                knowledgebaseId: scope.knowledgebaseId,
+                documentId: source.documentId,
+                xpertId: randomUUID(),
+                agentKey: 'AutomotiveAgent',
+                publicationKey: source.documentId,
+                sourceVersion: 'R1',
+                chunkIds: [chunkId],
+                entities: [
+                    {
+                        id: 'assembly',
+                        namespace: source.documentId,
+                        nodeKey: 'AUTO-ASSEMBLY',
+                        type: 'Root',
+                        name: 'Automotive assembly',
+                        chunkIds: [chunkId]
+                    },
+                    {
+                        id: 'material',
+                        namespace: materialKey,
+                        nodeKey: 'AUTO-SENSOR',
+                        type: 'Material',
+                        name: 'Temperature sensor',
+                        properties: { resistance: 100, unit: 'ohm' },
+                        chunkIds: [chunkId]
+                    }
+                ],
+                relations: [
+                    {
+                        source: 'assembly',
+                        target: 'material',
+                        type: 'CONTAINS',
+                        properties: { quantity: 2, unit: 'EA' },
+                        chunkIds: [chunkId]
+                    }
+                ]
+            })
+        const write = async (source: KnowledgeGraphIndexJob, snapshot: TKnowledgeGraphExtraction, rollback = false) => {
+            source.extractionId ??= randomUUID()
+            source.extractionSnapshot = snapshot
+            return db.transaction(async (manager) => {
+                const result = await persistStructuredGraph(
+                    manager,
+                    source,
+                    {
+                        ...scope,
+                        sourceDocumentIdSnapshot: source.documentId,
+                        sourceContentHash: source.sourceContentHash,
+                        sourcePublicationEpoch: 1,
+                        consumer: 'graph',
+                        extractionId: source.extractionId
+                    },
+                    [
+                        {
+                            id: chunkId,
+                            documentId: source.documentId,
+                            pageContent: 'Automotive source',
+                            metadata: { chunkId }
+                        }
+                    ],
+                    snapshot
+                )
+                if (rollback) throw new Error('Simulated failed publication')
+                return result
+            })
+        }
+        const first = makeSnapshot(a),
+            second = makeSnapshot(b)
+        const firstIds = await write(a, first)
+        expect(await write(a, first)).toEqual(firstIds)
+        const secondIds = await write(b, second)
+        expect(secondIds[1]).toBe(firstIds[1])
+        const material = await db.getRepository(KnowledgeGraphEntity).findOneByOrFail({ id: firstIds[1] })
+        expect(material.origin).toBe('structured')
+        const mentions = await db.getRepository(KnowledgeGraphMention).findBy({ documentId: a.documentId })
+        expect(mentions.length).toBeGreaterThan(0)
+        expect(mentions.every((mention) => mention.confidence === null)).toBe(true)
+        expect(material.metadata.properties).toMatchObject({ resistance: 100, unit: 'ohm' })
+        const edge = await db.getRepository(KnowledgeGraphRelation).findOneByOrFail({ sourceEntityId: firstIds[0] })
+        expect(edge.metadata.properties).toEqual({ quantity: 2, unit: 'EA' })
+        const empty = { ...first, entities: [], relations: [] }
+        await expect(write(a, empty, true)).rejects.toThrow('Simulated failed publication')
+        expect(await db.getRepository(KnowledgeGraphEntity).countBy({ id: firstIds[0] })).toBe(1)
+        await write(a, empty)
+        expect(await db.getRepository(KnowledgeGraphEntity).countBy({ id: firstIds[0] })).toBe(0)
+        expect(await db.getRepository(KnowledgeGraphEntity).countBy({ id: firstIds[1] })).toBe(1)
+        expect(await db.getRepository(KnowledgeGraphRelation).countBy({ sourceEntityId: secondIds[0] })).toBe(1)
+        expect(
+            await db
+                .getRepository(KnowledgeIdentityObservation)
+                .countBy({ sourceDocumentIdSnapshot: a.documentId, isCurrent: true })
+        ).toBe(0)
+    })
 
     it('retains both source aliases when the first aggregate save finishes last', async () => {
         let resume: () => void

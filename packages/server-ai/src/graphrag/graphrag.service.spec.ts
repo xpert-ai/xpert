@@ -292,8 +292,30 @@ describe('GraphRAG service', () => {
                 throw new Error('Primary copilot fallback should not be used')
             })
         }
-        const job = Object.assign(new KnowledgeGraphIndexJob(), { id: 'job-1', knowledgebaseId: 'kb-1' })
+        const job = Object.assign(new KnowledgeGraphIndexJob(), {
+            id: 'job-1',
+            knowledgebaseId: 'kb-1',
+            status: KnowledgeGraphIndexJobStatus.RUNNING
+        })
+        const snapshotBuilder = {
+            update() {
+                return this
+            },
+            set() {
+                return this
+            },
+            where() {
+                return this
+            },
+            setParameter(_name: string, value: string) {
+                job.extractionSnapshot = JSON.parse(value)
+                return this
+            },
+            execute: async () => ({ affected: 1 })
+        }
         const jobRepository = {
+            createQueryBuilder: () => snapshotBuilder,
+            findOne: async () => job,
             findOneOrFail: async () => job,
             update: jest.fn(async (_criteria: unknown, patch: Partial<KnowledgeGraphIndexJob>) => {
                 Object.assign(job, patch)
@@ -343,7 +365,7 @@ describe('GraphRAG service', () => {
             { enabled: true, extractionMaxCharacters: 5000 }
         )
 
-        expect(output.entities.map((entity) => entity.candidateId)).toEqual(['0:person', '4:person'])
+        expect(output.entities.map((entity) => entity.candidateId)).toEqual(['0:person', '1:person'])
         expect(queryBus.execute).toHaveBeenCalledTimes(1)
         expect(queryBus.execute.mock.calls[0][0]).toBeInstanceOf(CopilotModelGetChatModelQuery)
         expect(queryBus.execute.mock.calls[0][0].copilot).toBeNull()
@@ -386,7 +408,9 @@ describe('GraphRAG service', () => {
         const jobRepository = {
             findOne: jest.fn(async () => graphJob),
             findOneOrFail: jest.fn(async () => graphJob),
-            update: jest.fn(async () => undefined),
+            update: jest.fn(async (_id: string, patch: Partial<KnowledgeGraphIndexJob>) => {
+                Object.assign(graphJob, patch)
+            }),
             count: jest.fn(async (options: { where: { status: KnowledgeGraphIndexJobStatus } }) =>
                 options.where.status === KnowledgeGraphIndexJobStatus.FAILED ? 1 : 0
             )

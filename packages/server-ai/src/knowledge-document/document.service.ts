@@ -1,3 +1,6 @@
+import { isKnowledgeDocumentVisible } from '@xpert-ai/contracts'
+import { visibleDocumentSql } from './document-list-filter'
+import { assertUserManagedDocument } from './document-management'
 import { questionVectorIds } from './questions/question-vectors'
 import { questionSourceHash } from './questions/question-generation'
 import { KnowledgeParserSettingsService } from '../knowledgebase/parser-settings.service'
@@ -151,11 +154,7 @@ function isCountableDocument(document: Pick<IKnowledgeDocument, 'sourceType' | '
         return false
     }
 
-    if (!document.metadata || typeof document.metadata !== 'object') {
-        return true
-    }
-
-    return !('systemManaged' in document.metadata) || document.metadata.systemManaged !== true
+    return isKnowledgeDocumentVisible(document.metadata)
 }
 
 function isSystemManagedDocument(document: Pick<IKnowledgeDocument, 'metadata'> | null | undefined) {
@@ -482,6 +481,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async assertDocumentWriteAccess(id: string, withDeleted = false): Promise<void> {
         const document = await this.findDocumentAccessScope(id, withDeleted)
         await this.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
+        assertUserManagedDocument(document)
     }
 
     async assertDocumentsReadAccess(ids: Array<string | null | undefined>): Promise<void> {
@@ -621,7 +621,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         return this.findOne(id, {
             select: {
                 id: true,
-                knowledgebaseId: true
+                knowledgebaseId: true,
+                metadata: true
             },
             withDeleted
         })
@@ -642,7 +643,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             where: { id: In(uniqueIds) },
             select: {
                 id: true,
-                knowledgebaseId: true
+                knowledgebaseId: true,
+                metadata: true
             }
         })
         const resolvedIds = new Set(items.map((document) => document.id))
@@ -659,6 +661,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                     : this.assertKnowledgebaseReadAccess(knowledgebaseId)
             )
         )
+        if (action === 'write') items.forEach(assertUserManagedDocument)
     }
 
     private async assertDocumentsAccessInKnowledgebase(
@@ -684,9 +687,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             },
             select: {
                 id: true,
-                knowledgebaseId: true
+                knowledgebaseId: true,
+                metadata: true
             }
         })
+        if (action === 'write') items.forEach(assertUserManagedDocument)
         const resolvedIds = new Set(items.map((document) => document.id))
         const missingId = uniqueIds.find((id) => !resolvedIds.has(id))
         if (missingId) {
@@ -1326,6 +1331,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 1 ELSE 0 END)', 'folderCount')
             .where('document.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
             .andWhere('parent.id IN (:...folderIds)', { folderIds })
+            .andWhere(visibleDocumentSql('document.metadata'))
             .setParameter('folderType', KDocumentSourceType.FOLDER)
             .groupBy('parent.id')
             .getRawMany()

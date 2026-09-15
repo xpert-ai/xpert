@@ -43,7 +43,7 @@ describe('GraphRAG empty enqueue completion', () => {
     it('completes a rebuild whose only document is a hashless Wiki projection', async () => {
         const { service, knowledgebase, clearKnowledgebase } = fixture([{ id: 'wiki-projection', contentHash: null }])
         await expect(service.rebuildKnowledgebase('kb')).resolves.toEqual([])
-        expect(clearKnowledgebase).toHaveBeenCalledWith('kb')
+        expect(clearKnowledgebase).toHaveBeenCalledWith('kb', true)
         expect(knowledgebase.graphStatus).toBe('ready')
     })
 

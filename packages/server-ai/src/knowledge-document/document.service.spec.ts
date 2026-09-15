@@ -682,6 +682,7 @@ describe('KnowledgeDocumentService folder child counts', () => {
             { folderId: 'folder-a', documentCount: 3, folderCount: 2 },
             { folderId: 'folder-empty', documentCount: 0, folderCount: 0 }
         ])
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.stringContaining('systemManagedType'))
         expect(queryBuilder.andWhere).toHaveBeenCalledWith('parent.id IN (:...folderIds)', {
             folderIds: ['folder-a', 'folder-empty']
         })

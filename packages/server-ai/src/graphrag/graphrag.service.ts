@@ -1,3 +1,6 @@
+import { readGraphCatalog, readGraphVisualization } from './graph-explorer'
+import { persistStructuredGraph } from './structured-graph-writer'
+import { structuredGraphResume, isStructuredGraphDocument } from './structured-graph-source'
 import { KnowledgeGraphProjectionWriter } from './graph-projection-writer'
 import { KnowledgeGraphExtractionService } from './graph-extraction.service'
 import { Document, DocumentInterface } from '@langchain/core/documents'
@@ -76,7 +79,7 @@ const GRAPH_ORIGIN_CURATED: KnowledgeGraphItemOrigin = 'curated'
 const GRAPH_VISIBILITY_ACTIVE: KnowledgeGraphVisibility = 'active'
 const GRAPH_VISIBILITY_HIDDEN: KnowledgeGraphVisibility = 'hidden'
 
-const graphOriginSchema = z.enum(['extracted', 'manual', 'curated'])
+const graphOriginSchema = z.enum(['extracted', 'structured', 'manual', 'curated'])
 const graphVisibilitySchema = z.enum(['active', 'hidden'])
 
 const graphEntityCreateSchema = z
@@ -136,7 +139,7 @@ function resolveGraphVisibility(value?: KnowledgeGraphVisibility | null) {
 }
 
 function isExtractedOrigin(value?: KnowledgeGraphItemOrigin | null) {
-    return !value || value === GRAPH_ORIGIN_EXTRACTED
+    return !value || value === GRAPH_ORIGIN_EXTRACTED || value === 'structured'
 }
 
 function isActiveVisibility(value?: KnowledgeGraphVisibility | null) {
@@ -150,7 +153,7 @@ function clampGraphTake(value?: number | null) {
     return Math.min(250, Math.max(1, Math.floor(value)))
 }
 
-function clampGraphDepth(value?: number | null) {
+function clampGraphRetrievalDepth(value?: number | null) {
     if (typeof value !== 'number' || Number.isNaN(value)) {
         return 1
     }
@@ -218,19 +221,22 @@ export class GraphragService {
 
         const { items: sourceDocuments } = await this.documentService.findAll({
             where: { knowledgebaseId: knowledgebase.id, id: In(documentIds) },
-            select: { id: true, contentHash: true, publicationEpoch: true }
+            select: { id: true, contentHash: true, publicationEpoch: true, metadata: true }
         })
         const sourceById = new Map(sourceDocuments.map((document) => [document.id, document]))
         const jobs: KnowledgeGraphIndexJob[] = []
         for (const documentId of documentIds) {
             const source = sourceById.get(documentId)
             if (!source?.contentHash) continue
+            const resume = await structuredGraphResume(this.jobRepository, source)
+            if (isStructuredGraphDocument(source) && !resume) continue
             const graphJob = await createGraphIndexJob(
                 this.jobRepository,
                 this.knowledgebaseRepository,
                 knowledgebase,
                 source,
-                input
+                input,
+                resume
             )
             await this.dispatchJobs([graphJob], input.userId)
             jobs.push(graphJob)
@@ -331,7 +337,7 @@ export class GraphragService {
         }
 
         const revision = (knowledgebase.graphRevision ?? 0) + 1
-        await this.clearKnowledgebase(knowledgebaseId)
+        await this.clearKnowledgebase(knowledgebaseId, true)
         await this.knowledgebaseRepository.update(knowledgebaseId, {
             graphRevision: revision,
             graphStatus: KnowledgeGraphStatus.INDEXING,
@@ -364,7 +370,7 @@ export class GraphragService {
         })
     }
 
-    async clearKnowledgebase(knowledgebaseId: string) {
+    async clearKnowledgebase(knowledgebaseId: string, preservePublications = false) {
         await this.mentionRepository.delete({ knowledgebaseId })
         await this.relationContributionRepository.delete({ knowledgebaseId })
         await this.entityContributionRepository.delete({ knowledgebaseId })
@@ -372,7 +378,9 @@ export class GraphragService {
             .createQueryBuilder()
             .delete()
             .where('knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
-            .andWhere('(origin = :origin OR origin IS NULL)', { origin: GRAPH_ORIGIN_EXTRACTED })
+            .andWhere('(origin IN (:...origins) OR origin IS NULL)', {
+                origins: [GRAPH_ORIGIN_EXTRACTED, 'structured']
+            })
             .andWhere('(visibility = :visibility OR visibility IS NULL)', { visibility: GRAPH_VISIBILITY_ACTIVE })
             .execute()
 
@@ -390,14 +398,23 @@ export class GraphragService {
             .createQueryBuilder()
             .delete()
             .where('knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
-            .andWhere('(origin = :origin OR origin IS NULL)', { origin: GRAPH_ORIGIN_EXTRACTED })
+            .andWhere('(origin IN (:...origins) OR origin IS NULL)', {
+                origins: [GRAPH_ORIGIN_EXTRACTED, 'structured']
+            })
             .andWhere('(visibility = :visibility OR visibility IS NULL)', { visibility: GRAPH_VISIBILITY_ACTIVE })
         if (preservedEndpointIds.length) {
             deleteEntityQuery.andWhere('id NOT IN (:...preservedEndpointIds)', { preservedEndpointIds })
         }
         await deleteEntityQuery.execute()
         await this.communityRepository.delete({ knowledgebaseId })
-        await this.jobRepository.delete({ knowledgebaseId })
+        if (preservePublications) {
+            await this.jobRepository
+                .createQueryBuilder()
+                .delete()
+                .where({ knowledgebaseId })
+                .andWhere(`"extractionSnapshot" -> 'publication' IS NULL`)
+                .execute()
+        } else await this.jobRepository.delete({ knowledgebaseId })
         await this.relationRepository.update({ knowledgebaseId }, { evidenceCount: 0 })
         await this.entityRepository.update({ knowledgebaseId }, { mentionCount: 0 })
         try {
@@ -544,7 +561,7 @@ export class GraphragService {
         query?: KnowledgeGraphEntityChunksQuery
     ): Promise<KnowledgeGraphEntityChunksResponse> {
         const entity = await this.findGraphEntity(knowledgebaseId, entityId)
-        const neighborHops = typeof query?.neighborHops === 'number' ? clampGraphDepth(query.neighborHops) : 0
+        const neighborHops = typeof query?.neighborHops === 'number' ? clampGraphRetrievalDepth(query.neighborHops) : 0
         const take = clampGraphEntityChunkTake(query?.take)
         const mentionTake = clampGraphMentionTake(query?.mentionTake)
         const includeMentions = query?.includeMentions !== false
@@ -644,104 +661,13 @@ export class GraphragService {
         knowledgebaseId: string,
         query?: KnowledgeGraphVisualizationQuery
     ): Promise<KnowledgeGraphViewResponse> {
-        const visibility = resolveGraphVisibility(query?.visibility)
-        const take = clampGraphTake(query?.take)
-        const depth = clampGraphDepth(query?.depth)
-        const focusEntityIds = query?.focusEntityId
-            ? await this.expandVisibleEntityIds(knowledgebaseId, query.focusEntityId, depth, visibility)
-            : null
+        await this.knowledgebaseService.findOne(knowledgebaseId)
+        return readGraphVisualization(this.entityRepository, knowledgebaseId, query)
+    }
 
-        const entityQuery = this.entityRepository
-            .createQueryBuilder('entity')
-            .where('entity.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
-
-        this.applyVisibilityCondition(entityQuery, 'entity', visibility)
-        if (query?.search) {
-            entityQuery.andWhere(
-                new Brackets((qb) => {
-                    qb.where('entity.name ILIKE :search', { search: `%${query.search}%` }).orWhere(
-                        'entity.type ILIKE :search',
-                        {
-                            search: `%${query.search}%`
-                        }
-                    )
-                })
-            )
-        }
-        if (query?.entityType) {
-            entityQuery.andWhere('entity.type = :entityType', { entityType: query.entityType })
-        }
-        if (query?.origin) {
-            this.applyOriginCondition(entityQuery, 'entity', query.origin)
-        }
-        if (focusEntityIds) {
-            if (!focusEntityIds.length) {
-                return {
-                    nodes: [],
-                    edges: [],
-                    entityTypes: [],
-                    relationTypes: [],
-                    totalNodes: 0,
-                    totalEdges: 0
-                }
-            }
-            entityQuery.andWhere('entity.id IN (:...focusEntityIds)', { focusEntityIds })
-        }
-
-        const entities = await entityQuery
-            .orderBy('entity.mentionCount', 'DESC')
-            .addOrderBy('entity.updatedAt', 'DESC')
-            .take(take)
-            .getMany()
-        const entityIds = entities.map((entity) => entity.id)
-        const entityIdSet = new Set(entityIds)
-
-        const relations = entityIds.length
-            ? await this.createRelationQuery(knowledgebaseId, query, visibility)
-                  .andWhere('relation.sourceEntityId IN (:...entityIds)', { entityIds })
-                  .andWhere('relation.targetEntityId IN (:...entityIds)', { entityIds })
-                  .getMany()
-            : []
-        const filteredRelations = relations.filter(
-            (relation): relation is KnowledgeGraphRelation & { sourceEntityId: string; targetEntityId: string } =>
-                !!relation.sourceEntityId &&
-                !!relation.targetEntityId &&
-                entityIdSet.has(relation.sourceEntityId) &&
-                entityIdSet.has(relation.targetEntityId)
-        )
-        const entityTypes = uniq(entities.map((entity) => entity.type).filter(Boolean)).sort()
-        const relationTypes = uniq(filteredRelations.map((relation) => relation.type).filter(Boolean)).sort()
-
-        return {
-            nodes: entities.map((entity) => {
-                const value = entity.mentionCount ?? 0
-                return {
-                    id: entity.id,
-                    name: entity.name,
-                    type: entity.type,
-                    origin: entity.origin ?? GRAPH_ORIGIN_EXTRACTED,
-                    visibility: entity.visibility ?? GRAPH_VISIBILITY_ACTIVE,
-                    mentionCount: entity.mentionCount ?? 0,
-                    confidence: entity.confidence ?? null,
-                    value,
-                    symbolSize: Math.min(54, Math.max(22, 22 + value * 2))
-                }
-            }),
-            edges: filteredRelations.map((relation) => ({
-                id: relation.id,
-                source: relation.sourceEntityId,
-                target: relation.targetEntityId,
-                type: relation.type,
-                origin: relation.origin ?? GRAPH_ORIGIN_EXTRACTED,
-                visibility: relation.visibility ?? GRAPH_VISIBILITY_ACTIVE,
-                weight: relation.weight ?? null,
-                evidenceCount: relation.evidenceCount ?? 0
-            })),
-            entityTypes,
-            relationTypes,
-            totalNodes: entities.length,
-            totalEdges: filteredRelations.length
-        }
+    async getGraphCatalog(knowledgebaseId: string, query?: KnowledgeGraphVisualizationQuery) {
+        await this.knowledgebaseService.findOne(knowledgebaseId)
+        return readGraphCatalog(this.entityRepository, knowledgebaseId, query)
     }
 
     async listRelations(knowledgebaseId: string, query?: KnowledgeGraphVisualizationQuery) {
@@ -962,6 +888,12 @@ export class GraphragService {
             return
         }
 
+        const latestJob = await this.jobRepository.findOne({
+            where: { knowledgebaseId: graphJob.knowledgebaseId, documentId: graphJob.documentId },
+            order: { createdAt: 'DESC', id: 'DESC' }
+        })
+        if (latestJob?.id !== graphJob.id || graphJob.result === 'superseded') return
+
         await this.jobRepository.update(graphJob.id, {
             status: KnowledgeGraphIndexJobStatus.RUNNING,
             startedAt: new Date(),
@@ -981,7 +913,13 @@ export class GraphragService {
                 await this.markJobSuccess(graphJob, 'superseded')
                 return
             }
-            await this.clearDocument(graphJob.knowledgebaseId, graphJob.documentId)
+            // Structured snapshots replace their source contribution atomically during persistence.
+            const saved = await this.jobRepository.findOne({
+                where: { id: graphJob.id },
+                select: { id: true, extractionSnapshot: true }
+            })
+            if (!saved?.extractionSnapshot?.publication)
+                await this.clearDocument(graphJob.knowledgebaseId, graphJob.documentId)
             const { items: chunks } = await this.chunkService.findAll({
                 where: {
                     knowledgebaseId: graphJob.knowledgebaseId,
@@ -1117,43 +1055,6 @@ export class GraphragService {
         return relationQuery
     }
 
-    private async expandVisibleEntityIds(
-        knowledgebaseId: string,
-        seedEntityId: string,
-        depth: number,
-        visibility: KnowledgeGraphVisibility
-    ) {
-        const seed = await this.entityRepository.findOne({ where: { id: seedEntityId, knowledgebaseId } })
-        if (!seed || (visibility === GRAPH_VISIBILITY_ACTIVE && !isActiveVisibility(seed.visibility))) {
-            return []
-        }
-        const entityIds = new Set<string>([seedEntityId])
-        let frontier = [seedEntityId]
-        for (let hop = 0; hop < depth && frontier.length; hop++) {
-            const relations = await this.createRelationQuery(knowledgebaseId, { visibility }, visibility)
-                .andWhere(
-                    new Brackets((qb) => {
-                        qb.where('relation.sourceEntityId IN (:...frontier)', { frontier }).orWhere(
-                            'relation.targetEntityId IN (:...frontier)',
-                            { frontier }
-                        )
-                    })
-                )
-                .getMany()
-            const next = new Set<string>()
-            for (const relation of relations) {
-                for (const id of [relation.sourceEntityId, relation.targetEntityId]) {
-                    if (id && !entityIds.has(id)) {
-                        entityIds.add(id)
-                        next.add(id)
-                    }
-                }
-            }
-            frontier = [...next]
-        }
-        return [...entityIds]
-    }
-
     private async assertNoEntityConflict(
         knowledgebase: Pick<IKnowledgebase, 'tenantId' | 'organizationId' | 'id'>,
         normalizedName: string,
@@ -1236,6 +1137,19 @@ export class GraphragService {
         chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
         extraction: TKnowledgeGraphExtraction
     ) {
+        if (extraction.publication) {
+            graphJob.extractionSnapshot = extraction
+            return this.entityRepository.manager.transaction(async (manager) => {
+                await this.extractionService.assertCurrent(manager, graphJob)
+                return persistStructuredGraph(
+                    manager,
+                    graphJob,
+                    this.extractionService.source(graphJob),
+                    chunks,
+                    extraction
+                )
+            })
+        }
         const identities = await this.extractionService.resolveIdentities(graphJob, extraction)
         return this.entityRepository.manager.transaction(async (manager) => {
             await this.extractionService.assertCurrent(manager, graphJob)

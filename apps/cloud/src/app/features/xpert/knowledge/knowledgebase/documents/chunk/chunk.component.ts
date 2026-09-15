@@ -127,9 +127,10 @@ export class KnowledgeDocumentChunkComponent {
   })
   readonly #chunks = signal<IKnowledgeDocumentChunk[]>([])
   readonly chunks = computed(() => buildChunkTree(this.#chunks() ?? []))
+  readonly systemManaged = computed(() => this.document()?.metadata?.systemManaged === true)
   readonly questionGenerationEnabled = computed(() => {
     const document = this.document()
-    if (!document) return false
+    if (!document || this.systemManaged()) return false
     const config =
       document.parserConfig?.questionGeneration ??
       knowledgebaseDocumentParserDefaults(this.knowledgebase()?.parserConfig, document.type).questionGeneration

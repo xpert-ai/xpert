@@ -14,10 +14,14 @@ function mergeEvidence<
         confidence?: number | null
     }
 >(items: T[]) {
+    const confidences = items
+        .map((item) => item.confidence)
+        .filter((value): value is number => typeof value === 'number')
     return {
         ...items[0],
         description: [...new Set(items.map((item) => item.description).filter(Boolean))].join('\n') || null,
-        confidence: Math.max(...items.map((item) => item.confidence ?? 0)),
+        // Missing confidence is unknown, not a zero-confidence assertion. Retrieval defaults null to 1.
+        confidence: confidences.length ? Math.max(...confidences) : null,
         evidence: [
             ...new Map(
                 items.flatMap((item) => item.evidence ?? []).map((evidence) => [JSON.stringify(evidence), evidence])

@@ -1,6 +1,7 @@
 import { DataSource, EntitySchema, FindManyOptions, QueryRunner } from 'typeorm'
 import { KnowledgeDocumentController } from './document.controller'
 import type { KnowledgeDocument } from './document.entity'
+import { visibleDocumentSql } from './document-list-filter'
 
 const postgresDescribe = process.env.KNOWLEDGE_WIKI_PG_E2E === '1' ? describe : describe.skip
 const documentSchema = new EntitySchema<KnowledgeDocument>({
@@ -41,7 +42,8 @@ postgresDescribe('Ordinary document lists exclude internal index records', () =>
             ('2-legacy', 'kb-1', 'Legacy', '{}'),
             ('3-user', 'kb-1', 'Manual', '{"systemManaged":false}'),
             ('4-internal', 'kb-1', 'Other index', '{"systemManaged":true}'),
-            ('5-outside', 'kb-2', 'Outside', '{}')`)
+            ('5-outside', 'kb-2', 'Outside', '{}'),
+            ('6-agent', 'kb-1', 'Published BOM', '{"systemManaged":true,"systemManagedType":"agent-writer"}')`)
         const repository = runner.manager.getRepository(documentSchema)
         controller = new KnowledgeDocumentController(
             {
@@ -75,12 +77,12 @@ postgresDescribe('Ordinary document lists exclude internal index records', () =>
                 skip: 0,
                 withDeleted: false
             })
-            expect(result).toEqual({ items: [{ id: '1-user-wiki', name: 'Wiki' }], total: 3 })
+            expect(result).toEqual({ items: [{ id: '1-user-wiki', name: 'Wiki' }], total: 4 })
         }
     )
 
     it('uses the same filter for the count endpoint', async () => {
-        expect(await controller.getCount({ knowledgebaseId: 'kb-1' })).toBe(3)
+        expect(await controller.getCount({ knowledgebaseId: 'kb-1' })).toBe(4)
     })
 
     it('applies visibility to every OR branch while preserving the knowledgebase and search filters', async () => {
@@ -107,7 +109,7 @@ postgresDescribe('Ordinary document lists exclude internal index records', () =>
             withDeleted: false
         })
         expect(page.items.map((doc) => doc.id)).toEqual(['2-legacy', '3-user'])
-        expect(page.total).toBe(3)
+        expect(page.total).toBe(4)
         const legacy = await controller.findAll({
             where: { knowledgebaseId: 'kb-1', metadata: null },
             order: {},
@@ -130,6 +132,24 @@ postgresDescribe('Ordinary document lists exclude internal index records', () =>
             expect(result.items.map((doc) => doc.id)).toEqual(systemManaged ? [] : ['3-user'])
             expect(result.total).toBe(systemManaged ? 0 : 1)
         }
+    })
+
+    it('lists generated publications and uses the identical visibility rule for folder aggregates', async () => {
+        const result = await controller.findAll({
+            where: { knowledgebaseId: 'kb-1', metadata: { systemManaged: true, systemManagedType: 'agent-writer' } },
+            order: {},
+            take: 20,
+            skip: 0,
+            withDeleted: false
+        })
+        expect(result.items.map((doc) => doc.id)).toEqual(['6-agent'])
+        const count = await runner.manager
+            .getRepository(documentSchema)
+            .createQueryBuilder('document')
+            .where('document.knowledgebaseId = :kb', { kb: 'kb-1' })
+            .andWhere(visibleDocumentSql('document.metadata'))
+            .getCount()
+        expect(count).toBe(await controller.getCount({ knowledgebaseId: 'kb-1' }))
     })
 
     it('keeps source records and internal projection data available to internal readers', async () => {

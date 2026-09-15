@@ -377,13 +377,20 @@ export interface StandardDocumentMetadata {
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
   /** Server-owned generated table descriptions and publication state. */
   tableMetadata?: KnowledgeTableMetadata
-  /** Internal index containers are not user-uploaded documents. */
+  /** Ownership is independent of visibility in the document browser. */
   systemManaged?: boolean
   systemManagedType?: string
   transformSnapshot?: KnowledgeDocumentTransformSnapshotRef
   analysisSnapshot?: KnowledgeDocumentAnalysisSnapshotRef
   documentAnalysis?: DocumentAnalysisMetadata
   [key: string]: any
+}
+
+export const KNOWLEDGE_DOCUMENT_AGENT_WRITER_TYPE = 'agent-writer'
+
+/** Agent publications are inspectable; internal Wiki/FAQ backing indexes stay hidden. */
+export function isKnowledgeDocumentVisible(metadata?: KnowledgeDocumentMetadata | null): boolean {
+  return metadata?.systemManaged !== true || metadata.systemManagedType === KNOWLEDGE_DOCUMENT_AGENT_WRITER_TYPE
 }
 
 // export type Metadata = any

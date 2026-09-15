@@ -1,4 +1,5 @@
 import { KnowledgeGraphExtractionService } from './graph-extraction.service'
+import { StructuredGraphRuntimeService } from './structured-graph-runtime.service'
 import { KnowledgeIdentityModule } from '../knowledgebase/identity/knowledge-identity.module'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
@@ -50,6 +51,7 @@ import { JOB_KNOWLEDGE_GRAPH_INDEX } from './types'
     ],
     controllers: [GraphragController],
     providers: [
+        StructuredGraphRuntimeService,
         KnowledgeGraphExtractionService,
         GraphragService,
         GraphDocumentProgressService,

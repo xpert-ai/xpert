@@ -6,6 +6,7 @@ import {
 } from '../knowledgebase/identity/knowledge-identity-model'
 import { KnowledgeIdentityError } from '../knowledgebase/identity/knowledge-identity-error'
 import { TKnowledgeGraphExtraction } from './types'
+import { graphJsonSchema } from './structured-graph-model'
 
 const createGraphExtractionSchema = (candidateIdLimit: number) =>
     z.object({
@@ -54,7 +55,21 @@ const createGraphExtractionSchema = (candidateIdLimit: number) =>
     })
 
 export const graphExtractionSchema = createGraphExtractionSchema(128)
-const graphExtractionSnapshotSchema = createGraphExtractionSchema(512)
+const graphExtractionSnapshotSchema = createGraphExtractionSchema(512).extend({
+    publication: z
+        .object({ mode: z.literal('structured'), key: z.string(), sourceVersion: z.string(), hash: z.string() })
+        .optional(),
+    entities: z.array(
+        createGraphExtractionSchema(512)
+            .shape.entities.removeDefault()
+            .element.extend({ properties: z.record(graphJsonSchema).optional() })
+    ),
+    relations: z.array(
+        createGraphExtractionSchema(512)
+            .shape.relations.removeDefault()
+            .element.extend({ properties: z.record(graphJsonSchema).optional() })
+    )
+})
 
 export function validateKnowledgeGraphExtractionEvidence(
     extraction: TKnowledgeGraphExtraction,
@@ -65,7 +80,7 @@ export function validateKnowledgeGraphExtractionEvidence(
     const hasInvalidEvidence = graphItems.some(
         (item) => !item.evidence?.length || item.evidence.some(({ chunkId }) => !validChunkIds.has(chunkId))
     )
-    if ((!options.allowEmpty && !graphItems.length) || hasInvalidEvidence) {
+    if ((!options.allowEmpty && !extraction.publication && !graphItems.length) || hasInvalidEvidence) {
         const defaultValue = 'GraphRAG extraction did not return valid source evidence for every graph item.'
         throw new Error(t('server-ai:Error.GraphExtractionEvidenceInvalid', { defaultValue }) || defaultValue)
     }
@@ -90,7 +105,10 @@ export function parseGraphExtractionSnapshot(value: unknown): TKnowledgeGraphExt
     return parseExtraction(value, graphExtractionSnapshotSchema)
 }
 
-function parseExtraction(value: unknown, schema: typeof graphExtractionSchema): TKnowledgeGraphExtraction {
+function parseExtraction(
+    value: unknown,
+    schema: typeof graphExtractionSchema | typeof graphExtractionSnapshotSchema
+): TKnowledgeGraphExtraction {
     const parsed = schema.safeParse(value)
     if (!parsed.success) {
         if (parsed.error.issues.some((issue) => issue.path.includes('evidence'))) {

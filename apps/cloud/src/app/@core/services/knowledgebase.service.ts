@@ -32,6 +32,7 @@ import {
   KnowledgeGraphDocumentProgress,
   KnowledgeGraphDocumentsProgressResponse,
   KnowledgeGraphVisualizationQuery,
+  KnowledgeGraphCatalog,
   KnowledgeGraphViewResponse,
   KnowledgeFilterDiagnostics,
   KnowledgeFilterSources,
@@ -227,6 +228,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
       connectedEntities: IKnowledgeGraphEntity[]
       mentions: IKnowledgeGraphMention[]
     }>(this.apiBaseUrl + `/${id}/graph/entities/${entityId}/neighborhood`)
+  }
+
+  getGraphCatalog(id: string, query?: KnowledgeGraphVisualizationQuery) {
+    return this.httpClient.get<KnowledgeGraphCatalog>(this.apiBaseUrl + `/${id}/graph/catalog`, {
+      params: toGraphHttpParams(query)
+    })
   }
 
   getGraphVisualization(id: string, query?: KnowledgeGraphVisualizationQuery) {

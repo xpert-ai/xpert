@@ -1,3 +1,4 @@
+import { graphStyles, graphCssVar } from './graph-canvas-style'
 import { CommonModule } from '@angular/common'
 import {
   Component,
@@ -18,12 +19,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
+  ZardCheckboxComponent,
   ZardCardImports,
   ZardEmptyComponent,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
   ZardSearchInputComponent,
+  ZardComboboxComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
@@ -40,6 +43,7 @@ import {
   KnowledgeGraphStatus,
   KnowledgeGraphStatusResponse,
   KnowledgeGraphViewResponse,
+  KnowledgeGraphCatalog,
   KnowledgeGraphVisibility,
   KnowledgeGraphVisualizationQuery,
   KnowledgebaseService,
@@ -47,6 +51,8 @@ import {
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { KnowledgeGraphIndexActionsComponent } from './graph-index-actions.component'
+import { KnowledgeGraphIndexErrorComponent } from './graph-index-error.component'
+import { KnowledgeGraphPropertiesComponent } from './graph-properties.component'
 
 type GraphSelection =
   | {
@@ -85,13 +91,17 @@ const ALL_SELECT_VALUE = '__all__'
     XpSpinComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
+    ZardCheckboxComponent,
     ZardEmptyComponent,
     ZardIconComponent,
     ZardInputDirective,
     ZardSearchInputComponent,
     KnowledgeGraphIndexActionsComponent,
+    KnowledgeGraphIndexErrorComponent,
+    KnowledgeGraphPropertiesComponent,
     ...ZardCardImports,
     ...ZardFormImports,
+    ZardComboboxComponent,
     ...ZardSelectImports
   ],
   styles: `
@@ -106,7 +116,7 @@ const ALL_SELECT_VALUE = '__all__'
 export class KnowledgeGraphComponent {
   readonly KnowledgeGraphStatus = KnowledgeGraphStatus
   readonly allSelectValue = ALL_SELECT_VALUE
-  readonly origins: Array<KnowledgeGraphItemOrigin | ''> = ['', 'extracted', 'manual', 'curated']
+  readonly origins: Array<KnowledgeGraphItemOrigin | ''> = ['', 'extracted', 'structured', 'manual', 'curated']
   readonly visibilities: KnowledgeGraphVisibility[] = ['active', 'hidden']
 
   readonly #fb = inject(FormBuilder)
@@ -117,6 +127,8 @@ export class KnowledgeGraphComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly graphCanvas = viewChild<ElementRef<HTMLElement>>('graphCanvas')
 
+  #requestId = 0
+  #expandFrom: string | null = null
   #cy: cytoscape.Core | null = null
   #graphDataKey = ''
   #loadedKnowledgebaseId: string | null = null
@@ -137,13 +149,28 @@ export class KnowledgeGraphComponent {
   readonly focusEntityId = model('')
   readonly depth = model(1)
   readonly take = model(80)
+  readonly sourceDocumentId = model('')
+  readonly loadAll = signal(false)
+  readonly expandedEntityIds = signal<string[]>([])
+  readonly retainedEntityIds = signal<string[]>([])
+  readonly hierarchical = model(false)
+  readonly includeHidden = model(false)
+  readonly hiddenCounts = signal({ nodes: 0, relations: 0 })
+  readonly sources = signal<KnowledgeGraphCatalog['sources']>([])
+  readonly focusOptions = computed(() =>
+    this.entityOptions().map((entity) => ({ value: entity.id, label: `${entity.name} · ${entity.type}` }))
+  )
+  readonly sourceOptions = computed(() => this.sources().map((source) => ({ value: source.id, label: source.name })))
+  readonly unloadedNeighbors = computed(
+    () => this.nodes().find((node) => node.id === this.selected()?.id)?.unloadedNeighborCount ?? 0
+  )
 
   readonly loading = signal(false)
   readonly saving = signal(false)
   readonly status = signal<KnowledgeGraphStatusResponse | null>(null)
   readonly view = signal<KnowledgeGraphViewResponse | null>(null)
   readonly relations = signal<IKnowledgeGraphRelation[]>([])
-  readonly entityOptions = signal<IKnowledgeGraphEntity[]>([])
+  readonly entityOptions = signal<KnowledgeGraphCatalog['entities']>([])
   readonly mentions = signal<IKnowledgeGraphMention[]>([])
   readonly selected = signal<GraphSelection | null>(null)
   readonly selectedEntity = signal<IKnowledgeGraphEntity | null>(null)
@@ -179,7 +206,12 @@ export class KnowledgeGraphComponent {
     visibility: this.visibility(),
     focusEntityId: this.focusEntityId() || null,
     depth: this.depth(),
-    take: this.take()
+    take: this.take(),
+    sourceDocumentId: this.sourceDocumentId() || null,
+    includeHidden: this.includeHidden(),
+    loadAll: this.loadAll(),
+    expandedEntityIds: this.expandedEntityIds(),
+    visibleEntityIds: this.retainedEntityIds()
   }))
 
   readonly nodes = computed(() => this.view()?.nodes ?? [])
@@ -192,15 +224,20 @@ export class KnowledgeGraphComponent {
   readonly empty = computed(() => !this.loading() && !this.disabled() && !this.nodes().length)
   readonly activeFilterCount = computed(
     () =>
-      [this.search().trim(), this.entityType(), this.relationType(), this.origin(), this.focusEntityId()].filter(
-        Boolean
-      ).length + (this.visibility() === 'hidden' ? 1 : 0)
+      [
+        this.search().trim(),
+        this.entityType(),
+        this.relationType(),
+        this.origin(),
+        this.focusEntityId(),
+        this.sourceDocumentId()
+      ].filter(Boolean).length + (this.visibility() === 'hidden' ? 1 : 0)
   )
   readonly totalEntityCount = computed(
-    () => this.status()?.entityCount ?? this.view()?.totalNodes ?? this.nodes().length
+    () => this.view()?.totalNodes ?? this.status()?.entityCount ?? this.nodes().length
   )
   readonly totalRelationCount = computed(
-    () => this.status()?.relationCount ?? this.view()?.totalEdges ?? this.edges().length
+    () => this.view()?.totalEdges ?? this.status()?.relationCount ?? this.edges().length
   )
   readonly legendItems = computed(() => {
     this.themeRevision()
@@ -242,7 +279,14 @@ export class KnowledgeGraphComponent {
     })
   }
 
-  async loadGraph() {
+  async loadGraph(preserve = false) {
+    const requestId = ++this.#requestId
+    if (!preserve) {
+      this.loadAll.set(false)
+      this.expandedEntityIds.set([])
+      this.retainedEntityIds.set([])
+      this.#expandFrom = null
+    }
     const knowledgebaseId = this.knowledgebase()?.id
     if (!knowledgebaseId) {
       return
@@ -251,6 +295,7 @@ export class KnowledgeGraphComponent {
     this.loading.set(true)
     try {
       const status = await firstValueFrom(this.#knowledgebaseService.getGraphStatus(knowledgebaseId))
+      if (requestId !== this.#requestId) return
       this.status.set(status)
       if (!status.enabled) {
         this.view.set(null)
@@ -260,25 +305,21 @@ export class KnowledgeGraphComponent {
       }
 
       const query = this.query()
-      const view = await firstValueFrom(this.#knowledgebaseService.getGraphVisualization(knowledgebaseId, query))
-      const relations = await firstValueFrom(this.#knowledgebaseService.getGraphRelations(knowledgebaseId, query))
-      const entities = await firstValueFrom(
-        this.#knowledgebaseService.getGraphEntities(knowledgebaseId, {
-          where: {
-            visibility: 'active'
-          },
-          take: 200
-        })
-      )
-
+      const [view, catalog] = await Promise.all([
+        firstValueFrom(this.#knowledgebaseService.getGraphVisualization(knowledgebaseId, query)),
+        firstValueFrom(this.#knowledgebaseService.getGraphCatalog(knowledgebaseId, query))
+      ])
+      if (requestId !== this.#requestId) return
       this.view.set(view)
-      this.relations.set(relations.items)
-      this.entityOptions.set(entities.items)
+      this.relations.set(view.relations ?? [])
+      this.entityOptions.set(catalog.entities)
+      this.sources.set(catalog.sources)
+      this.hiddenCounts.set({ nodes: catalog.hiddenNodes, relations: catalog.hiddenRelations })
       this.restoreSelection()
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.loading.set(false)
+      if (requestId === this.#requestId) this.loading.set(false)
     }
   }
 
@@ -340,7 +381,7 @@ export class KnowledgeGraphComponent {
 
   setOriginFilter(value: GraphSelectValue) {
     const next = this.selectValueToString(value)
-    if (next === 'extracted' || next === 'manual' || next === 'curated') {
+    if (next === 'structured' || next === 'extracted' || next === 'manual' || next === 'curated') {
       this.origin.set(next)
       return
     }
@@ -542,7 +583,7 @@ export class KnowledgeGraphComponent {
   }
 
   relationLabel(relation: IKnowledgeGraphRelation) {
-    return `${this.entityName(relation.sourceEntityId)} ${relation.type} ${this.entityName(relation.targetEntityId)}`
+    return `${relation.sourceEntity?.name ?? this.entityName(relation.sourceEntityId)} ${relation.type} ${relation.targetEntity?.name ?? this.entityName(relation.targetEntityId)}`
   }
 
   setInspectorTab(tab: InspectorTab) {
@@ -556,6 +597,8 @@ export class KnowledgeGraphComponent {
     this.origin.set('')
     this.visibility.set('active')
     this.focusEntityId.set('')
+    this.sourceDocumentId.set('')
+    this.includeHidden.set(false)
     this.depth.set(1)
     this.take.set(80)
     await this.loadGraph()
@@ -570,39 +613,71 @@ export class KnowledgeGraphComponent {
   }
 
   async exploreSelectedEntity() {
-    const entity = this.selectedEntity()
-    if (!entity) {
-      return
-    }
-    this.focusEntityId.set(entity.id)
-    this.depth.set(Math.max(1, this.depth()))
+    const id = this.selectedEntity()?.id
+    if (!id || this.loading()) return
+    this.#expandFrom = id
+    this.retainedEntityIds.set(this.nodes().map((node) => node.id))
+    this.expandedEntityIds.update((ids) => [...new Set([...ids, id])])
+    await this.loadGraph(true)
+  }
+
+  async loadAllNodes() {
+    this.loadAll.set(true)
+    this.#expandFrom = null
+    await this.loadGraph(true)
+  }
+
+  async selectSource(id: string | null) {
+    this.sourceDocumentId.set(id ?? '')
+    this.focusEntityId.set('')
+    this.clearSelection()
     await this.loadGraph()
-    this.focusGraphElement(entity.id)
+  }
+
+  async selectFocus(id: string | null) {
+    this.focusEntityId.set(id ?? '')
+    await this.loadGraph()
+    if (id && this.nodes().some((node) => node.id === id)) await this.selectEntity(id)
+  }
+
+  inspectorKey(event: KeyboardEvent) {
+    const tabs: InspectorTab[] = ['overview', 'entities', 'relations']
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const index = tabs.indexOf(this.inspectorTab())
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index + (event.key === 'ArrowRight' ? 1 : 2)) % 3
+    this.inspectorTab.set(tabs[next])
+    if (event.currentTarget instanceof HTMLElement)
+      event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=tab]')[next]?.focus()
   }
 
   fitGraph() {
     this.#cy?.fit(this.#cy.elements(), 64)
+    if (this.#cy && this.#cy.zoom() > 1.2) {
+      this.#cy.zoom(1.2)
+      this.#cy.center()
+    }
+  }
+
+  private layoutOptions(count: number): cytoscape.LayoutOptions {
+    if (this.hierarchical())
+      return { name: 'breadthfirst', directed: true, circle: false, spacingFactor: 1.2, padding: 64, animate: false }
+    if (count > 500) return { name: 'grid', padding: 64, animate: false }
+    return {
+      name: 'cose',
+      animate: false,
+      fit: true,
+      padding: 64,
+      randomize: true,
+      nodeRepulsion: 6800,
+      idealEdgeLength: 128,
+      numIter: 300
+    }
   }
 
   runGraphLayout() {
-    if (!this.#cy) {
-      return
-    }
-    this.#cy
-      .layout({
-        name: 'cose',
-        animate: true,
-        animationDuration: 420,
-        fit: true,
-        padding: 64,
-        randomize: true,
-        nodeRepulsion: 6800,
-        idealEdgeLength: 128,
-        edgeElasticity: 90,
-        gravity: 0.18,
-        numIter: 850
-      })
-      .run()
+    this.#cy?.layout(this.layoutOptions(this.nodes().length)).run()
+    this.fitGraph()
   }
 
   zoomGraph(factor: number) {
@@ -634,7 +709,7 @@ export class KnowledgeGraphComponent {
     const palette = ['--color-chart-1', '--color-chart-2', '--color-chart-3', '--color-chart-4', '--color-chart-5']
     const typeIndex = this.entityTypes().indexOf(type)
     const index = typeIndex >= 0 ? typeIndex : (fallbackIndex ?? 0)
-    return this.cssVar(palette[index % palette.length], '--color-primary')
+    return graphCssVar(palette[index % palette.length], '--color-primary')
   }
 
   trackById(_: number, item: { id: string }) {
@@ -666,16 +741,16 @@ export class KnowledgeGraphComponent {
     edges: KnowledgeGraphViewResponse['edges']
   ) {
     const dataKey = [
-      ...nodes.map((node) => `${node.id}:${node.type}:${node.symbolSize ?? node.value ?? ''}`),
-      ...edges.map((edge) => `${edge.id}:${edge.source}:${edge.target}:${edge.type}`)
+      ...nodes.map(
+        (node) => `${node.id}:${node.name}:${node.type}:${node.visibility}:${node.symbolSize ?? node.value ?? ''}`
+      ),
+      ...edges.map((edge) => `${edge.id}:${edge.source}:${edge.target}:${edge.type}:${edge.visibility}`)
     ].join('|')
 
     if (this.#cy?.container() === container && dataKey === this.#graphDataKey) {
       return
     }
 
-    this.destroyGraph()
-    this.#graphDataKey = dataKey
     const elements: cytoscape.ElementDefinition[] = [
       ...nodes.map((node) => ({
         group: 'nodes' as const,
@@ -684,6 +759,7 @@ export class KnowledgeGraphComponent {
           label: node.name,
           type: node.type,
           color: this.entityColor(node.type),
+          visibility: node.visibility,
           size: Math.max(30, Math.min(56, node.symbolSize ?? 30 + Math.min(node.mentionCount ?? 0, 13)))
         }
       })),
@@ -694,38 +770,44 @@ export class KnowledgeGraphComponent {
           source: edge.source,
           target: edge.target,
           label: edge.type,
+          visibility: edge.visibility,
           weight: Math.max(1, Math.min(4, (edge.weight ?? 0.45) * 2.4))
         }
       }))
     ]
 
+    if (this.#expandFrom && this.#cy?.container() === container) {
+      const center = this.#cy.getElementById(this.#expandFrom).position()
+      const additions = elements.filter((item) => !this.#cy.getElementById(item.data.id).length)
+      this.#cy.batch(() => {
+        const added = this.#cy.add(additions)
+        const nodes = added.nodes()
+        nodes.forEach((node, index) => {
+          node.position({
+            x: center.x + 150 * Math.cos((index * Math.PI * 2) / Math.max(1, nodes.length)),
+            y: center.y + 150 * Math.sin((index * Math.PI * 2) / Math.max(1, nodes.length))
+          })
+        })
+      })
+      this.#graphDataKey = dataKey
+      this.#expandFrom = null
+      return
+    }
+    this.destroyGraph()
+    this.#graphDataKey = dataKey
     this.#cy = cytoscape({
       container,
       elements,
-      style: this.cytoscapeStyles(),
-      layout: {
-        name: 'cose',
-        animate: nodes.length <= 100,
-        animationDuration: 420,
-        animationEasing: 'ease-out',
-        fit: true,
-        padding: 64,
-        randomize: true,
-        componentSpacing: 72,
-        nodeRepulsion: 6800,
-        nodeOverlap: 18,
-        idealEdgeLength: 128,
-        edgeElasticity: 90,
-        gravity: 0.18,
-        numIter: 850
-      },
-      minZoom: 0.18,
+      style: graphStyles(),
+      layout: this.layoutOptions(nodes.length),
+      minZoom: 0.005,
       maxZoom: 3.2,
       wheelSensitivity: 0.22,
       selectionType: 'single',
       boxSelectionEnabled: false
     })
 
+    this.fitGraph()
     this.#cy.on('tap', 'node', (event) => {
       this.#ngZone.run(() => void this.selectEntity(event.target.id()))
     })
@@ -788,111 +870,7 @@ export class KnowledgeGraphComponent {
         node.data('color', this.entityColor(type))
       }
     })
-    this.#cy.style(this.cytoscapeStyles()).update()
-  }
-
-  private cytoscapeStyles(): cytoscape.StylesheetJson {
-    const textPrimary = this.cssVar('--color-text-primary', '--foreground')
-    const textSecondary = this.cssVar('--color-text-secondary', '--muted-foreground')
-    const textTertiary = this.cssVar('--color-text-tertiary', '--muted-foreground')
-    const border = this.cssVar('--color-components-panel-border', '--border')
-    const background = this.cssVar('--color-components-card-bg', '--background')
-    const primary = this.cssVar('--color-primary', '--primary')
-    const fontFamily = window.getComputedStyle(document.body).fontFamily
-
-    return [
-      {
-        selector: 'node',
-        style: {
-          'background-color': 'data(color)',
-          'border-color': background,
-          'border-width': 3,
-          width: 'data(size)',
-          height: 'data(size)',
-          label: 'data(label)',
-          color: textSecondary,
-          'font-family': fontFamily,
-          'font-size': 12,
-          'font-weight': 500,
-          'text-valign': 'bottom',
-          'text-halign': 'center',
-          'text-margin-y': 9,
-          'text-wrap': 'ellipsis',
-          'text-max-width': '132px',
-          'text-background-color': background,
-          'text-background-opacity': 0.86,
-          'text-background-padding': '3px',
-          'overlay-opacity': 0,
-          'transition-property': 'opacity, border-width, border-color',
-          'transition-duration': 160
-        }
-      },
-      {
-        selector: 'edge',
-        style: {
-          width: 'data(weight)',
-          'line-color': border,
-          'target-arrow-color': border,
-          'target-arrow-shape': 'triangle',
-          'arrow-scale': 0.76,
-          'curve-style': 'bezier',
-          'control-point-step-size': 54,
-          label: 'data(label)',
-          color: textTertiary,
-          'font-family': fontFamily,
-          'font-size': 10,
-          'font-weight': 500,
-          'text-rotation': 'autorotate',
-          'text-background-color': background,
-          'text-background-opacity': 0.94,
-          'text-background-padding': '3px',
-          'text-opacity': 0,
-          opacity: 0.72,
-          'overlay-opacity': 0,
-          'transition-property': 'opacity, line-color, target-arrow-color, text-opacity, width',
-          'transition-duration': 160
-        }
-      },
-      {
-        selector: 'node:selected',
-        style: {
-          'border-color': primary,
-          'border-width': 5,
-          color: textPrimary,
-          'font-weight': 700
-        }
-      },
-      {
-        selector: 'edge:selected',
-        style: {
-          'line-color': primary,
-          'target-arrow-color': primary,
-          'text-opacity': 1,
-          opacity: 1,
-          width: 3
-        }
-      },
-      {
-        selector: '.is-contextual',
-        style: {
-          opacity: 1
-        }
-      },
-      {
-        selector: '.is-hovered',
-        style: {
-          'text-opacity': 1,
-          opacity: 1
-        }
-      },
-      {
-        selector: '.is-muted',
-        style: {
-          opacity: 0.12,
-          'text-opacity': 0
-        }
-      }
-    ]
+    this.#cy.style(graphStyles()).update()
   }
 
   private destroyGraph() {
@@ -904,30 +882,6 @@ export class KnowledgeGraphComponent {
     this.#cy = null
     this.#graphDataKey = ''
     this.graphZoom.set(100)
-  }
-
-  private cssVar(name: string, fallbackName?: string) {
-    if (typeof window === 'undefined') {
-      return ''
-    }
-    const style = window.getComputedStyle(document.documentElement)
-    const value =
-      style.getPropertyValue(name).trim() || (fallbackName ? style.getPropertyValue(fallbackName).trim() : '')
-    if (!value) {
-      return ''
-    }
-
-    const canvas = document.createElement('canvas')
-    canvas.width = 1
-    canvas.height = 1
-    const context = canvas.getContext('2d', { willReadFrequently: true })
-    if (!context) {
-      return value
-    }
-    context.fillStyle = value
-    context.fillRect(0, 0, 1, 1)
-    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data
-    return `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`
   }
 
   private selectValueToString(value: GraphSelectValue) {

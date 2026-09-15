@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
+import { KNOWLEDGE_DOCUMENT_AGENT_WRITER_TYPE } from '@xpert-ai/contracts'
 
 export const KNOWLEDGEBASE_WRITER_MIDDLEWARE = 'knowledgebase-writer'
 
 export const WRITE_KNOWLEDGE_CHUNK_TOOL = 'write_knowledge_chunk'
 
-export const AGENT_WRITER_SYSTEM_MANAGED_TYPE = 'agent-writer'
+export const AGENT_WRITER_SYSTEM_MANAGED_TYPE = KNOWLEDGE_DOCUMENT_AGENT_WRITER_TYPE
 
 export function getAgentWriterDocumentName(agentKey: string) {
     return `__agent__:${agentKey}`

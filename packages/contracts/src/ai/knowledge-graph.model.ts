@@ -53,7 +53,7 @@ export type KnowledgeGraphDocumentProgress = {
 
 export type GraphRagRetrievalMode = 'vector' | 'keyword' | 'graph' | 'hybrid'
 
-export type KnowledgeGraphItemOrigin = 'extracted' | 'manual' | 'curated'
+export type KnowledgeGraphItemOrigin = 'extracted' | 'structured' | 'manual' | 'curated'
 
 export type KnowledgeGraphVisibility = 'active' | 'hidden'
 
@@ -193,6 +193,7 @@ export type KnowledgeGraphViewNode = {
   confidence?: number | null
   symbolSize?: number
   value?: number
+  unloadedNeighborCount?: number
 }
 
 export type KnowledgeGraphViewEdge = {
@@ -213,6 +214,15 @@ export type KnowledgeGraphViewResponse = {
   relationTypes: string[]
   totalNodes: number
   totalEdges: number
+  remainingNodes?: number
+  relations?: IKnowledgeGraphRelation[]
+}
+
+export type KnowledgeGraphCatalog = {
+  sources: Array<{ id: string; name: string }>
+  entities: Array<Pick<IKnowledgeGraphEntity, 'id' | 'name' | 'type'>>
+  hiddenNodes: number
+  hiddenRelations: number
 }
 
 export type KnowledgeGraphVisualizationQuery = {
@@ -224,6 +234,11 @@ export type KnowledgeGraphVisualizationQuery = {
   focusEntityId?: string | null
   depth?: number | null
   take?: number | null
+  sourceDocumentId?: string | null
+  loadAll?: boolean
+  expandedEntityIds?: string[]
+  visibleEntityIds?: string[]
+  includeHidden?: boolean
 }
 
 export type KnowledgeGraphMentionListQuery = {
