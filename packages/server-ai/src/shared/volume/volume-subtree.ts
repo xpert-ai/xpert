@@ -28,6 +28,8 @@ const EDITABLE_SUBTREE_EXTENSIONS = new Set([
     'env'
 ])
 
+const BINARY_EDITABLE_SUBTREE_EXTENSIONS = new Set(['docx', 'xlsx', 'pptx'])
+
 type TVolumeSubtreeOptions = {
     allowRootWorkspace?: boolean
 }
@@ -172,6 +174,36 @@ export class VolumeSubtreeClient {
                     nextBuffer,
                     offset,
                     nextBuffer.length - offset,
+                    offset
+                )
+                offset += bytesWritten
+            }
+        } finally {
+            await openedFile.fileHandle.close()
+        }
+        return this.readFile(scopePath, relativePath)
+    }
+
+    /** Replace an Office binary while preserving the original file name and volume boundary. */
+    async saveBinaryFile(scopePath: string, filePath: string, content: Buffer): Promise<TFile> {
+        const { openedFile, relativePath } = await this.openSubtreeFile(scopePath, filePath, fsConstants.O_RDWR)
+        try {
+            this.assertMutationAllowed(openedFile.volumeRelativePath, openedFile.fileStat)
+            if (!BINARY_EDITABLE_SUBTREE_EXTENSIONS.has(getSubtreeFileExtension(relativePath))) {
+                throw new BadRequestException(
+                    t('server-ai:Error.VolumeSubtreeFileTypeNotEditable', {
+                        defaultValue: 'This file type cannot be edited'
+                    })
+                )
+            }
+
+            await openedFile.fileHandle.truncate(0)
+            let offset = 0
+            while (offset < content.length) {
+                const { bytesWritten } = await openedFile.fileHandle.write(
+                    content,
+                    offset,
+                    content.length - offset,
                     offset
                 )
                 offset += bytesWritten
