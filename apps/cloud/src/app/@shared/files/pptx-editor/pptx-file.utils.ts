@@ -32,9 +32,42 @@ export type PptxParagraph = {
   runs: PptxRun[]
   align: 'left' | 'center' | 'right' | 'justify'
   level: number
+  lineHeight?: number
+  lineSpacingPt?: number
+  spaceBeforePt?: number
+  spaceAfterPt?: number
+  /** Paragraph left margin from a:pPr/@marL, in points. */
+  marginLeftPt?: number
+  indentPt?: number
+  bullet?: string
 }
 
-export type PptxTableCell = { text: string; colSpan: number; rowSpan: number }
+export type PptxTableCell = {
+  text: string
+  colSpan: number
+  rowSpan: number
+  merged?: boolean
+  fill?: string | null
+  textColor?: string
+  fontSizePt?: number
+  fontFamily?: string | null
+  bold?: boolean
+  italic?: boolean
+  textAlign?: PptxParagraph['align']
+  verticalAlign?: 'top' | 'middle' | 'bottom'
+  borderColor?: string | null
+  borderWidth?: number
+  borderTopColor?: string | null
+  borderTopWidth?: number
+  borderRightColor?: string | null
+  borderRightWidth?: number
+  borderBottomColor?: string | null
+  borderBottomWidth?: number
+  borderLeftColor?: string | null
+  borderLeftWidth?: number
+  /** Cell text insets from a:tcPr/@marL/@marR/@marT/@marB, in EMUs. */
+  margin?: { left: number; right: number; top: number; bottom: number }
+}
 
 export type PptxAnimationEffect =
   | 'appear'
@@ -67,6 +100,8 @@ export type PptxTransition =
   | 'zoom'
   | 'random'
 
+export type PptxLineEnd = 'none' | 'triangle' | 'stealth' | 'diamond' | 'oval' | 'open'
+
 export type PptxShape = {
   id: string
   /** Original OOXML cNvPr id. Render ids are made unique across master/layout/slide layers. */
@@ -88,10 +123,19 @@ export type PptxShape = {
   /** OOXML preset geometry. Unknown presets are kept so the source shape can still be
    * rendered with a useful approximation and serialized without being rewritten. */
   geometry: 'rect' | 'roundRect' | 'ellipse' | 'diamond' | 'triangle' | 'hexagon' | 'none' | (string & {})
+  /** Named OOXML adjustment values from a preset geometry's avLst. */
+  geometryAdjust?: Record<string, number>
+  /** Connector endpoint decorations from a:headEnd/a:tailEnd. */
+  lineHeadEnd?: PptxLineEnd
+  lineTailEnd?: PptxLineEnd
+  /** OOXML preset dash name for connector and shape outlines. */
+  lineDash?: string
   imageSrc: string | null
   imagePath?: string
   imageRelId?: string
   imageCrop: { left: number; top: number; right: number; bottom: number } | null
+  /** Alpha applied by a:blip/a:alphaModFix to a picture. */
+  opacity?: number
   /** CSS representation for read-only gradient/pattern fills. `fill` remains the first
    * solid color used by the edit serializer when a user changes the fill. */
   fillCss?: string
@@ -113,7 +157,12 @@ export type PptxShape = {
   autoFit: 'none' | 'shrink' | 'resize'
   margin: { left: number; right: number; top: number; bottom: number }
   editable: boolean
-  table: { columns: number[]; rows: PptxTableCell[][] } | null
+  table: {
+    columns: number[]
+    rows: PptxTableCell[][]
+    rowHeights?: number[]
+    rtl?: boolean
+  } | null
   /** Text as it was read from the package. Used to distinguish formatting-only edits. */
   sourceText?: string
   /** Text properties were changed through the ribbon. */
@@ -134,6 +183,8 @@ export type PptxSlide = {
   xml: string
   shapes: PptxShape[]
   background: string | null
+  /** CSS paint for an untouched gradient or pattern slide background. */
+  backgroundCss?: string
   /** New slides are serialized together with their presentation relationships. */
   created?: boolean
   sourcePath?: string
@@ -287,6 +338,10 @@ export async function parsePptx(buffer: ArrayBuffer): Promise<PptxDeck> {
       ),
       background:
         readBackground(slide, slideTheme) ?? readBackground(layout, slideTheme) ?? readBackground(master, slideTheme),
+      backgroundCss:
+        readBackgroundCss(slide, slideTheme) ??
+        readBackgroundCss(layout, slideTheme) ??
+        readBackgroundCss(master, slideTheme),
       transition: transitionOf(slide),
       hidden: attr(slide, 'show') === '0'
     })
@@ -457,12 +512,25 @@ async function parseNode(
   const shape = baseShape(id, name, rect, context.editable)
   if (attr(nonVisualProperties, 'descr') === 'xpert:ink') shape.editorKind = 'ink'
   if (kind === 'graphicFrame') {
-    const table = parseTable(directChild(directChild(node, 'graphic'), 'graphicData'))
-    if (table) return [{ ...shape, kind: 'table', table, geometry: 'none' }]
+    const table = parseTable(directChild(directChild(node, 'graphic'), 'graphicData'), context.theme)
+    if (table) {
+      const gridWidth = table.columns.reduce((sum, width) => sum + Math.max(0, width), 0) * parent.scaleX
+      const gridHeight = (table.rowHeights ?? []).reduce((sum, height) => sum + Math.max(0, height), 0) * parent.scaleY
+      return [
+        {
+          ...shape,
+          kind: 'table',
+          table,
+          geometry: 'none',
+          width: gridWidth > 0 ? gridWidth : shape.width,
+          height: gridHeight > 0 ? gridHeight : shape.height
+        }
+      ]
+    }
     const chartNode = firstDescendant(node, 'chart')
     const chartRelation = attr(chartNode, 'r:id')
     const chartPath = chartRelation ? context.relationships.get(chartRelation) : null
-    const chartSrc = chartPath ? await renderPptxChart(context.zip, chartPath) : null
+    const chartSrc = chartPath ? await renderPptxChart(context.zip, chartPath, context.theme) : null
     return chartSrc
       ? [
           {
@@ -481,7 +549,9 @@ async function parseNode(
   const properties = directChild(node, 'spPr') ?? (fallbackNode ? directChild(fallbackNode, 'spPr') : null)
   const style = directChild(node, 'style') ?? (fallbackNode ? directChild(fallbackNode, 'style') : null)
   shape.kind = kind === 'pic' ? 'image' : kind === 'cxnSp' ? 'line' : 'shape'
-  shape.geometry = kind === 'cxnSp' ? 'none' : geometryOf(properties)
+  const parsedGeometry = geometryOf(properties)
+  shape.geometry = kind === 'cxnSp' && parsedGeometry === 'rect' ? 'line' : parsedGeometry
+  shape.geometryAdjust = readGeometryAdjust(properties)
   shape.fill = readFill(properties, node, context.theme)
   shape.fillCss = readFillCss(properties, node, context.theme)
   shape.stroke = readStroke(properties, context.theme)
@@ -489,19 +559,30 @@ async function parseNode(
   // pixel value as if it were EMUs; clamping protects those files from
   // producing multi-thousand-pixel borders when reopened.
   shape.strokeWidth = Math.min(24, readAttrNumber(directChild(properties, 'ln'), 'w', 0) / EMU_PER_PX)
+  if (shape.kind === 'line') {
+    const line = directChild(properties, 'ln')
+    shape.lineHeadEnd = readLineEnd(directChild(line, 'headEnd'))
+    shape.lineTailEnd = readLineEnd(directChild(line, 'tailEnd'))
+    shape.lineDash = attr(directChild(line, 'prstDash'), 'val') ?? undefined
+  }
   if (kind === 'pic') {
-    const embed = attr(directChild(directChild(node, 'blipFill'), 'blip'), 'r:embed')
+    const blipFill = directChild(node, 'blipFill')
+    const blip = directChild(blipFill, 'blip')
+    const embed = imageEmbedId(blip)
     const imagePath = embed ? context.relationships.get(embed) : null
     shape.imageSrc = imagePath ? await loadImage(context.zip, imagePath, context.imageCache) : null
-    shape.imageCrop = readImageCrop(directChild(node, 'blipFill'))
+    shape.imageCrop = readImageCrop(blipFill)
+    shape.opacity = readImageOpacity(blip)
   } else {
     const blipFill = directChild(properties, 'blipFill')
-    const embed = attr(directChild(blipFill, 'blip'), 'r:embed')
+    const blip = directChild(blipFill, 'blip')
+    const embed = imageEmbedId(blip)
     const imagePath = embed ? context.relationships.get(embed) : null
     if (imagePath) {
       shape.kind = 'image'
       shape.imageSrc = await loadImage(context.zip, imagePath, context.imageCache)
       shape.imageCrop = readImageCrop(blipFill)
+      shape.opacity = readImageOpacity(blip)
     }
   }
   const textBody = directChild(node, 'txBody')
@@ -568,26 +649,47 @@ function readText(body: XmlElement, theme: ThemeColors, fallbackBody: XmlElement
   const paragraphs: PptxParagraph[] = []
   for (const paragraph of directChildren(body, 'p')) {
     const pPr = directChild(paragraph, 'pPr')
+    const level = Number(attr(pPr, 'lvl') ?? 0)
+    const stylePPr = paragraphProperties(body, fallbackBody, level)
+    const paragraphRun = directChild(pPr, 'defRPr') ?? directChild(stylePPr, 'defRPr') ?? defaultRun ?? fallbackRun
     const runs: PptxRun[] = []
     for (const child of directChildren(paragraph)) {
       if (localName(child) === 'br') {
-        runs.push(readRun('\n', directChild(child, 'rPr'), defaultRun ?? fallbackRun, theme, defaultColor))
+        runs.push(readRun('\n', directChild(child, 'rPr'), paragraphRun, theme, defaultColor))
         continue
       }
       if (localName(child) === 'tab') {
-        runs.push(readRun('\t', directChild(child, 'rPr'), defaultRun ?? fallbackRun, theme, defaultColor))
+        runs.push(readRun('\t', directChild(child, 'rPr'), paragraphRun, theme, defaultColor))
         continue
       }
       if (!['r', 'fld'].includes(localName(child))) continue
       const text = textOf(directChild(child, 't'))
       if (!text) continue
-      runs.push(readRun(text, directChild(child, 'rPr'), defaultRun ?? fallbackRun, theme, defaultColor))
+      runs.push(readRun(text, directChild(child, 'rPr'), paragraphRun, theme, defaultColor))
     }
+    const lineSpacing = directChild(pPr, 'lnSpc') ?? directChild(stylePPr, 'lnSpc')
+    const spacingBefore = directChild(pPr, 'spcBef') ?? directChild(stylePPr, 'spcBef')
+    const spacingAfter = directChild(pPr, 'spcAft') ?? directChild(stylePPr, 'spcAft')
+    const percentage = readAttrNumber(directChild(lineSpacing, 'spcPct'), 'val', 0)
+    const spacingPoints = readAttrNumber(directChild(lineSpacing, 'spcPts'), 'val', 0) / 100
+    const hasExplicitNoBullet = !!directChild(pPr, 'buNone')
+    const bulletNode = directChild(pPr, 'buChar') ?? directChild(stylePPr, 'buChar')
+    const bullet = hasExplicitNoBullet
+      ? undefined
+      : (attr(bulletNode, 'char') ??
+        (directChild(pPr, 'buAutoNum') || directChild(stylePPr, 'buAutoNum') ? '•' : undefined))
     paragraphs.push({
       text: runs.map((run) => run.text).join(''),
       runs,
-      align: paragraphAlign(attr(pPr, 'algn')),
-      level: Number(attr(pPr, 'lvl') ?? 0)
+      align: paragraphAlign(attr(pPr, 'algn') ?? attr(stylePPr, 'algn')),
+      level,
+      lineHeight: percentage > 0 ? percentage / 100000 : undefined,
+      lineSpacingPt: spacingPoints > 0 ? spacingPoints : undefined,
+      spaceBeforePt: readAttrNumber(directChild(spacingBefore, 'spcPts'), 'val', 0) / 100,
+      spaceAfterPt: readAttrNumber(directChild(spacingAfter, 'spcPts'), 'val', 0) / 100,
+      marginLeftPt: readAttrNumber(pPr, 'marL', readAttrNumber(stylePPr, 'marL', 0)) / 12700,
+      indentPt: readAttrNumber(pPr, 'indent', readAttrNumber(stylePPr, 'indent', 0)) / 12700,
+      bullet
     })
   }
   const firstRun = paragraphs.flatMap((paragraph) => paragraph.runs)[0]
@@ -622,6 +724,12 @@ function readText(body: XmlElement, theme: ThemeColors, fallbackBody: XmlElement
   }
 }
 
+function paragraphProperties(body: XmlElement, fallbackBody: XmlElement | null, level: number) {
+  const levelName = `lvl${Math.min(9, Math.max(1, level + 1))}pPr`
+  const find = (source: XmlElement | null) => directChild(directChild(source, 'lstStyle'), levelName)
+  return find(body) ?? find(fallbackBody)
+}
+
 function readRun(
   text: string,
   props: XmlElement | null,
@@ -629,7 +737,13 @@ function readRun(
   theme: ThemeColors,
   defaultColor: string
 ): PptxRun {
-  const latin = directChild(props, 'latin') ?? directChild(fallback, 'latin')
+  const latin =
+    directChild(props, 'latin') ??
+    directChild(props, 'ea') ??
+    directChild(props, 'cs') ??
+    directChild(fallback, 'latin') ??
+    directChild(fallback, 'ea') ??
+    directChild(fallback, 'cs')
   return {
     text,
     fontSizePt: readAttrNumber(props, 'sz', readAttrNumber(fallback, 'sz', DEFAULT_FONT_SIZE * 100)) / 100,
@@ -652,22 +766,102 @@ function booleanAttribute(node: XmlElement | null, fallback: XmlElement | null, 
   return value === '1' || value === 'true'
 }
 
-function parseTable(graphicData: XmlElement | null): PptxShape['table'] {
+function parseTable(graphicData: XmlElement | null, theme: ThemeColors): PptxShape['table'] {
   const table = directChild(graphicData, 'tbl')
   if (!table) return null
   const columns = directChildren(directChild(table, 'tblGrid'), 'gridCol').map((column) =>
     readAttrNumber(column, 'w', 0)
   )
+  const rowNodes = directChildren(table, 'tr')
   const rows: PptxTableCell[][] = []
-  for (const row of directChildren(table, 'tr'))
+  for (const row of rowNodes)
     rows.push(
-      directChildren(row, 'tc').map((cell) => ({
-        text: textOf(directChild(directChild(cell, 'txBody'), 'p')).trim(),
-        colSpan: Number(attr(cell, 'gridSpan') ?? 1),
-        rowSpan: Number(attr(cell, 'rowSpan') ?? 1)
-      }))
+      directChildren(row, 'tc').map((cell) => {
+        const body = directChild(cell, 'txBody')
+        const text = body ? readText(body, theme, null, DEFAULT_TEXT_COLOR) : null
+        const cellProperties = directChild(cell, 'tcPr')
+        const cellAnchor = attr(cellProperties, 'anchor')
+        const borderFor = (side: 'T' | 'R' | 'B' | 'L') => directChild(cellProperties, `ln${side}`)
+        const border = borderFor('T') ?? borderFor('B')
+        const borderColor = (side: 'T' | 'R' | 'B' | 'L') =>
+          resolveColor(directChild(borderFor(side), 'solidFill'), theme)
+        const borderWidth = (side: 'T' | 'R' | 'B' | 'L') => readAttrNumber(borderFor(side), 'w', 0) / EMU_PER_PX
+        return {
+          text: text?.text ?? '',
+          colSpan: Number(attr(cell, 'gridSpan') ?? 1),
+          rowSpan: Number(attr(cell, 'rowSpan') ?? 1),
+          merged: attr(cell, 'hMerge') === '1' || attr(cell, 'vMerge') === '1',
+          fill: resolveColor(directChild(cellProperties, 'solidFill'), theme),
+          textColor: text?.textColor ?? DEFAULT_TEXT_COLOR,
+          fontSizePt: text?.fontSizePt ?? DEFAULT_FONT_SIZE,
+          fontFamily: text?.fontFamily ?? null,
+          bold: text?.bold ?? false,
+          italic: text?.italic ?? false,
+          textAlign: text?.textAlign ?? 'left',
+          verticalAlign: (cellAnchor === 'ctr'
+            ? 'middle'
+            : cellAnchor === 'b'
+              ? 'bottom'
+              : cellAnchor === 't'
+                ? 'top'
+                : (text?.verticalAlign ?? 'middle')) as 'top' | 'middle' | 'bottom',
+          borderColor: resolveColor(directChild(border, 'solidFill'), theme),
+          borderWidth: readAttrNumber(border, 'w', 0) / EMU_PER_PX,
+          borderTopColor: borderColor('T'),
+          borderTopWidth: borderWidth('T'),
+          borderRightColor: borderColor('R'),
+          borderRightWidth: borderWidth('R'),
+          borderBottomColor: borderColor('B'),
+          borderBottomWidth: borderWidth('B'),
+          borderLeftColor: borderColor('L'),
+          borderLeftWidth: borderWidth('L'),
+          margin: {
+            left: readAttrNumber(cellProperties, 'marL', 91440),
+            right: readAttrNumber(cellProperties, 'marR', 91440),
+            top: readAttrNumber(cellProperties, 'marT', 45720),
+            bottom: readAttrNumber(cellProperties, 'marB', 45720)
+          }
+        }
+      })
     )
-  return { columns, rows }
+  // A number of producers omit tcPr borders and rely on the table style's grid
+  // defaults. Keep a visible grid in that case so the table does not disappear
+  // while preserving explicit noFill/no-border cells.
+  const hasBorderDefinition = rowNodes.some((row) =>
+    directChildren(row, 'tc').some((cell) => {
+      const properties = directChild(cell, 'tcPr')
+      return (['T', 'R', 'B', 'L'] as const).some((side) => !!directChild(properties, `ln${side}`))
+    })
+  )
+  const hasExplicitBorder = rows.some((row) =>
+    row.some((cell) =>
+      [cell.borderTopWidth, cell.borderRightWidth, cell.borderBottomWidth, cell.borderLeftWidth].some(
+        (width) => (width ?? 0) > 0
+      )
+    )
+  )
+  if (!hasBorderDefinition && !hasExplicitBorder) {
+    const gridColor = theme.dk2 ?? theme.tx1 ?? DEFAULT_TEXT_COLOR
+    for (const row of rows)
+      for (const cell of row) {
+        cell.borderColor ??= gridColor
+        cell.borderWidth ??= 1
+        cell.borderTopColor ??= gridColor
+        cell.borderRightColor ??= gridColor
+        cell.borderBottomColor ??= gridColor
+        cell.borderLeftColor ??= gridColor
+        cell.borderTopWidth ??= 1
+        cell.borderRightWidth ??= 1
+        cell.borderBottomWidth ??= 1
+        cell.borderLeftWidth ??= 1
+      }
+  }
+  return {
+    columns,
+    rows,
+    rowHeights: rowNodes.map((row) => readAttrNumber(row, 'h', 0)),
+    rtl: attr(directChild(table, 'tblPr'), 'rtl') === '1' || attr(directChild(table, 'tblPr'), 'rtl') === 'true'
+  }
 }
 
 function collectPlaceholders(layout: XmlElement | null, master: XmlElement | null) {
@@ -697,6 +891,14 @@ function placeholderKey(ph: { type: string; idx: string }) {
 function readBackground(source: XmlElement | null, theme: ThemeColors): string | null {
   const cSld = directChild(source, 'cSld')
   return resolveColor(directChild(directChild(directChild(cSld, 'bg'), 'bgPr'), 'solidFill'), theme)
+}
+
+function readBackgroundCss(source: XmlElement | null, theme: ThemeColors): string | undefined {
+  const cSld = directChild(source, 'cSld')
+  const bg = directChild(cSld, 'bg')
+  const bgPr = directChild(bg, 'bgPr')
+  if (bgPr) return readFillCss(bgPr, source ?? bgPr, theme)
+  return resolveColor(directChild(bg, 'bgRef'), theme) ?? undefined
 }
 
 function transitionOf(slide: XmlElement) {
@@ -789,9 +991,102 @@ function toRgba(color: string, alpha: number) {
 }
 
 function patternCss(preset: string, foreground: string, background: string) {
-  const angle = /Diag|Horz|Vert/i.test(preset) ? (/(Dn|Down)/i.test(preset) ? 135 : 45) : 0
-  const size = /lt|thin|sm/i.test(preset) ? 7 : 10
-  return `repeating-linear-gradient(${angle}deg, ${foreground} 0 1px, ${background} 1px ${size}px)`
+  const grid = patternGrid(preset)
+  const pixels = grid
+    .map((row, y) =>
+      row
+        .map(
+          (isForeground, x) =>
+            `<rect x="${x}" y="${y}" width="1" height="1" fill="${isForeground ? escapeXml(foreground) : escapeXml(background)}"/>`
+        )
+        .join('')
+    )
+    .join('')
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" shape-rendering="crispEdges">${pixels}</svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
+}
+
+/** GenOffice and PowerPoint use the classic 8x8 GDI hatch masks for pattFill. */
+function patternGrid(preset: string): boolean[][] {
+  const bayer = [
+    [0, 32, 8, 40, 2, 34, 10, 42],
+    [48, 16, 56, 24, 50, 18, 58, 26],
+    [12, 44, 4, 36, 14, 46, 6, 38],
+    [60, 28, 52, 20, 62, 30, 54, 22],
+    [3, 35, 11, 43, 1, 33, 9, 41],
+    [51, 19, 59, 27, 49, 17, 57, 25],
+    [15, 47, 7, 39, 13, 45, 5, 37],
+    [63, 31, 55, 23, 61, 29, 53, 21]
+  ]
+  const percentages: Record<string, number> = {
+    pct5: 5,
+    pct10: 10,
+    pct20: 20,
+    pct25: 25,
+    pct30: 30,
+    pct40: 40,
+    pct50: 50,
+    pct60: 60,
+    pct70: 70,
+    pct75: 75,
+    pct80: 80,
+    pct90: 90
+  }
+  const density = percentages[preset]
+  if (density != null) {
+    const threshold = (density / 100) * 64
+    return bayer.map((row) => row.map((value) => value < threshold))
+  }
+  const masks: Record<string, number[]> = {
+    horz: [0xff, 0, 0, 0, 0xff, 0, 0, 0],
+    vert: [0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88],
+    ltHorz: [0xff, 0, 0, 0, 0, 0, 0, 0],
+    ltVert: [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80],
+    dkHorz: [0xff, 0xff, 0, 0, 0xff, 0xff, 0, 0],
+    dkVert: [0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc],
+    narHorz: [0xff, 0, 0xff, 0, 0xff, 0, 0xff, 0],
+    narVert: [0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa],
+    dashHorz: [0xf0, 0, 0, 0, 0x0f, 0, 0, 0],
+    dashVert: [0x80, 0x80, 0x80, 0x80, 0x08, 0x08, 0x08, 0x08],
+    cross: [0xff, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80],
+    dnDiag: [0x88, 0x44, 0x22, 0x11, 0x88, 0x44, 0x22, 0x11],
+    upDiag: [0x11, 0x22, 0x44, 0x88, 0x11, 0x22, 0x44, 0x88],
+    ltDnDiag: [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01],
+    ltUpDiag: [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80],
+    dkDnDiag: [0xcc, 0x66, 0x33, 0x99, 0xcc, 0x66, 0x33, 0x99],
+    dkUpDiag: [0x33, 0x66, 0xcc, 0x99, 0x33, 0x66, 0xcc, 0x99],
+    wdDnDiag: [0xe1, 0xf0, 0x78, 0x3c, 0x1e, 0x0f, 0x87, 0xc3],
+    wdUpDiag: [0x87, 0x0f, 0x1e, 0x3c, 0x78, 0xf0, 0xe1, 0xc3],
+    dashDnDiag: [0x80, 0x40, 0x20, 0x10, 0, 0, 0, 0],
+    dashUpDiag: [0x01, 0x02, 0x04, 0x08, 0, 0, 0, 0],
+    diagCross: [0x99, 0x66, 0x66, 0x99, 0x99, 0x66, 0x66, 0x99],
+    smCheck: [0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0x33, 0x33],
+    lgCheck: [0xf0, 0xf0, 0xf0, 0xf0, 0x0f, 0x0f, 0x0f, 0x0f],
+    smGrid: [0xff, 0x88, 0x88, 0x88, 0xff, 0x88, 0x88, 0x88],
+    lgGrid: [0xff, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80],
+    dotGrid: [0xaa, 0, 0x80, 0, 0x80, 0, 0x80, 0],
+    smConfetti: [0x01, 0x10, 0x02, 0x40, 0x08, 0x80, 0x04, 0x20],
+    lgConfetti: [0x8c, 0x31, 0x03, 0xc6, 0x18, 0x63, 0x30, 0xc4],
+    horzBrick: [0xff, 0x80, 0x80, 0x80, 0xff, 0x08, 0x08, 0x08],
+    diagBrick: [0x80, 0x40, 0x20, 0x10, 0x08, 0x14, 0x22, 0x41],
+    solidDmnd: [0x10, 0x38, 0x7c, 0xfe, 0x7c, 0x38, 0x10, 0],
+    openDmnd: [0x10, 0x28, 0x44, 0x82, 0x44, 0x28, 0x10, 0],
+    dotDmnd: [0x10, 0, 0x44, 0, 0x10, 0, 0, 0],
+    plaid: [0xaa, 0x55, 0xaa, 0x55, 0xf0, 0xf0, 0xf0, 0xf0],
+    sphere: [0x38, 0x44, 0x92, 0xaa, 0x92, 0x44, 0x38, 0],
+    weave: [0x88, 0x54, 0x22, 0x45, 0x88, 0x15, 0x22, 0x51],
+    divot: [0x08, 0x14, 0, 0, 0x80, 0x41, 0, 0],
+    shingle: [0x80, 0x40, 0x20, 0xe0, 0x02, 0x04, 0x08, 0x07],
+    wave: [0, 0x60, 0x99, 0x06, 0, 0x60, 0x99, 0x06],
+    trellis: [0xff, 0x55, 0xff, 0x55, 0xff, 0x55, 0xff, 0x55],
+    zigZag: [0x11, 0x22, 0x44, 0x88, 0x88, 0x44, 0x22, 0x11]
+  }
+  const mask = masks[preset] ?? masks.cross
+  return mask.map((row) => Array.from({ length: 8 }, (_, column) => !!(row & (1 << (7 - column)))))
+}
+
+function escapeXml(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function readStroke(properties: XmlElement | null, theme: ThemeColors) {
@@ -801,6 +1096,25 @@ function readStroke(properties: XmlElement | null, theme: ThemeColors) {
 function geometryOf(properties: XmlElement | null): PptxShape['geometry'] {
   const preset = attr(directChild(properties, 'prstGeom'), 'prst')
   return preset || 'rect'
+}
+
+function readGeometryAdjust(properties: XmlElement | null) {
+  const avLst = directChild(directChild(properties, 'prstGeom'), 'avLst')
+  const result: Record<string, number> = {}
+  for (const guide of directChildren(avLst, 'gd')) {
+    const name = attr(guide, 'name')
+    const formula = attr(guide, 'fmla')
+    const match = formula?.match(/(?:^|\s)val\s+(-?\d+(?:\.\d+)?)/i)
+    if (name && match) result[name] = Number(match[1])
+  }
+  return Object.keys(result).length ? result : undefined
+}
+
+function readLineEnd(node: XmlElement | null): PptxLineEnd | undefined {
+  const type = attr(node, 'type')
+  if (!type || type === 'none') return type === 'none' ? 'none' : undefined
+  if (type === 'triangle' || type === 'stealth' || type === 'diamond' || type === 'oval' || type === 'open') return type
+  return undefined
 }
 
 function readImageCrop(blipFill: XmlElement | null) {
@@ -901,6 +1215,27 @@ async function loadImage(zip: JSZip, path: string, cache: Map<string, string>) {
   const value = `data:${mime};base64,${base64}`
   cache.set(path, value)
   return value
+}
+
+function imageEmbedId(blip: XmlElement | null) {
+  const direct = attr(blip, 'r:embed')
+  if (direct) return direct
+  const extList = directChild(blip, 'extLst')
+  for (const extension of directChildren(extList, 'ext')) {
+    for (const child of directChildren(extension)) {
+      if (localName(child).endsWith('svgBlip')) {
+        const embed = attr(child, 'r:embed')
+        if (embed) return embed
+      }
+    }
+  }
+  return null
+}
+
+function readImageOpacity(blip: XmlElement | null) {
+  const alpha = directChild(blip, 'alphaModFix')
+  if (!alpha) return undefined
+  return Math.max(0, Math.min(1, readAttrNumber(alpha, 'amt', 100000) / 100000))
 }
 
 function resolveColor(node: XmlElement | null, theme: ThemeColors): string | null {
@@ -1040,6 +1375,12 @@ function paragraphAlign(value: string | null): PptxParagraph['align'] {
   return value === 'ctr' ? 'center' : value === 'r' ? 'right' : value === 'just' ? 'justify' : 'left'
 }
 function resolveZipPath(source: string, target: string) {
+  // Office relationship targets may be package-root absolute paths (for
+  // example `/ppt/slides/charts/chart1.xml`) as well as paths relative to the
+  // relationship part. Root targets must not inherit the source directory.
+  if (target.startsWith('/')) {
+    return target.replace(/^\/+/, '').split('/').filter(Boolean).join('/')
+  }
   const parts = source.split('/')
   parts.pop()
   for (const part of target.split('/')) {

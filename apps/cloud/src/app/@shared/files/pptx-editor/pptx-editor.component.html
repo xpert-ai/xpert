@@ -25,11 +25,16 @@
             <span
               class="xp-pptx-editor__thumbnail-canvas"
               [style.aspect-ratio]="presentation.width + ' / ' + presentation.height"
-              [style.background]="slide.background || 'Canvas'"
+              [style.background]="slideBackground(slide)"
             >
               @for (shape of slide.shapes; track shape.id) {
                 @if (!shape.deleted) {
-                  <span class="xp-pptx-editor__thumbnail-shape" [ngStyle]="thumbnailShapeStyle(shape, presentation)">
+                  <span
+                    class="xp-pptx-editor__thumbnail-shape"
+                    [class.is-table]="shape.kind === 'table'"
+                    [ngStyle]="thumbnailShapeStyle(shape, presentation)"
+                  >
+                    <xp-pptx-polygon [shape]="shape" />
                     @if (shape.kind === 'line') {
                       <svg
                         class="xp-pptx-editor__line"
@@ -37,14 +42,40 @@
                         preserveAspectRatio="none"
                         aria-hidden="true"
                       >
-                        <line
-                          x1="0"
-                          y1="0"
-                          x2="100"
-                          y2="100"
+                        <defs>
+                          @for (side of lineMarkerSides; track side) {
+                            @if (lineMarkerUrl(shape, side); as markerUrl) {
+                              <marker
+                                [attr.id]="lineMarkerId(shape, side)"
+                                viewBox="0 0 6 6"
+                                markerWidth="6"
+                                markerHeight="6"
+                                refX="5"
+                                refY="3"
+                                orient="auto-start-reverse"
+                                markerUnits="strokeWidth"
+                              >
+                                <path
+                                  [attr.d]="lineMarkerPath(shape, side)"
+                                  [attr.fill]="shape.stroke || 'currentColor'"
+                                  [attr.stroke]="shape.stroke || 'currentColor'"
+                                  stroke-width="0.8"
+                                  stroke-linejoin="round"
+                                />
+                              </marker>
+                            }
+                          }
+                        </defs>
+                        <path
+                          [attr.d]="connectorPath(shape)"
                           [attr.stroke]="shape.stroke || 'currentColor'"
                           [attr.stroke-width]="lineStrokeWidth(shape, true)"
+                          [attr.stroke-dasharray]="lineDashArray(shape)"
+                          [attr.marker-start]="lineMarkerUrl(shape, 'start')"
+                          [attr.marker-end]="lineMarkerUrl(shape, 'end')"
+                          fill="none"
                           stroke-linecap="round"
+                          stroke-linejoin="round"
                           vector-effect="non-scaling-stroke"
                         />
                       </svg>
@@ -52,7 +83,27 @@
                     @if (shape.kind === 'image' && shape.imageSrc) {
                       <img [src]="shape.imageSrc" alt="" [ngStyle]="imageStyle(shape)" />
                     }
-                    @if (shape.text) {
+                    @if (shape.kind === 'table' && shape.table; as table) {
+                      <table class="xp-pptx-editor__thumbnail-table" [attr.dir]="table.rtl ? 'rtl' : 'ltr'">
+                        <tbody>
+                          @for (row of table.rows; track $index; let rowIndex = $index) {
+                            <tr [style.height.%]="thumbnailRowHeight(table.rowHeights, rowIndex)">
+                              @for (cell of row; track $index) {
+                                @if (!cell.merged) {
+                                  <td
+                                    [attr.colspan]="cell.colSpan"
+                                    [attr.rowspan]="cell.rowSpan"
+                                    [ngStyle]="thumbnailTableCellStyle(cell, shape)"
+                                  >
+                                    {{ cell.text }}
+                                  </td>
+                                }
+                              }
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    } @else if (shape.text) {
                       {{ shape.text }}
                     }
                   </span>
@@ -773,7 +824,7 @@
               [class.has-guides]="showGuides()"
               [style.width.px]="canvasSize().width"
               [style.height.px]="canvasSize().height"
-              [style.background]="slide.background || 'Canvas'"
+              [style.background]="slideBackground(slide)"
               [attr.aria-label]="fileName()"
             >
               @for (shape of slide.shapes; track shape.id) {
@@ -805,14 +856,40 @@
                         preserveAspectRatio="none"
                         aria-hidden="true"
                       >
-                        <line
-                          x1="0"
-                          y1="0"
-                          x2="100"
-                          y2="100"
+                        <defs>
+                          @for (side of lineMarkerSides; track side) {
+                            @if (lineMarkerUrl(shape, side); as markerUrl) {
+                              <marker
+                                [attr.id]="lineMarkerId(shape, side)"
+                                viewBox="0 0 6 6"
+                                markerWidth="6"
+                                markerHeight="6"
+                                refX="5"
+                                refY="3"
+                                orient="auto-start-reverse"
+                                markerUnits="strokeWidth"
+                              >
+                                <path
+                                  [attr.d]="lineMarkerPath(shape, side)"
+                                  [attr.fill]="shape.stroke || 'currentColor'"
+                                  [attr.stroke]="shape.stroke || 'currentColor'"
+                                  stroke-width="0.8"
+                                  stroke-linejoin="round"
+                                />
+                              </marker>
+                            }
+                          }
+                        </defs>
+                        <path
+                          [attr.d]="connectorPath(shape)"
                           [attr.stroke]="shape.stroke || 'currentColor'"
                           [attr.stroke-width]="lineStrokeWidth(shape)"
+                          [attr.stroke-dasharray]="lineDashArray(shape)"
+                          [attr.marker-start]="lineMarkerUrl(shape, 'start')"
+                          [attr.marker-end]="lineMarkerUrl(shape, 'end')"
+                          fill="none"
                           stroke-linecap="round"
+                          stroke-linejoin="round"
                           vector-effect="non-scaling-stroke"
                         />
                       </svg>
@@ -853,9 +930,18 @@
                           <div
                             class="xp-pptx-editor__paragraph"
                             [style.text-align]="paragraph.align"
+                            [style.line-height]="paragraphLineHeight(paragraph, shape, presentation)"
+                            [style.margin-top]="paragraphOffset(paragraph.spaceBeforePt || 0, presentation)"
+                            [style.margin-bottom]="paragraphOffset(paragraph.spaceAfterPt || 0, presentation)"
+                            [style.margin-left]="paragraphOffset(paragraph.marginLeftPt || 0, presentation)"
+                            [style.padding-left]="paragraphOffset((paragraph.level || 0) * 36, presentation)"
+                            [style.text-indent]="paragraphOffset(paragraph.indentPt || 0, presentation)"
                             [style.white-space]="shape.wrap ? 'pre-wrap' : 'pre'"
                             [style.overflow-wrap]="shape.wrap ? 'anywhere' : 'normal'"
                           >
+                            @if (paragraph.bullet) {
+                              <span class="xp-pptx-editor__bullet">{{ paragraph.bullet }}</span>
+                            }
                             @for (run of paragraph.runs; track $index) {
                               <span
                                 [style.font-size]="runFontSize(run, shape, presentation)"
@@ -943,7 +1029,7 @@
             [ngClass]="transitionClasses(slide.transition)"
             [style.--xp-pptx-slide-ratio]="presentation.width / presentation.height"
             [style.aspect-ratio]="presentation.width + ' / ' + presentation.height"
-            [style.background]="slide.background || 'Canvas'"
+            [style.background]="slideBackground(slide)"
           >
             @for (shape of slide.shapes; track shape.id) {
               @if (!shape.deleted) {
@@ -961,6 +1047,7 @@
                   [style.animation-duration]="animationTime(shape, 'duration')"
                   [style.animation-delay]="animationTime(shape, 'delay')"
                 >
+                  <xp-pptx-polygon [shape]="shape" />
                   @if (shape.kind === 'line') {
                     <svg
                       class="xp-pptx-editor__line"
@@ -968,14 +1055,40 @@
                       preserveAspectRatio="none"
                       aria-hidden="true"
                     >
-                      <line
-                        x1="0"
-                        y1="0"
-                        x2="100"
-                        y2="100"
+                      <defs>
+                        @for (side of lineMarkerSides; track side) {
+                          @if (lineMarkerUrl(shape, side); as markerUrl) {
+                            <marker
+                              [attr.id]="lineMarkerId(shape, side)"
+                              viewBox="0 0 6 6"
+                              markerWidth="6"
+                              markerHeight="6"
+                              refX="5"
+                              refY="3"
+                              orient="auto-start-reverse"
+                              markerUnits="strokeWidth"
+                            >
+                              <path
+                                [attr.d]="lineMarkerPath(shape, side)"
+                                [attr.fill]="shape.stroke || 'currentColor'"
+                                [attr.stroke]="shape.stroke || 'currentColor'"
+                                stroke-width="0.8"
+                                stroke-linejoin="round"
+                              />
+                            </marker>
+                          }
+                        }
+                      </defs>
+                      <path
+                        [attr.d]="connectorPath(shape)"
                         [attr.stroke]="shape.stroke || 'currentColor'"
                         [attr.stroke-width]="lineStrokeWidth(shape)"
+                        [attr.stroke-dasharray]="lineDashArray(shape)"
+                        [attr.marker-start]="lineMarkerUrl(shape, 'start')"
+                        [attr.marker-end]="lineMarkerUrl(shape, 'end')"
+                        fill="none"
                         stroke-linecap="round"
+                        stroke-linejoin="round"
                         vector-effect="non-scaling-stroke"
                       />
                     </svg>
@@ -983,18 +1096,8 @@
                   @if (shape.kind === 'image' && shape.imageSrc) {
                     <img class="xp-pptx-editor__image" [src]="shape.imageSrc" alt="" [ngStyle]="imageStyle(shape)" />
                   }
-                  @if (shape.kind === 'table' && shape.table; as table) {
-                    <table class="xp-pptx-editor__table">
-                      <tbody>
-                        @for (row of table.rows; track $index) {
-                          <tr>
-                            @for (cell of row; track $index) {
-                              <td [attr.colspan]="cell.colSpan" [attr.rowspan]="cell.rowSpan">{{ cell.text }}</td>
-                            }
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
+                  @if (shape.kind === 'table' && shape.table) {
+                    <xp-pptx-table [shape]="shape" />
                   } @else if (shape.paragraphs.length) {
                     <div
                       class="xp-pptx-editor__text"
@@ -1012,9 +1115,18 @@
                         <div
                           class="xp-pptx-editor__paragraph"
                           [style.text-align]="paragraph.align"
+                          [style.line-height]="paragraphLineHeight(paragraph, shape, presentation)"
+                          [style.margin-top]="paragraphOffset(paragraph.spaceBeforePt || 0, presentation)"
+                          [style.margin-bottom]="paragraphOffset(paragraph.spaceAfterPt || 0, presentation)"
+                          [style.margin-left]="paragraphOffset(paragraph.marginLeftPt || 0, presentation)"
+                          [style.padding-left]="paragraphOffset((paragraph.level || 0) * 36, presentation)"
+                          [style.text-indent]="paragraphOffset(paragraph.indentPt || 0, presentation)"
                           [style.white-space]="shape.wrap ? 'pre-wrap' : 'pre'"
                           [style.overflow-wrap]="shape.wrap ? 'anywhere' : 'normal'"
                         >
+                          @if (paragraph.bullet) {
+                            <span class="xp-pptx-editor__bullet">{{ paragraph.bullet }}</span>
+                          }
                           @for (run of paragraph.runs; track $index) {
                             <span
                               [style.font-size]="runFontSize(run, shape, presentation)"

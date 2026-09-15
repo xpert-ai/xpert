@@ -52,10 +52,18 @@ import {
 import {
   pptxAnimationClasses,
   pptxAnimationTime,
+  pptxConnectorPath,
   pptxImageStyle,
+  pptxLineDashArray,
+  pptxLineMarkerId,
+  pptxLineMarkerPath,
+  pptxLineMarkerUrl,
+  pptxParagraphLineHeight,
+  pptxParagraphOffset,
   pptxRunFontSize,
   pptxRunTextDecoration,
   pptxSelectionFrameStyle,
+  pptxSlideBackground,
   pptxShapeStyle,
   pptxTextPadding,
   pptxThumbnailShapeStyle,
@@ -64,6 +72,7 @@ import {
 import { PptxEditHistory } from './pptx-editor-history.utils'
 import { PptxPolygonComponent } from './pptx-polygon.component'
 import { PptxTableCellEditStart, PptxTableComponent } from './pptx-table.component'
+import type { PptxTableCell } from './pptx-file.utils'
 type PptxInkState = { points: PptxPoint[]; tool: 'pen' | 'highlighter'; width: number }
 @Component({
   standalone: true,
@@ -96,11 +105,52 @@ export class PptxEditorComponent implements OnDestroy {
   readonly thumbnailShapeStyle = pptxThumbnailShapeStyle
   readonly textPadding = pptxTextPadding
   readonly runFontSize = pptxRunFontSize
+  readonly paragraphLineHeight = pptxParagraphLineHeight
+  readonly paragraphOffset = pptxParagraphOffset
   readonly runTextDecoration = pptxRunTextDecoration
   readonly imageStyle = pptxImageStyle
   readonly animationClasses = pptxAnimationClasses
   readonly animationTime = pptxAnimationTime
+  readonly connectorPath = pptxConnectorPath
+  readonly lineDashArray = pptxLineDashArray
+  readonly lineMarkerId = pptxLineMarkerId
+  readonly lineMarkerPath = pptxLineMarkerPath
+  readonly lineMarkerUrl = pptxLineMarkerUrl
+  readonly lineMarkerSides = ['start', 'end'] as const
   readonly transitionClasses = pptxTransitionClasses
+  readonly slideBackground = pptxSlideBackground
+  readonly thumbnailTableCellStyle = (cell: PptxTableCell, shape: PptxShape) => {
+    const fontSize = cell.fontSizePt ?? shape.fontSizePt
+    const margin = cell.margin
+    const em = (value: number | undefined, fallback: number) =>
+      `${Math.max(0, (value ?? fallback) / 12700 / Math.max(fontSize, 1))}em`
+    return {
+      background: cell.fill ?? 'transparent',
+      color: cell.textColor || shape.textColor,
+      'font-size': `${(fontSize / Math.max(shape.fontSizePt, 1)) * 100}%`,
+      'font-family': cell.fontFamily || shape.fontFamily || 'inherit',
+      'font-weight': cell.bold ? '700' : '400',
+      'font-style': cell.italic ? 'italic' : 'normal',
+      'text-align': cell.textAlign || 'left',
+      'vertical-align': cell.verticalAlign || 'middle',
+      padding: margin
+        ? `${em(margin.top, 45720)} ${em(margin.right, 91440)} ${em(margin.bottom, 45720)} ${em(margin.left, 91440)}`
+        : undefined,
+      'border-top-color': cell.borderTopColor ?? cell.borderColor ?? shape.stroke ?? 'transparent',
+      'border-top-width': `${Math.max(0, cell.borderTopWidth ?? cell.borderWidth ?? shape.strokeWidth ?? 0)}px`,
+      'border-right-color': cell.borderRightColor ?? cell.borderColor ?? shape.stroke ?? 'transparent',
+      'border-right-width': `${Math.max(0, cell.borderRightWidth ?? cell.borderWidth ?? shape.strokeWidth ?? 0)}px`,
+      'border-bottom-color': cell.borderBottomColor ?? cell.borderColor ?? shape.stroke ?? 'transparent',
+      'border-bottom-width': `${Math.max(0, cell.borderBottomWidth ?? cell.borderWidth ?? shape.strokeWidth ?? 0)}px`,
+      'border-left-color': cell.borderLeftColor ?? cell.borderColor ?? shape.stroke ?? 'transparent',
+      'border-left-width': `${Math.max(0, cell.borderLeftWidth ?? cell.borderWidth ?? shape.strokeWidth ?? 0)}px`
+    }
+  }
+  readonly thumbnailRowHeight = (rowHeights: number[] | undefined, index: number) => {
+    if (!rowHeights?.length) return null
+    const total = rowHeights.reduce((sum, height) => sum + Math.max(height, 0), 0)
+    return total > 0 ? (Math.max(rowHeights[index] ?? 0, 0) / total) * 100 : null
+  }
   readonly lineStrokeWidth = (shape: PptxShape, thumbnail = false) =>
     Math.max(thumbnail ? 0.6 : 0.75, shape.strokeWidth || 1)
   readonly defaultFillColor = rgbColor(255, 255, 255)
@@ -543,8 +593,12 @@ export class PptxEditorComponent implements OnDestroy {
       return
     }
     const canvas = this.stageHost()?.nativeElement.querySelector('.xp-pptx-editor__canvas') as HTMLElement | null
+    // The editor model stores slide geometry in EMUs, while the ribbon width is
+    // expressed in screen pixels. Convert using the actual canvas scale. The
+    // previous 0.01 floor capped the model width at 200 EMU, which is invisible
+    // on a slide whose coordinates are in the millions.
     const scale = canvas ? canvas.getBoundingClientRect().width / deck.width : 0
-    const width = this.drawingWidth() / Math.max(scale, 0.01)
+    const width = this.drawingWidth() / Math.max(scale, Number.EPSILON)
     this.#inkState = { points: [point], tool, width }
     this.inkPreview.set([point])
     ;(event.currentTarget as SVGElement)?.setPointerCapture?.(event.pointerId)

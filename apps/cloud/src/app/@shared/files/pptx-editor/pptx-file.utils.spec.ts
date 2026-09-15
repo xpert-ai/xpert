@@ -1,5 +1,9 @@
 import JSZip from 'jszip'
 import { parsePptx, savePptx } from './pptx-file.utils'
+import { renderPptxChart } from './pptx-chart.utils'
+import { createTableShape } from './pptx-editor-model.utils'
+import { pptxConnectorPath, pptxPolygonPoints } from './pptx-editor-view.utils'
+import type { PptxShape } from './pptx-file.utils'
 
 describe('PPTX file utilities', () => {
   it('keeps text color separate from shape fill and resolves embedded images', async () => {
@@ -24,6 +28,173 @@ describe('PPTX file utilities', () => {
     })
     expect(deck.slides[0].shapes[1]).toMatchObject({ kind: 'image' })
     expect(deck.slides[0].shapes[1].imageSrc).toMatch(/^data:image\/png;base64,/)
+  })
+
+  it('resolves package-root relationships for images and charts', async () => {
+    const zip = await JSZip.loadAsync(await createPresentation())
+    const slide = await zip.file('ppt/slides/slide1.xml')!.async('text')
+    const rels = await zip.file('ppt/slides/_rels/slide1.xml.rels')!.async('text')
+    zip.file(
+      'ppt/slides/slide1.xml',
+      slide.replace(
+        '</p:spTree>',
+        `<p:graphicFrame>
+          <p:nvGraphicFramePr><p:cNvPr id="4" name="Chart"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
+          <p:xfrm><a:off x="3000000" y="3000000"/><a:ext cx="5000000" cy="2500000"/></p:xfrm>
+          <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rChart"/></a:graphicData></a:graphic>
+        </p:graphicFrame></p:spTree>`
+      )
+    )
+    zip.file(
+      'ppt/slides/_rels/slide1.xml.rels',
+      rels
+        .replace('../media/image1.png', '/ppt/media/image1.png')
+        .replace(
+          '</Relationships>',
+          '<Relationship Id="rChart" Target="/ppt/slides/charts/chart1.xml"/></Relationships>'
+        )
+    )
+    zip.file(
+      'ppt/slides/charts/chart1.xml',
+      `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:chart><c:plotArea><c:barChart><c:grouping val="clustered"/>
+          <c:ser><c:tx><c:v>Sales</c:v></c:tx><c:cat><c:strCache><c:pt idx="0"><c:v>Q1</c:v></c:pt><c:pt idx="1"><c:v>Q2</c:v></c:pt></c:strCache></c:cat>
+            <c:val><c:numCache><c:pt idx="0"><c:v>10</c:v></c:pt><c:pt idx="1"><c:v>20</c:v></c:pt></c:numCache></c:val>
+          </c:ser>
+        </c:barChart><c:valAx><c:scaling><c:min val="0"/><c:max val="20"/></c:scaling></c:valAx></c:plotArea></c:chart>
+      </c:chartSpace>`
+    )
+
+    const deck = await parsePptx(await zip.generateAsync({ type: 'arraybuffer' }))
+    expect(deck.slides[0].shapes.find((shape) => shape.name === 'Photo')?.imageSrc).toMatch(/^data:image\/png;base64,/)
+    expect(deck.slides[0].shapes.find((shape) => shape.name === 'Chart')).toMatchObject({
+      kind: 'image',
+      imageSrc: expect.stringMatching(/^data:image\/svg\+xml;base64,/)
+    })
+  })
+
+  it('preserves narrow percentage ranges and percentage labels in chart previews', async () => {
+    const zip = new JSZip()
+    zip.file(
+      'ppt/charts/percent.xml',
+      `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:chart><c:plotArea><c:lineChart><c:ser>
+          <c:spPr><a:ln xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:solidFill><a:srgbClr val="277565"/></a:solidFill></a:ln></c:spPr>
+          <c:cat><c:strCache><c:pt idx="0"><c:v>Q1</c:v></c:pt><c:pt idx="1"><c:v>Q2</c:v></c:pt></c:strCache></c:cat>
+          <c:val><c:numRef><c:numCache><c:formatCode>0.0%</c:formatCode><c:pt idx="0"><c:v>0.905</c:v></c:pt><c:pt idx="1"><c:v>0.932</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser><c:dLbls><c:showVal val="1"/><c:txPr><a:p xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:pPr><a:defRPr sz="1725"><a:solidFill><a:srgbClr val="123D37"/></a:solidFill></a:defRPr></a:pPr></a:p></c:txPr></c:dLbls></c:lineChart>
+          <c:catAx/><c:valAx><c:scaling><c:min val="0.88"/><c:max val="0.96"/></c:scaling><c:numFmt formatCode="0%"/></c:valAx>
+        </c:plotArea></c:chart>
+      </c:chartSpace>`
+    )
+    const chart = await renderPptxChart(zip, 'ppt/charts/percent.xml')
+    expect(chart).toMatch(/^data:image\/svg\+xml;base64,/)
+    const svg = Buffer.from(chart!.split(',')[1]!, 'base64').toString('utf8')
+    expect(svg).toContain('90.5%')
+    expect(svg).toContain('93.2%')
+    expect(svg).toContain('stroke="#277565"')
+    expect(svg).toContain('y1="24"')
+    expect(svg).toContain('y2="526"')
+  })
+
+  it('renders horizontal bars with inferred axes and PowerPoint category order', async () => {
+    const zip = new JSZip()
+    zip.file(
+      'ppt/charts/horizontal.xml',
+      `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:chart><c:plotArea><c:barChart><c:barDir val="bar"/><c:grouping val="clustered"/><c:ser>
+          <c:tx><c:v>Revenue</c:v></c:tx>
+          <c:cat><c:strCache><c:pt idx="0"><c:v>Professional</c:v></c:pt><c:pt idx="1"><c:v>Solutions</c:v></c:pt><c:pt idx="2"><c:v>Subscription</c:v></c:pt></c:strCache></c:cat>
+          <c:val><c:numCache><c:pt idx="0"><c:v>14</c:v></c:pt><c:pt idx="1"><c:v>41</c:v></c:pt><c:pt idx="2"><c:v>72</c:v></c:pt></c:numCache></c:val>
+        </c:ser></c:barChart><c:catAx><c:scaling><c:orientation val="minMax"/></c:scaling></c:catAx><c:valAx><c:scaling/></c:valAx></c:plotArea></c:chart>
+      </c:chartSpace>`
+    )
+    const chart = await renderPptxChart(zip, 'ppt/charts/horizontal.xml')
+    const svg = Buffer.from(chart!.split(',')[1]!, 'base64').toString('utf8')
+    const rows = [...svg.matchAll(/<rect x="154" y="([^\"]+)" width="([^\"]+)"/g)]
+      .map((match) => ({ y: Number(match[1]), width: Number(match[2]) }))
+      .filter((row) => row.y > 24)
+
+    expect(rows).toHaveLength(3)
+    expect(rows[0]!.y).toBeGreaterThan(rows[2]!.y)
+    expect(rows[0]!.width).toBeLessThan(1000)
+    expect(rows[2]!.width).toBeGreaterThan(rows[0]!.width)
+    expect(svg).not.toContain('e+')
+  })
+
+  it('uses the cached value format for chart data labels', async () => {
+    const zip = new JSZip()
+    zip.file(
+      'ppt/charts/formats.xml',
+      `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:chart><c:plotArea><c:lineChart><c:ser>
+          <c:cat><c:strCache><c:pt idx="0"><c:v>Q1</c:v></c:pt></c:strCache></c:cat>
+          <c:val><c:numRef><c:numCache><c:formatCode>0.0%</c:formatCode><c:pt idx="0"><c:v>0.905</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser><c:dLbls><c:showVal val="1"/></c:dLbls><c:catAx/><c:valAx><c:scaling><c:min val="0.88"/><c:max val="0.96"/></c:scaling></c:valAx></c:lineChart></c:plotArea></c:chart>
+      </c:chartSpace>`
+    )
+
+    const chart = await renderPptxChart(zip, 'ppt/charts/formats.xml')
+    const svg = Buffer.from(chart!.split(',')[1]!, 'base64').toString('utf8')
+    expect(svg).toContain('90.5%')
+    expect(svg).not.toContain('0.905</text>')
+  })
+
+  it('renders scatter charts from xVal/yVal caches with their marker shapes', async () => {
+    const zip = new JSZip()
+    zip.file(
+      'ppt/charts/scatter.xml',
+      `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:chart><c:plotArea><c:scatterChart><c:scatterStyle val="marker"/><c:ser>
+          <c:tx><c:v>Delivery</c:v></c:tx>
+          <c:spPr><a:solidFill xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:srgbClr val="2869A4"/></a:solidFill></c:spPr>
+          <c:marker><c:symbol val="diamond"/><c:size val="12"/></c:marker>
+          <c:xVal><c:numRef><c:numCache><c:pt idx="0"><c:v>0.91</c:v></c:pt><c:pt idx="1"><c:v>0.96</c:v></c:pt></c:numCache></c:numRef></c:xVal>
+          <c:yVal><c:numRef><c:numCache><c:formatCode>0%</c:formatCode><c:pt idx="0"><c:v>0.87</c:v></c:pt><c:pt idx="1"><c:v>0.94</c:v></c:pt></c:numCache></c:numRef></c:yVal>
+        </c:ser><c:dLbls><c:showVal val="1"/></c:dLbls><c:valAx><c:axPos val="l"/><c:scaling><c:min val="0.8"/><c:max val="1"/></c:scaling></c:valAx>
+        <c:valAx><c:axPos val="b"/><c:scaling><c:min val="0.8"/><c:max val="1"/></c:scaling></c:valAx></c:scatterChart></c:plotArea></c:chart>
+      </c:chartSpace>`
+    )
+
+    const chart = await renderPptxChart(zip, 'ppt/charts/scatter.xml')
+    const svg = Buffer.from(chart!.split(',')[1]!, 'base64').toString('utf8')
+    expect(chart).toMatch(/^data:image\/svg\+xml;base64,/)
+    expect(svg).toContain('polygon points=')
+    expect(svg).toContain('fill="#2869A4"')
+    expect(svg).toContain('87%')
+  })
+
+  it('renders radar charts with polygon grids, categories, and series lines', async () => {
+    const zip = new JSZip()
+    zip.file(
+      'ppt/charts/radar.xml',
+      `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:chart><c:plotArea><c:radarChart><c:radarStyle val="standard"/><c:ser>
+          <c:tx><c:v>2025</c:v></c:tx>
+          <c:spPr><a:noFill xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"/><a:ln xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:solidFill><a:srgbClr val="147D83"/></a:solidFill></a:ln></c:spPr>
+          <c:marker><c:symbol val="circle"/></c:marker>
+          <c:cat><c:strRef><c:strCache><c:pt idx="0"><c:v>Quality</c:v></c:pt><c:pt idx="1"><c:v>Safety</c:v></c:pt><c:pt idx="2"><c:v>Supply</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>3</c:v></c:pt><c:pt idx="1"><c:v>4</c:v></c:pt><c:pt idx="2"><c:v>2</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser><c:valAx><c:scaling><c:min val="0"/><c:max val="5"/></c:scaling><c:majorGridlines/></c:valAx></c:radarChart></c:plotArea></c:chart>
+      </c:chartSpace>`
+    )
+
+    const chart = await renderPptxChart(zip, 'ppt/charts/radar.xml')
+    const svg = Buffer.from(chart!.split(',')[1]!, 'base64').toString('utf8')
+    expect(chart).toMatch(/^data:image\/svg\+xml;base64,/)
+    expect(svg).toContain('Quality')
+    expect(svg).toContain('Safety')
+    expect(svg).toContain('polygon points=')
+    expect(svg).toContain('stroke="#147D83"')
+  })
+
+  it('keeps a slide gradient background visible in the editor model', async () => {
+    const deck = await parsePptx(await createGradientPresentation())
+
+    expect(deck.slides[0].background).toBeNull()
+    expect(deck.slides[0].backgroundCss).toContain('linear-gradient')
+    expect(deck.slides[0].backgroundCss).toContain('#112233')
+    expect(deck.slides[0].backgroundCss).toContain('#ddeeff')
   })
 
   it('writes edited text back to the original slide package', async () => {
@@ -119,6 +290,24 @@ describe('PPTX file utilities', () => {
     expect(reparsedTable?.table?.rows[0][0].text).toBe('After')
   })
 
+  it('serializes borders for newly inserted table cells', async () => {
+    const source = await createPresentation()
+    const deck = await parsePptx(source)
+    const table = createTableShape(deck, 2, 2)
+    deck.slides[0]!.shapes.push(table)
+
+    const saved = await savePptx(deck, source)
+    const zip = await JSZip.loadAsync(saved)
+    const slide = await zip.file('ppt/slides/slide1.xml')?.async('text')
+    const reparsed = await parsePptx(saved)
+    const reparsedTable = reparsed.slides[0]?.shapes.find((shape) => shape.kind === 'table')
+
+    expect(slide).toContain('<a:lnL')
+    expect(slide).toContain('<a:lnT')
+    expect(reparsedTable?.table?.rows[0]?.[0]?.borderTopWidth).toBeGreaterThan(0)
+    expect(reparsedTable?.table?.rows[0]?.[0]?.borderRightWidth).toBeGreaterThan(0)
+  })
+
   it('stores editor ink as a reusable SVG picture', async () => {
     const source = await createPresentation()
     const deck = await parsePptx(source)
@@ -211,6 +400,46 @@ describe('PPTX file utilities', () => {
       delayMs: 200
     })
   })
+
+  it('keeps connector orientation, elbows, and endpoint direction in the view model', () => {
+    const base = {
+      id: 'connector',
+      geometryAdjust: { adj1: 0, adj2: 50000 },
+      kind: 'line',
+      width: 100,
+      height: 100,
+      geometry: 'bentConnector4'
+    } as PptxShape
+    expect(pptxConnectorPath(base)).toBe('M 0 0 L 0 0 L 0 50 L 100 50 L 100 100')
+    expect(pptxConnectorPath({ ...base, geometry: 'straightConnector1', width: 0, height: 100 })).toBe('M 0 0 L 0 100')
+    expect(pptxConnectorPath({ ...base, geometry: 'straightConnector1', width: 100, height: 0 })).toBe('M 0 0 L 100 0')
+  })
+
+  it('uses the real shape box when calculating wide arrow and chevron geometry', () => {
+    const chevron = pptxPolygonPoints('chevron', undefined, 2876550, 1028700)
+    expect(chevron).toBe('0,0 82.12,0 100,50 82.12,100 0,100 17.88,50')
+
+    const rightArrow = pptxPolygonPoints('rightArrow', undefined, 2876550, 1028700)
+    expect(rightArrow).toContain('100,50')
+    expect(rightArrow).not.toContain('99,50')
+  })
+
+  it('keeps picture alpha and GDI hatch fills when parsing the slide', async () => {
+    const zip = await JSZip.loadAsync(await createPresentation())
+    const slidePath = 'ppt/slides/slide1.xml'
+    const slide = await zip.file(slidePath)!.async('text')
+    const updated = slide
+      .replace(
+        '<a:noFill/>',
+        '<a:pattFill prst="ltDnDiag"><a:fgClr><a:srgbClr val="112233"/></a:fgClr><a:bgClr><a:srgbClr val="ddeeff"/></a:bgClr></a:pattFill>'
+      )
+      .replace('<a:blip r:embed="rImg"/>', '<a:blip r:embed="rImg"><a:alphaModFix amt="50000"/></a:blip>')
+    zip.file(slidePath, updated)
+
+    const deck = await parsePptx(await zip.generateAsync({ type: 'arraybuffer' }))
+    expect(deck.slides[0].shapes[0]?.fillCss).toMatch(/^url\("data:image\/svg\+xml,/)
+    expect(deck.slides[0].shapes[1]?.opacity).toBe(0.5)
+  })
 })
 
 async function createPresentation() {
@@ -253,6 +482,19 @@ async function createPresentation() {
   zip.file(
     '[Content_Types].xml',
     '<Types><Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/></Types>'
+  )
+  return zip.generateAsync({ type: 'arraybuffer' })
+}
+
+async function createGradientPresentation() {
+  const zip = await JSZip.loadAsync(await createPresentation())
+  const slide = await zip.file('ppt/slides/slide1.xml')!.async('text')
+  zip.file(
+    'ppt/slides/slide1.xml',
+    slide.replace(
+      '<p:cSld><p:spTree>',
+      '<p:cSld><p:bg><p:bgPr><a:gradFill><a:gsLst><a:gs pos="0"><a:srgbClr val="112233"/></a:gs><a:gs pos="100000"><a:srgbClr val="ddeeff"/></a:gs></a:gsLst><a:lin ang="0"/></a:gradFill></p:bgPr></p:bg><p:spTree>'
+    )
   )
   return zip.generateAsync({ type: 'arraybuffer' })
 }

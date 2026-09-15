@@ -122,6 +122,7 @@ export function applyPptxDeckEdit(
   if (!slide) return false
   if (command === 'background' && typeof value === 'string' && isColor(value)) {
     slide.background = value
+    delete slide.backgroundCss
     slide.backgroundDirty = true
     return true
   }
@@ -277,11 +278,23 @@ export function createPresetShape(deck: PptxDeck, geometry: PptxShape['geometry'
 }
 
 export function createTableShape(deck: PptxDeck, rowCount: number, columnCount: number) {
+  const borderColor = rgbColor(148, 163, 184)
+  const borderWidth = 1
   const rows = Array.from({ length: rowCount }, (_, row) =>
     Array.from({ length: columnCount }, (_, column) => ({
       text: row === 0 ? `列 ${column + 1}` : `单元格 ${row + 1},${column + 1}`,
       colSpan: 1,
-      rowSpan: 1
+      rowSpan: 1,
+      borderColor,
+      borderWidth,
+      borderTopColor: borderColor,
+      borderTopWidth: borderWidth,
+      borderRightColor: borderColor,
+      borderRightWidth: borderWidth,
+      borderBottomColor: borderColor,
+      borderBottomWidth: borderWidth,
+      borderLeftColor: borderColor,
+      borderLeftWidth: borderWidth
     }))
   )
   const shape = createEditorShape(`table-${Date.now()}`, {
@@ -350,6 +363,7 @@ export function createSlideCopy(deck: PptxDeck, source: PptxDeck['slides'][numbe
   copy.shapes = copy.shapes.map((shape) => ({ ...shape, deleted: blank, created: false }))
   if (blank) {
     copy.background = rgbColor(255, 255, 255)
+    delete copy.backgroundCss
     copy.backgroundDirty = true
   }
   return copy
@@ -423,7 +437,7 @@ export function createInkShape(
   color: string,
   deck: PptxDeck
 ) {
-  if (points.length < 2 || typeof btoa === 'undefined') return null
+  if (points.length === 0 || typeof btoa === 'undefined') return null
   const padding = strokeWidth * 2
   const left = Math.max(0, Math.min(...points.map((point) => point.x)) - padding)
   const top = Math.max(0, Math.min(...points.map((point) => point.y)) - padding)
@@ -431,7 +445,10 @@ export function createInkShape(
   const bottom = Math.min(deck.height, Math.max(...points.map((point) => point.y)) + padding)
   const width = Math.max(1, right - left)
   const height = Math.max(1, bottom - top)
-  const relativePoints = points.map((point) => `${point.x - left},${point.y - top}`).join(' ')
+  const relativePoints = points
+    .map((point) => `${point.x - left},${point.y - top}`)
+    .concat(points.length === 1 ? [`${points[0]!.x - left + 0.01},${points[0]!.y - top}`] : [])
+    .join(' ')
   const opacity = tool === 'highlighter' ? '0.35' : '1'
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${relativePoints}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}"/></svg>`
   const timestamp = Date.now()
@@ -510,6 +527,7 @@ function applyTheme(deck: PptxDeck, id: string) {
   if (!theme) return false
   for (const slide of deck.slides) {
     slide.background = theme.background
+    delete slide.backgroundCss
     slide.backgroundDirty = true
     for (const shape of slide.shapes) {
       if (!shape.editable || shape.deleted || !shape.text) continue

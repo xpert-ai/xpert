@@ -15,12 +15,14 @@
 
 .xp-pptx-editor__table td {
   padding: 0.25em 0.4em;
-  border: 1px solid currentColor;
+  border-style: solid;
+  border-width: 0;
   vertical-align: middle;
   overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.15;
+  white-space: pre-wrap;
   user-select: none;
 }
 

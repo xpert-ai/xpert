@@ -130,6 +130,11 @@ function relationNumber(value: string | null) {
 }
 
 function resolveZipPath(source: string, target: string) {
+  // Relationship targets are allowed to start at the package root. Treat
+  // those as ZIP paths directly instead of appending them to the source part.
+  if (target.startsWith('/')) {
+    return target.replace(/^\/+/, '').split('/').filter(Boolean).join('/')
+  }
   const parts = source.split('/')
   parts.pop()
   for (const part of target.split('/')) {

@@ -1,4 +1,4 @@
-import type { PptxParagraph, PptxRun, PptxShape, PptxSlide } from './pptx-file.utils'
+import type { PptxParagraph, PptxRun, PptxShape, PptxSlide, PptxTableCell } from './pptx-file.utils'
 import { patchSlideAnimations } from './pptx-animation.utils'
 
 const EMU_PER_PX = 9525
@@ -76,9 +76,7 @@ function patchShapeVisual(xml: string, shape: PptxShape) {
     const fill = shape.fill
       ? `<a:solidFill><a:srgbClr val="${shape.fill.replace('#', '').slice(-6)}"/></a:solidFill>`
       : '<a:noFill/>'
-    const line = shape.stroke
-      ? `<a:ln w="${Math.max(1, Math.round(shape.strokeWidth * EMU_PER_PX))}"><a:solidFill><a:srgbClr val="${shape.stroke.replace('#', '').slice(-6)}"/></a:solidFill></a:ln>`
-      : '<a:ln><a:noFill/></a:ln>'
+    const line = strokeXml(shape)
     const withoutLine = afterLine.replace(/<a:ln\b[^>]*(?:\/>|>[\s\S]*?<\/a:ln>)/i, '')
     return `${start}${withoutFill}${fill}${line}${withoutLine}${end}`
   })
@@ -168,10 +166,7 @@ function serializeShape(shape: PptxShape) {
   if (shape.kind === 'line') return serializeLineShape(shape)
   const id = safeXmlId(shape.id)
   const xfrm = `<a:xfrm${transformAttributes(shape)}><a:off x="${Math.round(shape.x)}" y="${Math.round(shape.y)}"/><a:ext cx="${Math.max(1, Math.round(shape.width))}" cy="${Math.max(1, Math.round(shape.height))}"/></a:xfrm>`
-  const geometry =
-    shape.geometry === 'none'
-      ? ''
-      : `<a:prstGeom prst="${shape.geometry === 'roundRect' ? 'roundRect' : shape.geometry}"/>`
+  const geometry = serializePresetGeometry(shape)
   const fill = shape.fill
     ? `<a:solidFill><a:srgbClr val="${shape.fill.replace('#', '').slice(-6)}"/></a:solidFill>`
     : '<a:noFill/>'
@@ -183,7 +178,16 @@ function serializeShape(shape: PptxShape) {
 function serializeLineShape(shape: PptxShape) {
   const id = safeXmlId(shape.id)
   const xfrm = `<a:xfrm${transformAttributes(shape)}><a:off x="${Math.round(shape.x)}" y="${Math.round(shape.y)}"/><a:ext cx="${Math.max(1, Math.round(shape.width))}" cy="${Math.max(1, Math.round(shape.height))}"/></a:xfrm>`
-  return `<p:cxnSp><p:nvCxnSpPr><p:cNvPr id="${id}" name="${escapeXml(shape.name || id)}"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr><p:spPr>${xfrm}<a:prstGeom prst="line"/>${strokeXml(shape)}</p:spPr></p:cxnSp>`
+  return `<p:cxnSp><p:nvCxnSpPr><p:cNvPr id="${id}" name="${escapeXml(shape.name || id)}"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr><p:spPr>${xfrm}${serializePresetGeometry(shape)}${strokeXml(shape)}</p:spPr></p:cxnSp>`
+}
+
+function serializePresetGeometry(shape: PptxShape) {
+  if (shape.geometry === 'none') return ''
+  const adjustments = Object.entries(shape.geometryAdjust ?? {})
+    .map(([name, value]) => `<a:gd name="${escapeXml(name)}" fmla="val ${Math.round(value)}"/>`)
+    .join('')
+  const avLst = adjustments ? `<a:avLst>${adjustments}</a:avLst>` : '<a:avLst/>'
+  return `<a:prstGeom prst="${escapeXml(shape.geometry === 'roundRect' ? 'roundRect' : shape.geometry)}">${avLst}</a:prstGeom>`
 }
 
 function serializeImageShape(shape: PptxShape) {
@@ -196,22 +200,48 @@ function serializeTableShape(shape: PptxShape) {
   const id = safeXmlId(shape.id)
   const columns = shape.table?.columns ?? []
   const rows = shape.table?.rows ?? []
-  const colWidth = Math.round(Math.max(1, shape.width) / Math.max(1, columns.length))
-  const grid = columns.map(() => `<a:gridCol w="${colWidth}"/>`).join('')
+  const columnTotal = columns.reduce((sum, width) => sum + Math.max(0, width), 0)
+  const grid = columns
+    .map((width) => {
+      const ratio = columnTotal > 0 ? Math.max(0, width) / columnTotal : 1 / Math.max(1, columns.length)
+      return `<a:gridCol w="${Math.max(1, Math.round(Math.max(1, shape.width) * ratio))}"/>`
+    })
+    .join('')
+  const rowHeights = shape.table?.rowHeights ?? []
+  const rowTotal = rowHeights.reduce((sum, height) => sum + Math.max(0, height), 0)
   const body = rows
     .map(
-      (row) =>
-        `<a:tr h="${Math.max(1, Math.round(shape.height / Math.max(1, rows.length)))}">${row.map((cell) => `<a:tc${cell.colSpan > 1 ? ` gridSpan="${cell.colSpan}"` : ''}${cell.rowSpan > 1 ? ` rowSpan="${cell.rowSpan}"` : ''}><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="${Math.round(shape.fontSizePt * 100)}"><a:solidFill><a:srgbClr val="${shape.textColor.replace('#', '').slice(-6)}"/></a:solidFill></a:rPr><a:t>${escapeXml(cell.text)}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>`).join('')}</a:tr>`
+      (row, rowIndex) =>
+        `<a:tr h="${Math.max(1, Math.round(rowTotal > 0 ? (Math.max(0, rowHeights[rowIndex] ?? 0) / rowTotal) * Math.max(1, shape.height) : shape.height / Math.max(1, rows.length)))}">${row.map((cell) => `<a:tc${cell.colSpan > 1 ? ` gridSpan="${cell.colSpan}"` : ''}${cell.rowSpan > 1 ? ` rowSpan="${cell.rowSpan}"` : ''}><a:txBody><a:bodyPr anchor="${cell.verticalAlign === 'top' ? 't' : cell.verticalAlign === 'bottom' ? 'b' : 'ctr'}"/><a:lstStyle/><a:p><a:pPr algn="${cell.textAlign === 'center' ? 'ctr' : cell.textAlign === 'right' ? 'r' : cell.textAlign === 'justify' ? 'just' : 'l'}"/><a:r><a:rPr sz="${Math.round((cell.fontSizePt ?? shape.fontSizePt) * 100)}"><a:solidFill><a:srgbClr val="${(cell.textColor ?? shape.textColor).replace('#', '').slice(-6)}"/></a:solidFill></a:rPr><a:t>${escapeXml(cell.text)}</a:t></a:r></a:p></a:txBody>${serializeTableCellProperties(cell, shape)}</a:tc>`).join('')}</a:tr>`
     )
     .join('')
   const xfrm = `<p:xfrm${transformAttributes(shape)}><a:off x="${Math.round(shape.x)}" y="${Math.round(shape.y)}"/><a:ext cx="${Math.round(shape.width)}" cy="${Math.round(shape.height)}"/></p:xfrm>`
-  return `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${id}" name="${escapeXml(shape.name || id)}"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>${xfrm}<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr/><a:tblGrid>${grid}</a:tblGrid>${body}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`
+  return `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${id}" name="${escapeXml(shape.name || id)}"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>${xfrm}<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr${shape.table?.rtl ? ' rtl="1"' : ''}/><a:tblGrid>${grid}</a:tblGrid>${body}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`
+}
+
+function serializeTableCellProperties(cell: PptxTableCell, shape: PptxShape) {
+  const side = (name: 'L' | 'T' | 'R' | 'B', color: string | null | undefined, width: number | undefined) => {
+    const resolvedColor = color ?? cell.borderColor ?? shape.stroke
+    const resolvedWidth = width ?? cell.borderWidth ?? shape.strokeWidth
+    return resolvedColor && resolvedWidth
+      ? `<a:ln${name} w="${Math.max(1, Math.round(resolvedWidth * EMU_PER_PX))}"><a:solidFill><a:srgbClr val="${resolvedColor.replace('#', '').slice(-6)}"/></a:solidFill></a:ln${name}>`
+      : `<a:ln${name}><a:noFill/></a:ln${name}>`
+  }
+  const margin = cell.margin
+  const insets = margin
+    ? ` marL="${Math.max(0, Math.round(margin.left))}" marR="${Math.max(0, Math.round(margin.right))}" marT="${Math.max(0, Math.round(margin.top))}" marB="${Math.max(0, Math.round(margin.bottom))}"`
+    : ''
+  return `<a:tcPr${insets}>${side('L', cell.borderLeftColor, cell.borderLeftWidth)}${side('T', cell.borderTopColor, cell.borderTopWidth)}${side('R', cell.borderRightColor, cell.borderRightWidth)}${side('B', cell.borderBottomColor, cell.borderBottomWidth)}</a:tcPr>`
 }
 
 function strokeXml(shape: PptxShape) {
-  return shape.stroke
-    ? `<a:ln w="${Math.max(1, Math.round(shape.strokeWidth * EMU_PER_PX))}"><a:solidFill><a:srgbClr val="${shape.stroke.replace('#', '').slice(-6)}"/></a:solidFill></a:ln>`
-    : '<a:ln><a:noFill/></a:ln>'
+  if (!shape.stroke) return '<a:ln><a:noFill/></a:ln>'
+  const dash = shape.lineDash ? `<a:prstDash val="${escapeXml(shape.lineDash)}"/>` : ''
+  const ends =
+    shape.kind === 'line'
+      ? `${shape.lineHeadEnd && shape.lineHeadEnd !== 'none' ? `<a:headEnd type="${shape.lineHeadEnd}"/>` : ''}${shape.lineTailEnd && shape.lineTailEnd !== 'none' ? `<a:tailEnd type="${shape.lineTailEnd}"/>` : ''}`
+      : ''
+  return `<a:ln w="${Math.max(1, Math.round(shape.strokeWidth * EMU_PER_PX))}"><a:solidFill><a:srgbClr val="${shape.stroke.replace('#', '').slice(-6)}"/></a:solidFill>${dash}${ends}</a:ln>`
 }
 
 function transformAttributes(shape: PptxShape) {

@@ -26,6 +26,7 @@ export class PptxPolygonComponent {
   readonly isPolygon = computed(() => isPolygonGeometry(this.shape().geometry))
   readonly strokeWidth = computed(() => (this.shape().stroke ? Math.max(1, this.shape().strokeWidth) : 0))
   readonly points = computed(() => {
-    return pptxPolygonPoints(this.shape().geometry)
+    const shape = this.shape()
+    return pptxPolygonPoints(shape.geometry, shape.geometryAdjust, shape.width, shape.height)
   })
 }
