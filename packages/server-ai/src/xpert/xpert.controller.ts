@@ -796,6 +796,24 @@ export class XpertController extends CrudController<Xpert> {
     }
 
     @UseGuards(XpertGuard)
+    @Post(':id/workspace/file/save-binary')
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
+    async saveWorkspaceBinaryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body('path') path: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        if (!file) {
+            throw new BadRequestException(
+                t('server-ai:Error.WorkspaceFileUploadRequired', {
+                    defaultValue: 'Workspace file is required.'
+                })
+            )
+        }
+        return this.workspaceFilesService.saveBinary(id, path, file.buffer)
+    }
+
+    @UseGuards(XpertGuard)
     @Post(':id/workspace/file/upload')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async uploadWorkspaceFileToFolder(

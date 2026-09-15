@@ -87,7 +87,10 @@ function isWorkspaceRoute(url?: string | null) {
   selector: 'xp-features',
   templateUrl: './features.component.html',
   styleUrls: ['./features.component.scss'],
-  animations: [routeAnimations]
+  animations: [routeAnimations],
+  host: {
+    class: 'flex min-w-0 flex-1 h-full max-w-full'
+  }
 })
 export class FeaturesComponent implements OnInit {
   MENU_CATALOG = MenuCatalog

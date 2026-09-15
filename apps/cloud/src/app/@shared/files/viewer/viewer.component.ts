@@ -33,6 +33,7 @@ import { clamp, inferTextPreviewSelection, toSelectionElement } from '../preview
 import { MarkdownEditorComponent } from '../markdown-editor/markdown-editor.component'
 import { SpreadsheetEditorComponent } from '../spreadsheet-editor/spreadsheet-editor.component'
 import { DocxEditorComponent } from '../docx-editor/docx-editor.component'
+import { PptxEditorComponent } from '../pptx-editor/pptx-editor.component'
 
 export type FilePanelMode = 'view' | 'edit'
 export type FileViewerSurface = 'card' | 'plain'
@@ -62,6 +63,7 @@ type FileViewerPreviewSelection = {
     MarkdownEditorComponent,
     SpreadsheetEditorComponent,
     DocxEditorComponent,
+    PptxEditorComponent,
     FilePreviewContentComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,6 +85,7 @@ export class FileViewerComponent {
   readonly editable = input(false)
   readonly markdown = input(false)
   readonly docx = input(false)
+  readonly pptx = input(false)
   readonly spreadsheet = input(false)
   readonly documentBuffer = input<ArrayBuffer | null>(null)
   readonly dirty = input(false)
@@ -133,7 +136,12 @@ export class FileViewerComponent {
   )
   readonly htmlInspectMode = signal(false)
   readonly showEnhancedPreview = computed(
-    () => this.isPreviewMode() && this.previewKind() !== 'unsupported' && !this.markdown() && !this.spreadsheet()
+    () =>
+      this.isPreviewMode() &&
+      this.previewKind() !== 'unsupported' &&
+      !this.markdown() &&
+      !this.spreadsheet() &&
+      !this.pptx()
   )
   readonly editorReferenceable = computed(
     () =>
@@ -172,12 +180,15 @@ export class FileViewerComponent {
   private readonly markdownPreviewHost = viewChild<ElementRef<HTMLElement>>('markdownPreviewHost')
   private readonly spreadsheetEditor = viewChild(SpreadsheetEditorComponent)
   private readonly docxEditor = viewChild(DocxEditorComponent)
+  private readonly pptxEditor = viewChild(PptxEditorComponent)
 
   readonly contentChange = output<string>()
   readonly documentDirtyChange = output<boolean>()
   readonly documentSave = output<File>()
   readonly documentError = output<Error>()
   readonly spreadsheetDirtyChange = output<boolean>()
+  readonly pptxDirtyChange = output<boolean>()
+  readonly pptxError = output<Error>()
   readonly discard = output<void>()
   readonly save = output<void>()
   readonly refresh = output<void>()
@@ -269,6 +280,18 @@ export class FileViewerComponent {
 
   markSpreadsheetSaved() {
     this.spreadsheetEditor()?.markSaved()
+  }
+
+  exportPptxFile() {
+    return this.pptxEditor()?.save() ?? Promise.resolve(null)
+  }
+
+  reloadPptx() {
+    this.pptxEditor()?.reload()
+  }
+
+  markPptxSaved() {
+    this.pptxEditor()?.markSaved()
   }
 
   toggleHtmlInspectMode() {
