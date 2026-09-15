@@ -111,3 +111,36 @@ main code. Build/typecheck reports six diagnostics; an untouched archive of
 `4a2f1a6d` reproduces the same six. This baseline dependency gap remains open;
 the earlier successful build/prepack/lifecycle run above predates integration
 with the updated main and does not prove the final PR builds with this SDK.
+
+## Dual installation entries
+
+One Cut source now provides two entries:
+
+- Xpert users install Xpert Cut Plugin via `.xpertai-plugin/plugin.json`; the
+  runtime continues to own persistence, permissions, media jobs and MCP.
+- Codex / ChatGPT users install Xpert Cut Agent Plugin via portable root
+  `plugin.json`, then connect an intended Xpert Cut MCP service. Root `mcp.json`
+  uses the Agent Plugins format with explicit `streamable-http` transport.
+
+All five Skills remain a single source under Cut `skills/`. The base skill
+routes to `references/xpert.md` or `references/mcp.md`; MCP Prompts include the
+MCP reference inline, avoiding inaccessible local-file pointers. The client
+builder copies the same Skills and references, assets and portable metadata to
+an independent folder without Xpert runtime code or dependencies.
+
+The source MCP map is deliberately unbound. `build-agent-plugin.mjs` requires a
+real HTTPS Publication URL and a new external output directory, then writes a
+connection-ready `xpert-cut-agent` package. No credentials or account-specific
+registered app IDs are packaged. Authentication, supported file transfer and
+public plugin publication remain separate deployment/client steps.
+
+Validation: 6 portable package tests and 38 plugin suites / 178 tests pass.
+Source portable manifests validate against the published Agent Plugins 1.0
+schema structure. The new host regression proves `.xpertai-plugin/plugin.json`
+retains priority over the portable root manifest and shared Skills/toolsets are
+still discovered. Its containing suite has two pre-existing tests depending on
+missing `packages/plugins/xpertai-*` fixtures; the focused new regression passes.
+The previously documented SDK baseline errors remain unchanged.
+
+See the companion plugin `docs/AGENT-PLUGIN.md` for installation, build commands
+and current [OpenAI packaging rules](https://developers.openai.com/plugins/build/plugins).

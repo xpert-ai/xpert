@@ -25,6 +25,41 @@ describe('plugin bundle manifest', () => {
 		}
 	})
 
+	it('keeps the Xpert installation entry when a portable client manifest shares its skills', () => {
+		root = createPluginRoot()
+		mkdirSync(join(root, '.xpertai-plugin'), { recursive: true })
+		mkdirSync(join(root, 'skills', 'cut-agent-skill'), { recursive: true })
+		writeFileSync(
+			join(root, 'skills', 'cut-agent-skill', 'SKILL.md'),
+			'---\nname: cut-agent-skill\ndescription: Shared Cut workflow.\n---\nUse the connected Cut runtime.'
+		)
+		writeJson(join(root, '.xpertai-plugin', 'plugin.json'), {
+			name: '@xpert-ai/plugin-cut',
+			skills: './skills/',
+			toolsets: { cut: { provider: 'cut', name: 'Cut MCP Capabilities' } }
+		})
+		writeJson(join(root, 'plugin.json'), {
+			$schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
+			name: 'xpert-cut-agent',
+			extensions: { 'com.openai': { interface: { displayName: 'Xpert Cut Agent Plugin' } } }
+		})
+		writeJson(join(root, 'mcp.json'), {
+			$schema: 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json',
+			mcpServers: {}
+		})
+		const loaded = readPluginBundleManifest(root)
+		if (!loaded) throw new Error('Expected Xpert manifest')
+		expect(loaded.manifest.name).toBe('@xpert-ai/plugin-cut')
+		const components = collectPluginBundleComponents(root, loaded.manifest)
+		expect(components.map(({ componentType, componentKey }) => ({ componentType, componentKey }))).toEqual(
+			expect.arrayContaining([
+				{ componentType: PLUGIN_COMPONENT_TYPE.SKILL, componentKey: 'cut-agent-skill' },
+				{ componentType: PLUGIN_COMPONENT_TYPE.TOOLSET, componentKey: 'cut' }
+			])
+		)
+		expect(components.some(({ componentType }) => componentType === PLUGIN_COMPONENT_TYPE.MCP_SERVER)).toBe(false)
+	})
+
 	it('reads Codex-style manifest components', () => {
 		root = createPluginRoot()
 		mkdirSync(join(root, '.xpertai-plugin'), { recursive: true })

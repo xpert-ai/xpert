@@ -29,6 +29,10 @@ Implemented in the companion Cut plugin on 2026-09-15: the existing
 Skills for speech editing, captions, verification and export. The Assistant
 binds all five; the four existing MCP Prompts include the same packaged base
 and task workflow, so standalone clients do not depend on an Assistant install.
+The same source also supplies a Portable Xpert Cut Agent Plugin entry for
+Codex/ChatGPT, while retaining the Xpert installation entry and server runtime.
+The portable builder binds a selected remote Cut MCP and copies shared Skills
+without packaging the runtime.
 Content review reuses prior approval for identical edits while platform
 confirmation, permissions and revision checks remain authoritative.
 
