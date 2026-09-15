@@ -298,6 +298,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             }
 
             const chunks = []
+            let hasPdfPageTranscripts = false
             const languageDetection = resolveKnowledgeLanguage(
                 this.textSplitterRegistry?.get(docParserConfig.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER),
                 {
@@ -402,7 +403,27 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
                         }
 
-                        chunks.push(...imgTransformed.chunks)
+                        const understoodChunks = []
+                        let splitPageTranscript = false
+                        // OCR arrives after initial splitting. Apply the same limits to page transcripts.
+                        for (const chunk of imgTransformed.chunks) {
+                            if (chunk.metadata.sourceType === 'pdf_page' && chunk.metadata.parser === 'vlm') {
+                                // VLM keeps the image origin, but a page transcript is text for splitting and indexing.
+                                const transcript = new Document<TDocChunkMetadata>({
+                                    ...chunk,
+                                    metadata: {
+                                        ...chunk.metadata,
+                                        chunkId: chunk.metadata.chunkId ?? uuid(),
+                                        mediaType: 'text'
+                                    }
+                                })
+                                const result = await this.splitDocuments(doc, [transcript])
+                                understoodChunks.push(...result.chunks)
+                                splitPageTranscript = true
+                            } else understoodChunks.push(chunk)
+                        }
+                        chunks.push(...understoodChunks)
+                        hasPdfPageTranscripts ||= splitPageTranscript
                         await this.persistImageUnderstandingDocumentMetadata(
                             doc,
                             stage,
@@ -436,6 +457,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 transformed.map((item) => item.metadata?.parserDiagnostics),
                 chunks
             )
+            let resultChunks = chunks
             if (diagnostics) {
                 doc.metadata = { ...doc.metadata, parserDiagnostics: diagnostics }
                 if (stage !== 'test') await this.kbDocumentService.update(doc.id, { metadata: doc.metadata })
@@ -453,13 +475,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 }
                 // An image URL alone is not retrieval content. Keep parents referenced by real child chunks.
                 const parents = new Set(chunks.map((chunk) => chunk.metadata.parentId).filter(Boolean))
-                return {
-                    chunks: chunks.filter(
-                        (chunk) => textWithoutImages(chunk.pageContent) || parents.has(chunk.metadata.chunkId)
-                    )
-                }
+                resultChunks = chunks.filter(
+                    (chunk) => textWithoutImages(chunk.pageContent) || parents.has(chunk.metadata.chunkId)
+                )
             }
-            return { chunks }
+            return { chunks: hasPdfPageTranscripts ? this.reindexChunkSiblings(resultChunks) : resultChunks }
         }
 
         if (!doc.sourceConfig && docParserConfig.transformerType && docParserConfig.transformerType !== 'default') {
@@ -564,6 +584,17 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         context?: Pick<KnowledgeSplitterExecutionContext, 'languageDetection'>
     ) {
         return splitKnowledgeDocuments(this.textSplitterRegistry, document, chunks, parserConfig, context)
+    }
+
+    /** Page splitters restart indexes; assign document-wide root order and retain per-parent child order. */
+    private reindexChunkSiblings(chunks: Document[]): Document[] {
+        const indexes = new Map<string | null, number>()
+        return chunks.map((chunk) => {
+            const parentId = chunk.metadata.parentId ?? null
+            const chunkIndex = indexes.get(parentId) ?? 0
+            indexes.set(parentId, chunkIndex + 1)
+            return { ...chunk, metadata: { ...chunk.metadata, chunkIndex } }
+        })
     }
 
     private async recordBuiltinParser(doc: IKnowledgeDocument, stage: string) {
