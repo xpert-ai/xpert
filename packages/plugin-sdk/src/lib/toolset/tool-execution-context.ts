@@ -47,6 +47,8 @@ export interface ToolHostApi {
 }
 
 export interface ToolExecutionContext {
+  /** Exact URI requested by resources/read, including query parameters. */
+  resourceUri?: string
   source: ToolExecutionSource
   tenantId: string
   organizationId?: string
