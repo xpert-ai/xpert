@@ -31,6 +31,7 @@ import {
 import { McpSubscriptionService } from './mcp-subscription.service'
 import { assertMcpOAuthEnabled, isMcpOAuthEnabled } from './mcp-oauth-feature'
 import { McpPublicationAccessService } from './mcp-publication-access.service'
+import { parseMcpRuntimeConfiguration } from './mcp-runtime-configuration'
 
 const PUBLICATION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PUBLIC_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/
@@ -78,6 +79,7 @@ export class McpPublicationService {
                 status: 'draft',
                 authMethods,
                 instructions: input.instructions?.trim() || null,
+                runtime: parseMcpRuntimeConfiguration(input.runtime),
                 protocolVersion: MCP_PROTOCOL_VERSION,
                 reviewStatus: 'current',
                 createdById: userId,
@@ -278,11 +280,12 @@ export class McpPublicationService {
             ...(input.name !== undefined ? { name: input.name.trim() } : {}),
             ...(input.authMethods !== undefined ? { authMethods: input.authMethods } : {}),
             ...(input.instructions !== undefined ? { instructions: input.instructions?.trim() || null } : {}),
+            ...(input.runtime !== undefined ? { runtime: parseMcpRuntimeConfiguration(input.runtime) } : {}),
             ...(input.status !== undefined ? { status: input.status } : {}),
             updatedById: RequestContext.currentUserId()
         })
         const saved = await this.publicationRepository.save(publication)
-        if (input.authMethods !== undefined || input.status === 'disabled') {
+        if (input.authMethods !== undefined || input.runtime !== undefined || input.status === 'disabled') {
             this.subscriptions.publishAccessInvalidated(publication.id)
         }
         return saved

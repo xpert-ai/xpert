@@ -5,6 +5,7 @@ describe('MCP Streamable HTTP browser contract', () => {
     expect(MCP_HTTP_CORS_REQUEST_HEADERS).toEqual(
       expect.arrayContaining([
         'MCP-Protocol-Version',
+        'Mcp-Session-Id',
         'Mcp-Method',
         'Mcp-Name',
         'Traceparent',
@@ -17,7 +18,7 @@ describe('MCP Streamable HTTP browser contract', () => {
 
   it('exposes OAuth challenge and request correlation headers to browser clients', () => {
     expect(MCP_HTTP_CORS_EXPOSED_HEADERS).toEqual(
-      expect.arrayContaining(['WWW-Authenticate', 'MCP-Protocol-Version', 'X-Request-Id'])
+      expect.arrayContaining(['WWW-Authenticate', 'MCP-Protocol-Version', 'Mcp-Session-Id', 'X-Request-Id'])
     )
   })
 })

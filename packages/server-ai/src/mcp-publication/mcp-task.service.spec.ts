@@ -1,3 +1,4 @@
+import { McpTaskExecutionService } from './mcp-task-execution.service'
 import { MCP_CAPABILITY_DESCRIPTOR_VERSION, type McpPrincipal } from '@xpert-ai/contracts'
 import type { ManagedQueueService, ToolInputRequest } from '@xpert-ai/plugin-sdk'
 import type { Repository } from 'typeorm'
@@ -52,9 +53,21 @@ describe('McpTaskService', () => {
             queue as unknown as ManagedQueueService,
             runtime as unknown as ToolRuntimeService,
             elicitation as unknown as McpElicitationService,
-            subscriptions
+            subscriptions,
+            taskExecution()
         )
     })
+
+    it.each([true, false, undefined])(
+        'persists server approval evidence (%s) through queue decoding',
+        async (approvalGranted) => {
+            await service.create({ ...taskInput(), arguments: { approvalGranted: true }, approvalGranted })
+            const payload = queue.enqueue.mock.calls[0][0].payload
+            expect(payload).toMatchObject({ approvalGranted: approvalGranted === true })
+            await service.process(payload)
+            expect(stored[0].status).toBe('completed')
+        }
+    )
 
     it('durably creates and completes one queued task', async () => {
         const result = await service.create(taskInput())
@@ -239,7 +252,8 @@ describe('McpTaskService', () => {
             {
                 normalizeRequest: (request: ToolInputRequest) => request
             } as unknown as McpElicitationService,
-            subscriptions
+            subscriptions,
+            taskExecution()
         )
         await cancellingApi.cancel(publication(), principal(), created.taskId)
         await processing
@@ -383,4 +397,10 @@ function createTaskRepository(stored: McpTask[]): Repository<McpTask> {
         }
     }
     return repository as unknown as Repository<McpTask>
+}
+
+function taskExecution(): McpTaskExecutionService {
+    const service = Object.create(McpTaskExecutionService.prototype) as McpTaskExecutionService
+    service.run = async (_task, payload, execute) => execute(payload.runtime ?? null)
+    return service
 }

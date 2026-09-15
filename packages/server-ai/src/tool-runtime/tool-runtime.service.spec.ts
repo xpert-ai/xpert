@@ -554,6 +554,62 @@ describe('ToolRuntimeService', () => {
 
         expect(execute.mock.calls[0][1].host).not.toHaveProperty('files')
     })
+
+    it('provides scoped files to standalone MCP execution', async () => {
+        const files = {} as WorkspaceFilesApi
+        const execute = jest.fn(async (_input: { query: string }, _context: ToolExecutionContext) => ({
+            content: [{ type: 'text' as const, text: 'done' }]
+        }))
+        commandExecute.mockResolvedValue(
+            new DeclaredTestToolset(
+                defineXpertTool({
+                    name: 'native_search',
+                    description: 'Read a file',
+                    inputSchema: z.object({ query: z.string() }),
+                    exposure: { mcp: { eligible: true } },
+                    behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
+                    requiredContext: ['tenant', 'principal', 'execution'],
+                    execute
+                })
+            )
+        )
+        find.mockResolvedValue([
+            Object.assign(new XpertToolset(), {
+                id: 'toolset-1',
+                type: 'native-plugin',
+                category: XpertToolsetCategoryEnum.BUILTIN,
+                tenantId: 'tenant-1',
+                workspaceId: null
+            })
+        ])
+        createScopedApi.mockReturnValue({
+            createModelClient: jest.fn(),
+            getModelProvider: jest.fn(),
+            capabilities: new DefaultRuntimeCapabilityRegistry().register(WorkspaceFilesRuntimeCapability, files)
+        })
+        await service.executeTool({
+            source: 'mcp',
+            tenantId: 'tenant-1',
+            principal: { type: 'user', id: 'user-1', userId: 'user-1' },
+            toolsetId: 'toolset-1',
+            toolName: 'native_search',
+            arguments: { query: 'media.wav' },
+            executionId: 'execution-1',
+            requestId: 'request-1',
+            mcpRuntime: { files: { type: 'user' } }
+        })
+        expect(createScopedApi).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                catalog: 'users',
+                scopeId: 'user-1'
+            })
+        )
+        expect(execute.mock.calls[0][1]).toMatchObject({ host: { files } })
+        expect(execute.mock.calls[0][1].projectId).toBeUndefined()
+        expect(execute.mock.calls[0][1].xpertId).toBeUndefined()
+    })
 })
 
 describe('normalizeToolResult', () => {

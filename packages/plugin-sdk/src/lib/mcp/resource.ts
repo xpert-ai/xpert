@@ -1,6 +1,11 @@
 import type { JSONValue, McpRequiredContext } from '@xpert-ai/contracts'
 import type { ToolExecutionContext } from '../toolset/tool-execution-context'
 
+export interface ResourceReadContext extends ToolExecutionContext {
+  /** Exact URI requested by resources/read, including query parameters. */
+  resourceUri: string
+}
+
 export interface McpResourceContent {
   uri: string
   mimeType?: string
@@ -21,7 +26,7 @@ export interface McpResourceDefinition {
   mimeType?: string
   requiredContext?: McpRequiredContext[]
   cacheTtlMs?: number
-  read(context: ToolExecutionContext): McpResourceReadResult | Promise<McpResourceReadResult>
+  read(context: ResourceReadContext): McpResourceReadResult | Promise<McpResourceReadResult>
 }
 
 export function defineMcpResource(definition: McpResourceDefinition): Readonly<McpResourceDefinition> {
