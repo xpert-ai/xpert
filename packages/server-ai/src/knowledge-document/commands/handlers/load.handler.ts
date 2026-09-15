@@ -1,4 +1,6 @@
 import { t } from 'i18next'
+import { resolveParserDiagnostics, textWithoutImages } from '../../parser-diagnostics'
+import { rethrowParserError } from '../../parser-error'
 import { knowledgeParserProvider, validateParserIntegration, validateTableParserSelection } from '../../parser-provider'
 import { splitKnowledgeDocuments } from '../../split-documents'
 import { resolveKnowledgeLanguage, type KnowledgeSplitterExecutionContext } from '../../execute-splitter'
@@ -13,7 +15,8 @@ import {
     KBDocumentCategoryEnum,
     KBDocumentStatusEnum,
     KnowledgeTableSource,
-    isNativeKnowledgeTableDocument
+    isNativeKnowledgeTableDocument,
+    knowledgeDocumentFileType
 } from '@xpert-ai/contracts'
 import {
     getErrorMessage,
@@ -40,6 +43,8 @@ import { Document } from '@langchain/core/documents'
 import { Cache } from 'cache-manager'
 import { omit } from 'lodash'
 import { v4 as uuid } from 'uuid'
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import type { KnowledgeDocument } from '../../document.entity'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web/queries/get-web-page.query'
 import type { VolumeHandle } from '../../../shared/volume/volume'
@@ -204,6 +209,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         }
 
         if (doc.filePath || doc.fileUrl) {
+            if (doc.metadata) doc.metadata = omit(doc.metadata, 'imageUnderstandingWarnings')
             const transformerType = docParserConfig.transformerType || 'default'
             const transformerIdentity = resolveKnowledgeDocumentTransformerIdentity(doc)
             let providesImageText = mode === 'rechunk' && doc.metadata?.parserProvidesImageText === true
@@ -230,6 +236,14 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     ...(docParserConfig.transformer ?? {}),
                     stage,
                     tempDir: workArea.tmpPath.serverPath,
+                    fileScope: {
+                        tenantId: RequestContext.currentTenantId(),
+                        organizationId: RequestContext.getOrganizationId(),
+                        userId: RequestContext.currentUserId(),
+                        catalog: 'knowledges' as const,
+                        knowledgeId: doc.knowledgebaseId,
+                        scopeId: doc.knowledgebaseId
+                    },
                     permissions
                 }
                 validateParserIntegration(transformer, config)
@@ -244,10 +258,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     parserConfig: pick(docParserConfig, ['transformerType', 'transformerIntegration', 'transformer']),
                     stage
                 }
-                const cacheKey = 'knowledges:transformer:' + computeObjectHash(cacheConfig)
+                const cacheKey = 'knowledges:transformer:v2:' + computeObjectHash(cacheConfig)
                 transformed = await this.cacheManager.get(cacheKey)
                 if (!transformed) {
-                    transformed = await transformer.transformDocuments([doc], config)
+                    transformed = await transformer
+                        .transformDocuments([{ ...doc, type: knowledgeDocumentFileType(doc) }], config)
+                        .catch(rethrowParserError)
                     await this.cacheManager.set(cacheKey, transformed, 60 * 10 * 1000) // 10 min
                 }
 
@@ -258,7 +274,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         this.analysisSnapshotService.save(doc, transformed, transformerIdentity)
                     ])
                     doc.metadata = {
-                        ...omit(doc.metadata ?? {}, 'analysisSnapshot'),
+                        ...omit(
+                            doc.metadata ?? {},
+                            'analysisSnapshot',
+                            'parserDiagnostics',
+                            'imageUnderstandingWarnings'
+                        ),
                         ...(transformed.length === 1 ? omit(transformed[0].metadata ?? {}, 'analysisSnapshot') : {}),
                         transformSnapshot,
                         parser: transformerType,
@@ -327,6 +348,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 if (
                     images?.length &&
                     docParserConfig.imageUnderstandingType &&
+                    docParserConfig.imageUnderstandingEnabled !== false &&
                     (docParserConfig.imageUnderstandingEnabled === true || !providesImageText)
                 ) {
                     try {
@@ -340,12 +362,13 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             parserConfig: pick(docParserConfig, [
                                 'imageUnderstandingType',
                                 'imageUnderstandingIntegration',
+                                'imageUnderstandingModel',
                                 'imageUnderstanding'
                             ]),
                             stage
                         }
                         // Older VLM cache entries omit text parents from parent-child chunks.
-                        const cacheKey = 'knowledges:understanding:v2:' + computeObjectHash(imageCacheConfig)
+                        const cacheKey = 'knowledges:understanding:v3:' + computeObjectHash(imageCacheConfig)
                         let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
                         if (!imgTransformed) {
                             const imageUnderstanding = this.imageUnderstandingRegistry.get(
@@ -409,6 +432,33 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     chunks.push(...splitted.chunks)
                 }
             }
+            const diagnostics = resolveParserDiagnostics(
+                transformed.map((item) => item.metadata?.parserDiagnostics),
+                chunks
+            )
+            if (diagnostics) {
+                doc.metadata = { ...doc.metadata, parserDiagnostics: diagnostics }
+                if (stage !== 'test') await this.kbDocumentService.update(doc.id, { metadata: doc.metadata })
+                if (
+                    !chunks.some(
+                        (chunk) => textWithoutImages(chunk.pageContent) && chunk.pageContent.trim() !== '[unreadable]'
+                    )
+                ) {
+                    throw new BadRequestException(
+                        t('server-ai:Error.KnowledgeParserOcrRequired', {
+                            defaultValue:
+                                'No text was recognized. Enable image understanding with an available vision model, or select an OCR parser.'
+                        })
+                    )
+                }
+                // An image URL alone is not retrieval content. Keep parents referenced by real child chunks.
+                const parents = new Set(chunks.map((chunk) => chunk.metadata.parentId).filter(Boolean))
+                return {
+                    chunks: chunks.filter(
+                        (chunk) => textWithoutImages(chunk.pageContent) || parents.has(chunk.metadata.chunkId)
+                    )
+                }
+            }
             return { chunks }
         }
 
@@ -458,7 +508,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             imageUnderstandingWarnings: [...getExistingImageUnderstandingWarnings(doc.metadata), ...warnings]
         }
         doc.metadata = metadata
-        await this.kbDocumentService.update(doc.id, { metadata } as Partial<IKnowledgeDocument>)
+        // Metadata is one JSON column; TypeORM's deep entity type cannot model its open-ended keys.
+        await this.kbDocumentService.update(doc.id, {
+            metadata: metadata as unknown as QueryDeepPartialEntity<KnowledgeDocument>['metadata']
+        })
     }
 
     /**
@@ -476,7 +529,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             ...omit(documentMetadata, 'transformSnapshot', 'analysisSnapshot', 'parser', 'parserLabel')
         }
         doc.metadata = metadata
-        await this.kbDocumentService.update(doc.id, { metadata })
+        await this.kbDocumentService.update(doc.id, {
+            metadata: metadata as unknown as QueryDeepPartialEntity<KnowledgeDocument>['metadata']
+        })
     }
 
     async loadWeb(doc: IKnowledgeDocument) {
@@ -520,7 +575,9 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 'transformSnapshot',
                 'analysisSnapshot',
                 'documentAnalysis',
-                'parserProvidesImageText'
+                'parserProvidesImageText',
+                'parserDiagnostics',
+                'imageUnderstandingWarnings'
             ),
             parser: 'builtin'
         }

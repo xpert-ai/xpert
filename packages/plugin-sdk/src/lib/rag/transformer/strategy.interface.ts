@@ -1,10 +1,13 @@
 import { IDocumentProcessorProvider, IIntegration, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Permissions, XpFileSystem } from '../../core/index'
+import type { WorkspaceFileScope } from '../../runtime/capabilities/workspace-files'
 import { ChunkMetadata } from '../types'
 
 export type TDocumentTransformerConfig = {
   stage: 'test' | 'prod'
   tempDir?: string
+  /** Trusted host scope for background transforms using Workspace Files and Sandbox Jobs. */
+  fileScope?: WorkspaceFileScope
   permissions?: {
     fileSystem?: XpFileSystem
     integration?: IIntegration

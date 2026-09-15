@@ -3414,6 +3414,8 @@
       "EmptyDescription": "Claw Xpert 或当前工作区创建的知识库会显示在这里。"
     },
     "WorkspaceSettings": {
+      "ParserCoverageIncomplete": "完成，但有内容未识别",
+      "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
       "Title": "工作区设置",
       "Description": "管理当前工作区的基本信息、模型、成员和 API 密钥。"
     },

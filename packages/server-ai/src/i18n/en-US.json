@@ -1,5 +1,11 @@
 {
     "Error": {
+        "KnowledgeParserEmptyFile": "The uploaded file is empty. Upload a file containing content.",
+        "KnowledgeParserEmptyText": "No readable text was found. Check whether the file contains only whitespace or blank pages.",
+        "KnowledgeParserInvalidDocument": "The file is damaged, encrypted, or does not match its extension. Open it locally and export it again.",
+        "KnowledgeParserInputTooLarge": "The file exceeds the 100 MB conversion limit. Split it before uploading.",
+        "KnowledgeParserOutputTooLarge": "The converted content exceeds the output limit. Split the document and retry.",
+        "KnowledgeParserOcrRequired": "No text was recognized. Enable image understanding with an available vision model, or select an OCR parser.",
         "KnowledgeParserOriginalFileRequired": "This parser requires the original file. Upload the file before selecting a file parser.",
         "KnowledgeTagConfigInvalid": "Invalid automatic tagging settings. Select a valid language model.",
 

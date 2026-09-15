@@ -1,3 +1,4 @@
+import { rethrowParserError } from '../knowledge-document/parser-error'
 import { prepareAutomaticTaggingConfig } from './tags/automatic-tagging-config'
 import { dispatchKnowledgePipeline } from './task/pipeline-task'
 import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
@@ -41,6 +42,7 @@ import {
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
+    knowledgeDocumentFileType,
     KnowledgeDocumentProcessingMode,
     KDocumentSourceType,
     IUser,
@@ -2541,12 +2543,25 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             })
         )
 
-        const results = await strategy.transformDocuments(input, {
-            ...(entity.config ?? {}),
-            stage: isDraft ? 'test' : 'prod',
-            tempDir: workArea.tmpPath.serverPath,
-            permissions
-        })
+        const results = await strategy
+            .transformDocuments(
+                input.map((document) => ({ ...document, type: knowledgeDocumentFileType(document) })),
+                {
+                    ...(entity.config ?? {}),
+                    stage: isDraft ? 'test' : 'prod',
+                    tempDir: workArea.tmpPath.serverPath,
+                    fileScope: {
+                        tenantId: RequestContext.currentTenantId(),
+                        organizationId: RequestContext.getOrganizationId(),
+                        userId: RequestContext.currentUserId(),
+                        catalog: 'knowledges' as const,
+                        knowledgeId: knowledgebaseId,
+                        scopeId: knowledgebaseId
+                    },
+                    permissions
+                }
+            )
+            .catch(rethrowParserError)
 
         return results
     }

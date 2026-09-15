@@ -1,5 +1,11 @@
 {
     "Error": {
+        "KnowledgeParserEmptyFile": "上传的文件为空，请上传包含内容的文件。",
+        "KnowledgeParserEmptyText": "未提取到正文，请检查文件是否只有空白字符或空白页。",
+        "KnowledgeParserInvalidDocument": "文件已损坏、受加密保护，或实际格式与扩展名不一致。请在本地打开后重新导出。",
+        "KnowledgeParserInputTooLarge": "文件超过 100 MB 解析限制，请拆分后上传。",
+        "KnowledgeParserOutputTooLarge": "解析结果超过大小限制，请拆分文档后重试。",
+        "KnowledgeParserOcrRequired": "未识别到正文。请开启图像理解并配置可用的视觉模型，或选择支持 OCR 的解析器。",
         "KnowledgeParserOriginalFileRequired": "此解析器需要原始文件，请先上传文件。已抓取的网页内容不能直接交给文件解析器。",
         "KnowledgeTagConfigInvalid": "自动标签配置无效，请选择有效的语言模型。",
 

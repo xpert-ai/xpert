@@ -1375,6 +1375,8 @@
       "EmptyDescription": "Knowledgebases created by Claw Xpert or this workspace will appear here."
     },
     "WorkspaceSettings": {
+      "ParserCoverageIncomplete": "Completed with unrecognized content",
+      "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "Title": "Workspace settings",
       "Description": "Manage the current workspace's general information, models, members, and API keys."
     },
