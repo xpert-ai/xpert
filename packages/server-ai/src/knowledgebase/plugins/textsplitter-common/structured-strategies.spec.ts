@@ -39,6 +39,15 @@ describe('auto chunking', () => {
         expect(result.chunks.every((chunk) => chunk.metadata.chunking?.requestedStrategy === 'auto')).toBe(true)
     })
 
+    it('keeps a short introduction with its following table', async () => {
+        const text =
+            '库存记录与操作顺序\n四、分类记录（包含合并单元格）\n\n| 类别 | 设备 |\n| --- | --- |\n| 音视频 | 投影仪 |'
+        const result = await structured.splitDocuments([source(text)], { chunkSize: 512, chunkOverlap: 0 })
+        expect(result.chunks).toHaveLength(1)
+        expect(result.chunks[0].pageContent).toContain('库存记录')
+        expect(result.chunks[0].pageContent).toContain('| 音视频 | 投影仪 |')
+    })
+
     it('makes one choice for all fragments with the same explicit document identity', async () => {
         const result = await auto.splitDocuments(
             [

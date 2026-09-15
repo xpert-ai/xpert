@@ -2,8 +2,8 @@
 export const DEFAULT_KNOWLEDGE_TEXT_SPLITTER = 'auto'
 
 /** Shared revision for structured execution diagnostics and cache invalidation. */
-export const KNOWLEDGE_CHUNKING_ALGORITHM_VERSION = 4
-export type KnowledgeChunkingAlgorithmVersion = 1 | 2 | 3 | typeof KNOWLEDGE_CHUNKING_ALGORITHM_VERSION
+export const KNOWLEDGE_CHUNKING_ALGORITHM_VERSION = 5
+export type KnowledgeChunkingAlgorithmVersion = 1 | 2 | 3 | 4 | typeof KNOWLEDGE_CHUNKING_ALGORITHM_VERSION
 
 /** Built-in strategies that auto routing may select. External providers remain manually selectable. */
 export type KnowledgeChunkingStrategy = 'recursive-character' | 'markdown-recursive' | 'structure-aware'
