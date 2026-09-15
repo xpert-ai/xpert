@@ -17,6 +17,10 @@
     {
       "family": "document",
       "definition": "images/document/image.json"
+    },
+    {
+      "family": "document-python",
+      "definition": "images/document-python/image.json"
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -8,11 +8,13 @@ import {
     LOCAL_BROWSER_RUNTIME_PROVIDER,
     LOCAL_DOCUMENT_RUNTIME_BINDING,
     LOCAL_VIDEO_BROWSER_RUNTIME_BINDING,
-    LocalBrowserRuntimeProvider
+    LocalBrowserRuntimeProvider,
+    resolveNodeExecutable
 } from './local-browser-runtime.provider'
 import {
     AI_BROWSER_RUNTIME_PROFILE,
     DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
+    DOCUMENT_PYTHON_RUNTIME_PROFILE,
     SandboxRuntimeDefinitionRegistry,
     VIDEO_BROWSER_RUNTIME_PROFILE
 } from './sandbox-runtime-definition.registry'
@@ -20,6 +22,7 @@ import {
 describe('LocalBrowserRuntimeProvider', () => {
     const originalNodeEnv = process.env.NODE_ENV
     const originalLibreOfficePath = process.env.XPERT_LOCAL_LIBREOFFICE_PATH
+    const originalFnmDir = process.env.FNM_DIR
     const roots: string[] = []
 
     beforeEach(() => {
@@ -32,7 +35,27 @@ describe('LocalBrowserRuntimeProvider', () => {
         process.env.NODE_ENV = originalNodeEnv
         if (originalLibreOfficePath === undefined) delete process.env.XPERT_LOCAL_LIBREOFFICE_PATH
         else process.env.XPERT_LOCAL_LIBREOFFICE_PATH = originalLibreOfficePath
+        if (originalFnmDir === undefined) delete process.env.FNM_DIR
+        else process.env.FNM_DIR = originalFnmDir
         await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
+    })
+
+    it('resolves the exact Runtime Node version from fnm without switching the API Node', async () => {
+        const root = await mkdtemp(path.join(tmpdir(), 'runtime-fnm-'))
+        roots.push(root)
+        process.env.FNM_DIR = root
+        const executable = path.join(root, 'node-versions/v20.20.2/installation/bin/node')
+        await mkdir(path.dirname(executable), { recursive: true })
+        await writeFile(executable, '#!/bin/sh\nprintf "v20.20.2\\n"\n', { mode: 0o755 })
+        const originalAccess = fs.access
+        jest.spyOn(fs, 'access').mockImplementation((file, mode) =>
+            String(file) === executable
+                ? originalAccess(file, mode)
+                : Promise.reject(Object.assign(new Error('missing'), { code: 'ENOENT' }))
+        )
+        expect(await resolveNodeExecutable('20.20.2')).toBe(executable)
+        await writeFile(executable, '#!/bin/sh\nprintf "v20.20.1\\n"\n', { mode: 0o755 })
+        await expect(resolveNodeExecutable('20.20.2')).rejects.toThrow('requires Node 20.20.2')
     })
 
     it('preserves missing LibreOffice diagnostics when the runtime assets exist', async () => {
@@ -114,6 +137,11 @@ describe('LocalBrowserRuntimeProvider', () => {
                     kind: 'filesystem',
                     reference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1'
                 })
+            }),
+            expect.objectContaining({
+                id: 'local-browser-runtime:document-python-3.12-v1',
+                runtimeProfile: DOCUMENT_PYTHON_RUNTIME_PROFILE,
+                developmentOnly: true
             }),
             expect.objectContaining({
                 id: LOCAL_DOCUMENT_RUNTIME_BINDING,

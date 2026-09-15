@@ -4,6 +4,7 @@ import { access, chmod, lstat, mkdir, open, readFile, realpath, unlink } from 'n
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { localDocumentPython, LOCAL_DOCUMENT_PYTHON_INSTALL_COMMAND } from './local-document-python'
 import { localDocumentFontEnvironment } from './local-document-fonts'
 import { Injectable } from '@nestjs/common'
 import {
@@ -27,6 +28,7 @@ import {
     AI_BROWSER_RUNTIME_PROFILE,
     DEFAULT_BROWSER_RUNTIME_PROFILE,
     DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
+    DOCUMENT_PYTHON_RUNTIME_PROFILE,
     VIDEO_BROWSER_RUNTIME_PROFILE
 } from './sandbox-runtime-definition.registry'
 
@@ -49,12 +51,13 @@ const execFileAsync = promisify(execFile)
 
 type LocalRuntimeConfiguration = {
     bindingId: string
-    imageFamily: 'browser' | 'browser-ai' | 'browser-video' | 'document'
+    imageFamily: 'browser' | 'browser-ai' | 'browser-video' | 'document' | 'document-python'
     artifactReference: string
     installCommand: string
     requiresFfmpeg: boolean
     requiresAiResources: boolean
     requiresLibreOffice: boolean
+    requiresPython?: boolean
 }
 
 const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfiguration>> = {
@@ -84,6 +87,16 @@ const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfigur
         requiresFfmpeg: true,
         requiresAiResources: false,
         requiresLibreOffice: false
+    },
+    [DOCUMENT_PYTHON_RUNTIME_PROFILE]: {
+        bindingId: 'local-browser-runtime:document-python-3.12-v1',
+        imageFamily: 'document-python',
+        artifactReference: 'xpert-source://sandbox-runtime/document-python-3.12-v1',
+        installCommand: LOCAL_DOCUMENT_PYTHON_INSTALL_COMMAND,
+        requiresFfmpeg: false,
+        requiresAiResources: false,
+        requiresLibreOffice: false,
+        requiresPython: true
     },
     [DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE]: {
         bindingId: LOCAL_DOCUMENT_RUNTIME_BINDING,
@@ -143,7 +156,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         if (!isLocalBinding(input.binding, input.definition.name)) {
             return { available: false, reason: 'Local Browser Runtime Binding does not match the Definition.' }
         }
-        const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${input.definition.expectedManifest.runnerHostSha256 ?? ''}:${input.definition.expectedManifest.modelCatalogSha256 ?? ''}`
+        const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${input.definition.expectedManifest.runnerHostSha256 ?? ''}:${input.definition.expectedManifest.modelCatalogSha256 ?? ''}:${input.definition.expectedManifest.requirementsSha256 ?? ''}`
         if (this.healthCache?.key === cacheKey && this.healthCache.expiresAt > Date.now()) {
             return this.healthCache.health
         }
@@ -171,9 +184,19 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             if (mismatch) return { available: false, reason: mismatch, manifest }
 
             const configuration = localRuntimeConfiguration(definition.name)
-            const healthCommand = configuration.requiresLibreOffice
-                ? { command: await resolveLocalLibreOffice(), args: ['--headless', '--version'] }
-                : { command: runtime.nodePath, args: [runtime.runnerPath, '--browser-health'] }
+            const healthCommand = configuration.requiresPython
+                ? {
+                      command: await localDocumentPython(definition.expectedManifest),
+                      args: [
+                          '-I',
+                          path.join(runtime.root, 'verify-python.py'),
+                          path.join(runtime.root, 'manifest.json'),
+                          path.join(runtime.root, '../requirements.txt')
+                      ]
+                  }
+                : configuration.requiresLibreOffice
+                  ? { command: await resolveLocalLibreOffice(), args: ['--headless', '--version'] }
+                  : { command: runtime.nodePath, args: [runtime.runnerPath, '--browser-health'] }
             const browserResult = await runProcess(healthCommand.command, healthCommand.args, {
                 timeoutMs: HEALTH_TIMEOUT_MS,
                 maxOutputBytes: 256 * 1024,
@@ -551,6 +574,10 @@ async function resolveLocalRuntimeAssets(
             const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
             environmentAdditions.PATH = prependPath(path.dirname(ffmpegPath), process.env.PATH)
         }
+        if (configuration.requiresPython) {
+            const pythonPath = await localDocumentPython(definition.expectedManifest)
+            environmentAdditions.PATH = prependPath(path.dirname(pythonPath), process.env.PATH)
+        }
         if (configuration.requiresLibreOffice) {
             const sofficePath = await resolveLocalLibreOffice()
             environmentAdditions.PATH = prependPath(
@@ -655,14 +682,16 @@ async function resolveLocalLibreOffice(): Promise<string> {
     throw new Error(LOCAL_DOCUMENT_INSTALL_COMMAND)
 }
 
-async function resolveNodeExecutable(expectedVersion: string | undefined): Promise<string> {
+export async function resolveNodeExecutable(expectedVersion: string | undefined): Promise<string> {
     if (!expectedVersion) throw new Error('Local Browser Runtime Definition does not declare nodeVersion.')
     const executableName = process.platform === 'win32' ? 'node.exe' : 'node'
     const nvmRoot = process.env.NVM_DIR ?? (process.env.HOME ? path.join(process.env.HOME, '.nvm') : undefined)
+    const fnmRoot = process.env.FNM_DIR || path.join(homedir(), '.local', 'share', 'fnm')
     const candidates = [
         process.execPath,
         ...(process.env.PATH ?? '').split(path.delimiter).map((directory) => path.join(directory, executableName)),
         ...(nvmRoot ? [path.join(nvmRoot, 'versions', 'node', `v${expectedVersion}`, 'bin', executableName)] : []),
+        path.join(fnmRoot, 'node-versions', `v${expectedVersion}`, 'installation', 'bin', executableName),
         ...(process.env.HOME
             ? [path.join(process.env.HOME, '.volta', 'tools', 'image', 'node', expectedVersion, 'bin', executableName)]
             : [])
