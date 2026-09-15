@@ -165,6 +165,62 @@ describe('processing settings file-type visibility', () => {
     }
   )
 
+  it.each(['knowledgebase', 'documents'])(
+    'hides empty parser forms while preserving configured fields and saved options for %s',
+    async (scope) => {
+      const { fixture, root, form } = setup()
+      fixture.componentRef.setInput('scope', scope)
+      await form.loadStrategies()
+      form.parserProviders.update((providers) => [
+        ...providers,
+        { meta: { name: 'no-schema', supportedFileTypes: ['pdf', 'docx', 'pptx'] } },
+        {
+          meta: {
+            name: 'no-properties',
+            supportedFileTypes: ['pdf', 'docx', 'pptx'],
+            configSchema: { type: 'object' }
+          }
+        },
+        {
+          meta: {
+            name: 'empty-schema',
+            supportedFileTypes: ['pdf', 'docx', 'pptx'],
+            configSchema: { type: 'object', properties: {} }
+          }
+        },
+        {
+          meta: {
+            name: 'with-fields',
+            supportedFileTypes: ['pdf', 'docx', 'pptx'],
+            configSchema: { type: 'object', properties: { language: { type: 'string', title: 'Language' } } }
+          }
+        }
+      ])
+      fixture.autoDetectChanges()
+      for (const name of ['with-fields', 'no-schema', 'no-properties', 'empty-schema', 'with-fields']) {
+        for (const format of ['pdf', 'docx', 'pptx']) {
+          form.selectParser(format, name)
+          if (format === 'pdf') form.pdfParserOptions.set({ language: 'en' })
+          else form.updateParser(format, { transformer: { language: 'en' } })
+        }
+        await fixture.whenStable()
+        for (const row of ['pdf', 'word', 'presentation']) {
+          const region = root.querySelector(`[data-parser-type="${row}"]`)
+          expect(region).not.toBeNull()
+          if (name === 'with-fields') {
+            expect(region.querySelector('json-schema-form')).not.toBeNull()
+            expect(region.textContent).toContain('Language')
+          } else {
+            expect(region.querySelector('json-schema-form')).toBeNull()
+          }
+        }
+        expect(form.config().pdfParser.transformer).toEqual({ language: 'en' })
+        expect(form.config().parsers.docx.transformer).toEqual({ language: 'en' })
+        expect(form.config().parsers.pptx.transformer).toEqual({ language: 'en' })
+      }
+    }
+  )
+
   function setup() {
     const form = TestBed.runInInjectionContext(() => createKnowledgeProcessingForm())
     const fixture = TestBed.createComponent(KnowledgeProcessingSettingsComponent)

@@ -138,9 +138,10 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
   }
   function parserSchema(format: string): JsonSchemaObjectType | undefined {
     // Builtin tuning stays internal; hiding its controls must not reset saved options.
-    return isBuiltinParser(format) || parserProvider(format)?.meta.configScope === 'integration'
-      ? undefined
-      : parserProvider(format)?.meta.configSchema
+    const provider = parserProvider(format)
+    if (isBuiltinParser(format) || provider?.meta.configScope === 'integration') return undefined
+    const schema = provider?.meta.configSchema
+    return Object.keys(schema?.properties ?? {}).length ? schema : undefined
   }
   function parserDefaults(format: string, name: string): { [key: string]: unknown } {
     const providerName = parserProviderName(format, name)
