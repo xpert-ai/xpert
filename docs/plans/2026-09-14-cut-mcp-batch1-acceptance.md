@@ -2,8 +2,8 @@
 
 Status: the host PR includes personal files, queued execution authorization,
 legacy confirmation compatibility, and optional Resource query handling.
-Explicit-model speech-to-text changes are deferred and remain uncommitted in the
-original local checkout. They are not included in this PR.
+Explicit-model standalone speech-to-text changes have been removed. Cut uses its
+existing Sandbox Whisper path; no standalone model-binding API is included.
 
 ## Configuration
 
@@ -43,9 +43,8 @@ operations; it is not a separate filesystem sandbox per publication.
 ## Companion plugin and runtime
 
 Cut changes belong to xpert-plugins and are not included here. Publish compatible
-contracts/plugin-sdk before updating the companion plugin dependencies. Its
-current local standalone-transcription changes must also remain out of release
-until their deferred host APIs are published.
+contracts/plugin-sdk before updating the companion plugin dependencies. The companion build uses the SDK ResourceReadContext for resource reads and
+restores the host-bound file scope in transcription and export jobs.
 
 For the paired rendering configuration, Cut Action 1.1.6 selects the existing
 `browser/video-playwright-1.61/v1` profile: runtime 1.2.1, Node 22.17.1,
@@ -89,3 +88,21 @@ After removing explicit-model speech changes, 8 suites / 89 tests passed.
 All 16 Tool Runtime behavior tests also passed with TypeScript diagnostics
 disabled only in a temporary test-run configuration; the baseline type error
 remains unresolved.
+
+## Sandbox subtitle acceptance: 2026-09-15
+
+The narrowed local deployment on API 3301 completed transcription without a mode
+argument (default `sandbox_whisper`, Xenova/whisper-tiny), caption draft creation
+and commit, MP4 export, and authenticated HTTP download. The 45-second English
+speech fixture produced seven timestamped segments. Export succeeded and returned
+1,695,043 bytes; a sampled frame contained the expected burned-in subtitle. The
+user subsequently confirmed the small-model transcription → subtitles → MP4
+download workflow works. No platform model binding was required.
+
+This verifies the workflow, not perfect transcription accuracy: the small model
+collapsed a repeated phrase and added a short spurious word near silence.
+Multi-instance behavior and exports exceeding six minutes remain unverified.
+
+Resource reads now receive `ResourceReadContext extends ToolExecutionContext`
+with a required `resourceUri`; tools, prompts and completions retain the base
+context. Cut returns the exact requested URI, including optional query arguments.

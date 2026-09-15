@@ -73,8 +73,12 @@ describe('MCP plugin declarations', () => {
     })
 
     expect(Object.isFrozen(resource)).toBe(true)
-    await expect(resource.read(context)).resolves.toEqual({ contents: [{ uri: 'xpert://overview', text: '{}' }] })
-    await expect(template.read({ documentId: 'one' }, context)).resolves.toMatchObject({
+    await expect(resource.read({ ...context, resourceUri: 'xpert://overview' })).resolves.toEqual({
+      contents: [{ uri: 'xpert://overview', text: '{}' }]
+    })
+    await expect(
+      template.read({ documentId: 'one' }, { ...context, resourceUri: 'xpert://documents/one' })
+    ).resolves.toMatchObject({
       contents: [{ uri: 'xpert://documents/one' }]
     })
     await expect(prompt.get({ documentId: 'one' }, context)).resolves.toMatchObject({

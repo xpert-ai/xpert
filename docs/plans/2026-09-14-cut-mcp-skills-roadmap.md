@@ -13,12 +13,13 @@ Deliver standalone personal-file access and protocol reliability:
 Native Project/Assistant execution remains supported. Cut business project IDs
 must not be used as platform Assistant IDs or file-volume owners.
 
-## Deferred local work
+## Transcription boundary
 
-Explicit-model platform transcription is removed from this PR and remains only
-in the original local xpert and xpert-plugins working changes. Its future delivery
-must coordinate contracts, SDK, host service permissions and the companion Cut
-plugin. It requires real model-backed MCP acceptance before being called complete.
+Standalone Cut uses its existing Sandbox Whisper small model. The narrowed local
+workflow passed transcription, captions, MP4 export and download; it needs no
+Assistant or external model provider. Explicit-model standalone platform APIs
+have been removed from local host and Cut changes and are not part of this PR.
+The independent SiliconFlow adapter work remains outside this delivery.
 Do not configure `runtime.transcription` on the host delivered by this PR.
 
 ## Later batches
