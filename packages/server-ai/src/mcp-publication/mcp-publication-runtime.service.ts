@@ -1,3 +1,4 @@
+import { parseMcpRuntimeConfiguration } from './mcp-runtime-configuration'
 import { runWithCapturedRequestContext } from '../shared/request-context'
 import { mcpInputSchema } from './mcp-input-schema'
 import {
@@ -632,6 +633,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
                         executionId: elicitation.executionId,
                         traceId,
                         appResourceUri: appMeta?.ui.resourceUri,
+                        approvalGranted: approvalMode === 'confirm',
                         maxLifetimeMs: descriptor.taskMaxLifetimeMs
                     })
                     await this.audit.succeeded(audit, startedAt)
@@ -640,6 +642,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
             }
             const result = await this.toolRuntime.executeTool({
                 source: 'mcp',
+                mcpRuntime: parseMcpRuntimeConfiguration(publication.runtime),
                 principal: {
                     type: principal.subjectType,
                     id: principal.subjectId,
@@ -915,6 +918,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
             await this.rateLimit.assertWithinLimit(publication, principal, capability)
             const result = await this.toolRuntime.executeMcpResource({
                 source: 'mcp',
+                mcpRuntime: parseMcpRuntimeConfiguration(publication.runtime),
                 principal: toToolPrincipal(principal),
                 tenantId: publication.tenantId,
                 organizationId: principal.organizationId ?? publication.organizationId ?? null,
@@ -999,6 +1003,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
             await this.rateLimit.assertWithinLimit(publication, principal, capability)
             const result = await this.toolRuntime.executeMcpPrompt({
                 source: 'mcp',
+                mcpRuntime: parseMcpRuntimeConfiguration(publication.runtime),
                 principal: toToolPrincipal(principal),
                 tenantId: publication.tenantId,
                 organizationId: principal.organizationId ?? publication.organizationId ?? null,
@@ -1060,6 +1065,7 @@ export class McpPublicationRuntimeService implements OnModuleDestroy {
             await this.rateLimit.assertWithinLimit(publication, principal, capability)
             const result = await this.toolRuntime.completeMcpCapability({
                 source: 'mcp',
+                mcpRuntime: parseMcpRuntimeConfiguration(publication.runtime),
                 principal: toToolPrincipal(principal),
                 tenantId: publication.tenantId,
                 organizationId: principal.organizationId ?? publication.organizationId ?? null,

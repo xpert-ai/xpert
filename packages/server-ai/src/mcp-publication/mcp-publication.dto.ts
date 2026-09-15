@@ -34,7 +34,24 @@ const PUBLICATION_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PUBLIC_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/
 const CLAIM_NAME_PATTERN = /^[A-Za-z0-9_.:-]+$/
 
+export class McpPersonalFilesInput {
+    @IsIn(['user'])
+    type: 'user'
+}
+
+export class McpPublicationRuntimeInput {
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => McpPersonalFilesInput)
+    files?: McpPersonalFilesInput
+}
+
 export class CreateMcpPublicationInput {
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => McpPublicationRuntimeInput)
+    runtime?: McpPublicationRuntimeInput | null
+
     @IsString()
     @MinLength(1)
     @MaxLength(191)
@@ -59,6 +76,11 @@ export class CreateMcpPublicationInput {
 }
 
 export class UpdateMcpPublicationInput {
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => McpPublicationRuntimeInput)
+    runtime?: McpPublicationRuntimeInput | null
+
     @IsOptional()
     @IsString()
     @MinLength(1)

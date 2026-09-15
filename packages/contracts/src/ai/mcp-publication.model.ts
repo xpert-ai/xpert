@@ -39,12 +39,18 @@ export interface McpCapabilityPolicy {
   }
 }
 
+/** Host-owned execution configuration. Tool arguments cannot override these bindings. */
+export interface McpPublicationRuntimeConfiguration {
+  files?: { type: 'user' }
+}
+
 export interface IMcpPublication extends IBasePerTenantAndOrganizationEntityModel {
   name: string
   slug: string
   status: McpPublicationStatus
   authMethods: McpAuthMethod[]
   instructions?: string | null
+  runtime?: McpPublicationRuntimeConfiguration | null
   protocolVersion: typeof MCP_PROTOCOL_VERSION
   reviewStatus: McpPublicationReviewStatus
   reviewReason?: string | null

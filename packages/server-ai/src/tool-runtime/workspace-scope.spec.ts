@@ -1,6 +1,26 @@
 import { resolveToolRuntimeScope } from './workspace-scope'
 
 describe('resolveToolRuntimeScope', () => {
+    it('binds an explicitly configured standalone runtime to the authenticated user', () => {
+        expect(
+            resolveToolRuntimeScope({ tenantId: 'tenant-1', userId: 'user-a' }, undefined, { type: 'user' })
+        ).toEqual({ tenantId: 'tenant-1', userId: 'user-a', catalog: 'users', scopeId: 'user-a', isolateByUser: false })
+    })
+
+    it('does not infer personal storage for an unconfigured runtime', () => {
+        expect(resolveToolRuntimeScope({ tenantId: 'tenant-1', userId: 'user-a' })).toEqual({
+            tenantId: 'tenant-1',
+            userId: 'user-a'
+        })
+    })
+
+    it('rejects personal storage without a user and conflicting host bindings', () => {
+        expect(() => resolveToolRuntimeScope({ tenantId: 'tenant-1' }, undefined, { type: 'user' })).toThrow()
+        expect(() =>
+            resolveToolRuntimeScope({ userId: 'user-a', projectId: 'project-1' }, undefined, { type: 'user' })
+        ).toThrow()
+    })
+
     it('binds two users on one user-scoped Xpert to distinct user-Xpert scopes', () => {
         const userA = resolveToolRuntimeScope({ tenantId: 'tenant-1', userId: 'user-a', xpertId: 'xpert-1' }, 'user')
         const userB = resolveToolRuntimeScope({ tenantId: 'tenant-1', userId: 'user-b', xpertId: 'xpert-1' }, 'user')

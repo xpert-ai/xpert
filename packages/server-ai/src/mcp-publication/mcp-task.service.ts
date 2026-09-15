@@ -1,4 +1,4 @@
-import type { JSONValue, McpPrincipal, McpTaskStatus } from '@xpert-ai/contracts'
+import type { JSONValue, McpPrincipal, McpTaskStatus, McpPublicationRuntimeConfiguration } from '@xpert-ai/contracts'
 import {
     MANAGED_QUEUE_SERVICE_TOKEN,
     type ManagedQueueService,
@@ -20,6 +20,8 @@ import { McpPublication, McpPublicationCapability, McpTask } from './entities'
 import { assertMcpAppToolResult } from './mcp-app-tool-result'
 import { McpElicitationService } from './mcp-elicitation.service'
 import { McpSubscriptionService } from './mcp-subscription.service'
+import { McpTaskExecutionService } from './mcp-task-execution.service'
+import { parseMcpRuntimeConfiguration } from './mcp-runtime-configuration'
 
 const MCP_TASK_QUEUE_OWNER = '@xpert-ai/platform'
 const MCP_TASK_QUEUE_NAME = 'mcp-publication'
@@ -30,7 +32,9 @@ const DEFAULT_POLL_INTERVAL_MS = 2_000
 const CANCELLATION_POLL_INTERVAL_MS = 1_000
 const MAX_TASK_PAYLOAD_BYTES = 2 * 1024 * 1024
 
-interface McpTaskJobPayload {
+export interface McpTaskJobPayload {
+    /** Server-obtained approval for this queued invocation; never supplied by tool arguments. */
+    approvalGranted?: boolean
     version: 1
     taskId: string
     publicationId: string
@@ -51,6 +55,7 @@ interface McpTaskJobPayload {
     }
     traceId?: string
     appResourceUri?: string
+    runtime?: McpPublicationRuntimeConfiguration | null
 }
 
 export interface McpCreateTaskResult extends CallToolResult {
@@ -101,7 +106,8 @@ export class McpTaskService {
         private readonly managedQueue: ManagedQueueService,
         private readonly toolRuntime: ToolRuntimeService,
         private readonly elicitation: McpElicitationService,
-        private readonly subscriptions: McpSubscriptionService
+        private readonly subscriptions: McpSubscriptionService,
+        private readonly execution: McpTaskExecutionService
     ) {}
 
     async create(input: {
@@ -115,6 +121,7 @@ export class McpTaskService {
         traceId?: string
         appResourceUri?: string
         maxLifetimeMs?: number
+        approvalGranted?: boolean
     }): Promise<McpCreateTaskResult> {
         const arguments_ = requireJsonValue(input.arguments ?? {})
         assertJsonSize(arguments_, MAX_TASK_PAYLOAD_BYTES)
@@ -142,8 +149,10 @@ export class McpTaskService {
         const taskId = randomUUID()
         const payload: McpTaskJobPayload = {
             version: 1,
+            approvalGranted: input.approvalGranted === true,
             taskId,
             publicationId: input.publication.id,
+            runtime: parseMcpRuntimeConfiguration(input.publication.runtime),
             capabilityId: input.capability.id,
             tenantId: input.publication.tenantId,
             organizationId: input.principal.organizationId ?? input.publication.organizationId ?? null,
@@ -336,30 +345,33 @@ export class McpTaskService {
                 const hostInput = this.createTaskInput(task)
                 const hostTasks = this.createTaskApi(task, payload)
                 try {
-                    const result = await this.toolRuntime.executeTool({
-                        source: 'mcp',
-                        principal: payload.principal,
-                        tenantId: payload.tenantId,
-                        organizationId: payload.organizationId ?? null,
-                        toolsetId: payload.toolsetId,
-                        toolName: payload.capabilityKey,
-                        serverName: payload.serverName,
-                        remoteName: payload.remoteName,
-                        remoteTaskMode: payload.remoteTaskMode,
-                        arguments: payload.arguments,
-                        executionId: task.executionId,
-                        requestId: task.requestId,
-                        traceId: payload.traceId,
-                        signal: AbortSignal.any([
-                            cancellation.signal,
-                            AbortSignal.timeout(Math.max(1, task.expiresAt.getTime() - Date.now()))
-                        ]),
-                        host: {
-                            input: hostInput,
-                            tasks: hostTasks,
-                            events: this.subscriptions.eventsApi(payload.publicationId)
-                        }
-                    })
+                    const result = await this.execution.run(task, payload, (runtime) =>
+                        this.toolRuntime.executeTool({
+                            source: 'mcp',
+                            mcpRuntime: runtime,
+                            principal: payload.principal,
+                            tenantId: payload.tenantId,
+                            organizationId: payload.organizationId ?? null,
+                            toolsetId: payload.toolsetId,
+                            toolName: payload.capabilityKey,
+                            serverName: payload.serverName,
+                            remoteName: payload.remoteName,
+                            remoteTaskMode: payload.remoteTaskMode,
+                            arguments: payload.arguments,
+                            executionId: task.executionId,
+                            requestId: task.requestId,
+                            traceId: payload.traceId,
+                            signal: AbortSignal.any([
+                                cancellation.signal,
+                                AbortSignal.timeout(Math.max(1, task.expiresAt.getTime() - Date.now()))
+                            ]),
+                            host: {
+                                input: hostInput,
+                                tasks: hostTasks,
+                                events: this.subscriptions.eventsApi(payload.publicationId)
+                            }
+                        })
+                    )
                     const current = await this.loadTask(task.taskId)
                     if (!current || current.status === 'cancelled') return
                     current.status = 'completed'
@@ -676,18 +688,22 @@ function parseTaskPayload(value: unknown): McpTaskJobPayload | null {
     const remoteTaskMode = Reflect.get(value, 'remoteTaskMode')
     const traceId = Reflect.get(value, 'traceId')
     const appResourceUri = Reflect.get(value, 'appResourceUri')
+    const approvalGranted = Reflect.get(value, 'approvalGranted')
     if (
         (organizationId !== undefined && organizationId !== null && typeof organizationId !== 'string') ||
         (serverName !== undefined && typeof serverName !== 'string') ||
         (remoteName !== undefined && typeof remoteName !== 'string') ||
         (remoteTaskMode !== undefined && remoteTaskMode !== 'optional' && remoteTaskMode !== 'required') ||
         (traceId !== undefined && typeof traceId !== 'string') ||
-        (appResourceUri !== undefined && typeof appResourceUri !== 'string')
+        (appResourceUri !== undefined && typeof appResourceUri !== 'string') ||
+        (approvalGranted !== undefined && typeof approvalGranted !== 'boolean')
     ) {
         return null
     }
     return {
         version: 1,
+        approvalGranted: approvalGranted === true,
+        runtime: parseMcpRuntimeConfiguration(Reflect.get(value, 'runtime')),
         taskId: Reflect.get(value, 'taskId'),
         publicationId: Reflect.get(value, 'publicationId'),
         capabilityId: Reflect.get(value, 'capabilityId'),

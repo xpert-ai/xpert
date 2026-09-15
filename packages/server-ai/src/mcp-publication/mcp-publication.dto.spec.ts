@@ -10,6 +10,23 @@ describe('MCP Publication management DTOs', () => {
     const pipe = new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true })
     type DtoConstructor = new () => object
 
+    it('accepts explicit personal files configuration', async () => {
+        const runtime = { files: { type: 'user' } }
+        await expect(transform(CreateMcpPublicationInput, { name: 'Cut', slug: 'cut', runtime })).resolves.toEqual(
+            expect.objectContaining({ runtime })
+        )
+    })
+
+    it.each([
+        { files: { type: 'user', userId: 'another-user' } },
+        { files: { type: 'project', projectId: 'another-project' } },
+        { transcription: { type: 'model', copilotId: '10000000-0000-4000-8000-000000000001', model: 'whisper-1' } }
+    ])('rejects forged file authority and unsupported runtime fields', async (runtime) => {
+        await expect(
+            transform(CreateMcpPublicationInput, { name: 'Cut', slug: 'cut', runtime })
+        ).rejects.toBeInstanceOf(BadRequestException)
+    })
+
     it('accepts a bounded capability policy and materializes its nested DTOs', async () => {
         await expect(
             transform(McpCapabilityBindingInput, {
