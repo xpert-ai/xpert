@@ -945,7 +945,7 @@ export class FileWorkbenchComponent {
       const activePath = file.filePath || filePath
       const opensInEditor = isSpreadsheetEditorFile(activePath)
         ? !!previewResource.url
-        : (isDocxEditorFile(activePath) || isPptxEditorFile(activePath)) && !!previewResource.buffer
+        : isDocxEditorFile(activePath) && !!previewResource.buffer
       this.panelMode.set(opensInEditor ? 'edit' : 'view')
     } catch (error) {
       this.#toastr.danger(
@@ -991,6 +991,12 @@ export class FileWorkbenchComponent {
     filePath: string,
     item?: FileTreeNode
   ): Promise<FileWorkbenchDownloadPayload | null | undefined> {
+    if (this.activeFilePath() === filePath && this.isPptxFile() && this.pptxDirty()) {
+      const file = await this.fileViewer()?.exportPptxFile()
+      if (file) {
+        return { kind: 'blob', blob: file, fileName: file.name }
+      }
+    }
     const fileDownloader = this.fileDownloader()
     if (fileDownloader) {
       const payload = await resolveAsyncValue(fileDownloader(filePath, item))

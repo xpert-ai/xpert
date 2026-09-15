@@ -214,6 +214,7 @@ async function setup(options?: {
   nestedFiles?: Record<string, TFileDirectory[]>
   fileContents?: Record<string, TFile>
   fileDownloader?: jest.Mock
+  binaryFileSaver?: jest.Mock
   referenceable?: boolean
 }) {
   const rootFiles = options?.rootFiles ?? [
@@ -283,6 +284,7 @@ async function setup(options?: {
   )
   const fileDeleter = jest.fn(() => of(undefined))
   const fileDownloader = options?.fileDownloader
+  const binaryFileSaver = options?.binaryFileSaver
 
   TestBed.resetTestingModule()
   await TestBed.configureTestingModule({
@@ -306,6 +308,9 @@ async function setup(options?: {
   if (fileDownloader) {
     fixture.componentRef.setInput('fileDownloader', fileDownloader)
   }
+  if (binaryFileSaver) {
+    fixture.componentRef.setInput('binaryFileSaver', binaryFileSaver)
+  }
   fixture.componentRef.setInput('referenceable', options?.referenceable ?? false)
   fixture.detectChanges()
   await fixture.whenStable()
@@ -321,6 +326,7 @@ async function setup(options?: {
     fileSaver,
     fileUploader,
     fileDeleter,
+    binaryFileSaver,
     toastr
   }
 }
@@ -549,6 +555,61 @@ describe('FileWorkbenchComponent', () => {
     expect(fileUploader).toHaveBeenCalledWith(expect.objectContaining({ name: 'brief.docx' }), 'docs')
     expect(component.dirty()).toBe(false)
     expect(component.panelMode()).toBe('view')
+  })
+
+  it('downloads the current unsaved PPTX editor buffer instead of the server copy', async () => {
+    const fileDownloader = jest.fn(() =>
+      of({
+        kind: 'blob',
+        blob: {
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(16))
+        } as unknown as Blob,
+        fileName: 'brief.pptx'
+      })
+    )
+    const binaryFileSaver = jest.fn(() =>
+      of({
+        filePath: 'brief.pptx',
+        fileType: 'pptx'
+      } as TFile)
+    )
+    const { component, fixture } = await setup({
+      rootFiles: [
+        {
+          filePath: 'brief.pptx',
+          fullPath: 'brief.pptx',
+          fileType: 'pptx',
+          hasChildren: false
+        }
+      ],
+      fileContents: {
+        'brief.pptx': {
+          filePath: 'brief.pptx',
+          fileType: 'pptx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        }
+      },
+      fileDownloader,
+      binaryFileSaver
+    })
+    await component.openFile(component.fileTree()[0] as FileTreeNode)
+    fixture.detectChanges()
+
+    expect(component.isPptxFile()).toBe(true)
+    expect(component.isActiveFileEditable()).toBe(true)
+    expect(component.fileViewer()).toBeTruthy()
+    component.pptxDirty.set(true)
+    const exportPptxFile = jest.spyOn(component.fileViewer()!, 'exportPptxFile')
+    const downloadCallsBefore = fileDownloader.mock.calls.length
+    const anchorClick = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+    try {
+      await component.downloadActiveFile()
+    } finally {
+      anchorClick.mockRestore()
+    }
+
+    expect(exportPptxFile).toHaveBeenCalled()
+    expect(fileDownloader).toHaveBeenCalledTimes(downloadCallsBefore)
   })
 
   it('uses root as the upload target until a tree item is selected', async () => {
