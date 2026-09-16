@@ -172,3 +172,33 @@ it('persists displayed record defaults for new spreadsheet imports', () => {
   const [document] = buildImportDocuments([{ category: KBDocumentCategoryEnum.Sheet }], {}, 'kb', null)
   expect(document.parserConfig.spreadsheet).toMatchObject({ interpretation: 'records', includeSheets: ['*'] })
 })
+
+it('routes mixed MIME/extension imports independently without leaking PDF options', () => {
+  const documents = buildImportDocuments(
+    [
+      { name: 'scan.pdf', type: 'pdf' },
+      { name: 'photo.png', type: 'image/png' },
+      { name: 'text.txt', type: 'txt' }
+    ],
+    { chunkSize: 512 },
+    'kb',
+    null,
+    {
+      parsers: {
+        pdf: { transformerType: 'mineru', transformerIntegration: 'mineru-connection', transformer: { isOcr: true } },
+        png: {
+          transformerType: 'baidu-paddleocr-vl',
+          transformerIntegration: 'baidu-connection',
+          transformer: { mergeTables: false }
+        }
+      }
+    }
+  )
+  expect(documents[0].parserConfig).toMatchObject({ transformerType: 'mineru', transformer: { isOcr: true } })
+  expect(documents[1].parserConfig).toMatchObject({
+    transformerType: 'baidu-paddleocr-vl',
+    transformerIntegration: 'baidu-connection'
+  })
+  expect(documents[1].parserConfig.transformer).not.toHaveProperty('isOcr')
+  expect(documents[2].parserConfig).toEqual({ chunkSize: 512 })
+})

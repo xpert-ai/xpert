@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "runtimeSuiteVersion": "1.2.1",
+  "artifacts": [
+    {
+      "runtimeProfile": "document/python-3.12/v1",
+      "imageFamily": "document",
+      "kind": "oci-image",
+      "reference": "__IMMUTABLE_IMAGE__",
+      "digest": "__IMAGE_DIGEST__"
+    }
+  ]
+}

@@ -125,6 +125,7 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             return {
                 source: this.source,
                 candidates: [],
+                exhausted: true,
                 diagnostics: {
                     ...diagnostics,
                     keywordLatency: 0,
@@ -149,7 +150,14 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
                 return this.failedBatch(diagnostics, error, startedAt)
             }
 
-            const rows = await this.searchCandidates(request, normalizedQuery, terms)
+            const requestedWindow = Math.min(
+                MAX_KEYWORD_CANDIDATES,
+                Math.max(1, request.k ?? request.knowledgebase.recall?.topK ?? 10) * KEYWORD_OVERSAMPLING
+            )
+            const window = request.faqSession
+                ? request.faqSession.budget.reserveCandidates(requestedWindow)
+                : requestedWindow
+            const rows = window ? await this.searchCandidates(request, normalizedQuery, terms, window) : []
             diagnostics.keywordCandidateCount = rows.length
             const documents = await this.resolveDocuments(request, rows)
             diagnostics.keywordLatency = Date.now() - startedAt
@@ -160,6 +168,14 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             return {
                 source: this.source,
                 candidates: documents.map((document, index) => ({ document, rank: index + 1 })),
+                ...(request.faqSession
+                    ? {
+                          exhausted: window > 0 && rows.length < window,
+                          budgetLimited:
+                              window < requestedWindow ||
+                              (rows.length === MAX_KEYWORD_CANDIDATES && window === MAX_KEYWORD_CANDIDATES)
+                      }
+                    : {}),
                 diagnostics
             }
         } catch (error) {
@@ -184,7 +200,8 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
     private async searchCandidates(
         request: KnowledgeRetrievalRequest,
         normalizedQuery: string,
-        terms: string[]
+        terms: string[],
+        window: number
     ): Promise<KeywordCandidateRow[]> {
         const { knowledgebase: kb, preparedFilter } = request
         const parameters: unknown[] = [request.scope.tenantId, request.scope.organizationId, kb.id]
@@ -232,8 +249,7 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             ? `CASE WHEN COALESCE(d."name", '') ILIKE ${phrasePatternParameter} ESCAPE '\\' THEN 1 ELSE 0 END`
             : '0'
         const matchExpressions = [fullTextMatch, ...searchableExpressions]
-        const topK = Math.max(1, request.k ?? kb.recall?.topK ?? 10)
-        parameters.push(Math.min(MAX_KEYWORD_CANDIDATES, topK * KEYWORD_OVERSAMPLING))
+        parameters.push(window)
         const limitParameter = `$${parameters.length}`
 
         return this.dataSource.query<KeywordCandidateRow[]>(
@@ -279,7 +295,9 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
         request: KnowledgeRetrievalRequest,
         rows: KeywordCandidateRow[]
     ): Promise<KeywordDocument[]> {
-        const topK = Math.max(1, request.k ?? request.knowledgebase.recall?.topK ?? 10)
+        const topK = request.faqSession
+            ? rows.length
+            : Math.max(1, request.k ?? request.knowledgebase.recall?.topK ?? 10)
         const parentChunkIds = new Set(
             rows.map(({ parentChunkId }) => parentChunkId).filter((id): id is string => !!id)
         )

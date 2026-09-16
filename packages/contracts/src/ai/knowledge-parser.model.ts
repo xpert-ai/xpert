@@ -1,3 +1,4 @@
+import { knowledgebaseParserSelection } from './knowledge-parser-selection'
 import type { DocumentTextParserConfig, DocumentSheetParserConfig } from './knowledge-doc.model'
 import type { KnowledgebaseParserConfig } from './knowledgebase.model'
 import type { IKnowledgeDocumentChunk, IDocChunkMetadata } from './knowledge-doc-chunk.model'
@@ -48,7 +49,7 @@ export function knowledgebaseDocumentParserDefaults(
       : {}),
     ...(config.imageUnderstandingType ? { imageUnderstandingType: config.imageUnderstandingType } : {}),
     ...(config.imageUnderstanding ? { imageUnderstanding: { ...config.imageUnderstanding } } : {}),
-    ...(documentType?.replace(/^\./, '').toLowerCase() === 'pdf' ? config.pdfParser : {})
+    ...knowledgebaseParserSelection(config, documentType ?? '')
   }
 }
 

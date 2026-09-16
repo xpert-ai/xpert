@@ -5,6 +5,8 @@ import { KnowledgeDocumentChunkService } from '../../knowledge-document/chunk/ch
 import { PreparedKnowledgeFilter, prepareKnowledgeFilter } from '../filter'
 import { KnowledgebaseService } from '../knowledgebase.service'
 import { KnowledgeRetrievalRequest } from './types'
+import { FAQRetrievalBudget, FAQ_RETRIEVAL_LIMITS } from '../faq/faq-retrieval-budget'
+import { refillFAQCandidates } from '../faq/faq-candidate-refill'
 import { VectorKnowledgeCandidateRetriever } from './vector-knowledge-candidate.retriever'
 
 function createKnowledgebase(overrides: Partial<IKnowledgebase> = {}): IKnowledgebase {
@@ -55,6 +57,51 @@ describe('VectorKnowledgeCandidateRetriever', () => {
     afterEach(() => {
         environment.vectorStore = originalVectorStore
     })
+
+    it.each([
+        { candidateSlots: 300, windows: [32, 64, 128], reason: 'budget_exhausted' },
+        { candidateSlots: 2000, windows: [32, 64, 128, 256], reason: 'exhausted' }
+    ])(
+        'keeps expanded FAQ candidates across rounds with $candidateSlots candidate slots',
+        async ({ candidateSlots, windows, reason }) => {
+            environment.vectorStore = VectorTypeEnum.PGVECTOR
+            const knowledgebase = createKnowledgebase({ type: KnowledgebaseTypeEnum.FAQ })
+            // Physical fragments of one FAQ can occupy more slots than its logical projections.
+            const raw: [DocumentInterface<DocumentMetadata>, number][] = Array.from({ length: 200 }, (_, index) => [
+                candidate(index < 80 ? 'excluded' : 'retained'),
+                index / 1000
+            ])
+            const search = jest.fn(async (_query: string, window: number) => ({ items: raw.slice(0, window) }))
+            const store = { createSearchSession: () => ({ structuredSimilaritySearchWithScore: search }) }
+            const backend = { getActiveVectorStore: jest.fn(async () => store) }
+            const chunks = {
+                findAll: jest.fn(async () => ({
+                    items: ['excluded', 'retained'].map((id) => ({
+                        id,
+                        pageContent: id,
+                        metadata: { chunkId: id, enabled: true },
+                        document: { disabled: false }
+                    }))
+                }))
+            }
+            const source = new VectorKnowledgeCandidateRetriever(
+                backend as unknown as KnowledgebaseService,
+                chunks as unknown as KnowledgeDocumentChunkService
+            )
+            const request = createRequest(knowledgebase, prepareKnowledgeFilter({ knowledgebase }), { k: 2 })
+            request.faqSession = { budget: new FAQRetrievalBudget({ ...FAQ_RETRIEVAL_LIMITS, candidateSlots }) }
+            const result = await refillFAQCandidates({
+                request,
+                retrievers: [source],
+                fuse: (batches) => batches.flatMap((batch) => batch.candidates.map((item) => item.document)),
+                filter: async (documents) => documents.filter((document) => document.metadata.chunkId === 'retained')
+            })
+            expect(search.mock.calls.map(([, window]) => window)).toEqual(windows)
+            expect(result.documents.map((document) => document.metadata.chunkId)).toEqual(['retained'])
+            expect(result.reason).toBe(reason)
+            expect(request.faqSession.budget.candidateSlots).toBeLessThanOrEqual(candidateSlots)
+        }
+    )
 
     it('preserves model context, distance scoring, relational hydration and diagnostics', async () => {
         environment.vectorStore = VectorTypeEnum.PGVECTOR

@@ -306,7 +306,7 @@ export class KnowledgeDocumentStore {
     }
 
     /** Request-local embedding reuse; no shared model or store state is changed by expansion. */
-    createSearchSession(query: string) {
+    createSearchSession(query: string, reuseUnstructuredQuery = false) {
         let embedding: Promise<number[]> | undefined
         const getEmbedding = () => (embedding ??= this.vStore.embeddings.embedQuery(query))
         const store = this.vStore as VectorStore & {
@@ -317,7 +317,19 @@ export class KnowledgeDocumentStore {
             ) => Promise<StructuredVectorSearchResult>
         }
         return {
-            similaritySearchWithScore: this.similaritySearchWithScore.bind(this),
+            getQueryEmbedding: getEmbedding,
+            similaritySearchWithScore: reuseUnstructuredQuery
+                ? async (
+                      _text: string,
+                      k = 4,
+                      filter?: VectorStore['FilterType']
+                  ): Promise<[DocumentInterface, number][]> => {
+                      const enabledFilter = toEnabledVectorFilter(filter)
+                      enabledFilter.enabled ??= true
+                      const result = await store.similaritySearchVectorWithScore(await getEmbedding(), k, enabledFilter)
+                      return result.map(([doc, score]) => [this.restorePageContent(doc), score])
+                  }
+                : this.similaritySearchWithScore.bind(this),
             structuredSimilaritySearchWithScore: async (
                 text: string,
                 k: number,

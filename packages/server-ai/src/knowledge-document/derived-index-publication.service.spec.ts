@@ -1,3 +1,4 @@
+import { KnowledgeAutoTaggingEnqueueCommand } from './tags/automatic-tagging.command'
 import { KnowledgeQuestionsEnqueueCommand } from './questions/question-generation.command'
 import { CommandBus } from '@nestjs/cqrs'
 import { KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
@@ -6,6 +7,24 @@ import { KnowledgeWikiEnqueueSourceCommand } from '../knowledgebase/wiki/command
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
 
 describe('KnowledgeDerivedIndexPublicationService', () => {
+    it('isolates synchronous tagging dispatch failure from the completed source and other projections', async () => {
+        const commandBus = {
+            execute: jest.fn((command: unknown) => {
+                if (command instanceof KnowledgeAutoTaggingEnqueueCommand) throw new Error('queue unavailable')
+                return Promise.resolve()
+            })
+        }
+        await expect(
+            new KnowledgeDerivedIndexPublicationService(commandBus as unknown as CommandBus).publish({
+                knowledgebase: { id: 'kb', name: 'KB', type: KnowledgebaseTypeEnum.Standard },
+                documentId: 'doc',
+                userId: 'user',
+                contentChanged: true
+            })
+        ).resolves.toBeUndefined()
+        expect(commandBus.execute).toHaveBeenCalledTimes(4)
+    })
+
     it('dispatches Graph and Wiki only after changed content is published', async () => {
         const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
         const service = new KnowledgeDerivedIndexPublicationService(commandBus as unknown as CommandBus)
@@ -23,10 +42,11 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
             contentChanged: true
         })
 
-        expect(commandBus.execute).toHaveBeenCalledTimes(3)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeQuestionsEnqueueCommand)
-        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeGraphEnqueueCommand)
-        expect(commandBus.execute.mock.calls[2][0]).toBeInstanceOf(KnowledgeWikiEnqueueSourceCommand)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeAutoTaggingEnqueueCommand)
+        expect(commandBus.execute).toHaveBeenCalledTimes(4)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeQuestionsEnqueueCommand)
+        expect(commandBus.execute.mock.calls[2][0]).toBeInstanceOf(KnowledgeGraphEnqueueCommand)
+        expect(commandBus.execute.mock.calls[3][0]).toBeInstanceOf(KnowledgeWikiEnqueueSourceCommand)
     })
 
     it('keeps the source publication successful when one derived index rejects', async () => {
@@ -52,8 +72,9 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
                 contentChanged: true
             })
         ).resolves.toBeUndefined()
-        expect(commandBus.execute).toHaveBeenCalledTimes(3)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeQuestionsEnqueueCommand)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(KnowledgeAutoTaggingEnqueueCommand)
+        expect(commandBus.execute).toHaveBeenCalledTimes(4)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeQuestionsEnqueueCommand)
     })
 
     it('checks failed Graph recovery without regenerating Wiki when the source hash did not change', async () => {
@@ -73,9 +94,9 @@ describe('KnowledgeDerivedIndexPublicationService', () => {
             contentChanged: false
         })
 
-        expect(commandBus.execute).toHaveBeenCalledTimes(2)
-        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(KnowledgeGraphRetryDocumentCommand)
-        expect(commandBus.execute.mock.calls[1][0].input).toEqual({
+        expect(commandBus.execute).toHaveBeenCalledTimes(3)
+        expect(commandBus.execute.mock.calls[2][0]).toBeInstanceOf(KnowledgeGraphRetryDocumentCommand)
+        expect(commandBus.execute.mock.calls[2][0].input).toEqual({
             knowledgebaseId: 'kb-1',
             documentId: 'document-1',
             userId: 'user-1'

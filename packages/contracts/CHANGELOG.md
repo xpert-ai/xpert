@@ -1,5 +1,18 @@
 # @xpert-ai/contracts
 
+## 3.18.4
+
+### Patch Changes
+
+- 3f72082: Add opt-in lazy template catalogs, summary pagination, explicit prompt locales and source revision tracking. Existing eager template providers remain compatible.
+
+  Restore role skill bindings when switching templates and preserve localized skill names during installation and selection.
+
+- 7b97fee: Restore knowledge pipeline source selection and previews, refresh documents immediately after saving, and track background processing failures. Persist imported documents and task bindings atomically, and prevent stale failure callbacks from overwriting a newer document execution.
+- 4be390b: Release Xpert 3.18.4 with aligned contracts, plugin-sdk, and Web application versions.
+
+- 4e8c7ed: Reuse ContextCompressionReason from @xpert-ai/chatkit-types while preserving TContextCompressionComponentReason as a compatible public type alias.
+
 ## 3.18.2
 
 ### Patch Changes

@@ -167,12 +167,7 @@
                           : '.Inherited') | translate
                   }}
                 } @else {
-                  {{
-                    prefix +
-                      ((onlySheet() ? activeParserConfig().transformerType : processing.config().pdfParser)
-                        ? '.Customized'
-                        : '.Inherited') | translate
-                  }}
+                  {{ prefix + (processing.config().parsers ? '.Customized' : '.Inherited') | translate }}
                 }
               </span>
             </span>
@@ -185,28 +180,18 @@
           {{ (editing ? prefix + '.EditDefaultsHint' : prefix + '.DefaultsHint') | translate }}
         </p>
         <fieldset class="min-w-0" [disabled]="busy()" [hidden]="!activeSection().available">
-          @if (onlySheet()) {
+          @if (onlySheet() && section() === 'images') {
             <xp-knowledge-document-create-settings
               class="block min-w-0"
-              [hidden]="
-                section() === 'chunks' || section() === 'audio' || section() === 'questions' || section() === 'table'
-              "
               [knowledgebaseValue]="data.knowledgebase"
-              [section]="settingsSection()"
+              section="images"
               [documents]="documentsWithParserConfig()"
-              (documentsChange)="updateDocumentPreviews($event)"
               [documentConfigIsResolved]="true"
               [parserConfig]="activeParserConfig()"
               (parserConfigChange)="updateSheetParserConfig($event)"
             />
           }
-          @if (
-            !onlySheet() ||
-            section() === 'chunks' ||
-            section() === 'audio' ||
-            section() === 'questions' ||
-            section() === 'table'
-          ) {
+          @if (!onlySheet() || section() !== 'images') {
             <xp-knowledge-processing-settings
               class="block min-w-0"
               [form]="processing"
@@ -215,22 +200,6 @@
               scope="documents"
               [showHeading]="false"
             />
-          }
-          @if (!onlySheet() && section() === 'parser' && selectedTable(); as table) {
-            <div class="mt-6 space-y-3 border-t border-divider-subtle pt-4">
-              <z-select [ngModel]="table.index" (ngModelChange)="selectedTableIndex.set($event)">
-                @for (option of tablePreviewOptions(); track option.index) {
-                  <z-select-item [zValue]="option.index">{{ option.document.name }}</z-select-item>
-                }
-              </z-select>
-              <xp-knowledge-document-preview
-                class="relative block max-h-96 overflow-auto"
-                [document]="table.document"
-                [parserConfig]="table.document.parserConfig"
-                (parserConfigChange)="updateSelectedTable($event)"
-                [knowledgebaseValue]="data.knowledgebase"
-              />
-            </div>
           }
         </fieldset>
         @if (!activeSection().available) {
@@ -258,7 +227,7 @@
             | translate
         "
       >
-        <button z-button zType="outline" [disabled]="!ready() || !canRechunk()" (click)="saveAndProcess('rechunk')">
+        <button z-button zType="outline" [disabled]="!rechunkReady()" (click)="saveAndProcess('rechunk')">
           {{ 'XP.Knowledgebase.RechunkOnly' | translate }}
         </button>
       </span>

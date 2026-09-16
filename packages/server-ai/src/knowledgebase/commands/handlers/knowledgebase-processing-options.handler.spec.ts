@@ -7,14 +7,18 @@ import { GetKnowledgebaseProcessingOptionsHandler } from './knowledgebase-proces
 function fixture(config = {}) {
     const knowledgebase = {
         findOneByIdString: jest.fn().mockResolvedValue({ id: 'kb', parserConfig: config }),
-        getDocumentTransformerStrategies: jest
-            .fn()
-            .mockResolvedValue([
-                { meta: { name: 'default', label: { en_US: 'Standard' } } },
-                { meta: { name: 'pdf-visual', label: { en_US: 'PDF' } } },
-                { meta: { name: 'ocr-a', label: { en_US: 'OCR A' } }, integration: { service: 'ocr-service' } },
-                { meta: { name: 'ocr-b', label: { en_US: 'OCR B' } }, integration: { service: 'other-service' } }
-            ])
+        getDocumentTransformerStrategies: jest.fn().mockResolvedValue([
+            { meta: { name: 'default', supportedFileTypes: ['pdf', 'txt', 'docx'], label: { en_US: 'Standard' } } },
+            { meta: { name: 'pdf-visual', supportedFileTypes: ['pdf'], label: { en_US: 'PDF' } } },
+            {
+                meta: { name: 'ocr-a', supportedFileTypes: ['pdf', 'png'], label: { en_US: 'OCR A' } },
+                integration: { service: 'ocr-service' }
+            },
+            {
+                meta: { name: 'ocr-b', supportedFileTypes: ['pdf'], label: { en_US: 'OCR B' } },
+                integration: { service: 'other-service' }
+            }
+        ])
     }
     const integrations = {
         findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({
@@ -64,6 +68,23 @@ describe('Knowledge document processing choices', () => {
         })
         expect(result.integrations).toEqual([{ id: 'allowed', name: 'OCR connection', provider: 'ocr-service' }])
     })
+    it('prioritizes per-format settings over legacy flat parser configuration', async () => {
+        const f = fixture({
+            transformerType: 'ocr-a',
+            transformerIntegration: 'allowed',
+            parsers: {
+                pdf: { transformerType: 'default' },
+                png: { transformerType: 'ocr-a', transformerIntegration: 'allowed' }
+            }
+        })
+        const pdf = await f.handler.execute({ input: { knowledgebaseId: 'kb', fileName: 'file.pdf' } })
+        const png = await f.handler.execute({ input: { knowledgebaseId: 'kb', fileName: 'file.png' } })
+        expect(pdf.processor).toBe('default')
+        expect(pdf.selectedIntegrationId).toBeUndefined()
+        expect(png.processor).toBe('ocr-a')
+        expect(png.defaultSource).toBe('knowledgebase')
+    })
+
     it('uses registered integration services and selects a sole accessible connection', async () => {
         const f = fixture()
         const result = await f.handler.execute({

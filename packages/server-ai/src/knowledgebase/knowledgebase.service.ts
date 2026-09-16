@@ -1,3 +1,6 @@
+import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
+import { rethrowParserError } from '../knowledge-document/parser-error'
+import { prepareAutomaticTaggingConfig } from './tags/automatic-tagging-config'
 import { dispatchKnowledgePipeline } from './task/pipeline-task'
 import { prepareKnowledgePipelineDocuments } from './task/prepare-pipeline-documents'
 import { buildQuestionVectors } from '../knowledge-document/questions/question-vectors'
@@ -26,7 +29,6 @@ import {
     IWFNProcessor,
     IWFNSource,
     KBDocumentStatusEnum,
-    KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
@@ -40,6 +42,7 @@ import {
     classificateDocumentCategory,
     TCopilotModel,
     KnowledgeDocumentMetadata,
+    knowledgeDocumentFileType,
     KnowledgeDocumentProcessingMode,
     KDocumentSourceType,
     IUser,
@@ -176,36 +179,6 @@ function knowledgebaseAccessDenied() {
     )
 }
 
-function isKnowledgebaseFAQConfig(value: unknown): value is KnowledgebaseFAQConfig {
-    return (
-        !!value &&
-        typeof value === 'object' &&
-        'indexMode' in value &&
-        (value.indexMode === 'question_only' || value.indexMode === 'question_answer') &&
-        'questionIndexMode' in value &&
-        (value.questionIndexMode === 'combined' || value.questionIndexMode === 'separate') &&
-        (!('negativeMatchMode' in value) ||
-            value.negativeMatchMode === undefined ||
-            value.negativeMatchMode === 'exact')
-    )
-}
-
-function normalizeKnowledgebaseFAQConfig(value: unknown): KnowledgebaseFAQConfig {
-    if (!isKnowledgebaseFAQConfig(value)) {
-        throw new BadRequestException(
-            t('server-ai:Error.KnowledgebaseFAQConfigInvalid', {
-                defaultValue: 'FAQ configuration is invalid'
-            })
-        )
-    }
-
-    return {
-        indexMode: value.indexMode,
-        questionIndexMode: value.questionIndexMode,
-        negativeMatchMode: value.negativeMatchMode ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG.negativeMatchMode
-    }
-}
-
 function assertSafeKnowledgebaseTaskRelations(relations: unknown): asserts relations is string[] | undefined {
     if (relations === undefined) {
         return
@@ -241,6 +214,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     avatar: true,
     description: true,
     applicationTags: true,
+    automaticTagging: true,
     permission: true,
     copilotModelId: true,
     chatModelId: true,
@@ -426,6 +400,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     async create(entity: Partial<IKnowledgebase>) {
         const input = { ...entity }
+        if ('automaticTagging' in input) input.automaticTagging = prepareAutomaticTaggingConfig(input.automaticTagging)
         delete input.id
         delete input.createdById
         delete input.createdBy
@@ -660,6 +635,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             ]
         })
         const changes = { ...entity }
+        if ('automaticTagging' in changes)
+            changes.automaticTagging = prepareAutomaticTaggingConfig(changes.automaticTagging)
         delete changes.id
         delete changes.tenantId
         delete changes.tenant
@@ -2536,12 +2513,25 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             })
         )
 
-        const results = await strategy.transformDocuments(input, {
-            ...(entity.config ?? {}),
-            stage: isDraft ? 'test' : 'prod',
-            tempDir: workArea.tmpPath.serverPath,
-            permissions
-        })
+        const results = await strategy
+            .transformDocuments(
+                input.map((document) => ({ ...document, type: knowledgeDocumentFileType(document) })),
+                {
+                    ...(entity.config ?? {}),
+                    stage: isDraft ? 'test' : 'prod',
+                    tempDir: workArea.tmpPath.serverPath,
+                    fileScope: {
+                        tenantId: RequestContext.currentTenantId(),
+                        organizationId: RequestContext.getOrganizationId(),
+                        userId: RequestContext.currentUserId(),
+                        catalog: 'knowledges' as const,
+                        knowledgeId: knowledgebaseId,
+                        scopeId: knowledgebaseId
+                    },
+                    permissions
+                }
+            )
+            .catch(rethrowParserError)
 
         return results
     }

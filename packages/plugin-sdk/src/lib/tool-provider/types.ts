@@ -1,3 +1,4 @@
+import type { XpertDecoratedMcpDescriptor } from './mcp-methods'
 import type {
   IconDefinition,
   I18nObject,
@@ -11,6 +12,8 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 import type { ZodTypeAny, infer as ZodInfer } from 'zod/v3'
 import type { AgentMiddleware } from '../agent/middleware/types'
 import type { IAgentMiddlewareContext } from '../agent/middleware/strategy.interface'
+import type { McpCapabilityDefinitions } from '../mcp/runtime'
+import type { McpTaskExecutionPolicy } from '../mcp/task'
 import type { McpAppDefinition } from '../mcp/app'
 import type { ToolExecutionContext, ToolHostApi, ToolPrincipal } from '../toolset/tool-execution-context'
 import type { XpertToolAppBinding, XpertToolVisibility } from '../toolset/define-tool'
@@ -52,6 +55,9 @@ export interface XpertToolProviderOptions {
 }
 
 export interface XpertMcpToolOptions {
+  /** Additional transport-specific validation, applied after the shared input schema. */
+  inputSchema?: ZodTypeAny
+  task?: McpTaskExecutionPolicy
   /** Default for auto-published tools; explicit administrator policy takes precedence. */
   defaultApprovalMode?: McpCapabilityApprovalMode
   behavior: McpToolBehavior
@@ -70,7 +76,7 @@ export interface XpertToolOptions<
   description: string
   inputSchema: TInputSchema
   outputSchema?: TOutputSchema
-  /** Opt in to standard content blocks; outputSchema validates structuredContent. */
+  /** Opt in to validated content blocks. When provided, outputSchema validates structuredContent. */
   resultFormat?: 'dto' | 'tool_result'
   /** true uses the class default, a string selects a declared group, false disables Middleware exposure. */
   middleware?: true | string | false
@@ -96,6 +102,8 @@ export interface XpertBusinessToolContext {
   traceId?: string
   signal?: AbortSignal
   host: ToolHostApi
+  /** Native Agent feature configuration, scoped to this invocation. */
+  xpertFeatures?: IAgentMiddlewareContext['xpertFeatures']
   middlewareOptions?: unknown
 }
 
@@ -108,6 +116,8 @@ export type XpertDecoratedToolMethod<
 ) => PromiseOrValue<ZodInfer<TOutputSchema> | XpertToolResult<ZodInfer<TOutputSchema>> | XpertPreparedToolResult>
 
 export interface XpertToolProviderInstance {
+  /** Compatibility hook for legacy providers; prefer resource and prompt method decorators. */
+  getMcpExtensions?(): Pick<McpCapabilityDefinitions, 'resources' | 'resourceTemplates' | 'prompts'>
   getMiddlewareExtensions?(
     provider: string,
     options: unknown,
@@ -124,6 +134,7 @@ export interface XpertDecoratedToolDescriptor {
 export interface XpertToolProviderDescriptor {
   options: Readonly<XpertToolProviderOptions>
   tools: readonly XpertDecoratedToolDescriptor[]
+  mcpMethods?: readonly XpertDecoratedMcpDescriptor[]
 }
 
 export interface XpertAgentToolRunnableConfig extends RunnableConfig {

@@ -1,3 +1,4 @@
+import { resolveXpertMcpExtensions } from './mcp-methods'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import { tool, type DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools'
 import type { I18nObject, IXpertToolset } from '@xpert-ai/contracts'
@@ -9,6 +10,7 @@ import { BuiltinToolset, type TBuiltinToolsetParams } from '../toolset/builtin'
 import type { AnyXpertToolDefinition } from '../toolset/define-tool'
 import type { IToolsetStrategy } from '../toolset/strategy.interface'
 import type { ToolExecutionContext } from '../toolset/tool-execution-context'
+import { WorkspaceFilesRuntimeCapability } from '../runtime/capabilities/workspace-files'
 import { describeXpertToolProvider, getXpertToolMethod } from './descriptor'
 import { resolveToolResult } from './prepared-result'
 import { agentContent, parseDecoratedToolResult } from './tool-result'
@@ -106,7 +108,11 @@ class DecoratedBuiltinToolset extends BuiltinToolset<StructuredToolInterface, Re
   ) {
     super(descriptor.options.provider, toolset, params)
     this.tools = []
+    const extensions = resolveXpertMcpExtensions(instance, descriptor)
     this.#definitions = {
+      resources: extensions?.resources,
+      resourceTemplates: extensions?.resourceTemplates,
+      prompts: extensions?.prompts,
       instructions: descriptor.options.instructions,
       tools: descriptor.tools.filter((item) => !!item.options.mcp).map((item) => createMcpTool(instance, item)),
       ...(descriptor.options.apps?.length ? { apps: [...descriptor.options.apps] } : {})
@@ -144,7 +150,7 @@ function createAgentTool(
     async (input: unknown, config: RunnableConfig) => {
       const parsedInput = await descriptor.options.inputSchema.parseAsync(input)
       const output = await invoke(parsedInput, agentExecutionContext(middlewareContext, middlewareOptions, config))
-      if (descriptor.options.resultFormat === 'tool_result' && descriptor.options.outputSchema) {
+      if (descriptor.options.resultFormat === 'tool_result') {
         const result = await resolveToolResult(output, (value) =>
           parseDecoratedToolResult(value, descriptor.options.outputSchema)
         )
@@ -177,28 +183,30 @@ function createMcpTool(
 ): AnyXpertToolDefinition {
   const mcp = descriptor.options.mcp
   const outputSchema = descriptor.options.outputSchema
-  if (!mcp || !outputSchema) throw new Error(`MCP Tool '${descriptor.options.name}' is incomplete.`)
+  if (!mcp) throw new Error(`MCP Tool '${descriptor.options.name}' is incomplete.`)
   const invoke = getXpertToolMethod(instance, descriptor)
   return {
     name: descriptor.options.name,
     ...(descriptor.options.title ? { title: descriptor.options.title } : {}),
     description: descriptor.options.description,
-    inputSchema: descriptor.options.inputSchema,
-    outputSchema,
+    inputSchema: mcp.inputSchema ?? descriptor.options.inputSchema,
+    ...(outputSchema ? { outputSchema } : {}),
     exposure: { mcp: { eligible: true } },
     behavior: mcp.behavior,
+    ...(mcp.task ? { task: mcp.task } : {}),
     ...(mcp.defaultApprovalMode ? { defaultApprovalMode: mcp.defaultApprovalMode } : {}),
     requiredContext: [...mcp.requiredContext],
     visibility: [...(mcp.visibility ?? (mcp.app ? ['model', 'app'] : ['model']))],
     ...(mcp.app ? { app: { resourceKey: mcp.app.resourceKey } } : {}),
     execute: async (input: unknown, context: ToolExecutionContext) => {
       const parsedInput = await descriptor.options.inputSchema.parseAsync(input)
-      const output = await invoke(parsedInput, mcpExecutionContext(context))
+      const transportInput = mcp.inputSchema ? await mcp.inputSchema.parseAsync(parsedInput) : parsedInput
+      const output = await invoke(transportInput, mcpExecutionContext(context))
       if (descriptor.options.resultFormat === 'tool_result') {
         return resolveToolResult(output, (value) => parseDecoratedToolResult(value, outputSchema))
       }
       return resolveToolResult(output, async (value) => {
-        const parsedOutput = await outputSchema.parseAsync(value)
+        const parsedOutput = outputSchema ? await outputSchema.parseAsync(value) : value
         // Serialize once so text-only clients and MCP Apps receive the same JSON-safe DTO.
         const text = stringifyDto(parsedOutput, descriptor.options.name)
         return {
@@ -235,11 +243,13 @@ function agentExecutionContext(
     ...(traceId ? { traceId } : {}),
     signal: config.signal,
     host: {
+      files: context.runtime.capabilities?.get(WorkspaceFilesRuntimeCapability),
       models: {
         createModelClient: context.runtime.createModelClient,
         getModelProvider: context.runtime.getModelProvider
       }
     },
+    xpertFeatures: context.xpertFeatures,
     middlewareOptions
   }
 }

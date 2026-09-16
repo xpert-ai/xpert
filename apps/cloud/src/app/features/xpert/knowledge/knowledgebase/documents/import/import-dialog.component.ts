@@ -17,9 +17,8 @@ import {
   KnowledgeDocumentService,
   KnowledgeFileUploader
 } from '@cloud/app/@core'
-import { ZardButtonComponent, ZardSelectImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { XpTreeSelectComponent } from '@cloud/app/@shared/form-fields/tree-select/tree-select.component'
-import { KnowledgeDocumentPreviewComponent } from '../create/preview/preview.component'
 import { KnowledgeDocumentCreateSettingsComponent } from '../create/settings/settings.component'
 import { createKnowledgeProcessingForm, KnowledgeProcessingSection } from '../../../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../../../processing/processing-settings.component'
@@ -27,7 +26,6 @@ import {
   buildImportDocuments,
   newSheetImportConfig,
   ImportParserConfig,
-  ImportSettingsSection,
   mergeSheetProcessingConfig
 } from './import-model'
 import { buildImportFolderTree, IMPORT_ROOT_FOLDER } from './import-folder-tree'
@@ -35,6 +33,7 @@ import { documentFileType } from '../../../processing/document-file-types'
 import { documentProcessingDraft, editedDocumentParserConfig } from './document-edit-config'
 import { cloneDeep } from 'lodash-es'
 import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings/settings.component'
+import { remapTableIndexedFields } from './table-index-selection'
 
 export interface DocumentImportDialogData {
   knowledgebase: IKnowledgebase
@@ -56,8 +55,6 @@ export interface DocumentImportDialogData {
     ...ZardTooltipImports,
     XpTreeSelectComponent,
     KnowledgeDocumentCreateSettingsComponent,
-    KnowledgeDocumentPreviewComponent,
-    ...ZardSelectImports,
     KnowledgeDocumentPipelineSettingsComponent,
     KnowledgeProcessingSettingsComponent
   ],
@@ -112,9 +109,6 @@ export class DocumentImportDialogComponent {
       : this.parserConfig()
   )
   readonly section = signal('parser')
-  readonly settingsSection = computed<ImportSettingsSection>(() =>
-    this.section() === 'images' ? 'images' : this.section() === 'chunks' ? 'chunks' : 'parser'
-  )
   readonly processingSection = computed<KnowledgeProcessingSection>(() => {
     switch (this.section()) {
       case 'chunks':
@@ -142,12 +136,16 @@ export class DocumentImportDialogComponent {
     { id: 'graph', key: 'Graph', icon: 'ri-node-tree', available: false }
   ].filter((section) => section.id !== 'graph' || this.data.knowledgebase.graphRag?.enabled === true)
   readonly activeSection = computed(() => this.sections.find((section) => section.id === this.section()))
-  readonly documents = computed<Partial<IKnowledgeDocument>[]>(() => [
-    ...this.uploads()
-      .filter((item) => item.status() === 'done')
-      .map((item) => ({ ...item.document(), sourceType: KDocumentSourceType.LocalFile })),
-    ...this.externalDocuments()
-  ])
+  readonly documents = computed<Partial<IKnowledgeDocument>[]>(() =>
+    this.editing
+      ? [this.editDocument()]
+      : [
+          ...this.uploads()
+            .filter((item) => item.status() === 'done')
+            .map((item) => ({ ...item.document(), sourceType: KDocumentSourceType.LocalFile })),
+          ...this.externalDocuments()
+        ]
+  )
   readonly tableOverrides = computed(() => ({
     ...(this.processing.firstRowAsHeader() !== (this.initialProcessingConfig?.spreadsheet?.firstRowAsHeader ?? true)
       ? { firstRowAsHeader: this.processing.firstRowAsHeader() }
@@ -156,37 +154,36 @@ export class DocumentImportDialogComponent {
       ? { tableMetadataRequirements: this.processing.tableMetadataRequirements() ?? '' }
       : {})
   }))
-  readonly indexedSelections = signal(new Map<string, string[]>())
-  readonly selectedTableIndex = signal<string | null>(null)
   readonly documentsWithParserConfig = computed(() => {
     if (this.editing)
-      return this.documents().map((document, index) =>
-        this.applyIndexedSelection({ ...document, parserConfig: this.activeParserConfig() }, index)
-      )
+      return this.documents().map((document) => ({
+        ...document,
+        parserConfig: {
+          ...this.activeParserConfig(),
+          ...editedDocumentParserConfig(
+            document,
+            this.processing.config(),
+            this.data.knowledgebase.parserConfig,
+            this.processing.visionModel()
+          ),
+          ...(this.onlySheet() ? { spreadsheet: this.activeParserConfig().spreadsheet } : {})
+        }
+      }))
     const resolved = buildImportDocuments(
       this.documents(),
       this.activeParserConfig(),
       this.data.knowledgebase.id,
       null,
       {
+        parsers: this.processing.config().parsers,
+        pdfParser: this.processing.config().pdfParser,
+        visionModel: this.processing.visionModel(),
         sheetParserConfig: this.onlySheet() ? this.sheetParserConfig() : undefined,
         tableOverrides: this.tableOverrides()
       }
     )
-    return this.documents().map((document, index) =>
-      this.applyIndexedSelection({ ...document, parserConfig: resolved[index].parserConfig }, index)
-    )
+    return this.documents().map((document, index) => ({ ...document, parserConfig: resolved[index].parserConfig }))
   })
-  readonly tablePreviewOptions = computed(() =>
-    this.documentsWithParserConfig()
-      .map((document, index) => ({ document, index: String(index) }))
-      .filter(({ document }) => isNativeKnowledgeTableDocument(document))
-  )
-  readonly selectedTable = computed(
-    () =>
-      this.tablePreviewOptions().find(({ index }) => index === this.selectedTableIndex()) ??
-      this.tablePreviewOptions()[0]
-  )
   readonly pendingDocuments = computed<Partial<IKnowledgeDocument>[]>(() => [
     ...this.uploads().map((item) => item.document() ?? { mimeType: item.file.type }),
     ...this.externalDocuments()
@@ -206,10 +203,16 @@ export class DocumentImportDialogComponent {
     if (!this.documents().length) return null
     if (this.onlySheet()) {
       const error = this.settings()?.configurationError()
-      const sharedError = this.processing.validate({ checkPdfParser: false })
+      const sharedError = this.processing.validate({
+        checkPdfParser: false,
+        fileTypes: this.documents().map(documentFileType)
+      })
       return (
         this.processing.strategiesError() ||
-        (sharedError?.section === 'chunk' || sharedError?.section === 'questions' || sharedError?.section === 'table'
+        (sharedError?.section === 'chunk' ||
+        sharedError?.section === 'questions' ||
+        sharedError?.section === 'table' ||
+        sharedError?.section === 'parser'
           ? sharedError.key
           : null) ||
         (error ? this.prefix + '.' + error : null)
@@ -218,7 +221,8 @@ export class DocumentImportDialogComponent {
     return (
       this.processing.strategiesError() ||
       this.processing.validate({
-        checkPdfParser: this.documents().some((document) => documentFileType(document) === 'pdf')
+        checkPdfParser: this.documents().some((document) => documentFileType(document) === 'pdf'),
+        fileTypes: this.documents().map(documentFileType)
       })?.key ||
       null
     )
@@ -232,6 +236,17 @@ export class DocumentImportDialogComponent {
       !this.processing.strategiesLoading() &&
       !this.configurationError()
   )
+  readonly rechunkReady = computed(() => {
+    if (!this.editing || !this.canRechunk() || this.busy() || this.data.locked()) return false
+    if (this.pipelineDocument) return true
+    if (
+      this.processing.strategiesLoading() ||
+      this.processing.strategiesError() ||
+      this.processing.validate({ checkParsers: false, fileTypes: this.documents().map(documentFileType) })
+    )
+      return false
+    return !this.processing.parserSelectionChanged(documentFileType(this.editDocument()))
+  })
   private destroyed = false
 
   constructor() {
@@ -245,30 +260,6 @@ export class DocumentImportDialogComponent {
       void this.loadFolders()
     }
     if (!this.pipelineDocument) void this.processing.loadStrategies()
-  }
-
-  private sourceKey(index: number) {
-    const document = this.documents()[index]
-    return document?.storageFileId ?? document?.filePath ?? document?.fileUrl ?? document?.id ?? `import:${index}`
-  }
-
-  private applyIndexedSelection(document: Partial<IKnowledgeDocument>, index: number): Partial<IKnowledgeDocument> {
-    const indexedFields = this.indexedSelections().get(this.sourceKey(index))
-    return indexedFields ? { ...document, parserConfig: { ...document.parserConfig, indexedFields } } : document
-  }
-
-  updateIndexedSelection(index: number, config: ImportParserConfig) {
-    if (!config.indexedFields) return
-    const key = this.sourceKey(index)
-    this.indexedSelections.update((current) => new Map(current).set(key, [...config.indexedFields]))
-  }
-
-  updateDocumentPreviews(documents: Partial<IKnowledgeDocument>[]) {
-    documents.forEach((document, index) => this.updateIndexedSelection(index, document.parserConfig ?? {}))
-  }
-
-  updateSelectedTable(config: ImportParserConfig) {
-    if (this.selectedTable()) this.updateIndexedSelection(Number(this.selectedTable().index), config)
   }
 
   updateSheetParserConfig(config: ImportParserConfig) {
@@ -333,7 +324,7 @@ export class DocumentImportDialogComponent {
   }
 
   async saveAndProcess(mode: KnowledgeDocumentProcessingMode) {
-    if (!this.editing || !this.ready() || (mode === 'rechunk' && !this.canRechunk())) return
+    if (!this.editing || (mode === 'rechunk' ? !this.rechunkReady() : !this.ready())) return
     this.busy.set(true)
     this.dialogRef.disableClose = true
     this.error.set('')
@@ -351,7 +342,7 @@ export class DocumentImportDialogComponent {
             .pipe(take(1))
         )
       } else {
-        const parserConfig = this.onlySheet()
+        let parserConfig = this.onlySheet()
           ? cloneDeep(this.documentsWithParserConfig()[0].parserConfig)
           : editedDocumentParserConfig(
               document,
@@ -359,7 +350,13 @@ export class DocumentImportDialogComponent {
               this.data.knowledgebase.parserConfig,
               this.processing.visionModel()
             )
-        await this.validateIndexedFields([{ ...document, parserConfig }])
+        if (mode === 'rechunk') {
+          parserConfig.transformerType = document.parserConfig?.transformerType
+          parserConfig.transformerIntegration = document.parserConfig?.transformerIntegration
+          parserConfig.transformer = cloneDeep(document.parserConfig?.transformer)
+        }
+        const [resolved] = await this.resolveIndexedFields([{ ...document, parserConfig }])
+        parserConfig = resolved.parserConfig
         await firstValueFrom(
           this.api.updateBulk([{ id: document.id, version: document.version, parserConfig }], false).pipe(take(1))
         )
@@ -376,27 +373,55 @@ export class DocumentImportDialogComponent {
     }
   }
 
-  private async validateIndexedFields(documents: Partial<IKnowledgeDocument>[]) {
-    for (const [index, document] of documents.entries()) {
-      const indexedFields = document.parserConfig?.indexedFields
+  private async resolveIndexedFields(documents: Partial<IKnowledgeDocument>[]) {
+    const resolved = cloneDeep(documents)
+    for (const [index, document] of resolved.entries()) {
+      let indexedFields = document.parserConfig?.indexedFields
       if (
         !isNativeKnowledgeTableDocument(document) ||
         !indexedFields?.length ||
         (!document.fileUrl && !document.filePath && !document.storageFileId)
       )
         continue
-      const preview = await firstValueFrom(this.api.estimateTable(document).pipe(take(1)))
+      const preview = await firstValueFrom(
+        this.api
+          .estimateTable({
+            ...document,
+            parserConfig: { ...document.parserConfig, indexedFields: undefined }
+          })
+          .pipe(take(1))
+      )
+      const original = this.documents()[index]
+      const headerChanged =
+        ['xls', 'xlsx'].includes(documentFileType(document)) &&
+        (original.parserConfig?.spreadsheet?.firstRowAsHeader ?? true) !==
+          (document.parserConfig.spreadsheet?.firstRowAsHeader ?? true)
+      if (headerChanged) {
+        const previous = await firstValueFrom(
+          this.api
+            .estimateTable({
+              ...original,
+              parserConfig: { ...original.parserConfig, indexedFields: undefined }
+            })
+            .pipe(take(1))
+        )
+        const mapped = remapTableIndexedFields(indexedFields, previous.tables, preview.tables)
+        if (!mapped) this.invalidIndexedFields(indexedFields)
+        indexedFields = mapped
+        document.parserConfig.indexedFields = mapped
+      }
       const available = new Set(preview.tables.flatMap((table) => table.columns.map((column) => column.key)))
       const invalid = indexedFields.filter((field) => !available.has(field))
-      if (invalid.length) {
-        this.section.set('parser')
-        this.selectedTableIndex.set(String(index))
-        this.settings()?.selectedDocIndex.set(index)
-        throw new Error(
-          `${this.translate.instant('XP.Knowledgebase.TableMetadata.InvalidIndexedFields')}: ${invalid.join(', ')}`
-        )
-      }
+      if (invalid.length) this.invalidIndexedFields(invalid)
     }
+    return resolved
+  }
+
+  private invalidIndexedFields(fields: string[]): never {
+    this.section.set('parser')
+    throw new Error(
+      `${this.translate.instant('XP.Knowledgebase.TableMetadata.InvalidIndexedFields')}: ${fields.join(', ')}`
+    )
   }
 
   async submit() {
@@ -412,13 +437,14 @@ export class DocumentImportDialogComponent {
         this.parentId() || null,
         {
           pdfParser: this.processing.config().pdfParser,
+          parsers: this.processing.config().parsers,
           visionModel: this.processing.visionModel(),
           sheetParserConfig: this.onlySheet() ? this.sheetParserConfig() : undefined,
           tableOverrides: this.tableOverrides()
         }
-      ).map((document, index) => this.applyIndexedSelection(document, index))
-      await this.validateIndexedFields(documents)
-      await firstValueFrom(this.api.createBulk(documents, true).pipe(take(1)))
+      )
+      const resolved = await this.resolveIndexedFields(documents)
+      await firstValueFrom(this.api.createBulk(resolved, true).pipe(take(1)))
       if (!this.destroyed) this.dialogRef.close(true)
     } catch (error) {
       if (!this.destroyed) this.error.set(getErrorMessage(error))

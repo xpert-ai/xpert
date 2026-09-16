@@ -2,6 +2,31 @@ import { AiModelTypeEnum, KBDocumentCategoryEnum, KnowledgebaseParserConfig } fr
 import { resolveKnowledgeDocumentParserConfig } from './parser-config'
 
 describe('resolveKnowledgeDocumentParserConfig precedence', () => {
+    it('does not apply options from the old connection after explicitly selecting a different integration', () => {
+        const inherited: KnowledgebaseParserConfig = {
+            chunkSize: 512,
+            chunkOverlap: 80,
+            delimiter: null,
+            parsers: {
+                pdf: {
+                    transformerType: 'mineru',
+                    transformerIntegration: 'old',
+                    transformer: { modelVersion: 'pipeline', isOcr: false }
+                }
+            }
+        }
+        const document = {
+            type: 'pdf',
+            parserConfig: { transformerType: 'mineru', transformerIntegration: 'new', transformer: {} }
+        }
+        expect(resolveKnowledgeDocumentParserConfig(document, inherited).transformer).toEqual({})
+        document.parserConfig.transformerIntegration = 'old'
+        expect(resolveKnowledgeDocumentParserConfig(document, inherited).transformer).toEqual({
+            modelVersion: 'pipeline',
+            isOcr: false
+        })
+    })
+
     it('round-trips the public language hint without moving it into splitter options', () => {
         const document = {
             type: 'txt',
@@ -278,5 +303,66 @@ describe('new document knowledgebase defaults', () => {
         expect(
             resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }, defaults)
         ).toEqual({})
+    })
+})
+
+describe('per-format parser routing', () => {
+    it.each(['gif', 'webp'])('routes grouped %s defaults to builtin instead of the selected image plugin', (type) => {
+        const defaults: KnowledgebaseParserConfig = {
+            chunkSize: 1000,
+            chunkOverlap: 200,
+            delimiter: null,
+            parsers: {
+                png: { transformerType: 'baidu-paddleocr-vl', transformerIntegration: 'baidu' },
+                gif: { transformerType: 'builtin', transformer: {} },
+                webp: { transformerType: 'builtin', transformer: {} }
+            }
+        }
+        const config = resolveKnowledgeDocumentParserConfig({ type: `image/${type}` }, defaults)
+        expect(config.transformerType).toBe('default')
+        expect(config.transformerIntegration).toBeUndefined()
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'image/png' }, defaults)).toMatchObject({
+            transformerType: 'baidu-paddleocr-vl',
+            transformerIntegration: 'baidu'
+        })
+    })
+
+    it('inherits image parsers and clears the previous integration on a document override', () => {
+        const defaults = {
+            chunkSize: 1000,
+            chunkOverlap: 200,
+            delimiter: null,
+            parsers: {
+                png: { transformerType: 'cloud-ocr', transformerIntegration: 'cloud', transformer: { quality: 'high' } }
+            }
+        }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'image/png' }, defaults)).toMatchObject({
+            transformerType: 'cloud-ocr',
+            transformerIntegration: 'cloud'
+        })
+        const config = resolveKnowledgeDocumentParserConfig(
+            { type: 'png', parserConfig: { transformerType: 'default' } },
+            defaults
+        )
+        expect(config.transformerType).toBe('default')
+        expect(config.transformerIntegration).toBeUndefined()
+        expect(config.transformer).toBeUndefined()
+    })
+
+    it('uses builtin PDF defaults and retains native table behavior for an explicit builtin selection', () => {
+        const defaults = {
+            chunkSize: 1000,
+            chunkOverlap: 200,
+            delimiter: null,
+            parsers: { pdf: { transformerType: 'builtin' }, xlsx: { transformerType: 'builtin' } }
+        }
+        expect(resolveKnowledgeDocumentParserConfig({ type: 'pdf' }, defaults)).toMatchObject({
+            transformerType: 'pdf-visual',
+            transformer: { renderPageImages: true }
+        })
+        expect(
+            resolveKnowledgeDocumentParserConfig({ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }, defaults)
+                .transformerType
+        ).toBe('default')
     })
 })

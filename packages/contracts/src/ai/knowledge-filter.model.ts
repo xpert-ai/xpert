@@ -116,10 +116,36 @@ export type KnowledgeFilterErrorCode =
   | 'keyword_index_missing'
   | 'keyword_query_failed'
   | 'rerank_failed'
+  | 'faq_semantic_failed'
   | 'unsupported_backend'
   | 'unsupported_retrieval_mode'
 
 export type KnowledgeFilterDiagnostics = {
+  faqExclusion?: {
+    mode: 'semantic'
+    threshold: number
+    margin: number
+    modelFingerprint?: string
+    compared: number
+    reused: number
+    excluded: number
+    cacheHits: number
+    encodedTexts: number
+    cacheErrors: number
+    coalescedTexts: number
+    rounds: number
+    candidateSlots: number
+    retrievalCalls: number
+    stopReason?: 'target_reached' | 'exhausted' | 'budget_exhausted'
+    failureReason?: string
+    decisions: Array<{
+      faqId: string
+      action: 'keep' | 'exclude'
+      reason: string
+      positiveScore?: number
+      negativeScore?: number
+    }>
+  }
   contentScope?: KnowledgeRetrievalContentScope
   filterVersion: typeof KNOWLEDGE_FILTER_VERSION
   fixedFilter?: KnowledgeFilterNode

@@ -1,3 +1,4 @@
+import type { KnowledgeAutomaticTaggingConfig } from './knowledge-tag.model'
 import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { TKBRetrievalSettings } from './xpert.model'
@@ -43,6 +44,10 @@ export type KnowledgebaseFAQConfig = {
   questionIndexMode: KnowledgebaseFAQQuestionIndexMode
   /** Optional for knowledge bases created before negative matching was configurable. */
   negativeMatchMode?: KnowledgebaseFAQNegativeMatchMode
+  /** Required for semantic mode; cosine similarity in [0, 1]. Immutable after creation. */
+  semanticThreshold?: number
+  /** Required for semantic mode; negative minus positive similarity in (0, 2]. */
+  semanticMargin?: number
 }
 
 export const DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG = {
@@ -69,7 +74,16 @@ export enum KnowledgeStructureEnum {
   QA = 'qa'
 }
 
+export type KnowledgeParserSelection = {
+  transformerType: string
+  transformerIntegration?: string
+  transformer?: { [key: string]: unknown }
+}
+
 export type KnowledgebaseParserConfig = {
+  /** Canonical extension -> parser. Null explicitly restores system defaults, including legacy PDF settings. */
+  parsers?: { [format: string]: KnowledgeParserSelection | null }
+
   spreadsheet?: Pick<DocumentSpreadsheetParserConfig, 'firstRowAsHeader'>
   tableMetadataRequirements?: string
   /** Additional cl100k_base token cap for text retrieval chunks; 0 disables it. Context parents are retained. */
@@ -82,11 +96,8 @@ export type KnowledgebaseParserConfig = {
   chunkSize: number | null
   chunkOverlap: number | null
   delimiter: string | null
-  pdfParser?: {
-    transformerType: string
-    transformerIntegration?: string
-    transformer?: { [key: string]: unknown }
-  }
+  /** Legacy PDF selection; parsers.pdf takes precedence when present. */
+  pdfParser?: KnowledgeParserSelection
   textSplitterType?: string
   textSplitter?: { [key: string]: unknown }
   separators?: string[]
@@ -146,6 +157,8 @@ export type TKnowledgebase = {
    * These are machine-readable identifiers, not user-facing search tags.
    */
   applicationTags?: string[]
+
+  automaticTagging?: KnowledgeAutomaticTaggingConfig | null
   /**
    * Public in tenant or in organization or private
    * @default private

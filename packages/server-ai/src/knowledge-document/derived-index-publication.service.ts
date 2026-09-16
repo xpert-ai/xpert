@@ -1,3 +1,4 @@
+import { KnowledgeAutoTaggingEnqueueCommand } from './tags/automatic-tagging.command'
 import { KnowledgeQuestionsEnqueueCommand } from './questions/question-generation.command'
 import { IKnowledgebase } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -27,12 +28,18 @@ export class KnowledgeDerivedIndexPublicationService {
             organizationId: input.knowledgebase.organizationId,
             knowledgebaseId: input.knowledgebase.id
         }
-        const results = await Promise.allSettled([
-            this.commandBus.execute(
-                new KnowledgeQuestionsEnqueueCommand({ documentId: input.documentId, userId: input.userId })
-            ),
-            this.commandBus.execute(
-                input.contentChanged
+        const publications = [
+            {
+                target: 'Tags',
+                command: new KnowledgeAutoTaggingEnqueueCommand({ ...context, documentId: input.documentId })
+            },
+            {
+                target: 'Questions',
+                command: new KnowledgeQuestionsEnqueueCommand({ documentId: input.documentId, userId: input.userId })
+            },
+            {
+                target: 'GraphRAG',
+                command: input.contentChanged
                     ? new KnowledgeGraphEnqueueCommand({
                           ...context,
                           documentIds: [input.documentId],
@@ -43,23 +50,28 @@ export class KnowledgeDerivedIndexPublicationService {
                           documentId: input.documentId,
                           userId: input.userId
                       })
-            ),
+            },
             ...(input.contentChanged
                 ? [
-                      this.commandBus.execute(
-                          new KnowledgeWikiEnqueueSourceCommand({
+                      {
+                          target: 'Wiki',
+                          command: new KnowledgeWikiEnqueueSourceCommand({
                               ...context,
                               documentId: input.documentId,
                               reason: 'document'
                           })
-                      )
+                      }
                   ]
                 : [])
-        ])
+        ]
+        // Both synchronous dispatch failures and asynchronous queue failures are optional outcomes.
+        const results = await Promise.allSettled(
+            publications.map(({ command }) => Promise.resolve().then(() => this.commandBus.execute(command)))
+        )
 
         results.forEach((result, index) => {
             if (result.status === 'rejected') {
-                const target = ['Questions', 'GraphRAG', 'Wiki'][index]
+                const target = publications[index].target
                 this.logger.warn(
                     `${target} publication failed for document '${input.documentId}': ${getErrorMessage(result.reason)}`
                 )

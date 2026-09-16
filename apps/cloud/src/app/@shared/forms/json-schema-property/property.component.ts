@@ -23,7 +23,12 @@ import { XpertRemoteSelectComponent } from '../../form-fields'
 import { TWorkflowVarGroup, JsonSchemaUIExtensions } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
-import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardCheckboxComponent,
+  ZardInputDirective,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import { JsonSchemaFormOptions } from '../json-schema-form/form-options'
 
@@ -49,7 +54,8 @@ type JsonSchemaPropertyContext = {
     XpertRemoteSelectComponent,
     JsonSchemaWidgetOutletComponent,
     ZardInputDirective,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardCheckboxComponent
   ],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',

@@ -1,21 +1,26 @@
 import { computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, Validators } from '@angular/forms'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, isEqual } from 'lodash-es'
 import { firstValueFrom, take } from 'rxjs'
 import {
   decodeKnowledgeSeparators,
+  BUILTIN_KNOWLEDGE_FILE_TYPES,
+  BUILTIN_KNOWLEDGE_PARSER,
+  KnowledgeParserSelection,
+  knowledgebaseParserSelection,
   DEFAULT_KNOWLEDGE_TEXT_SPLITTER,
   getErrorMessage,
   ICopilotModel,
   IDocumentChunkerProvider,
   IDocumentProcessorProvider,
+  JsonSchemaObjectType,
   KnowledgebaseParserConfig,
   KnowledgeChunkLanguageHint,
   KnowledgebaseService,
   KnowledgeStructureEnum
 } from '@cloud/app/@core'
-import { RESERVED_PARSER_ROWS } from './parser-engine-rows'
+import { ParserEngineRow, RESERVED_PARSER_ROWS } from './parser-engine-rows'
 import { createParentChildChunkForm } from './parent-child-form'
 import { createSeparatorSelectOptions } from './separator-options'
 
@@ -43,10 +48,227 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
   const pdfProviders = computed(() =>
     parserProviders().filter((provider) => provider.meta.supportedFileTypes?.includes('pdf'))
   )
-  const pdfParserType = signal(initialConfig?.pdfParser?.transformerType ?? 'inherit')
-  const pdfParserOptions = signal(initialConfig?.pdfParser?.transformer ?? {})
-  const pdfIntegration = signal(initialConfig?.pdfParser?.transformerIntegration)
-  const pdfProvider = computed(() => pdfProviders().find((provider) => provider.meta.name === pdfParserType()))
+  function initialParser(format: string): KnowledgeParserSelection | undefined {
+    return (
+      knowledgebaseParserSelection(initialConfig, format) ??
+      (BUILTIN_KNOWLEDGE_FILE_TYPES.includes(format) ? { transformerType: BUILTIN_KNOWLEDGE_PARSER } : undefined)
+    )
+  }
+  const initialPdfParser = initialParser('pdf')
+  const pdfParserType = signal(initialPdfParser.transformerType)
+  const pdfParserOptions = signal(cloneDeep(initialPdfParser.transformer ?? {}))
+  const pdfIntegration = signal(initialPdfParser.transformerIntegration)
+  const pdfProvider = computed(() =>
+    pdfProviders().find((provider) => provider.meta.name === parserProviderName('pdf', pdfParserType()))
+  )
+  const formatParsers = signal<NonNullable<KnowledgebaseParserConfig['parsers']>>(
+    Object.fromEntries(
+      [...new Set([...BUILTIN_KNOWLEDGE_FILE_TYPES, ...Object.keys(initialConfig.parsers ?? {})])]
+        .filter((format) => format !== 'pdf' && initialParser(format))
+        .map((format) => [
+          format,
+          cloneDeep({ ...initialParser(format), transformer: initialParser(format).transformer ?? {} })
+        ])
+    )
+  )
+  const parserFormats = computed<ParserEngineRow[]>(() => {
+    const known = new Set([
+      'pdf',
+      ...parserEngineRows.flatMap((row) => row.extensions.map((extension) => extension.slice(1)))
+    ])
+    const extra = [...new Set(parserProviders().flatMap((provider) => provider.meta.supportedFileTypes ?? []))]
+      .filter((format) => !known.has(format))
+      .map((format) => ({ key: format, labelKey: '', extensions: ['.' + format], icon: 'ri-file-text-line' }))
+    return [...parserEngineRows, ...extra]
+  })
+  function providersFor(format: string) {
+    return parserProviders().filter((provider) => provider.meta.supportedFileTypes?.includes(format))
+  }
+  function builtinAvailable(format: string) {
+    return (
+      BUILTIN_KNOWLEDGE_FILE_TYPES.includes(format) &&
+      providersFor(format).some((provider) => provider.meta.name === (format === 'pdf' ? 'pdf-visual' : 'default'))
+    )
+  }
+  function parserType(format: string) {
+    return format === 'pdf' ? pdfParserType() : (formatParsers()[format]?.transformerType ?? '')
+  }
+  function parserProviderName(format: string, name: string) {
+    return name === BUILTIN_KNOWLEDGE_PARSER ? (format === 'pdf' ? 'pdf-visual' : 'default') : name
+  }
+  function parserProvider(format: string) {
+    const name = parserProviderName(format, parserType(format))
+    return providersFor(format).find((provider) => provider.meta.name === name)
+  }
+  function selectParser(format: string, name: string) {
+    if (format === 'pdf') return selectPdfParser(name)
+    formatParsers.update((current) => ({
+      ...current,
+      [format]: { transformerType: name, transformer: parserDefaults(format, name) }
+    }))
+  }
+  function parserOptions(format: string) {
+    return formatParsers()[format]?.transformer ?? {}
+  }
+  function parserIntegration(format: string) {
+    return formatParsers()[format]?.transformerIntegration
+  }
+  function updateParser(format: string, changes: Partial<KnowledgeParserSelection>) {
+    formatParsers.update((current) => ({
+      ...current,
+      [format]: { transformerType: parserType(format), ...current[format], ...changes }
+    }))
+  }
+  function selectParserIntegration(format: string, integrationId: string | null) {
+    const current = format === 'pdf' ? pdfIntegration() : parserIntegration(format)
+    const resetOptions = current !== integrationId && parserProvider(format)?.meta.configScope === 'integration'
+    if (format === 'pdf') {
+      pdfIntegration.set(integrationId)
+      if (resetOptions) pdfParserOptions.set({})
+    } else {
+      updateParser(format, {
+        transformerIntegration: integrationId,
+        ...(resetOptions ? { transformer: {} } : {})
+      })
+    }
+  }
+  function isBuiltinParser(format: string) {
+    const name = parserType(format)
+    return name === BUILTIN_KNOWLEDGE_PARSER || name === 'default' || (format === 'pdf' && name === 'pdf-visual')
+  }
+  function parserSchema(format: string): JsonSchemaObjectType | undefined {
+    // Builtin tuning stays internal; hiding its controls must not reset saved options.
+    const provider = parserProvider(format)
+    if (isBuiltinParser(format) || provider?.meta.configScope === 'integration') return undefined
+    const schema = provider?.meta.configSchema
+    return Object.keys(schema?.properties ?? {}).length ? schema : undefined
+  }
+  function parserDefaults(format: string, name: string): { [key: string]: unknown } {
+    const providerName = parserProviderName(format, name)
+    const provider = providersFor(format).find((provider) => provider.meta.name === providerName)
+    if (provider?.meta.configScope === 'integration') return {}
+    const schema: JsonSchemaObjectType | undefined = provider?.meta.configSchema
+    return Object.fromEntries(
+      Object.entries(schema?.properties ?? {})
+        .filter(([, property]) => property.default !== undefined)
+        .map(([key, property]) => [key, cloneDeep(property.default)])
+    )
+  }
+  function parserSelectionChanged(format: string) {
+    const initial = initialParser(format)
+    const name = parserType(format)
+    const options = format === 'pdf' ? pdfParserOptions() : parserOptions(format)
+    const integration = format === 'pdf' ? pdfIntegration() : parserIntegration(format)
+    return (
+      parserProviderName(format, name) !== parserProviderName(format, initial?.transformerType ?? '') ||
+      (integration || '') !== (initial?.transformerIntegration || '') ||
+      !isEqual(
+        { ...parserDefaults(format, name), ...options },
+        { ...parserDefaults(format, initial?.transformerType ?? ''), ...initial?.transformer }
+      )
+    )
+  }
+
+  // Rows group the UI only. Persist concrete format selections so preview and execution share the same routing.
+  function parserGroupProviders(row: ParserEngineRow) {
+    return parserProviders().filter((provider) =>
+      row.extensions.some((extension) => provider.meta.supportedFileTypes?.includes(extension.slice(1)))
+    )
+  }
+  function parserGroupType(row: ParserEngineRow) {
+    const names = [
+      ...new Set(
+        row.extensions
+          .map((extension) => {
+            const format = extension.slice(1)
+            return isBuiltinParser(format) ? BUILTIN_KNOWLEDGE_PARSER : parserType(format)
+          })
+          .filter(Boolean)
+      )
+    ]
+    const plugins = names.filter((name) => name !== BUILTIN_KNOWLEDGE_PARSER)
+    return plugins.length === 1 ? plugins[0] : plugins.length ? '' : (names[0] ?? '')
+  }
+  function parserGroupFormat(row: ParserEngineRow) {
+    const name = parserGroupType(row)
+    return (
+      row.extensions
+        .map((extension) => extension.slice(1))
+        .find((format) =>
+          name === BUILTIN_KNOWLEDGE_PARSER ? isBuiltinParser(format) : parserType(format) === name
+        ) ?? row.extensions[0]?.slice(1)
+    )
+  }
+  function parserGroupProvider(row: ParserEngineRow) {
+    const name = parserGroupType(row)
+    return parserGroupProviders(row).find(
+      (provider) => provider.meta.name === (name === BUILTIN_KNOWLEDGE_PARSER ? 'default' : name)
+    )
+  }
+  function parserGroupIntegration(row: ParserEngineRow) {
+    const name = parserGroupType(row)
+    const integrations = row.extensions
+      .map((extension) => extension.slice(1))
+      .filter((format) => parserType(format) === name)
+      .map(parserIntegration)
+    return new Set(integrations).size === 1 ? integrations[0] : undefined
+  }
+  function parserGroupOptions(row: ParserEngineRow) {
+    return parserOptions(parserGroupFormat(row))
+  }
+  function parserGroupSchema(row: ParserEngineRow) {
+    return parserGroupType(row) ? parserSchema(parserGroupFormat(row)) : undefined
+  }
+  function parserGroupFallbacks(row: ParserEngineRow) {
+    const provider = parserGroupProvider(row)
+    return provider
+      ? row.extensions.filter((extension) => !provider.meta.supportedFileTypes?.includes(extension.slice(1)))
+      : []
+  }
+  function parserGroupMixed(row: ParserEngineRow) {
+    const name = parserGroupType(row)
+    if (!name) return row.extensions.some((extension) => parserType(extension.slice(1)))
+    const provider = parserGroupProvider(row)
+    const formats = row.extensions
+      .map((extension) => extension.slice(1))
+      .filter((format) => !provider || provider.meta.supportedFileTypes?.includes(format))
+    const selection = (format: string) => ({
+      name: isBuiltinParser(format) ? BUILTIN_KNOWLEDGE_PARSER : parserType(format),
+      integration: parserIntegration(format),
+      options: parserOptions(format)
+    })
+    return formats.some((format) => !isEqual(selection(format), selection(formats[0])))
+  }
+  function selectParserGroup(row: ParserEngineRow, name: string) {
+    const provider = parserGroupProviders(row).find(
+      (provider) => provider.meta.name === (name === BUILTIN_KNOWLEDGE_PARSER ? 'default' : name)
+    )
+    if (!provider) return
+    for (const extension of row.extensions) {
+      const format = extension.slice(1)
+      if (provider.meta.supportedFileTypes?.includes(format)) {
+        selectParser(format, name)
+      } else if (builtinAvailable(format)) {
+        selectParser(format, BUILTIN_KNOWLEDGE_PARSER)
+      } else {
+        formatParsers.update((current) => ({ ...current, [format]: null }))
+      }
+    }
+  }
+  function selectParserGroupIntegration(row: ParserEngineRow, integrationId: string | null) {
+    const name = parserGroupType(row)
+    for (const extension of row.extensions) {
+      const format = extension.slice(1)
+      if (name && parserType(format) === name) selectParserIntegration(format, integrationId)
+    }
+  }
+  function updateParserGroupOptions(row: ParserEngineRow, options: KnowledgeParserSelection['transformer']) {
+    const name = parserGroupType(row)
+    for (const extension of row.extensions) {
+      const format = extension.slice(1)
+      if (name && parserType(format) === name) updateParser(format, { transformer: cloneDeep(options) })
+    }
+  }
   const splitterProvider = computed(() => splitterProviders().find((provider) => provider.name === chunkStrategy()))
   const regularSplitterProviders = computed(() =>
     splitterProviders().filter((provider) => provider.structure === KnowledgeStructureEnum.General)
@@ -149,6 +371,18 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
       ])
       splitterProviders.set(splitters)
       parserProviders.set(parsers)
+      pdfParserOptions.update((options) => ({ ...parserDefaults('pdf', pdfParserType()), ...options }))
+      formatParsers.update((selections) =>
+        Object.fromEntries(
+          Object.entries(selections).map(([format, selection]) => [
+            format,
+            {
+              ...selection,
+              transformer: { ...parserDefaults(format, selection.transformerType), ...selection.transformer }
+            }
+          ])
+        )
+      )
       strategiesLoaded.set(true)
     } catch (error) {
       strategiesError.set(getErrorMessage(error))
@@ -159,7 +393,7 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
 
   function selectPdfParser(value: string) {
     pdfParserType.set(value)
-    pdfParserOptions.set({})
+    pdfParserOptions.set(parserDefaults('pdf', value))
     pdfIntegration.set(undefined)
   }
 
@@ -243,14 +477,19 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
       ...initialConfig?.imageUnderstanding,
       promptTemplate: imagePromptTemplate()
     },
-    pdfParser:
-      pdfParserType() === 'inherit'
-        ? undefined
-        : {
-            transformerType: pdfParserType(),
-            transformer: pdfParserOptions(),
-            transformerIntegration: pdfIntegration()
-          }
+    parsers: {
+      ...formatParsers(),
+      pdf: {
+        transformerType: pdfParserType(),
+        transformer: pdfParserOptions(),
+        transformerIntegration: pdfIntegration()
+      }
+    },
+    pdfParser: {
+      transformerType: pdfParserType(),
+      transformer: pdfParserOptions(),
+      transformerIntegration: pdfIntegration()
+    }
   }))
 
   function validateQuestions(): { section: KnowledgeProcessingSection; key: string } | null {
@@ -268,7 +507,11 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     return null
   }
 
-  function validate({ checkPdfParser = true }: { checkPdfParser?: boolean } = {}): {
+  function validate({
+    checkPdfParser = true,
+    checkParsers = true,
+    fileTypes
+  }: { checkPdfParser?: boolean; checkParsers?: boolean; fileTypes?: string[] } = {}): {
     section: KnowledgeProcessingSection
     key: string
   } | null {
@@ -296,8 +539,18 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
     if (strategiesLoaded() && !splitterProvider()) {
       return { section: 'chunk', key: PROCESSING_I18N_PREFIX + '.Implemented.ProviderUnavailable' }
     }
-    if (checkPdfParser && strategiesLoaded() && pdfParserType() !== 'inherit' && !pdfProvider()) {
+    if (checkParsers && checkPdfParser && strategiesLoaded() && !pdfProvider()) {
       return { section: 'parser', key: PROCESSING_I18N_PREFIX + '.Implemented.ProviderUnavailable' }
+    }
+    if (checkParsers && strategiesLoaded()) {
+      for (const [format, selection] of Object.entries(config().parsers ?? {})) {
+        if (!selection || (fileTypes && !fileTypes.includes(format)) || (format === 'pdf' && !checkPdfParser)) continue
+        const provider = parserProvider(format)
+        if (!provider) return { section: 'parser', key: PROCESSING_I18N_PREFIX + '.Implemented.ProviderUnavailable' }
+        if (provider.integration && !selection.transformerIntegration) {
+          return { section: 'parser', key: PROCESSING_I18N_PREFIX + '.Implemented.MissingIntegration' }
+        }
+      }
     }
     if (imageUnderstandingEnabled() && !visionModel()?.model) {
       return { section: 'image', key: 'XP.Knowledgebase.Import.MissingVisionModel' }
@@ -308,6 +561,30 @@ export function createKnowledgeProcessingForm(options: KnowledgeProcessingFormOp
 
   return {
     parserEngineRows,
+    parserFormats,
+    parserGroupProviders,
+    parserGroupType,
+    parserGroupProvider,
+    parserGroupIntegration,
+    parserGroupOptions,
+    parserGroupSchema,
+    parserGroupFallbacks,
+    parserGroupMixed,
+    selectParserGroup,
+    selectParserGroupIntegration,
+    updateParserGroupOptions,
+    providersFor,
+    builtinAvailable,
+    parserType,
+    parserProvider,
+    parserSchema,
+    isBuiltinParser,
+    parserSelectionChanged,
+    selectParser,
+    parserOptions,
+    parserIntegration,
+    updateParser,
+    selectParserIntegration,
     splitterProviders,
     parserProviders,
     strategiesLoading,

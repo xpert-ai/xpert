@@ -1,13 +1,37 @@
 <div
   id="tags-label"
-  class="flex items-center gap-1 px-2 h-9 rounded-lg border-[0.5px] border-transparent bg-components-input-bg-normal cursor-pointer hover:bg-hover-bg"
+  class="flex min-h-9 cursor-pointer items-center gap-1 rounded-lg border border-divider-regular bg-components-input-bg-normal px-2 py-1 hover:bg-hover-bg"
   [floatUi]="panel"
   [showTrigger]="eNgxFloatUiTriggers.click"
   [placement]="eNgxFloatUiPlacements.TOP"
+  [attr.aria-disabled]="disabled()"
 >
-  <div title="" class="grow space-x-1 text-[13px] leading-[18px] text-text-secondary truncate">
-    @for (tag of selectedTags(); track tag.id) {
-      <tag [tag]="tag" sm class="inline-block" />
+  <div class="flex min-w-0 grow flex-wrap gap-1 text-sm text-text-secondary">
+    @for (tag of displayedTags(); track tag.id) {
+      <span
+        class="inline-flex min-w-0 items-center gap-1 rounded border border-divider-regular px-1.5 py-0.5"
+        [attr.data-selected-tag-id]="tag.id"
+      >
+        <span class="truncate" [title]="(tag.label | i18n) || tag.name">{{ (tag.label | i18n) || tag.name }}</span>
+        <span class="shrink-0 text-xs text-text-tertiary">{{
+          (tag.organizationId ? 'XP.TagDirectory.Organization' : 'XP.TagDirectory.Shared') | translate
+        }}</span>
+        @if (tag.isActive === false) {
+          <span class="shrink-0 text-xs text-text-tertiary">{{ 'XP.TagDirectory.disabled' | translate }}</span>
+        }
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          class="size-5 shrink-0"
+          [disabled]="disabled()"
+          [attr.aria-label]="'XP.TagDirectory.RemoveSelection' | translate: { name: (tag.label | i18n) || tag.name }"
+          (click)="removeTag(tag, $event)"
+        >
+          <z-icon zType="close" class="size-3" />
+        </button>
+      </span>
     } @empty {
       {{ 'XP.KEY_WORDS.ChooseTags' | translate: { Default: 'Choose tags' } }}
       @if (optional()) {
@@ -51,40 +75,41 @@
           </svg>
         </div>
         <input
-          class="grow block h-[18px] border-0 text-text-secondary text-[13px] placeholder:text-text-tertiary appearance-none outline-none caret-blue-600 !bg-transparent hover:!bg-transparent group-hover:!bg-transparent"
+          z-input
+          class="min-w-0 grow border-0 bg-transparent shadow-none"
           [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
           autocomplete="off"
           type="text"
           name="query"
-          tabindex="-1"
           [formControl]="searchControl"
         />
       </div>
     </div>
-    <ul
-      class="p-1 max-h-[264px] overflow-y-auto"
-      cdkListbox
-      cdkListboxMultiple
-      [cdkListboxValue]="selectedTags()"
-      [cdkListboxCompareWith]="listboxCompareWith"
-      (cdkListboxValueChange)="selectTags($event)"
-      aria-labelledby="tags-label"
-    >
-      @for (tag of tags$(); track tag.id) {
-        <li
-          class="flex items-center gap-2 pl-3 py-[6px] pr-2 rounded-lg cursor-pointer hover:bg-hover-bg"
-          [cdkOption]="tag"
-          #option="cdkOption"
-        >
-          <input
-            type="checkbox"
-            class="checkbox opacity-0 w-4 h-4 border border-divider-deep rounded bg-background-default-subtle focus:ring-2 focus:ring-primary-200"
-            checked
-            [ngClass]="{ 'opacity-100': checkedWith(tag) }"
-          />
-          <div [title]="tag.description | i18n" class="grow text-sm text-text-secondary leading-5 truncate">
-            <span [xpHighlight]="searchControl.value" [content]="(tag.label | i18n) || tag.name"></span>
-          </div>
+    <ul class="p-1 max-h-[264px] overflow-y-auto" aria-labelledby="tags-label">
+      @for (tag of options(); track tag.id) {
+        <li>
+          <z-checkbox
+            class="flex w-full rounded-lg px-3 py-2 hover:bg-hover-bg"
+            labelClass="min-w-0 flex-1"
+            [ngModel]="checkedWith(tag)"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="selectTag(tag, $event)"
+            [zDisabled]="disabled()"
+            [attr.data-option-tag-id]="tag.id"
+          >
+            <span class="flex min-w-0 items-center gap-2">
+              <span [title]="tag.description | i18n" class="grow text-sm text-text-secondary leading-5 truncate">
+                <span [xpHighlight]="searchControl.value" [content]="(tag.label | i18n) || tag.name"></span>
+              </span>
+              <span class="shrink-0 text-xs text-text-tertiary">{{
+                (tag.organizationId ? 'XP.TagDirectory.Organization' : 'XP.TagDirectory.Shared') | translate
+              }}</span>
+            </span>
+          </z-checkbox>
+        </li>
+      } @empty {
+        <li class="px-3 py-4 text-sm text-text-tertiary" role="presentation">
+          {{ 'XP.TagDirectory.NoSelectableTags' | translate }}
         </li>
       }
     </ul>

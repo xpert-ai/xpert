@@ -1,8 +1,11 @@
+import { DefaultRuntimeCapabilityRegistry } from '../core/runtime-capability'
+import type { XpertBusinessToolContext } from './types'
 import { z } from 'zod/v3'
 import { Reflector } from '@nestjs/core'
 import { DecoratedAgentMiddlewareStrategy, DecoratedToolsetStrategy } from './adapters'
 import { XpertTool, XpertToolProvider } from './decorators'
 import { describeXpertToolProvider } from './descriptor'
+import { parseDecoratedToolResult } from './tool-result'
 import { prepareToolResult } from './prepared-result'
 import { XpertToolProviderRegistry } from './registry'
 import type { IAgentMiddlewareContext } from '../agent/middleware/strategy.interface'
@@ -473,4 +476,103 @@ it('requires every output recovery union branch to be a strict object', () => {
     }
   }
   expect(() => describeXpertToolProvider(new Invalid())).toThrow('strict Zod object')
+})
+
+@XpertToolProvider({
+  provider: 'extended',
+  componentKey: 'extended',
+  name: 'Extended',
+  defaultMiddleware: 'extended',
+  middlewares: [{ provider: 'extended', meta: middlewareMeta('extended') }]
+})
+class ExtendedProvider {
+  calls = 0
+  getMcpExtensions() {
+    return {
+      resources: [{ key: 'status', uri: 'test://status', read: async () => ({ contents: [] }) }],
+      resourceTemplates: [
+        {
+          key: 'item',
+          uriTemplate: 'test://items/{id}',
+          arguments: { id: { required: true } },
+          read: async () => ({ contents: [] })
+        }
+      ],
+      prompts: [{ key: 'guide', name: 'guide', get: async () => ({ messages: [] }) }]
+    }
+  }
+  @XpertTool({
+    name: 'extended_tool',
+    description: 'Optional native project, explicit MCP project.',
+    inputSchema: z.object({ projectId: z.string().optional() }).strict(),
+    resultFormat: 'tool_result',
+    middleware: true,
+    mcp: {
+      ...mcp,
+      inputSchema: z.object({ projectId: z.string().min(1) }).strict(),
+      task: { mode: 'optional', maxLifetimeMs: 60000 }
+    }
+  })
+  execute(_input: object, context: XpertBusinessToolContext) {
+    this.calls++
+    return {
+      content: [{ type: 'text', text: 'ok' }],
+      structuredContent: { files: Boolean(context.host.files), tenant: context.tenantId }
+    }
+  }
+}
+
+describe('decorated capability extensions', () => {
+  it('retains resources, templates, prompts and task policy without requiring an invented output schema', async () => {
+    const provider = new ExtendedProvider()
+    const toolset = await new DecoratedToolsetStrategy(provider).create({ name: 'Extended' })
+    const definitions = toolset.getMcpCapabilityDefinitions()!
+    expect(definitions.resources?.[0].key).toBe('status')
+    expect(definitions.resourceTemplates?.[0].key).toBe('item')
+    expect(definitions.prompts?.[0].key).toBe('guide')
+    const tool = definitions.tools![0]
+    expect(tool.task).toEqual({ mode: 'optional', maxLifetimeMs: 60000 })
+    expect(tool.outputSchema).toBeUndefined()
+    await expect(tool.execute({}, mcpContext('tenant-a', 'org-a', 'user-a'))).rejects.toThrow()
+    expect(provider.calls).toBe(0)
+    const result = await tool.execute({ projectId: 'p1' }, mcpContext('tenant-a', 'org-a', 'user-a'))
+    expect(result.structuredContent).toEqual({ files: false, tenant: 'tenant-a' })
+    expect(result.content).toContainEqual({ type: 'text', text: 'ok' })
+  })
+
+  it('rejects invalid task lifetimes and malformed content even without an output schema', async () => {
+    @XpertToolProvider({ provider: 'invalid_task', componentKey: 'invalid-task', name: 'Invalid task' })
+    class InvalidTask {
+      @XpertTool({
+        name: 'invalid_task',
+        description: 'Invalid task policy.',
+        inputSchema,
+        outputSchema,
+        middleware: false,
+        mcp: { ...mcp, task: { mode: 'optional', maxLifetimeMs: 0 } }
+      })
+      execute() {
+        return { value: 'ok', surface: 'mcp' }
+      }
+    }
+    expect(() => describeXpertToolProvider(new InvalidTask())).toThrow('invalid task execution policy')
+    await expect(
+      parseDecoratedToolResult({ content: [{ type: 'image', mimeType: 'text/html', data: 'x' }] })
+    ).rejects.toThrow()
+  })
+
+  it('passes execution-scoped files to native methods and does not share them with another call', async () => {
+    const provider = new ExtendedProvider()
+    const adapter = new DecoratedAgentMiddlewareStrategy(provider, describeXpertToolProvider(provider), 'extended')
+    const context = middlewareContext('tenant-a', 'org-a', 'user-a')
+    context.runtime.capabilities = new DefaultRuntimeCapabilityRegistry().register('platform.workspace.files', {
+      marker: 'scoped'
+    })
+    const first = await adapter.createMiddleware({}, context)
+    const second = await adapter.createMiddleware({}, middlewareContext('tenant-b', 'org-b', 'user-b'))
+    const firstResult = await first.tools![0].invoke({})
+    const secondResult = await second.tools![0].invoke({})
+    expect(JSON.stringify(firstResult)).toContain('\\"files\\":true')
+    expect(JSON.stringify(secondResult)).toContain('\\"files\\":false')
+  })
 })

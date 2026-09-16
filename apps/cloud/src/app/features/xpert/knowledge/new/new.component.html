@@ -446,11 +446,14 @@
                     <z-toggle-group-item class="min-w-32" value="exact" [disabled]="faqConfigurationDisabled()">
                       {{ i18nPrefix + '.FAQ.NegativeMatchExact' | translate }}
                     </z-toggle-group-item>
-                    <z-toggle-group-item class="min-w-32" value="semantic" [disabled]="true">
+                    <z-toggle-group-item class="min-w-32" value="semantic" [disabled]="faqConfigurationDisabled()">
                       {{ i18nPrefix + '.FAQ.NegativeMatchSemantic' | translate }}
                     </z-toggle-group-item>
                   </z-toggle-group>
                   <p class="kb-help-text">{{ i18nPrefix + '.FAQ.NegativeMatchModeHelp' | translate }}</p>
+                  @if (faqConfig().negativeMatchMode === 'semantic') {
+                    <xp-faq-semantic-settings [form]="faqSemanticForm" />
+                  }
                 </div>
               </fieldset>
 
@@ -525,19 +528,21 @@
                 [showHeading]="false"
               />
 
-              <div
+              <xp-automatic-tagging-settings
                 data-automatic-tagging
-                class="mt-7 flex flex-col items-start justify-between gap-4 border-b border-divider-subtle py-6 sm:flex-row sm:gap-8"
-                [class]="processing.questionGenerationEnabled() ? 'border-t' : ''"
-              >
-                <div class="min-w-0 flex-1">
-                  <div class="kb-field-title">{{ i18nPrefix + '.Advanced.AutomaticTagging' | translate }}</div>
-                  <p class="mt-1 text-sm leading-6 text-text-tertiary">
-                    {{ i18nPrefix + '.Advanced.AutomaticTaggingDescription' | translate }}
-                  </p>
-                </div>
-                <z-switch class="kb-primary-switch shrink-0" [(ngModel)]="automaticTaggingEnabled" />
-              </div>
+                class="mt-7 block border-b border-divider-subtle py-6"
+                [(config)]="automaticTagging"
+              />
+              @if (tagKnowledgebaseId) {
+                <xp-knowledge-tags
+                  class="block border-b border-divider-subtle py-3"
+                  [knowledgebaseId]="tagKnowledgebaseId"
+                />
+              } @else {
+                <p class="py-3 text-sm text-text-tertiary">
+                  {{ 'XP.Knowledgebase.AutomaticTagging.AfterCreate' | translate }}
+                </p>
+              }
 
               <xp-knowledge-processing-settings
                 class="block min-w-0 pt-5"

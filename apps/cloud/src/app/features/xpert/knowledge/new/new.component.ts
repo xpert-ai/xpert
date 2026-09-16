@@ -1,3 +1,6 @@
+import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
+import { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
+import { AutomaticTaggingSettingsComponent } from '../tags/automatic-tagging-settings.component'
 import { createKnowledgeProcessingForm } from '../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
 import { KnowledgeChunkPreviewComponent } from './chunk-preview.component'
@@ -43,6 +46,7 @@ import {
   TKBRetrievalSettings
 } from '../../../../@core'
 import { firstValueFrom } from 'rxjs'
+import { createFAQSemanticForm, FAQSemanticSettingsComponent } from './faq-semantic-settings.component'
 
 type SectionKey =
   | 'basic'
@@ -81,8 +85,11 @@ type KnowledgeDialogData = {
   selector: 'xp-new-knowledge',
   standalone: true,
   imports: [
+    AutomaticTaggingSettingsComponent,
+    KnowledgeTagsComponent,
     KnowledgeProcessingSettingsComponent,
     KnowledgeChunkPreviewComponent,
+    FAQSemanticSettingsComponent,
     CommonModule,
     TranslateModule,
     DragDropModule,
@@ -170,6 +177,10 @@ export class XpertNewKnowledgeComponent {
     ...(this.#initialKnowledgebase?.faqConfig ?? {})
   })
   readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())
+  readonly faqSemanticForm = createFAQSemanticForm(
+    this.#initialKnowledgebase?.faqConfig,
+    !!this.#initialKnowledgebase?.id
+  )
   readonly wikiEnabled = model(this.#initialKnowledgebase?.wikiConfig?.enabled ?? false)
   readonly isWiki = computed(() => !this.isFAQ() && this.wikiEnabled())
   readonly indexStrategyLocked = computed(
@@ -187,7 +198,10 @@ export class XpertNewKnowledgeComponent {
   readonly embeddingBatchSize = model<number | null>(this.#initialKnowledgebase?.parserConfig?.embeddingBatchSize ?? 16)
   readonly incrementalSyncEnabled = model(this.#initialKnowledgebase?.incrementalSyncEnabled ?? false)
 
-  readonly automaticTaggingEnabled = model(false)
+  readonly tagKnowledgebaseId = this.#initialKnowledgebase?.id
+  readonly automaticTagging = model<KnowledgeAutomaticTaggingConfig>(
+    this.#initialKnowledgebase?.automaticTagging ?? { enabled: false }
+  )
 
   readonly retrieval = model<Partial<IKnowledgebase & TKBRetrievalSettings>>({
     recall: this.isFAQ()
@@ -392,6 +406,13 @@ export class XpertNewKnowledgeComponent {
       return false
     }
 
+    if (this.isFAQ() && this.faqConfig().negativeMatchMode === 'semantic' && this.faqSemanticForm.invalid) {
+      this.faqSemanticForm.markAllAsTouched()
+      this.activeSection.set('faq')
+      this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.FAQ.SemanticParametersInvalid`))
+      return false
+    }
+
     if (this.isWiki() && !(this.wikiModel() || this.chatModel())) {
       this.activeSection.set('models')
       this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.WikiModelRequired`))
@@ -470,14 +491,24 @@ export class XpertNewKnowledgeComponent {
       rerankModelId: retrieval.rerankModel?.id ?? retrieval.rerankModelId ?? null,
       graphRag,
       parserConfig: this.isFAQ() ? this.#initialKnowledgebase?.parserConfig : this.buildParserConfig(),
-      incrementalSyncEnabled: this.incrementalSyncEnabled()
+      incrementalSyncEnabled: this.incrementalSyncEnabled(),
+      automaticTagging: this.automaticTagging()
     }
 
     if (!this.isEditMode()) {
       payload.workspaceId = this.workspaceId()
       payload.type = this.type()
       if (this.isFAQ()) {
-        Object.assign(payload, { faqConfig: this.faqConfig() })
+        const config = this.faqConfig()
+        const { threshold, margin } = this.faqSemanticForm.getRawValue()
+        Object.assign(payload, {
+          faqConfig: {
+            indexMode: config.indexMode,
+            questionIndexMode: config.questionIndexMode,
+            negativeMatchMode: config.negativeMatchMode ?? 'exact',
+            ...(config.negativeMatchMode === 'semantic' ? { semanticThreshold: threshold, semanticMargin: margin } : {})
+          }
+        })
       } else {
         payload.wikiConfig = { ...this.wikiConfig(), enabled: this.wikiEnabled() }
         payload.wikiModel = this.wikiModel() ?? null

@@ -1,27 +1,61 @@
-import {
-	Controller,
-	Get,
-	Param,
-	Post,
-	Body,
-	UseGuards,
-	Query
-} from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { CrudController, PaginationParams } from './../core/crud';
-import { Tag } from './tag.entity';
-import { TagService } from './tag.service';
-import { PermissionGuard, TenantPermissionGuard } from './../shared/guards';
-import { IPagination, ITag, PermissionsEnum } from '@xpert-ai/contracts';
-import { Permissions } from './../shared/decorators';
-import { ParseJsonPipe } from './../shared/pipes';
+import { Controller, Get, Param, Post, Body, UseGuards, Query, Put, Delete, BadRequestException } from '@nestjs/common'
+import { t } from 'i18next'
+import { ApiTags } from '@nestjs/swagger'
+import { CrudController, PaginationParams } from './../core/crud'
+import { Tag } from './tag.entity'
+import { TagService } from './tag.service'
+import { TagManagementService } from './tag-management.service'
+import { PermissionGuard, TenantPermissionGuard } from './../shared/guards'
+import { IPagination, PermissionsEnum } from '@xpert-ai/contracts'
+import { Permissions } from './../shared/decorators'
+import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes'
 
 @ApiTags('Tags')
 @UseGuards(TenantPermissionGuard)
 @Controller()
 export class TagController extends CrudController<Tag> {
-	constructor(private readonly tagService: TagService) {
-		super(tagService);
+	constructor(
+		private readonly tagService: TagService,
+		private readonly management: TagManagementService
+	) {
+		super(tagService)
+	}
+
+	@Get('directory')
+	directory() {
+		return this.management.directory()
+	}
+
+	@UseGuards(PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	@Put(':id')
+	async update(@Param('id', UUIDValidationPipe) id: string, @Body() input: unknown): Promise<Tag> {
+		return this.management.write(input, id)
+	}
+
+	@UseGuards(PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	@Delete(':id')
+	async delete(@Param('id', UUIDValidationPipe) id: string) {
+		return this.management.remove(id)
+	}
+
+	@UseGuards(PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	@Delete(':id/soft')
+	async softRemove(): Promise<never> {
+		throw new BadRequestException(
+			t('server-ai:Error.TagUseStatus', { defaultValue: 'Use tag status to enable or disable a tag.' })
+		)
+	}
+
+	@UseGuards(PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
+	@Put(':id/recover')
+	async softRecover(): Promise<never> {
+		throw new BadRequestException(
+			t('server-ai:Error.TagUseStatus', { defaultValue: 'Use tag status to enable or disable a tag.' })
+		)
 	}
 
 	@Get('categories')
@@ -29,39 +63,9 @@ export class TagController extends CrudController<Tag> {
 		return this.tagService.findAllCategories()
 	}
 
-	@Get('getByName/:name')
-	async findByName(@Param('name') name: string): Promise<Tag> {
-		return this.tagService.findOneByName(name);
-	}
-
-	@Get('getByOrgId')
-	async getAllTagsByOrgLevel(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<any> {
-		const { relations, findInput } = data;
-		return this.tagService.findTagsByOrgLevel(relations, findInput);
-	}
-	@Get('getByTenantId')
-	async getAllTagsByTenantLevel(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<any> {
-		const { relations, findInput } = data;
-		return this.tagService.findTagsByTenantLevel(relations, findInput);
-	}
-
-	@Get(`getTagsWithCount`)
-	async getTagUsageCount(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<any> {
-		const { organizationId } = data;
-		return this.tagService.getTagUsageCount(organizationId);
-	}
-
 	@Get()
-	async findAll(
-		@Query('data', ParseJsonPipe) data: PaginationParams<Tag>
-	): Promise<IPagination<Tag>> {
-		const { relations, where } = data;
+	async findAll(@Query('data', ParseJsonPipe) data: PaginationParams<Tag>): Promise<IPagination<Tag>> {
+		const { relations, where } = data ?? {}
 		return this.tagService.findAll({
 			where,
 			relations
@@ -71,9 +75,7 @@ export class TagController extends CrudController<Tag> {
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_TAGS_EDIT)
 	@Post()
-	async create(
-		@Body() entity: Tag
-	): Promise<Tag> {
-		return this.tagService.create(entity);
+	async create(@Body() entity: Tag): Promise<Tag> {
+		return this.management.write(entity)
 	}
 }

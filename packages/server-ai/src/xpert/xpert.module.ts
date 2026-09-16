@@ -32,6 +32,7 @@ import { XpertAuthoringMiddleware } from './middlewares/xpert-authoring.middlewa
 import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
 import { XpertToolsetModule } from '../xpert-toolset'
 import { XpertProfileController } from './xpert-profile.controller'
+import { XpertTagUsageController } from './xpert-tag-usage.controller'
 import { XpertProfileIndicatorsService } from './xpert-profile-indicators.service'
 import { XpertProfileIdentityService } from './xpert-profile-identity.service'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
@@ -98,7 +99,7 @@ import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-r
         SseStreamModule,
         forwardRef(() => XpertProjectModule)
     ],
-    controllers: [XpertProfileController, XpertController, XpertAccessController],
+    controllers: [XpertProfileController, XpertTagUsageController, XpertController, XpertAccessController],
     providers: [
         XpertService,
         XpertTriggerBootstrapRecoveryService,

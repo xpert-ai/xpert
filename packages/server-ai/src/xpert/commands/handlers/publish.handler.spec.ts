@@ -72,7 +72,11 @@ describe('XpertPublishHandler', () => {
             findOne: jest.fn().mockResolvedValue(xpert),
             findAll: jest.fn().mockResolvedValue({ items: [xpert] }),
             validate: jest.fn().mockResolvedValue([]),
+            validateTagAssociations: jest.fn().mockResolvedValue(undefined),
             save: jest.fn().mockImplementation(async (entity: Xpert) => entity),
+            createVersionBackup: jest
+                .fn()
+                .mockImplementation(async (entity: Xpert) => ({ ...entity, id: 'backup-xpert' })),
             create: jest.fn().mockImplementation(async (entity: Xpert) => ({ ...entity, id: 'backup-xpert' }))
         }
         const xpertAgentService = {
@@ -124,6 +128,47 @@ describe('XpertPublishHandler', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('rejects stale tag selections before creating a version backup or publishing agents', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        const { handler, xpertService, xpertAgentService, xpert } = createHandler({ version: '1' })
+        xpert.draft.team.tags = [{ id: '11111111-1111-4111-8111-111111111111' }]
+        xpertService.validateTagAssociations.mockRejectedValue(new BadRequestException('Tag unavailable'))
+        const publishSpy = jest.spyOn(handler, 'publish')
+
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', true, '', 'release notes'))
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(xpertService.validateTagAssociations).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: xpert.id,
+                workspaceId: xpert.workspaceId,
+                tags: xpert.draft.team.tags
+            })
+        )
+        expect(xpertService.save).not.toHaveBeenCalled()
+        expect(xpertService.createVersionBackup).not.toHaveBeenCalled()
+        expect(xpertAgentService.create).not.toHaveBeenCalled()
+        expect(publishSpy).not.toHaveBeenCalled()
+    })
+
+    it('passes the persisted source identity when backing up version tag associations', async () => {
+        const { handler, xpertService, xpert } = createHandler({ version: '1' })
+        xpert.tags = [{ id: '11111111-1111-4111-8111-111111111111', isActive: false }]
+
+        await handler.saveTeamVersion(xpert, '2')
+
+        expect(xpertService.createVersionBackup).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tags: xpert.tags,
+                version: '1',
+                latest: false
+            }),
+            'xpert-1'
+        )
+        expect(xpertService.create).not.toHaveBeenCalled()
+        expect(xpertService.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'xpert-1', version: '2' }))
     })
 
     it('allows tenant creators to publish without user groups', async () => {
@@ -289,11 +334,12 @@ describe('XpertPublishHandler', () => {
 
         await handler.saveTeamVersion(xpert, '2')
 
-        expect(xpertService.create).toHaveBeenCalledWith(
+        expect(xpertService.createVersionBackup).toHaveBeenCalledWith(
             expect.objectContaining({
                 latest: false,
                 workspaceDataScope: 'user'
-            })
+            }),
+            xpert.id
         )
     })
 })

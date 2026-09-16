@@ -1,3 +1,4 @@
+import { XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
 import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import fs from 'node:fs/promises'
@@ -41,6 +42,30 @@ describe('default converter format contract', () => {
             )
         } finally {
             await fs.rm(directory, { recursive: true })
+        }
+    })
+
+    it('dispatches a real uploaded Markdown file by its declared MIME type even if the display name differs', async () => {
+        const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'xpert-parser-routing-'))
+        try {
+            const filePath = path.join(directory, 'source.md')
+            await fs.writeFile(filePath, '# Actual file content\n\nThis is the parsed body.')
+            const fileSystem = new XpFileSystem(
+                { type: 'filesystem', operations: ['read', 'write', 'list'], scope: [] },
+                directory,
+                'https://files.local'
+            )
+            const [result] = await transformer.transformDocuments(
+                [{ id: 'real-file', name: 'renamed.pdf', type: 'text/markdown', filePath: 'source.md' }],
+                {
+                    stage: 'test',
+                    permissions: { fileSystem }
+                }
+            )
+            expect(result.chunks[0].pageContent).toContain('# Actual file content')
+            expect(result.chunks[0].metadata.contentFormat).toBe('markdown')
+        } finally {
+            await fs.rm(directory, { recursive: true, force: true })
         }
     })
 

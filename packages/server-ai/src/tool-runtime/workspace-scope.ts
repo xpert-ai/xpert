@@ -1,5 +1,7 @@
-import type { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
+import type { McpPublicationRuntimeConfiguration, XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import type { AgentMiddlewareRuntimeScope } from '@xpert-ai/plugin-sdk'
+import { BadRequestException } from '@nestjs/common'
+import { t } from 'i18next'
 
 /**
  * Bind one tool execution to the host-selected Project or Xpert workspace.
@@ -8,7 +10,8 @@ import type { AgentMiddlewareRuntimeScope } from '@xpert-ai/plugin-sdk'
  */
 export function resolveToolRuntimeScope(
     scope: AgentMiddlewareRuntimeScope,
-    workspaceDataScope?: XpertWorkspaceDataScope | null
+    workspaceDataScope?: XpertWorkspaceDataScope | null,
+    files?: McpPublicationRuntimeConfiguration['files']
 ): AgentMiddlewareRuntimeScope {
     const {
         catalog: _catalog,
@@ -25,6 +28,17 @@ export function resolveToolRuntimeScope(
     const identity = {
         ...base,
         ...(userId ? { userId } : {})
+    }
+
+    if (files) {
+        if (files.type !== 'user' || !userId || projectId || xpertId) {
+            throw new BadRequestException(
+                t('server-ai:Error.McpPersonalFilesIdentityRequired', {
+                    defaultValue: 'Personal MCP files require an authenticated user and no Project or Xpert binding.'
+                })
+            )
+        }
+        return { ...identity, catalog: 'users', scopeId: userId, isolateByUser: false }
     }
 
     if (projectId) {

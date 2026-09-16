@@ -45,6 +45,10 @@ import { filterFAQNegativeMatches, materializeFAQResult } from '../../faq/faq-re
 import { KnowledgeWikiSearchScopeService } from '../../wiki/knowledge-wiki-search-scope.service'
 import { filterKnowledgeContentScope, parseKnowledgeRetrievalContentScope } from '../../retrieval/content-scope'
 import { KnowledgeTableContextService, tableContextText } from '../../retrieval/table-context.service'
+import { FAQSemanticService } from '../../faq/faq-semantic.service'
+import { FAQSemanticError } from '../../faq/faq-semantic-match'
+import { FAQRetrievalBudget } from '../../faq/faq-retrieval-budget'
+import { refillFAQCandidates } from '../../faq/faq-candidate-refill'
 
 function getBatchDocuments(batch: KnowledgeRetrievalBatch): DocumentInterface<DocumentMetadata>[] {
     return batch.candidates.map(({ document }) => document)
@@ -67,6 +71,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
     @Inject(KnowledgeTableContextService)
     private readonly tableContextService: KnowledgeTableContextService
+
+    @Inject(FAQSemanticService)
+    private readonly faqSemanticService: FAQSemanticService
 
     @Inject(KnowledgeWikiSearchScopeService)
     @Optional()
@@ -379,6 +386,9 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
             },
             preparedFilter: prepared
         }
+        if (kb.type === KnowledgebaseTypeEnum.FAQ && kb.faqConfig?.negativeMatchMode === 'semantic') {
+            return this.searchSemanticFAQ(request, mode)
+        }
         if (mode === 'graph') {
             const result = await this.graphRetriever.retrieve(request)
             if (result.failed) {
@@ -452,6 +462,87 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         })
         vectorResult.diagnostics.hitCount = merged.length
         return { documents: merged, diagnostics: vectorResult.diagnostics }
+    }
+
+    private async searchSemanticFAQ(request: KnowledgeRetrievalRequest, mode: KnowledgeRetrievalMode) {
+        if (mode === 'graph')
+            throw new BadRequestException(
+                t('server-ai:Error.KnowledgeFAQGraphUnsupported', {
+                    defaultValue: 'FAQ knowledgebases do not support graph retrieval.'
+                })
+            )
+        request.faqSession = { budget: new FAQRetrievalBudget() }
+        const diagnostics = request.preparedFilter.diagnostics
+        const fusion = this.resolveFusionConfig(request.knowledgebase, request.retrieval)
+        const useRrf = this.usesWeightedRrf(request.knowledgebase, request.retrieval)
+        const weights = {
+            vector: fusion?.weights?.vector ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.vector,
+            keyword: fusion?.weights?.keyword ?? DEFAULT_KNOWLEDGE_RRF_WEIGHTS.keyword,
+            graph: 0
+        }
+        if (useRrf) this.validateRrfWeights(weights)
+        const retrievers =
+            mode === 'keyword'
+                ? [this.keywordRetriever]
+                : useRrf
+                  ? [this.vectorRetriever, this.keywordRetriever].filter((item) => weights[item.source] > 0)
+                  : [this.vectorRetriever]
+        try {
+            const semantic = this.faqSemanticService.createSession(request)
+            const result = await refillFAQCandidates({
+                request,
+                retrievers,
+                filter: semantic.filter,
+                fuse: (batches) => {
+                    for (const batch of batches) {
+                        Object.assign(diagnostics, batch.diagnostics)
+                        if (batch.failed)
+                            throw new KnowledgeRetrievalFailure(
+                                batch.source,
+                                this.resolveRetrievalBatchErrorCode(batch),
+                                diagnostics,
+                                batch.error ??
+                                    t('server-ai:Error.KnowledgeFAQSemanticUnavailable', {
+                                        defaultValue: 'FAQ retrieval failed.'
+                                    })
+                            )
+                    }
+                    diagnostics.vectorBranchHitCount =
+                        batches.find((batch) => batch.source === 'vector')?.candidates.length ?? 0
+                    diagnostics.keywordBranchHitCount =
+                        batches.find((batch) => batch.source === 'keyword')?.candidates.length ?? 0
+                    diagnostics.graphBranchHitCount = 0
+                    if (useRrf) {
+                        diagnostics.fusionMode = 'weighted_rrf'
+                        return this.weightedRrfFusion.fuse(batches, {
+                            weights,
+                            rankConstant: fusion?.rankConstant ?? DEFAULT_KNOWLEDGE_RRF_RANK_CONSTANT
+                        })
+                    }
+                    return batches.flatMap((batch) =>
+                        [...batch.candidates]
+                            .sort((left, right) => left.rank - right.rank)
+                            .map(({ document }) => document)
+                    )
+                }
+            })
+            Object.assign(semantic.diagnostics, {
+                rounds: result.rounds,
+                stopReason: result.reason,
+                candidateSlots: request.faqSession.budget.candidateSlots,
+                retrievalCalls: request.faqSession.budget.retrievalCalls
+            })
+            diagnostics.faqExclusion = semantic.diagnostics
+            diagnostics.hitCount = result.documents.length
+            return { documents: result.documents, diagnostics }
+        } catch (error) {
+            if (error instanceof FAQSemanticError) {
+                diagnostics.filterStatus = 'failed'
+                diagnostics.errorCode = 'faq_semantic_failed'
+                throw new KnowledgeRetrievalFailure('faq', 'faq_semantic_failed', diagnostics, error.message)
+            }
+            throw error
+        }
     }
 
     private async searchWithWeightedRrf(

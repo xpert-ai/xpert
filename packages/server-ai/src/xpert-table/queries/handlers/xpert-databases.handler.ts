@@ -9,7 +9,7 @@ export class XpertDatabasesQueryHandler implements IQueryHandler<XpertDatabasesQ
 
     constructor(private readonly dsService: DataSourceService) {}
     async execute(query: XpertDatabasesQuery) {
-        const { items } = await this.dsService.findMyAll({ relations: ['type'] })
+        const { items } = await this.dsService.findAll({ relations: ['type'] })
         return items
             .filter((ds) => ds.type?.protocol === query.options.protocol)
             .map((ds) => ({

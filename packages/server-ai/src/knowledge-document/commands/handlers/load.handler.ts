@@ -1,3 +1,7 @@
+import { t } from 'i18next'
+import { resolveParserDiagnostics, textWithoutImages } from '../../parser-diagnostics'
+import { rethrowParserError } from '../../parser-error'
+import { knowledgeParserProvider, validateParserIntegration, validateTableParserSelection } from '../../parser-provider'
 import { splitKnowledgeDocuments } from '../../split-documents'
 import { resolveKnowledgeLanguage, type KnowledgeSplitterExecutionContext } from '../../execute-splitter'
 import { knowledgeChunkingRevision } from '../../chunking-revision'
@@ -11,7 +15,8 @@ import {
     KBDocumentCategoryEnum,
     KBDocumentStatusEnum,
     KnowledgeTableSource,
-    isNativeKnowledgeTableDocument
+    isNativeKnowledgeTableDocument,
+    knowledgeDocumentFileType
 } from '@xpert-ai/contracts'
 import {
     getErrorMessage,
@@ -23,7 +28,7 @@ import {
     pick
 } from '@xpert-ai/server-common'
 import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
-import { Inject } from '@nestjs/common'
+import { BadRequestException, Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
     ChunkMetadata,
@@ -38,6 +43,8 @@ import { Document } from '@langchain/core/documents'
 import { Cache } from 'cache-manager'
 import { omit } from 'lodash'
 import { v4 as uuid } from 'uuid'
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import type { KnowledgeDocument } from '../../document.entity'
 import { KnowledgebaseService } from '../../../knowledgebase/knowledgebase.service'
 import { GetRagWebDocCacheQuery } from '../../../rag-web/queries/get-web-page.query'
 import type { VolumeHandle } from '../../../shared/volume/volume'
@@ -104,6 +111,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         const { doc, stage, mode = 'full' } = command.input
         validateKnowledgeTableSettings(doc.parserConfig)
         const docParserConfig = resolveKnowledgeDocumentParserConfig(doc)
+        validateTableParserSelection({ ...doc, parserConfig: docParserConfig })
 
         let visionModel: BaseChatModel | undefined
         if (!doc.knowledgebaseId) {
@@ -129,13 +137,15 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                 if (error instanceof SpreadsheetSourceRowError) throw invalidKnowledgeParserConfig('table source row')
                 throw error
             })
-            return createSpreadsheetRecordResult({
+            const result = createSpreadsheetRecordResult({
                 documentId: doc.id,
                 workbook,
                 config: docParserConfig.spreadsheet,
                 indexedFields: docParserConfig.indexedFields,
                 legacy
             })
+            await this.recordBuiltinParser(doc, stage)
+            return result
         }
 
         const hasCustomSheetTransformer = Boolean(
@@ -148,7 +158,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     throw new Error('Spreadsheet form-document mode currently requires an XLS or XLSX workbook')
                 }
                 const workbook = await loadExcelWorkbook(volumeClient.path(doc.filePath))
-                return {
+                const result = {
                     chunks: createSpreadsheetFormDocuments({
                         documentId: doc.id,
                         documentName: doc.name,
@@ -156,10 +166,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         config: parserConfig.spreadsheet
                     })
                 }
+                await this.recordBuiltinParser(doc, stage)
+                return result
             }
             if (parserConfig.spreadsheet?.interpretation === 'records' && !doc.name.toLowerCase().endsWith('.csv')) {
                 const workbook = await loadExcelWorkbook(volumeClient.path(doc.filePath))
-                return {
+                const result = {
                     chunks: createSpreadsheetRecordDocuments({
                         documentId: doc.id,
                         workbook,
@@ -167,6 +179,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         indexedFields: parserConfig.indexedFields
                     })
                 }
+                await this.recordBuiltinParser(doc, stage)
+                return result
             }
             // const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
             const data = await this.loadSheet(doc, volumeClient)
@@ -190,21 +204,27 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     })
                 )
             }
+            await this.recordBuiltinParser(doc, stage)
             return { chunks: documents }
         }
 
         if (doc.filePath || doc.fileUrl) {
+            if (doc.metadata) doc.metadata = omit(doc.metadata, 'imageUnderstandingWarnings')
             const transformerType = docParserConfig.transformerType || 'default'
             const transformerIdentity = resolveKnowledgeDocumentTransformerIdentity(doc)
+            let providesImageText = mode === 'rechunk' && doc.metadata?.parserProvidesImageText === true
             let transformed: Partial<IKnowledgeDocument<ChunkMetadata>>[]
             if (mode === 'rechunk') {
                 // Rechunk is a strict resume point: loading must succeed without invoking plugin code.
                 transformed = await this.transformSnapshotService.load(doc, transformerIdentity)
             } else {
-                const transformer = this.transformerRegistry.get(transformerType)
-                if (!transformer) {
-                    throw new Error(`Transformer not found: ${transformerType}`)
-                }
+                const transformer = knowledgeParserProvider(
+                    this.transformerRegistry,
+                    doc.type,
+                    { transformerType: doc.parserConfig?.transformerType || transformerType },
+                    true
+                )
+                providesImageText = transformer.meta.providesImageText === true
                 const permissions = await this.commandBus.execute(
                     new PluginPermissionsCommand(transformer.permissions, {
                         knowledgebaseId: doc.knowledgebaseId,
@@ -212,22 +232,38 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         // folder: stage === 'test' ? 'temp/' : `/`
                     })
                 )
+                const config = {
+                    ...(docParserConfig.transformer ?? {}),
+                    stage,
+                    tempDir: workArea.tmpPath.serverPath,
+                    fileScope: {
+                        tenantId: RequestContext.currentTenantId(),
+                        organizationId: RequestContext.getOrganizationId(),
+                        userId: RequestContext.currentUserId(),
+                        catalog: 'knowledges' as const,
+                        knowledgeId: doc.knowledgebaseId,
+                        scopeId: doc.knowledgebaseId
+                    },
+                    permissions
+                }
+                validateParserIntegration(transformer, config)
+                await transformer.validateConfig?.(config)
                 const cacheConfig = {
+                    transformerSource: this.transformerRegistry.getSource?.(transformer),
+                    // A saved connection can change while retaining its ID. Only its digest enters the cache key.
+                    integrationOptionsHash: permissions.integration?.options
+                        ? computeObjectHash(permissions.integration.options)
+                        : undefined,
                     document: omit(doc, 'parserConfig'),
                     parserConfig: pick(docParserConfig, ['transformerType', 'transformerIntegration', 'transformer']),
                     stage
                 }
-                const cacheKey = 'knowledges:transformer:' + computeObjectHash(cacheConfig)
+                const cacheKey = 'knowledges:transformer:v2:' + computeObjectHash(cacheConfig)
                 transformed = await this.cacheManager.get(cacheKey)
                 if (!transformed) {
-                    const config = {
-                        ...(docParserConfig.transformer ?? {}),
-                        stage,
-                        tempDir: workArea.tmpPath.serverPath,
-                        permissions
-                    }
-                    await transformer.validateConfig?.(config)
-                    transformed = await transformer.transformDocuments([doc], config)
+                    transformed = await transformer
+                        .transformDocuments([{ ...doc, type: knowledgeDocumentFileType(doc) }], config)
+                        .catch(rethrowParserError)
                     await this.cacheManager.set(cacheKey, transformed, 60 * 10 * 1000) // 10 min
                 }
 
@@ -238,9 +274,17 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                         this.analysisSnapshotService.save(doc, transformed, transformerIdentity)
                     ])
                     doc.metadata = {
-                        ...omit(doc.metadata ?? {}, 'analysisSnapshot'),
+                        ...omit(
+                            doc.metadata ?? {},
+                            'analysisSnapshot',
+                            'parserDiagnostics',
+                            'imageUnderstandingWarnings'
+                        ),
                         ...(transformed.length === 1 ? omit(transformed[0].metadata ?? {}, 'analysisSnapshot') : {}),
                         transformSnapshot,
+                        parser: transformerType,
+                        parserLabel: transformer.meta.label,
+                        parserProvidesImageText: providesImageText,
                         ...(analysisSnapshot ? { analysisSnapshot } : {})
                     }
                 }
@@ -254,6 +298,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             }
 
             const chunks = []
+            let hasPdfPageTranscripts = false
             const languageDetection = resolveKnowledgeLanguage(
                 this.textSplitterRegistry?.get(docParserConfig.textSplitterType || DEFAULT_KNOWLEDGE_TEXT_SPLITTER),
                 {
@@ -301,7 +346,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
                 // Image understanding
                 const images = transItem.metadata?.assets?.filter((asset) => asset.type === 'image')
-                if (images?.length && docParserConfig.imageUnderstandingType) {
+                if (
+                    images?.length &&
+                    docParserConfig.imageUnderstandingType &&
+                    docParserConfig.imageUnderstandingEnabled !== false &&
+                    (docParserConfig.imageUnderstandingEnabled === true || !providesImageText)
+                ) {
                     try {
                         const imageUnderstandingDocument = this.createImageUnderstandingDocument(
                             doc,
@@ -313,12 +363,13 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             parserConfig: pick(docParserConfig, [
                                 'imageUnderstandingType',
                                 'imageUnderstandingIntegration',
+                                'imageUnderstandingModel',
                                 'imageUnderstanding'
                             ]),
                             stage
                         }
                         // Older VLM cache entries omit text parents from parent-child chunks.
-                        const cacheKey = 'knowledges:understanding:v2:' + computeObjectHash(imageCacheConfig)
+                        const cacheKey = 'knowledges:understanding:v3:' + computeObjectHash(imageCacheConfig)
                         let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
                         if (!imgTransformed) {
                             const imageUnderstanding = this.imageUnderstandingRegistry.get(
@@ -352,7 +403,27 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             await this.cacheManager.set(cacheKey, imgTransformed, 60 * 10 * 1000) // 10 min
                         }
 
-                        chunks.push(...imgTransformed.chunks)
+                        const understoodChunks = []
+                        let splitPageTranscript = false
+                        // OCR arrives after initial splitting. Apply the same limits to page transcripts.
+                        for (const chunk of imgTransformed.chunks) {
+                            if (chunk.metadata.sourceType === 'pdf_page' && chunk.metadata.parser === 'vlm') {
+                                // VLM keeps the image origin, but a page transcript is text for splitting and indexing.
+                                const transcript = new Document<TDocChunkMetadata>({
+                                    ...chunk,
+                                    metadata: {
+                                        ...chunk.metadata,
+                                        chunkId: chunk.metadata.chunkId ?? uuid(),
+                                        mediaType: 'text'
+                                    }
+                                })
+                                const result = await this.splitDocuments(doc, [transcript])
+                                understoodChunks.push(...result.chunks)
+                                splitPageTranscript = true
+                            } else understoodChunks.push(chunk)
+                        }
+                        chunks.push(...understoodChunks)
+                        hasPdfPageTranscripts ||= splitPageTranscript
                         await this.persistImageUnderstandingDocumentMetadata(
                             doc,
                             stage,
@@ -382,9 +453,43 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     chunks.push(...splitted.chunks)
                 }
             }
-            return { chunks }
+            const diagnostics = resolveParserDiagnostics(
+                transformed.map((item) => item.metadata?.parserDiagnostics),
+                chunks
+            )
+            let resultChunks = chunks
+            if (diagnostics) {
+                doc.metadata = { ...doc.metadata, parserDiagnostics: diagnostics }
+                if (stage !== 'test') await this.kbDocumentService.update(doc.id, { metadata: doc.metadata })
+                if (
+                    !chunks.some(
+                        (chunk) => textWithoutImages(chunk.pageContent) && chunk.pageContent.trim() !== '[unreadable]'
+                    )
+                ) {
+                    throw new BadRequestException(
+                        t('server-ai:Error.KnowledgeParserOcrRequired', {
+                            defaultValue:
+                                'No text was recognized. Enable image understanding with an available vision model, or select an OCR parser.'
+                        })
+                    )
+                }
+                // An image URL alone is not retrieval content. Keep parents referenced by real child chunks.
+                const parents = new Set(chunks.map((chunk) => chunk.metadata.parentId).filter(Boolean))
+                resultChunks = chunks.filter(
+                    (chunk) => textWithoutImages(chunk.pageContent) || parents.has(chunk.metadata.chunkId)
+                )
+            }
+            return { chunks: hasPdfPageTranscripts ? this.reindexChunkSiblings(resultChunks) : resultChunks }
         }
 
+        if (!doc.sourceConfig && docParserConfig.transformerType && docParserConfig.transformerType !== 'default') {
+            throw new BadRequestException(
+                t('server-ai:Error.KnowledgeParserOriginalFileRequired', {
+                    defaultValue:
+                        'This parser requires the original file. Upload the file before selecting a file parser.'
+                })
+            )
+        }
         return this.loadWeb(doc)
     }
 
@@ -423,7 +528,10 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
             imageUnderstandingWarnings: [...getExistingImageUnderstandingWarnings(doc.metadata), ...warnings]
         }
         doc.metadata = metadata
-        await this.kbDocumentService.update(doc.id, { metadata } as Partial<IKnowledgeDocument>)
+        // Metadata is one JSON column; TypeORM's deep entity type cannot model its open-ended keys.
+        await this.kbDocumentService.update(doc.id, {
+            metadata: metadata as unknown as QueryDeepPartialEntity<KnowledgeDocument>['metadata']
+        })
     }
 
     /**
@@ -438,10 +546,12 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         if (stage === 'test' || !doc.id || !documentMetadata) return
         const metadata = {
             ...omit(doc.metadata ?? {}, 'imageUnderstandingInvalidatedAt'),
-            ...omit(documentMetadata, 'transformSnapshot', 'analysisSnapshot')
+            ...omit(documentMetadata, 'transformSnapshot', 'analysisSnapshot', 'parser', 'parserLabel')
         }
         doc.metadata = metadata
-        await this.kbDocumentService.update(doc.id, { metadata })
+        await this.kbDocumentService.update(doc.id, {
+            metadata: metadata as unknown as QueryDeepPartialEntity<KnowledgeDocument>['metadata']
+        })
     }
 
     async loadWeb(doc: IKnowledgeDocument) {
@@ -474,6 +584,35 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
         context?: Pick<KnowledgeSplitterExecutionContext, 'languageDetection'>
     ) {
         return splitKnowledgeDocuments(this.textSplitterRegistry, document, chunks, parserConfig, context)
+    }
+
+    /** Page splitters restart indexes; assign document-wide root order and retain per-parent child order. */
+    private reindexChunkSiblings(chunks: Document[]): Document[] {
+        const indexes = new Map<string | null, number>()
+        return chunks.map((chunk) => {
+            const parentId = chunk.metadata.parentId ?? null
+            const chunkIndex = indexes.get(parentId) ?? 0
+            indexes.set(parentId, chunkIndex + 1)
+            return { ...chunk, metadata: { ...chunk.metadata, chunkIndex } }
+        })
+    }
+
+    private async recordBuiltinParser(doc: IKnowledgeDocument, stage: string) {
+        if (stage === 'test') return
+        doc.metadata = {
+            ...omit(
+                doc.metadata ?? {},
+                'parserLabel',
+                'transformSnapshot',
+                'analysisSnapshot',
+                'documentAnalysis',
+                'parserProvidesImageText',
+                'parserDiagnostics',
+                'imageUnderstandingWarnings'
+            ),
+            parser: 'builtin'
+        }
+        await this.kbDocumentService.update(doc.id, { metadata: doc.metadata })
     }
 
     async loadSheet(doc: IKnowledgeDocument, volumeClient: VolumeHandle): Promise<Record<string, any>[]> {

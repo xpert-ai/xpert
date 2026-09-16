@@ -1,5 +1,5 @@
-import { IXpertTable } from '@xpert-ai/contracts'
-import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
+import { IXpertTable, PermissionsEnum } from '@xpert-ai/contracts'
+import { CrudController, PermissionGuard, Permissions, TransformInterceptor } from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -12,7 +12,8 @@ import {
     Post,
     Put,
     Query,
-    UseInterceptors
+    UseInterceptors,
+    UseGuards
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -49,6 +50,8 @@ export class XpertTableController extends CrudController<XpertTable> {
         return this.service.upsertTable({ ...(entity as IXpertTable), id })
     }
 
+    @UseGuards(PermissionGuard)
+    @Permissions(PermissionsEnum.DATA_SOURCE_VIEW)
     @Get('databases')
     async getDatabases() {
         return this.queryBus.execute(new XpertDatabasesQuery({ protocol: 'sql' }))

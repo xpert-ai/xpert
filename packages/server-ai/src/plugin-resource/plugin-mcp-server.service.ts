@@ -637,7 +637,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             )
         }
         const descriptor = describeXpertToolProvider(registration.strategy as object)
-        if (!descriptor.tools.some((tool) => !!tool.options.mcp)) {
+        if (!descriptor.tools.some((tool) => !!tool.options.mcp) && !descriptor.mcpMethods?.length) {
             throw new BadRequestException(`Plugin component '${componentKey}' does not expose MCP Tools.`)
         }
         const loaded = this.findLoadedPlugin(normalizedPluginName, registration.source.scopeKey)

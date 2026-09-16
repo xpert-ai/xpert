@@ -15,7 +15,9 @@
     "install:ai": "playwright-core install chromium chromium-headless-shell && node scripts/install-ai-resources.mjs --catalog images/browser-ai/resources/resource-catalog.json",
     "install:video": "playwright-core install chromium chromium-headless-shell && node scripts/install-local-video.mjs && node scripts/verify-local-video.mjs",
     "verify:local-browser": "node images/browser/runtime/runner-host.mjs --browser-smoke",
-    "verify:local-video": "node scripts/verify-local-video.mjs"
+    "verify:local-video": "node scripts/verify-local-video.mjs",
+    "install:document-python": "node scripts/install-local-document-python.mjs",
+    "verify:local-document-python": "node scripts/install-local-document-python.mjs --verify-only"
   },
   "dependencies": {
     "ffmpeg-ffprobe-static": "6.1.2-rc.1",

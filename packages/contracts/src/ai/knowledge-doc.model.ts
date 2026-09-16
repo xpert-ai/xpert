@@ -1,3 +1,4 @@
+import type { IKnowledgeDocumentTag } from './knowledge-tag.model'
 import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { KnowledgeTableMetadata } from './knowledge-table.model'
@@ -344,6 +345,8 @@ export interface IKnowledgeDocument<T extends KnowledgeDocumentMetadata = Knowle
   extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
   parent?: IKnowledgeDocument | null
   children?: IKnowledgeDocument[]
+  /** Existing manual and automatic associations, included when requested for display. */
+  tagAssignments?: IKnowledgeDocumentTag[]
   knowledgebase?: IKnowledgebase
 
   draft?: TKnowledgeDocument
@@ -374,9 +377,25 @@ export interface StandardDocumentMetadata {
   lastIncrementalSync?: KnowledgeDocumentLastIncrementalSync
 }
 
+/** Page coverage reported by the parser and completed by the shared image-understanding stage. */
+export type DocumentParserDiagnostics = {
+  schemaVersion: 1
+  pages: {
+    page: number
+    status: 'text' | 'blank' | 'needs-ocr' | 'recognized'
+    imagePaths: string[]
+  }[]
+}
+
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
+  /** Server-owned identity and label of the last completed document conversion. */
+  parser?: string
+  parserLabel?: I18nObject
+  parserDiagnostics?: DocumentParserDiagnostics
   /** Server-owned generated table descriptions and publication state. */
   tableMetadata?: KnowledgeTableMetadata
+  /** Existing source summary, available to optional document classifiers. */
+  summary?: string
   /** Ownership is independent of visibility in the document browser. */
   systemManaged?: boolean
   systemManagedType?: string

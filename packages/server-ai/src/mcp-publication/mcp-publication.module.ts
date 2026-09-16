@@ -21,15 +21,27 @@ import { McpTaskService } from './mcp-task.service'
 import { McpTaskProcessor } from './mcp-task.processor'
 import { McpPublicationAccessService } from './mcp-publication-access.service'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
+import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
+import { McpFilesController, McpFilesGuard } from './mcp-files.controller'
+import { McpFilesService } from './mcp-files.service'
+import { McpTaskExecutionService } from './mcp-task-execution.service'
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([...MCP_PUBLICATION_ENTITIES, XpertToolset, User]),
         RedisModule,
+        WorkspaceFilesRuntimeModule,
         XpertToolsetModule
     ],
-    controllers: [McpPublicationController, McpPublicationManagementController, McpOAuthMetadataController],
+    controllers: [
+        McpPublicationController,
+        McpPublicationManagementController,
+        McpOAuthMetadataController,
+        McpFilesController
+    ],
     providers: [
+        McpFilesGuard,
+        McpFilesService,
         McpPublicationService,
         McpApiKeyService,
         McpPublicationAuthorizationService,
@@ -42,6 +54,7 @@ import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
         McpOAuthService,
         McpElicitationService,
         McpTaskService,
+        McpTaskExecutionService,
         McpTaskProcessor,
         McpPublicationRuntimeService
     ],

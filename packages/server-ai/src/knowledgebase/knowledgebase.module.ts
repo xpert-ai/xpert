@@ -1,7 +1,11 @@
+import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
+import { KnowledgeDocumentTag } from './tags/document-tag.entity'
+import { KnowledgeTagService } from './tags/knowledge-tag.service'
+import { KnowledgeTagController, KnowledgeTagUsageController } from './tags/knowledge-tag.controller'
 import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
 import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
 import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
-import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
+import { DatabaseModule, IntegrationModule, Tag, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
@@ -43,6 +47,13 @@ import {
     WeightedRrfFusion
 } from './retrieval'
 import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
+import { FAQSemanticService } from './faq/faq-semantic.service'
+import { FAQSemanticCacheService } from './faq/faq-semantic-cache.service'
+import {
+    FAQSemanticPrewarmDispatcher,
+    FAQSemanticPrewarmProcessor,
+    JOB_FAQ_SEMANTIC_PREWARM
+} from './faq/faq-semantic-prewarm'
 import {
     KnowledgeWikiPage,
     KnowledgeWikiPageEvidenceEntity,
@@ -58,6 +69,9 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
     imports: [
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
         TypeOrmModule.forFeature([
+            Tag,
+            KnowledgebaseTag,
+            KnowledgeDocumentTag,
             Knowledgebase,
             KnowledgebaseTask,
             KnowledgeRetrievalLog,
@@ -76,12 +90,18 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
         forwardRef(() => IntegrationModule),
         forwardRef(() => KnowledgeDocumentModule),
         forwardRef(() => XpertModule),
-        BullModule.registerQueue({
-            name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
-        })
+        BullModule.registerQueue(
+            {
+                name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
+            },
+            {
+                name: JOB_FAQ_SEMANTIC_PREWARM
+            }
+        )
     ],
-    controllers: [KnowledgebaseController, KnowledgeFAQController],
+    controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController, KnowledgeTagUsageController],
     providers: [
+        KnowledgeTagService,
         KnowledgePipelineCallbackProcessor,
         KnowledgeParserSettingsService,
         KnowledgeTableContextService,
@@ -109,6 +129,10 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
         LegacyWeightedFusion,
         WeightedRrfFusion,
         KnowledgeFAQService,
+        FAQSemanticService,
+        FAQSemanticCacheService,
+        FAQSemanticPrewarmDispatcher,
+        FAQSemanticPrewarmProcessor,
         KnowledgeWikiSearchScopeService,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,
@@ -118,6 +142,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
         ...Validators
     ],
     exports: [
+        KnowledgeTagService,
         KnowledgeParserSettingsService,
         KnowledgebaseService,
         KnowledgebaseTaskService,

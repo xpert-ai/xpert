@@ -4,6 +4,21 @@ import { TDocChunkMetadata } from '../knowledge-document/types'
 import { createCollectionScopedVectorId, KnowledgeDocumentStore } from './vector-store'
 
 describe('KnowledgeDocumentStore vector ids', () => {
+    it('shares the query embedding between semantic comparisons and unstructured refill windows', async () => {
+        const embedQuery = jest.fn(async () => [1, 0])
+        const search = jest.fn(async () => [])
+        const store = new KnowledgeDocumentStore({ id: 'kb', name: 'KB', type: null }, {
+            embeddings: { embedQuery },
+            similaritySearchVectorWithScore: search
+        } as unknown as VectorStore)
+        const session = store.createSearchSession('query', true)
+        await session.similaritySearchWithScore('query', 10)
+        await session.similaritySearchWithScore('query', 20)
+        expect(await session.getQueryEmbedding()).toEqual([1, 0])
+        expect(embedQuery).toHaveBeenCalledTimes(1)
+        expect(search).toHaveBeenNthCalledWith(2, [1, 0], 20, { enabled: true })
+    })
+
     it('keeps question projections out of chunk management and source updates', async () => {
         const vectors = [
             { pageContent: 'Search question', metadata: { chunkId: 'source', questionGenerationId: 'generation' } },

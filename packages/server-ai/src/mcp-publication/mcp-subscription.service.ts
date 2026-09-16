@@ -1,6 +1,6 @@
 import type { CapabilityChangeEvent, ToolEventsApi } from '@xpert-ai/plugin-sdk'
 import type { ServerEvent, ServerEventBus } from '@modelcontextprotocol/server'
-import { UriTemplate } from '@modelcontextprotocol/server'
+import { McpResourceUriTemplate } from './mcp-resource-uri-template'
 import type { McpCapabilityType } from '@xpert-ai/contracts'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common'
@@ -291,7 +291,7 @@ export function isPublishedResourceUri(uri: string, capabilities?: McpPublicatio
         if (descriptor.capabilityType === 'resource') return descriptor.uri === uri
         if (descriptor.capabilityType !== 'resource_template') return false
         try {
-            return new UriTemplate(descriptor.uriTemplate).match(uri) !== null
+            return new McpResourceUriTemplate(descriptor.uriTemplate).match(uri) !== null
         } catch {
             return false
         }

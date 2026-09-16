@@ -1,27 +1,15 @@
-import { Entity, Column, ManyToMany, JoinTable, Index } from 'typeorm';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-	IEmployee,
-	IOrganization,
-	ITag,
-	IUser,
-	TagCategoryEnum,
-	I18nObject,
-} from '@xpert-ai/contracts';
-import {
-	Employee,
-	Organization,
-	TenantOrganizationBaseEntity,
-	User,
-} from '../core/entities/internal';
-import { IsEnum, IsJSON, IsOptional } from 'class-validator';
+import { Entity, Column, ManyToMany, JoinTable, Index } from 'typeorm'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IEmployee, IOrganization, ITag, IUser, TagCategoryEnum, I18nObject, TagTarget } from '@xpert-ai/contracts'
+import { Employee, Organization, TenantOrganizationBaseEntity, User } from '../core/entities/internal'
+import { IsEnum, IsJSON, IsOptional } from 'class-validator'
 
 @Entity('tag')
-@Index('category_name', ['tenantId', 'organizationId', 'name', 'category'], {unique: true})
+@Index('category_name', ['tenantId', 'organizationId', 'name', 'category'], { unique: true })
 export class Tag extends TenantOrganizationBaseEntity implements ITag {
 	@ApiProperty({ type: () => String })
 	@Column()
-	name?: string;
+	name?: string
 
 	@ApiProperty({ type: () => String, enum: TagCategoryEnum })
 	@IsEnum(TagCategoryEnum)
@@ -30,7 +18,7 @@ export class Tag extends TenantOrganizationBaseEntity implements ITag {
 		enum: TagCategoryEnum,
 		nullable: true
 	})
-	category?: TagCategoryEnum;
+	category?: TagCategoryEnum
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
@@ -40,33 +28,39 @@ export class Tag extends TenantOrganizationBaseEntity implements ITag {
 
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
-	description?: string;
+	description?: string
 
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
-	color?: string;
+	color?: string
 
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
-	icon?: string;
+	icon?: string
+
+	@Column({ type: 'json', nullable: true })
+	targets?: TagTarget[]
+
+	@Column({ type: 'boolean', default: true })
+	isActive?: boolean
 
 	@ManyToMany(() => Employee, (employee) => employee.tags)
-	employee?: IEmployee[];
+	employee?: IEmployee[]
 
 	@ApiProperty({ type: () => Boolean, default: false })
 	@Column({ default: false })
-	isSystem?: boolean;
+	isSystem?: boolean
 
 	@ManyToMany(() => User)
 	@JoinTable({
 		name: 'tag_user'
 	})
-	users?: IUser[];
+	users?: IUser[]
 
 	// organizations Tags
 	@ManyToMany(() => Organization, (organization) => organization.tags)
-    @JoinTable({
+	@JoinTable({
 		name: 'tag_organization'
 	})
-    organizations?: IOrganization[];
+	organizations?: IOrganization[]
 }

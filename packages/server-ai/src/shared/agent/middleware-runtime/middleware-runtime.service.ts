@@ -144,5 +144,9 @@ export class AgentMiddlewareRuntimeService {
 
 /** Workspace capabilities are safe only when the host binds a concrete data owner. */
 function hasBoundRuntimeWorkspaceScope(scope: AgentMiddlewareRuntimeScope) {
-    return Boolean(normalizeOptionalString(scope.projectId) || normalizeOptionalString(scope.xpertId))
+    return Boolean(
+        normalizeOptionalString(scope.projectId) ||
+        normalizeOptionalString(scope.xpertId) ||
+        (scope.catalog === 'users' && normalizeOptionalString(scope.userId) && scope.scopeId === scope.userId)
+    )
 }

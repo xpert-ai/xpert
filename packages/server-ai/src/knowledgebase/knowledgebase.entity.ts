@@ -1,3 +1,4 @@
+import type { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
 import {
     ICopilotModel,
     IIntegration,
@@ -364,6 +365,12 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @IsOptional()
     @Column({ nullable: true })
     parserId?: string
+
+    @ApiPropertyOptional({ type: () => Object })
+    @IsJSON()
+    @IsOptional()
+    @Column({ type: 'jsonb', nullable: true })
+    automaticTagging?: KnowledgeAutomaticTaggingConfig | null
 
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()

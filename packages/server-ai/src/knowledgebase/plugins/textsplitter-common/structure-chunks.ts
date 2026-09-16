@@ -393,7 +393,7 @@ export function createStructureChunks(
         const changesSource = pending.some((part) => part.source.index !== unit.source.index)
         if (
             hasBody &&
-            (!ordinary ||
+            ((!ordinary && unit.kind !== 'table') ||
                 changesSource ||
                 render([...pending, unit], contexts).length > target ||
                 !fits(render([...pending, unit], contexts)))

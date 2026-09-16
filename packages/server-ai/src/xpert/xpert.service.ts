@@ -3,12 +3,15 @@ import {
     convertToUrlPath,
     DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     ICopilotStore,
+    IPagination,
+    ITagXpertUsage,
     IUser,
     IXpertPrincipalReference,
     IXpertAgentExecution,
     LongTermMemoryTypeEnum,
     normalizeMiddlewareNodes,
     normalizeXpertAgentConfig,
+    TagCategoryEnum,
     OrderTypeEnum,
     TFile,
     TFileDirectory,
@@ -18,7 +21,14 @@ import {
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { OptionParams, PaginationParams, RequestContext, transformWhere, UserGroupService } from '@xpert-ai/server-core'
+import {
+    OptionParams,
+    PaginationParams,
+    RequestContext,
+    Tag,
+    transformWhere,
+    UserGroupService
+} from '@xpert-ai/server-core'
 import {
     BadRequestException,
     ForbiddenException,
@@ -50,6 +60,7 @@ import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
+import { assertValidTagAssociations } from '../shared/tag-associations'
 
 const XPERT_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 
@@ -94,6 +105,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
             )
         }
         assign(_entity, mutableEntity)
+        await this.validateTagAssociations(_entity)
         return await super.save(_entity)
     }
 
@@ -128,7 +140,64 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         }
     }
 
+    async getTagUsage(tagId: string, skip = 0): Promise<IPagination<ITagXpertUsage>> {
+        const tenantId = RequestContext.currentTenantId()
+        const userId = RequestContext.currentUserId()
+        const organizationId = RequestContext.getOrganizationId()
+        if (!tenantId || !userId) throw new ForbiddenException()
+        if (!Number.isSafeInteger(skip) || skip < 0) {
+            throw new BadRequestException(
+                t('server-ai:Error.InvalidTagUsagePage', {
+                    defaultValue: 'Invalid tag usage page.'
+                })
+            )
+        }
+        const sharedTagScope = { id: tagId, tenantId, organizationId: IsNull() }
+        const tag = await this.repository.manager.getRepository(Tag).findOne({
+            where: organizationId ? [sharedTagScope, { ...sharedTagScope, organizationId }] : sharedTagScope,
+            select: ['id']
+        })
+        if (!tag) throw new NotFoundException()
+
+        // Catalog access alone does not authorize disclosure of private expert names.
+        const workspaces = await this.workspaceAccessService.findAccessibleWorkspaces(undefined, {
+            includeOrganizationWorkspacesInTenantScope: !organizationId
+        })
+        const workspaceIds = workspaces
+            .filter(
+                (workspace) =>
+                    workspace.tenantId === tenantId && (!organizationId || workspace.organizationId === organizationId)
+            )
+            .map((workspace) => workspace.id)
+        const scope: FindOptionsWhere<Xpert> = {
+            tenantId,
+            ...(organizationId ? { organizationId } : {}),
+            tags: { id: tagId }
+        }
+        const where: FindOptionsWhere<Xpert>[] = [{ ...scope, workspaceId: IsNull(), createdById: userId }]
+        if (workspaceIds.length) where.push({ ...scope, workspaceId: In(workspaceIds) })
+        const [experts, total] = await this.repository.findAndCount({
+            where,
+            select: ['id', 'name', 'title', 'version', 'latest', 'deletedAt', 'createdAt'],
+            withDeleted: true,
+            order: { name: 'ASC', latest: 'DESC', createdAt: 'DESC', id: 'ASC' },
+            take: 20,
+            skip
+        })
+        return {
+            items: experts.map((expert) => ({
+                id: expert.id,
+                name: expert.title?.trim() || expert.name || '',
+                version: expert.version || null,
+                latest: expert.latest !== false,
+                deleted: !!expert.deletedAt
+            })),
+            total
+        }
+    }
+
     async create(entity: DeepPartial<Xpert>, ...options: unknown[]) {
+        await this.validateTagAssociations(entity)
         return await super.create(
             {
                 ...entity,
@@ -362,8 +431,29 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     }
 
     async save(entity: Xpert) {
+        await this.validateTagAssociations(entity)
         return await super.save({
             ...entity,
+            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
+        })
+    }
+
+    async validateTagAssociations(entity: DeepPartial<Xpert>) {
+        await assertValidTagAssociations(this.repository, this.workspaceAccessService, entity, TagCategoryEnum.XPERT)
+    }
+
+    /** Version backups inherit the source's persisted links, including stopped tags. */
+    async createVersionBackup(entity: DeepPartial<Xpert>, sourceId: string) {
+        await assertValidTagAssociations(
+            this.repository,
+            this.workspaceAccessService,
+            entity,
+            TagCategoryEnum.XPERT,
+            sourceId
+        )
+        return super.create({
+            ...entity,
+            workspaceDataScope: entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
             agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
         })
     }

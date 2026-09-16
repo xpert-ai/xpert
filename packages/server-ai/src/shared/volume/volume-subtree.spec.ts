@@ -96,6 +96,31 @@ describe('VolumeSubtreeClient', () => {
         )
     })
 
+    it('saves editable office binaries without changing the volume path', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-save-binary-'))
+        await mkdir(join(tempRoot, 'files'), { recursive: true })
+        await writeFile(join(tempRoot, 'files', 'deck.pptx'), Buffer.from('original'))
+
+        const volume = new VolumeHandle(
+            {
+                tenantId: 'tenant-1',
+                catalog: 'xperts',
+                xpertId: 'xpert-1',
+                isolateByUser: false
+            },
+            tempRoot,
+            tempRoot,
+            'http://localhost/volume'
+        )
+        const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
+
+        await expect(client.saveBinaryFile('', 'files/deck.pptx', Buffer.from('updated'))).resolves.toMatchObject({
+            filePath: 'files/deck.pptx'
+        })
+        await expect(readFile(join(tempRoot, 'files', 'deck.pptx'))).resolves.toEqual(Buffer.from('updated'))
+        await expect(client.saveBinaryFile('', 'files/deck.txt', Buffer.from('nope'))).rejects.toBeInstanceOf(Error)
+    })
+
     it('returns project file metadata without a direct URL or reading file contents', async () => {
         tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-file-metadata-'))
         await mkdir(join(tempRoot, 'files'), { recursive: true })
