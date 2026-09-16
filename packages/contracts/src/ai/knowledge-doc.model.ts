@@ -558,3 +558,11 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
 ] as const
 
 export type StandardMetadataFieldKey = (typeof STANDARD_METADATA_FIELDS)[number]['fields'][number]['key']
+
+/** Bulk import keeps the legacy document array valid; tags apply to the whole batch. */
+export type KnowledgeDocumentBulkCreateInput =
+  | Partial<IKnowledgeDocument>[]
+  | {
+      documents: Partial<IKnowledgeDocument>[]
+      tagIds: string[]
+    }

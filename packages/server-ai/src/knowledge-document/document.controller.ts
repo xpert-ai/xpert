@@ -1,3 +1,5 @@
+import { KnowledgeDocumentBulkCreateInput } from '@xpert-ai/contracts'
+import { KnowledgeDocumentImportService, parseDocumentImport } from './document-import.service'
 import {
     buildChunkTree,
     IIntegration,
@@ -195,7 +197,8 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
         private readonly integrationService: IntegrationService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
-        @InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue
+        @InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue,
+        private readonly documentImport: KnowledgeDocumentImportService
     ) {
         super(service)
     }
@@ -295,9 +298,10 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
     @Post('bulk')
     async createBulk(
-        @Body() entities: Partial<IKnowledgeDocument>[],
+        @Body() input: KnowledgeDocumentBulkCreateInput,
         @Query('process', ParseBoolPipe) process?: boolean
     ) {
+        const { documents: entities, tagIds } = parseDocumentImport(input)
         const knowledgebaseIds = [...new Set(entities.map((entity) => requireKnowledgebaseId(entity)))]
         await Promise.all(knowledgebaseIds.map((id) => this.service.assertKnowledgebaseWriteAccess(id)))
         await this.service.assertOwnedStorageFiles(entities.map((entity) => entity.storageFileId))
@@ -307,7 +311,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
             entity.progress = 0
             entity.processMsg = null
         })
-        const result = await this.service.createBulkWithIncrementalSync(entities)
+        const result = tagIds.length
+            ? await this.documentImport.create(entities, tagIds)
+            : await this.service.createBulkWithIncrementalSync(entities)
         if (process && result.processableIds.length) {
             await this.service.startProcessing(result.processableIds)
         }

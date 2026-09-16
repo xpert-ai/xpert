@@ -6823,6 +6823,15 @@
         "BatchOtherFormats": "此格式使用现有文档解析流程。"
       },
       "Import": {
+        "TagsHint": "选择知识库已有标签，统一作为人工标签添加到本批导入的每篇文档，不修改知识库默认值或自动标签设置。",
+        "TagsSearch": "搜索标签",
+        "TagsSelected": "已选 {{count}} 个",
+        "TagsClear": "清空选择",
+        "TagsLoading": "正在加载标签…",
+        "TagsLoadFailed": "标签加载失败，可重试或不选标签继续导入。",
+        "TagsRetry": "重试",
+        "TagsEmpty": "暂无可用标签，请先在知识库设置中选择可用标签。",
+        "TagsNoMatches": "没有匹配的标签",
         "TableMetadata": "表格元数据",
         "InvalidIndexedFields": "已选索引列与当前表格不一致，请预览后重新选择。",
         "EditDefaultsHint": "这里的修改只作用于当前文档，保存后执行所选处理操作。",

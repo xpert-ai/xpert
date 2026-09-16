@@ -1,3 +1,5 @@
+import { KnowledgeTagsService } from '@cloud/app/@core/services/knowledge-tags.service'
+import { KnowledgeTagCatalog } from '@xpert-ai/contracts'
 jest.mock('@cloud/app/@shared/copilot', () => ({ CopilotModelSelectComponent: class {} }))
 jest.mock('../pipeline/settings/settings.component', () => ({ KnowledgeDocumentPipelineSettingsComponent: class {} }))
 
@@ -50,6 +52,15 @@ describe('DocumentImportDialogComponent', () => {
       startParsing: jest.fn(() => of([])),
       getReprocessCapabilities: jest.fn(() => of({ rechunk: { available: true } }))
     }
+    const tagsAPI = {
+      list: jest.fn(() =>
+        of<KnowledgeTagCatalog>({
+          tags: [{ id: 'tag-1', name: 'Operations', targets: ['knowledgebase'] }],
+          available: [{ id: 'tag-1', name: 'Operations', targets: ['knowledgebase'] }],
+          canEdit: true
+        })
+      )
+    }
     const ref = { close: jest.fn(), disableClose: false }
     const kbAPI = {
       getTextSplitterStrategies: () =>
@@ -75,6 +86,7 @@ describe('DocumentImportDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot()],
       providers: [
+        { provide: KnowledgeTagsService, useValue: tagsAPI },
         {
           provide: DIALOG_DATA,
           useValue: {
@@ -101,7 +113,7 @@ describe('DocumentImportDialogComponent', () => {
     const fixture = TestBed.createComponent(DocumentImportDialogComponent)
     fixture.detectChanges()
     await fixture.whenStable()
-    return { fixture, component: fixture.componentInstance, api, ref, knowledgebase, kbAPI }
+    return { fixture, component: fixture.componentInstance, api, ref, knowledgebase, kbAPI, tagsAPI }
   }
 
   afterEach(() => TestBed.resetTestingModule())
@@ -188,6 +200,74 @@ describe('DocumentImportDialogComponent', () => {
       transformerType: 'builtin',
       spreadsheet: { interpretation: 'records', contextUnit: 'row' }
     })
+  })
+
+  it('submits selected manual tags for the complete batch without changing parser settings', async () => {
+    const { component, api } = await setup()
+    component.externalDocuments.set([
+      { name: 'one', type: 'txt' },
+      { name: 'two', type: 'txt' }
+    ])
+    component.toggleTag('tag-1')
+    component.toggleTag('not-in-catalog')
+    expect(component.selectedTagIds()).toEqual(['tag-1'])
+    await component.submit()
+    expect(api.createBulk).toHaveBeenCalledWith(
+      [expect.objectContaining({ name: 'one' }), expect.objectContaining({ name: 'two' })],
+      true,
+      ['tag-1']
+    )
+  })
+
+  it('filters tags, retains selection across searches and clears it without changing the catalog', async () => {
+    const { component, tagsAPI } = await setup()
+    component.toggleTag('tag-1')
+    component.tagSearch.set('missing')
+    expect(component.filteredTags()).toEqual([])
+    expect(component.selectedTagIds()).toEqual(['tag-1'])
+    component.tagSearch.set('OPER')
+    expect(component.filteredTags().map((tag) => tag.id)).toEqual(['tag-1'])
+    component.clearTags()
+    expect(component.selectedTagIds()).toEqual([])
+    expect(tagsAPI.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('excludes inactive and unavailable tags and respects read-only access', async () => {
+    const { component, tagsAPI } = await setup()
+    tagsAPI.list.mockReturnValue(
+      of({
+        tags: [
+          { id: 'disabled', name: 'Disabled', targets: ['knowledgebase'], isActive: false },
+          { id: 'unavailable', name: 'Unavailable', targets: ['knowledgebase'] }
+        ],
+        available: [{ id: 'disabled', name: 'Disabled', targets: ['knowledgebase'], isActive: false }],
+        canEdit: false
+      })
+    )
+    await component.loadTags()
+    expect(component.tagOptions()).toEqual([])
+    component.toggleTag('disabled')
+    expect(component.selectedTagIds()).toEqual([])
+  })
+
+  it('allows an untagged import after a catalog failure and supports retry', async () => {
+    const { component, api, tagsAPI } = await setup()
+    tagsAPI.list.mockReturnValueOnce(throwError(() => new Error('catalog unavailable')))
+    await component.loadTags()
+    expect(component.tagsError()).toContain('catalog unavailable')
+    await component.submit()
+    expect(api.createBulk).toHaveBeenCalledWith(expect.any(Array), true)
+    await component.loadTags()
+    expect(component.tagsError()).toBe('')
+    expect(component.tagOptions()).toHaveLength(1)
+  })
+
+  it('offers manual tags on import but not when reprocessing a document', async () => {
+    const { component } = await setup()
+    expect(component.sections.find((section) => section.id === 'tags')?.available).toBe(true)
+    TestBed.resetTestingModule()
+    const edit = await setup(false, { id: 'doc', type: 'txt', version: 1 } as IKnowledgeDocument)
+    expect(edit.component.sections.some((section) => section.id === 'tags')).toBe(false)
   })
 
   it.each(['xlsx', 'csv'])(

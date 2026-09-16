@@ -5148,6 +5148,15 @@
         "BatchOtherFormats": "此格式使用現有文件解析流程。"
       },
       "Import": {
+        "TagsHint": "選擇知識庫已有標籤，統一作為人工標籤新增至本批匯入的每篇文件，不修改知識庫預設值或自動標籤設定。",
+        "TagsSearch": "搜尋標籤",
+        "TagsSelected": "已選 {{count}} 個",
+        "TagsClear": "清空選擇",
+        "TagsLoading": "正在載入標籤…",
+        "TagsLoadFailed": "標籤載入失敗，可重試或不選標籤繼續匯入。",
+        "TagsRetry": "重試",
+        "TagsEmpty": "暫無可用標籤，請先在知識庫設定中選擇可用標籤。",
+        "TagsNoMatches": "沒有符合的標籤",
         "TableMetadata": "表格中繼資料",
         "InvalidIndexedFields": "已選索引欄位與目前表格不一致，請預覽後重新選擇。",
         "EditDefaultsHint": "這裡的修改只作用於目前文件，儲存後執行所選處理操作。",
