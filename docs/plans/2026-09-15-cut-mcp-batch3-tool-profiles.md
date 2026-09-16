@@ -64,8 +64,8 @@ source and the original scoped operation implementations remain internal.
 Resources and prompts now use method decorators; `getMcpExtensions` remains an
 SDK compatibility hook for existing plugins. All capability methods support
 inheritance, with child overrides taking precedence. MCP validation remains
-stricter than native Workbench inputs. SDK 3.19.0 is the planned minimum release; use the
-matching local source until the SDK change is released.
+stricter than native Workbench inputs. The plugin minimum SDK version will be set to the published patch release; use
+the matching local source until the SDK change is released.
 
 The SDK and host changes are delivered first. Cut plugin changes remain local
 until the SDK is published and the plugin dependency lockfile can be updated.

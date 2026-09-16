@@ -1,5 +1,5 @@
 ---
-'@xpert-ai/plugin-sdk': minor
+'@xpert-ai/plugin-sdk': patch
 ---
 
 Support non-tool MCP capabilities, task policies and transport-specific input validation on decorated tool providers. Pass execution-scoped workspace files and Agent feature configuration to middleware business methods and allow existing MCP result envelopes without requiring a new structured output schema.
