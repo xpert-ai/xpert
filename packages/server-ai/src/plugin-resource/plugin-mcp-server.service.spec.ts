@@ -3,6 +3,9 @@ jest.mock('./plugin-resource-installer.service', () => ({
 }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('@xpert-ai/plugin-sdk'),
+    get RequestContext() {
+        return jest.requireMock('@xpert-ai/server-core').RequestContext
+    },
     describeXpertToolProvider: jest.fn(() => ({
         options: {
             provider: 'decorated',
@@ -39,7 +42,10 @@ jest.mock('../mcp-publication/mcp-publication-runtime.service', () => ({
 let mockOrganizationId: string | null = 'org-1'
 
 jest.mock('@xpert-ai/server-core', () => {
-    const actual = jest.requireActual('@xpert-ai/server-core')
+    const actual = {
+        ...jest.requireActual('../../../server/src/plugin/types'),
+        ...jest.requireActual('../../../server/src/plugin/plugin-bundle-manifest')
+    }
     return {
         ...actual,
         RequestContext: {
@@ -66,216 +72,254 @@ jest.mock('../shared/request-context', () => ({
     })
 }))
 
-import { StrategyBus } from '@xpert-ai/plugin-sdk'
+import { StrategyBus, describeXpertToolProvider } from '@xpert-ai/plugin-sdk'
 import { PluginMcpServerService } from './plugin-mcp-server.service'
+
+const defaultDescribeProvider = jest.mocked(describeXpertToolProvider).getMockImplementation()!
 
 describe('PluginMcpServerService', () => {
     beforeEach(() => {
         mockOrganizationId = 'org-1'
+        jest.mocked(describeXpertToolProvider).mockImplementation(defaultDescribeProvider)
     })
 
-    it('adopts a stable Publication, synchronizes every Tool, and only returns a newly created secret once', async () => {
-        const installation = {
-            id: 'installation-1',
-            tenantId: 'tenant-1',
-            organizationId: null,
-            pluginName: '@xpert-ai/plugin-decorated',
-            componentType: 'toolset',
-            componentKey: 'decorated-tools',
-            runtimeId: 'toolset-1',
-            enabled: true,
-            status: 'ready',
-            definitionHash: 'hash-1',
-            config: {
-                provider: 'decorated',
-                name: 'Decorated tools',
-                slug: 'decorated-tools-mcp'
+    it.each(['tools', 'resources', 'prompts'] as const)(
+        'adopts a stable Publication for %s and only returns a newly created secret once',
+        async (surface) => {
+            if (surface !== 'tools') {
+                const descriptor = defaultDescribeProvider({})
+                jest.mocked(describeXpertToolProvider).mockReturnValue({
+                    ...descriptor,
+                    tools: [],
+                    mcpMethods:
+                        surface === 'resources'
+                            ? [
+                                  {
+                                      kind: 'resource-template',
+                                      methodName: 'read',
+                                      options: {
+                                          key: 'read_data',
+                                          uriTemplate: 'test://items/{id}',
+                                          arguments: { id: { required: true } }
+                                      }
+                                  }
+                              ]
+                            : [{ kind: 'prompt', methodName: 'get', options: { key: 'read_data', name: 'read_data' } }]
+                })
             }
-        }
-        const queryBuilder = {
-            where: jest.fn(),
-            andWhere: jest.fn(),
-            getOne: jest.fn().mockResolvedValue(null)
-        }
-        queryBuilder.where.mockReturnValue(queryBuilder)
-        queryBuilder.andWhere.mockReturnValue(queryBuilder)
-        const installationRepo = {
-            createQueryBuilder: jest.fn(() => queryBuilder),
-            save: jest.fn(async (value) => value)
-        }
-        let installCount = 0
-        const providerScopes: Array<string | null> = []
-        const installer = {
-            installRegisteredRuntimeToolProviderToOrganization: jest.fn(async () => {
-                installCount += 1
-                providerScopes.push(mockOrganizationId)
-                return {
-                    installation,
-                    previousInstallation: installCount === 1 ? null : { ...installation },
-                    previousToolset: null
+            const installation = {
+                id: 'installation-1',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                pluginName: '@xpert-ai/plugin-decorated',
+                componentType: 'toolset',
+                componentKey: 'decorated-tools',
+                runtimeId: 'toolset-1',
+                enabled: true,
+                status: 'ready',
+                definitionHash: 'hash-1',
+                config: {
+                    provider: 'decorated',
+                    name: 'Decorated tools',
+                    slug: 'decorated-tools-mcp'
                 }
-            }),
-            rollbackRegisteredRuntimeToolProviderInstallation: jest.fn()
-        }
-        const capabilities = [
-            { toolsetId: 'toolset-1', capabilityType: 'tool', capabilityKey: 'read_data' },
-            { toolsetId: 'toolset-1', capabilityType: 'tool', capabilityKey: 'write_data' }
-        ]
-        const catalog = {
-            getToolsetCapabilitySnapshot: jest.fn(async () => []),
-            discoverMcpToolsetCapabilities: jest.fn(async () => capabilities),
-            restoreToolsetCapabilitySnapshot: jest.fn()
-        }
-        const publication = {
-            id: 'publication-1',
-            tenantId: 'tenant-1',
-            organizationId: null,
-            name: 'Decorated tools',
-            slug: '',
-            status: 'draft',
-            authMethods: ['api_key'],
-            protocolVersion: '2026-07-28',
-            instructions: null,
-            reviewStatus: 'current',
-            reviewReason: null,
-            reviewedAt: null,
-            reviewedById: null,
-            capabilities: [
-                {
-                    capabilityType: 'tool',
-                    capabilityKey: 'read_data',
-                    publicName: 'custom_read',
-                    enabled: false,
-                    policy: { approvalMode: 'deny' }
-                }
+            }
+            const queryBuilder = {
+                where: jest.fn(),
+                andWhere: jest.fn(),
+                getOne: jest.fn().mockResolvedValue(null)
+            }
+            queryBuilder.where.mockReturnValue(queryBuilder)
+            queryBuilder.andWhere.mockReturnValue(queryBuilder)
+            const installationRepo = {
+                createQueryBuilder: jest.fn(() => queryBuilder),
+                save: jest.fn(async (value) => value)
+            }
+            let installCount = 0
+            const providerScopes: Array<string | null> = []
+            const installer = {
+                installRegisteredRuntimeToolProviderToOrganization: jest.fn(async () => {
+                    installCount += 1
+                    providerScopes.push(mockOrganizationId)
+                    return {
+                        installation,
+                        previousInstallation: installCount === 1 ? null : { ...installation },
+                        previousToolset: null
+                    }
+                }),
+                rollbackRegisteredRuntimeToolProviderInstallation: jest.fn()
+            }
+            const capabilityType =
+                surface === 'tools' ? 'tool' : surface === 'resources' ? 'resource_template' : 'prompt'
+            const capabilities = [
+                { toolsetId: 'toolset-1', capabilityType, capabilityKey: 'read_data' },
+                { toolsetId: 'toolset-1', capabilityType, capabilityKey: 'write_data' }
             ]
-        }
-        const publications = {
-            findManagedBySlug: jest.fn(async (slug: string) => {
-                publication.slug = slug
-                return publication
-            }),
-            create: jest.fn(),
-            getManaged: jest.fn(async () => publication),
-            synchronizeManagedSlug: jest.fn(async (_id: string, slug: string) => {
-                publication.slug = slug
-                return publication
-            }),
-            replaceCapabilitiesWithCatalog: jest.fn(async () => undefined),
-            enable: jest.fn(async () => ({ ...publication, status: 'active' })),
-            disable: jest.fn(async () => ({ ...publication, status: 'disabled' })),
-            replaceCapabilities: jest.fn(),
-            restoreManagedState: jest.fn(),
-            discardManaged: jest.fn(),
-            resolveRuntimeCapabilities: jest.fn(async () => [])
-        }
-        const apiKeys = {
-            listForOrganization: jest
-                .fn()
-                .mockResolvedValueOnce([])
-                .mockResolvedValueOnce([
+            const catalog = {
+                getToolsetCapabilitySnapshot: jest.fn(async () => []),
+                discoverMcpToolsetCapabilities: jest.fn(async () => capabilities),
+                restoreToolsetCapabilitySnapshot: jest.fn()
+            }
+            const publication = {
+                id: 'publication-1',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                name: 'Decorated tools',
+                slug: '',
+                status: 'draft',
+                authMethods: ['api_key'],
+                protocolVersion: '2026-07-28',
+                instructions: null,
+                reviewStatus: 'current',
+                reviewReason: null,
+                reviewedAt: null,
+                reviewedById: null,
+                capabilities: [
                     {
-                        id: 'key-1',
-                        revokedAt: null,
-                        expiresAt: null,
-                        scopes: ['tools:list', 'tools:call']
+                        capabilityType,
+                        capabilityKey: 'read_data',
+                        publicName: 'custom_read',
+                        enabled: false,
+                        policy: { approvalMode: 'deny' }
+                    }
+                ]
+            }
+            const publications = {
+                findManagedBySlug: jest.fn(async (slug: string) => {
+                    publication.slug = slug
+                    return publication
+                }),
+                create: jest.fn(),
+                getManaged: jest.fn(async () => publication),
+                synchronizeManagedSlug: jest.fn(async (_id: string, slug: string) => {
+                    publication.slug = slug
+                    return publication
+                }),
+                replaceCapabilitiesWithCatalog: jest.fn(async () => undefined),
+                enable: jest.fn(async () => ({ ...publication, status: 'active' })),
+                disable: jest.fn(async () => ({ ...publication, status: 'disabled' })),
+                replaceCapabilities: jest.fn(),
+                restoreManagedState: jest.fn(),
+                discardManaged: jest.fn(),
+                resolveRuntimeCapabilities: jest.fn(async () => [])
+            }
+            const apiKeys = {
+                listForOrganization: jest
+                    .fn()
+                    .mockResolvedValueOnce([])
+                    .mockResolvedValueOnce([
+                        {
+                            id: 'key-1',
+                            revokedAt: null,
+                            expiresAt: null,
+                            scopes: ['tools:list', 'tools:call']
+                        }
+                    ]),
+                createRevealableForOrganization: jest.fn(async () => ({
+                    apiKey: { id: 'key-1' },
+                    secret: 'one-time-secret'
+                }))
+            }
+            const publicationAccess = {
+                enable: jest.fn(),
+                disable: jest.fn(),
+                assertEnabled: jest.fn(),
+                isEnabled: jest.fn(async () => false)
+            }
+            const provider = {}
+            const providerRegistry = {
+                listRegistrations: jest.fn(() => [
+                    {
+                        strategy: provider,
+                        source: {
+                            kind: 'plugin',
+                            pluginName: '@xpert-ai/plugin-decorated',
+                            scopeKey: 'tenant:tenant-1:global'
+                        }
                     }
                 ]),
-            createRevealableForOrganization: jest.fn(async () => ({
-                apiKey: { id: 'key-1' },
-                secret: 'one-time-secret'
-            }))
-        }
-        const publicationAccess = {
-            enable: jest.fn(),
-            disable: jest.fn(),
-            assertEnabled: jest.fn(),
-            isEnabled: jest.fn(async () => false)
-        }
-        const provider = {}
-        const providerRegistry = {
-            listRegistrations: jest.fn(() => [
-                {
-                    strategy: provider,
-                    source: {
-                        kind: 'plugin',
-                        pluginName: '@xpert-ai/plugin-decorated',
-                        scopeKey: 'tenant:tenant-1:global'
+                getSource: jest.fn()
+            }
+            const service = new PluginMcpServerService(
+                installationRepo as never,
+                installer as never,
+                catalog as never,
+                publications as never,
+                apiKeys as never,
+                publicationAccess as never,
+                { get: jest.fn(() => 'http://localhost:3000') } as never,
+                new StrategyBus(),
+                providerRegistry as never,
+                [
+                    {
+                        tenantId: 'tenant-1',
+                        organizationId: 'global',
+                        scopeKey: 'tenant:tenant-1:global',
+                        name: '@xpert-ai/plugin-decorated',
+                        packageName: '@xpert-ai/plugin-decorated',
+                        level: 'tenant',
+                        instance: { meta: { artifactNamespace: 'acme_factory' } }
                     }
-                }
-            ]),
-            getSource: jest.fn()
-        }
-        const service = new PluginMcpServerService(
-            installationRepo as never,
-            installer as never,
-            catalog as never,
-            publications as never,
-            apiKeys as never,
-            publicationAccess as never,
-            { get: jest.fn(() => 'http://localhost:3000') } as never,
-            new StrategyBus(),
-            providerRegistry as never,
-            [
-                {
-                    tenantId: 'tenant-1',
-                    organizationId: 'global',
-                    scopeKey: 'tenant:tenant-1:global',
-                    name: '@xpert-ai/plugin-decorated',
-                    packageName: '@xpert-ai/plugin-decorated',
-                    level: 'tenant',
-                    instance: { meta: { artifactNamespace: 'acme_factory' } }
-                }
-            ] as never
-        )
+                ] as never
+            )
 
-        const first = await service.enable('@xpert-ai/plugin-decorated', 'decorated-tools')
-        publication.status = 'active'
-        publication.slug = 'legacy-client-specific-slug'
-        installation.config = first.installation.config as typeof installation.config
-        queryBuilder.getOne.mockResolvedValue(installation)
-        const second = await service.enable('@xpert-ai/plugin-decorated', 'decorated-tools')
+            const first = await service.enable('@xpert-ai/plugin-decorated', 'decorated-tools')
+            publication.status = 'active'
+            publication.slug = 'legacy-client-specific-slug'
+            installation.config = first.installation.config as typeof installation.config
+            queryBuilder.getOne.mockResolvedValue(installation)
+            const second = await service.enable('@xpert-ai/plugin-decorated', 'decorated-tools')
 
-        const managedSlug = publications.findManagedBySlug.mock.calls[0][0]
-        expect(managedSlug).toMatch(/^acme-factory-decorated-t-[a-f0-9]{12}$/)
-        expect(managedSlug).not.toContain('tenant-1')
-        expect(managedSlug).not.toContain('org-1')
-        expect(publications.create).not.toHaveBeenCalled()
-        expect(publications.synchronizeManagedSlug).toHaveBeenCalledWith('publication-1', managedSlug)
-        expect(publications.replaceCapabilitiesWithCatalog).toHaveBeenNthCalledWith(1, 'publication-1', capabilities, [
-            expect.objectContaining({
-                capabilityKey: 'read_data',
-                publicName: 'custom_read',
-                enabled: false,
-                policy: { approvalMode: 'deny' }
-            }),
-            expect.objectContaining({
-                capabilityKey: 'write_data',
-                publicName: 'write_data',
-                enabled: true,
-                policy: null
+            const managedSlug = publications.findManagedBySlug.mock.calls[0][0]
+            expect(managedSlug).toMatch(/^acme-factory-decorated-t-[a-f0-9]{12}$/)
+            expect(managedSlug).not.toContain('tenant-1')
+            expect(managedSlug).not.toContain('org-1')
+            expect(publications.create).not.toHaveBeenCalled()
+            expect(publications.synchronizeManagedSlug).toHaveBeenCalledWith('publication-1', managedSlug)
+            expect(publications.replaceCapabilitiesWithCatalog).toHaveBeenNthCalledWith(
+                1,
+                'publication-1',
+                capabilities,
+                [
+                    expect.objectContaining({
+                        capabilityKey: 'read_data',
+                        publicName: 'custom_read',
+                        enabled: false,
+                        policy: { approvalMode: 'deny' }
+                    }),
+                    expect.objectContaining({
+                        capabilityKey: 'write_data',
+                        publicName: 'write_data',
+                        enabled: true,
+                        policy: null
+                    })
+                ]
+            )
+            expect(first.createdApiKey?.secret).toBe('one-time-secret')
+            expect(first.connectionInfo.endpoint).toBe(`http://localhost:3000/api/mcp/p/${managedSlug}`)
+            expect(second.createdApiKey).toBeUndefined()
+            expect(apiKeys.createRevealableForOrganization).toHaveBeenCalledTimes(1)
+            expect(apiKeys.createRevealableForOrganization).toHaveBeenCalledWith(
+                publication,
+                'org-1',
+                expect.any(Object)
+            )
+            expect(publicationAccess.enable).toHaveBeenCalledTimes(2)
+            expect(installer.installRegisteredRuntimeToolProviderToOrganization).toHaveBeenCalledWith({
+                pluginName: '@xpert-ai/plugin-decorated',
+                componentKey: 'decorated-tools',
+                provider: 'decorated',
+                sourceScopeKey: 'tenant:tenant-1:global'
             })
-        ])
-        expect(first.createdApiKey?.secret).toBe('one-time-secret')
-        expect(first.connectionInfo.endpoint).toBe(`http://localhost:3000/api/mcp/p/${managedSlug}`)
-        expect(second.createdApiKey).toBeUndefined()
-        expect(apiKeys.createRevealableForOrganization).toHaveBeenCalledTimes(1)
-        expect(apiKeys.createRevealableForOrganization).toHaveBeenCalledWith(publication, 'org-1', expect.any(Object))
-        expect(publicationAccess.enable).toHaveBeenCalledTimes(2)
-        expect(installer.installRegisteredRuntimeToolProviderToOrganization).toHaveBeenCalledWith({
-            pluginName: '@xpert-ai/plugin-decorated',
-            componentKey: 'decorated-tools',
-            provider: 'decorated',
-            sourceScopeKey: 'tenant:tenant-1:global'
-        })
-        expect(providerScopes).toEqual([null, null])
-        expect(installation.config).toMatchObject({
-            artifactNamespace: 'acme_factory',
-            provider: 'decorated',
-            pluginLevel: 'tenant',
-            publicationScope: 'tenant'
-        })
-    })
+            expect(providerScopes).toEqual([null, null])
+            expect(installation.config).toMatchObject({
+                artifactNamespace: 'acme_factory',
+                provider: 'decorated',
+                pluginLevel: 'tenant',
+                publicationScope: 'tenant'
+            })
+        }
+    )
 
     it('disables only the current organization grant for a tenant plugin', async () => {
         const installation = {

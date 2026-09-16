@@ -1,3 +1,4 @@
+import { z } from 'zod/v3'
 import { BadRequestException, RequestMethod } from '@nestjs/common'
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -39,7 +40,13 @@ jest.mock('@xpert-ai/contracts', () => ({
 	}
 }))
 
+jest.mock('../../../plugin-sdk/src/lib/tool-provider/descriptor', () => ({
+	describeXpertToolProvider: (provider: object) => require('@xpert-ai/plugin-sdk').describeXpertToolProvider(provider)
+}))
+
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+	runtimeToolProviderComponent: jest.requireActual('../../../plugin-sdk/src/lib/tool-provider/component')
+		.runtimeToolProviderComponent,
 	GLOBAL_ORGANIZATION_SCOPE: '__global__',
 	SYSTEM_GLOBAL_SCOPE: 'system:global',
 	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
@@ -52,10 +59,6 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 		getScope: jest.fn(),
 		hasRole: jest.fn()
 	}
-}))
-
-jest.mock('zod-to-json-schema', () => ({
-	zodToJsonSchema: jest.fn(() => ({ type: 'object' }))
 }))
 
 jest.mock('./config', () => ({
@@ -98,7 +101,6 @@ const {
 	describeXpertToolProvider
 } = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
-const { zodToJsonSchema } = require('zod-to-json-schema')
 const { resolvePluginConfigSchema } = require('./plugin-config-schema')
 const { findPluginLoadFailure } = require('./plugin.helper')
 const { resolvePluginLevel } = require('./plugin-instance.entity')
@@ -170,7 +172,6 @@ describe('PluginController', () => {
 		)
 		;(resolvePluginConfigSchema as jest.Mock).mockReturnValue(undefined)
 		;(findPluginLoadFailure as jest.Mock).mockReturnValue(undefined)
-		zodToJsonSchema.mockReturnValue({ type: 'object' })
 		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([])
 		;(pluginInstanceService as any).getDefaultTenantId.mockResolvedValue('default-tenant')
 		;(pluginManagementService as any).readLoadedPluginBundleComponents.mockReturnValue([])
@@ -352,8 +353,8 @@ describe('PluginController', () => {
 					options: {
 						name: 'decorated_read',
 						description: 'Read data.',
-						inputSchema: {},
-						outputSchema: {},
+						inputSchema: z.object({}).strict(),
+						outputSchema: z.object({}).strict(),
 						mcp: {
 							behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
 							requiredContext: ['tenant'],
@@ -413,8 +414,8 @@ describe('PluginController', () => {
 					options: {
 						name: 'decorated_read',
 						description: 'Read data.',
-						inputSchema: {},
-						outputSchema: {},
+						inputSchema: z.object({}).strict(),
+						outputSchema: z.object({}).strict(),
 						mcp: {
 							behavior: { risk: 'read', sideEffect: 'none', idempotency: 'safe' },
 							requiredContext: ['tenant'],

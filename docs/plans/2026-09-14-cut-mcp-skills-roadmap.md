@@ -42,8 +42,12 @@ and packaging delivery, not proof of model behavior in a target deployment.
 
 ## Later batches
 
-- Batch 3: map Skills to Tool Profiles and bind only relevant tools per round.
-  Validate the actual model request, profile transitions and pending task needs.
+- Batch 3: local implementation maps Skills to fine-grained Tool Profiles and
+  exposes four base queries plus discovery/execution gateways in native Xpert.
+  Operation schemas are returned on demand; no host model-binding changes.
+  Portable Codex currently uses static allowlist export; dynamic per-round
+  switching is not claimed for external clients. See
+  [Batch 3 scope and validation](./2026-09-15-cut-mcp-batch3-tool-profiles.md).
 - Batch 4: use real evaluations to decide which tools to merge, remove or hide.
   Do not remove tools merely to meet a count target.
 
