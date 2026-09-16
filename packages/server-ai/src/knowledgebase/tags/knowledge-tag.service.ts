@@ -168,6 +168,53 @@ export class KnowledgeTagService {
         return this.documentTags(knowledgebaseId, documentId)
     }
 
+    async lockImportKnowledgebase(manager: EntityManager, knowledgebaseId: string) {
+        const kb = await this.knowledgebases.assertKnowledgebaseWriteAccess(knowledgebaseId)
+        const current = await this.lockKnowledgebase(manager, kb, 'pessimistic_write')
+        if (!current) throw new NotFoundException()
+        return current
+    }
+
+    async assignImported(
+        manager: EntityManager,
+        knowledgebase: Knowledgebase,
+        documents: KnowledgeDocument[],
+        tagIds: string[]
+    ) {
+        const ids = [...new Set(tagIds)]
+        if (!ids.length) return
+        const currentDocuments: KnowledgeDocument[] = []
+        // Incremental imports can return existing documents, including duplicates within a batch.
+        for (const document of [...new Map(documents.map((doc) => [doc.id, doc])).values()].sort((a, b) =>
+            a.id.localeCompare(b.id)
+        )) {
+            if (document.knowledgebaseId !== knowledgebase.id || document.tenantId !== knowledgebase.tenantId)
+                throw new NotFoundException()
+            const current = await this.lockDocument(manager, document)
+            if (!current || current.hardDeletePendingAt) throw new NotFoundException()
+            currentDocuments.push(current)
+        }
+        const candidates = await this.linkedQuery(knowledgebase, manager)
+            .andWhere('tag.id IN (:...ids)', { ids })
+            .setLock('pessimistic_read', undefined, ['tag'])
+            .getMany()
+        if (candidates.length !== ids.length) throw this.unavailable()
+        for (const document of currentDocuments) {
+            await manager.getRepository(KnowledgeDocumentTag).upsert(
+                ids.map((tagId) => ({
+                    documentId: document.id,
+                    tagId,
+                    tenantId: document.tenantId,
+                    organizationId: document.organizationId,
+                    source: 'manual' as const,
+                    confidence: null
+                })),
+                ['documentId', 'tagId']
+            )
+            await manager.getRepository(KnowledgeDocument).increment({ id: document.id }, 'tagRevision', 1)
+        }
+    }
+
     private availableQuery(kb: Knowledgebase, manager = this.tags.manager) {
         return manager
             .getRepository(Tag)

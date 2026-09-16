@@ -11,6 +11,7 @@
         "KnowledgeParserIncompletePages": "无法确认 PDF 所有页面均已完整解析，请选择支持扫描页识别的解析器重试。",
         "KnowledgeParserResourceLimit": "文档转换达到资源或时间限制，请拆分文档后重试。",
         "KnowledgeParserRuntimeInvalid": "平台文档运行环境缺失或校验失败，请管理员安装并验证对应的 Sandbox Runtime。",
+        "InvalidDocumentImportTags": "文档导入标签无效。请选择同一知识库中的已有标签。",
         "KnowledgeVectorStoreUnavailable": "所选向量存储不可用，请检查插件配置。",
         "KnowledgeVectorStoreImmutable": "知识库创建后不能更改向量存储。",
         "KnowledgeFAQSemanticUnavailable": "无法完成 FAQ 语义反例排除，请检查模型配置后重试。",

@@ -33,6 +33,22 @@ describe('KnowledgeDocumentService analysis preview', () => {
 
   afterEach(() => httpMock?.verify())
 
+  it('preserves the legacy body for imports without tags', () => {
+    const documents = [{ name: 'plain.txt', knowledgebaseId: 'kb' }]
+    service.createBulk(documents, true).subscribe()
+    const request = httpMock.expectOne('/api/knowledge-document/bulk?process=true')
+    expect(request.request.body).toEqual(documents)
+    request.flush([])
+  })
+
+  it('sends batch tags separately from document parser configuration', () => {
+    const documents = [{ name: 'plain.txt', knowledgebaseId: 'kb' }]
+    service.createBulk(documents, true, ['tag']).subscribe()
+    const request = httpMock.expectOne('/api/knowledge-document/bulk?process=true')
+    expect(request.request.body).toEqual({ documents, tagIds: ['tag'] })
+    request.flush([])
+  })
+
   it('loads only the requested analysis page', () => {
     service.getAnalysisPreviewPage('doc-1', 660).subscribe((page) => expect(page.page).toBe(660))
 

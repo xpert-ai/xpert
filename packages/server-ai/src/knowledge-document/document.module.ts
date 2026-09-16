@@ -1,3 +1,4 @@
+import { KnowledgeDocumentImportService } from './document-import.service'
 import { JOB_KNOWLEDGE_AUTO_TAGGING } from './tags/automatic-tagging.command'
 import { KnowledgeAutoTaggingConsumer, KnowledgeAutoTaggingEnqueueHandler } from './tags/automatic-tagging.job'
 import { KnowledgeAutomaticTaggingService } from './tags/automatic-tagging.service'
@@ -70,6 +71,7 @@ import { KnowledgeTableMetadataService } from './tables/table-metadata.service'
     ],
     controllers: [KnowledgeDocumentController, KnowledgeQuestionGenerationController],
     providers: [
+        KnowledgeDocumentImportService,
         KnowledgeTableMetadataService,
         KnowledgeAutoTaggingConsumer,
         KnowledgeAutoTaggingEnqueueHandler,

@@ -972,6 +972,15 @@
         "BatchOtherFormats": "Use the existing document parser for this format."
       },
       "Import": {
+        "TagsHint": "Choose existing knowledgebase tags to apply manually to every document in this import. This does not change knowledgebase defaults or automatic tagging settings.",
+        "TagsSearch": "Search tags",
+        "TagsSelected": "{{count}} selected",
+        "TagsClear": "Clear selection",
+        "TagsLoading": "Loading tags...",
+        "TagsLoadFailed": "Could not load tags. You can retry or import without tags.",
+        "TagsRetry": "Retry",
+        "TagsEmpty": "No available tags. Select available tags in knowledgebase settings first.",
+        "TagsNoMatches": "No matching tags",
         "EditDefaultsHint": "Settings apply only to this document. Saving starts the selected processing operation.",
         "Close": "Close",
         "Cancel": "Cancel",
