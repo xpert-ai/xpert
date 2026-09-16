@@ -88,6 +88,22 @@
     />
   } @else {
     @switch (xUiComponent()) {
+      @case ('slider') {
+        <div class="flex min-w-0 items-center gap-3">
+          <z-slider
+            class="min-w-0 flex-1"
+            [min]="controlInput('min', numberSchema()?.minimum ?? 0)"
+            [max]="controlInput('max', numberSchema()?.maximum ?? 100)"
+            [step]="controlInput('step', numberSchema()?.multipleOf ?? 1)"
+            [disabledInput]="readonly()"
+            [attr.aria-label]="label() | i18n"
+            [ngModel]="value$()"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="update($event)"
+          />
+          <span class="shrink-0 text-sm tabular-nums text-text-secondary">{{ value$() }}</span>
+        </div>
+      }
       @case ('checkbox') {
         <z-checkbox
           displayDensity="compact"
