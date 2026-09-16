@@ -17,8 +17,6 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
-import { createHash } from 'node:crypto'
-import { zodToJsonSchema } from 'zod-to-json-schema'
 import {
 	IPluginConfiguration,
 	type IPluginComponentDocument,
@@ -39,7 +37,7 @@ import {
 	RequestContext,
 	SYSTEM_GLOBAL_SCOPE,
 	XpertToolProviderRegistry,
-	describeXpertToolProvider,
+	runtimeToolProviderComponent,
 	resolveTenantGlobalScopeKey
 } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
@@ -814,51 +812,6 @@ function summarizePluginComponents(components: Array<{ componentType: PluginComp
 	return summary
 }
 
-function runtimeToolProviderComponent(provider: object): IPluginComponentDefinition {
-	const descriptor = describeXpertToolProvider(provider)
-	const options = descriptor.options
-	const toolDescriptors = descriptor.tools.map((tool) => ({
-		name: tool.options.name,
-		title: tool.options.title,
-		description: tool.options.description,
-		middleware: tool.middlewareProvider,
-		mcp: tool.options.mcp
-			? {
-					behavior: tool.options.mcp.behavior,
-					requiredContext: [...tool.options.mcp.requiredContext],
-					visibility: [...(tool.options.mcp.visibility ?? ['model'])],
-					inputSchema: JSON.parse(JSON.stringify(zodToJsonSchema(tool.options.inputSchema))),
-					outputSchema: tool.options.outputSchema
-						? JSON.parse(JSON.stringify(zodToJsonSchema(tool.options.outputSchema)))
-						: null
-				}
-			: null
-	}))
-	const config = {
-		provider: options.provider,
-		name: options.name,
-		description: options.description ?? null,
-		instructions: options.instructions ?? null,
-		runtimeDiscovered: true,
-		nativeMcp: true,
-		toolCount: toolDescriptors.filter((tool) => !!tool.mcp).length
-	}
-	const metadata = {
-		runtimeDiscovered: true,
-		nativeMcp: true,
-		toolNames: toolDescriptors.filter((tool) => !!tool.mcp).map((tool) => tool.name)
-	}
-	return {
-		componentType: PLUGIN_COMPONENT_TYPE.TOOLSET,
-		componentKey: options.componentKey,
-		config,
-		metadata,
-		definitionHash: createHash('sha256')
-			.update(stableJson({ config, metadata, tools: toolDescriptors }))
-			.digest('hex')
-	}
-}
-
 function componentIdentity(component: Pick<IPluginComponentDefinition, 'componentType' | 'componentKey'>) {
 	return `${component.componentType}:${component.componentKey}`
 }
@@ -867,14 +820,6 @@ function readJsonString(value: unknown, key: string) {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
 	const field = Reflect.get(value, key)
 	return typeof field === 'string' && field ? field : undefined
-}
-
-function stableJson(value: unknown): string {
-	if (value === undefined) return 'null'
-	if (value === null || typeof value !== 'object') return JSON.stringify(value)
-	if (Array.isArray(value)) return `[${value.map((item) => stableJson(item)).join(',')}]`
-	const entries = Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
-	return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`
 }
 
 /**

@@ -6,7 +6,7 @@ export const XPERT_TOOL_PROVIDER = 'XPERT_TOOL_PROVIDER'
 export const XPERT_TOOL_PROVIDER_METADATA = 'XPERT_TOOL_PROVIDER_METADATA'
 export const XPERT_TOOL_METHOD_METADATA = 'XPERT_TOOL_METHOD_METADATA'
 
-/** Marks one injectable business service as a reusable Tool provider and one native MCP service. */
+/** Marks one injectable business service as a shared Tool, Resource and Prompt provider. */
 export const XpertToolProvider = (options: XpertToolProviderOptions): ClassDecorator =>
   applyDecorators(
     Injectable(),

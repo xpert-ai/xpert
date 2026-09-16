@@ -2,12 +2,18 @@ jest.mock('@nestjs/typeorm', () => ({
     InjectRepository: () => () => undefined
 }))
 
+jest.mock('../../../../../plugin-sdk/src/lib/tool-provider/descriptor', () => ({
+    describeXpertToolProvider: (provider: object) => require('@xpert-ai/plugin-sdk').describeXpertToolProvider(provider)
+}))
+
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+    runtimeToolProviderComponent: jest.requireActual('../../../../../plugin-sdk/src/lib/tool-provider/component')
+        .runtimeToolProviderComponent,
     GLOBAL_ORGANIZATION_SCOPE: 'global',
     SYSTEM_GLOBAL_SCOPE: 'system:global',
     RequestContext: {
         getOrganizationId: jest.fn(() => 'org-1'),
-        getScope: jest.fn(() => ({ tenantId: 'tenant-1' })),
+        getScope: jest.fn(() => ({ tenantId: 'tenant-1', organizationId: 'org-1' })),
         currentTenantId: jest.fn(() => 'tenant-1')
     },
     resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) => `global:${tenantId ?? 'default'}`),
@@ -49,10 +55,11 @@ jest.mock('../../plugin-resource-installation.entity', () => ({
 import {
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_RESOURCE_INSTALLATION_STATUS,
-    PLUGIN_RESOURCE_RUNTIME_TYPE
+    PLUGIN_RESOURCE_RUNTIME_TYPE,
+    RequestScopeLevel
 } from '@xpert-ai/contracts'
 import { collectPluginBundleComponents } from '@xpert-ai/server-core'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, runtimeToolProviderComponent } from '@xpert-ai/plugin-sdk'
 import { ListPluginResourceComponentStatesHandler } from './list-component-states.handler'
 import { ListPluginResourceComponentStatesQuery } from '../list-component-states.query'
 
@@ -60,6 +67,11 @@ describe('ListPluginResourceComponentStatesHandler', () => {
     beforeEach(() => {
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-1')
         jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant-1')
+        jest.mocked(RequestContext.getScope).mockImplementation(() => ({
+            tenantId: RequestContext.currentTenantId(),
+            level: RequestContext.getOrganizationId() ? RequestScopeLevel.ORGANIZATION : RequestScopeLevel.TENANT,
+            organizationId: RequestContext.getOrganizationId()
+        }))
         jest.mocked(collectPluginBundleComponents).mockReturnValue([
             {
                 componentType: PLUGIN_COMPONENT_TYPE.SKILL,
@@ -224,6 +236,41 @@ describe('ListPluginResourceComponentStatesHandler', () => {
                 status: PLUGIN_RESOURCE_INSTALLATION_STATUS.READY,
                 installation: null
             })
+        ])
+    })
+
+    it('marks an installed provider stale when only its resource definition changes', async () => {
+        const resource = { key: 'project', uri: 'cut://project', read: () => ({ contents: [] }) }
+        const provider = {
+            descriptor: { options: { provider: 'cut', componentKey: 'cut', name: 'Cut' }, tools: [] },
+            getMcpExtensions: () => ({ resources: [resource] })
+        }
+        const installedComponent = runtimeToolProviderComponent(provider)
+        const { handler } = createHandler({
+            installations: [
+                {
+                    ...installedComponent,
+                    pluginName: '@xpert-ai/plugin-cut',
+                    workspaceId: null,
+                    runtimeType: PLUGIN_RESOURCE_RUNTIME_TYPE.TOOLSET,
+                    runtimeId: 'cut-tools',
+                    status: PLUGIN_RESOURCE_INSTALLATION_STATUS.READY
+                }
+            ],
+            runtimeRegistrations: [
+                {
+                    strategy: provider,
+                    source: { kind: 'plugin', pluginName: '@xpert-ai/plugin-cut', scopeKey: 'org-1' }
+                }
+            ]
+        })
+        const query = new ListPluginResourceComponentStatesQuery('@xpert-ai/plugin-cut', { target: 'organization' })
+        expect(await handler.execute(query)).toEqual([
+            expect.objectContaining({ installed: true, staleDefinition: false })
+        ])
+        resource.uri = 'cut://project-v2'
+        expect(await handler.execute(query)).toEqual([
+            expect.objectContaining({ installed: true, staleDefinition: true })
         ])
     })
 

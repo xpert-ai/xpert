@@ -67,6 +67,50 @@ export class OrderOperationsTools {
 
 MCP exposure is explicit. Provide strict Zod input/output schemas and return an allowlisted DTO; the host validates the output and maps it to `structuredContent` and a JSON `TextContent` block so clients that only expose text can still read the result. With `resultFormat: 'tool_result'`, image and other content blocks are preserved and the validated structured metadata also receives a JSON text fallback. Invocation context is constructed for every call and must never be cached on the Provider singleton. `getMiddlewareExtensions()` may add Agent-only hooks such as `wrapToolCall`, but business-critical behavior belongs in the method or shared service.
 
+Use the same `@XpertToolProvider` class for every capability:
+
+| Decorator                | Method signature                                                | Result                       |
+| ------------------------ | --------------------------------------------------------------- | ---------------------------- |
+| `@XpertTool`             | `(input, context)`                                              | Tool DTO or content envelope |
+| `@XpertResource`         | `(context: ResourceReadContext)`                                | `McpResourceReadResult`      |
+| `@XpertResourceTemplate` | `(args: Record<string, string>, context: ResourceReadContext)`  | `McpResourceReadResult`      |
+| `@XpertPrompt`           | `(args: Record<string, string>, context: ToolExecutionContext)` | `McpPromptResult`            |
+
+No business base class is required. All four decorators support inherited methods;
+a child override replaces the parent declaration, and an undecorated override
+removes that exposure. The SDK reuses its existing `BuiltinToolset` adapter.
+Resource-only and prompt-only providers are supported. Template and prompt options
+can specify `completionMethod` to bind an instance `McpCompletionHandler`.
+
+```ts
+@XpertResourceTemplate({
+  key: 'project', uriTemplate: 'example://projects/{projectId}',
+  arguments: { projectId: { required: true } }, requiredContext: ['tenant', 'principal']
+})
+readProject(args: Record<string, string>, context: ResourceReadContext) {
+  return this.projects.readResource(args.projectId, context)
+}
+```
+
+Handlers receive the current caller's context and retain their provider `this`.
+Do not cache caller context on a singleton. `getMcpExtensions()` remains a legacy
+compatibility hook; duplicate keys or public URIs/names are rejected when merged
+with decorated declarations. Runtime publication and component fingerprints use
+the same resolved definitions. App bundles remain in provider options.
+
+Use `mcp.task` for the existing MCP task policy and `mcp.inputSchema` for stricter
+transport inputs (for example, requiring project identity that native Workbench
+calls may infer). The MCP adapter validates the shared schema first, then the
+transport schema. The transport schema is advertised to MCP clients. Native
+methods also receive execution-scoped workspace files via `context.host.files`
+and the current Agent feature configuration via `context.xpertFeatures`.
+
+Existing tools without a structured output contract may explicitly select
+`resultFormat: 'tool_result'` and omit `outputSchema`. The SDK still validates the
+content envelope and media blocks, but does not claim to validate business fields
+in `structuredContent`. DTO-format MCP methods continue to require a strict
+output schema, and supplied output schemas retain their validation.
+
 For completed operations, `prepareToolResult(() => project(result), () => minimalReceipt)` defers output mapping to the adapter. The normal path maps and validates once; projection, validation or JSON serialization failures recover a bounded receipt without executing the business method again. Declare `outputSchema: z.union([normalSchema, receiptSchema])`, with strict objects in every branch. The fallback is validated too. Business exceptions thrown before the method returns remain errors. With `tool_result`, both callbacks return the content envelope and the union describes its structured metadata. The MCP protocol still validates the published JSON Schema; custom Zod refinements remain enforced by the SDK. Do not put side effects inside either callback.
 
 For a host-native MCP App, declare each static HTML bundle once in the Provider's `apps` array, then bind a Tool with `mcp.app.resourceKey` and include `app` visibility. The App key must exist in the same Provider and its entry must be a relative `.html` path inside the packaged plugin. The host publishes the bundle as a `ui://` resource; plugins must not create a stdio server or put CSP/credentials in Tool results.
