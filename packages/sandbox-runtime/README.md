@@ -50,3 +50,29 @@ Pull requests that touch `packages/sandbox-runtime/**` or Runtime Definitions bu
 - OSS Sandbox Jobs Core: Runtime Definitions, Action validation, Job state, Binding selection, capacity, files, audit and health aggregation.
 - Runtime Provider plugins: turn a compatible Binding into one isolated Runtime instance.
 - Sandbox Action plugins: declare only an Action, version and required Runtime Profile.
+
+## Managed native and Java document conversion
+
+`document/node-20/v1` (`document-node`) provides Node 20.20.2 and AnyDoc 0.2.4 with its platform-native module. `document/java-17/v1` (`document-java`) provides the shared Node Runner, Temurin Java 17.0.16+8 and the official OpenDataLoader PDF 2.5.8 CLI. Plugin Actions carry conversion logic; the Runtime owns these offline dependencies. No parser-specific executable path or runtime download is accepted from a document.
+
+The dependency locks pin npm SRI or archive/JAR SHA-256 values. Their digest appears in the manifest and Runtime Definition. Local installs publish a complete versioned cache atomically; missing or mismatched caches fail health checks. The local Provider exposes `XPERT_SANDBOX_DOCUMENT_DEPENDENCY_ROOT` from that managed cache. OCI images expose the same contract through a root-owned dependency directory. This variable is internal to the trusted Runtime Provider, not application/parser configuration.
+
+Use Node 20.20.2 when running the local installation and verification commands:
+
+```sh
+corepack pnpm --filter @xpert-ai/sandbox-runtime install:document-node
+corepack pnpm --filter @xpert-ai/sandbox-runtime install:document-java
+corepack pnpm --filter @xpert-ai/sandbox-runtime verify:local-document-node
+corepack pnpm --filter @xpert-ai/sandbox-runtime verify:local-document-java
+```
+
+From the repository root, build and smoke-test the production images using the existing release tooling:
+
+```sh
+docker build --platform linux/amd64 -f packages/sandbox-runtime/images/document-node/Dockerfile -t xpert-document-node:local .
+node packages/sandbox-runtime/scripts/verify-image.mjs --family document-node --image xpert-document-node:local
+docker build --platform linux/amd64 -f packages/sandbox-runtime/images/document-java/Dockerfile -t xpert-document-java:local .
+node packages/sandbox-runtime/scripts/verify-image.mjs --family document-java --image xpert-document-java:local
+```
+
+Neither command installs a plugin into an API process. Production activation still requires publishing the Runtime artifact and binding its digest through the configured Provider. Local process bindings remain disabled outside development/test.

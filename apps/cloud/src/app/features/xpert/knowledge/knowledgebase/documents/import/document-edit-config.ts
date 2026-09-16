@@ -7,6 +7,7 @@ import {
 } from '@xpert-ai/contracts'
 import { cloneDeep } from 'lodash-es'
 import { documentFileType } from '../../../processing/document-file-types'
+import { applySpreadsheetParserMode } from '../../../processing/spreadsheet-parser-mode'
 
 export function documentProcessingDraft(
   document: Partial<IKnowledgeDocument>,
@@ -83,5 +84,5 @@ export function editedDocumentParserConfig(
   config.transformerType = parser?.transformerType ?? null
   config.transformer = parser?.transformer ?? null
   config.transformerIntegration = parser?.transformerIntegration ?? null
-  return cloneDeep(config)
+  return cloneDeep(applySpreadsheetParserMode(document, config, parser))
 }

@@ -852,6 +852,9 @@
         "NegativeQuestionHint": "Add questions that should not match this FAQ. The knowledgebase applies exact or semantic exclusion. Negatives affect only this FAQ and never participate in positive retrieval."
       },
       "ParserCoverageIncomplete": "Completed with unrecognized content",
+      "ParserImagesIncomplete": "Completed with image recognition errors",
+      "ParserImagesFailed": "{{count}} image(s) could not be recognized. Check the model and retry.",
+      "ParserImagesSkipped": "{{count}} image(s) were skipped.",
       "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "AutomaticTagging": {
         "Title": "Automatic tagging",
@@ -1242,6 +1245,9 @@
           "SelectParser": "Select a parser",
           "NoParser": "No parser available",
           "BuiltinParser": "Builtin parser",
+          "SpreadsheetDocumentMode": "Document parsing",
+          "SpreadsheetBuiltinModeHelp": "Imports independently searchable row records by default. Existing builtin form-document settings are preserved.",
+          "SpreadsheetDocumentModeHelp": "Document parsing: the selected plugin extracts spreadsheet content without creating row records. Document mode is applied on submission.",
           "MissingIntegration": "Select an integration for the parser.",
           "GroupParserFallback": "{{formats}} are not supported by the selected parser and will use the system default parser.",
           "MixedParserSettings": "This group has different saved settings. Selecting a parser applies it to the group.",

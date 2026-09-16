@@ -12,6 +12,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import {
   JsonSchema7ArrayType,
   JsonSchema7EnumType,
+  JsonSchema7NumberType,
   JsonSchema7ObjectType,
   JsonSchema7StringType,
   JsonSchema7Type,
@@ -26,6 +27,7 @@ import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.
 import {
   ZardCheckboxComponent,
   ZardInputDirective,
+  ZardSliderComponent,
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
@@ -54,6 +56,7 @@ type JsonSchemaPropertyContext = {
     XpertRemoteSelectComponent,
     JsonSchemaWidgetOutletComponent,
     ZardInputDirective,
+    ZardSliderComponent,
     ZardSwitchComponent,
     ZardCheckboxComponent
   ],
@@ -111,6 +114,7 @@ export class JSONSchemaPropertyComponent implements OnInit {
   readonly propertyDescription = computed(() => this.xUiDescription() || this.meta()?.description)
   readonly placeholderMeta = computed(() => this.propertyDescription() || this.xUiTitle() || this.meta()?.title || '')
   readonly stringSchema = computed(() => this.schema() as JsonSchema7StringType)
+  readonly numberSchema = computed(() => this.schema() as JsonSchema7NumberType)
   readonly arraySchema = computed(() => this.schema() as JsonSchema7ArrayType)
   readonly objectSchema = computed(() => this.schema() as JsonSchema7ObjectType)
   readonly enumSchema = computed(() => this.schema() as JsonSchema7EnumType)

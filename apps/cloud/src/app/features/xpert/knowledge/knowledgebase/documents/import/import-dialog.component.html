@@ -180,27 +180,14 @@
           {{ (editing ? prefix + '.EditDefaultsHint' : prefix + '.DefaultsHint') | translate }}
         </p>
         <fieldset class="min-w-0" [disabled]="busy()" [hidden]="!activeSection().available">
-          @if (onlySheet() && section() === 'images') {
-            <xp-knowledge-document-create-settings
-              class="block min-w-0"
-              [knowledgebaseValue]="data.knowledgebase"
-              section="images"
-              [documents]="documentsWithParserConfig()"
-              [documentConfigIsResolved]="true"
-              [parserConfig]="activeParserConfig()"
-              (parserConfigChange)="updateSheetParserConfig($event)"
-            />
-          }
-          @if (!onlySheet() || section() !== 'images') {
-            <xp-knowledge-processing-settings
-              class="block min-w-0"
-              [form]="processing"
-              [documents]="onlySheet() ? documentsWithParserConfig() : pendingDocuments()"
-              [section]="processingSection()"
-              scope="documents"
-              [showHeading]="false"
-            />
-          }
+          <xp-knowledge-processing-settings
+            class="block min-w-0"
+            [form]="processing"
+            [documents]="onlySheet() ? documentsWithParserConfig() : pendingDocuments()"
+            [section]="processingSection()"
+            scope="documents"
+            [showHeading]="false"
+          />
         </fieldset>
         @if (!activeSection().available) {
           <div role="status" class="border-t border-divider-subtle py-6 text-sm text-text-secondary">

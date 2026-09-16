@@ -387,11 +387,21 @@ export type DocumentParserDiagnostics = {
   }[]
 }
 
+export type KnowledgeImageUnderstandingWarning = {
+  type: 'image_understanding_skipped' | 'image_understanding_failed'
+  message: string
+  assetCount?: number
+  imagePath?: string
+  imageUrl?: string
+  parentChunkId?: string
+}
+
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
   /** Server-owned identity and label of the last completed document conversion. */
   parser?: string
   parserLabel?: I18nObject
   parserDiagnostics?: DocumentParserDiagnostics
+  imageUnderstandingWarnings?: KnowledgeImageUnderstandingWarning[]
   /** Server-owned generated table descriptions and publication state. */
   tableMetadata?: KnowledgeTableMetadata
   /** Existing source summary, available to optional document classifiers. */

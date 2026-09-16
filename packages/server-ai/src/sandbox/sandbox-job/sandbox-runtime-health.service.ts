@@ -14,6 +14,7 @@ import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.r
 
 const HEARTBEAT_INTERVAL_MS = 15_000
 const HEARTBEAT_TTL_MS = 45_000
+const FAILED_HEALTH_TTL_MS = 5_000
 const HEALTH_KEY_PREFIX = 'sandbox_runtime:{health}'
 const WRITE_HASH_SCRIPT = `redis.call('HSET', KEYS[1], ARGV[1], ARGV[2]); redis.call('PEXPIRE', KEYS[1], ARGV[3]); return 1`
 const DELETE_HASH_FIELD_SCRIPT = `redis.call('HDEL', KEYS[1], ARGV[1]); return 1`
@@ -43,7 +44,10 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
     private readonly logger = new Logger(SandboxRuntimeHealthService.name)
     private readonly executorId = `${os.hostname()}:${process.pid}:${randomUUID()}`
     private readonly latest = new Map<string, SandboxRuntimeHealthRecord>()
+    private readonly pendingProbes = new Map<string, Promise<SandboxRuntimeHealthRecord>>()
     private heartbeatTimer?: ReturnType<typeof setInterval>
+    private refreshing = false
+    private stopped = false
 
     constructor(
         @Inject(MANAGED_QUEUE_SERVICE_TOKEN)
@@ -59,6 +63,7 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
     }
 
     async onModuleDestroy(): Promise<void> {
+        this.stopped = true
         if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
         const redis = await this.queue.getRedis().catch(() => null)
         if (!redis) return
@@ -78,7 +83,7 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
      * avoid repeatedly inspecting Runtime artifacts from UI health requests.
      */
     async getProfileHealth(definition: SandboxRuntimeDefinition): Promise<SandboxRuntimeHealthRecord> {
-        const cached = this.latest.get(definition.name)
+        const cached = this.latest.get(probeKey(definition))
         if (cached?.expiresAt > Date.now()) return cached
         const record = await this.probe(definition)
         await this.publish(record).catch((error) => {
@@ -88,24 +93,45 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
     }
 
     private async refreshAll(): Promise<void> {
-        for (const definition of this.definitions.list()) {
-            try {
-                await this.publish(await this.probe(definition))
-            } catch (error) {
-                this.logger.warn(`Sandbox Runtime health heartbeat failed for ${definition.name}: ${messageOf(error)}`)
+        if (this.refreshing || this.stopped) return
+        this.refreshing = true
+        try {
+            for (const definition of this.definitions.list()) {
+                if (this.stopped) break
+                try {
+                    await this.publish(await this.probe(definition))
+                } catch (error) {
+                    this.logger.warn(
+                        `Sandbox Runtime health heartbeat failed for ${definition.name}: ${messageOf(error)}`
+                    )
+                }
             }
+        } finally {
+            this.refreshing = false
         }
     }
 
     private async probe(definition: SandboxRuntimeDefinition): Promise<SandboxRuntimeHealthRecord> {
-        const health = await this.selector.inspect(definition)
-        const record = recordFromSelection(this.executorId, definition, health)
-        this.latest.set(definition.name, record)
-        return record
+        const key = probeKey(definition)
+        const pending = this.pendingProbes.get(key)
+        if (pending) return pending
+        const probe = this.selector.inspect(definition).then((health) => {
+            const record = recordFromSelection(this.executorId, definition, health)
+            this.latest.set(key, record)
+            return record
+        })
+        this.pendingProbes.set(key, probe)
+        try {
+            return await probe
+        } finally {
+            this.pendingProbes.delete(key)
+        }
     }
 
     private async publish(record: SandboxRuntimeHealthRecord): Promise<void> {
+        if (this.stopped) return
         const redis = await this.queue.getRedis()
+        if (this.stopped) return
         await redis.eval(
             WRITE_HASH_SCRIPT,
             1,
@@ -147,8 +173,12 @@ function recordFromSelection(
               }
             : {}),
         checkedAt,
-        expiresAt: checkedAt + HEARTBEAT_TTL_MS
+        expiresAt: checkedAt + (resolution ? HEARTBEAT_TTL_MS : FAILED_HEALTH_TTL_MS)
     }
+}
+
+function probeKey(definition: SandboxRuntimeDefinition): string {
+    return `${definition.name}:${definition.sandboxRuntimeVersion}:${JSON.stringify(definition.expectedManifest)}`
 }
 
 function healthKey(runtimeProfile: string): string {

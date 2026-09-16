@@ -3414,8 +3414,6 @@
       "EmptyDescription": "Claw Xpert 或当前工作区创建的知识库会显示在这里。"
     },
     "WorkspaceSettings": {
-      "ParserCoverageIncomplete": "完成，但有内容未识别",
-      "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
       "Title": "工作区设置",
       "Description": "管理当前工作区的基本信息、模型、成员和 API 密钥。"
     },
@@ -6676,6 +6674,11 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "ParserCoverageIncomplete": "完成，但有内容未识别",
+      "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
+      "ParserImagesIncomplete": "完成，但图片识别有失败",
+      "ParserImagesFailed": "有 {{count}} 张图片未能识别，请检查模型后重新处理。",
+      "ParserImagesSkipped": "已跳过 {{count}} 张图片。",
       "AutomaticTagging": {
         "Title": "自动关联标签",
         "Description": "文档处理完成后，只从当前知识库选定的已有标签中分类，不生成新标签。",
@@ -7171,6 +7174,9 @@
           "SelectParser": "请选择解析器",
           "NoParser": "暂无可用解析器",
           "BuiltinParser": "内置解析器",
+          "SpreadsheetDocumentMode": "文档解析",
+          "SpreadsheetBuiltinModeHelp": "默认按行记录入库，每行可独立检索；已有内置表单文档配置保持不变。",
+          "SpreadsheetDocumentModeHelp": "文档解析：使用所选插件提取表格正文，不生成逐行记录。提交时自动使用文档模式。",
           "MissingIntegration": "请为解析器选择可用集成。",
           "GroupParserFallback": "{{formats}} 不受所选解析器支持，将使用系统默认解析器。",
           "MixedParserSettings": "此组已有不同配置；重新选择解析器后统一应用。",

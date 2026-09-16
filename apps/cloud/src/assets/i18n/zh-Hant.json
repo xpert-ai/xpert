@@ -2307,8 +2307,6 @@
       "Logout": "退出賬號",
       "Integration": "集成",
       "HOME": {
-        "ParserCoverageIncomplete": "完成，但有內容未識別",
-        "ParserCoveragePages": "第 {{pages}} 頁仍有內容未識別。請開啟圖像理解並設定可用的視覺模型，或選擇 OCR 解析器後重新處理。",
         "TODAY": "今天",
         "Catalog": "目錄",
         "Trending": "熱門",
@@ -5070,6 +5068,11 @@
       "Unavailable": "請先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "ParserCoverageIncomplete": "完成，但有內容未識別",
+      "ParserCoveragePages": "第 {{pages}} 頁仍有內容未識別。請開啟圖像理解並設定可用的視覺模型，或選擇 OCR 解析器後重新處理。",
+      "ParserImagesIncomplete": "完成，但圖片識別有失敗",
+      "ParserImagesFailed": "有 {{count}} 張圖片未能識別，請檢查模型後重新處理。",
+      "ParserImagesSkipped": "已略過 {{count}} 張圖片。",
       "TableMetadata": {
         "Title": "表格中繼資料",
         "Scope": "適用於預設解析器的 CSV/XLS/XLSX 記錄模式。表單文件、自訂解析器、文字模式及管線暫不支援。",
