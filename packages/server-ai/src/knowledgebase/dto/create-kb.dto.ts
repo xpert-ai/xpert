@@ -1,4 +1,5 @@
 import {
+    VectorTypeEnum,
     ICopilotModel,
     IKnowledgebase,
     KnowledgebaseFAQConfig,
@@ -11,10 +12,15 @@ import {
 } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Expose } from 'class-transformer'
-import { IsBoolean, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'
+import { IsEnum, IsBoolean, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'
 
 @Expose()
 export class CreateKnowledgebaseDTO implements Partial<IKnowledgebase> {
+    @ApiPropertyOptional({ enum: VectorTypeEnum })
+    @IsEnum(VectorTypeEnum)
+    @IsOptional()
+    vectorStore?: VectorTypeEnum | null
+
     @ApiProperty({ type: 'string', format: 'uuid', description: 'Integration ID of knowledge base system' })
     @IsUUID('4')
     @IsOptional()

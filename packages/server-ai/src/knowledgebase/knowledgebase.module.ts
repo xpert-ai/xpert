@@ -1,3 +1,4 @@
+import { RagVStoreModule } from '../rag-vstore'
 import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
 import { KnowledgeDocumentTag } from './tags/document-tag.entity'
 import { KnowledgeTagService } from './tags/knowledge-tag.service'
@@ -67,6 +68,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
 
 @Module({
     imports: [
+        RagVStoreModule,
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
         TypeOrmModule.forFeature([
             Tag,

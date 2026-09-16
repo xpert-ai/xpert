@@ -56,6 +56,7 @@ import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
 import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
+import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
 
 @ApiTags('Knowledgebase')
@@ -81,6 +82,16 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     @Post('by-workspace/:workspaceId/preview-chunks')
     previewChunks(@Body() input: KnowledgeChunkPreviewInput) {
         return this.parserSettings.preview(input)
+    }
+
+    @Inject(VectorStoreSettingsService)
+    private readonly vectorStoreSettings: VectorStoreSettingsService
+
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
+    @Get('vector-stores')
+    vectorStores() {
+        return this.vectorStoreSettings.options()
     }
 
     constructor(

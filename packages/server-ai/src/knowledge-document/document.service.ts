@@ -1449,10 +1449,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async syncMilvusFilterAttributes(documentIds: string[]) {
-        if (environment.vectorStore !== VectorTypeEnum.MILVUS || !documentIds.length) return
-        const { items: documents } = await this.findAll({ where: { id: In(documentIds) } })
+        if (!documentIds.length) return
+        const { items } = await this.findAll({ where: { id: In(documentIds) }, relations: ['knowledgebase'] })
+        const documents = items.filter(
+            (document) =>
+                document.knowledgebaseId &&
+                (document.knowledgebase?.vectorStore ?? environment.vectorStore) === VectorTypeEnum.MILVUS
+        )
+        if (!documents.length) return
         const { items: chunks } = await this.chunkService.findAll({
-            where: { documentId: In(documentIds) },
+            where: { documentId: In(documents.map((document) => document.id)) },
             order: { createdAt: 'ASC' }
         })
         const byDocument = new Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>()
@@ -1463,7 +1469,6 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
         const stores = new Map<string, KnowledgeDocumentStore>()
         for (const document of documents) {
-            if (!document.knowledgebaseId) continue
             let store = stores.get(document.knowledgebaseId)
             if (!store) {
                 store = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
@@ -2226,13 +2231,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             return { ...current, metadata }
         })
         const result = await this.chunkService.updateMetadataBulk(merged)
-        if (environment.vectorStore === VectorTypeEnum.MILVUS) {
-            for (const document of documents) {
-                const documentChunks = merged.filter((chunk) => chunk.documentId === document.id)
-                if (!documentChunks.length) continue
-                const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
-                await vectorStore.partialUpdateFilterAttributes(document, documentChunks)
-            }
+        for (const document of documents) {
+            if ((document.knowledgebase?.vectorStore ?? environment.vectorStore) !== VectorTypeEnum.MILVUS) continue
+            const documentChunks = merged.filter((chunk) => chunk.documentId === document.id)
+            if (!documentChunks.length) continue
+            const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
+            await vectorStore.partialUpdateFilterAttributes(document, documentChunks)
         }
         return result
     }

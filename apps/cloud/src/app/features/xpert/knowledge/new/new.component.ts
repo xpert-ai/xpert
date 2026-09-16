@@ -1,5 +1,5 @@
 import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
-import { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
+import { KnowledgeAutomaticTaggingConfig, VectorTypeEnum, KnowledgeVectorStoreOptions } from '@xpert-ai/contracts'
 import { AutomaticTaggingSettingsComponent } from '../tags/automatic-tagging-settings.component'
 import { createKnowledgeProcessingForm } from '../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
@@ -168,6 +168,17 @@ export class XpertNewKnowledgeComponent {
     { key: 'storage', group: 'Storage', labelKey: 'Sections.Storage', icon: 'ri-hard-drive-3-line', status: 'preview' }
   ]
 
+  readonly vectorStore = model<VectorTypeEnum | 'system'>(this.#initialKnowledgebase?.vectorStore ?? 'system')
+  readonly vectorStoreOptions = signal<KnowledgeVectorStoreOptions | null>(null)
+
+  async loadVectorStores() {
+    try {
+      this.vectorStoreOptions.set(await firstValueFrom(this.knowledgebaseService.getVectorStores()))
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
+  }
+
   readonly name = model<string>(this.#initialKnowledgebase?.name ?? '')
   readonly description = model<string>(this.#initialKnowledgebase?.description ?? '')
   readonly type = model<KnowledgebaseTypeEnum>(this.#initialKnowledgebase?.type ?? KnowledgebaseTypeEnum.Standard)
@@ -261,11 +272,13 @@ export class XpertNewKnowledgeComponent {
   })
 
   constructor() {
+    if (this.activeSection() === 'vector-storage') void this.loadVectorStores()
     if (['parser', 'chunk'].includes(this.activeSection())) void this.processing.loadStrategies()
   }
 
   selectSection(section: SectionKey) {
     this.activeSection.set(section)
+    if (section === 'vector-storage' && !this.vectorStoreOptions()) void this.loadVectorStores()
     if (['parser', 'chunk'].includes(section)) void this.processing.loadStrategies()
   }
 
@@ -498,6 +511,8 @@ export class XpertNewKnowledgeComponent {
     if (!this.isEditMode()) {
       payload.workspaceId = this.workspaceId()
       payload.type = this.type()
+      const vectorStore = this.vectorStore()
+      if (vectorStore !== 'system') payload.vectorStore = vectorStore
       if (this.isFAQ()) {
         const config = this.faqConfig()
         const { threshold, margin } = this.faqSemanticForm.getRawValue()

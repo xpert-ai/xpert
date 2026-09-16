@@ -2,6 +2,7 @@ import type { KnowledgeAutomaticTaggingConfig } from './knowledge-tag.model'
 import type { KnowledgeChunkLanguageHint } from './knowledge-chunking.model'
 import type { KnowledgeQuestionGenerationConfig } from './knowledge-question.model'
 import type { TKBRetrievalSettings } from './xpert.model'
+import { VectorTypeEnum } from './rag'
 import { ICopilotModel } from './copilot-model.model'
 import { I18nObject, TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -109,7 +110,14 @@ export type KnowledgebaseParserConfig = {
 /**
  * Type of rag knowledgebase
  */
+export interface KnowledgeVectorStoreOptions {
+  default: VectorTypeEnum
+  stores: { type: VectorTypeEnum }[]
+}
+
 export type TKnowledgebase = {
+  /** Null on legacy knowledgebases: use the deployment default. */
+  vectorStore?: VectorTypeEnum | null
   /**
    * KB name
    */
