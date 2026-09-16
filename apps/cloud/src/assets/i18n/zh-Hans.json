@@ -3414,8 +3414,6 @@
       "EmptyDescription": "Claw Xpert 或当前工作区创建的知识库会显示在这里。"
     },
     "WorkspaceSettings": {
-      "ParserCoverageIncomplete": "完成，但有内容未识别",
-      "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
       "Title": "工作区设置",
       "Description": "管理当前工作区的基本信息、模型、成员和 API 密钥。"
     },
@@ -6676,6 +6674,11 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "ParserCoverageIncomplete": "完成，但有内容未识别",
+      "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
+      "ParserImagesIncomplete": "完成，但图片识别有失败",
+      "ParserImagesFailed": "有 {{count}} 张图片未能识别，请检查模型后重新处理。",
+      "ParserImagesSkipped": "已跳过 {{count}} 张图片。",
       "AutomaticTagging": {
         "Title": "自动关联标签",
         "Description": "文档处理完成后，只从当前知识库选定的已有标签中分类，不生成新标签。",

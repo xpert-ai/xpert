@@ -1375,8 +1375,6 @@
       "EmptyDescription": "Knowledgebases created by Claw Xpert or this workspace will appear here."
     },
     "WorkspaceSettings": {
-      "ParserCoverageIncomplete": "Completed with unrecognized content",
-      "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "Title": "Workspace settings",
       "Description": "Manage the current workspace's general information, models, members, and API keys."
     },
@@ -4638,6 +4636,11 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "ParserCoverageIncomplete": "Completed with unrecognized content",
+      "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
+      "ParserImagesIncomplete": "Completed with image recognition errors",
+      "ParserImagesFailed": "{{count}} image(s) could not be recognized. Check the model and retry.",
+      "ParserImagesSkipped": "{{count}} image(s) were skipped.",
       "AutomaticTagging": {
         "Title": "Automatic tagging",
         "Description": "After processing, classify documents using only the existing tags selected for this knowledgebase.",

@@ -327,6 +327,7 @@
                                 @case (eKBDocumentStatusEnum.FINISH) {
                                   <xp-parser-coverage
                                     [diagnostics]="element.metadata?.parserDiagnostics"
+                                    [warnings]="element.metadata?.imageUnderstandingWarnings"
                                     [compact]="true"
                                   >
                                     <z-badge
@@ -733,7 +734,11 @@
           <div class="flex items-center gap-2">
             @switch (document.status) {
               @case (eKBDocumentStatusEnum.FINISH) {
-                <xp-parser-coverage [diagnostics]="document.metadata?.parserDiagnostics" [compact]="true">
+                <xp-parser-coverage
+                  [diagnostics]="document.metadata?.parserDiagnostics"
+                  [warnings]="document.metadata?.imageUnderstandingWarnings"
+                  [compact]="true"
+                >
                   <z-badge
                     zType="outline"
                     zShape="pill"
@@ -850,6 +855,11 @@
                   </dt>
                   <dd class="font-medium text-text-primary">
                     <xp-parser-coverage
+                      [warnings]="
+                        document.status === eKBDocumentStatusEnum.FINISH
+                          ? document.metadata?.imageUnderstandingWarnings
+                          : undefined
+                      "
                       [diagnostics]="
                         document.status === eKBDocumentStatusEnum.FINISH
                           ? document.metadata?.parserDiagnostics
@@ -884,7 +894,10 @@
             </dl>
           </section>
 
-          <xp-parser-coverage [diagnostics]="document.metadata?.parserDiagnostics" />
+          <xp-parser-coverage
+            [diagnostics]="document.metadata?.parserDiagnostics"
+            [warnings]="document.metadata?.imageUnderstandingWarnings"
+          />
 
           <section class="mt-6 grid grid-cols-3 gap-2.5">
             <button

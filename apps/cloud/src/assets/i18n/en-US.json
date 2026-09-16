@@ -852,6 +852,9 @@
         "NegativeQuestionHint": "Add questions that should not match this FAQ. The knowledgebase applies exact or semantic exclusion. Negatives affect only this FAQ and never participate in positive retrieval."
       },
       "ParserCoverageIncomplete": "Completed with unrecognized content",
+      "ParserImagesIncomplete": "Completed with image recognition errors",
+      "ParserImagesFailed": "{{count}} image(s) could not be recognized. Check the model and retry.",
+      "ParserImagesSkipped": "{{count}} image(s) were skipped.",
       "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "AutomaticTagging": {
         "Title": "Automatic tagging",
