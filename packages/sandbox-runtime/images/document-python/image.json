@@ -8,6 +8,7 @@
   "runtimeContractVersion": "1",
   "profileName": "document/python-3.12/v1",
   "nodeVersion": "20.20.2",
+  "pythonVersion": "3.12.10",
   "platforms": ["linux/amd64"],
   "capabilities": ["document.markdown", "document.python", "sandbox.action.v1"],
   "dockerfile": "images/document-python/Dockerfile",
