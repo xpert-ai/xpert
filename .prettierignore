@@ -10,6 +10,3 @@
 # Runtime locks are byte-hashed; preserve the output of the metadata generators.
 /packages/sandbox-runtime/images/document-*/dependencies.lock.json
 /packages/sandbox-runtime/images/document-*/models.lock.json
-
-# Preserve the package manager generated lockfile formatting.
-/pnpm-lock.yaml
