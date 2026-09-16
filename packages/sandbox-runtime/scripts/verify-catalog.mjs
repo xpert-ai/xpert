@@ -38,6 +38,26 @@ for (const entry of catalog.images) {
         .update(await readFile(path.join(packageRoot, image.pythonRequirements)))
         .digest('hex')
     : undefined
+  if (image.dependenciesLock) {
+    const lock = await readJson(image.dependenciesLock)
+    if (lock.ocr) {
+      for (const [key, file] of [
+        ['requirementsSha256', 'requirements.txt'],
+        ['modelsSha256', 'models.lock.json'],
+        ['backendSha256', 'runtime/hybrid-backend.py']
+      ]) {
+        const digest = createHash('sha256')
+          .update(await readFile(path.join(packageRoot, path.dirname(image.dependenciesLock), file)))
+          .digest('hex')
+        if (lock.ocr[key] !== digest) fail(`${entry.family} OCR artifact lock is stale: ${file}. Run sync:metadata.`)
+      }
+    }
+    const digest = createHash('sha256')
+      .update(await readFile(path.join(packageRoot, image.dependenciesLock)))
+      .digest('hex')
+    if (manifest.dependenciesSha256 !== digest || runtimeDefinition.expectedManifest?.dependenciesSha256 !== digest)
+      fail(`${entry.family} dependency lock is stale. Run sync:metadata.`)
+  }
   let modelCatalogSha256
   if (image.resourceCatalog) {
     const resourceCatalogBytes = await readFile(path.join(packageRoot, image.resourceCatalog))

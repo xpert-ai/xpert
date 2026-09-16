@@ -20,7 +20,9 @@ for (const entry of catalog.images) {
     version: packageJson.version,
     versionTag: image.playwrightVersion
       ? `${packageJson.version}-pw${image.playwrightVersion}`
-      : `${packageJson.version}-lo${image.libreOfficeMajorVersion}`,
+      : image.libreOfficeMajorVersion
+        ? `${packageJson.version}-lo${image.libreOfficeMajorVersion}`
+        : packageJson.version,
     profileName: image.profileName,
     repositories: image.repositories,
     smokeCommand: image.smokeCommand.join(' '),

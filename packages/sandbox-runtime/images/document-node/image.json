@@ -1,0 +1,29 @@
+{
+  "imageFamily": "document-node",
+  "repositories": {
+    "ghcr": "ghcr.io/xpert-ai/xpert-sandbox-document-node",
+    "dockerhub": "metadc/xpert-sandbox-document-node",
+    "acr": "registry.cn-hangzhou.aliyuncs.com/metad/xpert-sandbox-document-node"
+  },
+  "runtimeContractVersion": "1",
+  "profileName": "document/node-20/v1",
+  "nodeVersion": "20.20.2",
+  "platforms": ["linux/amd64"],
+  "capabilities": ["document.markdown", "document.node", "sandbox.action.v1"],
+  "dockerfile": "images/document-node/Dockerfile",
+  "manifest": "images/document-node/runtime/manifest.json",
+  "runner": "images/browser/runtime/runner-host.mjs",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/document-node-20-v1.json",
+  "artifactCatalogTemplate": "images/document-node/artifact-catalog.template.json",
+  "smokeCommand": [
+    "node",
+    "/opt/xpert/sandbox-runtime/verify-document-runtime.mjs",
+    "/opt/xpert/sandbox-runtime/manifest.json",
+    "/opt/xpert/sandbox-runtime/dependencies.lock.json",
+    "/opt/xpert/document-dependencies"
+  ],
+  "baseImages": {
+    "node": "node:20.20.2-bookworm-slim@sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c"
+  },
+  "dependenciesLock": "images/document-node/dependencies.lock.json"
+}

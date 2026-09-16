@@ -52,9 +52,31 @@ for (const entry of catalog.images) {
       )
     await writeFile(dockerfilePath, synchronizedDockerfile)
   }
+  if (image.dependenciesLock) {
+    const lock = await readJson(image.dependenciesLock)
+    if (lock.ocr) {
+      const familyRoot = path.dirname(image.dependenciesLock)
+      for (const [key, file] of [
+        ['requirementsSha256', 'requirements.txt'],
+        ['modelsSha256', 'models.lock.json'],
+        ['backendSha256', 'runtime/hybrid-backend.py']
+      ]) {
+        lock.ocr[key] = createHash('sha256')
+          .update(await readFile(path.join(packageRoot, familyRoot, file)))
+          .digest('hex')
+      }
+      await writeJson(image.dependenciesLock, lock)
+    }
+  }
+  const dependenciesSha256 = image.dependenciesLock
+    ? createHash('sha256')
+        .update(await readFile(path.join(packageRoot, image.dependenciesLock)))
+        .digest('hex')
+    : undefined
   const manifest = await readJson(image.manifest)
   manifest.sandboxRuntimeVersion = suite.version
   manifest.runnerHostSha256 = runnerHostSha256
+  if (dependenciesSha256) manifest.dependenciesSha256 = dependenciesSha256
   if (requirementsSha256) manifest.requirementsSha256 = requirementsSha256
   if (modelCatalogSha256) manifest.modelCatalogSha256 = modelCatalogSha256
   await writeJson(image.manifest, manifest)
@@ -63,6 +85,7 @@ for (const entry of catalog.images) {
   if (runtimeDefinition.expectedManifest) {
     runtimeDefinition.expectedManifest.sandboxRuntimeVersion = suite.version
     runtimeDefinition.expectedManifest.runnerHostSha256 = runnerHostSha256
+    if (dependenciesSha256) runtimeDefinition.expectedManifest.dependenciesSha256 = dependenciesSha256
     if (requirementsSha256) runtimeDefinition.expectedManifest.requirementsSha256 = requirementsSha256
     if (modelCatalogSha256) runtimeDefinition.expectedManifest.modelCatalogSha256 = modelCatalogSha256
   }

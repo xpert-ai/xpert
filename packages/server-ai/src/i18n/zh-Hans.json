@@ -1,5 +1,8 @@
 {
     "Error": {
+        "SandboxRuntimeHealthTimeout": "Runtime 健康检查超过 {{seconds}} 秒，请在主机负载降低后重试。",
+        "SandboxRuntimeHealthSignal": "Runtime 健康检查被信号 {{signal}} 终止。",
+        "SandboxRuntimeHealthExit": "Runtime 健康检查失败，退出码：{{code}}。",
         "KnowledgeFAQSemanticUnavailable": "无法完成 FAQ 语义反例排除，请检查模型配置后重试。",
         "KnowledgeFAQGraphUnsupported": "FAQ 知识库不支持图谱检索。",
         "KnowledgeFAQPrewarmFailed": "FAQ 已保存，但语义向量预热任务提交失败；查询时将尝试补算。",

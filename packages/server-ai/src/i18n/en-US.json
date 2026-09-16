@@ -1,5 +1,8 @@
 {
     "Error": {
+        "SandboxRuntimeHealthTimeout": "Runtime health check timed out after {{seconds}} seconds. Retry when the host is less busy.",
+        "SandboxRuntimeHealthSignal": "Runtime health check was terminated by signal {{signal}}.",
+        "SandboxRuntimeHealthExit": "Runtime health check failed with exit code {{code}}.",
         "KnowledgeFAQSemanticUnavailable": "FAQ semantic exclusion could not be completed. Check the model configuration and retry.",
         "KnowledgeFAQGraphUnsupported": "FAQ knowledgebases do not support graph retrieval.",
         "KnowledgeFAQPrewarmFailed": "FAQ saved, but semantic vector prewarming could not be scheduled. Missing vectors will be computed during retrieval.",

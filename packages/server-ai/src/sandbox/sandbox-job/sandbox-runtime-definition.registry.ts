@@ -10,6 +10,8 @@ import browserDefinition from './runtime-definitions/browser-playwright-1.61-v1.
 import browserAiDefinition from './runtime-definitions/browser-ai-playwright-1.61-v1.json'
 import browserVideoDefinition from './runtime-definitions/browser-video-playwright-1.61-v1.json'
 import documentDefinition from './runtime-definitions/document-libreoffice-v1.json'
+import documentNodeDefinition from './runtime-definitions/document-node-20-v1.json'
+import documentJavaDefinition from './runtime-definitions/document-java-17-v1.json'
 import documentPythonDefinition from './runtime-definitions/document-python-3.12-v1.json'
 
 /** Stable Browser Runtime profile embedded in the provider-neutral OSS Core catalog. */
@@ -19,6 +21,8 @@ export const AI_BROWSER_RUNTIME_PROFILE = 'browser/ai-playwright-1.61/v1'
 /** Production media profile with Node 22, matching Chromium and FFmpeg. */
 export const VIDEO_BROWSER_RUNTIME_PROFILE = 'browser/video-playwright-1.61/v1'
 /** Offline Python document conversion with platform-locked parser dependencies. */
+export const DOCUMENT_NODE_RUNTIME_PROFILE = 'document/node-20/v1'
+export const DOCUMENT_JAVA_RUNTIME_PROFILE = 'document/java-17/v1'
 export const DOCUMENT_PYTHON_RUNTIME_PROFILE = 'document/python-3.12/v1'
 /** Generic offline office-document conversion profile shared by plugins. */
 export const DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE = 'document/libreoffice-v1'
@@ -38,6 +42,8 @@ export class SandboxRuntimeDefinitionRegistry {
         this.register(parseDefinition(browserAiDefinition, 'Browser AI Runtime Definition'))
         this.register(parseDefinition(browserVideoDefinition, 'Browser Video Runtime Definition'))
         this.register(parseDefinition(documentDefinition, 'Document LibreOffice Runtime Definition'))
+        this.register(parseDefinition(documentNodeDefinition, 'Document Node Runtime Definition'))
+        this.register(parseDefinition(documentJavaDefinition, 'Document Java Runtime Definition'))
         this.register(parseDefinition(documentPythonDefinition, 'Document Python Runtime Definition'))
     }
 
