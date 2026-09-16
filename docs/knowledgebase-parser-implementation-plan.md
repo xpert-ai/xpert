@@ -4,7 +4,7 @@
 
 更新日期：2026-09-16
 
-状态：第一、二批已合并；第三批 AnyDoc、第四批 OpenDataLoader 及宿主接入已提交平台 [#1044](https://github.com/xpert-ai/xpert/pull/1044) 和插件 [#641](https://github.com/xpert-ai/xpert-plugins/pull/641)。两个 PR 当前均为草稿、待评审合并；插件发布、生产镜像发布和部署验收仍需独立完成。
+状态：第一、二批已合并；第三批 AnyDoc、第四批 OpenDataLoader 及宿主接入已提交平台 [#1044](https://github.com/xpert-ai/xpert/pull/1044) 和插件 [#641](https://github.com/xpert-ai/xpert-plugins/pull/641)。两个 PR 当前均待评审合并；插件发布、生产镜像发布和部署验收仍需独立完成。
 
 ### 实施进度（截至 2026-09-16）
 
@@ -565,7 +565,7 @@ WeKnora Cloud 暂不接入。MinerU CLI 暂不改造为知识库解析入口。
 
 ## 11. 尚待完成的事项
 
-- 平台 #1044（目标 `develop`）与插件 #641（目标 `main`）当前均为草稿 PR，待评审和合并。
+- 平台 #1044（目标 `develop`）与插件 #641（目标 `main`）当前均待评审和合并。
 - PR 合并不等于插件包、Runtime 镜像和部署进程已经更新；各部署环境仍需核对安装、密钥与服务连通性。
 - AnyDoc 与 OpenDataLoader 已有转换、适配、打包和本地运行验证；完整格式、内容保真和重处理矩阵仍按第 6.9、7.9 节验收。
 - 两个生产 Runtime 镜像需完成构建发布、目标平台校验和部署绑定，插件安装不会自动完成这些操作。
