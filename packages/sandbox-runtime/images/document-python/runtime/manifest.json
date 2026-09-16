@@ -1,5 +1,5 @@
 {
-  "sandboxRuntimeVersion": "1.2.1",
+  "sandboxRuntimeVersion": "1.2.2",
   "imageFamily": "document-python",
   "profileName": "document/python-3.12/v1",
   "contractVersion": "1",

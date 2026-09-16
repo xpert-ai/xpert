@@ -1,5 +1,16 @@
 # @xpert-ai/server-core
 
+## 3.9.51
+
+### Patch Changes
+
+- 95ec638: Add asynchronous knowledgebase automatic tagging with bounded document samples, numbered existing-label classification, strict server validation, model fallback, and idempotent incremental associations. Reuse organization/tenant Tag definitions with knowledgebase-scoped selection and preserve manual labels across concurrent classification and retries. Count explicit knowledge associations in the existing directory and protect referenced tags. Run standalone schema-sync before enabling the new code.
+- Updated dependencies [6a51c17]
+- Updated dependencies [95ec638]
+- Updated dependencies [8402f72]
+    - @xpert-ai/contracts@3.18.5
+    - @xpert-ai/plugin-sdk@3.18.5
+
 ## 3.9.50
 
 ### Patch Changes
