@@ -44,6 +44,10 @@ export type KnowledgebaseFAQConfig = {
   questionIndexMode: KnowledgebaseFAQQuestionIndexMode
   /** Optional for knowledge bases created before negative matching was configurable. */
   negativeMatchMode?: KnowledgebaseFAQNegativeMatchMode
+  /** Required for semantic mode; cosine similarity in [0, 1]. Immutable after creation. */
+  semanticThreshold?: number
+  /** Required for semantic mode; negative minus positive similarity in (0, 2]. */
+  semanticMargin?: number
 }
 
 export const DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG = {

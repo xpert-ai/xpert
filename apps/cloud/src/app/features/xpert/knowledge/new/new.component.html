@@ -446,11 +446,14 @@
                     <z-toggle-group-item class="min-w-32" value="exact" [disabled]="faqConfigurationDisabled()">
                       {{ i18nPrefix + '.FAQ.NegativeMatchExact' | translate }}
                     </z-toggle-group-item>
-                    <z-toggle-group-item class="min-w-32" value="semantic" [disabled]="true">
+                    <z-toggle-group-item class="min-w-32" value="semantic" [disabled]="faqConfigurationDisabled()">
                       {{ i18nPrefix + '.FAQ.NegativeMatchSemantic' | translate }}
                     </z-toggle-group-item>
                   </z-toggle-group>
                   <p class="kb-help-text">{{ i18nPrefix + '.FAQ.NegativeMatchModeHelp' | translate }}</p>
+                  @if (faqConfig().negativeMatchMode === 'semantic') {
+                    <xp-faq-semantic-settings [form]="faqSemanticForm" />
+                  }
                 </div>
               </fieldset>
 

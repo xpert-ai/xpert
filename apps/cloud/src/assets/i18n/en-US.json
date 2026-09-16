@@ -836,6 +836,9 @@
       }
     },
     "Knowledgebase": {
+      "FAQManagement": {
+        "NegativeQuestionHint": "Add questions that should not match this FAQ. The knowledgebase applies exact or semantic exclusion. Negatives affect only this FAQ and never participate in positive retrieval."
+      },
       "ParserCoverageIncomplete": "Completed with unrecognized content",
       "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "AutomaticTagging": {
@@ -1188,6 +1191,30 @@
       "GraphRebuildStarted": "Graph rebuild started",
       "GraphDisabledDesc": "Enable the knowledge graph in Basic information, then return here to rebuild it and index existing documents.",
       "WorkspaceConfiguration": {
+        "FAQ": {
+          "Title": "FAQ settings",
+          "Description": "Configure how FAQ questions and answers are organized for indexing.",
+          "IndexMode": "Index content",
+          "QuestionOnly": "Questions only",
+          "QuestionAnswer": "Questions + answers",
+          "IndexModeHelp": "Indexing only questions improves precision; including answers can improve recall.",
+          "QuestionIndexMode": "Question indexing",
+          "Combined": "Combined index",
+          "Separate": "Separate indexes",
+          "QuestionIndexModeHelp": "Combined indexing groups the standard and similar questions. Separate indexing stores each question independently for more precise retrieval at the cost of additional storage.",
+          "NegativeMatchMode": "Negative match mode",
+          "NegativeMatchExact": "Exact exclusion",
+          "NegativeMatchSemantic": "Semantic exclusion",
+          "NegativeMatchModeHelp": "Exact exclusion matches normalized negative questions. Semantic exclusion uses this knowledgebase’s embedding model and excludes an FAQ only when the query is clearly closer to its negatives. Ambiguous matches are kept.",
+          "SemanticThreshold": "Negative similarity threshold",
+          "SemanticMargin": "Negative-to-positive similarity margin",
+          "SemanticThresholdInvalid": "Enter a finite number from 0 to 1.",
+          "SemanticMarginInvalid": "Enter a finite number greater than 0 and at most 2.",
+          "SemanticParametersInvalid": "Enter a valid semantic threshold and margin.",
+          "SemanticParametersHelp": "Both conditions must hold: the negative reaches the threshold and exceeds the positive by the margin. Validate these values with your model; similarity is not a probability. Values cannot be changed after creation.",
+          "Locked": "FAQ indexing configuration cannot currently be changed after creation.",
+          "Notice": "Each FAQ entry contains one standard question, similar questions, and one or more answers. Entries can be maintained from the knowledge base details page."
+        },
         "Implemented": {
           "StrategyHelp": "Choose a registered splitter. Use the separate switch below for parent-child chunks.",
           "LaterOptions": "The following options are reserved for a later batch.",

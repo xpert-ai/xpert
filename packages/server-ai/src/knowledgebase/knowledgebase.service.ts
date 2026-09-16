@@ -1,3 +1,4 @@
+import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
 import { rethrowParserError } from '../knowledge-document/parser-error'
 import { prepareAutomaticTaggingConfig } from './tags/automatic-tagging-config'
 import { dispatchKnowledgePipeline } from './task/pipeline-task'
@@ -28,7 +29,6 @@ import {
     IWFNProcessor,
     IWFNSource,
     KBDocumentStatusEnum,
-    KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
@@ -177,36 +177,6 @@ function knowledgebaseAccessDenied() {
             defaultValue: 'You do not have access to this knowledgebase'
         })
     )
-}
-
-function isKnowledgebaseFAQConfig(value: unknown): value is KnowledgebaseFAQConfig {
-    return (
-        !!value &&
-        typeof value === 'object' &&
-        'indexMode' in value &&
-        (value.indexMode === 'question_only' || value.indexMode === 'question_answer') &&
-        'questionIndexMode' in value &&
-        (value.questionIndexMode === 'combined' || value.questionIndexMode === 'separate') &&
-        (!('negativeMatchMode' in value) ||
-            value.negativeMatchMode === undefined ||
-            value.negativeMatchMode === 'exact')
-    )
-}
-
-function normalizeKnowledgebaseFAQConfig(value: unknown): KnowledgebaseFAQConfig {
-    if (!isKnowledgebaseFAQConfig(value)) {
-        throw new BadRequestException(
-            t('server-ai:Error.KnowledgebaseFAQConfigInvalid', {
-                defaultValue: 'FAQ configuration is invalid'
-            })
-        )
-    }
-
-    return {
-        indexMode: value.indexMode,
-        questionIndexMode: value.questionIndexMode,
-        negativeMatchMode: value.negativeMatchMode ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG.negativeMatchMode
-    }
 }
 
 function assertSafeKnowledgebaseTaskRelations(relations: unknown): asserts relations is string[] | undefined {
