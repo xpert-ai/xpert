@@ -72,7 +72,10 @@ describe('VectorKnowledgeCandidateRetriever', () => {
                 index / 1000
             ])
             const search = jest.fn(async (_query: string, window: number) => ({ items: raw.slice(0, window) }))
-            const store = { createSearchSession: () => ({ structuredSimilaritySearchWithScore: search }) }
+            const store = {
+                vectorStoreType: environment.vectorStore,
+                createSearchSession: () => ({ structuredSimilaritySearchWithScore: search })
+            }
             const backend = { getActiveVectorStore: jest.fn(async () => store) }
             const chunks = {
                 findAll: jest.fn(async () => ({
@@ -117,6 +120,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             metadata: { chunkId: 'chunk-1' }
         }
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [[vectorDocument, 0.2]],
@@ -202,6 +206,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
         environment.vectorStore = VectorTypeEnum.PGVECTOR
         const knowledgebase = createKnowledgebase()
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [
@@ -245,6 +250,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             recall: { topK: 2 }
         })
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [
@@ -313,6 +319,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
                 ]
         )
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async (_query: string, topK: number) => ({
                 items:
@@ -379,6 +386,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             candidateChunkCount: 0
         }))
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore
         }
@@ -407,6 +415,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             vectorBackend: VectorTypeEnum.MILVUS
         })
 
+        environment.vectorStore = VectorTypeEnum.PGVECTOR
         const result = await retriever.retrieve(
             createRequest(knowledgebase, preparedFilter, { query: 'filtered requirements' })
         )
@@ -440,6 +449,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
         environment.vectorStore = VectorTypeEnum.PGVECTOR
         const knowledgebase = createKnowledgebase()
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [
@@ -509,6 +519,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
         environment.vectorStore = VectorTypeEnum.PGVECTOR
         const knowledgebase = createKnowledgebase()
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [
@@ -566,6 +577,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
         environment.vectorStore = VectorTypeEnum.PGVECTOR
         const knowledgebase = createKnowledgebase()
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [
@@ -629,6 +641,7 @@ describe('VectorKnowledgeCandidateRetriever', () => {
             rerankModelId: 'rerank-model'
         })
         const vectorStore = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [

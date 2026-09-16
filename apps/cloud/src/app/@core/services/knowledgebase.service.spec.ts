@@ -37,6 +37,16 @@ describe('KnowledgebaseService', () => {
     httpMock.verify()
   })
 
+  it('loads installed vector stores from the backend', () => {
+    const options = { default: 'pgvector', stores: [{ type: 'pgvector' }, { type: 'milvus' }] }
+    const received = jest.fn()
+    service.getVectorStores().subscribe(received)
+    const request = httpMock.expectOne('/api/knowledgebase/vector-stores')
+    expect(request.request.method).toBe('GET')
+    request.flush(options)
+    expect(received).toHaveBeenCalledWith(options)
+  })
+
   it('loads knowledgebase detail from the backend-owned detail endpoint', () => {
     service.getDetail('kb-1').subscribe()
 

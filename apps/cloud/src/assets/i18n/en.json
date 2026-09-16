@@ -5259,12 +5259,12 @@
         },
         "VectorStorage": {
           "Title": "Vector storage",
-          "Description": "View the vector storage used by this knowledge base. It is currently controlled by the system configuration.",
+          "Description": "Select vector storage for this knowledge base.",
           "Label": "Vector storage",
-          "LabelDescription": "Knowledge base vectors are written to the storage engine configured for the current deployment.",
+          "LabelDescription": "Each knowledge base uses its selected storage engine and the deployment connection settings.",
           "SystemDefault": "System default",
-          "SystemDefaultHelp": "Uses the vector storage engine configured by the system.",
-          "MigrationNotice": "Selecting a vector store per knowledge base is not currently supported. Changing the system vector store requires a planned migration and reindexing of the knowledge base."
+          "SystemDefaultHelp": "New knowledge bases save the current system default as their storage engine.",
+          "MigrationNotice": "Vector storage is fixed after creation. Existing indexes are not migrated automatically."
         },
         "Models": {
           "Description": "Select suitable AI models for the knowledge base.",
