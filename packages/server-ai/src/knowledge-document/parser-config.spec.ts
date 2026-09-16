@@ -134,6 +134,37 @@ describe('resolveKnowledgeDocumentParserConfig precedence', () => {
 })
 
 describe('resolveKnowledgeDocumentParserConfig for spreadsheets', () => {
+    it('inherits shared settings for plugin document parsing and preserves explicit image overrides', () => {
+        const defaults = {
+            chunkSize: 512,
+            chunkOverlap: 0,
+            delimiter: null,
+            maxChunkTokens: 128,
+            imageUnderstandingEnabled: true,
+            imageUnderstanding: { promptTemplate: 'Read {{context}}' }
+        }
+        const document = {
+            type: 'xlsx',
+            category: KBDocumentCategoryEnum.Sheet,
+            parserConfig: { transformerType: 'anydoc', spreadsheet: { interpretation: 'form_document' as const } }
+        }
+        expect(resolveKnowledgeDocumentParserConfig(document, defaults)).toMatchObject({
+            maxChunkTokens: 128,
+            chunkSize: 512,
+            imageUnderstandingEnabled: true,
+            imageUnderstandingType: 'vlm-default',
+            imageUnderstanding: { promptTemplate: 'Read {{context}}' }
+        })
+        const disabled = resolveKnowledgeDocumentParserConfig(
+            {
+                ...document,
+                parserConfig: { ...document.parserConfig, imageUnderstandingEnabled: false }
+            },
+            defaults
+        )
+        expect(disabled.imageUnderstandingEnabled).toBe(false)
+        expect(disabled.imageUnderstandingType).toBeUndefined()
+    })
     it('inherits table requirements and Excel header defaults without changing the legacy interpretation', () => {
         const defaults = {
             chunkSize: 512,

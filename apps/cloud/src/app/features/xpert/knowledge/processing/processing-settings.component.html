@@ -185,6 +185,17 @@
                     }}</z-select-item>
                   }
                 </z-select>
+                @if (isRecordSpreadsheetRow(row) && form().parserGroupType(row)) {
+                  <p data-spreadsheet-parser-mode class="text-xs text-text-tertiary">
+                    {{
+                      i18nPrefix +
+                        '.Implemented.' +
+                        (form().parserGroupType(row) === 'builtin'
+                          ? 'SpreadsheetBuiltinModeHelp'
+                          : 'SpreadsheetDocumentModeHelp') | translate
+                    }}
+                  </p>
+                }
                 @if (form().parserGroupProvider(row); as provider) {
                   @if (provider.integration; as integration) {
                     <xp-integration-select

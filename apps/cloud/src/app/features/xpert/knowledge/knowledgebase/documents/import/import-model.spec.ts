@@ -2,6 +2,44 @@ import { KBDocumentCategoryEnum, KDocumentSourceType } from '@xpert-ai/contracts
 import { buildImportDocuments, quickWebOptions, remoteSourceDocuments } from './import-model'
 
 describe('document import payloads', () => {
+  it.each([false, true])(
+    'uses document mode for selected spreadsheet plugins in sheet-only=%s imports',
+    (sheetOnly) => {
+      const sheets = ['xlsx', 'xls', 'csv'].map((type) => ({
+        type,
+        category: KBDocumentCategoryEnum.Sheet,
+        parserConfig: { spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] } }
+      }))
+      const documents = sheetOnly ? sheets : [...sheets, { type: 'pdf', category: KBDocumentCategoryEnum.Text }]
+      const parsers = Object.fromEntries(
+        ['xlsx', 'xls', 'csv', 'pdf'].map((type) => [type, { transformerType: 'anydoc' }])
+      )
+      const result = buildImportDocuments(documents, { chunkSize: 512 }, 'kb', null, { parsers })
+      for (const document of result.slice(0, 3)) {
+        expect(document.parserConfig).toMatchObject({
+          transformerType: 'anydoc',
+          spreadsheet: { interpretation: 'form_document', firstRowAsHeader: false, includeSheets: ['Orders'] }
+        })
+      }
+      if (!sheetOnly) expect(result[3].parserConfig.spreadsheet).toBeUndefined()
+      expect(sheets[0].parserConfig.spreadsheet).not.toHaveProperty('interpretation')
+    }
+  )
+
+  it('keeps builtin row records beside a plugin document in the same batch', () => {
+    const result = buildImportDocuments(
+      ['xlsx', 'csv'].map((type) => ({ type, category: KBDocumentCategoryEnum.Sheet })),
+      {},
+      'kb',
+      null,
+      { parsers: { xlsx: { transformerType: 'anydoc' }, csv: { transformerType: 'builtin' } } }
+    )
+    expect(result.map((document) => document.parserConfig.spreadsheet.interpretation)).toEqual([
+      'form_document',
+      'records'
+    ])
+  })
+
   it('isolates batch settings and location while preserving source identity', () => {
     const config = { chunkSize: 512, maxChunkTokens: 128, imageUnderstandingEnabled: false }
     const input = [
@@ -83,6 +121,9 @@ describe('document import payloads', () => {
     expect(docs[2].parserConfig).toEqual({
       indexedFields: ['sku'],
       chunkSize: 800,
+      imageUnderstandingEnabled: true,
+      imageUnderstanding: { promptTemplate: 'Read {{context}}' },
+      imageUnderstandingModel: visionModel,
       spreadsheet: { interpretation: 'records', includeSheets: ['*'] }
     })
   })

@@ -81,14 +81,23 @@ export function resolveKnowledgeDocumentParserConfig(
         document.category ??
         (type ? classificateDocumentCategory({ type } as Partial<IKnowledgeDocument>) : KBDocumentCategoryEnum.Text)
     const defaults = defaultParserConfigFor(type, category)
-    const explicit = sanitizeParserConfigForDocument(document.parserConfig, type, category)
+    const selectedParser =
+        normalizeString(document.parserConfig?.transformerType) ||
+        knowledgebaseParserSelection(knowledgebaseDefaults, type)?.transformerType
+    // A plugin's spreadsheet output is document content; native records keep their own processing defaults.
+    const pluginSheet =
+        category === KBDocumentCategoryEnum.Sheet &&
+        !!selectedParser &&
+        !['builtin', 'default'].includes(selectedParser)
+    const explicit = sanitizeParserConfigForDocument(document.parserConfig, type, category, pluginSheet)
     const nativeTable = isNativeKnowledgeTableDocument({ ...document, type, category, parserConfig: explicit })
     const inherited =
-        category === KBDocumentCategoryEnum.Text || category === KBDocumentCategoryEnum.Image
+        category === KBDocumentCategoryEnum.Text || category === KBDocumentCategoryEnum.Image || pluginSheet
             ? sanitizeParserConfigForDocument(
                   knowledgebaseDocumentParserDefaults(knowledgebaseDefaults, type),
                   type,
-                  category
+                  category,
+                  pluginSheet
               )
             : category === KBDocumentCategoryEnum.Sheet
               ? defined({
@@ -153,7 +162,8 @@ function defaultParserConfigFor(type: string, category: IKnowledgeDocument['cate
 function sanitizeParserConfigForDocument(
     config: IKnowledgeDocument['parserConfig'] | null | undefined,
     type: string,
-    category: IKnowledgeDocument['category'] | undefined
+    category: IKnowledgeDocument['category'] | undefined,
+    pluginSheet = false
 ): ResolvedKnowledgeDocumentParserConfig {
     if (!config) return {}
     const transformerType = normalizeString(config.transformerType)
@@ -166,7 +176,11 @@ function sanitizeParserConfigForDocument(
               })
             : {}
     const splitter = defined({ textSplitterType: config.textSplitterType, textSplitter: config.textSplitter })
-    if (category === KBDocumentCategoryEnum.Sheet) {
+    if (
+        category === KBDocumentCategoryEnum.Sheet &&
+        config.spreadsheet?.interpretation !== 'form_document' &&
+        !pluginSheet
+    ) {
         return defined({
             tableMetadataRequirements: config.tableMetadataRequirements,
             questionGeneration: config.questionGeneration,
@@ -192,6 +206,14 @@ function sanitizeParserConfigForDocument(
               }
             : undefined
     return defined({
+        ...(category === KBDocumentCategoryEnum.Sheet
+            ? {
+                  fields: config.fields,
+                  indexedFields: config.indexedFields,
+                  spreadsheet: config.spreadsheet,
+                  tableMetadataRequirements: config.tableMetadataRequirements
+              }
+            : {}),
         pages: config.pages,
         maxChunkTokens: config.maxChunkTokens,
         chunkLanguageHint: config.chunkLanguageHint,

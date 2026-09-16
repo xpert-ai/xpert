@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, computed, DestroyRef, inject, model, signal, viewChild } from '@angular/core'
+import { Component, computed, DestroyRef, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { firstValueFrom, take } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -19,7 +19,6 @@ import {
 } from '@cloud/app/@core'
 import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { XpTreeSelectComponent } from '@cloud/app/@shared/form-fields/tree-select/tree-select.component'
-import { KnowledgeDocumentCreateSettingsComponent } from '../create/settings/settings.component'
 import { createKnowledgeProcessingForm, KnowledgeProcessingSection } from '../../../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../../../processing/processing-settings.component'
 import {
@@ -54,7 +53,6 @@ export interface DocumentImportDialogData {
     ZardButtonComponent,
     ...ZardTooltipImports,
     XpTreeSelectComponent,
-    KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent,
     KnowledgeProcessingSettingsComponent
   ],
@@ -161,12 +159,16 @@ export class DocumentImportDialogComponent {
         parserConfig: {
           ...this.activeParserConfig(),
           ...editedDocumentParserConfig(
-            document,
+            this.onlySheet()
+              ? {
+                  ...document,
+                  parserConfig: { ...document.parserConfig, spreadsheet: this.activeParserConfig().spreadsheet }
+                }
+              : document,
             this.processing.config(),
             this.data.knowledgebase.parserConfig,
             this.processing.visionModel()
-          ),
-          ...(this.onlySheet() ? { spreadsheet: this.activeParserConfig().spreadsheet } : {})
+          )
         }
       }))
     const resolved = buildImportDocuments(
@@ -191,7 +193,6 @@ export class DocumentImportDialogComponent {
   readonly total = computed(() => this.uploads().length + this.externalDocuments().length)
   readonly busy = signal(false)
   readonly error = signal('')
-  readonly settings = viewChild(KnowledgeDocumentCreateSettingsComponent)
   readonly chunkSize = computed(
     () => this.activeParserConfig().textSplitter?.chunkSize ?? this.activeParserConfig().chunkSize
   )
@@ -201,23 +202,6 @@ export class DocumentImportDialogComponent {
   readonly configurationError = computed(() => {
     if (this.pipelineDocument) return null
     if (!this.documents().length) return null
-    if (this.onlySheet()) {
-      const error = this.settings()?.configurationError()
-      const sharedError = this.processing.validate({
-        checkPdfParser: false,
-        fileTypes: this.documents().map(documentFileType)
-      })
-      return (
-        this.processing.strategiesError() ||
-        (sharedError?.section === 'chunk' ||
-        sharedError?.section === 'questions' ||
-        sharedError?.section === 'table' ||
-        sharedError?.section === 'parser'
-          ? sharedError.key
-          : null) ||
-        (error ? this.prefix + '.' + error : null)
-      )
-    }
     return (
       this.processing.strategiesError() ||
       this.processing.validate({
@@ -260,11 +244,6 @@ export class DocumentImportDialogComponent {
       void this.loadFolders()
     }
     if (!this.pipelineDocument) void this.processing.loadStrategies()
-  }
-
-  updateSheetParserConfig(config: ImportParserConfig) {
-    this.sheetParserConfig.set(config)
-    this.processing.firstRowAsHeader.set(config.spreadsheet?.firstRowAsHeader ?? true)
   }
 
   selectFolder(key: string | null) {

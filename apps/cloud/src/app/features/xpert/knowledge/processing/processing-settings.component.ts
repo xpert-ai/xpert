@@ -20,6 +20,8 @@ import {
 import { KnowledgeProcessingForm, KnowledgeProcessingSection, PROCESSING_I18N_PREFIX } from './processing-form'
 import { documentFileType } from './document-file-types'
 import { ParentChildChunkSettingsComponent } from './parent-child-settings.component'
+import { ParserEngineRow } from './parser-engine-rows'
+import { isRecordSpreadsheetFormat } from './spreadsheet-parser-mode'
 
 @Component({
   standalone: true,
@@ -74,6 +76,8 @@ export class KnowledgeProcessingSettingsComponent {
   readonly i18nPrefix = PROCESSING_I18N_PREFIX
   readonly eAiModelTypeEnum = AiModelTypeEnum
   readonly eModelFeature = ModelFeature
+  readonly isRecordSpreadsheetRow = (row: ParserEngineRow) =>
+    row.extensions.every((extension) => isRecordSpreadsheetFormat(extension))
   readonly defaultsHint = computed(() =>
     this.scope() === 'documents'
       ? 'XP.Knowledgebase.Import.DefaultsHint'
