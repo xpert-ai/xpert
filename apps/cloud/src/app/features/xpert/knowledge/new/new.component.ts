@@ -46,6 +46,7 @@ import {
   TKBRetrievalSettings
 } from '../../../../@core'
 import { firstValueFrom } from 'rxjs'
+import { createFAQSemanticForm, FAQSemanticSettingsComponent } from './faq-semantic-settings.component'
 
 type SectionKey =
   | 'basic'
@@ -88,6 +89,7 @@ type KnowledgeDialogData = {
     KnowledgeTagsComponent,
     KnowledgeProcessingSettingsComponent,
     KnowledgeChunkPreviewComponent,
+    FAQSemanticSettingsComponent,
     CommonModule,
     TranslateModule,
     DragDropModule,
@@ -175,6 +177,10 @@ export class XpertNewKnowledgeComponent {
     ...(this.#initialKnowledgebase?.faqConfig ?? {})
   })
   readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())
+  readonly faqSemanticForm = createFAQSemanticForm(
+    this.#initialKnowledgebase?.faqConfig,
+    !!this.#initialKnowledgebase?.id
+  )
   readonly wikiEnabled = model(this.#initialKnowledgebase?.wikiConfig?.enabled ?? false)
   readonly isWiki = computed(() => !this.isFAQ() && this.wikiEnabled())
   readonly indexStrategyLocked = computed(
@@ -400,6 +406,13 @@ export class XpertNewKnowledgeComponent {
       return false
     }
 
+    if (this.isFAQ() && this.faqConfig().negativeMatchMode === 'semantic' && this.faqSemanticForm.invalid) {
+      this.faqSemanticForm.markAllAsTouched()
+      this.activeSection.set('faq')
+      this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.FAQ.SemanticParametersInvalid`))
+      return false
+    }
+
     if (this.isWiki() && !(this.wikiModel() || this.chatModel())) {
       this.activeSection.set('models')
       this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.WikiModelRequired`))
@@ -486,7 +499,16 @@ export class XpertNewKnowledgeComponent {
       payload.workspaceId = this.workspaceId()
       payload.type = this.type()
       if (this.isFAQ()) {
-        Object.assign(payload, { faqConfig: this.faqConfig() })
+        const config = this.faqConfig()
+        const { threshold, margin } = this.faqSemanticForm.getRawValue()
+        Object.assign(payload, {
+          faqConfig: {
+            indexMode: config.indexMode,
+            questionIndexMode: config.questionIndexMode,
+            negativeMatchMode: config.negativeMatchMode ?? 'exact',
+            ...(config.negativeMatchMode === 'semantic' ? { semanticThreshold: threshold, semanticMargin: margin } : {})
+          }
+        })
       } else {
         payload.wikiConfig = { ...this.wikiConfig(), enabled: this.wikiEnabled() }
         payload.wikiModel = this.wikiModel() ?? null

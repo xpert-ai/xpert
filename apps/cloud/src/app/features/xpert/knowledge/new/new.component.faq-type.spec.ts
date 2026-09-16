@@ -44,14 +44,4 @@ describe('XpertNewKnowledgeComponent FAQ type', () => {
     expect(template).toContain("@case ('vector-storage')")
     expect(template).toContain("'.VectorStorage.SystemDefault'")
   })
-
-  it('persists FAQ configuration on creation and locks it after creation', () => {
-    expect(contracts).toContain('export type KnowledgebaseFAQConfig = {')
-    expect(contracts).toContain("negativeMatchMode: 'exact'")
-    expect(source).toContain('faqConfig: this.faqConfig()')
-    expect(source).toContain('readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())')
-    expect(template).toContain('[disabled]="faqConfigurationDisabled()"')
-    expect(template).toContain("updateFAQConfig('negativeMatchMode', $event)")
-    expect(template).toContain('value="semantic" [disabled]="true"')
-  })
 })

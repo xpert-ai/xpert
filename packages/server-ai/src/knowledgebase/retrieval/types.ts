@@ -8,6 +8,8 @@ import {
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import { PreparedKnowledgeFilter } from '../filter'
+import type { KnowledgeDocumentStore } from '../vector-store'
+import type { FAQRetrievalBudget } from '../faq/faq-retrieval-budget'
 
 export type KnowledgeRetrieverSource = 'vector' | 'graph' | 'keyword'
 
@@ -28,6 +30,14 @@ export type KnowledgeRetrievalRequest = {
         threadId?: string
     }
     preparedFilter: PreparedKnowledgeFilter
+    /** Shared only by one semantic FAQ request and all of its candidate expansions. */
+    faqSession?: {
+        budget: FAQRetrievalBudget
+        /** Largest completed raw vector window, including projection expansion. */
+        vectorWindow?: number
+        vectorStore?: Promise<KnowledgeDocumentStore>
+        vectorSearch?: ReturnType<KnowledgeDocumentStore['createSearchSession']>
+    }
 }
 
 export type KnowledgeRetrievalCandidate = {
@@ -39,6 +49,9 @@ export type KnowledgeRetrievalBatch = {
     source: KnowledgeRetrieverSource
     candidates: KnowledgeRetrievalCandidate[]
     diagnostics: KnowledgeFilterDiagnostics
+    /** Based on the raw retrieval window, before canonical deduplication or negative filtering. */
+    exhausted?: boolean
+    budgetLimited?: boolean
     failed?: boolean
     error?: string
 }
@@ -47,7 +60,7 @@ export class KnowledgeRetrievalFailure extends Error {
     readonly name = 'KnowledgeRetrievalFailure'
 
     constructor(
-        readonly source: KnowledgeRetrieverSource | 'rerank',
+        readonly source: KnowledgeRetrieverSource | 'rerank' | 'faq',
         readonly errorCode: KnowledgeFilterErrorCode,
         readonly diagnostics: KnowledgeFilterDiagnostics,
         message: string

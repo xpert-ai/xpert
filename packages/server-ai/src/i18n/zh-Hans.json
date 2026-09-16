@@ -1,5 +1,9 @@
 {
     "Error": {
+        "KnowledgeFAQSemanticUnavailable": "无法完成 FAQ 语义反例排除，请检查模型配置后重试。",
+        "KnowledgeFAQGraphUnsupported": "FAQ 知识库不支持图谱检索。",
+        "KnowledgeFAQPrewarmFailed": "FAQ 已保存，但语义向量预热任务提交失败；查询时将尝试补算。",
+        "KnowledgeFAQSemanticCacheWriteFailed": "FAQ 语义向量缓存写入失败，当前查询继续使用已生成向量。",
         "KnowledgeParserEmptyFile": "上传的文件为空，请上传包含内容的文件。",
         "KnowledgeParserEmptyText": "未提取到正文，请检查文件是否只有空白字符或空白页。",
         "KnowledgeParserInvalidDocument": "文件已损坏、受加密保护，或实际格式与扩展名不一致。请在本地打开后重新导出。",

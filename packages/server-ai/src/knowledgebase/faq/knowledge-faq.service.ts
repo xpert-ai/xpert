@@ -1,3 +1,4 @@
+import { FAQSemanticPrewarmDispatcher } from './faq-semantic-prewarm'
 import {
     DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
     DocumentTypeEnum,
@@ -22,6 +23,7 @@ import {
     BadRequestException,
     ConflictException,
     Injectable,
+    Inject,
     InternalServerErrorException,
     Logger,
     NotFoundException
@@ -76,6 +78,9 @@ function normalizeSearch(value: string) {
 export class KnowledgeFAQService {
     private readonly logger = new Logger(KnowledgeFAQService.name)
     private readonly localLocks = new Map<string, Promise<void>>()
+
+    @Inject(FAQSemanticPrewarmDispatcher)
+    private readonly semanticPrewarm: FAQSemanticPrewarmDispatcher
 
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
@@ -220,8 +225,10 @@ export class KnowledgeFAQService {
     }
 
     async create(knowledgebaseId: string, input: KnowledgeFAQWriteInput): Promise<IKnowledgeFAQEntry> {
-        return this.withKnowledgebaseLock(knowledgebaseId, async () => {
+        let savedKnowledgebase: IKnowledgebase
+        const entry = await this.withKnowledgebaseLock(knowledgebaseId, async () => {
             const knowledgebase = await this.getFAQKnowledgebase(knowledgebaseId, 'write')
+            savedKnowledgebase = knowledgebase
             const normalized = this.validateInput(input)
             const document = await this.ensureManagedDocument(knowledgebase)
             const existing = await this.findFAQChunks(document.id)
@@ -229,11 +236,17 @@ export class KnowledgeFAQService {
             const vectorStore = await this.knowledgebaseService.getActiveVectorStore(knowledgebase.id, true)
             return this.createReadyFAQRecord(knowledgebase, document, normalized, vectorStore)
         })
+        if (savedKnowledgebase.faqConfig?.negativeMatchMode === 'semantic') {
+            await this.semanticPrewarm.enqueue(savedKnowledgebase, [entry])
+        }
+        return entry
     }
 
     async update(knowledgebaseId: string, faqId: string, input: KnowledgeFAQUpdateInput): Promise<IKnowledgeFAQEntry> {
-        return this.withKnowledgebaseLock(knowledgebaseId, async () => {
+        let savedKnowledgebase: IKnowledgebase
+        const entry = await this.withKnowledgebaseLock(knowledgebaseId, async () => {
             const knowledgebase = await this.getFAQKnowledgebase(knowledgebaseId, 'write')
+            savedKnowledgebase = knowledgebase
             const normalized = this.validateInput(input)
             const document = await this.requireManagedDocument(knowledgebaseId)
             const existing = await this.findFAQChunks(document.id)
@@ -281,6 +294,10 @@ export class KnowledgeFAQService {
                 throw error
             }
         })
+        if (savedKnowledgebase.faqConfig?.negativeMatchMode === 'semantic') {
+            await this.semanticPrewarm.enqueue(savedKnowledgebase, [entry])
+        }
+        return entry
     }
 
     async delete(knowledgebaseId: string, faqId: string, version: number) {
@@ -426,8 +443,11 @@ export class KnowledgeFAQService {
             return { total: entries.length, imported: 0, failed: prepared.failed }
         }
 
-        return this.withKnowledgebaseLock(knowledgebaseId, async () => {
+        let savedKnowledgebase: IKnowledgebase
+        const published: IKnowledgeFAQEntry[] = []
+        const result = await this.withKnowledgebaseLock(knowledgebaseId, async () => {
             const knowledgebase = await this.getFAQKnowledgebase(knowledgebaseId, 'write')
+            savedKnowledgebase = knowledgebase
             const document = await this.ensureManagedDocument(knowledgebase)
             const existing = await this.findFAQChunks(document.id)
             const vectorStore = await this.knowledgebaseService.getActiveVectorStore(knowledgebase.id, true)
@@ -460,7 +480,7 @@ export class KnowledgeFAQService {
                     deleted.push(current)
                 }
                 for (const current of staged) {
-                    await this.finalizeStagedFAQRecord(knowledgebase, current)
+                    published.push(await this.finalizeStagedFAQRecord(knowledgebase, current))
                 }
             } catch (error) {
                 await this.rollbackReplacement(knowledgebase, document, vectorStore, staged, deleted, error)
@@ -469,6 +489,10 @@ export class KnowledgeFAQService {
 
             return { total: entries.length, imported: entries.length, failed: [] }
         })
+        if (result.imported && savedKnowledgebase.faqConfig?.negativeMatchMode === 'semantic') {
+            await this.semanticPrewarm.enqueue(savedKnowledgebase, published)
+        }
+        return result
     }
 
     private async findFAQChunks(documentId: string) {

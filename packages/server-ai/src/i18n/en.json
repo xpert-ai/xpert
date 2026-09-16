@@ -1,5 +1,9 @@
 {
     "Error": {
+        "KnowledgeFAQSemanticUnavailable": "FAQ semantic exclusion could not be completed. Check the model configuration and retry.",
+        "KnowledgeFAQGraphUnsupported": "FAQ knowledgebases do not support graph retrieval.",
+        "KnowledgeFAQPrewarmFailed": "FAQ saved, but semantic vector prewarming could not be scheduled. Missing vectors will be computed during retrieval.",
+        "KnowledgeFAQSemanticCacheWriteFailed": "FAQ semantic vector cache write failed; the current query will use its computed vectors.",
         "KnowledgeParserEmptyFile": "The uploaded file is empty. Upload a file containing content.",
         "KnowledgeParserEmptyText": "No readable text was found. Check whether the file contains only whitespace or blank pages.",
         "KnowledgeParserInvalidDocument": "The file is damaged, encrypted, or does not match its extension. Open it locally and export it again.",

@@ -12,6 +12,7 @@ jest.mock('@cloud/app/@shared/knowledge', () => ({
 }))
 
 import { XpertNewKnowledgeComponent } from './new.component'
+import type { ICopilotModel } from '@xpert-ai/contracts'
 
 describe('XpertNewKnowledgeComponent', () => {
   function createComponent(dialogData: object) {
@@ -57,6 +58,58 @@ describe('XpertNewKnowledgeComponent', () => {
 
     return TestBed.runInInjectionContext(() => new XpertNewKnowledgeComponent())
   }
+
+  it('requires semantic parameters and submits them only when creating a semantic FAQ library', () => {
+    const component = createComponent({ workspaceId: 'workspace' })
+    component.name.set('FAQ')
+    component.type.set(KnowledgebaseTypeEnum.FAQ)
+    component.copilotModel.set({ id: 'embedding' } as ICopilotModel)
+    component.updateFAQConfig('negativeMatchMode', 'semantic')
+    const defaults = component.faqSemanticForm.getRawValue()
+    expect(defaults).toEqual({ threshold: 0.85, margin: 0.05 })
+    component.faqSemanticForm.setValue({ threshold: null, margin: null })
+    const api = TestBed.inject(KnowledgebaseService)
+    jest.mocked(api.create).mockReturnValue(of({ id: 'created' }))
+    component.create()
+    expect(api.create).not.toHaveBeenCalled()
+    expect(component.activeSection()).toBe('faq')
+    component.faqSemanticForm.setValue(defaults)
+    component.create()
+    expect(api.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        faqConfig: expect.objectContaining({
+          negativeMatchMode: 'semantic',
+          semanticThreshold: 0.85,
+          semanticMargin: 0.05
+        })
+      })
+    )
+  })
+
+  it('keeps existing semantic configuration read-only and omits it from update payloads', async () => {
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb-1',
+        name: 'FAQ',
+        type: KnowledgebaseTypeEnum.FAQ,
+        copilotModel: { id: 'embedding' },
+        faqConfig: {
+          indexMode: 'question_only',
+          questionIndexMode: 'separate',
+          negativeMatchMode: 'semantic',
+          semanticThreshold: 0.85,
+          semanticMargin: 0.05
+        }
+      }
+    })
+    component.updateFAQConfig('negativeMatchMode', 'exact')
+    expect(component.faqConfig().negativeMatchMode).toBe('semantic')
+    expect(component.faqSemanticForm.disabled).toBe(true)
+    await component.save()
+    const api = TestBed.inject(KnowledgebaseService)
+    expect(api.update).toHaveBeenCalled()
+    expect(jest.mocked(api.update).mock.calls[0][1]).not.toHaveProperty('faqConfig')
+  })
 
   it('saves automatic tagging settings and restores them when editing', async () => {
     const config = { enabled: true, maxTags: 5, confidenceThreshold: 0.85, allowWithManualTags: true }
