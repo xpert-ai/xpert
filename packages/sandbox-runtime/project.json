@@ -19,6 +19,7 @@
         "commands": [
           "node packages/sandbox-runtime/scripts/verify-catalog.mjs",
           "node --test packages/sandbox-runtime/scripts/document-runtime-contract.test.mjs",
+          "node --test packages/sandbox-runtime/scripts/tests/release-matrix.test.mjs",
           "node packages/sandbox-runtime/scripts/install-ai-resources.test.mjs",
           "node packages/sandbox-runtime/images/browser/tests/runner-host.test.mjs",
           "node packages/sandbox-runtime/images/browser-video/tests/runtime-contract.test.mjs",

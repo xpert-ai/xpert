@@ -1,3 +1,5 @@
+import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
+import { environment } from '@xpert-ai/server-config'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     DocumentSourceRegistry: class DocumentSourceRegistry {},
     SandboxWorkspaceMapperStrategy: () => () => undefined,
@@ -167,6 +169,38 @@ function createService(
     })
     return service
 }
+
+describe('KnowledgeDocumentService per-knowledgebase vector synchronization', () => {
+    it('synchronizes only Milvus documents when the global backend is PGVector', async () => {
+        const previous = environment.vectorStore
+        environment.vectorStore = VectorTypeEnum.PGVECTOR
+        try {
+            const documents: Partial<KnowledgeDocument>[] = [
+                {
+                    id: 'milvus-doc',
+                    knowledgebaseId: 'milvus-kb',
+                    knowledgebase: Object.assign(new Knowledgebase(), { vectorStore: VectorTypeEnum.MILVUS })
+                },
+                {
+                    id: 'pg-doc',
+                    knowledgebaseId: 'pg-kb',
+                    knowledgebase: Object.assign(new Knowledgebase(), { vectorStore: VectorTypeEnum.PGVECTOR })
+                }
+            ]
+            const partialUpdateFilterAttributes = jest.fn()
+            const getActiveVectorStore = jest.fn(async () => ({ partialUpdateFilterAttributes }))
+            const service = createService(documents, { knowledgebaseService: { getActiveVectorStore } })
+            const chunk = { id: 'chunk', documentId: 'milvus-doc' }
+            Object.assign(service, { chunkService: { findAll: jest.fn(async () => ({ items: [chunk] })) } })
+            await service['syncMilvusFilterAttributes'](['milvus-doc', 'pg-doc'])
+            expect(getActiveVectorStore).toHaveBeenCalledTimes(1)
+            expect(getActiveVectorStore).toHaveBeenCalledWith('milvus-kb', true)
+            expect(partialUpdateFilterAttributes).toHaveBeenCalledWith(documents[0], [chunk])
+        } finally {
+            environment.vectorStore = previous
+        }
+    })
+})
 
 describe('KnowledgeDocumentService logical folder paths', () => {
     it('does not require a removed parser when only changing chunk settings', async () => {

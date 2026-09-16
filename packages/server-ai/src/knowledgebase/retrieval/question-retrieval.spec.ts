@@ -67,6 +67,7 @@ describe('question retrieval projections', () => {
             metadataSchema: []
         } as IKnowledgebase
         const store = {
+            vectorStoreType: environment.vectorStore,
             embeddingModel: 'embedding',
             structuredSimilaritySearchWithScore: jest.fn(async (_query: string, k: number) => ({
                 items: vectors.slice(0, k)

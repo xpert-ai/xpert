@@ -12,6 +12,7 @@ import {
   IDocumentSourceProvider,
   IDocumentUnderstandingProvider,
   IKnowledgebase,
+  KnowledgeVectorStoreOptions,
   KnowledgebaseWikiConfig,
   KnowledgeChunkPreviewInput,
   KnowledgeChunkPreviewResult,
@@ -58,6 +59,12 @@ function toGraphHttpParams(query?: KnowledgeGraphVisualizationQuery | KnowledgeG
 @Injectable({ providedIn: 'root' })
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
   readonly #logger = inject(NGXLogger)
+
+  getVectorStores() {
+    return this.selectOrganizationId().pipe(
+      switchMap(() => this.httpClient.get<KnowledgeVectorStoreOptions>(this.apiBaseUrl + '/vector-stores'))
+    )
+  }
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
 

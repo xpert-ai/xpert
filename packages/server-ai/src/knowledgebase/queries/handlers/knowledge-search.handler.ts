@@ -279,7 +279,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                 retrievalFailure?.errorCode ??
                 this.resolveFilterErrorCode(error, resolveRetrievalMode(kb, command.input.retrieval)),
             hitCount: 0,
-            vectorBackend: previousDiagnostics?.vectorBackend ?? environment.vectorStore,
+            vectorBackend: previousDiagnostics?.vectorBackend ?? kb.vectorStore ?? environment.vectorStore,
             errors
         }
         try {
@@ -349,7 +349,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
                 dynamic: filters?.dynamic
             },
             variables,
-            vectorBackend: environment.vectorStore
+            vectorBackend: kb.vectorStore ?? environment.vectorStore
         })
         prepared.diagnostics.filterLatency = Date.now() - filterStartedAt
         const mode = resolveRetrievalMode(kb, retrieval)

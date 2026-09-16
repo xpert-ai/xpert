@@ -6,7 +6,6 @@ import {
     KnowledgebaseTypeEnum,
     VectorTypeEnum
 } from '@xpert-ai/contracts'
-import { environment } from '@xpert-ai/server-config'
 import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { In, Raw } from 'typeorm'
@@ -71,7 +70,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                 if (!topK) return { items: [] }
             }
             lastWindow = topK
-            if (environment.vectorStore === VectorTypeEnum.PGVECTOR) {
+            if (vectorStore.vectorStoreType === VectorTypeEnum.PGVECTOR) {
                 const compiled = prepared.effective
                     ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
                     : { sql: 'TRUE', parameters: [] }
@@ -86,7 +85,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                     }
                 })
             }
-            if (environment.vectorStore === VectorTypeEnum.MILVUS) {
+            if (vectorStore.vectorStoreType === VectorTypeEnum.MILVUS) {
                 const compiled = prepared.effective
                     ? compileKnowledgeFilterToMilvus(prepared.effective, prepared.registry)
                     : { expression: '', values: {} }
@@ -128,7 +127,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             }
             if (prepared.effective) {
                 throw new BadRequestException(
-                    `Vector store '${environment.vectorStore}' does not support knowledge filter v2.`
+                    `Vector store '${vectorStore.vectorStoreType}' does not support knowledge filter v2.`
                 )
             }
             return { items: await searchStore.similaritySearchWithScore(query, topK) }

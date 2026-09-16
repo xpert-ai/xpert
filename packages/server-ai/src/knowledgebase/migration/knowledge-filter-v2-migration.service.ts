@@ -69,7 +69,7 @@ export class KnowledgeFilterV2MigrationService {
         this.assertPostgres()
 
         const knowledgebases = await this.dataSource.getRepository(Knowledgebase).find({
-            select: { id: true, name: true, metadataSchema: true }
+            select: { id: true, name: true, vectorStore: true, metadataSchema: true }
         })
         const schemas = new Map<string, KBMetadataFieldDef[]>()
         const issues: KnowledgeFilterMigrationIssue[] = []
@@ -137,8 +137,11 @@ export class KnowledgeFilterV2MigrationService {
             await fs.writeFile(update.filePath, update.content, 'utf8')
         }
 
-        if (!options.skipMilvus && environment.vectorStore === VectorTypeEnum.MILVUS) {
-            const milvus = await this.migrateMilvus(knowledgebases, schemas)
+        if (!options.skipMilvus) {
+            const milvus = await this.migrateMilvus(
+                knowledgebases.filter((kb) => (kb.vectorStore ?? environment.vectorStore) === VectorTypeEnum.MILVUS),
+                schemas
+            )
             report.milvusCollectionsMigrated = milvus.collections
             report.milvusChunksUpdated = milvus.updated
             report.milvusSamplesVerified = milvus.verified

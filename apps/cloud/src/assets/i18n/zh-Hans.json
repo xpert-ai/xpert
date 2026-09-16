@@ -7306,12 +7306,12 @@
         },
         "VectorStorage": {
           "Title": "向量存储",
-          "Description": "查看此知识库使用的向量存储，当前由系统级配置统一决定。",
+          "Description": "为此知识库选择向量存储。",
           "Label": "向量存储",
-          "LabelDescription": "知识库向量会写入当前部署配置的存储引擎。",
+          "LabelDescription": "每个知识库使用所选存储引擎，连接参数沿用部署配置。",
           "SystemDefault": "系统默认",
-          "SystemDefaultHelp": "使用系统配置的向量存储引擎。",
-          "MigrationNotice": "当前暂不支持为单个知识库选择向量存储。更换系统向量存储需要先规划数据迁移，并重新索引知识库。"
+          "SystemDefaultHelp": "新建知识库会将当前系统默认保存为具体存储类型。",
+          "MigrationNotice": "向量存储创建后锁定，现有索引不会自动迁移。"
         },
         "Models": {
           "Description": "为知识库选择合适的 AI 模型。",
