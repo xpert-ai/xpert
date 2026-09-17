@@ -1,3 +1,5 @@
+import { SetMetadata } from '@nestjs/common'
+
 export type RuntimeCapabilityKey<T> = {
   readonly id: string
   readonly description?: string
@@ -28,6 +30,13 @@ export interface RuntimeCapabilityRegistry {
 export type RuntimeCapabilityResolver = Pick<RuntimeCapabilityRegistry, 'get'>
 
 export const XPERT_RUNTIME_CAPABILITIES_TOKEN = 'XPERT_RUNTIME_CAPABILITIES'
+
+/** Metadata key under which RuntimeCapabilityProviderExplorer discovers capability providers. */
+export const RUNTIME_CAPABILITY_PROVIDER = 'XPERT_RUNTIME_CAPABILITY_PROVIDER'
+
+/** Tags a Nest provider as the platform implementation of a runtime capability. */
+export const RuntimeCapabilityProvider = <T>(capability: RuntimeCapabilityKey<T>) =>
+  SetMetadata(RUNTIME_CAPABILITY_PROVIDER, capability)
 
 export class DefaultRuntimeCapabilityRegistry implements RuntimeCapabilityRegistry {
   private readonly capabilities = new Map<string, unknown>()
