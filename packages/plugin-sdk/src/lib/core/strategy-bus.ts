@@ -8,19 +8,6 @@ export type StrategyBusEvent<S = any> =
 
 @Injectable()
 export class StrategyBus {
-  private readonly removalGuards = new Set<(scopeKey: string, pluginNames: readonly string[]) => Promise<void>>()
-
-  registerRemovalGuard(guard: (scopeKey: string, pluginNames: readonly string[]) => Promise<void>) {
-    this.removalGuards.add(guard)
-    return () => {
-      this.removalGuards.delete(guard)
-    }
-  }
-
-  async assertCanRemove(scopeKey: string, pluginNames: readonly string[]) {
-    for (const guard of this.removalGuards) await guard(scopeKey, pluginNames)
-  }
-
   private readonly subject = new Subject<StrategyBusEvent>()
 
   readonly events$ = this.subject.asObservable()
