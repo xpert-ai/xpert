@@ -115,6 +115,32 @@ describe('Wiki creation and editing form', () => {
     expect(root.querySelector('[data-wiki-generation-settings]')).toBeNull()
   })
 
+  it.each([undefined, null])(
+    'preserves the analyzer state when saving unrelated settings (%s)',
+    async (keywordAnalyzer) => {
+      await render({ ...draft, id: 'kb-1', keywordAnalyzer })
+      element<HTMLButtonElement>('.kb-footer-primary').click()
+      const request = http.expectOne('/api/knowledgebase/kb-1/wiki/config')
+      expect(request.request.body.settings.keywordAnalyzer).toBe(keywordAnalyzer)
+      if (keywordAnalyzer === undefined) expect(request.request.body.settings).not.toHaveProperty('keywordAnalyzer')
+      request.flush({ id: 'kb-1' })
+    }
+  )
+
+  it('preserves a locked plugin analyzer when saving unrelated settings', async () => {
+    const keywordAnalyzer = {
+      provider: 'jieba',
+      revision: 'v1',
+      source: { kind: 'plugin' as const, scopeKey: 'org-1', pluginName: '@xpert-ai/plugin-jieba' }
+    }
+    await render({ ...draft, id: 'kb-1', documentNum: 2, keywordAnalyzer, keywordAnalyzerLocked: true })
+    expect(fixture.componentInstance.keywordAnalyzerLocked()).toBe(true)
+    element<HTMLButtonElement>('.kb-footer-primary').click()
+    const request = http.expectOne('/api/knowledgebase/kb-1/wiki/config')
+    expect(request.request.body.settings.keywordAnalyzer).toEqual(keywordAnalyzer)
+    request.flush({ id: 'kb-1' })
+  })
+
   it('offers graph indexing independently of the locked Wiki strategy for existing documents', async () => {
     await render({ ...draft, id: 'kb-1', documentNum: 2, graphRag: { enabled: false } })
     const graph = element<HTMLButtonElement>('[data-index-capability="graph"]')

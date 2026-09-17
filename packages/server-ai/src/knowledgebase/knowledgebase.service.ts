@@ -1,4 +1,5 @@
 import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
+import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
 import { environment } from '@xpert-ai/server-config'
 import { rethrowParserError } from '../knowledge-document/parser-error'
@@ -204,6 +205,8 @@ const KNOWLEDGEBASE_MODEL_DETAIL_SELECT = {
 }
 
 const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
+    keywordAnalyzer: true,
+    keywordAnalyzerLocked: true,
     id: true,
     name: true,
     type: true,
@@ -276,6 +279,9 @@ function getQueryFailedErrorCode(error: QueryFailedError) {
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
+    @Inject(KnowledgeKeywordAnalyzerService)
+    private readonly keywordAnalyzers: KnowledgeKeywordAnalyzerService
+
     readonly #logger = new Logger(KnowledgebaseService.name)
 
     @Inject(I18nService)
@@ -406,6 +412,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
     async create(entity: Partial<IKnowledgebase>) {
         const input = { ...entity }
+        delete input.keywordAnalyzerLocked
+        input.keywordAnalyzer =
+            input.type === KnowledgebaseTypeEnum.External
+                ? null
+                : this.keywordAnalyzers.forCreate(input.keywordAnalyzer, RequestContext.getOrganizationId())
         if ('automaticTagging' in input) input.automaticTagging = prepareAutomaticTaggingConfig(input.automaticTagging)
         delete input.id
         delete input.createdById
@@ -647,6 +658,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             ]
         })
         const changes = { ...entity }
+        delete changes.keywordAnalyzerLocked
+        const hasKeywordAnalyzer = Object.prototype.hasOwnProperty.call(changes, 'keywordAnalyzer')
+        delete changes.keywordAnalyzer
         this.vectorStoreSettings.assertUnchanged(_entity.vectorStore, changes.vectorStore)
         delete changes.vectorStore
         if ('automaticTagging' in changes)
@@ -828,7 +842,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             }
             assign(_entity, changes, embeddingPatch, wikiPatch)
             _entity.updatedById = RequestContext.currentUserId()
-            const saved = await super.save(_entity)
+            const saved = hasKeywordAnalyzer
+                ? await this.keywordAnalyzers.saveSettings(_entity, entity.keywordAnalyzer)
+                : await super.save(_entity)
             if (embeddingPatch.status === KnowledgebaseStatusEnum.REBUILD_REQUIRED) {
                 return await this.startEmbeddingRebuild(id)
             }

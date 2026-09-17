@@ -836,6 +836,14 @@
       }
     },
     "Knowledgebase": {
+      "KeywordAnalyzer": {
+        "Label": "Keyword analyzer",
+        "Legacy": "Legacy built-in analyzer",
+        "Help": "Used to analyze documents and search queries. This choice is locked when the first document is added.",
+        "Locked": "Documents have been added. The keyword analyzer is locked.",
+        "Loading": "Loading available analyzers...",
+        "Retry": "Retry loading analyzers"
+      },
       "GraphSourceScope": "All source documents / revisions",
       "ClearGraphSourceSelection": "Clear source selection",
       "ClearGraphFocusSelection": "Clear focus selection",
