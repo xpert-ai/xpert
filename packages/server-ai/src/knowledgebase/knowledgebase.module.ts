@@ -18,7 +18,8 @@ import {
     ImageUnderstandingRegistry,
     KnowledgeStrategyRegistry,
     RetrieverRegistry,
-    TextSplitterRegistry
+    TextSplitterRegistry,
+    KeywordAnalyzerRegistry
 } from '@xpert-ai/plugin-sdk'
 import { CopilotModule } from '../copilot/copilot.module'
 import { KnowledgeDocumentModule } from '../knowledge-document/document.module'
@@ -65,6 +66,9 @@ import { KnowledgeWikiSearchScopeService } from './wiki/knowledge-wiki-search-sc
 import { KnowledgeParserSettingsService } from './parser-settings.service'
 import { KnowledgeTableContextService } from './retrieval/table-context.service'
 import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.processor'
+import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
+import { BasicKeywordAnalyzer } from './analyzer/basic.strategy'
+import { KeywordChunkSubscriber } from './analyzer/keyword-chunk.subscriber'
 
 @Module({
     imports: [
@@ -103,6 +107,10 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
     ],
     controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController, KnowledgeTagUsageController],
     providers: [
+        KeywordAnalyzerRegistry,
+        KnowledgeKeywordAnalyzerService,
+        BasicKeywordAnalyzer,
+        KeywordChunkSubscriber,
         KnowledgeTagService,
         KnowledgePipelineCallbackProcessor,
         KnowledgeParserSettingsService,

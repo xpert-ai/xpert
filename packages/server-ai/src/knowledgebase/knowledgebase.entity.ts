@@ -43,6 +43,13 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @Column()
     name: string
 
+    // Conditional SQL owns these fields; ORM saves must not restore stale analyzer state.
+    @Column({ type: 'jsonb', nullable: true, update: false })
+    keywordAnalyzer?: IKnowledgebase['keywordAnalyzer']
+
+    @Column({ type: 'boolean', default: false, update: false })
+    keywordAnalyzerLocked?: boolean
+
     @ApiPropertyOptional({ enum: VectorTypeEnum })
     @IsEnum(VectorTypeEnum)
     @IsOptional()

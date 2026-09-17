@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { KnowledgeDocumentDialogService } from '../../knowledge/knowledgebase/documents/import/document-dialog.service'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -14,7 +14,9 @@ import {
   KnowledgebaseService,
   KnowledgebaseTypeEnum,
   KnowledgeDocumentService,
-  OrderTypeEnum
+  OrderTypeEnum,
+  ToastrService,
+  getErrorMessage
 } from '../../../../@core'
 import { XpertNewKnowledgeComponent } from '../../knowledge'
 import { getKnowledgebaseDefaultRoute } from '../../knowledge/knowledgebase/knowledgebase-route'
@@ -36,6 +38,8 @@ export class XpertWorkspaceKnowledgesPageComponent {
   readonly #router = inject(Router)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #knowledgeDocumentService = inject(KnowledgeDocumentService)
+  readonly #toastr = inject(ToastrService)
+  readonly #destroyRef = inject(DestroyRef)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
 
   readonly workspace = this.homeComponent.workspace
@@ -88,6 +92,7 @@ export class XpertWorkspaceKnowledgesPageComponent {
   readonly loadingKnowledgebases = signal(false)
   readonly loadingDocuments = signal(false)
   readonly loadingPreview = signal(false)
+  readonly loadingSettings = signal(false)
   readonly loadError = signal<string | null>(null)
   readonly knowledgebaseRefreshVersion = signal(0)
   readonly documentRefreshVersion = signal(0)
@@ -180,9 +185,21 @@ export class XpertWorkspaceKnowledgesPageComponent {
       })
   }
 
-  openKnowledgebaseSettings() {
-    const knowledgebase = this.activeKnowledgebase()
-    if (knowledgebase && this.canWriteActiveKnowledgebase()) {
+  async openKnowledgebaseSettings() {
+    const selected = this.activeKnowledgebase()
+    if (!selected || !this.canWriteActiveKnowledgebase() || this.loadingSettings()) return
+    const workspaceId = this.workspaceId()
+    this.loadingSettings.set(true)
+    try {
+      const knowledgebase = await firstValueFrom(this.#knowledgebaseService.getDetail(selected.id))
+      if (
+        this.#destroyRef.destroyed ||
+        this.activeKnowledgebaseId() !== selected.id ||
+        this.workspaceId() !== workspaceId ||
+        !this.canWriteActiveKnowledgebase() ||
+        knowledgebase.workspaceId !== workspaceId
+      )
+        return
       this.#dialog
         .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
           width: 'min(96vw, 72rem)',
@@ -191,7 +208,7 @@ export class XpertWorkspaceKnowledgesPageComponent {
           maxHeight: 'calc(100vh - 1.5rem)',
           panelClass: 'xp-overlay-pane-card',
           data: {
-            workspaceId: this.workspaceId(),
+            workspaceId,
             knowledgebase
           }
         })
@@ -202,6 +219,10 @@ export class XpertWorkspaceKnowledgesPageComponent {
             }
           }
         })
+    } catch (error) {
+      if (!this.#destroyRef.destroyed) this.#toastr.error(getErrorMessage(error))
+    } finally {
+      if (!this.#destroyRef.destroyed) this.loadingSettings.set(false)
     }
   }
 

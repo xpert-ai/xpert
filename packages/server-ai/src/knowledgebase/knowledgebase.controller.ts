@@ -11,6 +11,7 @@ import {
     TCopilotModel,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
+import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import {
     CrudController,
     PaginationParams,
@@ -64,6 +65,16 @@ import { KnowledgeParserSettingsService } from './parser-settings.service'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class KnowledgebaseController extends CrudController<Knowledgebase> {
+    @Inject(KnowledgeKeywordAnalyzerService)
+    private readonly keywordAnalyzers: KnowledgeKeywordAnalyzerService
+
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
+    @Get('keyword-analyzers')
+    keywordAnalyzerOptions() {
+        return this.keywordAnalyzers.options(RequestContext.getOrganizationId())
+    }
+
     readonly #logger = new Logger(KnowledgebaseController.name)
 
     @Inject(KnowledgeDocumentService)
