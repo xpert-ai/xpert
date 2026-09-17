@@ -13,6 +13,7 @@ import {
 import { FormControl, FormRecord, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import { AssistantPersonalizationComponent } from './assistant-personalization.component'
 import { AssistantSettingsSection, SETTINGS_BLOCKS, SETTINGS_SECTIONS } from './assistant-settings.data'
 
 @Component({
@@ -26,7 +27,8 @@ import { AssistantSettingsSection, SETTINGS_BLOCKS, SETTINGS_SECTIONS } from './
     ZardButtonComponent,
     ZardInputDirective,
     ZardSwitchComponent,
-    ZardIconComponent
+    ZardIconComponent,
+    AssistantPersonalizationComponent
   ],
   templateUrl: './assistant-settings.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush

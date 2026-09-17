@@ -52,6 +52,9 @@
           {{ 'XP.AssistantSettings.' + notice() | translate }}
         </p>
       }
+      <div [hidden]="activeSection() !== 'personalization'">
+        <xp-assistant-personalization />
+      </div>
       @if (activeSection() === 'memory') {
         <p class="mb-6 text-sm leading-6 text-muted-foreground">{{ 'XP.AssistantSettings.MemoryIntro' | translate }}</p>
         @for (block of blocks.memory; track $index) {

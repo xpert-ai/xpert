@@ -262,7 +262,20 @@
       "Enter": "请输入",
       "Content": "内容",
       "SaveDraft": "保存草稿",
-      "DraftOnly": "仅用于当前页面预览，尚未保存到平台。"
+      "DraftOnly": "仅用于当前页面预览，尚未保存到平台。",
+      "Retry": "重试",
+      "BindingRequired": "请先在工作区设置中绑定 Claw Xpert，再配置助理。",
+      "Saving": "正在保存…",
+      "PersonalizationIntro": "设置助理的行为方式，以及它需要了解的个人偏好。这里与工作区设置中的行为准则和用户档案保持一致。",
+      "BehaviorHelp": "描述助理的名字、身份、性格、回复方式和行为准则，例如先给结论、使用中文或遵循指定工作流程。",
+      "ProfileHelp": "填写你希望助理记住的信息，例如你的称呼、角色、沟通偏好和长期工作背景。",
+      "MarkdownHelp": "支持 Markdown；按需填写，可留空。",
+      "BehaviorPlaceholder": "# 身份与性格\n你是我的工作助理。\n\n# 回复方式\n先给结论，再说明依据。\n\n# 行为准则\n执行任务前确认关键信息。",
+      "ProfilePlaceholder": "# 关于我\n称呼：\n角色：\n\n# 沟通偏好\n\n# 长期工作背景",
+      "PreferenceLoadFailed": "个性化内容加载失败，请重试后再编辑。",
+      "PersonalizationSaved": "已保存，并同步到工作区设置。",
+      "PersonalizationSaveHint": "保存到当前用户的助理偏好。",
+      "UnsavedChanges": "有未保存的修改"
     },
     "TagDirectory": {
       "KnowledgeCandidate": "知识库候选关联",
