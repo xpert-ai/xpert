@@ -3,7 +3,6 @@
  * Runtime-installed plugins are not automatically part of the live TypeORM `DataSource`.
  * Without merging and rebuilding metadata first, repository access can fail with `EntityMetadataNotFoundError`.
  * Keep registration deterministic, reject entity name conflicts, and only call `synchronize()` when the DataSource is configured for it.
- * Refreshes must retain injected subscribers throughout TypeORM's asynchronous metadata rebuild.
  */
 import { BadRequestException, ConflictException, DynamicModule, Type } from '@nestjs/common'
 import { DataSource, EntitySubscriberInterface, MixedList, getMetadataArgsStorage } from 'typeorm'
@@ -110,49 +109,10 @@ export function validatePluginEntityTableNames(input: {
 	})
 }
 
-const metadataRefreshes = new WeakMap<DataSource, Promise<{ changed: boolean; synchronized: boolean }>>()
-
 export async function registerPluginOrmMetadataInDataSource(
 	dataSource: DataSource,
 	metadata: Partial<PluginOrmMetadata>
 ) {
-	const previous = metadataRefreshes.get(dataSource) ?? Promise.resolve()
-	const pending = previous.catch(() => undefined).then(() => registerPluginOrmMetadata(dataSource, metadata))
-	metadataRefreshes.set(dataSource, pending)
-	try {
-		return await pending
-	} finally {
-		if (metadataRefreshes.get(dataSource) === pending) metadataRefreshes.delete(dataSource)
-	}
-}
-
-async function rebuildMetadatasPreservingSubscribers(dataSource: DataSource) {
-	let subscribers = dataSource.subscribers ?? []
-	const descriptor = Object.getOwnPropertyDescriptor(dataSource, 'subscribers')
-	// TypeORM replaces this array before awaiting entity metadata. Merge on assignment,
-	// so concurrent inserts never observe a window without the injected listeners.
-	Object.defineProperty(dataSource, 'subscribers', {
-		configurable: true,
-		enumerable: descriptor?.enumerable ?? true,
-		get: () => subscribers,
-		set: (discovered: EntitySubscriberInterface[]) => {
-			const existing = new Set(subscribers.map((subscriber) => subscriber.constructor))
-			subscribers = [...subscribers, ...discovered.filter((subscriber) => !existing.has(subscriber.constructor))]
-		}
-	})
-	try {
-		await (dataSource as DataSource & { buildMetadatas: () => Promise<void> }).buildMetadatas()
-	} finally {
-		Object.defineProperty(dataSource, 'subscribers', {
-			configurable: descriptor?.configurable ?? true,
-			enumerable: descriptor?.enumerable ?? true,
-			writable: true,
-			value: subscribers
-		})
-	}
-}
-
-async function registerPluginOrmMetadata(dataSource: DataSource, metadata: Partial<PluginOrmMetadata>) {
 	const nextEntities = mergeTargets(dataSource.options.entities, metadata.entities ?? [])
 	const nextSubscribers = mergeTargets(dataSource.options.subscribers, metadata.subscribers ?? [])
 	const hasEntityChanges = nextEntities.length !== normalizeTargets(dataSource.options.entities).length
@@ -171,7 +131,7 @@ async function registerPluginOrmMetadata(dataSource: DataSource, metadata: Parti
 		return { changed: true, synchronized: false }
 	}
 
-	await rebuildMetadatasPreservingSubscribers(dataSource)
+	await (dataSource as DataSource & { buildMetadatas: () => Promise<void> }).buildMetadatas()
 
 	if (hasEntityChanges && dataSource.options.synchronize) {
 		await dataSource.synchronize()
