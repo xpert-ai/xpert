@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.7
+
+### Patch Changes
+
+- 5213185: Expose keyword analyzer strategy interfaces, discovery metadata, and a scoped registry with exact source lookup. Add optional plugin removal preflight guards so hosts can protect active analyzer dependencies.
+
+  Correct read-only SQL classification for derived tables, CTE column declarations and type modifiers, and preserve duplicate MySQL output names with direct bounded pagination.
+
 ## 3.18.6
 
 ### Patch Changes
