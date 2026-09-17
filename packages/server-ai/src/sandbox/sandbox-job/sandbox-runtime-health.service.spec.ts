@@ -1,9 +1,59 @@
 import { SandboxRuntimeHealthService } from './sandbox-runtime-health.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 
+jest.mock('@xpert-ai/plugin-sdk', () => ({ MANAGED_QUEUE_SERVICE_TOKEN: 'XPERT_MANAGED_QUEUE_SERVICE' }))
+jest.mock('./sandbox-runtime-binding-selector.service', () => ({ SandboxRuntimeBindingSelector: class {} }))
+
 const definition = new SandboxRuntimeDefinitionRegistry().require('browser/playwright-1.61/v1')
 
 describe('SandboxRuntimeHealthService API Runtime executor', () => {
+    afterEach(() => jest.useRealTimers())
+
+    it('shares an in-flight probe between simultaneous health requests', async () => {
+        const { service, selector } = createService({ available: false, reason: 'PROFILE_UNHEALTHY' })
+        let finish!: () => void
+        selector.inspect.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finish = () => resolve({ available: false, reason: 'PROFILE_UNHEALTHY' })
+                })
+        )
+        const first = service.getProfileHealth(definition)
+        const second = service.getProfileHealth(definition)
+        expect(selector.inspect).toHaveBeenCalledTimes(1)
+        finish()
+        await Promise.all([first, second])
+    })
+
+    it('does not overlap heartbeat sweeps while a provider is slow', async () => {
+        jest.useFakeTimers()
+        const { service, selector } = createService({ available: false, reason: 'PROFILE_UNHEALTHY' })
+        let finish!: () => void
+        selector.inspect.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finish = () => resolve({ available: false, reason: 'PROFILE_UNHEALTHY' })
+                })
+        )
+        service.onModuleInit()
+        try {
+            await jest.advanceTimersByTimeAsync(45_000)
+            expect(selector.inspect).toHaveBeenCalledTimes(1)
+        } finally {
+            finish()
+            await service.onModuleDestroy()
+        }
+    })
+
+    it('retries failed health promptly instead of retaining it for the success TTL', async () => {
+        jest.useFakeTimers()
+        const { service, selector } = createService({ available: false, reason: 'PROFILE_UNHEALTHY' })
+        await service.getProfileHealth(definition)
+        await jest.advanceTimersByTimeAsync(5_001)
+        await service.getProfileHealth(definition)
+        expect(selector.inspect).toHaveBeenCalledTimes(2)
+    })
+
     it('probes and publishes an unbound Runtime warning from the API process', async () => {
         const { service, selector, redis } = createService({
             available: false,

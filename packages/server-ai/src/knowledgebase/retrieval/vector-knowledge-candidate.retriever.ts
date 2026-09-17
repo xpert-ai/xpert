@@ -6,7 +6,6 @@ import {
     KnowledgebaseTypeEnum,
     VectorTypeEnum
 } from '@xpert-ai/contracts'
-import { environment } from '@xpert-ai/server-config'
 import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common'
 import { ChunkMetadata } from '@xpert-ai/plugin-sdk'
 import { In, Raw } from 'typeorm'
@@ -40,11 +39,17 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
     async retrieve(request: KnowledgeRetrievalRequest): Promise<KnowledgeRetrievalBatch> {
         const { knowledgebase: kb, query, k } = request
         const prepared = request.preparedFilter
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(kb.id, true, request.modelContext, {
-            rerankEnabled: false
-        })
+        const prepareStore = () =>
+            this.knowledgebaseService.getActiveVectorStore(kb.id, true, request.modelContext, {
+                rerankEnabled: false
+            })
+        const vectorStore = await (request.faqSession
+            ? (request.faqSession.vectorStore ??= prepareStore())
+            : prepareStore())
         const requestedTopK = k ?? kb.recall?.topK ?? 10
-        const searchStore = vectorStore.createSearchSession?.(query) ?? vectorStore
+        const searchStore = request.faqSession
+            ? (request.faqSession.vectorSearch ??= vectorStore.createSearchSession(query, true))
+            : (vectorStore.createSearchSession?.(query) ?? vectorStore)
         const vectorTopK =
             kb.type === KnowledgebaseTypeEnum.FAQ
                 ? requestedTopK * KNOWLEDGE_FAQ_MAX_LOGICAL_VECTOR_COUNT
@@ -54,8 +59,18 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             `SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`
         )
         const vectorStartedAt = Date.now()
+        let rawCount = 0
+        let lastWindow = 0
+        let budgetLimited = false
         const search = async (topK: number): Promise<VectorSearchResult> => {
-            if (environment.vectorStore === VectorTypeEnum.PGVECTOR) {
+            if (request.faqSession) {
+                const reserved = request.faqSession.budget.reserveCandidates(topK)
+                budgetLimited ||= reserved < topK
+                topK = reserved
+                if (!topK) return { items: [] }
+            }
+            lastWindow = topK
+            if (vectorStore.vectorStoreType === VectorTypeEnum.PGVECTOR) {
                 const compiled = prepared.effective
                     ? compileKnowledgeFilterToPostgres(prepared.effective, prepared.registry)
                     : { sql: 'TRUE', parameters: [] }
@@ -70,7 +85,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                     }
                 })
             }
-            if (environment.vectorStore === VectorTypeEnum.MILVUS) {
+            if (vectorStore.vectorStoreType === VectorTypeEnum.MILVUS) {
                 const compiled = prepared.effective
                     ? compileKnowledgeFilterToMilvus(prepared.effective, prepared.registry)
                     : { expression: '', values: {} }
@@ -112,7 +127,7 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             }
             if (prepared.effective) {
                 throw new BadRequestException(
-                    `Vector store '${environment.vectorStore}' does not support knowledge filter v2.`
+                    `Vector store '${vectorStore.vectorStoreType}' does not support knowledge filter v2.`
                 )
             }
             return { items: await searchStore.similaritySearchWithScore(query, topK) }
@@ -133,13 +148,20 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
                 return source && source.metadata?.enabled !== false && isCurrentQuestionVector(doc.metadata, source)
             })
         }
-        let currentTopK = vectorTopK
+        // Continue from the actual projection window, not the smaller outer FAQ count.
+        let currentTopK = Math.max(vectorTopK, (request.faqSession?.vectorWindow ?? 0) * 2)
         let searchResult = await search(currentTopK)
+        rawCount = searchResult.items.length
         let validItems = await filterQuestions(searchResult.items)
         // Multiple question vectors must not crowd other source chunks out of Top K.
         let expansions = 0
         while (
             expansions < MAX_PROJECTION_SEARCH_EXPANSIONS &&
+            !budgetLimited &&
+            (!request.faqSession ||
+                (request.faqSession.budget.hasTime &&
+                    currentTopK * 2 <=
+                        request.faqSession.budget.limits.candidateSlots - request.faqSession.budget.candidateSlots)) &&
             searchResult.items.length === currentTopK &&
             (kb.type === KnowledgebaseTypeEnum.FAQ ||
                 searchResult.items.some(([doc]) => doc.metadata.questionGenerationId)) &&
@@ -148,8 +170,10 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
             expansions++
             currentTopK *= 2
             searchResult = await search(currentTopK)
+            rawCount = searchResult.items.length
             validItems = await filterQuestions(searchResult.items)
         }
+        if (request.faqSession && lastWindow > 0) request.faqSession.vectorWindow = lastWindow
         searchResult.items = validItems
         const score = request.score === undefined ? kb.recall?.score : request.score
         const items =
@@ -276,7 +300,12 @@ export class VectorKnowledgeCandidateRetriever implements KnowledgeCandidateRetr
         // Finalization owns Top K after filtering and optional saved or temporary reranking.
         diagnostics.hitCount = candidates.length
         diagnostics.retryableWithoutDynamic = candidates.length === 0 && !!prepared.sources.dynamic
-        return { source: this.source, candidates, diagnostics }
+        return {
+            source: this.source,
+            candidates,
+            diagnostics,
+            ...(request.faqSession ? { exhausted: lastWindow > 0 && rawCount < lastWindow, budgetLimited } : {})
+        }
     }
 }
 

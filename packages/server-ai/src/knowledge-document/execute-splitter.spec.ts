@@ -25,6 +25,31 @@ const input = () => [
     })
 ]
 
+it.each(['xlsx', 'xls', 'csv'].flatMap((type) => ['auto', 'structure-aware'].map((strategy) => [type, strategy])))(
+    'chunks %s converted as document text with %s and honors token limits',
+    async (type, textSplitterType) => {
+        const result = await splitKnowledgeDocuments(
+            registry,
+            {
+                type,
+                category: KBDocumentCategoryEnum.Sheet,
+                parserConfig: {
+                    transformerType: 'anydoc',
+                    spreadsheet: { interpretation: 'form_document' },
+                    textSplitterType,
+                    chunkSize: 200,
+                    chunkOverlap: 0,
+                    maxChunkTokens: 24
+                }
+            },
+            input()
+        )
+        expect(result.chunks.length).toBeGreaterThan(1)
+        expect(result.chunks.every((chunk) => countTextTokens(chunk.pageContent) <= 24)).toBe(true)
+        expect(result.chunks.map((chunk) => chunk.pageContent).join('\n')).toContain('instruction')
+    }
+)
+
 it.each([
     ['auto', '# Inventory\n\n| Key | Value |\n| --- | --- |\n| A | B |', 'structure-aware'],
     ['structure-aware', '# Inventory\n\n| Key | Value |\n| --- | --- |\n| A | B |', 'structure-aware'],

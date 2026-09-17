@@ -138,6 +138,8 @@ describe('LocalBrowserRuntimeProvider', () => {
                     reference: 'xpert-source://sandbox-runtime/browser-video-playwright-1.61-v1'
                 })
             }),
+            expect.objectContaining({ runtimeProfile: 'document/node-20/v1', developmentOnly: true }),
+            expect.objectContaining({ runtimeProfile: 'document/java-17/v1', developmentOnly: true }),
             expect.objectContaining({
                 id: 'local-browser-runtime:document-python-3.12-v1',
                 runtimeProfile: DOCUMENT_PYTHON_RUNTIME_PROFILE,

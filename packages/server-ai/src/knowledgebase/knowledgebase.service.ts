@@ -1,3 +1,6 @@
+import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
+import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
+import { environment } from '@xpert-ai/server-config'
 import { rethrowParserError } from '../knowledge-document/parser-error'
 import { prepareAutomaticTaggingConfig } from './tags/automatic-tagging-config'
 import { dispatchKnowledgePipeline } from './task/pipeline-task'
@@ -28,7 +31,6 @@ import {
     IWFNProcessor,
     IWFNSource,
     KBDocumentStatusEnum,
-    KnowledgebaseFAQConfig,
     KnowledgebasePermission,
     KnowledgebaseStatusEnum,
     KnowledgebaseTypeEnum,
@@ -179,36 +181,6 @@ function knowledgebaseAccessDenied() {
     )
 }
 
-function isKnowledgebaseFAQConfig(value: unknown): value is KnowledgebaseFAQConfig {
-    return (
-        !!value &&
-        typeof value === 'object' &&
-        'indexMode' in value &&
-        (value.indexMode === 'question_only' || value.indexMode === 'question_answer') &&
-        'questionIndexMode' in value &&
-        (value.questionIndexMode === 'combined' || value.questionIndexMode === 'separate') &&
-        (!('negativeMatchMode' in value) ||
-            value.negativeMatchMode === undefined ||
-            value.negativeMatchMode === 'exact')
-    )
-}
-
-function normalizeKnowledgebaseFAQConfig(value: unknown): KnowledgebaseFAQConfig {
-    if (!isKnowledgebaseFAQConfig(value)) {
-        throw new BadRequestException(
-            t('server-ai:Error.KnowledgebaseFAQConfigInvalid', {
-                defaultValue: 'FAQ configuration is invalid'
-            })
-        )
-    }
-
-    return {
-        indexMode: value.indexMode,
-        questionIndexMode: value.questionIndexMode,
-        negativeMatchMode: value.negativeMatchMode ?? DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG.negativeMatchMode
-    }
-}
-
 function assertSafeKnowledgebaseTaskRelations(relations: unknown): asserts relations is string[] | undefined {
     if (relations === undefined) {
         return
@@ -235,6 +207,7 @@ const KNOWLEDGEBASE_DETAIL_SELECT: FindOptionsSelect<Knowledgebase> = {
     id: true,
     name: true,
     type: true,
+    vectorStore: true,
     faqConfig: true,
     wikiConfig: true,
     wikiStatus: true,
@@ -428,6 +401,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
     }
 
+    @Inject(VectorStoreSettingsService)
+    private readonly vectorStoreSettings: VectorStoreSettingsService
+
     async create(entity: Partial<IKnowledgebase>) {
         const input = { ...entity }
         if ('automaticTagging' in input) input.automaticTagging = prepareAutomaticTaggingConfig(input.automaticTagging)
@@ -445,6 +421,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         delete input.deletedAt
 
         input.type ??= KnowledgebaseTypeEnum.Standard
+        if (input.type !== KnowledgebaseTypeEnum.External) {
+            input.vectorStore = this.vectorStoreSettings.forCreate(input.vectorStore)
+        } else {
+            delete input.vectorStore
+        }
         if (input.type === KnowledgebaseTypeEnum.Standard && input.parserConfig) {
             input.structure = await this.parserSettings.validateSettings(input.parserConfig)
         }
@@ -521,6 +502,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
         return new KnowledgebaseDetailDTO({
             ...knowledgebase,
+            vectorStore: knowledgebase.vectorStore ?? environment.vectorStore,
             canManageWiki: canManage,
             canManageDocumentDeletions: canManage
         })
@@ -665,6 +647,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             ]
         })
         const changes = { ...entity }
+        this.vectorStoreSettings.assertUnchanged(_entity.vectorStore, changes.vectorStore)
+        delete changes.vectorStore
         if ('automaticTagging' in changes)
             changes.automaticTagging = prepareAutomaticTaggingConfig(changes.automaticTagging)
         delete changes.id
@@ -1959,7 +1943,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         embeddingMetadata: TEmbeddingVectorMetadata
         modelContext?: TKnowledgebaseModelContext
     }) {
-        const { knowledgebase, collectionName, requiredEmbeddings, rerankEnabled, embeddingMetadata } = options
+        const { collectionName, requiredEmbeddings, rerankEnabled, embeddingMetadata } = options
+        let { knowledgebase } = options
+        if (knowledgebase.vectorStore === undefined) {
+            const persisted = await this.findOne(knowledgebase.id)
+            knowledgebase = { ...knowledgebase, vectorStore: persisted.vectorStore ?? null }
+        }
         const copilotModel = await this.ensureCopilotModel(options.copilotModel)
         if (requiredEmbeddings && !copilotModel) {
             throw new CopilotModelNotFoundException(
@@ -2005,7 +1994,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
         const store = await this.commandBus.execute(
             new RagCreateVStoreCommand(embeddings, {
-                collectionName
+                collectionName,
+                vectorStore: knowledgebase.vectorStore
             })
         )
         const vStore = new KnowledgeDocumentStore(

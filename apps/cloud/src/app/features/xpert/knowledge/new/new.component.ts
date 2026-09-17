@@ -1,5 +1,5 @@
 import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
-import { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
+import { KnowledgeAutomaticTaggingConfig, VectorTypeEnum, KnowledgeVectorStoreOptions } from '@xpert-ai/contracts'
 import { AutomaticTaggingSettingsComponent } from '../tags/automatic-tagging-settings.component'
 import { createKnowledgeProcessingForm } from '../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
@@ -46,6 +46,7 @@ import {
   TKBRetrievalSettings
 } from '../../../../@core'
 import { firstValueFrom } from 'rxjs'
+import { createFAQSemanticForm, FAQSemanticSettingsComponent } from './faq-semantic-settings.component'
 
 type SectionKey =
   | 'basic'
@@ -88,6 +89,7 @@ type KnowledgeDialogData = {
     KnowledgeTagsComponent,
     KnowledgeProcessingSettingsComponent,
     KnowledgeChunkPreviewComponent,
+    FAQSemanticSettingsComponent,
     CommonModule,
     TranslateModule,
     DragDropModule,
@@ -166,6 +168,17 @@ export class XpertNewKnowledgeComponent {
     { key: 'storage', group: 'Storage', labelKey: 'Sections.Storage', icon: 'ri-hard-drive-3-line', status: 'preview' }
   ]
 
+  readonly vectorStore = model<VectorTypeEnum | 'system'>(this.#initialKnowledgebase?.vectorStore ?? 'system')
+  readonly vectorStoreOptions = signal<KnowledgeVectorStoreOptions | null>(null)
+
+  async loadVectorStores() {
+    try {
+      this.vectorStoreOptions.set(await firstValueFrom(this.knowledgebaseService.getVectorStores()))
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
+  }
+
   readonly name = model<string>(this.#initialKnowledgebase?.name ?? '')
   readonly description = model<string>(this.#initialKnowledgebase?.description ?? '')
   readonly type = model<KnowledgebaseTypeEnum>(this.#initialKnowledgebase?.type ?? KnowledgebaseTypeEnum.Standard)
@@ -175,6 +188,10 @@ export class XpertNewKnowledgeComponent {
     ...(this.#initialKnowledgebase?.faqConfig ?? {})
   })
   readonly faqConfigurationDisabled = computed(() => this.isEditMode() && this.isFAQ())
+  readonly faqSemanticForm = createFAQSemanticForm(
+    this.#initialKnowledgebase?.faqConfig,
+    !!this.#initialKnowledgebase?.id
+  )
   readonly wikiEnabled = model(this.#initialKnowledgebase?.wikiConfig?.enabled ?? false)
   readonly isWiki = computed(() => !this.isFAQ() && this.wikiEnabled())
   readonly indexStrategyLocked = computed(
@@ -255,11 +272,13 @@ export class XpertNewKnowledgeComponent {
   })
 
   constructor() {
+    if (this.activeSection() === 'vector-storage') void this.loadVectorStores()
     if (['parser', 'chunk'].includes(this.activeSection())) void this.processing.loadStrategies()
   }
 
   selectSection(section: SectionKey) {
     this.activeSection.set(section)
+    if (section === 'vector-storage' && !this.vectorStoreOptions()) void this.loadVectorStores()
     if (['parser', 'chunk'].includes(section)) void this.processing.loadStrategies()
   }
 
@@ -400,6 +419,13 @@ export class XpertNewKnowledgeComponent {
       return false
     }
 
+    if (this.isFAQ() && this.faqConfig().negativeMatchMode === 'semantic' && this.faqSemanticForm.invalid) {
+      this.faqSemanticForm.markAllAsTouched()
+      this.activeSection.set('faq')
+      this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.FAQ.SemanticParametersInvalid`))
+      return false
+    }
+
     if (this.isWiki() && !(this.wikiModel() || this.chatModel())) {
       this.activeSection.set('models')
       this.#toastr.error(this.#translate.instant(`${this.i18nPrefix}.Validation.WikiModelRequired`))
@@ -485,8 +511,19 @@ export class XpertNewKnowledgeComponent {
     if (!this.isEditMode()) {
       payload.workspaceId = this.workspaceId()
       payload.type = this.type()
+      const vectorStore = this.vectorStore()
+      if (vectorStore !== 'system') payload.vectorStore = vectorStore
       if (this.isFAQ()) {
-        Object.assign(payload, { faqConfig: this.faqConfig() })
+        const config = this.faqConfig()
+        const { threshold, margin } = this.faqSemanticForm.getRawValue()
+        Object.assign(payload, {
+          faqConfig: {
+            indexMode: config.indexMode,
+            questionIndexMode: config.questionIndexMode,
+            negativeMatchMode: config.negativeMatchMode ?? 'exact',
+            ...(config.negativeMatchMode === 'semantic' ? { semanticThreshold: threshold, semanticMargin: margin } : {})
+          }
+        })
       } else {
         payload.wikiConfig = { ...this.wikiConfig(), enabled: this.wikiEnabled() }
         payload.wikiModel = this.wikiModel() ?? null

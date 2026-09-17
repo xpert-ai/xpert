@@ -235,7 +235,7 @@ export class ZardComboboxComponent implements ControlValueAccessor {
   readonly emptyText = input<string>('No results found.')
   readonly zDisabled = input(false, { transform: booleanAttribute })
   readonly searchable = input(true, { transform: booleanAttribute })
-  readonly value = input<string | null>(null)
+  readonly value = input<string | null>()
   readonly options = input<ZardComboboxOption[]>([])
   readonly groups = input<ZardComboboxGroup[]>([])
   readonly ariaLabel = input<string>('')
@@ -267,7 +267,8 @@ export class ZardComboboxComponent implements ControlValueAccessor {
 
   protected readonly popoverClasses = computed(() => 'w-full p-0')
 
-  protected readonly currentValue = computed(() => this.value() ?? this.internalValue())
+  // Explicit null clears a controlled selection; only an omitted input uses the form/internal value.
+  protected readonly currentValue = computed(() => (this.value() === undefined ? this.internalValue() : this.value()))
 
   protected readonly displayValue = computed(() => {
     const currentValue = this.currentValue()

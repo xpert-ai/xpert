@@ -1946,6 +1946,9 @@
     "Knowledgebase": {
       "ParserCoverageIncomplete": "完成，但有内容未识别",
       "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
+      "ParserImagesIncomplete": "完成，但图片识别有失败",
+      "ParserImagesFailed": "有 {{count}} 张图片未能识别，请检查模型后重新处理。",
+      "ParserImagesSkipped": "已跳过 {{count}} 张图片。",
       "PipelineFlow": {
         "Source": "选择数据源",
         "Settings": "处理设置",
@@ -1993,6 +1996,15 @@
         "BatchOtherFormats": "此格式使用现有文档解析流程。"
       },
       "Import": {
+        "TagsHint": "选择知识库已有标签，统一作为人工标签添加到本批导入的每篇文档，不修改知识库默认值或自动标签设置。",
+        "TagsSearch": "搜索标签",
+        "TagsSelected": "已选 {{count}} 个",
+        "TagsClear": "清空选择",
+        "TagsLoading": "正在加载标签…",
+        "TagsLoadFailed": "标签加载失败，可重试或不选标签继续导入。",
+        "TagsRetry": "重试",
+        "TagsEmpty": "暂无可用标签，请先在知识库设置中选择可用标签。",
+        "TagsNoMatches": "没有匹配的标签",
         "EditDefaultsHint": "这里的修改只作用于当前文档，保存后执行所选处理操作。",
         "Close": "关闭",
         "Cancel": "取消",

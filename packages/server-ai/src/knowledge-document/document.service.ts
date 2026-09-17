@@ -1,3 +1,6 @@
+import { isKnowledgeDocumentVisible } from '@xpert-ai/contracts'
+import { visibleDocumentSql } from './document-list-filter'
+import { assertUserManagedDocument } from './document-management'
 import { questionVectorIds } from './questions/question-vectors'
 import { questionSourceHash } from './questions/question-generation'
 import { KnowledgeParserSettingsService } from '../knowledgebase/parser-settings.service'
@@ -153,11 +156,7 @@ function isCountableDocument(document: Pick<IKnowledgeDocument, 'sourceType' | '
         return false
     }
 
-    if (!document.metadata || typeof document.metadata !== 'object') {
-        return true
-    }
-
-    return !('systemManaged' in document.metadata) || document.metadata.systemManaged !== true
+    return isKnowledgeDocumentVisible(document.metadata)
 }
 
 function isSystemManagedDocument(document: Pick<IKnowledgeDocument, 'metadata'> | null | undefined) {
@@ -484,6 +483,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async assertDocumentWriteAccess(id: string, withDeleted = false): Promise<void> {
         const document = await this.findDocumentAccessScope(id, withDeleted)
         await this.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
+        assertUserManagedDocument(document)
     }
 
     async assertDocumentsReadAccess(ids: Array<string | null | undefined>): Promise<void> {
@@ -623,7 +623,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         return this.findOne(id, {
             select: {
                 id: true,
-                knowledgebaseId: true
+                knowledgebaseId: true,
+                metadata: true
             },
             withDeleted
         })
@@ -644,7 +645,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             where: { id: In(uniqueIds) },
             select: {
                 id: true,
-                knowledgebaseId: true
+                knowledgebaseId: true,
+                metadata: true
             }
         })
         const resolvedIds = new Set(items.map((document) => document.id))
@@ -661,6 +663,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
                     : this.assertKnowledgebaseReadAccess(knowledgebaseId)
             )
         )
+        if (action === 'write') items.forEach(assertUserManagedDocument)
     }
 
     private async assertDocumentsAccessInKnowledgebase(
@@ -686,9 +689,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             },
             select: {
                 id: true,
-                knowledgebaseId: true
+                knowledgebaseId: true,
+                metadata: true
             }
         })
+        if (action === 'write') items.forEach(assertUserManagedDocument)
         const resolvedIds = new Set(items.map((document) => document.id))
         const missingId = uniqueIds.find((id) => !resolvedIds.has(id))
         if (missingId) {
@@ -1343,6 +1348,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 1 ELSE 0 END)', 'folderCount')
             .where('document.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
             .andWhere('parent.id IN (:...folderIds)', { folderIds })
+            .andWhere(visibleDocumentSql('document.metadata'))
             .setParameter('folderType', KDocumentSourceType.FOLDER)
             .groupBy('parent.id')
             .getRawMany()
@@ -1443,10 +1449,16 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     private async syncMilvusFilterAttributes(documentIds: string[]) {
-        if (environment.vectorStore !== VectorTypeEnum.MILVUS || !documentIds.length) return
-        const { items: documents } = await this.findAll({ where: { id: In(documentIds) } })
+        if (!documentIds.length) return
+        const { items } = await this.findAll({ where: { id: In(documentIds) }, relations: ['knowledgebase'] })
+        const documents = items.filter(
+            (document) =>
+                document.knowledgebaseId &&
+                (document.knowledgebase?.vectorStore ?? environment.vectorStore) === VectorTypeEnum.MILVUS
+        )
+        if (!documents.length) return
         const { items: chunks } = await this.chunkService.findAll({
-            where: { documentId: In(documentIds) },
+            where: { documentId: In(documents.map((document) => document.id)) },
             order: { createdAt: 'ASC' }
         })
         const byDocument = new Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>()
@@ -1457,7 +1469,6 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
         const stores = new Map<string, KnowledgeDocumentStore>()
         for (const document of documents) {
-            if (!document.knowledgebaseId) continue
             let store = stores.get(document.knowledgebaseId)
             if (!store) {
                 store = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
@@ -2220,13 +2231,12 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
             return { ...current, metadata }
         })
         const result = await this.chunkService.updateMetadataBulk(merged)
-        if (environment.vectorStore === VectorTypeEnum.MILVUS) {
-            for (const document of documents) {
-                const documentChunks = merged.filter((chunk) => chunk.documentId === document.id)
-                if (!documentChunks.length) continue
-                const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
-                await vectorStore.partialUpdateFilterAttributes(document, documentChunks)
-            }
+        for (const document of documents) {
+            if ((document.knowledgebase?.vectorStore ?? environment.vectorStore) !== VectorTypeEnum.MILVUS) continue
+            const documentChunks = merged.filter((chunk) => chunk.documentId === document.id)
+            if (!documentChunks.length) continue
+            const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
+            await vectorStore.partialUpdateFilterAttributes(document, documentChunks)
         }
         return result
     }

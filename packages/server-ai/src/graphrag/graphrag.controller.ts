@@ -95,6 +95,11 @@ export class GraphragController {
         return this.service.getEntityChunks(id, entityId, query)
     }
 
+    @Get('catalog')
+    async catalog(@Param('id') id: string, @Query('data', ParseJsonPipe) query?: KnowledgeGraphVisualizationQuery) {
+        return this.service.getGraphCatalog(id, query)
+    }
+
     @Get('visualization')
     async visualization(
         @Param('id') id: string,

@@ -1,6 +1,8 @@
+import { getTagTargets, ITag } from '@xpert-ai/contracts'
+import { KnowledgeTagsService } from '@cloud/app/@core/services/knowledge-tags.service'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, computed, DestroyRef, inject, model, signal, viewChild } from '@angular/core'
+import { Component, computed, DestroyRef, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { firstValueFrom, take } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -17,9 +19,8 @@ import {
   KnowledgeDocumentService,
   KnowledgeFileUploader
 } from '@cloud/app/@core'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { XpTreeSelectComponent } from '@cloud/app/@shared/form-fields/tree-select/tree-select.component'
-import { KnowledgeDocumentCreateSettingsComponent } from '../create/settings/settings.component'
 import { createKnowledgeProcessingForm, KnowledgeProcessingSection } from '../../../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../../../processing/processing-settings.component'
 import {
@@ -52,9 +53,9 @@ export interface DocumentImportDialogData {
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
+    ZardInputDirective,
     ...ZardTooltipImports,
     XpTreeSelectComponent,
-    KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent,
     KnowledgeProcessingSettingsComponent
   ],
@@ -67,6 +68,17 @@ export class DocumentImportDialogComponent {
   readonly kbAPI = inject(KnowledgebaseService)
   readonly translate = inject(TranslateService)
   readonly prefix = 'XP.Knowledgebase.Import'
+  readonly tagsAPI = inject(KnowledgeTagsService)
+  readonly tagOptions = signal<ITag[]>([])
+  readonly selectedTagIds = signal<string[]>([])
+  readonly tagSearch = signal('')
+  readonly tagsLoading = signal(false)
+  readonly tagsError = signal('')
+  readonly tagsEditable = signal(false)
+  readonly filteredTags = computed(() => {
+    const query = this.tagSearch().trim().toLocaleLowerCase()
+    return this.tagOptions().filter((tag) => !query || tag.name.toLocaleLowerCase().includes(query))
+  })
   readonly editDocument = signal(cloneDeep(this.data.editDocument))
   readonly editing = !!this.data.editDocument
   readonly pipelineDocument = !!this.data.editDocument?.sourceConfig
@@ -126,7 +138,7 @@ export class DocumentImportDialogComponent {
     }
   })
   readonly sections = [
-    { id: 'tags', key: 'Tags', icon: 'ri-price-tag-3-line', available: false },
+    { id: 'tags', key: 'Tags', icon: 'ri-price-tag-3-line', available: true },
     { id: 'parser', key: 'Parser', icon: 'ri-file-search-line', available: true },
     { id: 'chunks', key: 'Chunks', icon: 'ri-file-copy-line', available: true },
     { id: 'images', key: 'Images', icon: 'ri-image-line', available: true },
@@ -134,7 +146,11 @@ export class DocumentImportDialogComponent {
     { id: 'questions', key: 'Questions', icon: 'ri-question-answer-line', available: true },
     { id: 'table', key: 'TableMetadata', icon: 'ri-table-line', available: true },
     { id: 'graph', key: 'Graph', icon: 'ri-node-tree', available: false }
-  ].filter((section) => section.id !== 'graph' || this.data.knowledgebase.graphRag?.enabled === true)
+  ].filter(
+    (section) =>
+      (section.id !== 'tags' || !this.editing) &&
+      (section.id !== 'graph' || this.data.knowledgebase.graphRag?.enabled === true)
+  )
   readonly activeSection = computed(() => this.sections.find((section) => section.id === this.section()))
   readonly documents = computed<Partial<IKnowledgeDocument>[]>(() =>
     this.editing
@@ -161,12 +177,16 @@ export class DocumentImportDialogComponent {
         parserConfig: {
           ...this.activeParserConfig(),
           ...editedDocumentParserConfig(
-            document,
+            this.onlySheet()
+              ? {
+                  ...document,
+                  parserConfig: { ...document.parserConfig, spreadsheet: this.activeParserConfig().spreadsheet }
+                }
+              : document,
             this.processing.config(),
             this.data.knowledgebase.parserConfig,
             this.processing.visionModel()
-          ),
-          ...(this.onlySheet() ? { spreadsheet: this.activeParserConfig().spreadsheet } : {})
+          )
         }
       }))
     const resolved = buildImportDocuments(
@@ -191,7 +211,6 @@ export class DocumentImportDialogComponent {
   readonly total = computed(() => this.uploads().length + this.externalDocuments().length)
   readonly busy = signal(false)
   readonly error = signal('')
-  readonly settings = viewChild(KnowledgeDocumentCreateSettingsComponent)
   readonly chunkSize = computed(
     () => this.activeParserConfig().textSplitter?.chunkSize ?? this.activeParserConfig().chunkSize
   )
@@ -201,23 +220,6 @@ export class DocumentImportDialogComponent {
   readonly configurationError = computed(() => {
     if (this.pipelineDocument) return null
     if (!this.documents().length) return null
-    if (this.onlySheet()) {
-      const error = this.settings()?.configurationError()
-      const sharedError = this.processing.validate({
-        checkPdfParser: false,
-        fileTypes: this.documents().map(documentFileType)
-      })
-      return (
-        this.processing.strategiesError() ||
-        (sharedError?.section === 'chunk' ||
-        sharedError?.section === 'questions' ||
-        sharedError?.section === 'table' ||
-        sharedError?.section === 'parser'
-          ? sharedError.key
-          : null) ||
-        (error ? this.prefix + '.' + error : null)
-      )
-    }
     return (
       this.processing.strategiesError() ||
       this.processing.validate({
@@ -258,13 +260,51 @@ export class DocumentImportDialogComponent {
     } else {
       if (this.data.files?.length) this.addFiles(this.data.files)
       void this.loadFolders()
+      void this.loadTags()
     }
     if (!this.pipelineDocument) void this.processing.loadStrategies()
   }
 
-  updateSheetParserConfig(config: ImportParserConfig) {
-    this.sheetParserConfig.set(config)
-    this.processing.firstRowAsHeader.set(config.spreadsheet?.firstRowAsHeader ?? true)
+  async loadTags() {
+    if (this.editing || this.tagsLoading() || this.busy()) return
+    this.tagsLoading.set(true)
+    this.tagsError.set('')
+    try {
+      const catalog = await firstValueFrom(this.tagsAPI.list(this.data.knowledgebase.id).pipe(take(1)))
+      if (this.destroyed) return
+      const available = new Set(catalog.available.map((tag) => tag.id))
+      const tags = catalog.tags.filter(
+        (tag) => available.has(tag.id) && tag.isActive !== false && getTagTargets(tag).includes('knowledgebase')
+      )
+      this.tagOptions.set(tags)
+      this.tagsEditable.set(catalog.canEdit)
+      this.selectedTagIds.update((ids) =>
+        catalog.canEdit ? ids.filter((id) => tags.some((tag) => tag.id === id)) : []
+      )
+    } catch (error) {
+      if (!this.destroyed) {
+        this.tagsError.set(getErrorMessage(error))
+        this.tagsEditable.set(false)
+      }
+    } finally {
+      this.tagsLoading.set(false)
+    }
+  }
+
+  toggleTag(tagId: string) {
+    if (
+      this.busy() ||
+      this.data.locked() ||
+      this.tagsLoading() ||
+      !this.tagsEditable() ||
+      !this.tagOptions().some((tag) => tag.id === tagId)
+    )
+      return
+    this.selectedTagIds.update((ids) => (ids.includes(tagId) ? ids.filter((id) => id !== tagId) : [...ids, tagId]))
+  }
+
+  clearTags() {
+    if (!this.busy() && !this.data.locked()) this.selectedTagIds.set([])
   }
 
   selectFolder(key: string | null) {
@@ -444,7 +484,10 @@ export class DocumentImportDialogComponent {
         }
       )
       const resolved = await this.resolveIndexedFields(documents)
-      await firstValueFrom(this.api.createBulk(resolved, true).pipe(take(1)))
+      const request = this.selectedTagIds().length
+        ? this.api.createBulk(resolved, true, this.selectedTagIds())
+        : this.api.createBulk(resolved, true)
+      await firstValueFrom(request.pipe(take(1)))
       if (!this.destroyed) this.dialogRef.close(true)
     } catch (error) {
       if (!this.destroyed) this.error.set(getErrorMessage(error))

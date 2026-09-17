@@ -259,7 +259,7 @@ describe('JSONSchemaPropertyComponent', () => {
   }))
 })
 
-describe('JSONSchemaPropertyComponent checkbox rendering', () => {
+describe('JSONSchemaPropertyComponent control rendering', () => {
   beforeEach(async () => {
     TestBed.resetTestingModule()
     await TestBed.configureTestingModule({
@@ -268,6 +268,49 @@ describe('JSONSchemaPropertyComponent checkbox rendering', () => {
     }).compileComponents()
   })
   afterEach(() => TestBed.resetTestingModule())
+  it('renders a decimal slider, saves keyboard changes and respects bounds and readonly', fakeAsync(() => {
+    const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
+    fixture.componentRef.setInput('schema', {
+      type: 'number',
+      title: 'Minimum OCR confidence',
+      default: 0.5,
+      minimum: 0,
+      maximum: 1,
+      'x-ui': { component: 'slider', inputs: { step: 0.01 } }
+    })
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+    tick()
+    fixture.detectChanges()
+
+    const thumb: HTMLElement = fixture.nativeElement.querySelector('[role="slider"]')
+    expect(thumb).not.toBeNull()
+    expect(thumb.getAttribute('aria-valuenow')).toBe('0.5')
+    expect(fixture.nativeElement.querySelector('input[type="number"]')).toBeNull()
+
+    for (const [key, expected] of [
+      ['ArrowRight', 0.51],
+      ['Home', 0],
+      ['ArrowLeft', 0],
+      ['End', 1]
+    ] as const) {
+      thumb.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key }))
+      tick()
+      fixture.detectChanges()
+      expect(fixture.componentInstance.value$()).toBe(expected)
+      expect(thumb.getAttribute('aria-valuenow')).toBe(String(expected))
+    }
+
+    fixture.componentRef.setInput('readonly', true)
+    fixture.detectChanges()
+    expect(thumb.getAttribute('aria-disabled')).toBe('true')
+    thumb.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }))
+    tick()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.value$()).toBe(1)
+  }))
+
   it('renders checkbox fields inline and preserves false values and readonly state', fakeAsync(() => {
     const fixture = TestBed.createComponent(JSONSchemaPropertyComponent)
     fixture.componentRef.setInput('schema', {

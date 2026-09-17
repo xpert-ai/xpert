@@ -115,6 +115,7 @@ export async function splitKnowledgeDocuments(
             maxChunkTokens,
             languageHint: documentParserConfig.chunkLanguageHint ?? parserConfig?.chunkLanguageHint,
             category: document.category,
+            spreadsheetInterpretation: documentParserConfig.spreadsheet?.interpretation,
             documentId: document.id
         })
     }

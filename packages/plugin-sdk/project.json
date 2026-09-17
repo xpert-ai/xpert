@@ -12,6 +12,7 @@
         "outputPath": "packages/plugin-sdk/dist",
         "main": "packages/plugin-sdk/src/index.ts",
         "additionalEntryPoints": [
+          "packages/plugin-sdk/src/data-workbench.ts",
           "packages/plugin-sdk/src/collaboration-client.ts",
           "packages/plugin-sdk/src/connector.ts",
           "packages/plugin-sdk/src/model-provider-toolset.ts",

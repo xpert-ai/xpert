@@ -1,0 +1,40 @@
+{
+    "name": "document/node-20/v1",
+    "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
+    "contractVersion": "1",
+    "sandboxRuntimeVersion": "1.2.2",
+    "timeoutMs": 300000,
+    "hardDeadlineMs": 360000,
+    "resources": {
+        "cpu": 2,
+        "memoryMb": 4096,
+        "shmSizeMb": 256,
+        "tempDiskMb": 4096
+    },
+    "networkPolicy": {
+        "mode": "none"
+    },
+    "security": {
+        "runAsNonRoot": true,
+        "readOnlyRootFilesystem": true,
+        "noNewPrivileges": true,
+        "dropCapabilities": "all"
+    },
+    "requirements": {
+        "isolation": "hardened",
+        "ephemeral": true,
+        "resourceLimits": true,
+        "networkPolicy": true,
+        "readOnlyRootFilesystem": true
+    },
+    "expectedManifest": {
+        "sandboxRuntimeVersion": "1.2.2",
+        "contractVersion": "1",
+        "nodeVersion": "20.20.2",
+        "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec",
+        "imageFamily": "document-node",
+        "profileName": "document/node-20/v1",
+        "dependenciesSha256": "4614c289119f6f3fd97d26d5109fafb2e229848a5182423a296a651e19bdd347",
+        "anydocVersion": "0.2.4"
+    }
+}

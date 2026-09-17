@@ -161,6 +161,57 @@ pgDescribe('Knowledge tags with PostgreSQL transactions', () => {
     }
     const context = () => service.context(kb.id, document.id)
 
+    it('adds imported tags as manual without removing existing assignments, and deduplicates reused documents', async () => {
+        const first = await create('First')
+        const second = await create('Second')
+        await service.setManual(kb.id, document.id, first.id)
+        await db
+            .getRepository(KnowledgeDocumentTag)
+            .update({ documentId: document.id, tagId: first.id }, { source: 'automatic', confidence: 0.8 })
+        await db.transaction(async (manager) => {
+            const locked = await service.lockImportKnowledgebase(manager, kb.id)
+            await service.assignImported(manager, locked, [document, document], [first.id, second.id, second.id])
+        })
+        const assignments = await service.documentTags(kb.id, document.id)
+        expect(assignments.map((item) => item.tagId).sort()).toEqual([first.id, second.id].sort())
+        expect(assignments.every((item) => item.source === 'manual' && item.confidence === null)).toBe(true)
+    })
+
+    it('rolls back a newly imported document when a chosen tag is no longer available', async () => {
+        const tag = await create('Disabled')
+        await db.getRepository(Tag).update(tag.id, { isActive: false })
+        const id = randomUUID()
+        await expect(
+            db.transaction(async (manager) => {
+                const locked = await service.lockImportKnowledgebase(manager, kb.id)
+                const added = await manager
+                    .getRepository(KnowledgeDocument)
+                    .save({ id, tenantId, knowledgebaseId: kb.id })
+                await service.assignImported(manager, locked, [added], [tag.id])
+            })
+        ).rejects.toThrow()
+        expect(await db.getRepository(KnowledgeDocument).findOneBy({ id })).toBeNull()
+    })
+
+    it('rejects unselected tags and preserves unrelated manual tags', async () => {
+        const chosen = await create('Chosen')
+        const existing = await create('Existing')
+        await service.setManual(kb.id, document.id, existing.id)
+        await db.transaction(async (manager) => {
+            const locked = await service.lockImportKnowledgebase(manager, kb.id)
+            await service.assignImported(manager, locked, [document], [chosen.id])
+        })
+        expect(await service.documentTags(kb.id, document.id)).toHaveLength(2)
+        await service.select(kb.id, chosen.id, true)
+        await expect(
+            db.transaction(async (manager) => {
+                const locked = await service.lockImportKnowledgebase(manager, kb.id)
+                await service.assignImported(manager, locked, [document], [chosen.id])
+            })
+        ).rejects.toThrow()
+        expect(await service.documentTags(kb.id, document.id)).toHaveLength(2)
+    })
+
     it('runs the bounded SQL sampler over body, OCR, images and a summary before classifying', async () => {
         const tag = await create('Operations')
         await db.getRepository(Knowledgebase).update(kb.id, {

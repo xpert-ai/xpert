@@ -81,7 +81,7 @@
         }}
       </p>
     } @else if (status()?.status === KnowledgeGraphStatus.FAILED && status()?.error) {
-      <p class="mt-3 text-sm text-text-danger">{{ status()?.error }}</p>
+      <xp-graph-index-error [error]="status()?.error ?? ''" />
     }
   </header>
 
@@ -153,19 +153,60 @@
     </div>
 
     <div class="mt-2 flex flex-wrap items-center gap-2">
-      <z-select
-        class="w-56"
-        [zValue]="selectFilterValue(focusEntityId())"
-        (zSelectionChange)="setFocusEntityFilter($event)"
-        [zPlaceholder]="'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus entity' }"
-      >
-        <z-select-item [zValue]="allSelectValue">{{
-          'XP.Knowledgebase.NoFocusEntity' | translate: { Default: 'No focus entity' }
-        }}</z-select-item>
-        @for (entity of entityOptions(); track entity.id) {
-          <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
+      <div class="flex w-72 items-center gap-1">
+        <z-combobox
+          class="min-w-0 flex-1"
+          zWidth="full"
+          [options]="sourceOptions()"
+          [value]="sourceDocumentId() || null"
+          [searchable]="true"
+          [ariaLabel]="'XP.Knowledgebase.GraphSourceScope' | translate"
+          [placeholder]="'XP.Knowledgebase.GraphSourceScope' | translate"
+          [searchPlaceholder]="'XP.Knowledgebase.SearchGraphSource' | translate"
+          (zValueChange)="selectSource($event)"
+        />
+        @if (sourceDocumentId()) {
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            class="shrink-0"
+            [attr.aria-label]="'XP.Knowledgebase.ClearGraphSourceSelection' | translate"
+            [title]="'XP.Knowledgebase.ClearGraphSourceSelection' | translate"
+            (click)="selectSource(null)"
+          >
+            <z-icon zType="x" />
+          </button>
         }
-      </z-select>
+      </div>
+      <div class="flex w-80 items-center gap-1">
+        <z-combobox
+          class="min-w-0 flex-1"
+          zWidth="full"
+          [options]="focusOptions()"
+          [value]="focusEntityId() || null"
+          [searchable]="true"
+          [ariaLabel]="'XP.Knowledgebase.NoFocusEntity' | translate"
+          [placeholder]="'XP.Knowledgebase.NoFocusEntity' | translate"
+          [searchPlaceholder]="'XP.Knowledgebase.SearchGraphFocus' | translate"
+          (zValueChange)="selectFocus($event)"
+        />
+        @if (focusEntityId()) {
+          <button
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon-sm"
+            class="shrink-0"
+            [attr.aria-label]="'XP.Knowledgebase.ClearGraphFocusSelection' | translate"
+            [title]="'XP.Knowledgebase.ClearGraphFocusSelection' | translate"
+            (click)="selectFocus(null)"
+          >
+            <z-icon zType="x" />
+          </button>
+        }
+      </div>
 
       <label
         class="flex h-9 items-center gap-2 rounded-md border border-components-panel-border bg-background-default px-2.5 text-sm text-text-secondary"
@@ -175,7 +216,6 @@
           z-input
           type="number"
           min="0"
-          max="2"
           class="h-7 w-14 border-0 bg-transparent px-1 shadow-none"
           [ngModel]="depth()"
           (ngModelChange)="depth.set(+$event)"
@@ -190,13 +230,37 @@
           z-input
           type="number"
           min="1"
-          max="250"
           class="h-7 w-16 border-0 bg-transparent px-1 shadow-none"
           [ngModel]="take()"
           (ngModelChange)="take.set(+$event)"
         />
       </label>
 
+      <z-checkbox
+        displayDensity="cosy"
+        labelClass="text-sm text-text-secondary"
+        [ngModel]="hierarchical()"
+        (ngModelChange)="hierarchical.set($event); runGraphLayout()"
+      >
+        {{ 'XP.Knowledgebase.GraphHierarchyLayout' | translate }}
+      </z-checkbox>
+      <button z-button type="button" zType="outline" [disabled]="loading() || loadAll()" (click)="loadAllNodes()">
+        {{ 'XP.Knowledgebase.LoadAllGraphNodes' | translate }}
+      </button>
+      <span class="text-sm text-text-secondary" role="status">
+        {{ 'XP.Knowledgebase.GraphRemainingNodes' | translate: { count: view()?.remainingNodes ?? 0 } }}
+      </span>
+      <span class="text-xs text-text-tertiary">{{ 'XP.Knowledgebase.GraphScopeHint' | translate }}</span>
+
+      <label class="flex items-center gap-2 text-sm text-text-secondary">
+        <input type="checkbox" [ngModel]="includeHidden()" (ngModelChange)="includeHidden.set($event); loadGraph()" />
+        {{ 'XP.Knowledgebase.IncludeHiddenGraphItems' | translate }}
+      </label>
+      @if (hiddenCounts().nodes || hiddenCounts().relations) {
+        <span class="text-sm text-text-secondary" role="status">
+          {{ 'XP.Knowledgebase.HiddenGraphItems' | translate: hiddenCounts() }}
+        </span>
+      }
       @if (activeFilterCount()) {
         <button z-button type="button" zType="ghost" zSize="sm" (click)="clearFilters()">
           <z-icon zType="clear_all" />
@@ -391,12 +455,21 @@
           }
         </div>
 
-        <div class="grid grid-cols-3 gap-1 rounded-lg bg-background-default-subtle p-1" role="tablist">
+        <div
+          class="grid grid-cols-3 gap-1 rounded-lg bg-background-default-subtle p-1"
+          role="tablist"
+          [attr.aria-label]="'XP.Knowledgebase.GraphInspector' | translate: { Default: 'Graph details' }"
+          (keydown)="inspectorKey($event)"
+        >
           <button
-            z-button
             type="button"
-            zSize="sm"
-            [zType]="inspectorTab() === 'overview' ? 'secondary' : 'ghost'"
+            class="flex h-9 items-center justify-center gap-1 rounded-md border px-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            [class]="
+              inspectorTab() === 'overview'
+                ? 'border-components-panel-border bg-components-card-bg text-text-primary font-semibold shadow-sm'
+                : 'border-transparent text-text-secondary hover:bg-hover-bg'
+            "
+            [attr.tabindex]="inspectorTab() === 'overview' ? 0 : -1"
             role="tab"
             [attr.aria-selected]="inspectorTab() === 'overview'"
             (click)="setInspectorTab('overview')"
@@ -404,10 +477,14 @@
             {{ 'XP.Knowledgebase.GraphOverview' | translate: { Default: 'Overview' } }}
           </button>
           <button
-            z-button
             type="button"
-            zSize="sm"
-            [zType]="inspectorTab() === 'entities' ? 'secondary' : 'ghost'"
+            class="flex h-9 items-center justify-center gap-1 rounded-md border px-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            [class]="
+              inspectorTab() === 'entities'
+                ? 'border-components-panel-border bg-components-card-bg text-text-primary font-semibold shadow-sm'
+                : 'border-transparent text-text-secondary hover:bg-hover-bg'
+            "
+            [attr.tabindex]="inspectorTab() === 'entities' ? 0 : -1"
             role="tab"
             [attr.aria-selected]="inspectorTab() === 'entities'"
             (click)="setInspectorTab('entities')"
@@ -416,10 +493,14 @@
             <span class="text-xs text-text-tertiary">{{ nodes().length }}</span>
           </button>
           <button
-            z-button
             type="button"
-            zSize="sm"
-            [zType]="inspectorTab() === 'relations' ? 'secondary' : 'ghost'"
+            class="flex h-9 items-center justify-center gap-1 rounded-md border px-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            [class]="
+              inspectorTab() === 'relations'
+                ? 'border-components-panel-border bg-components-card-bg text-text-primary font-semibold shadow-sm'
+                : 'border-transparent text-text-secondary hover:bg-hover-bg'
+            "
+            [attr.tabindex]="inspectorTab() === 'relations' ? 0 : -1"
             role="tab"
             [attr.aria-selected]="inspectorTab() === 'relations'"
             (click)="setInspectorTab('relations')"
@@ -542,6 +623,7 @@
                   @if (entity.description) {
                     <p class="mt-4 text-sm leading-6 text-text-secondary">{{ entity.description }}</p>
                   }
+                  <xp-graph-properties [properties]="entity.metadata?.['properties']" />
                   @if (entity.aliases?.length) {
                     <div class="mt-4 flex flex-wrap gap-1.5">
                       @for (alias of entity.aliases; track alias) {
@@ -550,9 +632,17 @@
                     </div>
                   }
 
-                  <button z-button type="button" zType="outline" zFull class="mt-4" (click)="exploreSelectedEntity()">
+                  <button
+                    z-button
+                    type="button"
+                    zType="outline"
+                    zFull
+                    class="mt-4"
+                    [disabled]="loading() || !unloadedNeighbors()"
+                    (click)="exploreSelectedEntity()"
+                  >
                     <z-icon zType="center_focus_strong" />
-                    {{ 'XP.Knowledgebase.ExploreNeighborhood' | translate: { Default: 'Explore neighborhood' } }}
+                    {{ 'XP.Knowledgebase.ExpandGraphNeighbors' | translate: { count: unloadedNeighbors() } }}
                   </button>
                 </z-card-content>
               </z-card>
@@ -624,6 +714,7 @@
                   @if (relation.description) {
                     <p class="mt-4 text-sm leading-6 text-text-secondary">{{ relation.description }}</p>
                   }
+                  <xp-graph-properties [properties]="relation.metadata?.['properties']" />
                 </z-card-content>
               </z-card>
             } @else {

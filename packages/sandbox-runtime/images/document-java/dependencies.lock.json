@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "javaVersion": "17.0.16",
+  "javaRelease": "17.0.16+8",
+  "jre": {
+    "linux-x64": {
+      "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.16%2B8/OpenJDK17U-jre_x64_linux_hotspot_17.0.16_8.tar.gz",
+      "sha256": "2885b944da3793144d4a86a29524f4d7b68ba155f5c08afa444a3b40f7071892"
+    },
+    "linux-arm64": {
+      "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.16%2B8/OpenJDK17U-jre_aarch64_linux_hotspot_17.0.16_8.tar.gz",
+      "sha256": "98f9d60be880b6ec551f5f1fcd784971aa573e8d8f5b9923fb0148c25afcd161"
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.16%2B8/OpenJDK17U-jre_aarch64_mac_hotspot_17.0.16_8.tar.gz",
+      "sha256": "30c3cfb717a2a84bf164c010a9c51dc81a15dcf214cf83a9695206233c9c5d37"
+    },
+    "darwin-x64": {
+      "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.16%2B8/OpenJDK17U-jre_x64_mac_hotspot_17.0.16_8.tar.gz",
+      "sha256": "45438e511171f21ade709c6987ef4b88ea98b6c0124b4775a4b29d5822395cdd"
+    }
+  },
+  "cli": {
+    "version": "2.5.8",
+    "url": "https://github.com/opendataloader-project/opendataloader-pdf/releases/download/v2.5.8/opendataloader-pdf-cli-2.5.8.zip",
+    "sha256": "509155c6a0f87fa3cc9054ca4611adbe0e4c659bafdb2709fb43febeab78a95a",
+    "jar": "opendataloader-pdf-cli-2.5.8.jar",
+    "jarSha256": "a047a8d654bd84e9c6c8c49403b22f7f9089dfcba0876f2ee488b126faf15260"
+  },
+  "ocr": {
+    "pythonVersion": "3.12.10",
+    "opendataloaderVersion": "2.5.8",
+    "doclingVersion": "2.127.0",
+    "languages": [
+      "ch_sim",
+      "en"
+    ],
+    "requirementsSha256": "03cdb2fcc68215e99536524e129ce3c46624ea7afa6db1c95b446ee64e75c283",
+    "modelsSha256": "185e9f7c698fd0fcd4c18f395fb326ec9d6386fbdfdd161f92304fdd0f1cee6e",
+    "backendSha256": "e7f49c472230bd31bb4d8ef282c2643cacc6b01f5b723655087903ca8278f1d5"
+  }
+}

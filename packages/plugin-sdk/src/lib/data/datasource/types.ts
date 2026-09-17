@@ -1,5 +1,6 @@
 import * as _axios from 'axios'
 import { Readable } from 'stream'
+import type { DatabaseWorkbenchAdapter } from './workbench'
 import { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
 export { IColumnDef, IDataSourceCapabilityQuery, IDSSchema, IDSTable } from '@xpert-ai/contracts'
 const axios = _axios.default
@@ -55,6 +56,7 @@ export interface QueryResult<T = unknown> {
  * - Connect different types of data sources
  */
 export interface DBQueryRunner {
+  getWorkbenchAdapter?(): DatabaseWorkbenchAdapter
   type: string
   name: string
   syntax: DBSyntaxEnum

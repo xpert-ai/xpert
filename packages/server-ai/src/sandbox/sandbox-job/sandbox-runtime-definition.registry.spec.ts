@@ -7,6 +7,17 @@ import {
 } from './sandbox-runtime-definition.registry'
 
 describe('SandboxRuntimeDefinitionRegistry', () => {
+    it.each(['document/node-20/v1', 'document/java-17/v1'])(
+        'declares %s with locked offline dependencies',
+        (profile) => {
+            const definition = new SandboxRuntimeDefinitionRegistry().require(profile)
+            expect(definition.expectedManifest.dependenciesSha256).toMatch(/^[a-f0-9]{64}$/)
+            expect(definition.networkPolicy.mode).toBe('none')
+            expect(definition.security.runAsNonRoot).toBe(true)
+            expect(definition.security.readOnlyRootFilesystem).toBe(true)
+            expect(definition.requirements.isolation).toBe('hardened')
+        }
+    )
     it('declares a pinned offline Python document profile', () => {
         const definition = new SandboxRuntimeDefinitionRegistry().require('document/python-3.12/v1')
         expect(definition.expectedManifest.pythonVersion).toBe('3.12.10')

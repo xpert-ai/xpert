@@ -1,4 +1,8 @@
-import type { KnowledgeChunkQuestions, KnowledgeTablePreview } from '@xpert-ai/contracts'
+import type {
+  KnowledgeChunkQuestions,
+  KnowledgeTablePreview,
+  KnowledgeDocumentBulkCreateInput
+} from '@xpert-ai/contracts'
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -28,8 +32,9 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     super(API_KNOWLEDGE_DOCUMENT)
   }
 
-  createBulk(entites: Partial<IKnowledgeDocument>[], process?: boolean) {
-    return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites, {
+  createBulk(entites: Partial<IKnowledgeDocument>[], process?: boolean, tagIds: string[] = []) {
+    const body: KnowledgeDocumentBulkCreateInput = tagIds.length ? { documents: entites, tagIds } : entites
+    return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', body, {
       params: { process }
     })
   }

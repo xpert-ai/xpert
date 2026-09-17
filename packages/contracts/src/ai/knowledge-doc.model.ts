@@ -387,22 +387,39 @@ export type DocumentParserDiagnostics = {
   }[]
 }
 
+export type KnowledgeImageUnderstandingWarning = {
+  type: 'image_understanding_skipped' | 'image_understanding_failed'
+  message: string
+  assetCount?: number
+  imagePath?: string
+  imageUrl?: string
+  parentChunkId?: string
+}
+
 export interface KnowledgeDocumentMetadata extends StandardDocumentMetadata {
   /** Server-owned identity and label of the last completed document conversion. */
   parser?: string
   parserLabel?: I18nObject
   parserDiagnostics?: DocumentParserDiagnostics
+  imageUnderstandingWarnings?: KnowledgeImageUnderstandingWarning[]
   /** Server-owned generated table descriptions and publication state. */
   tableMetadata?: KnowledgeTableMetadata
   /** Existing source summary, available to optional document classifiers. */
   summary?: string
-  /** Internal index containers are not user-uploaded documents. */
+  /** Ownership is independent of visibility in the document browser. */
   systemManaged?: boolean
   systemManagedType?: string
   transformSnapshot?: KnowledgeDocumentTransformSnapshotRef
   analysisSnapshot?: KnowledgeDocumentAnalysisSnapshotRef
   documentAnalysis?: DocumentAnalysisMetadata
   [key: string]: any
+}
+
+export const KNOWLEDGE_DOCUMENT_AGENT_WRITER_TYPE = 'agent-writer'
+
+/** Agent publications are inspectable; internal Wiki/FAQ backing indexes stay hidden. */
+export function isKnowledgeDocumentVisible(metadata?: KnowledgeDocumentMetadata | null): boolean {
+  return metadata?.systemManaged !== true || metadata.systemManagedType === KNOWLEDGE_DOCUMENT_AGENT_WRITER_TYPE
 }
 
 // export type Metadata = any
@@ -541,3 +558,11 @@ export const STANDARD_METADATA_FIELDS: { group: I18nObject; fields: KBMetadataFi
 ] as const
 
 export type StandardMetadataFieldKey = (typeof STANDARD_METADATA_FIELDS)[number]['fields'][number]['key']
+
+/** Bulk import keeps the legacy document array valid; tags apply to the whole batch. */
+export type KnowledgeDocumentBulkCreateInput =
+  | Partial<IKnowledgeDocument>[]
+  | {
+      documents: Partial<IKnowledgeDocument>[]
+      tagIds: string[]
+    }

@@ -1,3 +1,4 @@
+import { RagVStoreModule } from '../rag-vstore'
 import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
 import { KnowledgeDocumentTag } from './tags/document-tag.entity'
 import { KnowledgeTagService } from './tags/knowledge-tag.service'
@@ -47,6 +48,13 @@ import {
     WeightedRrfFusion
 } from './retrieval'
 import { KnowledgeFAQController, KnowledgeFAQService } from './faq'
+import { FAQSemanticService } from './faq/faq-semantic.service'
+import { FAQSemanticCacheService } from './faq/faq-semantic-cache.service'
+import {
+    FAQSemanticPrewarmDispatcher,
+    FAQSemanticPrewarmProcessor,
+    JOB_FAQ_SEMANTIC_PREWARM
+} from './faq/faq-semantic-prewarm'
 import {
     KnowledgeWikiPage,
     KnowledgeWikiPageEvidenceEntity,
@@ -60,6 +68,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
 
 @Module({
     imports: [
+        RagVStoreModule,
         RouterModule.register([{ path: '/knowledgebase', module: KnowledgebaseModule }]),
         TypeOrmModule.forFeature([
             Tag,
@@ -83,9 +92,14 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
         forwardRef(() => IntegrationModule),
         forwardRef(() => KnowledgeDocumentModule),
         forwardRef(() => XpertModule),
-        BullModule.registerQueue({
-            name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
-        })
+        BullModule.registerQueue(
+            {
+                name: JOB_REBUILD_KNOWLEDGEBASE_EMBEDDING
+            },
+            {
+                name: JOB_FAQ_SEMANTIC_PREWARM
+            }
+        )
     ],
     controllers: [KnowledgebaseController, KnowledgeFAQController, KnowledgeTagController, KnowledgeTagUsageController],
     providers: [
@@ -117,6 +131,10 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
         LegacyWeightedFusion,
         WeightedRrfFusion,
         KnowledgeFAQService,
+        FAQSemanticService,
+        FAQSemanticCacheService,
+        FAQSemanticPrewarmDispatcher,
+        FAQSemanticPrewarmProcessor,
         KnowledgeWikiSearchScopeService,
         ...KnowledgeWorkbenchProviders,
         ...KnowledgebaseToolsProviders,

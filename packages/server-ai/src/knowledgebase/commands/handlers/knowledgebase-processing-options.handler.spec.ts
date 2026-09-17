@@ -7,20 +7,18 @@ import { GetKnowledgebaseProcessingOptionsHandler } from './knowledgebase-proces
 function fixture(config = {}) {
     const knowledgebase = {
         findOneByIdString: jest.fn().mockResolvedValue({ id: 'kb', parserConfig: config }),
-        getDocumentTransformerStrategies: jest
-            .fn()
-            .mockResolvedValue([
-                { meta: { name: 'default', supportedFileTypes: ['pdf', 'txt', 'docx'], label: { en_US: 'Standard' } } },
-                { meta: { name: 'pdf-visual', supportedFileTypes: ['pdf'], label: { en_US: 'PDF' } } },
-                {
-                    meta: { name: 'ocr-a', supportedFileTypes: ['pdf', 'png'], label: { en_US: 'OCR A' } },
-                    integration: { service: 'ocr-service' }
-                },
-                {
-                    meta: { name: 'ocr-b', supportedFileTypes: ['pdf'], label: { en_US: 'OCR B' } },
-                    integration: { service: 'other-service' }
-                }
-            ])
+        getDocumentTransformerStrategies: jest.fn().mockResolvedValue([
+            { meta: { name: 'default', supportedFileTypes: ['pdf', 'txt', 'docx'], label: { en_US: 'Standard' } } },
+            { meta: { name: 'pdf-visual', supportedFileTypes: ['pdf'], label: { en_US: 'PDF' } } },
+            {
+                meta: { name: 'ocr-a', supportedFileTypes: ['pdf', 'png'], label: { en_US: 'OCR A' } },
+                integration: { service: 'ocr-service' }
+            },
+            {
+                meta: { name: 'ocr-b', supportedFileTypes: ['pdf'], label: { en_US: 'OCR B' } },
+                integration: { service: 'other-service' }
+            }
+        ])
     }
     const integrations = {
         findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({

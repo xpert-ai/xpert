@@ -1,3 +1,5 @@
+import { collectProviderMethods } from './provider-methods'
+import { describeXpertMcpMethods } from './mcp-methods'
 import type { ZodEffects } from 'zod/v3'
 import type { ZodTypeAny } from 'zod/v3'
 import {
@@ -53,30 +55,23 @@ export function describeXpertToolProvider(instance: object): XpertToolProviderDe
     }
     return Object.freeze({ methodName, middlewareProvider, options: toolOptions })
   })
-  if (!tools.length) {
-    throw new Error(`Provider '${options.provider}' does not declare any @XpertTool methods.`)
+  const mcpMethods = describeXpertMcpMethods(instance)
+  if (!tools.length && !mcpMethods.length) {
+    throw new Error(`Provider '${options.provider}' does not declare any decorated capability methods.`)
   }
 
   return Object.freeze({
     options: Object.freeze({ ...options }),
-    tools: Object.freeze(tools)
+    tools: Object.freeze(tools),
+    mcpMethods
   })
 }
 
 function collectDecoratedMethods(instance: object) {
   const result: Array<{ methodName: string; options: Readonly<XpertToolOptions> }> = []
-  const seen = new Set<string>()
-  let prototype: object | null = Object.getPrototypeOf(instance)
-  while (prototype && prototype !== Object.prototype) {
-    for (const methodName of Object.getOwnPropertyNames(prototype)) {
-      if (methodName === 'constructor' || seen.has(methodName)) continue
-      seen.add(methodName)
-      const method = Reflect.get(prototype, methodName)
-      if (typeof method !== 'function') continue
-      const options = Reflect.getMetadata(XPERT_TOOL_METHOD_METADATA, method) as XpertToolOptions | undefined
-      if (options) result.push({ methodName, options })
-    }
-    prototype = Object.getPrototypeOf(prototype)
+  for (const { methodName, method } of collectProviderMethods(instance)) {
+    const options = Reflect.getMetadata(XPERT_TOOL_METHOD_METADATA, method) as XpertToolOptions | undefined
+    if (options) result.push({ methodName, options })
   }
   return result
 }
@@ -127,15 +122,12 @@ function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: st
   if (options.resultFormat && options.resultFormat !== 'dto' && options.resultFormat !== 'tool_result') {
     throw new Error(`Tool '${options.name}' declares an invalid resultFormat.`)
   }
-  if (options.resultFormat === 'tool_result' && !options.outputSchema) {
-    throw new Error(`Tool '${options.name}' requires outputSchema for tool_result.`)
-  }
   if (!TOOL_NAME_PATTERN.test(options.name) || options.name.length > 191) {
     throw new Error(`Method '${methodName}' declares invalid Tool name '${options.name}'.`)
   }
   if (!options.description?.trim()) throw new Error(`Tool '${options.name}' requires a description.`)
   assertStrictObjectSchema(options.inputSchema, options.name, 'input')
-  if (options.mcp && !options.outputSchema) {
+  if (options.mcp && !options.outputSchema && options.resultFormat !== 'tool_result') {
     throw new Error(`MCP Tool '${options.name}' requires an outputSchema.`)
   }
   if (options.mcp && options.outputSchema) {
@@ -145,6 +137,18 @@ function validateToolOptions(options: Readonly<XpertToolOptions>, methodName: st
     throw new Error(`MCP Tool '${options.name}' requires at least one execution context.`)
   }
   if (options.mcp) {
+    const transportSchema = options.mcp.inputSchema
+    if (transportSchema && typeof transportSchema.parseAsync !== 'function') {
+      throw new Error(`MCP Tool '${options.name}' requires a Zod transport input schema.`)
+    }
+    const task = options.mcp.task
+    if (
+      task &&
+      ((task.mode !== 'optional' && task.mode !== 'required') ||
+        (task.maxLifetimeMs !== undefined && (!Number.isSafeInteger(task.maxLifetimeMs) || task.maxLifetimeMs <= 0)))
+    ) {
+      throw new Error(`MCP Tool '${options.name}' declares invalid task execution policy.`)
+    }
     if (
       options.mcp.defaultApprovalMode !== undefined &&
       !includesValue(MCP_CAPABILITY_APPROVAL_MODES, options.mcp.defaultApprovalMode)

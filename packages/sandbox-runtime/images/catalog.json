@@ -21,6 +21,14 @@
     {
       "family": "document-python",
       "definition": "images/document-python/image.json"
+    },
+    {
+      "family": "document-node",
+      "definition": "images/document-node/image.json"
+    },
+    {
+      "family": "document-java",
+      "definition": "images/document-java/image.json"
     }
   ]
 }

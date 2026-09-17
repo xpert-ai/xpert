@@ -1,5 +1,5 @@
 <div class="flex h-full min-w-0 flex-1 overflow-hidden bg-muted/20 p-3">
-  <section class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background">
+  <section class="flex min-w-0 flex-1 flex-col overflow-hidden">
     <div class="shrink-0 border-b border-border px-4 py-3">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
@@ -198,7 +198,7 @@
               <td z-table-cell [style.width.px]="selectColumnWidth" (click)="$event.stopPropagation()">
                 <z-checkbox
                   displayDensity="compact"
-                  [zDisabled]="element.sourceType === eKDocumentSourceType.FOLDER"
+                  [zDisabled]="element.sourceType === eKDocumentSourceType.FOLDER || isSystemManagedDocument(element)"
                   [ngModel]="selectionModel.isSelected(element.id)"
                   (checkChange)="selectionModel.toggle(element.id)"
                 >
@@ -218,6 +218,15 @@
                         <a [routerLink]="['.']" [queryParams]="{ parentId: element.id }" class="hover:underline">
                           <knowledge-doc-id [doc]="element" [searchText]="search()" />
                         </a>
+                        @if (isSystemManagedDocument(element)) {
+                          <z-badge
+                            zType="secondary"
+                            class="ml-2"
+                            [title]="'XP.Knowledgebase.ManagedDocumentHelp' | translate"
+                          >
+                            {{ 'XP.Knowledgebase.AgentGeneratedIndex' | translate }}
+                          </z-badge>
+                        }
                       } @else {
                         <a
                           [routerLink]="['.', element.id]"
@@ -257,6 +266,7 @@
                       <div class="flex items-center text-sm">
                         <z-switch
                           [ngModel]="!element.disabled"
+                          [disabled]="isSystemManagedDocument(element)"
                           zSize="sm"
                           (ngModelChange)="updateDocument(element.id, { disabled: !$event })"
                         />
@@ -317,6 +327,7 @@
                                 @case (eKBDocumentStatusEnum.FINISH) {
                                   <xp-parser-coverage
                                     [diagnostics]="element.metadata?.parserDiagnostics"
+                                    [warnings]="element.metadata?.imageUnderstandingWarnings"
                                     [compact]="true"
                                   >
                                     <z-badge
@@ -723,7 +734,11 @@
           <div class="flex items-center gap-2">
             @switch (document.status) {
               @case (eKBDocumentStatusEnum.FINISH) {
-                <xp-parser-coverage [diagnostics]="document.metadata?.parserDiagnostics" [compact]="true">
+                <xp-parser-coverage
+                  [diagnostics]="document.metadata?.parserDiagnostics"
+                  [warnings]="document.metadata?.imageUnderstandingWarnings"
+                  [compact]="true"
+                >
                   <z-badge
                     zType="outline"
                     zShape="pill"
@@ -840,6 +855,11 @@
                   </dt>
                   <dd class="font-medium text-text-primary">
                     <xp-parser-coverage
+                      [warnings]="
+                        document.status === eKBDocumentStatusEnum.FINISH
+                          ? document.metadata?.imageUnderstandingWarnings
+                          : undefined
+                      "
                       [diagnostics]="
                         document.status === eKBDocumentStatusEnum.FINISH
                           ? document.metadata?.parserDiagnostics
@@ -874,7 +894,10 @@
             </dl>
           </section>
 
-          <xp-parser-coverage [diagnostics]="document.metadata?.parserDiagnostics" />
+          <xp-parser-coverage
+            [diagnostics]="document.metadata?.parserDiagnostics"
+            [warnings]="document.metadata?.imageUnderstandingWarnings"
+          />
 
           <section class="mt-6 grid grid-cols-3 gap-2.5">
             <button
@@ -882,7 +905,7 @@
               zType="default"
               zSize="lg"
               class="w-full"
-              [zDisabled]="vectorMutationLocked()"
+              [zDisabled]="vectorMutationLocked() || isSystemManagedDocument(document)"
               (click)="reprocess([document.id])"
             >
               <z-icon zType="autorenew" />
@@ -1368,49 +1391,61 @@
 
 <ng-template #rowMenu let-doc="doc">
   <div cdkMenu class="cdk-menu__large">
-    @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
-      @if (canViewOriginalFile(doc)) {
-        <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileViewing(doc.id)" (click)="viewOriginalFile(doc)">
-          @if (isOriginalFileViewing(doc.id)) {
-            <i class="ri-loader-4-line mr-2 animate-spin"></i>
-          } @else {
-            <i class="ri-eye-line mr-2"></i>
-          }
-          <span>{{ 'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' } }}</span>
+    @if (isSystemManagedDocument(doc)) {
+      <p class="max-w-72 px-3 py-2 text-sm text-text-secondary">
+        {{ 'XP.Knowledgebase.ManagedDocumentHelp' | translate }}
+      </p>
+    } @else {
+      @if (doc.sourceType !== eKDocumentSourceType.FOLDER) {
+        @if (canViewOriginalFile(doc)) {
+          <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileViewing(doc.id)" (click)="viewOriginalFile(doc)">
+            @if (isOriginalFileViewing(doc.id)) {
+              <i class="ri-loader-4-line mr-2 animate-spin"></i>
+            } @else {
+              <i class="ri-eye-line mr-2"></i>
+            }
+            <span>{{ 'XP.Knowledgebase.ViewOriginalFile' | translate: { Default: 'View original file' } }}</span>
+          </div>
+        }
+        @if (canDownloadOriginalFile(doc)) {
+          <div
+            cdkMenuItem
+            [cdkMenuItemDisabled]="isOriginalFileDownloading(doc.id)"
+            (click)="downloadOriginalFile(doc)"
+          >
+            @if (isOriginalFileDownloading(doc.id)) {
+              <i class="ri-loader-4-line mr-2 animate-spin"></i>
+            } @else {
+              <i class="ri-download-2-line mr-2"></i>
+            }
+            <span>{{
+              'XP.Knowledgebase.DownloadOriginalFile' | translate: { Default: 'Download original file' }
+            }}</span>
+          </div>
+        }
+        <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="reprocess([doc.id])">
+          <i class="ri-reset-right-line mr-2"></i>
+          <span>{{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
         </div>
       }
-      @if (canDownloadOriginalFile(doc)) {
-        <div cdkMenuItem [cdkMenuItemDisabled]="isOriginalFileDownloading(doc.id)" (click)="downloadOriginalFile(doc)">
-          @if (isOriginalFileDownloading(doc.id)) {
-            <i class="ri-loader-4-line mr-2 animate-spin"></i>
-          } @else {
-            <i class="ri-download-2-line mr-2"></i>
-          }
-          <span>{{ 'XP.Knowledgebase.DownloadOriginalFile' | translate: { Default: 'Download original file' } }}</span>
-        </div>
-      }
-      <div cdkMenuItem [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="reprocess([doc.id])">
-        <i class="ri-reset-right-line mr-2"></i>
-        <span>{{ 'XP.Knowledgebase.Reprocess' | translate: { Default: 'Reprocess' } }}</span>
+      <div cdkMenuItem (click)="enableDoc(doc)">
+        <i class="ri-checkbox-circle-line mr-2"></i>
+        {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
+      </div>
+      <div cdkMenuItem class="danger" (click)="disableDoc(doc)">
+        <i class="ri-close-circle-line mr-2"></i>
+        {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
+      </div>
+      <div class="w-full border-t border-solid border-divider-regular my-1"></div>
+      <div cdkMenuItem (click)="renameDoc(doc)">
+        <i class="ri-edit-line mr-2"></i>
+        <span>{{ 'XP.ACTIONS.Rename' | translate: { Default: 'Rename' } }}</span>
+      </div>
+      <div cdkMenuItem class="danger" [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="deleteDocument(doc)">
+        <i class="ri-delete-bin-line mr-2"></i>
+        <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
       </div>
     }
-    <div cdkMenuItem (click)="enableDoc(doc)">
-      <i class="ri-checkbox-circle-line mr-2"></i>
-      {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
-    </div>
-    <div cdkMenuItem class="danger" (click)="disableDoc(doc)">
-      <i class="ri-close-circle-line mr-2"></i>
-      {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
-    </div>
-    <div class="w-full border-t border-solid border-divider-regular my-1"></div>
-    <div cdkMenuItem (click)="renameDoc(doc)">
-      <i class="ri-edit-line mr-2"></i>
-      <span>{{ 'XP.ACTIONS.Rename' | translate: { Default: 'Rename' } }}</span>
-    </div>
-    <div cdkMenuItem class="danger" [cdkMenuItemDisabled]="vectorMutationLocked()" (click)="deleteDocument(doc)">
-      <i class="ri-delete-bin-line mr-2"></i>
-      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
-    </div>
   </div>
 </ng-template>
 

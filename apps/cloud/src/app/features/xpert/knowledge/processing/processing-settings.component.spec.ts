@@ -50,6 +50,48 @@ describe('processing settings file-type visibility', () => {
 
   afterEach(() => TestBed.resetTestingModule())
 
+  it('explains spreadsheet document parsing when selecting a plugin without changing other formats', async () => {
+    const translate = TestBed.inject(TranslateService)
+    translate.setTranslation('zh-Hans', {
+      XP: {
+        Knowledgebase: {
+          WorkspaceConfiguration: {
+            Implemented: {
+              BuiltinParser: '内置解析器',
+              SpreadsheetDocumentMode: '文档解析',
+              SpreadsheetDocumentModeHelp: '提取表格正文，不生成逐行记录。',
+              SpreadsheetBuiltinModeHelp: '默认按行记录入库。'
+            }
+          }
+        }
+      }
+    })
+    translate.use('zh-Hans')
+    const { fixture, form, root } = setup()
+    fixture.componentRef.setInput('documents', [{ type: 'xlsx' }, { type: 'csv' }, { type: 'docx' }])
+    await form.loadStrategies()
+    form.parserProviders.update((providers) => [
+      ...providers,
+      { meta: { name: 'anydoc', label: 'AnyDoc', supportedFileTypes: ['xlsx', 'csv', 'docx'] } }
+    ])
+    fixture.autoDetectChanges()
+    await fixture.whenStable()
+    expect(root.querySelector('[data-parser-type="excel"] [data-spreadsheet-parser-mode]').textContent).toContain(
+      '按行记录'
+    )
+    fixture.debugElement
+      .query(By.css('[data-parser-type="excel"] z-select'))
+      .triggerEventHandler('ngModelChange', 'anydoc')
+    await fixture.whenStable()
+    expect(root.querySelector('[data-parser-type="excel"] [data-spreadsheet-parser-mode]').textContent).toContain(
+      '不生成逐行记录'
+    )
+    expect(root.querySelector('[data-parser-type="csv"] [data-spreadsheet-parser-mode]').textContent).toContain(
+      '按行记录'
+    )
+    expect(root.querySelector('[data-parser-type="word"] [data-spreadsheet-parser-mode]')).toBeNull()
+  })
+
   it.each(['knowledgebase', 'documents'])(
     'keeps builtin labels and disables parser selection until strategies load for %s',
     async (scope) => {

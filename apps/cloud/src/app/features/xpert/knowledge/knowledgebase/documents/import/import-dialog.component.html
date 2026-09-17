@@ -153,6 +153,8 @@
               <span class="mt-1 block text-xs text-text-tertiary">
                 @if (!item.available || item.id === 'audio') {
                   {{ prefix + '.Unavailable' | translate }}
+                } @else if (item.id === 'tags') {
+                  {{ prefix + '.TagsSelected' | translate: { count: selectedTagIds().length } }}
                 } @else if (item.id === 'questions') {
                   {{ prefix + (processing.questionGenerationEnabled() ? '.Enabled' : '.Disabled') | translate }}
                 } @else if (item.id === 'chunks' && chunkSize()) {
@@ -177,30 +179,82 @@
       <section class="flex min-h-0 min-w-0 flex-col overflow-auto px-6 py-5">
         <h3 class="text-xl font-semibold">{{ prefix + '.' + activeSection().key | translate }}</h3>
         <p class="mb-5 mt-2 text-sm text-text-secondary">
-          {{ (editing ? prefix + '.EditDefaultsHint' : prefix + '.DefaultsHint') | translate }}
+          {{
+            (section() === 'tags'
+              ? prefix + '.TagsHint'
+              : editing
+                ? prefix + '.EditDefaultsHint'
+                : prefix + '.DefaultsHint'
+            ) | translate
+          }}
         </p>
-        <fieldset class="min-w-0" [disabled]="busy()" [hidden]="!activeSection().available">
-          @if (onlySheet() && section() === 'images') {
-            <xp-knowledge-document-create-settings
-              class="block min-w-0"
-              [knowledgebaseValue]="data.knowledgebase"
-              section="images"
-              [documents]="documentsWithParserConfig()"
-              [documentConfigIsResolved]="true"
-              [parserConfig]="activeParserConfig()"
-              (parserConfigChange)="updateSheetParserConfig($event)"
-            />
-          }
-          @if (!onlySheet() || section() !== 'images') {
-            <xp-knowledge-processing-settings
-              class="block min-w-0"
-              [form]="processing"
-              [documents]="onlySheet() ? documentsWithParserConfig() : pendingDocuments()"
-              [section]="processingSection()"
-              scope="documents"
-              [showHeading]="false"
-            />
-          }
+        @if (section() === 'tags') {
+          <div class="space-y-3">
+            <div class="flex items-center gap-3">
+              <input
+                z-input
+                class="min-w-0 flex-1"
+                [ngModel]="tagSearch()"
+                (ngModelChange)="tagSearch.set($event)"
+                [placeholder]="prefix + '.TagsSearch' | translate"
+                [attr.aria-label]="prefix + '.TagsSearch' | translate"
+              />
+              <button
+                z-button
+                zType="ghost"
+                [zDisabled]="busy() || data.locked() || !selectedTagIds().length"
+                (click)="clearTags()"
+              >
+                {{ prefix + '.TagsClear' | translate }}
+              </button>
+            </div>
+            @if (tagsLoading()) {
+              <p role="status" class="text-sm text-text-tertiary">{{ prefix + '.TagsLoading' | translate }}</p>
+            } @else if (tagsError()) {
+              <p role="alert" class="text-sm text-text-destructive">
+                {{ prefix + '.TagsLoadFailed' | translate }} {{ tagsError() }}
+              </p>
+              <button z-button zType="outline" [zDisabled]="busy()" (click)="loadTags()">
+                {{ prefix + '.TagsRetry' | translate }}
+              </button>
+            } @else {
+              @if (!tagsEditable()) {
+                <p class="text-sm text-text-tertiary">{{ 'XP.Knowledgebase.AutomaticTagging.ReadOnly' | translate }}</p>
+              }
+              <div class="flex flex-wrap gap-2" role="group" [attr.aria-label]="prefix + '.Tags' | translate">
+                @for (tag of filteredTags(); track tag.id) {
+                  <button
+                    z-button
+                    zType="outline"
+                    zSize="sm"
+                    [attr.aria-pressed]="selectedTagIds().includes(tag.id)"
+                    [zDisabled]="busy() || data.locked() || !tagsEditable()"
+                    (click)="toggleTag(tag.id)"
+                  >
+                    @if (selectedTagIds().includes(tag.id)) {
+                      <i class="ri-check-line" aria-hidden="true"></i>
+                    }
+                    {{ tag.name }}
+                  </button>
+                }
+              </div>
+              @if (!tagOptions().length) {
+                <p class="text-sm text-text-tertiary">{{ prefix + '.TagsEmpty' | translate }}</p>
+              } @else if (!filteredTags().length) {
+                <p class="text-sm text-text-tertiary">{{ prefix + '.TagsNoMatches' | translate }}</p>
+              }
+            }
+          </div>
+        }
+        <fieldset class="min-w-0" [disabled]="busy()" [hidden]="!activeSection().available || section() === 'tags'">
+          <xp-knowledge-processing-settings
+            class="block min-w-0"
+            [form]="processing"
+            [documents]="onlySheet() ? documentsWithParserConfig() : pendingDocuments()"
+            [section]="processingSection()"
+            scope="documents"
+            [showHeading]="false"
+          />
         </fieldset>
         @if (!activeSection().available) {
           <div role="status" class="border-t border-divider-subtle py-6 text-sm text-text-secondary">

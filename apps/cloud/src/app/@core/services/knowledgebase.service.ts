@@ -12,6 +12,7 @@ import {
   IDocumentSourceProvider,
   IDocumentUnderstandingProvider,
   IKnowledgebase,
+  KnowledgeVectorStoreOptions,
   KnowledgebaseWikiConfig,
   KnowledgeChunkPreviewInput,
   KnowledgeChunkPreviewResult,
@@ -32,6 +33,7 @@ import {
   KnowledgeGraphDocumentProgress,
   KnowledgeGraphDocumentsProgressResponse,
   KnowledgeGraphVisualizationQuery,
+  KnowledgeGraphCatalog,
   KnowledgeGraphViewResponse,
   KnowledgeFilterDiagnostics,
   KnowledgeFilterSources,
@@ -57,6 +59,12 @@ function toGraphHttpParams(query?: KnowledgeGraphVisualizationQuery | KnowledgeG
 @Injectable({ providedIn: 'root' })
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
   readonly #logger = inject(NGXLogger)
+
+  getVectorStores() {
+    return this.selectOrganizationId().pipe(
+      switchMap(() => this.httpClient.get<KnowledgeVectorStoreOptions>(this.apiBaseUrl + '/vector-stores'))
+    )
+  }
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
 
@@ -227,6 +235,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
       connectedEntities: IKnowledgeGraphEntity[]
       mentions: IKnowledgeGraphMention[]
     }>(this.apiBaseUrl + `/${id}/graph/entities/${entityId}/neighborhood`)
+  }
+
+  getGraphCatalog(id: string, query?: KnowledgeGraphVisualizationQuery) {
+    return this.httpClient.get<KnowledgeGraphCatalog>(this.apiBaseUrl + `/${id}/graph/catalog`, {
+      params: toGraphHttpParams(query)
+    })
   }
 
   getGraphVisualization(id: string, query?: KnowledgeGraphVisualizationQuery) {

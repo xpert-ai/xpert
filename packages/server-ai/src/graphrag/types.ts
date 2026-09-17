@@ -8,6 +8,7 @@ import {
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
 import type { KnowledgeGraphFilterScope } from '../knowledgebase/filter'
+import type { JSONValue } from '@xpert-ai/contracts'
 
 export const JOB_KNOWLEDGE_GRAPH_INDEX = 'knowledge-graph-index'
 
@@ -49,6 +50,7 @@ export type TKnowledgeGraphSearchResult = {
 }
 
 export type TKnowledgeGraphExtractionEntity = {
+    properties?: Record<string, JSONValue>
     candidateId: string
     identity: KnowledgeIdentityDescriptor
     name: string
@@ -64,6 +66,7 @@ export type TKnowledgeGraphExtractionEntity = {
 }
 
 export type TKnowledgeGraphExtractionRelation = {
+    properties?: Record<string, JSONValue>
     sourceCandidateId: string
     targetCandidateId: string
     type: string
@@ -77,15 +80,16 @@ export type TKnowledgeGraphExtractionRelation = {
 }
 
 export type TKnowledgeGraphExtraction = {
+    publication?: { mode: 'structured'; key: string; sourceVersion: string; hash: string }
     entities: TKnowledgeGraphExtractionEntity[]
     relations: TKnowledgeGraphExtractionRelation[]
 }
 
 export type KnowledgeGraphEntityContributionInput = Pick<
     TKnowledgeGraphExtractionEntity,
-    'name' | 'type' | 'aliases' | 'description' | 'confidence' | 'evidence'
+    'name' | 'type' | 'aliases' | 'description' | 'confidence' | 'evidence' | 'properties'
 >
 export type KnowledgeGraphRelationContributionInput = Pick<
     TKnowledgeGraphExtractionRelation,
-    'type' | 'description' | 'confidence' | 'evidence'
+    'type' | 'description' | 'confidence' | 'evidence' | 'properties'
 >

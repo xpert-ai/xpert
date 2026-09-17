@@ -55,6 +55,7 @@
           <button
             type="button"
             class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-hover-bg disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            [disabled]="systemManaged()"
             (click)="addChunk()"
           >
             <i class="ri-file-add-line"></i>
@@ -90,7 +91,11 @@
         }
 
         <div class="flex justify-between items-center ml-1.5">
-          <z-switch [(ngModel)]="docEnabled" (ngModelChange)="updateDoc({ disabled: !$event })" />
+          <z-switch
+            [disabled]="systemManaged()"
+            [(ngModel)]="docEnabled"
+            (ngModelChange)="updateDoc({ disabled: !$event })"
+          />
         </div>
       </div>
 
@@ -115,6 +120,10 @@
     </div>
   }
 </div>
+
+@if (systemManaged()) {
+  <p class="mx-4 mt-3 shrink-0 text-sm text-text-secondary">{{ 'XP.Knowledgebase.ManagedDocumentHelp' | translate }}</p>
+}
 
 @if (document() && knowledgebase()?.id) {
   <xp-knowledge-tags
@@ -209,22 +218,24 @@
                 >
                   <i class="ri-database-2-line"></i>
                 </div>
-                <div
-                  class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-hover-bg cursor-pointer"
-                  (click)="editChunk.set(chunk)"
-                >
-                  <i class="ri-edit-line text-text-tertiary"></i>
-                </div>
-                <div
-                  class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive cursor-pointer group/delete"
-                  (click)="deleteChunk(chunk)"
-                >
-                  <i class="ri-delete-bin-3-line"></i>
-                </div>
-                <div class="w-[1px] mx-2 h-3.5 bg-divider-deep"></div>
-                <div class="flex items-center">
-                  <z-switch [ngModel]="chunk.metadata?.enabled" (ngModelChange)="enableChunk(chunk, $event)" />
-                </div>
+                @if (!systemManaged()) {
+                  <div
+                    class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-hover-bg cursor-pointer"
+                    (click)="editChunk.set(chunk)"
+                  >
+                    <i class="ri-edit-line text-text-tertiary"></i>
+                  </div>
+                  <div
+                    class="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-status-error-bg hover:text-text-destructive cursor-pointer group/delete"
+                    (click)="deleteChunk(chunk)"
+                  >
+                    <i class="ri-delete-bin-3-line"></i>
+                  </div>
+                  <div class="w-[1px] mx-2 h-3.5 bg-divider-deep"></div>
+                  <div class="flex items-center">
+                    <z-switch [ngModel]="chunk.metadata?.enabled" (ngModelChange)="enableChunk(chunk, $event)" />
+                  </div>
+                }
               </div>
             </li>
             @if (!last) {
@@ -255,6 +266,7 @@
               <button
                 type="button"
                 class="btn disabled:btn-disabled btn-ghost btn-small"
+                [disabled]="systemManaged()"
                 (click)="toggleEditMetadata()"
               >
                 <i class="ri-edit-line mr-1"></i>

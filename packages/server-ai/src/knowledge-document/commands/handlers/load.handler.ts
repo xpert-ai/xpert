@@ -15,6 +15,7 @@ import {
     KBDocumentCategoryEnum,
     KBDocumentStatusEnum,
     KnowledgeTableSource,
+    type KnowledgeImageUnderstandingWarning as ImageUnderstandingWarning,
     isNativeKnowledgeTableDocument,
     knowledgeDocumentFileType
 } from '@xpert-ai/contracts'
@@ -63,15 +64,6 @@ import {
     createSpreadsheetRecordResult
 } from '../../spreadsheet-document'
 import { invalidKnowledgeParserConfig, validateKnowledgeTableSettings } from '../../parser-validation'
-
-type ImageUnderstandingWarning = {
-    type: 'image_understanding_skipped' | 'image_understanding_failed'
-    message: string
-    assetCount?: number
-    imagePath?: string
-    imageUrl?: string
-    parentChunkId?: string
-}
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
@@ -368,8 +360,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             ]),
                             stage
                         }
-                        // Older VLM cache entries omit text parents from parent-child chunks.
-                        const cacheKey = 'knowledges:understanding:v3:' + computeObjectHash(imageCacheConfig)
+                        // Refresh older image descriptions and placeholder failures for page transcription.
+                        const cacheKey = 'knowledges:understanding:v4:' + computeObjectHash(imageCacheConfig)
                         let imgTransformed = await this.cacheManager.get<TImageUnderstandingResult>(cacheKey)
                         if (!imgTransformed) {
                             const imageUnderstanding = this.imageUnderstandingRegistry.get(

@@ -1,5 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, model } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { catchError, of } from 'rxjs'
+import { BUILTIN_KNOWLEDGE_FILE_TYPES, knowledgeUploadFileTypes } from '@xpert-ai/contracts'
 import { KnowledgebaseService, KnowledgeFileUploader } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
@@ -23,35 +26,43 @@ export class KnowledgeLocalFileComponent {
 
   readonly selected = model<KnowledgeFileUploader | null>(null)
 
-  // States
-  readonly extensions = computed(() => {
-    const exts = this.accepts()
-    if (exts && exts.length) {
-      return exts.filter(Boolean).map((ext) => (ext.startsWith('.') ? ext.slice(1) : ext))
-    }
-    return [
-      'txt',
-      'markdown',
-      'mdx',
-      'pdf',
-      'html',
-      'xlsx',
-      'xls',
-      'docx',
-      'pptx',
-      'csv',
-      'epub',
-      'md',
-      'htm',
-      'csv',
-      'odt',
-      'odp',
-      'ods'
-    ]
+  // Installed transformer metadata supplies plugin formats; explicit caller accepts still wins.
+  readonly parsers = toSignal(this.kbAPI.documentTransformerStrategies$.pipe(catchError(() => of([]))), {
+    initialValue: []
   })
-
-  readonly extensionStr = computed(() => this.extensions()?.join(', '))
-  readonly acceptsStr = computed(() => this.accepts()?.join(', '))
+  readonly extensions = computed(() =>
+    knowledgeUploadFileTypes(
+      [
+        ...BUILTIN_KNOWLEDGE_FILE_TYPES,
+        'txt',
+        'markdown',
+        'mdx',
+        'pdf',
+        'html',
+        'xlsx',
+        'xls',
+        'docx',
+        'pptx',
+        'csv',
+        'epub',
+        'md',
+        'htm',
+        'odt',
+        'odp',
+        'ods'
+      ],
+      this.parsers().map((parser) => parser.meta),
+      this.accepts()
+    )
+  )
+  readonly extensionStr = computed(() => this.extensions().join(', '))
+  readonly acceptsStr = computed(() =>
+    this.accepts()?.length
+      ? this.accepts().join(', ')
+      : this.extensions()
+          .map((type) => `.${type}`)
+          .join(', ')
+  )
 
   // Handle file input (from drag or select)
   handleFiles(selectedFiles: FileList | null) {

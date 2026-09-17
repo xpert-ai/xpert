@@ -1,3 +1,4 @@
+import type { JSONValue } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { KnowledgeGraphRelation } from './knowledge-graph-relation.entity'
@@ -34,6 +35,9 @@ export class KnowledgeGraphRelationContribution extends TenantOrganizationBaseEn
 
     @Column({ type: 'float', nullable: true })
     weight?: number | null
+
+    @Column({ type: 'jsonb', nullable: true })
+    properties?: Record<string, JSONValue> | null
 
     @Column({ type: 'int', default: 0 })
     revision: number

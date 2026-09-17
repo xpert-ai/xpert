@@ -144,6 +144,22 @@ describe('Document chunk page loading failures', () => {
     expect(fixture.componentInstance.docEnabled()).toBe(true)
   })
 
+  it('allows inspection of an Agent index while hiding chunk mutations', async () => {
+    detail.next({ ...document, metadata: { systemManaged: true, systemManagedType: 'agent-writer' } })
+    chunks.next({
+      items: [{ id: 'chunk', pageContent: 'Source text', metadata: { chunkId: 'chunk', mediaType: 'text' } }],
+      total: 1
+    })
+    chunks.complete()
+    await settle()
+    expect(fixture.componentInstance.total()).toBe(1)
+    expect(root().textContent).toContain('ManagedDocumentHelp')
+    expect(root().querySelector('.ri-file-add-line')?.closest('button')?.disabled).toBe(true)
+    expect(root().querySelector('z-switch button')?.hasAttribute('disabled')).toBe(true)
+    expect(root().querySelector('.ri-delete-bin-3-line')).toBeNull()
+    expect(root().querySelector('.ri-database-2-line')).not.toBeNull()
+  })
+
   it.each([
     { documentEnabled: undefined, knowledgebaseEnabled: undefined, visible: false },
     { documentEnabled: undefined, knowledgebaseEnabled: true, visible: true },

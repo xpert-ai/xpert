@@ -4,8 +4,10 @@ import { access, chmod, lstat, mkdir, open, readFile, realpath, unlink } from 'n
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { localDocumentDependencyRoot } from './local-document-dependencies'
 import { localDocumentPython, LOCAL_DOCUMENT_PYTHON_INSTALL_COMMAND } from './local-document-python'
 import { localDocumentFontEnvironment } from './local-document-fonts'
+import { localRuntimeProbeFailure, runLocalRuntimeProcess as runProcess } from './local-runtime-process'
 import { Injectable } from '@nestjs/common'
 import {
     isDevelopmentSandboxRuntimeEnvironment,
@@ -29,6 +31,8 @@ import {
     DEFAULT_BROWSER_RUNTIME_PROFILE,
     DOCUMENT_LIBREOFFICE_RUNTIME_PROFILE,
     DOCUMENT_PYTHON_RUNTIME_PROFILE,
+    DOCUMENT_NODE_RUNTIME_PROFILE,
+    DOCUMENT_JAVA_RUNTIME_PROFILE,
     VIDEO_BROWSER_RUNTIME_PROFILE
 } from './sandbox-runtime-definition.registry'
 
@@ -41,7 +45,9 @@ export const LOCAL_DOCUMENT_RUNTIME_BINDING = 'local-browser-runtime:document-li
 const LOCAL_PROVIDER_VERSION = '1.0.0'
 const LOCAL_BINDING_PRIORITY = 10_000
 const HEALTH_TIMEOUT_MS = 15_000
+const DOCUMENT_HEALTH_TIMEOUT_MS = 60_000
 const HEALTH_CACHE_TTL_MS = 30_000
+const FAILED_HEALTH_CACHE_TTL_MS = 5_000
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024
 const LOCAL_BROWSER_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:browser'
 const LOCAL_AI_INSTALL_COMMAND = 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:ai'
@@ -51,13 +57,21 @@ const execFileAsync = promisify(execFile)
 
 type LocalRuntimeConfiguration = {
     bindingId: string
-    imageFamily: 'browser' | 'browser-ai' | 'browser-video' | 'document' | 'document-python'
+    imageFamily:
+        | 'browser'
+        | 'browser-ai'
+        | 'browser-video'
+        | 'document'
+        | 'document-python'
+        | 'document-node'
+        | 'document-java'
     artifactReference: string
     installCommand: string
     requiresFfmpeg: boolean
     requiresAiResources: boolean
     requiresLibreOffice: boolean
     requiresPython?: boolean
+    requiresDocumentDependencies?: boolean
 }
 
 const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfiguration>> = {
@@ -87,6 +101,26 @@ const LOCAL_RUNTIME_CONFIGURATIONS: Readonly<Record<string, LocalRuntimeConfigur
         requiresFfmpeg: true,
         requiresAiResources: false,
         requiresLibreOffice: false
+    },
+    [DOCUMENT_NODE_RUNTIME_PROFILE]: {
+        bindingId: 'local-browser-runtime:document-node-v1',
+        imageFamily: 'document-node',
+        artifactReference: 'xpert-source://sandbox-runtime/document-node-v1',
+        installCommand: 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:document-node',
+        requiresFfmpeg: false,
+        requiresAiResources: false,
+        requiresLibreOffice: false,
+        requiresDocumentDependencies: true
+    },
+    [DOCUMENT_JAVA_RUNTIME_PROFILE]: {
+        bindingId: 'local-browser-runtime:document-java-v1',
+        imageFamily: 'document-java',
+        artifactReference: 'xpert-source://sandbox-runtime/document-java-v1',
+        installCommand: 'corepack pnpm --filter @xpert-ai/sandbox-runtime install:document-java',
+        requiresFfmpeg: false,
+        requiresAiResources: false,
+        requiresLibreOffice: false,
+        requiresDocumentDependencies: true
     },
     [DOCUMENT_PYTHON_RUNTIME_PROFILE]: {
         bindingId: 'local-browser-runtime:document-python-3.12-v1',
@@ -132,7 +166,8 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
 
     private readonly instances = new Map<string, LocalBrowserRuntimeInstance>()
     private readonly pendingAssetInstalls = new Map<string, Promise<LocalRuntimeAssets>>()
-    private healthCache?: { key: string; expiresAt: number; health: SandboxRuntimeBindingHealth }
+    private readonly healthCache = new Map<string, { expiresAt: number; health: SandboxRuntimeBindingHealth }>()
+    private readonly pendingHealth = new Map<string, Promise<SandboxRuntimeBindingHealth>>()
 
     /** Publishes last-resort Bindings only in explicit development/test mode. */
     listBindings(): readonly SandboxRuntimeBinding[] {
@@ -156,13 +191,21 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
         if (!isLocalBinding(input.binding, input.definition.name)) {
             return { available: false, reason: 'Local Browser Runtime Binding does not match the Definition.' }
         }
-        const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${input.definition.expectedManifest.runnerHostSha256 ?? ''}:${input.definition.expectedManifest.modelCatalogSha256 ?? ''}:${input.definition.expectedManifest.requirementsSha256 ?? ''}`
-        if (this.healthCache?.key === cacheKey && this.healthCache.expiresAt > Date.now()) {
-            return this.healthCache.health
+        const cacheKey = `${input.definition.name}:${input.definition.sandboxRuntimeVersion}:${JSON.stringify(input.definition.expectedManifest)}`
+        const cached = this.healthCache.get(cacheKey)
+        if (cached?.expiresAt > Date.now()) return cached.health
+        const pending = this.pendingHealth.get(cacheKey)
+        if (pending) return pending
+        const probe = this.probeBindingHealth(input.definition)
+        this.pendingHealth.set(cacheKey, probe)
+        try {
+            const health = await probe
+            const ttl = health.available ? HEALTH_CACHE_TTL_MS : FAILED_HEALTH_CACHE_TTL_MS
+            this.healthCache.set(cacheKey, { expiresAt: Date.now() + ttl, health })
+            return health
+        } finally {
+            this.pendingHealth.delete(cacheKey)
         }
-        const health = await this.probeBindingHealth(input.definition)
-        this.healthCache = { key: cacheKey, expiresAt: Date.now() + HEALTH_CACHE_TTL_MS, health }
-        return health
     }
 
     private async probeBindingHealth(
@@ -177,28 +220,42 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
                 env: runtime.environment
             })
             if (manifestResult.exitCode !== 0) {
-                return { available: false, reason: manifestResult.output || 'Local Runtime manifest probe failed.' }
+                return { available: false, reason: localRuntimeProbeFailure(manifestResult, HEALTH_TIMEOUT_MS) }
             }
             const manifest = parseStringRecord(manifestResult.output, 'Local Browser Runtime manifest')
             const mismatch = manifestMismatch(definition.expectedManifest, manifest)
             if (mismatch) return { available: false, reason: mismatch, manifest }
 
             const configuration = localRuntimeConfiguration(definition.name)
-            const healthCommand = configuration.requiresPython
+            const healthCommand = configuration.requiresDocumentDependencies
                 ? {
-                      command: await localDocumentPython(definition.expectedManifest),
+                      command: runtime.nodePath,
                       args: [
-                          '-I',
-                          path.join(runtime.root, 'verify-python.py'),
+                          path.join(runtime.root, '../../../scripts/verify-document-runtime.mjs'),
                           path.join(runtime.root, 'manifest.json'),
-                          path.join(runtime.root, '../requirements.txt')
+                          path.join(runtime.root, '../dependencies.lock.json'),
+                          runtime.environment.XPERT_SANDBOX_DOCUMENT_DEPENDENCY_ROOT,
+                          '--readiness'
                       ]
                   }
-                : configuration.requiresLibreOffice
-                  ? { command: await resolveLocalLibreOffice(), args: ['--headless', '--version'] }
-                  : { command: runtime.nodePath, args: [runtime.runnerPath, '--browser-health'] }
+                : configuration.requiresPython
+                  ? {
+                        command: await localDocumentPython(definition.expectedManifest),
+                        args: [
+                            '-I',
+                            path.join(runtime.root, 'verify-python.py'),
+                            path.join(runtime.root, 'manifest.json'),
+                            path.join(runtime.root, '../requirements.txt')
+                        ]
+                    }
+                  : configuration.requiresLibreOffice
+                    ? { command: await resolveLocalLibreOffice(), args: ['--headless', '--version'] }
+                    : { command: runtime.nodePath, args: [runtime.runnerPath, '--browser-health'] }
+            const timeoutMs = configuration.requiresDocumentDependencies
+                ? DOCUMENT_HEALTH_TIMEOUT_MS
+                : HEALTH_TIMEOUT_MS
             const browserResult = await runProcess(healthCommand.command, healthCommand.args, {
-                timeoutMs: HEALTH_TIMEOUT_MS,
+                timeoutMs,
                 maxOutputBytes: 256 * 1024,
                 cwd: runtime.root,
                 env: runtime.environment
@@ -206,7 +263,7 @@ export class LocalBrowserRuntimeProvider implements ISandboxRuntimeProvider {
             if (browserResult.exitCode !== 0) {
                 return {
                     available: false,
-                    reason: `${browserResult.output || 'Required local runtime executable is not installed.'} ${configuration.installCommand}`
+                    reason: localRuntimeProbeFailure(browserResult, timeoutMs)
                 }
             }
             return { available: true, manifest }
@@ -574,6 +631,11 @@ async function resolveLocalRuntimeAssets(
             const ffmpegPath = await resolveLocalFfmpeg(packageRoot)
             environmentAdditions.PATH = prependPath(path.dirname(ffmpegPath), process.env.PATH)
         }
+        if (configuration.requiresDocumentDependencies) {
+            environmentAdditions.XPERT_SANDBOX_DOCUMENT_DEPENDENCY_ROOT = await localDocumentDependencyRoot(
+                definition.expectedManifest
+            )
+        }
         if (configuration.requiresPython) {
             const pythonPath = await localDocumentPython(definition.expectedManifest)
             environmentAdditions.PATH = prependPath(path.dirname(pythonPath), process.env.PATH)
@@ -816,42 +878,6 @@ function localRuntimeEnvironment(additions: NodeJS.ProcessEnv = {}): NodeJS.Proc
         ),
         ...additions
     }
-}
-
-async function runProcess(
-    command: string,
-    args: string[],
-    options: { timeoutMs: number; maxOutputBytes: number; cwd: string; env: NodeJS.ProcessEnv }
-): Promise<SandboxRuntimeExecuteResponse> {
-    return new Promise((resolve, reject) => {
-        const child = spawn(command, args, {
-            cwd: options.cwd,
-            env: options.env,
-            stdio: ['ignore', 'pipe', 'pipe']
-        })
-        let output = ''
-        let truncated = false
-        const append = (chunk: Buffer | string) => {
-            const next = `${output}${String(chunk)}`
-            if (Buffer.byteLength(next) <= options.maxOutputBytes) output = next
-            else {
-                truncated = true
-                output = Buffer.from(next).subarray(-options.maxOutputBytes).toString()
-            }
-        }
-        child.stdout.on('data', append)
-        child.stderr.on('data', append)
-        const timeout = setTimeout(() => child.kill('SIGKILL'), options.timeoutMs)
-        timeout.unref()
-        child.once('error', (error) => {
-            clearTimeout(timeout)
-            reject(error)
-        })
-        child.once('exit', (exitCode) => {
-            clearTimeout(timeout)
-            resolve({ output: output.trim(), exitCode, truncated })
-        })
-    })
 }
 
 function parseStringRecord(value: string, field: string): Record<string, string> {

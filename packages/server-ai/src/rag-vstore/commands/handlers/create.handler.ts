@@ -22,7 +22,7 @@ export class RagCreateVStoreHandler implements ICommandHandler<RagCreateVStoreCo
     ) {}
 
     public async execute(command: RagCreateVStoreCommand) {
-        const vectorStore = environment.vectorStore
+        const vectorStore = command.config.vectorStore ?? environment.vectorStore
         switch (vectorStore) {
             case VectorTypeEnum.PGVECTOR:
                 return this.createPgVectorStore(command.embeddings, command.config)

@@ -8,6 +8,7 @@ import {
   ImageUnderstandingStrategy,
   LLMPermission,
   TImageUnderstandingConfig,
+  TDocumentAsset,
   TImageUnderstandingResult
 } from '@xpert-ai/plugin-sdk'
 import { buildChunkTree, collectTreeLeaves, IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
@@ -21,12 +22,15 @@ const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?
 const DEFAULT_PROMPT_TEMPLATE =
   'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
 const CONTEXT_PLACEHOLDER = '{{context}}'
+const PAGE_TRANSCRIPTION_PROMPT =
+  'Transcribe all visible content of this document page into Markdown in reading order. Preserve headings, lists, table rows and merged-cell relationships. Copy numbers, leading zeroes, codes and punctuation exactly. Do not summarize, describe the page, invent text, or add a preface. Mark unreadable text as [unreadable].'
 
 type VlmDefaultConfig = TImageUnderstandingConfig & {
   promptTemplate?: string
 }
 
 type ImageUnderstandingWarning = {
+  type: 'image_understanding_failed' | 'image_understanding_skipped'
   imagePath?: string
   imageUrl?: string
   parentChunkId?: string
@@ -114,6 +118,8 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     const leaves = collectTreeLeaves(tree)
 
     const warnings: ImageUnderstandingWarning[] = []
+    const processedAssets = new Set<string>()
+    const generated = new Map<string, Document<ChunkMetadata>[]>()
 
     for await (const chunk of leaves) {
       const assets: string[] = []
@@ -127,11 +133,28 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         const url = match[1] // image-url.png
         const asset = files.find((a) => a.url === url)
         if (asset && !assets.some((_) => _ === asset.url)) {
+          if (processedAssets.has(asset.filePath)) continue
+          if (asset.sourceType === 'pdf_page') processedAssets.add(asset.filePath)
+          assets.push(asset.url)
           let description: string
           try {
-            description = await this.runV(client, chunk.pageContent, asset.filePath, config)
+            const result = await this.runV(client, chunk.pageContent, asset, config)
+            if (result.type === 'skipped') {
+              processedAssets.add(asset.filePath)
+              warnings.push({
+                type: 'image_understanding_skipped',
+                imagePath: asset.filePath,
+                imageUrl: asset.url,
+                parentChunkId,
+                message: result.reason
+              })
+              continue
+            }
+            description = result.text
+            if (!description.trim()) throw new Error('The vision model returned no text.')
           } catch (error) {
             warnings.push({
+              type: 'image_understanding_failed',
               imagePath: asset.filePath,
               imageUrl: asset.url,
               parentChunkId,
@@ -141,15 +164,15 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
           }
 
           imageOffset++
-          assets.push(asset.url)
-          chunks.push(
+          const additions = generated.get(parentChunkId) ?? []
+          additions.push(
             new Document({
               pageContent: description,
               metadata: {
                 mediaType: 'image',
                 chunkId: buildImageChunkId(parentChunkId, asset.filePath, asset.order ?? imageOffset),
                 chunkIndex: parentChunkIndex + imageOffset / 1000,
-                parentId: parentChunkId,
+                ...(asset.sourceType === 'pdf_page' ? { contentFormat: 'markdown' } : { parentId: parentChunkId }),
                 imagePath: asset.filePath,
                 imageUrl: asset.url,
                 sourceType: asset.sourceType,
@@ -160,12 +183,13 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
               }
             })
           )
+          generated.set(parentChunkId, additions)
         }
       }
     }
 
     return {
-      chunks,
+      chunks: chunks.flatMap((chunk) => [chunk, ...(generated.get(chunk.metadata.chunkId) ?? [])]),
       metadata: {
         warnings
       }
@@ -175,23 +199,25 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
   private async runV(
     client: BaseChatModel,
     context: string,
-    imagePath: string,
+    asset: TDocumentAsset,
     config: VlmDefaultConfig
-  ): Promise<string> {
-    const imageStr = await config.permissions.fileSystem.readFile(imagePath)
+  ): Promise<{ type: 'recognized'; text: string } | { type: 'skipped'; reason: string }> {
+    const imageStr = await config.permissions.fileSystem.readFile(asset.filePath)
     const sharped = sharp(imageStr)
+    const page = asset.sourceType === 'pdf_page'
+    const { width, height } = await sharped.metadata()
+    if (width === 1 || height === 1) {
+      if (page) throw new Error(`PDF page image is too small to recognize (${width}x${height}).`)
+      return { type: 'skipped', reason: `Skipped a ${width}x${height} placeholder image.` }
+    }
 
-    // Reduce image size to minimize Base64 encoding length and avoid exceeding token limits
-    // Some model services (e.g., Xinference) have strict input length limits (2048 tokens)
-    // Resize to smaller dimension and compress to reduce Base64 string length
-    const imageData = await sharped
-      .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85, mozjpeg: true })
-      .toBuffer()
+    // Preserve page text at reading resolution; ordinary image descriptions retain the smaller payload.
+    const resized = sharped.resize(page ? 2200 : 512, page ? 2200 : 512, { fit: 'inside', withoutEnlargement: true })
+    const imageData = await (page ? resized.png() : resized.jpeg({ quality: 85, mozjpeg: true })).toBuffer()
 
-    const mimetype = 'image/jpeg'
+    const mimetype = page ? 'image/png' : 'image/jpeg'
 
-    const systemMessage = this.buildSystemMessage(context, config)
+    const systemMessage = page ? PAGE_TRANSCRIPTION_PROMPT : this.buildSystemMessage(context, config)
 
     try {
       const response = await client.invoke([
@@ -202,6 +228,9 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         {
           role: 'user',
           content: [
+            ...(page && config.promptTemplate?.trim()
+              ? [{ type: 'text', text: this.buildSystemMessage(context, config) }]
+              : []),
             // { type: 'text', text: context },
             {
               type: 'image_url',
@@ -213,7 +242,15 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
         }
       ])
 
-      return response.content as string
+      return {
+        type: 'recognized',
+        text:
+          typeof response.content === 'string'
+            ? response.content
+            : response.content
+                .flatMap((part) => (part.type === 'text' && typeof part.text === 'string' ? [part.text] : []))
+                .join('\n')
+      }
     } catch (error) {
       // Handle specific error about input length limit
       const errorMessage = getErrorMessage(error)

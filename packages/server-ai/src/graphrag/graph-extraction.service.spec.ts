@@ -39,7 +39,25 @@ describe('Graph adapter for shared identity', () => {
             ],
             relations: []
         }))
+        const builder = {
+            update() {
+                return this
+            },
+            set() {
+                return this
+            },
+            where() {
+                return this
+            },
+            setParameter(_name: string, value: string) {
+                job.extractionSnapshot = JSON.parse(value)
+                return this
+            },
+            execute: async () => ({ affected: 1 })
+        }
         const repository = {
+            createQueryBuilder: () => builder,
+            findOne: async () => ({ status: KnowledgeGraphIndexJobStatus.RUNNING }),
             findOneOrFail: async () => job,
             update: async (_criteria: unknown, patch: Partial<KnowledgeGraphIndexJob>) => {
                 Object.assign(job, patch)
@@ -90,7 +108,10 @@ describe('Graph adapter for shared identity', () => {
         }
         const invoke = jest.fn().mockResolvedValueOnce({ entities: [], relations: [] }).mockResolvedValueOnce(output)
         const service = new KnowledgeGraphExtractionService(
-            { update: jest.fn() } as unknown as Repository<KnowledgeGraphIndexJob>,
+            {
+                update: jest.fn(),
+                findOne: async () => ({ status: KnowledgeGraphIndexJobStatus.RUNNING })
+            } as unknown as Repository<KnowledgeGraphIndexJob>,
             { execute: async () => ({ withStructuredOutput: () => ({ invoke }) }) } as unknown as QueryBus,
             {} as KnowledgeIdentityService
         )

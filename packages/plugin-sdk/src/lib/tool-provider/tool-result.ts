@@ -39,11 +39,11 @@ const contentSchema = z.discriminatedUnion('type', [
 ])
 
 /** Validate the envelope separately so binary content never enters the business DTO. */
-export async function parseDecoratedToolResult(value: unknown, outputSchema: ZodTypeAny): Promise<XpertToolResult> {
+export async function parseDecoratedToolResult(value: unknown, outputSchema?: ZodTypeAny): Promise<XpertToolResult> {
   const envelope = z
     .object({
       content: z.array(contentSchema).max(32).optional(),
-      structuredContent: outputSchema,
+      structuredContent: outputSchema ?? z.unknown().optional(),
       isError: z.boolean().optional()
     })
     .strict()
@@ -64,7 +64,8 @@ export async function parseDecoratedToolResult(value: unknown, outputSchema: Zod
   // MCP clients may expose only content to the model. Keep the validated DTO
   // readable there too, while retaining binary blocks and App structured data.
   const text = JSON.stringify(result.structuredContent)
-  if (!content.some((item) => item.type === 'text' && item.text === text)) content.push({ type: 'text', text })
+  if (text !== undefined && !content.some((item) => item.type === 'text' && item.text === text))
+    content.push({ type: 'text', text })
   return {
     structuredContent: result.structuredContent,
     content,

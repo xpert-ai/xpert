@@ -36,6 +36,43 @@ class ComboboxProjectionHostComponent {
 }
 
 describe('ZardComboboxComponent', () => {
+  it('honors an explicit null after the parent clears a previously selected value', () => {
+    const fixture = TestBed.configureTestingModule({ imports: [ZardComboboxComponent] }).createComponent(
+      ZardComboboxComponent
+    )
+    fixture.componentRef.setInput('options', [{ value: 'alpha', label: 'Alpha' }])
+    fixture.componentRef.setInput('placeholder', 'All sources')
+    fixture.componentRef.setInput('value', null)
+    fixture.detectChanges()
+
+    fixture.componentInstance.handleSelect({ value: 'alpha', label: 'Alpha' })
+    fixture.componentRef.setInput('value', 'alpha')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Alpha')
+
+    fixture.componentRef.setInput('value', null)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('All sources')
+    expect(fixture.nativeElement.textContent).not.toContain('Alpha')
+    fixture.destroy()
+  })
+
+  it('continues to support form writes and clearing when the value input is omitted', () => {
+    const fixture = TestBed.configureTestingModule({ imports: [ZardComboboxComponent] }).createComponent(
+      ZardComboboxComponent
+    )
+    fixture.componentRef.setInput('options', [{ value: 'alpha', label: 'Alpha' }])
+    fixture.componentRef.setInput('placeholder', 'All sources')
+    fixture.detectChanges()
+    fixture.componentInstance.writeValue('alpha')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('Alpha')
+    fixture.componentInstance.writeValue(null)
+    fixture.detectChanges()
+    expect(fixture.nativeElement.textContent).toContain('All sources')
+    fixture.destroy()
+  })
+
   it('matches the dropdown to the actual trigger width, including after the layout changes', async () => {
     const fixture = TestBed.configureTestingModule({
       imports: [ComboboxProjectionHostComponent]

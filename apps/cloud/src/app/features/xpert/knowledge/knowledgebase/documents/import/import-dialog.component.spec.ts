@@ -1,5 +1,6 @@
+import { KnowledgeTagsService } from '@cloud/app/@core/services/knowledge-tags.service'
+import { KnowledgeTagCatalog } from '@xpert-ai/contracts'
 jest.mock('@cloud/app/@shared/copilot', () => ({ CopilotModelSelectComponent: class {} }))
-jest.mock('../create/settings/settings.component', () => ({ KnowledgeDocumentCreateSettingsComponent: class {} }))
 jest.mock('../pipeline/settings/settings.component', () => ({ KnowledgeDocumentPipelineSettingsComponent: class {} }))
 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
@@ -51,6 +52,15 @@ describe('DocumentImportDialogComponent', () => {
       startParsing: jest.fn(() => of([])),
       getReprocessCapabilities: jest.fn(() => of({ rechunk: { available: true } }))
     }
+    const tagsAPI = {
+      list: jest.fn(() =>
+        of<KnowledgeTagCatalog>({
+          tags: [{ id: 'tag-1', name: 'Operations', targets: ['knowledgebase'] }],
+          available: [{ id: 'tag-1', name: 'Operations', targets: ['knowledgebase'] }],
+          canEdit: true
+        })
+      )
+    }
     const ref = { close: jest.fn(), disableClose: false }
     const kbAPI = {
       getTextSplitterStrategies: () =>
@@ -76,6 +86,7 @@ describe('DocumentImportDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot()],
       providers: [
+        { provide: KnowledgeTagsService, useValue: tagsAPI },
         {
           provide: DIALOG_DATA,
           useValue: {
@@ -102,10 +113,162 @@ describe('DocumentImportDialogComponent', () => {
     const fixture = TestBed.createComponent(DocumentImportDialogComponent)
     fixture.detectChanges()
     await fixture.whenStable()
-    return { fixture, component: fixture.componentInstance, api, ref, knowledgebase, kbAPI }
+    return { fixture, component: fixture.componentInstance, api, ref, knowledgebase, kbAPI, tagsAPI }
   }
 
   afterEach(() => TestBed.resetTestingModule())
+
+  it.each([false, true])(
+    'submits selected AnyDoc spreadsheets in document mode for sheet-only=%s',
+    async (sheetOnly) => {
+      const { component, api, knowledgebase } = await setup()
+      component.processing.parserProviders.update((providers) => [
+        ...providers,
+        { meta: { name: 'anydoc', supportedFileTypes: ['pdf', 'xlsx', 'xls', 'csv'] } }
+      ])
+      const sheets = ['xlsx', 'xls', 'csv'].map((type) => ({
+        type,
+        category: KBDocumentCategoryEnum.Sheet,
+        filePath: '/sample.' + type,
+        parserConfig: { indexedFields: ['sku'], spreadsheet: { firstRowAsHeader: false } }
+      }))
+      component.externalDocuments.set(
+        sheetOnly ? sheets : [...sheets, { type: 'pdf', category: KBDocumentCategoryEnum.Text }]
+      )
+      for (const type of ['xlsx', 'xls', 'csv']) component.processing.selectParser(type, 'anydoc')
+      await component.submit()
+      expect(component.error()).toBe('')
+      expect(api.createBulk).toHaveBeenCalledTimes(1)
+      const documents = api.createBulk.mock.calls[0][0]
+      for (const document of documents.slice(0, 3)) {
+        expect(document.parserConfig).toMatchObject({
+          transformerType: 'anydoc',
+          spreadsheet: { interpretation: 'form_document', firstRowAsHeader: false }
+        })
+      }
+      expect(api.estimateTable).not.toHaveBeenCalled()
+      expect(knowledgebase.parserConfig).not.toHaveProperty('parsers')
+    }
+  )
+
+  it('saves the plugin mode without overwriting it with the old sheet draft', async () => {
+    const document = {
+      id: 'sheet',
+      type: 'csv',
+      version: 1,
+      category: KBDocumentCategoryEnum.Sheet,
+      filePath: '/sample.csv',
+      parserConfig: { transformerType: 'builtin', indexedFields: ['sku'], spreadsheet: { interpretation: 'records' } }
+    } as IKnowledgeDocument
+    const { component, api } = await setup(false, document)
+    component.processing.parserProviders.update((providers) => [
+      ...providers,
+      { meta: { name: 'anydoc', supportedFileTypes: ['csv'] } }
+    ])
+    component.processing.selectParser('csv', 'anydoc')
+    await component.saveAndProcess('full')
+    expect(component.error()).toBe('')
+    expect(api.updateBulk.mock.calls[0][0][0].parserConfig).toMatchObject({
+      transformerType: 'anydoc',
+      spreadsheet: { interpretation: 'form_document' }
+    })
+    expect(api.estimateTable).not.toHaveBeenCalled()
+  })
+
+  it('keeps the original spreadsheet conversion mode for a rechunk-only save', async () => {
+    const document = {
+      id: 'sheet',
+      type: 'xlsx',
+      version: 1,
+      category: KBDocumentCategoryEnum.Sheet,
+      parserConfig: { transformerType: 'builtin', spreadsheet: { interpretation: 'records', contextUnit: 'row' } }
+    } as IKnowledgeDocument
+    const { component, api } = await setup(false, document)
+    component.processing.parserProviders.update((providers) => [
+      ...providers,
+      { meta: { name: 'anydoc', supportedFileTypes: ['xlsx'] } }
+    ])
+    component.processing.selectParser('xlsx', 'anydoc')
+    expect(component.rechunkReady()).toBe(false)
+    await component.saveAndProcess('rechunk')
+    expect(api.updateBulk).not.toHaveBeenCalled()
+    component.processing.selectParser('xlsx', 'builtin')
+    expect(component.rechunkReady()).toBe(true)
+    await component.saveAndProcess('rechunk')
+    expect(component.error()).toBe('')
+    expect(api.updateBulk.mock.calls[0][0][0].parserConfig).toMatchObject({
+      transformerType: 'builtin',
+      spreadsheet: { interpretation: 'records', contextUnit: 'row' }
+    })
+  })
+
+  it('submits selected manual tags for the complete batch without changing parser settings', async () => {
+    const { component, api } = await setup()
+    component.externalDocuments.set([
+      { name: 'one', type: 'txt' },
+      { name: 'two', type: 'txt' }
+    ])
+    component.toggleTag('tag-1')
+    component.toggleTag('not-in-catalog')
+    expect(component.selectedTagIds()).toEqual(['tag-1'])
+    await component.submit()
+    expect(api.createBulk).toHaveBeenCalledWith(
+      [expect.objectContaining({ name: 'one' }), expect.objectContaining({ name: 'two' })],
+      true,
+      ['tag-1']
+    )
+  })
+
+  it('filters tags, retains selection across searches and clears it without changing the catalog', async () => {
+    const { component, tagsAPI } = await setup()
+    component.toggleTag('tag-1')
+    component.tagSearch.set('missing')
+    expect(component.filteredTags()).toEqual([])
+    expect(component.selectedTagIds()).toEqual(['tag-1'])
+    component.tagSearch.set('OPER')
+    expect(component.filteredTags().map((tag) => tag.id)).toEqual(['tag-1'])
+    component.clearTags()
+    expect(component.selectedTagIds()).toEqual([])
+    expect(tagsAPI.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('excludes inactive and unavailable tags and respects read-only access', async () => {
+    const { component, tagsAPI } = await setup()
+    tagsAPI.list.mockReturnValue(
+      of({
+        tags: [
+          { id: 'disabled', name: 'Disabled', targets: ['knowledgebase'], isActive: false },
+          { id: 'unavailable', name: 'Unavailable', targets: ['knowledgebase'] }
+        ],
+        available: [{ id: 'disabled', name: 'Disabled', targets: ['knowledgebase'], isActive: false }],
+        canEdit: false
+      })
+    )
+    await component.loadTags()
+    expect(component.tagOptions()).toEqual([])
+    component.toggleTag('disabled')
+    expect(component.selectedTagIds()).toEqual([])
+  })
+
+  it('allows an untagged import after a catalog failure and supports retry', async () => {
+    const { component, api, tagsAPI } = await setup()
+    tagsAPI.list.mockReturnValueOnce(throwError(() => new Error('catalog unavailable')))
+    await component.loadTags()
+    expect(component.tagsError()).toContain('catalog unavailable')
+    await component.submit()
+    expect(api.createBulk).toHaveBeenCalledWith(expect.any(Array), true)
+    await component.loadTags()
+    expect(component.tagsError()).toBe('')
+    expect(component.tagOptions()).toHaveLength(1)
+  })
+
+  it('offers manual tags on import but not when reprocessing a document', async () => {
+    const { component } = await setup()
+    expect(component.sections.find((section) => section.id === 'tags')?.available).toBe(true)
+    TestBed.resetTestingModule()
+    const edit = await setup(false, { id: 'doc', type: 'txt', version: 1 } as IKnowledgeDocument)
+    expect(edit.component.sections.some((section) => section.id === 'tags')).toBe(false)
+  })
 
   it.each(['xlsx', 'csv'])(
     'uses shared parser settings without a table preview for %s imports and edits',
@@ -410,7 +573,7 @@ describe('DocumentImportDialogComponent', () => {
     })
   })
 
-  it('uses the shared parser and chunk forms for spreadsheets while preserving the image settings entry', async () => {
+  it('uses the shared parser, chunk and image forms for spreadsheets', async () => {
     const { component, fixture } = await setup(
       false,
       { id: 'sheet', type: 'xlsx', category: KBDocumentCategoryEnum.Sheet, version: 1 } as IKnowledgeDocument,
@@ -430,19 +593,32 @@ describe('DocumentImportDialogComponent', () => {
     expect(fixture.debugElement.query(By.css('xp-knowledge-processing-settings')).properties['section']).toBe('parser')
     component.section.set('images')
     fixture.detectChanges()
-    expect(fixture.debugElement.query(By.css('xp-knowledge-document-create-settings')).attributes['section']).toBe(
-      'images'
-    )
+    expect(fixture.debugElement.query(By.css('xp-knowledge-document-create-settings'))).toBeNull()
+    expect(fixture.debugElement.query(By.css('xp-knowledge-processing-settings')).properties['section']).toBe('image')
   })
 
-  it('saves shared chunk settings for a sheet import alongside existing spreadsheet and image settings', async () => {
+  it('validates the shared image model selection for a spreadsheet-only batch', async () => {
+    const { component, api } = await setup()
+    component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Sheet, type: 'xlsx' }])
+    component.processing.imageUnderstandingEnabled.set(true)
+    expect(component.configurationError()).toBeTruthy()
+    await component.submit()
+    expect(api.createBulk).not.toHaveBeenCalled()
+    component.processing.visionModel.set({ model: 'vision' })
+    expect(component.configurationError()).toBeNull()
+  })
+
+  it('saves shared chunk and image settings for a sheet import alongside spreadsheet conversion settings', async () => {
     const { component, api, knowledgebase } = await setup()
     component.externalDocuments.set([{ category: KBDocumentCategoryEnum.Sheet, type: 'xlsx' }])
     component.sheetParserConfig.set({
       spreadsheet: { interpretation: 'records', includeSheets: ['Orders'] },
       indexedFields: ['sku'],
-      imageUnderstandingEnabled: true
+      imageUnderstandingEnabled: false
     })
+    component.processing.imageUnderstandingEnabled.set(true)
+    component.processing.visionModel.set({ model: 'vision' })
+    component.processing.imagePromptTemplate.set('Read all table cells')
     component.processing.selectChunkStrategy('auto')
     component.processing.chunkSize.set(800)
     component.processing.chunkOverlap.set(40)
@@ -459,7 +635,9 @@ describe('DocumentImportDialogComponent', () => {
             maxChunkTokens: 256,
             spreadsheet: { interpretation: 'records', includeSheets: ['Orders'], firstRowAsHeader: true },
             indexedFields: ['sku'],
-            imageUnderstandingEnabled: true
+            imageUnderstandingEnabled: true,
+            imageUnderstandingModel: { model: 'vision' },
+            imageUnderstanding: { promptTemplate: 'Read all table cells' }
           })
         })
       ],
@@ -549,10 +727,11 @@ describe('DocumentImportDialogComponent', () => {
     expect(document.parserConfig.tableMetadataRequirements).toBe('Explain business column meanings')
   })
 
-  it('keeps header edits from the sheet editor synchronized with the shared draft and blocks long requirements', async () => {
+  it('uses shared header controls without losing spreadsheet selection and blocks long requirements', async () => {
     const { component, api } = await setup()
     component.externalDocuments.set([{ type: 'xlsx', category: KBDocumentCategoryEnum.Sheet }])
-    component.updateSheetParserConfig({ spreadsheet: { firstRowAsHeader: false, includeSheets: ['Orders'] } })
+    component.sheetParserConfig.set({ spreadsheet: { includeSheets: ['Orders'] } })
+    component.processing.firstRowAsHeader.set(false)
     expect(component.processing.firstRowAsHeader()).toBe(false)
     expect(component.activeParserConfig().spreadsheet).toEqual({
       interpretation: 'records',

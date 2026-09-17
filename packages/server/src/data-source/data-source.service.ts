@@ -8,7 +8,7 @@ import {
 import { RequestContext } from '../core/context'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
 import { QueryBus } from '@nestjs/cqrs'
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
@@ -44,9 +44,15 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 
 	async prepareDataSource(id: string, newDataSource?: Partial<IDataSource>) {
 		const { authentications, options, ...ds } = newDataSource ?? {}
+		if (!RequestContext.currentTenantId() || !RequestContext.getOrganizationId())
+			throw new ForbiddenException('Data source scope is required')
 
 		let dataSource = await this.dsRepository.findOne({
-			where: { id },
+			where: {
+				id,
+				tenantId: RequestContext.currentTenantId(),
+				organizationId: RequestContext.getOrganizationId()
+			},
 			relations: ['type', 'authentications']
 		})
 		if (!dataSource) {

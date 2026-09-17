@@ -146,6 +146,27 @@ describe('KnowledgeFAQService', () => {
         expect(dependencies).toContainEqual({ index: 3, param: getDataSourceToken() })
     })
 
+    it('queues semantic prewarming only after a successful save and never while staging', async () => {
+        const fixture = createFixture()
+        Object.assign(fixture.knowledgebase.faqConfig, { negativeMatchMode: 'semantic' })
+        const enqueue = jest.fn(async () => {
+            expect(fixture.chunkService.updateWithVersion).toHaveBeenCalled()
+            expect(fixture.vectorStore.addKnowledgeChunks).toHaveBeenCalled()
+        })
+        Object.assign(fixture.service, { semanticPrewarm: { enqueue } })
+        const entry = await fixture.service.create(fixture.knowledgebase.id, input)
+        expect(enqueue).toHaveBeenCalledWith(fixture.knowledgebase, [entry])
+    })
+
+    it('does not queue semantic work for failed positive indexing', async () => {
+        const fixture = createFixture({ addVectorsError: new Error('positive index failed') })
+        Object.assign(fixture.knowledgebase.faqConfig, { negativeMatchMode: 'semantic' })
+        const enqueue = jest.fn()
+        Object.assign(fixture.service, { semanticPrewarm: { enqueue } })
+        await expect(fixture.service.create(fixture.knowledgebase.id, input)).rejects.toThrow('positive index failed')
+        expect(enqueue).not.toHaveBeenCalled()
+    })
+
     it('creates one canonical chunk and separate question vectors plus one copy of each answer block', async () => {
         const fixture = createFixture()
 

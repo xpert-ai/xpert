@@ -310,6 +310,8 @@ const SORT_VALUE_BY_COLUMN: Record<DocumentTableColumnKey, (document: IKnowledge
   ]
 })
 export class KnowledgeDocumentsComponent {
+  readonly isSystemManagedDocument = isSystemManagedDocument
+
   eKDocumentSourceType = KDocumentSourceType
   eKBDocumentStatusEnum = KBDocumentStatusEnum
   eKnowledgeGraphStatus = KnowledgeGraphStatus
@@ -437,6 +439,7 @@ export class KnowledgeDocumentsComponent {
   readonly notFolderItems = computed(() =>
     this.#data().filter((item) => item.sourceType !== KDocumentSourceType.FOLDER)
   )
+  readonly selectableDocuments = computed(() => this.notFolderItems().filter((doc) => !isSystemManagedDocument(doc)))
   readonly errorCount = computed(
     () => this.notFolderItems().filter((document) => document.status === KBDocumentStatusEnum.ERROR).length
   )
@@ -1409,15 +1412,17 @@ export class KnowledgeDocumentsComponent {
 
   isAllSelected() {
     const numSelected = this.selectionModel.selected.length
-    const numRows = this.notFolderItems().length
+    const numRows = this.selectableDocuments().length
     return numRows > 0 && numSelected === numRows
   }
   isPartialSelected() {
-    return this.selectionModel.selected.length > 0 && this.selectionModel.selected.length < this.notFolderItems().length
+    return (
+      this.selectionModel.selected.length > 0 && this.selectionModel.selected.length < this.selectableDocuments().length
+    )
   }
   selectAll(checked: boolean) {
     if (checked) {
-      this.selectionModel.select(...this.notFolderItems().map((row) => row.id))
+      this.selectionModel.select(...this.selectableDocuments().map((row) => row.id))
     } else {
       this.selectionModel.clear()
     }
@@ -1426,7 +1431,7 @@ export class KnowledgeDocumentsComponent {
   selectedDocuments() {
     return this.selectionModel.selected
       .map((id) => this.#data().find((document) => document.id === id))
-      .filter((document): document is IKnowledgeDocument => !!document)
+      .filter((document): document is IKnowledgeDocument => !!document && !isSystemManagedDocument(document))
   }
 
   openMoveSelectedDialog(template: TemplateRef<unknown>) {

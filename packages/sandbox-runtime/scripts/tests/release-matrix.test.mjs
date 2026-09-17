@@ -35,7 +35,9 @@ test('release matrix preserves existing tags and publishes Python with its pinne
     'browser-video': `${version}-pw1.61.0`,
     'browser-ai': `${version}-pw1.61.0`,
     document: `${version}-lo7`,
-    'document-python': `${version}-py3.12.10`
+    'document-python': `${version}-py3.12.10`,
+    'document-node': version,
+    'document-java': version
   })
 })
 
@@ -72,15 +74,15 @@ test('suite patch synchronization keeps the matrix and runtime definitions align
   const root = await fixture(t)
   const file = path.join(root, 'package.json')
   const suite = await readJson(file)
-  suite.version = '1.2.2'
+  suite.version = '1.2.3'
   await writeFile(file, JSON.stringify(suite))
   run(root, 'sync-version.mjs')
   run(root, 'verify-catalog.mjs')
   const { include } = JSON.parse(run(root, 'build-matrix.mjs'))
-  assert.equal(include.find((image) => image.family === 'document-python').versionTag, '1.2.2-py3.12.10')
+  assert.equal(include.find((image) => image.family === 'document-python').versionTag, '1.2.3-py3.12.10')
   const definition = await readJson(
     path.join(root, '../server-ai/src/sandbox/sandbox-job/runtime-definitions/document-python-3.12-v1.json')
   )
-  assert.equal(definition.sandboxRuntimeVersion, '1.2.2')
-  assert.equal(definition.expectedManifest.sandboxRuntimeVersion, '1.2.2')
+  assert.equal(definition.sandboxRuntimeVersion, '1.2.3')
+  assert.equal(definition.expectedManifest.sandboxRuntimeVersion, '1.2.3')
 })

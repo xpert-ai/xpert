@@ -1,0 +1,41 @@
+{
+    "name": "document/java-17/v1",
+    "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
+    "contractVersion": "1",
+    "sandboxRuntimeVersion": "1.2.2",
+    "timeoutMs": 300000,
+    "hardDeadlineMs": 360000,
+    "resources": {
+        "cpu": 2,
+        "memoryMb": 6144,
+        "shmSizeMb": 256,
+        "tempDiskMb": 4096
+    },
+    "networkPolicy": {
+        "mode": "none"
+    },
+    "security": {
+        "runAsNonRoot": true,
+        "readOnlyRootFilesystem": true,
+        "noNewPrivileges": true,
+        "dropCapabilities": "all"
+    },
+    "requirements": {
+        "isolation": "hardened",
+        "ephemeral": true,
+        "resourceLimits": true,
+        "networkPolicy": true,
+        "readOnlyRootFilesystem": true
+    },
+    "expectedManifest": {
+        "sandboxRuntimeVersion": "1.2.2",
+        "contractVersion": "1",
+        "nodeVersion": "20.20.2",
+        "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec",
+        "imageFamily": "document-java",
+        "profileName": "document/java-17/v1",
+        "dependenciesSha256": "128d9fa491a630fb317491d3efc9b9389ee98e2f3a1c15aeafbe7b81933ee701",
+        "javaVersion": "17.0.16",
+        "opendataloaderVersion": "2.5.8"
+    }
+}

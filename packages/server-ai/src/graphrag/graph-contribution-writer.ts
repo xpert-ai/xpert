@@ -18,7 +18,7 @@ import { KnowledgeGraphEntityContributionInput, KnowledgeGraphRelationContributi
 const GRAPH_ORIGIN_EXTRACTED = 'extracted'
 const GRAPH_VISIBILITY_ACTIVE = 'active'
 function isExtractedOrigin(value?: KnowledgeGraphItemOrigin | null) {
-    return !value || value === GRAPH_ORIGIN_EXTRACTED
+    return !value || value === GRAPH_ORIGIN_EXTRACTED || value === 'structured'
 }
 
 export function buildGraphEntitySummary(
@@ -79,7 +79,7 @@ export class KnowledgeGraphContributionWriter {
                 identityId,
                 name: extracted.name.trim(),
                 normalizedName,
-                origin: GRAPH_ORIGIN_EXTRACTED,
+                origin: graphJob.extractionSnapshot?.publication ? 'structured' : GRAPH_ORIGIN_EXTRACTED,
                 visibility: GRAPH_VISIBILITY_ACTIVE,
                 aliases: extracted.aliases ?? [],
                 description: extracted.description ?? null,
@@ -116,6 +116,7 @@ export class KnowledgeGraphContributionWriter {
                     name: extracted.name.trim(),
                     aliases: extracted.aliases ?? [],
                     description: extracted.description ?? null,
+                    properties: extracted.properties ?? null,
                     confidence: extracted.confidence ?? null,
                     revision: graphJob.revision ?? 0
                 })
@@ -147,7 +148,7 @@ export class KnowledgeGraphContributionWriter {
                 targetEntityId: target.id,
                 type,
                 normalizedType: type,
-                origin: GRAPH_ORIGIN_EXTRACTED,
+                origin: graphJob.extractionSnapshot?.publication ? 'structured' : GRAPH_ORIGIN_EXTRACTED,
                 visibility: GRAPH_VISIBILITY_ACTIVE,
                 description: extracted.description ?? null,
                 confidence: extracted.confidence ?? null,
@@ -181,6 +182,7 @@ export class KnowledgeGraphContributionWriter {
                     sourceContentHash: graphJob.sourceContentHash,
                     sourcePublicationEpoch: graphJob.sourcePublicationEpoch ?? 0,
                     description: extracted.description ?? null,
+                    properties: extracted.properties ?? null,
                     confidence: extracted.confidence ?? null,
                     weight: extracted.confidence ?? null,
                     revision: graphJob.revision ?? 0
@@ -201,6 +203,7 @@ export class KnowledgeGraphContributionWriter {
             order: { sourceDocumentIdSnapshot: 'ASC' }
         })
         if (!contributions.length) {
+            entity.metadata = { ...entity.metadata, properties: null, propertySources: [] }
             entity.sourceFingerprint = null
             entity.aliases = []
             entity.description = null
@@ -214,6 +217,13 @@ export class KnowledgeGraphContributionWriter {
                 (right.confidence ?? 0) - (left.confidence ?? 0) ||
                 left.sourceDocumentIdSnapshot.localeCompare(right.sourceDocumentIdSnapshot)
         )
+        entity.metadata = {
+            ...entity.metadata,
+            properties: ranked[0].properties ?? null,
+            propertySources: ranked
+                .filter((item) => item.properties)
+                .map((item) => ({ documentId: item.sourceDocumentIdSnapshot, properties: item.properties }))
+        }
         entity.name = ranked[0].name
         entity.normalizedName = normalizeKnowledgeGraphName(entity.name)
         entity.aliases = uniq(contributions.flatMap((item) => item.aliases ?? [])).sort()
@@ -229,6 +239,7 @@ export class KnowledgeGraphContributionWriter {
                         sourcePublicationEpoch: item.sourcePublicationEpoch,
                         aliases: item.aliases,
                         description: item.description,
+                        properties: item.properties,
                         confidence: item.confidence
                     }))
                 )
@@ -251,6 +262,7 @@ export class KnowledgeGraphContributionWriter {
             relation.description = null
             relation.confidence = null
             relation.weight = null
+            relation.metadata = { ...relation.metadata, properties: null, propertySources: [] }
             relation.sourceFingerprint = null
             await this.relationRepository.save(relation)
             return
@@ -260,6 +272,13 @@ export class KnowledgeGraphContributionWriter {
                 (right.confidence ?? 0) - (left.confidence ?? 0) ||
                 left.sourceDocumentIdSnapshot.localeCompare(right.sourceDocumentIdSnapshot)
         )
+        relation.metadata = {
+            ...relation.metadata,
+            properties: ranked[0].properties ?? null,
+            propertySources: ranked
+                .filter((item) => item.properties)
+                .map((item) => ({ documentId: item.sourceDocumentIdSnapshot, properties: item.properties }))
+        }
         relation.description = ranked.find((item) => !!item.description)?.description ?? null
         relation.confidence = Math.max(...contributions.map((item) => item.confidence ?? 0))
         relation.weight = Math.max(...contributions.map((item) => item.weight ?? 0))
@@ -272,6 +291,7 @@ export class KnowledgeGraphContributionWriter {
                         sourceContentHash: item.sourceContentHash,
                         sourcePublicationEpoch: item.sourcePublicationEpoch,
                         description: item.description,
+                        properties: item.properties,
                         confidence: item.confidence,
                         weight: item.weight
                     }))

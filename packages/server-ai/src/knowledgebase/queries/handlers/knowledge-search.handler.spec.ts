@@ -16,6 +16,15 @@ import {
     WeightedRrfFusion
 } from '../../retrieval'
 import { KnowledgeSearchQueryHandler } from './knowledge-search.handler'
+import type { Cache } from 'cache-manager'
+import { FAQSemanticService } from '../../faq/faq-semantic.service'
+import { FAQSemanticCacheService } from '../../faq/faq-semantic-cache.service'
+
+// These providers are supplied by each fixture; avoid loading the unrelated agent runtime through their modules.
+jest.mock('../../knowledgebase.service', () => ({ KnowledgebaseService: class KnowledgebaseService {} }))
+jest.mock('../../../knowledge-document/chunk/chunk.service', () => ({
+    KnowledgeDocumentChunkService: class KnowledgeDocumentChunkService {}
+}))
 
 function chunk(chunkId: string, metadata: Partial<DocumentMetadata> = {}): DocumentInterface<DocumentMetadata> {
     return {
@@ -88,6 +97,98 @@ function createHandler(
 }
 
 describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
+    it('refills semantic FAQ candidates across rounds and runs final rerank only once', async () => {
+        const knowledgebase = {
+            id: 'kb-semantic',
+            type: KnowledgebaseTypeEnum.FAQ,
+            rerankModelId: 'rerank',
+            embeddingModelFingerprint: 'model-1',
+            embeddingDimensions: 2,
+            recall: { mode: 'vector', topK: 2, rerankThreshold: 0.8 },
+            faqConfig: {
+                indexMode: 'question_only',
+                questionIndexMode: 'separate',
+                negativeMatchMode: 'semantic',
+                semanticThreshold: 0.85,
+                semanticMargin: 0.05
+            }
+        }
+        const queryEmbedding = jest.fn(async () => [1, 0])
+        let queryPromise: Promise<number[]>
+        const embedDocuments = jest.fn(async (texts: string[]) =>
+            texts.map((text) => {
+                const score = text.startsWith('positive') ? 0.72 : text.startsWith('reject') ? 0.91 : 0.73
+                return [score, Math.sqrt(1 - score * score)]
+            })
+        )
+        const rerank = jest.fn(
+            async (
+                _documents: DocumentInterface<DocumentMetadata>[],
+                _query: string,
+                _options: { topN: number; scoreThreshold?: number }
+            ) => [{ index: 0, relevanceScore: 0.95 }]
+        )
+        const service = {
+            findAll: jest.fn(async () => ({ items: [knowledgebase] })),
+            getActiveVectorStore: jest.fn(async () => ({
+                knowledgebase,
+                embeddingModel: 'model',
+                createSearchSession: () => ({ getQueryEmbedding: () => (queryPromise ??= queryEmbedding()) }),
+                vStore: { embeddings: { embedDocuments } }
+            })),
+            getRerankModel: jest.fn(async () => ({ rerank }))
+        } as unknown as KnowledgebaseService
+        const { handler, vectorRetriever } = createHandler(service, { execute: jest.fn() } as unknown as QueryBus)
+        Object.assign(handler, {
+            faqSemanticService: new FAQSemanticService(
+                service,
+                new FAQSemanticCacheService({
+                    get: jest.fn(async () => undefined),
+                    set: jest.fn(async () => undefined)
+                } as unknown as Cache)
+            )
+        })
+        const candidates = Array.from({ length: 6 }, (_, index) =>
+            chunk(`faq-${index}`, {
+                contentKind: 'faq',
+                standardQuestion: `positive-${index}`,
+                similarQuestions: [],
+                negativeQuestions: [index < 4 ? `reject-${index}` : `ambiguous-${index}`],
+                answerBlocks: [`answer-${index}`],
+                enabled: true,
+                faqVectorIds: [],
+                vectorSyncStatus: 'ready'
+            })
+        )
+        const search = jest.spyOn(vectorRetriever, 'retrieve').mockImplementation(async (request) => ({
+            ...vectorBatch(candidates.slice(0, request.k)),
+            exhausted: request.k >= candidates.length
+        }))
+        const result = await handler.execute(
+            new KnowledgeSearchQuery({
+                knowledgebases: ['kb-semantic'],
+                query: 'query',
+                source: 'retriever',
+                k: 2,
+                tenantId: 'tenant',
+                organizationId: 'org'
+            })
+        )
+        expect(search.mock.calls.map(([request]) => request.k)).toEqual([2, 4, 8])
+        expect(queryEmbedding).toHaveBeenCalledTimes(1)
+        expect(embedDocuments).toHaveBeenCalledTimes(6)
+        expect(rerank).toHaveBeenCalledTimes(1)
+        expect(rerank.mock.calls[0][0]).toHaveLength(2)
+        expect(result.documents).toHaveLength(1)
+        expect(result.documents[0].pageContent).toContain('answer-4')
+        expect(result.diagnostics[0].faqExclusion).toMatchObject({
+            compared: 6,
+            reused: 6,
+            rounds: 3,
+            stopReason: 'target_reached'
+        })
+    })
+
     it('passes Xpert billing context to vector retrieval', async () => {
         const knowledgebase = {
             id: 'kb-1',
