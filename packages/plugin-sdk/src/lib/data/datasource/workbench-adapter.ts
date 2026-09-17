@@ -14,6 +14,7 @@ import type {
   DatabaseValue,
   DatabaseWorkbenchAdapter
 } from './workbench'
+import { paginateMysqlQuery } from './workbench-pagination'
 import { quoteDatabaseIdentifier, requireReadStatement, splitWorkbenchSql } from './workbench-sql'
 
 export interface WorkbenchTransport {
@@ -286,10 +287,11 @@ export class SqlDatabaseWorkbenchAdapter implements DatabaseWorkbenchAdapter {
       throw new Error('engine_version_writes_unavailable')
     if (input.mode === 'write' && offset) throw new Error('mutation_cannot_be_paginated')
     let sql = statements[0].sql
-    // Wrap a SELECT instead of appending LIMIT after an existing LIMIT or trailing comment.
-    if (input.mode === 'read' && ['SELECT', 'WITH'].includes(statements[0].words[0]))
-      sql = `SELECT * FROM (\n${sql}\n) AS ${this.quote('_db_studio_page')} LIMIT ${limit + 1} OFFSET ${offset}`
-    else if (offset) throw new Error('statement_cannot_be_paginated')
+    let parameters = input.parameters
+    if (input.mode === 'read' && ['SELECT', 'WITH'].includes(statements[0].words[0])) {
+      if (this.engine === 'mysql') ({ sql, parameters } = paginateMysqlQuery(sql, parameters, limit, offset))
+      else sql = `SELECT * FROM (\n${sql}\n) AS ${this.quote('_db_studio_page')} LIMIT ${limit + 1} OFFSET ${offset}`
+    } else if (offset) throw new Error('statement_cannot_be_paginated')
     this.busy = true
     let readTransaction = false
     try {
@@ -299,7 +301,7 @@ export class SqlDatabaseWorkbenchAdapter implements DatabaseWorkbenchAdapter {
       }
       const result = await this.raw(
         sql,
-        input.parameters,
+        parameters,
         limit + 1,
         signal,
         Math.max(1, Math.min(input.timeoutMs ?? 30000, 120000))
