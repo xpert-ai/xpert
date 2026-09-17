@@ -42,6 +42,23 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "AssistantSettings": {
+      "Settings": "Settings",
+      "Personalization": "Personalization",
+      "Memory": "Memory and learning",
+      "Assistant": "Assistant settings",
+      "Close": "Close",
+      "MemoryIntro": "Memory helps Xpert learn your preferences and habits. You can review and edit memories at any time.",
+      "GenerateMemory": "Generate conversation memories",
+      "GenerateMemoryDesc": "Remember relevant context to make future replies more consistent and personal.",
+      "ManageMemory": "Manage memories",
+      "ManageMemoryDesc": "Organized regularly and available to view or edit.",
+      "Import": "Import",
+      "Enter": "Enter a value",
+      "Content": "Content",
+      "SaveDraft": "Save draft",
+      "DraftOnly": "For this page preview only; not saved to the platform."
+    },
     "TagDirectory": {
       "KnowledgeCandidate": "Knowledgebase candidate",
       "KnowledgeDocuments": "{{count}} linked documents",
@@ -1410,6 +1427,7 @@
       "SelectHint": "Select an item from the hierarchy or create a new business area."
     },
     "MENU": {
+      "Assistant": "Assistant",
       "New task": "New task",
       "ExpertSkillsConnectors": "Experts · Skills · Connectors",
       "Skills": "Skills",
@@ -3376,6 +3394,7 @@
       "User": "User"
     },
     "Assistant": {
+      "SettingsButton": "Assistant settings",
       "SettingsEyebrow": "Unified assistant configuration",
       "SettingsDesc": "Manage tenant defaults and organization overrides for assistants used across chat experiences.",
       "MenuTenantSubtitle": "Tenant defaults",

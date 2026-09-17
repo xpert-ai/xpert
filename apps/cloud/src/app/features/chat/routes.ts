@@ -10,6 +10,7 @@ import { ChatHomeComponent } from './home/home.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
+import { ClawXpertAssistantSettingsComponent } from './clawxpert/clawxpert-assistant-settings.component'
 import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'
 
 function redirectToDefaultChatEntry() {
@@ -124,6 +125,11 @@ export const routes: Routes = [
             data: {
               title: 'ClawXpert Overview'
             }
+          },
+          {
+            path: 'settings',
+            component: ClawXpertAssistantSettingsComponent,
+            data: { title: 'Assistant settings' }
           },
           {
             matcher: clawxpertConversationMatcher,

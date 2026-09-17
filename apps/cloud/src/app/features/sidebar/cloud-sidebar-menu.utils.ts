@@ -3,7 +3,7 @@ import { CloudMenuItem } from './cloud-sidebar-menu.types'
 export type CloudSidebarMenuGroupKey = 'work' | 'modules' | 'management'
 
 export interface CloudSidebarMenuEntry {
-  kind: 'menu' | 'assistants'
+  kind: 'menu' | 'assistant' | 'assistants'
   item: CloudMenuItem | null
 }
 
@@ -156,6 +156,33 @@ export function addWorkspaceExpertSkillsConnectorsMenuItem(groups: CloudSidebarM
   })
 }
 
+/** Adds the ClawXpert assistant entry directly below the new-task action. */
+export function addWorkspaceAssistantMenuItem(groups: CloudSidebarMenuGroup[]) {
+  const assistant: CloudMenuItem = {
+    title: 'Assistant',
+    icon: 'ri-robot-2-line',
+    link: '/chat/clawxpert/c',
+    pathMatch: 'full',
+    data: {
+      translationKey: 'Assistant',
+      activePathPrefixes: ['/chat/clawxpert/c', '/chat/clawxpert/settings']
+    }
+  }
+
+  const workGroups = ensureWorkMenuGroup(groups)
+
+  return workGroups.map((group) => {
+    if (
+      group.key !== 'work' ||
+      group.items.some((item) => item.data?.translationKey === assistant.data?.translationKey)
+    ) {
+      return group
+    }
+
+    return sortWorkMenuGroup(group, assistant)
+  })
+}
+
 export function addWorkspaceMoreMenuItem(groups: CloudSidebarMenuGroup[], workspaceId?: string | null) {
   const normalizedWorkspaceId = workspaceId?.trim()
   const more: CloudMenuItem = {
@@ -267,7 +294,7 @@ function sortWorkMenuGroup(group: CloudSidebarMenuGroup, item: CloudMenuItem): C
   const items = [...group.items, item].sort((a, b) => workMenuRank(a) - workMenuRank(b))
   const menuEntries = group.entries.filter((entry) => entry.item)
   const assistantEntries = group.entries.filter((entry) => !entry.item)
-  const entries = [...menuEntries, { kind: 'menu' as const, item }]
+  const entries = [...menuEntries, createMenuEntry(item)]
     .sort((a, b) => workMenuRank(a.item) - workMenuRank(b.item))
     .concat(assistantEntries)
 
@@ -276,23 +303,26 @@ function sortWorkMenuGroup(group: CloudSidebarMenuGroup, item: CloudMenuItem): C
 
 function workMenuRank(item: CloudMenuItem | null) {
   const path = item?.link ?? ''
+  if (item?.data?.translationKey === 'Assistant') {
+    return 1
+  }
   if (item?.data?.action === 'newClawXpertConversation' || path === '/chat/clawxpert/c') {
     return 0
   }
   if (item?.data?.workspaceSection === 'skills') {
-    return 1
-  }
-  if (item?.data?.workspaceSection === 'connectors') {
     return 2
   }
-  if (item?.data?.translationKey === 'ExpertSkillsConnectors') {
-    return 1
-  }
-  if (path === '/chat/tasks') {
+  if (item?.data?.workspaceSection === 'connectors') {
     return 3
   }
-  if (item?.data?.translationKey === 'More') {
+  if (item?.data?.translationKey === 'ExpertSkillsConnectors') {
+    return 2
+  }
+  if (path === '/chat/tasks') {
     return 4
+  }
+  if (item?.data?.translationKey === 'More') {
+    return 5
   }
   return 5
 }
@@ -385,7 +415,7 @@ export function normalizeMenuPath(path: string) {
 
 function createMenuEntry(item: CloudMenuItem): CloudSidebarMenuEntry {
   return {
-    kind: 'menu',
+    kind: item.data?.translationKey === 'Assistant' ? 'assistant' : 'menu',
     item
   }
 }

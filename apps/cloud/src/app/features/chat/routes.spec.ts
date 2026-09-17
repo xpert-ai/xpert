@@ -1,3 +1,7 @@
+jest.mock('./clawxpert/clawxpert-assistant-settings.component', () => ({
+  ClawXpertAssistantSettingsComponent: class ClawXpertAssistantSettingsComponent {}
+}))
+
 jest.mock('../../@core', () => ({
   AiFeatureEnum: {
     FEATURE_XPERT: 'FEATURE_XPERT',

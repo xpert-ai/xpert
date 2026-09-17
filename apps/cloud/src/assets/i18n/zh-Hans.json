@@ -247,6 +247,23 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "AssistantSettings": {
+      "Settings": "设置",
+      "Personalization": "个性化",
+      "Memory": "记忆与进化",
+      "Assistant": "助理设置",
+      "Close": "关闭",
+      "MemoryIntro": "记忆让 Xpert 记住你的偏好和习惯，对话越多，它就越懂你。你可以随时查看和编辑记忆。",
+      "GenerateMemory": "生成对话记忆",
+      "GenerateMemoryDesc": "从对话中提取并记住相关上下文，在未来对话中提供更连贯、个性化的回应",
+      "ManageMemory": "管理记忆",
+      "ManageMemoryDesc": "每晚自动整理更新，可随时查看和编辑",
+      "Import": "导入",
+      "Enter": "请输入",
+      "Content": "内容",
+      "SaveDraft": "保存草稿",
+      "DraftOnly": "仅用于当前页面预览，尚未保存到平台。"
+    },
     "TagDirectory": {
       "KnowledgeCandidate": "知识库候选关联",
       "KnowledgeDocuments": "{{count}} 篇关联文档",
@@ -2192,6 +2209,7 @@
       }
     },
     "Assistant": {
+      "SettingsButton": "助理设置",
       "SettingsEyebrow": "统一助手配置",
       "SettingsDesc": "管理聊天体验中使用的助手的租户默认配置和组织级覆盖配置。",
       "MenuTenantSubtitle": "租户默认配置",
@@ -3449,6 +3467,7 @@
       "SelectHint": "请从左侧层级选择业务区域，或新建一个业务区域。"
     },
     "MENU": {
+      "Assistant": "助理",
       "New task": "新建任务",
       "ExpertSkillsConnectors": "专家·技能·连接器",
       "Skills": "技能",

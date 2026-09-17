@@ -1,5 +1,6 @@
 import {
   addWorkspaceConnectorMenuItem,
+  addWorkspaceAssistantMenuItem,
   addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
   addWorkspaceSkillMenuItem,
@@ -29,6 +30,30 @@ function menu(item: Partial<CloudMenuItem>): CloudMenuItem {
 }
 
 describe('buildCloudSidebarMenuGroups', () => {
+  it('adds the assistant module below new task and before expert tools', () => {
+    const groups = buildCloudSidebarMenuGroups([
+      menu({ title: 'New task', link: '/chat/clawxpert/c' }),
+      menu({ title: 'Explore', link: '/explore' }),
+      menu({ title: 'Scheduled', link: '/chat/tasks' })
+    ])
+
+    const updated = addWorkspaceExpertSkillsConnectorsMenuItem(addWorkspaceAssistantMenuItem(groups))
+    const work = updated.find((group) => group.key === 'work')
+
+    expect(work?.items.map((item) => item.data?.translationKey ?? item.link)).toEqual([
+      '/chat/clawxpert/c',
+      'Assistant',
+      'ExpertSkillsConnectors',
+      '/chat/tasks'
+    ])
+    expect(work?.items[1]).toMatchObject({
+      title: 'Assistant',
+      icon: 'ri-robot-2-line',
+      link: '/chat/clawxpert/c',
+      data: { translationKey: 'Assistant' }
+    })
+  })
+
   it('groups work, module and management menus with fixed management order', () => {
     const groups = buildCloudSidebarMenuGroups([
       menu({ title: 'Tasks', link: '/chat/clawxpert' }),
