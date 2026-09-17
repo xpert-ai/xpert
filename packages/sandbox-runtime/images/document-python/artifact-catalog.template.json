@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeSuiteVersion": "1.2.2",
+  "runtimeSuiteVersion": "1.2.3",
   "artifacts": [
     {
       "runtimeProfile": "document/python-3.12/v1",
