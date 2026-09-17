@@ -1,0 +1,453 @@
+import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
+import { signal } from '@angular/core'
+import { TestBed } from '@angular/core/testing'
+import { TranslateModule } from '@ngx-translate/core'
+import { of, Subject, throwError } from 'rxjs'
+import { AssistantBindingService, IntegrationService, ToastrService, XpertAPIService } from '../../../@core'
+import type { TWorkflowTriggerMeta } from '../../../@core'
+import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
+import { AssistantPersonalizationComponent } from './assistant-personalization.component'
+import { AssistantTriggerDialogComponent, AssistantTriggerDialogData } from './assistant-trigger-dialog.component'
+import { AssistantIntegrationCreateComponent } from './assistant-integration-create.component'
+import { AssistantTriggersComponent } from './assistant-triggers.component'
+import {
+  buildAssistantTriggerCards,
+  getAssistantTriggerIntegration,
+  isAssistantTriggerConnected
+} from './assistant-trigger.utils'
+
+jest.mock('../../../@core', () => ({
+  AssistantBindingService: class AssistantBindingService {},
+  IntegrationService: class IntegrationService {},
+  XpertAPIService: class XpertAPIService {},
+  ToastrService: class ToastrService {},
+  AssistantBindingScope: { USER: 'user' },
+  AssistantCode: { CLAWXPERT: 'clawxpert' },
+  genXpertTriggerKey: () => 'new-trigger',
+  getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : '')
+}))
+jest.mock('../../chat/clawxpert/clawxpert.facade', () => ({ ClawXpertFacade: class ClawXpertFacade {} }))
+jest.mock('../../../@shared/forms', () => ({
+  JSONSchemaFormComponent: class JSONSchemaFormComponent {},
+  ParameterFormComponent: class ParameterFormComponent {}
+}))
+jest.mock('../../../@shared/avatar', () => ({ IconComponent: class IconComponent {} }))
+jest.mock('../../../@shared/workflow', () =>
+  jest.requireActual('../../../@shared/workflow/trigger-config/trigger-config.util')
+)
+jest.mock('@xpert-ai/headless-ui', () => ({
+  ZardButtonComponent: class ZardButtonComponent {},
+  ZardInputDirective: class ZardInputDirective {},
+  ZardIconComponent: class ZardIconComponent {},
+  XpI18nPipe: class XpI18nPipe {
+    transform(value: { en_US: string }) {
+      return value.en_US
+    }
+  },
+  ZardCardImports: []
+}))
+
+function provider(name: string): TWorkflowTriggerMeta {
+  return {
+    name,
+    label: { en_US: name },
+    icon: { type: 'svg', value: '' },
+    configSchema: {
+      type: 'object',
+      properties: { enabled: { type: 'boolean', default: true }, integrationId: { type: 'string' } },
+      required: ['enabled', 'integrationId']
+    }
+  }
+}
+
+function facadeMock() {
+  return {
+    organizationId: signal('org-1'),
+    xpertId: signal('xpert-1'),
+    resolvedPreference: signal({ assistantId: 'xpert-1' }),
+    currentWorkspaceId: signal('workspace-1'),
+    viewState: signal('ready'),
+    loading: signal(false),
+    savingUserPreference: signal(false),
+    savingTriggerDraft: signal(false),
+    triggerEditorItems: signal<import('../../xpert/draft').XpertDraftTriggerEditorItem[]>([
+      { nodeKey: 'other', provider: provider('other'), config: { integrationId: 'keep' } }
+    ]),
+    saveUserPreference: jest.fn(),
+    saveTriggerDraft: jest.fn()
+  }
+}
+
+async function personalization(
+  api = { getPreference: jest.fn(() => of({ soul: '# Existing rules\n', profile: '# User\nKeep this verbatim.' })) }
+) {
+  const facade = facadeMock()
+  await TestBed.configureTestingModule({
+    imports: [TranslateModule.forRoot(), AssistantPersonalizationComponent],
+    providers: [
+      { provide: ClawXpertFacade, useValue: facade },
+      { provide: AssistantBindingService, useValue: api },
+      { provide: ToastrService, useValue: { error: jest.fn() } }
+    ]
+  })
+    .overrideComponent(AssistantPersonalizationComponent, { set: { imports: [], template: '' } })
+    .compileComponents()
+  const fixture = TestBed.createComponent(AssistantPersonalizationComponent)
+  fixture.detectChanges()
+  await fixture.whenStable()
+  return { fixture, component: fixture.componentInstance, facade }
+}
+
+async function trigger(
+  data: AssistantTriggerDialogData = {
+    card: { key: 'wecom', provider: provider('wecom'), available: true },
+    organizationId: 'org-1',
+    xpertId: 'xpert-1'
+  }
+) {
+  const facade = facadeMock()
+  const dialogRef = { close: jest.fn(), disableClose: false }
+  await TestBed.configureTestingModule({
+    imports: [TranslateModule.forRoot(), AssistantTriggerDialogComponent],
+    providers: [
+      { provide: ClawXpertFacade, useValue: facade },
+      { provide: DialogRef, useValue: dialogRef },
+      { provide: DIALOG_DATA, useValue: data },
+      { provide: ToastrService, useValue: { error: jest.fn() } }
+    ]
+  })
+    .overrideComponent(AssistantTriggerDialogComponent, { set: { imports: [], template: '' } })
+    .compileComponents()
+  const fixture = TestBed.createComponent(AssistantTriggerDialogComponent)
+  fixture.detectChanges()
+  return { component: fixture.componentInstance, facade, dialogRef }
+}
+
+async function triggers() {
+  const facade = facadeMock()
+  const closed = new Subject<boolean>()
+  const dialogRef = { closed, close: jest.fn(() => closed.next(false)) }
+  const dialog = { open: jest.fn(() => dialogRef) }
+  const toastr = { error: jest.fn() }
+  await TestBed.configureTestingModule({
+    imports: [TranslateModule.forRoot(), AssistantTriggersComponent],
+    providers: [
+      { provide: ClawXpertFacade, useValue: facade },
+      { provide: Dialog, useValue: dialog },
+      { provide: XpertAPIService, useValue: { getTriggerProviders: () => of([provider('wecom')]) } },
+      { provide: ToastrService, useValue: toastr }
+    ]
+  })
+    .overrideComponent(AssistantTriggersComponent, { set: { imports: [], template: '' } })
+    .compileComponents()
+  const fixture = TestBed.createComponent(AssistantTriggersComponent)
+  fixture.detectChanges()
+  await fixture.whenStable()
+  return { component: fixture.componentInstance, facade, closed, dialog, toastr }
+}
+
+async function integrationCreator() {
+  const facade = facadeMock()
+  const api = {
+    getProviders: jest.fn(() =>
+      of([
+        {
+          name: 'wecom',
+          label: { en_US: 'WeCom' },
+          schema: { type: 'object', properties: { token: { type: 'string' } }, required: ['token'] }
+        },
+        { name: 'wecom_long', label: { en_US: 'WeCom Long' } },
+        { name: 'lark', label: { en_US: 'Lark' } }
+      ])
+    ),
+    create: jest.fn(),
+    test: jest.fn()
+  }
+  await TestBed.configureTestingModule({
+    imports: [TranslateModule.forRoot(), AssistantIntegrationCreateComponent],
+    providers: [
+      { provide: ClawXpertFacade, useValue: facade },
+      { provide: IntegrationService, useValue: api }
+    ]
+  })
+    .overrideComponent(AssistantIntegrationCreateComponent, { set: { imports: [], template: '' } })
+    .compileComponents()
+  const fixture = TestBed.createComponent(AssistantIntegrationCreateComponent)
+  fixture.componentRef.setInput('requirement', { configField: 'integrationId', providers: ['wecom', 'wecom_long'] })
+  fixture.componentRef.setInput('organizationId', 'org-1')
+  fixture.componentRef.setInput('xpertId', 'xpert-1')
+  fixture.detectChanges()
+  await fixture.whenStable()
+  return { component: fixture.componentInstance, facade, api }
+}
+
+describe('Assistant settings integration', () => {
+  afterEach(() => {
+    TestBed.resetTestingModule()
+    jest.clearAllMocks()
+  })
+
+  it('discovers new providers, excludes chat and retains unavailable and duplicate draft instances', () => {
+    const p = provider('wecom')
+    const cards = buildAssistantTriggerCards(
+      [provider('chat'), p, provider('new-plugin')],
+      [
+        { nodeKey: 'a', provider: p },
+        { nodeKey: 'b', provider: p },
+        { nodeKey: 'c', provider: provider('removed') }
+      ]
+    )
+    expect(cards.map((card) => card.key)).toEqual(['a', 'b', 'c', 'new-plugin'])
+    expect(cards[2].available).toBe(false)
+  })
+
+  it('saves both documents without rewriting the unchanged Markdown', async () => {
+    const { component, facade } = await personalization()
+    component.form.controls.soul.setValue('# Updated rules\n\n- Be concise.\n')
+    facade.saveUserPreference.mockResolvedValue(component.form.getRawValue())
+    await component.save()
+    expect(facade.saveUserPreference).toHaveBeenCalledWith({
+      soul: '# Updated rules\n\n- Be concise.\n',
+      profile: '# User\nKeep this verbatim.'
+    })
+    expect(component.dirty).toBe(false)
+    expect(component.saved()).toBe(true)
+  })
+
+  it('keeps unsaved documents after a save failure and restores the server version on reset', async () => {
+    const { component, facade } = await personalization()
+    component.form.controls.soul.setValue('unsaved')
+    facade.saveUserPreference.mockResolvedValue(null)
+    await component.save()
+    expect(component.form.controls.soul.value).toBe('unsaved')
+    expect(component.dirty).toBe(true)
+    expect(component.saveError()).toBeTruthy()
+    component.reset()
+    expect(component.form.controls.soul.value).toBe('# Existing rules\n')
+  })
+
+  it('blocks saving after a load failure so existing documents cannot be overwritten with empty values', async () => {
+    const { component, facade } = await personalization({
+      getPreference: jest.fn(() => throwError(() => new Error('offline')))
+    })
+    component.form.controls.soul.setValue('new')
+    await component.save()
+    expect(component.loadError()).toBe('offline')
+    expect(facade.saveUserPreference).not.toHaveBeenCalled()
+  })
+
+  it('ignores a stale document request after the binding changes', async () => {
+    const pending = new Subject<{ soul: string; profile: string }>()
+    const { component, facade, fixture } = await personalization({
+      getPreference: jest
+        .fn()
+        .mockReturnValueOnce(pending)
+        .mockReturnValue(of({ soul: 'new binding', profile: '' }))
+    })
+    facade.resolvedPreference.set({ assistantId: 'xpert-2' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    pending.next({ soul: 'stale', profile: 'stale' })
+    pending.complete()
+    await Promise.resolve()
+    expect(component.form.controls.soul.value).toBe('new binding')
+  })
+
+  it('uses schema defaults and prevents saving a trigger with missing required fields', async () => {
+    const { component, facade } = await trigger()
+    expect(component.config()).toEqual({ enabled: true })
+    await component.save()
+    expect(facade.saveTriggerDraft).not.toHaveBeenCalled()
+  })
+
+  it('adds one trigger while preserving the latest configuration of other triggers', async () => {
+    const { component, facade, dialogRef } = await trigger()
+    component.config.set({ enabled: false, integrationId: 'integration-1' })
+    facade.saveTriggerDraft.mockResolvedValue({ nodes: [] })
+    await component.save()
+    expect(facade.saveTriggerDraft).toHaveBeenCalledWith([
+      expect.objectContaining({ nodeKey: 'other', config: { integrationId: 'keep' } }),
+      expect.objectContaining({ nodeKey: 'new-trigger', config: { enabled: true, integrationId: 'integration-1' } })
+    ])
+    expect(dialogRef.close).toHaveBeenCalledWith(true)
+  })
+
+  it('keeps the trigger dialog open and preserves config when saving fails', async () => {
+    const { component, facade, dialogRef } = await trigger()
+    component.config.set({ enabled: true, integrationId: 'integration-1' })
+    facade.saveTriggerDraft.mockResolvedValue(null)
+    await component.save()
+    expect(dialogRef.close).not.toHaveBeenCalled()
+    expect(component.config().integrationId).toBe('integration-1')
+    expect(component.error()).toBeTruthy()
+    expect(dialogRef.disableClose).toBe(false)
+  })
+
+  it('refuses to save after switching organizations', async () => {
+    const { component, facade } = await trigger()
+    component.config.set({ enabled: true, integrationId: 'integration-1' })
+    facade.organizationId.set('org-2')
+    await component.save()
+    expect(facade.saveTriggerDraft).not.toHaveBeenCalled()
+  })
+
+  it('does not overwrite concurrent edits to the same trigger', async () => {
+    const p = provider('other')
+    const { component, facade } = await trigger({
+      card: {
+        key: 'other',
+        provider: p,
+        available: true,
+        item: { nodeKey: 'other', provider: p, config: { enabled: true, integrationId: 'original' } }
+      },
+      organizationId: 'org-1',
+      xpertId: 'xpert-1'
+    })
+    component.config.set({ enabled: true, integrationId: 'my-edit' })
+    await component.save()
+    expect(facade.saveTriggerDraft).not.toHaveBeenCalled()
+    expect(component.error()).toBe('XP.AssistantSettings.TriggerChanged')
+  })
+  it('shows connecting only while the configuration dialog is open', async () => {
+    const { component, closed, dialog } = await triggers()
+    const card = component.cards().find((card) => card.key === 'wecom')
+    expect(component.actionLabel(card)).toBe('XP.AssistantSettings.Connect')
+    await component.toggleConnection(card)
+    expect(component.actionLabel(card)).toBe('XP.AssistantSettings.Connecting')
+    await component.toggleConnection(card)
+    expect(dialog.open).toHaveBeenCalledTimes(1)
+    closed.next(false)
+    expect(component.actionLabel(card)).toBe('XP.AssistantSettings.Connect')
+  })
+
+  it('persists disconnection while retaining settings and returns to connect only on success', async () => {
+    const { component, facade } = await triggers()
+    const p = provider('wecom')
+    facade.triggerEditorItems.set([
+      { nodeKey: 'configured', provider: p, config: { enabled: true, integrationId: 'existing' } }
+    ])
+    const card = component.cards()[0]
+    expect(component.actionLabel(card)).toBe('XP.AssistantSettings.Disconnect')
+    facade.saveTriggerDraft.mockImplementation(async (items) => {
+      facade.triggerEditorItems.set(items)
+      return { nodes: [] }
+    })
+    await component.toggleConnection(card)
+    expect(facade.triggerEditorItems()[0].config).toEqual({ enabled: false, integrationId: 'existing' })
+    expect(component.actionLabel(component.cards()[0])).toBe('XP.AssistantSettings.Connect')
+  })
+
+  it('retains the connected state after a failed disconnect', async () => {
+    const { component, facade, toastr } = await triggers()
+    facade.triggerEditorItems.set([
+      { nodeKey: 'configured', provider: provider('wecom'), config: { enabled: true, integrationId: 'existing' } }
+    ])
+    facade.saveTriggerDraft.mockResolvedValue(null)
+    await component.toggleConnection(component.cards()[0])
+    expect(component.actionLabel(component.cards()[0])).toBe('XP.AssistantSettings.Disconnect')
+    expect(toastr.error).toHaveBeenCalled()
+  })
+
+  it('reconnects a disabled trigger with the same integration and node', async () => {
+    const p = provider('wecom')
+    const item = { nodeKey: 'disabled', provider: p, config: { enabled: false, integrationId: 'existing' } }
+    const { component, facade } = await trigger({
+      card: { key: 'disabled', provider: p, item, available: true },
+      organizationId: 'org-1',
+      xpertId: 'xpert-1'
+    })
+    facade.triggerEditorItems.set([item])
+    expect(component.config()).toEqual({ enabled: true, integrationId: 'existing' })
+    expect(component.dirty()).toBe(true)
+    facade.saveTriggerDraft.mockResolvedValue({ nodes: [] })
+    await component.save()
+    expect(facade.saveTriggerDraft).toHaveBeenCalledWith([
+      expect.objectContaining({ nodeKey: 'disabled', config: { enabled: true, integrationId: 'existing' } })
+    ])
+  })
+
+  it('does not classify an incomplete saved draft as connected', () => {
+    const p = provider('wecom')
+    expect(
+      isAssistantTriggerConnected({
+        key: 'a',
+        provider: p,
+        available: true,
+        item: { nodeKey: 'a', provider: p, config: { enabled: true } }
+      })
+    ).toBe(false)
+  })
+
+  it('uses explicit provider metadata without guessing from display names or URLs', () => {
+    expect(
+      getAssistantTriggerIntegration({
+        name: 'custom',
+        label: 'WeCom',
+        configSchema: { type: 'object', properties: {} }
+      })
+    ).toBeUndefined()
+    expect(
+      getAssistantTriggerIntegration({
+        name: 'custom',
+        label: 'Custom',
+        integration: { configField: 'channel', providers: ['custom-integration'] }
+      })
+    ).toEqual({ configField: 'channel', providers: ['custom-integration'] })
+  })
+
+  it('only offers matching integration types and rejects creation of another provider', async () => {
+    const { component, api } = await integrationCreator()
+    expect(component.providers().map((p) => p.name)).toEqual(['wecom', 'wecom_long'])
+    component.form.controls.name.setValue('Assistant integration')
+    component.selectProvider('lark')
+    await component.create()
+    expect(api.create).not.toHaveBeenCalled()
+  })
+
+  it('requires credentials and creates a scoped integration with the chosen type', async () => {
+    const { component, api } = await integrationCreator()
+    component.form.controls.name.setValue('Assistant integration')
+    await component.create()
+    expect(api.create).not.toHaveBeenCalled()
+    component.updateOptions({ token: 'test-token' })
+    api.create.mockReturnValue(of({ id: 'new-integration', name: 'Assistant integration', provider: 'wecom' }))
+    await component.create()
+    expect(api.create).toHaveBeenCalledWith({
+      name: 'Assistant integration',
+      provider: 'wecom',
+      options: { token: 'test-token' },
+      features: [],
+      organizationId: 'org-1'
+    })
+    const use = jest.spyOn(component.created, 'emit')
+    component.useIntegration()
+    expect(use).toHaveBeenCalledWith(expect.objectContaining({ id: 'new-integration', provider: 'wecom' }))
+    await component.create()
+    expect(api.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves credentials after creation failure and blocks creation after organization change', async () => {
+    const { component, api, facade } = await integrationCreator()
+    component.form.controls.name.setValue('Assistant integration')
+    component.updateOptions({ token: 'test-token' })
+    api.create.mockReturnValue(throwError(() => new Error('save failed')))
+    await component.create()
+    expect(component.error()).toBe('save failed')
+    expect(component.options()).toEqual({ token: 'test-token' })
+    expect(component.saved()).toBeNull()
+    facade.organizationId.set('org-2')
+    await component.create()
+    expect(api.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('selects the created integration while preserving other trigger fields', async () => {
+    const { component } = await trigger()
+    component.config.set({ enabled: true, sessionTimeoutSeconds: 50 })
+    component.creatingIntegration.set(true)
+    component.useIntegration({ id: 'created', name: 'New', slug: '', provider: 'wecom' })
+    expect(component.config()).toEqual({ enabled: true, sessionTimeoutSeconds: 50, integrationId: 'created' })
+    expect(component.creatingIntegration()).toBe(false)
+    component.useIntegration({ id: 'unrelated', name: 'Other', slug: '', provider: 'lark' })
+    expect(component.config().integrationId).toBe('created')
+  })
+})

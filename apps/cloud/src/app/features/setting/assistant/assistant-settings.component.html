@@ -52,6 +52,9 @@
           {{ 'XP.AssistantSettings.' + notice() | translate }}
         </p>
       }
+      <div [hidden]="activeSection() !== 'assistant'">
+        <xp-assistant-triggers />
+      </div>
       <div [hidden]="activeSection() !== 'personalization'">
         <xp-assistant-personalization />
       </div>
