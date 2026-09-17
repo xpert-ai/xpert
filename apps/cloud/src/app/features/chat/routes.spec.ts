@@ -42,8 +42,8 @@ jest.mock('./clawxpert/clawxpert-overview.component', () => ({
   ClawXpertOverviewComponent: class ClawXpertOverviewComponent {}
 }))
 
-jest.mock('./clawxpert/clawxpert-conversation-detail.component', () => ({
-  ClawXpertConversationDetailComponent: class ClawXpertConversationDetailComponent {}
+jest.mock('./clawxpert/clawxpert-conversation-pane.component', () => ({
+  ClawXpertConversationRouteComponent: class ClawXpertConversationRouteComponent {}
 }))
 
 jest.mock('./tasks/tasks.component', () => ({
@@ -65,7 +65,7 @@ import { CurrentUserHydrationService } from '@cloud/app/@core/state'
 import { routes } from './routes'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'
-import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
+import { ClawXpertConversationRouteComponent } from './clawxpert/clawxpert-conversation-pane.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
 
@@ -217,8 +217,18 @@ describe('chat routes', () => {
     expect(route?.canActivate).toBeUndefined()
     expect(route?.canActivateChild).toHaveLength(1)
     expect(route?.children?.find((item) => item.path === '')?.component).toBe(ClawXpertOverviewComponent)
-    expect(conversationRoute?.component).toBe(ClawXpertConversationDetailComponent)
+    expect(conversationRoute?.component).toBe(ClawXpertConversationRouteComponent)
     expect(matchedRoute?.posParams?.threadId?.path).toBe('thread-1')
+  })
+
+  it('uses separate assistant routes while the shell owns both conversation panes', () => {
+    const route = children.find((item) => item.path === 'clawxpert')
+    expect(route.children.find((item) => item.path === 'assistant')?.component).toBe(
+      ClawXpertConversationRouteComponent
+    )
+    expect(route.children.find((item) => item.path === 'assistant/:threadId')?.component).toBe(
+      ClawXpertConversationRouteComponent
+    )
   })
 
   it('redirects /chat to the default ClawXpert conversation when a valid binding exists', async () => {

@@ -99,6 +99,9 @@ export class CloudSidebarMenuComponent {
     }
 
     const currentUrl = normalizeMenuPath(this.currentUrl())
+    if (isNewClawXpertTaskMenuItem(item)) {
+      return currentUrl === '/chat/clawxpert/c' || currentUrl.startsWith('/chat/clawxpert/c/')
+    }
     if (item.data?.translationKey === 'ExpertSkillsConnectors' && isCloudMarketplaceHubRoute(currentUrl)) {
       return true
     }

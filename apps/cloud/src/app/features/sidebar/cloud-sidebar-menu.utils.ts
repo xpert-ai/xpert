@@ -161,11 +161,11 @@ export function addWorkspaceAssistantMenuItem(groups: CloudSidebarMenuGroup[]) {
   const assistant: CloudMenuItem = {
     title: 'Assistant',
     icon: 'ri-robot-2-line',
-    link: '/chat/clawxpert/c',
+    link: '/chat/clawxpert/assistant',
     pathMatch: 'full',
     data: {
       translationKey: 'Assistant',
-      activePathPrefixes: ['/chat/clawxpert/c', '/chat/clawxpert/settings']
+      activePathPrefixes: ['/chat/clawxpert/assistant', '/chat/clawxpert/settings']
     }
   }
 

@@ -49,7 +49,7 @@ describe('buildCloudSidebarMenuGroups', () => {
     expect(work?.items[1]).toMatchObject({
       title: 'Assistant',
       icon: 'ri-robot-2-line',
-      link: '/chat/clawxpert/c',
+      link: '/chat/clawxpert/assistant',
       data: { translationKey: 'Assistant' }
     })
   })

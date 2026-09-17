@@ -7,7 +7,7 @@ import { featureGate, hydrateFeatureContext } from '../feature-gate'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
-import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
+import { ClawXpertConversationRouteComponent } from './clawxpert/clawxpert-conversation-pane.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
 import { ClawXpertAssistantSettingsComponent } from './clawxpert/clawxpert-assistant-settings.component'
@@ -129,11 +129,24 @@ export const routes: Routes = [
           {
             path: 'settings',
             component: ClawXpertAssistantSettingsComponent,
-            data: { title: 'Assistant settings' }
+            data: {
+              title: 'Assistant settings'
+            }
+          },
+          {
+            path: 'assistant',
+            component: ClawXpertConversationRouteComponent,
+            pathMatch: 'full',
+            data: { title: 'Assistant conversation' }
+          },
+          {
+            path: 'assistant/:threadId',
+            component: ClawXpertConversationRouteComponent,
+            data: { title: 'Assistant conversation' }
           },
           {
             matcher: clawxpertConversationMatcher,
-            component: ClawXpertConversationDetailComponent,
+            component: ClawXpertConversationRouteComponent,
             data: {
               title: 'ClawXpert Conversation'
             }

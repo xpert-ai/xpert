@@ -1,6 +1,6 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, DestroyRef, effect, inject, Injector, OnDestroy, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, Injector, OnDestroy, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
@@ -8,15 +8,28 @@ import { Store, XpertAPIService, XpertTypeEnum } from '../../../@core'
 import { shouldCreateClawXpertAfterEntryOnboarding } from '../../features-onboarding'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
+import { ClawXpertConversationPaneComponent } from './clawxpert-conversation-pane.component'
+import { clawXpertConversationScope } from './clawxpert-conversation-scope'
+import type { ClawXpertConversationScope } from '@xpert-ai/contracts'
 
 const ENTRY_ONBOARDING_QUERY_VALUE = 'clawxpert'
 
 @Component({
   standalone: true,
   selector: 'xp-clawxpert',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ClawXpertConversationPaneComponent],
   template: `
     <div class="h-full overflow-hidden">
+      @for (scope of mountedScopes(); track scope) {
+        @for (owner of conversationOwnerKeys(); track owner.key) {
+          <xp-clawxpert-conversation-pane
+            [scope]="scope"
+            [style.display]="activeScope() === scope ? null : 'none'"
+            [attr.inert]="activeScope() === scope ? null : ''"
+            [attr.aria-hidden]="activeScope() === scope ? null : 'true'"
+          />
+        }
+      }
       <router-outlet />
     </div>
   `
@@ -31,10 +44,21 @@ export class ClawXpertComponent implements OnDestroy {
   readonly #store = inject(Store)
   readonly #xpertService = inject(XpertAPIService)
   readonly #entryOnboardingRequested = signal(false)
+  readonly activeScope = computed(() => clawXpertConversationScope(this.#facade.currentUrl()))
+  readonly mountedScopes = signal<ClawXpertConversationScope[]>([])
+  readonly conversationOwnerKeys = computed(() => [
+    {
+      key: JSON.stringify([this.#facade.userId(), this.#facade.organizationId(), this.#facade.xpertId()])
+    }
+  ])
   #setupDialogRef: DialogRef<unknown, ClawXpertSetupWizardComponent> | null = null
   #entryOnboardingRequestId = 0
 
   constructor() {
+    effect(() => {
+      const scope = this.activeScope()
+      if (scope) this.mountedScopes.update((scopes) => (scopes.includes(scope) ? scopes : [...scopes, scope]))
+    })
     this.#route.queryParamMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
       if (params.get('onboarding') !== ENTRY_ONBOARDING_QUERY_VALUE) {
         return
@@ -46,7 +70,8 @@ export class ClawXpertComponent implements OnDestroy {
     effect(() => {
       if (
         this.#facade.hasLoadedXperts() &&
-        this.#facade.isConversationRoute() &&
+        (this.#facade.isConversationRoute() ||
+          (this.activeScope() === 'assistant' && this.#facade.currentUrl() !== '/chat/clawxpert/settings')) &&
         this.#facade.viewState() === 'wizard'
       ) {
         this.#facade.navigateToOverview()

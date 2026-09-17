@@ -28,7 +28,7 @@ export class ClawXpertAssistantSettingsComponent implements OnInit, OnDestroy {
     })
     this.settingsDialog.closed.subscribe(() => {
       if (!this.destroyed && this.router.url.split('?')[0] === '/chat/clawxpert/settings') {
-        void this.router.navigateByUrl('/chat/clawxpert/c')
+        void this.router.navigateByUrl('/chat/clawxpert/assistant')
       }
     })
   }
