@@ -1,3 +1,5 @@
+import { lexWorkbenchSql } from './workbench-sql-lexer'
+import { sqlDeclarationPositions } from './workbench-sql-syntax'
 /** Invariants: comments/literals are lexed, never stripped with a keyword regex.
  * This guard is defense in depth; the database principal remains an authority boundary.
  * Unrecognized statements fail closed. Driver multi-statements stay disabled.
@@ -36,8 +38,9 @@ const SAFE_FUNCTIONS = new Set(
     ' '
   )
 )
+// FROM/JOIN can introduce a parenthesized subquery, not a function call.
 const SQL_PARENS = new Set(
-  'IN AS EXISTS OVER PARTITION VALUES SELECT WITH AND OR NOT ON USING FILTER GROUPING ROLLUP CUBE DISTINCT EXPLAIN'.split(
+  'IN AS EXISTS OVER PARTITION VALUES SELECT WITH FROM JOIN AND OR NOT ON USING FILTER GROUPING ROLLUP CUBE DISTINCT EXPLAIN'.split(
     ' '
   )
 )
@@ -45,14 +48,12 @@ const UNSAFE_FUNCTIONS =
   /\b(pg_sleep|sleep|benchmark|dblink\w*|lo_\w+|pg_(?:read|write|ls|stat|terminate|cancel|reload|rotate|log|create|drop|promote|switch|backup|replication|advisory)\w*|get_lock|release_lock|load_file|nextval|setval|set_config|http\w*|s3|hdfs|jdbc|mysql|postgresql|file|url)\s*\(/i
 
 export function splitWorkbenchSql(source: string): SqlStatement[] {
-  if (!source.trim() || source.length > 100_000 || source.includes('\0')) throw new Error('invalid_sql')
+  const { masked, tokens } = lexWorkbenchSql(source)
   const statements: SqlStatement[] = []
-  let start = 0,
-    index = 0,
-    clean = ''
+  let start = 0
   const finish = (end: number) => {
-    const text = clean.trim()
-    if (text) {
+    const text = masked.slice(start, end)
+    if (text.trim()) {
       const words = text.toUpperCase().match(/[A-Z_][A-Z_0-9]*/g) ?? []
       const first = words[0]
       let effect: SqlStatement['effect'] = 'unsupported'
@@ -78,16 +79,20 @@ export function splitWorkbenchSql(source: string): SqlStatement[] {
           effect = 'unsupported'
         // eslint-disable-next-line no-control-regex -- intentional: reject any non-ASCII/control input
         if (/[^\x00-\x7f]/.test(text) || /\.\s*[A-Z_][A-Z_0-9]*\s*\(/i.test(text)) effect = 'unsupported'
+        const declarations = sqlDeclarationPositions(tokens.filter((token) => token.start >= start && token.end <= end))
         if (
           [...text.matchAll(/([A-Z_][A-Z_0-9]*)\s*\(/gi)].some(
-            (match) => !SAFE_FUNCTIONS.has(match[1].toUpperCase()) && !SQL_PARENS.has(match[1].toUpperCase())
+            (match) =>
+              !declarations.has(start + match.index) &&
+              !SAFE_FUNCTIONS.has(match[1].toUpperCase()) &&
+              !SQL_PARENS.has(match[1].toUpperCase())
           )
         )
           effect = 'unsupported'
         if (
           first === 'SHOW' &&
           !/^(SHOW\s+(DATABASES|SCHEMAS|CATALOGS|TABLES|FULL\s+TABLES|COLUMNS|FULL\s+COLUMNS|INDEX|INDEXES|KEYS|CREATE\s+TABLE|CREATE\s+VIEW|PARTITIONS|VARIABLES|STATUS|GRANTS))\b/i.test(
-            text
+            text.trim()
           )
         )
           effect = 'unsupported'
@@ -102,63 +107,10 @@ export function splitWorkbenchSql(source: string): SqlStatement[] {
         effect = 'unsupported'
       statements.push({ sql: source.slice(start, end).trim(), words, effect })
     }
-    clean = ''
     start = end + 1
   }
-  while (index < source.length) {
-    const c = source[index],
-      next = source[index + 1]
-    if ((c === '-' && next === '-') || c === '#') {
-      while (index < source.length && source[index] !== '\n') index++
-      clean += ' '
-      continue
-    }
-    if (c === '/' && next === '*') {
-      if (source[index + 2] === '!') throw new Error('executable_comment_not_supported')
-      const end = source.indexOf('*/', index + 2)
-      if (end < 0) throw new Error('unterminated_comment')
-      index = end + 2
-      clean += ' '
-      continue
-    }
-    if (c === "'" || c === '"' || c === '`') {
-      const quote = c
-      let closed = false
-      index++
-      while (index < source.length) {
-        if (source[index] === '\\') throw new Error('use_parameters_for_backslash_literals')
-        if (source[index] === quote) {
-          if (source[index + 1] === quote) {
-            index += 2
-            continue
-          }
-          index++
-          closed = true
-          break
-        }
-        index++
-      }
-      if (!closed) throw new Error('unterminated_literal')
-      clean += quote === "'" ? ' ? ' : ' identifier '
-      continue
-    }
-    if (c === '$') {
-      const tag = source.slice(index).match(/^\$(?:[A-Za-z_][A-Za-z_0-9]*)?\$/)?.[0]
-      if (tag) {
-        const end = source.indexOf(tag, index + tag.length)
-        if (end < 0) throw new Error('unterminated_literal')
-        index = end + tag.length
-        clean += ' ? '
-        continue
-      }
-    }
-    if (c === ';') {
-      finish(index)
-      index++
-      continue
-    }
-    clean += c
-    index++
+  for (const token of tokens) {
+    if (token.kind === 'symbol' && token.text === ';') finish(token.start)
   }
   finish(source.length)
   if (!statements.length || statements.length > 50) throw new Error('statement_count_exceeded')
