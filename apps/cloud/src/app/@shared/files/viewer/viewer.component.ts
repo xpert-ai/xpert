@@ -94,6 +94,7 @@ export class FileViewerComponent {
   readonly previewUrl = input<string | null>(null)
   readonly sideMenuToggleVisible = input(false)
   readonly sideMenuVisible = input(true)
+  readonly backVisible = input(true)
   readonly mode = model<FilePanelMode>('view')
   readonly readOnlyHint = input(
     'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
@@ -258,12 +259,23 @@ export class FileViewerComponent {
     this.referenceFile.emit()
   }
 
-  exportSpreadsheetFile() {
+  exportSpreadsheetFile(finishEditing = true) {
     const editor = this.spreadsheetEditor()
     if (!editor) {
       throw new Error('Spreadsheet editor is not ready')
     }
-    return editor.exportFile()
+    return editor.exportFile(finishEditing)
+  }
+
+  async requestMode(value: unknown) {
+    if ((value !== 'view' && value !== 'edit') || this.saving()) return
+    if (value === 'edit' && !this.editable()) return
+    if (value === 'view') await this.finishEditing()
+    this.mode.set(value)
+  }
+
+  async finishEditing() {
+    await this.spreadsheetEditor()?.finishEditing()
   }
 
   exportDocxFile() {
