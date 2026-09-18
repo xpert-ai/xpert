@@ -93,3 +93,4 @@ export * from './knowledge-tag.model'
 
 export * from './knowledge-parser-selection'
 export * from './clawxpert-conversation-scope.model'
+export * from './knowledge-keyword-analyzer.model'

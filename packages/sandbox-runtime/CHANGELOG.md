@@ -1,5 +1,11 @@
 # @xpert-ai/sandbox-runtime
 
+## 1.2.3
+
+### Patch Changes
+
+- 4bc3aa0: Add managed offline Node and Java document Runtime profiles, pinned conversion and OCR dependencies, PDF page rendering, and serialized health probes with bounded failure caching.
+
 ## 1.2.2
 
 ### Patch Changes

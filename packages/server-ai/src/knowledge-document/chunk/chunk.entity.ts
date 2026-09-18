@@ -23,6 +23,7 @@ import { TDocChunkMetadata } from '../types'
 @Index('IDX_knowledge_document_chunk_doc_content_hash', ['documentId', 'contentHash'])
 @Index('IDX_knowledge_document_chunk_kb_document', ['knowledgebaseId', 'documentId'])
 @Index('IDX_knowledge_document_chunk_content_fts', { synchronize: false })
+@Index('IDX_knowledge_document_chunk_keyword_vector', { synchronize: false })
 @Index('IDX_knowledge_document_chunk_content_trgm', { synchronize: false })
 @Tree('closure-table')
 export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetadata>
@@ -34,6 +35,9 @@ export class KnowledgeDocumentChunk<T extends TDocChunkMetadata = TDocChunkMetad
     @Optional()
     @Column({ nullable: true })
     pageContent: string
+
+    @Column({ type: 'tsvector', nullable: true, select: false })
+    keywordVector?: string | null
 
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()

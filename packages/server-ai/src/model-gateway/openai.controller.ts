@@ -1,3 +1,6 @@
+// Invariants: client scope headers do not select the gateway's tenant or organization.
+// Resolve access in the API key scope, then run the model in its publication scope.
+// Preserve both host and plugin contexts through streaming and usage settlement.
 import { AIMessageChunk, BaseMessage, isAIMessage } from '@langchain/core/messages'
 import { ILLMUsage, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
 import {
@@ -16,7 +19,10 @@ import { ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Public } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import {
+    ModelGatewayIdentity,
     ModelGatewayRequestLimitException,
     ModelGatewayService,
     ModelGatewayUsage,
@@ -43,7 +49,9 @@ export class ModelGatewayOpenAIController {
     async models(@Req() request: Request) {
         try {
             const identity = await this.service.authenticate(request.headers.authorization)
-            const items = await this.service.listAccessiblePublications(identity)
+            const items = await this.runWithModelContext(identity, identity.apiKey.organizationId, () =>
+                this.service.listAccessiblePublications(identity)
+            )
             return {
                 object: 'list',
                 data: items.map(({ publication }) => ({
@@ -60,16 +68,58 @@ export class ModelGatewayOpenAIController {
 
     @Post('chat/completions')
     async chat(@Req() request: Request, @Res() response: Response, @Body() body: unknown) {
-        let call: Awaited<ReturnType<ModelGatewayService['startCall']>> | null = null
-        let resolution: Awaited<ReturnType<ModelGatewayService['requireCallablePublication']>>['resolution'] | null =
-            null
-        let providerUsage: ILLMUsage | null = null
         const execution = this.createExecutionSignal(request, response)
         try {
             const parsed = parseOpenAIChatRequest(body)
             const identity = await this.service.authenticate(request.headers.authorization)
-            const callable = await this.service.requireCallablePublication(identity, parsed.model)
-            resolution = callable.resolution
+            return await this.runWithModelContext(identity, identity.apiKey.organizationId, async () => {
+                const callable = await this.service.requireCallablePublication(identity, parsed.model)
+                return this.runWithModelContext(identity, callable.publication.organizationId, () =>
+                    this.invokeChat({ response, parsed, body, identity, callable, signal: execution.signal })
+                )
+            })
+        } catch (error) {
+            this.applyRetryAfter(response, error)
+            if (response.destroyed || response.writableEnded) {
+                return
+            }
+            const openAIError = this.openAIError(error)
+            return response.status(openAIError.getStatus()).json(openAIError.getResponse())
+        } finally {
+            execution.cleanup()
+        }
+    }
+
+    private runWithModelContext<T>(
+        identity: ModelGatewayIdentity,
+        organizationId: string | null | undefined,
+        task: () => Promise<T>
+    ): Promise<T> {
+        return runWithCapturedRequestContext(
+            captureRequestContext({
+                user: identity.user,
+                tenantId: identity.apiKey.tenantId,
+                organizationId: organizationId ?? null,
+                language: RequestContext.getLanguageCode(),
+                headers: { 'x-request-id': RequestContext.currentRequestContext()?.reqId }
+            }),
+            task
+        )
+    }
+
+    private async invokeChat(input: {
+        response: Response
+        parsed: ReturnType<typeof parseOpenAIChatRequest>
+        body: unknown
+        identity: ModelGatewayIdentity
+        callable: Awaited<ReturnType<ModelGatewayService['requireCallablePublication']>>
+        signal: AbortSignal
+    }) {
+        const { response, parsed, body, identity, callable, signal } = input
+        const { resolution } = callable
+        let call: Awaited<ReturnType<ModelGatewayService['startCall']>> | null = null
+        let providerUsage: ILLMUsage | null = null
+        try {
             assertRequestCapabilities(parsed, callable.publication.capabilities)
             const messages = toLangChainMessages(parsed.messages)
             call = await this.service.startCall({
@@ -90,11 +140,11 @@ export class ModelGatewayOpenAIController {
                     runnable,
                     call,
                     resolution,
-                    signal: execution.signal,
+                    signal,
                     getProviderUsage: () => providerUsage
                 })
             }
-            const raw = await runnable.invoke(messages, { signal: execution.signal })
+            const raw = await runnable.invoke(messages, { signal })
             if (!isAIMessage(raw)) {
                 throw new BadRequestException(
                     modelGatewayMessage(
@@ -132,17 +182,10 @@ export class ModelGatewayOpenAIController {
             })
             return response.json(payload)
         } catch (error) {
-            if (call && resolution) {
+            if (call) {
                 await this.finishFailedCall(call, resolution, providerUsage, error)
             }
-            this.applyRetryAfter(response, error)
-            if (response.destroyed || response.writableEnded) {
-                return
-            }
-            const openAIError = this.openAIError(error)
-            return response.status(openAIError.getStatus()).json(openAIError.getResponse())
-        } finally {
-            execution.cleanup()
+            throw error
         }
     }
 

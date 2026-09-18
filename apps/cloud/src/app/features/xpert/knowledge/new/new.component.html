@@ -378,6 +378,7 @@
               <div class="kb-section-heading">
                 <h1>{{ i18nPrefix + '.Sections.Retrieval' | translate }}</h1>
               </div>
+              <xp-keyword-analyzer-settings [(analyzer)]="keywordAnalyzer" [locked]="keywordAnalyzerLocked()" />
               <xp-knowledge-retrieval-settings
                 [(ngModel)]="retrieval"
                 [showContentScope]="!isFAQ() && wikiEnabled()"

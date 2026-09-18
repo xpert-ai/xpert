@@ -27,7 +27,15 @@ ON "knowledge_document_chunk" USING gin ("pageContent" gin_trgm_ops);
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_name_trgm"
 ON "knowledge_document" USING gin ("name" gin_trgm_ops);
+
+-- Required for knowledgebases using Basic (Unicode) or a plugin analyzer.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_keyword_vector"
+ON "knowledge_document_chunk" USING gin ("keywordVector");
 ```
+
+- 新建知识库默认使用 Basic (Unicode)，也可选择已安装插件提供的分词器；文档与查询使用同一份已绑定的来源和 revision。新增文档时锁定选择，普通设置保存不能解除锁定。
+- 上述 `keywordVector` 列由 TypeORM schema sync 创建；所有分词策略共用这一列和 GIN 索引。应用在分块新增或正文更新时写入分词结果，PostgreSQL 维护该列的索引。部署时先同步 schema，再在事务外执行建索引 SQL。
+- 历史知识库的 `keywordAnalyzer = NULL` 保持原来的 `simple` / trigram 路径；本次升级不会回填旧分块，也不会修改已有文档的分词配置。旧库仅在没有文档、分块且未锁定时允许选择分词器。
 
 - 缺少或创建失败的索引会令 Keyword batch 明确失败，RRF 不会静默退化，也不会在未建索引时执行正文全表扫描。
 - `recall.fusion.mode` 缺失或为 `legacy` 时，Handler 不执行 Keyword Retriever；只有 Hybrid + `weighted_rrf` 才启用三路 RRF。

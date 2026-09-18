@@ -1,5 +1,11 @@
 {
     "Error": {
+        "KeywordAnalyzerInvalid": "Invalid keyword analyzer configuration.",
+        "KeywordAnalyzerExternal": "External knowledgebases do not support keyword analyzers.",
+        "KeywordAnalyzerUnavailable": "The selected keyword analyzer is not available.",
+        "KeywordAnalyzerLocked": "The keyword analyzer cannot be changed after documents have been added.",
+        "KeywordAnalyzerRevisionMismatch": "The installed analyzer no longer matches the version used by this knowledgebase.",
+        "KeywordAnalyzerChunkScopeRequired": "A knowledgebase is required to analyze a document chunk.",
         "SandboxRuntimeHealthTimeout": "Runtime health check timed out after {{seconds}} seconds. Retry when the host is less busy.",
         "SandboxRuntimeHealthSignal": "Runtime health check was terminated by signal {{signal}}.",
         "SandboxRuntimeHealthExit": "Runtime health check failed with exit code {{code}}.",

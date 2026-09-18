@@ -4688,6 +4688,14 @@
       "NoMatchingMembersHint": "Try another search keyword."
     },
     "Knowledgebase": {
+      "KeywordAnalyzer": {
+        "Label": "Keyword analyzer",
+        "Legacy": "Legacy built-in analyzer",
+        "Help": "Used to analyze documents and search queries. This choice is locked when the first document is added.",
+        "Locked": "Documents have been added. The keyword analyzer is locked.",
+        "Loading": "Loading available analyzers...",
+        "Retry": "Retry loading analyzers"
+      },
       "ParserCoverageIncomplete": "Completed with unrecognized content",
       "ParserCoveragePages": "Content on page(s) {{pages}} has not been recognized completely. Enable image understanding with an available vision model or choose an OCR parser, then reprocess the document.",
       "ParserImagesIncomplete": "Completed with image recognition errors",

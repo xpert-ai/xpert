@@ -73,13 +73,13 @@ jobs:
       - name: Detect a Runtime Suite version release
         id: runtime
         shell: bash
+        env:
+          RUNTIME_RELEASE_EVENT: ${{ github.event_name }}
+          RUNTIME_RELEASE_BEFORE: ${{ github.event.before }}
+          RUNTIME_RELEASE_AFTER: ${{ github.sha }}
         run: |
-          changed=false
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            changed=true
-          elif ! git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- packages/sandbox-runtime/package.json; then
-            changed=true
-          fi
+          node --test tools/release/runtime-version-changed.test.mjs
+          changed=$(node tools/release/runtime-version-changed.mjs)
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
           echo "matrix=$(node packages/sandbox-runtime/scripts/build-matrix.mjs)" >> "$GITHUB_OUTPUT"
 

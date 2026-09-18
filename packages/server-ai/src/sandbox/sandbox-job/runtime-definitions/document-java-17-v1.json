@@ -2,7 +2,7 @@
     "name": "document/java-17/v1",
     "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
     "contractVersion": "1",
-    "sandboxRuntimeVersion": "1.2.2",
+    "sandboxRuntimeVersion": "1.2.3",
     "timeoutMs": 300000,
     "hardDeadlineMs": 360000,
     "resources": {
@@ -28,7 +28,7 @@
         "readOnlyRootFilesystem": true
     },
     "expectedManifest": {
-        "sandboxRuntimeVersion": "1.2.2",
+        "sandboxRuntimeVersion": "1.2.3",
         "contractVersion": "1",
         "nodeVersion": "20.20.2",
         "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec",

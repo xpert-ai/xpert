@@ -1,4 +1,4 @@
-import { I18nObject, JsonSchemaObjectType } from '@xpert-ai/contracts'
+import { I18nObject, JsonSchemaObjectType } from "@xpert-ai/contracts"
 
 export type WorkflowTriggerProviderOption = {
   name: string

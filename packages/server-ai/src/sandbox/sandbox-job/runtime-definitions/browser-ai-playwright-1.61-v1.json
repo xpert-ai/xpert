@@ -2,7 +2,7 @@
     "name": "browser/ai-playwright-1.61/v1",
     "command": ["node", "/opt/xpert/sandbox-runtime/runner-host.mjs"],
     "contractVersion": "1",
-    "sandboxRuntimeVersion": "1.2.2",
+    "sandboxRuntimeVersion": "1.2.3",
     "timeoutMs": 300000,
     "hardDeadlineMs": 900000,
     "resources": {
@@ -28,7 +28,7 @@
         "readOnlyRootFilesystem": true
     },
     "expectedManifest": {
-        "sandboxRuntimeVersion": "1.2.2",
+        "sandboxRuntimeVersion": "1.2.3",
         "imageFamily": "browser-ai",
         "profileName": "browser/ai-playwright-1.61/v1",
         "contractVersion": "1",
@@ -36,7 +36,7 @@
         "playwrightVersion": "1.61.0",
         "browserRevision": "1228",
         "onnxRuntimeVersion": "1.26.0-dev.20260416-b7804b056c",
-        "modelCatalogSha256": "f2245f2b136fc5f15ad8d26de4c8b53b59af511ad04a321201d1140e72f68a69",
+        "modelCatalogSha256": "948ee1bb84cf93e5469a03fe2d96242e2b5e68a362557e7e9333323e7f1effcd",
         "runnerHostSha256": "9c8b42ba750fa2d20a22ee7db53744f6f862305cbb9d4cfa5f5ada083418ebec"
     }
 }

@@ -1,5 +1,40 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.7
+
+### Patch Changes
+
+- 5213185: Expose keyword analyzer strategy interfaces, discovery metadata, and a scoped registry with exact source lookup. Add optional plugin removal preflight guards so hosts can protect active analyzer dependencies.
+
+  Correct read-only SQL classification for derived tables, CTE column declarations and type modifiers, and preserve duplicate MySQL output names with direct bounded pagination.
+
+## 3.18.6
+
+### Patch Changes
+
+- a8a251d: Support non-tool MCP capabilities, task policies and transport-specific input validation on decorated tool providers. Pass execution-scoped workspace files and Agent feature configuration to middleware business methods and allow existing MCP result envelopes without requiring a new structured output schema.
+
+  Share runtime component fingerprinting across host entry points and include transport input schemas, task policies, resources, resource templates and prompts in update detection.
+
+  Add resource, resource-template and prompt method decorators with inherited method discovery, shared runtime/fingerprint definitions and legacy extension compatibility.
+
+- 983b730: Prepare the Xpert 3.18.6 patch release, including plugin-sdk.
+
+  Extend decorated MCP capabilities and structured knowledge graph runtime contracts.
+  Improve document parsing and scanned-page understanding, semantic FAQ exclusion,
+  manual tags during document import, and per-knowledgebase vector storage selection.
+  Include schema-driven sliders and the scoped database workbench adapter.
+
+  The target platform version is 3.18.6. Verify contracts, plugin-sdk, and xpert-ui
+  all resolve to this version in the release version PR, including changelogs,
+  internal dependency references, and lockfile entries. Publish the separately
+  versioned Runtime Suite source images before creating platform-version aliases.
+
+- Updated dependencies [9a2a2a0]
+- Updated dependencies [089e3ff]
+- Updated dependencies [983b730]
+  - @xpert-ai/contracts@3.18.6
+
 ## 3.18.5
 
 ### Patch Changes

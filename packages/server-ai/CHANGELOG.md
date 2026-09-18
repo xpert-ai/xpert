@@ -1,5 +1,28 @@
 # @xpert-ai/server-ai
 
+## 3.9.38
+
+### Patch Changes
+
+- Updated dependencies [5213185]
+    - @xpert-ai/plugin-sdk@3.18.7
+    - @xpert-ai/server-core@3.9.53
+
+## 3.9.37
+
+### Patch Changes
+
+- 9a2a2a0: Transcribe scanned pages through the existing image-understanding model, retain page order, skip embedded placeholder pixels, invalidate older image results, and display localized image-recognition notices.
+- 089e3ff: Accept upload formats advertised by registered parsers, process plugin-converted spreadsheets as document text, preserve shared processing settings, and translate bounded parser errors including unsupported CSV encoding.
+- 4bc3aa0: Add managed offline Node and Java document Runtime profiles, pinned conversion and OCR dependencies, PDF page rendering, and serialized health probes with bounded failure caching.
+- Updated dependencies [9a2a2a0]
+- Updated dependencies [a8a251d]
+- Updated dependencies [089e3ff]
+- Updated dependencies [983b730]
+    - @xpert-ai/contracts@3.18.6
+    - @xpert-ai/plugin-sdk@3.18.6
+    - @xpert-ai/server-core@3.9.52
+
 ## 3.9.36
 
 ### Patch Changes
