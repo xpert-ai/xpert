@@ -3,7 +3,6 @@ import { ICopilotModel } from './copilot-model.model'
 import { TKBRecallParams } from './knowledgebase.model'
 import { ApiAuthType, JsonSchemaObjectType, TErrorHandling, TXpertRefParameter } from './types'
 import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from './xpert.model'
-import { TWorkflowTriggerIntegration } from './workflow-trigger-integration'
 
 export type TWorkflowNodeMeta = {
   name: string
@@ -13,9 +12,7 @@ export type TWorkflowNodeMeta = {
   configSchema: JsonSchemaObjectType
 }
 
-export type TWorkflowTriggerMeta = TWorkflowNodeMeta & {
-  integration?: TWorkflowTriggerIntegration
-}
+export type TWorkflowTriggerMeta = TWorkflowNodeMeta
 
 export enum WorkflowNodeTypeEnum {
   START = 'start',

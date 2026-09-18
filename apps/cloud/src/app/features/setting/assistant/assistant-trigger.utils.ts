@@ -1,5 +1,4 @@
 import { IconDefinition, TWorkflowTriggerMeta } from '../../../@core'
-import { WORKFLOW_TRIGGER_INTEGRATIONS } from '@xpert-ai/contracts'
 import { hasJsonSchemaRequiredErrors } from '../../../@shared/workflow'
 import { WorkflowTriggerProviderOption, XpertDraftTriggerEditorItem } from '../../xpert/draft'
 
@@ -58,8 +57,4 @@ export function isAssistantTriggerConnected(card: AssistantTriggerCard): boolean
     card.item.config.enabled !== false &&
     !hasJsonSchemaRequiredErrors(card.provider.configSchema, card.item.config)
   )
-}
-
-export function getAssistantTriggerIntegration(provider: WorkflowTriggerProviderOption) {
-  return provider.integration ?? WORKFLOW_TRIGGER_INTEGRATIONS[provider.name]
 }

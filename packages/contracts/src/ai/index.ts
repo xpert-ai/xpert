@@ -92,5 +92,4 @@ export * from './knowledge-question.model'
 export * from './knowledge-tag.model'
 
 export * from './knowledge-parser-selection'
-export * from './workflow-trigger-integration'
 export * from './clawxpert-conversation-scope.model'

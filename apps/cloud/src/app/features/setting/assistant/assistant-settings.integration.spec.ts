@@ -3,22 +3,16 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, Subject, throwError } from 'rxjs'
-import { AssistantBindingService, IntegrationService, ToastrService, XpertAPIService } from '../../../@core'
+import { AssistantBindingService, ToastrService, XpertAPIService } from '../../../@core'
 import type { TWorkflowTriggerMeta } from '../../../@core'
 import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
 import { AssistantPersonalizationComponent } from './assistant-personalization.component'
 import { AssistantTriggerDialogComponent, AssistantTriggerDialogData } from './assistant-trigger-dialog.component'
-import { AssistantIntegrationCreateComponent } from './assistant-integration-create.component'
 import { AssistantTriggersComponent } from './assistant-triggers.component'
-import {
-  buildAssistantTriggerCards,
-  getAssistantTriggerIntegration,
-  isAssistantTriggerConnected
-} from './assistant-trigger.utils'
+import { buildAssistantTriggerCards, isAssistantTriggerConnected } from './assistant-trigger.utils'
 
 jest.mock('../../../@core', () => ({
   AssistantBindingService: class AssistantBindingService {},
-  IntegrationService: class IntegrationService {},
   XpertAPIService: class XpertAPIService {},
   ToastrService: class ToastrService {},
   AssistantBindingScope: { USER: 'user' },
@@ -144,41 +138,6 @@ async function triggers() {
   fixture.detectChanges()
   await fixture.whenStable()
   return { component: fixture.componentInstance, facade, closed, dialog, toastr }
-}
-
-async function integrationCreator() {
-  const facade = facadeMock()
-  const api = {
-    getProviders: jest.fn(() =>
-      of([
-        {
-          name: 'wecom',
-          label: { en_US: 'WeCom' },
-          schema: { type: 'object', properties: { token: { type: 'string' } }, required: ['token'] }
-        },
-        { name: 'wecom_long', label: { en_US: 'WeCom Long' } },
-        { name: 'lark', label: { en_US: 'Lark' } }
-      ])
-    ),
-    create: jest.fn(),
-    test: jest.fn()
-  }
-  await TestBed.configureTestingModule({
-    imports: [TranslateModule.forRoot(), AssistantIntegrationCreateComponent],
-    providers: [
-      { provide: ClawXpertFacade, useValue: facade },
-      { provide: IntegrationService, useValue: api }
-    ]
-  })
-    .overrideComponent(AssistantIntegrationCreateComponent, { set: { imports: [], template: '' } })
-    .compileComponents()
-  const fixture = TestBed.createComponent(AssistantIntegrationCreateComponent)
-  fixture.componentRef.setInput('requirement', { configField: 'integrationId', providers: ['wecom', 'wecom_long'] })
-  fixture.componentRef.setInput('organizationId', 'org-1')
-  fixture.componentRef.setInput('xpertId', 'xpert-1')
-  fixture.detectChanges()
-  await fixture.whenStable()
-  return { component: fixture.componentInstance, facade, api }
 }
 
 describe('Assistant settings integration', () => {
@@ -376,78 +335,5 @@ describe('Assistant settings integration', () => {
         item: { nodeKey: 'a', provider: p, config: { enabled: true } }
       })
     ).toBe(false)
-  })
-
-  it('uses explicit provider metadata without guessing from display names or URLs', () => {
-    expect(
-      getAssistantTriggerIntegration({
-        name: 'custom',
-        label: 'WeCom',
-        configSchema: { type: 'object', properties: {} }
-      })
-    ).toBeUndefined()
-    expect(
-      getAssistantTriggerIntegration({
-        name: 'custom',
-        label: 'Custom',
-        integration: { configField: 'channel', providers: ['custom-integration'] }
-      })
-    ).toEqual({ configField: 'channel', providers: ['custom-integration'] })
-  })
-
-  it('only offers matching integration types and rejects creation of another provider', async () => {
-    const { component, api } = await integrationCreator()
-    expect(component.providers().map((p) => p.name)).toEqual(['wecom', 'wecom_long'])
-    component.form.controls.name.setValue('Assistant integration')
-    component.selectProvider('lark')
-    await component.create()
-    expect(api.create).not.toHaveBeenCalled()
-  })
-
-  it('requires credentials and creates a scoped integration with the chosen type', async () => {
-    const { component, api } = await integrationCreator()
-    component.form.controls.name.setValue('Assistant integration')
-    await component.create()
-    expect(api.create).not.toHaveBeenCalled()
-    component.updateOptions({ token: 'test-token' })
-    api.create.mockReturnValue(of({ id: 'new-integration', name: 'Assistant integration', provider: 'wecom' }))
-    await component.create()
-    expect(api.create).toHaveBeenCalledWith({
-      name: 'Assistant integration',
-      provider: 'wecom',
-      options: { token: 'test-token' },
-      features: [],
-      organizationId: 'org-1'
-    })
-    const use = jest.spyOn(component.created, 'emit')
-    component.useIntegration()
-    expect(use).toHaveBeenCalledWith(expect.objectContaining({ id: 'new-integration', provider: 'wecom' }))
-    await component.create()
-    expect(api.create).toHaveBeenCalledTimes(1)
-  })
-
-  it('preserves credentials after creation failure and blocks creation after organization change', async () => {
-    const { component, api, facade } = await integrationCreator()
-    component.form.controls.name.setValue('Assistant integration')
-    component.updateOptions({ token: 'test-token' })
-    api.create.mockReturnValue(throwError(() => new Error('save failed')))
-    await component.create()
-    expect(component.error()).toBe('save failed')
-    expect(component.options()).toEqual({ token: 'test-token' })
-    expect(component.saved()).toBeNull()
-    facade.organizationId.set('org-2')
-    await component.create()
-    expect(api.create).toHaveBeenCalledTimes(1)
-  })
-
-  it('selects the created integration while preserving other trigger fields', async () => {
-    const { component } = await trigger()
-    component.config.set({ enabled: true, sessionTimeoutSeconds: 50 })
-    component.creatingIntegration.set(true)
-    component.useIntegration({ id: 'created', name: 'New', slug: '', provider: 'wecom' })
-    expect(component.config()).toEqual({ enabled: true, sessionTimeoutSeconds: 50, integrationId: 'created' })
-    expect(component.creatingIntegration()).toBe(false)
-    component.useIntegration({ id: 'unrelated', name: 'Other', slug: '', provider: 'lark' })
-    expect(component.config().integrationId).toBe('created')
   })
 })

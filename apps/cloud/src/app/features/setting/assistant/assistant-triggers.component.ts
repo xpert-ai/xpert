@@ -10,6 +10,7 @@ import {
   untracked,
   ViewContainerRef
 } from '@angular/core'
+import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpI18nPipe, ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
@@ -27,25 +28,44 @@ import {
 @Component({
   standalone: true,
   selector: 'xp-assistant-triggers',
-  imports: [TranslateModule, XpI18nPipe, IconComponent, ZardButtonComponent, ZardIconComponent, ...ZardCardImports],
+  imports: [
+    RouterLink,
+    TranslateModule,
+    XpI18nPipe,
+    IconComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardCardImports
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-5 flex items-start justify-between gap-4">
-      <div>
+    <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0 flex-1 basis-64">
         <h2 class="text-base font-semibold">{{ 'XP.AssistantSettings.AvailableTriggers' | translate }}</h2>
         <p class="mt-2 text-sm leading-6 text-muted-foreground">
           {{ 'XP.AssistantSettings.TriggersIntro' | translate }}
         </p>
       </div>
-      <button
-        z-button
-        zType="outline"
-        type="button"
-        [zDisabled]="loading() || !facade.organizationId()"
-        (click)="refresh()"
-      >
-        <z-icon zType="refresh" />{{ 'XP.AssistantSettings.Refresh' | translate }}
-      </button>
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <a
+          z-button
+          zType="outline"
+          [routerLink]="['/settings/integration/create']"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <z-icon zType="plus" />{{ 'XP.AssistantSettings.CreateIntegration' | translate }}
+        </a>
+        <button
+          z-button
+          zType="outline"
+          type="button"
+          [zDisabled]="loading() || !facade.organizationId()"
+          (click)="refresh()"
+        >
+          <z-icon zType="refresh" />{{ 'XP.AssistantSettings.Refresh' | translate }}
+        </button>
+      </div>
     </div>
     @if (facade.loading() || loading() || facade.loadingTriggerDraft()) {
       <p role="status" class="py-12 text-center text-sm text-muted-foreground">

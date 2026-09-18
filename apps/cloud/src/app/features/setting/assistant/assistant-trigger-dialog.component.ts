@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpI18nPipe, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { isEqual } from 'lodash-es'
-import { IIntegration } from '@xpert-ai/contracts'
 import { genXpertTriggerKey, getErrorMessage, ToastrService } from '../../../@core'
 import { JSONSchemaFormComponent } from '../../../@shared/forms'
 import {
@@ -13,9 +12,7 @@ import {
   jsonSchemaHasConfigFields
 } from '../../../@shared/workflow'
 import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
-import { AssistantTriggerCard, getAssistantTriggerIntegration, mergeAssistantTrigger } from './assistant-trigger.utils'
-
-import { AssistantIntegrationCreateComponent } from './assistant-integration-create.component'
+import { AssistantTriggerCard, mergeAssistantTrigger } from './assistant-trigger.utils'
 
 export interface AssistantTriggerDialogData {
   card: AssistantTriggerCard
@@ -26,15 +23,7 @@ export interface AssistantTriggerDialogData {
 @Component({
   standalone: true,
   selector: 'xp-assistant-trigger-dialog',
-  imports: [
-    AssistantIntegrationCreateComponent,
-    FormsModule,
-    TranslateModule,
-    XpI18nPipe,
-    JSONSchemaFormComponent,
-    ZardButtonComponent,
-    ZardIconComponent
-  ],
+  imports: [FormsModule, TranslateModule, XpI18nPipe, JSONSchemaFormComponent, ZardButtonComponent, ZardIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="flex max-h-[85dvh] w-[520px] max-w-[calc(100vw-32px)] flex-col">
@@ -45,7 +34,7 @@ export interface AssistantTriggerDialogData {
           zType="ghost"
           zSize="icon-sm"
           type="button"
-          [zDisabled]="saving() || creatingBusy()"
+          [zDisabled]="saving()"
           (click)="dialogRef.close()"
           [attr.aria-label]="'XP.AssistantSettings.Close' | translate"
         >
@@ -56,48 +45,21 @@ export interface AssistantTriggerDialogData {
         <p class="mb-5 text-sm leading-6 text-muted-foreground">
           {{ 'XP.AssistantSettings.TriggerConfigIntro' | translate }}
         </p>
-        @if (creatingIntegration() && integrationRequirement; as requirement) {
-          <xp-assistant-integration-create
-            [requirement]="requirement"
-            [organizationId]="data.organizationId"
-            [xpertId]="data.xpertId"
-            (created)="useIntegration($event)"
-            (cancel)="creatingIntegration.set(false)"
-            (busyChange)="setCreatingBusy($event)"
-          />
-        } @else {
-          @if (integrationRequirement) {
-            <div class="mb-5 flex items-center justify-between gap-3 rounded-md border border-dashed border-border p-3">
-              <p class="text-sm text-muted-foreground">
-                {{ 'XP.AssistantSettings.CreateIntegrationHint' | translate }}
-              </p>
-              <button
-                z-button
-                zType="outline"
-                type="button"
-                [zDisabled]="saving() || bindingChanged()"
-                (click)="creatingIntegration.set(true)"
-              >
-                {{ 'XP.AssistantSettings.CreateIntegration' | translate }}
-              </button>
-            </div>
-          }
-          @if (configSchema; as schema) {
-            @if (hasFields()) {
-              <json-schema-form
-                class="grid grid-cols-1 gap-4"
-                [schema]="schema"
-                [context]="context"
-                [readonly]="saving() || bindingChanged()"
-                [ngModel]="config()"
-                (ngModelChange)="config.set($event)"
-              />
-            } @else {
-              <p class="text-sm text-muted-foreground">{{ 'XP.AssistantSettings.NoTriggerFields' | translate }}</p>
-            }
+        @if (configSchema; as schema) {
+          @if (hasFields()) {
+            <json-schema-form
+              class="grid grid-cols-1 gap-4"
+              [schema]="schema"
+              [context]="context"
+              [readonly]="saving() || bindingChanged()"
+              [ngModel]="config()"
+              (ngModelChange)="config.set($event)"
+            />
+          } @else {
+            <p class="text-sm text-muted-foreground">{{ 'XP.AssistantSettings.NoTriggerFields' | translate }}</p>
           }
         }
-        @if (!creatingIntegration() && invalid()) {
+        @if (invalid()) {
           <p class="mt-4 text-sm text-destructive">
             {{
               'XP.Workflow.RequiredTriggerConfig'
@@ -114,32 +76,24 @@ export interface AssistantTriggerDialogData {
           <p role="alert" class="mt-4 text-sm text-destructive">{{ error() }}</p>
         }
       </div>
-      @if (!creatingIntegration()) {
-        <footer class="border-t border-border px-6 py-4">
-          <p class="mb-4 text-xs leading-5 text-muted-foreground">
-            {{ 'XP.AssistantSettings.TriggerSaveHint' | translate }}
-          </p>
-          <div class="flex justify-end gap-2">
-            <button
-              z-button
-              zType="outline"
-              type="button"
-              [zDisabled]="saving() || creatingBusy()"
-              (click)="dialogRef.close()"
-            >
-              {{ 'XP.AssistantSettings.Cancel' | translate }}
-            </button>
-            <button
-              z-button
-              type="button"
-              [zDisabled]="saving() || facade.savingTriggerDraft() || invalid() || bindingChanged() || !dirty()"
-              (click)="save()"
-            >
-              {{ (saving() ? 'XP.AssistantSettings.Saving' : 'XP.Chat.ClawXpert.SaveTriggerDraft') | translate }}
-            </button>
-          </div>
-        </footer>
-      }
+      <footer class="border-t border-border px-6 py-4">
+        <p class="mb-4 text-xs leading-5 text-muted-foreground">
+          {{ 'XP.AssistantSettings.TriggerSaveHint' | translate }}
+        </p>
+        <div class="flex justify-end gap-2">
+          <button z-button zType="outline" type="button" [zDisabled]="saving()" (click)="dialogRef.close()">
+            {{ 'XP.AssistantSettings.Cancel' | translate }}
+          </button>
+          <button
+            z-button
+            type="button"
+            [zDisabled]="saving() || facade.savingTriggerDraft() || invalid() || bindingChanged() || !dirty()"
+            (click)="save()"
+          >
+            {{ (saving() ? 'XP.AssistantSettings.Saving' : 'XP.Chat.ClawXpert.SaveTriggerDraft') | translate }}
+          </button>
+        </div>
+      </footer>
     </section>
   `
 })
@@ -153,9 +107,6 @@ export class AssistantTriggerDialogComponent {
     this.data.card.item?.config ?? buildJsonSchemaDefaults(this.data.card.provider.configSchema) ?? {}
   )
   readonly config = signal<Record<string, unknown>>({ ...structuredClone(this.initialConfig), enabled: true })
-  readonly integrationRequirement = getAssistantTriggerIntegration(this.data.card.provider)
-  readonly creatingIntegration = signal(false)
-  readonly creatingBusy = signal(false)
   // Connection actions own the enabled flag; the dialog edits the remaining configuration.
   readonly configSchema = this.data.card.provider.configSchema
     ? {
@@ -179,28 +130,8 @@ export class AssistantTriggerDialogComponent {
   )
   readonly context = { workspaceId: this.facade.currentWorkspaceId(), xpertId: this.data.xpertId }
 
-  setCreatingBusy(busy: boolean) {
-    this.creatingBusy.set(busy)
-    this.dialogRef.disableClose = busy || this.saving()
-  }
-
-  useIntegration(integration: IIntegration) {
-    const requirement = this.integrationRequirement
-    if (!requirement || this.bindingChanged() || !requirement.providers.includes(integration.provider)) return
-    this.config.update((config) => ({ ...config, [requirement.configField]: integration.id }))
-    this.creatingIntegration.set(false)
-  }
-
   async save() {
-    if (
-      this.creatingIntegration() ||
-      this.creatingBusy() ||
-      this.saving() ||
-      this.facade.savingTriggerDraft() ||
-      this.invalid() ||
-      this.bindingChanged() ||
-      !this.dirty()
-    )
+    if (this.saving() || this.facade.savingTriggerDraft() || this.invalid() || this.bindingChanged() || !this.dirty())
       return
     const items = this.facade.triggerEditorItems()
     const original = this.data.card.item
