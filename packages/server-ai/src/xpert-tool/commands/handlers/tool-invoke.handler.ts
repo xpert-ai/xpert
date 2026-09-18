@@ -11,6 +11,7 @@ import { ToolInvokeCommand } from '../tool-invoke.command'
 import { EnvStateQuery } from '../../../environment'
 import { randomUUID } from 'node:crypto'
 import { ToolRuntimeService } from '../../../tool-runtime'
+import { ToolInvokeError } from '../../../shared/tools/errors'
 
 @CommandHandler(ToolInvokeCommand)
 export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
@@ -86,6 +87,12 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
                 toolsetSnapshots: [snapshot]
             })
             return events.length ? { events, result } : result
+        } catch (error) {
+            // The MCP adapter identifies tool failures by name but does not export its error class.
+            if (error instanceof Error && error.name === 'ToolException') {
+                throw new ToolInvokeError(error.message, { cause: error, description: 'Bad Request' })
+            }
+            throw error
         } finally {
             subscriber.complete()
         }
