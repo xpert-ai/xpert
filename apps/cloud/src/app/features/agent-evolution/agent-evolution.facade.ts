@@ -243,7 +243,9 @@ export class AgentEvolutionFacade {
     try {
       await firstValueFrom(this.#api.synchronizeTargets())
       await this.load({ silent: true })
-      this.#toastr.success('XP.AgentEvolution.TargetsSynchronized', { Default: '进化目标与基线版本已同步' })
+      this.#toastr.success('XP.AgentEvolution.TargetsSynchronized', {
+        Default: 'Evolution targets and baseline versions synchronized'
+      })
       return true
     } catch (error) {
       this.reportError(error)
@@ -257,7 +259,7 @@ export class AgentEvolutionFacade {
     return this.withMutation(async () => {
       await firstValueFrom(this.#api.reviewLearningEvent(eventId, { reviewStatus }))
       await this.load({ silent: true })
-      this.#toastr.success('XP.AgentEvolution.LearningEventUpdated', { Default: '学习信号状态已持久化' })
+      this.#toastr.success('XP.AgentEvolution.LearningEventUpdated', { Default: 'Learning event review status saved' })
       return true
     })
   }
@@ -295,7 +297,9 @@ export class AgentEvolutionFacade {
         diagnoses: [...analysis.diagnoses, ...current.diagnoses],
         clusters: [...analysis.clusters, ...current.clusters]
       }))
-      this.#toastr.success('XP.AgentEvolution.ProposalCreated', { Default: '改进建议已创建，尚未影响生产版本' })
+      this.#toastr.success('XP.AgentEvolution.ProposalCreated', {
+        Default: 'Improvement proposal created without changing Production'
+      })
       return proposal
     })
   }
@@ -328,7 +332,7 @@ export class AgentEvolutionFacade {
   async evaluateCandidate(candidate: EvolutionCandidate | null, dataset: DatasetSnapshot | null) {
     if (!candidate || !dataset || !['ready', 'evaluating'].includes(candidate.status)) {
       this.#toastr.warning('XP.AgentEvolution.EvaluationPrerequisitesMissing', {
-        Default: '请选择同一 Target/Scope 的 Ready Candidate 和 Golden Dataset Snapshot'
+        Default: 'Select a Ready Candidate and Golden Dataset Snapshot with the same Target/Scope'
       })
       return null
     }
