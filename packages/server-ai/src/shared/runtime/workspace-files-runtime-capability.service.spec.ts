@@ -70,6 +70,30 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         await expect(service.resolveFile(reference('drawings/missing.pdf'))).rejects.toThrow('Workspace file not found')
     })
 
+    it('returns the corrected asset MIME instead of the stale workspace selection MIME', async () => {
+        const commandBus = {
+            execute: jest.fn().mockResolvedValue({
+                id: 'asset-1',
+                originalName: 'streamLoad(1).ts',
+                mimeType: 'text/plain',
+                status: 'ready',
+                metadata: { workspace: { mimeType: 'text/plain' } }
+            })
+        }
+        const service = new WorkspaceFilesRuntimeCapabilityService(
+            commandBus,
+            { resolve: jest.fn().mockReturnValue({ exposesDirectFileUrls: () => false }) },
+            new DefaultRuntimeCapabilityRegistry()
+        )
+
+        await expect(
+            service.understandFile({
+                ...reference('shared/streamLoad(1).ts'),
+                mimeType: 'video/mp2t'
+            })
+        ).resolves.toMatchObject({ fileAssetId: 'asset-1', mimeType: 'text/plain' })
+    })
+
     it.each([
         ['tenantId', { tenantId: 'tenant-2' }],
         ['organizationId', { organizationId: 'organization-2' }]

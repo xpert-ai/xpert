@@ -1,8 +1,8 @@
 import { TextDecoder } from 'node:util'
 
-// A .ts upload can be source code or an MPEG transport stream. Client MIME
+// A .ts file can be source code or an MPEG transport stream. Client MIME
 // labels are not evidence of either. Never execute code to classify a file.
-function needsFileContentTypeCheck(mimeType?: string): boolean {
+export function needsFileContentTypeCheck(mimeType?: string): boolean {
 	const type = mimeType?.split(';', 1)[0].trim().toLowerCase()
 	return !type || ['video/mp2t', 'video/vnd.dlna.mpeg-tts', 'application/octet-stream'].includes(type)
 }
@@ -11,6 +11,7 @@ function isUtf8Text(data: Uint8Array): boolean {
 	try {
 		const text = new TextDecoder('utf-8', { fatal: true }).decode(data)
 		// Allow tab, line breaks and form feed, but not binary control bytes.
+		// eslint-disable-next-line no-control-regex -- Rejecting binary control characters is intentional.
 		return !/[\u0000-\u0008\u000b\u000e-\u001f\u007f-\u009f]/.test(text)
 	} catch {
 		return false
