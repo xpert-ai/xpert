@@ -20,6 +20,7 @@ import { AssistantTriggerQrComponent } from './assistant-trigger-qr.component'
 import { getErrorMessage, ToastrService, TWorkflowTriggerMeta, XpertAPIService } from '../../../@core'
 import { IconComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
+import { buildEditableXpertDraft } from '../../xpert/draft'
 import { AssistantTriggerDialogComponent } from './assistant-trigger-dialog.component'
 import {
   AssistantTriggerCard,
@@ -190,14 +191,15 @@ export class AssistantTriggersComponent implements OnDestroy {
 
   async refresh() {
     const requestId = ++this.requestId
+    const organizationId = this.facade.organizationId()
     const xpertId = this.facade.xpertId()
     this.loading.set(true)
     this.error.set(null)
     try {
       const providers = await firstValueFrom(this.api.getTriggerProviders())
-      const statuses = providers.some((provider) => provider.quickConnect)
-        ? await this.connections.statuses(xpertId)
-        : []
+      const [statuses] = providers.some((provider) => provider.quickConnect)
+        ? await Promise.all([this.connections.statuses(xpertId), this.reloadTriggerDraft(xpertId, organizationId)])
+        : [[]]
       if (requestId === this.requestId) {
         this.providers.set(providers)
         this.connectionStatuses.set(statuses)
@@ -208,6 +210,27 @@ export class AssistantTriggersComponent implements OnDestroy {
     } finally {
       if (requestId === this.requestId) this.loading.set(false)
     }
+  }
+
+  private async reloadTriggerDraft(xpertId: string, organizationId: string) {
+    const source = this.facade.triggerDraftSource()
+    const draft = this.facade.triggerDraft()
+    const latest = await firstValueFrom(this.api.getTeam(xpertId))
+    if (
+      this.facade.xpertId() !== xpertId ||
+      this.facade.organizationId() !== organizationId ||
+      source?.id !== xpertId ||
+      latest.id !== xpertId ||
+      this.facade.triggerDraftSource() !== source ||
+      this.facade.triggerDraft() !== draft
+    )
+      return
+
+    // Keep workspace settings current even if this settings dialog closes while the request is pending.
+    const next = { ...source, graph: latest.graph, draft: latest.draft }
+    this.facade.triggerDraftSource.set(next)
+    this.facade.triggerDraft.set(buildEditableXpertDraft(next))
+    this.facade.triggerDraftErrorMessage.set(null)
   }
 
   configure(card: AssistantTriggerCard) {
