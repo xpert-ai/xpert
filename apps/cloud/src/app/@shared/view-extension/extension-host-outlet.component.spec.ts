@@ -93,6 +93,45 @@ describe('ExtensionHostOutletComponent runtime scope discovery', () => {
     jest.clearAllMocks()
   })
 
+  it('recovers from an initial failure through retry while preserving the current runtime scope', async () => {
+    const retryResponse = new Subject<XpertExtensionViewManifest[]>()
+    api.getSlotViews
+      .mockReturnValueOnce(throwError(() => new Error('{"statusCode":503,"message":"Service unavailable"}')))
+      .mockReturnValueOnce(retryResponse)
+
+    const fixture = TestBed.createComponent(ExtensionHostOutletComponent)
+    fixture.componentRef.setInput('mode', 'single-view')
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('slot', 'agent.workbench.fixed')
+    fixture.componentRef.setInput('viewKey', 'docx-editor')
+    fixture.componentRef.setInput('runtimeScope', { projectId: 'project-member', conversationId: null })
+    await settle(fixture)
+
+    const root: HTMLElement = fixture.nativeElement
+    expect(root.querySelector('[role="alert"]')).not.toBeNull()
+    expect(root.querySelector('[data-error-state-message]')?.textContent?.trim()).toBe('Service unavailable')
+    expect(root.querySelector('details')?.open).toBe(false)
+    root.querySelector<HTMLButtonElement>('[data-error-state-retry]')!.click()
+    fixture.componentInstance.retryViews()
+    fixture.detectChanges()
+
+    expect(api.getSlotViews).toHaveBeenCalledTimes(2)
+    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+      runtimeScope: { projectId: 'project-member', conversationId: null }
+    })
+    expect(root.querySelector('[role="alert"]')).toBeNull()
+    expect(root.querySelector('[role="status"]')?.getAttribute('aria-busy')).toBe('true')
+
+    retryResponse.next([buildManifest([actions[0]])])
+    retryResponse.complete()
+    await settle(fixture)
+
+    expect(root.querySelector('[role="status"]')).toBeNull()
+    expect(fixture.componentInstance.error()).toBeNull()
+    expect(fixture.debugElement.query(By.directive(ViewRendererComponent))).not.toBeNull()
+  })
+
   it('refreshes role-filtered manifests by Project scope without replacing the mounted renderer', async () => {
     const memberManifest = buildManifest([actions[0]])
     const memberResponse = new Subject<XpertExtensionViewManifest[]>()

@@ -8463,6 +8463,8 @@
       "Search": "搜索",
       "NoData": "暂无数据",
       "Total": "总数",
+      "LoadFailed": "暂时无法加载此视图",
+      "LoadFailedHint": "请点击重试。如果问题持续出现，请联系管理员。",
       "RemoteComponentLoadFailed": "无法加载此视图",
       "RemoteComponentLoadFailedHint": "远程组件未能启动。请重试，或查看技术详情。",
       "Errors": {

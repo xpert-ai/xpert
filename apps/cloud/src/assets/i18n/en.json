@@ -4522,6 +4522,8 @@
       "Search": "Search",
       "NoData": "No data",
       "Total": "Total",
+      "LoadFailed": "Unable to load this view",
+      "LoadFailedHint": "Please try again. If the problem continues, contact your administrator.",
       "RemoteComponentLoadFailed": "Unable to load this view",
       "RemoteComponentLoadFailedHint": "The remote component did not start. Try again or review the technical details.",
       "Errors": {

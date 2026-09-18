@@ -6260,6 +6260,8 @@
       "Search": "搜索",
       "NoData": "暫無數據",
       "Total": "總數",
+      "LoadFailed": "暫時無法載入此檢視",
+      "LoadFailedHint": "請點擊重試。如果問題持續出現，請聯絡管理員。",
       "RemoteComponentLoadFailed": "無法載入此檢視",
       "RemoteComponentLoadFailedHint": "遠端元件未能啟動。請重試，或查看技術詳細資料。",
       "Errors": {

@@ -7,19 +7,39 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ViewRendererComponent } from './view-renderer.component'
 import { getErrorMessage } from '@cloud/app/@core/types'
+import { ErrorStateComponent } from '../common/error-state/error-state.component'
 
 @Component({
   standalone: true,
   selector: 'xp-extension-host-outlet',
-  imports: [CommonModule, TranslateModule, XpI18nPipe, ViewRendererComponent],
+  imports: [CommonModule, TranslateModule, XpI18nPipe, ViewRendererComponent, ErrorStateComponent],
+  host: {
+    class: 'block min-w-0',
+    '[class.h-full]': 'fillAvailableHeight()'
+  },
   template: `
-    @if (loading()) {
-      <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
-        {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
-      </div>
-    } @else if (error() && !hasRenderedView()) {
-      <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-5 text-sm text-text-tertiary">
-        {{ error() }}
+    @if (loading() || (error() && !hasRenderedView())) {
+      <div class="w-full overflow-y-auto" [class]="fillAvailableHeight() ? 'h-full min-h-0' : ''">
+        <div
+          class="flex w-full items-center justify-center px-4 py-8 sm:px-6"
+          [class]="fillAvailableHeight() ? 'min-h-full' : 'min-h-64'"
+        >
+          @if (loading()) {
+            <ng-container [ngTemplateOutlet]="loadingState" />
+          } @else {
+            <xp-error-state
+              class="w-full max-w-xl"
+              [error]="error()"
+              [title]="'XP.ViewExtension.LoadFailed' | translate: { Default: 'Unable to load this view' }"
+              [description]="
+                'XP.ViewExtension.LoadFailedHint'
+                  | translate: { Default: 'Please try again. If the problem continues, contact your administrator.' }
+              "
+              [retryable]="true"
+              (retry)="retryViews()"
+            />
+          }
+        </div>
       </div>
     } @else if (mode() === 'single-view') {
       @if (selectedView(); as view) {
@@ -78,14 +98,26 @@ import { getErrorMessage } from '@cloud/app/@core/types'
                 [active]="true"
               />
             } @placeholder {
-              <div class="rounded-2xl border border-divider-subtle px-4 py-5 text-sm text-text-tertiary">
-                {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+              <div class="flex min-h-48 items-center justify-center px-4 py-8">
+                <ng-container [ngTemplateOutlet]="loadingState" />
               </div>
             }
           </section>
         }
       </div>
     }
+
+    <ng-template #loadingState>
+      <div class="flex flex-col items-center gap-3 text-center" role="status" aria-live="polite" aria-busy="true">
+        <i
+          class="ri-loader-4-line inline-block animate-spin text-3xl leading-none text-text-secondary motion-reduce:animate-none"
+          aria-hidden="true"
+        ></i>
+        <p class="text-sm text-text-tertiary">
+          {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
+        </p>
+      </div>
+    </ng-template>
   `
 })
 export class ExtensionHostOutletComponent {
@@ -130,6 +162,23 @@ export class ExtensionHostOutletComponent {
         this.loadViews(++this.loadVersion, hostType, hostId, slot, mode, viewKey, runtimeScope, runtimeUserId)
       )
     })
+  }
+
+  retryViews() {
+    if (this.loading()) {
+      return
+    }
+
+    void this.loadViews(
+      ++this.loadVersion,
+      this.hostType(),
+      this.hostId(),
+      this.slot(),
+      this.mode(),
+      this.viewKey(),
+      this.runtimeScope(),
+      this.runtimeUserId()
+    )
   }
 
   private async loadViews(

@@ -1,8 +1,6 @@
-import { I18nObject, JsonSchemaObjectType } from "@xpert-ai/contracts"
+import { JsonSchemaObjectType, TWorkflowTriggerMeta } from '@xpert-ai/contracts'
 
-export type WorkflowTriggerProviderOption = {
-  name: string
-  label: I18nObject
+export type WorkflowTriggerProviderOption = Pick<TWorkflowTriggerMeta, 'name' | 'label' | 'quickConnect'> & {
   configSchema?: JsonSchemaObjectType
 }
 
