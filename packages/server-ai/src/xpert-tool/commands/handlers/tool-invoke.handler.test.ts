@@ -1,4 +1,4 @@
-import { ToolParameterForm, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { IXpertTool, ToolParameterForm, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -78,6 +78,56 @@ describe('ToolInvokeHandler', () => {
                         tools: [expect.objectContaining({ name: 'search', enabled: true })]
                     })
                 ]
+            })
+        )
+    })
+
+    it.each<{ name: string; parameters: IXpertTool['parameters'] }>([
+        { name: 'empty arguments', parameters: {} },
+        { name: 'omitted arguments', parameters: undefined },
+        {
+            name: 'structured arguments including context-like names',
+            parameters: {
+                query: 'xpert',
+                limit: 3,
+                filters: { enabled: false, tags: ['docs'] },
+                xpertId: 'mcp-argument',
+                agentKey: 'mcp-agent-argument'
+            }
+        }
+    ])('invokes MCP tools with JSON Schema and $name', async ({ parameters }) => {
+        const result = await handler.execute(
+            new ToolInvokeCommand({
+                name: 'mcp_tool',
+                schema: {
+                    type: 'object',
+                    properties: {
+                        query: { type: 'string' },
+                        limit: { type: 'number' },
+                        filters: { type: 'object' },
+                        xpertId: { type: 'string' },
+                        agentKey: { type: 'string' }
+                    }
+                },
+                parameters,
+                toolset: {
+                    id: 'mcp-toolset',
+                    workspaceId: 'workspace-1',
+                    name: 'MCP',
+                    type: 'mcp',
+                    category: XpertToolsetCategoryEnum.MCP
+                }
+            })
+        )
+
+        expect(result).toEqual({ content: [{ type: 'text', text: 'done' }] })
+        expect(executeTool).toHaveBeenCalledTimes(1)
+        expect(executeTool).toHaveBeenCalledWith(
+            expect.objectContaining({
+                toolsetId: 'mcp-toolset',
+                arguments: parameters ?? {},
+                xpertId: undefined,
+                agentKey: undefined
             })
         )
     })

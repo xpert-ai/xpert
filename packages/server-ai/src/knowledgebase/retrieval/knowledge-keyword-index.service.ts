@@ -3,6 +3,7 @@ import { t } from 'i18next'
 import { DataSource } from 'typeorm'
 
 export const KNOWLEDGE_KEYWORD_FTS_INDEX = 'IDX_knowledge_document_chunk_content_fts'
+export const KNOWLEDGE_KEYWORD_VECTOR_INDEX = 'IDX_knowledge_document_chunk_keyword_vector'
 export const KNOWLEDGE_KEYWORD_TRIGRAM_INDEX = 'IDX_knowledge_document_chunk_content_trgm'
 export const KNOWLEDGE_DOCUMENT_NAME_TRIGRAM_INDEX = 'IDX_knowledge_document_name_trgm'
 
@@ -21,6 +22,16 @@ export class KnowledgeKeywordIndexService {
     private readyStatus?: KnowledgeKeywordIndexStatus
 
     constructor(private readonly dataSource: DataSource) {}
+
+    async vectorStatus(): Promise<{ ready: boolean }> {
+        this.assertPostgres()
+        const [row] = await this.dataSource.query<{ ready: boolean }[]>(
+            `SELECT EXISTS (SELECT 1 FROM pg_index
+             WHERE indexrelid = to_regclass($1) AND indisready AND indisvalid) AS ready`,
+            [`"${KNOWLEDGE_KEYWORD_VECTOR_INDEX}"`]
+        )
+        return { ready: row?.ready === true }
+    }
 
     async status(): Promise<KnowledgeKeywordIndexStatus> {
         this.assertPostgres()

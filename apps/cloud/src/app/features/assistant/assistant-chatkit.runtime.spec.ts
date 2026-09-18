@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { createChatKit, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
@@ -27,6 +28,10 @@ jest.mock('../../app.service', () => ({
   AppService: class AppService {}
 }))
 
+jest.mock('../../@core/state/store.service', () => ({
+  Store: class Store {}
+}))
+
 jest.mock('../../@core', () => ({
   AssistantBindingService: class AssistantBindingService {},
   AssistantBindingScope: {
@@ -39,7 +44,7 @@ jest.mock('../../@core', () => ({
   AssistantCode: {
     CHATBI: 'chatbi'
   },
-  Store: class Store {},
+  Store: jest.requireMock('../../@core/state/store.service').Store,
   ToastrService: class ToastrService {},
   getErrorMessage: jest.fn((error?: { message?: string }) => error?.message ?? ''),
   resolveAbsoluteApiBaseUrl: jest.fn((value?: string | null) => {
@@ -89,6 +94,9 @@ describe('assistant chatkit runtime helpers', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     environment.API_BASE_URL = originalApiBaseUrl
+    TestBed.configureTestingModule({
+      providers: [{ provide: ZardDialogService, useValue: { open: jest.fn() } }]
+    })
   })
 
   it('normalizes host-owned MCP App sandbox configuration', () => {
@@ -202,6 +210,7 @@ describe('assistant chatkit runtime helpers', () => {
             token: 'token-1',
             token$: of('token-1'),
             organizationId: 'org-1',
+            hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
           }
         }
@@ -383,6 +392,7 @@ describe('assistant chatkit runtime helpers', () => {
             token: 'token-1',
             token$: of('token-1'),
             organizationId: 'org-1',
+            hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
           }
         }
@@ -449,6 +459,7 @@ describe('assistant chatkit runtime helpers', () => {
             token: 'token-1',
             token$: of('token-1'),
             organizationId: 'org-1',
+            hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
           }
         }
@@ -517,6 +528,7 @@ describe('assistant chatkit runtime helpers', () => {
             token: 'token-1',
             token$: of('token-1'),
             organizationId: 'org-1',
+            hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
           }
         }
@@ -568,6 +580,7 @@ describe('assistant chatkit runtime helpers', () => {
             token: 'platform-token-1',
             token$: of('platform-token-1'),
             organizationId: 'org-1',
+            hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
           }
         }
@@ -640,6 +653,7 @@ describe('assistant chatkit runtime helpers', () => {
             token: 'token-1',
             token$: of('token-1'),
             organizationId: 'org-1',
+            hasPermission: jest.fn(() => false),
             selectOrganizationId: () => of('org-1')
           }
         },

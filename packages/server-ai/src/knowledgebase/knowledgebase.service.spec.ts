@@ -131,6 +131,15 @@ function createService(params: {
     Object.defineProperty(service, 'vectorStoreSettings', {
         value: new VectorStoreSettingsService({ get: jest.fn(() => ({})) } as unknown as VectorStoreRegistry)
     })
+    Object.defineProperty(service, 'keywordAnalyzers', {
+        value: {
+            forCreate: jest.fn(() => ({
+                provider: 'basic',
+                revision: 'basic-unicode-nfkc-v1',
+                source: { kind: 'builtin' }
+            }))
+        }
+    })
     Object.defineProperty(service, 'commandBus', {
         value: params.commandBus
     })

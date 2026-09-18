@@ -77,6 +77,12 @@ class KnowledgebasePipelineDetailDTO implements Partial<IXpert> {
 @Exclude()
 export class KnowledgebaseDetailDTO implements Partial<IKnowledgebase> {
     @Expose()
+    declare keywordAnalyzer?: IKnowledgebase['keywordAnalyzer']
+
+    @Expose()
+    declare keywordAnalyzerLocked?: boolean
+
+    @Expose()
     declare vectorStore?: IKnowledgebase['vectorStore']
 
     @Expose()

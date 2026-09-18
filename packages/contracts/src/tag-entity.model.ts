@@ -14,7 +14,7 @@ export interface ITag extends IBasePerTenantAndOrganizationEntityModel {
   isSystem?: boolean
 }
 
-export type TagTarget = TagCategoryEnum | 'knowledgebase' | 'people' | 'integration'
+export type TagTarget = TagCategoryEnum | 'knowledgebase' | 'prompt_workflow' | 'people' | 'integration'
 
 export function getTagTargets(tag: ITag): TagTarget[] {
   return tag.targets?.length ? tag.targets : tag.category ? [tag.category] : []
@@ -53,6 +53,7 @@ export enum TagCategoryEnum {
 export const TAG_TARGETS: TagTarget[] = [
   TagCategoryEnum.XPERT,
   'knowledgebase',
+  'prompt_workflow',
   TagCategoryEnum.TOOLSET,
   TagCategoryEnum.INDICATOR,
   TagCategoryEnum.STORY,

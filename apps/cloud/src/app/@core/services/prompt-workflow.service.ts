@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PROMPT_WORKFLOW } from '../constants/app.constants'
-import { IPromptWorkflow, IXpert, TPromptWorkflow, TXpertCommandProfile } from '../types'
+import { IPromptWorkflow, IXpert, PromptWorkflowInput, TXpertCommandProfile } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import { resolvePromptWorkflowCapabilities } from '@xpert-ai/contracts'
 
 export type TPromptWorkflowSkillCommandExport = {
   name: string
@@ -18,6 +19,7 @@ export type TPromptWorkflowSkillCommandExport = {
     label?: string
     description?: string
     tags?: string[]
+    scenarios?: IPromptWorkflow['scenarios']
   }
   action: {
     type: 'submit_prompt'
@@ -32,11 +34,11 @@ export class PromptWorkflowAPIService extends XpertWorkspaceBaseCrudService<IPro
     super(API_PROMPT_WORKFLOW)
   }
 
-  createInWorkspace(workspaceId: string, body: Partial<TPromptWorkflow>) {
+  createInWorkspace(workspaceId: string, body: PromptWorkflowInput) {
     return this.httpClient.post<IPromptWorkflow>(`${this.apiBaseUrl}/workspace/${workspaceId}`, body)
   }
 
-  updateInWorkspace(workspaceId: string, id: string, body: Partial<TPromptWorkflow>) {
+  updateInWorkspace(workspaceId: string, id: string, body: PromptWorkflowInput) {
     return this.httpClient.put<IPromptWorkflow>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}`, body)
   }
 
@@ -55,10 +57,30 @@ export class PromptWorkflowAPIService extends XpertWorkspaceBaseCrudService<IPro
   }
 
   validateCommandProfile(workspaceId: string, profile: TXpertCommandProfile) {
-    return this.httpClient.post<TXpertCommandProfile>(`${this.apiBaseUrl}/workspace/${workspaceId}/validate-profile`, profile)
+    return this.httpClient.post<TXpertCommandProfile>(
+      `${this.apiBaseUrl}/workspace/${workspaceId}/validate-profile`,
+      profile
+    )
   }
 
-  exportSkillCommand(workflow: Pick<IPromptWorkflow, 'name' | 'label' | 'description' | 'icon' | 'category' | 'aliases' | 'argsHint' | 'template' | 'tags' | 'runtimeCapabilities'>): TPromptWorkflowSkillCommandExport {
+  exportSkillCommand(
+    workflow: Pick<
+      IPromptWorkflow,
+      | 'name'
+      | 'label'
+      | 'description'
+      | 'icon'
+      | 'category'
+      | 'aliases'
+      | 'argsHint'
+      | 'template'
+      | 'tags'
+      | 'scenarios'
+      | 'runtimeCapabilities'
+    >,
+    xpertId?: string
+  ): TPromptWorkflowSkillCommandExport {
+    const runtimeCapabilities = resolvePromptWorkflowCapabilities(workflow.runtimeCapabilities, xpertId)
     return {
       name: workflow.name,
       label: workflow.label,
@@ -73,12 +95,13 @@ export class PromptWorkflowAPIService extends XpertWorkspaceBaseCrudService<IPro
         name: workflow.name,
         label: workflow.label,
         description: workflow.description,
-        tags: workflow.tags
+        tags: workflow.tags,
+        scenarios: workflow.scenarios
       },
       action: {
         type: 'submit_prompt',
         template: workflow.template,
-        ...(workflow.runtimeCapabilities ? { runtimeCapabilities: workflow.runtimeCapabilities } : {})
+        ...(runtimeCapabilities ? { runtimeCapabilities } : {})
       }
     }
   }

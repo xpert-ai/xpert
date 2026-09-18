@@ -9,6 +9,7 @@ import { FileStorage } from '../file-storage'
 import { RequestContext } from '../../core'
 import { StorageFileService } from '../../storage-file/storage-file.service'
 import { TResolvedUploadSource, TUploadFileInput, TUploadFileSource } from './types'
+import { normalizeFileMimeType } from './file-content-type'
 
 @Injectable()
 export class UploadFileService {
@@ -18,7 +19,13 @@ export class UploadFileService {
 	) {}
 
 	async upload(input: TUploadFileInput): Promise<IFileAsset> {
-		const source = await this.resolveSource(input.source)
+		const resolved = await this.resolveSource(input.source)
+		const mimeType = normalizeFileMimeType(resolved.buffer, resolved.mimeType)
+		const source: TResolvedUploadSource = {
+			...resolved,
+			mimeType,
+			source: { ...resolved.source, mimeType }
+		}
 		const context = this.createContext(input)
 		const destinations = await Promise.all(
 			input.targets.map(async (target) => {

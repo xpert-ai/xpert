@@ -1,5 +1,12 @@
 {
     "Error": {
+        "InvalidPromptScenarios": "Each preset scenario needs a unique ID, a name and content. At most 20 scenarios are allowed.",
+        "KeywordAnalyzerInvalid": "Invalid keyword analyzer configuration.",
+        "KeywordAnalyzerExternal": "External knowledgebases do not support keyword analyzers.",
+        "KeywordAnalyzerUnavailable": "The selected keyword analyzer is not available.",
+        "KeywordAnalyzerLocked": "The keyword analyzer cannot be changed after documents have been added.",
+        "KeywordAnalyzerRevisionMismatch": "The installed analyzer no longer matches the version used by this knowledgebase.",
+        "KeywordAnalyzerChunkScopeRequired": "A knowledgebase is required to analyze a document chunk.",
         "SandboxRuntimeHealthTimeout": "Runtime health check timed out after {{seconds}} seconds. Retry when the host is less busy.",
         "SandboxRuntimeHealthSignal": "Runtime health check was terminated by signal {{signal}}.",
         "SandboxRuntimeHealthExit": "Runtime health check failed with exit code {{code}}.",
@@ -794,7 +801,8 @@
         "KnowledgeQuestionsBusy": "Questions are being generated. Try again later.",
         "KnowledgeQuestionsStale": "The source chunk changed. Regenerate its questions.",
         "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
-        "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter."
+        "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter.",
+        "PromptWorkflowAssociationsUnavailable": "The selected tags or experts are unavailable. Refresh and select items from this workspace."
     },
     "Mcp": {
         "Test": {

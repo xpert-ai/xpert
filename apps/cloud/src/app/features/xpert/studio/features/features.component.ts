@@ -77,6 +77,7 @@ export class XpertStudioFeaturesComponent {
   readonly features = linkedXpertFeaturesModel(this.apiService)
   readonly attachment = attrModel(this.features, 'attachment')
   readonly opener = attrModel(this.features, 'opener')
+  readonly frequentQuestions = attrModel(this.features, 'frequentQuestions')
   readonly suggestion = attrModel(this.features, 'suggestion')
   readonly textToSpeech = attrModel(this.features, 'textToSpeech')
   readonly speechToText = attrModel(this.features, 'speechToText')
@@ -87,6 +88,7 @@ export class XpertStudioFeaturesComponent {
   readonly maxNum = computed(() => this.attachment()?.maxNum)
 
   readonly opener_enabled = attrModel(this.opener, 'enabled')
+  readonly frequentQuestions_enabled = attrModel(this.frequentQuestions, 'enabled')
   readonly suggestion_enabled = attrModel(this.suggestion, 'enabled')
   readonly textToSpeech_enabled = attrModel(this.textToSpeech, 'enabled')
   readonly speechToText_enabled = attrModel(this.speechToText, 'enabled')

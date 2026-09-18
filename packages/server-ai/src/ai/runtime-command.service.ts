@@ -7,7 +7,10 @@ import type {
     TXpertCommandProfileEntry
 } from '@xpert-ai/contracts'
 import type { RuntimePromptWorkflowCommandSource } from '../prompt-workflow'
-import type { TRuntimeCapabilitiesSelection } from '../shared/agent/runtime-capabilities'
+import type {
+    TRuntimeCapabilitiesSelection,
+    TRuntimeCapabilitiesSelectionSet
+} from '../shared/agent/runtime-capabilities'
 import { normalizeRuntimeIcon } from './runtime-icon'
 import {
     BUILTIN_SLASH_COMMAND_NAMES,
@@ -287,7 +290,7 @@ export class RuntimeCommandService {
         )
         const action = compactObject<RuntimeSlashCommandAction>({
             type: this.getPromptWorkflowActionType(options),
-            template: this.getPromptWorkflowActionTemplate(source, options),
+            template: source.template,
             runtimeCapabilities
         })
 
@@ -297,6 +300,7 @@ export class RuntimeCommandService {
             name: source.name,
             label,
             description: source.description,
+            scenarios: source.scenarios,
             tags: nonEmptyArray(source.tags)
         })
 
@@ -319,15 +323,8 @@ export class RuntimeCommandService {
 
     private getPromptWorkflowActionType(
         options: RuntimePromptWorkflowCommandOptions
-    ): Extract<RuntimeSlashCommandAction['type'], 'insert_invocation' | 'submit_prompt'> {
-        return options.sourceType === 'workspace_prompt_workflow' ? 'insert_invocation' : 'submit_prompt'
-    }
-
-    private getPromptWorkflowActionTemplate(
-        source: RuntimePromptWorkflowCommandInput,
-        options: RuntimePromptWorkflowCommandOptions
-    ): string {
-        return options.sourceType === 'workspace_prompt_workflow' ? `/${source.name} ` : source.template
+    ): Extract<RuntimeSlashCommandAction['type'], 'insert_text' | 'submit_prompt'> {
+        return options.sourceType === 'workspace_prompt_workflow' ? 'insert_text' : 'submit_prompt'
     }
 
     private createSkillPromptWorkflow(
@@ -351,7 +348,8 @@ export class RuntimeCommandService {
             name: value?.name ?? defaults.name,
             label: value?.label ?? defaults.label,
             description,
-            tags: nonEmptyArray(tags)
+            tags: nonEmptyArray(tags),
+            scenarios: value?.scenarios
         })
     }
 }
@@ -455,19 +453,26 @@ function filterRuntimeCapabilitiesByAllowList(
     const restrictPlugins = Array.isArray(allowList?.pluginNodeKeys)
     const restrictSubAgents = Array.isArray(allowList?.subAgentNodeKeys)
 
-    return {
-        mode: 'allowlist',
+    const filterSelection = (selection: TRuntimeCapabilitiesSelectionSet): TRuntimeCapabilitiesSelectionSet => ({
         skills: compactObject<TRuntimeCapabilitiesSelection['skills']>({
             workspaceId,
-            ids: value.skills.ids.filter((id) => !restrictSkills || skillIds.has(id))
+            ids: selection.skills.ids.filter((id) => !restrictSkills || skillIds.has(id))
         }),
         plugins: {
-            nodeKeys: value.plugins.nodeKeys.filter((nodeKey) => !restrictPlugins || pluginNodeKeys.has(nodeKey))
+            nodeKeys: selection.plugins.nodeKeys.filter((nodeKey) => !restrictPlugins || pluginNodeKeys.has(nodeKey))
         },
         subAgents: {
-            nodeKeys: (value.subAgents?.nodeKeys ?? []).filter(
+            nodeKeys: (selection.subAgents?.nodeKeys ?? []).filter(
                 (nodeKey) => !restrictSubAgents || subAgentNodeKeys.has(nodeKey)
             )
-        }
+        },
+        // Connector access is checked by the connector runtime, separately from graph capabilities.
+        ...(selection.connectors ? { connectors: selection.connectors } : {})
+    })
+    return {
+        mode: 'allowlist',
+        ...filterSelection(value),
+        ...(value.inheritUnselected === true ? { inheritUnselected: true } : {}),
+        ...(value.recommended ? { recommended: filterSelection(value.recommended) } : {})
     }
 }

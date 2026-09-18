@@ -49,6 +49,11 @@ export type TXpertTitleFeature = {
 }
 
 export type TXpertFeatures = {
+  /** Generate start-screen questions from recurring intents in conversation history. */
+  frequentQuestions?: {
+    enabled: boolean
+  }
+
   opener: {
     enabled: boolean
     message: string

@@ -14,6 +14,39 @@ function runtimeCommand(name: string, source: RuntimeSlashCommand['source']): Ru
 }
 
 describe('RuntimeCommandService', () => {
+    it('keeps additive defaults and connector selections on prompt command actions', () => {
+        const service = new RuntimeCommandService()
+        const [command] = service.normalizePromptWorkflowRuntimeSlashCommands(
+            [
+                {
+                    name: 'report',
+                    sourceType: 'workspace_prompt_workflow',
+                    template: '{{args}}',
+                    runtimeCapabilities: {
+                        mode: 'allowlist',
+                        inheritUnselected: true,
+                        skills: { ids: ['allowed', 'missing'] },
+                        plugins: { nodeKeys: [] },
+                        connectors: { bindingIds: ['connector-1'] },
+                        recommended: { skills: { ids: ['allowed', 'missing'] }, plugins: { nodeKeys: [] } }
+                    }
+                }
+            ],
+            {
+                sourceType: 'workspace_prompt_workflow',
+                workspaceId: 'workspace-1',
+                allowList: { skillIds: ['allowed'], pluginNodeKeys: [], subAgentNodeKeys: [] }
+            }
+        )
+        expect(command.action).toMatchObject({
+            runtimeCapabilities: {
+                inheritUnselected: true,
+                skills: { ids: ['allowed'] },
+                connectors: { bindingIds: ['connector-1'] },
+                recommended: { skills: { ids: ['allowed'] } }
+            }
+        })
+    })
     it('normalizes valid skill runtime commands and injects the owning skill capability', () => {
         const service = new RuntimeCommandService()
 
@@ -253,6 +286,7 @@ describe('RuntimeCommandService', () => {
                         name: 'review',
                         label: 'Review',
                         description: 'Review selected files',
+                        scenarios: [{ id: 'annual', label: 'Annual review', args: 'Review annual results' }],
                         template: 'Review {{args}}',
                         runtimeCapabilities: {
                             mode: 'allowlist',
@@ -287,9 +321,12 @@ describe('RuntimeCommandService', () => {
                 category: 'prompt_workflow',
                 argsHint: '<args>',
                 kind: 'prompt_workflow',
+                workflow: expect.objectContaining({
+                    scenarios: [{ id: 'annual', label: 'Annual review', args: 'Review annual results' }]
+                }),
                 action: {
-                    type: 'insert_invocation',
-                    template: '/review ',
+                    type: 'insert_text',
+                    template: 'Review {{args}}',
                     runtimeCapabilities: {
                         mode: 'allowlist',
                         skills: {

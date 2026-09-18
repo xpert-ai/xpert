@@ -1,5 +1,11 @@
 import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
-import { KnowledgeAutomaticTaggingConfig, VectorTypeEnum, KnowledgeVectorStoreOptions } from '@xpert-ai/contracts'
+import { KeywordAnalyzerSettingsComponent } from './keyword-analyzer-settings.component'
+import {
+  KnowledgeAutomaticTaggingConfig,
+  KnowledgeKeywordAnalyzer,
+  KnowledgeVectorStoreOptions,
+  VectorTypeEnum
+} from '@xpert-ai/contracts'
 import { AutomaticTaggingSettingsComponent } from '../tags/automatic-tagging-settings.component'
 import { createKnowledgeProcessingForm } from '../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
@@ -85,6 +91,7 @@ type KnowledgeDialogData = {
   selector: 'xp-new-knowledge',
   standalone: true,
   imports: [
+    KeywordAnalyzerSettingsComponent,
     AutomaticTaggingSettingsComponent,
     KnowledgeTagsComponent,
     KnowledgeProcessingSettingsComponent,
@@ -170,6 +177,15 @@ export class XpertNewKnowledgeComponent {
 
   readonly vectorStore = model<VectorTypeEnum | 'system'>(this.#initialKnowledgebase?.vectorStore ?? 'system')
   readonly vectorStoreOptions = signal<KnowledgeVectorStoreOptions | null>(null)
+  readonly keywordAnalyzer = model<KnowledgeKeywordAnalyzer | null | undefined>(
+    this.#initialKnowledgebase?.id ? this.#initialKnowledgebase.keywordAnalyzer : undefined
+  )
+  readonly keywordAnalyzerLocked = computed(
+    () =>
+      (this.isEditMode() && this.keywordAnalyzer() === undefined) ||
+      !!this.existingKnowledgebase()?.keywordAnalyzerLocked ||
+      (this.existingKnowledgebase()?.documentNum ?? 0) > 0
+  )
 
   async loadVectorStores() {
     try {
@@ -494,6 +510,7 @@ export class XpertNewKnowledgeComponent {
         }
       : retrieval.graphRag
     const payload: Partial<IKnowledgebase> = {
+      ...(this.keywordAnalyzer() !== undefined ? { keywordAnalyzer: this.keywordAnalyzer() } : {}),
       name: this.name().trim(),
       description: this.description().trim() || undefined,
       copilotModel: this.copilotModel(),

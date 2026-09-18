@@ -108,6 +108,27 @@ function createXpert(middlewares: MiddlewareFixture[]): QueryXpert {
 }
 
 describe('ResolvePromptWorkflowInvocationHandler', () => {
+    it('leaves composer-expanded and edited prompt text untouched even when it starts with a slash', async () => {
+        const service = createPromptWorkflowService()
+        const registry = createAgentMiddlewareRegistry([])
+        const handler = new ResolvePromptWorkflowInvocationHandler(
+            service as unknown as PromptWorkflowServiceDependency,
+            registry as unknown as AgentMiddlewareRegistryDependency
+        )
+        const input = {
+            input: '/report user edited content',
+            commandSource: {
+                type: 'slash_command' as const,
+                name: 'report',
+                source: 'runtime' as const,
+                executionType: 'insert_text' as const,
+                kind: 'prompt_workflow' as const
+            }
+        }
+        expect(await handler.execute(new ResolvePromptWorkflowInvocationQuery({ id: 'expert-1' }, input))).toBeNull()
+        expect(input.input).toBe('/report user edited content')
+        expect(service.resolveRuntimeCommandProfile).not.toHaveBeenCalled()
+    })
     it('resolves required middleware insert_invocation commands before prompt workflows', async () => {
         const promptWorkflowService = createPromptWorkflowService()
         const agentMiddlewareRegistry = createAgentMiddlewareRegistry([
