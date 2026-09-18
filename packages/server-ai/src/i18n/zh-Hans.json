@@ -1,5 +1,6 @@
 {
     "Error": {
+        "KnowledgebaseProvisioningEmbeddingUnavailable": "可访问的 Copilot 模型提供商和当前工作空间的其他知识库中均未找到可用的嵌入模型。请配置嵌入模型及其使用权限后重试。",
         "ApplicationStandaloneAssistantConnected": "独立助手已连接到主助手。请先移除其委派连接，再修复应用初始化。",
         "IntegrationQrInvalid": "当前请求无法进行扫码授权。",
         "IntegrationQrBusy": "授权处理中，请稍后重试。",

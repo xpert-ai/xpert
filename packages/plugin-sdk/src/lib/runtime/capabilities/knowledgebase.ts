@@ -145,15 +145,18 @@ export type KnowledgebaseProvisioningSpec = {
   score?: number
   metadataSchema?: KnowledgebaseProvisioningMetadataField[]
   incrementalSyncEnabled?: boolean
+  /** Set the graph switch without replacing existing graph retrieval or extraction settings. */
+  graphRag?: { enabled: boolean }
 }
 
 export type KnowledgebaseEnsureInput = {
   workspaceId: string
   namespace: string
   /**
-   * Reuse the most recently updated accessible knowledgebase embedding-model configuration when
-   * creating a managed set. This keeps one-click provisioning usable without exposing provider
-   * credentials to plugins. Provisioning fails explicitly when no configured model is available.
+   * Fill missing embedding bindings from the current user's available Copilot provider catalog,
+   * falling back to the most recently updated ordinary knowledgebase in this workspace.
+   * Existing bindings are preserved. No provider credentials are exposed to plugins.
+   * Provisioning fails explicitly when a missing binding cannot be resolved.
    */
   inheritEmbeddingModel?: boolean
   knowledgebases: KnowledgebaseProvisioningSpec[]
