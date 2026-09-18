@@ -6274,6 +6274,8 @@
       }
     },
     "Xpert": {
+      "AutomaticFrequentQuestions": "自動常用問題",
+      "AutomaticFrequentQuestionsDescription": "根據最近 90 天內的 50 條對話，自動提煉最多 5 個常用問題，顯示在工作台新對話頁。結果快取 24 小時，到期後再次開啟新對話時更新。",
       "ModelSelection": {
         "PrimaryModel": "主要模型",
         "PrimaryModelDescription": "當使用者未選擇其他模型時預設使用。",

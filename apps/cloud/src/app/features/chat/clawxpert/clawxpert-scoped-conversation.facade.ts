@@ -23,6 +23,7 @@ export class ClawXpertScopedConversationFacade implements WorkbenchChatFacade, O
   readonly userId = this.shared.userId
   readonly assistantId = this.shared.assistantId
   readonly xpertId = this.shared.xpertId
+  readonly currentXpert = this.shared.currentXpert
   readonly assistantTitle = this.shared.assistantTitle
   readonly assistantAvatar = this.shared.assistantAvatar
   readonly initialLayout = this.shared.initialLayout

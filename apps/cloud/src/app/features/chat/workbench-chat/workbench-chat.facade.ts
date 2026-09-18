@@ -1,6 +1,6 @@
 import { InjectionToken, Signal } from '@angular/core'
 import { ChatKitControl } from '@xpert-ai/chatkit-angular'
-import type { TAvatar, TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import type { IXpert, TAvatar, TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import { IChatConversation } from '../../../@core'
 
 export type WorkbenchChatViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
@@ -16,6 +16,7 @@ export type WorkbenchChatFacade = {
   userId: Signal<string | null>
   assistantId: Signal<string | null>
   xpertId: Signal<string | null>
+  currentXpert?: Signal<IXpert | null>
   assistantTitle?: Signal<string | null>
   assistantAvatar?: Signal<TAvatar | null>
   initialLayout: Signal<XpertWorkbenchInitialLayoutEnum | null>

@@ -2830,6 +2830,8 @@
       "ProjectUpdated": "Project updated"
     },
     "Xpert": {
+      "AutomaticFrequentQuestions": "Automatic frequent questions",
+      "AutomaticFrequentQuestionsDescription": "Suggest up to 5 common questions on the workbench start screen using the latest 50 conversations from the past 90 days. Results are cached for 24 hours and refresh when starting a new conversation after expiry.",
       "MiddlewareViewFeatures": "View features",
       "MiddlewareFeatureUnnamed": "Capability name not provided",
       "MiddlewareFeatureViewsLoading": "Loading linked views...",

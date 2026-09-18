@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common'
+import { injectDataSourceCreateCommand } from './data-source-create.runtime'
 import { HttpClient } from '@angular/common/http'
 import { computed, effect, inject, isSignal, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -232,6 +233,7 @@ export function injectAssistantBindingRuntimeState(input: AssistantBindingRuntim
 }
 
 export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntimeInput) {
+  injectDataSourceCreateCommand()
   const document = inject(DOCUMENT)
   const translate = inject(TranslateService)
   const toastr = inject(ToastrService)

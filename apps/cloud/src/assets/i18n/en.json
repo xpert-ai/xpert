@@ -4501,6 +4501,8 @@
       }
     },
     "Xpert": {
+      "AutomaticFrequentQuestions": "Automatic frequent questions",
+      "AutomaticFrequentQuestionsDescription": "Suggest up to 5 common questions on the workbench start screen using the latest 50 conversations from the past 90 days. Results are cached for 24 hours and refresh when starting a new conversation after expiry.",
       "ModelSelection": {
         "PrimaryModel": "Primary model",
         "PrimaryModelDescription": "Used by default when the user has not selected another model.",

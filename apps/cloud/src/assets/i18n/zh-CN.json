@@ -3798,6 +3798,8 @@
       "UseExistingPersonalAccount": "使用我已有的账号"
     },
     "Xpert": {
+      "AutomaticFrequentQuestions": "自动常用问题",
+      "AutomaticFrequentQuestionsDescription": "根据最近 90 天内的 50 条对话，自动提炼最多 5 个常用问题，显示在工作台新对话页。结果缓存 24 小时，到期后再次打开新对话时更新。",
       "ModelSelection": {
         "PrimaryModel": "主模型",
         "PrimaryModelDescription": "当用户未选择其他模型时默认使用。",
