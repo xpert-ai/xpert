@@ -1,5 +1,7 @@
 {
     "Error": {
+        "DockerSandboxStartupTimeout": "Sandbox {{containerId}} HTTP API did not become ready within 30 seconds.",
+        "DockerSandboxAddressUnavailable": "Cannot resolve the HTTP address of sandbox {{containerId}}: Docker container details are unavailable.",
         "InvalidPromptScenarios": "Each preset scenario needs a unique ID, a name and content. At most 20 scenarios are allowed.",
         "KeywordAnalyzerInvalid": "Invalid keyword analyzer configuration.",
         "KeywordAnalyzerExternal": "External knowledgebases do not support keyword analyzers.",
