@@ -1,0 +1,30 @@
+{
+  "imageFamily": "document-java",
+  "repositories": {
+    "ghcr": "ghcr.io/xpert-ai/xpert-sandbox-document-java",
+    "dockerhub": "metadc/xpert-sandbox-document-java",
+    "acr": "registry.cn-hangzhou.aliyuncs.com/metad/xpert-sandbox-document-java"
+  },
+  "runtimeContractVersion": "1",
+  "profileName": "document/java-17/v1",
+  "nodeVersion": "20.20.2",
+  "platforms": ["linux/amd64"],
+  "capabilities": ["document.markdown", "document.java", "document.ocr", "sandbox.action.v1"],
+  "dockerfile": "images/document-java/Dockerfile",
+  "manifest": "images/document-java/runtime/manifest.json",
+  "runner": "images/browser/runtime/runner-host.mjs",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/document-java-17-v1.json",
+  "artifactCatalogTemplate": "images/document-java/artifact-catalog.template.json",
+  "smokeCommand": [
+    "node",
+    "/opt/xpert/sandbox-runtime/verify-document-runtime.mjs",
+    "/opt/xpert/sandbox-runtime/manifest.json",
+    "/opt/xpert/sandbox-runtime/dependencies.lock.json",
+    "/opt/xpert/document-dependencies"
+  ],
+  "baseImages": {
+    "node": "node:20.20.2-bookworm-slim@sha256:3d0f05455dea2c82e2f76e7e2543964c30f6b7d673fc1a83286736d44fe4c41c",
+    "python": "python:3.12.10-slim-bookworm@sha256:fd95fa221297a88e1cf49c55ec1828edd7c5a428187e67b5d1805692d11588db"
+  },
+  "dependenciesLock": "images/document-java/dependencies.lock.json"
+}

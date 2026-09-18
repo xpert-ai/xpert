@@ -12,6 +12,7 @@ jest.mock('@cloud/app/@shared/knowledge', () => ({
 }))
 
 import { XpertNewKnowledgeComponent } from './new.component'
+import { VectorTypeEnum } from '@xpert-ai/contracts'
 import type { ICopilotModel } from '@xpert-ai/contracts'
 
 describe('XpertNewKnowledgeComponent', () => {
@@ -48,6 +49,9 @@ describe('XpertNewKnowledgeComponent', () => {
         {
           provide: KnowledgebaseService,
           useValue: {
+            getVectorStores: jest.fn(() =>
+              of({ default: VectorTypeEnum.PGVECTOR, stores: [{ type: VectorTypeEnum.MILVUS }] })
+            ),
             create: jest.fn(),
             update: jest.fn(() => of({ id: 'kb-1' })),
             updateWikiConfiguration: jest.fn(() => of({ id: 'kb-1' }))
@@ -58,6 +62,35 @@ describe('XpertNewKnowledgeComponent', () => {
 
     return TestBed.runInInjectionContext(() => new XpertNewKnowledgeComponent())
   }
+
+  it('loads available stores and submits the selected Milvus backend', async () => {
+    const component = createComponent({ workspaceId: 'workspace' })
+    await component.loadVectorStores()
+    expect(component.vectorStoreOptions()?.stores).toContainEqual({ type: VectorTypeEnum.MILVUS })
+    component.name.set('Documents')
+    component.copilotModel.set({ id: 'embedding' })
+    component.vectorStore.set(VectorTypeEnum.MILVUS)
+    const api = TestBed.inject(KnowledgebaseService)
+    jest.mocked(api.create).mockReturnValue(of({ id: 'kb' }))
+    component.create()
+    expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ vectorStore: VectorTypeEnum.MILVUS }))
+  })
+
+  it('restores saved storage and omits it from ordinary settings updates', async () => {
+    const component = createComponent({
+      knowledgebase: {
+        id: 'kb',
+        name: 'Documents',
+        type: KnowledgebaseTypeEnum.Standard,
+        copilotModel: { id: 'embedding' },
+        vectorStore: VectorTypeEnum.MILVUS
+      }
+    })
+    expect(component.vectorStore()).toBe(VectorTypeEnum.MILVUS)
+    await component.save()
+    const api = TestBed.inject(KnowledgebaseService)
+    expect(jest.mocked(api.updateWikiConfiguration).mock.calls[0][1].settings).not.toHaveProperty('vectorStore')
+  })
 
   it('requires semantic parameters and submits them only when creating a semantic FAQ library', () => {
     const component = createComponent({ workspaceId: 'workspace' })

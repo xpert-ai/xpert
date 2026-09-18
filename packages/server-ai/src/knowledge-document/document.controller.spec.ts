@@ -52,6 +52,7 @@ describe('KnowledgeDocumentController original file preview', () => {
             {} as never,
             {} as never,
             {} as never,
+            {} as never,
             {} as never
         )
     })
@@ -147,6 +148,7 @@ describe('KnowledgeDocumentController chunk estimate', () => {
             {} as never,
             {} as never,
             { execute } as never,
+            {} as never,
             {} as never,
             {} as never
         )
@@ -290,6 +292,7 @@ describe('KnowledgeDocumentController table estimate', () => {
             {} as never,
             { execute } as never,
             {} as never,
+            {} as never,
             {} as never
         )
         const preview = await controller.estimateTable({
@@ -324,6 +327,7 @@ describe('KnowledgeDocumentController parent knowledgebase access', () => {
         }
         const controller = new KnowledgeDocumentController(
             service as never,
+            {} as never,
             {} as never,
             {} as never,
             {} as never,
@@ -429,6 +433,7 @@ describe('KnowledgeDocumentController detail query pipeline', () => {
             {} as never,
             {} as never,
             {} as never,
+            {} as never,
             {} as never
         )
         return { controller, service }
@@ -506,6 +511,7 @@ describe('KnowledgeDocumentController create storage access', () => {
             {} as never,
             {} as never,
             {} as never,
+            {} as never,
             {} as never
         )
         return { controller, service }
@@ -570,6 +576,7 @@ describe('KnowledgeDocumentController web integration access', () => {
             integrationService as never,
             commandBus as never,
             {} as never,
+            {} as never,
             {} as never
         )
         return { controller, integrationService, commandBus }
@@ -610,5 +617,57 @@ describe('KnowledgeDocumentController web integration access', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
 
         expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+})
+
+describe('KnowledgeDocumentController tagged imports', () => {
+    const tagId = '00000000-0000-0000-0000-000000000001'
+    function setup() {
+        const events: string[] = []
+        const service = {
+            assertKnowledgebaseWriteAccess: jest.fn(),
+            assertOwnedStorageFiles: jest.fn(),
+            prepareExternalDocumentInputs: jest.fn(),
+            createBulkWithIncrementalSync: jest.fn(),
+            startProcessing: jest.fn(async () => {
+                events.push('process')
+            })
+        }
+        const importer = {
+            create: jest.fn(async () => {
+                events.push('commit')
+                return { documents: [{ id: 'doc' }], processableIds: ['doc'] }
+            })
+        }
+        const controller = new KnowledgeDocumentController(
+            service as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            importer as never
+        )
+        return { controller, service, importer, events }
+    }
+
+    it('dispatches parsing only after tagged import succeeds', async () => {
+        const f = setup()
+        const documents = [{ knowledgebaseId: 'kb', name: 'doc' }]
+        await f.controller.createBulk({ documents, tagIds: [tagId] }, true)
+        expect(f.importer.create).toHaveBeenCalledWith(documents, [tagId])
+        expect(f.events).toEqual(['commit', 'process'])
+        expect(f.service.createBulkWithIncrementalSync).not.toHaveBeenCalled()
+    })
+
+    it('does not dispatch parsing or fall back to untagged creation on assignment failure', async () => {
+        const f = setup()
+        f.importer.create.mockRejectedValueOnce(new Error('tag unavailable'))
+        await expect(
+            f.controller.createBulk({ documents: [{ knowledgebaseId: 'kb' }], tagIds: [tagId] }, true)
+        ).rejects.toThrow('tag unavailable')
+        expect(f.service.startProcessing).not.toHaveBeenCalled()
+        expect(f.service.createBulkWithIncrementalSync).not.toHaveBeenCalled()
     })
 })

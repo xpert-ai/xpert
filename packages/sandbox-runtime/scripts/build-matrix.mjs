@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { imageVersionTag } from './image-version-tag.mjs'
 
 const packageRoot = new URL('../', import.meta.url)
 const catalog = JSON.parse(await readFile(new URL('images/catalog.json', packageRoot), 'utf8'))
@@ -18,9 +19,7 @@ for (const entry of catalog.images) {
     dockerfile: `packages/sandbox-runtime/${image.dockerfile}`,
     context: '.',
     version: packageJson.version,
-    versionTag: image.playwrightVersion
-      ? `${packageJson.version}-pw${image.playwrightVersion}`
-      : `${packageJson.version}-lo${image.libreOfficeMajorVersion}`,
+    versionTag: imageVersionTag(image, packageJson.version),
     profileName: image.profileName,
     repositories: image.repositories,
     smokeCommand: image.smokeCommand.join(' '),

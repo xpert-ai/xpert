@@ -15,16 +15,17 @@ export type ViewClientCommandHandler = (
 
 @Injectable({ providedIn: 'root' })
 export class ViewClientCommandRegistry {
-  readonly #handlers = new Map<string, ViewClientCommandHandler[]>()
+  readonly #handlers = new Map<string, { handler: ViewClientCommandHandler; active: () => boolean }[]>()
 
-  register(commandKey: string, handler: ViewClientCommandHandler) {
+  register(commandKey: string, handler: ViewClientCommandHandler, active: () => boolean = () => true) {
     const handlers = this.#handlers.get(commandKey) ?? []
-    handlers.push(handler)
+    const entry = { handler, active }
+    handlers.push(entry)
     this.#handlers.set(commandKey, handlers)
 
     return () => {
       const current = this.#handlers.get(commandKey) ?? []
-      const next = current.filter((item) => item !== handler)
+      const next = current.filter((item) => item !== entry)
       if (next.length) {
         this.#handlers.set(commandKey, next)
       } else {
@@ -34,7 +35,7 @@ export class ViewClientCommandRegistry {
   }
 
   async execute(commandKey: string, payload: unknown, context: ViewClientCommandContext) {
-    const handler = this.#handlers.get(commandKey)?.at(-1)
+    const handler = this.#handlers.get(commandKey)?.findLast((entry) => entry.active())?.handler
     if (!handler) {
       return {
         success: false,

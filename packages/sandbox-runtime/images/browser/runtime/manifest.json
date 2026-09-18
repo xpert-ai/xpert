@@ -1,5 +1,5 @@
 {
-  "sandboxRuntimeVersion": "1.2.1",
+  "sandboxRuntimeVersion": "1.2.3",
   "imageFamily": "browser",
   "profileName": "browser/playwright-1.61/v1",
   "contractVersion": "1",

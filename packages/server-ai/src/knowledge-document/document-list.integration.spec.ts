@@ -58,6 +58,7 @@ postgresDescribe('Ordinary document lists exclude internal index records', () =>
             {} as never,
             {} as never,
             {} as never,
+            {} as never,
             {} as never
         )
     })

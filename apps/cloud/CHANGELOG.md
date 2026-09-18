@@ -1,5 +1,43 @@
 # @xpert-ai/xpert-ui
 
+## 3.18.6
+
+### Patch Changes
+
+- 9a2a2a0: Transcribe scanned pages through the existing image-understanding model, retain page order, skip embedded placeholder pixels, invalidate older image results, and display localized image-recognition notices.
+- 089e3ff: Accept upload formats advertised by registered parsers, process plugin-converted spreadsheets as document text, preserve shared processing settings, and translate bounded parser errors including unsupported CSV encoding.
+- 983b730: Prepare the Xpert 3.18.6 patch release, including plugin-sdk.
+
+  Extend decorated MCP capabilities and structured knowledge graph runtime contracts.
+  Improve document parsing and scanned-page understanding, semantic FAQ exclusion,
+  manual tags during document import, and per-knowledgebase vector storage selection.
+  Include schema-driven sliders and the scoped database workbench adapter.
+
+  The target platform version is 3.18.6. Verify contracts, plugin-sdk, and xpert-ui
+  all resolve to this version in the release version PR, including changelogs,
+  internal dependency references, and lockfile entries. Publish the separately
+  versioned Runtime Suite source images before creating platform-version aliases.
+
+- 437dd75: Render schema-driven sliders with minimum, maximum, step and read-only constraints for numeric parser settings.
+
+## 3.18.5
+
+### Patch Changes
+
+- 8402f72: Prepare the Xpert 3.18.5 patch release, including plugin-sdk.
+
+  Add knowledge document chunk token limits, question generation, automatic and
+  structure-aware chunking, spreadsheet table metadata, and format-specific scoped
+  parsers with diagnostics. Preserve OCR chunk limits and table context.
+
+  Extend MCP resource reads with scoped workspace files and the requested resource
+  URI, preserve confirmation sessions, and reauthorize queued execution. Add PPTX
+  preview and editing with binary workspace saves and edited downloads.
+
+  The target platform version is 3.18.5. Verify contracts, plugin-sdk, and xpert-ui
+  all resolve to this version in the release version PR, including changelogs,
+  internal dependency references, and lockfile entries.
+
 ## 3.18.4
 
 ### Patch Changes

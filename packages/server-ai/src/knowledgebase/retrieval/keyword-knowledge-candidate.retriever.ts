@@ -1,6 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { DocumentMetadata } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { t } from 'i18next'
 import { DataSource } from 'typeorm'
@@ -10,6 +10,7 @@ import { shiftKnowledgeFilterParameters } from '../filter/knowledge-graph-filter
 import { KnowledgeCandidateRetriever, KnowledgeRetrievalBatch, KnowledgeRetrievalRequest } from './types'
 import { KnowledgeKeywordIndexService } from './knowledge-keyword-index.service'
 import { postgresContentScopePredicate } from './content-scope'
+import { KnowledgeKeywordAnalyzerService } from '../analyzer/keyword-analyzer.service'
 
 const MAX_KEYWORD_TERMS = 12
 const MAX_KEYWORD_CANDIDATES = 400
@@ -101,6 +102,9 @@ function toKeywordDocument(row: KeywordParentRow | KeywordCandidateRow, keywordS
 
 @Injectable()
 export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRetriever {
+    @Inject(KnowledgeKeywordAnalyzerService)
+    private readonly keywordAnalyzers: KnowledgeKeywordAnalyzerService
+
     readonly source = 'keyword' as const
 
     constructor(
@@ -121,7 +125,7 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
         const normalizedQuery = normalizeKeywordQuery(request.query)
         const terms = extractKeywordTerms(normalizedQuery)
         const diagnostics = { ...request.preparedFilter.diagnostics }
-        if (!normalizedQuery || !terms.length) {
+        if (!normalizedQuery || (!request.knowledgebase.keywordAnalyzer && !terms.length)) {
             return {
                 source: this.source,
                 candidates: [],
@@ -138,7 +142,27 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
 
         const startedAt = Date.now()
         try {
-            const indexStatus = await this.keywordIndexService.status()
+            const analyzedQuery = request.knowledgebase.keywordAnalyzer
+                ? await this.keywordAnalyzers.query(request.knowledgebase, request.query)
+                : undefined
+            if (analyzedQuery === '') {
+                return {
+                    source: this.source,
+                    candidates: [],
+                    exhausted: true,
+                    diagnostics: {
+                        ...diagnostics,
+                        keywordLatency: Date.now() - startedAt,
+                        keywordCandidateCount: 0,
+                        keywordBranchHitCount: 0,
+                        hitCount: 0
+                    }
+                }
+            }
+            const indexStatus =
+                analyzedQuery !== undefined
+                    ? await this.keywordIndexService.vectorStatus()
+                    : await this.keywordIndexService.status()
             diagnostics.keywordIndexStatus = indexStatus.ready ? 'ready' : 'missing'
             if (!indexStatus.ready) {
                 const defaultValue =
@@ -157,7 +181,9 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             const window = request.faqSession
                 ? request.faqSession.budget.reserveCandidates(requestedWindow)
                 : requestedWindow
-            const rows = window ? await this.searchCandidates(request, normalizedQuery, terms, window) : []
+            const rows = window
+                ? await this.searchCandidates(request, normalizedQuery, terms, window, analyzedQuery)
+                : []
             diagnostics.keywordCandidateCount = rows.length
             const documents = await this.resolveDocuments(request, rows)
             diagnostics.keywordLatency = Date.now() - startedAt
@@ -201,7 +227,8 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
         request: KnowledgeRetrievalRequest,
         normalizedQuery: string,
         terms: string[],
-        window: number
+        window: number,
+        analyzedQuery?: string
     ): Promise<KeywordCandidateRow[]> {
         const { knowledgebase: kb, preparedFilter } = request
         const parameters: unknown[] = [request.scope.tenantId, request.scope.organizationId, kb.id]
@@ -213,22 +240,28 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
 
         parameters.push(normalizedQuery)
         const exactQueryParameter = `$${parameters.length}`
-        const fullTextMatch =
-            `to_tsvector('simple', COALESCE(c."pageContent", '')) ` +
-            `@@ plainto_tsquery('simple', ${exactQueryParameter})`
-        const fullTextRank =
-            `ts_rank_cd(to_tsvector('simple', COALESCE(c."pageContent", '')), ` +
-            `plainto_tsquery('simple', ${exactQueryParameter}))`
-        const phrasePatternParameter = supportsTrigramSearch(normalizedQuery)
-            ? (() => {
-                  parameters.push(`%${escapeLike(normalizedQuery)}%`)
-                  return `$${parameters.length}`
-              })()
-            : undefined
-        const termPatternParameters = terms.filter(supportsTrigramSearch).map((term) => {
-            parameters.push(`%${escapeLike(term)}%`)
-            return `$${parameters.length}`
-        })
+        const vectorExpression =
+            analyzedQuery !== undefined ? 'c."keywordVector"' : `to_tsvector('simple', COALESCE(c."pageContent", ''))`
+        if (analyzedQuery !== undefined) parameters.push(analyzedQuery)
+        const queryExpression =
+            analyzedQuery !== undefined
+                ? `$${parameters.length}::tsquery`
+                : `plainto_tsquery('simple', ${exactQueryParameter})`
+        const fullTextMatch = `${vectorExpression} @@ ${queryExpression}`
+        const fullTextRank = `ts_rank_cd(${vectorExpression}, ${queryExpression})`
+        const phrasePatternParameter =
+            analyzedQuery === undefined && supportsTrigramSearch(normalizedQuery)
+                ? (() => {
+                      parameters.push(`%${escapeLike(normalizedQuery)}%`)
+                      return `$${parameters.length}`
+                  })()
+                : undefined
+        const termPatternParameters = (analyzedQuery === undefined ? terms : [])
+            .filter(supportsTrigramSearch)
+            .map((term) => {
+                parameters.push(`%${escapeLike(term)}%`)
+                return `$${parameters.length}`
+            })
         const searchableExpressions = [phrasePatternParameter, ...termPatternParameters]
             .filter((parameter): parameter is string => !!parameter)
             .map(

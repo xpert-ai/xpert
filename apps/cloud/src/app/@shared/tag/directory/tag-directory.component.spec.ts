@@ -379,7 +379,7 @@ describe('TagDirectoryComponent', () => {
   })
 
   it.each([RequestScopeLevel.ORGANIZATION, RequestScopeLevel.TENANT])(
-    'offers only knowledge bases and digital experts in the filter and editor at %s scope',
+    'offers knowledge bases, digital experts and prompts in the filter and editor at %s scope',
     async (level) => {
       scope.next(level === RequestScopeLevel.TENANT ? { level } : { level, organizationId: 'org-1' })
       const fixture = await render()
@@ -388,7 +388,7 @@ describe('TagDirectoryComponent', () => {
       fixture.detectChanges()
       expect(
         Array.from(document.querySelectorAll('[role="listbox"] [role="option"]'), (item) => item.getAttribute('value'))
-      ).toEqual(['all', 'knowledgebase', 'xpert'])
+      ).toEqual(['all', 'knowledgebase', 'xpert', 'prompt_workflow'])
       filter.click()
       fixture.detectChanges()
 
@@ -397,7 +397,8 @@ describe('TagDirectoryComponent', () => {
       const editor = document.querySelector('#tag-directory-form')
       expect(Array.from(editor.querySelectorAll('z-checkbox'), (item) => item.textContent.trim())).toEqual([
         'XP.TagDirectory.Target.knowledgebase',
-        'XP.TagDirectory.Target.xpert'
+        'XP.TagDirectory.Target.xpert',
+        'XP.TagDirectory.Target.prompt_workflow'
       ])
       expect(editor.textContent).not.toContain('XP.TagDirectory.LegacyTargetsRetained')
     }

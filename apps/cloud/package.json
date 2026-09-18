@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/xpert-ui",
-  "version": "3.18.4",
+  "version": "3.18.6",
   "private": true,
   "type": "commonjs",
   "license": "AGPL-3.0",
@@ -27,8 +27,8 @@
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "@xpert-ai/chatkit-angular": "~0.4.3",
-    "@xpert-ai/chatkit-ui": "~0.5.10",
-    "@xpert-ai/chatkit-types": "~0.5.8",
+    "@xpert-ai/chatkit-ui": "~0.5.13",
+    "@xpert-ai/chatkit-types": "~0.5.9",
     "@xpert-ai/chatkit-web-component": "~0.5.4",
     "@xpert-ai/chatkit-web-shared": "~0.4.4",
     "@xpert-ai/store": "3.9.1",

@@ -1,5 +1,11 @@
 import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
-import { KnowledgeAutomaticTaggingConfig } from '@xpert-ai/contracts'
+import { KeywordAnalyzerSettingsComponent } from './keyword-analyzer-settings.component'
+import {
+  KnowledgeAutomaticTaggingConfig,
+  KnowledgeKeywordAnalyzer,
+  KnowledgeVectorStoreOptions,
+  VectorTypeEnum
+} from '@xpert-ai/contracts'
 import { AutomaticTaggingSettingsComponent } from '../tags/automatic-tagging-settings.component'
 import { createKnowledgeProcessingForm } from '../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../processing/processing-settings.component'
@@ -85,6 +91,7 @@ type KnowledgeDialogData = {
   selector: 'xp-new-knowledge',
   standalone: true,
   imports: [
+    KeywordAnalyzerSettingsComponent,
     AutomaticTaggingSettingsComponent,
     KnowledgeTagsComponent,
     KnowledgeProcessingSettingsComponent,
@@ -167,6 +174,26 @@ export class XpertNewKnowledgeComponent {
     },
     { key: 'storage', group: 'Storage', labelKey: 'Sections.Storage', icon: 'ri-hard-drive-3-line', status: 'preview' }
   ]
+
+  readonly vectorStore = model<VectorTypeEnum | 'system'>(this.#initialKnowledgebase?.vectorStore ?? 'system')
+  readonly vectorStoreOptions = signal<KnowledgeVectorStoreOptions | null>(null)
+  readonly keywordAnalyzer = model<KnowledgeKeywordAnalyzer | null | undefined>(
+    this.#initialKnowledgebase?.id ? this.#initialKnowledgebase.keywordAnalyzer : undefined
+  )
+  readonly keywordAnalyzerLocked = computed(
+    () =>
+      (this.isEditMode() && this.keywordAnalyzer() === undefined) ||
+      !!this.existingKnowledgebase()?.keywordAnalyzerLocked ||
+      (this.existingKnowledgebase()?.documentNum ?? 0) > 0
+  )
+
+  async loadVectorStores() {
+    try {
+      this.vectorStoreOptions.set(await firstValueFrom(this.knowledgebaseService.getVectorStores()))
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    }
+  }
 
   readonly name = model<string>(this.#initialKnowledgebase?.name ?? '')
   readonly description = model<string>(this.#initialKnowledgebase?.description ?? '')
@@ -261,11 +288,13 @@ export class XpertNewKnowledgeComponent {
   })
 
   constructor() {
+    if (this.activeSection() === 'vector-storage') void this.loadVectorStores()
     if (['parser', 'chunk'].includes(this.activeSection())) void this.processing.loadStrategies()
   }
 
   selectSection(section: SectionKey) {
     this.activeSection.set(section)
+    if (section === 'vector-storage' && !this.vectorStoreOptions()) void this.loadVectorStores()
     if (['parser', 'chunk'].includes(section)) void this.processing.loadStrategies()
   }
 
@@ -481,6 +510,7 @@ export class XpertNewKnowledgeComponent {
         }
       : retrieval.graphRag
     const payload: Partial<IKnowledgebase> = {
+      ...(this.keywordAnalyzer() !== undefined ? { keywordAnalyzer: this.keywordAnalyzer() } : {}),
       name: this.name().trim(),
       description: this.description().trim() || undefined,
       copilotModel: this.copilotModel(),
@@ -498,6 +528,8 @@ export class XpertNewKnowledgeComponent {
     if (!this.isEditMode()) {
       payload.workspaceId = this.workspaceId()
       payload.type = this.type()
+      const vectorStore = this.vectorStore()
+      if (vectorStore !== 'system') payload.vectorStore = vectorStore
       if (this.isFAQ()) {
         const config = this.faqConfig()
         const { threshold, margin } = this.faqSemanticForm.getRawValue()

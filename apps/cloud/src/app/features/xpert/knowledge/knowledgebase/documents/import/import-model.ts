@@ -10,6 +10,7 @@ import {
 } from '@xpert-ai/contracts'
 import { v4 as uuid } from 'uuid'
 import { cloneDeep, pick } from 'lodash-es'
+import { applySpreadsheetParserMode } from '../../../processing/spreadsheet-parser-mode'
 
 export type DocumentImportSource = 'files' | 'folder' | 'url' | 'crawl' | 'remote' | 'online' | 'pipeline'
 export type KnowledgePipelineImportResult = { taskId: string }
@@ -29,7 +30,7 @@ export function quickWebOptions(url: string): TRagWebOptions {
   return { url: url.trim(), params: { mode: 'scrape' } }
 }
 
-/** Shared controls own chunking and table defaults; conversion settings retain their own draft. */
+/** Shared controls own processing settings; spreadsheet conversion retains its own draft. */
 export function mergeSheetProcessingConfig(
   sheetConfig: ImportParserConfig,
   processingConfig: ImportParserConfig
@@ -45,6 +46,11 @@ export function mergeSheetProcessingConfig(
       'chunkLanguageHint',
       'delimiter',
       'separators',
+      'imageUnderstandingEnabled',
+      'imageUnderstandingType',
+      'imageUnderstandingIntegration',
+      'imageUnderstanding',
+      'imageUnderstandingModel',
       'questionGeneration',
       'tableMetadataRequirements'
     ]),
@@ -130,14 +136,20 @@ function importedSheetConfig(
     options?.tableOverrides?.tableMetadataRequirements ??
     document.parserConfig?.tableMetadataRequirements ??
     merged.tableMetadataRequirements
-  return {
-    ...newSheetImportConfig(merged),
-    ...knowledgebaseParserSelection(options, knowledgeDocumentFileType(document)),
-    ...(firstRowAsHeader !== undefined
-      ? { spreadsheet: { ...newSheetImportConfig(merged).spreadsheet, firstRowAsHeader } }
-      : {}),
-    ...(requirements !== undefined ? { tableMetadataRequirements: requirements } : {})
-  }
+  const selection = knowledgebaseParserSelection(options, knowledgeDocumentFileType(document))
+  return applySpreadsheetParserMode(
+    document,
+    {
+      ...newSheetImportConfig(merged),
+      ...selection,
+      ...(options?.visionModel ? { imageUnderstandingModel: options.visionModel } : {}),
+      ...(firstRowAsHeader !== undefined
+        ? { spreadsheet: { ...newSheetImportConfig(merged).spreadsheet, firstRowAsHeader } }
+        : {}),
+      ...(requirements !== undefined ? { tableMetadataRequirements: requirements } : {})
+    },
+    selection
+  )
 }
 
 /** The remote-source test API returns text pages, not KnowledgeFileUploader instances. */

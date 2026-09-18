@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/sandbox-runtime",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "private": true,
   "description": "Versioned OCI image suite for Xpert Sandbox workloads.",
   "license": "AGPL-3.0",
@@ -17,7 +17,11 @@
     "verify:local-browser": "node images/browser/runtime/runner-host.mjs --browser-smoke",
     "verify:local-video": "node scripts/verify-local-video.mjs",
     "install:document-python": "node scripts/install-local-document-python.mjs",
-    "verify:local-document-python": "node scripts/install-local-document-python.mjs --verify-only"
+    "verify:local-document-python": "node scripts/install-local-document-python.mjs --verify-only",
+    "install:document-node": "node scripts/install-document-dependencies.mjs --family document-node",
+    "verify:local-document-node": "node scripts/install-document-dependencies.mjs --family document-node --verify-only",
+    "install:document-java": "node scripts/install-document-dependencies.mjs --family document-java",
+    "verify:local-document-java": "node scripts/install-document-dependencies.mjs --family document-java --verify-only"
   },
   "dependencies": {
     "ffmpeg-ffprobe-static": "6.1.2-rc.1",

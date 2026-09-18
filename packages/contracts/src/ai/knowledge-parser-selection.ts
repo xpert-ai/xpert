@@ -34,6 +34,7 @@ export const BUILTIN_KNOWLEDGE_FILE_TYPES = [
 
 const MIME_SUBTYPE_EXTENSIONS: { [subtype: string]: string } = {
   plain: 'txt',
+  'x-rtf': 'rtf',
   msword: 'doc',
   'vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'vnd.ms-word.document.macroenabled.12': 'docm',
@@ -75,4 +76,27 @@ export function knowledgebaseParserSelection(
     return config.parsers[format] ?? undefined
   }
   return format === 'pdf' ? config?.pdfParser : undefined
+}
+
+/** Existing uploader/importer defaults plus capabilities advertised by installed document parsers.
+ * Explicit caller restrictions remain authoritative; this does not grant builtin parsing support.
+ */
+export function knowledgeUploadFileTypes(
+  defaults: readonly string[],
+  providers: readonly { supportedFileTypes?: string[] }[],
+  accepts?: readonly string[] | null
+): string[] {
+  const candidates = accepts?.length
+    ? accepts
+    : [...defaults, ...providers.flatMap((provider) => provider.supportedFileTypes ?? [])]
+  return [
+    ...new Set(
+      candidates
+        .filter((type) =>
+          /^\.?[a-z0-9]+$|^(application|text|image|audio|video)\/[a-z0-9.+-]+(?:;.*)?$/i.test(type.trim())
+        )
+        .map((type) => knowledgeDocumentFileType({ type }))
+        .filter((type) => /^[a-z0-9]+$/.test(type))
+    )
+  ]
 }

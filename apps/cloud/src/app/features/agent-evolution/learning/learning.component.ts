@@ -148,13 +148,14 @@ export class AgentEvolutionLearningComponent {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
         title: this.#translate.instant('XP.AgentEvolution.GenerateProposalTitle', {
-          Default: '从已审核证据信号生成改进建议？'
+          Default: 'Generate a proposal from reviewed evidence?'
         }),
         description: this.#translate.instant('XP.AgentEvolution.GenerateProposalDescription', {
-          Default: '只会创建可审计 Proposal，不会构建 Candidate，也不会修改任何 Production 能力版本。'
+          Default:
+            'This creates an auditable Proposal only. It does not build a Candidate or change a Production capability version.'
         }),
-        actionText: this.#translate.instant('XP.AgentEvolution.CreateProposal', { Default: '创建建议' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        actionText: this.#translate.instant('XP.AgentEvolution.CreateProposal', { Default: 'Create proposal' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (!confirmed) {
@@ -226,7 +227,7 @@ export class AgentEvolutionLearningComponent {
         title: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateTitle'),
         description: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.BuildCandidate'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) await this.facade.buildCandidate(proposal, this.candidateDraft())

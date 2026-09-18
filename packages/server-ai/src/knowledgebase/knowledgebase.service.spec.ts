@@ -1,3 +1,7 @@
+import { RagCreateVStoreCommand } from '../rag-vstore/commands/create.command'
+import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
+import { VectorStoreRegistry } from '@xpert-ai/plugin-sdk'
+import { VectorTypeEnum } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import {
@@ -124,6 +128,18 @@ function createService(params: {
         {} as Queue<TKnowledgebaseRebuildEmbeddingJob>
     )
 
+    Object.defineProperty(service, 'vectorStoreSettings', {
+        value: new VectorStoreSettingsService({ get: jest.fn(() => ({})) } as unknown as VectorStoreRegistry)
+    })
+    Object.defineProperty(service, 'keywordAnalyzers', {
+        value: {
+            forCreate: jest.fn(() => ({
+                provider: 'basic',
+                revision: 'basic-unicode-nfkc-v1',
+                source: { kind: 'builtin' }
+            }))
+        }
+    })
     Object.defineProperty(service, 'commandBus', {
         value: params.commandBus
     })
@@ -149,6 +165,27 @@ function createService(params: {
 }
 
 describe('KnowledgebaseService', () => {
+    it('rejects changing a persisted vector store before saving any settings', async () => {
+        const knowledgebase = Object.assign(new Knowledgebase(), {
+            id: 'kb',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            workspaceId: 'workspace-1',
+            type: KnowledgebaseTypeEnum.Standard,
+            vectorStore: VectorTypeEnum.MILVUS
+        })
+        const repository = { findOne: jest.fn().mockResolvedValue(knowledgebase), delete: jest.fn(), save: jest.fn() }
+        const service = createService({
+            repository,
+            commandBus: { execute: jest.fn() },
+            xpertService: { updateXpert: jest.fn() }
+        })
+        await expect(
+            runInRequestContext(() => service.update('kb', { vectorStore: VectorTypeEnum.PGVECTOR }))
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(repository.save).not.toHaveBeenCalled()
+    })
+
     it('rejects user schemas that claim the server-owned table metadata key', async () => {
         const service = createService({
             repository: { findOne: jest.fn().mockResolvedValue(null), delete: jest.fn() },
@@ -808,6 +845,7 @@ describe('KnowledgebaseService', () => {
             modelProvider
         }
         const knowledgebase = {
+            vectorStore: VectorTypeEnum.MILVUS,
             id: 'kb-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
@@ -858,6 +896,13 @@ describe('KnowledgebaseService', () => {
                 threadId: 'thread-1'
             })
         )
+
+        expect(
+            commandBus.execute.mock.calls.every(
+                ([command]) =>
+                    command instanceof RagCreateVStoreCommand && command.config.vectorStore === VectorTypeEnum.MILVUS
+            )
+        ).toBe(true)
 
         const embeddingQueries = queryBus.execute.mock.calls
             .map(([query]) => query)

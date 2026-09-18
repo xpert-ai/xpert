@@ -1,336 +1,464 @@
-<div class="h-full flex flex-col gap-4 py-4 overflow-hidden">
-  <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+@if (!editing()) {
+  <header class="flex flex-wrap items-start justify-between gap-4 py-6">
     <div>
-      <div class="text-2xl font-semibold text-text-primary">
-        {{ 'XP.PromptWorkflow.Title' | translate: { Default: 'Prompt Workflows' } }}
-      </div>
-      <div class="mt-1 text-sm text-text-tertiary">
-        {{
-          'XP.PromptWorkflow.Description'
-            | translate
-              : {
-                  Default:
-                    'Create reusable slash-command prompt workflows for this workspace, then enable and override them per Xpert.'
-                }
-        }}
-      </div>
+      <h1 class="text-2xl font-semibold text-text-primary">{{ 'XP.PromptWorkflow.LibraryTitle' | translate }}</h1>
+      <p class="mt-2 text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.LibraryDescription' | translate }}</p>
     </div>
-
-    <div class="flex flex-wrap items-center gap-2">
-      <button z-button type="button" zType="secondary" zSize="lg" [zDisabled]="loading()" (click)="refresh()">
-        <z-icon zType="refresh"></z-icon>
-        {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+    <div class="flex flex-wrap gap-2">
+      <button z-button zType="outline" [disabled]="loading()" (click)="refresh()">
+        <z-icon zType="refresh" />{{ 'XP.PromptWorkflow.Refresh' | translate }}
       </button>
-      <button
-        z-button
-        type="button"
-        zType="default"
-        zSize="lg"
-        [zDisabled]="!canWriteWorkspace()"
-        (click)="createFromTemplate()"
-      >
-        <z-icon zType="plus"></z-icon>
-        {{ 'XP.PromptWorkflow.NewWorkflow' | translate: { Default: 'New Workflow' } }}
-      </button>
+      @if (canWriteWorkspace()) {
+        <button z-button zType="outline" (click)="openPanel('templates')">
+          {{ 'XP.PromptWorkflow.FromTemplate' | translate }}
+        </button>
+        <button z-button (click)="edit()">
+          <z-icon zType="plus" />{{ 'XP.PromptWorkflow.NewPrompt' | translate }}
+        </button>
+      }
     </div>
+  </header>
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <z-select
+      class="w-52"
+      [ngModel]="expertFilter()"
+      (ngModelChange)="expertFilter.set($event)"
+      [attr.aria-label]="'XP.PromptWorkflow.Scope' | translate"
+    >
+      <z-select-item zValue="all">{{ 'XP.PromptWorkflow.AllScopes' | translate }}</z-select-item>
+      <z-select-item zValue="shared">{{ 'XP.PromptWorkflow.WorkspaceShared' | translate }}</z-select-item>
+      @for (expert of experts(); track expert.id) {
+        <z-select-item [zValue]="expert.id">{{ expert.title || expert.name }}</z-select-item>
+      }
+    </z-select>
+    <z-select
+      class="w-44"
+      [ngModel]="sort()"
+      (ngModelChange)="sort.set($event)"
+      [attr.aria-label]="'XP.PromptWorkflow.Sort' | translate"
+    >
+      <z-select-item zValue="updated">{{ 'XP.PromptWorkflow.SortUpdated' | translate }}</z-select-item>
+      <z-select-item zValue="name">{{ 'XP.PromptWorkflow.SortName' | translate }}</z-select-item>
+    </z-select>
+    <span class="ml-auto text-sm text-text-tertiary">{{
+      'XP.PromptWorkflow.ResultCount' | translate: { count: filteredWorkflows().length }
+    }}</span>
   </div>
-
-  <div class="flex flex-wrap gap-2">
-    @for (template of templates; track template.name) {
+  @if (loadError()) {
+    <div role="alert" class="rounded-lg border border-divider-regular p-6">
+      <p class="text-text-destructive">{{ loadError() }}</p>
+      <button z-button zType="outline" class="mt-4" (click)="refresh()">
+        {{ 'XP.PromptWorkflow.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (loading()) {
+    <div
+      role="status"
+      [attr.aria-label]="'XP.PromptWorkflow.Loading' | translate"
+      class="space-y-4 rounded-lg border border-divider-regular p-6"
+    >
+      @for (row of [1, 2, 3, 4]; track row) {
+        <div class="h-12 animate-pulse rounded-md bg-hover-bg"></div>
+      }
+    </div>
+  } @else if (!filteredWorkflows().length) {
+    <div
+      class="flex flex-col items-center gap-3 rounded-lg border border-dashed border-divider-regular px-6 py-16 text-center"
+    >
+      <z-icon zType="message-square" class="size-8 text-text-tertiary" />
+      <h2 class="text-lg font-medium">
+        {{
+          (activeWorkflows().length ? 'XP.PromptWorkflow.NoMatches' : 'XP.PromptWorkflow.LibraryEmptyTitle') | translate
+        }}
+      </h2>
+      <p class="text-sm text-text-tertiary">
+        {{ (activeWorkflows().length ? 'XP.PromptWorkflow.NoMatchesHelp' : 'XP.PromptWorkflow.EmptyHelp') | translate }}
+      </p>
+      @if (activeWorkflows().length) {
+        <button z-button zType="outline" (click)="clearFilters()">
+          {{ 'XP.PromptWorkflow.ClearFilters' | translate }}
+        </button>
+      } @else if (canWriteWorkspace()) {
+        <button z-button (click)="edit()">{{ 'XP.PromptWorkflow.NewPrompt' | translate }}</button>
+      }
+    </div>
+  } @else {
+    <div class="overflow-x-auto rounded-lg border border-divider-regular">
+      <table z-table>
+        <thead z-table-header>
+          <tr z-table-row>
+            <th z-table-head class="min-w-64">{{ 'XP.PromptWorkflow.DisplayName' | translate }}</th>
+            <th z-table-head class="min-w-40">{{ 'XP.PromptWorkflow.OrganizationTags' | translate }}</th>
+            <th z-table-head class="min-w-48">{{ 'XP.PromptWorkflow.Scope' | translate }}</th>
+            <th z-table-head class="whitespace-nowrap">{{ 'XP.PromptWorkflow.UpdatedAt' | translate }}</th>
+            <th z-table-head>
+              <span class="sr-only">{{ 'XP.PromptWorkflow.Actions' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody z-table-body>
+          @for (workflow of filteredWorkflows(); track workflow.id) {
+            <tr z-table-row>
+              <td z-table-cell class="max-w-sm">
+                <button
+                  type="button"
+                  class="text-left font-medium text-text-primary hover:underline"
+                  (click)="edit(workflow)"
+                >
+                  {{ workflow.label || workflow.name }}
+                </button>
+                <p class="mt-1 truncate text-sm text-text-tertiary">{{ workflow.description }}</p>
+                <p class="mt-1 font-mono text-xs text-text-tertiary">/{{ workflow.name }}</p>
+              </td>
+              <td z-table-cell>
+                <div class="flex max-w-64 flex-wrap gap-1">
+                  @for (tag of workflow.organizationTags; track tag.id) {
+                    <z-badge zType="secondary">{{ tag.name }}</z-badge>
+                  }
+                  @if (!workflow.organizationTags?.length) {
+                    <span class="text-text-tertiary">—</span>
+                  }
+                </div>
+              </td>
+              <td z-table-cell>
+                @if (workflow.associatedXpertIds?.length) {
+                  @let names = expertNames(workflow);
+                  <span
+                    class="block max-w-64 truncate text-sm text-text-secondary"
+                    tabindex="0"
+                    [zTooltip]="names"
+                    zTooltipClass="max-w-sm whitespace-normal break-words text-left"
+                    >{{ names }}</span
+                  >
+                } @else {
+                  <span class="text-sm text-text-secondary">{{ 'XP.PromptWorkflow.WorkspaceShared' | translate }}</span>
+                }
+              </td>
+              <td z-table-cell class="whitespace-nowrap text-sm text-text-tertiary">
+                {{ workflow.updatedAt | date: 'yyyy-MM-dd HH:mm' }}
+              </td>
+              <td z-table-cell>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  z-menu
+                  [zMenuTriggerFor]="rowActions"
+                  [zMenuTriggerData]="{ workflow: workflow }"
+                  [attr.aria-label]="'XP.PromptWorkflow.Actions' | translate"
+                >
+                  <z-icon zType="more_vert" />
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+} @else {
+  <header class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular py-5">
+    <div class="flex items-center gap-3">
       <button
         z-button
-        type="button"
-        zType="outline"
-        [zDisabled]="!canWriteWorkspace()"
-        (click)="createFromTemplate(template)"
+        zType="ghost"
+        zSize="icon"
+        (click)="back()"
+        [disabled]="saving()"
+        [attr.aria-label]="'XP.PromptWorkflow.Back' | translate"
       >
-        <z-icon zType="zap"></z-icon>
-        {{ displayTemplateLabel(template) }}
+        <z-icon zType="arrow-left" />
+      </button>
+      <div>
+        <p class="text-sm text-text-tertiary">
+          {{ (selectedId() ? 'XP.PromptWorkflow.EditPrompt' : 'XP.PromptWorkflow.NewPrompt') | translate }}
+        </p>
+        <h1 class="mt-1 text-xl font-semibold">
+          {{ formValue().label || ('XP.PromptWorkflow.Untitled' | translate) }}
+        </h1>
+      </div>
+      @if (form.dirty) {
+        <z-badge zType="secondary">{{ 'XP.PromptWorkflow.Unsaved' | translate }}</z-badge>
+      }
+    </div>
+    <div class="flex gap-2">
+      <button z-button zType="outline" (click)="back()" [disabled]="saving()">
+        {{ 'XP.PromptWorkflow.Cancel' | translate }}
+      </button>
+      @if (canWriteWorkspace()) {
+        <button z-button type="submit" form="prompt-workflow-form" [disabled]="saving()">
+          {{ (saving() ? 'XP.PromptWorkflow.Saving' : 'XP.PromptWorkflow.SaveChanges') | translate }}
+        </button>
+      }
+    </div>
+  </header>
+  <div class="mx-auto max-w-4xl py-6">
+    @if (!canWriteWorkspace()) {
+      <p role="status" class="mb-6 rounded-md border border-divider-regular p-4 text-sm text-text-tertiary">
+        {{ 'XP.PromptWorkflow.ReadOnly' | translate }}
+      </p>
+    }
+    @if (saveError()) {
+      <p role="alert" class="mb-6 text-sm text-text-destructive">{{ saveError() }}</p>
+    }
+    <form id="prompt-workflow-form" [formGroup]="form" (ngSubmit)="save()" class="space-y-6">
+      <div class="grid gap-6 md:grid-cols-2">
+        <z-form-field
+          ><label z-form-label for="prompt-label">{{ 'XP.PromptWorkflow.DisplayName' | translate }} *</label
+          ><input z-input id="prompt-label" formControlName="label" maxlength="120" />
+          <z-form-control
+            [errorMessage]="
+              form.controls.label.touched && form.controls.label.invalid
+                ? ('XP.PromptWorkflow.NameRequired' | translate)
+                : ''
+            "
+        /></z-form-field>
+        <z-form-field
+          ><label z-form-label for="prompt-name">{{ 'XP.PromptWorkflow.Command' | translate }} *</label
+          ><input z-input id="prompt-name" formControlName="name" maxlength="64" class="col-span-full" />
+          <z-form-message class="text-xs text-text-tertiary">{{
+            'XP.PromptWorkflow.CommandHelp' | translate
+          }}</z-form-message>
+          <z-form-control
+            [errorMessage]="
+              form.controls.name.touched && form.controls.name.invalid
+                ? ('XP.PromptWorkflow.CommandInvalid' | translate)
+                : ''
+            "
+        /></z-form-field>
+      </div>
+      <z-form-field
+        ><label z-form-label for="prompt-description">{{ 'XP.PromptWorkflow.EditorDescription' | translate }}</label
+        ><textarea z-input id="prompt-description" formControlName="description" rows="2" maxlength="255"></textarea>
+      </z-form-field>
+      <z-form-field
+        ><div class="col-span-full flex items-center justify-between gap-2">
+          <label z-form-label>{{ 'XP.PromptWorkflow.OrganizationTags' | translate }}</label>
+          <button z-button zType="link" zSize="sm" type="button" (click)="openPanel('tags')">
+            {{ 'XP.PromptWorkflow.ManageTags' | translate }}
+          </button>
+        </div>
+        <tag-select
+          class="col-span-full block min-w-0 w-full"
+          category="prompt_workflow"
+          formControlName="organizationTags"
+        />
+        <p class="col-span-full text-xs text-text-tertiary">
+          {{ 'XP.PromptWorkflow.OrganizationTagsHelp' | translate }}
+        </p>
+      </z-form-field>
+      <z-form-field
+        ><label z-form-label
+          >{{ 'XP.PromptWorkflow.AssociatedExperts' | translate }}
+          <span class="font-normal text-text-tertiary">{{ 'XP.PromptWorkflow.Optional' | translate }}</span></label
+        >
+        <xp-prompt-expert-select
+          [experts]="experts()"
+          [selected]="formValue().associatedXpertIds ?? []"
+          [loading]="expertsLoading()"
+          [disabled]="!canWriteWorkspace() || saving()"
+          (selectionChange)="setExperts($event)"
+        />
+        @if (expertError()) {
+          <p role="alert" class="text-xs text-text-destructive">{{ expertError() }}</p>
+          <button z-button zType="link" type="button" (click)="refresh()">
+            {{ 'XP.PromptWorkflow.Retry' | translate }}
+          </button>
+        }
+      </z-form-field>
+      <z-form-field
+        ><label z-form-label for="prompt-template">{{ 'XP.PromptWorkflow.Content' | translate }} *</label
+        ><textarea
+          z-input
+          id="prompt-template"
+          formControlName="template"
+          rows="10"
+          class="col-span-full font-mono text-sm"
+        ></textarea>
+        <z-form-message class="text-xs text-text-tertiary">
+          {{ 'XP.PromptWorkflow.ContentHelp' | translate: { args: '{{args}}' } }}
+        </z-form-message>
+        <z-form-control
+          [errorMessage]="
+            form.controls.template.touched && form.controls.template.invalid
+              ? ('XP.PromptWorkflow.ContentRequired' | translate)
+              : ''
+          "
+      /></z-form-field>
+      <z-form-field
+        ><label z-form-label for="prompt-args">{{ 'XP.PromptWorkflow.ArgumentHint' | translate }}</label
+        ><input
+          z-input
+          id="prompt-args"
+          formControlName="argsHint"
+          maxlength="120"
+          class="col-span-full"
+          aria-describedby="prompt-args-help"
+          [placeholder]="'XP.PromptWorkflow.ArgumentHintPlaceholder' | translate"
+        />
+        <z-form-message id="prompt-args-help" class="text-xs text-text-tertiary">{{
+          'XP.PromptWorkflow.ArgumentHintHelp' | translate
+        }}</z-form-message>
+      </z-form-field>
+      <xp-prompt-scenario-settings
+        [scenarios]="form.controls.scenarios"
+        [disabled]="!canWriteWorkspace() || saving()"
+      />
+      <section class="space-y-3 border-t border-divider-regular pt-5" aria-labelledby="prompt-capabilities-label">
+        <h2 id="prompt-capabilities-label" class="text-sm font-medium">
+          {{ 'XP.PromptWorkflow.Capabilities.Title' | translate }}
+        </h2>
+        <xp-prompt-capability-select
+          [workspaceId]="workspaceId() ?? ''"
+          [experts]="experts()"
+          [associatedXpertIds]="formValue().associatedXpertIds ?? []"
+          [value]="formValue().runtimeCapabilities"
+          [disabled]="!canWriteWorkspace() || saving()"
+          (valueChange)="setCapabilities($event)"
+        />
+      </section>
+      <section class="border-t border-divider-regular pt-5">
+        <button
+          z-button
+          zType="ghost"
+          type="button"
+          class="-ml-3"
+          [attr.aria-expanded]="showAdvanced()"
+          aria-controls="prompt-advanced"
+          (click)="showAdvanced.set(!showAdvanced())"
+        >
+          <z-icon [zType]="showAdvanced() ? 'chevron-down' : 'chevron-right'" />{{
+            'XP.PromptWorkflow.Advanced' | translate
+          }}
+        </button>
+        @if (showAdvanced()) {
+          <div id="prompt-advanced" class="mt-5 grid gap-6 md:grid-cols-2">
+            <z-form-field
+              ><label z-form-label for="prompt-aliases">{{ 'XP.PromptWorkflow.Aliases' | translate }}</label
+              ><input z-input id="prompt-aliases" formControlName="aliasesText" class="col-span-full" />
+              <z-form-message class="text-xs text-text-tertiary">{{
+                'XP.PromptWorkflow.AliasesHelp' | translate
+              }}</z-form-message></z-form-field
+            >
+            <z-form-field
+              ><label z-form-label for="prompt-category">{{ 'XP.PromptWorkflow.Category' | translate }}</label
+              ><input z-input id="prompt-category" formControlName="category" maxlength="80"
+            /></z-form-field>
+          </div>
+        }
+      </section>
+    </form>
+  </div>
+}
+
+<ng-template #rowActions let-workflow="workflow"
+  ><div z-menu-content class="min-w-40 p-1">
+    <button z-menu-item (click)="edit(workflow)">
+      {{ (canWriteWorkspace() ? 'XP.PromptWorkflow.EditPrompt' : 'XP.PromptWorkflow.View') | translate }}
+    </button>
+    @if (canWriteWorkspace()) {
+      <button z-menu-item (click)="duplicate(workflow)">{{ 'XP.PromptWorkflow.Duplicate' | translate }}</button>
+    }
+    <button z-menu-item (click)="copySkillCommand(workflow)">
+      {{ 'XP.PromptWorkflow.CopySkillCommand' | translate }}
+    </button>
+    @if (canWriteWorkspace()) {
+      <button z-menu-item zType="destructive" (click)="openPanel('archive', workflow)">
+        {{ 'XP.PromptWorkflow.Archive' | translate }}
       </button>
     }
-  </div>
+  </div></ng-template
+>
 
-  <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
-    <z-card
-      class="min-h-0 gap-0 overflow-hidden rounded-3xl border border-divider-regular bg-components-panel-bg py-0 shadow-none"
-    >
-      <div class="flex items-center justify-between gap-3 px-4 py-4">
-        <div>
-          <div class="text-sm font-semibold text-text-primary">
-            {{ 'XP.PromptWorkflow.Library' | translate: { Default: 'Library' } }}
-          </div>
-          <div class="text-xs text-text-tertiary">
-            {{ filteredWorkflows().length }}
-            {{ 'XP.PromptWorkflow.ActiveWorkflows' | translate: { Default: 'active workflows' } }}
-          </div>
-        </div>
-      </div>
-
-      <div class="min-h-0 max-h-full overflow-auto px-4 pb-4">
-        @if (filteredWorkflows().length) {
-          <div class="flex flex-col gap-3">
-            @for (workflow of filteredWorkflows(); track workflow.id) {
-              <article
-                class="group relative rounded-2xl border px-4 py-3 transition"
-                [class]="
-                  selectedId() === workflow.id
-                    ? 'border-components-input-border-active bg-hover-bg'
-                    : 'border-divider-regular bg-background-default hover:bg-background-default-subtle'
-                "
-              >
-                <button type="button" class="w-full text-left" (click)="selectWorkflow(workflow)">
-                  <div class="flex items-start gap-3">
-                    <div
-                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-divider-regular bg-components-card-bg"
-                    >
-                      <z-icon zType="message-circle-more" class="text-primary-500"></z-icon>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-center gap-2">
-                        <div class="truncate text-sm font-semibold text-text-primary">/{{ workflow.name }}</div>
-                        <z-badge zType="secondary" class="text-[11px]">
-                          {{ displayVisibility(workflow.visibility) }}
-                        </z-badge>
-                      </div>
-                      <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
-                        {{ workflow.description || workflow.label || workflow.template }}
-                      </div>
-                      @if (workflow.tags?.length) {
-                        <div class="mt-2 flex flex-wrap gap-1">
-                          @for (tag of workflow.tags; track tag) {
-                            <z-badge zType="outline" class="text-[11px]">
-                              {{ tag }}
-                            </z-badge>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </button>
-              </article>
+<ng-template #dialogTemplate>
+  <div class="flex max-h-[90vh] w-full flex-col" [class]="panel() === 'tags' ? 'md:w-4xl' : 'md:w-2xl'">
+    <header class="flex items-center justify-between gap-4 border-b border-divider-regular px-6 py-4">
+      <h2 class="text-lg font-semibold">{{ 'XP.PromptWorkflow.Panel.' + panel() | translate }}</h2>
+      @if (panel() !== 'discard') {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          (click)="closePanel()"
+          [disabled]="saving()"
+          [attr.aria-label]="'XP.PromptWorkflow.Close' | translate"
+        >
+          <z-icon zType="close" />
+        </button>
+      }
+    </header>
+    <div class="min-h-0 overflow-y-auto p-6">
+      @if (panelError()) {
+        <p role="alert" class="mb-4 text-sm text-text-destructive">{{ panelError() }}</p>
+      }
+      @switch (panel()) {
+        @case ('export') {
+          <p class="mb-4 text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.ExportHelp' | translate }}</p>
+          <z-select
+            [ngModel]="exportExpertId()"
+            (ngModelChange)="exportExpertId.set($event)"
+            [zPlaceholder]="'XP.PromptWorkflow.SelectExperts' | translate"
+          >
+            @for (expert of exportExperts(); track expert.id) {
+              <z-select-item [zValue]="expert.id">{{ expert.title || expert.name }}</z-select-item>
             }
-          </div>
-        } @else {
-          <z-empty
-            class="min-h-[260px] rounded-2xl border border-dashed border-divider-regular"
-            zIcon="message-circle-more"
-            [zTitle]="'XP.PromptWorkflow.EmptyTitle' | translate: { Default: 'No prompt workflows yet' }"
-            [zDescription]="
-              'XP.PromptWorkflow.EmptyDesc'
-                | translate: { Default: 'Start from a template or create a workflow manually.' }
-            "
-          ></z-empty>
-        }
-      </div>
-    </z-card>
-
-    <z-card
-      class="min-h-0 gap-0 overflow-auto rounded-3xl border border-divider-regular bg-components-panel-bg py-0 shadow-none"
-    >
-      <div
-        class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-divider-regular bg-components-panel-bg px-5 py-4"
-      >
-        <div>
-          <div class="text-sm font-semibold text-text-primary">
-            {{
-              selectedId()
-                ? ('XP.PromptWorkflow.EditWorkflow' | translate: { Default: 'Edit Workflow' })
-                : ('XP.PromptWorkflow.CreateWorkflow' | translate: { Default: 'Create Workflow' })
-            }}
-          </div>
-          <div class="text-xs text-text-tertiary">
-            {{
-              'XP.PromptWorkflow.EditorDesc'
-                | translate: { Default: 'Command names are stored without the leading slash.' }
-            }}
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          @if (selectedWorkflow(); as selected) {
-            <button z-button type="button" zType="secondary" zSize="sm" (click)="loadUsage(selected)">
-              <z-icon zType="link"></z-icon>
-              {{ 'XP.PromptWorkflow.Usage' | translate: { Default: 'Usage' } }}
-            </button>
-            <button z-button type="button" zType="secondary" zSize="sm" (click)="copySkillCommand(selected)">
-              <z-icon zType="copy"></z-icon>
-              {{ 'XP.PromptWorkflow.ExportSkillCommand' | translate: { Default: 'Export Skill Command' } }}
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="grid gap-4 p-5">
-        <div class="grid gap-4 md:grid-cols-2">
-          <label class="field">
-            <span>{{ 'XP.PromptWorkflow.Name' | translate: { Default: 'Name' } }}</span>
-            <input
-              z-input
-              [ngModel]="draft().name"
-              (ngModelChange)="updateDraft({ name: $event })"
-              [placeholder]="'XP.PromptWorkflow.NameExample' | translate: { Default: 'review' }"
-            />
-          </label>
-          <label class="field">
-            <span>{{ 'XP.PromptWorkflow.Label' | translate: { Default: 'Label' } }}</span>
-            <input
-              z-input
-              [ngModel]="draft().label"
-              (ngModelChange)="updateDraft({ label: $event })"
-              [placeholder]="'XP.PromptWorkflow.LabelExample' | translate: { Default: 'Review' }"
-            />
-          </label>
-          <label class="field">
-            <span>{{ 'XP.PromptWorkflow.Category' | translate: { Default: 'Category' } }}</span>
-            <input
-              z-input
-              [ngModel]="draft().category"
-              (ngModelChange)="updateDraft({ category: $event })"
-              [placeholder]="'XP.PromptWorkflow.CategoryExample' | translate: { Default: 'prompt_workflow' }"
-            />
-          </label>
-          <label class="field">
-            <span>{{ 'XP.PromptWorkflow.ArgsHint' | translate: { Default: 'Args Hint' } }}</span>
-            <input
-              z-input
-              [ngModel]="draft().argsHint"
-              (ngModelChange)="updateDraft({ argsHint: $event })"
-              [placeholder]="'XP.PromptWorkflow.ArgsHintExample' | translate: { Default: '<args>' }"
-            />
-          </label>
-        </div>
-
-        <label class="field">
-          <span>{{ 'XP.PromptWorkflow.DescriptionLabel' | translate: { Default: 'Description' } }}</span>
-          <input z-input [ngModel]="draft().description" (ngModelChange)="updateDraft({ description: $event })" />
-        </label>
-
-        <div class="grid gap-4 md:grid-cols-3">
-          <label class="field">
-            <span>{{ 'XP.PromptWorkflow.VisibilityLabel' | translate: { Default: 'Visibility' } }}</span>
-            <z-select
-              [ngModel]="draft().visibility"
-              (ngModelChange)="updateDraft({ visibility: $event })"
-              [zPlaceholder]="'XP.PromptWorkflow.VisibilityTeam' | translate: { Default: 'team' }"
-            >
-              <z-select-item zValue="private">{{
-                'XP.PromptWorkflow.VisibilityPrivate' | translate: { Default: 'private' }
-              }}</z-select-item>
-              <z-select-item zValue="team">{{
-                'XP.PromptWorkflow.VisibilityTeam' | translate: { Default: 'team' }
-              }}</z-select-item>
-              <z-select-item zValue="tenant">{{
-                'XP.PromptWorkflow.VisibilityTenant' | translate: { Default: 'tenant' }
-              }}</z-select-item>
-            </z-select>
-          </label>
-          <label class="field md:col-span-2">
-            <span>{{ 'XP.PromptWorkflow.Aliases' | translate: { Default: 'Aliases' } }}</span>
-            <input
-              z-input
-              [ngModel]="draft().aliasesText"
-              (ngModelChange)="updateDraft({ aliasesText: $event })"
-              [placeholder]="'XP.PromptWorkflow.AliasesExample' | translate: { Default: 'audit, check' }"
-            />
-          </label>
-        </div>
-
-        <label class="field">
-          <span>{{ 'XP.PromptWorkflow.Tags' | translate: { Default: 'Tags' } }}</span>
-          <input
-            z-input
-            [ngModel]="draft().tagsText"
-            (ngModelChange)="updateDraft({ tagsText: $event })"
-            [placeholder]="'XP.PromptWorkflow.TagsExample' | translate: { Default: 'code, quality' }"
-          />
-        </label>
-
-        <label class="field">
-          <span>{{ 'XP.PromptWorkflow.PromptTemplate' | translate: { Default: 'Prompt Template' } }}</span>
-          <textarea
-            z-input
-            class="min-h-[180px]"
-            [ngModel]="draft().template"
-            (ngModelChange)="updateDraft({ template: $event })"
-            [placeholder]="
-              'XP.PromptWorkflow.PromptTemplatePlaceholder'
-                | translate: { args: '{{args}}', Default: 'Review {{args}}. Return actionable findings only.' }
-            "
-          ></textarea>
-        </label>
-
-        @if (validationMessage(); as message) {
-          <z-alert zType="destructive" [zDescription]="message"></z-alert>
-        }
-
-        @if (usage(); as usageItems) {
-          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
-            <div class="text-sm font-semibold text-text-primary">
-              {{ 'XP.PromptWorkflow.UsedBy' | translate: { Default: 'Used by Xperts' } }}
-            </div>
-            @if (usageItems.length) {
-              <div class="mt-3 flex flex-col gap-2">
-                @for (item of usageItems; track item.id) {
-                  <z-card
-                    class="flex-row items-center justify-between gap-2 bg-components-card-bg px-3 py-2 text-sm shadow-none"
-                  >
-                    <span class="truncate">{{ item.title || item.name }}</span>
-                    <z-badge zType="secondary">{{ displayUsageVersion(item.version) }}</z-badge>
-                  </z-card>
-                }
-              </div>
-            } @else {
-              <div class="mt-2 text-sm text-text-tertiary">
-                {{ 'XP.PromptWorkflow.NotUsed' | translate: { Default: 'No Xpert is using this workflow yet.' } }}
-              </div>
-            }
-          </div>
-        }
-
-        <div class="flex flex-wrap justify-between gap-2 border-t border-divider-regular pt-4">
-          <div class="flex gap-2">
-            @if (selectedWorkflow(); as selected) {
-              <button
-                z-button
-                type="button"
-                zType="secondary"
-                zSize="sm"
-                [zDisabled]="!canWriteWorkspace()"
-                (click)="duplicate(selected)"
-              >
-                <z-icon zType="copy"></z-icon>
-                {{ 'XP.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}
-              </button>
-              <button
-                z-button
-                type="button"
-                zType="destructive"
-                zSize="sm"
-                [zDisabled]="!canWriteWorkspace()"
-                (click)="archive(selected)"
-              >
-                <z-icon zType="archive"></z-icon>
-                {{ 'XP.ACTIONS.Archive' | translate: { Default: 'Archive' } }}
-              </button>
-            }
-          </div>
+          </z-select>
           <button
             z-button
             type="button"
-            zType="default"
-            zSize="lg"
-            [zDisabled]="!canWriteWorkspace() || !!validationMessage() || saving()"
-            [zLoading]="saving()"
-            (click)="save()"
+            class="mt-4"
+            [disabled]="!exportExpertId()"
+            (click)="copySkillCommand(panelWorkflow(), exportExpertId())"
           >
-            <z-icon zType="save"></z-icon>
-            {{
-              saving()
-                ? ('XP.ACTIONS.Saving' | translate: { Default: 'Saving' })
-                : ('XP.ACTIONS.Save' | translate: { Default: 'Save' })
-            }}
+            {{ 'XP.PromptWorkflow.CopySkillCommand' | translate }}
           </button>
-        </div>
-      </div>
-    </z-card>
+        }
+        @case ('templates') {
+          <div class="grid gap-3 sm:grid-cols-2">
+            @for (template of templates; track template.name) {
+              <button
+                z-button
+                zType="outline"
+                class="h-auto flex-col items-start gap-2 p-4 text-left whitespace-normal"
+                (click)="createFromTemplate(template)"
+              >
+                <span class="font-medium">{{ templateText(template, 'Label') }}</span
+                ><span class="text-sm font-normal text-text-tertiary">{{ templateText(template, 'Description') }}</span>
+              </button>
+            }
+          </div>
+        }
+        @case ('tags') {
+          <xp-tag-directory />
+        }
+        @case ('archive') {
+          <p class="text-sm leading-6">
+            {{ 'XP.PromptWorkflow.ArchiveHelp' | translate: { name: panelWorkflow()?.label || panelWorkflow()?.name } }}
+          </p>
+          <div class="mt-6 flex justify-end gap-2">
+            <button z-button zType="outline" [disabled]="saving()" (click)="closePanel()">
+              {{ 'XP.PromptWorkflow.Cancel' | translate }}</button
+            ><button z-button zType="destructive" [disabled]="saving()" (click)="archive()">
+              {{ 'XP.PromptWorkflow.Archive' | translate }}
+            </button>
+          </div>
+        }
+        @case ('discard') {
+          <p class="text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.UnsavedHelp' | translate }}</p>
+          <div class="mt-6 flex flex-wrap justify-end gap-2">
+            <button z-button zType="outline" [disabled]="saving()" (click)="closePanel(false)">
+              {{ 'XP.PromptWorkflow.ContinueEditing' | translate }}</button
+            ><button z-button zType="outline" [disabled]="saving()" (click)="closePanel(true)">
+              {{ 'XP.PromptWorkflow.Discard' | translate }}</button
+            ><button z-button [disabled]="saving() || !canWriteWorkspace()" (click)="saveAndLeave()">
+              {{ 'XP.PromptWorkflow.SaveAndLeave' | translate }}
+            </button>
+          </div>
+          @if (saveError()) {
+            <p role="alert" class="mt-4 text-sm text-text-destructive">{{ saveError() }}</p>
+          }
+        }
+      }
+    </div>
   </div>
-</div>
+</ng-template>

@@ -8,6 +8,7 @@ import { BadRequestException, Injectable, InternalServerErrorException, Optional
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     classificateDocumentCategory,
+    knowledgeUploadFileTypes,
     DocumentSourceProviderCategoryEnum,
     DocumentTypeEnum,
     IKnowledgeDocument,
@@ -268,7 +269,8 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
         private readonly knowledgebaseService: KnowledgebaseService,
         private readonly documentService: KnowledgeDocumentService,
         private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        @Optional() private readonly transformerRegistry?: DocumentTransformerRegistry
     ) {}
 
     async execute(command: ImportKnowledgebaseArchiveCommand) {
@@ -306,9 +308,11 @@ export class ImportKnowledgebaseArchiveHandler implements ICommandHandler<Import
         }
 
         const supportedExtensions = new Set(
-            (input.supportedExtensions?.length ? input.supportedExtensions : [...DEFAULT_SUPPORTED_ARCHIVE_EXTENSIONS])
-                .map((item) => item.trim().replace(/^\./, '').toLowerCase())
-                .filter(Boolean)
+            knowledgeUploadFileTypes(
+                [...DEFAULT_SUPPORTED_ARCHIVE_EXTENSIONS],
+                this.transformerRegistry?.list().map((provider) => provider.meta) ?? [],
+                input.supportedExtensions
+            )
         )
         const maxEntries = normalizePositiveInteger(input.maxEntries, DEFAULT_MAX_ARCHIVE_ENTRIES)
         const maxEntrySizeBytes = normalizePositiveInteger(

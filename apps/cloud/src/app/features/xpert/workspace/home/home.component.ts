@@ -98,6 +98,7 @@ export class XpertWorkspaceHomeComponent {
   readonly toolsetService = inject(XpertToolsetService)
   // Xpert's tags
   readonly xpertTags = injectTags(TagCategoryEnum.XPERT)
+  readonly promptTags = injectTags('prompt_workflow')
   readonly me = injectUser()
   readonly confirmUnique = injectConfirmUnique()
   readonly paramId = injectParams('id')
@@ -177,6 +178,8 @@ export class XpertWorkspaceHomeComponent {
   readonly allTags = computed(() => {
     if (this.isAll()) {
       return concat(this.xpertTags(), this.toolTags())
+    } else if (this.type() === 'prompt_workflow') {
+      return this.promptTags()
     } else if (this.isXperts()) {
       return this.xpertTags()
     } else if (this.isBuiltinTools()) {

@@ -430,7 +430,8 @@ describe('XpertController', () => {
         expect(templateWorkspaceInitializer.initializeByTemplateId).toHaveBeenCalledWith(
             '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
             'workspace-1',
-            LanguagesEnum.English
+            LanguagesEnum.English,
+            'xpert-1'
         )
         const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
         expect(importCommand).toBeInstanceOf(XpertImportCommand)

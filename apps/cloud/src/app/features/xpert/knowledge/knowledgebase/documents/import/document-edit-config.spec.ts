@@ -1,5 +1,63 @@
 import { documentProcessingDraft, editedDocumentParserConfig } from './document-edit-config'
 
+it.each(['xlsx', 'xls', 'csv'])('switches %s parser mode and preserves it on reopen', (type) => {
+  const document = {
+    type,
+    parserConfig: {
+      transformerType: 'builtin',
+      indexedFields: ['sku'],
+      spreadsheet: { interpretation: 'records' as const, firstRowAsHeader: false, includeSheets: ['Orders'] }
+    }
+  }
+  const defaults = { chunkSize: 512, chunkOverlap: 80, delimiter: null }
+  const plugin = editedDocumentParserConfig(
+    document,
+    {
+      ...defaults,
+      ...documentProcessingDraft(document, defaults),
+      parsers: { [type]: { transformerType: 'anydoc' } }
+    },
+    defaults
+  )
+  expect(plugin.spreadsheet).toMatchObject({
+    interpretation: 'form_document',
+    firstRowAsHeader: false,
+    includeSheets: ['Orders']
+  })
+  const reopened = { ...defaults, ...documentProcessingDraft({ ...document, parserConfig: plugin }, defaults) }
+  expect(editedDocumentParserConfig({ ...document, parserConfig: plugin }, reopened, defaults).spreadsheet).toEqual(
+    plugin.spreadsheet
+  )
+  const restored = editedDocumentParserConfig(
+    { ...document, parserConfig: plugin },
+    {
+      ...reopened,
+      parsers: { [type]: { transformerType: 'builtin' } }
+    },
+    defaults
+  )
+  expect(restored.spreadsheet.interpretation).toBe('records')
+  expect(restored.indexedFields).toEqual(['sku'])
+  expect(document.parserConfig.spreadsheet.interpretation).toBe('records')
+})
+
+it('preserves existing builtin form documents when saving other settings', () => {
+  const document = {
+    type: 'xlsx',
+    parserConfig: {
+      transformerType: 'default',
+      spreadsheet: { interpretation: 'form_document' as const, includeSheets: ['Orders'] }
+    }
+  }
+  const defaults = { chunkSize: 512, chunkOverlap: 80, delimiter: null }
+  const result = editedDocumentParserConfig(
+    document,
+    { ...defaults, ...documentProcessingDraft(document, defaults) },
+    defaults
+  )
+  expect(result.spreadsheet).toEqual(document.parserConfig.spreadsheet)
+})
+
 it('inherits, overrides and reopens public document language settings', () => {
   const defaults = { chunkSize: 512, chunkOverlap: 0, delimiter: null, chunkLanguageHint: 'Chinese' as const }
   expect(documentProcessingDraft({ type: 'txt' }, defaults).chunkLanguageHint).toBe('Chinese')

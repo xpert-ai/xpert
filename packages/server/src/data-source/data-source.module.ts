@@ -9,6 +9,7 @@ import { DataSourceAuthentication } from './authentication/authentication.entity
 import { CommandHandlers } from './commands/handlers'
 import { DataSourceController } from './data-source.controller'
 import { DataSource } from './data-source.entity'
+import { DataSourceRuntimeService } from './data-source-runtime.service'
 import { DataSourceService } from './data-source.service'
 import { EventHandlers } from './events/handlers'
 import { QueryHandlers } from './queries/handlers'
@@ -24,7 +25,7 @@ import { DataSourceTypeModule } from '../data-source-type'
 		SharedModule,
 		CqrsModule
 	],
-	providers: [DataSourceService, ...EventHandlers, ...CommandHandlers, ...QueryHandlers],
+	providers: [DataSourceService, DataSourceRuntimeService, ...EventHandlers, ...CommandHandlers, ...QueryHandlers],
 	controllers: [DataSourceController],
 	exports: [TypeOrmModule, DataSourceService]
 })

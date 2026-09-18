@@ -1,4 +1,5 @@
 import {
+    VectorTypeEnum,
     AiModelTypeEnum,
     DEFAULT_KNOWLEDGEBASE_WIKI_CONFIG,
     IWFNSource,
@@ -12,6 +13,12 @@ import { instanceToPlain } from 'class-transformer'
 import { KnowledgebaseDetailDTO } from './knowledgebase-detail.dto'
 
 describe('KnowledgebaseDetailDTO', () => {
+    it('exposes the saved vector storage selection', () => {
+        expect(
+            instanceToPlain(new KnowledgebaseDetailDTO({ id: 'kb', vectorStore: VectorTypeEnum.MILVUS }))
+        ).toMatchObject({ vectorStore: VectorTypeEnum.MILVUS })
+    })
+
     it('exposes saved automatic tagging settings in the detail response', () => {
         const automaticTagging = { enabled: true, maxTags: 5, confidenceThreshold: 0.8, allowWithManualTags: false }
         expect(instanceToPlain(new KnowledgebaseDetailDTO({ id: 'kb', automaticTagging }))).toMatchObject({

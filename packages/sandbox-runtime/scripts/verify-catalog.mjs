@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { imageVersionTag } from './image-version-tag.mjs'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = await readJson('package.json')
@@ -17,6 +18,7 @@ for (const entry of catalog.images) {
   if (families.has(entry.family)) fail(`Duplicate image family: ${entry.family}`)
   families.add(entry.family)
   const image = await readJson(entry.definition)
+  imageVersionTag(image, packageJson.version)
   if (image.imageFamily !== entry.family) fail(`Image family mismatch for ${entry.definition}.`)
   const imagePackage = await readJson(path.join('images', entry.family, 'package.json'))
   if (imagePackage.version !== packageJson.version)
@@ -33,11 +35,37 @@ for (const entry of catalog.images) {
   const runnerSha256 = createHash('sha256').update(runner).digest('hex')
   const manifest = await readJson(image.manifest)
   const runtimeDefinition = await readJson(image.runtimeDefinition)
+  if (
+    image.imageFamily === 'document-python' &&
+    (image.pythonVersion !== manifest.pythonVersion ||
+      image.pythonVersion !== runtimeDefinition.expectedManifest?.pythonVersion)
+  )
+    fail(`${entry.family} Python version differs from the runtime manifest or definition.`)
   const requirementsSha256 = image.pythonRequirements
     ? createHash('sha256')
         .update(await readFile(path.join(packageRoot, image.pythonRequirements)))
         .digest('hex')
     : undefined
+  if (image.dependenciesLock) {
+    const lock = await readJson(image.dependenciesLock)
+    if (lock.ocr) {
+      for (const [key, file] of [
+        ['requirementsSha256', 'requirements.txt'],
+        ['modelsSha256', 'models.lock.json'],
+        ['backendSha256', 'runtime/hybrid-backend.py']
+      ]) {
+        const digest = createHash('sha256')
+          .update(await readFile(path.join(packageRoot, path.dirname(image.dependenciesLock), file)))
+          .digest('hex')
+        if (lock.ocr[key] !== digest) fail(`${entry.family} OCR artifact lock is stale: ${file}. Run sync:metadata.`)
+      }
+    }
+    const digest = createHash('sha256')
+      .update(await readFile(path.join(packageRoot, image.dependenciesLock)))
+      .digest('hex')
+    if (manifest.dependenciesSha256 !== digest || runtimeDefinition.expectedManifest?.dependenciesSha256 !== digest)
+      fail(`${entry.family} dependency lock is stale. Run sync:metadata.`)
+  }
   let modelCatalogSha256
   if (image.resourceCatalog) {
     const resourceCatalogBytes = await readFile(path.join(packageRoot, image.resourceCatalog))

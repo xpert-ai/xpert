@@ -3,6 +3,7 @@ import { buildChunkTree } from '@xpert-ai/contracts'
 import type { XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
 import { VlmDefaultStrategy } from './vlm.strategy'
+import sharp from 'sharp'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
   ImageUnderstandingStrategy: () => () => undefined,
@@ -11,11 +12,87 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 
 jest.mock('sharp', () =>
   jest.fn(() => ({
+    metadata: jest.fn(async () => ({ width: 1000, height: 1400 })),
     resize: jest.fn().mockReturnThis(),
     jpeg: jest.fn().mockReturnThis(),
+    png: jest.fn().mockReturnThis(),
     toBuffer: jest.fn(async () => Buffer.from('optimized-image'))
   }))
 )
+
+describe('PDF page transcription', () => {
+  async function run(options: { placeholder?: boolean; page?: boolean; empty?: boolean } = {}) {
+    const page = options.page !== false
+    if (options.placeholder) {
+      const image = sharp(Buffer.from('test'))
+      jest.spyOn(image, 'metadata').mockResolvedValue({ width: 1, height: 1 })
+      jest.mocked(sharp).mockReturnValueOnce(image)
+    }
+    const model = new FakeListChatModel({ responses: [options.empty ? '' : 'PAGE2-OCR 385.50'] })
+    const invoke = jest.spyOn(model, 'invoke')
+    const asset = {
+      type: 'image' as const,
+      filePath: 'page2.png',
+      url: 'https://files.test/page2.png',
+      ...(page ? { sourceType: 'pdf_page' as const, page: 2 } : {})
+    }
+    const source = [
+      new Document({ pageContent: 'PAGE1', metadata: { chunkId: 'one', page: 1 } }),
+      new Document({ pageContent: `![page](${asset.url})`, metadata: { chunkId: 'two', page: 2 } }),
+      new Document({ pageContent: `![page](${asset.url})`, metadata: { chunkId: 'overlap', page: 2 } }),
+      new Document({ pageContent: 'PAGE3', metadata: { chunkId: 'three', page: 3 } })
+    ]
+    const result = await new VlmDefaultStrategy().understandImages(
+      {
+        name: 'scan.pdf',
+        filePath: 'scan.pdf',
+        type: 'pdf',
+        parserId: 'anydoc',
+        parserConfig: {},
+        chunks: source,
+        metadata: { assets: [asset] }
+      },
+      {
+        stage: 'test',
+        visionModel: model,
+        permissions: { fileSystem: { readFile: async () => Buffer.from('image') } as XpFileSystem }
+      }
+    )
+    return { result, invoke, source }
+  }
+
+  it('transcribes a page once in source order and leaves splitting to the host', async () => {
+    const { result, invoke } = await run()
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(invoke.mock.calls[0][0][0]).toEqual(
+      expect.objectContaining({
+        role: 'system',
+        content: expect.stringContaining('Transcribe all visible content')
+      })
+    )
+    const text = result.chunks.find((chunk) => chunk.metadata.parser === 'vlm')
+    expect(text.metadata).toEqual(
+      expect.objectContaining({ sourceType: 'pdf_page', page: 2, contentFormat: 'markdown' })
+    )
+    expect(text.metadata.parentId).toBeUndefined()
+    expect(result.chunks.indexOf(text)).toBeLessThan(result.chunks.findIndex((chunk) => chunk.pageContent === 'PAGE3'))
+  })
+  it('skips embedded placeholder images without calling the model', async () => {
+    const { result, invoke } = await run({ placeholder: true, page: false })
+    expect(invoke).not.toHaveBeenCalled()
+    expect(result.metadata.warnings).toEqual([expect.objectContaining({ type: 'image_understanding_skipped' })])
+  })
+  it('reports an unusable PDF page as failed instead of silently skipping it', async () => {
+    const { result, invoke } = await run({ placeholder: true })
+    expect(invoke).not.toHaveBeenCalled()
+    expect(result.metadata.warnings).toEqual([expect.objectContaining({ type: 'image_understanding_failed' })])
+  })
+  it('does not emit a successful page transcription for empty model output', async () => {
+    const { result } = await run({ empty: true })
+    expect(result.chunks.some((chunk) => chunk.metadata.parser === 'vlm')).toBe(false)
+    expect(result.metadata.warnings).toHaveLength(1)
+  })
+})
 
 describe('VlmDefaultStrategy', () => {
   it.each(['success', 'failure', 'no-images'] as const)(

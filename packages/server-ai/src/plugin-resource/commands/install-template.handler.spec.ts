@@ -127,6 +127,38 @@ describe('PluginTemplateInstallHandler', () => {
         })
     })
 
+    it.each(['environment', 'publish'])(
+        'does not initialize prompts when %s fails and initializes on retry',
+        async (failure) => {
+            const { handler, commandBus, environmentService, templateWorkspaceInitializer, xpertService } =
+                createHandler({ templateDsl: createSandboxTemplateDsl() })
+            if (failure === 'environment') {
+                environmentService.getDefaultByWorkspace.mockRejectedValueOnce(new Error('installation failed'))
+            } else {
+                const implementation = commandBus.execute.getMockImplementation()!
+                commandBus.execute
+                    .mockImplementationOnce(implementation)
+                    .mockRejectedValueOnce(new Error('installation failed'))
+            }
+            const command = new PluginTemplateInstallCommand(
+                '@xpert-ai/plugin-project:project-assistant',
+                'workspace-1',
+                LanguagesEnum.English,
+                undefined,
+                true
+            )
+            await expect(handler.execute(command)).rejects.toThrow('installation failed')
+            expect(templateWorkspaceInitializer.initializeByTemplateId).not.toHaveBeenCalled()
+            expect(xpertService.delete).toHaveBeenCalledWith('xpert-1')
+            await handler.execute(command)
+            expect(templateWorkspaceInitializer.initializeByTemplateId).toHaveBeenCalledTimes(1)
+            const publishIndex = commandBus.execute.mock.calls.length - 1
+            expect(templateWorkspaceInitializer.initializeByTemplateId.mock.invocationCallOrder[0]).toBeGreaterThan(
+                commandBus.execute.mock.invocationCallOrder[publishIndex]
+            )
+        }
+    )
+
     it('publishes without an environment binding when the workspace has no default environment', async () => {
         const { handler, commandBus, xpertService } = createHandler({
             templateDsl: createSandboxTemplateDsl(),
@@ -183,7 +215,8 @@ describe('PluginTemplateInstallHandler', () => {
         expect(templateWorkspaceInitializer.initializeByTemplateId).toHaveBeenCalledWith(
             '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
             'workspace-1',
-            LanguagesEnum.English
+            LanguagesEnum.English,
+            'xpert-1'
         )
     })
 

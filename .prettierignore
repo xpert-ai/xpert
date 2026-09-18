@@ -6,3 +6,7 @@
 .angular
 
 /.nx/cache
+
+# Runtime locks are byte-hashed; preserve the output of the metadata generators.
+/packages/sandbox-runtime/images/document-*/dependencies.lock.json
+/packages/sandbox-runtime/images/document-*/models.lock.json

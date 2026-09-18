@@ -1,5 +1,6 @@
 import {
     KBDocumentCategoryEnum,
+    type SpreadsheetInterpretation,
     type KnowledgeChunkLanguageDetection,
     type KnowledgeChunkLanguageDecision
 } from '@xpert-ai/contracts'
@@ -16,6 +17,7 @@ import { detectChunkLanguage } from './chunk-language'
 
 export interface KnowledgeSplitterExecutionContext extends TextSplitterExecutionContext {
     category?: KBDocumentCategoryEnum
+    spreadsheetInterpretation?: SpreadsheetInterpretation
     documentId?: string
     /** Prepared once before preprocessing/cache lookup for all batches of an enclosing document. */
     languageDetection?: KnowledgeChunkLanguageDetection
@@ -48,7 +50,11 @@ export async function executeKnowledgeSplitter(
     if ('maxChunkTokens' in options) delete options.maxChunkTokens
     if ('chunkLanguageHint' in options) delete options.chunkLanguageHint
     if ('languageHint' in options) delete options.languageHint
-    if (strategy.meta?.chunkingCapabilities && context.category === KBDocumentCategoryEnum.Sheet) {
+    if (
+        strategy.meta?.chunkingCapabilities &&
+        context.category === KBDocumentCategoryEnum.Sheet &&
+        context.spreadsheetInterpretation !== 'form_document'
+    ) {
         throw invalidKnowledgeParserConfig('text chunking is not applicable to spreadsheets')
     }
     await strategy.validateConfig?.(options)

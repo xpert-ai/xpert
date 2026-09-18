@@ -77,6 +77,13 @@ export class ResolvePromptWorkflowInvocationHandler implements IQueryHandler<Res
     ) {}
 
     async execute(query: ResolvePromptWorkflowInvocationQuery) {
+        // The composer already expanded this prompt and the user may have edited it.
+        if (
+            query.input.commandSource?.kind === 'prompt_workflow' &&
+            query.input.commandSource.executionType === 'insert_text'
+        ) {
+            return null
+        }
         if (!query.input.input || !isPromptWorkflowInvocationCandidate(query.input.input)) {
             return null
         }

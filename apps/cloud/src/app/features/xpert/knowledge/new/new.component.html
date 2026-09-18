@@ -336,11 +336,28 @@
                   <p>{{ i18nPrefix + '.VectorStorage.LabelDescription' | translate }}</p>
                 </div>
                 <div class="w-[min(100%,30rem)] shrink-0">
-                  <z-select class="w-full" zSize="lg" [ngModel]="'system'" [disabled]="true">
-                    <z-select-item zValue="system">{{
-                      i18nPrefix + '.VectorStorage.SystemDefault' | translate
-                    }}</z-select-item>
-                  </z-select>
+                  @if (isEditMode()) {
+                    <div class="text-sm text-text-primary">
+                      {{
+                        vectorStore() === 'system'
+                          ? (i18nPrefix + '.VectorStorage.SystemDefault' | translate)
+                          : vectorStore()
+                      }}
+                    </div>
+                  } @else {
+                    <z-select class="w-full" zSize="lg" [(ngModel)]="vectorStore" [disabled]="!vectorStoreOptions()">
+                      <z-select-item zValue="system">{{
+                        i18nPrefix + '.VectorStorage.SystemDefault' | translate
+                      }}</z-select-item>
+                      @for (option of vectorStoreOptions()?.stores ?? []; track option.type) {
+                        @if (option.type !== vectorStoreOptions()?.default) {
+                          <z-select-item [zValue]="option.type">
+                            {{ option.type === 'milvus' ? 'Milvus' : 'PGVector' }}
+                          </z-select-item>
+                        }
+                      }
+                    </z-select>
+                  }
                   <p class="mt-2 text-xs leading-5 text-text-tertiary">
                     {{ i18nPrefix + '.VectorStorage.SystemDefaultHelp' | translate }}
                   </p>
@@ -361,6 +378,7 @@
               <div class="kb-section-heading">
                 <h1>{{ i18nPrefix + '.Sections.Retrieval' | translate }}</h1>
               </div>
+              <xp-keyword-analyzer-settings [(analyzer)]="keywordAnalyzer" [locked]="keywordAnalyzerLocked()" />
               <xp-knowledge-retrieval-settings
                 [(ngModel)]="retrieval"
                 [showContentScope]="!isFAQ() && wikiEnabled()"

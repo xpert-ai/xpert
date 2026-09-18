@@ -1,5 +1,29 @@
 # @xpert-ai/plugin-vlm-default
 
+## 11.0.7
+
+### Patch Changes
+
+- Updated dependencies [5213185]
+  - @xpert-ai/plugin-sdk@3.18.7
+
+## 11.0.6
+
+### Patch Changes
+
+- 9a2a2a0: Transcribe scanned pages through the existing image-understanding model, retain page order, skip embedded placeholder pixels, invalidate older image results, and display localized image-recognition notices.
+- Updated dependencies [a8a251d]
+- Updated dependencies [983b730]
+  - @xpert-ai/plugin-sdk@3.18.6
+
+## 11.0.5
+
+### Patch Changes
+
+- Updated dependencies [6a51c17]
+- Updated dependencies [8402f72]
+  - @xpert-ai/plugin-sdk@3.18.5
+
 ## 11.0.4
 
 ### Patch Changes

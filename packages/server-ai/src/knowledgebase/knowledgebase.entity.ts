@@ -17,6 +17,7 @@ import {
     KnowledgeStructureEnum,
     GraphRagConfig,
     KnowledgeGraphStatus,
+    VectorTypeEnum,
     TAvatar,
     TKBRecallParams
 } from '@xpert-ai/contracts'
@@ -41,6 +42,19 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
     @IsString()
     @Column()
     name: string
+
+    // Conditional SQL owns these fields; ORM saves must not restore stale analyzer state.
+    @Column({ type: 'jsonb', nullable: true, update: false })
+    keywordAnalyzer?: IKnowledgebase['keywordAnalyzer']
+
+    @Column({ type: 'boolean', default: false, update: false })
+    keywordAnalyzerLocked?: boolean
+
+    @ApiPropertyOptional({ enum: VectorTypeEnum })
+    @IsEnum(VectorTypeEnum)
+    @IsOptional()
+    @Column({ type: 'varchar', nullable: true, length: 32 })
+    vectorStore?: VectorTypeEnum | null
 
     @ApiPropertyOptional({ enum: KnowledgebaseTypeEnum, enumName: 'KnowledgebaseTypeEnum' })
     @IsEnum(KnowledgebaseTypeEnum)

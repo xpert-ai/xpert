@@ -1,4 +1,5 @@
 export const STATE_VARIABLE_HUMAN = 'human'
+export * from './prompt-workflow-capabilities.model'
 
 export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum } from './ai.model'
 
@@ -92,3 +93,5 @@ export * from './knowledge-question.model'
 export * from './knowledge-tag.model'
 
 export * from './knowledge-parser-selection'
+export * from './clawxpert-conversation-scope.model'
+export * from './knowledge-keyword-analyzer.model'

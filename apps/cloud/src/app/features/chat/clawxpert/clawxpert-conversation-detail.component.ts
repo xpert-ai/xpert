@@ -58,6 +58,7 @@ import { WorkbenchPresentationService } from '../../../@core/services/workbench-
 import { WorkbenchAssistantMenuComponent } from '../workbench-chat/workbench-assistant-menu.component'
 import { WorkbenchAccountComponent } from '../workbench-chat/workbench-account.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
+import { injectFrequentQuestionsStartScreen } from '../workbench-chat/frequent-questions-start-screen'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 import { ClawXpertConversationPreviewComponent } from './clawxpert-conversation-preview.component'
 import {
@@ -296,6 +297,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
   readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
+  readonly startScreen = injectFrequentQuestionsStartScreen({
+    xpert: computed(() => this.facade.currentXpert?.() ?? null),
+    active: computed(() => this.facade.viewState() === 'ready' && !this.chatkitInitialThread())
+  })
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.chatkitAssistantId,
@@ -311,6 +316,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       connectors: { enabled: true }
     })),
     initialThread: this.chatkitInitialThread,
+    startScreen: this.startScreen,
     displayMode: this.chatkitDisplayMode,
     layout: {
       maxWidth: CLAWXPERT_CHAT_COLUMN_MAX_WIDTH

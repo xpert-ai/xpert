@@ -11,6 +11,7 @@ import {
     TCopilotModel,
     TKBRetrievalSettings
 } from '@xpert-ai/contracts'
+import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import {
     CrudController,
     PaginationParams,
@@ -56,6 +57,7 @@ import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
 import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
+import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
 import { KnowledgeParserSettingsService } from './parser-settings.service'
 
 @ApiTags('Knowledgebase')
@@ -63,6 +65,16 @@ import { KnowledgeParserSettingsService } from './parser-settings.service'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class KnowledgebaseController extends CrudController<Knowledgebase> {
+    @Inject(KnowledgeKeywordAnalyzerService)
+    private readonly keywordAnalyzers: KnowledgeKeywordAnalyzerService
+
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
+    @Get('keyword-analyzers')
+    keywordAnalyzerOptions() {
+        return this.keywordAnalyzers.options(RequestContext.getOrganizationId())
+    }
+
     readonly #logger = new Logger(KnowledgebaseController.name)
 
     @Inject(KnowledgeDocumentService)
@@ -81,6 +93,16 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
     @Post('by-workspace/:workspaceId/preview-chunks')
     previewChunks(@Body() input: KnowledgeChunkPreviewInput) {
         return this.parserSettings.preview(input)
+    }
+
+    @Inject(VectorStoreSettingsService)
+    private readonly vectorStoreSettings: VectorStoreSettingsService
+
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
+    @Get('vector-stores')
+    vectorStores() {
+        return this.vectorStoreSettings.options()
     }
 
     constructor(

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "anydocVersion": "0.2.4",
+  "pdfPackages": ["@hyzyla/pdfium", "pngjs", "pdf-lib", "@pdf-lib/standard-fonts", "@pdf-lib/upng", "pako", "tslib"],
+  "packages": {
+    "@hyzyla/pdfium": {
+      "version": "2.1.9",
+      "url": "https://registry.npmjs.org/@hyzyla/pdfium/-/pdfium-2.1.9.tgz",
+      "integrity": "sha512-c2T59buVQjjsqkuxjcUMQqy+M8CssAnK856ZBnzcy2KOauHSgJUOZIcsrXUR0poIh4RK9FYKD7PbyqjodooxUg=="
+    },
+    "pngjs": {
+      "version": "7.0.0",
+      "url": "https://registry.npmjs.org/pngjs/-/pngjs-7.0.0.tgz",
+      "integrity": "sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow=="
+    },
+    "pdf-lib": {
+      "version": "1.17.1",
+      "url": "https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz",
+      "integrity": "sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw=="
+    },
+    "@pdf-lib/standard-fonts": {
+      "version": "1.0.0",
+      "url": "https://registry.npmjs.org/@pdf-lib/standard-fonts/-/standard-fonts-1.0.0.tgz",
+      "integrity": "sha512-hU30BK9IUN/su0Mn9VdlVKsWBS6GyhVfqjwl1FjZN4TxP6cCw0jP2w7V3Hf5uX7M0AZJ16vey9yE0ny7Sa59ZA=="
+    },
+    "@pdf-lib/upng": {
+      "version": "1.0.1",
+      "url": "https://registry.npmjs.org/@pdf-lib/upng/-/upng-1.0.1.tgz",
+      "integrity": "sha512-dQK2FUMQtowVP00mtIksrlZhdFXQZPC+taih1q4CvPZ5vqdxR/LKBaFg0oAfzd1GlHZXXSPdQfzQnt+ViGvEIQ=="
+    },
+    "pako": {
+      "version": "1.0.11",
+      "url": "https://registry.npmjs.org/pako/-/pako-1.0.11.tgz",
+      "integrity": "sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw=="
+    },
+    "tslib": {
+      "version": "1.14.1",
+      "url": "https://registry.npmjs.org/tslib/-/tslib-1.14.1.tgz",
+      "integrity": "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="
+    },
+    "@firecrawl/anydoc": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc/-/anydoc-0.2.4.tgz",
+      "integrity": "sha512-rfJxa5L+nhoqR5yodcRZoGDLaSfxMTpBuhVj1gSacfW4ZGjBt4cjfErXwaKjPYrpWRTPIBye2sh36UhqgOP1Og=="
+    },
+    "@firecrawl/anydoc-darwin-x64": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-darwin-x64/-/anydoc-darwin-x64-0.2.4.tgz",
+      "integrity": "sha512-fTM8y6COu+jBqWRJ0Je0OqaDDt7YxJ8LU4ISoypO5eOBNXI3+l6tK1ZRwUclYWXGBr/6JaUWEgdyJVFfd/fpJg=="
+    },
+    "@firecrawl/anydoc-darwin-arm64": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-darwin-arm64/-/anydoc-darwin-arm64-0.2.4.tgz",
+      "integrity": "sha512-1Eg0rPGVMN052E7Y2+zswANS0KLaWhXvYb9CPgO8HEtclzu3hKAIJ00lIu5PF+DXafZ10ZS4fmrcP+9Ifct9qw=="
+    },
+    "@firecrawl/anydoc-linux-x64-gnu": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-linux-x64-gnu/-/anydoc-linux-x64-gnu-0.2.4.tgz",
+      "integrity": "sha512-yfvx+iGo2CvZH0TB9MeyNjkrd5/psNFEuxkl2Jah/VNFesPRASqjjCkDRY7tKw7fPij1u/UyFVxI6bsu6Iow9Q=="
+    },
+    "@firecrawl/anydoc-linux-x64-musl": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-linux-x64-musl/-/anydoc-linux-x64-musl-0.2.4.tgz",
+      "integrity": "sha512-9OWpM84c5SA/2wjfFxgfhupxziapus+7DERWmcOvkVxNp2H5Qj/9Y74c9leP2i03SjmBDl9tYWMVd3k/S3rY6w=="
+    },
+    "@firecrawl/anydoc-win32-x64-msvc": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-win32-x64-msvc/-/anydoc-win32-x64-msvc-0.2.4.tgz",
+      "integrity": "sha512-E7d14hy5kZNsMNnHiutU6r9yr53LrKXSsMSFtl0QhU/1KWuvRnjhQEuMiuW4YbsMcPlEaK10WtBVF86g9OMW6A=="
+    },
+    "@firecrawl/anydoc-linux-arm64-gnu": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-linux-arm64-gnu/-/anydoc-linux-arm64-gnu-0.2.4.tgz",
+      "integrity": "sha512-gRrrjluTfQCjOO6wBefEP1QumYlUcGWKP7secVIO+ly8U/+DDQ70bOHW2lOGu19hA/23j7bc7bb3oLPAaBY82A=="
+    },
+    "@firecrawl/anydoc-linux-arm64-musl": {
+      "version": "0.2.4",
+      "url": "https://registry.npmjs.org/@firecrawl/anydoc-linux-arm64-musl/-/anydoc-linux-arm64-musl-0.2.4.tgz",
+      "integrity": "sha512-fpzby6xqD709GmYUpnrWh7/2Csa6lwGrZrYPNGyn4KMEuJ1ibsNv6I3kdZAotMUKZ8nlNdPp32v964eBpsijcw=="
+    }
+  }
+}
