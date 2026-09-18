@@ -73,6 +73,10 @@ export class PromptWorkflow extends WorkspaceBaseEntity implements IPromptWorkfl
     @JoinTable({ name: 'prompt_workflow_tag' })
     organizationTags?: ITag[]
 
+    /** Server-owned provenance; never inferred from a matching name. */
+    @Column({ type: 'varchar', nullable: true })
+    sourceTemplateId?: string | null
+
     @Column({ type: 'json', nullable: true })
     associatedXpertIds?: string[] | null
 

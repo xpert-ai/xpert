@@ -36,7 +36,8 @@ export class XpertTemplateWorkspaceInitializer {
             const result = await this.promptWorkflowService.initializeDefaultsInWorkspace(
                 workspaceId,
                 template.promptWorkflows ?? [],
-                xpertId
+                xpertId,
+                template.id
             )
             return {
                 status: 'initialized',

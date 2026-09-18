@@ -88,12 +88,6 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             if (toolsets.length) {
                 await this.attachTemplateToolsetsToXpert(xpert.id, toolsets)
             }
-            await this.templateWorkspaceInitializer.initializeByTemplateId(
-                command.templateId,
-                xpert.workspaceId ?? command.workspaceId,
-                command.language,
-                xpert.id
-            )
             const environment = command.publish
                 ? await this.environmentService.getDefaultByWorkspace(xpert.workspaceId ?? command.workspaceId)
                 : null
@@ -102,6 +96,12 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                       new XpertPublishCommand(xpert.id, false, environment?.id ?? null, 'Installed from template')
                   )
                 : xpert
+            await this.templateWorkspaceInitializer.initializeByTemplateId(
+                command.templateId,
+                installedXpert.workspaceId ?? command.workspaceId,
+                command.language,
+                installedXpert.id
+            )
             return {
                 ...result,
                 xpert: installedXpert

@@ -85,7 +85,8 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
     async initializeDefaultsInWorkspace(
         workspaceId: string,
         inputs: TPromptWorkflow[],
-        xpertId?: string
+        xpertId?: string,
+        sourceTemplateId?: string
     ): Promise<PromptWorkflowDefaultsInitializationResult> {
         if (!inputs.length) {
             return { created: [], skipped: [] }
@@ -105,14 +106,33 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
                 where: {
                     workspaceId: workspace.id,
                     name: In(names)
-                } as FindOptionsWhere<PromptWorkflow>
+                } as FindOptionsWhere<PromptWorkflow>,
+                loadEagerRelations: false,
+                lock: { mode: 'pessimistic_write' }
             })
+            // Preserve user-owned collisions, archived prompts and explicitly global scope.
+            if (sourceTemplateId && xpertId) {
+                for (const workflow of existing) {
+                    if (
+                        workflow.sourceTemplateId === sourceTemplateId &&
+                        !workflow.archivedAt &&
+                        workflow.associatedXpertIds?.length &&
+                        !workflow.associatedXpertIds.includes(xpertId)
+                    ) {
+                        await repository.update(workflow.id, {
+                            associatedXpertIds: [...workflow.associatedXpertIds, xpertId],
+                            ...(userId ? { updatedById: userId } : {})
+                        })
+                    }
+                }
+            }
             const existingNames = new Set(existing.map(({ name }) => name))
             const missing = workflows.filter(({ name }) => !existingNames.has(name))
             const entities = missing.map((workflow) =>
                 repository.create({
                     ...workflow,
                     ...(xpertId ? { associatedXpertIds: [xpertId] } : {}),
+                    ...(sourceTemplateId ? { sourceTemplateId } : {}),
                     workspaceId: workspace.id,
                     tenantId: workspace.tenantId,
                     organizationId: workspace.organizationId ?? null,

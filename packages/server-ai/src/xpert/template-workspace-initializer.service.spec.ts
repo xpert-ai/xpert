@@ -46,7 +46,8 @@ describe('XpertTemplateWorkspaceInitializer', () => {
         expect(promptWorkflowService.initializeDefaultsInWorkspace).toHaveBeenCalledWith(
             workspaceId,
             promptWorkflows,
-            'xpert-1'
+            'xpert-1',
+            templateId
         )
     })
 
