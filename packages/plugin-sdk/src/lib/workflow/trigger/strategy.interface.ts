@@ -1,4 +1,4 @@
-import { TWorkflowTriggerMeta, TXpertTeamNode } from '@xpert-ai/contracts'
+import { TWorkflowTriggerConnectionStatus, TWorkflowTriggerMeta, TXpertTeamNode } from '@xpert-ai/contracts'
 
 export type TWorkflowTriggerBootstrapMode = 'replay_publish' | 'skip'
 
@@ -27,6 +27,8 @@ export interface IWorkflowTriggerStrategy<T> {
   bootstrap?: TWorkflowTriggerBootstrapConfig
 
   validate(payload: TWorkflowTriggerParams<T>): Promise<any[]>
+
+  connectionStatus?(config: T): Promise<Pick<TWorkflowTriggerConnectionStatus, 'connected' | 'state'>>
 
   /**
    * Initialize the trigger when publish xpert workflow

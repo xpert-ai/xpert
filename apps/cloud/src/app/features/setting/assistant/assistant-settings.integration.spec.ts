@@ -9,6 +9,7 @@ import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
 import { AssistantPersonalizationComponent } from './assistant-personalization.component'
 import { AssistantTriggerDialogComponent, AssistantTriggerDialogData } from './assistant-trigger-dialog.component'
 import { AssistantTriggersComponent } from './assistant-triggers.component'
+import { AssistantTriggerConnectionService } from './assistant-trigger-connection.service'
 import { buildAssistantTriggerCards, isAssistantTriggerConnected } from './assistant-trigger.utils'
 
 jest.mock('../../../@core', () => ({
@@ -129,6 +130,7 @@ async function triggers() {
       { provide: ClawXpertFacade, useValue: facade },
       { provide: Dialog, useValue: dialog },
       { provide: XpertAPIService, useValue: { getTriggerProviders: () => of([provider('wecom')]) } },
+      { provide: AssistantTriggerConnectionService, useValue: { statuses: jest.fn().mockResolvedValue([]) } },
       { provide: ToastrService, useValue: toastr }
     ]
   })

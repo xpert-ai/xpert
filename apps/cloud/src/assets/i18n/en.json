@@ -43,6 +43,17 @@
   },
   "XP": {
     "AssistantSettings": {
+      "DirectQrSaveHint": "QR connections take effect immediately. Other trigger changes are saved as drafts and require publishing.",
+      "DirectQrOffline": "The robot is enabled but currently offline. Refresh to check its connection.",
+      "DirectQrConnected": "The robot is connected and ready to receive messages.",
+      "DirectQrRetry": "Retry",
+      "DirectQrExpired": "QR code expired. Please refresh and scan again.",
+      "DirectQrActivating": "Authorization received. Connecting the robot...",
+      "DirectQrLoading": "Preparing QR code...",
+      "DirectQrCopied": "Copied",
+      "DirectQrCopy": "Copy authorization link",
+      "DirectQrWaiting": "Waiting for authorization in DingTalk...",
+      "DirectQrIntro": "Scan with DingTalk and confirm the robot. The assistant will connect automatically.",
       "Connecting": "Connecting",
       "Disconnect": "Disconnect",
       "CreateIntegration": "Create integration",

@@ -248,6 +248,17 @@
   },
   "XP": {
     "AssistantSettings": {
+      "DirectQrSaveHint": "扫码连接会立即生效；其他触发器配置仍需保存草稿并发布。",
+      "DirectQrOffline": "机器人已启用，消息连接暂未就绪，可刷新检查状态。",
+      "DirectQrConnected": "机器人已连接，可以发送消息。",
+      "DirectQrRetry": "重试",
+      "DirectQrExpired": "二维码已过期，请刷新后重新扫码。",
+      "DirectQrActivating": "授权成功，正在连接机器人…",
+      "DirectQrLoading": "正在准备二维码…",
+      "DirectQrCopied": "已复制",
+      "DirectQrCopy": "复制授权链接",
+      "DirectQrWaiting": "等待在钉钉中确认授权…",
+      "DirectQrIntro": "使用钉钉扫码并确认机器人，完成后将自动连接当前助理。",
       "Connecting": "连接中",
       "Disconnect": "取消连接",
       "CreateIntegration": "新建系统集成",
