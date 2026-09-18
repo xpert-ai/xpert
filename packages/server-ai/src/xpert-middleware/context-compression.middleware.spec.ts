@@ -267,7 +267,7 @@ describe('ContextCompressionMiddleware', () => {
         expect(state.messages[0].content).toContain('Earlier request.')
     })
 
-    it('rejects an automatic summary that is only marginally smaller', async () => {
+    it('rejects a marginally smaller summary when it exceeds the remaining output budget', async () => {
         const strategy = new ContextCompressionMiddleware()
         const { context, model, subscriber } = createContext({
             modelResponse: '<state_snapshot>' + 'y'.repeat(22_000) + '</state_snapshot>'
@@ -307,7 +307,7 @@ describe('ContextCompressionMiddleware', () => {
                     data: expect.objectContaining({
                         data: expect.objectContaining({
                             status: 'fail',
-                            error: expect.stringContaining('failed to achieve meaningful reduction')
+                            reason: 'summary_output_budget'
                         })
                     })
                 })
@@ -519,16 +519,16 @@ describe('context compression bug regressions', () => {
         }
     )
 
-    it('persists a no-gain result instead of relying on mutation of a checkpoint snapshot', async () => {
+    it('persists an over-budget summary failure instead of relying on mutation of a checkpoint snapshot', async () => {
         const f = await automatic('<state_snapshot>' + 'y'.repeat(22000) + '</state_snapshot>')
         const state = { messages: messages() }
         const update = await f.before(state, f.config)
-        expect(update?.[noGainKey]).toEqual(expect.any(Object))
-        expect(update?.[retryKey]).toBeNull()
+        expect(update?.[noGainKey]).toBeNull()
+        expect(update?.[retryKey]).toEqual(expect.any(Object))
         expect(update && update.messages).toBeUndefined()
         await f.before({ ...state, ...update }, f.config)
         expect(f.model.invoke).toHaveBeenCalledTimes(1)
-        expect(f.subscriber.next.mock.calls.at(-1)?.[0].data.data.data.reason).toBe('no_token_gain')
+        expect(f.subscriber.next.mock.calls.at(-1)?.[0].data.data.data.reason).toBe('summary_output_budget')
     })
     it('checkpoints the compression failure before the ordinary model node fails, without adding a failure node', async () => {
         const f = await automatic('<state_snapshot>Incomplete')
@@ -766,31 +766,26 @@ describe('context compression small-window tool budgets', () => {
     it.each([
         [131072, 22000, 28000, 45000],
         [200000, 6000, 42000, 97000]
-    ])(
-        'keeps the original 40k/20k/50k behavior when it fits a %i window',
-        async (window, oldTokens, recentTokens, textTokens) => {
-            const f = createContext()
-            const middleware = await new ContextCompressionMiddleware().createMiddleware({}, f.context)
-            const update = await getBeforeModel(middleware)(
-                {
-                    messages: [
-                        new HumanMessage('Read old'),
-                        tool('old', oldTokens),
-                        new HumanMessage('Read recent'),
-                        tool('recent', recentTokens),
-                        new HumanMessage('c'.repeat(textTokens * 4))
-                    ]
-                },
-                createRuntimeConfig(f.subscriber, 'Continue', { context_size: window, max_tokens: 4096 })
-            )
-            if (!update) throw new Error('Missing compression update')
-            expect(f.model.invoke).toHaveBeenCalledTimes(1)
-            expect(
-                update?.messages?.some(
-                    (message) => message.additional_kwargs.pruned || message.additional_kwargs.truncated
-                )
-            ).toBe(false)
-            expect(JSON.stringify(f.model.invoke.mock.calls)).not.toContain('Tool output truncated')
-        }
-    )
+    ])('reserves the non-tool messages even in a %i window', async (window, oldTokens, recentTokens, textTokens) => {
+        const f = createContext()
+        const middleware = await new ContextCompressionMiddleware().createMiddleware({}, f.context)
+        const update = await getBeforeModel(middleware)(
+            {
+                messages: [
+                    new HumanMessage('Read old'),
+                    tool('old', oldTokens),
+                    new HumanMessage('Read recent'),
+                    tool('recent', recentTokens),
+                    new HumanMessage('c'.repeat(textTokens * 4))
+                ]
+            },
+            createRuntimeConfig(f.subscriber, 'Continue', { context_size: window, max_tokens: 4096 })
+        )
+        if (!update) throw new Error('Missing compression update')
+        expect(f.model.invoke).not.toHaveBeenCalled()
+        expect(
+            update?.messages?.some((message) => message.additional_kwargs.pruned || message.additional_kwargs.truncated)
+        ).toBe(true)
+        expect(JSON.stringify(f.model.invoke.mock.calls)).not.toContain('Tool output truncated')
+    })
 })

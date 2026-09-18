@@ -105,6 +105,8 @@
         "ProjectPurgeFileMismatch": "文件不属于正在永久删除的项目。",
         "ProjectPurgeOwnerRequired": "只有项目所有者才能永久删除已归档的项目。",
         "ContextCompressionSummaryInvalid": "摘要格式无效，未应用此摘要。",
+        "ContextCompressionSummaryInputBudget": "待摘要历史超过摘要模型的输入预算，未发起摘要请求。",
+        "ContextCompressionBudgetExceeded": "必须保留的输入仍超过上下文预算，请缩减输入或使用更大的上下文窗口。",
         "ContextCompressionSummaryOutputBudget": "摘要超过输出预算，未应用此摘要。",
         "ContextCompressionSummaryServiceError": "摘要服务调用失败，未应用此摘要，请稍后重试。",
         "SandboxProviderProjectContentReadOnlyUnsupported": "沙盒提供者 {{provider}} 不支持只读项目内容。",
