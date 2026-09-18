@@ -1,5 +1,15 @@
 # @xpert-ai/plugin-sdk
 
+## 3.18.8
+
+### Patch Changes
+
+- Updated dependencies [1e44173]
+- Updated dependencies [b7983c8]
+- Updated dependencies [b62543f]
+- Updated dependencies [5f26e05]
+  - @xpert-ai/contracts@3.18.7
+
 ## 3.18.7
 
 ### Patch Changes

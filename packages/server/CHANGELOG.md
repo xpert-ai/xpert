@@ -1,5 +1,20 @@
 # @xpert-ai/server-core
 
+## 3.9.54
+
+### Patch Changes
+
+- b62543f: Add editable prompt workflow scenarios, organization tags, expert associations, and expert-scoped capability selections. Refresh prompt management and command availability, preserve explicit field clearing, and send expanded editable prompts without expanding them again on the server.
+
+    Requires the ChatKit types and UI release that introduces prompt scenarios and editable prompt drafts; update the host's ChatKit dependencies to that published release before shipping.
+
+- Updated dependencies [1e44173]
+- Updated dependencies [b7983c8]
+- Updated dependencies [b62543f]
+- Updated dependencies [5f26e05]
+    - @xpert-ai/contracts@3.18.7
+    - @xpert-ai/plugin-sdk@3.18.8
+
 ## 3.9.53
 
 ### Patch Changes
