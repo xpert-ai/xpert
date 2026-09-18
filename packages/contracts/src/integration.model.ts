@@ -133,6 +133,8 @@ export type TIntegrationProvider = {
    * authorization links, without the host hard-coding provider names.
    */
   setup?: {
+    /** The provider implements the server-side QR authorization lifecycle. */
+    qrAuthorization?: boolean
     /**
      * When true, the host runs the provider's `validateConfig` after an
      * existing integration is loaded and after save/upsert succeeds. Use this
@@ -148,4 +150,24 @@ export type TIntegrationProvider = {
     }
   }
   pro?: boolean
+}
+
+/** Public QR setup data; provider device codes and credentials stay on the server. */
+export interface TIntegrationQrSession {
+  id: string
+  authorizationUrl: string
+  expiresAt: number
+  intervalSeconds: number
+}
+
+export type TIntegrationQrStatus = 'waiting' | 'authorized' | 'expired' | 'denied' | 'failed'
+
+export interface TIntegrationQrResult {
+  status: TIntegrationQrStatus
+}
+
+export type TIntegrationQrCreateInput = Pick<IIntegration, 'name' | 'description' | 'avatar'>
+
+export type TIntegrationQrCompletion = Pick<IIntegration, 'id' | 'name' | 'slug' | 'provider'> & {
+  outcome: 'created' | 'reused'
 }

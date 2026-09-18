@@ -10,9 +10,13 @@ import { IntegrationController } from './integration.controller'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
 import { QueryHandlers } from './queries/handlers'
+import { RedisModule } from '../core/redis/redis.module'
+import { IntegrationQrController } from './integration-qr.controller'
+import { IntegrationQrService } from './integration-qr.service'
 
 @Module({
 	imports: [
+		RedisModule,
 		RouterModule.register([{ path: '/integration', module: IntegrationModule }]),
 		TypeOrmModule.forFeature([Integration]),
 		forwardRef(() => TenantModule),
@@ -20,8 +24,8 @@ import { QueryHandlers } from './queries/handlers'
 		DiscoveryModule,
 		CqrsModule
 	],
-	controllers: [IntegrationController],
-	providers: [IntegrationService, IntegrationStrategyRegistry, ...CommandHandlers, ...QueryHandlers],
-	exports: [IntegrationService]
+	controllers: [IntegrationController, IntegrationQrController],
+	providers: [IntegrationService, IntegrationQrService, IntegrationStrategyRegistry, ...CommandHandlers, ...QueryHandlers],
+	exports: [IntegrationService, IntegrationQrService]
 })
 export class IntegrationModule {}

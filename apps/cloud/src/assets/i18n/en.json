@@ -42,7 +42,42 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "Integration": {
+      "Qr": {
+        "OrganizationRequired": "Select an organization before creating an integration by scanning.",
+        "NamePlaceholder": "Enter an integration name",
+        "Title": "Create integration by scanning",
+        "SetupMethod": "Setup method",
+        "ScanMode": "Scan to create",
+        "ManualMode": "Manual configuration",
+        "SetupHint": "Scan with the corresponding app and confirm authorization. The integration will be saved automatically without entering app credentials.",
+        "BindingHint": "After creation, select this integration in a trigger configuration to bind it to an assistant.",
+        "Intro": "Scan with the corresponding app and confirm authorization. This integration will be saved automatically.",
+        "Waiting": "Waiting for authorization confirmation…",
+        "Loading": "Generating QR code…",
+        "Saving": "Authorization confirmed. Saving integration…",
+        "Copy": "Copy authorization link",
+        "Copied": "Copied",
+        "Close": "Close",
+        "Retry": "Retry",
+        "Expired": "The QR code has expired. Generate a new one to continue.",
+        "Failed": "Authorization was not completed. Please try again.",
+        "Created": "System integration created successfully.",
+        "Reused": "The robot already has a system integration. Its authorization was updated; existing name, avatar and description were kept."
+      }
+    },
     "AssistantSettings": {
+      "DirectQrSaveHint": "QR connections take effect immediately. Other trigger changes are saved as drafts and require publishing.",
+      "DirectQrOffline": "The robot is enabled but currently offline. Refresh to check its connection.",
+      "DirectQrConnected": "The robot is connected and ready to receive messages.",
+      "DirectQrRetry": "Retry",
+      "DirectQrExpired": "QR code expired. Please refresh and scan again.",
+      "DirectQrActivating": "Authorization received. Connecting the robot...",
+      "DirectQrLoading": "Preparing QR code...",
+      "DirectQrCopied": "Copied",
+      "DirectQrCopy": "Copy authorization link",
+      "DirectQrWaiting": "Waiting for authorization in DingTalk...",
+      "DirectQrIntro": "Scan with DingTalk and confirm the robot. The assistant will connect automatically.",
       "Connecting": "Connecting",
       "Disconnect": "Disconnect",
       "CreateIntegration": "Create integration",
