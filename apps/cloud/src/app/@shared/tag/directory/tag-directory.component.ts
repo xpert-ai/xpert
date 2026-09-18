@@ -104,7 +104,7 @@ export class TagDirectoryComponent {
   readonly xpertUsageTotal = signal(0)
   readonly xpertUsageLoading = signal(false)
   readonly xpertUsageError = signal('')
-  readonly targets: readonly TagTarget[] = ['knowledgebase', TagCategoryEnum.XPERT]
+  readonly targets: readonly TagTarget[] = ['knowledgebase', TagCategoryEnum.XPERT, 'prompt_workflow']
   readonly hasLegacyTargets = computed(() => {
     const tag = this.selected()
     return tag ? getTagTargets(tag).some((target) => !this.targets.includes(target)) : false

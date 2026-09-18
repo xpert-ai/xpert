@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
-import { getTagTargets, TagCategoryEnum } from '@xpert-ai/contracts'
+import { getTagTargets, TagTarget } from '@xpert-ai/contracts'
 import { RequestContext, Tag } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { In, IsNull, ObjectLiteral, Repository } from 'typeorm'
@@ -19,8 +19,9 @@ export async function assertValidTagAssociations<T extends ObjectLiteral>(
     repository: Repository<T>,
     workspaceAccess: XpertWorkspaceAccessService,
     entity: TagAssociationWrite,
-    target: TagCategoryEnum,
-    existingResourceId = entity.id
+    target: TagTarget,
+    existingResourceId = entity.id,
+    relation: 'tags' | 'organizationTags' = 'tags'
 ): Promise<void> {
     const parsed = tagsSchema.safeParse(entity.tags)
     if (!parsed.success) throw invalidAssociation()
@@ -37,7 +38,7 @@ export async function assertValidTagAssociations<T extends ObjectLiteral>(
     const existing = existingResourceId
         ? await repository
               .createQueryBuilder('resource')
-              .innerJoin('resource.tags', 'tag')
+              .innerJoin(`resource.${relation}`, 'tag')
               .select('tag.id', 'id')
               .where('resource.id = :resourceId', { resourceId: existingResourceId })
               .andWhere('resource.tenantId = :tenantId', { tenantId: scope.tenantId })

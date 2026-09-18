@@ -1,12 +1,15 @@
 import {
     IPromptWorkflow,
+    PromptWorkflowInput,
     PromptWorkflowSourceType,
     PromptWorkflowVisibility,
     TPromptWorkflow,
     TPromptWorkflowCommandSnapshot,
     TXpertCommandProfile,
     TXpertCommandProfileEntry,
-    IXpert
+    IXpert,
+    resolvePromptWorkflowCapabilities,
+    isPromptWorkflowScenarios
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -15,6 +18,8 @@ import { FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
 import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Xpert } from '../xpert/xpert.entity'
 import { PromptWorkflow } from './prompt-workflow.entity'
+import { isPromptWorkflowApplicable, resolvePromptWorkflowAssociations } from './prompt-workflow-associations'
+import { t } from 'i18next'
 
 const PROMPT_WORKFLOW_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
 const PROMPT_WORKFLOW_VISIBILITIES = new Set<PromptWorkflowVisibility>(['private', 'team', 'tenant'])
@@ -61,10 +66,18 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
         super(repository, workspaceAccessService)
     }
 
-    async createInWorkspace(workspaceId: string, input: Partial<TPromptWorkflow>) {
+    async createInWorkspace(workspaceId: string, input: PromptWorkflowInput) {
         const workflow = this.normalizePromptWorkflowInput(input)
+        const associations = await resolvePromptWorkflowAssociations(
+            this.repository,
+            this.workspaceAccessService,
+            this.xpertRepository,
+            workspaceId,
+            input
+        )
         return this.create({
             ...workflow,
+            ...associations,
             workspaceId
         })
     }
@@ -143,7 +156,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
         }
     }
 
-    async updateInWorkspace(workspaceId: string, id: string, input: Partial<TPromptWorkflow>) {
+    async updateInWorkspace(workspaceId: string, id: string, input: PromptWorkflowInput) {
         const current = await this.findOne(id)
         if (current.workspaceId !== workspaceId) {
             throw new NotFoundException(`The requested prompt workflow was not found`)
@@ -153,7 +166,25 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             ...current,
             ...input
         })
-        Object.assign(current, workflow)
+        const associations = await resolvePromptWorkflowAssociations(
+            this.repository,
+            this.workspaceAccessService,
+            this.xpertRepository,
+            workspaceId,
+            input,
+            current
+        )
+        // TypeORM skips undefined on update; explicit empty optional fields must clear persisted values.
+        Object.assign(current, workflow, associations, {
+            label: workflow.label ?? (input.label === undefined ? current.label : null),
+            description: workflow.description ?? (input.description === undefined ? current.description : null),
+            category: workflow.category ?? (input.category === undefined ? current.category : null),
+            argsHint: workflow.argsHint ?? (input.argsHint === undefined ? current.argsHint : null),
+            icon: workflow.icon ?? (input.icon === undefined ? current.icon : null),
+            runtimeCapabilities:
+                workflow.runtimeCapabilities ??
+                (input.runtimeCapabilities === undefined ? current.runtimeCapabilities : null)
+        })
         return this.save(current)
     }
 
@@ -190,6 +221,8 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
         const name = await this.createCopyName(workspaceId, current.name)
         return this.createInWorkspace(workspaceId, {
             ...this.toSnapshot(current),
+            organizationTagIds: current.organizationTags?.map((tag) => tag.id),
+            associatedXpertIds: current.associatedXpertIds ?? undefined,
             name,
             label: current.label ? `${current.label} Copy` : `${current.name} Copy`,
             archivedAt: null
@@ -217,9 +250,12 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
         return xperts
             .filter((xpert) => {
                 const profiles = [xpert.commandProfile, xpert.draft?.team?.commandProfile]
-                return profiles.some((profile) =>
-                    normalizeCommandProfile(profile).commands.some(
-                        (entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === id
+                return (
+                    (xpert.latest && isPromptWorkflowApplicable(items[0], xpert.id)) ||
+                    profiles.some((profile) =>
+                        normalizeCommandProfile(profile).commands.some(
+                            (entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === id
+                        )
                     )
                 )
             })
@@ -320,24 +356,32 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
         }
         if (!hasProfile) {
             result.workspaceCommands = xpert.workspaceId
-                ? await this.findDefaultWorkspaceCommandSources(xpert.workspaceId)
+                ? await this.findDefaultWorkspaceCommandSources(xpert.workspaceId, xpert.id)
                 : []
-            return result
+            return this.resolveCapabilityScopes(result, xpert.id)
         }
-        if (!profile.commands.length) {
-            return result
-        }
-
-        const workspaceEntries = profile.commands.filter(
-            (entry) => entry.enabled !== false && entry.source === 'workspace_prompt_workflow'
+        const configuredWorkflows = xpert.workspaceId
+            ? await this.repository.find({ where: { workspaceId: xpert.workspaceId, deletedAt: IsNull() } })
+            : []
+        const configuredMap = new Map(configuredWorkflows.map((workflow) => [workflow.id, workflow]))
+        // Workspace availability is defined by associations, independently of expert-local command profiles.
+        const disabledWorkflowIds = new Set(
+            profile.commands
+                .filter((entry) => entry.source === 'workspace_prompt_workflow' && entry.enabled === false)
+                .map((entry) => entry.workflowId)
         )
-        const workflowIds = workspaceEntries
-            .filter((entry) => !entry.snapshot)
-            .map((entry) => normalizeOptionalString(entry.workflowId))
-            .filter((id): id is string => !!id)
-        const workflowMap = xpert.workspaceId
-            ? await this.findActiveWorkflowMap(xpert.workspaceId, workflowIds)
-            : new Map()
+        result.workspaceCommands = configuredWorkflows
+            .filter(
+                (workflow) =>
+                    !workflow.archivedAt &&
+                    !disabledWorkflowIds.has(workflow.id) &&
+                    isPromptWorkflowApplicable(workflow, xpert.id)
+            )
+            .map((workflow, order) => ({
+                ...this.toSnapshot(workflow),
+                sourceType: 'workspace_prompt_workflow',
+                order
+            }))
 
         for (const entry of sortCommandProfileEntries(profile.commands)) {
             if (entry.enabled === false) {
@@ -354,10 +398,12 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             }
             if (entry.source === 'workspace_prompt_workflow') {
                 const workflowId = normalizeOptionalString(entry.workflowId)
-                const source = entry.snapshot ?? (workflowId ? workflowMap.get(workflowId) : null)
-                if (!source) {
-                    continue
-                }
+                const configured = workflowId ? configuredMap.get(workflowId) : undefined
+                if (!configured || !isPromptWorkflowApplicable(configured, xpert.id) || configured.archivedAt) continue
+                const source = entry.snapshot ?? configured
+                result.workspaceCommands = result.workspaceCommands.filter(
+                    (command) => command.workflowId !== workflowId
+                )
                 result.workspaceCommands.push({
                     ...this.mergeWorkflowWithEntry(source, entry),
                     sourceType: 'workspace_prompt_workflow',
@@ -374,7 +420,19 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             }
         }
 
-        return result
+        return this.resolveCapabilityScopes(result, xpert.id)
+    }
+
+    private resolveCapabilityScopes(result: RuntimeCommandProfileResolution, xpertId: string) {
+        const resolve = (source: RuntimePromptWorkflowCommandSource): RuntimePromptWorkflowCommandSource => ({
+            ...source,
+            runtimeCapabilities: resolvePromptWorkflowCapabilities(source.runtimeCapabilities, xpertId)
+        })
+        return {
+            ...result,
+            xpertCommands: result.xpertCommands.map(resolve),
+            workspaceCommands: result.workspaceCommands.map(resolve)
+        }
     }
 
     private normalizePromptWorkflowInput(input: Partial<TPromptWorkflow>): NormalizedPromptWorkflowInput {
@@ -388,9 +446,18 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
         }
 
         const visibility = normalizeVisibility(input.visibility)
+        if (input.scenarios != null && !isPromptWorkflowScenarios(input.scenarios)) {
+            throw new BadRequestException(
+                t('server-ai:Error.InvalidPromptScenarios', {
+                    defaultValue:
+                        'Each preset scenario needs a unique ID, a name and content. At most 20 scenarios are allowed.'
+                })
+            )
+        }
         return {
             name,
             template,
+            scenarios: input.scenarios ?? [],
             label: normalizeOptionalString(input.label),
             description: normalizeOptionalString(input.description),
             icon: normalizeIcon(input.icon),
@@ -463,6 +530,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             category: normalizeOptionalString(entry.category) ?? workflow.category,
             aliases: mergeStringArrayOverride(entry.aliases, workflow.aliases),
             argsHint: normalizeOptionalString(entry.argsHint) ?? workflow.argsHint,
+            scenarios: workflow.scenarios,
             tags: workflow.tags,
             visibility: workflow.visibility,
             runtimeCapabilities: entry.runtimeCapabilities ?? workflow.runtimeCapabilities,
@@ -482,6 +550,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             aliases: workflow.aliases,
             argsHint: workflow.argsHint,
             template: workflow.template,
+            scenarios: workflow.scenarios,
             tags: workflow.tags,
             visibility: workflow.visibility,
             runtimeCapabilities: workflow.runtimeCapabilities,
@@ -490,7 +559,8 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
     }
 
     private async findDefaultWorkspaceCommandSources(
-        workspaceId: string
+        workspaceId: string,
+        xpertId: string
     ): Promise<RuntimePromptWorkflowCommandSource[]> {
         const workflows = await this.repository.find({
             where: {
@@ -503,11 +573,13 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             }
         })
 
-        return workflows.map((workflow, order) => ({
-            ...this.toSnapshot(workflow),
-            sourceType: 'workspace_prompt_workflow',
-            order
-        }))
+        return workflows
+            .filter((workflow) => isPromptWorkflowApplicable(workflow, xpertId))
+            .map((workflow, order) => ({
+                ...this.toSnapshot(workflow),
+                sourceType: 'workspace_prompt_workflow',
+                order
+            }))
     }
 
     private async findActiveWorkflowMap(workspaceId: string, ids: string[]) {

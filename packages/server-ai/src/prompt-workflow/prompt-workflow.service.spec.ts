@@ -52,6 +52,101 @@ import { Xpert } from '../xpert/xpert.entity'
 import { PromptWorkflow } from './prompt-workflow.entity'
 
 describe('PromptWorkflowService', () => {
+    it('persists, clears and snapshots ordered scenarios while keeping published scenarios stable', async () => {
+        const scenarios = [{ id: 'annual', label: 'Annual review', args: 'Review annual results' }]
+        const workflow = {
+            id: 'workflow-1',
+            workspaceId: 'workspace-1',
+            name: 'report',
+            template: 'Report {{args}}',
+            scenarios
+        }
+        const repository = {
+            find: jest.fn(async () => [workflow]),
+            findOne: jest.fn(async () => workflow),
+            save: jest.fn(async (value) => value)
+        }
+        const service = new PromptWorkflowService(
+            repository as unknown as Repository<PromptWorkflow>,
+            {} as XpertWorkspaceAccessService,
+            {} as Repository<Xpert>
+        )
+        const live = await service.resolveRuntimeCommandProfile({ id: 'expert-1', workspaceId: 'workspace-1' })
+        expect(live.workspaceCommands[0].scenarios).toEqual(scenarios)
+        const updated = [{ id: 'ai', label: 'AI trends', args: 'Latest AI trends' }]
+        const profile = {
+            version: 1 as const,
+            enabled: true,
+            commands: [
+                {
+                    source: 'workspace_prompt_workflow' as const,
+                    workflowId: workflow.id,
+                    snapshot: { ...workflow, scenarios: updated }
+                }
+            ]
+        }
+        expect(
+            (
+                await service.resolveRuntimeCommandProfile({
+                    id: 'expert-1',
+                    workspaceId: 'workspace-1',
+                    commandProfile: profile
+                })
+            ).workspaceCommands[0].scenarios
+        ).toEqual(updated)
+        await service.updateInWorkspace('workspace-1', workflow.id, { scenarios: [] })
+        expect(repository.save).toHaveBeenLastCalledWith(expect.objectContaining({ scenarios: [] }))
+        await expect(
+            service.updateInWorkspace('workspace-1', workflow.id, {
+                scenarios: [{ id: 'empty', label: '', args: 'x' }]
+            })
+        ).rejects.toThrow()
+    })
+    it('resolves expert-scoped capabilities for live prompts and published snapshots without leaking other experts', async () => {
+        const selection = (id: string) => ({
+            mode: 'allowlist' as const,
+            inheritUnselected: true,
+            skills: { ids: [] },
+            plugins: { nodeKeys: [id] },
+            connectors: { bindingIds: ['connector-1'] }
+        })
+        const workflow = {
+            id: 'workflow-1',
+            name: 'report',
+            template: '{{args}}',
+            workspaceId: 'workspace-1',
+            runtimeCapabilities: {
+                type: 'expert_scoped_capabilities',
+                version: 1,
+                experts: [
+                    { xpertId: 'expert-1', selection: selection('tool-1') },
+                    { xpertId: 'expert-2', selection: selection('tool-2') }
+                ]
+            }
+        }
+        const repository = { find: jest.fn(async () => [workflow]) }
+        const service = new PromptWorkflowService(
+            repository as unknown as Repository<PromptWorkflow>,
+            {} as XpertWorkspaceAccessService,
+            {} as Repository<Xpert>
+        )
+        const first = await service.resolveRuntimeCommandProfile({ id: 'expert-1', workspaceId: 'workspace-1' })
+        expect(first.workspaceCommands[0].runtimeCapabilities).toEqual(selection('tool-1'))
+        const second = await service.resolveRuntimeCommandProfile({
+            id: 'expert-2',
+            workspaceId: 'workspace-1',
+            commandProfile: {
+                version: 1,
+                enabled: true,
+                commands: [{ source: 'workspace_prompt_workflow', workflowId: workflow.id, snapshot: workflow }]
+            }
+        })
+        expect(second.workspaceCommands[0].runtimeCapabilities).toEqual(selection('tool-2'))
+        const unconfigured = await service.resolveRuntimeCommandProfile({ id: 'expert-3', workspaceId: 'workspace-1' })
+        expect(unconfigured.workspaceCommands[0].runtimeCapabilities).toBeNull()
+        expect(workflow.runtimeCapabilities.experts).toHaveLength(2)
+    })
+
     beforeEach(() => {
         jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
     })
@@ -111,9 +206,9 @@ describe('PromptWorkflowService', () => {
         })
     })
 
-    it('uses an explicitly enabled empty command profile as an empty whitelist', async () => {
+    it('returns an empty command list when the enabled profile and workspace are both empty', async () => {
         const repository = {
-            find: jest.fn()
+            find: jest.fn(async () => [])
         }
         const service = new PromptWorkflowService(repository as any, {} as any, {} as any)
 
@@ -134,7 +229,109 @@ describe('PromptWorkflowService', () => {
             preferredSkillEntries: [],
             skillEntries: []
         })
-        expect(repository.find).not.toHaveBeenCalled()
+        expect(repository.find).toHaveBeenCalled()
+    })
+
+    it('applies live expert scope to both default and configured commands, including published snapshots', async () => {
+        const workflows = [
+            { id: 'shared', name: 'shared', template: 'shared content' },
+            { id: 'assigned', name: 'assigned', template: 'edited content', associatedXpertIds: ['expert-1'] },
+            { id: 'other', name: 'other', template: 'other content', associatedXpertIds: ['expert-2'] },
+            { id: 'unavailable', name: 'unavailable', template: 'hidden', associatedXpertIds: ['deleted-expert'] },
+            { id: 'archived', name: 'archived', template: 'hidden', archivedAt: new Date() }
+        ]
+        const repository = { find: jest.fn().mockResolvedValue(workflows) }
+        const service = new PromptWorkflowService(
+            repository as unknown as Repository<PromptWorkflow>,
+            {} as XpertWorkspaceAccessService,
+            {} as Repository<Xpert>
+        )
+        const profile = {
+            version: 1 as const,
+            enabled: true,
+            commands: [
+                {
+                    source: 'workspace_prompt_workflow' as const,
+                    workflowId: 'assigned',
+                    snapshot: { name: 'assigned', template: 'published content' }
+                },
+                {
+                    source: 'workspace_prompt_workflow' as const,
+                    workflowId: 'other',
+                    snapshot: { name: 'other', template: 'hidden snapshot' }
+                },
+                { source: 'workspace_prompt_workflow' as const, workflowId: 'archived' },
+                {
+                    source: 'workspace_prompt_workflow' as const,
+                    workflowId: 'deleted',
+                    snapshot: { name: 'deleted', template: 'hidden snapshot' }
+                }
+            ]
+        }
+        const result = await service.resolveRuntimeCommandProfile({
+            id: 'expert-1',
+            workspaceId: 'workspace-1',
+            commandProfile: profile
+        })
+        expect(result.workspaceCommands.map((item) => item.name)).toEqual(['shared', 'assigned'])
+        expect(result.workspaceCommands[1].template).toBe('published content')
+        const emptyProfile = await service.resolveRuntimeCommandProfile({
+            id: 'expert-1',
+            workspaceId: 'workspace-1',
+            commandProfile: { version: 1, enabled: true, commands: [] }
+        })
+        expect(emptyProfile.workspaceCommands.map((item) => item.name)).toEqual(['shared', 'assigned'])
+        const optedOut = await service.resolveRuntimeCommandProfile({
+            id: 'expert-1',
+            workspaceId: 'workspace-1',
+            commandProfile: {
+                version: 1,
+                enabled: true,
+                commands: [{ source: 'workspace_prompt_workflow', workflowId: 'shared', enabled: false }]
+            }
+        })
+        expect(optedOut.workspaceCommands.map((item) => item.name)).toEqual(['assigned'])
+        repository.find.mockResolvedValue(workflows.filter((workflow) => !workflow.archivedAt))
+        const defaultProfile = await service.resolveRuntimeCommandProfile({
+            id: 'expert-1',
+            workspaceId: 'workspace-1'
+        })
+        expect(defaultProfile.workspaceCommands.map((item) => item.name)).toEqual(['shared', 'assigned'])
+    })
+
+    it('clears optional editor fields instead of letting TypeORM silently retain their previous values', async () => {
+        const current = {
+            id: 'prompt-1',
+            workspaceId: 'workspace-1',
+            name: 'report',
+            template: 'Report',
+            description: 'old',
+            argsHint: 'old hint',
+            runtimeCapabilities: { skills: ['old'] },
+            associatedXpertIds: ['expert-1']
+        }
+        const repository = { findOne: jest.fn().mockResolvedValue(current), save: jest.fn(async (value) => value) }
+        const service = new PromptWorkflowService(
+            repository as unknown as Repository<PromptWorkflow>,
+            {} as XpertWorkspaceAccessService,
+            {} as Repository<Xpert>
+        )
+        await service.updateInWorkspace('workspace-1', 'prompt-1', {
+            description: undefined,
+            runtimeCapabilities: undefined
+        })
+        expect(current).toMatchObject({ description: 'old', runtimeCapabilities: { skills: ['old'] } })
+        const result = await service.updateInWorkspace('workspace-1', 'prompt-1', {
+            description: '',
+            argsHint: '',
+            runtimeCapabilities: null
+        })
+        expect(result).toMatchObject({
+            description: null,
+            argsHint: null,
+            runtimeCapabilities: null,
+            associatedXpertIds: ['expert-1']
+        })
     })
 
     it('creates a prompt workflow by key when none exists', async () => {

@@ -1,111 +1,76 @@
 import { Clipboard } from '@angular/cdk/clipboard'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  HostListener,
+  inject,
+  signal,
+  TemplateRef,
+  untracked,
+  viewChild
+} from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui'
+import {
+  IPromptWorkflow,
+  ITag,
+  OrderTypeEnum,
+  PromptWorkflowInput,
+  PromptWorkflowVisibility,
+  parsePromptCapabilityConfig
+} from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardCardImports,
-  ZardEmptyComponent,
+  ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardSelectImports
+  ZardMenuImports,
+  ZardSelectImports,
+  ZardTableImports,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import {
-  getErrorMessage,
-  injectPromptWorkflowAPI,
-  injectToastr,
-  IPromptWorkflow,
-  OrderTypeEnum,
-  PromptWorkflowVisibility,
-  TPromptWorkflow
-} from '../../../../@core'
+import { firstValueFrom } from 'rxjs'
+import { getErrorMessage, injectPromptWorkflowAPI, injectToastr, injectXpertAPI } from '../../../../@core'
+import { TagSelectComponent } from '../../../../@shared/tag/tag-select/tag-select.component'
+import { TagDirectoryComponent } from '../../../../@shared/tag/directory/tag-directory.component'
 import { XpertAssistantFacade, type PromptWorkflowRefreshEvent } from '../../assistant-shell/assistant.facade'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import { PromptExpertSelectComponent, PromptWorkflowExpert } from './expert-association-select.component'
+import { PromptCapabilitySelectComponent } from './capability-select.component'
+import { createPromptScenarioForm } from './scenario-editor.component'
+import { PromptScenarioSettingsComponent } from './scenario-settings.component'
+import { PROMPT_WORKFLOW_TEMPLATES, promptTextValidator, splitPromptList, WORKFLOW_NAME_PATTERN } from './workflow-form'
 
-type PromptWorkflowDraft = Partial<TPromptWorkflow> & {
-  id?: string
-  tagsText?: string
-  aliasesText?: string
-  runtimeCapabilitiesText?: string
-}
-
-const WORKFLOW_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
-
-const PROMPT_WORKFLOW_TEMPLATES: Array<{
-  name: string
-  label: string
-  description: string
-  argsHint: string
-  template: string
-  tags: string[]
-}> = [
-  {
-    name: 'review',
-    label: 'Review',
-    description: 'Review selected context and return actionable findings.',
-    argsHint: '<path or context>',
-    template: 'Review {{args}}. Return actionable findings grouped by severity.',
-    tags: ['code', 'quality']
-  },
-  {
-    name: 'explain',
-    label: 'Explain',
-    description: 'Explain a file, query, error, or concept.',
-    argsHint: '<target>',
-    template: 'Explain {{args}} clearly. Include the relevant assumptions and edge cases.',
-    tags: ['learning']
-  },
-  {
-    name: 'test',
-    label: 'Test',
-    description: 'Design or update tests for the selected target.',
-    argsHint: '<path or feature>',
-    template: 'Create or update tests for {{args}}. Focus on meaningful behavior and regressions.',
-    tags: ['test', 'quality']
-  },
-  {
-    name: 'debug',
-    label: 'Debug',
-    description: 'Debug an error, failing test, or unexpected behavior.',
-    argsHint: '<error or context>',
-    template: 'Debug {{args}}. Identify likely causes, propose checks, and suggest a minimal fix.',
-    tags: ['debug']
-  },
-  {
-    name: 'summarize',
-    label: 'Summarize',
-    description: 'Summarize long context into a compact brief.',
-    argsHint: '<context>',
-    template: 'Summarize {{args}} into concise bullets with open questions and decisions.',
-    tags: ['writing']
-  },
-  {
-    name: 'rewrite',
-    label: 'Rewrite',
-    description: 'Rewrite content for clarity, tone, or structure.',
-    argsHint: '<content>',
-    template: 'Rewrite {{args}} for clarity. Preserve meaning and call out important changes.',
-    tags: ['writing']
-  }
-]
+type Panel = 'templates' | 'archive' | 'discard' | 'tags' | 'export'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     TranslateModule,
-    ZardAlertComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
-    ...ZardCardImports,
-    ZardEmptyComponent,
     ZardIconComponent,
     ZardInputDirective,
-    ...ZardSelectImports
+    ...ZardFormImports,
+    ...ZardMenuImports,
+    ...ZardSelectImports,
+    ...ZardTableImports,
+    ...ZardTooltipImports,
+    TagSelectComponent,
+    TagDirectoryComponent,
+    PromptExpertSelectComponent,
+    PromptCapabilitySelectComponent,
+    PromptScenarioSettingsComponent
   ],
   selector: 'xp-workspace-prompt-workflows',
   templateUrl: './workflows.component.html',
@@ -115,326 +80,373 @@ const PROMPT_WORKFLOW_TEMPLATES: Array<{
 export class XpertWorkspacePromptWorkflowsComponent {
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly api = injectPromptWorkflowAPI()
+  readonly #xperts = injectXpertAPI()
   readonly #toastr = injectToastr()
   readonly #clipboard = inject(Clipboard)
   readonly #translate = inject(TranslateService)
+  readonly #dialog = inject(Dialog)
+  readonly #fb = inject(FormBuilder)
   readonly #assistantFacade = inject(XpertAssistantFacade, { optional: true })
-
   readonly workspace = this.homeComponent.workspace
+  readonly workspaceId = computed(() => this.workspace()?.id)
   readonly canWriteWorkspace = this.homeComponent.canWriteWorkspace
   readonly searchText = this.homeComponent.searchText
-
   readonly templates = PROMPT_WORKFLOW_TEMPLATES
   readonly workflows = signal<IPromptWorkflow[]>([])
-  readonly selectedId = signal<string | null>(null)
+  readonly experts = signal<PromptWorkflowExpert[]>([])
   readonly loading = signal(false)
+  readonly expertsLoading = signal(false)
+  readonly expertError = signal('')
+  readonly loadError = signal('')
+  readonly saveError = signal('')
   readonly saving = signal(false)
-  readonly usage = signal<Array<{
-    id?: string
-    name?: string
-    title?: string
-    version?: string
-    latest?: boolean
-  }> | null>(null)
-  readonly draft = signal<PromptWorkflowDraft>(this.createEmptyDraft())
-
+  readonly editing = signal(false)
+  readonly selectedId = signal<string | null>(null)
+  readonly expertFilter = signal('all')
+  readonly sort = signal<'updated' | 'name'>('updated')
+  readonly showAdvanced = signal(false)
+  readonly panel = signal<Panel>('templates')
+  readonly panelWorkflow = signal<IPromptWorkflow | null>(null)
+  readonly panelError = signal('')
+  readonly exportExpertId = signal('')
+  readonly exportExperts = computed(() => {
+    const ids = this.panelWorkflow()?.associatedXpertIds ?? []
+    return this.experts().filter((expert) => !ids.length || ids.includes(expert.id))
+  })
+  readonly dialogTemplate = viewChild.required<TemplateRef<unknown>>('dialogTemplate')
+  readonly form = this.#fb.nonNullable.group({
+    label: ['', [promptTextValidator, Validators.maxLength(120)]],
+    name: ['', [Validators.required, Validators.pattern(WORKFLOW_NAME_PATTERN)]],
+    description: ['', Validators.maxLength(255)],
+    category: ['prompt_workflow', Validators.maxLength(80)],
+    argsHint: ['', Validators.maxLength(120)],
+    template: ['', promptTextValidator],
+    scenarios: new FormArray<ReturnType<typeof createPromptScenarioForm>>([]),
+    visibility: this.#fb.nonNullable.control<PromptWorkflowVisibility>('team'),
+    aliasesText: '',
+    runtimeCapabilities: this.#fb.control<unknown>(null),
+    organizationTags: this.#fb.nonNullable.control<ITag[]>([]),
+    associatedXpertIds: this.#fb.nonNullable.control<string[]>([])
+  })
+  readonly formValue = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() })
+  readonly selected = computed(() => this.workflows().find((workflow) => workflow.id === this.selectedId()) ?? null)
   readonly activeWorkflows = computed(() => this.workflows().filter((workflow) => !workflow.archivedAt))
   readonly filteredWorkflows = computed(() => {
-    const term = (this.searchText() ?? '').trim().toLowerCase()
-    if (!term) {
-      return this.activeWorkflows()
-    }
-    return this.activeWorkflows().filter((workflow) =>
-      [
-        workflow.name,
-        workflow.label,
-        workflow.description,
-        workflow.category,
-        workflow.argsHint,
-        ...(workflow.tags ?? []),
-        ...(workflow.aliases ?? [])
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(term)
-    )
+    const query = (this.searchText() ?? '').trim().toLocaleLowerCase()
+    const selectedTags = this.homeComponent.tags()
+    const scope = this.expertFilter()
+    return this.activeWorkflows()
+      .filter((workflow) => {
+        const search = [
+          workflow.label,
+          workflow.name,
+          workflow.description,
+          ...(workflow.tags ?? []),
+          ...(workflow.organizationTags ?? []).map((tag) => tag.name),
+          ...(workflow.aliases ?? [])
+        ]
+          .join(' ')
+          .toLocaleLowerCase()
+        const tagsMatch = selectedTags.every((tag) => workflow.organizationTags?.some((item) => item.id === tag.id))
+        const experts = workflow.associatedXpertIds ?? []
+        return (
+          (!query || search.includes(query)) &&
+          tagsMatch &&
+          (scope === 'all' || (scope === 'shared' ? !experts.length : !experts.length || experts.includes(scope)))
+        )
+      })
+      .sort((a, b) =>
+        this.sort() === 'name'
+          ? (a.label || a.name).localeCompare(b.label || b.name)
+          : new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
+      )
   })
-  readonly selectedWorkflow = computed(
-    () => this.workflows().find((workflow) => workflow.id === this.selectedId()) ?? null
-  )
-  readonly validationMessage = computed(() => {
-    const draft = this.draft()
-    const name = draft.name?.trim() ?? ''
-    if (!WORKFLOW_NAME_PATTERN.test(name)) {
-      return this.#translate.instant('XP.PromptWorkflow.InvalidCommandName')
-    }
-    if (!draft.template?.trim()) {
-      return this.#translate.instant('XP.PromptWorkflow.TemplateRequired')
-    }
-    if (draft.runtimeCapabilitiesText?.trim()) {
-      try {
-        JSON.parse(draft.runtimeCapabilitiesText)
-      } catch {
-        return this.#translate.instant('XP.PromptWorkflow.RuntimeCapabilitiesJsonRequired')
-      }
-    }
-    return null
-  })
+  #request = 0
+  #ref: DialogRef<unknown> | null = null
+  #legacyTags: string[] = []
 
   constructor() {
     effect(() => {
-      if (this.workspace()?.id) {
-        this.refresh()
-      }
+      const workspaceId = this.workspaceId()
+      untracked(() => {
+        this.#request++
+        this.#ref?.close()
+        this.editing.set(false)
+        this.workflows.set([])
+        this.experts.set([])
+        this.form.markAsPristine()
+        if (workspaceId) void this.refresh()
+      })
     })
-
     effect(() => {
-      const refreshEvent = this.#assistantFacade?.promptWorkflowRefresh()
-      const workspaceId = this.workspace()?.id
-      if (!refreshEvent || !workspaceId || refreshEvent.workspaceId !== workspaceId) {
-        return
-      }
-
-      this.refresh(refreshEvent)
+      const event = this.#assistantFacade?.promptWorkflowRefresh()
+      if (event?.workspaceId === this.workspace()?.id) untracked(() => void this.refresh(event))
+    })
+    effect(() => {
+      if (this.canWriteWorkspace() && !this.saving()) this.form.enable({ emitEvent: false })
+      else this.form.disable({ emitEvent: false })
+    })
+    inject(DestroyRef).onDestroy(() => {
+      this.#request++
+      this.#ref?.close()
     })
   }
 
-  refresh(selection?: PromptWorkflowRefreshEvent) {
+  async refresh(selection?: PromptWorkflowRefreshEvent) {
     const workspaceId = this.workspace()?.id
-    if (!workspaceId) {
-      return
-    }
-
+    if (!workspaceId) return
+    const request = ++this.#request
     this.loading.set(true)
-    this.api.getAllByWorkspace(workspaceId, { order: { updatedAt: OrderTypeEnum.DESC } }).subscribe({
-      next: ({ items }) => {
-        this.loading.set(false)
-        this.workflows.set(items ?? [])
-        const target = this.findWorkflow(selection)
-        if (target && !target.archivedAt) {
-          this.selectWorkflow(target)
-          return
-        }
-
-        if (selection?.operation === 'deleted') {
-          this.selectWorkflow(this.activeWorkflows()[0] ?? null)
-          return
-        }
-
-        const selected = this.selectedWorkflow()
-        if (!selected || selected.archivedAt) {
-          this.selectWorkflow(this.activeWorkflows()[0] ?? null)
-        }
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
+    this.loadError.set('')
+    void this.loadExperts(workspaceId, request)
+    try {
+      const { items } = await firstValueFrom(
+        this.api.getAllByWorkspace(workspaceId, { order: { updatedAt: OrderTypeEnum.DESC } })
+      )
+      if (request !== this.#request) return
+      this.workflows.set(items ?? [])
+      if (selection && !this.form.dirty && selection.operation !== 'deleted') {
+        const target = items?.find(
+          (workflow) => workflow.id === selection.workflowId || workflow.name === selection.key
+        )
+        if (target && !target.archivedAt) this.setEditor(target)
       }
-    })
+    } catch (error) {
+      if (request === this.#request) this.loadError.set(getErrorMessage(error))
+    } finally {
+      if (request === this.#request) this.loading.set(false)
+    }
   }
 
-  createFromTemplate(template = PROMPT_WORKFLOW_TEMPLATES[0]) {
-    this.selectedId.set(null)
-    this.usage.set(null)
-    this.draft.set({
-      name: this.nextAvailableName(template.name),
-      label: this.templateText(template, 'Label', template.label),
-      description: this.templateText(template, 'Description', template.description),
-      category: 'prompt_workflow',
-      argsHint: this.templateText(template, 'ArgsHint', template.argsHint),
-      template: this.templateText(template, 'Template', template.template),
-      visibility: 'team',
-      tagsText: template.tags.join(', '),
-      aliasesText: '',
-      runtimeCapabilitiesText: ''
-    })
+  private async loadExperts(workspaceId: string, request: number) {
+    this.expertsLoading.set(true)
+    this.expertError.set('')
+    try {
+      const { items } = await firstValueFrom(
+        this.#xperts.getAllByWorkspace(workspaceId, {
+          select: ['id', 'name', 'title'],
+          where: { latest: true }
+        })
+      )
+      if (request === this.#request)
+        this.experts.set(items.filter((expert): expert is typeof expert & { id: string } => !!expert.id))
+    } catch (error) {
+      if (request === this.#request) this.expertError.set(getErrorMessage(error))
+    } finally {
+      if (request === this.#request) this.expertsLoading.set(false)
+    }
   }
 
-  selectWorkflow(workflow: IPromptWorkflow | null) {
+  async edit(workflow?: IPromptWorkflow) {
+    if (!(await this.confirmLeave())) return
+    this.setEditor(workflow)
+  }
+
+  private setEditor(workflow?: IPromptWorkflow) {
     this.selectedId.set(workflow?.id ?? null)
-    this.usage.set(null)
-    this.draft.set(workflow ? this.workflowToDraft(workflow) : this.createEmptyDraft())
+    this.#legacyTags = workflow?.tags ?? []
+    this.saveError.set('')
+    this.showAdvanced.set(false)
+    this.form.reset({
+      label: workflow?.label || workflow?.name || '',
+      name: workflow?.name ?? '',
+      description: workflow?.description ?? '',
+      category: workflow?.category ?? 'prompt_workflow',
+      argsHint: workflow?.argsHint ?? '',
+      template: workflow?.template ?? '',
+      visibility: workflow?.visibility ?? 'team',
+      aliasesText: workflow?.aliases?.join(', ') ?? '',
+      runtimeCapabilities: workflow?.runtimeCapabilities ?? null,
+      organizationTags: workflow?.organizationTags ?? [],
+      associatedXpertIds: workflow?.associatedXpertIds ?? []
+    })
+    this.editing.set(true)
+    this.form.controls.scenarios.clear()
+    for (const scenario of workflow?.scenarios ?? [])
+      this.form.controls.scenarios.push(createPromptScenarioForm(scenario))
   }
 
-  save() {
-    const workspaceId = this.workspace()?.id
-    const body = this.draftToPayload()
-    if (!workspaceId || !body || this.validationMessage()) {
-      return
+  async back() {
+    if (await this.confirmLeave()) {
+      this.editing.set(false)
+      this.form.markAsPristine()
     }
+  }
 
+  async confirmLeave(): Promise<boolean> {
+    if (this.saving()) return false
+    if (!this.editing() || !this.form.dirty) return true
+    this.openPanel('discard')
+    return (await firstValueFrom(this.#ref.closed)) === true
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent) {
+    if (this.editing() && this.form.dirty) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+  }
+
+  async save(): Promise<boolean> {
+    this.form.markAllAsTouched()
+    if (this.form.invalid || !this.canWriteWorkspace() || this.saving()) return false
+    const workspaceId = this.workspace()?.id
+    if (!workspaceId) return false
+    const draft = this.form.getRawValue()
+    const body: PromptWorkflowInput = {
+      name: draft.name.trim(),
+      label: draft.label.trim(),
+      description: draft.description.trim(),
+      template: draft.template.trim(),
+      scenarios: draft.scenarios.map((scenario) => ({
+        ...scenario,
+        label: scenario.label.trim(),
+        args: scenario.args.trim()
+      })),
+      category: draft.category.trim(),
+      argsHint: draft.argsHint.trim(),
+      aliases: splitPromptList(draft.aliasesText),
+      visibility: draft.visibility,
+      runtimeCapabilities: draft.runtimeCapabilities,
+      tags: this.#legacyTags,
+      organizationTagIds: draft.organizationTags.map((tag) => tag.id),
+      associatedXpertIds: draft.associatedXpertIds
+    }
     this.saving.set(true)
-    const request = this.selectedId()
-      ? this.api.updateInWorkspace(workspaceId, this.selectedId(), body)
-      : this.api.createInWorkspace(workspaceId, body)
+    this.saveError.set('')
+    try {
+      const id = this.selectedId()
+      const workflow = await firstValueFrom(
+        id ? this.api.updateInWorkspace(workspaceId, id, body) : this.api.createInWorkspace(workspaceId, body)
+      )
+      if (workspaceId !== this.workspace()?.id) return false
+      this.workflows.update((items) => [workflow, ...items.filter((item) => item.id !== workflow.id)])
+      this.selectedId.set(workflow.id)
+      this.form.markAsPristine()
+      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
+      void this.refresh()
+      return true
+    } catch (error) {
+      if (workspaceId === this.workspace()?.id) this.saveError.set(getErrorMessage(error))
+      return false
+    } finally {
+      this.saving.set(false)
+    }
+  }
 
-    request.subscribe({
-      next: (workflow) => {
-        this.saving.set(false)
-        this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
-        this.refresh()
-        this.selectWorkflow(workflow)
-      },
-      error: (error) => {
-        this.saving.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
+  async saveAndLeave() {
+    if (await this.save()) this.closePanel(true)
+  }
+
+  async createFromTemplate(template: (typeof PROMPT_WORKFLOW_TEMPLATES)[number]) {
+    this.closePanel()
+    if (!(await this.confirmLeave())) return
+    this.setEditor()
+    this.form.patchValue({
+      name: this.nextName(template.name),
+      label: this.templateText(template, 'Label'),
+      description: this.templateText(template, 'Description'),
+      argsHint: this.templateText(template, 'ArgsHint'),
+      template: this.templateText(template, 'Template')
+    })
+    this.form.markAsDirty()
+  }
+
+  async duplicate(workflow: IPromptWorkflow) {
+    if (!this.canWriteWorkspace() || !(await this.confirmLeave())) return
+    this.setEditor(workflow)
+    this.selectedId.set(null)
+    this.form.patchValue({
+      name: this.nextName(`${workflow.name.slice(0, 54)}-copy`),
+      label: this.#translate.instant('XP.PromptWorkflow.CopyLabel', { name: workflow.label || workflow.name })
+    })
+    this.form.markAsDirty()
+  }
+
+  openPanel(panel: Panel, workflow: IPromptWorkflow | null = null) {
+    this.#ref?.close()
+    this.panel.set(panel)
+    this.panelWorkflow.set(workflow)
+    this.panelError.set('')
+    this.#ref = this.#dialog.open(this.dialogTemplate(), {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      disableClose: panel === 'discard',
+      ariaLabel: this.#translate.instant('XP.PromptWorkflow.Panel.' + panel)
     })
   }
 
-  duplicate(workflow: IPromptWorkflow) {
+  closePanel(result?: boolean) {
+    this.#ref?.close(result)
+    this.#ref = null
+  }
+
+  async archive() {
+    const workflow = this.panelWorkflow()
     const workspaceId = this.workspace()?.id
-    if (!workspaceId || !workflow.id) {
+    if (!workspaceId || !workflow?.id || !this.canWriteWorkspace() || this.saving()) return
+    this.saving.set(true)
+    try {
+      await firstValueFrom(this.api.archiveInWorkspace(workspaceId, workflow.id))
+      if (workspaceId !== this.workspace()?.id) return
+      this.workflows.update((items) => items.filter((item) => item.id !== workflow.id))
+      this.closePanel()
+      void this.refresh()
+    } catch (error) {
+      this.panelError.set(getErrorMessage(error))
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  copySkillCommand(workflow: IPromptWorkflow, xpertId?: string) {
+    if (parsePromptCapabilityConfig(workflow.runtimeCapabilities)?.experts.length && !xpertId) {
+      this.exportExpertId.set('')
+      this.openPanel('export', workflow)
       return
     }
-    this.api.duplicateInWorkspace(workspaceId, workflow.id).subscribe({
-      next: (copy) => {
-        this.refresh()
-        this.selectWorkflow(copy)
-      },
-      error: (error) => this.#toastr.error(getErrorMessage(error))
-    })
+    const exported = xpertId ? this.api.exportSkillCommand(workflow, xpertId) : this.api.exportSkillCommand(workflow)
+    const copied = this.#clipboard.copy(JSON.stringify(exported, null, 2))
+    if (copied) this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+    else this.#toastr.error(this.#translate.instant('XP.PromptWorkflow.CopyFailed'))
+    if (copied && this.panel() === 'export') this.closePanel()
   }
 
-  archive(workflow: IPromptWorkflow) {
-    const workspaceId = this.workspace()?.id
-    if (!workspaceId || !workflow.id) {
-      return
-    }
-    this.api.archiveInWorkspace(workspaceId, workflow.id).subscribe({
-      next: () => {
-        this.refresh()
-        this.selectWorkflow(null)
-      },
-      error: (error) => this.#toastr.error(getErrorMessage(error))
-    })
+  setCapabilities(value: unknown) {
+    this.form.controls.runtimeCapabilities.setValue(value)
+    this.form.markAsDirty()
   }
 
-  loadUsage(workflow = this.selectedWorkflow()) {
-    const workspaceId = this.workspace()?.id
-    if (!workspaceId || !workflow?.id) {
-      return
-    }
-    this.api.getUsage(workspaceId, workflow.id).subscribe({
-      next: (usage) => this.usage.set(usage),
-      error: (error) => this.#toastr.error(getErrorMessage(error))
-    })
+  setExperts(ids: string[]) {
+    this.form.controls.associatedXpertIds.setValue(ids)
+    this.form.markAsDirty()
   }
-
-  copySkillCommand(workflow = this.selectedWorkflow()) {
-    if (!workflow) {
-      return
-    }
-    const command = this.api.exportSkillCommand(workflow)
-    this.#clipboard.copy(JSON.stringify(command, null, 2))
-    this.#toastr.success('XP.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+  expertName(id: string) {
+    const expert = this.experts().find((item) => item.id === id)
+    return expert?.title || expert?.name || this.#translate.instant('XP.PromptWorkflow.Unavailable')
   }
-
-  updateDraft(patch: Partial<PromptWorkflowDraft>) {
-    this.draft.update((draft) => ({ ...draft, ...patch }))
+  expertNames(workflow: IPromptWorkflow) {
+    return (workflow.associatedXpertIds ?? []).map((id) => this.expertName(id)).join(', ')
   }
-
-  displayTemplateLabel(template: (typeof PROMPT_WORKFLOW_TEMPLATES)[number]) {
-    return this.templateText(template, 'Label', template.label)
+  clearFilters() {
+    this.expertFilter.set('all')
+    this.homeComponent.tags.set([])
+    this.homeComponent.searchControl.setValue('')
   }
-
-  displayVisibility(visibility: PromptWorkflowVisibility | undefined) {
-    const value = visibility ?? 'team'
-    const key = `XP.PromptWorkflow.Visibility.${value}`
-    const label = this.#translate.instant(key)
-    return label === key ? value : label
-  }
-
-  displayUsageVersion(version: string | undefined) {
-    return version || this.#translate.instant('XP.PromptWorkflow.Draft')
-  }
-
-  private createEmptyDraft(): PromptWorkflowDraft {
-    return {
-      name: '',
-      label: '',
-      description: '',
-      category: 'prompt_workflow',
-      argsHint: '<args>',
-      template: '',
-      visibility: 'team',
-      tagsText: '',
-      aliasesText: '',
-      runtimeCapabilitiesText: ''
-    }
-  }
-
-  private workflowToDraft(workflow: IPromptWorkflow): PromptWorkflowDraft {
-    return {
-      ...workflow,
-      tagsText: workflow.tags?.join(', ') ?? '',
-      aliasesText: workflow.aliases?.join(', ') ?? '',
-      runtimeCapabilitiesText: workflow.runtimeCapabilities ? JSON.stringify(workflow.runtimeCapabilities, null, 2) : ''
-    }
-  }
-
-  private findWorkflow(selection?: PromptWorkflowRefreshEvent) {
-    if (!selection) {
-      return null
-    }
-
-    return (
-      this.workflows().find((workflow) => Boolean(selection.workflowId && workflow.id === selection.workflowId)) ??
-      this.workflows().find((workflow) => Boolean(selection.key && workflow.name === selection.key)) ??
-      null
-    )
-  }
-
-  private draftToPayload(): Partial<TPromptWorkflow> | null {
-    const draft = this.draft()
-    const runtimeCapabilitiesText = draft.runtimeCapabilitiesText?.trim()
-    return {
-      name: draft.name?.trim(),
-      label: draft.label?.trim(),
-      description: draft.description?.trim(),
-      category: draft.category?.trim() || 'prompt_workflow',
-      aliases: splitList(draft.aliasesText),
-      argsHint: draft.argsHint?.trim(),
-      template: draft.template?.trim(),
-      tags: splitList(draft.tagsText),
-      visibility: (draft.visibility as PromptWorkflowVisibility) ?? 'team',
-      runtimeCapabilities: runtimeCapabilitiesText ? JSON.parse(runtimeCapabilitiesText) : undefined
-    }
-  }
-
-  private nextAvailableName(baseName: string) {
-    const existing = new Set(this.activeWorkflows().map((workflow) => workflow.name))
-    if (!existing.has(baseName)) {
-      return baseName
-    }
-    for (let index = 2; index < 100; index++) {
-      const name = `${baseName}-${index}`
-      if (!existing.has(name)) {
-        return name
-      }
-    }
-    return `${baseName}-${Date.now()}`
-  }
-
-  private templateText(
+  templateText(
     template: (typeof PROMPT_WORKFLOW_TEMPLATES)[number],
-    field: 'Label' | 'Description' | 'ArgsHint' | 'Template',
-    fallback: string
+    field: 'Label' | 'Description' | 'ArgsHint' | 'Template'
   ) {
-    const key = `XP.PromptWorkflow.Templates.${template.name}.${field}`
-    const label = this.#translate.instant(key, { args: '{{args}}' })
-    return label === key ? fallback : label
+    return this.#translate.instant(`XP.PromptWorkflow.Templates.${template.name}.${field}`, { args: '{{args}}' })
   }
-}
-
-function splitList(value: string | undefined) {
-  return Array.from(
-    new Set(
-      (value ?? '')
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-    )
-  )
+  private nextName(base: string) {
+    const names = new Set(this.workflows().map((item) => item.name))
+    let name = base
+    let index = 2
+    while (names.has(name)) name = `${base.slice(0, 54)}-${index++}`
+    return name
+  }
 }

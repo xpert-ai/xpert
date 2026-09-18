@@ -8,6 +8,7 @@ import type {
     SkillSlashCommandCapability
 } from '@xpert-ai/contracts'
 import { compactObject, nonEmptyArray } from '@xpert-ai/server-common'
+import { isPromptWorkflowScenarios, type PromptWorkflowScenario } from '@xpert-ai/contracts'
 import type { RuntimePromptWorkflowCommandSource } from '../prompt-workflow'
 import {
     normalizeRuntimeCapabilitiesSelection,
@@ -119,6 +120,7 @@ export type RuntimePromptWorkflowCommandInput = {
     argsHint?: string
     template: string
     tags: string[]
+    scenarios?: PromptWorkflowScenario[]
     runtimeCapabilities?: TRuntimeCapabilitiesSelection
 }
 
@@ -186,6 +188,7 @@ export function parseRuntimePromptWorkflowCommandSource(
         aliases: readStringList(source.aliases),
         argsHint: readTrimmedString(source.argsHint),
         template,
+        scenarios: isPromptWorkflowScenarios(source.scenarios) ? source.scenarios : undefined,
         tags: readStringList(source.tags),
         runtimeCapabilities: normalizeRuntimeCapabilitiesSelection(source.runtimeCapabilities)
     })
@@ -338,11 +341,13 @@ function parsePromptWorkflow(value: unknown): SkillPromptWorkflow | undefined {
     const name = readTrimmedString(readOwn(value, 'name'))
     const label = readI18nText(readOwn(value, 'label'))
     const description = readI18nText(readOwn(value, 'description'))
+    const scenarios = readOwn(value, 'scenarios')
     return compactObject<SkillPromptWorkflow>({
         type: 'prompt_workflow',
         name,
         label,
         description,
+        scenarios: isPromptWorkflowScenarios(scenarios) ? scenarios : undefined,
         tags: nonEmptyArray(tags)
     })
 }

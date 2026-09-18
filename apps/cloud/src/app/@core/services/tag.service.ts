@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { ITag, OrganizationBaseCrudService, TagCategoryEnum } from '@cloud/app/@core/state'
+import { ITag, OrganizationBaseCrudService, TagTarget } from '@cloud/app/@core/state'
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs'
 import { getTagTargets, ITagDirectoryItem } from '@xpert-ai/contracts'
 import { distinctUntilChanged, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
@@ -36,12 +36,12 @@ export class TagService extends OrganizationBaseCrudService<ITag> {
     return this.#categories$
   }
 
-  getAllByCategory(category?: TagCategoryEnum) {
+  getAllByCategory(category?: TagTarget) {
     return this.getCatalogByCategory(category).pipe(map((tags) => tags.filter((tag) => tag.isActive !== false)))
   }
 
   /** Include inactive definitions so existing selections can display their current status. */
-  getCatalogByCategory(category?: TagCategoryEnum) {
+  getCatalogByCategory(category?: TagTarget) {
     if (!this.#categories.get(category ?? '')) {
       this.#categories.set(
         category ?? '',
@@ -92,7 +92,7 @@ export class TagService extends OrganizationBaseCrudService<ITag> {
   // }
 }
 
-export function injectTags(category: TagCategoryEnum) {
+export function injectTags(category: TagTarget) {
   const tagService = inject(TagService)
   return toSignal(tagService.getAllByCategory(category))
 }

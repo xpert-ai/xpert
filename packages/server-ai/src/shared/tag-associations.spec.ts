@@ -78,6 +78,23 @@ describe('tag association validation', () => {
         await expect(validate()).rejects.toBeInstanceOf(BadRequestException)
     })
 
+    it('validates prompt tags through their dedicated relation and preserves existing disabled associations', async () => {
+        const { repository, access, query, tagRepository } = setup({ targets: ['prompt_workflow'], isActive: false })
+        query.getRawMany.mockResolvedValue([{ id: tagId }])
+        await expect(
+            assertValidTagAssociations(
+                repository as unknown as Repository<{ id: string }>,
+                access as unknown as XpertWorkspaceAccessService,
+                { workspaceId: 'workspace-1', tags: [{ id: tagId }] },
+                'prompt_workflow',
+                'prompt-1',
+                'organizationTags'
+            )
+        ).resolves.toBeUndefined()
+        expect(query.innerJoin).toHaveBeenCalledWith('resource.organizationTags', 'tag')
+        expect(tagRepository.find).not.toHaveBeenCalled()
+    })
+
     it('does not trust an enabled flag or targets supplied by the client', async () => {
         const { validate } = setup({ isActive: false })
         await expect(validate({ tags: [{ id: tagId, isActive: true, targets: ['xpert'] }] })).rejects.toBeInstanceOf(

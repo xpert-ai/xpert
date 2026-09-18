@@ -22,7 +22,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { debounceTime, switchMap } from 'rxjs'
-import { ITag, TagCategoryEnum, TagService } from '../../../@core'
+import { ITag, TagTarget, TagService } from '../../../@core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -58,7 +58,7 @@ export class TagSelectComponent implements ControlValueAccessor {
 
   readonly tagService = inject(TagService)
 
-  readonly category = input<TagCategoryEnum>()
+  readonly category = input<TagTarget>()
   readonly optional = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

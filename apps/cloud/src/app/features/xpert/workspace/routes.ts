@@ -115,7 +115,8 @@ export default [
       },
       {
         path: 'prompt-workflows',
-        component: XpertWorkspacePromptWorkflowsComponent
+        component: XpertWorkspacePromptWorkflowsComponent,
+        canDeactivate: [(component: XpertWorkspacePromptWorkflowsComponent) => component.confirmLeave()]
       }
     ]
   }

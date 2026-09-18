@@ -26,7 +26,7 @@ import {
   XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { SkillPackageService } from 'apps/cloud/src/app/@core/services/skill-package.service'
-import { forkJoin } from 'rxjs'
+import { forkJoin, take } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioPanelComponent } from '../panel.component'
 
@@ -109,7 +109,13 @@ export class XpertStudioPanelCommandsComponent {
   readonly workspaceId = this.studioService.workspaceId
   readonly entries = computed(() => this.profile().commands ?? [])
   readonly profileConfigured = computed(() => this.isProfileConfigured(this.profile()))
-  readonly activeWorkflows = computed(() => this.workflows().filter((workflow) => !workflow.archivedAt))
+  readonly activeWorkflows = computed(() =>
+    this.workflows().filter(
+      (workflow) =>
+        !workflow.archivedAt &&
+        (!workflow.associatedXpertIds?.length || workflow.associatedXpertIds.includes(this.team()?.id))
+    )
+  )
   readonly skillCommands = computed<SkillCommandItem[]>(() =>
     this.skills().flatMap((skill) => {
       const commands = Array.isArray(skill.metadata?.commands) ? skill.metadata.commands : []
@@ -134,9 +140,9 @@ export class XpertStudioPanelCommandsComponent {
 
     this.loading.set(true)
     forkJoin({
-      commandProfile: this.xpertAPI.getCommandProfile(xpertId),
-      workflows: this.promptWorkflowAPI.getAllByWorkspace(workspaceId),
-      skills: this.skillPackageAPI.getAllByWorkspace(workspaceId)
+      commandProfile: this.xpertAPI.getCommandProfile(xpertId).pipe(take(1)),
+      workflows: this.promptWorkflowAPI.getAllByWorkspace(workspaceId).pipe(take(1)),
+      skills: this.skillPackageAPI.getAllByWorkspace(workspaceId).pipe(take(1))
     }).subscribe({
       next: ({ commandProfile, workflows, skills }) => {
         this.loading.set(false)
@@ -154,7 +160,7 @@ export class XpertStudioPanelCommandsComponent {
 
   isWorkspaceEnabled(workflow: IPromptWorkflow) {
     const entry = this.findWorkspaceEntry(workflow)
-    return entry ? entry.enabled !== false : !this.profileConfigured()
+    return this.activeWorkflows().some((item) => item.id === workflow.id) && entry?.enabled !== false
   }
 
   isSkillEnabled(item: SkillCommandItem) {
@@ -163,6 +169,7 @@ export class XpertStudioPanelCommandsComponent {
   }
 
   toggleWorkspace(workflow: IPromptWorkflow, enabled: boolean) {
+    if (enabled && !this.activeWorkflows().some((item) => item.id === workflow.id)) return
     this.updateEntry(
       (entry) => entry.source === 'workspace_prompt_workflow' && entry.workflowId === workflow.id,
       () => ({
