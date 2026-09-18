@@ -439,7 +439,12 @@ describe('PromptWorkflowService', () => {
 
     it('creates missing template defaults and preserves active or archived names', async () => {
         const existing = [
-            { name: 'presentation-refine', template: 'User refine command', archivedAt: null },
+            {
+                name: 'presentation-refine',
+                template: 'User refine command',
+                archivedAt: null,
+                associatedXpertIds: ['user-selected-xpert']
+            },
             {
                 name: 'presentation-export',
                 template: 'Archived user export command',
@@ -467,12 +472,17 @@ describe('PromptWorkflowService', () => {
             Object.create(Repository.prototype) as Repository<Xpert>
         )
 
-        const result = await service.initializeDefaultsInWorkspace('workspace-1', [
-            { name: 'presentation-create', template: 'Create {{args}}.', visibility: 'team' },
-            { name: 'presentation-refine', template: 'Refine {{args}}.', visibility: 'team' },
-            { name: 'presentation-export', template: 'Export {{args}}.', visibility: 'team' },
-            { name: 'presentation-share', template: 'Share {{args}}.', visibility: 'team' }
-        ])
+        const result = await service.initializeDefaultsInWorkspace(
+            'workspace-1',
+            [
+                { name: 'presentation-create', template: 'Create {{args}}.', visibility: 'team' },
+                { name: 'presentation-refine', template: 'Refine {{args}}.', visibility: 'team' },
+                { name: 'presentation-export', template: 'Export {{args}}.', visibility: 'team' },
+                { name: 'presentation-share', template: 'Share {{args}}.', visibility: 'team' }
+            ],
+            'template-xpert',
+            'template-a'
+        )
 
         expect(result.created.map(({ name }) => name)).toEqual(['presentation-create', 'presentation-share'])
         expect(result.skipped).toEqual(['presentation-refine', 'presentation-export'])
@@ -481,24 +491,88 @@ describe('PromptWorkflowService', () => {
             expect.objectContaining({
                 name: 'presentation-create',
                 workspaceId: 'workspace-1',
+                associatedXpertIds: ['template-xpert'],
+                sourceTemplateId: 'template-a',
                 createdById: 'user-1',
                 updatedById: 'user-1'
             }),
             expect.objectContaining({
                 name: 'presentation-share',
                 workspaceId: 'workspace-1',
+                associatedXpertIds: ['template-xpert'],
+                sourceTemplateId: 'template-a',
                 createdById: 'user-1',
                 updatedById: 'user-1'
             })
         ])
         expect(existing).toEqual([
-            { name: 'presentation-refine', template: 'User refine command', archivedAt: null },
+            {
+                name: 'presentation-refine',
+                template: 'User refine command',
+                archivedAt: null,
+                associatedXpertIds: ['user-selected-xpert']
+            },
             {
                 name: 'presentation-export',
                 template: 'Archived user export command',
                 archivedAt: new Date('2026-07-01T00:00:00.000Z')
             }
         ])
+    })
+
+    it('adds each installed expert only to active scoped defaults from the same template', async () => {
+        const stored = [
+            {
+                id: 'owned',
+                name: 'owned',
+                sourceTemplateId: 'template-a',
+                associatedXpertIds: ['expert-a'],
+                template: 'Edited content'
+            },
+            { id: 'custom', name: 'custom', associatedXpertIds: ['expert-a'] },
+            { id: 'other', name: 'other', sourceTemplateId: 'template-b', associatedXpertIds: ['expert-a'] },
+            { id: 'global', name: 'global', sourceTemplateId: 'template-a', associatedXpertIds: [] },
+            {
+                id: 'archived',
+                name: 'archived',
+                sourceTemplateId: 'template-a',
+                associatedXpertIds: ['expert-a'],
+                archivedAt: new Date()
+            }
+        ]
+        const transactionRepository = {
+            find: jest.fn(async () => stored),
+            update: jest.fn(async (id: string, patch: { associatedXpertIds: string[] }) => {
+                Object.assign(stored.find((item) => item.id === id)!, patch)
+            }),
+            create: jest.fn((entity) => entity),
+            save: jest.fn()
+        }
+        const manager = { getRepository: jest.fn(() => transactionRepository) }
+        const repository = {
+            manager: { transaction: jest.fn((run: (value: typeof manager) => Promise<unknown>) => run(manager)) }
+        }
+        const service = new PromptWorkflowService(
+            repository as unknown as Repository<PromptWorkflow>,
+            Object.create(XpertWorkspaceAccessService.prototype) as XpertWorkspaceAccessService,
+            Object.create(Repository.prototype) as Repository<Xpert>
+        )
+        const inputs = stored.map(({ name }) => ({ name, template: 'Default content' }))
+        await service.initializeDefaultsInWorkspace('workspace-1', inputs, 'expert-b', 'template-a')
+        await service.initializeDefaultsInWorkspace('workspace-1', inputs, 'expert-b', 'template-a')
+        await service.initializeDefaultsInWorkspace('workspace-1', inputs, 'expert-c', 'template-a')
+        expect(transactionRepository.update).toHaveBeenCalledTimes(2)
+        expect(stored[0]).toMatchObject({
+            associatedXpertIds: ['expert-a', 'expert-b', 'expert-c'],
+            template: 'Edited content'
+        })
+        expect(stored.slice(1).map((item) => item.associatedXpertIds)).toEqual([
+            ['expert-a'],
+            ['expert-a'],
+            [],
+            ['expert-a']
+        ])
+        expect(transactionRepository.save).not.toHaveBeenCalled()
     })
 
     it('creates template defaults once and skips every name on repeated initialization', async () => {

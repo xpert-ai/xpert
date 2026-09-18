@@ -35,13 +35,20 @@ describe('XpertTemplateWorkspaceInitializer', () => {
         }).compile()
         const service = moduleRef.get(XpertTemplateWorkspaceInitializer)
 
-        await expect(service.initializeByTemplateId(templateId, workspaceId, LanguagesEnum.English)).resolves.toEqual({
+        await expect(
+            service.initializeByTemplateId(templateId, workspaceId, LanguagesEnum.English, 'xpert-1')
+        ).resolves.toEqual({
             status: 'initialized',
             created: ['presentation-create'],
             skipped: ['presentation-share']
         })
         expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith(templateId, LanguagesEnum.English)
-        expect(promptWorkflowService.initializeDefaultsInWorkspace).toHaveBeenCalledWith(workspaceId, promptWorkflows)
+        expect(promptWorkflowService.initializeDefaultsInWorkspace).toHaveBeenCalledWith(
+            workspaceId,
+            promptWorkflows,
+            'xpert-1',
+            templateId
+        )
     })
 
     it('logs and ignores prompt workflow initialization failures', async () => {
@@ -63,7 +70,9 @@ describe('XpertTemplateWorkspaceInitializer', () => {
         }).compile()
         const service = moduleRef.get(XpertTemplateWorkspaceInitializer)
 
-        await expect(service.initializeByTemplateId(templateId, workspaceId, LanguagesEnum.English)).resolves.toEqual({
+        await expect(
+            service.initializeByTemplateId(templateId, workspaceId, LanguagesEnum.English, 'xpert-1')
+        ).resolves.toEqual({
             status: 'failed',
             created: [],
             skipped: []

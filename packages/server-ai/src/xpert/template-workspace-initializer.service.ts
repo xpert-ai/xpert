@@ -28,13 +28,16 @@ export class XpertTemplateWorkspaceInitializer {
     async initializeByTemplateId(
         templateId: string,
         workspaceId: string,
-        language: LanguagesEnum
+        language: LanguagesEnum,
+        xpertId: string
     ): Promise<TemplateWorkspaceInitializationResult> {
         try {
             const template = await this.xpertTemplateService.getTemplateDetail(templateId, language)
             const result = await this.promptWorkflowService.initializeDefaultsInWorkspace(
                 workspaceId,
-                template.promptWorkflows ?? []
+                template.promptWorkflows ?? [],
+                xpertId,
+                template.id
             )
             return {
                 status: 'initialized',
