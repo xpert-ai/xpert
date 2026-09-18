@@ -182,16 +182,21 @@ export interface PluginMarketplaceAppModelRequirements {
   visionLabel?: string | I18nObject
 }
 
+export interface PluginMarketplaceAppAssistantDefinition {
+  key: string
+  templateKey: string
+  primaryAgentKey: string
+  title?: string | I18nObject
+}
+
 /** Portable independent Assistant topology owned by a trusted App. Instance IDs are host-managed. */
 export interface PluginMarketplaceAppAssistantSuite {
   version: string
   coordinatorAgentKey: string
-  roles: Array<{
-    key: string
-    templateKey: string
-    primaryAgentKey: string
-    title?: string | I18nObject
-  }>
+  /** Published Assistants connected to the coordinator as required External Xperts. */
+  roles: PluginMarketplaceAppAssistantDefinition[]
+  /** Published in the same workspace without granting coordinator delegation. */
+  standaloneAssistants?: PluginMarketplaceAppAssistantDefinition[]
 }
 
 /**

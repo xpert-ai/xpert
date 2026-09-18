@@ -1,5 +1,6 @@
 {
     "Error": {
+        "ApplicationStandaloneAssistantConnected": "A standalone Assistant is linked to the coordinator. Remove its delegation before repairing this application.",
         "BoundedGraphQueryInvalid": "Graph query exceeds the supported scope or bounds.",
         "BoundedGraphAccessDenied": "The current Agent cannot read this knowledge graph.",
         "InvalidPromptScenarios": "Each preset scenario needs a unique ID, a name and content. At most 20 scenarios are allowed.",

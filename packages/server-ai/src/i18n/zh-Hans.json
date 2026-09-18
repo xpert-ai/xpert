@@ -1,5 +1,6 @@
 {
     "Error": {
+        "ApplicationStandaloneAssistantConnected": "独立助手已连接到主助手。请先移除其委派连接，再修复应用初始化。",
         "BoundedGraphQueryInvalid": "图查询超出允许范围或数量限制。",
         "BoundedGraphAccessDenied": "当前 Agent 无权读取此知识图谱。",
         "InvalidPromptScenarios": "每个预置场景需要唯一标识、名称和内容，最多支持 20 个场景。",
