@@ -377,6 +377,15 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
 const runtimeModule = jest.requireMock('../../assistant/assistant-chatkit.runtime') as {
   injectHostedAssistantChatkitControl: jest.Mock
 }
+
+jest.mock('../workbench-chat/frequent-questions-start-screen', () => {
+  const { signal } = jest.requireActual('@angular/core')
+  return { injectFrequentQuestionsStartScreen: jest.fn(() => signal(null)) }
+})
+
+const frequentQuestionsModule = jest.requireMock('../workbench-chat/frequent-questions-start-screen') as {
+  injectFrequentQuestionsStartScreen: jest.Mock
+}
 const filePreviewModule = jest.requireMock('../../assistant/workbench-file-preview-dialog.component') as {
   openWorkbenchFilePreviewDialog: jest.Mock
 }
@@ -391,6 +400,7 @@ type MockChatKitRuntimeInput = {
   displayMode?: () => CreateChatKitOptions['displayMode']
   header?: () => CreateChatKitOptions['header']
   initialThread?: () => string | null
+  startScreen?: () => CreateChatKitOptions['startScreen'] | null
   projectId?: () => string | null
   composer?: () => { projects?: { enabled?: boolean } }
   layout?: CreateChatKitOptions['layout']
@@ -937,6 +947,21 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(getRuntimeInput().taskSummary).toEqual({ enabled: true })
+  })
+
+  it('binds automatic frequent questions only to the ready new-conversation screen', async () => {
+    facade.threadId.set(null)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const input = frequentQuestionsModule.injectFrequentQuestionsStartScreen.mock.calls.at(-1)?.[0]
+
+    expect(input.active()).toBe(true)
+    expect(getRuntimeInput().startScreen).toBe(fixture.componentInstance.startScreen)
+    facade.threadId.set('existing-thread')
+    expect(input.active()).toBe(false)
+    facade.threadId.set(null)
+    facade.viewState.set('wizard')
+    expect(input.active()).toBe(false)
   })
 
   it('hides the entire Project selector rail for an existing conversation', async () => {

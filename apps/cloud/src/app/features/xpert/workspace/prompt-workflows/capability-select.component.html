@@ -1,0 +1,186 @@
+<div class="space-y-3">
+  <p class="text-xs leading-5 text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.Help' | translate }}</p>
+  @if (unsupported()) {
+    <p role="alert" class="text-sm text-text-destructive">
+      {{ 'XP.PromptWorkflow.Capabilities.Unsupported' | translate }}
+    </p>
+  }
+  @for (group of groups(); track group.xpertId) {
+    <div class="space-y-2">
+      <p class="text-sm font-medium">
+        {{ group.xpertId ? expertName(group.xpertId) : ('XP.PromptWorkflow.Capabilities.SharedLegacy' | translate) }}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        @for (item of group.items; track item.kind + ':' + item.id) {
+          <span
+            class="inline-flex max-w-full items-center gap-2 rounded-md border border-divider-regular px-2 py-1 text-sm"
+          >
+            <span class="min-w-0 break-words"
+              >{{ 'XP.PromptWorkflow.Capabilities.Kinds.' + item.kind | translate }} ·
+              {{ optionLabel(group.xpertId, item) }}</span
+            >
+            @if (reason(group.xpertId, item); as warning) {
+              <span class="text-xs text-text-tertiary">{{
+                'XP.PromptWorkflow.Capabilities.Reasons.' + warning | translate
+              }}</span>
+            }
+            @if (!disabled()) {
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                type="button"
+                class="size-5 shrink-0"
+                (click)="remove(group.xpertId, item)"
+                [attr.aria-label]="
+                  'XP.PromptWorkflow.Capabilities.Remove' | translate: { name: optionLabel(group.xpertId, item) }
+                "
+              >
+                <z-icon zType="close" class="size-3" />
+              </button>
+            }
+          </span>
+        } @empty {
+          <span class="text-xs text-text-tertiary">{{
+            (group.selection && !group.selection.inheritUnselected
+              ? 'XP.PromptWorkflow.Capabilities.EmptyRestricted'
+              : 'XP.PromptWorkflow.Capabilities.NoAdditional'
+            ) | translate
+          }}</span>
+        }
+      </div>
+      @if (group.selection && !group.selection.inheritUnselected) {
+        <p class="text-xs text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.LegacyMode' | translate }}</p>
+      }
+      @if (group.xpertId && !disabled()) {
+        <button z-button zType="link" zSize="sm" type="button" (click)="restore(group.xpertId)">
+          {{ 'XP.PromptWorkflow.Capabilities.Restore' | translate }}
+        </button>
+      }
+    </div>
+  } @empty {
+    @if (!unsupported()) {
+      <p class="text-sm text-text-secondary">{{ 'XP.PromptWorkflow.Capabilities.Default' | translate }}</p>
+    }
+  }
+  <div class="flex flex-wrap gap-2">
+    <button z-button zType="outline" type="button" (click)="open()" [disabled]="disabled() || unsupported()">
+      <z-icon zType="plus" />{{ 'XP.PromptWorkflow.Capabilities.Add' | translate }}
+    </button>
+    @if (value() != null && !disabled()) {
+      <button z-button zType="ghost" type="button" (click)="reset()">
+        {{ 'XP.PromptWorkflow.Capabilities.Reset' | translate }}
+      </button>
+    }
+  </div>
+</div>
+
+<ng-template #panel>
+  <div class="flex max-h-[90vh] w-full flex-col md:w-2xl">
+    <header class="flex items-center justify-between gap-3 border-b border-divider-regular px-6 py-4">
+      <h2 class="text-lg font-semibold">{{ 'XP.PromptWorkflow.Capabilities.Add' | translate }}</h2>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        type="button"
+        (click)="close()"
+        [attr.aria-label]="'XP.PromptWorkflow.Close' | translate"
+      >
+        <z-icon zType="close" />
+      </button>
+    </header>
+    <div class="min-h-0 space-y-4 overflow-y-auto p-6">
+      <p class="text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.ExpertHelp' | translate }}</p>
+      @if (eligibleExperts().length) {
+        <z-select
+          [ngModel]="expertId()"
+          (ngModelChange)="selectExpert($event)"
+          [ngModelOptions]="{ standalone: true }"
+          [zPlaceholder]="'XP.PromptWorkflow.SelectExperts' | translate"
+          [attr.aria-label]="'XP.PromptWorkflow.Capabilities.Expert' | translate"
+        >
+          @for (expert of eligibleExperts(); track expert.id) {
+            <z-select-item [zValue]="expert.id">{{ expert.title || expert.name }}</z-select-item>
+          }
+        </z-select>
+        <div
+          class="flex flex-wrap gap-2"
+          role="group"
+          [attr.aria-label]="'XP.PromptWorkflow.Capabilities.Category' | translate"
+        >
+          @for (category of kinds; track category) {
+            <button
+              z-button
+              [zType]="kind() === category ? 'secondary' : 'ghost'"
+              zSize="sm"
+              type="button"
+              [attr.aria-pressed]="kind() === category"
+              (click)="kind.set(category)"
+            >
+              {{ 'XP.PromptWorkflow.Capabilities.Kinds.' + category | translate }}
+            </button>
+          }
+        </div>
+        <input
+          z-input
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+          [placeholder]="'XP.PromptWorkflow.Capabilities.Search' | translate"
+          [attr.aria-label]="'XP.PromptWorkflow.Capabilities.Search' | translate"
+        />
+        @if (activeCatalog()?.loading) {
+          <p role="status" class="py-6 text-sm text-text-tertiary">
+            {{ 'XP.PromptWorkflow.Capabilities.Reasons.Loading' | translate }}
+          </p>
+        } @else if (catalogError(); as error) {
+          <div role="alert" class="space-y-2 py-4">
+            <p class="text-sm text-text-destructive">
+              {{ 'XP.PromptWorkflow.Capabilities.Reasons.LoadFailed' | translate }} · {{ error }}
+            </p>
+            <button z-button zType="outline" type="button" (click)="load(expertId(), true)">
+              {{ 'XP.PromptWorkflow.Retry' | translate }}
+            </button>
+          </div>
+        } @else {
+          <div class="max-h-72 space-y-1 overflow-y-auto">
+            @for (option of visibleOptions(); track option.kind + ':' + option.id) {
+              <z-checkbox
+                class="flex w-full rounded-md p-3 hover:bg-hover-bg"
+                [ngModel]="isSelected(option)"
+                [ngModelOptions]="{ standalone: true }"
+                [zDisabled]="disabled() || (!!option.unavailable && !isSelected(option))"
+                (ngModelChange)="toggle(option, $event)"
+              >
+                <span class="flex min-w-0 flex-col gap-1"
+                  ><span>{{ option.label }}</span>
+                  @if (option.description) {
+                    <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                  }
+                  @if (option.unavailable) {
+                    <span class="text-xs text-text-destructive">{{
+                      'XP.PromptWorkflow.Capabilities.Reasons.' + option.unavailable | translate
+                    }}</span>
+                  }
+                </span>
+              </z-checkbox>
+            } @empty {
+              <p class="py-6 text-sm text-text-tertiary">
+                {{
+                  (search() ? 'XP.PromptWorkflow.Capabilities.NoMatches' : 'XP.PromptWorkflow.Capabilities.Empty')
+                    | translate
+                }}
+              </p>
+            }
+          </div>
+        }
+      } @else {
+        <p class="py-6 text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.NoExperts' | translate }}</p>
+      }
+    </div>
+    <footer class="flex justify-end border-t border-divider-regular px-6 py-4">
+      <button z-button type="button" (click)="close()">{{ 'XP.PromptWorkflow.Capabilities.Done' | translate }}</button>
+    </footer>
+  </div>
+</ng-template>

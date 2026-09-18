@@ -34,6 +34,7 @@ const inputSchema = z.object({
 })
 
 const usageTargets: Partial<Record<string, TagTarget>> = {
+	prompt_workflow: 'prompt_workflow',
 	xpert: TagCategoryEnum.XPERT,
 	xpert_toolset: TagCategoryEnum.TOOLSET,
 	employee: 'people',

@@ -1,8 +1,14 @@
-import { createEnvironmentInjector, EnvironmentInjector, signal } from '@angular/core'
+import { computed, createEnvironmentInjector, EnvironmentInjector, signal } from '@angular/core'
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'
+import { TranslateModule } from '@ngx-translate/core'
+import { BehaviorSubject } from 'rxjs'
 import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
-import type { ClawXpertConversationScope } from '@xpert-ai/contracts'
+import type { ClawXpertConversationScope, IXpert } from '@xpert-ai/contracts'
+import { Store } from '../../../@core/state/store.service'
+import type { WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
+import { injectFrequentQuestionsStartScreen } from '../workbench-chat/frequent-questions-start-screen'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertScopedConversationFacade } from './clawxpert-scoped-conversation.facade'
 import { ClawXpertConversationEntryStore } from './clawxpert-conversation-entry.store'
@@ -22,6 +28,7 @@ describe('isolated ClawXpert conversation entries', () => {
       organizationId: signal('org-1'),
       userId: signal('user-1'),
       xpertId: signal('xpert-1'),
+      currentXpert: signal<IXpert | null>(null),
       assistantId: signal('xpert-1'),
       identity: signal('clawxpert'),
       viewState: signal('ready'),
@@ -57,7 +64,12 @@ describe('isolated ClawXpert conversation entries', () => {
     router = { url: shared.currentUrl(), navigateByUrl: jest.fn(() => Promise.resolve(true)) }
     injectors = []
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, TranslateModule.forRoot()],
       providers: [
+        {
+          provide: Store,
+          useValue: { organizationId: 'org-1', selectOrganizationId: () => new BehaviorSubject('org-1') }
+        },
         { provide: ClawXpertFacade, useValue: shared },
         { provide: Router, useValue: router }
       ]
@@ -65,8 +77,33 @@ describe('isolated ClawXpert conversation entries', () => {
   })
 
   afterEach(() => {
+    TestBed.inject(HttpTestingController).verify()
     for (const injector of injectors) injector.destroy()
     TestBed.resetTestingModule()
+  })
+
+  it.each(['task', 'assistant'] as const)('loads frequent questions through the %s conversation facade', (scope) => {
+    const scoped: WorkbenchChatFacade = facade(scope)
+    const startScreen = TestBed.runInInjectionContext(() =>
+      injectFrequentQuestionsStartScreen({
+        xpert: computed(() => scoped.currentXpert?.() ?? null),
+        active: computed(() => scoped.viewState() === 'ready' && !scoped.threadId())
+      })
+    )
+    TestBed.flushEffects()
+    shared.currentXpert.set({ id: 'xpert-1', features: { frequentQuestions: { enabled: true } } } as IXpert)
+    TestBed.flushEffects()
+    const http = TestBed.inject(HttpTestingController)
+    http
+      .expectOne((request) => request.url === '/api/xpert/xpert-1/frequent-questions')
+      .flush({ questions: ['How do I export a presentation?'] })
+    expect(startScreen()?.prompts).toEqual([
+      { label: 'How do I export a presentation?', prompt: 'How do I export a presentation?' }
+    ])
+    shared.currentXpert.set({ id: 'xpert-1', features: { frequentQuestions: { enabled: false } } } as IXpert)
+    TestBed.flushEffects()
+    expect(startScreen()).toBeNull()
+    http.expectNone((request) => request.url.includes('frequent-questions'))
   })
 
   it('keeps task and assistant threads independent across route switches', () => {

@@ -7,6 +7,7 @@ import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom, startWith } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
+import { buildXpertStartScreen } from '../../features/assistant/xpert-start-screen'
 import {
   IXpert,
   Store,
@@ -101,26 +102,7 @@ export class PublicChatkitComponent {
     const xpert = this.xpert()
     return xpert?.title || xpert?.titleCN || xpert?.name || xpert?.slug || 'Assistant'
   })
-  readonly startScreen = computed(() => {
-    const xpert = this.xpert()
-    if (!xpert) {
-      return null
-    }
-
-    const opener = xpert.features?.opener
-    const questions = opener?.enabled ? opener.questions : xpert.starters
-    const prompts = (questions ?? [])
-      .filter((question): question is string => typeof question === 'string' && !!question.trim())
-      .map((question) => ({
-        label: question,
-        prompt: question
-      }))
-
-    return {
-      greeting: (opener?.enabled ? opener.message : null) || xpert.description || this.title(),
-      prompts
-    }
-  })
+  readonly startScreen = computed(() => buildXpertStartScreen(this.xpert(), [], this.title()))
 
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => {

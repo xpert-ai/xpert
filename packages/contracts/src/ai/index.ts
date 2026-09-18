@@ -1,4 +1,5 @@
 export const STATE_VARIABLE_HUMAN = 'human'
+export * from './prompt-workflow-capabilities.model'
 
 export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum } from './ai.model'
 

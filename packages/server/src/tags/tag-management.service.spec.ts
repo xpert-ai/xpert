@@ -202,6 +202,25 @@ describe('Tag catalog management', () => {
 		expect(repository.save).not.toHaveBeenCalled()
 	})
 
+	it('creates prompt-only organization tags without introducing a legacy category enum value', async () => {
+		const { service, repository } = setup()
+		await service.write({ name: 'Presentations', targets: ['prompt_workflow'] })
+		expect(repository.save).toHaveBeenCalledWith(
+			expect.objectContaining({ targets: ['prompt_workflow'], category: null })
+		)
+	})
+
+	it('includes prompt associations in usage counts and prevents removing a used target', async () => {
+		const { service, repository, metadata, query } = setup()
+		addXpertRelation(metadata)
+		metadata[0].tableName = 'prompt_workflow'
+		repository.find.mockResolvedValue([tag({ targets: ['prompt_workflow'] })])
+		repository.findOne.mockResolvedValue(tag({ targets: ['prompt_workflow'] }))
+		query.getRawMany.mockResolvedValue([{ tagId: 'tag-1', count: '2' }])
+		expect((await service.directory())[0].usage).toEqual([{ target: 'prompt_workflow', count: 2 }])
+		await expect(service.write({ targets: ['xpert'] }, 'tag-1')).rejects.toThrow()
+	})
+
 	it('creates one shared definition for multiple targets and ignores input identity', async () => {
 		const { service, repository } = setup()
 		await service.write({ id: 'victim', name: '  API  ', targets: ['toolset', 'xpert', 'toolset'] })

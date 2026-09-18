@@ -1,4 +1,4 @@
-import { TPromptWorkflow, TXpertCommandProfile } from '@xpert-ai/contracts'
+import { PromptWorkflowInput, TXpertCommandProfile } from '@xpert-ai/contracts'
 import { Body, Controller, Get, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
@@ -25,7 +25,7 @@ export class PromptWorkflowController {
 
     @UseGuards(WorkspaceAuthoringGuard)
     @Post('workspace/:workspaceId')
-    async createInWorkspace(@Param('workspaceId') workspaceId: string, @Body() body: Partial<TPromptWorkflow>) {
+    async createInWorkspace(@Param('workspaceId') workspaceId: string, @Body() body: PromptWorkflowInput) {
         return this.service.createInWorkspace(workspaceId, body)
     }
 
@@ -34,7 +34,7 @@ export class PromptWorkflowController {
     async updateInWorkspace(
         @Param('workspaceId') workspaceId: string,
         @Param('id') id: string,
-        @Body() body: Partial<TPromptWorkflow>
+        @Body() body: PromptWorkflowInput
     ) {
         return this.service.updateInWorkspace(workspaceId, id, body)
     }
