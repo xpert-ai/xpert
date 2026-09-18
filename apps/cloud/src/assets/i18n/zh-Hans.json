@@ -8419,6 +8419,28 @@
       }
     },
     "Integration": {
+      "Qr": {
+        "OrganizationRequired": "请先选择组织，再扫码创建系统集成。",
+        "NamePlaceholder": "请输入系统集成名称",
+        "Title": "扫码新建系统集成",
+        "SetupMethod": "配置方式",
+        "ScanMode": "扫码创建",
+        "ManualMode": "手动配置",
+        "SetupHint": "使用对应应用扫码并确认授权，系统会自动保存集成，无需手动填写应用凭据。",
+        "BindingHint": "创建后，可在触发器配置中选择此集成并绑定助理。",
+        "Intro": "请使用对应应用扫码并确认授权，完成后将自动保存系统集成。",
+        "Waiting": "等待在应用中确认授权…",
+        "Loading": "正在生成二维码…",
+        "Saving": "授权已确认，正在保存系统集成…",
+        "Copy": "复制授权链接",
+        "Copied": "已复制",
+        "Close": "关闭",
+        "Retry": "重试",
+        "Expired": "二维码已过期，请重新生成后扫码。",
+        "Failed": "授权未完成，请重试。",
+        "Created": "系统集成创建成功。",
+        "Reused": "该机器人已有系统集成，已更新授权，保留原有名称、头像和描述。"
+      },
       "Integration": "集成",
       "Integrations": "集成",
       "SystemIntegrations": "系统集成",
