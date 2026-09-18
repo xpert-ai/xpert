@@ -1,4 +1,5 @@
 export * from './file-upload.module'
+export * from './file-content-type'
 export * from './upload-file.command'
 export * from './upload-file.service'
 export * from './types'
