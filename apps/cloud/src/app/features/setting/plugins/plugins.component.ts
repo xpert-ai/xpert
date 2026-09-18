@@ -442,7 +442,8 @@ export class PluginsComponent {
         plugin,
         reload: this.reload.bind(this)
       },
-      backdropClass: 'backdrop-blur-sm-black'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
     })
   }
 

@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { injectPluginAPI, IPluginConfiguration, PLUGIN_CONFIGURATION_STATUS } from '@cloud/app/@core/state'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { TInstalledPlugin } from '../types'
 
@@ -16,7 +16,7 @@ type TPluginConfigureDialogData = {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, JSONSchemaFormComponent, XpSpinComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, JSONSchemaFormComponent, XpSpinComponent, XpI18nPipe],
   selector: 'xp-settings-plugin-configure',
   templateUrl: './configure.component.html'
 })
