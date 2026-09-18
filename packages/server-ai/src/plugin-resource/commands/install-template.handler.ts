@@ -91,7 +91,8 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             await this.templateWorkspaceInitializer.initializeByTemplateId(
                 command.templateId,
                 xpert.workspaceId ?? command.workspaceId,
-                command.language
+                command.language,
+                xpert.id
             )
             const environment = command.publish
                 ? await this.environmentService.getDefaultByWorkspace(xpert.workspaceId ?? command.workspaceId)

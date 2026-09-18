@@ -265,7 +265,8 @@ export class XpertController extends CrudController<Xpert> {
                 await this.templateWorkspaceInitializer.initializeByTemplateId(
                     normalizedTemplateId,
                     xpert.workspaceId,
-                    LanguagesMap[language] ?? language
+                    LanguagesMap[language] ?? language,
+                    xpert.id
                 )
             }
             return xpert

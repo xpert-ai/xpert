@@ -439,7 +439,12 @@ describe('PromptWorkflowService', () => {
 
     it('creates missing template defaults and preserves active or archived names', async () => {
         const existing = [
-            { name: 'presentation-refine', template: 'User refine command', archivedAt: null },
+            {
+                name: 'presentation-refine',
+                template: 'User refine command',
+                archivedAt: null,
+                associatedXpertIds: ['user-selected-xpert']
+            },
             {
                 name: 'presentation-export',
                 template: 'Archived user export command',
@@ -467,12 +472,16 @@ describe('PromptWorkflowService', () => {
             Object.create(Repository.prototype) as Repository<Xpert>
         )
 
-        const result = await service.initializeDefaultsInWorkspace('workspace-1', [
-            { name: 'presentation-create', template: 'Create {{args}}.', visibility: 'team' },
-            { name: 'presentation-refine', template: 'Refine {{args}}.', visibility: 'team' },
-            { name: 'presentation-export', template: 'Export {{args}}.', visibility: 'team' },
-            { name: 'presentation-share', template: 'Share {{args}}.', visibility: 'team' }
-        ])
+        const result = await service.initializeDefaultsInWorkspace(
+            'workspace-1',
+            [
+                { name: 'presentation-create', template: 'Create {{args}}.', visibility: 'team' },
+                { name: 'presentation-refine', template: 'Refine {{args}}.', visibility: 'team' },
+                { name: 'presentation-export', template: 'Export {{args}}.', visibility: 'team' },
+                { name: 'presentation-share', template: 'Share {{args}}.', visibility: 'team' }
+            ],
+            'template-xpert'
+        )
 
         expect(result.created.map(({ name }) => name)).toEqual(['presentation-create', 'presentation-share'])
         expect(result.skipped).toEqual(['presentation-refine', 'presentation-export'])
@@ -481,18 +490,25 @@ describe('PromptWorkflowService', () => {
             expect.objectContaining({
                 name: 'presentation-create',
                 workspaceId: 'workspace-1',
+                associatedXpertIds: ['template-xpert'],
                 createdById: 'user-1',
                 updatedById: 'user-1'
             }),
             expect.objectContaining({
                 name: 'presentation-share',
                 workspaceId: 'workspace-1',
+                associatedXpertIds: ['template-xpert'],
                 createdById: 'user-1',
                 updatedById: 'user-1'
             })
         ])
         expect(existing).toEqual([
-            { name: 'presentation-refine', template: 'User refine command', archivedAt: null },
+            {
+                name: 'presentation-refine',
+                template: 'User refine command',
+                archivedAt: null,
+                associatedXpertIds: ['user-selected-xpert']
+            },
             {
                 name: 'presentation-export',
                 template: 'Archived user export command',

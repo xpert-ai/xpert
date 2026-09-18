@@ -183,7 +183,8 @@ describe('PluginTemplateInstallHandler', () => {
         expect(templateWorkspaceInitializer.initializeByTemplateId).toHaveBeenCalledWith(
             '@xpert-ai/plugin-presentation-studio:presentation-studio-assistant',
             'workspace-1',
-            LanguagesEnum.English
+            LanguagesEnum.English,
+            'xpert-1'
         )
     })
 

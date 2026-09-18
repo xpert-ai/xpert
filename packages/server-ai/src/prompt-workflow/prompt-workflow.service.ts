@@ -84,7 +84,8 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
 
     async initializeDefaultsInWorkspace(
         workspaceId: string,
-        inputs: TPromptWorkflow[]
+        inputs: TPromptWorkflow[],
+        xpertId?: string
     ): Promise<PromptWorkflowDefaultsInitializationResult> {
         if (!inputs.length) {
             return { created: [], skipped: [] }
@@ -111,6 +112,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             const entities = missing.map((workflow) =>
                 repository.create({
                     ...workflow,
+                    ...(xpertId ? { associatedXpertIds: [xpertId] } : {}),
                     workspaceId: workspace.id,
                     tenantId: workspace.tenantId,
                     organizationId: workspace.organizationId ?? null,
