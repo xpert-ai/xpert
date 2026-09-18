@@ -26,6 +26,7 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
       [rootId]="workspaceRootId()"
       [documentScope]="documentScope()"
       [active]="active()"
+      [showTreeRefresh]="true"
       [rootLabel]="'XP.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
       [filesLoader]="loadWorkspaceFiles"
       [fileLoader]="loadWorkspaceFile"
