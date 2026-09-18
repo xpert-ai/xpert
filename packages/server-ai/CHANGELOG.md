@@ -1,5 +1,26 @@
 # @xpert-ai/server-ai
 
+## 3.9.39
+
+### Patch Changes
+
+- 1e44173: Upgrade ChatKit UI to 0.5.13 and align ChatKit types on 0.5.9 across the host packages. Include the released history loading, reasoning, composer file selector, and plugin-provided approval presentation improvements.
+- b62543f: Add editable prompt workflow scenarios, organization tags, expert associations, and expert-scoped capability selections. Refresh prompt management and command availability, preserve explicit field clearing, and send expanded editable prompts without expanding them again on the server.
+
+    Requires the ChatKit types and UI release that introduces prompt scenarios and editable prompt drafts; update the host's ChatKit dependencies to that published release before shipping.
+
+- bb24b02: Associate newly initialized template prompt workflows with the expert created from that template in both import and plugin installation flows. Preserve existing same-name workflows and their user-defined associations.
+
+    Track template provenance to associate repeated installations with each created expert without changing user-owned, archived or global prompts. Initialize template prompts after publishing succeeds so failed installations leave no stale associations.
+
+- Updated dependencies [1e44173]
+- Updated dependencies [b7983c8]
+- Updated dependencies [b62543f]
+- Updated dependencies [5f26e05]
+    - @xpert-ai/contracts@3.18.7
+    - @xpert-ai/server-core@3.9.54
+    - @xpert-ai/plugin-sdk@3.18.8
+
 ## 3.9.38
 
 ### Patch Changes

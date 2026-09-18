@@ -1,5 +1,19 @@
 # @xpert-ai/contracts
 
+## 3.18.7
+
+### Patch Changes
+
+- 1e44173: Upgrade ChatKit UI to 0.5.13 and align ChatKit types on 0.5.9 across the host packages. Include the released history loading, reasoning, composer file selector, and plugin-provided approval presentation improvements.
+- b7983c8: Add persisted knowledgebase keyword analyzer bindings and analyzer-lock state.
+- b62543f: Add editable prompt workflow scenarios, organization tags, expert associations, and expert-scoped capability selections. Refresh prompt management and command availability, preserve explicit field clearing, and send expanded editable prompts without expanding them again on the server.
+
+  Requires the ChatKit types and UI release that introduces prompt scenarios and editable prompt drafts; update the host's ChatKit dependencies to that published release before shipping.
+
+- 5f26e05: Add an opt-in frequent-question start screen using the existing question API, and expose the generic `platform.data-source.create` client command so plugins can open the host's permission-checked data source creation dialog without receiving credentials.
+
+  The compact question list requires the ChatKit release supporting startScreen.promptsLayout.
+
 ## 3.18.6
 
 ### Patch Changes

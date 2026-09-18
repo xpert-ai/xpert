@@ -1,5 +1,17 @@
 # @xpert-ai/plugin-draft
 
+## 12.0.8
+
+### Patch Changes
+
+- 1e44173: Upgrade ChatKit UI to 0.5.13 and align ChatKit types on 0.5.9 across the host packages. Include the released history loading, reasoning, composer file selector, and plugin-provided approval presentation improvements.
+- Updated dependencies [1e44173]
+- Updated dependencies [b7983c8]
+- Updated dependencies [b62543f]
+- Updated dependencies [5f26e05]
+  - @xpert-ai/contracts@3.18.7
+  - @xpert-ai/plugin-sdk@3.18.8
+
 ## 12.0.7
 
 ### Patch Changes
