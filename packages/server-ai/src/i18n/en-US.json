@@ -1,5 +1,10 @@
 {
     "Error": {
+        "IntegrationQrInvalid": "QR authorization is not available for this request.",
+        "IntegrationQrBusy": "Authorization is busy. Please retry shortly.",
+        "IntegrationQrExpired": "QR authorization expired. Please refresh the code.",
+        "IntegrationQrPollFailed": "Unable to check authorization. Please try again.",
+        "IntegrationQrUnavailable": "Unable to start QR authorization. Please retry or use manual setup.",
         "BoundedGraphQueryInvalid": "Graph query exceeds the supported scope or bounds.",
         "BoundedGraphAccessDenied": "The current Agent cannot read this knowledge graph.",
         "DockerSandboxStartupTimeout": "Sandbox {{containerId}} HTTP API did not become ready within 30 seconds.",
