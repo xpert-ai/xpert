@@ -22,10 +22,18 @@ import { createGraphIndexJob } from './graph-index-job'
 import { GraphragService } from './graphrag.service'
 import { parseGraphExtractionSnapshot } from './graph-extraction-model'
 import { invalidGraphPublication, parseGraphPublication, toStructuredExtraction } from './structured-graph-model'
+import { BoundedGraphReader } from './bounded-graph-reader'
+import type { KnowledgeGraphEntityQuery, KnowledgeGraphNeighborhoodQuery } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 @RuntimeCapabilityProvider(KnowledgeGraphRuntimeCapability)
 export class StructuredGraphRuntimeService implements KnowledgeGraphApi {
+    queryEntities(input: KnowledgeGraphEntityQuery) {
+        return new BoundedGraphReader(this.jobs.manager, this.knowledgebases).query(input)
+    }
+    readNeighborhood(input: KnowledgeGraphNeighborhoodQuery) {
+        return new BoundedGraphReader(this.jobs.manager, this.knowledgebases).neighborhood(input)
+    }
     constructor(
         private readonly documents: KnowledgeDocumentService,
         private readonly knowledgebases: KnowledgebaseService,

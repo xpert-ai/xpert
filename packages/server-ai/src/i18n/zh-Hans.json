@@ -1,5 +1,7 @@
 {
     "Error": {
+        "BoundedGraphQueryInvalid": "图查询超出允许范围或数量限制。",
+        "BoundedGraphAccessDenied": "当前 Agent 无权读取此知识图谱。",
         "KnowledgeFAQSemanticUnavailable": "无法完成 FAQ 语义反例排除，请检查模型配置后重试。",
         "KnowledgeFAQGraphUnsupported": "FAQ 知识库不支持图谱检索。",
         "KnowledgeFAQPrewarmFailed": "FAQ 已保存，但语义向量预热任务提交失败；查询时将尝试补算。",

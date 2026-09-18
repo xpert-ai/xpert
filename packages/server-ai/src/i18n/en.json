@@ -1,5 +1,7 @@
 {
     "Error": {
+        "BoundedGraphQueryInvalid": "Graph query exceeds the supported scope or bounds.",
+        "BoundedGraphAccessDenied": "The current Agent cannot read this knowledge graph.",
         "KnowledgeFAQSemanticUnavailable": "FAQ semantic exclusion could not be completed. Check the model configuration and retry.",
         "KnowledgeFAQGraphUnsupported": "FAQ knowledgebases do not support graph retrieval.",
         "KnowledgeFAQPrewarmFailed": "FAQ saved, but semantic vector prewarming could not be scheduled. Missing vectors will be computed during retrieval.",

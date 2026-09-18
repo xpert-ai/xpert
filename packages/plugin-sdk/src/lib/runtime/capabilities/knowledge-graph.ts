@@ -53,6 +53,9 @@ export type KnowledgeGraphPublicationResult = {
 }
 
 export interface KnowledgeGraphApi {
+  /** Bounded, source-version-checked reads; the host verifies the current Agent's KB connection. */
+  queryEntities?(input: KnowledgeGraphEntityQuery): Promise<KnowledgeGraphReadResult>
+  readNeighborhood?(input: KnowledgeGraphNeighborhoodQuery): Promise<KnowledgeGraphReadResult>
   /** Atomically accepts a complete, validated snapshot. Indexing is durable and retryable. */
   publish(input: KnowledgeGraphPublishInput): Promise<KnowledgeGraphPublicationResult>
   status(input: KnowledgeGraphPublicationOwner): Promise<KnowledgeGraphPublicationResult | null>
@@ -60,6 +63,60 @@ export interface KnowledgeGraphApi {
   retract(
     input: KnowledgeGraphPublicationOwner & { publicationKey: string; sourceVersion: string; chunkIds: string[] }
   ): Promise<KnowledgeGraphPublicationResult>
+}
+
+export type KnowledgeGraphReadScope = {
+  knowledgebaseId: string
+  xpertId: string
+  agentKey: string
+  sources: { documentId: string; sourceVersion: string }[]
+}
+export type KnowledgeGraphEntityQuery = KnowledgeGraphReadScope & {
+  entityIds?: string[]
+  namespace?: string
+  nodeKey?: string
+  type?: string
+  search?: string
+  /** Opaque continuation bound to this query and its source versions. */
+  cursor?: string
+  limit?: number
+}
+export type KnowledgeGraphNeighborhoodQuery = KnowledgeGraphReadScope & {
+  entityIds: string[]
+  relationTypes: string[]
+  depth?: number
+  direction?: 'incoming' | 'outgoing' | 'both'
+  /** Continuation is supported for one-hop reads only. */
+  cursor?: string
+  limit?: number
+}
+export type KnowledgeGraphReadEntity = {
+  id: string
+  name: string
+  type: string
+  properties: Record<string, JSONValue>
+  documentId: string
+  documentIds?: string[]
+}
+export type KnowledgeGraphReadRelation = {
+  id: string
+  source: string
+  target: string
+  type: string
+  properties: Record<string, JSONValue>
+  documentId: string
+  documentIds?: string[]
+}
+export type KnowledgeGraphReadResult = {
+  entities: KnowledgeGraphReadEntity[]
+  relations: KnowledgeGraphReadRelation[]
+  truncated: boolean
+  nextCursor?: string
+  sources: {
+    documentId: string
+    sourceVersion: string
+    status: KnowledgeGraphPublicationResult['status'] | 'unavailable' | 'stale'
+  }[]
 }
 
 export const KnowledgeGraphRuntimeCapability = createRuntimeCapability<KnowledgeGraphApi>('platform.knowledge-graph', {
