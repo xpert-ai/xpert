@@ -227,10 +227,7 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
             normalizeOptionalString(fileAsset.originalName) ??
             filePath.split('/').filter(Boolean).pop() ??
             filePath
-        const mimeType =
-            normalizeOptionalString(input.mimeType) ??
-            normalizeOptionalString(fileAsset.mimeType) ??
-            normalizeOptionalString(metadata.mimeType)
+        const mimeType = normalizeOptionalString(fileAsset.mimeType) ?? metadata.mimeType
         const size =
             typeof input.size === 'number' && Number.isFinite(input.size)
                 ? input.size

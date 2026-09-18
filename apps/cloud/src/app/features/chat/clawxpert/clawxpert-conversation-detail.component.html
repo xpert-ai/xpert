@@ -64,7 +64,7 @@
                 type="button"
                 [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                 [attr.data-tab-id]="tab.id"
-                [attr.title]="tab.kind === 'fixed-view' ? tab.title : null"
+                [attr.title]="tab.kind === 'fixed-view' || tab.kind === 'artifact' ? tab.title : null"
                 class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!text-text-primary"
                 tabindex="0"
                 [active]="activeTabId() === tab.id"
@@ -73,6 +73,9 @@
                 <span data-workspace-tab-icon class="relative flex size-[20px] shrink-0 items-center justify-center">
                   <span class="flex size-full items-center justify-center text-text-primary">
                     @switch (tab.kind) {
+                      @case ('artifact') {
+                        <i class="ri-file-text-line shrink-0 text-lg"></i>
+                      }
                       @case ('files') {
                         <i class="ri-folder-3-line shrink-0 text-lg"></i>
                       }
@@ -102,7 +105,7 @@
                     [attr.data-close-tab]="tab.id"
                     [attr.aria-label]="
                       ('XP.ACTIONS.Close' | translate: { Default: 'Close' }) +
-                      (tab.kind === 'fixed-view' ? ' ' + tab.title : '')
+                      (tab.kind === 'fixed-view' || tab.kind === 'artifact' ? ' ' + tab.title : '')
                     "
                     zType="ghost"
                     zSize="icon"
@@ -119,6 +122,9 @@
                 </span>
                 <span data-workspace-tab-label class="relative flex h-full min-w-0 items-center">
                   @switch (tab.kind) {
+                    @case ('artifact') {
+                      <span class="max-w-[12rem] truncate">{{ tab.title }}</span>
+                    }
                     @case ('files') {
                       <span class="truncate">{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                     }
@@ -397,6 +403,36 @@
             </div>
           </div>
         } @else {
+          @if (resolvedConversationId()) {
+            @for (tab of fileTreeTabs(); track tab.id) {
+              <xp-clawxpert-conversation-files
+                class="h-full p-2 pr-0"
+                [class.hidden]="tab.id !== activeTabId()"
+                [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+                [attr.inert]="tab.id === activeTabId() ? null : ''"
+                [active]="tab.id === activeTabId()"
+                [conversationId]="resolvedConversationId()"
+                [xpertId]="facade.xpertId()"
+                [projectId]="viewRuntimeScope().projectId"
+                [mode]="conversationFilesMode()"
+                [reloadKey]="fileListReloadKey()"
+                (referenceRequest)="handleWorkspaceReference($event)"
+              />
+            }
+          }
+          @for (tab of artifactTabs(); track tab.id) {
+            <xp-workbench-artifact-panel
+              [class.hidden]="tab.id !== activeTabId()"
+              [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+              [attr.inert]="tab.id === activeTabId() ? null : ''"
+              [attr.data-artifact-tab-id]="tab.id"
+              [tab]="tab"
+              [active]="tab.id === activeTabId()"
+              [mode]="conversationFilesMode()"
+              (referenceRequest)="handleWorkspaceReference($event)"
+              (back)="openFilesTab()"
+            />
+          }
           @if (fixedViewHostId(); as hostId) {
             <xp-clawxpert-fixed-view-stack
               class="contents"
@@ -418,6 +454,7 @@
                 {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
               </div>
             }
+          } @else if (activeTab()?.kind === 'artifact') {
           } @else if (activeTab()?.kind === 'tasks') {
             <div class="h-full min-h-0 overflow-hidden px-4 py-3">
               <xp-chat-tasks
@@ -489,15 +526,6 @@
               }
 
               @if (activeTab()?.kind === 'files') {
-                <xp-clawxpert-conversation-files
-                  class="h-full p-2 pr-0"
-                  [conversationId]="resolvedConversationId()"
-                  [xpertId]="facade.xpertId()"
-                  [projectId]="viewRuntimeScope().projectId"
-                  [mode]="conversationFilesMode()"
-                  [reloadKey]="fileListReloadKey()"
-                  (referenceRequest)="handleWorkspaceReference($event)"
-                />
               } @else if (activeTab()?.kind === 'browser') {
                 <xp-clawxpert-conversation-preview
                   class="h-full p-2 pr-0"

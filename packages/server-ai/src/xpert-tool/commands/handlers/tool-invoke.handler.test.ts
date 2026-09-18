@@ -1,6 +1,6 @@
 import { IXpertTool, ToolParameterForm, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, HttpException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { ToolRuntimeService } from '../../../tool-runtime'
@@ -173,6 +173,34 @@ describe('ToolInvokeHandler', () => {
             events: [{ type: 'progress', value: 1 }],
             result: { structuredContent: { ok: true } }
         })
+    })
+
+    it('returns the MCP tool failure message in the HTTP error body without internal error details', async () => {
+        const message = "MCP tool 'ping' returned an error: 1047 (08S01): Unsupported command(Change user)"
+        const error = Object.assign(new Error(message), {
+            name: 'ToolException',
+            credentials: { password: 'private-password' }
+        })
+        executeTool.mockRejectedValueOnce(error)
+
+        const failure: unknown = await handler.execute(new ToolInvokeCommand(previewTool())).catch((error) => error)
+
+        expect(failure).toBeInstanceOf(HttpException)
+        if (!(failure instanceof HttpException)) throw failure
+        expect(failure.getStatus()).toBe(400)
+        expect(failure.getResponse()).toEqual({ statusCode: 400, error: 'Bad Request', message })
+        expect(JSON.stringify(failure.getResponse())).not.toContain('private-password')
+        expect(JSON.stringify(failure.getResponse())).not.toContain('stack')
+        expect(executeTool.mock.calls[0][0].configurable.subscriber.isStopped).toBe(true)
+    })
+
+    it.each([
+        { name: 'access denial', error: new ForbiddenException('Access denied') },
+        { name: 'internal programming errors', error: new TypeError('Internal programming error') }
+    ])('preserves the existing handling for $name', async ({ error }) => {
+        executeTool.mockRejectedValueOnce(error)
+
+        await expect(handler.execute(new ToolInvokeCommand(previewTool()))).rejects.toBe(error)
     })
 
     it('rejects preview execution without an explicit workspace', async () => {

@@ -87,12 +87,14 @@ export class PptxEditorComponent implements OnDestroy {
   readonly fileName = input('presentation.pptx')
   readonly editable = input(true)
   readonly dirtyChange = output<boolean>()
+  readonly historyChange = output<void>()
   readonly editorError = output<Error>()
   readonly saveRequest = output<void>()
   readonly deck = signal<PptxDeck | null>(null)
   readonly selectedSlideIndex = signal(0)
   readonly selectedShapeId = signal<string | null>(null)
   readonly editingShapeId = signal<string | null>(null)
+  readonly manualSaveOnly = input(false)
   readonly autoSave = signal(false)
   readonly activeToolbarTab = signal<PptxToolbarTab>('开始')
   readonly toolbarTabs = PPTX_TOOLBAR_TABS
@@ -889,6 +891,7 @@ export class PptxEditorComponent implements OnDestroy {
   }
 
   toggleAutoSave() {
+    if (this.manualSaveOnly()) return
     this.autoSave.update((value) => !value)
     if (this.autoSave() && this.dirty()) this.setDirty(true)
   }
@@ -901,6 +904,7 @@ export class PptxEditorComponent implements OnDestroy {
     this.deck.set(previous)
     this.historyRevision.update((value) => value + 1)
     this.setDirty(this.#editHistory.dirty)
+    this.historyChange.emit()
   }
 
   redo() {
@@ -911,6 +915,7 @@ export class PptxEditorComponent implements OnDestroy {
     this.deck.set(next)
     this.historyRevision.update((value) => value + 1)
     this.setDirty(this.#editHistory.dirty)
+    this.historyChange.emit()
   }
 
   setFontFamily(value: string) {
@@ -1040,7 +1045,7 @@ export class PptxEditorComponent implements OnDestroy {
     if (!value) {
       if (this.#autoSaveTimer) clearTimeout(this.#autoSaveTimer)
       this.#autoSaveTimer = null
-    } else if (this.autoSave()) {
+    } else if (this.autoSave() && !this.manualSaveOnly()) {
       if (this.#autoSaveTimer) clearTimeout(this.#autoSaveTimer)
       this.#autoSaveTimer = setTimeout(() => {
         this.#autoSaveTimer = null

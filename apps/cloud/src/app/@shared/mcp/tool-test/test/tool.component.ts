@@ -122,9 +122,10 @@ export class MCPToolsetToolTestComponent {
           }
         },
         error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
+          const message = getErrorMessage(error)
+          this.#toastr.error(message)
           this.loading.set(false)
-          this.testResult.set(JSON.stringify(getErrorMessage(error), null, 4))
+          this.testResult.set(message)
         }
       })
   }

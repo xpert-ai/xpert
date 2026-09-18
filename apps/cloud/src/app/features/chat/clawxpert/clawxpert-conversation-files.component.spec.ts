@@ -27,6 +27,9 @@ jest.mock('../../../@shared/files', () => {
     template: ''
   })
   class MockFileWorkbenchComponentImpl {
+    @Input() active = true
+    @Input() showTreeRefresh = false
+    @Input() documentScope?: string | null
     @Input() rootId?: string | null
     @Input() rootLabel?: string | null
     @Input() filesLoader?: unknown

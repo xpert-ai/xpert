@@ -1,13 +1,27 @@
+import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  OnDestroy,
+  Signal,
+  signal,
+  untracked,
+  viewChild,
+  viewChildren
+} from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 import { ASSISTANT_CITATION_OPEN_EVENT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type {
+  WorkbenchOpenFile,
   IconDefinition,
   I18nObject,
   TChatElementReference,
@@ -88,6 +102,18 @@ import {
 } from './clawxpert-task-summary-effect.utils'
 import { ClawXpertFixedViewStackComponent, type ClawXpertFixedViewTab } from './clawxpert-fixed-view-stack.component'
 import { XpertProjectApiService } from '../../project/project-api.service'
+import { WorkbenchArtifactPanelComponent } from './workbench-artifact-panel.component'
+import {
+  fileTabsFromToolEvent,
+  createFileArtifactTab,
+  attachWorkspaceFile,
+  generatedConversationOutputs,
+  generatedOutputKey,
+  releaseArtifactTab,
+  sameArtifact,
+  updateArtifactTab,
+  type WorkbenchArtifactTab
+} from './workbench-artifact-tabs'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
 const CONVERSATION_DETAIL_RELATIONS = ['messages']
@@ -139,7 +165,7 @@ type WorkbenchConversationChatkitScope = WorkbenchAssistantConversationResolutio
 }
 type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
 type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
-type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
+type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view' | 'artifact'
 type ClawXpertToolTab = {
   id: string
   kind: ClawXpertStaticTabId
@@ -154,9 +180,9 @@ type ClawXpertBrowserTab = {
   deviceToolbarVisible: boolean
   reloadKey: number
 }
-type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab
+type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab | WorkbenchArtifactTab
 
-type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview' | 'fixed-view'
+type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview' | 'fixed-view' | 'artifact'
 type ClawXpertBrowserTabChange = Partial<Omit<ClawXpertBrowserTab, 'id' | 'kind'>>
 type ClawXpertFixedViewMenuItem = {
   viewKey: string
@@ -189,12 +215,20 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
     ChatSharedTerminalComponent,
     IconComponent,
     EmojiAvatarComponent,
-    ClawXpertFixedViewStackComponent
+    ClawXpertFixedViewStackComponent,
+    WorkbenchArtifactPanelComponent
   ],
+  providers: [FileDocumentStore],
   templateUrl: './clawxpert-conversation-detail.component.html',
   styleUrl: './clawxpert-conversation-detail.component.css'
 })
 export class ClawXpertConversationDetailComponent implements OnDestroy {
+  #generatedOutputKeys = new Set<string>()
+  #generatedOutputThreadId: string | null = null
+  #generatedOutputRequest = 0
+  #artifactScopeHostId: string | null = null
+  #artifactScopeProjectId: string | null = null
+  #destroyed = false
   readonly #presentation = inject(WorkbenchPresentationService)
   readonly #element = inject<ElementRef<HTMLElement>>(ElementRef)
   readonly #threadService = inject(AiThreadService)
@@ -389,6 +423,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         userId: this.facade.userId()
       })
       if (toolCompletedEvent) {
+        this.openToolArtifacts(toolCompletedEvent)
         console.info('[view-extension] publishing assistant tool completed host event', {
           toolName: toolCompletedEvent.toolName,
           hostType: toolCompletedEvent.hostType,
@@ -406,12 +441,19 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseStart: () => {
+      ++this.#generatedOutputRequest
+      if (this.#generatedOutputThreadId !== this.activeChatkitThreadId()) this.#generatedOutputKeys.clear()
+      this.#generatedOutputThreadId = this.activeChatkitThreadId()
+      generatedConversationOutputs(this.resolvedConversation()).forEach((output) =>
+        this.#generatedOutputKeys.add(generatedOutputKey(output))
+      )
       this.#responseActive.set(true)
       if (!this.#workbenchConversationScope()) {
         this.facade.patchActiveConversationStatus('busy')
       }
     },
     onResponseEnd: () => {
+      void this.openGeneratedOutputs()
       this.#responseActive.set(false)
       if (!this.#workbenchConversationScope()) {
         this.facade.patchActiveConversationStatus('idle')
@@ -421,6 +463,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   })
   readonly chatkitMountEntries = computed(() => [{ key: this.chatkitMountKey(), control: this.control()! }])
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([])
+  readonly artifactTabs = computed(() =>
+    this.workspaceTabs().filter((tab): tab is WorkbenchArtifactTab => tab.kind === 'artifact')
+  )
   readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
   )
@@ -477,6 +522,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly contextLoading = signal(false)
   readonly contextError = signal<string | null>(null)
   readonly isChatMinimizedToPet = signal(false)
+  readonly fileTreeTabs = computed(() => this.workspaceTabs().filter((tab) => tab.kind === 'files'))
+  readonly artifactPanels = viewChildren(WorkbenchArtifactPanelComponent)
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly detailPanelVisible = signal(false)
   readonly workspaceMaximized = signal(false)
@@ -653,7 +700,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
     this.#unregisterFileOpenCommand = registerWorkbenchFileOpenCommand(this.#clientCommands, {
       openFile: (file) => {
-        openWorkbenchFilePreviewDialog(this.#dialog, file)
+        if (file.evidence) openWorkbenchFilePreviewDialog(this.#dialog, file)
+        else this.openFileArtifact(file)
       }
     })
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
@@ -785,6 +833,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
       const runtimeScope = this.viewRuntimeScope()
+      if (hostId !== this.#artifactScopeHostId || (runtimeScope.projectId ?? null) !== this.#artifactScopeProjectId) {
+        this.#artifactScopeHostId = hostId
+        this.#artifactScopeProjectId = runtimeScope.projectId ?? null
+        this.clearArtifactTabs()
+      }
       const scopeKey = `${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
       if (!hostId) {
         this.#fixedViewsHostId = null
@@ -1049,6 +1102,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.#destroyed = true
+    ++this.#generatedOutputRequest
+    this.artifactTabs().forEach(releaseArtifactTab)
     this.#unregisterComposerCommand?.()
     this.#unregisterComposerCommand = null
     this.#unregisterAssistantCommand?.()
@@ -1546,6 +1602,84 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return tab
   }
 
+  openArtifactTab(tab: WorkbenchArtifactTab) {
+    tab = attachWorkspaceFile(tab, this.facade.xpertId(), this.resolvedConversationId(), this.runtimeProjectId())
+    const previous = this.artifactTabs().find((item) => sameArtifact(item, tab))
+    const panel = previous && this.artifactPanels().find((panel) => panel.tab().id === previous.id)
+    if (previous && panel && (panel.document.dirty() || panel.document.saving())) {
+      if (tab.resource.objectUrl !== previous.resource.objectUrl) releaseArtifactTab(tab)
+      this.activateWorkspaceTab(previous.id, 'replace')
+      return
+    }
+    const next = previous ? updateArtifactTab(previous, tab) : tab
+    this.workspaceTabs.update((tabs) =>
+      previous ? tabs.map((item) => (item.id === previous.id ? next : item)) : [...tabs, next]
+    )
+    this.activateWorkspaceTab(next.id, 'replace')
+  }
+
+  openFilesTab() {
+    const existing = this.fileTreeTabs()[0]
+    if (existing) this.activateWorkspaceTab(existing.id, 'push')
+    else this.addWorkspaceTab('files')
+  }
+
+  private openFileArtifact(file: WorkbenchOpenFile, objectUrl?: string, resourceId?: string) {
+    this.openArtifactTab(
+      createFileArtifactTab(file, this.fixedViewHostId() ?? '', this.viewRuntimeScope(), objectUrl, resourceId)
+    )
+  }
+
+  private openToolArtifacts(event: XpertViewHostEventMessage) {
+    if (event.hostId !== this.fixedViewHostId() || event.threadId !== this.activeChatkitThreadId()) return
+    for (const tab of fileTabsFromToolEvent(event, this.viewRuntimeScope())) this.openArtifactTab(tab)
+  }
+
+  private async openGeneratedOutputs() {
+    const threadId = this.activeChatkitThreadId()
+    const hostId = this.fixedViewHostId()
+    const projectId = this.runtimeProjectId()
+    const request = ++this.#generatedOutputRequest
+    if (!threadId || !hostId) return
+    try {
+      const base =
+        this.resolvedConversationId() ?? (await firstValueFrom(this.#conversationService.getByThreadId(threadId)))?.id
+      if (!base) return
+      const conversation = await this.loadConversationDetail(base)
+      if (
+        request !== this.#generatedOutputRequest ||
+        threadId !== this.activeChatkitThreadId() ||
+        hostId !== this.fixedViewHostId() ||
+        projectId !== this.runtimeProjectId()
+      )
+        return
+      this.#generatedOutputThreadId = threadId
+      for (const output of generatedConversationOutputs(conversation)) {
+        if (
+          request !== this.#generatedOutputRequest ||
+          threadId !== this.activeChatkitThreadId() ||
+          hostId !== this.fixedViewHostId() ||
+          projectId !== this.runtimeProjectId()
+        )
+          return
+        const key = generatedOutputKey(output)
+        if (this.#generatedOutputKeys.has(key)) continue
+        this.#generatedOutputKeys.add(key)
+        const target = getTaskSummaryResourceTarget({
+          name: 'task_summary.open_resource',
+          data: {
+            conversationId: base,
+            title: output.title,
+            resource: output.resource
+          }
+        })
+        if (target) await this.openTaskSummaryResource(target)
+      }
+    } catch {
+      // The response remains usable when its persisted outputs have not arrived yet.
+    }
+  }
+
   openWorkbenchView(request: WorkbenchExtensionViewOpenRequest) {
     const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), request.viewKey)
     if (!menuItem) throw new Error(`Workbench view '${request.viewKey}' is not available.`)
@@ -1588,6 +1722,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     event.preventDefault()
     event.stopPropagation()
 
+    const panel = this.artifactPanels().find((panel) => panel.tab().id === tabId)
+    if (panel) {
+      void panel.document.guardDirtyBefore(() => this.removeWorkspaceTab(tabId))
+      return
+    }
+    this.removeWorkspaceTab(tabId)
+  }
+
+  private removeWorkspaceTab(tabId: string) {
     const tabs = this.workspaceTabs()
     const closedIndex = tabs.findIndex((tab) => tab.id === tabId)
     if (closedIndex < 0) {
@@ -1595,6 +1738,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     const nextTabs = tabs.filter((tab) => tab.id !== tabId)
+    const closedTab = tabs[closedIndex]
+    if (closedTab.kind === 'artifact') releaseArtifactTab(closedTab)
     this.workspaceTabs.set(nextTabs)
     if (this.activeTabId() !== tabId && nextTabs.length > 0) {
       return
@@ -1649,6 +1794,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private async openTaskSummaryResource(target: ClawXpertTaskSummaryResourceTarget) {
+    const hostId = this.fixedViewHostId()
+    const threadId = this.activeChatkitThreadId()
+    const projectId = this.runtimeProjectId()
+    const isCurrent = () =>
+      !this.#destroyed &&
+      hostId === this.fixedViewHostId() &&
+      threadId === this.activeChatkitThreadId() &&
+      projectId === this.runtimeProjectId()
     try {
       const currentConversationId = this.resolvedConversationId() ?? this.resolvedConversation()?.id ?? null
       if (target.conversationId && currentConversationId && target.conversationId !== currentConversationId) {
@@ -1663,32 +1816,36 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           const file = await firstValueFrom(
             this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId, true)
           )
+          if (!isCurrent()) return
           let objectUrl: string | null = null
           let url = readHttpUrl(file.fileUrl ?? file.url)
           if (!url) {
             const blob = await firstValueFrom(
               this.#conversationService.downloadFile(conversationId, target.workspacePath)
             )
+            if (!isCurrent()) return
             objectUrl = URL.createObjectURL(blob)
             url = objectUrl
           }
-          const dialogRef = openWorkbenchFilePreviewDialog(this.#dialog, {
-            id: target.fileAssetId,
-            fileAssetId: target.fileAssetId,
-            storageFileId: target.storageFileId,
-            name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
-            mimeType: file.mimeType,
-            size: file.size,
-            url,
-            previewUrl: url
-          })
-          if (objectUrl) {
-            dialogRef.closed.subscribe(() => URL.revokeObjectURL(objectUrl))
-          }
+          this.openFileArtifact(
+            {
+              id: target.fileAssetId,
+              fileAssetId: target.fileAssetId,
+              storageFileId: target.storageFileId,
+              name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
+              mimeType: file.mimeType,
+              size: file.size,
+              url,
+              previewUrl: url
+            },
+            objectUrl ?? undefined,
+            target.workspacePath
+          )
           return
         }
         case 'artifact': {
           const link = await firstValueFrom(this.#artifactService.createSignedPreviewLink(target.artifactId))
+          if (!isCurrent()) return
           const url = readHttpUrl(link.publicUrl)
           if (!url) {
             throw new Error('Artifact preview URL is unavailable.')
@@ -1696,11 +1853,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           const version = link.version ?? link.artifact?.currentVersion ?? null
           const mimeType = version?.mimeType ?? undefined
           const title = target.title ?? version?.title ?? link.artifact?.title ?? version?.fileName ?? 'Artifact'
-          if (mimeType === 'text/html') {
-            this.openBrowserTabFromSandboxEvent({ displayUrl: title, url })
-            return
-          }
-          openWorkbenchFilePreviewDialog(this.#dialog, {
+          this.openFileArtifact({
             id: link.artifactId,
             name: title,
             mimeType,
@@ -1727,7 +1880,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         }
       }
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to open task summary resource.')
+      if (isCurrent()) this.#toastr.error(getErrorMessage(error) || 'Failed to open task summary resource.')
     }
   }
 
@@ -1809,6 +1962,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private resetFixedViews(removeTabs: boolean) {
+    if (removeTabs) this.clearArtifactTabs()
     this.#fixedViewsLoadVersion += 1
     this.loadingFixedViews.set(false)
     this.fixedViewError.set(null)
@@ -1816,6 +1970,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (removeTabs) {
       this.removeFixedViewTabs()
     }
+  }
+
+  private clearArtifactTabs() {
+    untracked(() => {
+      const artifacts = this.artifactTabs()
+      if (!artifacts.length) return
+      artifacts.forEach(releaseArtifactTab)
+      const tabs = this.workspaceTabs().filter((tab) => tab.kind !== 'artifact')
+      this.workspaceTabs.set(tabs)
+      if (!tabs.some((tab) => tab.id === this.activeTabId())) this.activeTabId.set(tabs[0]?.id ?? '')
+    })
   }
 
   private removeFixedViewTabs() {
