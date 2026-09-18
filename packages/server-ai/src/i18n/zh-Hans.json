@@ -1,5 +1,7 @@
 {
     "Error": {
+        "DockerSandboxStartupTimeout": "\u6c99\u7bb1 {{containerId}} \u7684 HTTP \u63a5\u53e3\u672a\u80fd\u5728 30 \u79d2\u5185\u5c31\u7eea\u3002",
+        "DockerSandboxAddressUnavailable": "\u65e0\u6cd5\u786e\u5b9a\u6c99\u7bb1 {{containerId}} \u7684 HTTP \u5730\u5740\uff1a\u672a\u80fd\u83b7\u53d6 Docker \u5bb9\u5668\u8be6\u60c5\u3002",
         "InvalidPromptScenarios": "每个预置场景需要唯一标识、名称和内容，最多支持 20 个场景。",
         "KeywordAnalyzerInvalid": "关键词分析器配置无效。",
         "KeywordAnalyzerExternal": "外部知识库不支持配置关键词分析器。",
