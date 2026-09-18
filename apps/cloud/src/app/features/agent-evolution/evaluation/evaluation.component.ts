@@ -235,13 +235,14 @@ export class AgentEvolutionEvaluationComponent {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
         title: this.#translate.instant('XP.AgentEvolution.RerunEvaluationTitle', {
-          Default: '重新执行候选评测？'
+          Default: 'Rerun Candidate evaluation?'
         }),
         description: this.#translate.instant('XP.AgentEvolution.RerunEvaluationDescription', {
-          Default: '将使用当前 Ready Candidate 和固定 Golden Dataset Snapshot 启动隔离回放，不会触发审批或发布。'
+          Default:
+            'Run an isolated replay with the current Ready Candidate and fixed Golden Dataset Snapshot. This does not approve or release it.'
         }),
-        actionText: this.#translate.instant('XP.AgentEvolution.Rerun', { Default: '重新执行' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        actionText: this.#translate.instant('XP.AgentEvolution.Rerun', { Default: 'Rerun' }),
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) {
@@ -304,7 +305,7 @@ export class AgentEvolutionEvaluationComponent {
           { count: this.requiredApprovals() }
         ),
         actionText: this.#translate.instant('XP.AgentEvolution.ConfirmApproval'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) await this.facade.approveCandidate(candidate.candidateId, evaluation.runId, this.approvalReason())
@@ -319,7 +320,7 @@ export class AgentEvolutionEvaluationComponent {
         title: this.#translate.instant('XP.AgentEvolution.RejectCandidateTitle'),
         description: this.#translate.instant('XP.AgentEvolution.RejectCandidateDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.ConfirmReject'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) await this.facade.rejectCandidate(candidate.candidateId, evaluation.runId, this.approvalReason())
@@ -334,7 +335,7 @@ export class AgentEvolutionEvaluationComponent {
         title: this.#translate.instant('XP.AgentEvolution.CreateReleasePackageTitle'),
         description: this.#translate.instant('XP.AgentEvolution.CreateReleasePackageDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.CreateReleasePackage'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) {

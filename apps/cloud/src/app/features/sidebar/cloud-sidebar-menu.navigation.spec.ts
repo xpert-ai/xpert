@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing'
-import { Router } from '@angular/router'
+import { NavigationEnd, Router } from '@angular/router'
 import { Store } from '@cloud/app/@core/state'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { CloudSidebarMenuComponent } from './cloud-sidebar-menu.component'
@@ -92,5 +92,31 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
 
     expect(intent.requestId()).toBe(requestId + 1)
     expect(router.navigateByUrl).toHaveBeenCalledWith('/chat/clawxpert/c')
+  })
+  it('selects only the owning entry for task, assistant and settings routes', () => {
+    const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
+    const component = fixture.componentInstance
+    const task = {
+      title: 'New task',
+      link: '/chat/clawxpert/c',
+      data: { action: 'newClawXpertConversation' }
+    } satisfies CloudMenuItem
+    const assistant = {
+      title: 'Assistant',
+      link: '/chat/clawxpert/assistant',
+      data: { activePathPrefixes: ['/chat/clawxpert/assistant', '/chat/clawxpert/settings'] }
+    } satisfies CloudMenuItem
+    for (const [url, taskActive] of [
+      ['/chat/clawxpert/c', true],
+      ['/chat/clawxpert/c/thread-1', true],
+      ['/chat/clawxpert/assistant', false],
+      ['/chat/clawxpert/assistant/thread-2', false],
+      ['/chat/clawxpert/settings', false]
+    ] as const) {
+      router.url = url
+      router.events.next(new NavigationEnd(1, url, url))
+      expect(component.isActive(task)).toBe(taskActive)
+      expect(component.isActive(assistant)).toBe(!taskActive)
+    }
   })
 })

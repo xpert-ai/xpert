@@ -1,3 +1,17 @@
+jest.mock('./clawxpert-conversation-pane.component', () => {
+  const { Component } = jest.requireActual('@angular/core')
+  @Component({
+    standalone: true,
+    selector: 'xp-clawxpert-conversation-pane',
+    inputs: ['scope'],
+    template: '<textarea></textarea>'
+  })
+  class ClawXpertConversationPaneComponent {
+    scope = 'task'
+  }
+  return { ClawXpertConversationPaneComponent }
+})
+
 jest.mock('./clawxpert.facade', () => ({
   ClawXpertFacade: class ClawXpertFacade {}
 }))
@@ -38,6 +52,10 @@ import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.componen
 
 function createFacadeMock(viewState: 'organization-required' | 'wizard' | 'ready' | 'error' = 'ready') {
   return {
+    currentUrl: signal('/chat/clawxpert'),
+    userId: signal('user-1'),
+    organizationId: signal('org-1'),
+    xpertId: signal('xpert-1'),
     viewState: signal(viewState),
     hasLoadedXperts: signal(false),
     isConversationRoute: signal(false),
@@ -221,5 +239,39 @@ describe('ClawXpertComponent', () => {
         replaceUrl: true
       })
     )
+  })
+  it('keeps separate composer instances mounted when switching between tasks and the assistant', async () => {
+    const { fixture, facade } = await setup()
+    facade.currentUrl.set('/chat/clawxpert/c')
+    fixture.detectChanges()
+    const taskPane = fixture.nativeElement.querySelector('xp-clawxpert-conversation-pane') as HTMLElement
+    const taskInput = taskPane.querySelector('textarea')
+    taskInput.value = 'Unsent task input'
+    facade.currentUrl.set('/chat/clawxpert/assistant')
+    fixture.detectChanges()
+    const panes = fixture.nativeElement.querySelectorAll('xp-clawxpert-conversation-pane') as NodeListOf<HTMLElement>
+    expect(panes).toHaveLength(2)
+    expect(taskPane.style.display).toBe('none')
+    expect(taskPane.hasAttribute('inert')).toBe(true)
+    panes[1].querySelector('textarea').value = 'Unsent assistant input'
+    facade.currentUrl.set('/chat/clawxpert/c')
+    fixture.detectChanges()
+    expect(panes[0].querySelector('textarea').value).toBe('Unsent task input')
+    expect(panes[1].querySelector('textarea').value).toBe('Unsent assistant input')
+    expect(panes[1].style.display).toBe('none')
+    expect(panes[0].hasAttribute('inert')).toBe(false)
+  })
+
+  it('discards mounted conversation state when the organization changes', async () => {
+    const { fixture, facade } = await setup()
+    facade.currentUrl.set('/chat/clawxpert/assistant')
+    fixture.detectChanges()
+    const previous = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement
+    previous.value = 'Private draft'
+    facade.organizationId.set('org-2')
+    fixture.detectChanges()
+    const current = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement
+    expect(current).not.toBe(previous)
+    expect(current.value).toBe('')
   })
 })

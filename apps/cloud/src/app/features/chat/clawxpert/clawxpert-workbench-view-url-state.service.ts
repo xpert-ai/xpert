@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core'
+import { Injectable, InjectionToken, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, UrlTree } from '@angular/router'
 import type { XpertViewQuery } from '@xpert-ai/contracts'
@@ -9,10 +9,12 @@ export const CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM = 'view'
 export const CLAWXPERT_WORKBENCH_VIEW_SELECTION_QUERY_PARAM = 'viewSelection'
 /** JSON-encoded, typed extension-view parameters used for refresh recovery. */
 export const CLAWXPERT_WORKBENCH_VIEW_PARAMETERS_QUERY_PARAM = 'viewParameters'
+export const CLAWXPERT_WORKBENCH_ROUTE_ACTIVE = new InjectionToken<() => boolean>('ClawXpert workbench route active')
 
 @Injectable({ providedIn: 'root' })
 export class ClawXpertWorkbenchViewUrlState {
   readonly #router = inject(Router)
+  readonly #routeActive = inject(CLAWXPERT_WORKBENCH_ROUTE_ACTIVE, { optional: true }) ?? (() => true)
   readonly #viewKey = signal(readWorkbenchViewKey(this.#router, this.#router.url))
   readonly #viewQuery = signal(readWorkbenchViewQuery(this.#router, this.#router.url))
   #pendingViewKey: string | null | undefined
@@ -29,6 +31,7 @@ export class ClawXpertWorkbenchViewUrlState {
         takeUntilDestroyed()
       )
       .subscribe(() => {
+        if (!this.#routeActive()) return
         this.#pendingViewKey = undefined
         this.#viewKey.set(readWorkbenchViewKey(this.#router, this.#router.url))
         this.#viewQuery.set(readWorkbenchViewQuery(this.#router, this.#router.url))
@@ -46,6 +49,7 @@ export class ClawXpertWorkbenchViewUrlState {
 
   /** Atomically persists the active view and its selection/query state in the URL. */
   setViewState(viewKey: string | null, query: XpertViewQuery | null, options: { replaceUrl?: boolean } = {}) {
+    if (!this.#routeActive()) return Promise.resolve(false)
     const normalizedViewKey = normalizeWorkbenchViewKey(viewKey)
     const normalizedQuery = normalizedViewKey ? normalizeWorkbenchViewQuery(query) : null
     const currentTree = this.#router.parseUrl(this.#router.url)
@@ -87,7 +91,7 @@ export class ClawXpertWorkbenchViewUrlState {
         replaceUrl: options.replaceUrl ?? false
       })
       .finally(() => {
-        if (navigationVersion !== this.#navigationVersion) {
+        if (navigationVersion !== this.#navigationVersion || !this.#routeActive()) {
           return
         }
 

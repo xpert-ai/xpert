@@ -15,6 +15,7 @@ import { ClawXpertConversationStartIntentService } from '../chat/clawxpert/clawx
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import {
   addWorkspaceExpertSkillsConnectorsMenuItem,
+  addWorkspaceAssistantMenuItem,
   addWorkspaceMoreMenuItem,
   buildWorkspaceModuleMenuLink,
   buildCloudSidebarMenuGroups,
@@ -74,7 +75,9 @@ export class CloudSidebarMenuComponent {
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
 
     return addWorkspaceMoreMenuItem(
-      addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus())),
+      addWorkspaceExpertSkillsConnectorsMenuItem(
+        addWorkspaceAssistantMenuItem(buildCloudSidebarMenuGroups(this.menus()))
+      ),
       workspaceId
     )
   })
@@ -96,6 +99,9 @@ export class CloudSidebarMenuComponent {
     }
 
     const currentUrl = normalizeMenuPath(this.currentUrl())
+    if (isNewClawXpertTaskMenuItem(item)) {
+      return currentUrl === '/chat/clawxpert/c' || currentUrl.startsWith('/chat/clawxpert/c/')
+    }
     if (item.data?.translationKey === 'ExpertSkillsConnectors' && isCloudMarketplaceHubRoute(currentUrl)) {
       return true
     }
@@ -193,6 +199,16 @@ export class CloudSidebarMenuComponent {
     }
 
     this.clicked.emit()
+  }
+
+  onAssistantSettings(event: MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    void this.#router.navigateByUrl('/chat/clawxpert/settings').then((navigated) => {
+      if (navigated) {
+        this.clicked.emit()
+      }
+    })
   }
 
   navigateToWorkspaceModule(section: CloudWorkspaceModuleSection) {

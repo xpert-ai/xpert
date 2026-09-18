@@ -7,7 +7,10 @@ import {
   type UrlTree
 } from '@angular/router'
 import { Subject } from 'rxjs'
-import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
+import {
+  ClawXpertWorkbenchViewUrlState,
+  CLAWXPERT_WORKBENCH_ROUTE_ACTIVE
+} from './clawxpert-workbench-view-url-state.service'
 
 describe('ClawXpertWorkbenchViewUrlState', () => {
   const serializer = new DefaultUrlSerializer()
@@ -114,5 +117,16 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
     navigationEvents.next(new NavigationEnd(4, router.url, router.url))
     expect(state.viewKey()).toBeNull()
     expect(state.viewQuery()).toBeNull()
+  })
+  it('does not read or write the other conversation entry URL while inactive', async () => {
+    let active = true
+    TestBed.overrideProvider(CLAWXPERT_WORKBENCH_ROUTE_ACTIVE, { useValue: () => active })
+    const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+    active = false
+    router.url = '/chat/clawxpert/assistant?view=assistant-view'
+    navigationEvents.next(new NavigationEnd(2, router.url, router.url))
+    expect(state.viewKey()).toBe('review')
+    expect(await state.setViewKey('task-view')).toBe(false)
+    expect(router.navigateByUrl).not.toHaveBeenCalled()
   })
 })
