@@ -1,3 +1,22 @@
+import { createFileArtifactTab, type WorkbenchArtifactTab } from './workbench-artifact-tabs'
+jest.mock('./workbench-artifact-panel.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+  @Component({ standalone: true, selector: 'xp-workbench-artifact-panel', template: '{{ tab().title }}' })
+  class WorkbenchArtifactPanelComponent {
+    private value: WorkbenchArtifactTab
+    @Input('tab') set tabValue(value: WorkbenchArtifactTab) {
+      this.value = value
+    }
+    tab = () => this.value
+    @Input() active = true
+    @Input() mode?: 'readonly' | 'editable'
+    @Output() referenceRequest = new EventEmitter()
+    @Output() back = new EventEmitter()
+    readonly document = { dirty: () => false, saving: () => false, guardDirtyBefore: (action: () => void) => action() }
+  }
+  return { WorkbenchArtifactPanelComponent }
+})
+
 jest.mock('../../../@shared/avatar/emoji-avatar/avatar.component', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
   @Component({ selector: 'emoji-avatar', template: '' })
@@ -180,6 +199,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
     @Input() conversationId?: string | null
     @Input() xpertId?: string | null
     @Input() projectId?: string | null
+    @Input() active = true
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
     @Output() referenceRequest = new EventEmitter()
@@ -262,6 +282,7 @@ jest.mock('../../../@shared/view-extension', () => {
     template: '<div data-extension-host-outlet></div>'
   })
   class ExtensionHostOutletComponent {
+    @Input() active = true
     @Input() mode?: string
     @Input() hostType?: string
     @Input() hostId?: string | null
@@ -298,7 +319,7 @@ import {
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import {
   AiThreadService,
   ArtifactService,
@@ -1012,7 +1033,131 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
 
-  it('opens task summary workspace files with the existing file preview', async () => {
+  it('preserves the complete files workbench while switching to a generated file tab and back', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    const filesTab = component.addWorkspaceTab('files')
+    await settle(fixture)
+    const workbench = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent)).componentInstance
+    component.openArtifactTab(
+      createFileArtifactTab({ name: 'report.pdf', url: 'https://files/report.pdf' }, 'assistant-1', {})
+    )
+    await settle(fixture)
+    expect(component.activeTabId()).toBe(component.artifactTabs()[0].id)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent)).componentInstance).toBe(
+      workbench
+    )
+    component.openFilesTab()
+    await settle(fixture)
+    expect(component.activeTabId()).toBe(filesTab.id)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent)).componentInstance).toBe(
+      workbench
+    )
+    expect(component.artifactTabs()).toHaveLength(1)
+  })
+
+  it('defers removal to the file document when closing a dirty tab', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    component.openArtifactTab(
+      createFileArtifactTab({ name: 'report.md', url: 'https://files/report.md' }, 'assistant-1', {})
+    )
+    await settle(fixture)
+    const panel = component.artifactPanels()[0]
+    const pending: Array<() => void | Promise<void>> = []
+    jest.spyOn(panel.document, 'guardDirtyBefore').mockImplementation(async (action) => {
+      pending.push(action)
+      return false
+    })
+    component.closeWorkspaceTab(new Event('click'), component.activeTabId())
+    expect(component.artifactTabs()).toHaveLength(1)
+    expect(pending).toHaveLength(1)
+    await pending[0]()
+    expect(component.artifactTabs()).toHaveLength(0)
+  })
+
+  it('auto-opens generated files without plugin bindings and preserves independent tabs', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const complete = (path: string, name: string, url: string) =>
+      getRuntimeInput().onLog?.({
+        name: 'component',
+        data: {
+          tool: 'export_files',
+          status: 'success',
+          output: JSON.stringify({
+            files: [{ filePath: path, fileName: name, fileUrl: url, mimeType: 'application/pdf' }]
+          })
+        }
+      })
+    complete('/workspace/a.pdf', 'First.pdf', 'https://files/a.pdf?sig=1')
+    await settle(fixture)
+    const first = fixture.componentInstance.artifactTabs()[0]
+    complete('/workspace/b.pdf', 'Second.pdf', 'https://files/b.pdf')
+    await settle(fixture)
+    const second = fixture.componentInstance.artifactTabs()[1]
+    expect(fixture.componentInstance.activeTabId()).toBe(second.id)
+    expect(fixture.nativeElement.querySelectorAll('[data-panel-button="artifact"]')).toHaveLength(2)
+    complete('/workspace/a.pdf', 'First.pdf', 'https://files/a.pdf?sig=2')
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toHaveLength(2)
+    expect(fixture.componentInstance.activeTabId()).toBe(first.id)
+    expect(fixture.componentInstance.artifactTabs()[0]).toMatchObject({
+      revision: 1,
+      resource: { type: 'file', file: { url: 'https://files/a.pdf?sig=2' } }
+    })
+    expect(fixture.componentInstance.artifactTabs()[1]).toEqual(second)
+    fixture.componentInstance.selectTab(second.id)
+    await settle(fixture)
+    expect(fixture.componentInstance.activeTabId()).toBe(second.id)
+    expect(fixture.nativeElement.querySelectorAll('xp-workbench-artifact-panel')).toHaveLength(2)
+    fixture.componentInstance.closeWorkspaceTab(new Event('click'), first.id)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([second])
+  })
+
+  it('opens newly completed response files automatically, excluding existing outputs', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onResponseStart?.()
+    conversationService.getById.mockReturnValue(
+      of({
+        id: 'conversation-1',
+        threadId: 'thread-1',
+        messages: [
+          {
+            role: 'ai',
+            taskSummary: {
+              version: 1,
+              outputs: [
+                {
+                  id: 'generated-file',
+                  title: 'Generated report',
+                  status: 'success',
+                  kind: 'file',
+                  resource: { type: 'workspace_file', workspacePath: '/workspace/report.pdf' }
+                }
+              ]
+            }
+          }
+        ]
+      })
+    )
+    getRuntimeInput().onResponseEnd?.()
+    await settle(fixture)
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([expect.objectContaining({ title: 'Generated report' })])
+    fixture.componentInstance.closeWorkspaceTab(new Event('click'), fixture.componentInstance.activeTabId())
+    getRuntimeInput().onResponseStart?.()
+    getRuntimeInput().onResponseEnd?.()
+    await settle(fixture)
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([])
+  })
+
+  it('opens task summary workspace files in independent artifact tabs', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -1037,15 +1182,65 @@ describe('ClawXpertConversationDetailComponent', () => {
       'file-1',
       true
     )
-    expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
+    expect(fixture.componentInstance.artifactTabs()[0].resource).toMatchObject({
+      type: 'file',
+      file: {
         id: 'file-1',
         name: 'Report',
         size: 2 * 1024 * 1024,
         url: 'https://files.example.com/report.pdf'
-      })
-    )
+      }
+    })
+  })
+
+  it('reuses a tool file tab when the response summary gives the same file an asset ID', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onLog?.({
+      name: 'component',
+      data: {
+        tool: 'export_files',
+        status: 'success',
+        output: JSON.stringify({
+          files: [{ filePath: '/workspace/report.pdf', fileName: 'Report.pdf', fileUrl: 'https://files/report.pdf' }]
+        })
+      }
+    })
+    await settle(fixture)
+    const fileTabId = fixture.componentInstance.artifactTabs()[0].id
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        resource: { type: 'workspace_file', workspacePath: '/workspace/report.pdf', fileAssetId: 'file-1' }
+      }
+    })
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([
+      expect.objectContaining({ id: fileTabId, resource: expect.objectContaining({ type: 'file' }) })
+    ])
+    expect(fixture.componentInstance.activeTabId()).toBe(fileTabId)
+  })
+
+  it('does not open a late file response after the user switches conversations', async () => {
+    const fileResponse = new Subject<{ fileUrl: string }>()
+    conversationService.getFile.mockReturnValueOnce(fileResponse)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        resource: { type: 'workspace_file', workspacePath: '/workspace/report.pdf' }
+      }
+    })
+    expect(conversationService.getFile).toHaveBeenCalled()
+    facade.threadId.set('thread-2')
+    await settle(fixture)
+    fileResponse.next({ fileUrl: 'https://files.example.com/report.pdf' })
+    fileResponse.complete()
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([])
   })
 
   it('downloads task summary workspace files with authentication when no public preview URL is available', async () => {
@@ -1086,16 +1281,19 @@ describe('ClawXpertConversationDetailComponent', () => {
 
       expect(conversationService.downloadFile).toHaveBeenCalledWith('conversation-1', '/workspace/report.pdf')
       expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
-      expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
+      expect(fixture.componentInstance.artifactTabs()[0].resource).toMatchObject({
+        type: 'file',
+        file: {
           id: 'file-1',
           name: 'Private report',
           url: 'blob:private-report',
           previewUrl: 'blob:private-report'
-        })
-      )
+        }
+      })
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+      fixture.componentInstance.closeWorkspaceTab(new Event('click'), fixture.componentInstance.activeTabId())
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:private-report')
+      fixture.destroy()
     } finally {
       if (originalCreateObjectURL) {
         Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
@@ -1125,14 +1323,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(artifactService.createSignedPreviewLink).toHaveBeenCalledWith('artifact-1')
-    expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
+    expect(fixture.componentInstance.artifactTabs()[0].resource).toMatchObject({
+      type: 'file',
+      file: {
         id: 'artifact-1',
         size: 3 * 1024 * 1024,
         url: 'https://artifacts.example.com/report.pdf'
-      })
-    )
+      }
+    })
   })
 
   it('opens validated task summary URLs in the existing Browser tab', async () => {

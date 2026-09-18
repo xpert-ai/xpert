@@ -34,12 +34,14 @@
     }
 
     <div class="min-w-0 flex-1">
-      <div class="lg:hidden mb-2">
-        <button z-button zType="ghost" zSize="sm" type="button" (click)="back.emit()">
-          <i class="ri-arrow-left-line mr-1"></i>
-          {{ 'XP.Files.BackToTree' | translate: { Default: 'Back to tree' } }}
-        </button>
-      </div>
+      @if (backVisible()) {
+        <div class="lg:hidden mb-2">
+          <button z-button zType="ghost" zSize="sm" type="button" (click)="back.emit()">
+            <i class="ri-arrow-left-line mr-1"></i>
+            {{ 'XP.Files.BackToTree' | translate: { Default: 'Back to tree' } }}
+          </button>
+        </div>
+      }
       <div
         class="truncate font-mono text-xs text-text-tertiary"
         data-file-path-label="viewer"
@@ -107,7 +109,7 @@
         </button>
       }
 
-      <z-segmented [(ngModel)]="mode">
+      <z-segmented [ngModel]="mode()" (ngModelChange)="requestMode($event)">
         <z-segmented-item [value]="'view'" [label]="'XP.Chat.View' | translate: { Default: 'View' }" />
         <z-segmented-item
           [value]="'edit'"
@@ -153,7 +155,7 @@
     </div>
   </div>
 
-  <div class="xp-pane-body relative overflow-hidden">
+  <div class="xp-pane-body relative overflow-hidden" [attr.inert]="saving() ? '' : null">
     @if (filePath()) {
       @if (loading()) {
         <xp-spin
@@ -165,31 +167,33 @@
           data-spreadsheet-editor="univer"
           [sourceUrl]="previewUrl() || ''"
           [fileName]="displayFileName() || filePath() || 'workbook.xlsx'"
-          [editable]="mode() === 'edit'"
+          [editable]="mode() === 'edit' && !saving()"
           (dirtyChange)="spreadsheetDirtyChange.emit($event)"
         />
       } @else if (pptx() && documentBuffer()) {
         <xp-pptx-editor
           class="h-full"
           [documentBuffer]="documentBuffer()"
+          [manualSaveOnly]="true"
           [fileName]="displayFileName() || filePath() || 'presentation.pptx'"
-          [editable]="mode() === 'edit'"
+          [editable]="mode() === 'edit' && !saving()"
           (dirtyChange)="pptxDirtyChange.emit($event)"
+          (historyChange)="pptxDirtyChange.emit(true)"
           (editorError)="pptxError.emit($event)"
           (saveRequest)="save.emit()"
         />
+      } @else if (docx() && editable() && documentBuffer()) {
+        <xp-docx-editor
+          class="h-full"
+          [documentBuffer]="documentBuffer()"
+          [fileName]="displayFileName() || filePath() || 'document.docx'"
+          [editable]="mode() === 'edit' && !saving()"
+          (dirtyChange)="documentDirtyChange.emit($event)"
+          (saveRequest)="documentSave.emit($event)"
+          (editorError)="documentError.emit($event)"
+        />
       } @else if (mode() === 'edit' && editable()) {
-        @if (docx() && documentBuffer()) {
-          <xp-docx-editor
-            class="h-full"
-            [documentBuffer]="documentBuffer()"
-            [fileName]="displayFileName() || filePath() || 'document.docx'"
-            [editable]="true"
-            (dirtyChange)="documentDirtyChange.emit($event)"
-            (saveRequest)="documentSave.emit($event)"
-            (editorError)="documentError.emit($event)"
-          />
-        } @else if (markdown()) {
+        @if (markdown()) {
           <xp-markdown-editor
             class="xp-milkdown-editor h-full"
             [content]="content()"

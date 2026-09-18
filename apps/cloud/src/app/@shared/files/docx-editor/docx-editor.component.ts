@@ -547,7 +547,7 @@ export class DocxEditorComponent implements OnDestroy {
 
   private dispatchTransaction(transaction: Parameters<EditorView['dispatch']>[0]) {
     const view = this.#view
-    if (!view || this.#destroyed) {
+    if (!view || this.#destroyed || (transaction.docChanged && !this.editable())) {
       return
     }
 
@@ -752,7 +752,7 @@ export class DocxEditorComponent implements OnDestroy {
   }
 
   private setDirty(dirty: boolean) {
-    if (this.#dirty === dirty) {
+    if (this.#dirty === dirty && !dirty) {
       return
     }
 
