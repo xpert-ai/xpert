@@ -46,7 +46,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
                 return acc
             },
             { llm: {}, form: {} }
-        ) ?? { llm: command.tool.parameters }
+        ) ?? { llm: command.tool.parameters ?? {}, form: {} }
 
         const events: unknown[] = []
         const subscriber = new Subject<unknown>()
