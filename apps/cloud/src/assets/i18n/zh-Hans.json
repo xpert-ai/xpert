@@ -247,6 +247,56 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "AssistantSettings": {
+      "Connecting": "连接中",
+      "Disconnect": "取消连接",
+      "CreateIntegration": "新建系统集成",
+      "Settings": "设置",
+      "Personalization": "个性化",
+      "Memory": "记忆与进化",
+      "Assistant": "助理设置",
+      "Close": "关闭",
+      "Connect": "连接",
+      "MemoryIntro": "记忆让 Xpert 记住你的偏好和习惯，对话越多，它就越懂你。你可以随时查看和编辑记忆。",
+      "GenerateMemory": "生成对话记忆",
+      "GenerateMemoryDesc": "从对话中提取并记住相关上下文，在未来对话中提供更连贯、个性化的回应",
+      "ManageMemory": "管理记忆",
+      "ManageMemoryDesc": "每晚自动整理更新，可随时查看和编辑",
+      "Import": "导入",
+      "Enter": "请输入",
+      "Cancel": "取消",
+      "Content": "内容",
+      "SaveDraft": "保存草稿",
+      "DraftOnly": "仅用于当前页面预览，尚未保存到平台。",
+      "AvailableTriggers": "可用触发器",
+      "TriggersIntro": "自动发现当前平台可用的触发器，配置消息通道或定时任务入口。",
+      "Refresh": "刷新",
+      "Retry": "重试",
+      "LoadingTriggers": "正在读取触发器及配置…",
+      "BindingRequired": "请先在工作区设置中绑定 Claw Xpert，再配置助理。",
+      "TriggerInDraft": "当前草稿中已启用，点击取消连接可停用。",
+      "TriggerAvailable": "点击连接，填写此触发器的配置。",
+      "TriggerUnavailable": "此触发器的插件当前不可用，已有草稿配置已保留。",
+      "NoAvailableTriggers": "暂未发现可用触发器。安装或启用对应插件后，点击刷新重新检测。",
+      "TriggerLoadFailed": "触发器加载失败，请重试。",
+      "TriggerConfigIntro": "按此触发器的要求填写配置，带 * 的项目为必填项。",
+      "NoTriggerFields": "此触发器无需额外配置，可直接保存到草稿。",
+      "TriggerSaveHint": "保存仅更新当前 Xpert 草稿。配置运行生效前，仍需在工作区设置中发布。",
+      "TriggerSaveFailed": "触发器未保存成功，请保留当前配置并重试。",
+      "TriggerChanged": "此触发器已在其他位置修改，请关闭并重新打开配置。",
+      "BindingChanged": "当前组织或助理绑定已变更，请重新打开配置。",
+      "Saving": "正在保存…",
+      "PersonalizationIntro": "设置助理的行为方式，以及它需要了解的个人偏好。这里与工作区设置中的行为准则和用户档案保持一致。",
+      "BehaviorHelp": "描述助理的名字、身份、性格、回复方式和行为准则，例如先给结论、使用中文或遵循指定工作流程。",
+      "ProfileHelp": "填写你希望助理记住的信息，例如你的称呼、角色、沟通偏好和长期工作背景。",
+      "MarkdownHelp": "支持 Markdown；按需填写，可留空。",
+      "BehaviorPlaceholder": "# 身份与性格\n你是我的工作助理。\n\n# 回复方式\n先给结论，再说明依据。\n\n# 行为准则\n执行任务前确认关键信息。",
+      "ProfilePlaceholder": "# 关于我\n称呼：\n角色：\n\n# 沟通偏好\n\n# 长期工作背景",
+      "PreferenceLoadFailed": "个性化内容加载失败，请重试后再编辑。",
+      "PersonalizationSaved": "已保存，并同步到工作区设置。",
+      "PersonalizationSaveHint": "保存到当前用户的助理偏好。",
+      "UnsavedChanges": "有未保存的修改"
+    },
     "TagDirectory": {
       "KnowledgeCandidate": "知识库候选关联",
       "KnowledgeDocuments": "{{count}} 篇关联文档",
@@ -2192,6 +2242,7 @@
       }
     },
     "Assistant": {
+      "SettingsButton": "助理设置",
       "SettingsEyebrow": "统一助手配置",
       "SettingsDesc": "管理聊天体验中使用的助手的租户默认配置和组织级覆盖配置。",
       "MenuTenantSubtitle": "租户默认配置",
@@ -3449,6 +3500,7 @@
       "SelectHint": "请从左侧层级选择业务区域，或新建一个业务区域。"
     },
     "MENU": {
+      "Assistant": "助理",
       "New task": "新建任务",
       "ExpertSkillsConnectors": "专家·技能·连接器",
       "Skills": "技能",
@@ -6674,6 +6726,14 @@
       "TakeMeThere": "带我去！"
     },
     "Knowledgebase": {
+      "KeywordAnalyzer": {
+        "Label": "关键词分析器",
+        "Legacy": "原有内置分析器",
+        "Help": "用于文档和搜索词的分词。添加首份文档后将锁定此选项。",
+        "Locked": "知识库已添加文档，关键词分析器不可修改。",
+        "Loading": "正在加载可用分析器…",
+        "Retry": "重新加载分析器"
+      },
       "ParserCoverageIncomplete": "完成，但有内容未识别",
       "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
       "ParserImagesIncomplete": "完成，但图片识别有失败",

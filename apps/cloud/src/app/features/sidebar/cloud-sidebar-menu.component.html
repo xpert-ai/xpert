@@ -17,7 +17,45 @@
             "
           >
             @if (entry.item; as item) {
-              @if (item.data.sidebarSection === 'projects') {
+              @if (entry.kind === 'assistant') {
+                <div
+                  class="cloud-sidebar-menu__assistant-module"
+                  [class.is-active]="isActive(item)"
+                  [class.is-collapsed]="collapsed()"
+                >
+                  <button
+                    type="button"
+                    class="cloud-sidebar-menu__item cloud-sidebar-menu__assistant-main"
+                    [attr.aria-label]="menuTitleKey(item) | translate: { Default: menuTitleDefault(item) }"
+                    [routerLink]="routerLinkFor(item)"
+                    [zTooltip]="menuTitleDefault(item)"
+                    zPosition="right"
+                    [zDisabled]="!collapsed()"
+                    (click)="onMenuClick($event, item)"
+                  >
+                    <span class="cloud-sidebar-menu__icon"><z-icon [zType]="item.icon || 'robot'" /></span>
+                    @if (!collapsed()) {
+                      <span class="cloud-sidebar-menu__content">
+                        <span class="cloud-sidebar-menu__title">
+                          {{ menuTitleKey(item) | translate: { Default: menuTitleDefault(item) } }}
+                        </span>
+                      </span>
+                    }
+                  </button>
+                  @if (!collapsed()) {
+                    <button
+                      type="button"
+                      class="cloud-sidebar-menu__assistant-settings"
+                      [attr.aria-label]="'XP.Assistant.SettingsButton' | translate: { Default: 'Assistant settings' }"
+                      [zTooltip]="'XP.Assistant.SettingsButton' | translate: { Default: 'Assistant settings' }"
+                      zPosition="right"
+                      (click)="onAssistantSettings($event)"
+                    >
+                      <i class="ri-settings-3-line" aria-hidden="true"></i>
+                    </button>
+                  }
+                </div>
+              } @else if (item.data.sidebarSection === 'projects') {
                 <xp-cloud-sidebar-projects
                   [collapsed]="collapsed()"
                   [active]="isActive(item)"

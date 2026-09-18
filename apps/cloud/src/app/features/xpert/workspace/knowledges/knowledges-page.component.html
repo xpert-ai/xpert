@@ -101,7 +101,7 @@
           <button
             type="button"
             class="icon-button"
-            [disabled]="!canWriteActiveKnowledgebase()"
+            [disabled]="!canWriteActiveKnowledgebase() || loadingSettings()"
             [attr.aria-label]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
             [title]="'XP.KEY_WORDS.Settings' | translate: { Default: 'Settings' }"
             (click)="openKnowledgebaseSettings()"

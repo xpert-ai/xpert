@@ -1,5 +1,11 @@
 {
     "Error": {
+        "KeywordAnalyzerInvalid": "关键词分析器配置无效。",
+        "KeywordAnalyzerExternal": "外部知识库不支持配置关键词分析器。",
+        "KeywordAnalyzerUnavailable": "所选关键词分析器不可用，请检查插件。",
+        "KeywordAnalyzerLocked": "知识库添加文档后不能修改关键词分析器。",
+        "KeywordAnalyzerRevisionMismatch": "已安装分析器与知识库使用的版本不一致，请恢复兼容版本。",
+        "KeywordAnalyzerChunkScopeRequired": "分析文档分块时必须指定知识库。",
         "SandboxRuntimeHealthTimeout": "Runtime 健康检查超过 {{seconds}} 秒，请在主机负载降低后重试。",
         "SandboxRuntimeHealthSignal": "Runtime 健康检查被信号 {{signal}} 终止。",
         "SandboxRuntimeHealthExit": "Runtime 健康检查失败，退出码：{{code}}。",

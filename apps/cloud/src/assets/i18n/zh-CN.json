@@ -1944,6 +1944,14 @@
       "Unavailable": "请先配置 Claw Xpert。"
     },
     "Knowledgebase": {
+      "KeywordAnalyzer": {
+        "Label": "关键词分析器",
+        "Legacy": "原有内置分析器",
+        "Help": "用于文档和搜索词的分词。添加首份文档后将锁定此选项。",
+        "Locked": "知识库已添加文档，关键词分析器不可修改。",
+        "Loading": "正在加载可用分析器…",
+        "Retry": "重新加载分析器"
+      },
       "ParserCoverageIncomplete": "完成，但有内容未识别",
       "ParserCoveragePages": "第 {{pages}} 页仍有内容未识别。请开启图像理解并配置可用的视觉模型，或选择 OCR 解析器后重新处理。",
       "ParserImagesIncomplete": "完成，但图片识别有失败",

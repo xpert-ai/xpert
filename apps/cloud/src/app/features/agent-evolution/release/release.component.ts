@@ -414,13 +414,13 @@ export class AgentEvolutionReleaseComponent {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
         title: this.#translate.instant('XP.AgentEvolution.NextReleaseTitle', {
-          Default: `${action.label}？`
+          Default: `${action.label}?`
         }),
         description: this.#translate.instant('XP.AgentEvolution.NextReleaseDescription', {
           Default: action.description
         }),
         actionText: this.#translate.instant('XP.AgentEvolution.ConfirmReleaseAction', { Default: action.label }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) await this.facade.runReleaseAction(release)
@@ -434,7 +434,7 @@ export class AgentEvolutionReleaseComponent {
         title: this.#translate.instant('XP.AgentEvolution.PauseReleaseTitle'),
         description: this.#translate.instant('XP.AgentEvolution.PauseReleaseDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.PauseReleaseAction'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) await this.facade.pauseRelease(release.releasePackageId)
@@ -451,7 +451,7 @@ export class AgentEvolutionReleaseComponent {
           to: release.rollbackVersionId
         }),
         actionText: this.#translate.instant('XP.AgentEvolution.RollbackAction'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (confirmed) await this.facade.rollbackRelease(release.releasePackageId)
@@ -469,7 +469,7 @@ export class AgentEvolutionReleaseComponent {
           subjectKey
         }),
         actionText: this.#translate.instant('XP.AgentEvolution.CreateCanaryTestOverride'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: '取消' })
+        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
       })
     )
     if (!confirmed) return

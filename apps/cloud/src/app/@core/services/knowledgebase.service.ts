@@ -13,6 +13,7 @@ import {
   IDocumentUnderstandingProvider,
   IKnowledgebase,
   KnowledgeVectorStoreOptions,
+  KnowledgeKeywordAnalyzerOption,
   KnowledgebaseWikiConfig,
   KnowledgeChunkPreviewInput,
   KnowledgeChunkPreviewResult,
@@ -58,6 +59,12 @@ function toGraphHttpParams(query?: KnowledgeGraphVisualizationQuery | KnowledgeG
 
 @Injectable({ providedIn: 'root' })
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
+  getKeywordAnalyzers() {
+    return this.selectOrganizationId().pipe(
+      switchMap(() => this.httpClient.get<KnowledgeKeywordAnalyzerOption[]>(this.apiBaseUrl + '/keyword-analyzers'))
+    )
+  }
+
   readonly #logger = inject(NGXLogger)
 
   getVectorStores() {
