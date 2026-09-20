@@ -14,8 +14,7 @@ import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import type { Observable } from 'rxjs'
-import { TPlugin } from '@cloud/app/@shared/plugins'
+import { map, type Observable } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import {
   ZardBadgeComponent,
@@ -35,7 +34,6 @@ import {
   type I18nObject,
   type I18nText,
   PluginMarketplaceCategory,
-  PluginMarketplaceItem,
   PluginTargetAppMarketplaceMetadata,
   PluginTargetAppMeta,
   PluginTargetAppMetadata,
@@ -45,13 +43,13 @@ import { getPluginMarketplaceSourceI18nKey, PLATFORM_REGISTRY_SOURCE_ID, TPlugin
 import { SettingsPluginComponent } from '../plugin/plugin.component'
 import {
   marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
-  developerToolSubcategoryOptionsFor,
+  marketplaceSubcategoryOptionsFor,
   groupPluginsByMarketplaceCategory,
   matchesPluginMarketplaceCategoryFilters,
   normalizePluginMarketplaceCategory,
   PLUGIN_MARKETPLACE_TARGET_APP
-} from '../plugin-marketplace-categories'
-import { mergeMarketplaceContributions } from '../plugin-marketplace-metadata'
+} from './plugin-marketplace-categories'
+import { normalizeMarketplacePlugin } from './plugin-marketplace-normalize'
 
 type MarketplaceSourceType = 'url' | 'github' | 'git'
 const DEFAULT_REGISTRY_TARGET_APP_META = `{
@@ -109,25 +107,34 @@ export class PluginsMarketplaceComponent {
 
   readonly sourceFilter = model('all')
   readonly selectedSourceId = computed(() => (this.sourceFilter() === 'all' ? null : this.sourceFilter()))
+  readonly catalogScope = computed(() =>
+    JSON.stringify([this.publicCatalog(), this.#activeScope(), this.selectedSourceId()])
+  )
 
   readonly #marketplace = myRxResource({
     request: () => ({
       publicCatalog: this.publicCatalog(),
+      key: this.catalogScope(),
       scope: this.#activeScope(),
       sourceId: this.selectedSourceId()
     }),
     loader: ({ request }) =>
-      request.publicCatalog
+      (request.publicCatalog
         ? this.pluginAPI.getPublicMarketplace({
             targetApp: PLUGIN_MARKETPLACE_TARGET_APP
           })
         : this.pluginAPI.getMarketplace({
+            view: 'summary',
             targetApp: PLUGIN_MARKETPLACE_TARGET_APP,
             ...(request.sourceId ? { sourceId: request.sourceId } : {})
           })
+      ).pipe(map((manifest) => ({ key: request.key, manifest })))
   })
 
-  readonly manifest = this.#marketplace.value
+  readonly manifest = computed(() => {
+    const result = this.#marketplace.value()
+    return result?.key === this.catalogScope() ? result.manifest : null
+  })
   readonly error = computed(() => {
     const error = this.#marketplace.error()
     return error ? getErrorMessage(error) : null
@@ -138,7 +145,8 @@ export class PluginsMarketplaceComponent {
 
   readonly pluginsWithDownloads = signal<TPluginWithDownloads[]>([])
   readonly refreshingSource = signal(false)
-  readonly loading = computed(() => (!this.manifest() && !this.error()) || this.manifestLoading())
+  readonly loading = computed(() => !this.manifest() && !this.error())
+  readonly updating = computed(() => !!this.manifest() && this.manifestLoading())
   readonly hasVisiblePlugins = computed(() => this.pluginCategoryGroups().length > 0)
   readonly loadingCards = Array.from({ length: 8 }, (_, index) => index)
 
@@ -146,11 +154,8 @@ export class PluginsMarketplaceComponent {
   readonly searchModel = model<string>('')
   readonly searchText = debouncedSignal(this.searchModel, 300)
   readonly marketplaceCategories = model<PluginMarketplaceCategory[]>([])
-  readonly developerToolSubcategories = model<string[]>([])
+  readonly marketplaceSubcategories = model<string[]>([])
   readonly marketplaceCategoryOptions = buildMarketplaceCategoryOptions()
-  readonly showDeveloperToolSubcategoryFilter = computed(
-    () => this.marketplaceCategories().length === 0 || this.marketplaceCategories().includes('developer-tools')
-  )
 
   readonly sourceName = model('')
   readonly sourceType = model<MarketplaceSourceType>('github')
@@ -225,9 +230,9 @@ export class PluginsMarketplaceComponent {
       plugins = plugins.filter((plugin) => plugin.keywords?.some((keyword) => keywords.includes(keyword)))
     }
 
-    if (this.marketplaceCategories().length || this.developerToolSubcategories().length) {
+    if (this.marketplaceCategories().length || this.marketplaceSubcategories().length) {
       plugins = plugins.filter((plugin) =>
-        matchesPluginMarketplaceCategoryFilters(plugin, this.marketplaceCategories(), this.developerToolSubcategories())
+        matchesPluginMarketplaceCategoryFilters(plugin, this.marketplaceCategories(), this.marketplaceSubcategories())
       )
     }
 
@@ -255,23 +260,14 @@ export class PluginsMarketplaceComponent {
       .map((keyword) => ({ label: keyword, value: keyword }))
   })
 
-  readonly developerToolSubcategoryOptions = computed(() =>
-    developerToolSubcategoryOptionsFor(this.pluginsWithDownloads()).map((category) => ({
+  readonly marketplaceSubcategoryOptions = computed(() =>
+    marketplaceSubcategoryOptionsFor(this.pluginsWithDownloads()).map((category) => ({
       label: this.i18nService.instant(category.labelKey, { Default: category.defaultLabel }),
       value: category.value
     }))
   )
 
   constructor() {
-    effect(
-      () => {
-        if (!this.showDeveloperToolSubcategoryFilter() && this.developerToolSubcategories().length) {
-          this.developerToolSubcategories.set([])
-        }
-      },
-      { allowSignalWrites: true }
-    )
-
     effect(
       () => {
         const sources = this.sources()
@@ -604,41 +600,6 @@ export class PluginsMarketplaceComponent {
   }
 }
 
-function normalizeMarketplacePlugin(item: PluginMarketplaceItem): TPluginWithDownloads {
-  const name = item.name || item.packageName || ''
-  const packageName = item.packageName ?? name
-  const sourceId = item.sourceId ?? null
-  const sourceName = item.sourceName ?? null
-
-  return {
-    name,
-    packageName,
-    displayName: item.displayName ?? name,
-    description: item.description ?? name,
-    version: item.version ?? '',
-    artifactNamespace: item.artifactNamespace ?? null,
-    level: item.level,
-    deprecated: item.deprecated,
-    deprecationMessage: item.deprecationMessage ?? undefined,
-    category: item.category ?? 'integration',
-    icon: normalizeIcon(item.icon),
-    author: normalizeAuthor(item.author),
-    source: normalizeSource(item.source),
-    keywords: item.keywords,
-    downloads: item.downloads,
-    sourceId,
-    sourceName,
-    sourceNameI18nKey: item.sourceNameI18nKey ?? getPluginMarketplaceSourceI18nKey(sourceId, sourceName),
-    installed: item.installed,
-    screenshots: item.screenshots,
-    contributions: mergeMarketplaceContributions(item.contributions),
-    defaultPrompt: item.defaultPrompt,
-    trialShortcuts: item.trialShortcuts,
-    operationSummary: item.operationSummary,
-    targetAppMeta: item.targetAppMeta ?? null
-  }
-}
-
 function isSameMarketplacePlugin(left: TPluginWithDownloads, right: TPluginWithDownloads) {
   const leftKeys = marketplacePluginIdentityKeys(left)
   const rightKeys = marketplacePluginIdentityKeys(right)
@@ -729,53 +690,4 @@ function buildI18nText(enUS: string, zhHans: string): I18nText {
   const en_US = enUS.trim()
   const zh_Hans = zhHans.trim()
   return zh_Hans ? { en_US, zh_Hans } : en_US
-}
-
-function normalizeAuthor(value: PluginMarketplaceItem['author']): TPlugin['author'] {
-  if (typeof value === 'string') {
-    return {
-      name: value,
-      url: ''
-    }
-  }
-
-  return {
-    name: value?.name ?? value?.displayName ?? 'XpertAI',
-    url: value?.url ?? value?.homepage ?? ''
-  }
-}
-
-function normalizeIcon(value: PluginMarketplaceItem['icon']): TPlugin['icon'] {
-  if (value) {
-    return value
-  }
-
-  return {
-    type: 'font',
-    value: 'ri-puzzle-2-line'
-  }
-}
-
-function normalizeSource(value: PluginMarketplaceItem['source']): TPlugin['source'] {
-  if (!value?.url) {
-    return undefined
-  }
-  return {
-    type: normalizeSourceType(value.type),
-    url: value.url
-  }
-}
-
-function normalizeSourceType(type: string | undefined): NonNullable<TPlugin['source']>['type'] {
-  if (
-    type === 'marketplace' ||
-    type === 'github' ||
-    type === 'git' ||
-    type === 'url' ||
-    type === 'npm' ||
-    type === 'website'
-  ) {
-    return type
-  }
-  return 'other'
 }

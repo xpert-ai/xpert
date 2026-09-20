@@ -1,6 +1,5 @@
 import { z } from 'zod/v3'
-import { BadRequestException, RequestMethod } from '@nestjs/common'
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
+import { BadRequestException } from '@nestjs/common'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -88,10 +87,6 @@ jest.mock('./plugin-management.service', () => ({
 	PluginManagementService: class PluginManagementService {}
 }))
 
-jest.mock('./plugin-marketplace.service', () => ({
-	PluginMarketplaceService: class PluginMarketplaceService {}
-}))
-
 const { PLUGIN_LEVEL } = require('@xpert-ai/contracts')
 const {
 	GLOBAL_ORGANIZATION_SCOPE,
@@ -123,22 +118,6 @@ describe('PluginController', () => {
 		uninstallByNamesWithGuard: jest.fn(),
 		readLoadedPluginBundleComponents: jest.fn()
 	} as unknown as PluginManagementService
-
-	const pluginMarketplaceService = {
-		listMarketplace: jest.fn(),
-		listPublicMarketplace: jest.fn(),
-		listSources: jest.fn(),
-		createSource: jest.fn(),
-		refreshSources: jest.fn(),
-		refreshSource: jest.fn(),
-		updateSource: jest.fn(),
-		deleteSource: jest.fn(),
-		getMarketplacePlugin: jest.fn(),
-		listRegistryItems: jest.fn(),
-		createRegistryItem: jest.fn(),
-		updateRegistryItem: jest.fn(),
-		deleteRegistryItem: jest.fn()
-	}
 
 	const queryBus = {
 		execute: jest.fn()
@@ -186,7 +165,6 @@ describe('PluginController', () => {
 		controller = new PluginController(
 			loadedPlugins,
 			pluginInstanceService,
-			pluginMarketplaceService as any,
 			pluginManagementService,
 			toolProviderRegistry as any,
 			queryBus as any,
@@ -240,30 +218,6 @@ describe('PluginController', () => {
 		expect((pluginManagementService as any).installPlugin).toHaveBeenCalledWith({
 			pluginName: '@xpert-ai/plugin-org-demo'
 		})
-	})
-
-	it('exposes the builtin marketplace catalog as a public read-only route', async () => {
-		pluginMarketplaceService.listPublicMarketplace.mockResolvedValue({
-			updatedAt: null,
-			total: 0,
-			items: [],
-			sources: [],
-			errors: []
-		})
-
-		await expect(controller.getPublicMarketplace('xpert')).resolves.toEqual(
-			expect.objectContaining({
-				total: 0,
-				items: []
-			})
-		)
-		expect(pluginMarketplaceService.listPublicMarketplace).toHaveBeenCalledWith({
-			targetApp: 'xpert'
-		})
-		expect(Reflect.getMetadata(PATH_METADATA, controller.constructor)).toBe('plugin')
-		expect(Reflect.getMetadata(PATH_METADATA, controller.getPublicMarketplace)).toBe('marketplace/public')
-		expect(Reflect.getMetadata(METHOD_METADATA, controller.getPublicMarketplace)).toBe(RequestMethod.GET)
-		expect(Reflect.getMetadata('isPublic', controller.getPublicMarketplace)).toBe(true)
 	})
 
 	it('returns plugin-managed component definitions for a plugin', async () => {

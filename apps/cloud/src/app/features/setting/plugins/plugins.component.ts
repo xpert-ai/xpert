@@ -23,7 +23,7 @@ import { injectConfirmDelete, XpHighlightDirective, XpSpinComponent } from '@xpe
 import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, of } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
@@ -45,14 +45,17 @@ import {
   groupPluginsByMarketplaceCategory,
   matchesPluginMarketplaceCategoryFilters,
   PLUGIN_MARKETPLACE_TARGET_APP
-} from './plugin-marketplace-categories'
+} from './marketplace/plugin-marketplace-categories'
 import {
   buildMarketplacePluginMetadataLookup,
   enrichInstalledPluginWithMarketplaceMetadata
-} from './plugin-marketplace-metadata'
-import { getInstalledPluginMarketplaceContributions, toPluginMarketplaceDetails } from './plugin-marketplace-details'
-import { hasInstallableMarketplaceContribution } from './plugin-marketplace-installability'
-import { pluginMarketplaceDetailCommands } from './plugin-marketplace-navigation'
+} from './marketplace/plugin-marketplace-metadata'
+import {
+  getInstalledPluginMarketplaceContributions,
+  toPluginMarketplaceDetails
+} from './marketplace/plugin-marketplace-details'
+import { hasInstallableMarketplaceContribution } from './marketplace/plugin-marketplace-installability'
+import { pluginMarketplaceDetailCommands } from './marketplace/plugin-marketplace-navigation'
 import { PluginRuntimeRestartService } from './plugin-runtime-restart.service'
 
 type TPluginComponentSummaryItem = {
@@ -129,9 +132,13 @@ export class PluginsComponent {
 
   readonly #installedMarketplace = myRxResource({
     request: () => ({
-      scope: this.#activeScope()
+      scope: this.#activeScope(),
+      category: this.category()
     }),
-    loader: () => this.pluginAPI.getMarketplace({ targetApp: PLUGIN_MARKETPLACE_TARGET_APP })
+    loader: ({ request }) =>
+      request.category === 'plugins'
+        ? this.pluginAPI.getMarketplace({ targetApp: PLUGIN_MARKETPLACE_TARGET_APP })
+        : of(null)
   })
 
   readonly pluginsLoading = computed(() => this.#plugins.status() === 'loading')

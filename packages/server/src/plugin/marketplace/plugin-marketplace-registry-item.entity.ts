@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString } from 'class-validator'
 import type { I18nObject } from '@xpert-ai/contracts'
 import { Column, Entity, Index } from 'typeorm'
-import { TenantBaseEntity } from '../core/entities/internal'
+import { TenantBaseEntity } from '../../core/entities/internal'
 
 export const PLUGIN_MARKETPLACE_REGISTRY_SECTIONS = ['marketplace', 'official', 'partner', 'community'] as const
 export const PLUGIN_MARKETPLACE_REGISTRY_DOWNLOAD_STATUSES = ['idle', 'success', 'failed'] as const

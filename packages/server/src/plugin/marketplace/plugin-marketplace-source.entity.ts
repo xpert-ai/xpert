@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'
-import { TenantOrganizationBaseEntity } from '../core/entities/internal'
+import { TenantOrganizationBaseEntity } from '../../core/entities/internal'
 
 export const PLUGIN_MARKETPLACE_SOURCE_TYPES = ['url', 'github', 'git'] as const
 export const PLUGIN_MARKETPLACE_SOURCE_STATUSES = ['idle', 'success', 'failed'] as const

@@ -1044,6 +1044,8 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "LoadingMarketplaceHelp": "Fetching the plugin list. Additional metadata updates in the background.",
+      "UpdatingMarketplace": "Updating the plugin list...",
       "ArtifactNamespace": "Artifact namespace",
       "MarketplaceContentType_app": "App",
       "MarketplaceContentType_view": "View",

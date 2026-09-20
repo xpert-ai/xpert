@@ -1,5 +1,6 @@
 {
     "Error": {
+        "MarketplaceCacheUnavailable": "The plugin marketplace is temporarily unavailable. Please retry shortly.",
         "KnowledgebaseProvisioningEmbeddingUnavailable": "No available embedding model was found in accessible Copilot providers or other knowledgebases in this workspace. Configure an embedding model and its access permissions, then retry.",
         "ApplicationStandaloneAssistantConnected": "A standalone Assistant is linked to the coordinator. Remove its delegation before repairing this application.",
         "IntegrationQrInvalid": "QR authorization is not available for this request.",

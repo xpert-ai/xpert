@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import type { MarketplaceSourceRecord } from './plugin-marketplace.types'
 import { PluginMarketplaceService } from './plugin-marketplace.service'
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
@@ -34,7 +35,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 	}
 }))
 
-jest.mock('./plugin-instance.service', () => ({
+jest.mock('../plugin-instance.service', () => ({
 	PluginInstanceService: class PluginInstanceService {}
 }))
 
@@ -170,7 +171,7 @@ describe('PluginMarketplaceService localized registry metadata', () => {
 		}
 		const service = new PluginMarketplaceService({} as any, registryRepository as any, [], {} as any)
 
-		const item = await service.createRegistryItem({
+		const item = await service['registry'].createRegistryItem({
 			packageName: '@xpert-ai/plugin-bom',
 			displayName: {
 				en_US: 'BOM Document Intake',
@@ -220,7 +221,7 @@ describe('PluginMarketplaceService localized registry metadata', () => {
 		)
 
 		await expect(
-			service.createRegistryItem({
+			service['registry'].createRegistryItem({
 				packageName: '@xpert-ai/plugin-bom',
 				displayName: { en_US: '', zh_Hans: 'BOM 文档接入' },
 				description: 'Parse and review BOM documents.',
@@ -328,7 +329,7 @@ describe('PluginMarketplaceService README detail', () => {
 
 describe('PluginMarketplaceService marketplace trial shortcuts', () => {
 	let service: PluginMarketplaceService
-	const source = {
+	const source: MarketplaceSourceRecord = {
 		id: 'source-1',
 		name: 'Official',
 		type: 'url',
@@ -349,11 +350,11 @@ describe('PluginMarketplaceService marketplace trial shortcuts', () => {
 	})
 
 	function toMarketplaceItem(input: Record<string, unknown>, targetApp = 'xpert') {
-		const plugin = (service as any).normalizeRegistryPlugin(input, source, 0)
+		const plugin = service['metadata'].normalizeRegistryPlugin(input, source, 0)
 		if (!plugin) {
 			throw new Error('Expected normalized plugin')
 		}
-		return (service as any).toMarketplaceItem(plugin, targetApp, installedContext)
+		return service['metadata'].toMarketplaceItem(plugin, targetApp, installedContext)
 	}
 
 	it('normalizes structured target-app trial shortcuts and preserves skill keys', () => {
@@ -504,7 +505,7 @@ describe('PluginMarketplaceService dedicated proxy', () => {
 	it('routes marketplace HTTP requests through the configured proxy', async () => {
 		process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL = 'http://127.0.0.1:7890'
 		const service = new PluginMarketplaceService({} as any, {} as any, [], {} as any)
-		const fetchMarketplaceJson = service as unknown as {
+		const fetchMarketplaceJson = service['packages'] as unknown as {
 			fetchJson(url: string): Promise<unknown>
 		}
 		const fetchRegistry = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -524,7 +525,7 @@ describe('PluginMarketplaceService dedicated proxy', () => {
 	it('preserves direct marketplace requests when the proxy is not configured', async () => {
 		delete process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL
 		const service = new PluginMarketplaceService({} as any, {} as any, [], {} as any)
-		const fetchMarketplaceJson = service as unknown as {
+		const fetchMarketplaceJson = service['packages'] as unknown as {
 			fetchJson(url: string): Promise<unknown>
 		}
 		const fetchRegistry = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -535,13 +536,16 @@ describe('PluginMarketplaceService dedicated proxy', () => {
 
 		await fetchMarketplaceJson.fetchJson(registryUrl)
 
-		expect(fetchRegistry).toHaveBeenCalledWith(registryUrl)
+		expect(fetchRegistry).toHaveBeenCalledWith(
+			registryUrl,
+			expect.objectContaining({ signal: expect.any(AbortSignal) })
+		)
 	})
 
 	it('rejects invalid proxy protocols without exposing the configured URL', async () => {
 		process.env.XPERT_PLUGIN_MARKETPLACE_PROXY_URL = 'ftp://proxy-user:proxy-secret@127.0.0.1:7890'
 		const service = new PluginMarketplaceService({} as any, {} as any, [], {} as any)
-		const fetchMarketplaceJson = service as unknown as {
+		const fetchMarketplaceJson = service['packages'] as unknown as {
 			fetchJson(url: string): Promise<unknown>
 		}
 		const fetchRegistry = jest.spyOn(globalThis, 'fetch')
@@ -622,7 +626,7 @@ describe('PluginMarketplaceService public marketplace', () => {
 		}
 		const listMarketplace = jest.spyOn(service, 'listMarketplace')
 		const getSourceRecords = jest.spyOn(tenantPaths, 'getSourceRecords')
-		const loadPlatformRegistryCatalog = jest.spyOn(tenantPaths, 'loadPlatformRegistryCatalog')
+		const loadPlatformRegistryCatalog = jest.spyOn(service.registry, 'loadPlatformRegistryCatalog')
 		const buildInstalledContext = jest.spyOn(tenantPaths, 'buildInstalledContext')
 
 		const response = await publicService.listPublicMarketplace({
@@ -633,7 +637,10 @@ describe('PluginMarketplaceService public marketplace', () => {
 		})
 
 		expect(fetchRegistry).toHaveBeenCalledTimes(1)
-		expect(fetchRegistry).toHaveBeenCalledWith(expect.stringContaining('xpert-plugin-registry/plugins/index.json'))
+		expect(fetchRegistry).toHaveBeenCalledWith(
+			expect.stringContaining('xpert-plugin-registry/plugins/index.json'),
+			expect.objectContaining({ signal: expect.any(AbortSignal) })
+		)
 		expect(response).toEqual(
 			expect.objectContaining({
 				total: 1,
@@ -719,6 +726,7 @@ describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 			mockNpmFetch(tarballBytes)
 			const service = createMarketplaceServiceWithPlatformItems([createPlatformRegistryItem()])
 
+			await service['registry'].loadPlatformRegistryCatalog('xpert', true)
 			const response = await service.listMarketplace({
 				sourceId: 'platform-registry',
 				targetApp: 'xpert'
@@ -809,6 +817,7 @@ describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 			mockNpmFetch(tarballBytes)
 			const service = createMarketplaceServiceWithPlatformItems([createPlatformRegistryItem()])
 
+			await service['registry'].loadPlatformRegistryCatalog('xpert', true)
 			const response = await service.listMarketplace({
 				sourceId: 'platform-registry',
 				targetApp: 'xpert'
@@ -897,6 +906,7 @@ describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 				})
 			])
 
+			await service['registry'].loadPlatformRegistryCatalog('xpert', true)
 			const response = await service.listMarketplace({
 				sourceId: 'platform-registry',
 				targetApp: 'xpert'
@@ -934,8 +944,9 @@ describe('PluginMarketplaceService npm bundle manifest hydration', () => {
 				targetApps: ['xpert']
 			})
 		])
-		jest.spyOn((service as any).logger, 'warn').mockImplementation(() => undefined)
+		jest.spyOn(service['metadata'].logger, 'warn').mockImplementation(() => undefined)
 
+		await service['registry'].loadPlatformRegistryCatalog('xpert', true)
 		const response = await service.listMarketplace({
 			sourceId: 'platform-registry',
 			targetApp: 'xpert'

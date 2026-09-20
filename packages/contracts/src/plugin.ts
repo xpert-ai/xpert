@@ -556,6 +556,27 @@ export const PLUGIN_MARKETPLACE_CATEGORIES = [
 
 export type PluginMarketplaceCategory = (typeof PLUGIN_MARKETPLACE_CATEGORIES)[number]
 
+/**
+ * Technical subcategories used by the plugin marketplace.
+ * marketplace.category describes the business-facing group; marketplace.subcategory describes the technical type.
+ */
+export const PLUGIN_MARKETPLACE_SUBCATEGORIES = [
+  'connector',
+  'middleware',
+  'integration',
+  'database',
+  'tools',
+  'model',
+  'vlm',
+  'vector-store',
+  'doc-source',
+  'datasource',
+  'agent',
+  'set'
+] as const
+
+export type PluginMarketplaceSubcategory = (typeof PLUGIN_MARKETPLACE_SUBCATEGORIES)[number]
+
 export interface PluginTargetAppMarketplaceMetadata {
   contents?: PluginMarketplaceContribution[]
   category?: PluginMarketplaceCategory
@@ -781,6 +802,10 @@ export interface PluginMarketplaceItemSource {
 }
 
 export interface PluginMarketplaceItem {
+  /** A card projection; fetch the plugin endpoint before displaying full contents/actions. */
+  summary?: boolean
+  /** Content hash of an embedded icon served by the authenticated marketplace assets endpoint. */
+  iconAsset?: string
   name: string
   packageName?: string | null
   displayName?: I18nObject | string
