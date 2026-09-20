@@ -101,45 +101,57 @@ import {
           @for (assistant of filtered(); track assistant.id) {
             <div
               data-assistant-row
-              class="flex min-w-0 items-center rounded-lg hover:bg-hover-bg focus-within:bg-hover-bg"
+              class="relative flex h-9 min-w-0 items-center gap-2 rounded-lg px-2 py-1 hover:bg-hover-bg focus-within:bg-hover-bg"
             >
               <button
                 z-menu-item
                 type="button"
                 [attr.data-assistant-option]="assistant.id"
                 [attr.aria-current]="assistant.id === activeId() ? 'page' : null"
-                class="flex h-9 min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left"
+                class="absolute! inset-0 h-full w-full rounded-lg"
                 (click)="select(assistant)"
                 (keydown.tab)="$event.stopPropagation()"
               >
-                <emoji-avatar
-                  [avatar]="assistant.avatar"
-                  [alt]="label(assistant)"
-                  [fallbackLabel]="label(assistant)"
-                  class="!size-[24px] shrink-0 overflow-hidden rounded-xl"
-                />
-                <span class="min-w-0 flex-1 truncate" [title]="label(assistant)">{{ name(assistant) }}</span>
-                @if (assistant.id === activeId()) {
-                  <i class="ri-check-line shrink-0 text-text-primary" aria-hidden="true"></i>
-                }
+                <span class="sr-only">{{ label(assistant) }}</span>
               </button>
-              @if (businessArea(assistant); as area) {
-                <button
-                  type="button"
-                  [attr.data-assistant-business-area]="area.id"
-                  class="mr-2 max-w-[5.5rem] shrink-0 truncate rounded-md bg-background-default-subtle px-1.5 py-0.5 text-xs text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-2 focus-visible:outline-primary"
-                  [title]="area.name"
-                  [attr.aria-label]="
-                    ('XP.Sidebar.FilterByBusinessArea' | translate: { Default: 'Filter by business area' }) +
-                    ': ' +
-                    area.name
-                  "
-                  [attr.aria-pressed]="businessAreaFilter()?.id === area.id"
-                  (click)="setBusinessAreaFilter($event, area)"
-                  (keydown)="handleFilterKey($event)"
-                >
-                  {{ area.name }}
-                </button>
+              <emoji-avatar
+                [avatar]="assistant.avatar"
+                [alt]="label(assistant)"
+                [fallbackLabel]="label(assistant)"
+                aria-hidden="true"
+                class="pointer-events-none relative !size-[24px] shrink-0 overflow-hidden rounded-xl"
+              />
+              <span
+                class="pointer-events-none relative flex min-w-0 flex-1 items-center text-sm"
+                [title]="label(assistant)"
+              >
+                @if (businessArea(assistant); as area) {
+                  <button
+                    type="button"
+                    [attr.data-assistant-business-area]="area.id"
+                    class="pointer-events-auto relative min-w-0 max-w-[48%] shrink truncate rounded-sm bg-transparent p-0 text-left text-text-secondary underline-offset-2 hover:text-primary hover:underline focus-visible:text-primary focus-visible:underline focus-visible:outline-none aria-pressed:text-primary aria-pressed:underline"
+                    [title]="area.name"
+                    [attr.aria-label]="
+                      ('XP.Sidebar.FilterByBusinessArea' | translate: { Default: 'Filter by business area' }) +
+                      ': ' +
+                      area.name
+                    "
+                    [attr.aria-pressed]="businessAreaFilter()?.id === area.id"
+                    (click)="setBusinessAreaFilter($event, area)"
+                    (keydown)="handleFilterKey($event)"
+                  >
+                    {{ area.name }}
+                  </button>
+                  <span
+                    class="shrink-0 whitespace-pre text-text-tertiary"
+                    aria-hidden="true"
+                    [textContent]="' / '"
+                  ></span>
+                }
+                <span class="min-w-0 truncate text-text-primary" aria-hidden="true">{{ name(assistant) }}</span>
+              </span>
+              @if (assistant.id === activeId()) {
+                <i class="pointer-events-none relative ri-check-line shrink-0 text-text-primary" aria-hidden="true"></i>
               }
             </div>
           } @empty {
