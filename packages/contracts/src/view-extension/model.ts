@@ -447,6 +447,7 @@ export interface WorkbenchOpenFile {
 }
 
 export type WorkbenchNavigationOpenTarget =
+  | 'agent-evolution.target'
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
   | typeof WORKBENCH_ASSISTANT_CONVERSATION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
@@ -454,6 +455,7 @@ export type WorkbenchNavigationOpenTarget =
 
 export interface WorkbenchNavigationOpenPayload {
   target: WorkbenchNavigationOpenTarget
+  targetId?: string
   knowledgebaseId?: string
   documentId?: string
   parentId?: string

@@ -1,0 +1,139 @@
+<main class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 p-4 sm:p-6">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-semibold text-text-primary">{{ 'XP.AgentEvolution.TabTargets' | translate }}</h2>
+      <p class="mt-1 text-sm text-text-secondary">{{ 'XP.AgentEvolution.TargetsDescription' | translate }}</p>
+    </div>
+    <z-badge zType="outline">{{ 'XP.AgentEvolution.TargetCount' | translate: { count: rows().length } }}</z-badge>
+  </div>
+
+  <section class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+    <z-search-input
+      class="min-w-0 flex-1 sm:min-w-64"
+      [placeholder]="'XP.AgentEvolution.SearchTargetRegistry' | translate"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate"
+      [value]="query()"
+      (valueChange)="query.set($event)"
+    />
+    <select
+      class="rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
+      [attr.aria-label]="'XP.AgentEvolution.TargetRegistrationStatus' | translate"
+      [ngModel]="status()"
+      (ngModelChange)="status.set($event)"
+    >
+      <option value="all">{{ 'XP.AgentEvolution.AllTargetStatuses' | translate }}</option>
+      @for (value of statuses; track value) {
+        <option [value]="value">{{ 'XP.AgentEvolution.Status.' + value | translate }}</option>
+      }
+    </select>
+    <select
+      class="rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
+      [attr.aria-label]="'XP.AgentEvolution.SortTargets' | translate"
+      [ngModel]="sort()"
+      (ngModelChange)="sort.set($event)"
+    >
+      <option value="displayName">{{ 'XP.AgentEvolution.SortTargetsByName' | translate }}</option>
+      <option value="targetId">{{ 'XP.AgentEvolution.SortTargetsById' | translate }}</option>
+    </select>
+    <button z-button zType="outline" type="button" (click)="resetFilters()">
+      <i class="ri-filter-off-line" aria-hidden="true"></i>{{ 'XP.AgentEvolution.Reset' | translate }}
+    </button>
+  </section>
+
+  @if (facade.loading()) {
+    <p role="status" class="py-16 text-center text-sm text-text-secondary">
+      {{ 'XP.AgentEvolution.LoadingTargets' | translate }}
+    </p>
+  } @else if (facade.error() && !facade.loadedAt()) {
+    <p role="status" class="py-16 text-center text-sm text-text-secondary">
+      {{ 'XP.AgentEvolution.TargetsLoadFailed' | translate }}
+    </p>
+  } @else if (!rows().length) {
+    <div role="status" class="rounded-xl border border-divider-regular py-16 text-center text-sm text-text-secondary">
+      <p>{{ 'XP.AgentEvolution.NoTargetOptions' | translate }}</p>
+      <p class="mt-2">{{ 'XP.AgentEvolution.TargetsEmptyHint' | translate }}</p>
+    </div>
+  } @else {
+    <div class="overflow-x-auto rounded-xl border border-divider-regular bg-components-card-bg">
+      <table class="w-full text-left text-sm">
+        <caption class="sr-only">
+          {{
+            'XP.AgentEvolution.TabTargets' | translate
+          }}
+        </caption>
+        <thead class="border-b border-divider-regular bg-background-default-subtle text-text-secondary">
+          <tr>
+            <th scope="col" class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Target' | translate }}</th>
+            <th scope="col" class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Provider' | translate }}</th>
+            <th scope="col" class="whitespace-nowrap px-4 py-3 font-medium">
+              {{ 'XP.AgentEvolution.TargetRegistrationStatus' | translate }}
+            </th>
+            <th scope="col" class="px-4 py-3 font-medium">
+              {{ 'XP.AgentEvolution.TargetProductionVersion' | translate }}
+            </th>
+            <th scope="col" class="px-4 py-3 font-medium">{{ 'XP.AgentEvolution.Risk' | translate }}</th>
+            <th scope="col" class="px-4 py-3">
+              <span class="sr-only">{{ 'XP.AgentEvolution.ViewTargetDetails' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-divider-subtle">
+          @for (row of rows(); track row.target.targetId) {
+            <tr class="text-text-primary hover:bg-background-default-subtle">
+              <th scope="row" class="px-4 py-4 text-left font-normal">
+                <a
+                  class="font-medium hover:underline"
+                  [routerLink]="['/agent-evolution/targets', row.target.targetId]"
+                  >{{ row.target.displayName }}</a
+                >
+                <div class="mt-1 font-mono text-xs text-text-secondary">{{ row.target.targetId }}</div>
+                <div class="mt-1 text-xs text-text-secondary">
+                  {{
+                    'XP.AgentEvolution.TargetType.' + row.target.targetType
+                      | translate: { Default: row.target.targetType }
+                  }}
+                </div>
+              </th>
+              <td class="px-4 py-4">
+                <div class="break-words">{{ row.target.providerKey }}</div>
+                <div class="mt-1 text-xs text-text-secondary">{{ row.target.providerVersion }}</div>
+              </td>
+              <td class="whitespace-nowrap px-4 py-4">
+                <z-badge zType="outline">{{ 'XP.AgentEvolution.Status.' + row.target.status | translate }}</z-badge>
+              </td>
+              <td class="px-4 py-4">
+                @for (version of row.versions; track version) {
+                  <div class="break-all font-mono text-xs">{{ version }}</div>
+                } @empty {
+                  <span class="text-text-secondary">{{ 'XP.AgentEvolution.NoProductionVersion' | translate }}</span>
+                }
+                @if (row.scopeCount) {
+                  <div class="mt-1 text-xs text-text-secondary">
+                    {{ 'XP.AgentEvolution.ProductionScopeCount' | translate: { count: row.scopeCount } }}
+                  </div>
+                }
+              </td>
+              <td class="px-4 py-4">
+                <z-badge zType="outline">{{ row.target.riskLevel }}</z-badge>
+              </td>
+              <td class="whitespace-nowrap px-4 py-4">
+                <a
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  [routerLink]="['/agent-evolution/targets', row.target.targetId]"
+                  [attr.aria-label]="
+                    ('XP.AgentEvolution.ViewTargetDetails' | translate) + ': ' + row.target.displayName
+                  "
+                >
+                  {{ 'XP.AgentEvolution.ViewTargetDetails' | translate
+                  }}<i class="ri-arrow-right-line" aria-hidden="true"></i>
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</main>

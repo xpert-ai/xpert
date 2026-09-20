@@ -48,6 +48,19 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
+    if (target === 'agent-evolution.target') {
+      const targetId = getString(payload, 'targetId')
+      if (!targetId || !/^[a-zA-Z0-9_.:-]{1,200}$/.test(targetId) || !options.navigate) {
+        return {
+          success: false,
+          code: 'bad_request',
+          message: 'A valid evolution target and host navigation are required.'
+        }
+      }
+      await options.navigate(['/agent-evolution', 'targets', targetId])
+      return { success: true }
+    }
+
     if (
       target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET &&
       target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET &&

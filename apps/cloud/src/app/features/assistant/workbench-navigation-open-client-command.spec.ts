@@ -18,6 +18,27 @@ const context = {
 } as any
 
 describe('registerWorkbenchNavigationOpenCommand', () => {
+  it('opens rule details through host navigation and rejects path injection', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.target', targetId: 'bom.feature_binding' },
+        context
+      )
+    ).toEqual({ success: true })
+    expect(navigate).toHaveBeenCalledWith(['/agent-evolution', 'targets', 'bom.feature_binding'])
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.target', targetId: '../settings' },
+        context
+      )
+    ).toMatchObject({ success: false })
+    expect(navigate).toHaveBeenCalledTimes(1)
+  })
   it('navigates to the knowledgebase documents page', async () => {
     const registry = new ViewClientCommandRegistry()
     const navigate = jest.fn(async () => true)

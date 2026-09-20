@@ -25,6 +25,10 @@ export const routes: Routes = [
         loadComponent: () => import('./release/release.component').then((m) => m.AgentEvolutionReleaseComponent)
       },
       {
+        path: 'targets',
+        loadComponent: () => import('./targets/targets.component').then((m) => m.AgentEvolutionTargetsComponent)
+      },
+      {
         path: 'targets/:resourceId',
         loadComponent: () =>
           import('./detail/agent-evolution-detail.component').then((m) => m.AgentEvolutionDetailComponent),

@@ -15,7 +15,7 @@ export interface EvolutionCandidateBuilder {
   validateCandidate(request: ValidateEvolutionCandidateRequest): Promise<CandidateValidationResult>
 }
 
-export interface EvolutionBaselineExporter {
+export interface EvolutionBaselineExporter extends Partial<import('./baseline').EvolutionBaselineReader> {
   exportBaseline(request: ExportEvolutionBaselineRequest): Promise<ExportEvolutionBaselineResult>
 }
 
