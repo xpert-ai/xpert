@@ -185,21 +185,42 @@
 } @else {
   <div class="flex flex-col items-start justify-center gap-3 self-stretch px-12 pb-3 pt-1">
     <div class="flex items-center gap-2 self-stretch">
-      <xp-select
+      <z-select
         class="inline-block w-[160px]"
-        multiple
-        [selectOptions]="marketplaceCategoryOptions()"
-        [placeholder]="'XP.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
-        [(ngModel)]="marketplaceCategories"
-      />
-      <xp-select
-        class="inline-block w-[160px]"
-        multiple
-        searchable
-        [selectOptions]="keywordsOptions()"
-        [placeholder]="'XP.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
-        [(ngModel)]="keywords"
-      />
+        [zMultiple]="true"
+        [zValue]="marketplaceCategories()"
+        [zPlaceholder]="'XP.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
+        (zSelectionChange)="onCategoriesSelectionChange($event)"
+      >
+        @for (option of marketplaceCategoryOptions(); track option.value) {
+          <z-select-item [zValue]="option.value">{{ option.label }}</z-select-item>
+        }
+      </z-select>
+      @if (marketplaceSubcategoryOptions().length) {
+        <z-select
+          class="inline-block w-[180px]"
+          [zMultiple]="true"
+          [zValue]="marketplaceSubcategories()"
+          [zPlaceholder]="'XP.Plugin.AllSubcategories' | translate: { Default: 'All Technical Categories' }"
+          (zSelectionChange)="onSubcategoriesSelectionChange($event)"
+        >
+          @for (option of marketplaceSubcategoryOptions(); track option.value) {
+            <z-select-item [zValue]="option.value">{{ option.label }}</z-select-item>
+          }
+        </z-select>
+      }
+      <z-select
+        class="inline-block w-[200px]"
+        [zMultiple]="true"
+        [zSearchable]="true"
+        [zValue]="keywords()"
+        [zPlaceholder]="'XP.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
+        (zSelectionChange)="onKeywordsSelectionChange($event)"
+      >
+        @for (option of keywordsOptions(); track option.value) {
+          <z-select-item [zValue]="option.value">{{ option.label }}</z-select-item>
+        }
+      </z-select>
 
       <z-search-input
         class="w-[200px]"
@@ -270,24 +291,6 @@
                   {{ group.plugins.length }}
                 </div>
               </div>
-              @if (
-                group.value === 'developer-tools' &&
-                showDeveloperToolSubcategoryFilter() &&
-                developerToolSubcategoryOptions().length
-              ) {
-                <div class="mb-3 flex items-center gap-2">
-                  <div class="system-sm-semibold shrink-0 text-text-tertiary">
-                    {{ 'XP.Plugin.DeveloperToolsSubcategories' | translate: { Default: 'Developer Tools Categories' } }}
-                  </div>
-                  <xp-select
-                    class="inline-block w-[220px]"
-                    multiple
-                    [selectOptions]="developerToolSubcategoryOptions()"
-                    [placeholder]="'XP.Plugin.AllDeveloperTools' | translate: { Default: 'All Developer Tools' }"
-                    [(ngModel)]="developerToolSubcategories"
-                  />
-                </div>
-              }
               <div class="grid grid-cols-2 gap-3">
                 @for (plugin of group.plugins; track plugin.__trackId) {
                   <div class="relative overflow-hidden rounded-xl p-1 bg-(--secondary)">
@@ -390,7 +393,7 @@
                               <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
                             }
                             <div
-                              class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
+                              class="relative inline-flex h-5 items-center rounded-[5px] border border-divider px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
                               [class.text-text-warning]="plugin.hasUpdate"
                               [zTooltip]="
                                 ('XP.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
@@ -403,7 +406,7 @@
                               {{ plugin.currentVersion || plugin.meta.version || '-' }}
                             </div>
                             <div
-                              class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
+                              class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
                             >
                               <i
                                 class="shrink-0"
@@ -490,7 +493,7 @@
                               <div class="mt-2 flex flex-wrap items-center gap-1.5">
                                 @for (item of componentSummaryItems(plugin); track item.key) {
                                   <div
-                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
                                   >
                                     <i class="shrink-0" [class]="item.icon"></i>
                                     <span>{{ item.label | translate: { Default: item.defaultLabel } }}</span>
@@ -499,7 +502,7 @@
                                 }
                                 @if (plugin.scopeRelation === 'overrides-global') {
                                   <div
-                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
                                   >
                                     <i class="ri-arrow-up-circle-line shrink-0"></i>
                                     <span>
@@ -508,7 +511,7 @@
                                   </div>
                                 } @else if (plugin.scopeRelation === 'shadowed-by-organization') {
                                   <div
-                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-warning"
+                                    class="inline-flex items-center gap-1 rounded-[5px] border border-divider bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-warning"
                                   >
                                     <i class="ri-eye-off-line shrink-0"></i>
                                     <span>
@@ -527,7 +530,7 @@
                                   z-button
                                   type="button"
                                   zType="secondary"
-                                  class="px-3 hover:border-divider-deep hover:bg-hover-bg hover:text-text-primary hover:shadow-sm"
+                                  class="px-3 hover:border-divider hover:bg-hover-bg hover:text-text-primary hover:shadow-sm"
                                   [zTooltip]="
                                     'XP.Plugin.InitializeResourcesHint'
                                       | translate: { Default: 'Initialize plugin resources in a workspace or Xpert' }

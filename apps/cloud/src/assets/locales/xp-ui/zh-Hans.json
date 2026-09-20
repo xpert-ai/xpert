@@ -22,7 +22,9 @@
   },
   "select": {
     "placeholder": "请选择一个选项...",
-    "moreItemsSelected_other": "还有 {{count}} 项已选择"
+    "moreItemsSelected_other": "还有 {{count}} 项已选择",
+    "searchPlaceholder": "搜索",
+    "noResults": "未找到结果"
   },
   "chipGrid": {
     "emptyPlaceholder": "选择或添加项目"

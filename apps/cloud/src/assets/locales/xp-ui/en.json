@@ -23,7 +23,9 @@
   "select": {
     "placeholder": "Select an option...",
     "moreItemsSelected_one": "{{count}} more item selected",
-    "moreItemsSelected_other": "{{count}} more items selected"
+    "moreItemsSelected_other": "{{count}} more items selected",
+    "searchPlaceholder": "Search...",
+    "noResults": "No results found."
   },
   "chipGrid": {
     "emptyPlaceholder": "Select or add items"

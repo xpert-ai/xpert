@@ -16,18 +16,23 @@ import {
 } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { injectActiveScope, injectPluginAPI } from '@cloud/app/@core/state'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { injectConfirmDelete, XpHighlightDirective, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardSearchInputComponent,
+  ZardSelectImports,
+  ZardTooltipImports,
+  type ZardSelectValue
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom, of } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
-import { ZardButtonComponent, ZardSearchInputComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { PluginMarketplaceDetailComponent } from './marketplace/marketplace-detail.component'
 import { TInstalledPlugin } from './types'
 import {
@@ -41,7 +46,7 @@ import {
 } from '@xpert-ai/contracts'
 import {
   marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
-  developerToolSubcategoryOptionsFor,
+  marketplaceSubcategoryOptionsFor,
   groupPluginsByMarketplaceCategory,
   matchesPluginMarketplaceCategoryFilters,
   PLUGIN_MARKETPLACE_TARGET_APP
@@ -66,6 +71,10 @@ type TPluginComponentSummaryItem = {
   defaultLabel: string
 }
 
+function parseListParam(value: string | null): string[] {
+  return value ? value.split(',').filter((item) => !!item) : []
+}
+
 @Component({
   standalone: true,
   imports: [
@@ -74,9 +83,9 @@ type TPluginComponentSummaryItem = {
     FormsModule,
     CdkMenuModule,
     ZardButtonComponent,
+    ZardSelectImports,
     ZardSearchInputComponent,
     ...ZardTooltipImports,
-    XpSelectComponent,
     XpI18nPipe,
     XpHighlightDirective,
     IconComponent,
@@ -178,23 +187,49 @@ export class PluginsComponent {
   readonly archiveInstalling = signal(false)
   readonly archiveInstallError = signal<string | null>(null)
 
-  readonly searchText = model('')
+  readonly #querySearch = injectQueryParams('search')
+  readonly #queryCategories = injectQueryParams('categories')
+  readonly #querySubcategories = injectQueryParams('subcategories')
+  readonly #queryKeywords = injectQueryParams('keywords')
+
+  readonly searchText = linkedModel<string>({
+    initialValue: '',
+    compute: () => this.#querySearch() ?? '',
+    update: (value) => {
+      this.#navigate({ search: value.trim() || null })
+    }
+  })
   readonly #searchText = debouncedSignal(this.searchText, 300)
 
-  readonly marketplaceCategories = model<PluginMarketplaceCategory[]>([])
-  readonly developerToolSubcategories = model<string[]>([])
-  readonly keywords = model<string[]>([])
+  readonly marketplaceCategories = linkedModel<PluginMarketplaceCategory[]>({
+    initialValue: [],
+    compute: () => parseListParam(this.#queryCategories()) as PluginMarketplaceCategory[],
+    update: (values) => {
+      this.#navigate({ categories: values.length ? values.join(',') : null })
+    }
+  })
+  readonly marketplaceSubcategories = linkedModel<string[]>({
+    initialValue: [],
+    compute: () => parseListParam(this.#querySubcategories()),
+    update: (values) => {
+      this.#navigate({ subcategories: values.length ? values.join(',') : null })
+    }
+  })
+  readonly keywords = linkedModel<string[]>({
+    initialValue: [],
+    compute: () => parseListParam(this.#queryKeywords()),
+    update: (values) => {
+      this.#navigate({ keywords: values.length ? values.join(',') : null })
+    }
+  })
   readonly marketplaceLoading = computed(() => this.marketplace()?.loading() ?? true)
   readonly marketplaceRefreshingSource = computed(() => this.marketplace()?.refreshingSource() ?? false)
   readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
-  readonly showDeveloperToolSubcategoryFilter = computed(
-    () => this.marketplaceCategories().length === 0 || this.marketplaceCategories().includes('developer-tools')
-  )
 
   readonly filteredPlugins = computed(() => {
     const searchText = this.#searchText().toLowerCase()
     let plugins = this.plugins()
-    if (this.marketplaceCategories().length || this.developerToolSubcategories().length) {
+    if (this.marketplaceCategories().length || this.marketplaceSubcategories().length) {
       plugins = plugins.filter((plugin) =>
         matchesPluginMarketplaceCategoryFilters(
           {
@@ -202,7 +237,7 @@ export class PluginsComponent {
             targetAppMeta: plugin.meta.targetAppMeta
           },
           this.marketplaceCategories(),
-          this.developerToolSubcategories()
+          this.marketplaceSubcategories()
         )
       )
     }
@@ -241,8 +276,8 @@ export class PluginsComponent {
     }))
   })
 
-  readonly developerToolSubcategoryOptions = computed(() => {
-    return developerToolSubcategoryOptionsFor(
+  readonly marketplaceSubcategoryOptions = computed(() => {
+    return marketplaceSubcategoryOptionsFor(
       this.plugins().map((plugin) => ({
         category: plugin.meta.category,
         targetAppMeta: plugin.meta.targetAppMeta
@@ -290,15 +325,6 @@ export class PluginsComponent {
 
     effect(
       () => {
-        if (!this.showDeveloperToolSubcategoryFilter() && this.developerToolSubcategories().length) {
-          this.developerToolSubcategories.set([])
-        }
-      },
-      { allowSignalWrites: true }
-    )
-
-    effect(
-      () => {
         const basePlugins = this.#basePlugins()
         this.plugins.set(basePlugins)
 
@@ -335,6 +361,14 @@ export class PluginsComponent {
     return `${scope}:${name}:${index}`
   }
 
+  #navigate(queryParams: Record<string, string | null>) {
+    this.router.navigate([], {
+      queryParams,
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    })
+  }
+
   toggleKeyword(keyword: string) {
     this.keywords.update((keywords) => {
       if (keywords.includes(keyword)) {
@@ -343,6 +377,22 @@ export class PluginsComponent {
         return [...keywords, keyword]
       }
     })
+  }
+
+  onCategoriesSelectionChange(values: ZardSelectValue | ZardSelectValue[]) {
+    this.marketplaceCategories.set(
+      (Array.isArray(values) ? values : [values]).filter((value): value is PluginMarketplaceCategory => !!value)
+    )
+  }
+
+  onSubcategoriesSelectionChange(values: ZardSelectValue | ZardSelectValue[]) {
+    this.marketplaceSubcategories.set(
+      (Array.isArray(values) ? values : [values]).filter((value): value is string => !!value)
+    )
+  }
+
+  onKeywordsSelectionChange(values: ZardSelectValue | ZardSelectValue[]) {
+    this.keywords.set((Array.isArray(values) ? values : [values]).filter((value): value is string => !!value))
   }
 
   sdkCompatibilityWarningMessage(plugin: TInstalledPlugin) {

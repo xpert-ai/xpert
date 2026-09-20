@@ -1,10 +1,16 @@
-import { PLUGIN_MARKETPLACE_CATEGORIES, PluginTargetAppMeta } from '@xpert-ai/contracts'
+import {
+  PLUGIN_MARKETPLACE_CATEGORIES,
+  PLUGIN_MARKETPLACE_SUBCATEGORIES,
+  PluginTargetAppMeta
+} from '@xpert-ai/contracts'
 import {
   groupPluginsByMarketplaceCategory,
   LEGACY_DEVELOPER_TOOL_CATEGORIES,
+  marketplaceSubcategoryOptionsFor,
   matchesPluginMarketplaceCategoryFilters,
   normalizePluginMarketplaceCategory,
   PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS,
+  PLUGIN_MARKETPLACE_SUBCATEGORY_DEFINITIONS,
   PluginMarketplaceCategorizedItem,
   resolvePluginMarketplaceGrouping
 } from './plugin-marketplace-categories'
@@ -25,6 +31,12 @@ function targetAppMeta(
 describe('plugin marketplace categories', () => {
   it('keeps visible category tabs aligned with the shared marketplace taxonomy', () => {
     expect(PLUGIN_MARKETPLACE_CATEGORY_DEFINITIONS.map(({ value }) => value)).toEqual(PLUGIN_MARKETPLACE_CATEGORIES)
+  })
+
+  it('keeps technical subcategory options aligned with the shared marketplace taxonomy', () => {
+    expect(PLUGIN_MARKETPLACE_SUBCATEGORY_DEFINITIONS.map(({ value }) => value)).toEqual(
+      PLUGIN_MARKETPLACE_SUBCATEGORIES
+    )
   })
 
   it('uses explicit marketplace category from xpert target app metadata', () => {
@@ -163,7 +175,7 @@ describe('plugin marketplace categories', () => {
     expect(groups[0].plugins.map((plugin) => plugin.name)).toEqual(['database'])
   })
 
-  it('filters Developer Tools subcategories without hiding other marketplace categories', () => {
+  it('filters plugins by technical subcategory across marketplace categories', () => {
     const plugins: TestPlugin[] = [
       {
         name: 'finance',
@@ -183,10 +195,69 @@ describe('plugin marketplace categories', () => {
     const filtered = plugins.filter((plugin) => matchesPluginMarketplaceCategoryFilters(plugin, [], ['database']))
     const groups = groupPluginsByMarketplaceCategory(filtered)
 
-    expect(groups.map((group) => group.value)).toEqual(['developer-tools', 'finance'])
-    expect(groups.find((group) => group.value === 'developer-tools')?.plugins.map((plugin) => plugin.name)).toEqual([
-      'database'
+    expect(groups.map((group) => group.value)).toEqual(['developer-tools'])
+    expect(groups[0].plugins.map((plugin) => plugin.name)).toEqual(['database'])
+  })
+
+  it('keeps connector subcategory under a business category', () => {
+    const grouping = resolvePluginMarketplaceGrouping({
+      category: 'middleware',
+      targetAppMeta: targetAppMeta({
+        category: 'communication',
+        subcategory: 'connector'
+      })
+    })
+
+    expect(grouping).toEqual({
+      category: 'communication',
+      subcategory: 'connector'
+    })
+  })
+
+  it('matches connector subcategory filters across business categories', () => {
+    const plugins: TestPlugin[] = [
+      {
+        name: 'dingtalk-connector',
+        category: 'middleware',
+        targetAppMeta: targetAppMeta({ category: 'communication', subcategory: 'connector' })
+      },
+      {
+        name: 'github-connector',
+        category: 'middleware',
+        targetAppMeta: targetAppMeta({ category: 'developer-tools', subcategory: 'connector' })
+      },
+      {
+        name: 'wecom-app',
+        category: 'middleware',
+        targetAppMeta: targetAppMeta({ category: 'communication', subcategory: 'middleware' })
+      }
+    ]
+
+    const filtered = plugins.filter((plugin) => matchesPluginMarketplaceCategoryFilters(plugin, [], ['connector']))
+    const groups = groupPluginsByMarketplaceCategory(filtered)
+
+    expect(groups.map((group) => group.value)).toEqual(['communication', 'developer-tools'])
+    expect(groups.find((group) => group.value === 'communication')?.plugins.map((plugin) => plugin.name)).toEqual([
+      'dingtalk-connector'
     ])
-    expect(groups.find((group) => group.value === 'finance')?.plugins.map((plugin) => plugin.name)).toEqual(['finance'])
+    expect(groups.find((group) => group.value === 'developer-tools')?.plugins.map((plugin) => plugin.name)).toEqual([
+      'github-connector'
+    ])
+  })
+
+  it('exposes connector in the technical subcategory options', () => {
+    const options = marketplaceSubcategoryOptionsFor([
+      {
+        name: 'dingtalk-connector',
+        category: 'middleware',
+        targetAppMeta: targetAppMeta({ category: 'communication', subcategory: 'connector' })
+      },
+      {
+        name: 'database',
+        category: 'database'
+      }
+    ])
+
+    expect(options.map((option) => option.value)).toEqual(['connector', 'database'])
   })
 })
