@@ -1,4 +1,7 @@
 import { RequestContext } from '@xpert-ai/server-core'
+import { environment } from '@xpert-ai/server-config'
+import { ForbiddenException } from '@nestjs/common'
+import type { Request } from 'express'
 import { WorkspaceFileAccessService } from './workspace-file-access.service'
 
 describe('WorkspaceFileAccessService', () => {
@@ -15,6 +18,7 @@ describe('WorkspaceFileAccessService', () => {
     }
 
     beforeEach(() => {
+        jest.replaceProperty(environment, 'baseUrl', 'http://localhost:3000')
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(context.tenantId)
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(context.organizationId)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(context.userId)
@@ -168,6 +172,83 @@ describe('WorkspaceFileAccessService', () => {
             },
             { runtimeScope: { projectId: null, conversationId: null } }
         )
+    })
+
+    describe('same-origin iframe fetch previews', () => {
+        const fetchHeaders = {
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-dest': 'empty'
+        }
+
+        async function createPreviewAuthorization() {
+            const { service } = createService()
+            const session = await service.createSession(
+                { hostType: 'agent', hostId: 'assistant-1', viewKey: 'cut__workbench' },
+                { headers: { origin: 'http://localhost:4300' }, secure: false }
+            )
+            const grant = await service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
+            const grantId = new URL(grant.url).pathname.split('/').at(-2)!
+            const authorization = await service.authorizeContent(
+                session.sessionId,
+                grantId,
+                grant.fileName,
+                session.cookie.value
+            )
+            return { service, session, grant, grantId, authorization }
+        }
+
+        it('accepts a cookie-authorized blob iframe fetch without Origin or Referer', async () => {
+            const { service, authorization } = await createPreviewAuthorization()
+
+            expect(
+                service.assertRequestOrigin(
+                    authorization.session,
+                    { headers: fetchHeaders },
+                    authorization.grant.purpose
+                )
+            ).toBeNull()
+        })
+
+        const rejectedHeaders: Array<[string, Request['headers']]> = [
+            ['same-site fetch', { ...fetchHeaders, 'sec-fetch-site': 'same-site' }],
+            ['cross-site fetch', { ...fetchHeaders, 'sec-fetch-site': 'cross-site' }],
+            ['navigation without a site', { ...fetchHeaders, 'sec-fetch-site': 'none' }],
+            ['missing fetch site', { ...fetchHeaders, 'sec-fetch-site': undefined }],
+            ['missing fetch mode', { ...fetchHeaders, 'sec-fetch-mode': undefined }],
+            ['missing fetch destination', { ...fetchHeaders, 'sec-fetch-dest': undefined }],
+            ['no-cors fetch', { ...fetchHeaders, 'sec-fetch-mode': 'no-cors' }],
+            ['document navigation', { ...fetchHeaders, 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document' }],
+            ['foreign Origin', { ...fetchHeaders, origin: 'https://attacker.example' }],
+            ['foreign Referer', { ...fetchHeaders, referer: 'https://attacker.example/document' }],
+            ['opaque Origin', { ...fetchHeaders, origin: 'null' }],
+            ['malformed Origin', { ...fetchHeaders, origin: 'invalid-origin' }],
+            ['malformed Referer', { ...fetchHeaders, referer: 'invalid-referer' }],
+            ['no fetch metadata', {}]
+        ]
+
+        it.each(rejectedHeaders)('rejects %s even with a valid session and grant', async (_label, headers) => {
+            const { service, authorization } = await createPreviewAuthorization()
+
+            expect(() =>
+                service.assertRequestOrigin(authorization.session, { headers }, authorization.grant.purpose)
+            ).toThrow(ForbiddenException)
+        })
+
+        it('still requires a valid cookie and an active grant before checking fetch metadata', async () => {
+            const { service, session, grant, grantId } = await createPreviewAuthorization()
+
+            await expect(
+                service.authorizeContent(session.sessionId, grantId, grant.fileName, 'invalid-cookie')
+            ).rejects.toMatchObject({ status: 401 })
+            await expect(
+                service.authorizeContent(session.sessionId, 'missing-grant', grant.fileName, session.cookie.value)
+            ).rejects.toMatchObject({ status: 404 })
+            await service.revokeSession(session.sessionId)
+            await expect(
+                service.authorizeContent(session.sessionId, grantId, grant.fileName, session.cookie.value)
+            ).rejects.toMatchObject({ status: 401 })
+        })
     })
 
     it('does not allow a session to be reused across users or organizations', async () => {
