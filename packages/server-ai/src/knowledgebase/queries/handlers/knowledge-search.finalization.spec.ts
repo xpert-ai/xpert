@@ -51,6 +51,7 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}, tableRows = fals
             })
         )
     const vectorStore = {
+        vectorStoreType: VectorTypeEnum.PGVECTOR,
         embeddingModel: 'embedding-model',
         structuredSimilaritySearchWithScore: jest.fn(async (_query: string, topK: number) => ({
             items: vectorItems.slice(0, topK),
@@ -181,6 +182,86 @@ function createHarness(overrides: Partial<IKnowledgebase> = {}, tableRows = fals
 }
 
 describe('Knowledge retrieval finalization', () => {
+    it('preserves strict precedence through final score aggregation without reranking', async () => {
+        const { execute, keywordDataSource } = createHarness()
+        jest.spyOn(keywordDataSource, 'query').mockResolvedValue([
+            {
+                chunkRowId: 'strict',
+                chunkId: 'strict',
+                documentId: 'doc',
+                pageContent: 'strict',
+                keywordScore: 1,
+                coverage: 3
+            },
+            {
+                chunkRowId: 'relaxed',
+                chunkId: 'relaxed',
+                documentId: 'doc',
+                pageContent: 'relaxed',
+                keywordScore: 100,
+                coverage: 2
+            }
+        ])
+        const result = await execute({ retrieval: { mode: 'keyword' } })
+        expect(result.documents.map((item) => item.metadata.chunkId)).toEqual(['strict', 'relaxed'])
+        expect(result.documents.map((item) => item.metadata.keywordScore)).toEqual([1, 100])
+    })
+
+    it.each(['keyword', 'hybrid'] as const)(
+        'lets keyword rank six reach the final reranker in %s mode',
+        async (mode) => {
+            const { execute, keywordDataSource, vectorStore } = createHarness({
+                rerankModelId: 'rerank-model',
+                recall: { topK: 5, fusion: { mode: 'weighted_rrf', weights: { keyword: 1, vector: 0, graph: 0 } } }
+            })
+            jest.spyOn(keywordDataSource, 'query').mockResolvedValue(
+                Array.from({ length: 6 }, (_, index) => ({
+                    chunkRowId: `row-${index + 1}`,
+                    chunkId: `rank-${index + 1}`,
+                    documentId: 'document-1',
+                    pageContent: `rank-${index + 1}`,
+                    keywordScore: 6 - index
+                }))
+            )
+            const result = await execute({ retrieval: { mode } })
+            expect(vectorStore.rerank.mock.calls[0][0].map((item) => item.metadata.chunkId)).toEqual([
+                'rank-1',
+                'rank-2',
+                'rank-3',
+                'rank-4',
+                'rank-5',
+                'rank-6'
+            ])
+            expect(result.documents).toHaveLength(5)
+            expect(result.documents[0].metadata.chunkId).toBe('rank-6')
+        }
+    )
+
+    it('preserves the reranker order when relevance scores tie despite different keyword scores', async () => {
+        const { execute, keywordDataSource, vectorStore } = createHarness({
+            rerankModelId: 'rerank-model',
+            recall: { topK: 3, fusion: { mode: 'weighted_rrf', weights: { keyword: 1, vector: 0, graph: 0 } } }
+        })
+        jest.spyOn(keywordDataSource, 'query').mockResolvedValue(
+            [30, 20, 10].map((keywordScore, index) => ({
+                chunkRowId: `tie-row-${index + 1}`,
+                chunkId: `tie-${index + 1}`,
+                documentId: 'document-1',
+                pageContent: `tie-${index + 1}`,
+                keywordScore
+            }))
+        )
+        vectorStore.rerank.mockResolvedValue([
+            { index: 2, relevanceScore: 0.5 },
+            { index: 0, relevanceScore: 0.5 },
+            { index: 1, relevanceScore: 0.5 }
+        ])
+
+        const result = await execute({ retrieval: { mode: 'keyword' } })
+
+        expect(result.documents.map(({ metadata }) => metadata.chunkId)).toEqual(['tie-3', 'tie-1', 'tie-2'])
+    })
+
     it('still limits oversampled FAQ candidates to Top K when reranking is disabled', async () => {
         const { execute, vectorStore } = createHarness({
             type: KnowledgebaseTypeEnum.FAQ,

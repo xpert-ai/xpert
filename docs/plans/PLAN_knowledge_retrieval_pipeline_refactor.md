@@ -31,11 +31,37 @@ ON "knowledge_document" USING gin ("name" gin_trgm_ops);
 -- Required for knowledgebases using Basic (Unicode) or a plugin analyzer.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_chunk_keyword_vector"
 ON "knowledge_document_chunk" USING gin ("keywordVector");
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_knowledge_document_keyword_title_vector"
+ON "knowledge_document" USING gin ("keywordTitleVector");
 ```
 
 - 新建知识库默认使用 Basic (Unicode)，也可选择已安装插件提供的分词器；文档与查询使用同一份已绑定的来源和 revision。新增文档时锁定选择，普通设置保存不能解除锁定。
 - 上述 `keywordVector` 列由 TypeORM schema sync 创建；所有分词策略共用这一列和 GIN 索引。应用在分块新增或正文更新时写入分词结果，PostgreSQL 维护该列的索引。部署时先同步 schema，再在事务外执行建索引 SQL。
 - 历史知识库的 `keywordAnalyzer = NULL` 保持原来的 `simple` / trigram 路径；本次升级不会回填旧分块，也不会修改已有文档的分词配置。旧库仅在没有文档、分块且未锁定时允许选择分词器。
+
+### Keyword 标题、查询组合与候选窗口升级
+
+- 文档的 `keywordTitleVector` 是独立的 nullable `tsvector` 列，默认不出现在实体查询/API 中。与正文使用同一绑定 Analyzer 的 `index` 模式；文档新增、`save` 或含文档 ID 的更新在同一次写入中同步词项。现有 CRUD / 版本更新路径已经传入 ID。直接 SQL 改名绕过应用订阅器，不属于支持的业务写入路径。
+- 标题分支每篇文档只选择一个满足 scope、enabled、Filter V2 和 contentScope 的代表分块；同一文档已有正文命中时，优先选择正文命中的分块，只有没有正文命中时才按无 parentId 和行 ID 稳定选择。正文分支仍逐分块召回。仅命中标题时，代表分块不保证就是回答所在段落。父子映射、Fusion、FAQ 过滤和最终重排继续共用现有链路。
+- Analyzer 查询先做严格匹配；不足候选目标时才允许缺少一个普通词组。无标识符时至少命中两个普通组；原始查询中带数字、下划线、连字符、连续大写或驼峰特征的标识符，其 Analyzer 词项按顺序强制保留。可完整拆分的重叠词采用“完整词 OR 全部组成词”。最多 64 个独立 lexeme；超过则明确失败，不悄悄截掉标识符。超过 12 个组的查询只做严格匹配，限制放宽表达式规模。
+- 严格结果先于放宽结果；阶段内按独立词组覆盖数、现有 `ts_rank_cd` 分数排序。标题命中加 1 分，相当于原先文档标题短语命中的权重。FTS/正文精确匹配仍保留原权重，不采用 BM25。 原始分数继续保存在 `keywordScore`；Analyzer 路径的 `score/relevanceScore` 使用 `覆盖组数 + keywordScore / (1 + keywordScore)`，保证 Handler 最终按分数汇总时不会让高词频的 Relaxed 反超 Strict。Legacy 分数不变。
+- Keyword 的逻辑候选目标是 `min(4 × finalTopK, 400)`。父子合并不足时分页补取，每次补取窗口翻倍；普通单次 Retriever 调用以及同一 FAQ 请求在多个外层补取之间累计最多读取 400 个原始候选。标题、正文、Strict、Relaxed、父子补取共用这一个预算，达到上限后允许不足，不无限查询。
+- 所有候选先进入 Fusion / Filter / Rerank，最终 Top K 仍由 Handler 执行。RRF 保持 `weight / (rankConstant + rank)`，不随列表长度归一化；尾部加入可以改变重叠文档的融合结果，但不会缩放已有排名贡献。
+
+升级顺序：
+
+1. 将部署环境的 schema 管理切到外部迁移模式（例如 `DB_SCHEMA_SYNC_MODE=external`），不要把线上行为建立在 TypeORM `synchronize` 一定开启的假设上；先执行 `ALTER TABLE "knowledge_document" ADD COLUMN IF NOT EXISTS "keywordTitleVector" tsvector;`，并验证列为 nullable。
+2. 在事务外逐条创建上面的 GIN 索引，检查索引状态为 valid，再部署包含标题订阅器和查询代码的应用。对绑定 Analyzer 的知识库，`keywordVector` 或 `keywordTitleVector` 索引缺失时 Keyword 检索明确失败，不降级扫描；`keywordAnalyzer = NULL` 的旧库仍按 legacy simple/trigram 索引工作（其标题命中不依赖新列）。
+3. 部署完成后检查两个关键词索引为 valid，并验证标题改名、新建文档和关键词查询；历史文档不补建标题向量，未生成标题向量的文档仅保留正文召回。
+
+```sql
+SELECT c.relname AS index_name, i.indisready, i.indisvalid
+FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+WHERE c.relname IN ('IDX_knowledge_document_chunk_keyword_vector', 'IDX_knowledge_document_keyword_title_vector');
+```
+
+回滚代码时保留 nullable 列和索引，回滚应用必须关闭标题查询/订阅器且不能运行会删除该列的 schema synchronize。无需重建正文 keyword index 或向量库。`keywordAnalyzer = NULL` 的旧库继续使用 legacy simple/trigram 检索；其标题命中同样限制为一个代表分块。
 
 - 缺少或创建失败的索引会令 Keyword batch 明确失败，RRF 不会静默退化，也不会在未建索引时执行正文全表扫描。
 - `recall.fusion.mode` 缺失或为 `legacy` 时，Handler 不执行 Keyword Retriever；只有 Hybrid + `weighted_rrf` 才启用三路 RRF。

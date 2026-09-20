@@ -69,6 +69,7 @@ import { KnowledgePipelineCallbackProcessor } from './task/pipeline-callback.pro
 import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import { BasicKeywordAnalyzer } from './analyzer/basic.strategy'
 import { KeywordChunkSubscriber } from './analyzer/keyword-chunk.subscriber'
+import { KeywordTitleSubscriber } from './analyzer/keyword-title.subscriber'
 
 @Module({
     imports: [
@@ -111,6 +112,7 @@ import { KeywordChunkSubscriber } from './analyzer/keyword-chunk.subscriber'
         KnowledgeKeywordAnalyzerService,
         BasicKeywordAnalyzer,
         KeywordChunkSubscriber,
+        KeywordTitleSubscriber,
         KnowledgeTagService,
         KnowledgePipelineCallbackProcessor,
         KnowledgeParserSettingsService,
@@ -152,6 +154,7 @@ import { KeywordChunkSubscriber } from './analyzer/keyword-chunk.subscriber'
         ...Validators
     ],
     exports: [
+        KnowledgeKeywordAnalyzerService,
         KnowledgeTagService,
         KnowledgeParserSettingsService,
         KnowledgebaseService,
