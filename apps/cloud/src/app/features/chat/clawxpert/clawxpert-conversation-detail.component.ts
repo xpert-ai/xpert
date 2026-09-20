@@ -1,3 +1,4 @@
+import { openWorkbenchProject } from './workbench-project-navigation'
 import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { CommonModule } from '@angular/common'
@@ -707,7 +708,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
-      openAssistantProject: ({ projectId }) => this.facade.onChatProjectChange?.(projectId),
+      openAssistantProject: (request) => openWorkbenchProject(request, this.fixedViewMenuItems(), this.facade),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 

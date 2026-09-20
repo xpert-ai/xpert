@@ -501,6 +501,8 @@ export interface WorkbenchAssistantConversationResolution {
 export interface WorkbenchAssistantProjectOpenRequest {
   /** Trusted platform Chat Project id; this is distinct from plugin business ids. */
   projectId: string
+  /** Open a business selection atomically with the Project route. */
+  view?: WorkbenchExtensionViewOpenRequest
 }
 
 export interface WorkbenchExtensionViewOpenRequest {

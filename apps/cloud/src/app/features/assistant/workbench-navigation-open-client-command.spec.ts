@@ -284,6 +284,28 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     })
   })
 
+  it('forwards the requested business View with the Project and reports cancellation', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantProject = jest.fn(async () => false)
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantProject })
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+        projectId: 'project-b',
+        viewKey: 'studio',
+        selectionId: 'case-b',
+        parameters: { tab: 'features', invalid: { nested: true } }
+      },
+      context
+    )
+    expect(openAssistantProject).toHaveBeenCalledWith({
+      projectId: 'project-b',
+      view: { viewKey: 'studio', selectionId: 'case-b', parameters: { tab: 'features' } }
+    })
+    expect(result).toMatchObject({ success: false, code: 'navigation_cancelled' })
+  })
+
   it('rejects assistant project navigation without a project id', async () => {
     const registry = new ViewClientCommandRegistry()
     const openAssistantProject = jest.fn(async () => true)

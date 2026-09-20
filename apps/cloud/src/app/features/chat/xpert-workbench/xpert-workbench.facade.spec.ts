@@ -250,6 +250,44 @@ describe('XpertWorkbenchFacade', () => {
     })
   })
 
+  it('changes Project and business selection in one route without moving the old conversation', async () => {
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    const view = { viewKey: 'provider__studio', selectionId: 'case-b', parameters: { tab: 'features' } }
+    await facade.onChatProjectChange('project-b', view)
+    expect(router.navigate).toHaveBeenCalledTimes(1)
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-b', 'c'], {
+      queryParamsHandling: 'merge',
+      queryParams: {
+        view: 'provider__studio',
+        viewSelection: 'case-b',
+        viewParameters: JSON.stringify({ tab: 'features' })
+      }
+    })
+    expect(facade.activeConversation()).toBeNull()
+    expect(facade.suppressAutoResume()).toBe(true)
+    setRoute('/chat/x/sales/p/project-b/c')
+    await facade.onChatProjectChange('project-b', { viewKey: 'provider__studio' })
+    expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'p', 'project-b', 'c'], {
+      queryParamsHandling: 'merge',
+      queryParams: { view: 'provider__studio', viewSelection: null, viewParameters: null }
+    })
+  })
+
+  it('preserves access when opening a Case in the same Project and restores state on cancelled navigation', async () => {
+    setRoute('/chat/x/sales/p/project-1/c')
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    facade.projectAccess.set(editorAccess())
+    await facade.onChatProjectChange('project-1', { viewKey: 'studio', selectionId: 'case-1' })
+    expect(facade.projectAccess()).toEqual(editorAccess())
+    facade.suppressAutoResume.set(false)
+    router.navigate.mockResolvedValueOnce(false)
+    expect(await facade.onChatProjectChange('project-2')).toBe(false)
+    expect(facade.projectAccess()).toEqual(editorAccess())
+    expect(facade.suppressAutoResume()).toBe(false)
+  })
+
   it('keeps the Project scope in history lookup and thread navigation', async () => {
     router.url = '/chat/x/sales/p/project-1/c'
     conversationService.findAllByXpert.mockReturnValue(

@@ -171,7 +171,15 @@ export function registerWorkbenchNavigationOpenCommand(
           message: 'Assistant Project opening is not available in this host.'
         }
       }
-      await options.openAssistantProject({ projectId: resourceId })
+      const viewKey = getString(payload, 'viewKey')
+      const selectionId = getString(payload, 'selectionId')
+      const parameters = getScalarParameters(payload, 'parameters')
+      const view = viewKey
+        ? { viewKey, ...(selectionId ? { selectionId } : {}), ...(parameters ? { parameters } : {}) }
+        : undefined
+      const opened = await options.openAssistantProject({ projectId: resourceId, ...(view ? { view } : {}) })
+      if (opened === false)
+        return { success: false, code: 'navigation_cancelled', message: 'Project navigation was cancelled.' }
       return {
         success: true,
         status: 'opened',

@@ -1,6 +1,12 @@
 import { InjectionToken, Signal } from '@angular/core'
 import { ChatKitControl } from '@xpert-ai/chatkit-angular'
-import type { IXpert, TAvatar, TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import type {
+  WorkbenchExtensionViewOpenRequest,
+  IXpert,
+  TAvatar,
+  TXpertProjectAccessSummary,
+  XpertWorkbenchInitialLayoutEnum
+} from '@xpert-ai/contracts'
 import { IChatConversation } from '../../../@core'
 
 export type WorkbenchChatViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
@@ -35,7 +41,7 @@ export type WorkbenchChatFacade = {
   activeConversation: Signal<IChatConversation | null>
   viewErrorMessage(): string
   onChatThreadChange(threadId: string | null): void
-  onChatProjectChange?(projectId: string | null): void
+  onChatProjectChange?(projectId: string | null, view?: WorkbenchExtensionViewOpenRequest): Promise<boolean> | void
   beginPendingConversation(startId: number, control: ChatKitControl): Promise<void>
   ensureConversationEntry(control: ChatKitControl): Promise<void>
   setActiveConversation(conversation: IChatConversation | null): void
