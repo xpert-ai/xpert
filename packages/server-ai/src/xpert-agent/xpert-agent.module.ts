@@ -4,6 +4,7 @@ import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AgentMiddlewareRegistry, WorkflowNodeRegistry, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { ChatConversationModule } from '../chat-conversation/conversation.module'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
@@ -38,6 +39,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         DiscoveryModule,
 
         CopilotCheckpointModule,
+        forwardRef(() => ChatConversationModule),
         XpertAgentExecutionModule,
         AgentMiddlewareRuntimeModule,
         forwardRef(() => XpertModule),

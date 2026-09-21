@@ -229,6 +229,8 @@ const STATUS_OPTIONS: readonly {
   defaultLabel: string
 }[] = [
   { value: 'busy', labelKey: 'XP.Xpert.Busy', defaultLabel: 'Busy' },
+  { value: 'pausing', labelKey: 'XP.Xpert.Pausing', defaultLabel: 'Pausing' },
+  { value: 'paused', labelKey: 'XP.Xpert.Paused', defaultLabel: 'Paused' },
   { value: 'error', labelKey: 'XP.Xpert.Failure', defaultLabel: 'Failure' },
   { value: 'interrupted', labelKey: 'XP.Xpert.Interrupted', defaultLabel: 'Interrupted' },
   { value: 'idle', labelKey: 'XP.Xpert.Idle', defaultLabel: 'Idle' }

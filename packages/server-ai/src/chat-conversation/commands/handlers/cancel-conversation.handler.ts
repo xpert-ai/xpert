@@ -6,6 +6,7 @@ import { IChatMessage, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts
 import { XpertAgentExecutionService } from '../../../xpert-agent-execution/agent-execution.service'
 import { Logger, Optional } from '@nestjs/common'
 import { StopHandoffMessageCommand } from '../../../handoff/commands'
+import { ThreadRunControlService } from '../../thread-run-control.service'
 import { ChatConversationThreadService } from '../../conversation-thread.service'
 
 /**
@@ -27,7 +28,8 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         private readonly executionService: XpertAgentExecutionService,
         private readonly executionCancelService: ExecutionCancelService,
         private readonly commandBus: CommandBus,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService
     ) {}
 
     public async execute(command: CancelConversationCommand) {
@@ -109,13 +111,17 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
             }
         }
 
-        if (conversation) {
+        const canceledCurrentRun =
+            runtimeThread && this.threadRunControl
+                ? await this.threadRunControl.cancel(runtimeThread.threadId, executionIds)
+                : true
+        if (conversation && canceledCurrentRun) {
             if (!runtimeThread || runtimeThread.threadId === conversation.threadId) {
                 conversation.status = 'interrupted'
                 conversation.error = 'Canceled by user'
                 await this.service.repository.save(conversation)
             }
-            if (runtimeThread) {
+            if (runtimeThread && !this.threadRunControl) {
                 await this.conversationThreadService?.updateRuntimeState(
                     runtimeThread.threadId,
                     'interrupted',

@@ -1,5 +1,17 @@
 {
     "Error": {
+        "InvalidDisplaySnapshot": "Invalid paused display snapshot.",
+        "DisplayPauseNotReleasable": "This display pause cannot be released yet.",
+        "RunNotActive": "This run is no longer active.",
+        "ThreadNotPaused": "This pause is no longer available to resume.",
+        "PausedGraphChanged": "The workflow has changed since this run started.",
+        "PausedContextUnavailable": "The saved runtime context is unavailable.",
+        "CheckpointUnavailable": "The saved checkpoint is unavailable.",
+        "MessageCheckpointUnavailable": "This message has no saved input checkpoint and cannot be edited into a branch.",
+        "ThreadIsPaused": "Resume or stop the paused workflow before sending a follow-up.",
+        "PauseTokenRequired": "A pause token is required.",
+        "ThreadHasActiveOperation": "Thread already has a running or paused operation.",
+        "BranchRequestInvalid": "beforeMessageId and requestId are required to branch from a message.",
         "ProjectTypeInvalid": "Project type definition or identity is invalid.",
         "ProjectTypeDuplicate": "A Project type is declared more than once.",
         "ProjectTypeUnavailable": "The Project application or type is unavailable.",

@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
 import {
@@ -17,6 +18,7 @@ import {
     TransformInterceptor
 } from '@xpert-ai/server-core'
 import {
+    BadRequestException,
     Body,
     Controller,
     Delete,
@@ -64,6 +66,7 @@ import { CopilotUserUsageQuery } from '../copilot-user/queries'
 import { formatInUTC0 } from '../shared/utils'
 import { ChatConversationThreadService } from '../chat-conversation'
 import { assertPublicXpertSessionConversationAccess } from './public-xpert-principal'
+import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
 
 const SSE_HEARTBEAT_INTERVAL_MS = 30000
 const SSE_HEARTBEAT_COMMENT = ': keep-alive\n\n'
@@ -100,7 +103,8 @@ export class ThreadsController {
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
         private readonly redisSseStreamService: RedisSseStreamService,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService
     ) {}
 
     // Threads: A thread contains the accumulated outputs of a group of runs.
@@ -168,9 +172,24 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/copy')
-    async copyThread(@Param('thread_id') thread_id: string, @Body() body: { metadata?: Record<string, unknown> } = {}) {
+    async copyThread(
+        @Param('thread_id') thread_id: string,
+        @Body() body: { metadata?: Record<string, unknown>; beforeMessageId?: string; requestId?: string } = {}
+    ) {
         await this.ensureThreadAccess(thread_id, 'contribute')
         if (!this.conversationThreadService) throw new UnimplementedException()
+        if (
+            body.beforeMessageId !== undefined &&
+            (typeof body.beforeMessageId !== 'string' ||
+                !body.beforeMessageId.trim() ||
+                typeof body.requestId !== 'string' ||
+                !body.requestId.trim())
+        )
+            throw new BadRequestException(
+                t('server-ai:Error.BranchRequestInvalid', {
+                    defaultValue: 'beforeMessageId and requestId are required to branch from a message.'
+                })
+            )
         const thread = await this.conversationThreadService.copyThread(thread_id, body)
         const { ThreadDTO } = await import('./dto/thread.dto')
         return new ThreadDTO(thread.conversation, {}, thread)
@@ -379,6 +398,60 @@ export class ThreadsController {
             console.error('Error cancelling conversation:', error)
             throw error
         }
+    }
+
+    @Post(':thread_id/runs/:run_id/pause')
+    async pauseRun(
+        @Param('thread_id') threadId: string,
+        @Param('run_id') runId: string,
+        @Body() body?: { displaySnapshot?: string }
+    ) {
+        await this.ensureThreadRunAccess(threadId, runId, 'contribute')
+        if (!this.threadRunControl) throw new UnimplementedException()
+        if (body?.displaySnapshot !== undefined && typeof body.displaySnapshot !== 'string')
+            throw new BadRequestException(
+                t('server-ai:Error.InvalidDisplaySnapshot', { defaultValue: 'Invalid paused display snapshot.' })
+            )
+        return this.threadRunControl.requestPause(threadId, runId, body?.displaySnapshot)
+    }
+
+    @Delete(':thread_id/display-pause/:pause_id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async releaseDisplayPause(@Param('thread_id') threadId: string, @Param('pause_id') pauseId: string) {
+        await this.ensureThreadAccess(threadId, 'contribute')
+        if (!this.threadRunControl) throw new UnimplementedException()
+        await this.threadRunControl.releaseDisplayPause(threadId, pauseId)
+    }
+
+    @Post(':thread_id/runs/:run_id/resume')
+    async resumeRun(
+        @Param('thread_id') threadId: string,
+        @Param('run_id') runId: string,
+        @Body() body: { pauseId?: string }
+    ) {
+        const source = await this.ensureThreadRunAccess(threadId, runId, 'contribute')
+        if (!this.threadRunControl) throw new UnimplementedException()
+        if (!body?.pauseId || typeof body.pauseId !== 'string')
+            throw new BadRequestException(
+                t('server-ai:Error.PauseTokenRequired', { defaultValue: 'A pause token is required.' })
+            )
+        const { stream, execution } = await this.commandBus.execute(
+            new RunCreateStreamCommand(
+                threadId,
+                {
+                    assistant_id: source.xpertId,
+                    stream_mode: ['values'],
+                    stream_subgraphs: true,
+                    on_disconnect: 'continue',
+                    multitask_strategy: 'reject',
+                    if_not_exists: 'reject',
+                    input: { action: 'resume', target: { executionId: runId }, decision: { type: 'confirm' } }
+                },
+                { executionId: runId, pauseId: body.pauseId }
+            )
+        )
+        stream.subscribe({ error: (error) => this.#logger.error(error) })
+        return transformRun(execution)
     }
 
     // Others

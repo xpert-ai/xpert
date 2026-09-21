@@ -3302,6 +3302,24 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
   })
 
+  it('navigates from a stale route thread to the conversation working thread', async () => {
+    conversationService.getById.mockReturnValue(
+      of({
+        id: 'conversation-1',
+        threadId: 'branch-b',
+        projectId: 'project-1',
+        status: 'idle',
+        messages: []
+      } as IChatConversation)
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(facade.onChatThreadChange).toHaveBeenCalledWith('branch-b')
+    expect(facade.setActiveConversation).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'conversation-1' }))
+  })
+
   it('keeps the panel available when metadata has conversation id but conversation detail lookup fails', async () => {
     conversationService.getById.mockReturnValue(of(null))
 

@@ -56,9 +56,13 @@ jest.mock('./dto', () => ({
     }
 }))
 
+jest.mock('./conversation-thread.service', () => ({
+    ChatConversationThreadService: class ChatConversationThreadService {}
+}))
+
 import { TFile } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
 import { Repository } from 'typeorm'
@@ -68,6 +72,7 @@ import { VolumeClient } from '../shared/volume'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
+import { ChatConversationThreadService } from './conversation-thread.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 
 describe('ChatConversationService workspace files', () => {
@@ -91,6 +96,9 @@ describe('ChatConversationService workspace files', () => {
         assertCanRead: jest.Mock
         assertCanUse: jest.Mock
         assertCanEdit: jest.Mock
+    }
+    let conversationThreadService: {
+        findByThreadId: jest.Mock
     }
     let service: ChatConversationService
     const conversation = {
@@ -156,6 +164,9 @@ describe('ChatConversationService workspace files', () => {
             assertCanUse: jest.fn().mockResolvedValue({ role: 'member' }),
             assertCanEdit: jest.fn().mockResolvedValue({ role: 'editor' })
         }
+        conversationThreadService = {
+            findByThreadId: jest.fn().mockResolvedValue(null)
+        }
 
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
@@ -165,7 +176,8 @@ describe('ChatConversationService workspace files', () => {
             queryBus as unknown as QueryBus,
             {} as Queue,
             volumeClient,
-            projectAccessService as unknown as XpertProjectAccessService
+            projectAccessService as unknown as XpertProjectAccessService,
+            conversationThreadService as unknown as ChatConversationThreadService
         )
         jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue(conversation as ChatConversation)
     })
@@ -665,5 +677,29 @@ describe('ChatConversationService workspace files', () => {
                 threadId: 'thread-1'
             }
         })
+        expect(conversationThreadService.findByThreadId).not.toHaveBeenCalled()
+    })
+
+    it('finds the conversation through a historical branch thread id', async () => {
+        const findOneByOptions = jest.spyOn(service, 'findOneByOptions').mockRejectedValue(new NotFoundException())
+        conversationThreadService.findByThreadId.mockResolvedValue({
+            conversationId: 'conversation-1',
+            threadId: 'branch-b'
+        })
+        const findOne = jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            threadId: 'branch-b'
+        } as ChatConversation)
+
+        const actual = await service.findOneByThreadId('branch-a')
+
+        expect(findOneByOptions).toHaveBeenCalledWith({
+            where: {
+                threadId: 'branch-a'
+            }
+        })
+        expect(conversationThreadService.findByThreadId).toHaveBeenCalledWith('branch-a')
+        expect(findOne).toHaveBeenCalledWith('conversation-1')
+        expect(actual.threadId).toBe('branch-b')
     })
 })

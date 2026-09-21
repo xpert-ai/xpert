@@ -70,6 +70,7 @@ export type TStateChannel = {
 }
 
 export type TXpertAgentRuntimeOptions = {
+    shouldPause?: () => Promise<boolean>
     toolPreferences?: IAssistantBindingToolPreferences | null
     planMode?: boolean
     runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended | null

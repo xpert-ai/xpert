@@ -1,6 +1,9 @@
+import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import {
     IChatConversation,
     IEnvironment,
+    TAgentExecutionMetadata,
+    TChatCheckpointReference,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
@@ -14,9 +17,20 @@ import { t } from 'i18next'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
+import {
+    ThreadRunControlService,
+    threadGraphRevision,
+    threadControlConflict
+} from '../../../chat-conversation/thread-run-control.service'
+import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { AssertChatConversationAccessQuery } from '../../../chat-conversation/queries/conversation-assert-access.query'
-import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
+import {
+    EnvironmentService,
+    getContextEnvState,
+    mergeEnvironmentWithEnvState,
+    mergeRuntimeContextWithEnv
+} from '../../../environment'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
@@ -349,7 +363,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertPrincipalService?: XpertPrincipalService,
         @Optional() private readonly projectService?: XpertProjectService,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService
     ) {}
 
     private async resolveRequestEnvironment(
@@ -390,7 +405,16 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             ...conversation,
             status: conversationThread?.status ?? conversation.status
         })
-        const runtimeContext = getRunCreateContext(runCreate.context)
+        if (
+            chatRequest.action === 'follow_up' &&
+            ['pausing', 'paused'].includes(conversationThread?.status ?? conversation.status)
+        ) {
+            throw threadControlConflict(
+                'ThreadIsPaused',
+                'Resume or stop the paused workflow before sending a follow-up.'
+            )
+        }
+        let runtimeContext = getRunCreateContext(runCreate.context)
         if (chatRequest.action === 'send' && !chatRequest.projectId) {
             chatRequest.projectId = getContextProjectId(runtimeContext)
         }
@@ -403,9 +427,17 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                   : undefined
         const referencedExecution = referencedExecutionId
             ? await this.queryBus.execute(
-                  new AssertXpertAgentExecutionAccessQuery(referencedExecutionId, 'contribute', conversation.threadId)
+                  new AssertXpertAgentExecutionAccessQuery(referencedExecutionId, 'contribute', threadId)
               )
             : null
+
+        if (command.resumePaused && this.threadRunControl) {
+            runtimeContext = await this.threadRunControl.getResumeContext(
+                threadId,
+                command.resumePaused.executionId,
+                command.resumePaused.pauseId
+            )
+        }
 
         // Backfill legacy threads independently with a compare-and-set update.
         conversation = await bindConversationAssistantIfUnbound(
@@ -456,7 +488,18 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         }
 
         const ownsRunClaim = chatRequest.action !== 'follow_up'
-        if (ownsRunClaim && this.conversationThreadService) {
+        let resumeCheckpoint: TChatCheckpointReference | undefined
+        if (command.resumePaused && this.threadRunControl) {
+            const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+                new GetXpertWorkflowQuery(xpert.id, referencedExecution.agentKey, false)
+            )
+            resumeCheckpoint = await this.threadRunControl.claimResume(
+                threadId,
+                command.resumePaused.executionId,
+                command.resumePaused.pauseId,
+                threadGraphRevision(workflow.graph)
+            )
+        } else if (ownsRunClaim && this.conversationThreadService) {
             await this.conversationThreadService.claimForRun(threadId)
         }
         let execution = chatRequest.action === 'follow_up' ? referencedExecution : null
@@ -469,12 +512,19 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                         omitBy(
                             {
                                 id:
-                                    chatRequest.action === 'resume'
+                                    chatRequest.action === 'resume' && !command.resumePaused
                                         ? chatRequest.target.executionId
                                         : chatRequest.action === 'follow_up'
                                           ? chatRequest.target?.executionId
                                           : undefined,
                                 threadId,
+                                ...(command.resumePaused
+                                    ? {
+                                          metadata: {
+                                              resumedFromExecutionId: command.resumePaused.executionId
+                                          } satisfies TAgentExecutionMetadata
+                                      }
+                                    : {}),
                                 status: XpertAgentExecutionStatusEnum.RUNNING
                             },
                             isNil
@@ -487,13 +537,25 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 throw new BadRequestException('Execution ID could not be resolved')
             }
 
+            if (command.resumePaused) {
+                await this.threadRunControl.bindResumedExecution(threadId, command.resumePaused.pauseId, execution.id)
+            } else if (ownsRunClaim) {
+                await this.threadRunControl?.start(
+                    threadId,
+                    execution.id,
+                    mergeRuntimeContextWithEnv(runtimeContext, environment)
+                )
+            }
+
             stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
                 new XpertChatCommand(chatRequest, {
                     xpertId: xpert.id,
                     threadId,
                     isDerivedThread: conversation.threadId !== threadId,
                     ...chatSource,
-                    execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
+                    execution:
+                        chatRequest.action === 'resume' && !command.resumePaused ? undefined : { id: execution.id },
+                    ...(resumeCheckpoint ? { resumeCheckpoint } : {}),
                     ...(runtimeContext ? { context: runtimeContext } : {}),
                     environment,
                     sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
@@ -506,8 +568,27 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 })
             )
         } catch (error) {
-            if (ownsRunClaim && this.conversationThreadService) {
-                await this.conversationThreadService.updateRuntimeState(threadId, 'idle')
+            if (execution?.id && ownsRunClaim) {
+                await this.commandBus.execute(
+                    new XpertAgentExecutionUpsertCommand({
+                        id: execution.id,
+                        status: XpertAgentExecutionStatusEnum.ERROR,
+                        error: getErrorMessage(error)
+                    })
+                )
+            }
+            if (command.resumePaused) {
+                await this.threadRunControl?.releaseResume(
+                    threadId,
+                    command.resumePaused.executionId,
+                    command.resumePaused.pauseId
+                )
+            } else if (ownsRunClaim && this.conversationThreadService) {
+                if (execution?.id && this.threadRunControl) {
+                    await this.threadRunControl.finish(threadId, execution.id, 'idle')
+                } else {
+                    await this.conversationThreadService.updateRuntimeState(threadId, 'idle')
+                }
             }
             throw error
         }
