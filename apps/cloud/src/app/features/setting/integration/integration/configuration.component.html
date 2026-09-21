@@ -2,7 +2,12 @@
   <form class="flex max-w-full flex-col gap-2 p-4 mx-auto lg:max-w-lg" [formGroup]="formGroup">
     <emoji-avatar formControlName="avatar" large editable class="self-center overflow-hidden rounded-xl shadow-sm" />
 
-    <xp-input class="flex-1" [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name">
+    <xp-input
+      class="flex-1"
+      [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }"
+      [placeholder]="'XP.Integration.Qr.NamePlaceholder' | translate"
+      formControlName="name"
+    >
       @if (!name) {
         <div xpError>{{ 'XP.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}</div>
       }
@@ -86,7 +91,50 @@
       </xp-select>
     </div>
 
-    @if (integrationProvider(); as provider) {
+    @if (canScan()) {
+      <div
+        class="mt-3 flex gap-2 rounded-lg bg-muted p-1"
+        role="group"
+        [attr.aria-label]="'XP.Integration.Qr.SetupMethod' | translate"
+      >
+        <button
+          z-button
+          class="flex-1"
+          type="button"
+          [zType]="scanMode() ? 'default' : 'ghost'"
+          [attr.aria-pressed]="scanMode()"
+          (click)="setupMode.set('qr')"
+        >
+          {{ 'XP.Integration.Qr.ScanMode' | translate }}
+        </button>
+        <button
+          z-button
+          class="flex-1"
+          type="button"
+          [zType]="scanMode() ? 'ghost' : 'default'"
+          [attr.aria-pressed]="!scanMode()"
+          (click)="setupMode.set('manual')"
+        >
+          {{ 'XP.Integration.Qr.ManualMode' | translate }}
+        </button>
+      </div>
+    }
+
+    @if (scanMode()) {
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <z-icon zType="ri-qr-code-line" class="text-muted-foreground" zSize="xl" />
+        <h3 class="text-base font-semibold">{{ 'XP.Integration.Qr.Title' | translate }}</h3>
+        <p class="max-w-sm text-sm leading-6 text-muted-foreground">{{ 'XP.Integration.Qr.SetupHint' | translate }}</p>
+        <p class="max-w-sm text-xs leading-5 text-muted-foreground">
+          {{ 'XP.Integration.Qr.BindingHint' | translate }}
+        </p>
+        @if (!qrOrganizationId()) {
+          <p role="status" class="text-sm text-muted-foreground">
+            {{ 'XP.Integration.Qr.OrganizationRequired' | translate }}
+          </p>
+        }
+      </div>
+    } @else if (integrationProvider(); as provider) {
       @if (provider.pro && !pro) {
         <card-pro
           helpUrl="/pricing/"
@@ -200,30 +248,44 @@
     }
 
     <div class="filter-bar flex w-full items-center justify-between gap-4 p-2">
-      <button
-        z-button
-        zType="secondary"
-        type="button"
-        [disabled]="!integrationProvider() || optionsInvalid"
-        (click)="test()"
-      >
-        {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
-      </button>
-      <div class="flex items-center gap-2">
+      @if (!scanMode()) {
+        <button
+          z-button
+          zType="secondary"
+          type="button"
+          [disabled]="!integrationProvider() || optionsInvalid"
+          (click)="test()"
+        >
+          {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
+        </button>
+      }
+      <div class="ml-auto flex items-center gap-2">
         <button z-button zType="secondary" type="button" (click)="cancel()">
           {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
-        <button
-          z-button
-          zType="default"
-          [zTooltip]="'XP.KEY_WORDS.Save' | translate: { Default: 'Save' }"
-          zPosition="top"
-          [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid"
-          (click)="upsert()"
-        >
-          <z-icon zType="save"></z-icon>
-          {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
-        </button>
+        @if (scanMode()) {
+          <button
+            z-button
+            zType="default"
+            type="button"
+            [zDisabled]="!name?.trim() || formGroup.controls.name.invalid || !qrOrganizationId()"
+            (click)="createByQr()"
+          >
+            <z-icon zType="ri-qr-code-line" />{{ 'XP.Integration.Qr.ScanMode' | translate }}
+          </button>
+        } @else {
+          <button
+            z-button
+            zType="default"
+            [zTooltip]="'XP.KEY_WORDS.Save' | translate: { Default: 'Save' }"
+            zPosition="top"
+            [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid"
+            (click)="upsert()"
+          >
+            <z-icon zType="save"></z-icon>
+            {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+          </button>
+        }
       </div>
     </div>
   </form>

@@ -1402,7 +1402,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                     key: 'source',
                     name: 'BOM Source',
                     description: 'Managed source documents',
-                    permission: 'private'
+                    permission: 'private',
+                    graphRag: { enabled: true }
                 }
             ]
         })
@@ -1419,6 +1420,11 @@ describe('AgentMiddlewareRuntimeService', () => {
         expect((commandBus.execute.mock.calls[0][0] as EnsureKnowledgebasesCommand).input.inheritEmbeddingModel).toBe(
             true
         )
+        expect(
+            (commandBus.execute.mock.calls[0][0] as EnsureKnowledgebasesCommand).input.knowledgebases[0].graphRag
+        ).toEqual({
+            enabled: true
+        })
         expect(connected).toEqual(
             expect.objectContaining({
                 xpertId: 'xpert-1',

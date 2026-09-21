@@ -41,6 +41,16 @@ describe('WeightedRrfFusion', () => {
         jest.mocked(t).mockClear()
     })
 
+    it('keeps head contributions unchanged when the keyword candidate tail expands', () => {
+        const head = Array.from({ length: 5 }, (_, i) => document(`head-${i}`))
+        const tail = Array.from({ length: 15 }, (_, i) => document(`tail-${i}`))
+        const options = { rankConstant: 60, weights: { keyword: 0.7 } }
+        const before = fusion.fuse([batch('keyword', head)], options)
+        const after = fusion.fuse([batch('keyword', [...head, ...tail])], options)
+        expect(after.slice(0, 5)).toEqual(before)
+        expect(after[5].metadata.rrfScore).toBeCloseTo(0.7 / 66)
+    })
+
     it('fuses two ranked lists and deduplicates overlapping chunks', () => {
         const results = fusion.fuse(
             [batch('vector', [document('a'), document('b')]), batch('graph', [document('b'), document('c')])],

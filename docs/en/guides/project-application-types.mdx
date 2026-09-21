@@ -1,0 +1,68 @@
+# Application Project Types
+
+`XpertProject` continues to own members, files, conversations, and Assistant connections. Business entities associate with it through their own `workspaceProjectId`. Classification is independent of Assistant connections: one Project can still connect to multiple Assistants.
+
+## Contracts and Extensions
+
+- `applicationKey = <plugin package name>:<app contribution name>` identifies an application across installations and upgrades.
+- `projectTypeKey` is a stable key within the application, such as `case`.
+- `applicationInstallationId` optionally records the installation that provisioned the Project. It is neither a business-entity mapping nor an authorization source.
+- `projectTypeSnapshot` stores application and type titles and the binding mode for display. It preserves the Project's origin after plugin removal, but must never authorize plugin execution.
+- New ordinary Projects use `platform/general`. Legacy Projects without a trusted business association remain unclassified; names and Assistant connections are not evidence of a type.
+
+An application declares its types in an App contribution for the Xpert target:
+
+```ts
+projectTypes: [
+  {
+    key: 'case',
+    title: { en_US: 'Case', zh_Hans: 'Case' },
+    binding: { kind: 'entity', providerKey: 'automotive_case_project' }
+  }
+]
+```
+
+Applications that use Projects directly declare `binding: { kind: 'project' }` and use the platform creation flow. Applications backed by business entities register a provider with `@ProjectTypeProvider(providerKey)` and include it in the plugin's Nest providers.
+
+The provider's `resolve(context, projectId)` must query the persisted business association within the tenant and organization and validate the synchronization actor. It returns the business name, status, optional business Assistant, full public `viewKey`, and `selectionId`. `createEntry()` returns the application's business creation entry. The host verifies the provider's plugin provenance and scope against the registry; the browser cannot choose an arbitrary provider or navigation URL.
+
+Server and plugin code import `RequestContext` from `@xpert-ai/plugin-sdk`. Provider contexts derive the tenant, organization, and user from the authenticated request, never from browser-supplied identity fields.
+
+An Assistant can declare a default type in `options.workspaceScope.projectType`. This controls the Project selector's initial filter; it does not replace Project membership checks or Assistant connection validation.
+
+## Creation, Synchronization, and Access
+
+1. The Case creation transaction saves the Case, its unique Project ID, and a pending state.
+2. After the transaction commits, the application calls `ProjectProvisioningApi.ensure({ projectType, projectId, ... })`.
+3. The platform validates the provider's persisted association, actor, business name, and status before creating the Project. Retrying with the same ID repairs content directories and Assistant connections without creating a second Project.
+4. Ordinary creation cannot create entity-backed types. Ordinary updates and untyped `ensure` calls cannot rewrite existing classification. General Projects and Projects owned by other applications cannot be implicitly claimed as Case Projects.
+5. The application owns the business name and lifecycle. The platform rejects ordinary rename, duplicate, archive, delete, and purge operations for entity-backed Projects, including when their plugin is unavailable. BOM and Factory currently synchronize active status. Future business archival must first be persisted and returned by the provider, then synchronized through `ensure`. Permanent deletion requires a separate business cleanup design.
+6. Opening a business Project checks membership before resolving the business association, then verifies that the target Assistant is connected and accessible. The Project remains in the `/chat/x/:slug/p/:projectId/c` route.
+
+BOM and Factory Operations both declare a `case` type. BOM keeps `workspaceProjectId` on the Case. Opening an unlinked historical Case creates its own Project rather than adopting the currently selected Project.
+
+## API and User Interface
+
+- `GET /api/xpert-project/types?xpertId=...` returns the type catalog in the effective scope and the Assistant's default type.
+- `GET /api/xpert-project/type-entry?applicationKey=...&projectTypeKey=...&projectId=...&xpertId=...` resolves a governed creation or opening entry.
+- `GET /api/xpert-project/my?data=...` and `/available?xpertId=...` accept `applicationKey`, `projectTypeKey`, `search`, and `unclassified` filters with server-side pagination.
+- The global Project page supports filtering by clicking a type prefix. ChatKit groups by stable `applicationKey` and `projectTypeKey`, with one clickable heading per type. Different historical display snapshots do not split a group. Creating an entity-backed Project opens its application workflow; catalog failures never fall back to generic creation.
+- ChatKit loads 20 Projects at a time, merges additional pages into existing groups, and deduplicates by Project ID. Changing filters or search restarts at the first page and cancels stale requests. Search covers every Project in the current filter scope. A failed additional page leaves loaded Projects available and can be retried.
+- The **Recently updated** view reuses the same paginated data, ordered by the server's `updatedAt DESC, id DESC`. It represents modification time, not a user's last visit. Switching between this view and grouping neither refetches nor discards loaded pages.
+- ChatKit requests use the HTTP SDK's `Client.projects`, preserving authentication, organization request hooks, and `AbortSignal` support.
+
+## Release and Migration Order
+
+Backfill must run explicitly as part of deployment. Releasing code does not automatically classify historical Projects.
+
+1. Release `@xpert-ai/contracts` and `@xpert-ai/plugin-sdk` with this feature's changeset, followed by the matching host. The next minor is 3.19.0, and plugins declare a minimum peer version of 3.19.0. Local source tests use links to the built SDK.
+2. Pause related writes during a maintenance window. In one transaction, run the platform's `packages/server-ai/src/xpert-project/migrations/20260920-project-types.sql`, then each installed plugin's `migrations/20260920-project-types.sql`. Do not run table migrations for plugins that are not installed.
+3. Plugin migrations backfill only from persisted Case-to-Project associations and roll back on cross-organization or cross-application ownership conflicts. Preserve Project IDs, members, files, conversations, timestamps, and business mappings.
+4. Deploy matching host, plugin, and frontend versions. Once plugins are registered, update and publish installed Assistant templates so they receive the default `projectType`. Loading a new plugin does not publish updates to installed Assistants.
+5. Release the HTTP SDK's minor changeset, then upgrade ChatKit's SDK dependency and remove the temporary `patches/@xpert-ai__xpert-sdk@0.1.1.patch`. The patch and lockfile support reproducible local builds in this repository. Before publishing ChatKit to npm, upgrade to the released SDK: downstream installations do not inherit workspace patches.
+
+For local development, first run `corepack pnpm exec nx build plugin-sdk` in the platform repository, which also builds contracts, then build the plugins. Factory uses the same adjacent platform checkout link as BOM for development dependencies. Install ChatKit using the tracked pnpm lockfile and SDK patch rather than manually editing `node_modules`.
+
+## Verification
+
+Coverage includes classification immutability, cross-application and scope conflicts, provider provenance, member and Assistant access, rejection before cleanup, Case creation retries, complete business routes, server-side filtering, and ChatKit's entity creation entry. SQL tests use temporary schemas and rollback to verify idempotent backfill, atomic conflict handling, and preservation of original data. Factory's plugin lifecycle is checked with `plugin-dev-harness`; its infrastructure mocks do not replace deployment acceptance checks.

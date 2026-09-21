@@ -17,6 +17,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 import { EMPTY_EVOLUTION_DASHBOARD, sameEvolutionScope, type AgentEvolutionDashboard } from './agent-evolution.types'
+import { loadAllEvolutionPages } from './shared/evolution-pagination'
 
 const EMPTY_PAGE = { items: [], total: 0, page: 1, pageSize: 20 }
 
@@ -164,10 +165,10 @@ export class AgentEvolutionFacade {
         lifecycle
       ] = await Promise.all([
         firstValueFrom(this.#api.getDashboard()),
-        firstValueFrom(this.#api.listTargets({ page: 1, pageSize: 100 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listTargets({ page, pageSize: 100 }))),
         firstValueFrom(this.#api.listCapabilityVersions({ page: 1, pageSize: 100 })),
         firstValueFrom(this.#api.listCapabilityBundles({ page: 1, pageSize: 100 })),
-        firstValueFrom(this.#api.listActivePointers({ page: 1, pageSize: 100 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listActivePointers({ page, pageSize: 100 }))),
         firstValueFrom(this.#api.listLearningEvents({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listDiagnoses({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listClusters({ page: 1, pageSize: 50 })),
@@ -193,10 +194,10 @@ export class AgentEvolutionFacade {
       this.dashboard.set({
         ...EMPTY_EVOLUTION_DASHBOARD,
         ...dashboard,
-        targets: targets.items,
+        targets,
         versions: versions.items,
         bundles: bundles.items,
-        pointers: pointers.items,
+        pointers,
         events: events.items,
         diagnoses: diagnoses.items,
         clusters: clusters.items,

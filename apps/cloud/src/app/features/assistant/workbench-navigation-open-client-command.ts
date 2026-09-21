@@ -48,6 +48,19 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
+    if (target === 'agent-evolution.target') {
+      const targetId = getString(payload, 'targetId')
+      if (!targetId || !/^[a-zA-Z0-9_.:-]{1,200}$/.test(targetId) || !options.navigate) {
+        return {
+          success: false,
+          code: 'bad_request',
+          message: 'A valid evolution target and host navigation are required.'
+        }
+      }
+      await options.navigate(['/agent-evolution', 'targets', targetId])
+      return { success: true }
+    }
+
     if (
       target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET &&
       target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET &&
@@ -158,7 +171,15 @@ export function registerWorkbenchNavigationOpenCommand(
           message: 'Assistant Project opening is not available in this host.'
         }
       }
-      await options.openAssistantProject({ projectId: resourceId })
+      const viewKey = getString(payload, 'viewKey')
+      const selectionId = getString(payload, 'selectionId')
+      const parameters = getScalarParameters(payload, 'parameters')
+      const view = viewKey
+        ? { viewKey, ...(selectionId ? { selectionId } : {}), ...(parameters ? { parameters } : {}) }
+        : undefined
+      const opened = await options.openAssistantProject({ projectId: resourceId, ...(view ? { view } : {}) })
+      if (opened === false)
+        return { success: false, code: 'navigation_cancelled', message: 'Project navigation was cancelled.' }
       return {
         success: true,
         status: 'opened',

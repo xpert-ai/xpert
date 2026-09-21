@@ -1,3 +1,7 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { GENERAL_PROJECT_TYPE, type XpertProjectListFilter } from '@xpert-ai/contracts'
+import { XpertProjectTypeService } from './services/project-type.service'
+import { findMyProjects, findAvailableProjects } from './services/project-list-query'
 import {
     AIPermissionsEnum,
     IKnowledgebase,
@@ -13,18 +17,16 @@ import {
     OrderTypeEnum,
     ScheduleTaskStatus
 } from '@xpert-ai/contracts'
-import type { ProjectEnsureInput, ProjectEnsureResult, ProjectExternalAssistantExpectation } from '@xpert-ai/plugin-sdk'
+import type { ProjectEnsureInput, ProjectEnsureResult } from '@xpert-ai/plugin-sdk'
 import {
-    applyWhereToQueryBuilder,
     EventNameIntegrationAuthorized,
     IntegrationAuthorizedEvent,
     PaginationParams,
-    RequestContext,
     StorageFileDeleteCommand,
     TenantOrganizationAwareCrudService
 } from '@xpert-ai/server-core'
 import { yaml } from '@xpert-ai/server-common'
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
@@ -55,12 +57,7 @@ import { ProjectUpdateInputDTO } from './dto'
 import { ConnectorService } from '../connector/connector.service'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
-import {
-    describeExternalAssistantBinding,
-    directExternalAssistantIds,
-    matchesExternalAssistantExpectation,
-    type ResolvedExternalAssistantBinding
-} from '../xpert/external-assistant-binding'
+import { ensureManagedProject } from './services/project-managed-provisioning'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -76,7 +73,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         private readonly contentService: XpertProjectContentService,
         private readonly publishedXpertAccess: PublishedXpertAccessService,
         private readonly connectorService: ConnectorService,
-        private readonly xpertBindingService: XpertProjectXpertBindingService
+        private readonly xpertBindingService: XpertProjectXpertBindingService,
+        private readonly projectTypes: XpertProjectTypeService
     ) {
         super(repository)
     }
@@ -84,6 +82,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     /** Create from the ordinary authenticated API without accepting persisted identity fields. */
     async createProject(input: IXpertProjectCreateInput) {
         return this.create({
+            ...(await this.projectTypes.forCreate(input.projectType ?? GENERAL_PROJECT_TYPE)),
             name: input.name,
             avatar: input.avatar,
             description: input.description,
@@ -96,6 +95,33 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     public async create(entity: DeepPartial<XpertProject>, ...options: unknown[]): Promise<XpertProject> {
         const settings = entity.settings as IXpertProject['settings'] | undefined
+        if (entity.id) {
+            const project = this.repository.create({
+                ...omit(entity, [
+                    'workspace',
+                    'workspaceId',
+                    'xperts',
+                    'members',
+                    'memberships',
+                    'toolsets',
+                    'knowledges'
+                ]),
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId(),
+                ownerId: RequestContext.currentUserId(),
+                createdById: RequestContext.currentUserId()
+            })
+            try {
+                await this.repository.insert(project)
+            } catch (error) {
+                if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+                    throw new ConflictException(t('server-ai:Error.ProjectTypeConflict'))
+                }
+                throw error
+            }
+            await this.contentService.initialize(project)
+            return project
+        }
         const project = await super.create(
             {
                 ...omit(entity, [
@@ -128,82 +154,23 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      * Create or reconcile a caller-idempotent Chat Project and Assistant link.
      * The authenticated user remains the owner and the caller-supplied id is never replaced.
      */
-    async ensureManagedProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
-        const projectId = requiredProjectText(input.projectId, 'projectId', 100)
-        const xpertId = requiredProjectText(input.xpertId, 'xpertId', 100)
-        const name = requiredProjectText(input.name, 'name', 240)
-        const user = RequestContext.currentUser()
-        if (!user?.id || !user.tenantId) {
-            throw new ForbiddenException(
-                t('server-ai:Error.AuthenticatedUserRequired', { defaultValue: 'An authenticated user is required' })
-            )
-        }
-
-        const organizationId = RequestContext.getOrganizationId()
-        const xpert = await this.resolveAccessibleCurrentXpert(xpertId)
-        if ((xpert.organizationId ?? null) !== (organizationId ?? null)) {
-            throw new BadRequestException(
-                t('server-ai:Error.ProjectXpertOrganizationMismatch', {
-                    defaultValue: 'The Xpert must belong to the Project Organization'
-                })
-            )
-        }
-        const externalXperts = await this.resolveManagedProjectExternalXperts(xpert, input)
-        const requiredXperts = [xpert, ...externalXperts].filter(
-            (candidate, index, items) =>
-                items.findIndex((item) => this.xpertBindingService.isSameXpert(item, candidate)) === index
-        )
-
-        // Tenant and organization participate in lookup so retries cannot adopt
-        // a same-id Project from a different security boundary.
-        let project = await this.repository.findOne({
-            where: {
-                id: projectId,
-                tenantId: user.tenantId,
-                organizationId: organizationId ?? IsNull()
+    ensureManagedProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
+        return ensureManagedProject(
+            {
+                repository: this.repository,
+                queryBus: this.queryBus,
+                bindings: this.xpertBindingService,
+                types: this.projectTypes,
+                initialize: (project) => this.contentService.initialize(project),
+                create: (entity) => this.create(entity),
+                resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
             },
-            relations: ['xperts']
-        })
-        const operation = project ? 'updated' : 'created'
-        if (project && project.ownerId !== user.id) {
-            throw new ForbiddenException(
-                t('server-ai:Error.ProjectOwnerSyncRequired', {
-                    defaultValue: 'Only the Project owner can synchronize this Project'
-                })
-            )
-        }
-        if (!project) {
-            project = await this.create({
-                id: projectId,
-                name,
-                status: input.status,
-                ownerId: user.id
-            })
-            project.xperts = requiredXperts
-            project = await this.repository.save(project)
-        } else {
-            // Bid/business state is authoritative while existing Assistant
-            // connections are preserved and de-duplicated.
-            project.name = name
-            project.status = input.status
-            project.xperts ??= []
-            await this.xpertBindingService.normalize(project)
-            for (const requiredXpert of requiredXperts) {
-                if (!this.xpertBindingService.contains(project, requiredXpert)) {
-                    project.xperts.push(requiredXpert)
-                }
-            }
-            project = await this.repository.save(project)
-        }
+            input
+        )
+    }
 
-        return {
-            projectId: project.id,
-            // Compatibility only: provisioning clients still carry a Workspace id,
-            // but Project persistence and runtime no longer use it.
-            workspaceId: input.workspaceId,
-            xpertIds: project.xperts?.map((item) => item.id) ?? [xpert.id],
-            operation
-        }
+    assertPlatformLifecycle(project: XpertProject) {
+        this.projectTypes.assertPlatformLifecycle(project)
     }
 
     /** Require active Project membership and an explicit Assistant connection. */
@@ -227,6 +194,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     public async update(id: string, input: ProjectUpdateInputDTO): Promise<XpertProject> {
         const project = await this.findOne(id)
+        if (input.name !== undefined) this.projectTypes.assertPlatformLifecycle(project)
         const nextMode = input.settings?.managementMode
         if (project.settings?.managementMode === 'advanced' && nextMode === 'simple') {
             throw new BadRequestException(
@@ -253,12 +221,14 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     async archive(id: string): Promise<XpertProject> {
         const project = await this.findOne(id)
+        this.projectTypes.assertPlatformLifecycle(project)
         project.status = 'archived'
         return this.repository.save(project)
     }
 
     async deleteProject(id: string) {
         const project = await this.findOne(id)
+        this.projectTypes.assertPlatformLifecycle(project)
         return this.repository.manager.transaction(async (manager) => {
             await this.connectorService.deleteProjectBindings(
                 { projectId: project.id, tenantId: project.tenantId },
@@ -274,6 +244,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     async softRemoveProject(id: string) {
         const project = await this.findOne(id)
+        this.projectTypes.assertPlatformLifecycle(project)
         return this.repository.manager.transaction(async (manager) => {
             await this.connectorService.deleteProjectBindings(
                 { projectId: project.id, tenantId: project.tenantId },
@@ -289,78 +260,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      * @param options
      * @returns
      */
-    async findAllMy(options: Partial<PaginationParams<XpertProject>> = {}) {
-        const user = RequestContext.currentUser()
-        const organizationId = RequestContext.getOrganizationId()
-        const requestedStatus = !Array.isArray(options?.where) ? options?.where?.status : undefined
-
-        const orderBy = options?.order
-            ? Object.keys(options.order).reduce((order, name) => {
-                  order[`project.${name}`] = options.order[name]
-                  return order
-              }, {})
-            : {}
-
-        const query = this.repository
-            .createQueryBuilder('project')
-            .leftJoin(
-                'project.memberships',
-                'membership',
-                'membership.userId = :userId AND membership.deletedAt IS NULL'
-            )
-            .where('project.tenantId = :tenantId')
-            .andWhere(
-                new Brackets((qb) => {
-                    qb.where('project.ownerId = :userId').orWhere('membership.userId = :userId')
-                })
-            )
-            .orderBy(orderBy)
-            .setParameters({
-                tenantId: user.tenantId,
-                userId: user.id
-            })
-
-        if (requestedStatus === 'all') {
-            // Explicitly requested by the Project workspace so archived projects
-            // can be filtered client-side without changing legacy callers.
-        } else if (typeof requestedStatus === 'string' && requestedStatus.length > 0) {
-            query.andWhere('project.status = :projectStatus', { projectStatus: requestedStatus })
-        } else {
-            query.andWhere(
-                new Brackets((qb) => {
-                    qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
-                })
-            )
-        }
-
-        if (organizationId) {
-            query.andWhere('project.organizationId = :organizationId', { organizationId })
-        } else {
-            query.andWhere('project.organizationId IS NULL')
-        }
-
-        if (options?.where) {
-            const where = Array.isArray(options.where)
-                ? options.where
-                : Object.fromEntries(Object.entries(options.where).filter(([key]) => key !== 'status'))
-            if (Array.isArray(where) ? where.length > 0 : Object.keys(where).length > 0) {
-                applyWhereToQueryBuilder(query, 'project', where)
-            }
-        }
-
-        if (options?.skip) {
-            query.skip(options.skip)
-        }
-        if (options?.take) {
-            query.take(options.take)
-        }
-
-        const [projects, total] = await query.getManyAndCount()
-
-        return {
-            items: projects,
-            total
-        }
+    findAllMy(options: Partial<PaginationParams<XpertProject>> = {}, filter: XpertProjectListFilter = {}) {
+        return findMyProjects(this.repository, options, filter)
     }
 
     async getXperts(id: string, params: PaginationParams<IXpertProject>) {
@@ -398,61 +299,12 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     async findAvailableForXpert(input: {
         xpertId: string
+        filter?: XpertProjectListFilter
         status?: 'active' | 'archived' | 'all'
         skip?: number
         take?: number
     }) {
-        const xpert = await this.resolveAccessibleCurrentXpert(input.xpertId)
-        const userId = RequestContext.currentUserId()
-        const organizationId = RequestContext.getOrganizationId()
-        const query = this.repository.createQueryBuilder('project')
-        const linkedXpertSubquery = query
-            .subQuery()
-            .select('1')
-            .from(XpertProject, 'linkedProject')
-            .innerJoin('linkedProject.xperts', 'linkedXpert')
-            .where('linkedProject.id = project.id')
-            .andWhere('linkedXpert.tenantId = :xpertTenantId', { xpertTenantId: xpert.tenantId })
-            .andWhere('linkedXpert.type = :xpertType', { xpertType: xpert.type })
-            .andWhere('linkedXpert.slug = :xpertSlug', { xpertSlug: xpert.slug })
-        if (xpert.organizationId) {
-            linkedXpertSubquery.andWhere('linkedXpert.organizationId = :xpertOrganizationId', {
-                xpertOrganizationId: xpert.organizationId
-            })
-        } else {
-            linkedXpertSubquery.andWhere('linkedXpert.organizationId IS NULL')
-        }
-        if (xpert.workspaceId) {
-            linkedXpertSubquery.andWhere('linkedXpert.workspaceId = :xpertWorkspaceId', {
-                xpertWorkspaceId: xpert.workspaceId
-            })
-        } else {
-            linkedXpertSubquery.andWhere('linkedXpert.workspaceId IS NULL')
-        }
-        const linkedXpertExists = linkedXpertSubquery.getQuery()
-        const activeMembershipExists = query
-            .subQuery()
-            .select('1')
-            .from(XpertProjectMembership, 'availableMembership')
-            .where('availableMembership.projectId = project.id')
-            .andWhere('availableMembership.userId = :userId', { userId })
-            .andWhere('availableMembership.deletedAt IS NULL')
-            .getQuery()
-        query
-            .where('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
-            .andWhere(`EXISTS ${linkedXpertExists}`)
-            .andWhere(
-                new Brackets((qb) => {
-                    qb.where('project.ownerId = :userId').orWhere(`EXISTS ${activeMembershipExists}`)
-                })
-            )
-        if (organizationId) query.andWhere('project.organizationId = :organizationId', { organizationId })
-        else query.andWhere('project.organizationId IS NULL')
-        if (input.status && input.status !== 'all') query.andWhere('project.status = :status', { status: input.status })
-        else if (!input.status) query.andWhere("project.status <> 'archived'")
-        query.skip(Math.max(input.skip ?? 0, 0)).take(Math.min(Math.max(input.take ?? 25, 1), 100))
-        const [items, total] = await query.getManyAndCount()
-        return { items, total }
+        return findAvailableProjects(this.repository, await this.resolveAccessibleCurrentXpert(input.xpertId), input)
     }
 
     async addXpert(id: string, xpertId: string) {
@@ -540,78 +392,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
      * Validate the complete portable External Assistant set before Project persistence.
      * Empty/omitted expectations preserve the existing single-Assistant ensure contract.
      */
-    private async resolveManagedProjectExternalXperts(requester: IXpert, input: ProjectEnsureInput): Promise<IXpert[]> {
-        const expectations = normalizeProjectExternalAssistantExpectations(input.externalAssistantExpectations)
-        if (!expectations.length) return []
-        const requesterAgentKey = requiredProjectText(input.requesterAgentKey ?? '', 'requesterAgentKey', 100)
-        if (requester.agent?.key !== requesterAgentKey) {
-            throw new BadRequestException(
-                t('server-ai:Error.ProjectRequesterAgentMismatch', {
-                    defaultValue: 'The requester Agent must be the primary Agent of the Project Assistant.'
-                })
-            )
-        }
-
-        const candidates = await Promise.all(
-            directExternalAssistantIds(requester, requesterAgentKey).map(async (candidateId) => {
-                try {
-                    return await this.queryBus.execute<FindXpertQuery, IXpert>(
-                        new FindXpertQuery({ id: candidateId }, { relations: ['agent'] })
-                    )
-                } catch {
-                    return null
-                }
-            })
-        )
-        const availableCandidates = candidates.filter((candidate): candidate is IXpert => candidate !== null)
-        const bindings = availableCandidates.map((candidate) => ({
-            candidate,
-            descriptor: describeExternalAssistantBinding(requester, candidate)
-        }))
-
-        const resolved: IXpert[] = []
-        for (const expectation of expectations) {
-            const matches = bindings.filter(({ descriptor }) =>
-                matchesExternalAssistantExpectation(descriptor, expectation)
-            )
-            if (matches.length > 1) {
-                throw projectExternalAssistantError('ProjectAssistantBindingAmbiguous', 'ambiguous')
-            }
-            const match = matches[0]
-            if (!match) {
-                const nearMatch = bindings.find(({ descriptor }) =>
-                    isNearProjectExternalAssistantMatch(descriptor, expectation)
-                )
-                throw projectExternalAssistantError(
-                    nearMatch?.descriptor.status === 'unpublished'
-                        ? 'ProjectAssistantBindingUnpublished'
-                        : nearMatch?.descriptor.status === 'cross_organization'
-                          ? 'ProjectAssistantBindingCrossOrganization'
-                          : nearMatch
-                            ? 'ProjectAssistantBindingIncompatible'
-                            : 'ProjectAssistantBindingMissing',
-                    nearMatch?.descriptor.status ?? 'missing'
-                )
-            }
-            if (match.descriptor.status === 'unpublished') {
-                throw projectExternalAssistantError('ProjectAssistantBindingUnpublished', 'unpublished')
-            }
-            if (match.descriptor.status === 'cross_organization') {
-                throw projectExternalAssistantError('ProjectAssistantBindingCrossOrganization', 'cross_organization')
-            }
-            if (match.descriptor.status !== 'available') {
-                throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
-            }
-            // The requester Assistant and its direct, required graph edge are the
-            // authorization anchor for portable role resolution. Re-applying the
-            // USER_XPERT token audience to the target here would reject every
-            // valid external Assistant because that delegated token is purposely
-            // scoped to the requester only. The candidate has already been fully
-            // validated for publication, organization and portable identity.
-            resolved.push(match.candidate)
-        }
-        return resolved
-    }
 
     async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
         const project = await this.findOne({
@@ -840,6 +620,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         })
 
         const { content: instruction } = await this.contentService.readInstructions(id)
+        this.projectTypes.assertPlatformLifecycle(project)
         const duplicate = await this.create({
             ...project,
             id: undefined, // Clear the ID to create a new project
@@ -961,7 +742,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             root.project && typeof root.project === 'object' ? (root.project as Record<string, unknown>) : root
         const name = typeof source.name === 'string' ? source.name.trim() : ''
         if (!name) throw new BadRequestException('Project DSL requires a name')
-        const project = await this.create({
+        const project = await this.createProject({
             name,
             description: typeof source.description === 'string' ? source.description : undefined,
             avatar: source.avatar as XpertProject['avatar'],
@@ -1150,57 +931,6 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 }
 
 /** Normalize provisioning text before it reaches Project persistence. */
-function requiredProjectText(value: string, field: string, maxLength: number): string {
-    const normalized = value?.trim()
-    if (!normalized || normalized.length > maxLength) {
-        throw new BadRequestException(`${field} is required and must not exceed ${maxLength} characters`)
-    }
-    return normalized
-}
-
-function normalizeProjectExternalAssistantExpectations(
-    expectations: ProjectExternalAssistantExpectation[] | undefined
-): ProjectExternalAssistantExpectation[] {
-    const normalized = Array.from(
-        new Map(
-            (expectations ?? []).map((expectation) => {
-                const value = {
-                    pluginName: requiredProjectText(expectation.pluginName, 'pluginName', 160),
-                    templateKey: requiredProjectText(expectation.templateKey, 'templateKey', 160),
-                    agentKey: requiredProjectText(expectation.agentKey, 'agentKey', 160)
-                }
-                return [`${value.pluginName}\u0000${value.templateKey}\u0000${value.agentKey}`, value] as const
-            })
-        ).values()
-    )
-    if (normalized.length > 32) {
-        throw new BadRequestException(
-            t('server-ai:Error.ProjectExternalExpectationsLimit', {
-                defaultValue: 'A Project ensure request cannot contain more than 32 External Assistant expectations.'
-            })
-        )
-    }
-    return normalized
-}
-
-function isNearProjectExternalAssistantMatch(
-    binding: ResolvedExternalAssistantBinding,
-    expectation: ProjectExternalAssistantExpectation
-) {
-    return (
-        binding.templateSource?.templateKey === expectation.templateKey ||
-        binding.primaryAgentKey === expectation.agentKey
-    )
-}
-
-function projectExternalAssistantError(key: string, fallbackStatus: string) {
-    return new BadRequestException({
-        errorCode: `project_assistant_binding_${fallbackStatus}`,
-        message: t(`server-ai:Error.${key}`, {
-            defaultValue: `The required External Assistant binding is ${fallbackStatus}.`
-        })
-    })
-}
 
 function normalizeImportedTaskStatus(value: unknown): IXpertProjectTask['status'] {
     switch (value) {

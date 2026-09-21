@@ -1,3 +1,9 @@
+import {
+  chatProjectCreateRequest,
+  executeChatProjectCreate,
+  type ChatProjectCreateRequest
+} from '../../project/project-chat-create'
+import { openWorkbenchProject } from './workbench-project-navigation'
 import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { CommonModule } from '@angular/common'
@@ -9,7 +15,6 @@ import {
   ElementRef,
   inject,
   OnDestroy,
-  Signal,
   signal,
   untracked,
   viewChild,
@@ -18,16 +23,11 @@ import {
 import { Router, RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
-import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
-import { ASSISTANT_CITATION_OPEN_EVENT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import type { ChatKitReference } from '@xpert-ai/chatkit-types'
 import type {
   WorkbenchOpenFile,
-  IconDefinition,
-  I18nObject,
   TChatElementReference,
-  TChatFileElementReference,
   XpertExtensionViewManifest,
-  WorkbenchAssistantConversationResolution,
   XpertViewQuery,
   XpertViewHostEventMessage,
   XpertViewRuntimeScopeInput
@@ -40,7 +40,7 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
+import type { FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
@@ -56,8 +56,7 @@ import {
 } from '../../../@core'
 import {
   registerAssistantChatSendMessageCommand,
-  registerAssistantContextSetCommand,
-  type AssistantContextSetPayload
+  registerAssistantContextSetCommand
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
@@ -114,85 +113,82 @@ import {
   updateArtifactTab,
   type WorkbenchArtifactTab
 } from './workbench-artifact-tabs'
+import {
+  CHAT_MINIMIZED_TO_PET_ATTRIBUTE,
+  CHATKIT_DISPLAY_MODE_ATTRIBUTE,
+  CHATKIT_OPEN_ATTRIBUTE,
+  CLAWXPERT_CHATKIT_MIN_WIDTH_PX,
+  CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX,
+  CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
+  CLAWXPERT_CHAT_COLUMN_MAX_WIDTH,
+  WORKSPACE_LAYOUT_TRANSITION_CLASSES,
+  CHAT_SHELL_TRANSITION_CLASSES,
+  DETAIL_PANEL_SHELL_TRANSITION_CLASSES,
+  DETAIL_PANEL_CONTENT_TRANSITION_CLASSES,
+  clampChatkitWidth,
+  toConfiguredWorkbenchLayoutState,
+  resolveEmbeddedChatkitElement,
+  isChatkitVisuallyMinimizedToPet
+} from './conversation-detail/chatkit/layout'
+import { installChatkitOverlayDialogControls } from './conversation-detail/chatkit/overlay-controls'
+import {
+  CONVERSATION_DETAIL_RELATIONS,
+  type WorkbenchConversationChatkitScope,
+  resolveConversationId,
+  assertWorkbenchConversationHint,
+  hasTaskSummaryRefresh,
+  getOptionalSignalValue,
+  setWritableSignalValue,
+  normalizeConversationThreadId
+} from './conversation-detail/chatkit/conversation'
+import {
+  type AssistantWorkbenchRequestContext,
+  buildAssistantRequestContext,
+  normalizeAssistantWorkbenchContext
+} from './conversation-detail/composer/request-context'
+import {
+  toFileElementQuoteReference,
+  toFilePathQuoteReference,
+  toPageElementQuoteReference,
+  isFileElementReferenceRequest,
+  isFilePathReferenceRequest
+} from './conversation-detail/composer/references'
+import { toSkillTrialRuntimeCapabilities, readNonEmptyString } from './conversation-detail/composer/skill-trial'
+import {
+  type ClawXpertStaticTabId,
+  type ClawXpertAddableWorkspaceTabKind,
+  type ClawXpertWorkspaceTabKind,
+  type ClawXpertToolTab,
+  type ClawXpertWorkspaceTab,
+  type ClawXpertConversationPanel,
+  TASKS_WORKSPACE_TAB_ID
+} from './conversation-detail/workspace/tabs'
+import {
+  type ClawXpertBrowserTab,
+  type ClawXpertBrowserTabChange,
+  DEFAULT_BROWSER_ZOOM,
+  WORKBENCH_BROWSER_OPEN_COMMAND,
+  isMatchingBrowserTab,
+  toWorkbenchBrowserPreviewTarget,
+  readHttpUrl
+} from './conversation-detail/workspace/browser'
+import {
+  AGENT_WORKBENCH_FIXED_SLOT,
+  DEFAULT_FIXED_VIEW_ICON,
+  type ClawXpertFixedViewMenuItem,
+  shouldShowFixedViewInMenu,
+  findFixedViewTab,
+  findResolvedViewByKey,
+  resolveI18nText,
+  equalViewQuery
+} from './conversation-detail/workspace/fixed-views'
+import {
+  KNOWLEDGEBASE_WORKBENCH_VIEW_KEY,
+  type KnowledgebaseCitationTarget,
+  getKnowledgebaseCitationTarget
+} from './conversation-detail/citations/knowledgebase'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
-const CONVERSATION_DETAIL_RELATIONS = ['messages']
-const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
-const CHATKIT_DISPLAY_MODE_ATTRIBUTE = 'data-display-mode'
-const CHATKIT_OPEN_ATTRIBUTE = 'data-chat-open'
-
-function getChatProjectCreateName(event: { name: string; data?: Record<string, unknown> }): string | null {
-  if (event.name !== 'project.create') {
-    return null
-  }
-
-  const name = event.data?.['name']
-  return typeof name === 'string' && name.trim() ? name.trim() : null
-}
-const CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE = 'data-chatkit-overlay-drag-bar'
-const CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE = 'data-chatkit-overlay-resize-handle'
-const CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE = 'data-chatkit-overlay-controls-style'
-const CLAWXPERT_CHATKIT_MIN_WIDTH_PX = 384
-const CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX = 460
-const CLAWXPERT_CHATKIT_MAX_WIDTH_PX = 960
-const CLAWXPERT_CHAT_COLUMN_MAX_WIDTH_PX = 840
-const CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX = 8
-const CLAWXPERT_OVERLAY_MIN_TOP_PX = 16
-const CLAWXPERT_CHAT_COLUMN_MAX_WIDTH = `${CLAWXPERT_CHAT_COLUMN_MAX_WIDTH_PX}px`
-const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
-  'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
-const CHAT_SHELL_TRANSITION_CLASSES =
-  'transition-[padding,opacity,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none'
-const DETAIL_PANEL_SHELL_TRANSITION_CLASSES =
-  'transition-[max-height,opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
-const DETAIL_PANEL_CONTENT_TRANSITION_CLASSES =
-  'transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
-const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
-  'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
-const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
-const KNOWLEDGEBASE_WORKBENCH_VIEW_KEY = 'knowledgebase_workbench'
-const WORKBENCH_BROWSER_OPEN_COMMAND = 'workbench.browser.open'
-const DEFAULT_FIXED_VIEW_ICON = {
-  type: 'font',
-  value: 'ri-layout-grid-line',
-  alt: 'Fixed view'
-} satisfies IconDefinition
-
-type AssistantWorkbenchRequestContext = Omit<AssistantContextSetPayload, 'key' | 'clear'>
-type WorkbenchConversationChatkitScope = WorkbenchAssistantConversationResolution & {
-  hostRouteKey: string
-  requesterXpertId: string
-}
-type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
-type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
-type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view' | 'artifact'
-type ClawXpertToolTab = {
-  id: string
-  kind: ClawXpertStaticTabId
-}
-type ClawXpertBrowserTab = {
-  id: string
-  kind: 'browser'
-  serviceId: string | null
-  url: string | null
-  displayUrl: string | null
-  zoom: number
-  deviceToolbarVisible: boolean
-  reloadKey: number
-}
-type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab | WorkbenchArtifactTab
-
-type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview' | 'fixed-view' | 'artifact'
-type ClawXpertBrowserTabChange = Partial<Omit<ClawXpertBrowserTab, 'id' | 'kind'>>
-type ClawXpertFixedViewMenuItem = {
-  viewKey: string
-  title: string
-  description: string | null
-  icon: IconDefinition | null
-  order: number
-}
-const DEFAULT_BROWSER_ZOOM = 100
-const TASKS_WORKSPACE_TAB_ID = 'tasks'
 
 @Component({
   standalone: true,
@@ -388,9 +384,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(threadId)
     },
     onEffect: (event) => {
-      const projectName = getChatProjectCreateName(event)
-      if (projectName) {
-        void this.createChatProject(projectName)
+      const projectRequest = chatProjectCreateRequest(event)
+      if (projectRequest) {
+        void this.createChatProject(projectRequest)
         return
       }
       const taskSummaryTarget = getTaskSummaryResourceTarget(event)
@@ -707,7 +703,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
-      openAssistantProject: ({ projectId }) => this.facade.onChatProjectChange?.(projectId),
+      openAssistantProject: (request) => openWorkbenchProject(request, this.fixedViewMenuItems(), this.facade),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
@@ -1905,7 +1901,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
-  private async createChatProject(name: string) {
+  private async createChatProject(request: ChatProjectCreateRequest) {
     const assistantId = this.facade.assistantId()?.trim()
     if (!assistantId || this.facade.threadId()?.trim() || this.#projectCreatePending) {
       return
@@ -1913,13 +1909,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.#projectCreatePending = true
     try {
-      const project = await firstValueFrom(
-        this.#projectApi.create({
-          name,
-          xpertIds: [assistantId]
-        })
+      await executeChatProjectCreate(this.#projectApi, this.#router, request, assistantId, (projectId) =>
+        this.facade.onChatProjectChange?.(projectId)
       )
-      this.facade.onChatProjectChange?.(project.id)
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to create the Project.')
     } finally {
@@ -2407,803 +2399,4 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     void firstValueFrom(this.#conversationService.markRead(conversationId)).catch(() => undefined)
   }
-}
-
-function resolveConversationId(metadata?: { id?: string }) {
-  const conversationId = metadata?.id
-  return typeof conversationId === 'string' && conversationId.trim() ? conversationId : null
-}
-
-function assertWorkbenchConversationHint(label: string, hint: string | undefined, canonical: string | null) {
-  const normalizedHint = hint?.trim()
-  if (normalizedHint && normalizedHint !== canonical) {
-    throw new Error(`The requested ${label} does not match the authorized Assistant conversation.`)
-  }
-}
-
-function clampChatkitWidth(width: number) {
-  return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
-}
-
-function toConfiguredWorkbenchLayoutState(
-  layout: XpertWorkbenchInitialLayoutEnum | null
-): ClawXpertWorkbenchLayoutState | null {
-  if (layout === null) {
-    return 'minimized'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
-    return 'normal'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.OverlayDialog) {
-    return 'overlay'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
-    return 'minimized'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized) {
-    return 'maximized'
-  }
-  return null
-}
-
-function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {
-  if (typeof target.serviceId === 'string' && target.serviceId.trim() && tab.serviceId === target.serviceId) {
-    return true
-  }
-
-  const targetUrl = target.url ?? target.displayUrl
-  return typeof targetUrl === 'string' && targetUrl.trim()
-    ? tab.url === targetUrl || tab.displayUrl === targetUrl
-    : false
-}
-
-function toWorkbenchBrowserPreviewTarget(payload: unknown): ClawXpertSandboxPreviewTarget | null {
-  if (typeof payload === 'string' && payload.trim()) {
-    const url = payload.trim()
-    return {
-      displayUrl: url,
-      url
-    }
-  }
-
-  if (!isPreviewPayloadRecord(payload)) {
-    return null
-  }
-
-  const url =
-    readPreviewPayloadString(payload, 'url') ??
-    readPreviewPayloadString(payload, 'displayUrl') ??
-    readPreviewPayloadString(payload, 'deploymentUrl') ??
-    readPreviewPayloadString(payload, 'previewUrl')
-  if (!url) {
-    return null
-  }
-
-  return {
-    displayUrl: readPreviewPayloadString(payload, 'displayUrl') ?? url,
-    url
-  }
-}
-
-function readPreviewPayloadString(payload: Record<string, unknown>, key: string) {
-  const value = payload[key]
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function isPreviewPayloadRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
-function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
-  if (manifest.visible === false) {
-    return false
-  }
-  if (manifest.workbench?.fixed === false) {
-    return false
-  }
-  return manifest.workbench?.menu?.enabled !== false
-}
-
-function findFixedViewTab(tabs: ClawXpertFixedViewTab[], viewKey: string | null | undefined) {
-  return findResolvedViewByKey(tabs, viewKey)
-}
-
-function findResolvedViewByKey<T extends { viewKey: string }>(items: T[], viewKey: string | null | undefined) {
-  const normalizedViewKey = viewKey?.trim()
-  if (!normalizedViewKey) {
-    return undefined
-  }
-
-  const exact = items.find((item) => item.viewKey === normalizedViewKey)
-  if (exact) {
-    return exact
-  }
-
-  const aliases = items.filter((item) => item.viewKey.endsWith(`__${normalizedViewKey}`))
-  return aliases.length === 1 ? aliases[0] : undefined
-}
-
-type KnowledgebaseCitationTarget = {
-  knowledgebaseId?: string
-  documentId?: string
-  faqId?: string
-  wikiPageId?: string
-  section?: string
-  chunkId?: string
-  page?: number
-  sourceBlockIds?: string[]
-  evidenceText?: string
-}
-
-function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): KnowledgebaseCitationTarget | null {
-  if (event.type !== ASSISTANT_CITATION_OPEN_EVENT || !event.data) {
-    return null
-  }
-
-  const documentId = getString(event.data['documentId'])
-  const faqId = getString(event.data['faqId'])
-  const wikiPageId = getString(event.data['wikiPageId'])
-  if (!documentId && !faqId && !wikiPageId) {
-    return null
-  }
-
-  const knowledgebaseId = getString(event.data['knowledgebaseId'])
-  const chunkId = getString(event.data['chunkId'])
-  const evidenceText = getString(event.data['evidenceText'])
-  const section = getString(event.data['section'])
-  const pageValue = event.data['page']
-  const parsedPage = typeof pageValue === 'number' ? pageValue : typeof pageValue === 'string' ? Number(pageValue) : 0
-  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined
-  const sourceBlockIdsValue = event.data['sourceBlockIds']
-  const sourceBlockIds = Array.isArray(sourceBlockIdsValue)
-    ? sourceBlockIdsValue
-        .filter((item): item is string => typeof item === 'string')
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .slice(0, 20)
-    : []
-
-  return {
-    ...(documentId ? { documentId } : {}),
-    ...(faqId ? { faqId } : {}),
-    ...(wikiPageId ? { wikiPageId } : {}),
-    ...(section ? { section } : {}),
-    ...(knowledgebaseId ? { knowledgebaseId } : {}),
-    ...(chunkId ? { chunkId } : {}),
-    ...(page ? { page } : {}),
-    ...(sourceBlockIds.length ? { sourceBlockIds } : {}),
-    ...(evidenceText ? { evidenceText } : {})
-  }
-}
-
-function hasTaskSummaryRefresh(
-  facade: WorkbenchChatFacade
-): facade is WorkbenchChatFacade & { refreshTaskSummaries(): void } {
-  return 'refreshTaskSummaries' in facade && typeof facade.refreshTaskSummaries === 'function'
-}
-
-function getOptionalSignalValue<T extends string>(facade: WorkbenchChatFacade, key: T): string | null {
-  const value = (facade as WorkbenchChatFacade & Record<T, Signal<unknown> | undefined>)[key]
-  if (typeof value !== 'function') {
-    return null
-  }
-  return getString(value()) ?? null
-}
-
-function buildAssistantRequestContext(input: {
-  workspaceId: string | null
-  xpertId: string | null
-  contexts: Record<string, AssistantWorkbenchRequestContext>
-}) {
-  const env: Record<string, string> = {}
-  if (input.workspaceId) {
-    env['workspaceId'] = input.workspaceId
-  }
-  if (input.xpertId) {
-    env['xpertId'] = input.xpertId
-  }
-
-  const requestContext: Record<string, unknown> = {}
-  for (const [key, context] of Object.entries(input.contexts)) {
-    Object.assign(env, normalizeAssistantEnv(context.env))
-    if (isRecord(context.context)) {
-      requestContext[key] = context.context
-    }
-  }
-
-  if (Object.keys(env).length) {
-    requestContext['env'] = env
-  }
-
-  return requestContext
-}
-
-function normalizeAssistantWorkbenchContext(
-  context: AssistantWorkbenchRequestContext
-): AssistantWorkbenchRequestContext {
-  const env = normalizeAssistantEnv(context.env)
-  const structuredContext = isRecord(context.context) ? context.context : undefined
-  return {
-    ...(Object.keys(env).length ? { env } : {}),
-    ...(structuredContext ? { context: structuredContext } : {})
-  }
-}
-
-function normalizeAssistantEnv(env: unknown): Record<string, string> {
-  if (!isRecord(env)) {
-    return {}
-  }
-
-  return Object.fromEntries(
-    Object.entries(env)
-      .map(([key, value]) => [key, getString(value)] as const)
-      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
-  )
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
-function getString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
-function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {
-  if (typeof value === 'string') {
-    return value.trim() || fallback
-  }
-  if (!value || typeof value !== 'object') {
-    return fallback
-  }
-
-  const normalizedLanguage = (language ?? '').toLowerCase()
-  const preferredKeys =
-    normalizedLanguage.includes('hant') || normalizedLanguage.includes('tw')
-      ? ['zh_Hant', 'zh_Hans', 'en_US']
-      : normalizedLanguage.startsWith('zh')
-        ? ['zh_Hans', 'zh_Hant', 'en_US']
-        : ['en_US', 'zh_Hans', 'zh_Hant']
-
-  for (const key of preferredKeys) {
-    const text = Reflect.get(value, key)
-    if (typeof text === 'string' && text.trim()) {
-      return text.trim()
-    }
-  }
-
-  for (const text of Object.values(value)) {
-    if (typeof text === 'string' && text.trim()) {
-      return text.trim()
-    }
-  }
-
-  return fallback
-}
-
-function toFileElementQuoteReference(reference: TChatFileElementReference): ChatKitQuoteReference {
-  const source = formatFileElementSource(reference)
-
-  return {
-    type: 'quote',
-    label: reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`,
-    source,
-    text: [
-      'Reference type: Target inspected HTML file element',
-      'Scope: This reference is the currently inspected element only, not the entire file.',
-      INSPECTED_ELEMENT_ACTION_TARGET_TEXT,
-      `Source location: ${source}`,
-      reference.documentTitle?.trim() ? `Document title: ${reference.documentTitle.trim()}` : null,
-      'Inspected element:',
-      `- Selector: ${reference.selector}`,
-      `- DOM path: ${reference.domPath}`,
-      `- Tag: ${reference.tagName.toLowerCase()}`,
-      reference.role?.trim() ? `- Role: ${reference.role.trim()}` : null,
-      `- Attributes: ${formatElementAttributes(reference.attributes)}`,
-      'Inspected element visible text:',
-      reference.text,
-      'Inspected element outerHTML:',
-      '```html',
-      reference.outerHtml,
-      '```'
-    ]
-      .filter((line): line is string => line !== null)
-      .join('\n')
-  }
-}
-
-function toFilePathQuoteReference(reference: FileWorkbenchFilePathReferenceRequest): ChatKitQuoteReference {
-  return {
-    type: 'quote',
-    label: reference.path,
-    source: 'Workspace file',
-    text: reference.path
-  }
-}
-
-function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQuoteReference {
-  const source = reference.pageTitle?.trim() || reference.pageUrl.trim()
-
-  return {
-    type: 'quote',
-    label: reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`,
-    source,
-    text: [
-      'Reference type: Target inspected page element',
-      'Scope: This reference is the currently inspected element only, not the entire page.',
-      INSPECTED_ELEMENT_ACTION_TARGET_TEXT,
-      source ? `Page: ${source}` : null,
-      `URL: ${reference.pageUrl}`,
-      `Service: ${reference.serviceId}`,
-      `Selector: ${reference.selector}`,
-      `Tag: ${reference.tagName.toLowerCase()}`,
-      reference.role?.trim() ? `Role: ${reference.role.trim()}` : null,
-      `Attributes: ${formatElementAttributes(reference.attributes)}`,
-      'Visible text:',
-      reference.text,
-      'HTML:',
-      '```html',
-      reference.outerHtml,
-      '```'
-    ]
-      .filter((line): line is string => line !== null)
-      .join('\n')
-  }
-}
-
-function resolveEmbeddedChatkitElement(host: HTMLElement) {
-  return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
-}
-
-function isChatkitVisuallyMinimizedToPet(chatkitElement: HTMLElement) {
-  return (
-    chatkitElement.dataset.chatMinimizedToPet === 'true' ||
-    (chatkitElement.dataset.displayMode === 'pet' && chatkitElement.dataset.chatOpen !== 'true')
-  )
-}
-
-function installChatkitOverlayDialogControls(
-  chatkitElement: HTMLElement,
-  options: { moveLabel: string; resizeLabel: string }
-) {
-  const shadowRoot = chatkitElement.shadowRoot
-  const wrapper = shadowRoot?.querySelector<HTMLElement>('.ck-wrapper')
-  const launcherCloseButton = wrapper?.querySelector<HTMLElement>('.ck-launcher-close') ?? null
-  const ownerDocument = chatkitElement.ownerDocument
-  const ownerWindow = ownerDocument.defaultView
-
-  if (!shadowRoot || !wrapper || !ownerWindow || !ownerDocument.body) {
-    return null
-  }
-
-  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]`)?.remove()
-  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]`)?.remove()
-  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE}]`)?.remove()
-
-  const previousCloseButtonDisplay = launcherCloseButton?.style.getPropertyValue('display') ?? ''
-  const previousCloseButtonDisplayPriority = launcherCloseButton?.style.getPropertyPriority('display') ?? ''
-  const previousCloseButtonAriaHidden = launcherCloseButton?.getAttribute('aria-hidden') ?? null
-  const previousCloseButtonTabIndex = launcherCloseButton?.getAttribute('tabindex') ?? null
-  launcherCloseButton?.style.setProperty('display', 'none', 'important')
-  launcherCloseButton?.setAttribute('aria-hidden', 'true')
-  launcherCloseButton?.setAttribute('tabindex', '-1')
-
-  const controlsStyle = ownerDocument.createElement('style')
-  controlsStyle.setAttribute(CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE, '')
-  controlsStyle.textContent = `
-    .ck-launcher-close {
-      display: none !important;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}] {
-      position: absolute;
-      top: 1px;
-      right: 1px;
-      left: 1px;
-      z-index: 3;
-      height: 18px;
-      border: 0;
-      border-radius: 17px 17px 0 0;
-      background: transparent;
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background: linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--sys-border-strong) 72%, transparent) 0%,
-        color-mix(in oklab, var(--sys-surface-elevated) 36%, transparent) 52%,
-        transparent 100%
-      );
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 120ms ease;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:hover::after,
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:focus-visible::after,
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}][data-dragging='true']::after {
-      opacity: 1;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:focus-visible {
-      outline: none;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}][data-dragging='true'] {
-      cursor: grabbing;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}] {
-      position: absolute;
-      top: 8px;
-      bottom: 8px;
-      left: -7px;
-      z-index: 3;
-      width: 14px;
-      border-radius: 999px;
-      cursor: ew-resize;
-      touch-action: none;
-      user-select: none;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      bottom: auto;
-      left: 5px;
-      width: 3px;
-      height: 44px;
-      border-radius: 999px;
-      background: color-mix(in oklab, var(--sys-text-secondary) 58%, transparent);
-      opacity: 0;
-      transform: translateY(-50%);
-      transition: opacity 120ms ease;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:hover::after,
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:focus-visible::after,
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}][data-resizing='true']::after {
-      opacity: 1;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:focus-visible {
-      outline: 2px solid color-mix(in oklab, var(--sys-primary) 70%, transparent);
-      outline-offset: -2px;
-    }
-  `
-
-  const dragBar = ownerDocument.createElement('div')
-  dragBar.setAttribute(CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE, '')
-  dragBar.setAttribute('aria-label', options.moveLabel)
-  dragBar.title = options.moveLabel
-  dragBar.tabIndex = 0
-
-  const resizeHandle = ownerDocument.createElement('div')
-  resizeHandle.setAttribute(CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE, '')
-  resizeHandle.setAttribute('role', 'separator')
-  resizeHandle.setAttribute('aria-orientation', 'vertical')
-  resizeHandle.setAttribute('aria-label', options.resizeLabel)
-  resizeHandle.setAttribute('aria-valuemin', `${CLAWXPERT_CHATKIT_MIN_WIDTH_PX}`)
-  resizeHandle.setAttribute('aria-valuemax', `${CLAWXPERT_CHATKIT_MAX_WIDTH_PX}`)
-  resizeHandle.title = options.resizeLabel
-  resizeHandle.tabIndex = 0
-
-  shadowRoot.appendChild(controlsStyle)
-  wrapper.append(dragBar, resizeHandle)
-
-  let activeInteractionCleanup: (() => void) | null = null
-
-  const stopActiveInteraction = () => {
-    activeInteractionCleanup?.()
-    activeInteractionCleanup = null
-  }
-
-  const startPointerInteraction = (
-    event: PointerEvent,
-    cursor: string,
-    onMove: (moveEvent: PointerEvent) => void,
-    activeAttribute: 'data-dragging' | 'data-resizing',
-    target: HTMLElement
-  ) => {
-    if (event.button !== 0) {
-      return
-    }
-
-    event.preventDefault()
-    event.stopPropagation()
-    stopActiveInteraction()
-
-    const previousCursor = ownerDocument.body.style.cursor
-    const previousUserSelect = ownerDocument.body.style.userSelect
-    const pointerId = event.pointerId
-
-    if (typeof pointerId === 'number' && typeof target.setPointerCapture === 'function') {
-      try {
-        target.setPointerCapture(pointerId)
-      } catch {
-        // Pointer capture is optional; window listeners keep the interaction active over the iframe.
-      }
-    }
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      if (typeof pointerId === 'number' && moveEvent.pointerId !== pointerId) {
-        return
-      }
-      moveEvent.preventDefault()
-      onMove(moveEvent)
-    }
-
-    const finishInteraction = () => {
-      cleanupInteraction()
-    }
-
-    const cleanupInteraction = () => {
-      ownerWindow.removeEventListener('pointermove', handlePointerMove)
-      ownerWindow.removeEventListener('pointerup', finishInteraction)
-      ownerWindow.removeEventListener('pointercancel', finishInteraction)
-      ownerDocument.body.style.cursor = previousCursor
-      ownerDocument.body.style.userSelect = previousUserSelect
-      target.removeAttribute(activeAttribute)
-      if (activeInteractionCleanup === cleanupInteraction) {
-        activeInteractionCleanup = null
-      }
-    }
-
-    ownerDocument.body.style.cursor = cursor
-    ownerDocument.body.style.userSelect = 'none'
-    target.setAttribute(activeAttribute, 'true')
-    ownerWindow.addEventListener('pointermove', handlePointerMove)
-    ownerWindow.addEventListener('pointerup', finishInteraction, { once: true })
-    ownerWindow.addEventListener('pointercancel', finishInteraction, { once: true })
-    activeInteractionCleanup = cleanupInteraction
-  }
-
-  const moveOverlayDialog = (left: number, top: number, width: number, height: number) => {
-    const maxLeft = Math.max(
-      CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX,
-      ownerWindow.innerWidth - width - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
-    )
-    const maxTop = Math.max(
-      CLAWXPERT_OVERLAY_MIN_TOP_PX,
-      ownerWindow.innerHeight - height - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
-    )
-
-    wrapper.style.left = `${Math.round(clampNumber(left, CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX, maxLeft))}px`
-    wrapper.style.top = `${Math.round(clampNumber(top, CLAWXPERT_OVERLAY_MIN_TOP_PX, maxTop))}px`
-    wrapper.style.right = 'auto'
-    wrapper.style.bottom = 'auto'
-  }
-
-  const resizeOverlayDialog = (right: number, desiredWidth: number) => {
-    const rightEdge = clampNumber(
-      right,
-      CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX,
-      Math.max(CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX, ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX)
-    )
-    const maxWidth = Math.max(
-      0,
-      Math.min(
-        CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
-        ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX * 2,
-        rightEdge - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
-      )
-    )
-    const minWidth = Math.min(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, maxWidth)
-    const width = Math.round(clampNumber(desiredWidth, minWidth, maxWidth))
-
-    wrapper.style.left = `${Math.round(rightEdge - width)}px`
-    wrapper.style.right = 'auto'
-    wrapper.style.width = `${width}px`
-    resizeHandle.setAttribute('aria-valuenow', `${width}`)
-  }
-
-  const handleDragPointerDown = (event: PointerEvent) => {
-    const rect = wrapper.getBoundingClientRect()
-    const startX = event.clientX
-    const startY = event.clientY
-
-    startPointerInteraction(
-      event,
-      'grabbing',
-      (moveEvent) => {
-        moveOverlayDialog(
-          rect.left + moveEvent.clientX - startX,
-          rect.top + moveEvent.clientY - startY,
-          rect.width,
-          rect.height
-        )
-      },
-      'data-dragging',
-      dragBar
-    )
-  }
-
-  const handleResizePointerDown = (event: PointerEvent) => {
-    const rect = wrapper.getBoundingClientRect()
-    const startX = event.clientX
-
-    startPointerInteraction(
-      event,
-      'ew-resize',
-      (moveEvent) => {
-        resizeOverlayDialog(rect.right, rect.width + startX - moveEvent.clientX)
-      },
-      'data-resizing',
-      resizeHandle
-    )
-  }
-
-  const handleDragKeydown = (event: KeyboardEvent) => {
-    const direction =
-      event.key === 'ArrowLeft'
-        ? { x: -1, y: 0 }
-        : event.key === 'ArrowRight'
-          ? { x: 1, y: 0 }
-          : event.key === 'ArrowUp'
-            ? { x: 0, y: -1 }
-            : event.key === 'ArrowDown'
-              ? { x: 0, y: 1 }
-              : null
-    if (!direction) {
-      return
-    }
-
-    event.preventDefault()
-    const rect = wrapper.getBoundingClientRect()
-    const step = event.shiftKey ? 64 : 24
-    moveOverlayDialog(rect.left + direction.x * step, rect.top + direction.y * step, rect.width, rect.height)
-  }
-
-  const handleResizeKeydown = (event: KeyboardEvent) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
-      return
-    }
-
-    event.preventDefault()
-    const rect = wrapper.getBoundingClientRect()
-    resizeOverlayDialog(rect.right, rect.width + (event.key === 'ArrowLeft' ? 32 : -32))
-  }
-
-  const constrainOverlayDialogToViewport = () => {
-    if (!wrapper.style.left && !wrapper.style.top && !wrapper.style.width) {
-      return
-    }
-
-    const rect = wrapper.getBoundingClientRect()
-    const rightEdge = Math.min(rect.right, ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX)
-    resizeOverlayDialog(rightEdge, rect.width)
-    moveOverlayDialog(
-      Number.parseFloat(wrapper.style.left),
-      rect.top,
-      Number.parseFloat(wrapper.style.width),
-      rect.height
-    )
-  }
-
-  dragBar.addEventListener('pointerdown', handleDragPointerDown)
-  dragBar.addEventListener('keydown', handleDragKeydown)
-  resizeHandle.addEventListener('pointerdown', handleResizePointerDown)
-  resizeHandle.addEventListener('keydown', handleResizeKeydown)
-  ownerWindow.addEventListener('resize', constrainOverlayDialogToViewport)
-
-  const initialWidth = Math.round(wrapper.getBoundingClientRect().width)
-  if (initialWidth > 0) {
-    resizeHandle.setAttribute('aria-valuenow', `${initialWidth}`)
-  }
-
-  return () => {
-    stopActiveInteraction()
-    dragBar.removeEventListener('pointerdown', handleDragPointerDown)
-    dragBar.removeEventListener('keydown', handleDragKeydown)
-    resizeHandle.removeEventListener('pointerdown', handleResizePointerDown)
-    resizeHandle.removeEventListener('keydown', handleResizeKeydown)
-    ownerWindow.removeEventListener('resize', constrainOverlayDialogToViewport)
-    dragBar.remove()
-    resizeHandle.remove()
-    controlsStyle.remove()
-    if (launcherCloseButton) {
-      if (previousCloseButtonDisplay) {
-        launcherCloseButton.style.setProperty('display', previousCloseButtonDisplay, previousCloseButtonDisplayPriority)
-      } else {
-        launcherCloseButton.style.removeProperty('display')
-      }
-      restoreOptionalAttribute(launcherCloseButton, 'aria-hidden', previousCloseButtonAriaHidden)
-      restoreOptionalAttribute(launcherCloseButton, 'tabindex', previousCloseButtonTabIndex)
-    }
-    wrapper.style.removeProperty('left')
-    wrapper.style.removeProperty('top')
-    wrapper.style.removeProperty('right')
-    wrapper.style.removeProperty('bottom')
-    wrapper.style.removeProperty('width')
-  }
-}
-
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function restoreOptionalAttribute(element: HTMLElement, name: string, value: string | null) {
-  if (value === null) {
-    element.removeAttribute(name)
-  } else {
-    element.setAttribute(name, value)
-  }
-}
-
-function toSkillTrialRuntimeCapabilities(intent: ClawXpertSkillTrialIntent): RuntimeCapabilitiesSelection {
-  return {
-    mode: 'allowlist',
-    skills: {
-      workspaceId: intent.workspaceId,
-      ids: [intent.skillPackageId]
-    },
-    plugins: {
-      nodeKeys: []
-    },
-    subAgents: {
-      nodeKeys: []
-    }
-  }
-}
-
-function readNonEmptyString(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function readHttpUrl(value: unknown) {
-  const text = readNonEmptyString(value)
-  if (!text) {
-    return null
-  }
-  try {
-    const url = new URL(text)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
-  } catch {
-    return null
-  }
-}
-
-function setWritableSignalValue<T>(signalValue: Signal<T>, value: T) {
-  const setter = (signalValue as Signal<T> & { set?: (next: T) => void }).set
-  if (typeof setter === 'function') {
-    setter.call(signalValue, value)
-  }
-}
-
-function normalizeConversationThreadId(threadId: string | null | undefined) {
-  return typeof threadId === 'string' && threadId.trim() ? threadId.trim() : null
-}
-
-function equalViewQuery(left: XpertViewQuery | null, right: XpertViewQuery | null) {
-  return JSON.stringify(left) === JSON.stringify(right)
-}
-
-function formatFileElementSource(reference: TChatFileElementReference) {
-  if (typeof reference.sourceStartLine !== 'number') {
-    return reference.filePath
-  }
-
-  const lineRange =
-    reference.sourceStartLine === reference.sourceEndLine
-      ? `${reference.sourceStartLine}`
-      : `${reference.sourceStartLine}-${reference.sourceEndLine ?? reference.sourceStartLine}`
-
-  return `${reference.filePath}:${lineRange}`
-}
-
-function formatElementAttributes(attributes: Array<{ name: string; value: string }>) {
-  if (!attributes.length) {
-    return '(none)'
-  }
-
-  return attributes.map((attribute) => `${attribute.name}="${attribute.value}"`).join(' ')
-}
-
-function isFileElementReferenceRequest(request: FileWorkbenchReferenceRequest): request is TChatFileElementReference {
-  return 'type' in request && request.type === 'file_element'
-}
-
-function isFilePathReferenceRequest(
-  request: FileWorkbenchReferenceRequest
-): request is FileWorkbenchFilePathReferenceRequest {
-  return 'type' in request && request.type === 'file_path'
 }

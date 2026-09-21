@@ -1,4 +1,9 @@
-import { PluginMarketplaceCategory, PluginTargetAppMarketplaceMetadata, PluginTargetAppMeta } from '@xpert-ai/contracts'
+import {
+  PLUGIN_MARKETPLACE_SUBCATEGORIES,
+  PluginMarketplaceCategory,
+  PluginTargetAppMarketplaceMetadata,
+  PluginTargetAppMeta
+} from '@xpert-ai/contracts'
 
 /** Target-app key used by the Xpert plugin marketplace UI. */
 export const PLUGIN_MARKETPLACE_TARGET_APP = 'xpert'
@@ -28,8 +33,8 @@ export type PluginMarketplaceCategoryGroup<T> = PluginMarketplaceCategoryDefinit
   plugins: T[]
 }
 
-/** Option shown in the Developer Tools subcategory filter. */
-export type PluginDeveloperToolSubcategoryOption = {
+/** Option shown in the marketplace technical subcategory filter. */
+export type PluginMarketplaceSubcategoryOption = {
   value: string
   labelKey: string
   defaultLabel: string
@@ -168,8 +173,11 @@ export const LEGACY_DEVELOPER_TOOL_CATEGORIES = [
 
 const LEGACY_DEVELOPER_TOOL_CATEGORY_SET = new Set<string>(LEGACY_DEVELOPER_TOOL_CATEGORIES)
 
-/** Stable display order for legacy technical categories inside the Developer Tools group. */
-export const DEVELOPER_TOOL_SUBCATEGORY_DEFINITIONS: readonly PluginDeveloperToolSubcategoryOption[] = [
+const PLUGIN_MARKETPLACE_SUBCATEGORY_SET = new Set<string>(PLUGIN_MARKETPLACE_SUBCATEGORIES)
+
+/** Stable display order for technical subcategories shown in the marketplace filter. */
+export const PLUGIN_MARKETPLACE_SUBCATEGORY_DEFINITIONS: readonly PluginMarketplaceSubcategoryOption[] = [
+  { value: 'connector', labelKey: 'XP.Plugin.Category_connector', defaultLabel: 'Connector' },
   { value: 'middleware', labelKey: 'XP.Plugin.Category_middleware', defaultLabel: 'Middleware' },
   { value: 'integration', labelKey: 'XP.Plugin.Category_integration', defaultLabel: 'System Integration' },
   { value: 'database', labelKey: 'XP.Plugin.Category_database', defaultLabel: 'Database' },
@@ -231,26 +239,26 @@ export function marketplaceCategoryOptions() {
   }))
 }
 
-/** Returns only Developer Tools subcategories that are present in the current plugin list. */
-export function developerToolSubcategoryOptionsFor(
+/** Returns only marketplace technical subcategories that are present in the current plugin list. */
+export function marketplaceSubcategoryOptionsFor(
   plugins: readonly PluginMarketplaceCategorizedItem[]
-): PluginDeveloperToolSubcategoryOption[] {
+): PluginMarketplaceSubcategoryOption[] {
   const available = new Set<string>()
   plugins.forEach((plugin) => {
-    const grouping = resolvePluginMarketplaceGrouping(plugin)
-    if (grouping.category === 'developer-tools' && grouping.subcategory) {
-      available.add(grouping.subcategory)
+    const subcategory = resolvePluginMarketplaceGrouping(plugin).subcategory
+    if (subcategory) {
+      available.add(subcategory)
     }
   })
 
-  return DEVELOPER_TOOL_SUBCATEGORY_DEFINITIONS.filter((option) => available.has(option.value))
+  return PLUGIN_MARKETPLACE_SUBCATEGORY_DEFINITIONS.filter((option) => available.has(option.value))
 }
 
-/** Applies top-level marketplace category filters plus optional Developer Tools subcategory filters. */
+/** Applies top-level marketplace category filters plus optional technical subcategory filters. */
 export function matchesPluginMarketplaceCategoryFilters(
   plugin: PluginMarketplaceCategorizedItem,
   selectedCategories: readonly PluginMarketplaceCategory[],
-  selectedDeveloperToolSubcategories: readonly string[]
+  selectedSubcategories: readonly string[]
 ) {
   const grouping = resolvePluginMarketplaceGrouping(plugin)
 
@@ -258,8 +266,8 @@ export function matchesPluginMarketplaceCategoryFilters(
     return false
   }
 
-  if (grouping.category === 'developer-tools' && selectedDeveloperToolSubcategories.length > 0) {
-    return !!grouping.subcategory && selectedDeveloperToolSubcategories.includes(grouping.subcategory)
+  if (selectedSubcategories.length > 0) {
+    return !!grouping.subcategory && selectedSubcategories.includes(grouping.subcategory)
   }
 
   return true
@@ -288,11 +296,11 @@ export function resolvePluginMarketplaceGrouping(plugin: PluginMarketplaceCatego
   if (featuredEntry) {
     return {
       category: 'featured',
-      subcategory: normalizeDeveloperToolSubcategory(featuredEntry.marketplace.subcategory) ?? undefined
+      subcategory: normalizePluginMarketplaceSubcategory(featuredEntry.marketplace.subcategory) ?? undefined
     }
   }
 
-  const marketplaceSubcategory = findDeveloperToolSubcategory(marketplaceEntries)
+  const marketplaceSubcategory = findMarketplaceSubcategory(marketplaceEntries)
   const legacyDeveloperToolCategory = normalizeLegacyDeveloperToolCategory(plugin.category)
   if (legacyDeveloperToolCategory) {
     return {
@@ -332,13 +340,13 @@ function normalizeLegacyDeveloperToolCategory(value: unknown) {
   return LEGACY_DEVELOPER_TOOL_CATEGORY_SET.has(normalized) ? normalized : null
 }
 
-/** Converts marketplace subcategory metadata into a recognized Developer Tools subcategory. */
-function normalizeDeveloperToolSubcategory(value: unknown) {
+/** Converts marketplace subcategory metadata into a recognized technical subcategory. */
+function normalizePluginMarketplaceSubcategory(value: unknown) {
   if (typeof value !== 'string') {
     return null
   }
   const normalized = normalizeCategoryToken(value)
-  return LEGACY_DEVELOPER_TOOL_CATEGORY_SET.has(normalized) ? normalized : null
+  return PLUGIN_MARKETPLACE_SUBCATEGORY_SET.has(normalized) ? normalized : null
 }
 
 /** Collects marketplace metadata entries in target-app priority order. */
@@ -362,17 +370,17 @@ function findExplicitMarketplaceCategoryEntry(entries: readonly PluginMarketplac
     if (category) {
       return {
         category,
-        subcategory: normalizeDeveloperToolSubcategory(entry.marketplace.subcategory) ?? undefined
+        subcategory: normalizePluginMarketplaceSubcategory(entry.marketplace.subcategory) ?? undefined
       }
     }
   }
   return null
 }
 
-/** Finds the first valid Developer Tools subcategory declared by target-app marketplace metadata. */
-function findDeveloperToolSubcategory(entries: readonly PluginMarketplaceMetadataEntry[]) {
+/** Finds the first valid technical subcategory declared by target-app marketplace metadata. */
+function findMarketplaceSubcategory(entries: readonly PluginMarketplaceMetadataEntry[]) {
   for (const entry of entries) {
-    const subcategory = normalizeDeveloperToolSubcategory(entry.marketplace.subcategory)
+    const subcategory = normalizePluginMarketplaceSubcategory(entry.marketplace.subcategory)
     if (subcategory) {
       return subcategory
     }

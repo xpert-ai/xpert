@@ -16,17 +16,11 @@ import {
 } from '@angular/core'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardSegmentedComponent,
-  ZardSegmentedItemComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { MarkdownModule } from 'ngx-markdown'
 import { firstValueFrom } from 'rxjs'
 import type { TChatFileElementReference, TFile } from '@xpert-ai/contracts'
 import { FileEditorComponent, FileEditorSelection } from '../editor/editor.component'
-import { FormsModule } from '@angular/forms'
 import { FilePreviewContentComponent } from '../preview/file-preview-content.component'
 import { createFilePreviewState, toFilePreviewSource } from '../preview/file-preview.utils'
 import { clamp, inferTextPreviewSelection, toSelectionElement } from '../preview/preview-selection.utils'
@@ -51,13 +45,11 @@ type FileViewerPreviewSelection = {
   styleUrls: ['./viewer.component.css'],
   imports: [
     CommonModule,
-    FormsModule,
     TranslateModule,
     MarkdownModule,
     XpSpinComponent,
     ZardButtonComponent,
-    ZardSegmentedComponent,
-    ZardSegmentedItemComponent,
+    ...ZardMenuImports,
     ...ZardTooltipImports,
     FileEditorComponent,
     MarkdownEditorComponent,
@@ -104,6 +96,7 @@ export class FileViewerComponent {
     'This file is not a text-based format. Download it to inspect the original contents in another app.'
   )
 
+  readonly pathDirectories = computed(() => (this.filePath() ?? '').trim().split('/').filter(Boolean).slice(0, -1))
   readonly displayFileName = computed(() => fileNameFromPath(this.filePath()))
   readonly canReferenceFile = computed(() => this.referenceable() && !!this.filePath())
   readonly previewMode = signal<'preview' | 'code'>('preview')

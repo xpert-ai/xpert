@@ -56,11 +56,11 @@ jest.mock('../install/install.component', () => ({
   PluginInstallComponent: class PluginInstallComponent {}
 }))
 
-jest.mock('../plugin-marketplace-categories', () => ({
+jest.mock('./plugin-marketplace-categories', () => ({
   PLUGIN_MARKETPLACE_TARGET_APP: 'xpert'
 }))
 
-jest.mock('../plugin-marketplace-metadata', () => ({
+jest.mock('./plugin-marketplace-metadata', () => ({
   mergeMarketplaceContributions: (contributions: unknown) => contributions ?? []
 }))
 

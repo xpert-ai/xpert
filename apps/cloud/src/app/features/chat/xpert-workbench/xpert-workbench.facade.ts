@@ -17,7 +17,7 @@ import {
   OrderTypeEnum,
   Store
 } from '../../../@core'
-import type { TXpertProjectAccessSummary } from '@xpert-ai/contracts'
+import type { TXpertProjectAccessSummary, WorkbenchExtensionViewOpenRequest } from '@xpert-ai/contracts'
 import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
 import { XpertProjectApiService } from '../../project/project-api.service'
 import { WorkbenchChatFacade, WorkbenchChatViewState } from '../workbench-chat/workbench-chat.facade'
@@ -26,6 +26,7 @@ import { WorkbenchChatFacade, WorkbenchChatViewState } from '../workbench-chat/w
 export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
   #projectAccessRequestId = 0
+  #projectNavigationRequestId = 0
   #conversationEntryRequestId = 0
   #lastConversationEntryKey: string | null = null
   readonly #assistantBindingService = inject(AssistantBindingService)
@@ -157,23 +158,53 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     this.handleThreadChange(threadId)
   }
 
-  onChatProjectChange(projectId: string | null) {
+  async onChatProjectChange(projectId: string | null, view?: WorkbenchExtensionViewOpenRequest): Promise<boolean> {
     const normalizedProjectId = projectId?.trim() || null
-    if (normalizedProjectId === this.projectId()) {
-      return
-    }
-
+    if (normalizedProjectId === this.projectId() && !view) return true
     const slug = this.currentXpert()?.slug ?? this.slug()
-    if (!slug) {
-      return
+    if (!slug) return false
+    const navigationRequestId = ++this.#projectNavigationRequestId
+    const previous = {
+      url: this.#router.url,
+      conversation: this.activeConversation(),
+      access: this.projectAccess(),
+      suppressAutoResume: this.suppressAutoResume()
     }
-
     this.suppressAutoResume.set(true)
     this.activeConversation.set(null)
-    this.#projectAccessRequestId++
-    this.projectAccess.set(null)
+    if (normalizedProjectId !== this.projectId()) {
+      this.#projectAccessRequestId++
+      this.projectAccess.set(null)
+    }
     const commands = normalizedProjectId ? ['/chat/x', slug, 'p', normalizedProjectId, 'c'] : ['/chat/x', slug, 'c']
-    void this.#router.navigate(commands, { queryParamsHandling: 'preserve' })
+    const restore = () => {
+      if (navigationRequestId !== this.#projectNavigationRequestId || this.#router.url !== previous.url) return
+      this.activeConversation.set(previous.conversation)
+      this.projectAccess.set(previous.access)
+      this.suppressAutoResume.set(previous.suppressAutoResume)
+      const projectId = this.projectId()
+      if (!previous.access && projectId) void this.loadProjectAccess(projectId, ++this.#projectAccessRequestId)
+    }
+    try {
+      const opened = await this.#router.navigate(
+        commands,
+        view
+          ? {
+              queryParamsHandling: 'merge',
+              queryParams: {
+                view: view.viewKey,
+                viewSelection: view.selectionId ?? null,
+                viewParameters: view.parameters ? JSON.stringify(view.parameters) : null
+              }
+            }
+          : { queryParamsHandling: 'preserve' }
+      )
+      if (!opened) restore()
+      return opened
+    } catch (error) {
+      restore()
+      throw error
+    }
   }
 
   async beginPendingConversation(startId: number, control: ChatKitControl) {

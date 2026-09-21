@@ -1,3 +1,4 @@
+import type { XpertProjectListFilter } from '@xpert-ai/contracts'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import {
   OrderTypeEnum,
@@ -28,6 +29,7 @@ export class XpertProjectFacade {
   readonly #taskService = inject(XpertTaskService)
   readonly project = signal<IXpertProject | null>(null)
   readonly projects = signal<IXpertProject[]>([])
+  readonly projectsTotal = signal(0)
   readonly plans = signal<IXpertProjectPlan[]>([])
   readonly tasks = signal<IXpertProjectTask[]>([])
   readonly conversations = signal<IChatConversation[]>([])
@@ -53,7 +55,7 @@ export class XpertProjectFacade {
   #projectsLoadSequence = 0
   #projectLoadSequence = 0
 
-  async loadProjects(query: { search?: string; status?: string } = {}) {
+  async loadProjects(query: XpertProjectListFilter & { status?: string; skip?: number; take?: number } = {}) {
     const sequence = ++this.#projectsLoadSequence
     this.loading.set(true)
     this.error.set(null)
@@ -61,6 +63,7 @@ export class XpertProjectFacade {
       const response = await firstValueFrom(this.#api.list(query))
       if (sequence !== this.#projectsLoadSequence) return this.projects()
       this.projects.set(response.items ?? [])
+      this.projectsTotal.set(response.total ?? 0)
       return response.items ?? []
     } catch (error) {
       if (sequence !== this.#projectsLoadSequence) return this.projects()

@@ -1,6 +1,6 @@
 import type { I18nObject } from '@xpert-ai/contracts'
 import { mergeMarketplaceContributions } from './plugin-marketplace-metadata'
-import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from './types'
+import { TInstalledPlugin, TPluginMarketplaceContribution, TPluginWithDownloads } from '../types'
 
 export function toPluginMarketplaceDetails(plugin: TInstalledPlugin): TPluginWithDownloads {
   const contributions = getInstalledPluginMarketplaceContributions(plugin)

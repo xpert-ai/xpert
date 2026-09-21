@@ -35,6 +35,7 @@ import {
   PluginMarketplaceSourceType
 } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
+import { PluginMarketplaceCache } from './marketplace/plugin-marketplace-cache'
 
 const API_BASE = API_PREFIX + '/plugin'
 
@@ -54,6 +55,7 @@ export type IPluginMarketplaceResponse = PluginMarketplaceResponse
 
 @Injectable({ providedIn: 'root' })
 export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
+  private readonly marketplaceCache = new PluginMarketplaceCache()
   constructor() {
     super(API_BASE)
   }
@@ -148,7 +150,7 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     )
   }
 
-  getMarketplace(params?: { targetApp?: string; sourceId?: string; search?: string }) {
+  getMarketplace(params?: { targetApp?: string; sourceId?: string; search?: string; view?: 'summary' }) {
     let httpParams = new HttpParams()
     if (params?.targetApp) {
       httpParams = httpParams.set('targetApp', params.targetApp)
@@ -160,8 +162,41 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
       httpParams = httpParams.set('search', params.search)
     }
 
-    return this.httpClient.get<IPluginMarketplaceResponse>(`${this.apiBaseUrl}/marketplace`, {
-      params: httpParams
+    if (params?.view) {
+      httpParams = httpParams.set('view', params.view)
+    }
+    const load = () =>
+      this.httpClient.get<IPluginMarketplaceResponse>(`${this.apiBaseUrl}/marketplace`, {
+        params: httpParams
+      })
+    if (params?.view !== 'summary' || !this.store.userId) {
+      return load()
+    }
+    const key = JSON.stringify([this.store.userId, this.store.user?.tenantId, this.store.activeScope, params])
+    return this.marketplaceCache.get(key, load)
+  }
+
+  getMarketplacePlugin(params: { name: string; targetApp?: string; sourceId?: string }) {
+    return this.httpClient.get<IPluginMarketplaceItem>(
+      `${this.apiBaseUrl}/marketplace/${encodeURIComponent(params.name)}`,
+      {
+        params: {
+          ...(params.targetApp ? { targetApp: params.targetApp } : {}),
+          ...(params.sourceId ? { sourceId: params.sourceId } : {})
+        }
+      }
+    )
+  }
+
+  getMarketplaceIcon(params: { name: string; hash: string; sourceId?: string; targetApp?: string }) {
+    return this.httpClient.get(`${this.apiBaseUrl}/marketplace/assets/icon`, {
+      params: {
+        name: params.name,
+        hash: params.hash,
+        ...(params.sourceId ? { sourceId: params.sourceId } : {}),
+        ...(params.targetApp ? { targetApp: params.targetApp } : {})
+      },
+      responseType: 'blob'
     })
   }
 

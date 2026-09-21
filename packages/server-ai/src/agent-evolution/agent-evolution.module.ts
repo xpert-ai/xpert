@@ -1,4 +1,6 @@
 import { EvolutionStrategyService } from './changes/strategy.service'
+import { EvolutionBaselineService } from './application/evolution-baseline.service'
+import { EvolutionBaselineController } from './controllers/evolution-baseline.controller'
 import { EvolutionEvaluationExecutor } from './changes/evaluation-executor.service'
 import { EvolutionPublicationExecutor } from './changes/publication-executor.service'
 import { EvolutionLifecycleController } from './changes/lifecycle.controller'
@@ -33,8 +35,9 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         CqrsModule,
         DiscoveryModule
     ],
-    controllers: [EvolutionLifecycleController, AgentEvolutionController],
+    controllers: [EvolutionBaselineController, EvolutionLifecycleController, AgentEvolutionController],
     providers: [
+        EvolutionBaselineService,
         EvolutionChangeService,
         EvolutionStrategyService,
         EvolutionEvaluationExecutor,

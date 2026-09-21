@@ -182,16 +182,21 @@ export interface PluginMarketplaceAppModelRequirements {
   visionLabel?: string | I18nObject
 }
 
+export interface PluginMarketplaceAppAssistantDefinition {
+  key: string
+  templateKey: string
+  primaryAgentKey: string
+  title?: string | I18nObject
+}
+
 /** Portable independent Assistant topology owned by a trusted App. Instance IDs are host-managed. */
 export interface PluginMarketplaceAppAssistantSuite {
   version: string
   coordinatorAgentKey: string
-  roles: Array<{
-    key: string
-    templateKey: string
-    primaryAgentKey: string
-    title?: string | I18nObject
-  }>
+  /** Published Assistants connected to the coordinator as required External Xperts. */
+  roles: PluginMarketplaceAppAssistantDefinition[]
+  /** Published in the same workspace without granting coordinator delegation. */
+  standaloneAssistants?: PluginMarketplaceAppAssistantDefinition[]
 }
 
 /**
@@ -510,6 +515,8 @@ export interface XpertTemplatePluginDependencies {
 }
 
 export interface PluginMarketplaceContribution {
+  /** Project types defined by an App, separate from installation configuration. */
+  projectTypes?: import('./ai/xpert-project-type.model').XpertProjectTypeDefinition[]
   id?: string
   type: PluginMarketplaceContributionType
   name: string
@@ -550,6 +557,27 @@ export const PLUGIN_MARKETPLACE_CATEGORIES = [
 ] as const
 
 export type PluginMarketplaceCategory = (typeof PLUGIN_MARKETPLACE_CATEGORIES)[number]
+
+/**
+ * Technical subcategories used by the plugin marketplace.
+ * marketplace.category describes the business-facing group; marketplace.subcategory describes the technical type.
+ */
+export const PLUGIN_MARKETPLACE_SUBCATEGORIES = [
+  'connector',
+  'middleware',
+  'integration',
+  'database',
+  'tools',
+  'model',
+  'vlm',
+  'vector-store',
+  'doc-source',
+  'datasource',
+  'agent',
+  'set'
+] as const
+
+export type PluginMarketplaceSubcategory = (typeof PLUGIN_MARKETPLACE_SUBCATEGORIES)[number]
 
 export interface PluginTargetAppMarketplaceMetadata {
   contents?: PluginMarketplaceContribution[]
@@ -776,6 +804,10 @@ export interface PluginMarketplaceItemSource {
 }
 
 export interface PluginMarketplaceItem {
+  /** A card projection; fetch the plugin endpoint before displaying full contents/actions. */
+  summary?: boolean
+  /** Content hash of an embedded icon served by the authenticated marketplace assets endpoint. */
+  iconAsset?: string
   name: string
   packageName?: string | null
   displayName?: I18nObject | string

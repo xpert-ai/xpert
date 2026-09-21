@@ -201,6 +201,7 @@ import { redo, undo } from 'prosemirror-history'
       }
 
       .xp-docx-editor__pages {
+        --doc-bg: var(--color-background-default-subtle);
         position: relative;
         z-index: 1;
         min-height: 100%;

@@ -24,6 +24,7 @@ interface SelectHost {
   selectedValue(): Array<string | number>
   selectItem(value: string | number, label: string): void
   navigateTo(): void
+  isItemVisible?(value: string | number): boolean
 }
 
 @Component({
@@ -46,6 +47,7 @@ interface SelectHost {
     '[class]': 'classes()',
     '[attr.value]': 'zValue()',
     '[attr.data-disabled]': 'zDisabled() ? "" : null',
+    '[attr.data-hidden]': 'isVisible() ? null : ""',
     '[attr.data-selected]': 'isSelected() ? "" : null',
     '[attr.aria-selected]': 'isSelected()',
     '(mousedown)': 'onMouseDown($event)',
@@ -83,6 +85,11 @@ export class ZardSelectItemComponent {
   protected readonly strokeWidth = computed(() => (this.zMode() === 'compact' ? 3 : 2))
 
   protected readonly isSelected = computed(() => this.select()?.selectedValue().includes(this.zValue()) ?? false)
+
+  protected readonly isVisible = computed(() => {
+    const host = this.select()
+    return host?.isItemVisible?.(this.zValue()) ?? true
+  })
 
   setSelectHost(selectHost: SelectHost) {
     this.select.set(selectHost)

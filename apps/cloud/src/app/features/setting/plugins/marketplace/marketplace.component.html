@@ -116,9 +116,31 @@
       </button>
     }
   </div>
+  @if (marketplaceSubcategoryOptions().length) {
+    <div class="flex flex-wrap items-center justify-center gap-2">
+      <div class="system-sm-semibold shrink-0 text-text-tertiary">
+        {{ 'XP.Plugin.Subcategories' | translate: { Default: 'Technical Categories' } }}
+      </div>
+      <xp-select
+        class="inline-block w-[240px]"
+        multiple
+        [selectOptions]="marketplaceSubcategoryOptions()"
+        [placeholder]="'XP.Plugin.AllSubcategories' | translate: { Default: 'All Technical Categories' }"
+        [(ngModel)]="marketplaceSubcategories"
+      />
+    </div>
+  }
 </div>
 
 <div class="relative flex grow flex-col px-12 py-2" style="scrollbar-gutter: stable">
+  @if (updating()) {
+    <div role="status" class="py-2 text-sm text-text-tertiary">
+      {{ 'XP.Plugin.UpdatingMarketplace' | translate: { Default: 'Updating the plugin list...' } }}
+    </div>
+  }
+  @if (error() && manifest()) {
+    <div role="status" class="py-2 text-sm text-text-warning">{{ error() }}</div>
+  }
   @if (loading()) {
     <div class="flex min-h-[420px] flex-col justify-center py-6">
       <div class="overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-sm">
@@ -143,8 +165,7 @@
                     'XP.Plugin.LoadingMarketplaceHelp'
                       | translate
                         : {
-                            Default:
-                              'Fetching the marketplace catalog and plugin download stats. This usually takes just a few seconds.'
+                            Default: 'Fetching the plugin list. Additional metadata updates in the background.'
                           }
                   }}
                 </div>
@@ -192,7 +213,7 @@
         </div>
       </div>
     </div>
-  } @else if (error()) {
+  } @else if (error() && !manifest()) {
     <div
       class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
     >
@@ -253,24 +274,6 @@
               {{ group.plugins.length }}
             </div>
           </div>
-          @if (
-            group.value === 'developer-tools' &&
-            showDeveloperToolSubcategoryFilter() &&
-            developerToolSubcategoryOptions().length
-          ) {
-            <div class="mt-2 flex items-center gap-2">
-              <div class="system-sm-semibold shrink-0 text-text-tertiary">
-                {{ 'XP.Plugin.DeveloperToolsSubcategories' | translate: { Default: 'Developer Tools Categories' } }}
-              </div>
-              <xp-select
-                class="inline-block w-[220px]"
-                multiple
-                [selectOptions]="developerToolSubcategoryOptions()"
-                [placeholder]="'XP.Plugin.AllDeveloperTools' | translate: { Default: 'All Developer Tools' }"
-                [(ngModel)]="developerToolSubcategories"
-              />
-            </div>
-          }
           <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
             @for (plugin of group.plugins; track plugin.name) {
               <xp-settings-plugin

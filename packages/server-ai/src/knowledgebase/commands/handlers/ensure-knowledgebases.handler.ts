@@ -1,5 +1,6 @@
 import {
     AIPermissionsEnum,
+    AiModelTypeEnum,
     KnowledgebasePermission,
     KnowledgebaseTypeEnum,
     KnowledgeStructureEnum,
@@ -7,7 +8,8 @@ import {
     type KBMetadataFieldDef
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { t } from 'i18next'
 import { RequestContext } from '@xpert-ai/server-core'
 import type {
     KnowledgebaseEnsureItem,
@@ -16,13 +18,18 @@ import type {
     KnowledgebaseProvisioningSpec
 } from '@xpert-ai/plugin-sdk'
 import { KnowledgebaseService } from '../../knowledgebase.service'
+import { CopilotWithProviderDto } from '../../../copilot/dto'
+import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../../../copilot/queries/copilot-model-find.query'
 import { EnsureKnowledgebasesCommand } from '../ensure-knowledgebases.command'
 
 const MANAGED_MARKER_PREFIX = '[xpert-managed:'
 
 @CommandHandler(EnsureKnowledgebasesCommand)
 export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowledgebasesCommand> {
-    constructor(private readonly knowledgebaseService: KnowledgebaseService) {}
+    constructor(
+        private readonly knowledgebaseService: KnowledgebaseService,
+        private readonly queryBus: QueryBus
+    ) {}
 
     async execute(command: EnsureKnowledgebasesCommand): Promise<KnowledgebaseEnsureResult> {
         if (!RequestContext.hasPermission(AIPermissionsEnum.KNOWLEDGEBASE_EDIT, false)) {
@@ -68,24 +75,29 @@ export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowle
             false,
             user
         )
-        const inheritedEmbeddingModel = input.inheritEmbeddingModel
-            ? cloneEmbeddingModel(
-                  accessible.items.find(
-                      (item) => item.copilotModel && !item.description?.includes(MANAGED_MARKER_PREFIX)
-                  )?.copilotModel
-              )
+        const workspaceKnowledgebases = accessible.items.filter((item) => item.workspaceId === workspaceId)
+        const needsEmbeddingModel =
+            input.inheritEmbeddingModel &&
+            input.knowledgebases.some(
+                (spec) =>
+                    !workspaceKnowledgebases.find((item) =>
+                        item.description?.includes(managedMarker(namespace, workspaceId, spec.key))
+                    )?.copilotModelId
+            )
+        const embeddingModel = needsEmbeddingModel
+            ? await this.resolveEmbeddingModel(workspaceKnowledgebases)
             : undefined
-        if (input.inheritEmbeddingModel && !inheritedEmbeddingModel) {
-            throw new BadRequestException('No configured embedding model is available in an accessible knowledgebase')
-        }
         const items: KnowledgebaseEnsureItem[] = []
 
         for (const spec of input.knowledgebases) {
             const marker = managedMarker(namespace, workspaceId, spec.key)
-            const existing = accessible.items.find((item) => item.description?.includes(marker))
+            const existing = workspaceKnowledgebases.find((item) => item.description?.includes(marker))
             const patch = provisioningPatch(spec, workspaceId, marker)
-            if (!existing?.copilotModelId && inheritedEmbeddingModel) {
-                patch.copilotModel = { ...inheritedEmbeddingModel }
+            if (!existing?.copilotModelId && embeddingModel) {
+                patch.copilotModel = cloneEmbeddingModel(embeddingModel)
+            }
+            if (typeof spec.graphRag?.enabled === 'boolean') {
+                patch.graphRag = { ...existing?.graphRag, enabled: spec.graphRag.enabled }
             }
             const saved = existing
                 ? await this.knowledgebaseService.updateKnowledgebase(existing.id, patch)
@@ -108,6 +120,37 @@ export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowle
         }
 
         return { namespace, workspaceId, knowledgebases: items }
+    }
+
+    private async resolveEmbeddingModel(knowledgebases: IKnowledgebase[]) {
+        const copilots = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
+            new FindCopilotModelsQuery(AiModelTypeEnum.TEXT_EMBEDDING, CopilotModelCatalogMode.Available)
+        )
+        for (const copilot of copilots) {
+            const model = copilot.providerWithModels.models.find(
+                (item) => item.model_type === AiModelTypeEnum.TEXT_EMBEDDING && item.model?.trim()
+            )
+            if (model) {
+                return { copilotId: copilot.id, model: model.model, modelType: AiModelTypeEnum.TEXT_EMBEDDING }
+            }
+        }
+
+        // Only inherit from another ordinary knowledgebase in this workspace.
+        // Organization-shared knowledgebases returned by the listing are excluded by the caller.
+        const inherited = knowledgebases.find(
+            (item) =>
+                !item.description?.includes(MANAGED_MARKER_PREFIX) &&
+                item.copilotModel?.modelType === AiModelTypeEnum.TEXT_EMBEDDING &&
+                (item.copilotModel.referencedId || (item.copilotModel.copilotId && item.copilotModel.model?.trim()))
+        )
+        if (inherited) return cloneEmbeddingModel(inherited.copilotModel)
+
+        throw new BadRequestException(
+            t('server-ai:Error.KnowledgebaseProvisioningEmbeddingUnavailable', {
+                defaultValue:
+                    'No available embedding model was found in accessible Copilot providers or other knowledgebases in this workspace. Configure an embedding model and its access permissions, then retry.'
+            })
+        )
     }
 }
 

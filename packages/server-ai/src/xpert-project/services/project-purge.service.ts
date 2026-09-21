@@ -28,6 +28,7 @@ export class XpertProjectPurgeService {
         })
         if (!access) return { projectId: input.projectId, deleted: true }
         const { project } = access
+        this.projects.assertPlatformLifecycle(project)
         const linked = await this.projects.findOne(input.projectId, { relations: ['xperts'] })
         if (!linked.xperts?.some((agent) => agent.id === input.xpertId)) {
             throw new ForbiddenException(

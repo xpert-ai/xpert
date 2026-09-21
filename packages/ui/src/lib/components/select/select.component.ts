@@ -91,9 +91,25 @@ const COMPACT_MODE_WIDTH_THRESHOLD = 100
         (keydown.{arrowdown,arrowup,enter,space,escape,home,end}.prevent)="onDropdownKeydown($event)"
         tabindex="-1"
       >
+        @if (zSearchable()) {
+          <div class="flex items-center gap-2 border-b px-2.5 pb-1 pt-1.5">
+            <z-icon zType="search" class="shrink-0 opacity-50" />
+            <input
+              #searchInput
+              class="h-8 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              [placeholder]="searchPlaceholderText()"
+              [value]="searchTerm()"
+              (input)="onSearchInput($event)"
+              (keydown)="onSearchInputKeydown($event)"
+            />
+          </div>
+        }
         <div class="p-1">
           <ng-content />
         </div>
+        @if (zSearchable() && searchTerm() && !visibleItemsCount()) {
+          <div class="px-2 py-4 text-center text-sm text-muted-foreground">{{ searchEmptyText() }}</div>
+        }
       </div>
     </ng-template>
   `,
@@ -135,13 +151,18 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   readonly zMaxLabelCount = input<number>(1)
   readonly zMultiple = input<boolean>(false)
   readonly zPlaceholder = input<string>()
+  readonly zSearchable = input(false, { transform: booleanAttribute })
+  readonly zSearchPlaceholder = input<string>()
+  readonly zSearchEmptyText = input<string>()
   readonly zSize = input<ZardSelectSizeVariants>('default')
   readonly zValue = model<ZardSelectValue | ZardSelectValue[]>(this.zMultiple() ? [] : '')
 
   readonly zSelectionChange = output<ZardSelectValue | ZardSelectValue[]>()
 
   readonly isOpen = signal(false)
-  readonly focusedIndex = signal<number>(-1)
+  readonly focusedIndex = signal(-1)
+  readonly searchTerm = signal('')
+  readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput')
   protected readonly isFocus = signal(false)
   protected readonly isCompact = signal(false)
   private readonly syncSelectItems = effect(() => {
@@ -156,12 +177,51 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
         selectedValue: () =>
           this.zMultiple() ? (this.zValue() as ZardSelectValue[]) : [this.zValue() as ZardSelectValue],
         selectItem: (value: ZardSelectValue, label: string) => this.selectItem(value, label),
-        navigateTo: () => this.navigateTo(item, index)
+        navigateTo: () => this.navigateTo(item, index),
+        isItemVisible: (value: ZardSelectValue) => this.isItemVisible(value)
       })
       item.zSize.set(size)
       item.zMode.set(compact ? 'compact' : 'normal')
     }
   })
+
+  isItemVisible(value: ZardSelectValue): boolean {
+    const term = this.searchTerm().toLowerCase().trim()
+    if (!term) {
+      return true
+    }
+
+    const values = this.zMultiple() ? (this.zValue() as ZardSelectValue[]) : [this.zValue() as ZardSelectValue]
+    if (values.includes(value)) {
+      return true
+    }
+
+    const item = this.selectItems().find((candidate) => candidate.zValue() === value)
+    return !!item && item.label().toLowerCase().includes(term)
+  }
+
+  protected readonly visibleItemsCount = computed(() => {
+    if (!this.zSearchable() || !this.searchTerm()) {
+      return this.selectItems().length
+    }
+    return this.selectItems().filter((item) => this.isItemVisible(item.zValue())).length
+  })
+
+  protected readonly searchPlaceholderText = computed(
+    () =>
+      this.zSearchPlaceholder() ??
+      this.i18n.t('xp-ui:select.searchPlaceholder', {
+        Default: 'Search...'
+      })
+  )
+
+  protected readonly searchEmptyText = computed(
+    () =>
+      this.zSearchEmptyText() ??
+      this.i18n.t('xp-ui:select.noResults', {
+        Default: 'No results found.'
+      })
+  )
 
   protected onFocus(): void {
     if (this.isCompact()) {
@@ -253,6 +313,20 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
       case 'End':
         this.focusLastItem(items)
         break
+    }
+  }
+
+  onSearchInput(event: Event) {
+    this.searchTerm.set((event.target as HTMLInputElement).value)
+    this.focusedIndex.set(-1)
+  }
+
+  // Keep the container's space-to-select shortcut away from the search input so
+  // spaces can still be typed; other keys bubble to the dropdown handler.
+  onSearchInputKeydown(event: Event) {
+    const { key } = event as KeyboardEvent
+    if (key === ' ') {
+      event.stopPropagation()
     }
   }
 
@@ -378,7 +452,12 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   private setFocusOnOpen(): void {
-    this.focusDropdown()
+    if (this.zSearchable()) {
+      // keep keyboard focus in the search field while filtering
+      this.searchInput()?.nativeElement.focus()
+    } else {
+      this.focusDropdown()
+    }
     this.focusSelectedItem()
   }
 
@@ -388,6 +467,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
     }
     this.isOpen.set(false)
     this.focusedIndex.set(-1)
+    this.searchTerm.set('')
     this.onTouched()
     this.updateFocusWhenNormalMode()
   }
@@ -525,7 +605,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
     }
     const dropdownElement = this.overlayRef.overlayElement
     return Array.from(dropdownElement.querySelectorAll<HTMLElement>('z-select-item, [z-select-item]')).filter(
-      (item) => ignoreFilter || item.dataset['disabled'] === undefined
+      (item) => ignoreFilter || (item.dataset['disabled'] === undefined && item.dataset['hidden'] === undefined)
     )
   }
 
@@ -582,7 +662,10 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
     for (let index = 0; index < items.length; index++) {
       const item = items[index]
       if (index === focusedIndex) {
-        item.focus()
+        // in searchable mode focus stays in the search input; only highlight the item
+        if (!this.zSearchable()) {
+          item.focus()
+        }
         item.setAttribute('aria-selected', 'true')
         item.setAttribute('data-selected', 'true')
       } else {

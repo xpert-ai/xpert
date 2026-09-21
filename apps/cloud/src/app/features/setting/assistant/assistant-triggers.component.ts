@@ -14,9 +14,13 @@ import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpI18nPipe, ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
+import { TWorkflowTriggerConnectionStatus } from '@xpert-ai/contracts'
+import { AssistantTriggerConnectionService } from './assistant-trigger-connection.service'
+import { AssistantTriggerQrComponent } from './assistant-trigger-qr.component'
 import { getErrorMessage, ToastrService, TWorkflowTriggerMeta, XpertAPIService } from '../../../@core'
 import { IconComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
+import { buildEditableXpertDraft } from '../../xpert/draft'
 import { AssistantTriggerDialogComponent } from './assistant-trigger-dialog.component'
 import {
   AssistantTriggerCard,
@@ -114,11 +118,15 @@ import {
               </div>
               <p class="mt-3 text-xs leading-5 text-muted-foreground">
                 {{
-                  (!card.available
-                    ? 'XP.AssistantSettings.TriggerUnavailable'
-                    : connected(card)
-                      ? 'XP.AssistantSettings.TriggerInDraft'
-                      : 'XP.AssistantSettings.TriggerAvailable'
+                  (card.provider.quickConnect && connectionStatus(card)?.enabled
+                    ? connectionStatus(card)?.connected
+                      ? 'XP.AssistantSettings.DirectQrConnected'
+                      : 'XP.AssistantSettings.DirectQrOffline'
+                    : !card.available
+                      ? 'XP.AssistantSettings.TriggerUnavailable'
+                      : connected(card)
+                        ? 'XP.AssistantSettings.TriggerInDraft'
+                        : 'XP.AssistantSettings.TriggerAvailable'
                   ) | translate
                 }}
               </p>
@@ -133,7 +141,7 @@ import {
         }
       </div>
       <p class="mt-5 text-xs leading-5 text-muted-foreground">
-        {{ 'XP.AssistantSettings.TriggerSaveHint' | translate }}
+        {{ 'XP.AssistantSettings.DirectQrSaveHint' | translate }}
       </p>
     }
   `
@@ -142,6 +150,7 @@ export class AssistantTriggersComponent implements OnDestroy {
   readonly facade = inject(ClawXpertFacade)
   private readonly toastr = inject(ToastrService)
   private readonly api = inject(XpertAPIService)
+  private readonly connections = inject(AssistantTriggerConnectionService)
   private readonly dialog = inject(Dialog)
   private readonly viewContainerRef = inject(ViewContainerRef)
   private readonly translate = inject(TranslateService)
@@ -152,7 +161,15 @@ export class AssistantTriggersComponent implements OnDestroy {
   readonly cards = computed(() => buildAssistantTriggerCards(this.providers(), this.facade.triggerEditorItems()))
   readonly connectingKey = signal<string | null>(null)
   readonly disconnecting = signal(false)
-  readonly connected = isAssistantTriggerConnected
+  readonly connectionStatuses = signal<TWorkflowTriggerConnectionStatus[]>([])
+  connectionStatus(card: AssistantTriggerCard) {
+    return this.connectionStatuses().find((status) => status.provider === card.provider.name)
+  }
+  connected(card: AssistantTriggerCard) {
+    return card.provider.quickConnect
+      ? this.connectionStatus(card)?.enabled === true
+      : isAssistantTriggerConnected(card)
+  }
   private requestId = 0
   private configDialog: DialogRef<boolean> | null = null
 
@@ -163,6 +180,7 @@ export class AssistantTriggersComponent implements OnDestroy {
       untracked(() => {
         this.requestId++
         this.providers.set([])
+        this.connectionStatuses.set([])
         this.error.set(null)
         this.loading.set(false)
         this.configDialog?.close()
@@ -173,17 +191,46 @@ export class AssistantTriggersComponent implements OnDestroy {
 
   async refresh() {
     const requestId = ++this.requestId
+    const organizationId = this.facade.organizationId()
+    const xpertId = this.facade.xpertId()
     this.loading.set(true)
     this.error.set(null)
     try {
       const providers = await firstValueFrom(this.api.getTriggerProviders())
-      if (requestId === this.requestId) this.providers.set(providers)
+      const [statuses] = providers.some((provider) => provider.quickConnect)
+        ? await Promise.all([this.connections.statuses(xpertId), this.reloadTriggerDraft(xpertId, organizationId)])
+        : [[]]
+      if (requestId === this.requestId) {
+        this.providers.set(providers)
+        this.connectionStatuses.set(statuses)
+      }
     } catch (error) {
       if (requestId === this.requestId)
         this.error.set(getErrorMessage(error) || this.translate.instant('XP.AssistantSettings.TriggerLoadFailed'))
     } finally {
       if (requestId === this.requestId) this.loading.set(false)
     }
+  }
+
+  private async reloadTriggerDraft(xpertId: string, organizationId: string) {
+    const source = this.facade.triggerDraftSource()
+    const draft = this.facade.triggerDraft()
+    const latest = await firstValueFrom(this.api.getTeam(xpertId))
+    if (
+      this.facade.xpertId() !== xpertId ||
+      this.facade.organizationId() !== organizationId ||
+      source?.id !== xpertId ||
+      latest.id !== xpertId ||
+      this.facade.triggerDraftSource() !== source ||
+      this.facade.triggerDraft() !== draft
+    )
+      return
+
+    // Keep workspace settings current even if this settings dialog closes while the request is pending.
+    const next = { ...source, graph: latest.graph, draft: latest.draft }
+    this.facade.triggerDraftSource.set(next)
+    this.facade.triggerDraft.set(buildEditableXpertDraft(next))
+    this.facade.triggerDraftErrorMessage.set(null)
   }
 
   configure(card: AssistantTriggerCard) {
@@ -195,21 +242,25 @@ export class AssistantTriggersComponent implements OnDestroy {
       this.facade.viewState() !== 'ready'
     )
       return
-    this.configDialog = this.dialog.open<boolean>(AssistantTriggerDialogComponent, {
-      viewContainerRef: this.viewContainerRef,
-      data: {
-        card: structuredClone(card),
-        organizationId: this.facade.organizationId(),
-        xpertId: this.facade.xpertId()
-      },
-      backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog',
-      ariaLabel: this.i18n.transform(card.provider.label)
-    })
+    this.configDialog = this.dialog.open<boolean>(
+      card.provider.quickConnect ? AssistantTriggerQrComponent : AssistantTriggerDialogComponent,
+      {
+        viewContainerRef: this.viewContainerRef,
+        data: {
+          card: structuredClone(card),
+          organizationId: this.facade.organizationId(),
+          xpertId: this.facade.xpertId()
+        },
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        ariaLabel: this.i18n.transform(card.provider.label)
+      }
+    )
     this.connectingKey.set(card.key)
-    this.configDialog.closed.subscribe(() => {
+    this.configDialog.closed.subscribe((connected) => {
       this.configDialog = null
       this.connectingKey.set(null)
+      if (connected && card.provider.quickConnect) void this.refresh()
     })
   }
 
@@ -228,6 +279,18 @@ export class AssistantTriggersComponent implements OnDestroy {
       return
     if (!this.connected(card)) {
       this.configure(card)
+      return
+    }
+    if (card.provider.quickConnect) {
+      this.disconnecting.set(true)
+      try {
+        await this.connections.disconnect(this.facade.xpertId(), card.provider.name)
+        await this.refresh()
+      } catch (error) {
+        this.toastr.error(getErrorMessage(error))
+      } finally {
+        this.disconnecting.set(false)
+      }
       return
     }
     const items = this.facade.triggerEditorItems()

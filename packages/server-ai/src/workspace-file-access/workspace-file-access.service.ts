@@ -299,11 +299,23 @@ export class WorkspaceFileAccessService {
             return null
         }
 
+        // Blob-backed, same-origin plugin iframes can fetch preview bytes without
+        // Origin or Referer. The guard has already verified the cookie and grant;
+        // accept only this browser fetch shape, never an explicit invalid origin.
+        if (
+            purpose === 'preview' &&
+            request.headers.origin === undefined &&
+            request.headers.referer === undefined &&
+            isSameOriginFetchRequest(request.headers)
+        ) {
+            return null
+        }
+
         // A sandboxed Remote View has an opaque origin. When it follows the
         // one-time download URL, browsers intentionally omit both Origin and
         // Referer even though the parent host created the authenticated,
         // HttpOnly-cookie-bound session. Permit only that attachment flow;
-        // previews and any explicit mismatched origin remain denied.
+        // other previews and any explicit mismatched origin remain denied.
         if (!origin && purpose === 'download') {
             return null
         }
@@ -525,6 +537,14 @@ function isSameSiteImageRequest(headers: Request['headers']) {
         (fetchSite === 'same-origin' || fetchSite === 'same-site') &&
         headers['sec-fetch-mode'] === 'no-cors' &&
         headers['sec-fetch-dest'] === 'image'
+    )
+}
+
+function isSameOriginFetchRequest(headers: Request['headers']) {
+    return (
+        headers['sec-fetch-site'] === 'same-origin' &&
+        headers['sec-fetch-mode'] === 'cors' &&
+        headers['sec-fetch-dest'] === 'empty'
     )
 }
 

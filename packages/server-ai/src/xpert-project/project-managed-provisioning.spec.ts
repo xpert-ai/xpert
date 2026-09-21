@@ -1,5 +1,7 @@
+import { RequestContext, ProjectTypeProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
+import { XpertProjectTypeService } from './services/project-type.service'
 import type { IUser, IXpert } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { Repository } from 'typeorm'
 import type { ConnectorService } from '../connector/connector.service'
@@ -37,6 +39,31 @@ describe('XpertProjectService managed provisioning', () => {
 
         expect(result.xpertIds).toEqual([requester.id])
         expect(harness.createdProject.xperts).toEqual([requester])
+    })
+
+    it('repairs content after a persisted Project survives a failed creation attempt', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const input = {
+            projectId: 'project-1',
+            xpertId: requester.id,
+            name: 'Automotive Case',
+            status: 'active' as const
+        }
+        jest.mocked(harness.service.create).mockImplementationOnce(async () => {
+            harness.repository.findOne.mockResolvedValue(harness.createdProject)
+            throw new Error('content storage temporarily unavailable')
+        })
+        await expect(harness.service.ensureManagedProject(input)).rejects.toThrow(
+            'content storage temporarily unavailable'
+        )
+        await expect(harness.service.ensureManagedProject(input)).resolves.toMatchObject({
+            projectId: 'project-1',
+            operation: 'updated',
+            xpertIds: [requester.id]
+        })
+        expect(harness.service.create).toHaveBeenCalledTimes(1)
+        expect(harness.content.initialize).toHaveBeenCalledWith(harness.createdProject)
     })
 
     it('connects the requester and every validated direct required External Assistant in one save', async () => {
@@ -179,17 +206,28 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         ),
         isSameXpert: jest.fn((left: IXpert, right: IXpert) => left.id === right.id)
     }
+    const content = Object.assign({} as XpertProjectContentService, { initialize: jest.fn() })
     const service = new XpertProjectService(
         repository as unknown as Repository<XpertProject>,
         {} as CommandBus,
         queryBus as unknown as QueryBus,
         {} as XpertProjectTaskService,
         {} as XpertProjectAccessService,
-        { initialize: jest.fn() } as unknown as XpertProjectContentService,
+        content,
         publishedXpertAccess as unknown as PublishedXpertAccessService,
         {} as ConnectorService,
-        bindingService as unknown as XpertProjectXpertBindingService
+        bindingService as unknown as XpertProjectXpertBindingService,
+        projectTypeTestService()
     )
     jest.spyOn(service, 'create').mockResolvedValue(createdProject)
-    return { service, repository, createdProject }
+    return { service, repository, createdProject, content }
+}
+
+function projectTypeTestService() {
+    return new XpertProjectTypeService(
+        {} as ProjectTypeProviderRegistry,
+        {} as Repository<PluginApplicationInstallation>,
+        {} as XpertProjectAccessService,
+        {} as PublishedXpertAccessService
+    )
 }
