@@ -1,5 +1,8 @@
+import { ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { RequestContext, ProjectTypeProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
+import { XpertProjectTypeService } from './services/project-type.service'
 import { IUser, IXpert } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Brackets, EntityManager, Repository, WhereExpressionBuilder } from 'typeorm'
@@ -67,7 +70,7 @@ describe('XpertProjectService collaboration access', () => {
         expect(queryBuilder.leftJoin).toHaveBeenCalledWith(
             'project.memberships',
             'membership',
-            'membership.userId = :userId AND membership.deletedAt IS NULL'
+            'membership.userId = :userId AND membership.deletedAt IS NULL AND membership.removedAt IS NULL'
         )
         const accessBoundary = queryBuilder.andWhere.mock.calls[0][0]
         expect(accessBoundary).toBeInstanceOf(Brackets)
@@ -118,14 +121,18 @@ describe('XpertProjectService collaboration access', () => {
         expect(repository.save).toHaveBeenCalledWith(project)
     })
 
-    it('notifies the scheduler when a Project Xpert is removed', async () => {
+    it('pauses schedules when a Project Xpert is removed', async () => {
         const project = {
             id: 'project-1',
             tenantId: 'tenant-1',
             organizationId: 'org-1',
             xperts: [{ id: 'xpert-current' }]
         } as XpertProject
-        const repository = { save: jest.fn(async (entity: XpertProject) => entity) }
+        const pauseSchedules = jest.fn()
+        const repository = {
+            save: jest.fn(async (entity: XpertProject) => entity),
+            manager: { getRepository: () => ({ update: pauseSchedules }) }
+        }
         const accessService = { assertCanManage: jest.fn().mockResolvedValue({ project }) }
         const bindingService = {
             resolveCurrentById: jest.fn().mockResolvedValue({ id: 'xpert-current' }),
@@ -145,12 +152,10 @@ describe('XpertProjectService collaboration access', () => {
 
         await service.removeXpert(project.id, 'xpert-old')
 
-        expect(eventEmitter.emitAsync).toHaveBeenCalledWith('xpert-project.xpert-removed', {
-            tenantId: project.tenantId,
-            organizationId: project.organizationId,
-            projectId: project.id,
-            xpertIds: ['xpert-old', 'xpert-current']
-        })
+        expect(pauseSchedules).toHaveBeenCalledWith(
+            expect.objectContaining({ projectId: project.id }),
+            expect.objectContaining({ status: ScheduleTaskStatus.PAUSED })
+        )
     })
 
     it('authorizes new Project attachments through the owned StorageFile query', async () => {
@@ -273,13 +278,20 @@ function createService(
         {} as CommandBus,
         queryBus,
         {} as XpertProjectTaskService,
-        {} as XpertWorkspaceAccessService,
-        {} as XpertWorkspaceService,
         accessService,
         { initialize: jest.fn() } as unknown as XpertProjectContentService,
         publishedXpertAccess,
         connectorService,
-        eventEmitter,
-        xpertBindingService
+        xpertBindingService,
+        projectTypeTestService()
+    )
+}
+
+function projectTypeTestService() {
+    return new XpertProjectTypeService(
+        {} as ProjectTypeProviderRegistry,
+        {} as Repository<PluginApplicationInstallation>,
+        {} as XpertProjectAccessService,
+        {} as PublishedXpertAccessService
     )
 }

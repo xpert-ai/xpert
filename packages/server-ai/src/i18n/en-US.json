@@ -1,5 +1,12 @@
 {
     "Error": {
+        "ProjectTypeInvalid": "Project type definition or identity is invalid.",
+        "ProjectTypeDuplicate": "A Project type is declared more than once.",
+        "ProjectTypeUnavailable": "The Project application or type is unavailable.",
+        "ProjectTypeConflict": "The Project belongs to a different application or type.",
+        "ProjectApplicationWorkflowRequired": "Use the application business workflow to create or manage this Project.",
+        "ProjectApplicationEntryUnavailable": "No accessible application Assistant is available for this Project.",
+        "ProjectManagedStateConflict": "Project name or status does not match the persisted business record.",
         "EvolutionBaselineOperationFailed": "Rule baseline operation could not be completed. Refresh the rule status and check permissions.",
         "MarketplaceCacheUnavailable": "The plugin marketplace is temporarily unavailable. Please retry shortly.",
         "KnowledgebaseProvisioningEmbeddingUnavailable": "No available embedding model was found in accessible Copilot providers or other knowledgebases in this workspace. Configure an embedding model and its access permissions, then retry.",

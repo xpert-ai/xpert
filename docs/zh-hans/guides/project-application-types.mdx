@@ -1,0 +1,68 @@
+# 应用项目类型
+
+`XpertProject` 继续承载成员、文件、会话和 Assistant 连接；业务实体通过自己的 `workspaceProjectId` 关联它。分类独立于 Assistant 连接，同一项目仍可连接多个 Assistant。
+
+## 契约与扩展
+
+- `applicationKey = <插件包名>:<app contribution name>`：跨安装、升级稳定的应用标识。
+- `projectTypeKey`：应用内稳定的类型键，例如 `case`。
+- `applicationInstallationId`：可选的安装来源记录，不作为业务实体映射或授权依据。
+- `projectTypeSnapshot`：应用标题、类型标题与绑定方式的显示快照。插件移除后仍可显示来源；不能凭快照执行插件逻辑。
+- 普通新项目使用 `platform/general`。没有可信业务关联的旧项目保留未分类，不按名称或 Assistant 推测。
+
+应用在 Xpert target 的 App contribution 中声明：
+
+```ts
+projectTypes: [
+  {
+    key: 'case',
+    title: { en_US: 'Case', zh_Hans: 'Case' },
+    binding: { kind: 'entity', providerKey: 'automotive_case_project' }
+  }
+]
+```
+
+直接使用通用项目的应用声明 `binding: { kind: 'project' }`，走平台创建流程。关联业务实体的应用注册 `@ProjectTypeProvider(providerKey)` Provider，并加入插件的 Nest providers。
+
+Provider 的 `resolve(context, projectId)` 必须按租户、组织查询已保存的业务关联，并验证同步操作者，返回业务名称、状态、业务 Assistant（可选）、完整公共 viewKey 和 selectionId。`createEntry()` 返回应用业务创建入口。宿主核对注册器中的插件来源与作用域；浏览器不能指定任意 Provider 或跳转 URL。
+
+服务端与插件统一从 `@xpert-ai/plugin-sdk` 导入 `RequestContext`，使用当前认证请求中的租户、组织和用户构造 Provider 上下文，不接受浏览器传入的身份字段。
+
+Assistant 可在 `options.workspaceScope.projectType` 明确声明默认类型。该字段控制项目选择器初始筛选，不能替代项目成员权限和 Assistant 连接验证。
+
+## 创建、同步和访问
+
+1. 创建 Case 的事务先保存 Case、唯一 Project ID 和 pending 状态。
+2. 事务提交后调用 `ProjectProvisioningApi.ensure({ projectType, projectId, ... })`。
+3. 平台验证 Provider 对应的持久化关联、操作者、业务名称和状态后创建项目。相同 ID 的重试补齐内容目录与 Assistant 连接，不产生第二个项目。
+4. 不允许普通创建接口创建 entity 类型，不允许普通更新或无类型的 ensure 改写已有分类，也不允许将通用或其他应用项目隐式认领为 Case 项目。
+5. 业务名称和生命周期由应用负责。平台禁止 entity 项目的普通重命名、复制、归档、删除与清理；插件缺失时也不会退化为通用项目。当前 BOM/Factory 同步 active 状态，未来业务归档需要先由 Provider 返回相应持久化状态再通过 ensure 同步。永久删除仍需单独设计业务清理流程。
+6. 打开业务项目时先检查成员权限，再解析业务关联，并验证目标 Assistant 已连接且可访问。Project 仍位于 `/chat/x/:slug/p/:projectId/c` 路由中。
+
+BOM 与 Factory Operations 均声明 `case` 类型。BOM 保留 Case 上的 `workspaceProjectId`；未关联的历史 Case 首次打开时创建专属项目，不采用当前选中的项目。
+
+## API 与交互
+
+- `GET /api/xpert-project/types?xpertId=...`：有效作用域内的类型目录与 Assistant 默认类型。
+- `GET /api/xpert-project/type-entry?applicationKey=...&projectTypeKey=...&projectId=...&xpertId=...`：受控的创建或打开入口。
+- `GET /api/xpert-project/my?data=...` 和 `/available?xpertId=...` 接受 `applicationKey`、`projectTypeKey`、`search`、`unclassified` 过滤，并在服务端分页。
+- 全局项目页支持类型前缀点击筛选。ChatKit 按稳定的 `applicationKey` 与 `projectTypeKey` 分组，同一类型只显示一个可点击的组标题；历史显示快照不同不会拆成多个组。应用 entity 类型的新建按钮进入业务流程；目录加载失败不会回退创建通用项目。
+- ChatKit 每次加载 20 个项目，后续页面合并到已有分组并按 Project ID 去重。切换筛选或搜索时从第一页重新请求，取消旧请求；搜索覆盖当前筛选范围内的全部项目。加载更多失败时保留已有项目并允许重试。
+- “最近更新”视图复用同一批分页数据，按服务端 `updatedAt DESC, id DESC` 排序；它表示更新时间，不表示用户最近访问时间。该视图与分组视图切换时不会重复请求或丢失已加载页面。
+- ChatKit 通过 HTTP SDK `Client.projects` 请求，保留既有鉴权、组织请求钩子和 AbortSignal。
+
+## 发布与迁移顺序
+
+数据库回填需要在部署流程中显式执行；发布代码本身不会自动为历史项目分类。
+
+1. 发布包含本次 changeset 的 `@xpert-ai/contracts` 与 `@xpert-ai/plugin-sdk`（下一 minor 为 3.19.0），以及对应宿主。插件声明最低 peer 版本 3.19.0；本地源码测试使用构建后的 SDK 链接。
+2. 在维护窗口暂停相关写入。以单一事务执行平台 `packages/server-ai/src/xpert-project/migrations/20260920-project-types.sql`，再执行已安装插件自己的 `migrations/20260920-project-types.sql`。未安装的插件不执行其表迁移。
+3. 插件迁移仅依据已保存的 Case→Project 关联回填，遇到跨组织或跨应用认领冲突即回滚。保留 Project ID、成员、文件、会话、时间戳及业务映射。
+4. 部署匹配的宿主、插件与前端。插件注册后再更新并发布已安装 Assistant 的模板，使其取得默认 projectType；加载新插件不等于已安装 Assistant 已发布更新。
+5. 发布 HTTP SDK 的本次 minor changeset，再升级 ChatKit SDK 依赖并移除临时 `patches/@xpert-ai__xpert-sdk@0.1.1.patch`。当前补丁和锁文件支持本仓库本地可复现构建；发布 ChatKit npm 包前必须完成正式 SDK 升级（下游安装不会继承工作区补丁）。
+
+本地开发先在平台执行 `corepack pnpm exec nx build plugin-sdk`（包含 contracts），再构建插件。Factory 开发依赖使用与 BOM 一致的相邻平台 checkout 链接。ChatKit 安装按已提交的 pnpm 锁文件和 SDK 补丁执行，不依赖手工修改 node_modules。
+
+## 验证
+
+覆盖类型不可变、跨应用/作用域冲突、Provider 来源、成员与 Assistant 访问、清理前拒绝、Case 创建重试、完整业务路由、服务端筛选和 ChatKit entity 创建入口。SQL 测试在随机测试 schema 内运行并回滚，验证回填幂等、冲突原子性与原始数据保留。Factory 通过 plugin-dev-harness 检查插件生命周期；该检查使用基础设施 mock，不代替部署验收。

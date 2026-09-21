@@ -1,5 +1,12 @@
 {
     "Error": {
+        "ProjectTypeInvalid": "项目类型定义或标识无效。",
+        "ProjectTypeDuplicate": "项目类型重复声明。",
+        "ProjectTypeUnavailable": "项目所属应用或类型当前不可用。",
+        "ProjectTypeConflict": "项目所属应用或类型不匹配，不能自动改写。",
+        "ProjectApplicationWorkflowRequired": "请通过所属应用的业务流程创建或管理此项目。",
+        "ProjectApplicationEntryUnavailable": "未找到可访问的项目应用助手入口。",
+        "ProjectManagedStateConflict": "项目名称或状态与业务记录不一致，请刷新后重试。",
         "EvolutionBaselineOperationFailed": "无法完成规则基线操作，请刷新规则状态并检查权限。",
         "MarketplaceCacheUnavailable": "插件市场暂时不可用，请稍后重试。",
         "KnowledgebaseProvisioningEmbeddingUnavailable": "可访问的 Copilot 模型提供商和当前工作空间的其他知识库中均未找到可用的嵌入模型。请配置嵌入模型及其使用权限后重试。",

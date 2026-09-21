@@ -2560,6 +2560,13 @@
       "NoAssistantResults": "暂无成果"
     },
     "XProject": {
+      "Application": "应用",
+      "ProjectType": "项目类型",
+      "AllApplications": "全部应用",
+      "AllTypes": "全部类型",
+      "Unclassified": "未分类",
+      "PreviousPage": "上一页",
+      "NextPage": "下一页",
       "NoRecentFiles": "没有最近的文件",
       "NoToolset": "尚无工具集",
       "NoExperts": "尚无专家",

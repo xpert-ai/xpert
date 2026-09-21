@@ -362,6 +362,8 @@ export type TXpertOptions = {
   workspaceScope?: {
     /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
     mode: 'project-required' | 'project-preferred'
+    /** Explicit application context for discovery and governed Project creation. */
+    projectType?: import('./xpert-project-type.model').XpertProjectTypeRef
   }
   /** Legacy template key retained for existing plugin-authored DSL files. */
   templateKey?: string

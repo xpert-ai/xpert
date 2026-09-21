@@ -9,6 +9,7 @@ import { IKnowledgebase } from './knowledgebase.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
 import { IXpert, TXpertTeamDraft } from './xpert.model'
+import type { XpertProjectClassification, XpertProjectTypeRef } from './xpert-project-type.model'
 
 export type TXpertProjectSettings = {
   /** @deprecated Project instructions are stored in /project/<projectId>/project.md. */
@@ -135,7 +136,7 @@ export enum XpertProjectAutomationRunStatusEnum {
   CANCELLED = 'cancelled'
 }
 
-export type TXpertProject = {
+export type TXpertProject = XpertProjectClassification & {
   name: string
   avatar?: TAvatar
   description?: string
@@ -210,6 +211,7 @@ export interface IXpertProjectInvitation extends IBasePerTenantAndOrganizationEn
 }
 
 export type IXpertProjectCreateInput = Partial<IXpertProject> & {
+  projectType?: XpertProjectTypeRef
   xpertIds?: string[]
   toolsetIds?: string[]
   knowledgebaseIds?: string[]

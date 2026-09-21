@@ -5,8 +5,7 @@ import {
     PLUGIN_APPLICATION_INSTALLATION_STATUS,
     RolesEnum
 } from '@xpert-ai/contracts'
-import { SYSTEM_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext, SYSTEM_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
 import { NotFoundException } from '@nestjs/common'
 import { PluginApplicationInstallation } from './plugin-application-installation.entity'
 import { PluginApplicationService } from './plugin-application.service'

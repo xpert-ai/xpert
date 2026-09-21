@@ -1,7 +1,15 @@
+import {
+  GENERAL_PROJECT_TYPE,
+  resolveI18nText,
+  type XpertProjectTypeRef,
+  type XpertProjectTypeSummary,
+  type I18nObject
+} from '@xpert-ai/contracts'
+import { navigateProjectEntry } from './project-entry'
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   uploadYamlFile,
   ZardBadgeComponent,
@@ -51,12 +59,44 @@ import { XpertProjectApiService } from './project-api.service'
           <button z-button zType="outline" zSize="lg" type="button" (click)="openImport()">
             <i class="ri-upload-line mr-1"></i>{{ 'XP.XProject.ImportDSL' | translate }}
           </button>
-          <button z-button zType="default" zSize="lg" type="button" (click)="openCreate()">
+          <button z-button zType="default" zSize="lg" type="button" (click)="creationMenu.set(!creationMenu())">
             <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.NewProject' | translate }}
           </button>
         </div>
       </header>
-      <section class="flex flex-col gap-3 md:flex-row md:items-center">
+      @if (creationMenu()) {
+        <nav class="flex flex-wrap gap-2" [attr.aria-label]="'XP.XProject.ProjectType' | translate">
+          @for (type of types(); track type.applicationKey + ':' + type.projectTypeKey) {
+            <button z-button zType="outline" (click)="openCreate(type)">{{ typeLabel(type) }}</button>
+          }
+        </nav>
+      }
+      <section class="flex flex-wrap items-center gap-3">
+        <select
+          class="rounded-md border border-divider-subtle bg-components-input-bg px-3 py-2 text-sm"
+          #applicationFilter
+          [attr.aria-label]="'XP.XProject.Application' | translate"
+          [value]="applicationKey()"
+          (change)="applicationKey.set(applicationFilter.value); projectTypeKey.set('')"
+        >
+          <option value="">{{ 'XP.XProject.AllApplications' | translate }}</option>
+          <option value="__unclassified">{{ 'XP.XProject.Unclassified' | translate }}</option>
+          @for (app of applications(); track app.key) {
+            <option [value]="app.key">{{ localized(app.title) }}</option>
+          }
+        </select>
+        <select
+          class="rounded-md border border-divider-subtle bg-components-input-bg px-3 py-2 text-sm"
+          #typeFilter
+          [attr.aria-label]="'XP.XProject.ProjectType' | translate"
+          [value]="projectTypeKey()"
+          (change)="projectTypeKey.set(typeFilter.value)"
+        >
+          <option value="">{{ 'XP.XProject.AllTypes' | translate }}</option>
+          @for (type of filteredTypes(); track type.applicationKey + ':' + type.projectTypeKey) {
+            <option [value]="type.projectTypeKey">{{ typeLabel(type) }}</option>
+          }
+        </select>
         <z-search-input
           class="w-full min-w-0 md:max-w-[360px]"
           zSize="default"
@@ -94,7 +134,7 @@ import { XpertProjectApiService } from './project-api.service'
           ><z-card-content class="flex min-h-64 flex-col items-center justify-center gap-3 text-center"
             ><i class="ri-folder-open-line text-3xl text-text-tertiary"></i>
             <p class="font-medium text-text-primary">{{ 'XP.XProject.NoProjects' | translate }}</p>
-            <button z-button zType="outline" zSize="sm" type="button" (click)="openCreate()">
+            <button z-button zType="outline" zSize="sm" type="button" (click)="creationMenu.set(!creationMenu())">
               {{ 'XP.XProject.CreateProject' | translate }}
             </button></z-card-content
           ></z-card
@@ -116,6 +156,12 @@ import { XpertProjectApiService } from './project-api.service'
                   @for (project of visibleProjects(); track project.id) {
                     <tr z-table-row class="hover:bg-background-default-subtle/70">
                       <td z-table-cell>
+                        <button
+                          class="mb-1 text-xs text-text-tertiary underline-offset-2 hover:underline"
+                          (click)="filterProject(project)"
+                        >
+                          {{ projectLabel(project) }}
+                        </button>
                         <a class="flex items-center gap-3" [routerLink]="['/project', project.id]"
                           ><span class="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary"
                             ><i class="ri-share-line"></i></span
@@ -134,9 +180,9 @@ import { XpertProjectApiService } from './project-api.service'
                       </td>
                       <td z-table-cell class="text-text-secondary">{{ formatDate(project.updatedAt) }}</td>
                       <td z-table-cell class="text-right">
-                        <a z-button zType="ghost" zSize="sm" [routerLink]="['/project', project.id]"
-                          >{{ 'XP.XProject.Open' | translate }} <i class="ri-arrow-right-line ml-1"></i
-                        ></a>
+                        <button z-button zType="ghost" zSize="sm" (click)="openApplication(project)">
+                          {{ 'XP.XProject.Open' | translate }} <i class="ri-arrow-right-line ml-1"></i>
+                        </button>
                       </td>
                     </tr>
                   }
@@ -145,6 +191,23 @@ import { XpertProjectApiService } from './project-api.service'
           ></z-card-content>
         </z-card>
       }
+      <div class="flex items-center justify-end gap-3 text-sm text-text-secondary">
+        <button z-button zType="outline" [disabled]="skip() === 0 || facade.loading()" (click)="page(-1)">
+          {{ 'XP.XProject.PreviousPage' | translate }}
+        </button>
+        <span
+          >{{ visibleProjects().length ? skip() + 1 : 0 }}–{{ skip() + visibleProjects().length }} /
+          {{ facade.projectsTotal() }}</span
+        >
+        <button
+          z-button
+          zType="outline"
+          [disabled]="skip() + 50 >= facade.projectsTotal() || facade.loading()"
+          (click)="page(1)"
+        >
+          {{ 'XP.XProject.NextPage' | translate }}
+        </button>
+      </div>
     </main>
   `,
   host: { class: 'block w-full min-w-0' }
@@ -155,6 +218,20 @@ export class XpertProjectListComponent implements OnInit {
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
   readonly #api = inject(XpertProjectApiService)
+  readonly #translate = inject(TranslateService)
+  readonly types = signal<XpertProjectTypeSummary[]>([])
+  readonly creationMenu = signal(false)
+  readonly applicationKey = signal('')
+  readonly projectTypeKey = signal('')
+  readonly skip = signal(0)
+  readonly applications = computed(() =>
+    Array.from(
+      new Map(
+        this.types().map((type) => [type.applicationKey, { key: type.applicationKey, title: type.applicationTitle }])
+      ).values()
+    )
+  )
+  readonly filteredTypes = computed(() => this.types().filter((type) => type.applicationKey === this.applicationKey()))
   readonly search = signal('')
   readonly status = signal('all')
   readonly filters = [
@@ -162,22 +239,86 @@ export class XpertProjectListComponent implements OnInit {
     { label: 'XP.XProject.StatusActive', value: 'active' },
     { label: 'XP.XProject.StatusArchived', value: 'archived' }
   ]
-  readonly visibleProjects = computed(() =>
-    this.facade
-      .projects()
-      .filter(
-        (project) =>
-          (this.status() === 'all' || project.status === this.status()) &&
-          `${project.name} ${project.description ?? ''}`.toLowerCase().includes(this.search().toLowerCase().trim())
-      )
-  )
+  readonly visibleProjects = this.facade.projects
+  readonly query = computed(() => ({
+    search: this.search(),
+    status: this.status(),
+    applicationKey: this.applicationKey() === '__unclassified' ? undefined : this.applicationKey(),
+    projectTypeKey: this.projectTypeKey(),
+    unclassified: this.applicationKey() === '__unclassified'
+  }))
+  constructor() {
+    effect((onCleanup) => {
+      const query = this.query()
+      this.skip.set(0)
+      const timer = setTimeout(() => void this.facade.loadProjects({ ...query, take: 50 }), 200)
+      onCleanup(() => clearTimeout(timer))
+    })
+  }
   ngOnInit() {
-    void this.facade.loadProjects()
+    firstValueFrom(this.#api.types())
+      .then((catalog) => this.types.set(catalog.items))
+      .catch((error) => this.#toastr.error(getErrorMessage(error)))
+  }
+  localized(text: string | I18nObject) {
+    return resolveI18nText(text, this.#translate.currentLang)
+  }
+  typeLabel(type: XpertProjectTypeSummary) {
+    return `${this.localized(type.applicationTitle)} / ${this.localized(type.title)}`
+  }
+  projectLabel(project: IXpertProject) {
+    const type = this.types().find(
+      (type) => type.applicationKey === project.applicationKey && type.projectTypeKey === project.projectTypeKey
+    )
+    if (type) return this.typeLabel(type)
+    const snapshot = project.projectTypeSnapshot
+    return snapshot
+      ? `${this.localized(snapshot.applicationTitle)} / ${this.localized(snapshot.title)}`
+      : project.applicationKey
+        ? `${project.applicationKey} / ${project.projectTypeKey}`
+        : this.#translate.instant('XP.XProject.Unclassified')
+  }
+  filterProject(project: IXpertProject) {
+    this.applicationKey.set(project.applicationKey ?? '__unclassified')
+    this.projectTypeKey.set(project.projectTypeKey ?? '')
+  }
+  page(delta: number) {
+    this.skip.update((value) => Math.max(0, value + delta * 50))
+    void this.facade.loadProjects({ ...this.query(), skip: this.skip(), take: 50 })
+  }
+  async openApplication(project: IXpertProject) {
+    if (!project.applicationKey || !project.projectTypeKey) return this.#router.navigate(['/project', project.id])
+    try {
+      return await navigateProjectEntry(
+        this.#router,
+        await firstValueFrom(
+          this.#api.typeEntry(
+            { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
+            { projectId: project.id }
+          )
+        )
+      )
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+      return false
+    }
   }
   formatDate(value?: Date | string) {
     return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value)) : '—'
   }
-  openCreate() {
+  async openCreate(type: XpertProjectTypeRef = GENERAL_PROJECT_TYPE) {
+    this.creationMenu.set(false)
+    try {
+      const entry = await firstValueFrom(this.#api.typeEntry(type))
+      if (entry.kind === 'assistant') {
+        await navigateProjectEntry(this.#router, entry)
+        return
+      }
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+      return
+    }
+
     firstValueFrom(
       this.#dialog.open<XpertProjectCreateDialogComponent, undefined, IXpertProjectCreateInput>(
         XpertProjectCreateDialogComponent,
@@ -185,14 +326,14 @@ export class XpertProjectListComponent implements OnInit {
           width: 'min(94vw, 600px)',
           maxWidth: 'calc(100vw - 32px)',
           maxHeight: 'calc(100vh - 32px)',
-          backdropClass: 'backdrop-blur-sm-black',
-          panelClass: 'xp-overlay-pane-card'
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog'
         }
       ).closed
     ).then(async (input) => {
       if (!input) return
       try {
-        const project = await this.facade.createProject(input)
+        const project = await this.facade.createProject({ ...input, projectType: type })
         await this.#router.navigate(['/project', project.id])
       } catch (error) {
         this.#toastr.error(getErrorMessage(error))

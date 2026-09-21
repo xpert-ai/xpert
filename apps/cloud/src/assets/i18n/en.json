@@ -3988,6 +3988,13 @@
       }
     },
     "XProject": {
+      "Application": "Application",
+      "ProjectType": "Project type",
+      "AllApplications": "All applications",
+      "AllTypes": "All types",
+      "Unclassified": "Unclassified",
+      "PreviousPage": "Previous",
+      "NextPage": "Next",
       "NoExperts": "No experts found",
       "WorkspaceTitle": "Projects",
       "WorkspaceSubtitle": "Plan, execute and review AI-assisted work in one controlled space.",

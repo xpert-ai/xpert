@@ -1,3 +1,8 @@
+import {
+  chatProjectCreateRequest,
+  executeChatProjectCreate,
+  type ChatProjectCreateRequest
+} from '../../project/project-chat-create'
 import { openWorkbenchProject } from './workbench-project-navigation'
 import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
@@ -129,7 +134,6 @@ import { installChatkitOverlayDialogControls } from './conversation-detail/chatk
 import {
   CONVERSATION_DETAIL_RELATIONS,
   type WorkbenchConversationChatkitScope,
-  getChatProjectCreateName,
   resolveConversationId,
   assertWorkbenchConversationHint,
   hasTaskSummaryRefresh,
@@ -380,9 +384,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(threadId)
     },
     onEffect: (event) => {
-      const projectName = getChatProjectCreateName(event)
-      if (projectName) {
-        void this.createChatProject(projectName)
+      const projectRequest = chatProjectCreateRequest(event)
+      if (projectRequest) {
+        void this.createChatProject(projectRequest)
         return
       }
       const taskSummaryTarget = getTaskSummaryResourceTarget(event)
@@ -1897,7 +1901,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
-  private async createChatProject(name: string) {
+  private async createChatProject(request: ChatProjectCreateRequest) {
     const assistantId = this.facade.assistantId()?.trim()
     if (!assistantId || this.facade.threadId()?.trim() || this.#projectCreatePending) {
       return
@@ -1905,13 +1909,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.#projectCreatePending = true
     try {
-      const project = await firstValueFrom(
-        this.#projectApi.create({
-          name,
-          xpertIds: [assistantId]
-        })
+      await executeChatProjectCreate(this.#projectApi, this.#router, request, assistantId, (projectId) =>
+        this.facade.onChatProjectChange?.(projectId)
       )
-      this.facade.onChatProjectChange?.(project.id)
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to create the Project.')
     } finally {

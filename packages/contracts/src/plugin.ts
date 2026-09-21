@@ -515,6 +515,8 @@ export interface XpertTemplatePluginDependencies {
 }
 
 export interface PluginMarketplaceContribution {
+  /** Project types defined by an App, separate from installation configuration. */
+  projectTypes?: import('./ai/xpert-project-type.model').XpertProjectTypeDefinition[]
   id?: string
   type: PluginMarketplaceContributionType
   name: string

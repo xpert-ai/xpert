@@ -1,4 +1,5 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
+import type { XpertProjectClassification } from '@xpert-ai/contracts'
 
 /** Trusted server actor. View providers derive this from host context; jobs persist that actor. */
 export interface ProjectAccessActor {
@@ -6,7 +7,7 @@ export interface ProjectAccessActor {
   organizationId?: string | null
   userId: string
 }
-export interface ProjectHumanAccess {
+export interface ProjectHumanAccess extends XpertProjectClassification {
   projectId: string
   role: 'owner' | 'manager' | 'editor' | 'member'
   canManage: boolean

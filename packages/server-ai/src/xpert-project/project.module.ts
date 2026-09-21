@@ -1,3 +1,7 @@
+import { DiscoveryModule } from '@nestjs/core'
+import { ProjectTypeProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
+import { XpertProjectTypeService } from './services/project-type.service'
 import { ProjectProvisioningRuntimeService } from './services/project-provisioning-runtime.service'
 import { FileAsset } from '../file-understanding/entities/file-asset.entity'
 import { XpertProjectPurgeService } from './services/project-purge.service'
@@ -69,8 +73,10 @@ import { XpertAgentModule } from '../xpert-agent'
 
 @Module({
     imports: [
+        DiscoveryModule,
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
         TypeOrmModule.forFeature([
+            PluginApplicationInstallation,
             FileAsset,
             XpertProject,
             XpertProjectTask,
@@ -114,6 +120,8 @@ import { XpertAgentModule } from '../xpert-agent'
     ],
     controllers: [XpertProjectController, XpertProjectInvitationController, XpertProjectAdminController],
     providers: [
+        ProjectTypeProviderRegistry,
+        XpertProjectTypeService,
         ProjectProvisioningRuntimeService,
         XpertProjectPurgeService,
         XpertProjectService,
