@@ -31,7 +31,7 @@ const ENTRY_ONBOARDING_QUERY_VALUE = 'clawxpert'
       @if (facade.loading()) {
         <p role="status" class="p-8 text-center text-text-secondary">{{ 'XP.Chat.ClawXpert.Loading' | translate }}</p>
       } @else if (facade.viewState() === 'wizard') {
-        <xp-clawxpert-binding-wizard class="block h-full overflow-y-auto p-8" />
+        <xp-clawxpert-binding-wizard class="block h-full" />
       } @else if (facade.viewState() === 'error' || !facade.organizationId()) {
         <p role="alert" class="p-8 text-center text-text-secondary">
           {{

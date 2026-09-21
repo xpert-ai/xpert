@@ -60,13 +60,15 @@ export { formatConversationUpdatedAt } from './cloud-sidebar-assistants.utils'
 export type CloudSidebarAssistantState = {
   items: IXpert[]
   binding: IAssistantBinding | null
+  organizationId: string | null
 }
 
 export type CloudSidebarAssistantsMode = 'list' | 'current-card'
 
 const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
   items: [],
-  binding: null
+  binding: null,
+  organizationId: null
 }
 
 const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
@@ -270,7 +272,7 @@ export class CloudSidebarAssistantsComponent {
   })
   readonly state = toSignal(
     toObservable(this.request).pipe(
-      switchMap(({ enabled, scopeLevel }) => {
+      switchMap(({ enabled, scopeLevel, organizationId }) => {
         if (!enabled) {
           return of(EMPTY_ASSISTANT_STATE)
         }
@@ -306,10 +308,12 @@ export class CloudSidebarAssistantsComponent {
                 ({ binding, items }) =>
                   ({
                     binding,
+                    organizationId,
                     items: normalizeAssistantXperts(items)
                   }) satisfies CloudSidebarAssistantState
               ),
-              catchError(() => of(EMPTY_ASSISTANT_STATE))
+              catchError(() => of(EMPTY_ASSISTANT_STATE)),
+              startWith(EMPTY_ASSISTANT_STATE)
             )
           }),
           startWith(EMPTY_ASSISTANT_STATE)
@@ -322,7 +326,13 @@ export class CloudSidebarAssistantsComponent {
   readonly binding = computed(() => this.state().binding)
   readonly boundXpert = computed(() => {
     const assistantId = this.binding()?.assistantId?.trim()
-    if (!assistantId) {
+    if (
+      !assistantId ||
+      this.binding()?.enabled === false ||
+      !this.request().enabled ||
+      this.request().scopeLevel !== RequestScopeLevel.ORGANIZATION ||
+      this.state().organizationId !== this.organizationId()
+    ) {
       return null
     }
 

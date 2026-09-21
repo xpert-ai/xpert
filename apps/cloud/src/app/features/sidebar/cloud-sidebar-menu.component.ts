@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  ViewContainerRef,
+  viewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { injectWorkspace, injectWorkspaceId } from '@cloud/app/@core/state'
@@ -63,6 +72,7 @@ export class CloudSidebarMenuComponent {
   readonly #selectedWorkspace = injectWorkspace()
   readonly #workspaceId = injectWorkspaceId()
   readonly #conversationStartIntent = inject(ClawXpertConversationStartIntentService)
+  private readonly assistants = viewChild(CloudSidebarAssistantsComponent)
 
   readonly currentUrl = toSignal(
     this.#router.events.pipe(
@@ -76,10 +86,8 @@ export class CloudSidebarMenuComponent {
   readonly groups = computed(() => {
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
 
-    return addWorkspaceMoreMenuItem(
-      addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus())),
-      workspaceId
-    )
+    const groups = addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus()))
+    return this.assistants()?.isClawXpertConfigured() ? addWorkspaceMoreMenuItem(groups, workspaceId) : groups
   })
 
   hasActiveChild(menu: CloudMenuItem) {
@@ -263,7 +271,8 @@ export class CloudSidebarMenuComponent {
   }
 
   trackMenuEntry(index: number, entry: CloudSidebarMenuEntry) {
-    return entry.item ? this.trackMenuItem(index, entry.item) : `assistants-${index}`
+    // Keep the assistant state instance when the conditional More entry is inserted or removed.
+    return entry.item ? this.trackMenuItem(index, entry.item) : entry.kind
   }
 
   menuTitleKey(item: CloudMenuItem) {

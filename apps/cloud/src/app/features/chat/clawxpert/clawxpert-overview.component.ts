@@ -137,7 +137,7 @@ type ClawXpertDocumentCard = {
           </div>
         </div>
       } @else if (facade.viewState() === 'wizard') {
-        <xp-clawxpert-binding-wizard class="block h-full p-8" />
+        <xp-clawxpert-binding-wizard class="block h-full" />
       } @else {
         <div class="flex">
           <div class="w-100 shrink-0 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">

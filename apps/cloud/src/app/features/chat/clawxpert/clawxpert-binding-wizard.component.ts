@@ -33,126 +33,131 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
     ...ZardCardImports
   ],
   template: `
-    <z-card class="flex h-full min-h-[32rem] flex-col overflow-hidden rounded-3xl border border-border shadow-none">
-      <z-card-content class="flex min-h-0 flex-1 flex-col p-5">
-        <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-          {{ 'XP.Chat.ClawXpert.Wizard' | translate: { Default: 'Setup Wizard' } }}
-        </div>
-        <div class="mt-3 text-xl font-semibold text-text-primary">
-          {{
-            'XP.Chat.ClawXpert.WizardTitle'
-              | translate: { Default: 'Choose the published Xpert to use as the agent for your ClawXpert.' }
-          }}
-        </div>
-        <p class="mt-2 max-w-lg text-sm text-text-secondary">
-          {{
-            'XP.Chat.ClawXpert.WizardDesc'
-              | translate: { Default: 'This page only needs one binding. You can change it later at any time.' }
-          }}
-        </p>
-
-        @if (facade.availableXperts().length > 0) {
-          <div class="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              z-button
-              zType="default"
-              zSize="sm"
-              type="button"
-              [disabled]="creatingXpert()"
-              (click)="openCreateWizard()"
-            >
-              {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
-            </button>
+    <div class="h-full overflow-y-auto">
+      <form class="flex min-h-full flex-col" [formGroup]="form">
+        <header class="sticky top-0 z-10 shrink-0 bg-background px-8 pb-4 pt-8">
+          <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
+            {{ 'XP.Chat.ClawXpert.Wizard' | translate: { Default: 'Setup Wizard' } }}
           </div>
-        }
+          <div class="mt-3 text-xl font-semibold text-text-primary">
+            {{
+              'XP.Chat.ClawXpert.WizardTitle'
+                | translate: { Default: 'Choose the published Xpert to use as the agent for your ClawXpert.' }
+            }}
+          </div>
+          <p class="mt-2 max-w-lg text-sm text-text-secondary">
+            {{
+              'XP.Chat.ClawXpert.WizardDesc'
+                | translate: { Default: 'This page only needs one binding. You can change it later at any time.' }
+            }}
+          </p>
 
-        @if (facade.orphanedPreference()) {
-          <z-card class="mt-4 border border-divider-regular bg-components-card-bg shadow-none">
-            <z-card-content class="px-4 py-3 text-sm text-text-secondary">
-              {{
-                'XP.Chat.ClawXpert.BindingUnavailable'
-                  | translate
-                    : {
-                        Default:
-                          'Your previous ClawXpert binding is no longer available. Please select another assistant.'
-                      }
-              }}
-            </z-card-content>
-          </z-card>
-        }
-
-        @if (facade.availableXperts().length === 0) {
-          <div
-            class="mt-6 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center"
-          >
-            <z-icon zType="smart_toy" class="text-4xl text-text-tertiary"></z-icon>
-            <div class="mt-4 text-base font-medium text-text-primary">
-              {{
-                'XP.Chat.ClawXpert.NoAssistants' | translate: { Default: 'No published assistants are available yet' }
-              }}
-            </div>
-            <div class="mt-2 max-w-sm text-sm text-text-secondary">
-              {{
-                'XP.Chat.ClawXpert.NoAssistantsDesc'
-                  | translate
-                    : { Default: 'Create a new ClawXpert here, or publish an existing Xpert and bind it here later.' }
-              }}
-            </div>
-            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+          @if (facade.availableXperts().length > 0) {
+            <div class="mt-4 flex items-center gap-3">
               <button
                 z-button
                 zType="default"
-                zSize="sm"
+                zSize="lg"
                 type="button"
                 [disabled]="creatingXpert()"
                 (click)="openCreateWizard()"
               >
                 {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
               </button>
-              <button z-button zType="outline" zSize="sm" type="button" routerLink="/xpert/w">
-                {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
-              </button>
+              <label class="relative block min-w-0 flex-1">
+                <span class="sr-only">
+                  {{
+                    'XP.Chat.ClawXpert.SearchPlaceholder'
+                      | translate: { Default: 'Search your available assistants by title, name, slug, or id' }
+                  }}
+                </span>
+                <z-icon
+                  zType="search"
+                  class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+                  aria-hidden="true"
+                />
+                <input
+                  z-input
+                  class="block h-9 pl-10 text-text-primary transition-colors"
+                  [formControl]="searchControl"
+                  [placeholder]="
+                    'XP.Chat.ClawXpert.SearchPlaceholder'
+                      | translate: { Default: 'Search your available assistants by title, name, slug, or id' }
+                  "
+                  type="text"
+                />
+              </label>
             </div>
-          </div>
-        } @else {
-          <form class="mt-5 flex min-h-0 flex-1 flex-col" [formGroup]="form">
-            <label class="grid gap-2">
-              <span class="text-sm text-text-secondary">
-                {{
-                  'XP.Chat.ClawXpert.SearchPlaceholder'
-                    | translate: { Default: 'Search your available assistants by title, name, slug, or id' }
-                }}
-              </span>
-              <input
-                z-input
-                class="block h-10 w-full rounded-2xl text-sm text-text-primary transition-colors"
-                [formControl]="searchControl"
-                type="text"
-              />
-            </label>
+          }
 
-            <div
-              class="mt-4 min-h-0 flex-1 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg p-2"
-            >
+          @if (facade.orphanedPreference()) {
+            <z-card class="mt-4 border border-divider-regular bg-components-card-bg shadow-none">
+              <z-card-content class="px-4 py-3 text-sm text-text-secondary">
+                {{
+                  'XP.Chat.ClawXpert.BindingUnavailable'
+                    | translate
+                      : {
+                          Default:
+                            'Your previous ClawXpert binding is no longer available. Please select another assistant.'
+                        }
+                }}
+              </z-card-content>
+            </z-card>
+          }
+        </header>
+
+        <div class="flex flex-1 flex-col px-8">
+          @if (facade.availableXperts().length === 0) {
+            <div class="mt-6 flex flex-1 flex-col items-center justify-center px-6 text-center">
+              <z-icon zType="smart_toy" class="text-4xl text-text-tertiary"></z-icon>
+              <div class="mt-4 text-base font-medium text-text-primary">
+                {{
+                  'XP.Chat.ClawXpert.NoAssistants' | translate: { Default: 'No published assistants are available yet' }
+                }}
+              </div>
+              <div class="mt-2 max-w-sm text-sm text-text-secondary">
+                {{
+                  'XP.Chat.ClawXpert.NoAssistantsDesc'
+                    | translate
+                      : { Default: 'Create a new ClawXpert here, or publish an existing Xpert and bind it here later.' }
+                }}
+              </div>
+              <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  z-button
+                  zType="default"
+                  zSize="lg"
+                  type="button"
+                  [disabled]="creatingXpert()"
+                  (click)="openCreateWizard()"
+                >
+                  {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+                </button>
+                <button z-button zType="outline" zSize="lg" type="button" routerLink="/xpert/w">
+                  {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="flex-1">
               @if (filteredXperts().length > 0) {
-                <div class="grid gap-2 lg:grid-cols-2">
+                <div class="grid gap-x-4 lg:grid-cols-2">
                   @for (item of filteredXperts(); track item.id) {
                     <button
                       type="button"
-                      class="h-full w-full rounded-2xl border px-4 py-3 text-left transition-colors"
-                      [class.border-divider-deep]="form.controls.assistantId.value === item.id"
-                      [class.border-divider-regular]="form.controls.assistantId.value !== item.id"
-                      [class.bg-hover-bg]="form.controls.assistantId.value === item.id"
-                      [class.bg-components-card-bg]="form.controls.assistantId.value !== item.id"
-                      [class.shadow-sm]="form.controls.assistantId.value === item.id"
-                      [class.text-text-primary]="true"
+                      class="h-full w-full border-b px-3 py-3 text-left text-text-primary transition-colors hover:bg-hover-bg focus-visible:bg-hover-bg"
+                      [class]="
+                        form.controls.assistantId.value === item.id
+                          ? 'border-divider-deep bg-hover-bg'
+                          : 'border-divider-regular bg-transparent'
+                      "
+                      [attr.aria-pressed]="form.controls.assistantId.value === item.id"
                       (click)="selectXpert(item.id)"
                     >
                       <div class="flex items-start gap-3">
                         <emoji-avatar
-                          class="mt-0.5 shrink-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle shadow-sm"
-                          [style.width.px]="48"
-                          [style.height.px]="48"
+                          small
+                          class="mt-0.5 shrink-0 overflow-hidden rounded-lg bg-background-default-subtle text-sm"
                           [avatar]="item.avatar ?? null"
                           [alt]="getXpertLabel(item)"
                           [fallbackLabel]="getXpertLabel(item)"
@@ -178,38 +183,42 @@ import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
                 </div>
               }
             </div>
+          }
+        </div>
 
-            <div class="mt-4 flex items-center justify-end gap-2">
-              <button
-                z-button
-                zType="outline"
-                zSize="sm"
-                type="button"
-                [disabled]="creatingXpert()"
-                (click)="openCreateWizard()"
-              >
-                {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+        @if (facade.availableXperts().length > 0) {
+          <footer
+            class="sticky bottom-0 z-10 mt-auto flex shrink-0 flex-wrap items-center justify-end gap-2 bg-background px-8 pb-8 pt-4"
+          >
+            <button
+              z-button
+              zType="outline"
+              zSize="lg"
+              type="button"
+              [disabled]="creatingXpert()"
+              (click)="openCreateWizard()"
+            >
+              {{ 'XP.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+            </button>
+            @if (facade.resolvedPreference()) {
+              <button z-button zType="outline" zSize="lg" type="button" (click)="cancelWizard()">
+                {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
               </button>
-              @if (facade.resolvedPreference()) {
-                <button z-button zType="outline" zSize="sm" type="button" (click)="cancelWizard()">
-                  {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-                </button>
-              }
-              <button
-                z-button
-                zType="default"
-                zSize="sm"
-                type="button"
-                [disabled]="form.invalid || facade.saving()"
-                (click)="savePreference()"
-              >
-                {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
-              </button>
-            </div>
-          </form>
+            }
+            <button
+              z-button
+              zType="default"
+              zSize="lg"
+              type="button"
+              [disabled]="form.invalid || facade.saving()"
+              (click)="savePreference()"
+            >
+              {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+            </button>
+          </footer>
         }
-      </z-card-content>
-    </z-card>
+      </form>
+    </div>
   `
 })
 export class ClawXpertBindingWizardComponent {
