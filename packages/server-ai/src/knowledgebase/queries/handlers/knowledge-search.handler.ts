@@ -20,7 +20,7 @@ import { getErrorMessage, getPythonErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, Inject, InternalServerErrorException, Logger, Optional } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { isNil, sortBy } from 'lodash'
+import { isNil } from 'lodash'
 import { In, IsNull, Not } from 'typeorm'
 import { t } from 'i18next'
 import { KnowledgebaseService } from '../../knowledgebase.service'
@@ -60,6 +60,30 @@ function resolveRetrievalMode(kb: IKnowledgebase, retrieval?: TKBRetrievalSettin
 
 function isGraphRetrievalEnabled(kb: IKnowledgebase) {
     return kb.graphRag?.enabled === true
+}
+
+function sortFinalDocuments(documents: DocumentInterface<DocumentMetadata>[]) {
+    return documents
+        .map((document, index) => ({ document, index }))
+        .sort((left, right) => {
+            const leftRelevance = left.document.metadata?.relevanceScore
+            const rightRelevance = right.document.metadata?.relevanceScore
+            const leftHasRelevance = typeof leftRelevance === 'number' && Number.isFinite(leftRelevance)
+            const rightHasRelevance = typeof rightRelevance === 'number' && Number.isFinite(rightRelevance)
+            if (leftHasRelevance && rightHasRelevance && leftRelevance !== rightRelevance) {
+                return rightRelevance - leftRelevance
+            }
+            if (leftHasRelevance !== rightHasRelevance) return leftHasRelevance ? -1 : 1
+            if (!leftHasRelevance && !rightHasRelevance) {
+                const leftScore = left.document.metadata?.score
+                const rightScore = right.document.metadata?.score
+                if (typeof leftScore === 'number' && typeof rightScore === 'number' && leftScore !== rightScore) {
+                    return rightScore - leftScore
+                }
+            }
+            return left.index - right.index
+        })
+        .map(({ document }) => document)
 }
 
 @QueryHandler(KnowledgeSearchQuery)
@@ -254,7 +278,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
         })
 
         return {
-            documents: sortBy(documents, 'metadata.relevanceScore', 'metadata.score').reverse().slice(0, topK),
+            documents: sortFinalDocuments(documents).slice(0, topK),
             diagnostics
         }
     }

@@ -31,6 +31,8 @@
         "KeywordAnalyzerLocked": "The keyword analyzer cannot be changed after documents have been added.",
         "KeywordAnalyzerRevisionMismatch": "The installed analyzer no longer matches the version used by this knowledgebase.",
         "KeywordAnalyzerChunkScopeRequired": "A knowledgebase is required to analyze a document chunk.",
+        "KeywordAnalyzerDocumentScopeRequired": "A document id or knowledgebase is required to index a document title.",
+        "KeywordQueryTooManyTerms": "Keyword queries support at most 64 independent lexemes.",
         "SandboxRuntimeHealthTimeout": "Runtime health check timed out after {{seconds}} seconds. Retry when the host is less busy.",
         "SandboxRuntimeHealthSignal": "Runtime health check was terminated by signal {{signal}}.",
         "SandboxRuntimeHealthExit": "Runtime health check failed with exit code {{code}}.",
