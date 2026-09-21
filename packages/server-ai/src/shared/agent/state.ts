@@ -298,6 +298,8 @@ export type TAgentSubgraphParams = TXpertAgentRuntimeOptions & {
      * Collect mute nodes tag
      */
     mute: TXpertAgentConfig['mute']
+    /** Compiled agent tag groups eligible for message streaming, filtered by mute at the root. */
+    unmutes?: TXpertAgentConfig['mute']
     /**
      * Long-term memory store
      */

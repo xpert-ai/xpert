@@ -59,6 +59,7 @@ import { bindConversationAssistantIfUnbound, bindConversationProjectIfUnbound } 
 import { PublishedXpertAccessService, XpertService } from '../xpert'
 import { XpertProjectService } from '../xpert-project'
 import { t } from 'i18next'
+import { ConversationAgentRunsService } from './conversation-agent-runs.service'
 
 type ConversationSearchRequest = {
     where?: Record<string, OperatorValue>
@@ -131,7 +132,8 @@ export class ConversationsController {
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertService: XpertService,
         @Optional() private readonly projectService?: XpertProjectService,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly agentRunsService?: ConversationAgentRunsService
     ) {}
 
     @Post()
@@ -426,7 +428,7 @@ export class ConversationsController {
                     new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
             )
         )
-        return { ...result, items }
+        return { ...result, items: await this.withAgentRuns(conversation, items) }
     }
 
     @HttpCode(HttpStatus.OK)
@@ -475,7 +477,7 @@ export class ConversationsController {
                     new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
             )
         )
-        return { ...result, items }
+        return { ...result, items: await this.withAgentRuns(conversation, items) }
     }
 
     @Post(':conversation_id/messages')
@@ -652,6 +654,19 @@ export class ConversationsController {
         await this.ensureMessage(conversationId, messageId, 'contribute')
         await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
         await this.feedbackService.delete(feedbackId)
+    }
+
+    private async withAgentRuns(conversation: IChatConversation, items: ChatMessageDTO[]) {
+        if (!this.agentRunsService || !items.some((item) => item.executionId)) return items
+        const branches = this.conversationThreadService
+            ? await this.conversationThreadService.listByConversation(conversation.id)
+            : []
+        const threadIds = [conversation.threadId, ...branches.map((branch) => branch.threadId)].filter(Boolean)
+        const runs = await this.agentRunsService.forMessages(items, threadIds)
+        for (const item of items) {
+            if (runs.has(item.id)) item.agentRuns = runs.get(item.id)
+        }
+        return items
     }
 
     private async ensurePublicConversationAccess(conversationId: string) {

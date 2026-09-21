@@ -1,3 +1,5 @@
+jest.mock('./conversation-agent-runs.service', () => ({ ConversationAgentRunsService: class {} }))
+
 jest.mock('@xpert-ai/server-core', () => {
     const { In } = jest.requireActual('typeorm')
 
@@ -468,6 +470,27 @@ describe('ConversationsController searchConversations', () => {
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
 
+    it.each(['list', 'search'])('adds execution summaries to authorized %s message responses', async (method) => {
+        const { controller, conversationService, messageService, agentRunsService } = createController()
+        const conversation = { id: 'conversation-1', threadId: 'thread-1' }
+        const message = { id: 'a', role: 'ai', executionId: 'root' }
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue(conversation)
+        messageService.findAllInOrganizationOrTenant.mockResolvedValue({ items: [message], total: 1 })
+        agentRunsService.forMessages.mockResolvedValue(
+            new Map([['a', [{ id: 'external', invocationKind: 'external_assistant' }]]])
+        )
+        const result =
+            method === 'list'
+                ? await controller.listMessages(conversation.id)
+                : await controller.searchMessages(conversation.id, {})
+        expect(result.items[0]).toMatchObject({ agentRuns: [{ id: 'external', invocationKind: 'external_assistant' }] })
+        expect(agentRunsService.forMessages).toHaveBeenCalledWith([expect.objectContaining(message)], ['thread-1'])
+        conversationService.assertAccess.mockRejectedValueOnce(new ForbiddenException())
+        agentRunsService.forMessages.mockClear()
+        await expect(controller.searchMessages('forbidden', {})).rejects.toBeInstanceOf(ForbiddenException)
+        expect(agentRunsService.forMessages).not.toHaveBeenCalled()
+    })
+
     it('filters unauthorized file relations before returning conversation messages', async () => {
         const { controller, conversationService, messageService } = createController()
         const conversation = { id: 'conversation-1', threadId: 'thread-1' }
@@ -494,6 +517,7 @@ describe('ConversationsController searchConversations', () => {
 })
 
 function createController() {
+    const agentRunsService = { forMessages: jest.fn().mockResolvedValue(new Map()) }
     const conversationService = {
         findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [], total: 0 }),
         findOneInOrganizationOrTenant: jest.fn(),
@@ -551,10 +575,13 @@ function createController() {
         queryBus as never,
         publishedXpertAccessService as never,
         xpertService as any,
-        projectService as never
+        projectService as never,
+        undefined,
+        agentRunsService as never
     )
 
     return {
+        agentRunsService,
         controller,
         conversationService,
         commandBus,

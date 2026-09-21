@@ -1,3 +1,4 @@
+import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { HttpErrorResponse } from '@angular/common/http'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
@@ -71,7 +72,7 @@ export class AssistantTriggerQrComponent implements OnInit, OnDestroy {
   readonly data = inject<AssistantTriggerDialogData>(DIALOG_DATA)
   readonly dialogRef = inject<DialogRef<boolean>>(DialogRef)
   private readonly api = inject(AssistantTriggerConnectionService)
-  private readonly facade = inject(ClawXpertFacade)
+  private readonly facade = inject(ASSISTANT_SETTINGS_CONTEXT, { optional: true }) ?? inject(ClawXpertFacade)
   private readonly clipboard = inject(Clipboard)
   readonly state = signal<'loading' | 'waiting' | 'activating' | 'expired' | 'failed'>('loading')
   readonly session = signal<TIntegrationQrSession | null>(null)

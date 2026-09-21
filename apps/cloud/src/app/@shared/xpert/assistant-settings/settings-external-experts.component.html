@@ -1,0 +1,104 @@
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <h3 class="text-lg font-semibold">
+    {{ 'XP.XpertSettings.Delegation.AssignedExperts' | translate }}
+    <span class="text-sm text-text-tertiary">{{ experts().length }}</span>
+  </h3>
+  <button z-button zType="outline" [zDisabled]="loading() || busy()" (click)="load()">
+    <i class="ri-add-line" aria-hidden="true"></i>{{ 'XP.XpertSettings.Delegation.AddExpert' | translate }}
+  </button>
+</div>
+@if (choosing()) {
+  <section class="mb-4 space-y-3 border-b border-divider-regular pb-4">
+    <input
+      z-input
+      class="h-10 w-full rounded-[var(--assistant-settings-item-radius)]"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      [placeholder]="'XP.XpertSettings.Delegation.SearchExperts' | translate"
+      [attr.aria-label]="'XP.XpertSettings.Delegation.SearchExperts' | translate"
+    />
+    @if (loading()) {
+      <p role="status" class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Loading' | translate }}</p>
+    } @else {
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="space-y-2 text-sm text-text-secondary"
+          ><span>{{ 'XP.XpertSettings.Delegation.Expert' | translate }}</span>
+          <z-select
+            class="block"
+            [zValue]="selected()"
+            (zSelectionChange)="selectExpert($event)"
+            [zLabel]="'XP.XpertSettings.Delegation.SelectExpert' | translate"
+          >
+            @for (expert of available(); track expert.id) {
+              <z-select-item [zValue]="expert.id">{{ expert.title || expert.name }}</z-select-item>
+            }
+          </z-select>
+        </label>
+        <label class="space-y-2 text-sm text-text-secondary"
+          ><span>{{ 'XP.XpertSettings.Delegation.Parent' | translate }}</span>
+          <z-select class="block" [zValue]="parentKey()" (zSelectionChange)="selectParent($event)">
+            @for (agent of agents(); track agent.key) {
+              <z-select-item [zValue]="agent.key">{{
+                agent.entity.title || agent.entity.name || agent.key
+              }}</z-select-item>
+            }
+          </z-select>
+        </label>
+      </div>
+      @if (!available().length) {
+        <p class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Delegation.NoCandidates' | translate }}</p>
+      }
+      <div class="flex justify-end gap-2">
+        <button z-button zType="outline" [zDisabled]="busy()" (click)="choosing.set(false)">
+          {{ 'XP.ACTIONS.Cancel' | translate }}</button
+        ><button z-button [zDisabled]="!selected() || busy()" (click)="add()">
+          {{ 'XP.XpertSettings.Delegation.AddExpert' | translate }}
+        </button>
+      </div>
+    }
+  </section>
+}
+@if (error()) {
+  <p role="alert" class="mb-3 text-sm text-text-destructive">{{ error() }}</p>
+}
+<div class="space-y-3">
+  @for (expert of experts(); track expert.key) {
+    <article class="rounded-[var(--assistant-settings-item-radius)] border border-divider-regular p-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-1 items-center gap-3">
+          <emoji-avatar class="size-10 shrink-0" [avatar]="expert.entity.avatar" />
+          <div class="min-w-0">
+            <h4 class="truncate text-base font-semibold">{{ expert.entity.title || expert.entity.name }}</h4>
+            <p class="mt-1 text-sm text-text-tertiary">
+              v{{ expert.entity.version }} · {{ 'XP.XpertSettings.Delegation.Parent' | translate }}:
+              {{ callers(expert.key) || ('XP.XpertSettings.Delegation.NotConnected' | translate) }}
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <a
+            z-button
+            zType="outline"
+            [routerLink]="['/xpert/x', expert.entity.id, 'agents']"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ 'XP.XpertSettings.Delegation.OpenExpert' | translate
+            }}<i class="ri-external-link-line" aria-hidden="true"></i></a
+          ><button z-button zType="outline" [zDisabled]="busy()" (click)="remove(expert.key)">
+            {{ 'XP.XpertSettings.Delegation.Remove' | translate }}
+          </button>
+        </div>
+      </div>
+      @if (expert.entity.description) {
+        <p class="mt-2 text-sm leading-5 text-text-tertiary">{{ expert.entity.description }}</p>
+      }
+    </article>
+  } @empty {
+    <p
+      class="rounded-[var(--assistant-settings-item-radius)] border border-dashed border-divider-regular p-4 text-sm text-text-tertiary"
+    >
+      {{ 'XP.XpertSettings.Delegation.NoExperts' | translate }}
+    </p>
+  }
+</div>
+<p class="mt-3 text-sm leading-5 text-text-tertiary">{{ 'XP.XpertSettings.Delegation.ExpertHint' | translate }}</p>

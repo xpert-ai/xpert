@@ -5,6 +5,7 @@ import {
     TChatConversationOptions,
     TChatConversationStatus,
     TChatFrom,
+    TChatAgentRunSummary,
     TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
@@ -136,6 +137,9 @@ export class ChatMessageDTO {
 
     @Expose()
     executionId?: string
+
+    @Expose()
+    agentRuns?: TChatAgentRunSummary[]
 
     @Expose()
     createdAt?: Date

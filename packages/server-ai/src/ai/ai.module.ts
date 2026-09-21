@@ -32,6 +32,8 @@ import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { SseStreamModule } from '../shared/stream'
 import { XpertProjectModule } from '../xpert-project'
 import { FileUnderstandingModule } from '../file-understanding'
+import { XpertAgentExecutionModule } from '../xpert-agent-execution/agent-execution.module'
+import { ConversationAgentRunsService } from './conversation-agent-runs.service'
 
 @Module({
     imports: [
@@ -62,6 +64,7 @@ import { FileUnderstandingModule } from '../file-understanding'
         forwardRef(() => ChatMessageFeedbackModule),
         forwardRef(() => FileUnderstandingModule),
         SseStreamModule,
+        forwardRef(() => XpertAgentExecutionModule),
         XpertProjectModule
     ],
     controllers: [
@@ -74,6 +77,13 @@ import { FileUnderstandingModule } from '../file-understanding'
         ConversationsController,
         StoreController
     ],
-    providers: [AiService, RuntimeCommandService, RuntimeCapabilitiesService, ...CommandHandlers, ...QueryHandlers]
+    providers: [
+        AiService,
+        RuntimeCommandService,
+        RuntimeCapabilitiesService,
+        ConversationAgentRunsService,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ]
 })
 export class AIModule {}

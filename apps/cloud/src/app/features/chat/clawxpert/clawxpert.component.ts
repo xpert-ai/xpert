@@ -7,6 +7,8 @@ import { firstValueFrom } from 'rxjs'
 import { Store, XpertAPIService, XpertTypeEnum } from '../../../@core'
 import { shouldCreateClawXpertAfterEntryOnboarding } from '../../features-onboarding'
 import { ClawXpertFacade } from './clawxpert.facade'
+import { TranslateModule } from '@ngx-translate/core'
+import { ClawXpertBindingWizardComponent } from './clawxpert-binding-wizard.component'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
 import { ClawXpertConversationPaneComponent } from './clawxpert-conversation-pane.component'
 import { clawXpertConversationScope } from './clawxpert-conversation-scope'
@@ -17,16 +19,34 @@ const ENTRY_ONBOARDING_QUERY_VALUE = 'clawxpert'
 @Component({
   standalone: true,
   selector: 'xp-clawxpert',
-  imports: [CommonModule, RouterModule, ClawXpertConversationPaneComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslateModule,
+    ClawXpertBindingWizardComponent,
+    ClawXpertConversationPaneComponent
+  ],
   template: `
     <div class="h-full overflow-hidden">
+      @if (facade.loading()) {
+        <p role="status" class="p-8 text-center text-text-secondary">{{ 'XP.Chat.ClawXpert.Loading' | translate }}</p>
+      } @else if (facade.viewState() === 'wizard') {
+        <xp-clawxpert-binding-wizard class="block h-full overflow-y-auto p-8" />
+      } @else if (facade.viewState() === 'error' || !facade.organizationId()) {
+        <p role="alert" class="p-8 text-center text-text-secondary">
+          {{
+            (!facade.organizationId() ? 'XP.Chat.ClawXpert.OrganizationRequired' : 'XP.Chat.ClawXpert.LoadFailed')
+              | translate
+          }}
+        </p>
+      }
       @for (scope of mountedScopes(); track scope) {
         @for (owner of conversationOwnerKeys(); track owner.key) {
           <xp-clawxpert-conversation-pane
             [scope]="scope"
-            [style.display]="activeScope() === scope ? null : 'none'"
-            [attr.inert]="activeScope() === scope ? null : ''"
-            [attr.aria-hidden]="activeScope() === scope ? null : 'true'"
+            [style.display]="activeScope() === scope && facade.viewState() === 'ready' ? null : 'none'"
+            [attr.inert]="activeScope() === scope && facade.viewState() === 'ready' ? null : ''"
+            [attr.aria-hidden]="activeScope() === scope && facade.viewState() === 'ready' ? null : 'true'"
           />
         }
       }
@@ -36,6 +56,7 @@ const ENTRY_ONBOARDING_QUERY_VALUE = 'clawxpert'
 })
 export class ClawXpertComponent implements OnDestroy {
   readonly #facade = inject(ClawXpertFacade)
+  readonly facade = this.#facade
   readonly #dialog = inject(Dialog)
   readonly #destroyRef = inject(DestroyRef)
   readonly #injector = inject(Injector)
@@ -65,17 +86,6 @@ export class ClawXpertComponent implements OnDestroy {
       }
 
       void this.handleEntryOnboardingRoute()
-    })
-
-    effect(() => {
-      if (
-        this.#facade.hasLoadedXperts() &&
-        (this.#facade.isConversationRoute() ||
-          (this.activeScope() === 'assistant' && this.#facade.currentUrl() !== '/chat/clawxpert/settings')) &&
-        this.#facade.viewState() === 'wizard'
-      ) {
-        this.#facade.navigateToOverview()
-      }
     })
 
     effect(() => {

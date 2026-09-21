@@ -1,6 +1,5 @@
 import {
   addWorkspaceConnectorMenuItem,
-  addWorkspaceAssistantMenuItem,
   addWorkspaceExpertSkillsConnectorsMenuItem,
   addWorkspaceMoreMenuItem,
   addWorkspaceSkillMenuItem,
@@ -30,28 +29,22 @@ function menu(item: Partial<CloudMenuItem>): CloudMenuItem {
 }
 
 describe('buildCloudSidebarMenuGroups', () => {
-  it('adds the assistant module below new task and before expert tools', () => {
+  it('keeps new task and expert tools without the removed assistant menu', () => {
     const groups = buildCloudSidebarMenuGroups([
       menu({ title: 'New task', link: '/chat/clawxpert/c' }),
       menu({ title: 'Explore', link: '/explore' }),
       menu({ title: 'Scheduled', link: '/chat/tasks' })
     ])
 
-    const updated = addWorkspaceExpertSkillsConnectorsMenuItem(addWorkspaceAssistantMenuItem(groups))
+    const updated = addWorkspaceExpertSkillsConnectorsMenuItem(groups)
     const work = updated.find((group) => group.key === 'work')
 
     expect(work?.items.map((item) => item.data?.translationKey ?? item.link)).toEqual([
       '/chat/clawxpert/c',
-      'Assistant',
       'ExpertSkillsConnectors',
       '/chat/tasks'
     ])
-    expect(work?.items[1]).toMatchObject({
-      title: 'Assistant',
-      icon: 'ri-robot-2-line',
-      link: '/chat/clawxpert/assistant',
-      data: { translationKey: 'Assistant' }
-    })
+    expect(work?.items.some((item) => item.data?.translationKey === 'Assistant')).toBe(false)
   })
 
   it('groups work, module and management menus with fixed management order', () => {
@@ -132,7 +125,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       '/chat/tasks'
     ])
     expect(work?.items[1]).toMatchObject({
-      title: '连接器',
+      title: 'Connectors',
       icon: 'ri-share-line',
       pathMatch: 'prefix',
       data: { translationKey: 'Connectors', workspaceSection: 'connectors' }
@@ -148,7 +141,7 @@ describe('buildCloudSidebarMenuGroups', () => {
         link: '/chat/clawxpert/c'
       },
       {
-        title: '连接器',
+        title: 'Connectors',
         link: '/xpert/w?section=connectors'
       }
     ])
@@ -198,7 +191,7 @@ describe('buildCloudSidebarMenuGroups', () => {
       link: '/chat/clawxpert/c'
     })
     expect(work?.items[1]).toMatchObject({
-      title: '技能',
+      title: 'Skills',
       icon: 'ri-pencil-ruler-line',
       pathMatch: 'prefix',
       data: { translationKey: 'Skills', workspaceSection: 'skills' }
@@ -226,13 +219,13 @@ describe('buildCloudSidebarMenuGroups', () => {
       'More'
     ])
     expect(more?.children).toMatchObject([
-      { title: '资源库', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
+      { title: 'Resource library', link: '/xpert/w/workspace%2F1/files', data: { workspaceSection: 'files' } },
       {
-        title: '我的知识库',
+        title: 'My knowledgebases',
         link: '/xpert/knowledges',
         data: { translationKey: 'My knowledgebases' }
       },
-      { title: '工作区设置', link: '/chat/clawxpert', data: { workspaceSection: 'settings' } }
+      { title: 'Assistant settings', data: { translationKey: 'Assistant settings', action: 'openAssistantSettings' } }
     ])
   })
 
@@ -252,7 +245,7 @@ describe('buildCloudSidebarMenuGroups', () => {
     ])
     expect(updated.find((group) => group.key === 'modules')?.items.map((item) => item.link)).toEqual(['/data'])
     expect(work?.items[1]).toMatchObject({
-      title: '专家·技能·连接器',
+      title: 'Experts, Skills and Connectors',
       link: '/explore',
       data: { translationKey: 'ExpertSkillsConnectors' }
     })

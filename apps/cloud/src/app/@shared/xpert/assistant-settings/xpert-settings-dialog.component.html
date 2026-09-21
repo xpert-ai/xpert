@@ -1,0 +1,261 @@
+<aside
+  class="hidden w-56 shrink-0 flex-col border-r border-divider-regular bg-background-default-subtle p-3 sm:flex lg:w-60"
+>
+  <header class="mb-3 flex items-center gap-2.5">
+    <emoji-avatar large class="size-10 shrink-0 rounded-xl" [avatar]="source.draft().team.avatar" />
+    <div class="min-w-0">
+      <h1 class="truncate text-lg font-semibold" [title]="source.draft().team.title || source.draft().team.name">
+        {{ source.draft().team.title || source.draft().team.name }}
+      </h1>
+      <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.XpertSettings.DraftIdentity' | translate }}</div>
+    </div>
+  </header>
+  <div class="relative">
+    <i
+      class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+      aria-hidden="true"
+    ></i
+    ><input
+      z-input
+      type="search"
+      class="h-8 w-full rounded-[var(--assistant-settings-item-radius)] py-1 pl-9 text-base"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      [placeholder]="'XP.XpertSettings.Search' | translate"
+      [attr.aria-label]="'XP.XpertSettings.Search' | translate"
+    />
+  </div>
+  <nav class="mt-3 min-h-0 flex-1 overflow-y-auto" [attr.aria-label]="'XP.XpertSettings.Navigation' | translate">
+    @for (group of groups; track group) {
+      @if (groupSections(group).length) {
+        <div class="mb-2">
+          <h3 class="mb-1 px-2 text-sm font-medium text-text-tertiary">
+            {{ 'XP.XpertSettings.Groups.' + group | translate }}
+          </h3>
+          @for (section of groupSections(group); track section.key) {
+            <button
+              type="button"
+              class="flex min-h-8 w-full items-center gap-2.5 rounded-[var(--assistant-settings-item-radius)] px-2.5 py-0.5 text-left text-base leading-6 transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+              [class]="
+                editor.section() === section.key
+                  ? 'bg-hover-bg font-semibold text-text-primary'
+                  : 'text-text-secondary hover:bg-hover-bg'
+              "
+              [attr.aria-current]="editor.section() === section.key ? 'page' : null"
+              (click)="select(section.key)"
+            >
+              <i [class]="section.icon + ' text-lg'" aria-hidden="true"></i
+              ><span class="flex-1">{{ 'XP.XpertSettings.Menu.' + section.key | translate }}</span>
+              @if (editor.invalidSections().includes(section.key) || pendingSections().includes(section.key)) {
+                <i class="ri-error-warning-line text-text-warning" aria-hidden="true"></i
+                ><span class="sr-only">{{
+                  (pendingSections().includes(section.key)
+                    ? 'XP.AssistantSettings.UnsavedChanges'
+                    : 'XP.XpertSettings.NeedsCorrection'
+                  ) | translate
+                }}</span>
+              }
+            </button>
+          }
+        </div>
+      }
+    }
+    @if (!filteredSections().length) {
+      <p class="px-2 py-4 text-sm text-text-tertiary">{{ 'XP.XpertSettings.NoResults' | translate }}</p>
+    }
+  </nav>
+</aside>
+<main class="flex min-w-0 flex-1 flex-col">
+  <header class="relative shrink-0 border-b border-divider-regular px-4 py-3 sm:px-5">
+    <div class="mb-2 flex items-center gap-3 pr-10 sm:hidden">
+      <z-select
+        class="w-full rounded-[var(--assistant-settings-item-radius)] [&>button]:min-h-10 [&>button]:rounded-[var(--assistant-settings-item-radius)] [&>button]:text-base"
+        zSize="lg"
+        [zValue]="editor.section()"
+        [zLabel]="'XP.XpertSettings.Menu.' + editor.section() | translate"
+        (zSelectionChange)="selectFromMenu($event)"
+        [attr.aria-label]="'XP.XpertSettings.Navigation' | translate"
+      >
+        @for (section of sections(); track section.key) {
+          <z-select-item [zValue]="section.key" class="mb-0 min-h-[40px] rounded-xl py-2 text-base">{{
+            'XP.XpertSettings.Menu.' + section.key | translate
+          }}</z-select-item>
+        }
+      </z-select>
+    </div>
+    <h2 class="pr-8 text-lg font-semibold tracking-tight text-text-primary">
+      {{ 'XP.XpertSettings.Menu.' + editor.section() | translate }}
+    </h2>
+    <p class="mt-1 pr-8 text-sm leading-5 text-text-tertiary">
+      {{ 'XP.XpertSettings.Description.' + editor.section() | translate }}
+    </p>
+    <button
+      type="button"
+      class="absolute right-3 top-3 inline-flex size-10 shrink-0 items-center justify-center rounded-xl p-0 text-lg leading-none text-text-secondary hover:bg-hover-bg focus-visible:outline-2 focus-visible:outline-primary"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+      [disabled]="editor.closing() || personalization()?.saving()"
+      (click)="close()"
+    >
+      <i class="ri-close-line" aria-hidden="true"></i>
+    </button>
+  </header>
+  <div
+    #content
+    class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5"
+    tabindex="0"
+    [attr.aria-label]="'XP.XpertSettings.Menu.' + editor.section() | translate"
+  >
+    @if (editor.data.binding) {
+      <xp-assistant-personalization
+        class="[&_.text-xs]:text-sm [&_label.font-semibold]:text-lg [&_p.leading-6]:leading-5 [&_section.border-t]:mt-3 [&_section.border-t]:pt-3 [&_textarea]:text-base"
+        [hidden]="editor.section() !== 'personalization'"
+        [showFooter]="false"
+        [showIntro]="false"
+      />
+    }
+    <xp-settings-subagents [hidden]="editor.section() !== 'subagents'" />
+    @if (visitedSections().has('skills')) {
+      <xp-settings-middleware #skills mode="skills" [hidden]="editor.section() !== 'skills'" />
+    }
+    @if (visitedSections().has('middleware')) {
+      <xp-settings-middleware #middleware [hidden]="editor.section() !== 'middleware'" />
+    }
+    @switch (editor.section()) {
+      @case ('externalExperts') {
+        <xp-settings-external-experts />
+      }
+      @case ('assistant') {
+        <xp-assistant-triggers
+          class="[&>.mb-5]:mb-3 [&>p.mt-5]:mt-2 [&_.text-xs]:text-sm [&_h2]:text-lg [&_h3]:text-lg [&_p.leading-6]:leading-5 [&_z-card-content]:px-3 [&_z-card-content]:py-2 [&_z-card-content_p]:mt-2 [&_z-card]:rounded-[var(--assistant-settings-item-radius)]"
+        />
+      }
+      @case ('statistics') {
+        <xp-settings-statistics />
+      }
+      @case ('general') {
+        <xp-settings-basic page="general" />
+      }
+      @case ('models') {
+        <xp-settings-basic page="models" />
+      }
+      @case ('conversation') {
+        <xp-settings-conversation />
+      }
+      @case ('workbench') {
+        <xp-settings-workbench />
+      }
+      @case ('files') {
+        <xp-settings-capabilities page="files" />
+      }
+      @case ('speech') {
+        <xp-settings-capabilities page="speech" />
+      }
+      @case ('memory') {
+        <xp-settings-memory />
+      }
+      @case ('runtime') {
+        <xp-settings-capabilities page="runtime" />
+      }
+    }
+    @if (invalid()) {
+      <div role="alert" class="mt-4 rounded-lg bg-status-error-bg px-3 py-2 text-base text-text-destructive">
+        {{ 'XP.XpertSettings.ValidationError' | translate }}
+      </div>
+    }
+  </div>
+  <footer class="shrink-0 border-t border-divider-regular px-4 py-2 sm:px-5">
+    @if (editor.confirmDiscard()) {
+      <div class="mb-4 space-y-3 rounded-lg bg-background-default-subtle p-3" role="alert">
+        <p class="text-sm">{{ 'XP.XpertSettings.DiscardUnapplied' | translate }}</p>
+        <div class="flex flex-wrap justify-end gap-2">
+          <button z-button zType="outline" (click)="continueEditing()">
+            {{ 'XP.XpertSettings.KeepEditing' | translate }}</button
+          ><button z-button zType="outline" [zDisabled]="editor.closing()" (click)="close(true)">
+            {{ 'XP.XpertSettings.DiscardInvalid' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+    @if (source.error()) {
+      <p class="mb-3 break-words text-base text-text-destructive" role="alert">
+        {{ 'XP.XpertSettings.SaveFailed' | translate }}: {{ source.error() }}
+      </p>
+    }
+    @if (editor.section() === 'personalization') {
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-text-secondary" role="status">
+          {{
+            (personalization()?.dirty
+              ? 'XP.AssistantSettings.UnsavedChanges'
+              : 'XP.AssistantSettings.PersonalizationSaveHint'
+            ) | translate
+          }}
+        </p>
+        <div class="flex gap-2">
+          <button
+            z-button
+            zType="outline"
+            [zDisabled]="personalization()?.saving() || !personalization()?.dirty"
+            (click)="personalization()?.reset()"
+          >
+            {{ 'XP.Common.Reset' | translate }}
+          </button>
+          <button
+            z-button
+            [zDisabled]="personalization()?.saving() || !personalization()?.dirty"
+            (click)="saveCurrent()"
+          >
+            {{ (personalization()?.saving() ? 'XP.AssistantSettings.Saving' : 'XP.KEY_WORDS.Save') | translate }}
+          </button>
+        </div>
+      </div>
+    } @else if (editor.section() === 'statistics') {
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-sm text-text-secondary">{{ 'XP.XpertSettings.StatisticsHint' | translate }}</p>
+        <button z-button zType="outline" [zDisabled]="statistics()?.loading()" (click)="statistics()?.load()">
+          {{ 'XP.AssistantSettings.Refresh' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0 text-sm text-text-secondary" role="status" aria-live="polite">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span class="flex items-center gap-2">
+              @if (source.saving()) {
+                <i class="ri-loader-4-line animate-spin text-lg" aria-hidden="true"></i
+                >{{ 'XP.XpertSettings.Saving' | translate }}
+              } @else if (source.error()) {
+                <i class="ri-error-warning-line text-lg text-text-destructive" aria-hidden="true"></i
+                >{{ 'XP.XpertSettings.Unsaved' | translate }}
+              } @else if (pendingSections().length) {
+                <i class="ri-edit-line text-lg" aria-hidden="true"></i
+                >{{ 'XP.AssistantSettings.UnsavedChanges' | translate }}
+              } @else if (editor.invalidSections().length) {
+                <i class="ri-error-warning-line text-lg text-text-warning" aria-hidden="true"></i
+                >{{ 'XP.XpertSettings.NeedsCorrection' | translate }}
+              } @else if (source.unsaved()) {
+                <i class="ri-time-line text-lg" aria-hidden="true"></i>{{ 'XP.XpertSettings.PendingSave' | translate }}
+              } @else {
+                <i class="ri-checkbox-circle-fill text-lg text-text-success" aria-hidden="true"></i
+                >{{ 'XP.XpertSettings.Saved' | translate }}
+              }
+            </span>
+            <span class="text-text-tertiary sm:border-l sm:border-divider-regular sm:pl-3">{{
+              'XP.XpertSettings.PublishTip' | translate
+            }}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          z-button
+          zType="outline"
+          class="shrink-0"
+          [zDisabled]="source.saving() || editor.closing()"
+          (click)="saveCurrent()"
+        >
+          {{ (source.error() ? 'XP.ACTIONS.Retry' : 'XP.XpertSettings.SaveNow') | translate }}
+        </button>
+      </div>
+    }
+  </footer>
+</main>

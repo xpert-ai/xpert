@@ -1,6 +1,4 @@
-import { Type } from '@angular/core'
 import { TXpertTeamNode, WorkflowNodeTypeEnum } from '@cloud/app/@core'
-import { provideJsonSchemaWidgetStrategy } from '@cloud/app/@shared/forms'
 
 export type XpertStudioNodeStatus = 'success' | 'error' | 'template'
 
@@ -46,40 +44,12 @@ export function isPasteableNode(node: unknown): node is TXpertTeamNode {
   }
 
   const candidate = node as TXpertTeamNode
-  return !!candidate.type &&
+  return (
+    !!candidate.type &&
     !!candidate.position &&
     typeof candidate.position.x === 'number' &&
     typeof candidate.position.y === 'number'
-}
-
-export function provideJsonSchemaWidgets() {
-  return provideJsonSchemaWidgetStrategy(
-    {
-      name: 'skills-select',
-      load: () => import('@cloud/app/@shared/skills').then((m) => m.XpertSkillSelectComponent)
-    },
-    {
-      name: 'ai-model-select',
-      /**
-       * Lazy load the real component.
-       */
-      async load(): Promise<Type<unknown>> {
-        return import('@cloud/app/@shared/copilot/copilot-model-select/index').then(
-          (m) => m.CopilotModelSelectComponent
-        )
-      }
-    },
-    {
-      name: 'agent-interrupt-on',
-      async load(): Promise<Type<unknown>> {
-        return import('@cloud/app/@shared/agent/middlewares').then((m) => m.AgentInterruptOnComponent)
-      }
-    },
-    {
-      name: 'code-editor',
-      async load(): Promise<Type<unknown>> {
-        return import('@cloud/app/@shared/editors').then((m) => m.CodeEditorComponent)
-      }
-    }
   )
 }
+
+export { provideJsonSchemaWidgets } from '@cloud/app/@shared/xpert/json-schema-widgets'

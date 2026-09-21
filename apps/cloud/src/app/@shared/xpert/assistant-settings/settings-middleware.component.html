@@ -1,0 +1,221 @@
+<div class="space-y-3">
+  <label class="block space-y-1">
+    <span class="text-base font-medium">{{ 'XP.XpertSettings.Middleware.TargetAgent' | translate }}</span>
+    <z-select
+      class="block rounded-[var(--assistant-settings-item-radius)] [&>button]:rounded-[var(--assistant-settings-item-radius)]"
+      [zValue]="targetKey()"
+      [zDisabled]="dirty() || editor.source.saving()"
+      [zPlaceholder]="'XP.XpertSettings.Middleware.TargetAgent' | translate"
+      (zSelectionChange)="selectTarget($event)"
+    >
+      @for (agent of agents(); track agent.key) {
+        <z-select-item [zValue]="agent.key">
+          {{ agent.entity.title || agent.entity.name || agent.key }}
+          @if (agent.key === editor.source.draft().team.agent?.key) {
+            ({{ 'XP.XpertSettings.Middleware.PrimaryAgent' | translate }})
+          }
+        </z-select-item>
+      }
+    </z-select>
+  </label>
+  @if (!agents().length) {
+    <p class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Middleware.NoAgent' | translate }}</p>
+  }
+  @if (mode() === 'skills') {
+    <p class="text-sm leading-5 text-text-tertiary">
+      {{ 'XP.XpertSettings.Middleware.SkillsHint' | translate }}
+      <button type="button" class="underline hover:text-text-primary" (click)="editor.select('runtime')">
+        {{ 'XP.XpertSettings.Menu.runtime' | translate }}
+      </button>
+    </p>
+  }
+  <div class="flex flex-wrap items-center gap-2">
+    @if (mode() === 'middleware') {
+      <z-select
+        class="min-w-48 flex-1 rounded-[var(--assistant-settings-item-radius)] [&>button]:rounded-[var(--assistant-settings-item-radius)]"
+        [zValue]="providerChoice()"
+        [zSearchable]="true"
+        [zDisabled]="loading() || dirty()"
+        [zPlaceholder]="'XP.XpertSettings.Middleware.Provider' | translate"
+        (zSelectionChange)="selectProvider($event)"
+      >
+        @for (provider of choices(); track provider.meta.name) {
+          <z-select-item [zValue]="provider.meta.name">{{ provider.meta.label | i18n }}</z-select-item>
+        }
+      </z-select>
+    }
+    @if (mode() !== 'skills' || !assigned().length) {
+      <button type="button" z-button zType="outline" [zDisabled]="!canAdd()" (click)="edit()">
+        <i class="ri-add-line" aria-hidden="true"></i>
+        {{
+          (mode() === 'skills' ? 'XP.XpertSettings.Middleware.AddSkills' : 'XP.XpertSettings.Middleware.Add')
+            | translate
+        }}
+      </button>
+    }
+    <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="load()">
+      {{ 'XP.AssistantSettings.Refresh' | translate }}
+    </button>
+  </div>
+  @if (loading()) {
+    <p role="status" class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Middleware.Loading' | translate }}</p>
+  } @else if (loadError()) {
+    <p role="alert" class="text-sm text-text-destructive">{{ loadError() }}</p>
+  } @else if (!choices().length) {
+    <p class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Middleware.NoProviders' | translate }}</p>
+  }
+  @if (assigned().length) {
+    <input
+      z-input
+      type="search"
+      class="h-8 w-full rounded-[var(--assistant-settings-item-radius)]"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      [placeholder]="'XP.XpertSettings.Search' | translate"
+      [attr.aria-label]="'XP.XpertSettings.Search' | translate"
+    />
+  }
+  <div class="divide-y divide-divider-regular">
+    @for (node of visible(); track node.key) {
+      <div class="flex flex-wrap items-center gap-2 py-2">
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate text-base font-semibold">
+            {{ (metadata(node.entity.provider)?.label | i18n) || node.entity.title || node.entity.provider }}
+          </h3>
+          <p class="text-sm text-text-tertiary">{{ node.entity.title }}</p>
+        </div>
+        <button
+          type="button"
+          z-button
+          zType="outline"
+          [zDisabled]="dirty() || editor.source.saving()"
+          (click)="edit(node)"
+        >
+          {{ 'XP.XpertSettings.Middleware.Configure' | translate }}
+        </button>
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          [zDisabled]="dirty() || editor.source.saving()"
+          (click)="pendingRemoval.set(node)"
+        >
+          {{ 'XP.XpertSettings.Middleware.Remove' | translate }}
+        </button>
+      </div>
+    } @empty {
+      <p class="py-3 text-sm text-text-tertiary">
+        {{ (query() ? 'XP.XpertSettings.NoResults' : 'XP.XpertSettings.Middleware.Empty') | translate }}
+      </p>
+    }
+  </div>
+  @if (pendingRemoval(); as node) {
+    <div
+      role="alert"
+      class="space-y-2 rounded-[var(--assistant-settings-item-radius)] bg-background-default-subtle p-3"
+    >
+      <p class="text-sm">
+        {{
+          'XP.XpertSettings.Middleware.RemoveConfirm' | translate: { name: node.entity.title || node.entity.provider }
+        }}
+      </p>
+      <div class="flex justify-end gap-2">
+        <button type="button" z-button zType="outline" (click)="pendingRemoval.set(null)">
+          {{ 'XP.ACTIONS.Cancel' | translate }}
+        </button>
+        <button type="button" z-button [zDisabled]="editor.source.saving()" (click)="remove()">
+          {{ 'XP.XpertSettings.Middleware.Remove' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+  @if (selectedKey()) {
+    <form #configuration class="space-y-3 border-t border-divider-regular pt-3" [formGroup]="form" (ngSubmit)="save()">
+      <h3 class="text-lg font-semibold">{{ (meta()?.label | i18n) || form.controls.provider.value }}</h3>
+      @if (meta(); as provider) {
+        @if (provider.description) {
+          <p class="text-sm leading-5 text-text-tertiary">{{ provider.description | i18n }}</p>
+        }
+        @if (provider.deprecated) {
+          <p class="text-sm text-text-warning">
+            {{ (provider.deprecationMessage | i18n) || ('XP.XpertSettings.Middleware.Deprecated' | translate) }}
+          </p>
+        }
+        @if (sharedWith()) {
+          <p class="text-sm text-text-warning">
+            {{ 'XP.XpertSettings.Middleware.SharedHint' | translate: { agents: sharedWith() } }}
+          </p>
+        }
+        <label class="block space-y-1">
+          <span class="text-base font-medium">{{ 'XP.XpertSettings.Delegation.Title' | translate }}</span>
+          <input #titleInput z-input class="h-10 w-full" formControlName="title" />
+          @if (form.controls.title.invalid && form.controls.title.touched) {
+            <p role="alert" class="text-sm text-text-destructive">
+              {{ 'XP.XpertSettings.Delegation.TitleRequired' | translate }}
+            </p>
+          }
+        </label>
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h4 class="text-base font-medium">{{ 'XP.XpertSettings.Middleware.Required' | translate }}</h4>
+            <p class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Middleware.RequiredHint' | translate }}</p>
+          </div>
+          <z-switch formControlName="required"
+            ><span class="sr-only">{{ 'XP.XpertSettings.Middleware.Required' | translate }}</span></z-switch
+          >
+        </div>
+        @if (provider.configSchema; as schema) {
+          <json-schema-form
+            class="grid grid-cols-1 gap-2 sm:grid-cols-2"
+            [schema]="schema"
+            formControlName="options"
+            [variables]="variablesResource.value()"
+            [context]="formContext()"
+          />
+        }
+        @if (toolsResource.status() === 'loading') {
+          <p role="status" class="text-sm text-text-tertiary">
+            {{ 'XP.XpertSettings.Middleware.LoadingTools' | translate }}
+          </p>
+        } @else if (toolsResource.error()) {
+          <p role="alert" class="text-sm text-text-warning">
+            {{ 'XP.XpertSettings.Middleware.ToolsUnavailable' | translate }}
+          </p>
+        }
+        @if (toolsResource.value()?.tools?.length) {
+          <div class="space-y-2 border-t border-divider-regular pt-3">
+            <h4 class="text-base font-medium">{{ 'XP.XpertSettings.Middleware.Tools' | translate }}</h4>
+            @for (tool of toolsResource.value().tools; track tool.name) {
+              <div class="flex items-center justify-between gap-3 py-1">
+                <div class="min-w-0">
+                  <p class="break-words text-base">{{ tool.name }}</p>
+                  <p class="text-sm text-text-tertiary">{{ tool.description }}</p>
+                </div>
+                <z-switch
+                  [ngModel]="toolEnabled(tool.name)"
+                  (ngModelChange)="setToolEnabled(tool.name, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <span class="sr-only">{{ tool.name }}</span>
+                </z-switch>
+              </div>
+            }
+          </div>
+        }
+      } @else {
+        <p role="alert" class="text-sm text-text-warning">
+          {{ 'XP.XpertSettings.Middleware.ProviderUnavailable' | translate }}
+        </p>
+      }
+      <div class="flex justify-end gap-2">
+        <button type="button" z-button zType="outline" (click)="reset()">{{ 'XP.ACTIONS.Cancel' | translate }}</button>
+        <button type="submit" z-button [zDisabled]="editor.source.saving() || !meta()">
+          {{ 'XP.XpertSettings.SaveNow' | translate }}
+        </button>
+      </div>
+    </form>
+  }
+  @if (error()) {
+    <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
+  }
+</div>

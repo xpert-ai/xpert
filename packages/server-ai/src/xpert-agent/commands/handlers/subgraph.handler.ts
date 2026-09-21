@@ -248,6 +248,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // The xpert (agent team)
         const team = agent.team
+        options.unmutes?.push([agent.key, team.id])
         const runtimeXpert = {
             ...team,
             id: team?.id ?? xpert.id
@@ -474,6 +475,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 const item = await this.createAgentSubgraph(follower, {
                     mute: options.mute,
+                    unmutes: options.unmutes,
                     store: options.store,
                     xpert: runtimeXpert,
                     options: {
@@ -512,6 +514,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                     xpert: collaborator,
                     config: {
                         mute: options.mute,
+                        unmutes: options.unmutes,
                         store: options.store,
                         options: {
                             leaderKey: agentKey,
@@ -587,6 +590,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 }
                 const { stateGraph, nextNodes, failNode } = await this.createAgentSubgraph(node.entity, {
                     mute: options.mute,
+                    unmutes: options.unmutes,
                     store: options.store,
                     xpert: runtimeXpert,
                     options: {
@@ -1898,6 +1902,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         >(
             new XpertAgentSubgraphCommand(agent.key, xpert, {
                 mute: config.mute,
+                unmutes: config.unmutes,
                 store: config.store,
                 thread_id,
                 rootController,
@@ -1948,6 +1953,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         agentKey: agent.key,
                         inputs: call?.args,
                         parentId: executionId,
+                        metadata: { ...execution.metadata, invocationKind: 'sub_agent' },
                         status: XpertAgentExecutionStatusEnum.RUNNING,
                         predecessor: configurable.agentKey
                     })

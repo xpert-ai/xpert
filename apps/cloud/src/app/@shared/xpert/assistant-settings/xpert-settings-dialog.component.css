@@ -1,0 +1,9 @@
+/* The CDK panel owns the surface; these tokens are scoped to Assistant settings. */
+.cdk-overlay-pane.xp-overlay-pane-assistant-settings {
+  --assistant-settings-dialog-radius: 24px;
+  --assistant-settings-item-radius: 12px;
+}
+
+.cdk-overlay-pane.xp-overlay-pane-dialog.xp-overlay-pane-assistant-settings .cdk-dialog-container {
+  border-radius: var(--assistant-settings-dialog-radius);
+}

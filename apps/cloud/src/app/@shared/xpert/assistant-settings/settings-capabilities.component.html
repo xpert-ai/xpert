@@ -1,0 +1,160 @@
+@switch (page()) {
+  @case ('files') {
+    <xp-settings-feature
+      titleKey="XP.XpertSettings.FileUpload"
+      description="XP.XpertSettings.FileUploadTip"
+      [control]="files.enabled"
+      [collapsible]="false"
+    >
+      <fieldset class="space-y-2">
+        <legend class="mb-2 text-base font-medium">{{ 'XP.XpertSettings.FileTypes' | translate }}</legend>
+        @for (type of fileTypes; track type) {
+          <label
+            class="flex min-h-10 items-center gap-2 rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-3 py-1 text-base"
+            ><input
+              type="checkbox"
+              class="size-4 accent-primary"
+              [checked]="files.fileTypes.value.includes(type)"
+              (change)="toggleFileType(type, $event)"
+            />{{ 'XP.XpertSettings.FileType.' + type | translate }}</label
+          >
+        }
+      </fieldset>
+      <div class="flex items-center justify-between gap-4 border-t border-divider-regular pt-3">
+        <label for="assistant-max-files" class="text-base font-medium">{{
+          'XP.XpertSettings.MaxFiles' | translate
+        }}</label
+        ><input
+          id="assistant-max-files"
+          z-input
+          type="number"
+          min="1"
+          max="10"
+          step="1"
+          class="w-24"
+          [formControl]="files.maxNum"
+        />
+      </div>
+      <p class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.MaxFilesTip' | translate }}</p>
+    </xp-settings-feature>
+  }
+  @case ('speech') {
+    <xp-settings-feature
+      titleKey="XP.XpertSettings.TextToSpeech"
+      description="XP.XpertSettings.TextToSpeechTip"
+      [control]="speech.ttsEnabled"
+      [collapsible]="false"
+    >
+      <xp-settings-model-select
+        class="block rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-2 py-1"
+        [modelType]="modelTypes.TTS"
+        [control]="speech.ttsModel"
+      />
+    </xp-settings-feature>
+    <xp-settings-feature
+      titleKey="XP.XpertSettings.SpeechToText"
+      description="XP.XpertSettings.SpeechToTextTip"
+      [control]="speech.sttEnabled"
+      [collapsible]="false"
+    >
+      <xp-settings-model-select
+        class="block rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-2 py-1"
+        [modelType]="modelTypes.SPEECH2TEXT"
+        [control]="speech.sttModel"
+      />
+    </xp-settings-feature>
+    @if (editor.form.controls.speech.invalid) {
+      <p role="alert" class="mt-4 text-base text-text-destructive">
+        {{ 'XP.XpertSettings.SpeechError' | translate }}
+      </p>
+    }
+  }
+  @case ('runtime') {
+    <section class="space-y-4 border-b border-divider-regular pb-4">
+      <h3 class="text-lg font-semibold">{{ 'XP.XpertSettings.ExecutionLimits' | translate }}</h3>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <label for="assistant-concurrency" class="text-base font-medium">{{
+            'XP.Xpert.MaxConcurrency' | translate
+          }}</label>
+          <p class="mt-1 text-sm leading-5 text-text-tertiary">
+            {{ 'XP.XpertSettings.ConcurrencyTip' | translate }}
+          </p>
+        </div>
+        <input
+          id="assistant-concurrency"
+          z-input
+          type="number"
+          min="1"
+          max="100"
+          step="1"
+          class="w-28 shrink-0"
+          [placeholder]="'XP.XpertSettings.Automatic' | translate"
+          [formControl]="runtime.maxConcurrency"
+        />
+      </div>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <label for="assistant-recursion" class="text-base font-medium">{{
+            'XP.Xpert.RecursionLimit' | translate
+          }}</label>
+          <p class="mt-1 text-sm leading-5 text-text-tertiary">{{ 'XP.XpertSettings.RecursionTip' | translate }}</p>
+        </div>
+        <input
+          id="assistant-recursion"
+          z-input
+          type="number"
+          min="100"
+          max="10000"
+          step="100"
+          class="w-28 shrink-0"
+          [formControl]="runtime.recursionLimit"
+        />
+      </div>
+    </section>
+    <xp-settings-feature
+      titleKey="XP.XpertSettings.Sandbox"
+      description="XP.XpertSettings.SandboxTip"
+      [control]="runtime.sandboxEnabled"
+      [collapsible]="false"
+    >
+      <div class="block text-base font-medium">{{ 'XP.Xpert.SandboxProvider' | translate }}</div>
+      @if (loading()) {
+        <p role="status" class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Loading' | translate }}</p>
+      } @else if (failed()) {
+        <div class="flex items-center justify-between gap-3 text-base text-text-secondary">
+          <span>{{ 'XP.XpertSettings.ProvidersFailed' | translate }}</span
+          ><button z-button zType="outline" (click)="loadProviders()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+        </div>
+      } @else {
+        <label class="block">
+          <span class="sr-only">{{ 'XP.Xpert.SandboxProvider' | translate }}</span>
+          <z-select
+            class="block rounded-[var(--assistant-settings-item-radius)] [&>button]:rounded-[var(--assistant-settings-item-radius)]"
+            zSize="lg"
+            [zValue]="runtime.sandboxProvider.value || 0"
+            (zSelectionChange)="selectProvider($event)"
+          >
+            <z-select-item [zValue]="0">{{ 'XP.XpertSettings.SelectProvider' | translate }}</z-select-item>
+            @if (providerUnavailable()) {
+              <z-select-item [zValue]="runtime.sandboxProvider.value">
+                {{ runtime.sandboxProvider.value }} ({{ 'XP.XpertSettings.Unavailable' | translate }})
+              </z-select-item>
+            }
+            @for (provider of providers(); track provider.type) {
+              <z-select-item [zValue]="provider.type">{{ provider.meta?.name | i18n }}</z-select-item>
+            }
+          </z-select>
+        </label>
+        @if (!providers().length) {
+          <p class="text-sm text-text-tertiary">{{ 'XP.Xpert.NoSandboxProvider' | translate }}</p>
+        }
+        @if (runtime.sandboxEnabled.value && !runtime.sandboxProvider.value) {
+          <p role="alert" class="text-base text-text-destructive">
+            {{ 'XP.XpertSettings.SandboxError' | translate }}
+          </p>
+        }
+      }
+    </xp-settings-feature>
+  }
+}

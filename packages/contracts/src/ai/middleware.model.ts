@@ -6,6 +6,7 @@ import type { SkillSlashCommand } from './skill.model'
 
 export const LEGACY_SANDBOX_COMPRESSION_MIDDLEWARE_NAME = 'SandboxCompressionMiddleware'
 export const CONTEXT_COMPRESSION_MIDDLEWARE_NAME = 'ContextCompressionMiddleware'
+export const SKILLS_MIDDLEWARE_NAME = 'skillsMiddleware'
 
 export interface IWFNMiddleware extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.MIDDLEWARE

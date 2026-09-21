@@ -78,3 +78,6 @@ export * from './plugin-application.service'
 export * from './workbench-presentation.service'
 
 export * from './knowledge-tags.service'
+
+export * from './xpert-settings.service'
+export * from './xpert-settings-context.service'

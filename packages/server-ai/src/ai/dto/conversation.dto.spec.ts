@@ -1,6 +1,14 @@
 import { ChatMessageDTO } from './conversation.dto'
+import { instanceToPlain } from 'class-transformer'
 
 describe('ChatMessageDTO', () => {
+    it('serializes derived execution summaries without exposing raw execution metadata', () => {
+        const dto = new ChatMessageDTO({ id: 'a', role: 'ai' })
+        dto.agentRuns = [{ id: 'external', invocationKind: 'external_assistant', model: 'model-a' }]
+        expect(instanceToPlain(dto)).toMatchObject({
+            agentRuns: [{ id: 'external', invocationKind: 'external_assistant', model: 'model-a' }]
+        })
+    })
     it('exposes normalized runtime capabilities saved in third-party metadata', () => {
         const dto = new ChatMessageDTO({
             id: 'message-1',

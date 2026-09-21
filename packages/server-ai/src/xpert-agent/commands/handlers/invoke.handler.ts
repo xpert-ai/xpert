@@ -204,7 +204,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 signal: abortController.signal,
                 workspacePath,
                 workspaceRoot: workArea.workspaceRoot,
-                mute
+                mute,
+                unmutes
             })
         )
 

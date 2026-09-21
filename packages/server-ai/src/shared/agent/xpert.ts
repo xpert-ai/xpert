@@ -1,3 +1,4 @@
+import { avatarForChat } from '../avatar'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, tool } from '@langchain/core/tools'
@@ -91,6 +92,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         >(
             new XpertAgentSubgraphCommand(agent.key, xpert, {
                 mute: config.mute,
+                unmutes: config.unmutes,
                 store: config.store,
                 thread_id,
                 rootController,
@@ -149,6 +151,10 @@ export class XpertCollaborator implements IXpertSubAgent {
                     predecessor: configurable.agentKey,
                     // Correlation enables domain reconciliation of the child run; it does not grant access.
                     metadata: {
+                        ...execution.metadata,
+                        invocationKind: 'external_assistant' as const,
+                        assistantName: xpert.title || xpert.name,
+                        assistantAvatar: avatarForChat(xpert.avatar),
                         ...(configurable.xpertId ? { requesterXpertId: configurable.xpertId } : {}),
                         ...(executionCorrelation(call?.args) ? { correlation: executionCorrelation(call?.args) } : {})
                     }

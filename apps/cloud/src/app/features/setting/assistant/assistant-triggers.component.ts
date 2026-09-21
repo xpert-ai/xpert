@@ -1,3 +1,4 @@
+import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import {
   ChangeDetectionStrategy,
@@ -147,7 +148,9 @@ import {
   `
 })
 export class AssistantTriggersComponent implements OnDestroy {
-  readonly facade = inject(ClawXpertFacade)
+  private readonly settingsContext = inject(ASSISTANT_SETTINGS_CONTEXT, { optional: true })
+  private readonly legacyFacade = this.settingsContext ? null : inject(ClawXpertFacade)
+  readonly facade = this.settingsContext ?? this.legacyFacade!
   private readonly toastr = inject(ToastrService)
   private readonly api = inject(XpertAPIService)
   private readonly connections = inject(AssistantTriggerConnectionService)
@@ -213,24 +216,26 @@ export class AssistantTriggersComponent implements OnDestroy {
   }
 
   private async reloadTriggerDraft(xpertId: string, organizationId: string) {
-    const source = this.facade.triggerDraftSource()
-    const draft = this.facade.triggerDraft()
+    if (this.settingsContext) return this.settingsContext.reloadTriggerDraft()
+    const facade = this.legacyFacade!
+    const source = facade.triggerDraftSource()
+    const draft = facade.triggerDraft()
     const latest = await firstValueFrom(this.api.getTeam(xpertId))
     if (
-      this.facade.xpertId() !== xpertId ||
-      this.facade.organizationId() !== organizationId ||
+      facade.xpertId() !== xpertId ||
+      facade.organizationId() !== organizationId ||
       source?.id !== xpertId ||
       latest.id !== xpertId ||
-      this.facade.triggerDraftSource() !== source ||
-      this.facade.triggerDraft() !== draft
+      facade.triggerDraftSource() !== source ||
+      facade.triggerDraft() !== draft
     )
       return
 
     // Keep workspace settings current even if this settings dialog closes while the request is pending.
     const next = { ...source, graph: latest.graph, draft: latest.draft }
-    this.facade.triggerDraftSource.set(next)
-    this.facade.triggerDraft.set(buildEditableXpertDraft(next))
-    this.facade.triggerDraftErrorMessage.set(null)
+    facade.triggerDraftSource.set(next)
+    facade.triggerDraft.set(buildEditableXpertDraft(next))
+    facade.triggerDraftErrorMessage.set(null)
   }
 
   configure(card: AssistantTriggerCard) {

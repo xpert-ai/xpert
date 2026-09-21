@@ -22,7 +22,7 @@ jest.mock('../../../copilot-checkpoint', () => ({
 }))
 
 jest.mock('../../agent', () => ({
-    createMapStreamEvents: () => (event: unknown) => event
+    createMapStreamEvents: jest.fn(() => (event: unknown) => event)
 }))
 
 jest.mock('../../../environment', () => {
@@ -66,7 +66,8 @@ jest.mock('../../../knowledgebase', () => ({
 
 import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
-import { Observable } from 'rxjs'
+import { Observable, Subscriber } from 'rxjs'
+import { createMapStreamEvents } from '../../agent'
 import { Command } from '@langchain/langgraph'
 import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
@@ -192,6 +193,39 @@ describe('XpertAgentInvokeHandler', () => {
 
         expect(compileCommand).not.toBeNull()
         expect(compileCommand!.options.planMode).toBe(true)
+    })
+
+    it('streams compiled external agents while still respecting explicit mute rules', async () => {
+        const graph = createGraph()
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CompileGraphCommand) {
+                command.options.unmutes.push(['Agent_external', 'expert-1'], ['Agent_muted', 'expert-2'])
+                command.options.mute.push(['expert-2', 'Agent_muted'])
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                { human: { input: 'Delegate review' } },
+                'agent-1',
+                { id: 'xpert-1', workspaceDataScope: 'user' },
+                {
+                    isDraft: false,
+                    thread_id: 'thread-1',
+                    rootExecutionId: 'execution-1',
+                    execution: { id: 'execution-1', threadId: 'thread-1' },
+                    subscriber: new Subscriber<MessageEvent>(),
+                    store: null
+                }
+            )
+        )
+        await consumeStream(stream)
+        expect(createMapStreamEvents).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            expect.objectContaining({ unmutes: [['Agent_external', 'expert-1']] })
+        )
     })
 
     it('preserves soul and profile in fresh graph input sys state', async () => {

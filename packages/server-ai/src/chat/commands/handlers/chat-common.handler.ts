@@ -1,3 +1,4 @@
+import { avatarForChat } from '../../../shared/avatar'
 import {
     AIMessage,
     isAIMessage,
@@ -1209,6 +1210,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         // agentKey: xpert.agent.key,
                         inputs: { input: state.input },
                         parentId: execution.id,
+                        metadata: {
+                            ..._execution.metadata,
+                            invocationKind: 'external_assistant',
+                            assistantName: xpert.title || xpert.name,
+                            assistantAvatar: avatarForChat(xpert.avatar)
+                        },
                         status: XpertAgentExecutionStatusEnum.RUNNING,
                         predecessor: configurable.agentKey
                     })
@@ -1238,6 +1245,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         new XpertAgentExecutionUpsertCommand({
                             ..._execution,
                             id: __execution.id,
+                            metadata: {
+                                ..._execution.metadata,
+                                invocationKind: 'external_assistant',
+                                assistantName: xpert.title || xpert.name,
+                                assistantAvatar: avatarForChat(xpert.avatar)
+                            },
                             checkpointId: _state.config.configurable.checkpoint_id,
                             elapsedTime: timeEnd - timeStart,
                             status,
