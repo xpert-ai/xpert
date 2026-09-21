@@ -41,6 +41,7 @@
   },
   "XP": {
     "XpertSettings": {
+      "EditInStudio": "在 Studio 中編輯",
       "QAExperience": "问答经验",
       "LayoutPriority": "用户已保存的个人布局优先于此设置。",
       "LayoutDescription": {

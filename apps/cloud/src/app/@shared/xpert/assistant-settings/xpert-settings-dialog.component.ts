@@ -11,6 +11,7 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective, ZardSelectImports, ZardSelectValue } from '@xpert-ai/headless-ui'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -35,6 +36,7 @@ import { SettingsMiddlewareComponent } from './settings-middleware.component'
   standalone: true,
   imports: [
     FormsModule,
+    RouterLink,
     TranslateModule,
     ZardButtonComponent,
     ZardInputDirective,

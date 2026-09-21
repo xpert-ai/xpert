@@ -2,7 +2,7 @@
   class="hidden w-56 shrink-0 flex-col border-r border-divider-regular bg-background-default-subtle p-3 sm:flex lg:w-60"
 >
   <header class="mb-3 flex items-center gap-2.5">
-    <emoji-avatar large class="size-10 shrink-0 rounded-xl" [avatar]="source.draft().team.avatar" />
+    <emoji-avatar large class="size-10 shrink-0 overflow-hidden rounded-xl" [avatar]="source.draft().team.avatar" />
     <div class="min-w-0">
       <h1 class="truncate text-lg font-semibold" [title]="source.draft().team.title || source.draft().team.name">
         {{ source.draft().team.title || source.draft().team.name }}
@@ -66,38 +66,56 @@
   </nav>
 </aside>
 <main class="flex min-w-0 flex-1 flex-col">
-  <header class="relative shrink-0 border-b border-divider-regular px-4 py-3 sm:px-5">
-    <div class="mb-2 flex items-center gap-3 pr-10 sm:hidden">
-      <z-select
-        class="w-full rounded-[var(--assistant-settings-item-radius)] [&>button]:min-h-10 [&>button]:rounded-[var(--assistant-settings-item-radius)] [&>button]:text-base"
-        zSize="lg"
-        [zValue]="editor.section()"
-        [zLabel]="'XP.XpertSettings.Menu.' + editor.section() | translate"
-        (zSelectionChange)="selectFromMenu($event)"
-        [attr.aria-label]="'XP.XpertSettings.Navigation' | translate"
-      >
-        @for (section of sections(); track section.key) {
-          <z-select-item [zValue]="section.key" class="mb-0 min-h-[40px] rounded-xl py-2 text-base">{{
-            'XP.XpertSettings.Menu.' + section.key | translate
-          }}</z-select-item>
-        }
-      </z-select>
+  <header class="flex shrink-0 items-start gap-3 border-b border-divider-regular px-4 py-3 sm:px-5">
+    <div class="min-w-0 flex-1">
+      <div class="mb-2 flex items-center gap-3 sm:hidden">
+        <z-select
+          class="w-full rounded-[var(--assistant-settings-item-radius)] [&>button]:min-h-10 [&>button]:rounded-[var(--assistant-settings-item-radius)] [&>button]:text-base"
+          zSize="lg"
+          [zValue]="editor.section()"
+          [zLabel]="'XP.XpertSettings.Menu.' + editor.section() | translate"
+          (zSelectionChange)="selectFromMenu($event)"
+          [attr.aria-label]="'XP.XpertSettings.Navigation' | translate"
+        >
+          @for (section of sections(); track section.key) {
+            <z-select-item [zValue]="section.key" class="mb-0 min-h-[40px] rounded-xl py-2 text-base">{{
+              'XP.XpertSettings.Menu.' + section.key | translate
+            }}</z-select-item>
+          }
+        </z-select>
+      </div>
+      <h2 class="text-lg font-semibold tracking-tight text-text-primary">
+        {{ 'XP.XpertSettings.Menu.' + editor.section() | translate }}
+      </h2>
+      <p class="mt-1 text-sm leading-5 text-text-tertiary">
+        {{ 'XP.XpertSettings.Description.' + editor.section() | translate }}
+      </p>
     </div>
-    <h2 class="pr-8 text-lg font-semibold tracking-tight text-text-primary">
-      {{ 'XP.XpertSettings.Menu.' + editor.section() | translate }}
-    </h2>
-    <p class="mt-1 pr-8 text-sm leading-5 text-text-tertiary">
-      {{ 'XP.XpertSettings.Description.' + editor.section() | translate }}
-    </p>
-    <button
-      type="button"
-      class="absolute right-3 top-3 inline-flex size-10 shrink-0 items-center justify-center rounded-xl p-0 text-lg leading-none text-text-secondary hover:bg-hover-bg focus-visible:outline-2 focus-visible:outline-primary"
-      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
-      [disabled]="editor.closing() || personalization()?.saving()"
-      (click)="close()"
-    >
-      <i class="ri-close-line" aria-hidden="true"></i>
-    </button>
+    <div class="flex shrink-0 items-center gap-1">
+      <a
+        z-button
+        zType="outline"
+        [routerLink]="['/xpert/x', source.id, 'agents']"
+        target="_blank"
+        rel="noopener noreferrer"
+        [attr.aria-label]="'XP.XpertSettings.EditInStudio' | translate: { Default: 'Edit in Studio' }"
+        [title]="'XP.XpertSettings.EditInStudio' | translate: { Default: 'Edit in Studio' }"
+      >
+        <i class="ri-node-tree" aria-hidden="true"></i>
+        <span class="hidden md:inline">{{
+          'XP.XpertSettings.EditInStudio' | translate: { Default: 'Edit in Studio' }
+        }}</span>
+      </a>
+      <button
+        type="button"
+        class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl p-0 text-lg leading-none text-text-secondary hover:bg-hover-bg focus-visible:outline-2 focus-visible:outline-primary"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+        [disabled]="editor.closing() || personalization()?.saving()"
+        (click)="close()"
+      >
+        <i class="ri-close-line" aria-hidden="true"></i>
+      </button>
+    </div>
   </header>
   <div
     #content

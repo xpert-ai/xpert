@@ -42,6 +42,7 @@
   },
   "XP": {
     "XpertSettings": {
+      "EditInStudio": "Edit in Studio",
       "QAExperience": "Q&A experience",
       "LayoutPriority": "A saved personal layout takes priority over this setting.",
       "LayoutDescription": {

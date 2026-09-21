@@ -1,7 +1,7 @@
 @if (page() === 'general') {
   <div class="space-y-5">
     <div class="flex items-center gap-4">
-      <emoji-avatar editable class="size-14 shrink-0 rounded-xl" [formControl]="general.avatar" />
+      <emoji-avatar editable class="size-14 shrink-0 overflow-hidden rounded-xl" [formControl]="general.avatar" />
       <div class="min-w-0">
         <div class="text-base font-medium">{{ 'XP.XpertSettings.Avatar' | translate }}</div>
         <p class="mt-1 text-sm text-text-tertiary">{{ 'XP.XpertSettings.AvatarTip' | translate }}</p>
