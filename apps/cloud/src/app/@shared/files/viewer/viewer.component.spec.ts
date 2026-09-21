@@ -5,8 +5,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { FileViewerComponent, inferMarkdownPreviewSelection } from './viewer.component'
 
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, EventEmitter, forwardRef, Input, Output } = jest.requireActual('@angular/core')
-  const { NG_VALUE_ACCESSOR } = jest.requireActual('@angular/forms')
+  const { Component, Directive, EventEmitter, inject, Input, Output, ViewContainerRef } =
+    jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -38,53 +38,43 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Input() zDisabled?: unknown
   }
 
-  @Component({
+  @Directive({
     standalone: true,
-    selector: 'z-segmented',
-    template: '<ng-content />',
-    providers: [
-      {
-        provide: NG_VALUE_ACCESSOR,
-        useExisting: forwardRef(() => ZardSegmentedComponent),
-        multi: true
-      }
-    ]
+    selector: '[z-menu]',
+    host: { '(click)': 'open()' }
   })
-  class ZardSegmentedComponent {
-    @Input() ngModel?: unknown
-    @Output() ngModelChange = new EventEmitter()
-    private onChange: (value: unknown) => void = () => undefined
-    private onTouched: () => void = () => undefined
+  class ZardMenuDirective {
+    @Input() zMenuTriggerFor?: unknown
+    @Input() zPlacement?: string
+    private readonly container = inject(ViewContainerRef)
 
-    writeValue(value: unknown) {
-      this.ngModel = value
-    }
-
-    registerOnChange(onChange: (value: unknown) => void) {
-      this.onChange = onChange
-    }
-
-    registerOnTouched(onTouched: () => void) {
-      this.onTouched = onTouched
+    open() {
+      this.container.clear()
+      this.container.createEmbeddedView(this.zMenuTriggerFor)
     }
   }
 
-  @Component({
+  @Directive({ standalone: true, selector: '[z-menu-content]' })
+  class ZardMenuContentDirective {}
+
+  @Directive({
     standalone: true,
-    selector: 'z-segmented-item',
-    template: ''
+    selector: '[z-menu-item]',
+    host: { '(click)': 'activate()' }
   })
-  class ZardSegmentedItemComponent {
-    @Input() value?: unknown
-    @Input() label?: string
+  class ZardMenuItemDirective {
     @Input() zDisabled?: boolean
+    @Output() menuItemTriggered = new EventEmitter<void>()
+
+    activate() {
+      if (!this.zDisabled) this.menuItemTriggered.emit()
+    }
   }
 
   return {
     XpSpinComponent,
     ZardButtonComponent,
-    ZardSegmentedComponent,
-    ZardSegmentedItemComponent,
+    ZardMenuImports: [ZardMenuDirective, ZardMenuContentDirective, ZardMenuItemDirective],
     ZardTooltipImports: [ZardTooltipDirective]
   }
 })
@@ -298,6 +288,8 @@ describe('FileViewerComponent', () => {
     const fixture = TestBed.createComponent(FileViewerComponent)
     fixture.componentRef.setInput('filePath', 'README.md')
     fixture.detectChanges()
+    fixture.nativeElement.querySelector('[data-file-actions="viewer"]').click()
+    fixture.detectChanges()
 
     const refreshes: number[] = []
     fixture.componentInstance.refresh.subscribe(() => refreshes.push(1))
@@ -325,6 +317,8 @@ describe('FileViewerComponent', () => {
     fixture.componentRef.setInput('dirty', true)
     fixture.componentRef.setInput('mode', 'view')
     fixture.detectChanges()
+    fixture.nativeElement.querySelector('[data-file-actions="viewer"]').click()
+    fixture.detectChanges()
 
     expect(fixture.debugElement.query(By.css('[data-discard-button="viewer"]'))).toBeNull()
     expect(fixture.debugElement.query(By.css('[data-save-button="viewer"]'))).toBeNull()
@@ -336,15 +330,17 @@ describe('FileViewerComponent', () => {
     expect(fixture.debugElement.query(By.css('[data-save-button="viewer"]'))).not.toBeNull()
   })
 
-  it('marks the file content heading as a responsive header detail', () => {
+  it('shows the file name once alongside its parent directories', () => {
     const fixture = TestBed.createComponent(FileViewerComponent)
-    fixture.componentRef.setInput('filePath', 'README.md')
+    fixture.componentRef.setInput('filePath', 'docs/architecture/README.md')
     fixture.detectChanges()
 
-    const heading = fixture.debugElement.query(By.css('[data-file-content-heading="viewer"]'))
-
-    expect(heading).not.toBeNull()
-    expect((heading.nativeElement as HTMLElement).classList.contains('xp-file-heading')).toBe(true)
+    const fileName = fixture.nativeElement.querySelector('[data-file-name="viewer"]')
+    const pathLabel = fixture.nativeElement.querySelector('[data-file-path-label="viewer"]')
+    expect(fileName.textContent.trim()).toBe('README.md')
+    expect(pathLabel.textContent).toContain('docs')
+    expect(pathLabel.textContent).toContain('architecture')
+    expect(pathLabel.textContent.match(/README.md/g)).toHaveLength(1)
   })
 
   it('disables the inline selection action in markdown preview while keeping full-file references', () => {
@@ -405,19 +401,21 @@ describe('FileViewerComponent', () => {
     fixture.componentRef.setInput('readable', true)
     fixture.componentRef.setInput('referenceable', true)
     fixture.detectChanges()
+    fixture.nativeElement.querySelector('[data-file-actions="viewer"]').click()
+    fixture.detectChanges()
 
     const component = fixture.componentInstance
     const button = fixture.debugElement.query(By.css('[data-html-inspect-button="viewer"]'))
     const preview = fixture.debugElement.query(By.css('xp-file-preview-content'))
     expect(component.canInspectHtmlPreview()).toBe(true)
     expect(button).not.toBeNull()
-    expect((button.componentInstance as { zType?: unknown }).zType).toBe('secondary')
+    expect(button.nativeElement.querySelector('.ri-check-line')).toBeNull()
     expect(preview.componentInstance.htmlInspectMode).toBe(false)
     ;(button.nativeElement as HTMLButtonElement).click()
     fixture.detectChanges()
 
     expect(component.htmlInspectMode()).toBe(true)
-    expect((button.componentInstance as { zType?: unknown }).zType).toBe('default')
+    expect(button.nativeElement.querySelector('.ri-check-line')).not.toBeNull()
     expect(preview.componentInstance.htmlInspectMode).toBe(true)
 
     preview.componentInstance.htmlInspectModeChange.emit(false)
