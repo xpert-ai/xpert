@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { EventSourceMessage } from '@microsoft/fetch-event-source'
-import { API_PREFIX } from '@cloud/app/@core/state'
+import { API_PREFIX, TChatThreadDisplayPause } from '@cloud/app/@core/state'
 import { Observable } from 'rxjs'
 import { injectFetchEventSource } from './fetch-event-source'
 
@@ -10,6 +10,7 @@ const API_AI_THREADS = API_PREFIX + '/ai/threads'
 export type IAiThread = {
   thread_id: string
   status?: string
+  displayPause?: TChatThreadDisplayPause | null
   metadata?: {
     id?: string
     assistant_id?: string
