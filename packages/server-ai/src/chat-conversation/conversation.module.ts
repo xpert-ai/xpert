@@ -21,6 +21,7 @@ import { ChatTaskSummaryService } from './task-summary.service'
 import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { ChatConversationThreadService } from './conversation-thread.service'
+import { ThreadRunControlService } from './thread-run-control.service'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
@@ -63,6 +64,7 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
         ChatConversationService,
         ChatConversationSidebarService,
         ChatConversationThreadService,
+        ThreadRunControlService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
         WorkbenchAssistantConversationNavigationService,
@@ -71,6 +73,7 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
         ...QueryHandlers
     ],
     exports: [
+        ThreadRunControlService,
         ChatConversationService,
         ChatConversationThreadService,
         ChatConversationGoalService,

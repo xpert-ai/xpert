@@ -8,7 +8,7 @@ import type {
   TMessageContentReasoning
 } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { IChatConversation } from './chat.model'
+import { IChatConversation, TChatInputCheckpoint } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
@@ -82,6 +82,7 @@ export interface IChatMessage
   parent?: IChatMessage | null
   children?: IChatMessage[]
   parentId?: string | null
+  inputCheckpoint?: TChatInputCheckpoint | null
 
   /**
    * @deprecated Chat attachments now use `fileAssets`. This field is kept only

@@ -13,6 +13,7 @@ import {
 } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
+import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import {
@@ -1148,6 +1149,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const enableMessageHistory = !agent.options?.disableMessageHistory
         const historyVariable = agent.options?.historyVariable
         const errorHandling = agent.options?.errorHandling
+        const isCheckpointResume = Boolean(options.resumeCheckpoint)
         const hasAfterModelHooks = afterModelExecutionOrder.length > 0
         const createScopedAbortSignal = () => {
             const controller = new AbortController()
@@ -1209,6 +1211,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             // 2. AND either isStart OR last message is not a ToolMessage (normal flow)
             if (
                 !lastMessageIsHuman &&
+                !isCheckpointResume &&
                 (isStart ||
                     !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name)))
             ) {
@@ -1765,6 +1768,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         )
 
         let compiledGraph: ReturnType<typeof subgraphBuilder.compile>
+        installThreadPauseGuards(subgraphBuilder.nodes, options.shouldPause)
         try {
             compiledGraph = subgraphBuilder.compile({
                 checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,

@@ -18,6 +18,7 @@ import { SandboxService } from './sandbox.service'
 import { SandboxController } from './sandbox.controller'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 import { SandboxFileMiddleware, SandboxServiceMiddleware, SandboxShellMiddleware } from './middlewares'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 import { LocalShellSandboxProvider } from './local-shell-sandbox.provider'
@@ -45,7 +46,12 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         TenantModule,
         CqrsModule,
         DiscoveryModule,
-        TypeOrmModule.forFeature([SandboxManagedServiceEntity, SandboxJobEntity, ChatConversation]),
+        TypeOrmModule.forFeature([
+            SandboxManagedServiceEntity,
+            SandboxJobEntity,
+            ChatConversation,
+            ChatConversationThread
+        ]),
         WorkspaceFilesRuntimeModule,
         VolumeModule,
 

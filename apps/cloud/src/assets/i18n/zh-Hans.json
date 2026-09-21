@@ -9602,6 +9602,7 @@
       "Interrupted": "打断",
       "Idle": "闲置",
       "Busy": "忙碌",
+      "Pausing": "暂停中",
       "NameOnlyContain": "名称只能包含[a-zA-Z0-9 _-]",
       "NameExisted": "名称已存在！",
       "Workspace": {

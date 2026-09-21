@@ -1,5 +1,17 @@
 {
     "Error": {
+        "InvalidDisplaySnapshot": "暂停显示快照无效。",
+        "DisplayPauseNotReleasable": "当前无法解除显示暂停。",
+        "RunNotActive": "此任务已不在运行中。",
+        "ThreadNotPaused": "此暂停存档已不能用于恢复，请刷新任务状态。",
+        "PausedGraphChanged": "工作流配置已变化，不能继续使用原存档。",
+        "PausedContextUnavailable": "原任务的运行上下文存档不可用，无法恢复。",
+        "CheckpointUnavailable": "所需存档已不存在，无法安全继续。",
+        "MessageCheckpointUnavailable": "这条消息没有可用的输入前存档，无法安全创建历史分支。",
+        "ThreadIsPaused": "请先恢复或停止已暂停的流程，再发送后续消息。",
+        "PauseTokenRequired": "恢复流程需要指定暂停存档标识。",
+        "ThreadHasActiveOperation": "当前分支已有运行中或已暂停的流程。",
+        "BranchRequestInvalid": "从消息创建分支时必须同时提供 beforeMessageId 和 requestId。",
         "ProjectTypeInvalid": "项目类型定义或标识无效。",
         "ProjectTypeDuplicate": "项目类型重复声明。",
         "ProjectTypeUnavailable": "项目所属应用或类型当前不可用。",

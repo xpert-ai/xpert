@@ -388,7 +388,7 @@ export class ConversationsController {
         if (!this.conversationThreadService) return []
         await this.conversationThreadService.ensurePrimary(conversation)
         const threads = await this.conversationThreadService.listByConversation(conversation.id)
-        return threads.map((thread) => new ThreadDTO(conversation, {}, thread))
+        return threads.map((thread) => new ThreadDTO(conversation, {}, thread, false))
     }
 
     @Get(':conversation_id/task-summary')

@@ -157,6 +157,8 @@ export type TAgentExecutionMetadata = {
   handoffParentMessageId?: string
   runtimePrincipalType?: string
   runtimePrincipalXpertId?: string
+  /** Root execution this run continued after a durable thread pause. */
+  resumedFromExecutionId?: string
   [key: string]: unknown
 }
 

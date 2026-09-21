@@ -10,7 +10,7 @@ import {
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import type { StorageFile } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
@@ -38,6 +38,7 @@ import { XpertProjectAccessService } from '../xpert-project/services/project-acc
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
+import { ChatConversationThreadService } from './conversation-thread.service'
 
 export type ChatConversationAccessOperation = 'read' | 'contribute' | 'manage'
 
@@ -56,7 +57,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         @InjectQueue('conversation-summary') private summaryQueue: Queue,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly projectAccessService: XpertProjectAccessService
+        private readonly projectAccessService: XpertProjectAccessService,
+        private readonly conversationThreadService: ChatConversationThreadService
     ) {
         super(repository)
     }
@@ -368,11 +370,22 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     async findOneByThreadId(threadId: string) {
-        return this.findOneByOptions({
-            where: {
-                threadId
+        try {
+            return await this.findOneByOptions({
+                where: {
+                    threadId
+                }
+            })
+        } catch (error) {
+            if (!(error instanceof NotFoundException)) {
+                throw error
             }
-        })
+        }
+        const thread = await this.conversationThreadService.findByThreadId(threadId)
+        if (!thread?.conversationId) {
+            throw new NotFoundException(`The requested record was not found`)
+        }
+        return this.findOne(thread.conversationId)
     }
 
     async findOneDetail(id: string, options: Pick<PaginationParams<ChatConversation>, 'select' | 'relations'>) {

@@ -72,10 +72,7 @@ describe('CopilotCheckpointRetentionService', () => {
         const runScheduledCleanup = Reflect.get(CopilotCheckpointRetentionService.prototype, 'runScheduledCleanup')
 
         expect(typeof runScheduledCleanup).toBe('function')
-        const metadata = Reflect.getMetadata(
-            'SCHEDULE_CRON_OPTIONS',
-            runScheduledCleanup
-        )
+        const metadata = Reflect.getMetadata('SCHEDULE_CRON_OPTIONS', runScheduledCleanup)
 
         expect(metadata).toEqual(expect.objectContaining({ cronTime: '0 0 3 * * *' }))
     })
@@ -188,7 +185,8 @@ describe('CopilotCheckpointRetentionService', () => {
         expect(manager.transaction).toHaveBeenCalledTimes(1)
         expect(transactionalManager.query.mock.calls[0][0]).toContain('DELETE FROM copilot_checkpoint_writes')
         expect(transactionalManager.query.mock.calls[1][0]).toContain('DELETE FROM copilot_checkpoint')
-        expect(manager.query.mock.calls.some(([sql]) => sql.includes('NOT EXISTS'))).toBe(false)
+        expect(manager.query.mock.calls[0][0]).toContain('thread."runControl" IS NOT NULL')
+        expect(manager.query.mock.calls[0][0]).toContain('message."inputCheckpoint"')
     })
 
     it('scopes write deletion candidates by tenant and organization', async () => {
@@ -261,5 +259,4 @@ describe('CopilotCheckpointRetentionService', () => {
 
         await expect(service.execute({ batchSize: 1 })).rejects.toThrow('delete failed')
     })
-
 })

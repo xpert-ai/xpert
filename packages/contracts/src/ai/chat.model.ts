@@ -37,7 +37,49 @@ export type TChatConversationSourceAudit = {
   sourceMessageLogIds?: string[]
 }
 
-export type TChatConversationStatus = 'idle' | 'busy' | 'interrupted' | 'error'
+export type TChatConversationStatus = 'idle' | 'busy' | 'pausing' | 'paused' | 'interrupted' | 'error'
+
+export type TChatCheckpointReference = { threadId: string; checkpointNs: string; checkpointId: string }
+
+export type TChatInputCheckpoint = {
+  version: 1
+  checkpoint: TChatCheckpointReference | null
+  graphRevision: string
+}
+
+// Versioned client presentation state; never an execution checkpoint or model input.
+export type TChatThreadDisplayPause = {
+  executionId: string
+  pauseId: string
+  createdAt: string
+  snapshot?: string
+}
+
+export type TChatThreadRunControl = {
+  executionId: string
+  state: 'running' | 'pausing' | 'paused'
+  pauseId?: string
+  graphRevision?: string
+  checkpoint?: TChatCheckpointReference
+}
+
+/** Why a derived conversation thread was created. */
+export const ChatThreadPurpose = {
+  SideChat: 'side-chat',
+  MessageEdit: 'message-edit'
+} as const
+export type TChatThreadPurpose = (typeof ChatThreadPurpose)[keyof typeof ChatThreadPurpose]
+
+/** Machine-readable keys stored in `ChatConversationThread.metadata`. */
+export type TChatThreadMetadata = {
+  primary?: boolean
+  purpose?: TChatThreadPurpose
+  /** Graph revision the edited input was captured on; cleared after the first successful run. */
+  forkGraphRevision?: string
+  /** Client-provided idempotency key for branch creation. */
+  forkRequestId?: string
+  [key: string]: unknown
+}
 export type TToolCallType = 'agent' | 'tool'
 export type TChatFrom =
   | 'platform'

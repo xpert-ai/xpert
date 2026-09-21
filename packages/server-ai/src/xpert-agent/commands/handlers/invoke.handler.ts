@@ -59,6 +59,8 @@ import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
+import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
+import { isThreadPause } from '../../../shared/agent/thread-pause'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -75,7 +77,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         @Optional()
         private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
         @InjectRepository(ChatMessage)
-        private readonly chatMessageRepository: Repository<ChatMessage>
+        private readonly chatMessageRepository: Repository<ChatMessage>,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService
     ) {}
 
     private async downgradePendingSteerFollowUpsToQueue(conversationId?: string, executionId?: string) {
@@ -198,6 +201,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const { graph, agent, xpertGraph } = await this.commandBus.execute(
             new CompileGraphCommand(agentKeyOrName, xpert, {
                 ...options,
+                shouldPause:
+                    this.threadRunControl && options.thread_id && execution?.id
+                        ? () => this.threadRunControl.shouldPause(options.thread_id, execution.id)
+                        : undefined,
                 planMode,
                 execution,
                 rootController: abortController,
@@ -208,6 +215,27 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 unmutes
             })
         )
+
+        const graphRevision = threadGraphRevision(xpertGraph)
+        await this.threadRunControl?.recordGraph(threadId, execution.id, graphRevision)
+        if (options.inputMessageId) {
+            const previous = await this.checkpointSaver.getCopilotCheckpoint({
+                configurable: { thread_id: threadId, checkpoint_ns: '' }
+            })
+            await this.chatMessageRepository.update(options.inputMessageId, {
+                inputCheckpoint: {
+                    version: 1,
+                    graphRevision,
+                    checkpoint: previous.checkpoint
+                        ? {
+                              threadId,
+                              checkpointNs: previous.checkpoint.checkpoint_ns,
+                              checkpointId: previous.checkpoint.checkpoint_id
+                          }
+                        : null
+                }
+            })
+        }
 
         let task: IKnowledgebaseTask = null
         if (xpert.knowledgebase) {
@@ -252,6 +280,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const config = {
             thread_id,
             checkpoint_ns: '',
+            ...(options.resumeCheckpoint ? { xpertResumeCheckpoint: options.resumeCheckpoint } : {}),
             // Use checkpoint id to resume thread state when retrying
             ...(options.checkpointId ? { checkpoint_id: options.checkpointId } : {})
         }
@@ -313,7 +342,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         })
         let graphInput = null
         const interruptCommand = toInterruptCommand(options.resume)
-        if (options.resume) {
+        if (options.resumeCheckpoint) {
+            graphInput = null
+        } else if (options.resume) {
             const commandAgentKey = interruptCommand?.agentKey ?? agent.key
             const commandPayload = interruptCommand
                 ? {
@@ -444,14 +475,38 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     // record last state when finish
                     const state = await recordLastState()
 
+                    // A manual pause is a run-control request, not a tool
+                    // approval interrupt. The current node is allowed to
+                    // finish, then the next persisted boundary is resumed
+                    // from the checkpoint we just recorded.
+                    const pauseRequested = Boolean(await this.threadRunControl?.shouldPause(threadId, execution.id))
+                    if (pauseRequested) {
+                        if (execution.checkpointId) {
+                            await this.threadRunControl?.stageCheckpoint(threadId, execution.id, {
+                                threadId,
+                                checkpointNs: execution.checkpointNs ?? '',
+                                checkpointId: execution.checkpointId
+                            })
+                        }
+                        throw new NodeInterrupt({ type: 'thread_pause' })
+                    }
+
                     // Interrupted event
                     if (state.tasks?.length) {
+                        // Snapshots also contain completed parallel tasks; only unfinished tasks can await approval.
+                        const pendingTasks = state.tasks.filter(
+                            (task) =>
+                                state.next.includes(task.name) &&
+                                task.result === undefined &&
+                                (!task.interrupts?.length || task.interrupts.some((item) => !isThreadPause(item.value)))
+                        )
+                        if (!pendingTasks.length) throw new NodeInterrupt({ type: 'thread_pause' })
                         // Has bugs
                         console.error(`Interrupting for tool calls:`, state.tasks)
                         const operation = await this.queryBus.execute(
                             new CompleteToolCallsQuery(
                                 xpert.id,
-                                state.tasks,
+                                pendingTasks,
                                 state.values,
                                 options.isDraft,
                                 options.projectId
