@@ -137,6 +137,10 @@ export class ChatMessageDTO {
     @Expose()
     executionId?: string
 
+    /** Present only on human inputs that can be edited into a new branch. */
+    @Expose()
+    inputCheckpoint?: IChatMessage['inputCheckpoint']
+
     @Expose()
     createdAt?: Date
 

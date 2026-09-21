@@ -7013,6 +7013,7 @@
       "Interrupted": "打斷",
       "Idle": "閑置",
       "Busy": "忙碌",
+      "Pausing": "暫停中",
       "NameOnlyContain": "名稱只能包含[a-zA-Z0-9 _-]",
       "NameExisted": "名稱已存在！",
       "Workspace": {

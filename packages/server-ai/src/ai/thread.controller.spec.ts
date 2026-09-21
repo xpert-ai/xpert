@@ -1,3 +1,10 @@
+jest.mock('../chat-conversation/thread-run-control.service', () => ({
+    ThreadRunControlService: class {},
+    threadGraphRevision: () => 'graph-v1',
+    threadControlConflict: (_key: string, message: string) =>
+        new (jest.requireActual('@nestjs/common').ConflictException)(message)
+}))
+
 jest.mock('@xpert-ai/server-core', () => ({
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
@@ -25,7 +32,12 @@ jest.mock('../xpert-agent-execution', () => ({
 }))
 
 jest.mock('../chat-conversation', () => ({
-    AssertChatConversationAccessQuery: class AssertChatConversationAccessQuery {},
+    AssertChatConversationAccessQuery: class AssertChatConversationAccessQuery {
+        constructor(
+            public input: unknown,
+            public operation: string
+        ) {}
+    },
     CancelConversationCommand: class CancelConversationCommand {},
     GetChatConversationQuery: class GetChatConversationQuery {}
 }))
@@ -46,6 +58,31 @@ describe('ThreadsController', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
+    })
+
+    it('forwards display snapshot and token only after contribution access checks', async () => {
+        const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread' }) }
+        const controls = {
+            requestPause: jest.fn().mockResolvedValue({ state: 'pausing' }),
+            releaseDisplayPause: jest.fn()
+        }
+        const controller = new ThreadsController(
+            {} as never,
+            queryBus as never,
+            {} as never,
+            {} as never,
+            undefined,
+            controls as never
+        )
+        await controller.pauseRun('thread', 'run', { displaySnapshot: 'snapshot' })
+        expect(queryBus.execute.mock.calls[0][0].operation).toBe('contribute')
+        expect(controls.requestPause).toHaveBeenCalledWith('thread', 'run', 'snapshot')
+        await controller.releaseDisplayPause('thread', 'token')
+        expect(queryBus.execute.mock.calls[2][0].operation).toBe('contribute')
+        expect(controls.releaseDisplayPause).toHaveBeenCalledWith('thread', 'token')
+        queryBus.execute.mockRejectedValue(new ForbiddenException())
+        await expect(controller.releaseDisplayPause('other-thread', 'token')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(controls.releaseDisplayPause).toHaveBeenCalledTimes(1)
     })
 
     it('returns direct follow-up streams without waiting on Redis SSE replay', async () => {

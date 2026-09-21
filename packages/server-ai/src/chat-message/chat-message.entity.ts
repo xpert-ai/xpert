@@ -5,6 +5,7 @@ import {
     IChatMessage,
     IStorageFile,
     IXpertAgentExecution,
+    TChatInputCheckpoint,
     TChatMessageStep,
     TChatReference,
     TChatTaskSummaryContribution,
@@ -55,6 +56,9 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     @IsOptional()
     @Column({ nullable: true })
     parentId?: string
+
+    @Column({ type: 'jsonb', nullable: true })
+    inputCheckpoint?: TChatInputCheckpoint | null
 
     @ApiProperty({ type: () => String })
     @IsString()

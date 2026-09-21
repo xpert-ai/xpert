@@ -1,9 +1,10 @@
-import { TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
+import { ChatThreadPurpose, TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { v4 as uuidv4 } from 'uuid'
-import { DataSource, FindOptionsOrder, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
+import { DataSource, EntityManager, FindOptionsOrder, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
+import { threadControlConflict } from './thread-run-control.service'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
@@ -13,6 +14,8 @@ import { ChatConversationThread } from './conversation-thread.entity'
 
 export type CopyConversationThreadInput = {
     metadata?: Record<string, unknown>
+    beforeMessageId?: string
+    requestId?: string
 }
 
 export type FindVisibleThreadMessagesOptions = {
@@ -108,6 +111,20 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
     async copyThread(sourceThreadId: string, input: CopyConversationThreadInput = {}): Promise<ChatConversationThread> {
         const source = await this.requireByThreadId(sourceThreadId)
         const childThreadId = uuidv4()
+        const editedMessage = input.beforeMessageId
+            ? (await this.findVisibleMessages(sourceThreadId)).items.find(
+                  (message) => message.id === input.beforeMessageId
+              )
+            : null
+        if (
+            input.beforeMessageId &&
+            (!editedMessage || editedMessage.role !== 'human' || !editedMessage.inputCheckpoint)
+        ) {
+            throw threadControlConflict(
+                'MessageCheckpointUnavailable',
+                'This message has no saved input checkpoint and cannot be edited into a branch.'
+            )
+        }
 
         return this.dataSource.transaction(async (manager) => {
             const lockedSource = await manager.getRepository(ChatConversationThread).findOne({
@@ -115,23 +132,66 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 lock: { mode: 'pessimistic_write' }
             })
             if (!lockedSource) throw new NotFoundException(`Thread "${sourceThreadId}" not found`)
-            if (lockedSource.status !== 'idle') {
+            if (!editedMessage && lockedSource.status !== 'idle') {
                 throw new ConflictException('Only an idle thread can be copied')
+            }
+
+            if (input.requestId) {
+                // Raw() receives the unescaped alias path; Postgres folds it to lower case.
+                const existing = await manager
+                    .getRepository(ChatConversationThread)
+                    .createQueryBuilder('thread')
+                    .where('thread.parentThreadId = :parentThreadId', { parentThreadId: sourceThreadId })
+                    .andWhere('thread.conversationId = :conversationId', { conversationId: source.conversationId })
+                    .andWhere(`thread.metadata ->> 'forkRequestId' = :requestId`, { requestId: input.requestId })
+                    .getOne()
+                if (existing) {
+                    if (existing.forkedFromMessageId !== input.beforeMessageId)
+                        throw new ConflictException('Branch request does not match its source message')
+                    existing.conversation = editedMessage
+                        ? ((await this.promoteWorkingThread(manager, source.conversationId, existing.threadId)) ??
+                          source.conversation)
+                        : source.conversation
+                    return existing
+                }
+            }
+
+            const anchor = editedMessage?.inputCheckpoint
+            const pinnedCheckpoint = anchor?.checkpoint
+                ? await manager.getRepository(CopilotCheckpoint).findOne({
+                      where: {
+                          thread_id: anchor.checkpoint.threadId,
+                          checkpoint_ns: anchor.checkpoint.checkpointNs,
+                          checkpoint_id: anchor.checkpoint.checkpointId,
+                          tenantId: lockedSource.tenantId,
+                          organizationId: lockedSource.organizationId
+                      }
+                  })
+                : null
+            if (anchor?.checkpoint && !pinnedCheckpoint) {
+                throw threadControlConflict('CheckpointUnavailable', 'The saved checkpoint is unavailable.')
             }
 
             const thread = manager.getRepository(ChatConversationThread).create({
                 threadId: childThreadId,
                 conversationId: lockedSource.conversationId,
                 parentThreadId: lockedSource.threadId,
-                headMessageId: lockedSource.headMessageId ?? null,
-                forkedFromMessageId: lockedSource.headMessageId ?? null,
+                headMessageId: editedMessage ? (editedMessage.parentId ?? null) : (lockedSource.headMessageId ?? null),
+                forkedFromMessageId: editedMessage?.id ?? lockedSource.headMessageId ?? null,
                 status: 'idle',
                 error: null,
                 operation: null,
                 metadata: {
-                    purpose: 'side-chat',
+                    purpose: ChatThreadPurpose.SideChat,
                     primary: false,
-                    ...(input.metadata ?? {})
+                    ...(input.metadata ?? {}),
+                    ...(editedMessage
+                        ? {
+                              purpose: ChatThreadPurpose.MessageEdit,
+                              forkGraphRevision: anchor.graphRevision,
+                              forkRequestId: input.requestId
+                          }
+                        : {})
                 },
                 tenantId: lockedSource.tenantId,
                 organizationId: lockedSource.organizationId,
@@ -140,13 +200,17 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             })
             const savedThread = await manager.save(thread)
 
-            const checkpoints = await manager.getRepository(CopilotCheckpoint).find({
-                where: {
-                    thread_id: lockedSource.threadId,
-                    tenantId: lockedSource.tenantId,
-                    organizationId: lockedSource.organizationId
-                }
-            })
+            const checkpoints = editedMessage
+                ? pinnedCheckpoint
+                    ? [pinnedCheckpoint]
+                    : []
+                : await manager.getRepository(CopilotCheckpoint).find({
+                      where: {
+                          thread_id: lockedSource.threadId,
+                          tenantId: lockedSource.tenantId,
+                          organizationId: lockedSource.organizationId
+                      }
+                  })
             if (checkpoints.length > 0) {
                 await manager.save(
                     CopilotCheckpoint,
@@ -155,7 +219,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                             thread_id: childThreadId,
                             checkpoint_ns: checkpoint.checkpoint_ns,
                             checkpoint_id: checkpoint.checkpoint_id,
-                            parent_id: checkpoint.parent_id,
+                            parent_id: editedMessage ? null : checkpoint.parent_id,
                             type: checkpoint.type,
                             checkpoint: checkpoint.checkpoint,
                             metadata: checkpoint.metadata,
@@ -168,13 +232,16 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 )
             }
 
-            const writes = await manager.getRepository(CopilotCheckpointWrites).find({
-                where: {
-                    thread_id: lockedSource.threadId,
-                    tenantId: lockedSource.tenantId,
-                    organizationId: lockedSource.organizationId
-                }
-            })
+            // A new input forks the completed state, never the old input's pending writes.
+            const writes = editedMessage
+                ? []
+                : await manager.getRepository(CopilotCheckpointWrites).find({
+                      where: {
+                          thread_id: lockedSource.threadId,
+                          tenantId: lockedSource.tenantId,
+                          organizationId: lockedSource.organizationId
+                      }
+                  })
             if (writes.length > 0) {
                 await manager.save(
                     CopilotCheckpointWrites,
@@ -197,9 +264,11 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 )
             }
 
-            const sourceGoal = await manager.getRepository(ChatConversationGoal).findOne({
-                where: { conversationId: lockedSource.conversationId, threadId: lockedSource.threadId }
-            })
+            const sourceGoal = editedMessage
+                ? null
+                : await manager.getRepository(ChatConversationGoal).findOne({
+                      where: { conversationId: lockedSource.conversationId, threadId: lockedSource.threadId }
+                  })
             if (sourceGoal) {
                 await manager.save(
                     manager.getRepository(ChatConversationGoal).create({
@@ -222,7 +291,10 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 )
             }
 
-            savedThread.conversation = source.conversation
+            savedThread.conversation = editedMessage
+                ? ((await this.promoteWorkingThread(manager, lockedSource.conversationId, childThreadId)) ??
+                  source.conversation)
+                : source.conversation
             return savedThread
         })
     }
@@ -235,7 +307,11 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 lock: { mode: 'pessimistic_write' }
             })
             if (!thread) throw new NotFoundException(`Thread "${threadId}" not found`)
-            if (thread.status === 'busy') throw new ConflictException('Thread already has a running operation')
+            if (['busy', 'pausing', 'paused'].includes(thread.status))
+                throw threadControlConflict(
+                    'ThreadHasActiveOperation',
+                    'Thread already has a running or paused operation.'
+                )
             thread.status = 'busy'
             thread.error = null
             thread.operation = null
@@ -313,6 +389,24 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         conversation.error = thread.error ?? undefined
         conversation.operation = thread.operation ?? undefined
         return conversation
+    }
+
+    // Why this exists: conversation.threadId is the latest working branch. Message-edit
+    // replaces it so history, /by-thread, and refresh open the branch instead of the abandoned primary.
+    private async promoteWorkingThread(
+        manager: EntityManager,
+        conversationId: string,
+        threadId: string
+    ): Promise<ChatConversation | null> {
+        const conversations = manager.getRepository(ChatConversation)
+        const conversation = await conversations.findOne({
+            where: { id: conversationId },
+            lock: { mode: 'pessimistic_write' }
+        })
+        if (!conversation) return null
+        if (conversation.threadId === threadId) return conversation
+        conversation.threadId = threadId
+        return conversations.save(conversation)
     }
 
     private normalizeThreadId(threadId: string): string {

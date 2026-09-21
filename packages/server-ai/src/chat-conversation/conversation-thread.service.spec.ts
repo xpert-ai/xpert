@@ -202,4 +202,125 @@ describe('ChatConversationThreadService', () => {
             ])
         )
     })
+    it.each([true, false])(
+        'edits the selected historical input while its source is running (checkpoint: %s)',
+        async (hasCheckpoint) => {
+            const source = {
+                id: 'row',
+                threadId: 'source',
+                conversationId: 'conversation',
+                status: 'busy',
+                headMessageId: 'latest-ai',
+                conversation: { id: 'conversation' },
+                tenantId: 'tenant',
+                organizationId: 'org'
+            } as ChatConversationThread
+            const messages = [
+                { id: 'first-input', role: 'human', parentId: null },
+                {
+                    id: 'edited-input',
+                    role: 'human',
+                    parentId: hasCheckpoint ? 'previous-ai' : null,
+                    inputCheckpoint: {
+                        version: 1,
+                        graphRevision: 'revision',
+                        checkpoint: hasCheckpoint
+                            ? {
+                                  threadId: 'ancestor',
+                                  checkpointNs: '',
+                                  checkpointId: 'before-edit'
+                              }
+                            : null
+                    }
+                }
+            ] as ChatMessage[]
+            let savedBranch: ChatConversationThread
+            const forkLookup = {
+                where: jest.fn(() => forkLookup),
+                andWhere: jest.fn(() => forkLookup),
+                getOne: jest.fn(async () => savedBranch ?? null)
+            }
+            const threads = {
+                findOne: jest.fn(async () => source),
+                createQueryBuilder: jest.fn(() => forkLookup),
+                create: jest.fn((value) => value)
+            }
+            const checkpoints = {
+                findOne: jest.fn(async () => ({
+                    checkpoint_id: 'before-edit',
+                    checkpoint_ns: '',
+                    parent_id: 'older',
+                    checkpoint: { value: 'before' }
+                })),
+                create: jest.fn((value) => value)
+            }
+            const conversation = { id: 'conversation', threadId: 'source' }
+            const conversations = {
+                findOne: jest.fn(async () => conversation),
+                save: jest.fn(async (value: typeof conversation) => {
+                    Object.assign(conversation, value)
+                    return conversation
+                })
+            }
+            const manager = {
+                getRepository: jest.fn((entity) => {
+                    if (entity === ChatConversationThread) return threads
+                    if (entity === CopilotCheckpoint) return checkpoints
+                    if (entity === ChatConversation) return conversations
+                    throw new Error('Editing must not copy writes, goals, or the latest snapshot')
+                }),
+                save: jest.fn(async (...args) => {
+                    if (args.length === 1) savedBranch = args[0]
+                    return args[args.length - 1]
+                })
+            }
+            const service = createService({
+                dataSource: { transaction: async (work) => work(manager) } as unknown as DataSource
+            })
+            jest.spyOn(service, 'requireByThreadId').mockResolvedValue(source)
+            jest.spyOn(service, 'findVisibleMessages').mockResolvedValue({ items: messages, total: 2 })
+            const branch = await service.copyThread('source', { beforeMessageId: 'edited-input', requestId: 'request' })
+            expect(branch).toMatchObject({
+                parentThreadId: 'source',
+                headMessageId: hasCheckpoint ? 'previous-ai' : null,
+                forkedFromMessageId: 'edited-input',
+                status: 'idle',
+                metadata: { purpose: 'message-edit', forkGraphRevision: 'revision' }
+            })
+            expect(source.status).toBe('busy')
+            expect(source.headMessageId).toBe('latest-ai')
+            expect(conversations.save).toHaveBeenCalledWith(
+                expect.objectContaining({ id: 'conversation', threadId: branch.threadId })
+            )
+            expect(branch.conversation).toMatchObject({ id: 'conversation', threadId: branch.threadId })
+            if (hasCheckpoint) {
+                expect(checkpoints.findOne).toHaveBeenCalledWith({
+                    where: {
+                        thread_id: 'ancestor',
+                        checkpoint_ns: '',
+                        checkpoint_id: 'before-edit',
+                        tenantId: 'tenant',
+                        organizationId: 'org'
+                    }
+                })
+                expect(checkpoints.create).toHaveBeenCalledWith(
+                    expect.objectContaining({ thread_id: branch.threadId, parent_id: null })
+                )
+            } else expect(checkpoints.findOne).not.toHaveBeenCalled()
+            const saves = manager.save.mock.calls.length
+            expect(await service.copyThread('source', { beforeMessageId: 'edited-input', requestId: 'request' })).toBe(
+                branch
+            )
+            expect(manager.save).toHaveBeenCalledTimes(saves)
+            expect(forkLookup.andWhere).toHaveBeenCalledWith(`thread.metadata ->> 'forkRequestId' = :requestId`, {
+                requestId: 'request'
+            })
+            await expect(service.copyThread('source', { beforeMessageId: 'invisible-input' })).rejects.toBeInstanceOf(
+                ConflictException
+            )
+            await expect(service.copyThread('source', { beforeMessageId: 'first-input' })).rejects.toBeInstanceOf(
+                ConflictException
+            )
+        }
+    )
 })

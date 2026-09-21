@@ -203,6 +203,19 @@ SELECT c.id
 FROM copilot_checkpoint c
 ${buildTenantSettingJoinSql()}
 WHERE c."createdAt" < now() - make_interval(days => ${buildRetentionDaysSql()})
+AND NOT EXISTS (
+    SELECT 1 FROM chat_conversation_thread thread
+    WHERE thread."threadId" = c.thread_id
+      AND thread."runControl" IS NOT NULL
+)
+AND NOT EXISTS (
+    SELECT 1 FROM chat_message message
+    WHERE message."deletedAt" IS NULL
+      AND message."createdInThreadId" = c.thread_id
+      AND message."inputCheckpoint"->'checkpoint'->>'threadId' = c.thread_id
+      AND message."inputCheckpoint"->'checkpoint'->>'checkpointNs' = c.checkpoint_ns
+      AND message."inputCheckpoint"->'checkpoint'->>'checkpointId' = c.checkpoint_id
+)
 ORDER BY c."createdAt" ASC
 LIMIT $5::int
 `

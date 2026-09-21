@@ -1,10 +1,18 @@
+jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
+    ThreadRunControlService: class {},
+    threadGraphRevision: () => 'graph-v1',
+    threadControlConflict: (_key: string, message: string) =>
+        new (jest.requireActual('@nestjs/common').ConflictException)(message)
+}))
+
 jest.mock('../../../environment', () => {
     const actual = jest.requireActual('../../../environment/utils')
 
     return {
         EnvironmentService: class EnvironmentService {},
         getContextEnvState: actual.getContextEnvState,
-        mergeEnvironmentWithEnvState: actual.mergeEnvironmentWithEnvState
+        mergeEnvironmentWithEnvState: actual.mergeEnvironmentWithEnvState,
+        mergeRuntimeContextWithEnv: actual.mergeRuntimeContextWithEnv
     }
 })
 
@@ -920,13 +928,18 @@ describe('RunCreateStreamHandler execute', () => {
             getPublishedXpertInTenant: jest.fn()
         }
 
+        const control = { start: jest.fn() }
         const handler = new RunCreateStreamHandler(
             commandBus as any,
             queryBus as any,
             {
                 findOneForRuntime: jest.fn().mockResolvedValue(undefined)
             } as any,
-            publishedXpertAccessService as any
+            publishedXpertAccessService as any,
+            undefined,
+            undefined,
+            undefined,
+            control as never
         )
 
         await handler.execute({
@@ -953,6 +966,12 @@ describe('RunCreateStreamHandler execute', () => {
                 }
             }
         } as any)
+
+        expect(control.start).toHaveBeenCalledWith('thread-1', 'execution-1', {
+            scope: 'workspace',
+            target: { type: 'assistant' },
+            env: { workspaceId: 'workspace-1', region: 'cn' }
+        })
 
         const xpertChatCommand = commandBus.execute.mock.calls.find(
             ([command]) => command instanceof XpertChatCommand
@@ -1798,4 +1817,86 @@ describe('RunCreateStreamHandler execute', () => {
         )
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
+    it.each([undefined, { targetXpertId: 'target-xpert', env: { workspaceId: 'original-workspace', region: 'cn' } }])(
+        'restores a paused branch with saved context %j without replaying input',
+        async (savedContext) => {
+            ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
+            const conversation = { id: 'conversation', threadId: 'primary', xpertId: 'xpert-1', options: {} }
+            const checkpoint = { threadId: 'branch', checkpointNs: '', checkpointId: 'saved' }
+            const control = {
+                getResumeContext: jest.fn().mockResolvedValue(savedContext),
+                claimResume: jest.fn().mockResolvedValue(checkpoint),
+                bindResumedExecution: jest.fn(),
+                start: jest.fn(),
+                releaseResume: jest.fn()
+            }
+            const threads = {
+                requireByThreadId: jest.fn().mockResolvedValue({ threadId: 'branch', status: 'paused', conversation }),
+                claimForRun: jest.fn()
+            }
+            const commands = {
+                execute: jest.fn(async (command) => {
+                    if (command instanceof XpertAgentExecutionUpsertCommand)
+                        return { id: 'new-run', threadId: 'branch' }
+                    if (command instanceof XpertChatCommand) return EMPTY
+                    throw new Error(`Unexpected command ${command.constructor.name}`)
+                })
+            }
+            const queries = {
+                execute: jest.fn(async (query) => {
+                    if (query instanceof AssertXpertAgentExecutionAccessQuery)
+                        return { id: 'old-run', threadId: 'branch', agentKey: 'agent' }
+                    if (query.constructor.name === 'GetXpertWorkflowQuery') return { graph: { nodes: [] } }
+                    return null
+                })
+            }
+            const handler = new RunCreateStreamHandler(
+                commands as never,
+                queries as never,
+                { findOneForRuntime: jest.fn().mockResolvedValue(undefined) } as never,
+                { getAccessiblePublishedXpert: jest.fn().mockResolvedValue({ id: 'xpert-1' }) } as never,
+                undefined,
+                undefined,
+                threads as never,
+                control as never
+            )
+            const result = await handler.execute({
+                threadId: 'branch',
+                resumePaused: { executionId: 'old-run', pauseId: 'token' },
+                runCreate: {
+                    assistant_id: 'xpert-1',
+                    input: { action: 'resume', target: { executionId: 'old-run' }, decision: { type: 'confirm' } }
+                }
+            } as never)
+            expect(control.claimResume).toHaveBeenCalledWith('branch', 'old-run', 'token', 'graph-v1')
+            expect(control.bindResumedExecution).toHaveBeenCalledWith('branch', 'token', 'new-run')
+            expect(threads.claimForRun).not.toHaveBeenCalled()
+            expect(result.execution.id).toBe('new-run')
+            const upsert = commands.execute.mock.calls.find(
+                ([command]) => command instanceof XpertAgentExecutionUpsertCommand
+            )?.[0]
+            expect(upsert.execution.id).toBeUndefined()
+            const chat = commands.execute.mock.calls.find(([command]) => command instanceof XpertChatCommand)?.[0]
+            expect(chat.options).toMatchObject({
+                threadId: 'branch',
+                isDerivedThread: true,
+                execution: { id: 'new-run' },
+                resumeCheckpoint: checkpoint,
+                streamPersistence: { runId: 'new-run' }
+            })
+            expect(control.getResumeContext).toHaveBeenCalledWith('branch', 'old-run', 'token')
+            expect(chat.options.context).toEqual(savedContext)
+            if (savedContext) {
+                expect(chat.options.environment.variables).toEqual(
+                    expect.arrayContaining([
+                        expect.objectContaining({ name: 'workspaceId', value: 'original-workspace' }),
+                        expect.objectContaining({ name: 'region', value: 'cn' })
+                    ])
+                )
+            }
+            expect(queries.execute).toHaveBeenCalledWith(
+                new AssertXpertAgentExecutionAccessQuery('old-run', 'contribute', 'branch')
+            )
+        }
+    )
 })

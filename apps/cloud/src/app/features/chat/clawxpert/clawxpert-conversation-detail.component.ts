@@ -2289,6 +2289,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         return
       }
 
+      const latestThreadId = normalizeConversationThreadId(conversation?.threadId ?? baseConversation?.threadId)
+      if (latestThreadId && latestThreadId !== threadId && !this.#workbenchConversationScope()) {
+        this.facade.onChatThreadChange(latestThreadId)
+        return
+      }
+
       this.syncResolvedConversation(conversationId, conversation ?? baseConversation)
       this.markConversationRead(conversationId)
       this.contextError.set(null)

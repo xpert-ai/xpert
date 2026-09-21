@@ -208,6 +208,17 @@
                             {{ statusLabelKey(conv.status) | translate: { Default: statusDefaultLabel(conv.status) } }}
                           </z-badge>
                         }
+                        @case ('pausing') {
+                          <z-badge zType="outline" class="border-text-warning/30 bg-text-warning/10 text-text-warning">
+                            <z-icon zType="loader-circle" class="size-3 animate-spin" />
+                            {{ statusLabelKey(conv.status) | translate: { Default: statusDefaultLabel(conv.status) } }}
+                          </z-badge>
+                        }
+                        @case ('paused') {
+                          <z-badge zType="outline" class="border-text-warning/30 bg-text-warning/10 text-text-warning">
+                            {{ statusLabelKey(conv.status) | translate: { Default: statusDefaultLabel(conv.status) } }}
+                          </z-badge>
+                        }
                         @case ('error') {
                           <z-badge zType="destructive">
                             {{ statusLabelKey(conv.status) | translate: { Default: statusDefaultLabel(conv.status) } }}

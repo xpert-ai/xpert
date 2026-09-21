@@ -1,3 +1,9 @@
+jest.mock('../../thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
+jest.mock('../../conversation-thread.service', () => ({ ChatConversationThreadService: class {} }))
+jest.mock('../../conversation.service', () => ({ ChatConversationService: class {} }))
+jest.mock('../../../xpert-agent-execution/agent-execution.service', () => ({ XpertAgentExecutionService: class {} }))
+jest.mock('../../../shared/', () => ({ ExecutionCancelService: class {} }))
+
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { CancelConversationCommand } from '../cancel-conversation.command'
 import { CancelConversationHandler } from './cancel-conversation.handler'

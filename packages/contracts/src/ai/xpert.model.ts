@@ -11,7 +11,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
-import { TChatFrom } from './chat.model'
+import { TChatCheckpointReference, TChatFrom } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { TXpertCommandProfile } from './prompt-workflow.model'
@@ -737,6 +737,9 @@ export type TChatOptions = {
   thread_id?: string
   // checkpoint id to resume thread state
   checkpointId?: string
+  /** Server-resolved pause checkpoint; never an arbitrary client state patch. */
+  resumeCheckpoint?: TChatCheckpointReference
+  inputMessageId?: string
 
   /**
    * The language used by the current browser page
