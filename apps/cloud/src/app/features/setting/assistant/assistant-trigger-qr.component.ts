@@ -34,10 +34,14 @@ import { AssistantTriggerConnectionService } from './assistant-trigger-connectio
         </button>
       </header>
       <div class="flex min-h-72 flex-col items-center gap-4 px-6 py-6 text-center">
-        <p class="text-sm leading-6 text-muted-foreground">{{ 'XP.AssistantSettings.DirectQrIntro' | translate }}</p>
+        <p class="text-sm leading-6 text-muted-foreground">
+          {{ 'XP.AssistantSettings.DirectQrIntro' | translate: { provider: (data.card.provider.label | i18n) } }}
+        </p>
         @if (state() === 'waiting' && session(); as qr) {
           <qrcode [qrdata]="qr.authorizationUrl" [width]="220" />
-          <p role="status" class="text-sm">{{ 'XP.AssistantSettings.DirectQrWaiting' | translate }}</p>
+          <p role="status" class="text-sm">
+            {{ 'XP.AssistantSettings.DirectQrWaiting' | translate: { provider: (data.card.provider.label | i18n) } }}
+          </p>
           <button z-button zType="outline" type="button" (click)="copyLink()">
             {{ (copied() ? 'XP.AssistantSettings.DirectQrCopied' : 'XP.AssistantSettings.DirectQrCopy') | translate }}
           </button>
