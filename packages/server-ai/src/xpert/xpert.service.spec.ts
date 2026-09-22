@@ -910,4 +910,74 @@ describe('XpertService command facade', () => {
         )
         expect(repository.save).not.toHaveBeenCalled()
     })
+
+    describe('identifier resolution (id or slug)', () => {
+        const UUID = '77dd478f-3497-4d96-9ca4-e47198e6d46b'
+
+        it('resolves a UUID as a primary key', async () => {
+            const { repository, service } = createService()
+            repository.findOne.mockResolvedValue({ id: UUID, slug: 'scrape-task-intake-assistant' })
+
+            await service.getTeam(UUID)
+
+            expect(repository.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { id: UUID } })
+            )
+        })
+
+        it('resolves a slug instead of using it as a primary key', async () => {
+            const { repository, service } = createService()
+            repository.findOne.mockResolvedValue({ id: UUID, slug: 'scrape-task-intake-assistant' })
+
+            await service.getTeam('scrape-task-intake-assistant')
+
+            expect(repository.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { slug: 'scrape-task-intake-assistant' } })
+            )
+            // The slug must never reach the where clause as an id: Postgres rejects
+            // it with "invalid input syntax for type uuid".
+            const where = repository.findOne.mock.calls[0][0].where
+            expect(where.id).toBeUndefined()
+        })
+
+        it('trims surrounding whitespace before deciding', async () => {
+            const { repository, service } = createService()
+            repository.findOne.mockResolvedValue({ id: UUID, slug: 'scrape-task-intake-assistant' })
+
+            await service.getTeam(`  ${UUID}  `)
+
+            expect(repository.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { id: UUID } }))
+        })
+
+        it('rejects a blank identifier without touching the database', async () => {
+            const { repository, service } = createService()
+
+            await expect(service.getTeam('   ')).rejects.toThrow(NotFoundException)
+            expect(repository.findOne).not.toHaveBeenCalled()
+        })
+
+        it('merges the caller relations into getTeam', async () => {
+            const { repository, service } = createService()
+            repository.findOne.mockResolvedValue({ id: UUID })
+
+            await service.getTeam(UUID, { relations: ['agent', 'agent.copilotModel'], where: {}, order: {}, withDeleted: false })
+
+            const { relations } = repository.findOne.mock.calls[0][0]
+            expect(relations).toEqual(
+                expect.arrayContaining(['agent', 'agent.copilotModel', 'agents', 'toolsets', 'knowledgebases'])
+            )
+        })
+
+        it('resolves allVersions by slug too', async () => {
+            const { repository, service } = createService()
+            repository.findOne.mockResolvedValue({ id: UUID, slug: 'scrape-task-intake-assistant', workspaceId: null, type: 'agent' })
+            repository.findAll.mockResolvedValue({ items: [{ id: UUID, slug: 'scrape-task-intake-assistant', version: '1' }], total: 1 })
+
+            await service.allVersions('scrape-task-intake-assistant')
+
+            expect(repository.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { slug: 'scrape-task-intake-assistant' } })
+            )
+        })
+    })
 })

@@ -13,7 +13,15 @@ surfaced much later as `Cannot read properties of undefined (reading
 'toLowerCase')` from `AIModel.predefinedModels()`, so every request reaching
 `getProviderModels()` -- including `POST /api/chat` -- returned 500.
 
-File URLs are now converted with `fileURLToPath()` (with the `:line:col`
-suffix stripped first), Windows stack frames carrying a drive letter are
-accepted, and the provider schema is loaded with `ignoreError=false` so a
-missing schema fails loudly instead of becoming an undefined provider name.
+The frame parsing is extracted into `resolveStackFramePath()` and now converts
+file URLs with `fileURLToPath()` (stripping the `:line:col` suffix first so the
+position cannot leak into the path), accepts Windows frames that carry a drive
+letter, and falls back to stripping the scheme when the URL is not mappable on
+the current platform. The provider schema is loaded with `ignoreError=false` so
+a missing schema fails loudly instead of becoming an undefined provider name.
+Covered by `ai-model-provider.decorator.spec.ts`.
+
+Also fixes the package's jest config, which was written as an ES module (ESM
+`import` syntax) but read `__dirname`. Jest could not even parse it
+(`__dirname is not defined in ES module scope`), which disabled every
+plugin-sdk test; it now derives the directory from `import.meta.url`.
