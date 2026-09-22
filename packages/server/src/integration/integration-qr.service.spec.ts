@@ -132,6 +132,41 @@ describe('IntegrationQrService', () => {
 		await expect(service.complete(session.id)).rejects.toThrow('not available')
 	})
 
+	it('persists cumulative provider backoff across API instances without exposing it or credentials', async () => {
+		jest.useFakeTimers()
+		try {
+			strategy.pollQrAuthorization.mockResolvedValue({ status: 'waiting', intervalIncrementSeconds: 5 })
+			const session = await service.begin('lark', { name: 'Assistant' })
+			expect(await service.poll(session.id)).toEqual({ status: 'waiting' })
+			const otherInstance = new IntegrationQrService(
+				redis as unknown as RedisClientType,
+				locks as unknown as RedisLockService,
+				integrations as unknown as IntegrationService
+			)
+			jest.advanceTimersByTime(6999)
+			await otherInstance.poll(session.id)
+			expect(strategy.pollQrAuthorization).toHaveBeenCalledTimes(1)
+			jest.advanceTimersByTime(1)
+			await otherInstance.poll(session.id)
+			expect(strategy.pollQrAuthorization).toHaveBeenCalledTimes(2)
+			jest.advanceTimersByTime(11999)
+			await service.poll(session.id)
+			expect(strategy.pollQrAuthorization).toHaveBeenCalledTimes(2)
+			jest.advanceTimersByTime(1)
+			strategy.pollQrAuthorization.mockResolvedValue({ status: 'authorized', options: { appSecret: 'secret' } })
+			expect(await service.poll(session.id)).toEqual({ status: 'authorized' })
+		} finally {
+			jest.useRealTimers()
+		}
+	})
+
+	it.each([NaN, Infinity, -5, 0])('ignores invalid backoff increments (%s)', async (increment) => {
+		strategy.pollQrAuthorization.mockResolvedValue({ status: 'waiting', intervalIncrementSeconds: increment })
+		const session = await service.begin('lark', { name: 'Assistant' })
+		await service.poll(session.id)
+		expect(JSON.parse(storage.get(`integration:qr:session:${session.id}`)).intervalSeconds).toBe(2)
+	})
+
 	it('reuses a completed integration on retry and retains credentials after a failed save', async () => {
 		const session = await service.begin('dingtalk_long', { name: 'Assistant' })
 		await service.poll(session.id)
