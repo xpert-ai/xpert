@@ -211,7 +211,8 @@ export interface PluginMarketplaceAppConfig {
     mode: 'dedicated'
     name: string | I18nObject
     description?: string | I18nObject
-    sharing: 'organization'
+    /** New app workspaces are private. Legacy 'organization' is accepted but does not grant sharing. */
+    sharing?: 'private' | 'organization'
   }
   knowledgebases?: PluginMarketplaceAppKnowledgebaseConfig[]
   modelRequirements?: PluginMarketplaceAppModelRequirements

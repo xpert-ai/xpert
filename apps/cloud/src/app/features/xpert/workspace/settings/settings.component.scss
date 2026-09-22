@@ -1,13 +1,13 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply block rounded-3xl overflow-hidden bg-components-card-bg;
+  @apply relative block max-w-full;
 }
 
 .cdk-option.menu-item {
-    @apply flex items-center h-[37px] mb-[2px] text-sm cursor-pointer rounded-lg font-light hover:bg-hover-bg;
-    &[aria-selected="true"] {
-        @apply font-semibold text-primary-600 bg-primary-50;
-    }
+  @apply flex items-center h-[37px] mb-[2px] text-sm cursor-pointer rounded-lg font-light hover:bg-hover-bg;
+  &[aria-selected='true'] {
+    @apply font-semibold text-primary-600 bg-primary-50;
+  }
 }
 
 .btn-close.btn {

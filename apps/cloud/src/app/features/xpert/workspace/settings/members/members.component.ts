@@ -52,6 +52,8 @@ export class XpertWorkspaceMembersComponent {
   openAddUser() {
     this.#dialog
       .open<{ users: IUser[] }>(UserRoleSelectComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
         data: {
           loadOnEmptySearch: true,
           excludeUserIds: this.allMembers().map((user) => user.id)

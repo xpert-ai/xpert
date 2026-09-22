@@ -1207,7 +1207,6 @@
             "Unknown": "No identifiable natural text"
           }
         },
-
         "TargetSize": "Target chunk size (characters)",
         "TargetHelp": "Combine short paragraphs up to this target. A complete structure may exceed it when it fits the token ceiling.",
         "AutoSizeHelp": "Structure-aware splitting treats this as a target; existing heading and length strategies keep their own size rules. Preview shows the selected strategy.",
@@ -3123,9 +3122,15 @@
       "ProjectUpdated": "Project updated"
     },
     "Xpert": {
-      "ConnectorWorkspaceMigration": "Personal connections are no longer supported. A workspace administrator must delete this connection and create a workspace connection.",
-      "ConnectorUnavailable": "The connector is unavailable in this workspace.",
-      "RefreshConnectorsTooltip": "Refresh connector list and connection status",
+      "WorkspaceAccessScopeDesc": "Choose who can access this workspace beyond its owner and assigned members",
+      "OrganizationShared": "Organization shared",
+      "OrganizationSharedWorkspace": "Organization shared workspace",
+      "OrganizationSharedWorkspaceDesc": "Members of this organization can view and edit workspace resources. Access to published Assistants is granted separately",
+      "WorkspaceAccess": "Workspace access",
+      "TenantShared": "Tenant shared",
+      "PrivateWorkspace": "Private",
+      "TenantSharedWorkspace": "Tenant shared workspace",
+      "TenantSharedWorkspaceDesc": "Organization users in this tenant can read and run resources in this workspace, but cannot edit them",
       "AutomaticFrequentQuestions": "Automatic frequent questions",
       "AutomaticFrequentQuestionsDescription": "Suggest up to 5 common questions on the workbench start screen using the latest 50 conversations from the past 90 days. Results are cached for 24 hours and refresh when starting a new conversation after expiry.",
       "MiddlewareViewFeatures": "View features",
@@ -3251,7 +3256,10 @@
       "ConnectorStatusExpired": "Expired",
       "ConnectorStatusError": "Error",
       "ConnectorStatusDisconnected": "Disconnected",
-      "ConnectorStatusNotConnected": "Not connected"
+      "ConnectorStatusNotConnected": "Not connected",
+      "RefreshConnectorsTooltip": "Refresh connector list and connection status",
+      "ConnectorUnavailable": "The connector is unavailable in this workspace.",
+      "ConnectorWorkspaceMigration": "Personal connections are no longer supported. A workspace administrator must delete this connection and create a workspace connection."
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {

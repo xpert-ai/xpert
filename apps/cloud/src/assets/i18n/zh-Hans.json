@@ -7257,19 +7257,18 @@
       },
       "Chunking": {
         "Language": {
-          "Hint": "\u8bed\u8a00\u63d0\u793a",
-          "Detected": "\u5b9e\u9645\u8bc6\u522b",
-          "Scope": "\u7528\u4e8e\u81ea\u52a8\u3001\u7ed3\u6784\u611f\u77e5\u3001Markdown \u9012\u5f52\u548c\u9012\u5f52\u5b57\u7b26\u5207\u7247\u7684\u6b63\u6587\u8fb9\u754c\uff1b\u7236\u5b50\u5206\u5757\u6682\u4e0d\u652f\u6301\u3002",
-          "SeparatorsHelp": "\u81ea\u5b9a\u4e49\u5206\u9694\u7b26\u4f18\u5148\u4e8e\u8bed\u8a00\u63d0\u793a\uff1b\u672a\u914d\u7f6e\u81ea\u5b9a\u4e49\u5206\u9694\u7b26\u65f6\uff0c\u6309\u6240\u9009\u8bed\u8a00\u5207\u5206\u6b63\u6587\u3002",
+          "Hint": "语言提示",
+          "Detected": "实际识别",
+          "Scope": "用于自动、结构感知、Markdown 递归和递归字符切片的正文边界；父子分块暂不支持。",
+          "SeparatorsHelp": "自定义分隔符优先于语言提示；未配置自定义分隔符时，按所选语言切分正文。",
           "Values": {
-            "auto": "\u81ea\u52a8\u68c0\u6d4b",
-            "Chinese": "\u4e2d\u6587",
-            "English": "\u82f1\u6587",
-            "Mixed": "\u4e2d\u82f1\u6df7\u5408",
-            "Unknown": "\u6682\u65e0\u53ef\u8bc6\u522b\u6b63\u6587"
+            "auto": "自动检测",
+            "Chinese": "中文",
+            "English": "英文",
+            "Mixed": "中英混合",
+            "Unknown": "暂无可识别正文"
           }
         },
-
         "TargetSize": "目标块大小（字符）",
         "TargetHelp": "组合相邻短段落时参考此大小；完整结构满足 Token 上限时，可以超过目标字符数。",
         "AutoSizeHelp": "结构感知将此值作为目标大小；现有标题和长度策略保留原大小规则。预览会显示实际采用的策略。",
@@ -8772,9 +8771,6 @@
       }
     },
     "Xpert": {
-      "ConnectorWorkspaceMigration": "不再支持个人连接。请由空间管理员删除旧连接，再创建工作空间连接。",
-      "ConnectorUnavailable": "当前工作空间中的连接器不可用。",
-      "RefreshConnectorsTooltip": "刷新连接器列表和连接状态",
       "AutomaticFrequentQuestions": "自动常用问题",
       "AutomaticFrequentQuestionsDescription": "根据最近 90 天内的 50 条对话，自动提炼最多 5 个常用问题，显示在工作台新对话页。结果缓存 24 小时，到期后再次打开新对话时更新。",
       "ModelSelection": {
@@ -9439,6 +9435,10 @@
       "ArchiveWorkspaceDesc": "将此工作区及其所有专家和工具集标记为已存档和只读",
       "DeleteWorkspaceDesc": "一旦删除，它将永远消失，请确保",
       "WorkspaceAccess": "工作空间访问",
+      "WorkspaceAccessScopeDesc": "设置除所有者和已分配成员外，哪些用户可以访问此工作空间",
+      "OrganizationShared": "组织共享",
+      "OrganizationSharedWorkspace": "组织共享工作空间",
+      "OrganizationSharedWorkspaceDesc": "本组织成员可以查看和编辑工作空间资源；已发布 Assistant 的使用权限需要单独授权",
       "WorkspaceAccessDesc": "控制这个租户级工作空间是否共享给租户下所有组织",
       "TenantShared": "租户共享",
       "PrivateWorkspace": "私有",
@@ -9879,7 +9879,10 @@
       "MarketplaceCapabilityTags": "能力标签",
       "MarketplaceCapabilityTagsPlaceholder": "知识库, 引用溯源, 工作流",
       "MarketplaceTechnicalPreview": "技术分类预览",
-      "MarketplaceNoTechnicalPreview": "暂未识别到技术分类"
+      "MarketplaceNoTechnicalPreview": "暂未识别到技术分类",
+      "RefreshConnectorsTooltip": "刷新连接器列表和连接状态",
+      "ConnectorUnavailable": "当前工作空间中的连接器不可用。",
+      "ConnectorWorkspaceMigration": "不再支持个人连接。请由空间管理员删除旧连接，再创建工作空间连接。"
     },
     "UserGroup": {
       "Title": "用户组",

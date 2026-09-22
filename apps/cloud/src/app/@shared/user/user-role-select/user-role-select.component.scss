@@ -1,4 +1,4 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  @apply block w-96 max-w-full p-4 rounded-2xl bg-components-card-bg;
+  @apply block w-[420px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto p-6;
 }

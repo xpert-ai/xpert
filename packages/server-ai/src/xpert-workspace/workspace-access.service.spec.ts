@@ -218,6 +218,28 @@ describe('XpertWorkspaceAccessService', () => {
         })
     })
 
+    it.each(['owner', 'member', 'organization-user'])(
+        'limits private App workspace authoring for %s',
+        async (actor) => {
+            const workspace = Object.assign(new XpertWorkspace(), {
+                id: 'workspace-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                ownerId: actor === 'owner' ? 'user-1' : 'owner-1',
+                settings: { access: { visibility: 'private' }, system: { kind: 'plugin-app' } },
+                members: actor === 'member' ? [{ id: 'user-1' }] : []
+            })
+            const canAuthor = actor !== 'organization-user'
+
+            await expect(service.getCapabilities(workspace)).resolves.toEqual({
+                canRead: canAuthor,
+                canRun: canAuthor,
+                canWrite: canAuthor,
+                canManage: actor === 'owner'
+            })
+        }
+    )
+
     it('grants runtime-only workspace access through a published xpert user-group grant', async () => {
         xpertQueryBuilder.getCount.mockResolvedValue(1)
         const workspace = Object.assign(new XpertWorkspace(), {
