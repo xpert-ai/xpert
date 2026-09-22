@@ -2,6 +2,8 @@ import { ICopilotModel, IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import {
     ActorTokenRuntimeFactoryCapability,
+    AgentInvocationRuntimeCapability,
+    AgentRuntimeFactoryCapability,
     ConnectorRuntimeFactoryCapability,
     KnowledgeDocumentVisualAssetsRuntimeFactoryCapability,
     ActorTokenRuntimeCapability,
@@ -118,6 +120,9 @@ export class AgentMiddlewareRuntimeService {
             ],
             this.platformCapabilities
         )
+        const runtimeFactory = this.platformCapabilities.get(AgentRuntimeFactoryCapability)
+        if (runtimeFactory)
+            capabilities.register(AgentInvocationRuntimeCapability, runtimeFactory.createScopedApi(scope))
         if (workspaceFilesApi) {
             capabilities.register(WorkspaceFilesRuntimeCapability, workspaceFilesApi)
             capabilities.register(

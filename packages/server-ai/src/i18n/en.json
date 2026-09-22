@@ -1,5 +1,16 @@
 {
     "Error": {
+        "AgentInvocationInvalidScope": "Agent invocation requires an authenticated execution scope.",
+        "AgentInvocationInvalidRequest": "Invalid Agent invocation request.",
+        "AgentInvocationCallConflict": "This call already exists with different input or target revision.",
+        "AgentInvocationProviderUnavailable": "The Agent runtime provider is unavailable.",
+        "AgentInvocationProviderChanged": "The original Agent runtime provider version is no longer available.",
+        "AgentInvocationDispatchUnknown": "The Agent execution outcome is unknown; reconcile it before retrying.",
+        "AgentInvocationNotFound": "Agent invocation was not found in this execution scope.",
+        "AgentInvocationUnsupported": "This Agent runtime does not support the requested operation.",
+        "AgentInvocationInteractionConflict": "This Agent interaction is no longer waiting for a response.",
+        "AgentInvocationMissingResult": "The Agent runtime did not return a valid result.",
+        "AgentInvocationConcurrentUpdate": "The Agent invocation changed concurrently. Reload its current state.",
         "ConnectorLegacyBindingUnsupported": "Personal connections are no longer supported. Delete this connection and create a workspace connection.",
         "ConnectorOAuthConfigurationChanged": "The connection configuration does not match this authorization session. Start a new connection.",
         "ConnectorOAuthSessionInvalidated": "This authorization session has already been used, cancelled, or replaced. Start a new connection.",

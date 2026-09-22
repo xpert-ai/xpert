@@ -1,3 +1,4 @@
+import { NativeAgentCompiler } from '../../../agent-invocation/native-agent.compiler'
 jest.mock('yargs', () => ({
     __esModule: true,
     default: () => ({
@@ -129,7 +130,10 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
         const subscriber = {
             next: jest.fn()
         }
-        const subAgent = await handler.createAgentSubgraph(
+        const subAgent = await new NativeAgentCompiler(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus
+        ).compile(
             {
                 key: 'agent-2',
                 name: 'Agent 2',
@@ -158,7 +162,7 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
                 store: null,
                 subscriber,
                 isDraft: true
-            } as unknown as Parameters<XpertAgentSubgraphHandler['createAgentSubgraph']>[1]
+            } as unknown as Parameters<NativeAgentCompiler['compile']>[1]
         )
 
         const invoke = (callId: string) =>
@@ -170,7 +174,7 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
                         name: 'agent-2',
                         args: { input: callId }
                     }
-                },
+                } as unknown as Parameters<typeof subAgent.stateGraph.invoke>[0],
                 {
                     configurable: {
                         executionId: 'parent-execution',

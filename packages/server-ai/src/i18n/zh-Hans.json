@@ -1,5 +1,16 @@
 {
     "Error": {
+        "AgentInvocationInvalidScope": "调用智能体需要有效的用户身份和执行上下文。",
+        "AgentInvocationInvalidRequest": "智能体调用请求无效。",
+        "AgentInvocationCallConflict": "该调用已存在，但输入或目标版本不同。",
+        "AgentInvocationProviderUnavailable": "智能体执行器不可用。",
+        "AgentInvocationProviderChanged": "原智能体执行器版本已不可用。",
+        "AgentInvocationDispatchUnknown": "智能体执行结果未知，请先核对状态再重试。",
+        "AgentInvocationNotFound": "当前执行范围内未找到此智能体调用。",
+        "AgentInvocationUnsupported": "该智能体执行器不支持此操作。",
+        "AgentInvocationInteractionConflict": "此智能体交互已不再等待回复。",
+        "AgentInvocationMissingResult": "智能体执行器未返回有效结果。",
+        "AgentInvocationConcurrentUpdate": "智能体调用已被并发更新，请重新读取状态。",
         "ConnectorLegacyBindingUnsupported": "不再支持个人连接。请删除此连接，再创建工作空间连接。",
         "ConnectorOAuthConfigurationChanged": "连接配置与本次授权会话不一致，请重新发起连接。",
         "ConnectorOAuthSessionInvalidated": "此授权会话已被使用、取消或替换，请重新发起连接。",

@@ -1,3 +1,4 @@
+import { AgentInvocationAuthorizationError, AgentInvocationError } from '../../../agent-invocation/invocation-errors'
 import { CallbackManagerForChainRun } from '@langchain/core/callbacks/manager'
 import { ToolMessage, AIMessage, isBaseMessage, isToolMessage } from '@langchain/core/messages'
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from '@langchain/core/runnables'
@@ -171,7 +172,11 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                     if (!this.handleToolErrors) {
                         throw e
                     }
-                    if (isGraphInterrupt(e)) {
+                    if (
+                        isGraphInterrupt(e) ||
+                        e instanceof AgentInvocationAuthorizationError ||
+                        e instanceof AgentInvocationError
+                    ) {
                         // `NodeInterrupt` errors are a breakpoint to bring a human into the loop.
                         // As such, they are not recoverable by the agent and shouldn't be fed
                         // back. Instead, re-throw these errors even when `handleToolErrors = true`.

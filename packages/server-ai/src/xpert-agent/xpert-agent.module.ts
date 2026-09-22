@@ -18,6 +18,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertAgentNodeValidator } from './agent-validator'
 import { XpertAgentGraphValidator } from './graph-validator'
 import { XpertTitleMiddlewareService } from './title/xpert-title.middleware'
+import { AgentInvocationGraphService } from '../agent-invocation/agent-invocation-graph.service'
 import { Validators } from './workflow'
 import { WorkflowCommandHandlers } from './workflow/handlers'
 import { ConnectorMiddleware } from '../xpert-middleware/connector.middleware'
@@ -27,6 +28,8 @@ import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
 import { SkillPackageModule } from '../skill-package'
 import { PromptWorkflowModule } from '../prompt-workflow'
+import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
+import { NativeAgentCompiler } from '../agent-invocation/native-agent.compiler'
 
 @Module({
     imports: [
@@ -37,6 +40,7 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         ActorTokenModule,
         CqrsModule,
         DiscoveryModule,
+        AgentInvocationModule,
 
         CopilotCheckpointModule,
         forwardRef(() => ChatConversationModule),
@@ -53,6 +57,8 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         XpertAgentService,
         ConversationTitleService,
         XpertTitleMiddlewareService,
+        AgentInvocationGraphService,
+        NativeAgentCompiler,
         WorkflowTriggerRegistry,
         WorkflowNodeRegistry,
         AgentMiddlewareRegistry,

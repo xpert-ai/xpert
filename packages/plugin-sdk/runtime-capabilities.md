@@ -47,3 +47,38 @@ Reuse the returned API during that one operation. Create a new API for the next 
 The Agent facade resolves the platform factories when initializing a scoped runtime and registers the resulting operation APIs in that runtime's child registry. This does not change the model-visible tool list inside a tool-call loop.
 
 Some child Agent identities are assigned after graph construction. Visual-assets factories accept an optional host-owned `resolveExecutionScope` callback for this case. The Agent integration supplies the LangGraph resolver; the domain factory has no LangGraph dependency. Platform callers that omit the callback use the fixed scope captured at API creation. Every image issuance and consumption still verifies the execution binding.
+
+## Agent invocation
+
+Agent runtime extension contracts live under `src/lib/agent/runtime` and are
+exported from `@xpert-ai/plugin-sdk`. `AgentRuntimeFactory`, strategies and the
+registry describe the execution mechanism; `AgentInvocation*` types describe an
+individual call. Renaming the factory does not change capability identifiers.
+
+`AgentInvocationRuntimeCapability` is the scoped consumer API for invoking an
+approved Agent binding. Resolve the binding immediately before starting a call;
+provide the host tool-call/operation ID for idempotency. The API captures identity
+and rechecks workspace grants, target revision and provider provenance. Tools
+cannot supply user/organization identity or arbitrary runner configuration.
+
+```ts
+const api = context.runtime.capabilities.require(AgentInvocationRuntimeCapability)
+const target = await api.resolve(bindingId)
+const invocation = await api.start({ target, callId: toolCallId, input: { prompt } })
+// wait mode uses the host checkpoint adapter; background mode returns the ID.
+const completed = await api.awaitResult(invocation.id)
+```
+
+`inspect`, `cancel` and `respond` operate on the same invocation. A cancelling or
+unknown state is not proof of termination. Caller jobs may use
+`AgentRuntimeFactoryCapability` with a host-authorized identity;
+never accept that identity from model arguments.
+
+Providers implement `IAgentRuntimeStrategy` and use `@AgentRuntimeStrategy(key)`.
+Persist a receipt with `context.checkpoint` before waiting for external work.
+Declare checkpoint/session/no recovery accurately; reattachment must not send an
+ambiguous prompt again. The strategy contract contains no graph types. The host
+owns binding authorization, persistence, idempotency, waiting and audit history.
+The native Xpert graph and native background Task transports are separate
+strategies behind that same boundary. Providers must not call the Task facade
+back from their own executor.
