@@ -13,6 +13,8 @@ import { IUser } from '../user.model'
 import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 
 export type TChatConversationOptions = {
+  /** Persisted resources augment the entry Agent without changing the Assistant graph. */
+  runtimeResources?: import('../agent-plugin').RuntimeResourcesSelection
   parameters?: {
     input?: string
     [key: string]: unknown

@@ -1,7 +1,10 @@
+import type { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
 import {
     BadRequestException,
     ForbiddenException,
     Injectable,
+    Inject,
+    Optional,
     Logger,
     NotFoundException,
     OnModuleDestroy,
@@ -224,7 +227,8 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         private readonly messageService: ChatMessageService,
         private readonly audit: McpAppAuditService,
         private readonly instanceStore: McpAppInstanceStoreService,
-        private readonly approvals: McpAppToolApprovalService
+        private readonly approvals: McpAppToolApprovalService,
+        @Optional() @Inject('XpertRuntimeResourceService') private readonly runtimeResources?: RuntimeResourceService
     ) {}
 
     onModuleInit() {
@@ -260,6 +264,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
             if (snapshot) applyMcpAppInstanceSnapshot(instance, snapshot)
             this.assertInstanceUser(instance.userId)
             await this.assertAccessForInstance(instance, normalizedQuery, options)
+            await this.runtimeResources?.assertToolsetAccess(instance.toolset)
             return instance
         }
 
@@ -269,6 +274,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         if (!revived) {
             throw new NotFoundException('MCP App instance was not found or has expired')
         }
+        await this.runtimeResources?.assertToolsetAccess(revived.toolset)
         return revived
     }
 
@@ -482,6 +488,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         const { client, destroy } = this.toolsetService.isPro()
             ? await createProMCPClient(toolset, null, this.commandBus, schema, envState)
             : await createMCPClient(toolset, schema, envState, undefined, {
+                  ...snapshot?.executionContext,
                   appInstanceId,
                   userId: snapshot?.userId
               })
@@ -502,6 +509,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
                 id: appInstanceId,
                 client,
                 userId: snapshot?.userId,
+                executionContext: snapshot?.executionContext,
                 destroy,
                 toolset,
                 toolMeta,

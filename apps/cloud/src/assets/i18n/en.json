@@ -42,6 +42,37 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "AgentPlugins": {
+      "Replace": "Replace version (optional)",
+      "CreateNew": "Create a new resource",
+      "PinnedVersion": "Existing conversations keep their selected version. Disable the old version separately to revoke it.",
+      "Replaced": "Previous version",
+      "Intro": "Import portable Agent Plugins and publish resources to selected workspaces. Existing conversations retain their selected version.",
+      "Import": "Import plugin",
+      "Repository": "Git repository",
+      "Ref": "Tag, branch or commit",
+      "Directory": "Plugin subdirectory",
+      "UploadZip": "Upload ZIP",
+      "Publish": "Publish resource",
+      "Plugin": "Plugin",
+      "Middleware": "Middleware",
+      "Expert": "Digital expert",
+      "NoPackages": "Import a plugin package to get started.",
+      "Components": "Components and diagnostics",
+      "PersonalOAuth": "Requires personal OAuth",
+      "SelectExpert": "Select a published expert",
+      "Title": "Title",
+      "Description": "Description",
+      "SelectMiddleware": "Select middleware",
+      "Options": "Middleware configuration (JSON)",
+      "Workspaces": "Available in workspaces",
+      "NoWorkspaces": "Select an organization with a workspace you can manage.",
+      "Published": "Published resources",
+      "Disable": "Disable",
+      "Enable": "Enable",
+      "NoBindings": "No resources have been published.",
+      "ConnectorAuthorization": "Authorize through Connector"
+    },
     "XpertSettings": {
       "EditInStudio": "Edit in Studio",
       "QAExperience": "Q&A experience",
@@ -4801,6 +4832,9 @@
       }
     },
     "Xpert": {
+      "ConnectorWorkspaceMigration": "Personal connections are no longer supported. A workspace administrator must delete this connection and create a workspace connection.",
+      "ConnectorUnavailable": "The connector is unavailable in this workspace.",
+      "RefreshConnectorsTooltip": "Refresh connector list and connection status",
       "AutomaticFrequentQuestions": "Automatic frequent questions",
       "AutomaticFrequentQuestionsDescription": "Suggest up to 5 common questions on the workbench start screen using the latest 50 conversations from the past 90 days. Results are cached for 24 hours and refresh when starting a new conversation after expiry.",
       "ModelSelection": {

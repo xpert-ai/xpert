@@ -63,6 +63,8 @@ import { WorkspaceFileAccessModule } from './workspace-file-access'
 import { AgentEvolutionModule } from './agent-evolution'
 import { McpPublicationModule } from './mcp-publication'
 
+import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
+
 @Module({
     imports: [
         forwardRef(() => CqrsModule),
@@ -113,6 +115,7 @@ import { McpPublicationModule } from './mcp-publication'
         SkillRepositoryIndexModule,
         SkillPackageModule,
         PluginResourceModule,
+        AgentPluginModule,
         PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,

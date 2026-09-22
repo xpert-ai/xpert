@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common'
 import { injectDataSourceCreateCommand } from './data-source-create.runtime'
+import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.runtime'
 import { HttpClient } from '@angular/common/http'
 import { computed, effect, inject, isSignal, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -234,6 +235,7 @@ export function injectAssistantBindingRuntimeState(input: AssistantBindingRuntim
 
 export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntimeInput) {
   injectDataSourceCreateCommand()
+  const connectWorkspaceConnector = injectWorkspaceConnectorConnect(input.assistantId)
   const document = inject(DOCUMENT)
   const translate = inject(TranslateService)
   const toastr = inject(ToastrService)
@@ -388,6 +390,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       startScreen,
       composer: {
         ...composer,
+        resources: { enabled: true, onConnect: connectWorkspaceConnector, ...composer?.resources },
+        connectors: { enabled: true, ...composer?.connectors },
         attachments: {
           enabled: true,
           maxCount: 5,

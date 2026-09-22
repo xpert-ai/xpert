@@ -165,18 +165,6 @@ type ProjectConnectorsDialogData = {
                   }
                 </form>
                 <div class="flex flex-wrap items-center gap-2">
-                  @if (binding.authorizationMode === 'personal') {
-                    <button
-                      z-button
-                      zType="outline"
-                      zSize="sm"
-                      type="button"
-                      [disabled]="busy()"
-                      (click)="consent(binding)"
-                    >
-                      {{ 'XP.XProject.UseExistingPersonalAccount' | translate }}
-                    </button>
-                  }
                   <button
                     z-button
                     zType="default"
@@ -186,11 +174,9 @@ type ProjectConnectorsDialogData = {
                     (click)="connect(binding, definition)"
                   >
                     {{
-                      (binding.authorizationMode === 'personal'
-                        ? 'XP.XProject.ConnectMyAccount'
-                        : binding.status === 'active'
-                          ? 'XP.XProject.RotateTeamCredential'
-                          : 'XP.XProject.ConnectTeamAccount'
+                      (binding.status === 'active'
+                        ? 'XP.XProject.RotateTeamCredential'
+                        : 'XP.XProject.ConnectTeamAccount'
                       ) | translate
                     }}
                   </button>
@@ -244,8 +230,7 @@ export class XpertProjectConnectorsDialogComponent {
     return this.definitions().filter((definition) => !providers.has(definition.provider))
   })
   readonly selectedDefinitionModes = computed(() => {
-    const definition = this.definitionFor(this.selectedProvider())
-    return definition ? getConnectorAuthorizationModes(definition) : (['shared'] as ConnectorAuthorizationMode[])
+    return ['shared'] as ConnectorAuthorizationMode[]
   })
   readonly canSelectAuthorizationMode = computed(() => this.selectedDefinitionModes().length > 1)
   readonly #forms = new Map<string, FormRecord<FormControl<string>>>()
@@ -284,7 +269,7 @@ export class XpertProjectConnectorsDialogComponent {
   }
 
   selectMode(value: string | number | Array<string | number>) {
-    this.selectedMode.set(normalizeSelection(value) === 'personal' ? 'personal' : 'shared')
+    this.selectedMode.set('shared')
   }
 
   async createBinding() {
@@ -308,13 +293,6 @@ export class XpertProjectConnectorsDialogComponent {
     await this.runMutation(async () => {
       await firstValueFrom(this.#connectorService.deleteBinding(binding.id))
       this.bindings.update((items) => items.filter((item) => item.id !== binding.id))
-    })
-  }
-
-  async consent(binding: ConnectorBinding) {
-    await this.runMutation(async () => {
-      await firstValueFrom(this.#connectorService.consentToBinding(binding.id))
-      await this.load()
     })
   }
 
@@ -394,17 +372,15 @@ export class XpertProjectConnectorsDialogComponent {
   }
 
   canConnect(binding: ConnectorBinding) {
-    return binding.authorizationMode === 'personal' || this.data.canManage
+    return this.data.canManage
   }
 
   modeLabel(mode: ConnectorAuthorizationMode) {
-    return mode === 'personal' ? 'XP.XProject.PersonalAuthorization' : 'XP.XProject.TeamAuthorization'
+    return mode === 'personal' ? 'XP.Xpert.ConnectorStatusDisconnected' : 'XP.XProject.TeamAuthorization'
   }
 
   modeDescription(mode: ConnectorAuthorizationMode) {
-    return mode === 'personal'
-      ? 'XP.XProject.PersonalAuthorizationDescription'
-      : 'XP.XProject.TeamAuthorizationDescription'
+    return mode === 'personal' ? 'XP.Xpert.ConnectorWorkspaceMigration' : 'XP.XProject.TeamAuthorizationDescription'
   }
 
   connectorStatusLabel(status: ConnectorBinding['status']) {

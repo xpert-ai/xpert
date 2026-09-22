@@ -102,6 +102,7 @@
     "@langchain/langgraph": "0.4.7",
     "@metad/contracts": "workspace:@xpert-ai/contracts@*",
     "@microsoft/fetch-event-source": "^2.0.1",
+    "@modelcontextprotocol/sdk-oauth": "npm:@modelcontextprotocol/sdk@1.30.0",
     "@ng-web-apis/common": "^4.11.1",
     "@ng-web-apis/intersection-observer": "^4.11.1",
     "@ng-web-apis/resize-observer": "^4.11.1",

@@ -62,10 +62,25 @@ export type TMCPServerReconnect = {
   delayMs?: number
 }
 
-export const MCP_CONSUMER_AUTH_TYPES = ['none', 'manual_header', 'api_key', 'oauth'] as const
+/** Supported authentication modes for a host-consumed MCP server. */
+export const MCP_CONSUMER_AUTH_TYPES = ['none', 'manual_header', 'api_key', 'oauth', 'connector'] as const
+/** Discriminator for MCP consumer authentication configuration. */
 export type McpConsumerAuthType = (typeof MCP_CONSUMER_AUTH_TYPES)[number]
 
+/** MCP authentication by mode; Connector credentials remain host-managed. */
 export type TMcpConsumerAuth =
+  | {
+      /** Use the caller's Connector authorization. */
+      type: 'connector'
+      /** Administrator-resolved binding. Never a token or a package-supplied machine ID. */
+      bindingId: string
+      /** Registered Connector strategy key matching this binding. */
+      provider: string
+      /** Resource/audience understood by the Connector provider. */
+      resource?: string
+      /** Required scopes, revalidated by the Connector. */
+      scopes?: string[]
+    }
   | { type: 'none' }
   | { type: 'manual_header' }
   | {

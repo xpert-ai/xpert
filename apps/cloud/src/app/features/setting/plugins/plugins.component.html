@@ -21,6 +21,16 @@
       >
         {{ 'XP.Plugin.ExploreMarketplace' | translate: { Default: 'Explore Marketplace' } }}
       </div>
+      @if (isResourceAdmin()) {
+        <button
+          type="button"
+          class="tab rounded-[10px] px-2.5 py-1.5 system-md-semibold"
+          [class.active]="category() === 'agent-plugins'"
+          (click)="category.set('agent-plugins')"
+        >
+          Agent Plugins
+        </button>
+      }
     </div>
   </div>
 
@@ -73,14 +83,16 @@
       </a>
       <div class="mx-1 h-3.5 w-[1px] shrink-0 bg-divider-regular"></div>
     }
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-text-secondary"
-      [cdkMenuTriggerFor]="installMenu"
-    >
-      <i class="ri-add-line"></i>
-      <span class="pl-1">{{ 'XP.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
-    </button>
+    @if (category() !== 'agent-plugins') {
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-text-secondary"
+        [cdkMenuTriggerFor]="installMenu"
+      >
+        <i class="ri-add-line"></i>
+        <span class="pl-1">{{ 'XP.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</span>
+      </button>
+    }
     <!-- <button
       type="button"
       class="btn disabled:btn-disabled btn-secondary btn-medium group p-2 text-text-secondary"
@@ -177,7 +189,11 @@
   </div>
 }
 
-@if (category() === 'marketplace') {
+@if (category() === 'agent-plugins') {
+  @if (isResourceAdmin()) {
+    <xp-agent-plugins />
+  }
+} @else if (category() === 'marketplace') {
   <xp-plugins-marketplace
     [reloadInstalledPlugins]="reloadInstalledPluginsCallback"
     [refreshStrategies]="refreshStrategyCachesCallback"

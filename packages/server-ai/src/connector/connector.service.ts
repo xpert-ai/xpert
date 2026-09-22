@@ -63,6 +63,11 @@ import { ConnectorPersonalAccount } from './connector-personal-account.entity'
 import { ConnectorPersonalGrant } from './connector-personal-grant.entity'
 import { ConnectorRuntimeAudit } from './connector-runtime-audit.entity'
 import { Connector } from './connector.entity'
+import {
+    connectorLegacyBindingMessage,
+    connectorOAuthConfigurationChangedMessage,
+    connectorOAuthSessionInvalidatedMessage
+} from './connector-oauth-errors'
 
 type RepositoryWhere<T> = {
     where: Partial<T>
@@ -249,16 +254,10 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const normalizedScope = normalizeConnectorScope(scope)
         await this.assertScopeRead(normalizedScope)
         const bindings = await this.findBindings(normalizedScope)
-        const userId = RequestContext.currentUserId()
-
-        return Promise.all(
-            bindings.map(async (binding) => {
-                if (connectorAuthorizationMode(binding) !== 'personal' || !userId) {
-                    return this.toPublicBinding(binding)
-                }
-                const connection = await this.findPersonalBindingConnection(binding, userId)
-                return this.toPublicBinding(binding, connection?.owner)
-            })
+        return bindings.map((binding) =>
+            connectorAuthorizationMode(binding) === 'personal'
+                ? { ...this.toPublicBinding(binding), status: 'disconnected' as const, profile: null }
+                : this.toPublicBinding(binding)
         )
     }
 
@@ -273,6 +272,9 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const scope = normalizeConnectorScope(input.scope)
         const provider = requiredConnectorText(input.provider, 'provider')
         const authorizationMode = parseAuthorizationMode(input.authorizationMode)
+        if (authorizationMode !== 'shared') {
+            throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
+        }
         const access = await this.assertScopeManage(scope)
         const tenantId = RequestContext.currentTenantId()
         const userId = RequestContext.currentUserId()
@@ -304,7 +306,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
                 ...scopeWhere(scope),
                 provider,
                 authorizationMode,
-                status: authorizationMode === 'personal' ? 'active' : 'disconnected',
+                status: 'disconnected',
                 authMethodId: null,
                 connectionAttemptId: null,
                 appIntegrationId: null,
@@ -323,71 +325,68 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         return this.toPublicBinding(binding)
     }
 
-    async runtimeOptions(xpertId: string, projectId?: string): Promise<ConnectorRuntimeOptions> {
+    async runtimeOptions(
+        xpertId: string,
+        projectId?: string,
+        includeWorkspace = false
+    ): Promise<ConnectorRuntimeOptions> {
         const xpert = await this.assertXpertRunAccess(requiredConnectorText(xpertId, 'xpertId'))
-        const scope = projectId
-            ? ({ type: 'project', projectId: requiredConnectorText(projectId, 'projectId') } as const)
-            : ({
-                  type: 'workspace',
-                  workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId')
-              } as const)
-
-        const projectAccess =
-            scope.type === 'project' ? await this.assertProjectUseXpert(scope.projectId, xpertId) : null
-
-        const bindings = await this.findBindings(scope)
-        const organizationId = projectAccess?.project.organizationId ?? xpert.workspace?.organizationId
+        const workspaceScope: ConnectorScope = {
+            type: 'workspace',
+            workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId')
+        }
+        const scope: ConnectorScope = projectId ? { type: 'project', projectId } : workspaceScope
+        if (projectId) await this.assertProjectUseXpert(projectId, xpertId)
+        const scopes = projectId && includeWorkspace ? [workspaceScope, scope] : [scope]
         const definitions = new Map(
             this.connectorStrategyRegistry
-                .listRuntime(organizationId)
+                .listRuntime(xpert.workspace?.organizationId)
                 .map((strategy) => [strategy.definition.provider, toPublicDefinition(strategy.definition)])
         )
-        const userId = RequestContext.currentUserId()
-        const canUseShared =
-            scope.type === 'project' ? true : await this.isCurrentWorkspaceMember(scope.workspaceId, userId)
+        const canManageWorkspace = await this.assertScopeManage(workspaceScope).then(
+            () => true,
+            () => false
+        )
         const items: ConnectorRuntimeOptions['items'] = []
-
-        for (const binding of bindings) {
-            const definition = definitions.get(binding.provider)
-            if (!definition) {
-                continue
-            }
-            const authorizationMode = connectorAuthorizationMode(binding)
-            if (authorizationMode === 'shared') {
-                if (!canUseShared) {
-                    continue
-                }
+        for (const source of scopes) {
+            const bindings = await this.findBindings(source)
+            const canManage =
+                source.type === 'workspace'
+                    ? canManageWorkspace
+                    : await this.assertScopeManage(source).then(
+                          () => true,
+                          () => false
+                      )
+            for (const binding of bindings) {
+                const definition = definitions.get(binding.provider)
+                if (!definition) continue
+                const authorizationMode = connectorAuthorizationMode(binding)
                 items.push({
                     bindingId: binding.id,
                     provider: binding.provider,
+                    scope: source,
+                    canManage,
+                    managementUrl: connectorManagementUrl(source),
                     authorizationMode,
-                    status: binding.status,
-                    granted: binding.status === 'active',
+                    // Legacy personal accounts are never promoted to shared credentials.
+                    status: authorizationMode === 'shared' ? binding.status : 'disconnected',
+                    granted: authorizationMode === 'shared' && binding.status === 'active',
                     label: definition.label,
+                    runtimeUsage: definition.runtimeUsage,
                     description: definition.description,
                     icon: definition.icon,
                     authMethods: getConnectorAuthMethods(definition),
-                    profile: binding.profile ?? null
+                    profile: authorizationMode === 'shared' ? (binding.profile ?? null) : null
                 })
-                continue
             }
-
-            const personal = userId ? await this.findPersonalBindingConnection(binding, userId) : null
-            items.push({
-                bindingId: binding.id,
-                provider: binding.provider,
-                authorizationMode,
-                status: personal?.owner.status ?? 'disconnected',
-                granted: !!personal && personal.owner.status === 'active',
-                label: definition.label,
-                description: definition.description,
-                icon: definition.icon,
-                authMethods: getConnectorAuthMethods(definition),
-                profile: personal?.owner.profile ?? null
-            })
         }
-
-        return { scope, items }
+        return {
+            scope,
+            workspaceScope,
+            canManageWorkspace,
+            managementUrl: connectorManagementUrl(workspaceScope),
+            items
+        }
     }
 
     async connect(
@@ -419,11 +418,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             }
         })
         if (existing && connectorAuthorizationMode(existing) !== 'shared') {
-            throw new BadRequestException(
-                t('server-ai:Error.ConnectorAuthorizationModeImmutable', {
-                    defaultValue: 'Connector authorization mode cannot be changed after creation'
-                })
-            )
+            throw new BadRequestException(connectorLegacyBindingMessage())
         }
         const connector = this.connectorRepository.create({
             ...(existing ?? {}),
@@ -490,23 +485,16 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         }
 
         const binding = await this.requireBinding(connectorId)
-        const authorizationMode = connectorAuthorizationMode(binding)
-        if (authorizationMode === 'shared') {
-            await this.assertBindingManage(binding)
-            if (input.xpertId) {
-                await this.assertBindingXpert(binding, input.xpertId)
-            }
-        } else {
-            await this.assertBindingUse(binding, input.xpertId)
-        }
+        await this.assertBindingManage(binding)
+        if (input.xpertId) await this.assertBindingXpert(binding, input.xpertId)
         const strategy = this.connectorStrategyRegistry.getRuntime(binding.provider, binding.organizationId)
         assertConnectorDefinition(strategy.definition)
-        assertAuthorizationModeSupported(strategy.definition, authorizationMode)
-
-        const owner =
-            authorizationMode === 'shared'
-                ? binding
-                : await this.requireOrCreatePersonalAccount(binding.provider, RequestContext.currentUserId())
+        assertAuthorizationModeSupported(strategy.definition, 'shared')
+        if (connectorAuthorizationMode(binding) === 'personal') {
+            throw new BadRequestException(connectorLegacyBindingMessage())
+        }
+        const authorizationMode = 'shared' as const
+        const owner = binding
         return this.startBindingConnection(
             {
                 binding,
@@ -636,7 +624,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             currentOwner.connectionAttemptId !== connectionAttemptId
         ) {
             await this.consumeOAuthSession(savedSession)
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
 
         return {
@@ -900,20 +888,25 @@ export class ConnectorService implements ConnectorRuntimeFactory {
     async authorizationStatusBinding(connectorId: string, xpertId?: string): Promise<ConnectorOAuthStatusResponse> {
         const binding = await this.requireBinding(connectorId)
         const authorizationMode = connectorAuthorizationMode(binding)
+        if (xpertId) {
+            await this.assertBindingXpert(binding, xpertId)
+            const connector = this.toPublicBinding(binding)
+            if (authorizationMode !== 'shared') {
+                connector.status = 'disconnected'
+                connector.profile = null
+            }
+            return { connector, granted: authorizationMode === 'shared' && binding.status === 'active' }
+        }
         if (authorizationMode === 'shared') {
             await this.assertBindingManage(binding)
             const status = await this.authorizationStatusForConnection({ binding, owner: binding, ownerKind: 'shared' })
             return { ...status, granted: status.connector.status === 'active' }
         }
-        await this.assertBindingUse(binding, xpertId)
-        const userId = RequestContext.currentUserId()
-        const account = await this.findPersonalAccount(binding.provider, userId)
-        if (!account) {
-            return { connector: this.toPublicConnector(binding), granted: false }
+        await this.assertBindingManage(binding)
+        return {
+            connector: { ...this.toPublicBinding(binding), status: 'disconnected', profile: null },
+            granted: false
         }
-        const grant = userId ? await this.findPersonalBindingConnection(binding, userId) : null
-        const status = await this.authorizationStatusForConnection({ binding, owner: account, ownerKind: 'personal' })
-        return { ...status, granted: !!grant && status.connector.status === 'active' }
     }
 
     private async authorizationStatusForConnection(
@@ -1137,12 +1130,12 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const connection = await this.resolveSessionConnection(session, connector)
 
         if (session.consumedAt) {
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
         const metadata = this.decryptSessionMetadata(session.metadataCiphertext)
         if (!this.isCurrentSession(session, connection.owner)) {
             await this.consumeOAuthSession(session)
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
         if (session.expiresAt.getTime() < Date.now()) {
             await this.expireOAuthSession(session, connection, this.sessionConnectionAttemptId(session))
@@ -1198,7 +1191,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
                 : !!currentOwner.connectionAttemptId)
         ) {
             await this.consumeOAuthSession(session)
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
 
         if (result.status === 'pending') {
@@ -1247,7 +1240,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         )
         await this.consumeOAuthSession(session)
         if (!updated) {
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
         return {
             connector: this.toPublicConnector(connection.binding, updated),
@@ -1288,7 +1281,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             lastError: null
         })
         if (!updated) {
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
         return updated
     }
@@ -1527,12 +1520,18 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const result: SelectedRuntimeConnectorBinding[] = []
         for (const bindingId of selectedBindingIds) {
             const binding = await this.requireBinding(bindingId, scope.tenantId ?? undefined)
-            await this.assertRuntimeBindingAccess(binding, scope)
-            const connection =
-                connectorAuthorizationMode(binding) === 'shared'
-                    ? ({ binding, owner: binding, ownerKind: 'shared' } as const)
-                    : await this.requirePersonalBindingConnection(binding, scope.userId)
+            if (
+                this.connectorStrategyRegistry.getRuntime(binding.provider, binding.organizationId).definition
+                    .runtimeUsage === 'credential'
+            )
+                throw new ForbiddenException(connectorAccessDeniedMessage())
+            if (connectorAuthorizationMode(binding) !== 'shared')
+                throw new ForbiddenException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
+            await this.assertRuntimeBindingAccess(binding, { ...scope, allowWorkspaceBindingsInProject: true })
+            const connection = { binding, owner: binding, ownerKind: 'shared' } as const
             this.assertConnectionActive(connection)
+            if (result.some((item) => item.provider === binding.provider))
+                throw new BadRequestException(t('server-ai:Error.ConnectorProviderConflict'))
             result.push({ bindingId: binding.id, provider: binding.provider })
         }
         return result
@@ -1619,11 +1618,10 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             if (input.provider && input.provider !== binding.provider) {
                 throw new ForbiddenException(connectorAccessDeniedMessage())
             }
-            await this.assertRuntimeBindingAccess(binding, scope)
-            connection =
-                connectorAuthorizationMode(binding) === 'shared'
-                    ? { binding, owner: binding, ownerKind: 'shared' }
-                    : await this.requirePersonalBindingConnection(binding, scope.userId)
+            if (connectorAuthorizationMode(binding) !== 'shared')
+                throw new ForbiddenException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
+            await this.assertRuntimeBindingAccess(binding, { ...scope, allowWorkspaceBindingsInProject: true })
+            connection = { binding, owner: binding, ownerKind: 'shared' }
             const resolved = await this.resolveRuntimeCredential(connection)
             await this.recordRuntimeAudit(binding, runtimeAccountId(connection), scope, 'resolved')
             return resolved
@@ -1641,20 +1639,17 @@ export class ConnectorService implements ConnectorRuntimeFactory {
 
     private async requireRuntimeProviderBinding(provider: string, scope: ConnectorRuntimeScope) {
         const xpert = await this.assertXpertRunAccess(requiredConnectorText(scope.xpertId, 'runtime.xpertId'))
-        if (!scope.projectId) {
-            return this.requireConnector({
-                workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId'),
-                provider
-            })
+        if (scope.projectId) {
+            await this.assertProjectUseXpert(scope.projectId, xpert.id)
+            // Preserve an explicit legacy Project configuration; new connections belong to the Assistant workspace.
+            const bindings = await this.findBindings({ type: 'project', projectId: scope.projectId })
+            const binding = bindings.find((candidate) => candidate.provider === provider)
+            if (binding) return binding
         }
-        const bindings = await this.findBindings({ type: 'project', projectId: scope.projectId })
-        const binding = bindings.find((candidate) => candidate.provider === provider)
-        if (!binding) {
-            throw new NotFoundException(
-                t('server-ai:Error.ConnectorBindingNotFound', { defaultValue: 'Connector binding was not found' })
-            )
-        }
-        return binding
+        return this.requireConnector({
+            workspaceId: requiredConnectorText(xpert.workspaceId, 'xpert.workspaceId'),
+            provider
+        })
     }
 
     private async resolveRuntimeCredential(connection: BindingConnection): Promise<ConnectorRuntimeCredentialV2> {
@@ -1938,15 +1933,13 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             await this.assertProjectUseXpert(bindingRuntimeScope.projectId, xpertId)
             return
         }
-        if (scope.projectId || bindingRuntimeScope.workspaceId !== xpert.workspaceId) {
-            throw new ForbiddenException(connectorAccessDeniedMessage())
-        }
         if (
-            connectorAuthorizationMode(binding) === 'shared' &&
-            !(await this.isCurrentWorkspaceMember(bindingRuntimeScope.workspaceId, userId))
+            bindingRuntimeScope.workspaceId !== xpert.workspaceId ||
+            (scope.projectId && !scope.allowWorkspaceBindingsInProject)
         ) {
             throw new ForbiddenException(connectorAccessDeniedMessage())
         }
+        if (scope.projectId) await this.assertProjectUseXpert(scope.projectId, xpertId)
     }
 
     private assertRuntimeIdentityScope(scope: ConnectorRuntimeScope) {
@@ -2150,7 +2143,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             }
         })
         if (!account) {
-            throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+            throw new BadRequestException(connectorOAuthSessionInvalidatedMessage())
         }
         return { binding, owner: account, ownerKind: 'personal' }
     }
@@ -2429,7 +2422,7 @@ function assertSessionBinding(session: ConnectorOAuthSession, binding: Connector
         sessionAuthorizationMode(session) !== connectorAuthorizationMode(binding) ||
         session.provider !== binding.provider
     ) {
-        throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+        throw new BadRequestException(connectorOAuthConfigurationChangedMessage())
     }
 }
 
@@ -2627,7 +2620,7 @@ function resolveSessionAuthMethodId(
         ? resolveAuthMethod(definition, metadata.authMethodId).id
         : resolveStoredAuthMethodId(connector, definition)
     if (connector.authMethodId && connector.authMethodId !== authMethodId) {
-        throw new BadRequestException(connectorOAuthSessionExpiredMessage())
+        throw new BadRequestException(connectorOAuthConfigurationChangedMessage())
     }
     return authMethodId
 }
@@ -2880,4 +2873,12 @@ function isConnectorProfile(value: unknown): value is ConnectorProfile {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function connectorManagementUrl(scope: ConnectorScope) {
+    const path =
+        scope.type === 'workspace'
+            ? `/xpert/w/${encodeURIComponent(scope.workspaceId)}/connectors`
+            : `/project/${encodeURIComponent(scope.projectId)}/config`
+    return new URL(path, process.env.CLIENT_BASE_URL || 'http://localhost:4200').toString()
 }

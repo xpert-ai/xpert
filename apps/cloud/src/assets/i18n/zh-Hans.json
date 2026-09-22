@@ -247,6 +247,37 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "AgentPlugins": {
+      "Replace": "替换版本（可选）",
+      "CreateNew": "创建新资源",
+      "PinnedVersion": "已有会话保留原版本；如需撤销旧版本，请单独停用。",
+      "Replaced": "旧版本",
+      "Intro": "导入标准 Agent Plugins，并将资源上架到选定工作空间。已有会话保留所选版本。",
+      "Import": "导入插件",
+      "Repository": "Git 仓库",
+      "Ref": "标签、分支或提交",
+      "Directory": "插件子目录",
+      "UploadZip": "上传 ZIP",
+      "Publish": "上架资源",
+      "Plugin": "插件",
+      "Middleware": "中间件",
+      "Expert": "数字专家",
+      "NoPackages": "请先导入插件包。",
+      "Components": "组件与诊断",
+      "PersonalOAuth": "需要个人 OAuth 授权",
+      "SelectExpert": "选择已发布数字专家",
+      "Title": "名称",
+      "Description": "说明",
+      "SelectMiddleware": "选择中间件",
+      "Options": "中间件配置（JSON）",
+      "Workspaces": "允许使用的工作空间",
+      "NoWorkspaces": "请选择包含可管理工作空间的组织。",
+      "Published": "已上架资源",
+      "Disable": "停用",
+      "Enable": "启用",
+      "NoBindings": "暂无已上架资源。",
+      "ConnectorAuthorization": "通过 Connector 授权"
+    },
     "XpertSettings": {
       "EditInStudio": "在 Studio 中编辑",
       "QAExperience": "问答经验",
@@ -8741,6 +8772,9 @@
       }
     },
     "Xpert": {
+      "ConnectorWorkspaceMigration": "不再支持个人连接。请由空间管理员删除旧连接，再创建工作空间连接。",
+      "ConnectorUnavailable": "当前工作空间中的连接器不可用。",
+      "RefreshConnectorsTooltip": "刷新连接器列表和连接状态",
       "AutomaticFrequentQuestions": "自动常用问题",
       "AutomaticFrequentQuestionsDescription": "根据最近 90 天内的 50 条对话，自动提炼最多 5 个常用问题，显示在工作台新对话页。结果缓存 24 小时，到期后再次打开新对话时更新。",
       "ModelSelection": {

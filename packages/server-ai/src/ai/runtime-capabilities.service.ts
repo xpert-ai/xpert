@@ -235,7 +235,9 @@ export class RuntimeCapabilitiesService {
             where: {},
             withDeleted: false
         } as PaginationParams<SkillPackage>
-        const enabledItems = await this.getAccessibleWorkspaceSkillPackages(workspaceId, disabledSkillIds, query)
+        const enabledItems = (
+            await this.getAccessibleWorkspaceSkillPackages(workspaceId, disabledSkillIds, query)
+        ).filter((skill) => !skill.runtimeResourceOnly)
 
         const isDefaultSkill = (skill: SkillPackage) => {
             const skillIndex = skill.skillIndex

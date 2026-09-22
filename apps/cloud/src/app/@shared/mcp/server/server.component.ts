@@ -227,6 +227,8 @@ export class MCPServerFormComponent {
   }
 
   updateAuthType(type: McpConsumerAuthType) {
+    // Plugin-managed bindings are edited through Agent Plugins, never as raw tokens.
+    if (type === 'connector' || this.value$()?.auth?.type === 'connector') return
     this.value$.update((state) => ({
       ...(state ?? {}),
       auth:

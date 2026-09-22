@@ -1,3 +1,8 @@
+import {
+    RUNTIME_RESOURCE_SKILLS,
+    RuntimeResourceMiddlewareContext
+} from '../../../agent-plugin/runtime-resource-context'
+import { readRuntimeResourceSkillFile } from '../../../agent-plugin/runtime-resource-skill-file'
 /**
 Middleware for loading and exposing agent skills to the system prompt.
 
@@ -61,6 +66,8 @@ import { SkillRepositoryIndexService } from '../../../skill-repository/repositor
 import { XpertWorkspaceAccessService, getWorkspaceRoot } from '../../../xpert-workspace'
 
 export interface ISkillsMiddlewareOptions {
+    /** Validated portable resources, supplied only by the execution overlay. */
+    resourceOnly?: boolean
     /**
      * Optional manual allow-list for default skills. When omitted or empty, all
      * workspace skills are loaded by default and can be filtered by runtime
@@ -689,6 +696,9 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         const normalizedContextWorkspaceId = this.sanitizeWorkspaceId(contextWorkspaceId)
         const autoDiscoveryOptions = this.resolveAutoDiscoveryOptions(options)
         this.#logger.debug(`SkillsMiddleware using context workspace: ${normalizedContextWorkspaceId}`)
+        const resourceSources =
+            (context as IAgentMiddlewareContext & RuntimeResourceMiddlewareContext)[RUNTIME_RESOURCE_SKILLS] ?? []
+        let activeResourceSkills: SkillPromptMetadata[] = []
         let runtimeSandbox: unknown = null
         let runtimeSkillsRootInContainer = join(FALLBACK_RUNTIME_ROOT_IN_CONTAINER, RUNTIME_SKILLS_DIRECTORY)
         let runtimeWorkingDirectory = ''
@@ -892,6 +902,23 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 const fullPath = this.resolvePathInsideBase(path, runtimeRoot)
                 if (!fullPath) {
                     throw new Error(`Access to path "${path}" is denied.`)
+                }
+
+                if (!resolveSandboxBackend(sandbox)) {
+                    for (const skill of activeResourceSkills) {
+                        const suffix = relative(
+                            join(runtimeSkillsRootInContainer, skill.runtimePath || skill.packagePath),
+                            fullPath
+                        )
+                        if (!suffix || isAbsolute(suffix) || suffix === '..' || suffix.startsWith('../')) continue
+                        const source =
+                            skill.localPath ??
+                            (await this.resolveLocalPackagePath(
+                                getWorkspaceRoot(tenantId, skill.workspaceId),
+                                skill.packagePath
+                            ))
+                        if (source) return readRuntimeResourceSkillFile(source, suffix)
+                    }
                 }
 
                 await waitForSkillSyncIfNeeded(sandbox, fullPath)
@@ -1302,16 +1329,41 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     )
                     skills.push(...workspaceSkills)
                 }
+                if (options?.resourceOnly) skills.length = 0
+                skills.push(
+                    ...resourceSources.map((source) => ({
+                        id: source.id,
+                        name: source.name,
+                        description: source.description,
+                        workspaceId: normalizedContextWorkspaceId,
+                        version: source.version,
+                        localPath: source.rootPath,
+                        packagePath: source.runtimePath,
+                        runtimePath: source.runtimePath,
+                        path: join(runtimeSkillsRootInContainer, source.runtimePath, 'SKILL.md')
+                    }))
+                )
                 const effectiveSkills = this.filterSkillMetadata(
                     this.deduplicateSkillMetadata(skills),
                     disabledSkillIds
                 )
 
+                activeResourceSkills = effectiveSkills.filter((skill) =>
+                    resourceSources.some((source) => source.id === skill.id)
+                )
                 const syncKey = this.buildSyncKey(effectiveSkills)
                 const sandbox = request.runtime.configurable.sandbox
                 const sandboxScopedSyncKey = `${buildSandboxSyncIdentity(sandbox)}:${syncKey}`
                 if (!skillsSynced || sandboxScopedSyncKey !== lastSyncedKey) {
-                    const records = scheduleSkillsToSandbox(sandbox, runtimeSkillsRootInContainer, effectiveSkills)
+                    const records = scheduleSkillsToSandbox(
+                        sandbox,
+                        runtimeSkillsRootInContainer,
+                        resolveSandboxBackend(sandbox)
+                            ? effectiveSkills
+                            : effectiveSkills.filter(
+                                  (skill) => !activeResourceSkills.some((resource) => resource.id === skill.id)
+                              )
+                    )
                     if (projectId) {
                         await Promise.all(records.map((record) => record.promise))
                         const failure = records.find((record) => record.error)?.error
@@ -1508,7 +1560,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
     private async loadSkillMetadata(
         workspacePath: string,
         skillIds: string[],
-        workspaceId: string
+        workspaceId: string,
+        runtimeResourceOnly = false
     ): Promise<SkillPromptMetadata[]> {
         if (!workspaceId || skillIds.length === 0) {
             return []
@@ -1517,6 +1570,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         const skillPackages = await this.skillPackageRepository.find({
             where: {
                 workspaceId,
+                runtimeResourceOnly,
                 id: In(skillIds)
             },
             relations: { skillIndex: { repository: true } }
@@ -1543,7 +1597,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 
         const skillPackages = await this.skillPackageRepository.find({
             where: {
-                workspaceId
+                workspaceId,
+                runtimeResourceOnly: false
             },
             relations: { skillIndex: { repository: true } }
         })

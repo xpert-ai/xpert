@@ -76,3 +76,18 @@ export * from './plain-object.model'
 export * from './plugin'
 export * from './view-extension'
 export * from './runtime-control'
+export type {
+  RuntimeResourceKind,
+  RuntimeResourceStatus,
+  RuntimeResourceReference,
+  RuntimeResourcesSelection,
+  AgentPluginDiagnostic,
+  RuntimeResourceCatalogItem,
+  RuntimeResourceView,
+  RuntimeResourceCatalog,
+  AgentPluginXpertExtension,
+  AgentPluginConnectorAuth,
+  AgentPluginConnectorBinding,
+  RuntimeResourceDefinition,
+  RuntimeResourceBindingInput
+} from './agent-plugin'

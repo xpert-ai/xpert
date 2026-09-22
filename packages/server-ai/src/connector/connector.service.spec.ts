@@ -24,6 +24,7 @@ describe('ConnectorService', () => {
     let strategy: ConnectorStrategyRuntime
     let currentUserId: string
     let publishedXpertAccess: { getAccessiblePublishedXpert: jest.Mock }
+    let workspaceAccess: { assertCanRead: jest.Mock; assertCanManage: jest.Mock; assertCanRun: jest.Mock }
     let projectAccess: {
         assertCanUse: jest.Mock
         assertCanManage: jest.Mock
@@ -110,23 +111,25 @@ describe('ConnectorService', () => {
             })
         } as unknown as ModuleRef
 
+        workspaceAccess = {
+            assertCanRead: jest.fn().mockResolvedValue({
+                workspace: {
+                    id: 'workspace-1',
+                    organizationId: 'org-1',
+                    ownerId: 'user-1',
+                    members: []
+                }
+            }),
+            assertCanManage: jest.fn().mockResolvedValue({
+                workspace: { id: 'workspace-1', organizationId: 'org-1' }
+            }),
+            assertCanRun: jest.fn()
+        }
+
         service = new ConnectorService(
             connectors,
             sessions,
-            {
-                assertCanRead: jest.fn().mockResolvedValue({
-                    workspace: {
-                        id: 'workspace-1',
-                        organizationId: 'org-1',
-                        ownerId: 'user-1',
-                        members: []
-                    }
-                }),
-                assertCanManage: jest.fn().mockResolvedValue({
-                    workspace: { id: 'workspace-1', organizationId: 'org-1' }
-                }),
-                assertCanRun: jest.fn()
-            },
+            workspaceAccess,
             {
                 getRuntime: jest.fn().mockReturnValue(strategy),
                 listRuntime: jest.fn().mockReturnValue([strategy])
@@ -1508,6 +1511,36 @@ describe('ConnectorService', () => {
         ])
     })
 
+    it.each(['authorizationMode', 'workspaceId', 'organizationId', 'authMethodId'] as const)(
+        'reports changed %s as a configuration mismatch, not an expiry',
+        async (field) => {
+            await service.startOAuth('workspace-1', 'example', {
+                app: connectorApp(),
+                redirectUri: 'https://xpert.test/callback'
+            })
+            const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
+            if (field === 'authorizationMode') connectors.items[0].authorizationMode = 'personal'
+            else connectors.items[0][field] = 'changed'
+            await expect(service.completeOAuthCallback({ state, code: 'code' })).rejects.toThrow(
+                'configuration does not match'
+            )
+            expect(strategy.exchangeOAuthCode).not.toHaveBeenCalled()
+        }
+    )
+
+    it('reports a consumed OAuth session separately from expiry', async () => {
+        await service.startOAuth('workspace-1', 'example', {
+            app: connectorApp(),
+            redirectUri: 'https://xpert.test/callback'
+        })
+        const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
+        sessions.items[0].consumedAt = new Date()
+        await expect(service.completeOAuthCallback({ state, code: 'code' })).rejects.toThrow(
+            'already been used, cancelled, or replaced'
+        )
+        expect(strategy.exchangeOAuthCode).not.toHaveBeenCalled()
+    })
+
     it('rejects expired OAuth sessions', async () => {
         ;(strategy.buildAuthorizationUrl as jest.Mock).mockResolvedValueOnce({
             authorizationUrl: 'https://oauth.example.com/authorize?state=state-1',
@@ -1562,7 +1595,7 @@ describe('ConnectorService', () => {
         expect(sessions.items[0].metadataCiphertext).toBeNull()
     })
 
-    it('keeps one immutable authorization mode for a provider in each scope', async () => {
+    it('keeps one shared binding per provider', async () => {
         strategy.definition = {
             ...strategy.definition,
             authorizationModes: ['personal', 'shared']
@@ -1571,13 +1604,13 @@ describe('ConnectorService', () => {
         const binding = await service.createBinding({
             scope: { type: 'workspace', workspaceId: 'workspace-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
 
         expect(binding).toEqual(
             expect.objectContaining({
                 scope: { type: 'workspace', workspaceId: 'workspace-1' },
-                authorizationMode: 'personal'
+                authorizationMode: 'shared'
             })
         )
         await expect(
@@ -1591,10 +1624,17 @@ describe('ConnectorService', () => {
             service.connect('workspace-1', 'example', {
                 redirectUri: 'https://xpert.test/callback'
             })
-        ).rejects.toBeInstanceOf(BadRequestException)
+        ).resolves.toEqual(
+            expect.objectContaining({
+                connector: expect.objectContaining({ id: binding.id, authorizationMode: 'shared' })
+            })
+        )
+        expect(personalAccounts.items).toHaveLength(0)
+        expect(personalGrants.items).toHaveLength(0)
     })
 
-    it('keeps providers without authorizationModes shared-only for compatibility', async () => {
+    it('rejects personal bindings even when a provider supports them', async () => {
+        strategy.definition = { ...strategy.definition, authorizationModes: ['shared', 'personal'] }
         await expect(
             service.createBinding({
                 scope: { type: 'workspace', workspaceId: 'workspace-1' },
@@ -1604,278 +1644,144 @@ describe('ConnectorService', () => {
         ).rejects.toBeInstanceOf(BadRequestException)
     })
 
-    it('keeps personal credentials and grants separate for two Project members', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        ;(strategy.exchangeOAuthCode as jest.Mock)
-            .mockResolvedValueOnce({
-                appId: 'example_app_id',
-                accessToken: 'user_1_token',
-                expiresAt: futureIsoDate(1),
-                profile: { name: 'User One' }
-            })
-            .mockResolvedValueOnce({
-                appId: 'example_app_id',
-                accessToken: 'user_2_token',
-                expiresAt: futureIsoDate(1),
-                profile: { name: 'User Two' }
-            })
-
-        const binding = await service.createBinding({
-            scope: { type: 'project', projectId: 'project-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        await service.connectBinding(binding.id, {
-            xpertId: 'xpert-1',
-            redirectUri: 'https://xpert.test/callback'
-        })
-        const userOneState = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
-        expect(sessions.items[0]).toEqual(
-            expect.objectContaining({
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                scopeType: 'project',
-                projectId: 'project-1',
-                workspaceId: null,
-                authorizationMode: 'personal',
-                actorUserId: 'user-1',
-                xpertId: 'xpert-1',
-                connectionAttemptId: expect.any(String),
-                connectorId: binding.id
-            })
-        )
-        await service.completeOAuthCallback({ state: userOneState, code: 'user-1-code' })
-
-        currentUserId = 'user-2'
-        await service.connectBinding(binding.id, {
-            xpertId: 'xpert-1',
-            redirectUri: 'https://xpert.test/callback'
-        })
-        const userTwoState = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[1][0].state
-        await service.completeOAuthCallback({ state: userTwoState, code: 'user-2-code' })
-
-        expect(personalAccounts.items).toEqual([
-            expect.objectContaining({ userId: 'user-1', profile: { name: 'User One' } }),
-            expect.objectContaining({ userId: 'user-2', profile: { name: 'User Two' } })
-        ])
-        expect(personalGrants.items).toEqual([
-            expect.objectContaining({ connectorId: binding.id, userId: 'user-1' }),
-            expect.objectContaining({ connectorId: binding.id, userId: 'user-2' })
-        ])
-
-        currentUserId = 'user-1'
-        const userOneRuntimeScope = {
+    describe('workspace-owned connections', () => {
+        const scope = () => ({
             tenantId: 'tenant-1',
             organizationId: 'org-1',
-            userId: 'user-1',
-            projectId: 'project-1',
+            userId: currentUserId,
+            workspaceId: 'workspace-1',
             xpertId: 'xpert-1',
             conversationId: 'conversation-1',
-            executionId: 'execution-1',
-            connectorBindingIds: [binding.id]
-        }
-        await expect(
-            service.resolveSelectedRuntimeBindings([binding.id], {
-                ...userOneRuntimeScope,
-                conversationId: null
-            })
-        ).rejects.toBeInstanceOf(BadRequestException)
-        await expect(
-            service.resolveSelectedRuntimeBindings([binding.id, binding.id], userOneRuntimeScope)
-        ).resolves.toEqual([{ bindingId: binding.id, provider: 'example' }])
-        await expect(
-            service.getRuntimeConnectorCredentialForScope({ bindingId: binding.id }, userOneRuntimeScope)
-        ).resolves.toEqual(
-            expect.objectContaining({
-                bindingId: binding.id,
-                authorizationMode: 'personal',
-                projectId: 'project-1',
-                credentials: expect.objectContaining({ accessToken: 'user_1_token' })
-            })
-        )
-
-        currentUserId = 'user-2'
-        await expect(
-            service.getRuntimeConnectorCredentialForScope(
-                { bindingId: binding.id },
-                {
+            executionId: 'execution-1'
+        })
+        async function legacyBinding() {
+            strategy.definition = { ...strategy.definition, authorizationModes: ['shared', 'personal'] }
+            return connectors.save(
+                connectors.create({
                     tenantId: 'tenant-1',
                     organizationId: 'org-1',
-                    userId: 'user-2',
-                    projectId: 'project-1',
-                    xpertId: 'xpert-1',
-                    conversationId: 'conversation-2',
-                    executionId: 'execution-2',
-                    connectorBindingIds: [binding.id]
-                }
+                    scopeType: 'workspace',
+                    workspaceId: 'workspace-1',
+                    projectId: null,
+                    provider: 'example',
+                    authorizationMode: 'personal',
+                    status: 'active'
+                })
             )
-        ).resolves.toEqual(
-            expect.objectContaining({
-                credentials: expect.objectContaining({ accessToken: 'user_2_token' })
-            })
-        )
-        await expect(
-            service.getRuntimeConnectorCredentialForScope(
-                { bindingId: binding.id },
-                {
+        }
+
+        it('requires manager access to connect even when Assistant use is allowed', async () => {
+            const binding = await legacyBinding()
+            workspaceAccess.assertCanManage.mockRejectedValue(new ForbiddenException())
+            await expect(
+                service.connectBinding(binding.id, { xpertId: 'xpert-1', redirectUri: 'https://xpert.test/callback' })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            expect(strategy.buildAuthorizationUrl).not.toHaveBeenCalled()
+            expect(connectors.items[0].authorizationMode).toBe('personal')
+        })
+
+        it('requires deletion and recreation instead of converting personal connections', async () => {
+            const binding = await legacyBinding()
+            const account = await personalAccounts.save(
+                personalAccounts.create({
+                    id: 'account-1',
                     tenantId: 'tenant-1',
-                    organizationId: 'org-1',
-                    userId: 'user-2',
-                    projectId: 'project-2',
-                    xpertId: 'xpert-1',
-                    conversationId: 'conversation-denied',
-                    executionId: 'execution-denied',
-                    connectorBindingIds: [binding.id]
-                }
+                    userId: 'user-1',
+                    provider: 'example',
+                    status: 'active',
+                    credentialCiphertext: 'private-ciphertext'
+                })
             )
-        ).rejects.toBeInstanceOf(ForbiddenException)
-        expect(runtimeAudits.items).toEqual([
-            expect.objectContaining({ actorUserId: 'user-1', connectorId: binding.id, outcome: 'resolved' }),
-            expect.objectContaining({ actorUserId: 'user-2', connectorId: binding.id, outcome: 'resolved' }),
-            expect.objectContaining({
-                actorUserId: 'user-2',
-                connectorId: binding.id,
-                projectId: 'project-1',
-                conversationId: 'conversation-denied',
-                executionId: 'execution-denied',
-                outcome: 'denied',
-                errorCode: 'access_denied'
+            await personalGrants.save(
+                personalGrants.create({
+                    tenantId: 'tenant-1',
+                    connectorId: binding.id,
+                    accountId: account.id,
+                    userId: 'user-1'
+                })
+            )
+            await sessions.save(sessions.create({ tenantId: 'tenant-1', connectorId: binding.id, consumedAt: null }))
+            for (const connect of [
+                () => service.connectBinding(binding.id, { redirectUri: 'https://xpert.test/callback' }),
+                () => service.connect('workspace-1', 'example', { redirectUri: 'https://xpert.test/callback' })
+            ])
+                await expect(connect()).rejects.toThrow('Delete this connection')
+            expect(binding.authorizationMode).toBe('personal')
+            expect(strategy.buildAuthorizationUrl).not.toHaveBeenCalled()
+
+            await service.deleteBinding(binding.id)
+            expect(sessions.items).toHaveLength(0)
+            expect(personalGrants.items).toHaveLength(0)
+            const fresh = await service.createBinding({
+                scope: { type: 'workspace', workspaceId: 'workspace-1' },
+                provider: 'example',
+                authorizationMode: 'shared'
             })
-        ])
-    })
-
-    it('requires separate consent before reusing a personal account in another binding', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        strategy.connect = jest.fn().mockResolvedValue({
-            status: 'active',
-            credential: {
-                data: { appId: 'example_app_id', accessToken: 'personal_token' },
-                profile: { name: 'User One' }
-            }
-        })
-        const workspaceBinding = await service.createBinding({
-            scope: { type: 'workspace', workspaceId: 'workspace-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        await service.connectBinding(workspaceBinding.id, {
-            redirectUri: 'https://xpert.test/callback'
-        })
-        const projectBinding = await service.createBinding({
-            scope: { type: 'project', projectId: 'project-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
+            expect(fresh.id).not.toBe(binding.id)
+            await service.connectBinding(fresh.id, { redirectUri: 'https://xpert.test/callback' })
+            const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
+            await service.completeOAuthCallback({ state, code: 'new-shared-code' })
+            currentUserId = 'user-2'
+            await expect(
+                service.getRuntimeConnectorCredentialForScope(
+                    { bindingId: fresh.id },
+                    { ...scope(), connectorBindingIds: [fresh.id] }
+                )
+            ).resolves.toEqual(expect.objectContaining({ authorizationMode: 'shared' }))
+            expect(account.credentialCiphertext).toBe('private-ciphertext')
+            expect(personalGrants.items).toHaveLength(0)
         })
 
-        await expect(service.authorizationStatusBinding(projectBinding.id)).resolves.toEqual(
-            expect.objectContaining({
-                granted: false,
-                connector: expect.objectContaining({ status: 'active', profile: { name: 'User One' } })
+        it('reports legacy personal bindings as disconnected and rejects their runtime use', async () => {
+            const binding = await legacyBinding()
+            expect(connectors.items[0].status).toBe('active')
+            await expect(service.authorizationStatusBinding(binding.id, 'xpert-1')).resolves.toEqual(
+                expect.objectContaining({
+                    granted: false,
+                    connector: expect.objectContaining({ status: 'disconnected', profile: null })
+                })
+            )
+            await expect(service.listBindings({ type: 'workspace', workspaceId: 'workspace-1' })).resolves.toEqual([
+                expect.objectContaining({ status: 'disconnected' })
+            ])
+            await expect(
+                service.resolveSelectedRuntimeBindings([binding.id], { ...scope(), connectorBindingIds: [binding.id] })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+            await expect(
+                service.getRuntimeConnectorCredentialForScope(
+                    { bindingId: binding.id },
+                    { ...scope(), connectorBindingIds: [binding.id] }
+                )
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        })
+
+        it('exposes only readiness to an Assistant runner, without starting or polling OAuth', async () => {
+            const binding = await service.createBinding({
+                scope: { type: 'workspace', workspaceId: 'workspace-1' },
+                provider: 'example',
+                authorizationMode: 'shared'
             })
-        )
-        await service.consentPersonalBinding(projectBinding.id)
-        await expect(service.authorizationStatusBinding(projectBinding.id)).resolves.toEqual(
-            expect.objectContaining({ granted: true })
-        )
-        expect(personalAccounts.items).toHaveLength(1)
-        expect(personalGrants.items).toEqual([
-            expect.objectContaining({ connectorId: workspaceBinding.id, userId: 'user-1' }),
-            expect.objectContaining({ connectorId: projectBinding.id, userId: 'user-1' })
-        ])
-    })
-
-    it('invalidates an older OAuth session when the same personal account reconnects elsewhere', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        const workspaceBinding = await service.createBinding({
-            scope: { type: 'workspace', workspaceId: 'workspace-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        const projectBinding = await service.createBinding({
-            scope: { type: 'project', projectId: 'project-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
+            await service.connectBinding(binding.id, { redirectUri: 'https://xpert.test/callback' })
+            strategy.pollAuthorization = jest.fn()
+            workspaceAccess.assertCanManage.mockRejectedValue(new ForbiddenException())
+            currentUserId = 'user-2'
+            const status = await service.authorizationStatusBinding(binding.id, 'xpert-1')
+            expect(status).toEqual(
+                expect.objectContaining({ granted: false, connector: expect.objectContaining({ status: 'pending' }) })
+            )
+            expect(status.authorizationUrl).toBeUndefined()
+            expect(strategy.pollAuthorization).not.toHaveBeenCalled()
+            expect(JSON.stringify(status)).not.toContain('credentialCiphertext')
+            await expect(service.authorizationStatusBinding(binding.id)).rejects.toBeInstanceOf(ForbiddenException)
         })
 
-        await service.connectBinding(workspaceBinding.id, {
-            redirectUri: 'https://xpert.test/callback'
+        it('rechecks Assistant access when reading connection readiness', async () => {
+            const binding = await legacyBinding()
+            publishedXpertAccess.getAccessiblePublishedXpert.mockRejectedValue(new ForbiddenException())
+            await expect(service.authorizationStatusBinding(binding.id, 'xpert-1')).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
         })
-        const firstState = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
-        await service.connectBinding(projectBinding.id, {
-            redirectUri: 'https://xpert.test/callback'
-        })
-
-        expect(sessions.items[0].consumedAt).toBeInstanceOf(Date)
-        await expect(service.completeOAuthCallback({ state: firstState, code: 'stale-code' })).rejects.toBeInstanceOf(
-            BadRequestException
-        )
-        expect(personalGrants.items).toHaveLength(0)
-    })
-
-    it('cancels only the current users pending personal binding authorization', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        const binding = await service.createBinding({
-            scope: { type: 'workspace', workspaceId: 'workspace-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        await service.connectBinding(binding.id, {
-            redirectUri: 'https://xpert.test/callback'
-        })
-        const state = (strategy.buildAuthorizationUrl as jest.Mock).mock.calls[0][0].state
-
-        await service.cancelBindingAuthorization(binding.id)
-
-        expect(personalAccounts.items).toEqual([
-            expect.objectContaining({ userId: 'user-1', provider: 'example', status: 'disconnected' })
-        ])
-        expect(sessions.items[0]).toEqual(expect.objectContaining({ consumedAt: expect.any(Date) }))
-        await expect(service.completeOAuthCallback({ state, code: 'stale-code' })).rejects.toBeInstanceOf(
-            BadRequestException
-        )
-    })
-
-    it('does not overwrite a personal credential that leaves pending before cancellation updates it', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        const binding = await service.createBinding({
-            scope: { type: 'workspace', workspaceId: 'workspace-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        await service.connectBinding(binding.id, {
-            redirectUri: 'https://xpert.test/callback'
-        })
-        const account = personalAccounts.items[0]
-        jest.spyOn(personalAccounts, 'update').mockImplementationOnce(async () => {
-            Object.assign(account, {
-                status: 'active',
-                connectionAttemptId: null,
-                credentialCiphertext: 'completed-credential'
-            })
-            return { affected: 0 }
-        })
-
-        await expect(service.cancelBindingAuthorization(binding.id)).rejects.toBeInstanceOf(BadRequestException)
-
-        expect(account).toEqual(
-            expect.objectContaining({ status: 'active', credentialCiphertext: 'completed-credential' })
-        )
-        expect(sessions.items[0].consumedAt).toBeFalsy()
     })
 
     it('cancels pending shared authorization through the scoped Project binding', async () => {
@@ -1946,59 +1852,51 @@ describe('ConnectorService', () => {
         expect(sessions.items[0].consumedAt).toBeFalsy()
     })
 
-    it('does not let a user without Project access cancel pending personal authorization', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        const binding = await service.createBinding({
-            scope: { type: 'project', projectId: 'project-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        await service.connectBinding(binding.id, {
-            xpertId: 'xpert-1',
-            redirectUri: 'https://xpert.test/callback'
-        })
-        projectAccess.assertCanUse.mockRejectedValueOnce(new ForbiddenException())
-
-        await expect(service.cancelBindingAuthorization(binding.id, 'xpert-1')).rejects.toBeInstanceOf(
-            ForbiddenException
-        )
-
-        expect(personalAccounts.items[0]).toEqual(expect.objectContaining({ status: 'pending' }))
-        expect(sessions.items[0].consumedAt).toBeFalsy()
-    })
-
-    it('does not cancel a personal authorization started from another binding', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        const workspaceBinding = await service.createBinding({
+    it('can include authorized workspace connections in a Project catalog without leaking other spaces', async () => {
+        const workspace = await service.createBinding({
             scope: { type: 'workspace', workspaceId: 'workspace-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
-        const projectBinding = await service.createBinding({
+        const project = await service.createBinding({
             scope: { type: 'project', projectId: 'project-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
-        await service.connectBinding(projectBinding.id, {
-            xpertId: 'xpert-1',
-            redirectUri: 'https://xpert.test/callback'
-        })
+        await connectors.save({ ...connectors.items[0], id: 'unrelated', workspaceId: 'workspace-other' })
+        const result = await service.runtimeOptions('xpert-1', 'project-1', true)
+        expect(result.items.map((item) => item.bindingId).sort()).toEqual([workspace.id, project.id].sort())
+        expect(result.workspaceScope).toEqual({ type: 'workspace', workspaceId: 'workspace-1' })
+        expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1')
+        projectAccess.assertCanUseXpert.mockRejectedValueOnce(new ForbiddenException())
+        await expect(service.runtimeOptions('xpert-1', 'project-1', true)).rejects.toBeInstanceOf(ForbiddenException)
+    })
 
-        await expect(service.cancelBindingAuthorization(workspaceBinding.id)).rejects.toBeInstanceOf(
-            BadRequestException
+    it('rejects duplicate providers selected from both workspace and project', async () => {
+        const workspace = await service.createBinding({
+            scope: { type: 'workspace', workspaceId: 'workspace-1' },
+            provider: 'example',
+            authorizationMode: 'shared'
+        })
+        const project = await service.createBinding({
+            scope: { type: 'project', projectId: 'project-1' },
+            provider: 'example',
+            authorizationMode: 'shared'
+        })
+        connectors.items.forEach((binding) =>
+            Object.assign(binding, { status: 'active', credentialCiphertext: 'unused' })
         )
-        expect(personalAccounts.items[0]).toEqual(expect.objectContaining({ status: 'pending' }))
-        expect(sessions.items[0].consumedAt).toBeFalsy()
-
-        await expect(service.cancelBindingAuthorization(projectBinding.id, 'xpert-1')).resolves.toBeNull()
-        expect(personalAccounts.items[0]).toEqual(expect.objectContaining({ status: 'disconnected' }))
-        expect(sessions.items[0].consumedAt).toBeInstanceOf(Date)
+        await expect(
+            service.resolveSelectedRuntimeBindings([workspace.id, project.id], {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                xpertId: 'xpert-1',
+                projectId: 'project-1',
+                conversationId: 'conversation-1',
+                executionId: 'execution-1'
+            })
+        ).rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('denies Connector runtime access unless the binding was selected for this conversation', async () => {
@@ -2090,43 +1988,70 @@ describe('ConnectorService', () => {
             ).resolves.toEqual(expect.objectContaining({ connectorId: binding.id, workspaceId: 'workspace-1' }))
         })
 
-        it('never falls back to a Workspace connector during a Project run', async () => {
-            await connectTestBinding()
-            await expect(
-                service.getRuntimeConnectorForScope(
-                    { provider: 'example' },
-                    { ...runtimeScope(), projectId: 'project-1' }
-                )
-            ).rejects.toBeInstanceOf(NotFoundException)
-        })
-
-        it.each(['shared', 'personal'] as const)('resolves Project providers with %s authorization', async (mode) => {
-            const binding = await connectTestBinding({ type: 'project', projectId: 'project-1' }, mode)
+        it('uses the Assistant workspace connection in an authorized Project without a legacy override', async () => {
+            const binding = await connectTestBinding()
             const scope = { ...runtimeScope(), projectId: 'project-1' }
             await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).resolves.toEqual(
-                expect.objectContaining({ bindingId: binding.id, projectId: 'project-1', authorizationMode: mode })
+                expect.objectContaining({ bindingId: binding.id, workspaceId: 'workspace-1' })
+            )
+            expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1')
+            projectAccess.assertCanUseXpert.mockRejectedValueOnce(new ForbiddenException())
+            await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
+        })
+
+        it('allows an exact plugin dependency in a project only after project access validation', async () => {
+            const binding = await connectTestBinding({ type: 'workspace', workspaceId: 'workspace-1' })
+            const scope = { ...runtimeScope(), projectId: 'project-1', connectorBindingIds: [binding.id] }
+            const input = { bindingId: binding.id, provider: 'example' }
+            await expect(service.getRuntimeConnectorCredentialForScope(input, scope)).resolves.toEqual(
+                expect.objectContaining({ bindingId: binding.id })
+            )
+            await expect(
+                service.getRuntimeConnectorCredentialForScope(input, {
+                    ...scope,
+                    allowWorkspaceBindingsInProject: true
+                })
+            ).resolves.toEqual(expect.objectContaining({ bindingId: binding.id }))
+            expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'xpert-1')
+            projectAccess.assertCanUseXpert.mockRejectedValueOnce(new ForbiddenException())
+            await expect(
+                service.getRuntimeConnectorCredentialForScope(input, {
+                    ...scope,
+                    allowWorkspaceBindingsInProject: true
+                })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        })
+
+        it('does not accept credential-only bindings as standalone runtime middleware', async () => {
+            const binding = await connectTestBinding()
+            strategy.definition = { ...strategy.definition, runtimeUsage: 'credential' }
+            await expect(service.resolveSelectedRuntimeBindings([binding.id], runtimeScope())).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
+        })
+
+        it('resolves shared Project providers after connecting', async () => {
+            const binding = await connectTestBinding({ type: 'project', projectId: 'project-1' })
+            const scope = { ...runtimeScope(), projectId: 'project-1' }
+            await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).resolves.toEqual(
+                expect.objectContaining({ bindingId: binding.id, projectId: 'project-1', authorizationMode: 'shared' })
             )
             projectAccess.assertCanUseXpert.mockRejectedValueOnce(new ForbiddenException())
             await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toBeInstanceOf(
                 ForbiddenException
             )
-            if (mode === 'personal') {
-                currentUserId = 'user-2'
-                await expect(
-                    service.getRuntimeConnectorForScope({ provider: 'example' }, { ...scope, userId: 'user-2' })
-                ).rejects.toThrow()
-                personalGrants.items.splice(0)
-                currentUserId = 'user-1'
-                await expect(service.getRuntimeConnectorForScope({ provider: 'example' }, scope)).rejects.toThrow()
-            }
+            expect(personalAccounts.items).toHaveLength(0)
+            expect(personalGrants.items).toHaveLength(0)
         })
 
-        it('denies shared Workspace credentials to a non-member even with a graph provider grant', async () => {
+        it('allows an authorized Assistant runner to use its workspace connection without ownership', async () => {
             await connectTestBinding()
             currentUserId = 'user-2'
             await expect(
                 service.getRuntimeConnectorForScope({ provider: 'example' }, { ...runtimeScope(), userId: 'user-2' })
-            ).rejects.toBeInstanceOf(ForbiddenException)
+            ).resolves.toEqual(expect.objectContaining({ authorizationMode: 'shared', accessToken: 'uat_secret' }))
         })
 
         it.each(['user', 'organization', 'xpert', 'inactive'])('retains the %s access check', async (denied) => {
@@ -2163,12 +2088,12 @@ describe('ConnectorService', () => {
         const workspaceBinding = await service.createBinding({
             scope: { type: 'workspace', workspaceId: 'workspace-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
         const projectBinding = await service.createBinding({
             scope: { type: 'project', projectId: 'project-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
 
         const options = await service.runtimeOptions('xpert-1', 'project-1')
@@ -2177,7 +2102,7 @@ describe('ConnectorService', () => {
         expect(options.items).toEqual([
             expect.objectContaining({
                 bindingId: projectBinding.id,
-                authorizationMode: 'personal',
+                authorizationMode: 'shared',
                 granted: false,
                 authMethods: [
                     expect.objectContaining({
@@ -2202,12 +2127,12 @@ describe('ConnectorService', () => {
         const workspaceBinding = await service.createBinding({
             scope: { type: 'workspace', workspaceId: 'workspace-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
         const projectBinding = await service.createBinding({
             scope: { type: 'project', projectId: 'project-1' },
             provider: 'example',
-            authorizationMode: 'personal'
+            authorizationMode: 'shared'
         })
 
         const options = await service.runtimeOptions('xpert-1')
@@ -2216,7 +2141,7 @@ describe('ConnectorService', () => {
         expect(options.items).toEqual([
             expect.objectContaining({
                 bindingId: workspaceBinding.id,
-                authorizationMode: 'personal'
+                authorizationMode: 'shared'
             })
         ])
         expect(options.items).not.toEqual(
@@ -2224,18 +2149,22 @@ describe('ConnectorService', () => {
         )
     })
 
-    it('does not offer shared Workspace credentials to a non-member Xpert runner', async () => {
+    it('offers connection readiness to an Assistant runner without configuration permission', async () => {
         const binding = await service.createBinding({
             scope: { type: 'workspace', workspaceId: 'workspace-1' },
             provider: 'example',
             authorizationMode: 'shared'
         })
         currentUserId = 'user-2'
+        workspaceAccess.assertCanManage.mockRejectedValue(new ForbiddenException())
 
         const options = await service.runtimeOptions('xpert-1')
 
         expect(options.scope).toEqual({ type: 'workspace', workspaceId: 'workspace-1' })
-        expect(options.items).not.toEqual(expect.arrayContaining([expect.objectContaining({ bindingId: binding.id })]))
+        expect(options.items).toEqual([
+            expect.objectContaining({ bindingId: binding.id, canManage: false, granted: false })
+        ])
+        expect(options.canManageWorkspace).toBe(false)
         await expect(
             service.resolveSelectedRuntimeBindings([binding.id], {
                 tenantId: 'tenant-1',
@@ -2247,55 +2176,7 @@ describe('ConnectorService', () => {
                 executionId: 'execution-1',
                 connectorBindingIds: [binding.id]
             })
-        ).rejects.toBeInstanceOf(ForbiddenException)
-    })
-
-    it('lets a non-member Xpert runner authorize a personal Workspace connector with their own account', async () => {
-        strategy.definition = {
-            ...strategy.definition,
-            authorizationModes: ['personal', 'shared']
-        }
-        strategy.connect = jest.fn().mockResolvedValue({
-            status: 'active',
-            credential: {
-                data: { appId: 'example_app_id', accessToken: 'user_2_token' },
-                profile: { name: 'User Two' }
-            }
-        })
-        const binding = await service.createBinding({
-            scope: { type: 'workspace', workspaceId: 'workspace-1' },
-            provider: 'example',
-            authorizationMode: 'personal'
-        })
-        currentUserId = 'user-2'
-
-        await expect(
-            service.connectBinding(binding.id, {
-                xpertId: 'xpert-1',
-                redirectUri: 'https://xpert.test/callback'
-            })
-        ).resolves.toEqual(
-            expect.objectContaining({
-                status: 'active',
-                connector: expect.objectContaining({ status: 'active', profile: { name: 'User Two' } })
-            })
-        )
-        expect(publishedXpertAccess.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-1', {
-            relations: ['workspace']
-        })
-        expect(personalGrants.items).toEqual([expect.objectContaining({ connectorId: binding.id, userId: 'user-2' })])
-        await expect(
-            service.resolveSelectedRuntimeBindings([binding.id], {
-                tenantId: 'tenant-1',
-                organizationId: 'org-1',
-                userId: 'user-2',
-                workspaceId: 'workspace-1',
-                xpertId: 'xpert-1',
-                conversationId: 'conversation-1',
-                executionId: 'execution-1',
-                connectorBindingIds: [binding.id]
-            })
-        ).resolves.toEqual([{ bindingId: binding.id, provider: 'example' }])
+        ).rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('treats legacy workspace Connector rows without discriminators as shared', async () => {

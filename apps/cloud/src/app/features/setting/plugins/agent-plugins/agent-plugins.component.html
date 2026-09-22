@@ -1,0 +1,217 @@
+<div class="mx-auto flex max-w-5xl flex-col gap-6">
+  <p class="text-text-secondary">{{ 'XP.AgentPlugins.Intro' | translate }}</p>
+  @if (error()) {
+    <p role="alert" class="rounded-lg border border-divider-regular p-3">{{ error() }}</p>
+  }
+  <section class="border-b border-divider-regular pb-6">
+    <h2 class="mb-3 text-lg font-semibold">{{ 'XP.AgentPlugins.Import' | translate }}</h2>
+    <form [formGroup]="git" (ngSubmit)="importGit()" class="flex flex-wrap items-end gap-3">
+      <label class="flex min-w-60 flex-1 flex-col gap-1 text-sm"
+        >{{ 'XP.AgentPlugins.Repository' | translate
+        }}<input
+          formControlName="url"
+          type="url"
+          placeholder="https://github.com/team/plugin"
+          class="rounded-lg border border-divider-regular bg-transparent p-2"
+      /></label>
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ 'XP.AgentPlugins.Ref' | translate
+        }}<input
+          formControlName="ref"
+          placeholder="v1.0.0"
+          class="rounded-lg border border-divider-regular bg-transparent p-2"
+      /></label>
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ 'XP.AgentPlugins.Directory' | translate
+        }}<input formControlName="subdirectory" class="rounded-lg border border-divider-regular bg-transparent p-2"
+      /></label>
+      <button type="submit" [disabled]="busy() || git.invalid" class="btn btn-primary btn-medium">
+        {{ 'XP.AgentPlugins.Import' | translate }}
+      </button>
+      <label class="btn btn-secondary btn-medium cursor-pointer"
+        >{{ 'XP.AgentPlugins.UploadZip' | translate
+        }}<input type="file" accept=".zip" class="sr-only" [disabled]="busy()" (change)="importZip($event)"
+      /></label>
+    </form>
+  </section>
+  <section>
+    <h2 class="mb-3 text-lg font-semibold">{{ 'XP.AgentPlugins.Publish' | translate }}</h2>
+    <div class="mb-4 flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="btn btn-secondary btn-medium"
+        [attr.aria-pressed]="kind() === 'agent_plugin'"
+        (click)="kind.set('agent_plugin')"
+      >
+        {{ 'XP.AgentPlugins.Plugin' | translate }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary btn-medium"
+        [attr.aria-pressed]="kind() === 'middleware'"
+        (click)="kind.set('middleware')"
+      >
+        {{ 'XP.AgentPlugins.Middleware' | translate }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary btn-medium"
+        [attr.aria-pressed]="kind() === 'external_xpert'"
+        (click)="kind.set('external_xpert')"
+      >
+        {{ 'XP.AgentPlugins.Expert' | translate }}
+      </button>
+    </div>
+    @if (kind() === 'agent_plugin') {
+      <div class="mb-4 flex flex-wrap gap-2">
+        @for (pkg of packages(); track pkg.id) {
+          <button
+            type="button"
+            class="btn btn-secondary btn-medium"
+            [attr.aria-pressed]="selectedPackageId() === pkg.id"
+            (click)="selectPackage(pkg)"
+          >
+            {{ pkg.descriptor.name }} · {{ pkg.descriptor.version || pkg.digest.slice(0, 8) }}
+          </button>
+        } @empty {
+          <p class="text-text-secondary">{{ 'XP.AgentPlugins.NoPackages' | translate }}</p>
+        }
+      </div>
+      @if (selectedPackage(); as pkg) {
+        <details class="mb-4 text-sm" open>
+          <summary>{{ 'XP.AgentPlugins.Components' | translate }}</summary>
+          @for (skill of pkg.descriptor.skills; track skill.key) {
+            <p class="py-1">Skill · {{ skill.key }}</p>
+          }
+          @for (server of pkg.descriptor.servers; track server.key) {
+            @if (pkg.descriptor.extension?.connectors?.[server.key]) {
+              <p class="py-1">MCP · {{ server.key }} · {{ 'XP.AgentPlugins.ConnectorAuthorization' | translate }}</p>
+            } @else {
+              <p class="py-1">MCP · {{ server.key }}</p>
+            }
+          }
+          @for (diagnostic of pkg.descriptor.diagnostics; track $index) {
+            <p class="py-1 text-text-secondary">{{ diagnostic.component }}: {{ diagnostic.message }}</p>
+          }
+          @for (expert of pkg.descriptor.extension?.experts || []; track expert.key) {
+            <label class="flex flex-col gap-1 py-2"
+              >{{ expert.reference
+              }}<select
+                class="rounded border border-divider-regular bg-components-panel-bg p-2"
+                (change)="mapExpert(expert.reference, $event)"
+              >
+                <option value="">{{ 'XP.AgentPlugins.SelectExpert' | translate }}</option>
+                @for (item of options().experts; track item.id) {
+                  <option [value]="item.id">{{ item.name }}</option>
+                }
+              </select></label
+            >
+          }
+        </details>
+      }
+    }
+    <form [formGroup]="binding" (ngSubmit)="publish()" class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ 'XP.AgentPlugins.Replace' | translate
+        }}<select
+          [value]="replacesBindingId()"
+          (change)="replaceSelection($event)"
+          class="rounded-lg border border-divider-regular bg-components-panel-bg p-2"
+        >
+          <option value="">{{ 'XP.AgentPlugins.CreateNew' | translate }}</option>
+          @for (item of bindings(); track item.id) {
+            @if (!item.supersededById && item.definition.kind === kind()) {
+              <option [value]="item.id">{{ item.title }}</option>
+            }
+          }</select
+        ><span class="text-text-secondary">{{ 'XP.AgentPlugins.PinnedVersion' | translate }}</span></label
+      >
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ 'XP.AgentPlugins.Title' | translate
+        }}<input formControlName="title" class="rounded-lg border border-divider-regular bg-transparent p-2"
+      /></label>
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ 'XP.AgentPlugins.Description' | translate
+        }}<input formControlName="description" class="rounded-lg border border-divider-regular bg-transparent p-2"
+      /></label>
+      @if (kind() === 'middleware') {
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ 'XP.AgentPlugins.Middleware' | translate
+          }}<select
+            formControlName="provider"
+            class="rounded-lg border border-divider-regular bg-components-panel-bg p-2"
+          >
+            <option value="">{{ 'XP.AgentPlugins.SelectMiddleware' | translate }}</option>
+            @for (item of options().middlewares; track item.name) {
+              <option [value]="item.name">{{ item.name }}</option>
+            }
+          </select></label
+        >
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ 'XP.AgentPlugins.Options' | translate
+          }}<textarea
+            formControlName="options"
+            rows="5"
+            class="rounded-lg border border-divider-regular bg-transparent p-2 font-mono"
+          ></textarea>
+        </label>
+      }
+      @if (kind() === 'external_xpert') {
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ 'XP.AgentPlugins.Expert' | translate
+          }}<select
+            formControlName="expert"
+            class="rounded-lg border border-divider-regular bg-components-panel-bg p-2"
+          >
+            <option value="">{{ 'XP.AgentPlugins.SelectExpert' | translate }}</option>
+            @for (item of options().experts; track item.id) {
+              <option [value]="item.id">{{ item.name }}</option>
+            }
+          </select></label
+        >
+      }
+      <fieldset class="flex flex-wrap gap-3">
+        <legend class="mb-2 text-sm font-medium">{{ 'XP.AgentPlugins.Workspaces' | translate }}</legend>
+        @for (workspace of options().workspaces; track workspace.id) {
+          <label class="flex items-center gap-2 text-sm"
+            ><input
+              type="checkbox"
+              [checked]="workspaceIds().includes(workspace.id)"
+              (change)="toggleWorkspace(workspace.id)"
+            />{{ workspace.name }}</label
+          >
+        } @empty {
+          <p>{{ 'XP.AgentPlugins.NoWorkspaces' | translate }}</p>
+        }
+      </fieldset>
+      <button
+        type="submit"
+        [disabled]="busy() || binding.invalid || !workspaceIds().length"
+        class="btn btn-primary btn-medium self-start"
+      >
+        {{ 'XP.AgentPlugins.Publish' | translate }}
+      </button>
+    </form>
+  </section>
+  <section class="border-t border-divider-regular pt-6">
+    <h2 class="mb-3 text-lg font-semibold">{{ 'XP.AgentPlugins.Published' | translate }}</h2>
+    @for (item of bindings(); track item.id) {
+      <div class="flex items-center justify-between gap-4 border-b border-divider-regular py-3">
+        <div>
+          <p class="font-medium">
+            {{ item.title }}
+            @if (item.supersededById) {
+              <span class="text-sm text-text-secondary">{{ 'XP.AgentPlugins.Replaced' | translate }}</span>
+            }
+          </p>
+          <p class="text-sm text-text-secondary">{{ item.description }}</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-medium" [disabled]="busy()" (click)="toggleBinding(item)">
+          {{ (item.enabled ? 'XP.AgentPlugins.Disable' : 'XP.AgentPlugins.Enable') | translate }}
+        </button>
+      </div>
+    } @empty {
+      <p class="text-text-secondary">{{ 'XP.AgentPlugins.NoBindings' | translate }}</p>
+    }
+  </section>
+</div>

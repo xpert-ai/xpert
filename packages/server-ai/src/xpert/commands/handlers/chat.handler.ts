@@ -1,3 +1,4 @@
+import type { RuntimeResourceService } from '../../../agent-plugin/runtime-resource.service'
 import { resolveAssistantExecutionModel, supportsAssistantPrimaryModelSelection } from '../../assistant-execution-model'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
@@ -159,7 +160,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         private readonly projectContentService?: XpertProjectContentService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
         @Optional() private readonly assistantModelSelectionService?: AssistantModelSelectionService,
-        @Optional() private readonly threadRunControl?: ThreadRunControlService
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional()
+        @Inject('XpertRuntimeResourceService')
+        private readonly runtimeResourceService?: RuntimeResourceService
     ) {}
 
     /**
@@ -1019,6 +1023,30 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         }
         input = preparedAgentChatState.input
         const runtimeCapabilities = preparedAgentChatState.runtimeCapabilities
+        // Resume and retry inherit the server-owned execution snapshot, never a client override.
+        const restoringResources = request.action === 'resume' || request.action === 'retry'
+        const resourceInput = restoringResources
+            ? (normalizeChatState(sourceModelExecution?.inputs)[STATE_VARIABLE_HUMAN]?.runtimeResources ?? {
+                  revision: 0,
+                  resources: []
+              })
+            : input?.runtimeResources
+        const hasRuntimeResources = resourceInput !== undefined || !!conversation.options?.runtimeResources
+        if (
+            !this.runtimeResourceService &&
+            (input?.runtimeResources !== undefined ||
+                conversation.options?.runtimeResources ||
+                normalizeChatState(sourceModelExecution?.inputs)[STATE_VARIABLE_HUMAN]?.runtimeResources)
+        )
+            throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
+        const runtimeResources =
+            hasRuntimeResources && this.runtimeResourceService
+                ? await this.runtimeResourceService.prepare(conversation.id, resourceInput, restoringResources)
+                : undefined
+        if (runtimeResources && input) {
+            input = { ...input, runtimeResources: runtimeResources.selection }
+            state = { ...state, [STATE_VARIABLE_HUMAN]: input }
+        }
         const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
         const logger = this.logger
 
@@ -1138,6 +1166,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             isDraft: options?.isDraft,
                             toolPreferences: userPreference?.toolPreferences ?? null,
                             runtimeCapabilities,
+                            runtimeResources,
                             planMode: isPlanModeEnabledFromState(state),
                             execution: { id: executionId, category: 'agent' },
                             inputMessageId,

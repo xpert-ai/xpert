@@ -1,5 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
-import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core'
+import { NgTemplateOutlet } from '@angular/common'
+import { Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
+import { Component, DestroyRef, TemplateRef, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { FormControl, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { resolveI18nText } from '@xpert-ai/contracts'
@@ -20,7 +22,8 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardSelectImports
+  ZardSelectImports,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { AlertCircle, Cable, Link2Off, LoaderCircle, RefreshCw } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
@@ -28,6 +31,7 @@ import { getErrorMessage, injectToastr, XpertConnectorService, XpertWorkspaceSer
 import { IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import { WORKSPACE_CONNECTOR_DIALOG } from './workspace-connector-dialog'
 
 type ConnectorStatusLabel = {
   key: string
@@ -38,6 +42,8 @@ type ConnectorStatusLabel = {
   selector: 'xpert-connectors',
   standalone: true,
   imports: [
+    NgTemplateOutlet,
+    DialogModule,
     ReactiveFormsModule,
     TranslateModule,
     XpI18nPipe,
@@ -48,7 +54,8 @@ type ConnectorStatusLabel = {
     ZardIconComponent,
     ZardInputDirective,
     ...ZardFormImports,
-    ...ZardSelectImports
+    ...ZardSelectImports,
+    ...ZardTooltipImports
   ],
   templateUrl: './workspace-connectors.component.html'
 })
@@ -59,15 +66,23 @@ export class XpertConnectorsComponent {
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #destroyRef = inject(DestroyRef)
+  readonly #dialog = inject(Dialog)
+  readonly connectorDialog = viewChild.required<TemplateRef<unknown>>('connectorDialog')
+  #dialogRef: DialogRef<unknown> | null = null
 
-  readonly homeComponent = inject(XpertWorkspaceHomeComponent)
-  readonly workspace = this.homeComponent.workspace
-  readonly workspaceId = computed(() => this.workspace()?.id)
-  readonly canManageWorkspace = computed(() => this.#workspaceService.canManage(this.workspace()))
+  readonly connectionContext = inject(WORKSPACE_CONNECTOR_DIALOG, { optional: true })
+  readonly #connectionDialog = inject(DialogRef, { optional: true })
+  readonly homeComponent = inject(XpertWorkspaceHomeComponent, { optional: true })
+  readonly workspace = computed(() => this.homeComponent?.workspace())
+  readonly workspaceId = computed(() => this.connectionContext?.workspaceId ?? this.workspace()?.id)
+  readonly canManageWorkspace = computed(() =>
+    this.connectionContext ? true : this.#workspaceService.canManage(this.workspace())
+  )
+  #connectionStarted = false
 
   readonly definitions = signal<ConnectorStrategyDefinition[]>([])
   readonly bindings = signal<ConnectorBinding[]>([])
-  readonly searchQuery = this.homeComponent.connectorSearchQuery
+  readonly searchQuery = this.homeComponent?.connectorSearchQuery ?? signal('')
   readonly selectedProvider = signal<string | null>(null)
   readonly filteredDefinitions = computed(() => {
     const query = this.searchQuery().trim().toLocaleLowerCase()
@@ -110,6 +125,7 @@ export class XpertConnectorsComponent {
 
   constructor() {
     this.#destroyRef.onDestroy(() => {
+      if (!this.connectionContext) this.closeConnectorDialog()
       this.clearAuthorizationPolling()
       this.closeAllAuthorizationPopups()
     })
@@ -123,7 +139,7 @@ export class XpertConnectorsComponent {
         this.closeAllAuthorizationPopups()
         this.pendingAuthorizationUrls.set({})
         this.#connectorForms.clear()
-        this.selectedProvider.set(null)
+        if (!this.connectionContext) this.closeConnectorDialog()
       }
       if (workspaceId) {
         void this.load(workspaceId)
@@ -135,7 +151,7 @@ export class XpertConnectorsComponent {
     this.loading.set(true)
     this.errorMessage.set(null)
     try {
-      const [definitions, bindings] = await Promise.all([
+      let [definitions, bindings] = await Promise.all([
         firstValueFrom(this.#connectorService.scopedDefinitions('workspace', workspaceId)),
         firstValueFrom(this.#connectorService.listBindings('workspace', workspaceId))
       ])
@@ -143,10 +159,40 @@ export class XpertConnectorsComponent {
         return
       }
 
+      if (this.connectionContext) {
+        const target = bindings.find((binding) => binding.id === this.connectionContext.bindingId)
+        if (!target)
+          throw new Error(
+            this.#translate.instant('XP.Xpert.ConnectorUnavailable', {
+              Default: 'This workspace connection is no longer available.'
+            })
+          )
+        definitions = definitions.filter((definition) => definition.provider === target.provider)
+        if (!definitions.length)
+          throw new Error(
+            this.#translate.instant('XP.Xpert.ConnectorUnavailable', {
+              Default: 'This workspace connection is no longer available.'
+            })
+          )
+        bindings = [
+          {
+            ...target,
+            ...(target.authorizationMode === 'personal' ? { status: 'disconnected' as const, profile: null } : {})
+          }
+        ]
+        this.selectedProvider.set(target.provider)
+      }
+
       this.definitions.set(definitions)
       this.bindings.set(bindings)
       this.prepareConnectorForms(definitions, bindings)
+      const startConnection = this.connectionContext && !this.#connectionStarted
+      if (this.connectionContext) this.#connectionStarted = true
       await this.recoverPendingAuthorizations(workspaceId, bindings)
+      if (startConnection && !this.#destroyRef.destroyed) {
+        if (bindings[0].status === 'active') this.closeConnectorDialog(true)
+        else if (bindings[0].status !== 'pending') this.quickConnect(definitions[0])
+      }
     } catch (error) {
       const message = getErrorMessage(error)
       this.errorMessage.set(message)
@@ -164,17 +210,38 @@ export class XpertConnectorsComponent {
 
   openConnectorDialog(definition: ConnectorStrategyDefinition) {
     this.selectedProvider.set(definition.provider)
+    if (this.connectionContext) return
+    if (this.#dialogRef) return
+    const ref = this.#dialog.open(this.connectorDialog(), {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 2rem)',
+      maxHeight: '90dvh',
+      ariaLabelledBy: 'workspace-connector-dialog-title'
+    })
+    this.#dialogRef = ref
+    ref.closed.subscribe(() => {
+      if (this.#dialogRef === ref) {
+        this.#dialogRef = null
+        this.selectedProvider.set(null)
+      }
+    })
   }
 
-  closeConnectorDialog() {
-    this.selectedProvider.set(null)
-  }
-
-  @HostListener('document:keydown.escape')
-  closeConnectorDialogOnEscape() {
-    if (this.selectedProvider()) {
-      this.closeConnectorDialog()
+  closeConnectorDialog(connected?: boolean) {
+    if (this.connectionContext) {
+      const binding = this.bindings().find((item) => item.id === this.connectionContext.bindingId)
+      this.#connectionDialog?.close({
+        status:
+          (connected ?? (binding?.status === 'active' && binding.authorizationMode === 'shared'))
+            ? 'connected'
+            : 'cancelled'
+      })
+      return
     }
+    this.#dialogRef?.close()
+    this.#dialogRef = null
+    this.selectedProvider.set(null)
   }
 
   quickConnect(definition: ConnectorStrategyDefinition) {
@@ -242,7 +309,7 @@ export class XpertConnectorsComponent {
         this.closeReservedAuthorizationPopup(connectedBinding.id, reservedPopup)
         await this.reloadCurrentWorkspace()
         if (this.selectedProvider() === definition.provider) {
-          this.closeConnectorDialog()
+          this.closeConnectorDialog(true)
         }
         return
       }
@@ -279,7 +346,7 @@ export class XpertConnectorsComponent {
       this.closeAuthorizationPopup(binding.id)
       await this.reloadCurrentWorkspace()
       if (this.selectedProvider() === binding.provider) {
-        this.closeConnectorDialog()
+        this.closeConnectorDialog(false)
       }
       this.#toastr.success('XP.Xpert.ConnectorAuthorizationCancelled', {
         Default: 'Authorization cancelled.'
@@ -654,8 +721,11 @@ export class XpertConnectorsComponent {
       this.clearPendingAuthorization(bindingId)
       this.closeAuthorizationPopup(bindingId)
       await this.reloadCurrentWorkspace()
-      if (this.selectedProvider() === binding.provider) {
-        this.closeConnectorDialog()
+      if (
+        this.selectedProvider() === binding.provider &&
+        (!this.connectionContext || response.connector.status === 'active')
+      ) {
+        this.closeConnectorDialog(response.connector.status === 'active')
       }
     } catch (error) {
       this.clearPendingAuthorization(bindingId)
@@ -712,7 +782,7 @@ export class XpertConnectorsComponent {
       ...connector,
       scopeType: binding.scopeType,
       scope: binding.scope,
-      authorizationMode: binding.authorizationMode
+      authorizationMode: 'shared'
     }
   }
 

@@ -4,6 +4,7 @@ import {
 	AGENT_PROFILE_TABS_SLOT,
 	ApiKeyBindingType,
 	type IApiPrincipal,
+	type XpertResolvedViewHostContext,
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
@@ -56,7 +57,7 @@ describe('ViewExtensionService file actions', () => {
 	function createService() {
 		const provider = {
 			supports: jest.fn(async () => true),
-			getViewManifests: jest.fn(async () => [manifest]),
+			getViewManifests: jest.fn(async (_context: XpertResolvedViewHostContext, _slot: string) => [manifest]),
 			getViewData: jest.fn(),
 			resolveViewFile: jest.fn(async () => ({
 				reference: {
@@ -108,6 +109,28 @@ describe('ViewExtensionService file actions', () => {
 		)
 		return { service, provider, hostDefinition, permissionService, cacheService }
 	}
+
+	it('previews permission-filtered feature associations without activating views or exposing executable schemas', async () => {
+		const { service, provider, hostDefinition, permissionService } = createService()
+		hostDefinition.slots.push({ key: 'secondary', order: 2 })
+		const bound = { ...manifest, activation: { requiredFeatures: ['audit'] } }
+		provider.getViewManifests.mockImplementation(async (_context, slot) =>
+			[
+				bound,
+				{ ...bound, key: 'hidden', workbench: { menu: { enabled: false } } },
+				{ ...bound, key: 'denied', permissions: ['manage'] },
+				{ ...bound, key: 'unrelated', activation: { requiredFeatures: ['other'] } }
+			].map((item) => ({ ...item, slot }))
+		)
+		permissionService.filterVisibleManifests.mockImplementation((items) =>
+			items.filter((item) => !item.permissions?.length)
+		)
+		const views = await service.listFeatureViewSummaries('agent', 'assistant-1', ['audit'])
+		expect(views).toEqual([{ key: 'provider__review', title: 'Review', requiredFeatures: ['audit'] }])
+		expect(permissionService.assertHostReadable).toHaveBeenCalled()
+		expect(provider.getViewData).not.toHaveBeenCalled()
+		expect(provider.getViewManifests).toHaveBeenCalledWith(expect.objectContaining({ capabilities: {} }), 'main')
+	})
 
 	it('propagates draft resolution options through host discovery and permission checks', async () => {
 		const { service, hostDefinition, permissionService } = createService()

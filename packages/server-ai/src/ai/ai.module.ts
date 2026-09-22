@@ -35,6 +35,10 @@ import { FileUnderstandingModule } from '../file-understanding'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution/agent-execution.module'
 import { ConversationAgentRunsService } from './conversation-agent-runs.service'
 
+import { RuntimeResourceController } from '../agent-plugin/runtime-resource.controller'
+import { ConnectorModule } from '../connector/connector.module'
+import { ConnectorRuntimeController } from './connector-runtime.controller'
+
 @Module({
     imports: [
         RouterModule.register([
@@ -47,6 +51,7 @@ import { ConversationAgentRunsService } from './conversation-agent-runs.service'
         SecretTokenModule,
         RedisModule,
         CqrsModule,
+        ConnectorModule,
         CopilotModule,
         CopilotUserModule,
         CopilotOrganizationModule,
@@ -73,6 +78,8 @@ import { ConversationAgentRunsService } from './conversation-agent-runs.service'
         ContextsController,
         KnowledgesController,
         AssistantsController,
+        RuntimeResourceController,
+        ConnectorRuntimeController,
         ThreadsController,
         ConversationsController,
         StoreController
