@@ -127,6 +127,16 @@ export class IntegrationQrService {
 				)
 			})
 			session.status = result.status
+			// Persist provider backoff in Redis so every API instance respects it.
+			if (
+				result.status === 'waiting' &&
+				typeof result.intervalIncrementSeconds === 'number' &&
+				Number.isFinite(result.intervalIncrementSeconds) &&
+				result.intervalIncrementSeconds > 0
+			) {
+				session.intervalSeconds = Math.min(600, session.intervalSeconds + result.intervalIncrementSeconds)
+				session.nextPollAt = Date.now() + session.intervalSeconds * 1000
+			}
 			if (result.status === 'authorized') session.options = result.options
 			await this.write(session)
 			return { status: session.status }
