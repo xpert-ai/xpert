@@ -44,7 +44,7 @@ import { t } from 'i18next'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
-import { DeepPartial, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { DeepPartial, FindOneOptions, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
@@ -378,9 +378,31 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         }
     }
 
-    async getTeam(id: string, options?: OptionParams<Xpert>) {
+    /**
+     * Resolves an assistant by id or by slug.
+     *
+     * The workspace routes address assistants by slug while their param is named
+     * `id`, so both forms reach server code that expects a primary key. Using a
+     * slug as an id makes Postgres fail with `invalid input syntax for type uuid`.
+     */
+    async findOneByIdOrSlug(identifier: string, options?: FindOneOptions<Xpert>) {
+        const normalized = identifier?.trim()
+        if (!normalized) {
+            throw new NotFoundException(`Not found xpert '${identifier}'`)
+        }
+
+        return await this.findOne({
+            where: UUID_PATTERN.test(normalized) ? { id: normalized } : { slug: normalized },
+            ...(options ?? {})
+        })
+    }
+
+    /**
+     * Loads the published team for an assistant, addressed by id or slug.
+     */
+    async getTeam(identifier: string, options?: OptionParams<Xpert>) {
         const { relations } = options ?? {}
-        const team = await this.findOne(id, {
+        const team = await this.findOneByIdOrSlug(identifier, {
             relations: uniq([...(relations ?? []), 'agents', 'toolsets', 'knowledgebases'])
         })
         return team
@@ -563,8 +585,9 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         )
     }
 
-    async allVersions(id: string) {
-        const xpert = await this.findOne(id)
+    async allVersions(identifier: string) {
+        // Addressable by id or slug, like the rest of the assistant routes.
+        const xpert = await this.findOneByIdOrSlug(identifier)
         const { items: allVersions } = await this.findAll({
             where: {
                 workspaceId: xpert.workspaceId ?? IsNull(),
