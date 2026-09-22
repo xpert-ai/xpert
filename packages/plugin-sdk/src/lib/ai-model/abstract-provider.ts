@@ -66,7 +66,10 @@ export abstract class ModelProvider implements IAIModelProviderStrategy {
 
     const yamlPath = join(this.getProviderServerPath(), `${this._name}.yaml`)
 
-    const yamlData = loadYamlFile(yamlPath, this.logger) as Record<string, any>
+    // Pass ignoreError=false: silently returning `{}` here turns a missing schema
+    // into `provider === undefined`, which surfaces much later as
+    // "Cannot read properties of undefined (reading 'toLowerCase')".
+    const yamlData = loadYamlFile(yamlPath, this.logger, false) as Record<string, any>
 
     try {
       this._meta = yamlData as IAiProviderEntity

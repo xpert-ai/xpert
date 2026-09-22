@@ -1,5 +1,6 @@
 import { SetMetadata } from '@nestjs/common'
 import path from 'path'
+import { fileURLToPath } from 'node:url'
 import { STRATEGY_META_KEY } from '../types'
 
 
@@ -22,22 +23,31 @@ export function AIModelProviderStrategy(provider: string) {
     callerLine?.match(/\((file:\/\/\/[^\s)]+)\)/) || // case 1: file:///path...
     callerLine?.match(/\((\/[^\s)]+)\)/) || // case 2: (/Users/xxx)
     callerLine?.match(/at (file:\/\/\/[^\s]+)/) || // case 3: at file:///...
-    callerLine?.match(/at (\/[^\s]+)/) // case 4: at /Users/xxx
+    callerLine?.match(/at (\/[^\s]+)/) || // case 4: at /Users/xxx
+    // case 5/6: Windows stack frames carry a drive letter, e.g. (C:\proj\src\a.ts:1:2)
+    callerLine?.match(/\(([A-Za-z]:[\\/][^\s)]+)\)/) ||
+    callerLine?.match(/at ([A-Za-z]:[\\/][^\s]+)/)
 
   let file = match?.[1]
 
-  // remove the file:/// prefix
-  if (file?.startsWith('file:///')) {
-    file = file.replace('file://', '')
-  }
+  // Strip :line:col suffix (e.g. "/path/file.js:37:5" -> "/path/file.js") before
+  // converting a file URL, so the position never leaks into the resolved path.
+  file = file?.replace(/:\d+:\d+$/, '')
 
-  // Strip :line:col suffix (e.g. "/path/file.js:37:5" -> "/path/file.js")
-  if (file) {
-    file = file.replace(/:\d+:\d+$/, '')
-  }
-
-  // Decode URL-encoded paths (e.g. Chinese characters: %E9%A1%B9%E7%9B%AE -> 项目)
-  if (file) {
+  // Turn the frame's location into a real filesystem path on every platform.
+  // `fileURLToPath` drops the leading slash before a Windows drive letter and
+  // decodes percent-escapes; a plain `replace('file://', '')` leaves "/C:/...",
+  // which is not a valid Windows path.
+  if (file?.startsWith('file://')) {
+    try {
+      file = fileURLToPath(file)
+    } catch {
+      // Not a path this platform can map (e.g. a POSIX frame observed on Windows);
+      // fall back to stripping the scheme so the directory is still usable.
+      file = file.replace(/^file:\/\//, '')
+    }
+  } else if (file) {
+    // Decode URL-encoded paths (e.g. Chinese characters: %E9%A1%B9%E7%9B%AE -> 项目)
     try {
       file = decodeURIComponent(file)
     } catch {
