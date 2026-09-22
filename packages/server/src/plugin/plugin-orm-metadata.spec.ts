@@ -113,4 +113,33 @@ describe('plugin orm metadata helpers', () => {
 		expect(dataSource.buildMetadatas).toHaveBeenCalledTimes(1)
 		expect(dataSource.synchronize).toHaveBeenCalledTimes(1)
 	})
+
+	it('only refreshes metadata when schema synchronization is externally managed', async () => {
+		const dataSource = {
+			options: {
+				entities: [CoreEntity],
+				subscribers: [CoreSubscriber],
+				synchronize: false
+			},
+			isInitialized: true,
+			setOptions: jest.fn(function (options: Record<string, any>) {
+				this.options = { ...this.options, ...options }
+				return this
+			}),
+			buildMetadatas: jest.fn(),
+			synchronize: jest.fn()
+		}
+
+		await expect(
+			registerPluginOrmMetadataInDataSource(dataSource as any, {
+				entities: [PluginEntity]
+			})
+		).resolves.toEqual({
+			changed: true,
+			synchronized: false
+		})
+
+		expect(dataSource.buildMetadatas).toHaveBeenCalledTimes(1)
+		expect(dataSource.synchronize).not.toHaveBeenCalled()
+	})
 })

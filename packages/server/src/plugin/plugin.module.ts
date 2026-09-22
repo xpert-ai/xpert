@@ -41,6 +41,7 @@ import {
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens'
 import { RuntimeControlModule } from '../runtime-control/runtime-control.module'
 import { PluginRuntimeStateService } from './plugin-runtime-state.service'
+import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 
 @Global()
 @Module({
@@ -102,6 +103,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
 		PluginRuntimeStateService,
+		PluginSchemaSyncService,
 		StrategyBus,
 		XpertToolProviderRegistry,
 		...CommandHandlers,

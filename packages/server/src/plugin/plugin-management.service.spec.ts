@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Entity } from 'typeorm'
 import type { PluginInstanceService } from './plugin-instance.service'
+import type { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import type { RuntimeControlService } from '../runtime-control/runtime-control.service'
 
 jest.mock('@xpert-ai/contracts', () => ({
@@ -359,6 +360,41 @@ describe('PluginManagementService', () => {
 			version: '0.1.0',
 			scopeKey: 'org-1'
 		})
+	})
+
+	it('keeps the current plugin active when schema preflight fails', async () => {
+		const schemaSync = {
+			synchronize: jest.fn().mockRejectedValue(new Error('schema migration failed'))
+		}
+		const guardedService = new PluginManagementService(
+			loadedPlugins,
+			pluginInstanceService,
+			strategyBus as any,
+			lazyLoader as any,
+			moduleRef as any,
+			dataSource as any,
+			applicationConfig as any,
+			runtimeControl as unknown as RuntimeControlService,
+			runtimeState,
+			schemaSync as unknown as PluginSchemaSyncService
+		)
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-openrouter',
+				version: '0.2.0',
+				level: 'organization'
+			}
+		})
+
+		await expect(
+			guardedService.installPlugin({
+				pluginName: '@xpert-ai/plugin-openrouter',
+				version: '0.2.0'
+			})
+		).rejects.toThrow('schema migration failed')
+		expect(schemaSync.synchronize).toHaveBeenCalled()
+		expect(pluginInstanceService.uninstallByPackageName).not.toHaveBeenCalled()
+		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
 	})
 
 	it('falls back to an explicit restart when cluster convergence cannot be scheduled', async () => {
@@ -1135,7 +1171,7 @@ describe('PluginManagementService', () => {
 				success: true,
 				name: '@xpert-ai/plugin-system-demo',
 				organizationId: '__global__',
-				restartRequired: true
+				runtimeConvergence: { generation: 1 }
 			})
 		)
 
@@ -1169,7 +1205,11 @@ describe('PluginManagementService', () => {
 			}),
 			{ syncLoadedConfig: false }
 		)
-		expect(runtimeControl.recordPluginRuntimeChange).not.toHaveBeenCalled()
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-system-demo',
+			version: '1.0.0',
+			scopeKey: 'system:global'
+		})
 	})
 
 	it('stages tenant-level plugins in the owning tenant global scope', async () => {
@@ -1204,7 +1244,7 @@ describe('PluginManagementService', () => {
 				success: true,
 				name: '@xpert-ai/plugin-bom',
 				organizationId: '__global__',
-				restartRequired: true
+				runtimeConvergence: { generation: 1 }
 			})
 		)
 
@@ -1229,6 +1269,11 @@ describe('PluginManagementService', () => {
 			}),
 			{ syncLoadedConfig: false }
 		)
+		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-bom',
+			version: '1.0.0',
+			scopeKey: 'tenant:tenant-bom:global'
+		})
 		expect(loadPlugin).not.toHaveBeenCalled()
 		expect(lazyLoader.load).not.toHaveBeenCalled()
 	})
