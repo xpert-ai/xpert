@@ -12,9 +12,9 @@ export interface InitializableApplicationDataSource {
 }
 
 /**
- * In multi-instance deployments, one schema-sync job owns startup DDL. The API
- * initializes with TypeORM synchronization disabled, then restores the configured
- * flag so runtime-installed plugin entities keep their existing synchronization behavior.
+ * In multi-instance deployments, one schema-sync job owns startup and plugin DDL.
+ * The API keeps TypeORM synchronization disabled so loading plugin metadata never
+ * starts a second, uncoordinated schema change.
  */
 export async function initializeApplicationDataSource<T extends InitializableApplicationDataSource>(
 	options: DataSourceOptions,
@@ -33,6 +33,5 @@ export async function initializeApplicationDataSource<T extends InitializableApp
 	} as DataSourceOptions
 	const dataSource = createDataSource(startupOptions)
 	await dataSource.initialize()
-	dataSource.setOptions({ synchronize: options.synchronize })
 	return dataSource
 }
