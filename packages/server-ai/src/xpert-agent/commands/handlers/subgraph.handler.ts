@@ -153,6 +153,7 @@ import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
 import { buildAgentDecisionPathMap, getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
+import { createThreadReferenceMiddleware } from '../../../xpert-middleware/thread-reference.runtime'
 import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
 import {
     createInvalidToolCallDiagnostics,
@@ -870,6 +871,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtime: middlewareRuntime
         }
         const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = []
+        builtinMiddlewareEntries.push(
+            await createThreadReferenceMiddleware(this.agentMiddlewareRegistry, middlewareContext)
+        )
         const collaboratorsMiddleware = await createCollaboratorsMiddleware(
             {
                 agent,

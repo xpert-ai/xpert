@@ -1,4 +1,4 @@
-import { SharedModule, StorageFileModule } from '@xpert-ai/server-core'
+import { RedisModule, SharedModule, StorageFileModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -32,6 +32,8 @@ import { ChatConversationSidebarController } from './conversation-sidebar.contro
 import { ChatConversationSidebarService } from './conversation-sidebar.service'
 import { MessageCheckpointService } from './message-checkpoint.service'
 import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.service'
+import { ThreadReferenceService } from './thread-reference.service'
+import { ThreadCursorStore } from './thread-cursor.store'
 
 @Module({
     imports: [
@@ -48,6 +50,7 @@ import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.serv
             XpertAgent
         ]),
         SharedModule,
+        RedisModule,
         CqrsModule,
 
         BullModule.registerQueue({
@@ -63,6 +66,8 @@ import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.serv
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ThreadCursorStore,
+        ThreadReferenceService,
         ConversationAgentRunsService,
         MessageCheckpointService,
         ChatConversationService,
@@ -77,6 +82,7 @@ import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.serv
         ...QueryHandlers
     ],
     exports: [
+        ThreadReferenceService,
         MessageCheckpointService,
         ThreadRunControlService,
         ChatConversationService,

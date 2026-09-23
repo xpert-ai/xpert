@@ -1,6 +1,10 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "ThreadReferenceUnavailable": "This referenced conversation is unavailable or its audience is incompatible with the current conversation.",
+        "ThreadReferenceCursorInvalid": "The history cursor is invalid, expired, or unavailable in this context. Read the latest page again without cursor.",
+        "ThreadReferenceCursorStoreUnavailable": "History pagination is temporarily unavailable. Please retry later.",
+        "ThreadReferenceLimit": "This branch contains too many conversation references. Continue in a new conversation with fewer references.",
         "ConversationBranch": {
             "invalid_request": "Source thread, assistant message and request UUIDs are required.",
             "message_not_in_thread": "The selected message is not on this thread.",

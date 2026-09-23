@@ -6,6 +6,14 @@ jest.mock('yargs', () => ({
     })
 }))
 
+// Exercise graph wiring here; the built-in gate and tool are tested with their real implementation separately.
+jest.mock('../../../xpert-middleware/thread-reference.runtime', () => ({
+    createThreadReferenceMiddleware: jest.fn(async () => ({
+        key: '__thread_reference_middleware__',
+        middleware: { name: 'ThreadReferenceMiddleware' }
+    }))
+}))
+
 import { AIMessage, HumanMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
@@ -28,6 +36,7 @@ import { z } from 'zod'
 import type { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime/index'
 import { IAgentMiddlewareContext, RequestContext } from '@xpert-ai/plugin-sdk'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
+import { createThreadReferenceMiddleware } from '../../../xpert-middleware/thread-reference.runtime'
 import { setModelVisionSupport } from '../../../copilot-model/model-capabilities'
 import { STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared/agent/state'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
@@ -1259,6 +1268,10 @@ describe('XpertAgentSubgraphHandler file understanding middleware', () => {
         await handler.execute(command)
 
         expect(registryGet).not.toHaveBeenCalled()
+        expect(createThreadReferenceMiddleware).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ conversationId: 'conversation-1' })
+        )
     })
 
     it('does not mount file understanding tools when structured output is enabled', async () => {

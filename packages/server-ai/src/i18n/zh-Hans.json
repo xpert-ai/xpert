@@ -1,6 +1,10 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
     "Error": {
+        "ThreadReferenceUnavailable": "无法读取此引用对话，或其访问范围与当前对话不兼容。",
+        "ThreadReferenceCursorInvalid": "对话历史游标无效、已过期或不适用于当前上下文，请不传 cursor 从最新页面重新读取。",
+        "ThreadReferenceCursorStoreUnavailable": "对话历史分页服务暂时不可用，请稍后重试。",
+        "ThreadReferenceLimit": "当前分支中的对话引用过多，请在新对话中减少引用后重试。",
         "ConversationBranch": {
             "invalid_request": "需要提供来源线程、AI 消息和请求 UUID。",
             "message_not_in_thread": "所选消息不在当前线程路径中。",

@@ -757,6 +757,15 @@ function partOutputs(part: MessageContentPart, messageId?: string, updatedAt?: s
 }
 
 function referenceSource(reference: ChatKitReference, messageId?: string, updatedAt?: string): ChatTaskSummarySource {
+    if (reference.type === 'thread') {
+        return {
+            id: `thread:${reference.conversationId}:${reference.threadId}`,
+            kind: 'quote',
+            title: reference.label || reference.threadId,
+            messageId,
+            updatedAt
+        }
+    }
     const common = {
         id: reference.id ?? `${reference.type}:${reference.text}`,
         title: reference.label ?? compactText(reference.text, 80),
