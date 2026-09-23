@@ -87,3 +87,5 @@ Thumbs.db
 /sandbox/
 
 docker/volumes/
+
+/storage

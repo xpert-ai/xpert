@@ -9,6 +9,7 @@ import {
   FileWorkbenchFileDownloader,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
+  FileWorkbenchBinaryFileSaver,
   FileWorkbenchFileUploader,
   FileWorkbenchFilesLoader
 } from '../../../@shared/files'
@@ -31,6 +32,7 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
       [filesLoader]="loadWorkspaceFiles"
       [fileLoader]="loadWorkspaceFile"
       [fileSaver]="mode() === 'editable' ? saveWorkspaceFile : null"
+      [binaryFileSaver]="mode() === 'editable' ? saveWorkspaceBinaryFile : null"
       [fileDeleter]="mode() === 'editable' ? deleteWorkspaceFile : null"
       [fileUploader]="mode() === 'editable' ? uploadWorkspaceFile : null"
       [fileDownloader]="downloadWorkspaceFile"
@@ -118,6 +120,12 @@ export class ClawXpertConversationFilesComponent {
     }
 
     return this.#xpertService.uploadWorkspaceFileToFolder(this.requireXpertId(), file, path)
+  }
+
+  readonly saveWorkspaceBinaryFile: FileWorkbenchBinaryFileSaver = (path, file) => {
+    return this.normalizedProjectId()
+      ? this.#conversationService.saveBinaryFile(this.requireConversationId(), path, file)
+      : this.#xpertService.saveWorkspaceBinaryFile(this.requireXpertId(), path, file)
   }
 
   readonly deleteWorkspaceFile: FileWorkbenchFileDeleter = (path: string) => {
