@@ -25,6 +25,27 @@ describe('XpertWorkAreaResolver', () => {
         jest.clearAllMocks()
     })
 
+    it('shares working files across branched conversations while creating a new session directory', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            projectId: 'project-1',
+            provider: 'local-shell-sandbox'
+        }
+        const source = await resolver.resolve({ ...scope, conversationId: 'source-conversation' })
+        const target = await resolver.resolve({ ...scope, conversationId: 'branched-conversation' })
+        expect(target.workingDirectory).toBe(source.workingDirectory)
+        expect(target.sessionPath.workspacePath).not.toBe(source.sessionPath.workspacePath)
+        const file = path.join(source.workingDirectory, 'shared.txt')
+        await fsPromises.writeFile(file, 'source writes')
+        expect(await fsPromises.readFile(path.join(target.workingDirectory, 'shared.txt'), 'utf8')).toBe(
+            'source writes'
+        )
+        await fsPromises.writeFile(path.join(target.workingDirectory, 'shared.txt'), 'branch writes')
+        expect(await fsPromises.readFile(file, 'utf8')).toBe('branch writes')
+    })
+
     it('mounts the project root but uses the xpert agent directory as the default cwd', async () => {
         const workArea = await resolver.resolve({
             tenantId: 'tenant-1',

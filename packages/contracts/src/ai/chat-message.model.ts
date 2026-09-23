@@ -8,7 +8,7 @@ import type {
   TMessageContentReasoning
 } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { IChatConversation, TChatInputCheckpoint } from './chat.model'
+import { IChatConversation, TChatInputCheckpoint, TChatOutputCheckpoint, TChatMessageBranching } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
@@ -83,6 +83,14 @@ export interface IChatMessage
   children?: IChatMessage[]
   parentId?: string | null
   inputCheckpoint?: TChatInputCheckpoint | null
+  /** Internal persisted state; excluded from public DTOs and raw stream events. */
+  outputCheckpoint?: TChatOutputCheckpoint | null
+  /** Public capability derived from the finalized message, not inferred from executionId. */
+  branching?: TChatMessageBranching
+  /** Copied execution history is display-only and must not restore live tool sessions. */
+  historical?: boolean
+  /** Owned snapshot for a branch whose original execution may later be deleted. */
+  historicalAgentRuns?: import('./xpert-agent-execution.model').TChatAgentRunSummary[]
 
   /**
    * @deprecated Chat attachments now use `fileAssets`. This field is kept only

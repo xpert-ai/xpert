@@ -1,3 +1,7 @@
+jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({
+    MessageCheckpointService: class {}
+}))
+
 jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
     ThreadRunControlService: class {},
     threadGraphRevision: () => 'graph-v1',

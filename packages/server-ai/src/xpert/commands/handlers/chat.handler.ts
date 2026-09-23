@@ -57,6 +57,8 @@ import { ChatConversationUpsertCommand } from '../../../chat-conversation/comman
 import { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import { ThreadRunControlService, threadControlConflict } from '../../../chat-conversation/thread-run-control.service'
 import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
+import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
+import { publicChatMessage } from '../../../chat-message/message-branching'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { appendMessageSteps, sanitizeMessageContentForPersistence } from '../../../chat-message'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
@@ -163,7 +165,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         @Optional() private readonly threadRunControl?: ThreadRunControlService,
         @Optional()
         @Inject('XpertRuntimeResourceService')
-        private readonly runtimeResourceService?: RuntimeResourceService
+        private readonly runtimeResourceService?: RuntimeResourceService,
+        @Optional() private readonly messageCheckpoints?: MessageCheckpointService
     ) {}
 
     /**
@@ -485,7 +488,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         let memories = null
 
         let conversation: IChatConversation
-        let aiMessage: CopilotChatMessage
+        let aiMessage: CopilotChatMessage & Pick<IChatMessage, 'outputCheckpoint'>
         let inputMessageId: string | undefined
         let submittedUserMessage: IChatMessage | undefined
         let executionId: string
@@ -1050,6 +1053,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
         const logger = this.logger
 
+        // Regeneration reuses the message ID, so its previous successful boundary is no longer valid.
+        await this.messageCheckpoints?.invalidate(aiMessage.id, conversation.id)
+        delete aiMessage.outputCheckpoint
+
         const stream = new Observable<MessageEvent>((subscriber) => {
             let chatMetricsFinished = false
             applicationMetrics.startChat({ from: metricFrom })
@@ -1110,7 +1117,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 data: {
                     type: ChatMessageTypeEnum.EVENT,
                     event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
-                    data: { ...aiMessage, status: 'thinking' }
+                    data: { ...publicChatMessage(aiMessage), status: 'thinking' }
                 }
             } as MessageEvent)
 
@@ -1211,7 +1218,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     data: {
                                         type: ChatMessageTypeEnum.EVENT,
                                         event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
-                                        data: { ...aiMessage, status: 'thinking' }
+                                        data: { ...publicChatMessage(aiMessage), status: 'thinking' }
                                     }
                                 } as MessageEvent)
                             }
@@ -1262,7 +1269,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                                 data: {
                                                     type: ChatMessageTypeEnum.EVENT,
                                                     event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
-                                                    data: { ...aiMessage }
+                                                    data: publicChatMessage(aiMessage)
                                                 }
                                             } as MessageEvent)
 
@@ -1318,6 +1325,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
 
                                 // Update ai message
+                                delete aiMessage.outputCheckpoint
                                 if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
                                     aiMessage.status = XpertAgentExecutionStatusEnum.ERROR
                                     aiMessage.error = _execution.error
@@ -1331,7 +1339,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     data: {
                                         type: ChatMessageTypeEnum.EVENT,
                                         event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
-                                        data: { ...aiMessage }
+                                        // The graph boundary becomes public only after this final bubble is persisted.
+                                        data: this.messageCheckpoints
+                                            ? await this.messageCheckpoints.finalize(aiMessage, conversation.options)
+                                            : publicChatMessage(aiMessage)
                                     }
                                 } as MessageEvent)
 

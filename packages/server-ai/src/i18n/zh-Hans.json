@@ -1,5 +1,16 @@
 {
+    "ConversationBranch": { "Title": "{{title}}（分叉）" },
     "Error": {
+        "ConversationBranch": {
+            "invalid_request": "需要提供来源线程、AI 消息和请求 UUID。",
+            "message_not_in_thread": "所选消息不在当前线程路径中。",
+            "message_not_complete": "只有已完成的 AI 消息可以分叉。",
+            "checkpoint_unavailable": "此消息对应的执行状态不可用。",
+            "graph_changed": "Assistant 工作流在此消息之后发生了变化。",
+            "state_not_supported": "此状态包含无法迁移到新对话的资源。",
+            "request_conflict": "此分叉请求已用于另一条消息。",
+            "files_unavailable": "部分文件无法关联到新对话。"
+        },
         "WorkspaceVisibilityInvalid": "工作空间访问范围无效。",
         "WorkspaceTenantSharingRequiresTenant": "只有租户级工作空间可以在租户内共享。",
         "WorkspaceOrganizationSharingRequiresOrganization": "只有组织级工作空间可以在组织内共享。",

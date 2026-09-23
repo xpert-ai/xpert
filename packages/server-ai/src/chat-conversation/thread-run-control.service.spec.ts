@@ -34,6 +34,19 @@ describe('ThreadRunControlService', () => {
 
     const snapshot = JSON.stringify({ version: 1, messages: [{ type: 'ai', content: 'Visible prefix' }] })
 
+    it('retains a copied graph revision through failed first attempts and clears it on success', async () => {
+        const { thread, service } = setup()
+        thread.metadata = { forkGraphRevision: 'revision' }
+        await service.recordGraph('thread', 'run', 'revision')
+        expect(thread.metadata.forkGraphRevision).toBe('revision')
+        await service.finish('thread', 'run', 'error')
+        await service.start('thread', 'retry')
+        await expect(service.recordGraph('thread', 'retry', 'changed')).rejects.toBeInstanceOf(ConflictException)
+        await service.recordGraph('thread', 'retry', 'revision')
+        await service.finish('thread', 'retry', 'idle')
+        expect(thread.metadata.forkGraphRevision).toBeUndefined()
+    })
+
     it('exposes the snapshot only in thread detail and keeps it out of public metadata', async () => {
         const { thread, service } = setup()
         await service.requestPause('thread', 'run', snapshot)

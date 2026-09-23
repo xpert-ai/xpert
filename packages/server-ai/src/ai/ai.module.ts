@@ -38,6 +38,9 @@ import { ConversationAgentRunsService } from './conversation-agent-runs.service'
 import { RuntimeResourceController } from '../agent-plugin/runtime-resource.controller'
 import { ConnectorModule } from '../connector/connector.module'
 import { ConnectorRuntimeController } from './connector-runtime.controller'
+import { ConversationBranchController } from './conversation-branch.controller'
+import { ConversationBranchService } from '../chat-conversation/conversation-branch.service'
+import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
 
 @Module({
     imports: [
@@ -48,6 +51,7 @@ import { ConnectorRuntimeController } from './connector-runtime.controller'
             }
         ]),
         TenantModule,
+        CopilotCheckpointModule,
         SecretTokenModule,
         RedisModule,
         CqrsModule,
@@ -73,6 +77,7 @@ import { ConnectorRuntimeController } from './connector-runtime.controller'
         XpertProjectModule
     ],
     controllers: [
+        ConversationBranchController,
         AIController,
         AIV1Controller,
         ContextsController,
@@ -85,6 +90,7 @@ import { ConnectorRuntimeController } from './connector-runtime.controller'
         StoreController
     ],
     providers: [
+        ConversationBranchService,
         AiService,
         RuntimeCommandService,
         RuntimeCapabilitiesService,

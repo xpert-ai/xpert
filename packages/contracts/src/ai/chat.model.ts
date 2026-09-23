@@ -49,6 +49,58 @@ export type TChatInputCheckpoint = {
   graphRevision: string
 }
 
+/**
+ * Server-only graph boundary for an assistant reply. Capture first pins persisted
+ * state; both hashes are added only after the final message and its path are saved.
+ * An unsealed boundary must never enable branching in public message payloads.
+ */
+export type TChatOutputCheckpoint = {
+  version: 1
+  /** Exact root-graph resume point; never substitute the thread's latest checkpoint. */
+  checkpoint: TChatCheckpointReference
+  /** Root and child namespaces pinned while this execution still owns the thread. */
+  checkpoints: TChatCheckpointReference[]
+  /** Reject continuation if the published graph no longer matches this boundary. */
+  graphRevision: string
+  options?: TChatConversationOptions
+  /** Hash of the finalized presentation; detects later edits to stored messages. */
+  messageHash?: string
+  /** Hash of the ordered ancestor path, including the selected assistant reply. */
+  messagePathHash?: string
+  /** Access must be checked again before linking these assets to a new conversation. */
+  fileAssetIds?: string[]
+  agentRuns?: import('./xpert-agent-execution.model').TChatAgentRunSummary[]
+}
+
+/** Copy the source thread's ancestor path through afterMessageId, inclusive. */
+export type TConversationBranchRequest = {
+  sourceThreadId: string
+  afterMessageId: string
+  /** Reuse this UUID for retries of one user attempt; changing parameters is a conflict. */
+  requestId: string
+}
+
+/** Audit data and retry identity, not foreign keys into the source conversation. */
+export type TConversationBranchSource = {
+  conversationId: string
+  threadId: string
+  messageId: string
+  requestId: string
+}
+
+/** Public capability reasons shared by history reads and message completion events. */
+export type TChatMessageBranchUnavailableReason =
+  | 'message_not_complete'
+  | 'checkpoint_unavailable'
+  | 'graph_changed'
+  | 'state_not_supported'
+
+/** UI hint only; the branch endpoint revalidates access, state and graph compatibility. */
+export type TChatMessageBranching = {
+  available: boolean
+  reason?: TChatMessageBranchUnavailableReason
+}
+
 // Versioned client presentation state; never an execution checkpoint or model input.
 export type TChatThreadDisplayPause = {
   executionId: string
@@ -129,6 +181,7 @@ export type TSensitiveOperation = {
  * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
+  branchSource?: TConversationBranchSource | null
   /**
    * Non-persistent, response-only field populated by the sidebar endpoint.
    * Not stored on the ChatConversation entity or in the chat_conversation table.

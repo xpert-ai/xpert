@@ -106,10 +106,6 @@ export class ThreadRunControlService {
                 throw threadControlConflict('PausedGraphChanged', 'The workflow has changed since this run started.')
             }
             thread.runControl.graphRevision = graphRevision
-            if (thread.metadata?.forkGraphRevision) {
-                const { forkGraphRevision: _revision, ...metadata } = thread.metadata
-                thread.metadata = metadata
-            }
             await manager.save(thread)
         })
     }
@@ -271,6 +267,11 @@ export class ThreadRunControlService {
             thread.status = status
             thread.error = error ?? null
             thread.operation = operation ?? null
+            // Preserve fork compatibility across failed attempts; release it only after a successful continuation.
+            if (status === 'idle' && thread.metadata?.forkGraphRevision) {
+                const { forkGraphRevision: _revision, ...metadata } = thread.metadata
+                thread.metadata = metadata
+            }
             await manager.save(thread)
             return status
         })

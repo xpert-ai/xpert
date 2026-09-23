@@ -59,14 +59,16 @@ describe('ChatConversationThreadService', () => {
     })
 
     it('loads only the root-to-head ancestor path for a derived thread', async () => {
-        const findAndCount = jest.fn().mockResolvedValue([[{ id: 'message-1' }, { id: 'message-3' }], 2])
+        const find = jest.fn().mockResolvedValue([{ id: 'message-3', parentId: 'message-1' }, { id: 'message-1' }])
         const getTreeRepository = jest.fn().mockReturnValue({
-            findAncestors: jest.fn().mockResolvedValue([{ id: 'message-1' }, { id: 'message-3' }])
+            findAncestors: jest
+                .fn()
+                .mockResolvedValue([{ id: 'message-1' }, { id: 'message-3', parentId: 'message-1' }])
         })
         const service = createService({
             messageRepository: {
                 findOne: jest.fn().mockResolvedValue({ id: 'message-3' }),
-                findAndCount,
+                find,
                 manager: { getTreeRepository } as unknown as Repository<ChatMessage>['manager']
             } as Partial<Repository<ChatMessage>>
         })
@@ -79,14 +81,15 @@ describe('ChatConversationThreadService', () => {
         const page = await service.findVisibleMessages('side-thread')
 
         expect(page.total).toBe(2)
-        expect(findAndCount).toHaveBeenCalledWith(
+        expect(page.items.map((message) => message.id)).toEqual(['message-1', 'message-3'])
+        expect(find).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: expect.objectContaining({
                     conversationId: 'conversation-1'
                 })
             })
         )
-        const where = findAndCount.mock.calls[0][0].where
+        const where = find.mock.calls[0][0].where
         expect(where.id).toEqual(expect.objectContaining({ _value: ['message-1', 'message-3'] }))
     })
 

@@ -9,6 +9,7 @@ import {
     TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
+import { messageBranching } from '../../chat-message/message-branching'
 import {
     normalizeRuntimeCapabilitiesSelection,
     type TRuntimeCapabilitiesSelectionWithRecommended
@@ -41,6 +42,9 @@ function readModelMetadata(value: unknown): string | undefined {
 
 @Exclude()
 export class ConversationDTO {
+    @Expose()
+    branchSource?: IChatConversation['branchSource']
+
     @Expose()
     id: string
 
@@ -91,13 +95,19 @@ export class ConversationDTO {
 @Exclude()
 export class ChatMessageDTO {
     @Expose()
+    branching?: IChatMessage['branching']
+
+    @Expose()
+    historical?: boolean
+
+    @Expose()
     id: string
 
     @Expose()
     conversationId?: string
 
     @Expose()
-    parentId?: string
+    parentId?: string | null
 
     @Expose()
     createdInThreadId?: string
@@ -159,6 +169,11 @@ export class ChatMessageDTO {
 
     constructor(partial: Partial<IChatMessage>) {
         Object.assign(this, partial)
+        this.branching = messageBranching(partial)
+        if (partial.historicalAgentRuns) {
+            this.agentRuns = partial.historicalAgentRuns
+            this.historical = true
+        }
         const runtimeCapabilities = normalizeRuntimeCapabilitiesSelection(
             readRuntimeCapabilitiesMetadata(partial.thirdPartyMessage)
         )

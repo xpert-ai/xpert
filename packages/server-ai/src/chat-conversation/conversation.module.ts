@@ -30,6 +30,8 @@ import { WorkbenchAssistantConversationNavigationService } from './workbench-ass
 import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
 import { ChatConversationSidebarController } from './conversation-sidebar.controller'
 import { ChatConversationSidebarService } from './conversation-sidebar.service'
+import { MessageCheckpointService } from './message-checkpoint.service'
+import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.service'
 
 @Module({
     imports: [
@@ -61,6 +63,8 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ConversationAgentRunsService,
+        MessageCheckpointService,
         ChatConversationService,
         ChatConversationSidebarService,
         ChatConversationThreadService,
@@ -73,6 +77,7 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
         ...QueryHandlers
     ],
     exports: [
+        MessageCheckpointService,
         ThreadRunControlService,
         ChatConversationService,
         ChatConversationThreadService,
