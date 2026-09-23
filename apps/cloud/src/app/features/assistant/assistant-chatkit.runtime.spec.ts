@@ -156,6 +156,7 @@ describe('assistant chatkit runtime helpers', () => {
     const layout = {
       maxWidth: '960px'
     }
+    const messagePresentation = { collapseProcess: true }
     const workbench = {
       enabled: true,
       sideChat: {
@@ -229,6 +230,7 @@ describe('assistant chatkit runtime helpers', () => {
         layout,
         pet,
         workbench,
+        messagePresentation,
         composer,
         onProjectChange,
         titleKey: 'XP.Xpert.Assistant',
@@ -249,6 +251,7 @@ describe('assistant chatkit runtime helpers', () => {
         layout,
         pet,
         workbench,
+        messagePresentation,
         api: expect.objectContaining({
           xpertId: 'assistant-1',
           projectId: 'project-1'
@@ -281,6 +284,7 @@ describe('assistant chatkit runtime helpers', () => {
     expect(setOptions).toHaveBeenLastCalledWith(
       expect.objectContaining({
         displayMode: 'chat',
+        messagePresentation,
         header: {
           title: {
             text: 'Assistant'

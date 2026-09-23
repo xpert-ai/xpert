@@ -753,6 +753,12 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    expect(getRuntimeInput()).toEqual(
+      expect.objectContaining({
+        messagePresentation: { collapseProcess: true }
+      })
+    )
+
     expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
       runtimeScope: { projectId: null, conversationId: 'conversation-1' }
     })

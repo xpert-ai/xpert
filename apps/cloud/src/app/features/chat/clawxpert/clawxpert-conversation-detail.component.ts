@@ -354,6 +354,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     taskSummary: {
       enabled: true
     },
+    // Keep the final reply visible while retaining earlier process messages in an expandable section.
+    messagePresentation: {
+      collapseProcess: true
+    },
     workbench: {
       sideChat: {
         enabled: true

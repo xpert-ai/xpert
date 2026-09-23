@@ -81,6 +81,8 @@ type AssistantHostedRuntimeInput = {
   composer?: Signal<CreateChatKitOptions['composer'] | null>
   pet?: CreateChatKitOptions['pet']
   taskSummary?: CreateChatKitOptions['taskSummary']
+  /** Host-specific presentation policy; execution state and persisted history remain unchanged. */
+  messagePresentation?: CreateChatKitOptions['messagePresentation']
   workbench?: CreateChatKitOptions['workbench']
   startScreen?: Signal<CreateChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
@@ -352,6 +354,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       layout: input.layout,
       pet: input.pet,
       taskSummary: input.taskSummary,
+      messagePresentation: input.messagePresentation,
       workbench: input.workbench,
       ...(mcpApps ? { mcpApps } : {}),
       toolOutputAttachments: {
