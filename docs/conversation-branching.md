@@ -16,6 +16,8 @@
 
 返回 `ChatConversation`，包含新 `id`、`threadId`、`branchSource`。沿用现有 AI API 认证和组织上下文；要求对源会话具有 contribute 权限，并再次校验公开 Assistant、项目和文件访问。`requestId` 在同一用户、源 thread 下持久化去重，网络重试须复用；同一标识改变消息参数返回 409。
 
+新分叉标题使用 `原标题 (2)`、`原标题 (3)` 等编号。从自动编号的分叉再次创建分叉时沿用同组序号，不叠加后缀；手动重命名后，以新标题开始另一组编号。`branchSource.naming` 保存编号来源和自动标题，同组编号在创建事务内加锁分配，重试不消耗编号。旧对话标题保持原样，不通过解析括号或本地化文案推断分组。
+
 AI 消息通过 `branching: { available, reason? }` 暴露能力。内部 outputCheckpoint 不出现在历史 DTO 或 SSE 中。原因包括 `message_not_complete`、`checkpoint_unavailable`、`graph_changed`、`state_not_supported`；endpoint 另外可返回 `message_not_in_thread`、`request_conflict`。访问撤销按现有 403 处理。
 
 ## 状态边界与数据所有权

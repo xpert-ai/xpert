@@ -86,6 +86,18 @@ export type TConversationBranchSource = {
   threadId: string
   messageId: string
   requestId: string
+  naming?: TConversationBranchNaming
+}
+
+/** Persisted numbering group; display titles are never parsed to infer ancestry. */
+export type TConversationBranchNaming = {
+  /** Stable numbering group retained even if its original conversation is deleted. */
+  familyId: string
+  baseTitle: string
+  /** The original is implicitly 1; generated branches start at 2. */
+  number: number
+  /** A different current title means the user renamed the branch and starts a new group. */
+  generatedTitle: string
 }
 
 /** Public capability reasons shared by history reads and message completion events. */

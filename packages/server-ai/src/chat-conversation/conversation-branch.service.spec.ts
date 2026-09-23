@@ -31,6 +31,7 @@ jest.mock('./branch-checkpoints', () => ({
 
 type FixtureOptions = {
     read?: () => Promise<void>
+    query?: (sql: string, parameters: unknown[]) => Promise<unknown>
     transaction?: (run: () => Promise<ChatConversation>) => Promise<ChatConversation>
     saveMessage?: (message: ChatMessage) => Promise<void>
     beforeTransaction?: () => void
@@ -117,8 +118,10 @@ function fixture(options: FixtureOptions = {}) {
         })
     }
     const lookup = {
+        select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn(async () => savedConversations),
         getOne: jest.fn(async () => savedConversations[0] ?? null)
     }
     const conversationRepository = {
@@ -152,6 +155,7 @@ function fixture(options: FixtureOptions = {}) {
         })
     }
     const manager = {
+        query: jest.fn(async (sql: string, parameters: unknown[]) => options.query?.(sql, parameters)),
         getRepository: (entity: unknown) =>
             entity === ConversationFileLink
                 ? linkRepository
@@ -227,6 +231,7 @@ function fixture(options: FixtureOptions = {}) {
         savedMessages,
         savedThreads,
         lookup,
+        manager,
         input: { sourceThreadId: source.threadId, afterMessageId: a1.id, requestId: randomUUID() }
     }
 }
@@ -381,7 +386,7 @@ describe('ConversationBranchService', () => {
         expect(target.id).not.toBe(test.source.id)
         expect(target.threadId).not.toBe('source')
         expect(target).toMatchObject({
-            title: 'Original (branch)',
+            title: 'Original (2)',
             status: 'idle',
             xpertId: 'assistant',
             projectId: 'project',
@@ -417,6 +422,8 @@ describe('ConversationBranchService', () => {
         const target = await test.service.branch(test.source.id, test.input)
         expect(await test.service.branch(test.source.id, test.input)).toBe(target)
         expect(test.savedConversations).toHaveLength(1)
+        expect(target.branchSource.naming.number).toBe(2)
+        expect(test.manager.query).toHaveBeenCalledTimes(1)
         expect(copyBranchCheckpoints).toHaveBeenCalledTimes(1)
         await expect(
             test.service.branch(test.source.id, { ...test.input, afterMessageId: test.h1.id })
@@ -502,6 +509,7 @@ postgres('conversation branching with one PostgreSQL connection', () => {
             read: async () => {
                 await database.query('SELECT 1')
             },
+            query: (sql, parameters) => transactionManager!.query(sql, parameters),
             transaction: (run) =>
                 database.transaction(async (manager) => {
                     transactionManager = manager

@@ -1,5 +1,5 @@
 {
-    "ConversationBranch": { "Title": "{{title}} (branch)" },
+    "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
         "ConversationBranch": {
             "invalid_request": "Source thread, assistant message and request UUIDs are required.",

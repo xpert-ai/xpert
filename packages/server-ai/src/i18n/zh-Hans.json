@@ -1,5 +1,5 @@
 {
-    "ConversationBranch": { "Title": "{{title}}（分叉）" },
+    "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
     "Error": {
         "ConversationBranch": {
             "invalid_request": "需要提供来源线程、AI 消息和请求 UUID。",

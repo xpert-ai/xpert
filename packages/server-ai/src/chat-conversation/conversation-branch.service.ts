@@ -35,6 +35,7 @@ import { threadGraphRevision } from './thread-run-control.service'
 import { messageAncestorPath } from './message-path'
 import { applicationMetrics } from '../metrics'
 import { rebindTaskSummary } from './branch-message-references'
+import { allocateBranchTitle } from './branch-title'
 
 const requestSchema = z.object({
     sourceThreadId: z.string().trim().min(1).max(100),
@@ -111,6 +112,9 @@ export class ConversationBranchService {
                     const allowedThreadIds = new Set(allowedThreads.map((thread) => thread.threadId))
                     const conversations = manager.getRepository(ChatConversation)
                     const messages = manager.getRepository(ChatMessage)
+                    const naming = await allocateBranchTitle(manager, source)
+                    target.title = naming.generatedTitle
+                    target.branchSource.naming = naming
                     await conversations.save(target)
                     const count = await copyBranchCheckpoints({
                         manager,
@@ -330,7 +334,6 @@ export class ConversationBranchService {
         const target = this.dataSource.manager.getRepository(ChatConversation).create({
             id,
             threadId,
-            title: t('server-ai:ConversationBranch.Title', { title: source.title || 'Chat' }),
             xpertId: source.xpertId,
             projectId: source.projectId,
             options,
