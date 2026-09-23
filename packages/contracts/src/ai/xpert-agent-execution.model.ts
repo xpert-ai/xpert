@@ -164,6 +164,8 @@ export type TAgentExecutionMetadata = {
 
 /** Public execution summary shared by live events and conversation history. */
 export type TChatAgentRunSummary = {
+  /** Identifies the main reply and its total duration without inferring identity from agent names. */
+  isRoot?: boolean
   id: string
   parentId?: string
   type?: string

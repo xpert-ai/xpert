@@ -1086,7 +1086,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             ? {
                                   userMessage: {
                                       id: submittedUserMessage.id,
-                                      clientMessageId: request.message.clientMessageId
+                                      clientMessageId: request.message.clientMessageId,
+                                      createdAt: submittedUserMessage.createdAt,
+                                      updatedAt: submittedUserMessage.updatedAt
                                   }
                               }
                             : {})
