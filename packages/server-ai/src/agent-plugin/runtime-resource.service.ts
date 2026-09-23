@@ -400,6 +400,7 @@ export class RuntimeResourceService {
                             description: skill.description,
                             rootPath: join(pkg.rootPath, dirname(skill.path)),
                             runtimePath: `agent-plugins/${pkg.id}/${skill.key}`,
+                            origin: { type: 'plugin', id: pkg.id },
                             version: pkg.digest
                         })
                 })

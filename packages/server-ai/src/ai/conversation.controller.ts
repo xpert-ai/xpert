@@ -1,3 +1,4 @@
+import { stripClientSkillContent, stripClientSkillSummary } from '../chat-message/client-skill-usage'
 import {
     BadRequestException,
     Body,
@@ -696,11 +697,11 @@ export class ConversationsController {
             ...(body.parentId !== undefined ? { parentId: body.parentId } : {}),
             ...(body.role !== undefined ? { role: body.role } : {}),
             ...(body.status !== undefined ? { status: body.status } : {}),
-            ...(body.content !== undefined ? { content: body.content } : {}),
+            ...(body.content !== undefined ? { content: stripClientSkillContent(body.content) } : {}),
             ...(body.reasoning !== undefined ? { reasoning: body.reasoning } : {}),
             ...(body.error !== undefined ? { error: body.error } : {}),
             ...(body.references !== undefined ? { references: body.references } : {}),
-            ...(body.taskSummary !== undefined ? { taskSummary: body.taskSummary } : {}),
+            ...(body.taskSummary !== undefined ? { taskSummary: stripClientSkillSummary(body.taskSummary) } : {}),
             ...(body.thirdPartyMessage !== undefined ? { thirdPartyMessage: body.thirdPartyMessage } : {}),
             ...(body.events !== undefined ? { events: body.events } : {}),
             ...(body.executionId !== undefined ? { executionId: body.executionId } : {}),

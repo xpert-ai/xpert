@@ -25,6 +25,7 @@ import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
 import { AgentStateAnnotation, createTextChunk } from '../shared'
+import { readSkillUsageArtifact } from '../skill-package/plugins/skills-middleware/skill-usage'
 
 type TExecutionStreamMetadata = {
     agentKey?: string
@@ -417,6 +418,14 @@ export function createMapStreamEvents(
                         }
                         if (output.artifact) {
                             component.artifact = output.artifact
+                            // Attribute only a successful built-in read whose artifact matches this tool call.
+                            const skillUsage =
+                                rest.name === 'read_skill_file' && output.status !== 'error'
+                                    ? readSkillUsageArtifact(output.artifact)
+                                    : undefined
+                            if (skillUsage && skillUsage.toolCallId === tool_call_id) {
+                                component.taskSummary = { version: 1, skillUsages: [skillUsage] }
+                            }
                             const mcpMeta = readXpertMcpMetaArtifact(output.artifact)
                             if (mcpMeta) {
                                 component._meta = mcpMeta

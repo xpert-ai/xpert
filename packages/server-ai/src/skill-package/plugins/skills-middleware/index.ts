@@ -3,6 +3,7 @@ import {
     RuntimeResourceMiddlewareContext
 } from '../../../agent-plugin/runtime-resource-context'
 import { readRuntimeResourceSkillFile } from '../../../agent-plugin/runtime-resource-skill-file'
+import { RegisteredSkillUsage, registerSkillUsages, skillReadResult } from './skill-usage'
 /**
 Middleware for loading and exposing agent skills to the system prompt.
 
@@ -699,6 +700,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         const resourceSources =
             (context as IAgentMiddlewareContext & RuntimeResourceMiddlewareContext)[RUNTIME_RESOURCE_SKILLS] ?? []
         let activeResourceSkills: SkillPromptMetadata[] = []
+        let registeredSkillUsages: RegisteredSkillUsage[] = []
         let runtimeSandbox: unknown = null
         let runtimeSkillsRootInContainer = join(FALLBACK_RUNTIME_ROOT_IN_CONTAINER, RUNTIME_SKILLS_DIRECTORY)
         let runtimeWorkingDirectory = ''
@@ -903,6 +905,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 if (!fullPath) {
                     throw new Error(`Access to path "${path}" is denied.`)
                 }
+                // Only the registered main file counts; reading a skill's supporting files is not activation.
+                const usage = registeredSkillUsages.find((skill) => skill.path === fullPath)
 
                 if (!resolveSandboxBackend(sandbox)) {
                     for (const skill of activeResourceSkills) {
@@ -917,7 +921,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                                 getWorkspaceRoot(tenantId, skill.workspaceId),
                                 skill.packagePath
                             ))
-                        if (source) return readRuntimeResourceSkillFile(source, suffix)
+                        if (source)
+                            return skillReadResult(await readRuntimeResourceSkillFile(source, suffix), usage, config)
                     }
                 }
 
@@ -929,7 +934,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     if (result.exitCode !== 0) {
                         throw new Error(result.output || `Failed to read file: ${fullPath}`)
                     }
-                    return result.output
+                    return skillReadResult(result.output, usage, config)
                 }
 
                 const fallbackBackend = await this.acquireFallbackSandboxBackend(
@@ -944,10 +949,11 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 if (result.exitCode !== 0) {
                     throw new Error(result.output || `Failed to read file: ${fullPath}`)
                 }
-                return result.output
+                return skillReadResult(result.output, usage, config)
             },
             {
                 name: 'read_skill_file',
+                responseFormat: 'content_and_artifact',
                 description: `Read a skill's file from the current working directory. Use this to read full SKILL.md instructions from installed skills, including .xpert/skills and .agents/skills.`,
                 schema: z.object({
                     path: z
@@ -1347,6 +1353,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     this.deduplicateSkillMetadata(skills),
                     disabledSkillIds
                 )
+                registeredSkillUsages = registerSkillUsages(effectiveSkills, resourceSources, context)
 
                 activeResourceSkills = effectiveSkills.filter((skill) =>
                     resourceSources.some((source) => source.id === skill.id)
