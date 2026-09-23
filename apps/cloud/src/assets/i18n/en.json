@@ -1714,6 +1714,16 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "Files": {
+      "Pdf": {
+        "Previous": "Previous page",
+        "Next": "Next page",
+        "ZoomOut": "Zoom out",
+        "ZoomIn": "Zoom in",
+        "FitWidth": "Fit width",
+        "Loading": "Rendering PDF...",
+        "Failed": "Unable to preview this PDF. Retry or download the file.",
+        "Retry": "Retry"
+      },
       "MoreActions": "More actions"
     },
     "WorkspaceFiles": {

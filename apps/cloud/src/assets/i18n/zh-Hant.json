@@ -1238,6 +1238,16 @@
       "DeleteSelected": "刪除所選"
     },
     "Files": {
+      "Pdf": {
+        "Previous": "\u4e0a\u4e00\u9801",
+        "Next": "\u4e0b\u4e00\u9801",
+        "ZoomOut": "\u7e2e\u5c0f",
+        "ZoomIn": "\u653e\u5927",
+        "FitWidth": "\u9069\u5408\u5bec\u5ea6",
+        "Loading": "\u6b63\u5728\u8f09\u5165 PDF...",
+        "Failed": "\u7121\u6cd5\u9810\u89bd\u6b64 PDF\uff0c\u8acb\u91cd\u8a66\u6216\u4e0b\u8f09\u6a94\u6848\u3002",
+        "Retry": "\u91cd\u8a66"
+      },
       "InstalledSkills": "已安裝技能",
       "WorkspaceSkillsWorkbenchDesc": "瀏覽已安裝技能，查看其文件樹，並在當前工作區直接編輯支援的文件。",
       "UploadSkills": "上傳技能",

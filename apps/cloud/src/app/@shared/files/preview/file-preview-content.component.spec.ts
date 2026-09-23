@@ -5,6 +5,18 @@ import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorSelection } from '../editor/editor.component'
 import { FilePreviewContentComponent } from './file-preview-content.component'
 
+jest.mock('./file-pdf-preview.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+  @Component({ standalone: true, selector: 'xp-file-pdf-preview', template: '' })
+  class FilePdfPreviewComponent {
+    @Input() url?: string | null
+    @Input() fileName?: string
+    @Input() downloadable?: boolean
+    @Output() download = new EventEmitter<void>()
+  }
+  return { FilePdfPreviewComponent }
+})
+
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Component, Input, Pipe, inject } = jest.requireActual('@angular/core')
 
@@ -166,6 +178,24 @@ describe('FilePreviewContentComponent', () => {
     expect(docxPreview).not.toBeNull()
     expect(docxPreview.componentInstance.documentBlob).toBe(documentBlob)
     expect(fixture.nativeElement.textContent).toContain('Executive summary')
+  })
+
+  it('routes PDFs through the platform renderer and forwards downloads', () => {
+    const fixture = TestBed.createComponent(FilePreviewContentComponent)
+    const download = jest.fn()
+    fixture.componentInstance.download.subscribe(download)
+    fixture.componentRef.setInput('previewKind', 'pdf')
+    fixture.componentRef.setInput('url', '/report.pdf')
+    fixture.componentRef.setInput('fileName', 'report.pdf')
+    fixture.componentRef.setInput('downloadable', true)
+    fixture.detectChanges()
+    const pdf = fixture.debugElement.query(By.css('xp-file-pdf-preview'))
+    expect(pdf.componentInstance.url).toBe('/report.pdf')
+    expect(pdf.componentInstance.fileName).toBe('report.pdf')
+    expect(pdf.componentInstance.downloadable).toBe(true)
+    expect(fixture.nativeElement.querySelector('iframe')).toBeNull()
+    pdf.componentInstance.download.emit()
+    expect(download).toHaveBeenCalledTimes(1)
   })
 
   it('renders html previews through the dedicated html preview component and forwards events', () => {
