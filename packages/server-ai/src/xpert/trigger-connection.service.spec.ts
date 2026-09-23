@@ -83,6 +83,7 @@ describe('Xpert trigger quick connections', () => {
                 quickConnect: { method: 'qr', integrationProvider: 'dingtalk_long', configField: 'integrationId' }
             },
             validate: jest.fn(async () => []),
+            stop: jest.fn(async () => undefined),
             connectionStatus: jest.fn(async () => ({ connected: online, state: online ? 'connected' : 'failed' }))
         }
         const registry = { get: jest.fn(() => strategy), list: jest.fn(() => [strategy]) }
@@ -133,6 +134,19 @@ describe('Xpert trigger quick connections', () => {
         expect(triggerConfig(f.current().graph, 'dingtalk').enabled).toBe(false)
         expect(triggerConfig(f.current().draft, 'dingtalk').enabled).toBe(false)
         expect(f.qr.complete).toHaveBeenCalledTimes(1)
+    })
+
+    it('replays stop on an already disabled trigger to repair a stale runtime binding', async () => {
+        const f = setup()
+        await f.service.complete('xpert', 'dingtalk', 'session')
+        await f.service.disconnect('xpert', 'dingtalk')
+        expect(f.strategy.stop).not.toHaveBeenCalled()
+        expect(await f.service.disconnect('xpert', 'dingtalk')).toMatchObject({ enabled: false, connected: false })
+        expect(f.strategy.stop).toHaveBeenCalledWith({
+            xpertId: 'xpert',
+            config: { enabled: false, integrationId: 'integration' }
+        })
+        expect(triggerConfig(f.current().graph, 'dingtalk').enabled).toBe(false)
     })
 
     it('rolls back persisted configuration and stops the new binding when startup fails', async () => {
