@@ -299,26 +299,27 @@
             (click)="toggleWorkbenchMaximized()"
           >
             <i
-              [class]="immersiveWorkbench() ? 'ri-fullscreen-exit-line text-lg' : 'ri-fullscreen-line text-lg'"
+              [class]="immersiveWorkbench() ? 'ri-collapse-diagonal-line text-lg' : 'ri-expand-diagonal-line text-lg'"
               aria-hidden="true"
             ></i>
           </button>
-          <button
-            z-button
-            type="button"
-            zType="ghost"
-            zSize="icon"
-            data-toggle-detail-panel
-            data-chatkit-layout-mode-toggle
-            [attr.data-chatkit-layout-mode]="chatkitLayoutMode()"
-            class="flex items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-            [title]="chatkitLayoutActionLabel()"
-            [zTooltip]="chatkitLayoutActionLabel()"
-            zPosition="bottom"
-            (click)="toggleChatkitLayoutMode()"
-          >
-            <i [class]="chatkitLayoutModeIconClasses()" aria-hidden="true"></i>
-          </button>
+          @if (isChatMinimizedToPet()) {
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon"
+              data-restore-chatkit-overlay
+              class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+              [attr.aria-label]="'XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' }"
+              [title]="'XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' }"
+              [zTooltip]="'XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' }"
+              zPosition="bottom"
+              (click)="restoreChatkitFromPet()"
+            >
+              <i class="ri-picture-in-picture-2-line text-lg" aria-hidden="true"></i>
+            </button>
+          }
           <div
             data-workbench-account
             [attr.inert]="immersiveWorkbench() ? null : ''"

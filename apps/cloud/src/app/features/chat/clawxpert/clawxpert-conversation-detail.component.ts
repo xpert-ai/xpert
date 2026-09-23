@@ -121,7 +121,6 @@ import {
   CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX,
   CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
   CLAWXPERT_CHAT_COLUMN_MAX_WIDTH,
-  WORKSPACE_LAYOUT_TRANSITION_CLASSES,
   CHAT_SHELL_TRANSITION_CLASSES,
   DETAIL_PANEL_SHELL_TRANSITION_CLASSES,
   DETAIL_PANEL_CONTENT_TRANSITION_CLASSES,
@@ -131,6 +130,8 @@ import {
   isChatkitVisuallyMinimizedToPet
 } from './conversation-detail/chatkit/layout'
 import { installChatkitOverlayDialogControls } from './conversation-detail/chatkit/overlay-controls'
+import { startChatkitPanelResize } from './conversation-detail/chatkit/panel-resize'
+import { createWorkspaceLayoutClasses } from './conversation-detail/chatkit/workspace-layout'
 import {
   CONVERSATION_DETAIL_RELATIONS,
   type WorkbenchConversationChatkitScope,
@@ -527,41 +528,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly detailPanelVisible = signal(false)
   readonly workspaceMaximized = signal(false)
-  readonly chatkitLayoutMode = computed<'pet' | 'overlay' | 'pinned' | 'chat'>(() =>
-    this.isChatMinimizedToPet()
-      ? 'pet'
-      : this.overlayDialog()
-        ? 'overlay'
-        : this.chatkitPinnedToRight()
-          ? 'pinned'
-          : 'chat'
-  )
-  readonly chatkitLayoutModeIconClasses = computed(() => {
-    switch (this.chatkitLayoutMode()) {
-      case 'pet':
-        return 'ri-restart-line text-lg'
-      case 'overlay':
-      case 'chat':
-        return 'ri-layout-right-line text-lg'
-      case 'pinned':
-        return 'ri-picture-in-picture-2-line text-lg'
-    }
-  })
-  readonly chatkitLayoutActionLabel = computed(() => {
-    switch (this.chatkitLayoutMode()) {
-      case 'pet':
-        return this.#translate.instant('XP.Chat.ClawXpert.RestoreChatkit', { Default: 'Restore ChatKit' })
-      case 'overlay':
-      case 'chat':
-        return this.#translate.instant('XP.Chat.ClawXpert.PinOverlayDialog', {
-          Default: 'Pin ChatKit to the right'
-        })
-      case 'pinned':
-        return this.#translate.instant('XP.Chat.ClawXpert.SwitchToOverlayDialog', {
-          Default: 'Switch ChatKit to overlay'
-        })
-    }
-  })
   readonly #workbenchLayoutAssistantId = computed(
     () => this.facade.assistantId()?.trim() || this.facade.xpertId()?.trim() || null
   )
@@ -611,27 +577,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       !this.isChatMinimizedToPet() &&
       !this.chatkitHiddenFromWorkspace()
   )
-  readonly workspaceLayoutClasses = computed(() => {
-    const transitionClasses = this.isResizingChatkit() ? 'transition-none' : WORKSPACE_LAYOUT_TRANSITION_CLASSES
-
-    if (this.overlayDialog()) {
-      return `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-    }
-
-    if (this.isChatMinimizedToPet()) {
-      return this.showDetailPanel()
-        ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-        : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] ${transitionClasses} lg:grid-cols-[0rem_0rem] lg:grid-rows-1`
-    }
-
-    if (this.chatkitHiddenFromWorkspace()) {
-      return `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-    }
-
-    return this.showDetailPanel()
-      ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))] lg:grid-rows-1`
-      : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] ${transitionClasses} lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1`
-  })
+  readonly workspaceLayoutClasses = createWorkspaceLayoutClasses(this)
   readonly detailPanelShellClasses = computed(() =>
     this.showDetailPanel()
       ? `min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
@@ -1187,22 +1133,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.openDetailPanel()
   }
 
-  toggleChatkitLayoutMode() {
-    switch (this.chatkitLayoutMode()) {
-      case 'pet':
-        this.restoreChatkitFromPet()
-        return
-      case 'overlay':
-        this.pinOverlayChatkit()
-        return
-      case 'pinned':
-        this.restoreOverlayChatkit()
-        return
-      case 'chat':
-        this.restoreWorkbenchLayout()
-    }
-  }
-
   toggleWorkbenchMaximized() {
     if (this.immersiveWorkbench()) {
       this.restoreWorkbenchLayout(false)
@@ -1265,36 +1195,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
   }
 
-  pinOverlayChatkit() {
-    if (!this.overlayDialog()) {
-      return
-    }
-
-    this.#pendingInitialOverlayOpen = false
-    this.chatkitPinnedToRight.set(true)
-    this.overlayDialog.set(false)
-    this.detailPanelVisible.set(true)
-    this.workspaceMaximized.set(false)
-  }
-
-  restoreOverlayChatkit() {
-    if (!this.chatkitPinnedToRight()) {
-      return
-    }
-
-    this.#pendingInitialOverlayOpen = true
-    this.chatkitPinnedToRight.set(false)
-    this.overlayDialog.set(true)
-    this.detailPanelVisible.set(true)
-    this.workspaceMaximized.set(false)
-
-    const chatkitHost = this.chatkitHost()?.nativeElement
-    if (chatkitHost) {
-      this.openInitialOverlayDialog(resolveEmbeddedChatkitElement(chatkitHost))
-    }
-  }
-
-  private restoreChatkitFromPet() {
+  restoreChatkitFromPet() {
     const chatkitHost = this.chatkitHost()?.nativeElement
     if (!chatkitHost) {
       return
@@ -1348,41 +1249,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     event.preventDefault()
     this.stopChatkitResize()
-
-    const startX = event.clientX
-    const startWidth = this.chatkitWidthPx()
-    const previousCursor = document.body.style.cursor
-    const previousUserSelect = document.body.style.userSelect
-    const target = event.currentTarget
-
-    if (target instanceof HTMLElement && typeof target.setPointerCapture === 'function') {
-      target.setPointerCapture(event.pointerId)
-    }
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      moveEvent.preventDefault()
-      this.chatkitWidthPx.set(clampChatkitWidth(startWidth + startX - moveEvent.clientX))
-    }
-
-    const handlePointerEnd = () => {
-      this.stopChatkitResize()
-    }
-
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
     this.isResizingChatkit.set(true)
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerEnd, { once: true })
-    window.addEventListener('pointercancel', handlePointerEnd, { once: true })
-
-    this.#chatkitResizeCleanup = () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerEnd)
-      window.removeEventListener('pointercancel', handlePointerEnd)
-      document.body.style.cursor = previousCursor
-      document.body.style.userSelect = previousUserSelect
-      this.isResizingChatkit.set(false)
-    }
+    this.#chatkitResizeCleanup = startChatkitPanelResize(event, this.chatkitWidthPx(), {
+      onWidth: (width) => this.chatkitWidthPx.set(width),
+      onEnd: () => {
+        this.isResizingChatkit.set(false)
+        this.#chatkitResizeCleanup = null
+      },
+      onMaximize: () => this.toggleWorkbenchMaximized()
+    })
   }
 
   resizeChatkitFromKeyboard(event: Event, delta: number) {

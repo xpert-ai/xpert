@@ -778,21 +778,21 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.workspaceTabs().some((tab) => tab.kind === 'files')).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
     const layoutModeButton = fixture.nativeElement.querySelector(
-      '[data-chatkit-layout-mode-toggle]'
+      '[data-toggle-workbench-maximized]'
     ) as HTMLButtonElement
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('false')
     layoutModeButton.click()
     await settle(fixture)
 
     expect(fixture.componentInstance.overlayDialog()).toBe(true)
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('true')
     layoutModeButton.click()
     await settle(fixture)
 
     expect(fixture.componentInstance.overlayDialog()).toBe(false)
     expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(true)
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('false')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
@@ -2625,9 +2625,10 @@ describe('ClawXpertConversationDetailComponent', () => {
       await settle(fixture)
 
       expect(toggle.previousElementSibling?.hasAttribute('data-toggle-chatkit-maximized')).toBe(true)
-      expect(toggle.nextElementSibling?.hasAttribute('data-chatkit-layout-mode-toggle')).toBe(true)
+      expect(host.querySelectorAll('[data-toggle-workbench-maximized]')).toHaveLength(1)
+      expect(host.querySelector('[data-chatkit-layout-mode-toggle]')).toBeNull()
       expect(toggle.getAttribute('aria-pressed')).toBe('false')
-      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-line')
+      expect(toggle.querySelector('i')?.className).toContain('ri-expand-diagonal-line')
       expect(view).not.toBeNull()
       toggle.focus()
       toggle.click()
@@ -2638,7 +2639,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect(getRuntimeInput().displayMode?.()).toBe('pet')
       expect(toggle.getAttribute('aria-pressed')).toBe('true')
       expect(toggle.getAttribute('aria-label')).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
-      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-exit-line')
+      expect(toggle.querySelector('i')?.className).toContain('ri-collapse-diagonal-line')
       expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('maximized')
       // Changing layout must wait for the embedded runtime to enter overlay mode.
       expect(minimize).not.toHaveBeenCalled()
@@ -2655,9 +2656,13 @@ describe('ClawXpertConversationDetailComponent', () => {
       } else {
         expect(minimize).toHaveBeenCalledTimes(1)
         expect(component.isChatMinimizedToPet()).toBe(true)
+        expect(host.querySelector('[data-restore-chatkit-overlay]')).not.toBeNull()
+        expect(toggle.getAttribute('aria-label')).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
         toggle.click()
         await settle(fixture)
         expect(chatkit.dataset.chatOpen).toBe('true')
+        expect(component.workspaceMaximized()).toBe(false)
+        expect(host.querySelector('[data-restore-chatkit-overlay]')).toBeNull()
       }
       chatkit.dataset.displayMode = 'chat'
       await settle(fixture)
@@ -2666,7 +2671,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect(component.overlayDialog()).toBe(false)
       expect(component.showChatkitResizeHandle()).toBe(true)
       expect(toggle.getAttribute('aria-pressed')).toBe('false')
-      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-line')
+      expect(toggle.querySelector('i')?.className).toContain('ri-expand-diagonal-line')
       expect(document.activeElement).toBe(toggle)
       expect(host.querySelector('[data-toggle-workbench-maximized]')).toBe(toggle)
       expect(host.querySelector('[z-tab-nav-bar]')).toBe(nav)
@@ -2819,8 +2824,9 @@ describe('ClawXpertConversationDetailComponent', () => {
       )
 
       const view = host.querySelector('[data-extension-host-outlet]')
-      host.querySelector<HTMLButtonElement>('[data-chatkit-layout-mode-toggle]')!.click()
+      host.querySelector<HTMLButtonElement>('[data-restore-chatkit-overlay]')!.click()
       await settle(fixture)
+      expect(host.querySelector('[data-restore-chatkit-overlay]')).toBeNull()
       expect(open).toHaveBeenCalledTimes(1)
       expect(chatkit.dataset.chatOpen).toBe('true')
       expect(component.isChatMinimizedToPet()).toBe(false)
@@ -2831,7 +2837,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       close.click()
       await settle(fixture)
       expect(component.isChatMinimizedToPet()).toBe(true)
-      component.restoreWorkbenchLayout()
+      host.querySelector<HTMLButtonElement>('[data-toggle-workbench-maximized]')!.click()
       await settle(fixture)
       expect(component.overlayDialog()).toBe(false)
       expect(component.workspaceMaximized()).toBe(false)
@@ -2854,7 +2860,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(view).not.toBeNull()
     expect(host.querySelector('[data-workbench-layout]')?.getAttribute('data-workbench-layout')).toBe('maximized')
 
-    host.querySelector<HTMLButtonElement>('[data-chatkit-layout-mode-toggle]')?.click()
+    host.querySelector<HTMLButtonElement>('[data-toggle-workbench-maximized]')?.click()
     await settle(fixture)
 
     expect(presentation.immersive()).toBe(false)
@@ -2868,7 +2874,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
 
-    fixture.componentInstance.restoreOverlayChatkit()
+    fixture.componentInstance.toggleWorkbenchMaximized()
     await settle(fixture)
     expect(presentation.immersive()).toBe(true)
     expect(host.querySelector('[data-extension-host-outlet]')).toBe(view)
@@ -2912,6 +2918,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     const launcherCloseButton = document.createElement('button')
     launcherCloseButton.className = 'ck-launcher-close'
     launcherCloseButton.setAttribute('aria-label', 'Close chat')
+    launcherCloseButton.addEventListener('click', () => {
+      chatkit.dataset.chatOpen = 'false'
+    })
     wrapper.appendChild(launcherCloseButton)
     const petButton = document.createElement('button')
     const activatePet = jest.fn(() => {
@@ -2938,12 +2947,12 @@ describe('ClawXpertConversationDetailComponent', () => {
     const resizeHandle = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-resize-handle]')
     const controlsStyle = shadowRoot.querySelector<HTMLStyleElement>('[data-chatkit-overlay-controls-style]')
     const layoutModeButton = fixture.nativeElement.querySelector(
-      '[data-chatkit-layout-mode-toggle]'
+      '[data-toggle-workbench-maximized]'
     ) as HTMLButtonElement
     expect(dragBar).not.toBeNull()
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
-    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.PinOverlayDialog')
-    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-layout-right-line')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('true')
+    expect(layoutModeButton.title).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-collapse-diagonal-line')
     expect(resizeHandle).not.toBeNull()
     expect(resizeHandle?.getAttribute('role')).toBe('separator')
     expect(controlsStyle?.textContent).toContain('top: 1px')
@@ -2977,10 +2986,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pet')
-    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-restart-line')
-    layoutModeButton.click()
+    expect(layoutModeButton.title).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-collapse-diagonal-line')
+    const restoreOverlayButton = fixture.nativeElement.querySelector(
+      '[data-restore-chatkit-overlay]'
+    ) as HTMLButtonElement
+    expect(restoreOverlayButton.title).toBe('XP.Chat.ClawXpert.RestoreChatkit')
+    restoreOverlayButton.click()
     await settle(fixture)
+    expect(fixture.nativeElement.querySelector('[data-restore-chatkit-overlay]')).toBeNull()
 
     expect(activatePet).toHaveBeenCalledTimes(2)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
@@ -2996,9 +3010,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).toBeNull()
     expect(shadowRoot.querySelector('[data-chatkit-overlay-resize-handle]')).toBeNull()
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
-    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.SwitchToOverlayDialog')
-    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-picture-in-picture-2-line')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('false')
+    expect(layoutModeButton.title).toBe('XP.Chat.WorkbenchPresentation.MaximizeWorkbench')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-expand-diagonal-line')
     expect(wrapper.style.left).toBe('')
     expect(wrapper.style.top).toBe('')
     expect(wrapper.style.right).toBe('')
@@ -3011,7 +3025,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
 
+    chatkit.dataset.displayMode = 'chat'
+    await settle(fixture)
     layoutModeButton.click()
+    await settle(fixture)
+    chatkit.dataset.displayMode = 'pet'
     await settle(fixture)
 
     expect(fixture.componentInstance.overlayDialog()).toBe(true)
@@ -3019,10 +3037,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(runtimeInput.displayMode?.()).toBe('pet')
     expect(runtimeInput.header?.()).toBeUndefined()
     expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).not.toBeNull()
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('true')
     expect(launcherCloseButton.style.getPropertyValue('display')).toBe('none')
     expect(launcherCloseButton.getAttribute('aria-hidden')).toBe('true')
-    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('overlay')
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('maximized')
   })
 
   it('opens the configured extension view as the initial Workbench tab', async () => {
@@ -3194,11 +3213,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.workbenchMaximized()).toBe(true)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
     const petLayoutModeButton = fixture.nativeElement.querySelector(
-      '[data-chatkit-layout-mode-toggle]'
+      '[data-restore-chatkit-overlay]'
     ) as HTMLButtonElement | null
     expect(petLayoutModeButton).not.toBeNull()
-    expect(petLayoutModeButton?.dataset.chatkitLayoutMode).toBe('pet')
-    expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-restart-line')
+    expect(petLayoutModeButton?.title).toBe('XP.Chat.ClawXpert.RestoreChatkit')
+    expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-picture-in-picture-2-line')
     const maximizeChatkitButton = fixture.nativeElement.querySelector(
       '[data-toggle-chatkit-maximized]'
     ) as HTMLElement | null
@@ -3218,7 +3237,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workbenchMaximized()).toBe(false)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
-    expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-toggle-workbench-maximized]')).not.toBeNull()
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
