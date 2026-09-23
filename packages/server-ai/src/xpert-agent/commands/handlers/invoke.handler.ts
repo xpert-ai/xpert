@@ -61,6 +61,7 @@ import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
 import { isThreadPause } from '../../../shared/agent/thread-pause'
+import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -78,7 +79,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
         @InjectRepository(ChatMessage)
         private readonly chatMessageRepository: Repository<ChatMessage>,
-        @Optional() private readonly threadRunControl?: ThreadRunControlService
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly messageCheckpoints?: MessageCheckpointService
     ) {}
 
     private async downgradePendingSteerFollowUpsToQueue(conversationId?: string, executionId?: string) {
@@ -520,6 +522,20 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                             }
                         } as MessageEvent)
                         throw new NodeInterrupt(`Confirm tool calls`)
+                    }
+                    // Pin graph state only after all tasks finish; the outer stream seals the final message later.
+                    if (state.next?.length === 0 && state.config?.configurable?.checkpoint_id) {
+                        await this.messageCheckpoints
+                            ?.capture(
+                                execution.id,
+                                {
+                                    threadId,
+                                    checkpointNs: state.config.configurable.checkpoint_ns ?? '',
+                                    checkpointId: state.config.configurable.checkpoint_id
+                                },
+                                graphRevision
+                            )
+                            .catch(() => this.#logger.warn('Unable to seal the assistant branch checkpoint'))
                     }
                     await this.commandBus.execute(
                         new XpertAgentExecutionUpsertCommand({

@@ -9,6 +9,7 @@ import {
 } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { t } from 'i18next'
 import { FindOneOptions, In, Repository } from 'typeorm'
 import { WorkspacePublicDTO } from './dto'
 import { XpertWorkspaceAccessService } from './workspace-access.service'
@@ -241,12 +242,16 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
     }
 
     private applyVisibility(workspace: XpertWorkspace, visibility: TXpertWorkspaceVisibility) {
-        if (visibility !== 'private' && visibility !== 'tenant-shared') {
-            throw new BadRequestException('Invalid workspace visibility.')
+        if (visibility !== 'private' && visibility !== 'tenant-shared' && visibility !== 'organization-shared') {
+            throw new BadRequestException(t('server-ai:Error.WorkspaceVisibilityInvalid'))
         }
 
         if (visibility === 'tenant-shared' && workspace.organizationId) {
-            throw new BadRequestException('Only tenant-level workspaces can be shared across the tenant.')
+            throw new BadRequestException(t('server-ai:Error.WorkspaceTenantSharingRequiresTenant'))
+        }
+
+        if (visibility === 'organization-shared' && !workspace.organizationId) {
+            throw new BadRequestException(t('server-ai:Error.WorkspaceOrganizationSharingRequiresOrganization'))
         }
 
         workspace.settings = {

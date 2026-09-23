@@ -11,6 +11,7 @@ import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.ent
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationGoal } from './goal/conversation-goal.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
+import { messageAncestorPath } from './message-path'
 
 export type CopyConversationThreadInput = {
     metadata?: Record<string, unknown>
@@ -326,11 +327,15 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         operation?: TSensitiveOperation | null
     ): Promise<void> {
         const thread = await this.requireByThreadId(threadId)
-        await this.repository.update(thread.id, {
-            status,
-            error: error ?? null,
-            operation: operation ?? null
-        })
+        await this.repository.manager
+            .getRepository<
+                Pick<ChatConversationThread, 'id' | 'status' | 'error' | 'operation'>
+            >(ChatConversationThread)
+            .update(thread.id, {
+                status,
+                error: error ?? null,
+                operation: operation ?? null
+            })
     }
 
     async advanceHead(threadId: string, messageId: string): Promise<void> {
@@ -360,7 +365,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         if (!head) return { items: [], total: 0 }
 
         const ancestors = await this.messageRepository.manager.getTreeRepository(ChatMessage).findAncestors(head)
-        const messageIds = ancestors.map((message) => message.id).filter((id): id is string => Boolean(id))
+        const messageIds = messageAncestorPath(ancestors, head.id).map((message) => message.id)
         if (messageIds.length === 0) return { items: [], total: 0 }
 
         const where: FindOptionsWhere<ChatMessage> = {
@@ -368,14 +373,26 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             conversationId: thread.conversationId,
             id: In(messageIds)
         }
-        const [items, total] = await this.messageRepository.findAndCount({
-            where,
-            relations: options.relations,
-            order: options.order ?? { createdAt: 'ASC' },
-            take: options.take,
-            skip: options.skip
-        })
-        return { items, total }
+        // Select the page by tree position before loading large message contents.
+        const matching = new Set(
+            (await this.messageRepository.find({ where, select: { id: true } })).map((message) => message.id)
+        )
+        const orderedIds = messageIds.filter((id) => matching.has(id))
+        if (String(options.order?.createdAt).toUpperCase() === 'DESC') orderedIds.reverse()
+        const offset = Math.max(0, options.skip ?? 0)
+        const page = orderedIds.slice(
+            offset,
+            options.take === undefined ? undefined : offset + Math.max(0, options.take)
+        )
+        const items = page.length
+            ? await this.messageRepository.find({
+                  where: { ...where, id: In(page) },
+                  relations: options.relations
+              })
+            : []
+        const positions = new Map(page.map((id, index) => [id, index]))
+        items.sort((left, right) => positions.get(left.id)! - positions.get(right.id)!)
+        return { items, total: orderedIds.length }
     }
 
     async hydrateConversationMessages(conversation: ChatConversation, threadId: string): Promise<ChatConversation> {

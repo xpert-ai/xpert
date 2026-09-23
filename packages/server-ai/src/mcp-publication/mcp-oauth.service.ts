@@ -359,7 +359,7 @@ function normalizeTrustedUrl(value: string, label: string) {
     return url
 }
 
-async function guardedOAuthFetch(
+export async function guardedOAuthFetch(
     value: string | URL,
     label: string,
     init: Pick<RequestInit, 'body' | 'headers' | 'method' | 'signal'>

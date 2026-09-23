@@ -1,3 +1,4 @@
+import { stripClientSkillContent, stripClientSkillSummary } from '../chat-message/client-skill-usage'
 import {
     BadRequestException,
     Body,
@@ -27,7 +28,7 @@ import {
     UUIDValidationPipe
 } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { FindOptionsOrder, In, Like } from 'typeorm'
+import { FindOptionsOrder, In, ILike } from 'typeorm'
 import {
     IChatConversation,
     IChatMessage,
@@ -243,7 +244,7 @@ export class ConversationsController {
     async searchConversations(@Body() body: ConversationSearchRequest) {
         const where = transformWhere(body.where ?? {})
         if (body.search) {
-            where['title'] = Like(`%${body.search}%`)
+            where['title'] = ILike(`%${body.search}%`)
         }
         const currentUser = RequestContext.currentUserId()
         const publicScope = getPublicXpertSessionConversationScope()
@@ -696,11 +697,11 @@ export class ConversationsController {
             ...(body.parentId !== undefined ? { parentId: body.parentId } : {}),
             ...(body.role !== undefined ? { role: body.role } : {}),
             ...(body.status !== undefined ? { status: body.status } : {}),
-            ...(body.content !== undefined ? { content: body.content } : {}),
+            ...(body.content !== undefined ? { content: stripClientSkillContent(body.content) } : {}),
             ...(body.reasoning !== undefined ? { reasoning: body.reasoning } : {}),
             ...(body.error !== undefined ? { error: body.error } : {}),
             ...(body.references !== undefined ? { references: body.references } : {}),
-            ...(body.taskSummary !== undefined ? { taskSummary: body.taskSummary } : {}),
+            ...(body.taskSummary !== undefined ? { taskSummary: stripClientSkillSummary(body.taskSummary) } : {}),
             ...(body.thirdPartyMessage !== undefined ? { thirdPartyMessage: body.thirdPartyMessage } : {}),
             ...(body.events !== undefined ? { events: body.events } : {}),
             ...(body.executionId !== undefined ? { executionId: body.executionId } : {}),

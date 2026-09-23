@@ -198,11 +198,34 @@ LEFT JOIN tenant_setting td
 }
 
 function buildCandidateBatchSql() {
+    // A visible branch boundary pins its ancestors too: historical edits and future forks still need them.
     return `
+WITH RECURSIVE branch_checkpoints AS (
+    SELECT checkpoint.id, checkpoint.thread_id, checkpoint.checkpoint_ns, checkpoint.checkpoint_id,
+           checkpoint.parent_id, checkpoint."tenantId", checkpoint."organizationId"
+    FROM chat_message message
+    CROSS JOIN LATERAL jsonb_to_recordset(COALESCE(message."outputCheckpoint"->'checkpoints', '[]'::jsonb))
+        AS ref("threadId" text, "checkpointNs" text, "checkpointId" text)
+    JOIN copilot_checkpoint checkpoint
+      ON checkpoint.thread_id = ref."threadId" AND checkpoint.checkpoint_ns = ref."checkpointNs"
+     AND checkpoint.checkpoint_id = ref."checkpointId"
+     AND checkpoint."tenantId" IS NOT DISTINCT FROM message."tenantId"
+     AND checkpoint."organizationId" IS NOT DISTINCT FROM message."organizationId"
+    WHERE message."deletedAt" IS NULL
+    UNION
+    SELECT parent.id, parent.thread_id, parent.checkpoint_ns, parent.checkpoint_id,
+           parent.parent_id, parent."tenantId", parent."organizationId"
+    FROM branch_checkpoints child JOIN copilot_checkpoint parent
+      ON parent.thread_id = child.thread_id AND parent.checkpoint_ns = child.checkpoint_ns
+     AND parent.checkpoint_id = child.parent_id
+     AND parent."tenantId" IS NOT DISTINCT FROM child."tenantId"
+     AND parent."organizationId" IS NOT DISTINCT FROM child."organizationId"
+)
 SELECT c.id
 FROM copilot_checkpoint c
 ${buildTenantSettingJoinSql()}
 WHERE c."createdAt" < now() - make_interval(days => ${buildRetentionDaysSql()})
+AND NOT EXISTS (SELECT 1 FROM branch_checkpoints pinned WHERE pinned.id = c.id)
 AND NOT EXISTS (
     SELECT 1 FROM chat_conversation_thread thread
     WHERE thread."threadId" = c.thread_id

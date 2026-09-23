@@ -1,3 +1,4 @@
+import type { McpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { Client as McpSdkClient, type Client } from '@modelcontextprotocol/sdk/client/index.js'
@@ -76,6 +77,7 @@ type McpSdkClientWithCapabilities = Client & {
 export type McpAppInstance = {
     id: string
     userId?: string
+    executionContext?: McpAppExecutionContext
     client: MultiServerMCPClient
     destroy?: (() => Promise<void>) | null
     closeClientOnExpire?: boolean
@@ -134,6 +136,7 @@ export function snapshotMcpAppInstance(instance: McpAppInstance): McpAppInstance
         organizationId: instance.toolset.organizationId,
         workspaceId: instance.toolset.workspaceId,
         userId: instance.userId,
+        executionContext: instance.executionContext,
         toolsetId: instance.toolset.id,
         serverName: instance.toolMeta.serverName,
         toolName: instance.toolMeta.name,
@@ -1021,6 +1024,7 @@ export function isMcpAppsEnabled(): boolean {
 export function registerMcpAppInstance(options: {
     client: MultiServerMCPClient
     userId?: string
+    executionContext?: McpAppExecutionContext
     toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     tool: DynamicStructuredTool
     toolCallId?: string
@@ -1056,6 +1060,7 @@ export function registerMcpAppInstance(options: {
     const instance: McpAppInstance = {
         id,
         userId: options.userId,
+        executionContext: options.executionContext,
         client: options.client,
         destroy: null,
         closeClientOnExpire: false,
@@ -1106,6 +1111,7 @@ export function restoreMcpAppInstance(options: {
     id: string
     client: MultiServerMCPClient
     userId?: string
+    executionContext?: McpAppExecutionContext
     destroy?: (() => Promise<void>) | null
     toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     toolMeta: TMcpToolAppMeta
@@ -1141,6 +1147,7 @@ export function restoreMcpAppInstance(options: {
     const instance: McpAppInstance = {
         id: options.id,
         userId: options.userId,
+        executionContext: options.executionContext,
         client: options.client,
         destroy: options.destroy ?? null,
         closeClientOnExpire: true,

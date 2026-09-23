@@ -81,6 +81,30 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         partialEntity: QueryDeepPartialEntity<ChatConversation>,
         ...options: any[]
     ): Promise<UpdateResult | ChatConversation> {
+        if (Object.prototype.hasOwnProperty.call(partialEntity, 'options')) {
+            const patch = partialEntity.options
+            if (patch === null) {
+                partialEntity = {
+                    ...partialEntity,
+                    options: () =>
+                        `CASE WHEN "options"::jsonb ? 'runtimeResources' THEN jsonb_build_object('runtimeResources', "options"->'runtimeResources') ELSE NULL END`
+                }
+            } else if (patch === undefined) {
+                const { options: ignoredOptions, ...rest } = partialEntity
+                partialEntity = rest
+            } else {
+                if (typeof patch !== 'object' || Array.isArray(patch))
+                    throw new BadRequestException(t('server-ai:Error.AgentResourceDedicatedEndpoint'))
+                // Only the revisioned resource endpoint can write this reserved field. Internal
+                // execution completion may carry an older options snapshot; never replay it.
+                const { runtimeResources, ...rest } = patch
+                const json = JSON.stringify(rest).replace(/'/g, "''")
+                partialEntity = {
+                    ...partialEntity,
+                    options: () => `COALESCE("options"::jsonb, '{}'::jsonb) || '${json}'::jsonb`
+                }
+            }
+        }
         if (Object.prototype.hasOwnProperty.call(partialEntity, 'projectId')) {
             const conversationId = typeof id === 'string' ? id : typeof id === 'object' ? id.id : undefined
             if (typeof conversationId === 'string') {

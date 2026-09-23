@@ -3,6 +3,21 @@ import { ConnectorController } from './connector.controller'
 import { ConnectorService } from './connector.service'
 
 describe('ConnectorController', () => {
+    it('rejects new personal bindings and consent without touching existing credentials', () => {
+        const service = { createBinding: jest.fn(), consentPersonalBinding: jest.fn() }
+        const controller = new ConnectorController(service as unknown as ConnectorService)
+        expect(() =>
+            controller.createBinding({
+                scope: { type: 'workspace', workspaceId: 'workspace' },
+                provider: 'example',
+                authorizationMode: 'personal'
+            })
+        ).toThrow()
+        expect(() => controller.consentBinding('binding', { xpertId: 'assistant' })).toThrow()
+        expect(service.createBinding).not.toHaveBeenCalled()
+        expect(service.consentPersonalBinding).not.toHaveBeenCalled()
+    })
+
     it('registers public OAuth callbacks before workspace parameter routes', () => {
         const prototype = ConnectorController.prototype
         const methods = Object.getOwnPropertyNames(prototype)

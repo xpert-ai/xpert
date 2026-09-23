@@ -129,6 +129,14 @@ import { getPublicXpertSessionConversationScope } from './public-xpert-principal
 import { ConversationsController } from './conversation.controller'
 
 describe('ConversationsController searchConversations', () => {
+    it('matches title fragments without case sensitivity and retains actor scope', async () => {
+        const { controller, conversationService } = createController()
+        await controller.searchConversations({ search: 'Product', limit: 30 })
+        const options = conversationService.findAllInOrganizationOrTenant.mock.calls[0][0]
+        expect(Reflect.get(options.where.title, '_type')).toBe('ilike')
+        expect(Reflect.get(options.where.title, '_value')).toBe('%Product%')
+        expect(options.where.createdById).toBe('user-1')
+    })
     beforeEach(() => {
         jest.clearAllMocks()
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')

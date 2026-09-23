@@ -1,6 +1,7 @@
 import type { JSONValue, TAvatar } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../../core/runtime-capability'
 
+/** Task lifecycle snapshot. interrupted means paused; unknown does not confirm failure. */
 export type AgentMiddlewareAssistantTaskStatus =
   | 'queued'
   | 'running'
@@ -9,6 +10,7 @@ export type AgentMiddlewareAssistantTaskStatus =
   | 'interrupted'
   | 'unknown'
 
+/** Existing platform file reference; access remains subject to host authorization. */
 export type AgentMiddlewareAssistantTaskFile = {
   id?: string
   fileId?: string
@@ -23,28 +25,22 @@ export type AgentMiddlewareAssistantTaskFile = {
 }
 
 /**
- * Stable plugin skill reference used by Assistant Tasks.
- *
- * Plugin-owned callers must not persist workspace-local SkillPackage UUIDs.
- * The host resolves this portable identity to the installed package and verifies
- * that the target Agent is directly connected to the owning Skills Middleware.
+ * Portable plugin skill identity, resolved through the target Agent's connected Skills Middleware.
+ * Do not persist workspace-local SkillPackage UUIDs in plugin configuration.
  */
 export type AgentMiddlewareAssistantTaskSkillRef = {
   pluginName: string
   componentKey: string
 }
 
-/**
- * Portable role identity used to resolve an organization-owned Assistant.
- * Instance UUIDs stay out of plugin contracts so the same workflow is deployable across organizations.
- */
+/** Portable plugin/template/Agent identity used to resolve a deployed Assistant. */
 export type AgentMiddlewareExternalAssistantExpectation = {
   pluginName: string
   templateKey: string
   agentKey: string
 }
 
-/** Resolve the executor from the requester's required, direct external-Xpert connections. */
+/** Resolve the executor from the requester's required, direct published external-Assistant connections. */
 export type AgentMiddlewareAssistantTaskTarget = {
   kind: 'external_assistant'
   requesterXpertId: string
@@ -52,7 +48,7 @@ export type AgentMiddlewareAssistantTaskTarget = {
   expectation: AgentMiddlewareExternalAssistantExpectation
 }
 
-/** Stable plugin-owned identity for reconciling platform executions with a domain operation. */
+/** Plugin-owned operation identity for reconciling executions with a domain subject. */
 export type AgentMiddlewareExecutionCorrelation = {
   namespace: string
   operationId: string
@@ -67,7 +63,7 @@ export type AgentMiddlewareExternalAssistantBindingStatus =
   | 'unpublished'
   | 'cross_organization'
 
-/** Safe external Assistant metadata that may cross plugin and View Host boundaries. */
+/** Binding display metadata; intentionally omits the deployed Assistant instance ID. */
 export type AgentMiddlewareExternalAssistantBinding = {
   title: string
   name: string
@@ -83,13 +79,13 @@ export type AgentMiddlewareExternalAssistantBinding = {
   status: AgentMiddlewareExternalAssistantBindingStatus
 }
 
-/** Identifies the requester whose required direct bindings should be listed. */
+/** Requester whose required direct external-Assistant bindings should be listed. */
 export type AgentMiddlewareListExternalAssistantBindingsInput = {
   requesterXpertId: string
   requesterAgentKey: string
 }
 
-/** Selects correlated executions for one requester-owned domain subject. */
+/** Requester-scoped execution lookup for a plugin namespace and domain subject. */
 export type AgentMiddlewareListCorrelatedExecutionsInput = {
   requesterXpertId: string
   requesterAgentKey: string
@@ -98,7 +94,7 @@ export type AgentMiddlewareListCorrelatedExecutionsInput = {
   limit?: number
 }
 
-/** Safe execution summary returned to a plugin for domain reconciliation. */
+/** Execution receipt for domain reconciliation; executor fields identify the resolved published Assistant. */
 export type AgentMiddlewareCorrelatedExecution = {
   operationId: string
   subjectId: string
@@ -116,28 +112,33 @@ export type AgentMiddlewareCorrelatedExecution = {
   updatedAt?: string
 }
 
+/** Start an asynchronous task on the current Assistant or a resolved external Assistant. */
 export type AgentMiddlewareAssistantTaskInput = {
+  /** Current/requesting Assistant ID; must match target.requesterXpertId when target is supplied. */
   xpertId: string
-  /** Selects the Assistant base and Primary models; child Agents retain authored models. */
+  /** Selects the base/Primary model; child Agents retain authored models. */
   modelId?: string
+  /** Entry Agent for the current Assistant; external targets use their resolved primary Agent. */
   agentKey?: string
-  /** Resolve an organization-owned external Assistant from the requester's published graph. */
+  /** Optional external executor resolved from the requester's published graph. */
   target?: AgentMiddlewareAssistantTaskTarget
   conversationId?: string | null
   executionId?: string | null
   projectId?: string | null
   taskId?: string
+  /** Per-run idempotency key. Otherwise correlation.operationId or executionId is used; taskId alone is insufficient. */
   clientMessageId?: string
   prompt: string
   files?: AgentMiddlewareAssistantTaskFile[]
-  /** Skills that this task is expected to load through its target Agent's Skills Middleware. */
+  /** Skills expected to load through the target Agent's connected Skills Middleware. */
   selectedSkillRefs?: AgentMiddlewareAssistantTaskSkillRef[]
-  /** Additional bounded human-input fields exposed to runtime-state fixed filters. */
+  /** Additional bounded runtime input; does not override the task prompt or files. */
   humanInput?: Record<string, JSONValue>
   context?: Record<string, unknown>
   correlation?: AgentMiddlewareExecutionCorrelation
 }
 
+/** Task receipt, not necessarily a completed result. Use status and execution identifiers to follow progress. */
 export type AgentMiddlewareAssistantTaskResult = {
   status: AgentMiddlewareAssistantTaskStatus
   taskId?: string
@@ -152,6 +153,7 @@ export type AgentMiddlewareAssistantTaskResult = {
   executorPublishedVersion?: string
 }
 
+/** Host task/execution identifiers for lookup. Cancellation requires an execution, conversation or thread ID. */
 export type AgentMiddlewareAssistantTaskStatusInput = {
   taskId?: string
   executionId?: string
@@ -161,14 +163,17 @@ export type AgentMiddlewareAssistantTaskStatusInput = {
   xpertId?: string
 }
 
+/** Platform executions affected by the cancellation request. */
 export type AgentMiddlewareAssistantTaskCancelResult = {
   canceledExecutionIds: string[]
 }
 
+/** Host Assistant Task API. Feature-detect optional methods before calling them. */
 export interface AgentMiddlewareAssistantTaskApi {
   getModels?(xpertId: string): Promise<import('@xpert-ai/contracts').TAssistantModelsResponse>
+  /** Submit once and retain the receipt; use getTaskStatus to follow asynchronous progress. */
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>
-  /** Return only safe binding descriptors; internal Assistant instance IDs are intentionally omitted. */
+  /** List safe binding descriptors without deployed Assistant instance IDs. */
   listExternalAssistantBindings?(
     input: AgentMiddlewareListExternalAssistantBindingsInput
   ): Promise<AgentMiddlewareExternalAssistantBinding[]>
@@ -176,10 +181,12 @@ export interface AgentMiddlewareAssistantTaskApi {
   listCorrelatedExecutions?(
     input: AgentMiddlewareListCorrelatedExecutionsInput
   ): Promise<AgentMiddlewareCorrelatedExecution[]>
+  /** Return the current receipt, or null if no matching task is found. */
   getTaskStatus?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskResult | null>
   cancelTask?(input: AgentMiddlewareAssistantTaskStatusInput): Promise<AgentMiddlewareAssistantTaskCancelResult>
 }
 
+/** Scoped runtime capability for platform Assistant tasks. */
 export const AssistantTaskRuntimeCapability = createRuntimeCapability<AgentMiddlewareAssistantTaskApi>(
   'platform.assistant_task',
   {

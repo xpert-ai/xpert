@@ -125,22 +125,28 @@
       <div class="text-semibold flex h-6 items-center text-text-secondary">
         {{ 'XP.MCP.Authentication' | translate: { Default: 'Authentication' } }}
       </div>
-      <z-select class="w-full" zSize="sm" [zValue]="authType()" (zSelectionChange)="selectAuthType($event)">
-        <z-select-item zValue="none">
-          {{ 'XP.MCP.AuthNone' | translate: { Default: 'No authentication' } }}
-        </z-select-item>
-        <z-select-item zValue="manual_header">
-          {{ 'XP.MCP.AuthManualHeader' | translate: { Default: 'Manual headers' } }}
-        </z-select-item>
-        <z-select-item zValue="api_key">
-          {{ 'XP.MCP.AuthApiKey' | translate: { Default: 'API key' } }}
-        </z-select-item>
-        @if (types()[0] === eMCPServerType.HTTP) {
-          <z-select-item zValue="oauth">
-            {{ 'XP.MCP.AuthOAuth' | translate: { Default: 'OAuth' } }}
+      @if (authType() === 'connector') {
+        <div class="text-sm text-text-secondary">
+          {{ 'XP.AgentPlugins.ConnectorAuthorization' | translate: { Default: 'Authorize through Connector' } }}
+        </div>
+      } @else {
+        <z-select class="w-full" zSize="sm" [zValue]="authType()" (zSelectionChange)="selectAuthType($event)">
+          <z-select-item zValue="none">
+            {{ 'XP.MCP.AuthNone' | translate: { Default: 'No authentication' } }}
           </z-select-item>
-        }
-      </z-select>
+          <z-select-item zValue="manual_header">
+            {{ 'XP.MCP.AuthManualHeader' | translate: { Default: 'Manual headers' } }}
+          </z-select-item>
+          <z-select-item zValue="api_key">
+            {{ 'XP.MCP.AuthApiKey' | translate: { Default: 'API key' } }}
+          </z-select-item>
+          @if (types()[0] === eMCPServerType.HTTP) {
+            <z-select-item zValue="oauth">
+              {{ 'XP.MCP.AuthOAuth' | translate: { Default: 'OAuth' } }}
+            </z-select-item>
+          }
+        </z-select>
+      }
 
       @if (authType() === 'api_key') {
         <div class="grid grid-cols-3 gap-3">

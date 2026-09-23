@@ -1,3 +1,4 @@
+import { readMcpAppExecutionContext, type McpAppExecutionContext } from './mcp-app-execution-context'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import type { RedisClientType } from 'redis'
@@ -14,6 +15,7 @@ export interface McpAppInstanceSnapshot {
     organizationId?: string
     workspaceId?: string
     userId?: string
+    executionContext?: McpAppExecutionContext
     toolsetId: string
     serverName: string
     toolName: string
@@ -162,6 +164,7 @@ function parseSnapshot(value: unknown): McpAppInstanceSnapshot | null {
         createdAt,
         expiresAt,
         ...optionalStringFields(value),
+        executionContext: readMcpAppExecutionContext(Reflect.get(value, 'executionContext')),
         ...(Reflect.has(value, 'toolInput') ? { toolInput: Reflect.get(value, 'toolInput') } : {}),
         ...(Reflect.has(value, 'toolResult') ? { toolResult: Reflect.get(value, 'toolResult') } : {}),
         ...(Reflect.has(value, 'modelContext') ? { modelContext: Reflect.get(value, 'modelContext') } : {}),

@@ -51,7 +51,8 @@ describe('PluginApplicationService', () => {
         )
     }
 
-    it('resolves App initialization only from a trusted loaded contribution with explicit template linkage', () => {
+    it.each(['private', 'organization', undefined])('normalizes %s sharing to private', (sharing) => {
+        const workspace = Object.freeze({ mode: 'dedicated', name: 'Example App Workspace', sharing })
         const service = createService([
             {
                 type: 'assistant-template',
@@ -65,11 +66,7 @@ describe('PluginApplicationService', () => {
                 appConfig: {
                     scope: 'organization',
                     assistantTemplateKey: 'example-assistant',
-                    workspace: {
-                        mode: 'dedicated',
-                        name: 'Example App Workspace',
-                        sharing: 'organization'
-                    }
+                    workspace
                 }
             }
         ])
@@ -81,7 +78,8 @@ describe('PluginApplicationService', () => {
             application: {
                 id: '@acme/plugin-example-app:example-app',
                 scope: 'organization',
-                assistantTemplateKey: 'example-assistant'
+                assistantTemplateKey: 'example-assistant',
+                config: { workspace: { sharing: 'private' } }
             }
         })
     })
@@ -427,9 +425,13 @@ describe('PluginApplicationService', () => {
         expect(installationRepo.save).not.toHaveBeenCalled()
     })
 
-    it('repairs a degraded installation without duplicating its healthy Assistant', async () => {
+    const initializationCases = ['new', 'repair-missing-workspace', 'repair-existing-workspace']
+    it.each(initializationCases)('initializes %s without opening workspace access', async (scenario) => {
+        const isNew = scenario === 'new'
+        const hasWorkspace = scenario === 'repair-existing-workspace'
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('installer-1')
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as never)
 
         const degraded = Object.assign(new PluginApplicationInstallation(), {
@@ -441,8 +443,8 @@ describe('PluginApplicationService', () => {
             declaredScope: 'organization',
             scopeKey: 'org-1',
             status: PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED,
-            workspaceId: 'workspace-1',
-            xpertId: 'xpert-1',
+            workspaceId: isNew ? null : 'workspace-1',
+            xpertId: isNew ? null : 'xpert-1',
             knowledgebaseIds: []
         })
         const claimed = Object.assign(new PluginApplicationInstallation(), {
@@ -452,23 +454,28 @@ describe('PluginApplicationService', () => {
         const installationRepo = {
             findOne: jest
                 .fn()
-                .mockResolvedValueOnce(degraded)
-                .mockResolvedValueOnce(degraded)
+                .mockResolvedValueOnce(isNew ? null : degraded)
+                .mockResolvedValueOnce(isNew ? null : degraded)
                 .mockResolvedValueOnce(claimed),
+            create: jest.fn().mockReturnValue(claimed),
             update: jest.fn().mockResolvedValue({ affected: 1 }),
             save: jest.fn(async (value) => value)
         }
-        const commandBus = { execute: jest.fn() }
+        const commandBus = {
+            execute: jest.fn().mockResolvedValue({ xpert: { id: 'xpert-1', slug: 'example-app' } })
+        }
+        const existingWorkspace = { id: 'workspace-1', settings: { access: { visibility: 'organization-shared' } } }
+        const workspaceService = { create: jest.fn().mockResolvedValue({ id: 'replacement-workspace' }) }
         const service = new PluginApplicationService(
             installationRepo as never,
-            { findOne: jest.fn().mockResolvedValue({ id: 'workspace-1' }) } as never,
+            { findOne: jest.fn().mockResolvedValue(hasWorkspace ? existingWorkspace : null) } as never,
             {} as never,
             {
                 findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', slug: 'example-app' })
             } as never,
+            workspaceService as never,
             {} as never,
-            {} as never,
-            {} as never,
+            { validateName: jest.fn().mockResolvedValue(true) } as never,
             commandBus as never,
             { execute: jest.fn() } as never,
             [
@@ -514,6 +521,35 @@ describe('PluginApplicationService', () => {
                 operationId: 'repair-1'
             })
         ).resolves.toMatchObject({ status: 'ready', xpertId: 'xpert-1', assistantSlug: 'example-app' })
-        expect(commandBus.execute).not.toHaveBeenCalled()
+        if (isNew) {
+            expect(commandBus.execute).toHaveBeenCalledTimes(1)
+            expect(commandBus.execute).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    workspaceId: 'replacement-workspace',
+                    publish: true
+                })
+            )
+        } else {
+            expect(commandBus.execute).not.toHaveBeenCalled()
+        }
+        if (hasWorkspace) {
+            expect(workspaceService.create).not.toHaveBeenCalled()
+            expect(existingWorkspace.settings.access.visibility).toBe('organization-shared')
+        } else {
+            expect(workspaceService.create).toHaveBeenCalledTimes(1)
+            expect(workspaceService.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    ownerId: 'installer-1',
+                    settings: {
+                        access: { visibility: 'private' },
+                        system: {
+                            kind: 'plugin-app',
+                            pluginName: '@acme/plugin-example-app',
+                            appName: 'example-app'
+                        }
+                    }
+                })
+            )
+        }
     })
 })

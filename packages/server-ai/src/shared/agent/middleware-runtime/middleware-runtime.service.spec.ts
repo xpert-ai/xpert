@@ -1,3 +1,9 @@
+import { PublishedXpertAccessService } from '../../../xpert/published-xpert-access.service'
+import { DiscoveryService, Reflector } from '@nestjs/core'
+import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
+import { AgentInvocationRuntime } from '../../../agent-invocation/invocation-runtime'
+import { MemoryInvocationStore } from '../../../agent-invocation/invocation-test-store'
+import { AssistantTaskRuntimeStrategy } from '../../../agent-invocation/assistant-task-adapter'
 jest.mock('../../../copilot-model/utils/context-size', () => ({
     ensureCopilotModelContextSize: jest.fn()
 }))
@@ -187,7 +193,18 @@ describe('AgentMiddlewareRuntimeService', () => {
             execute: jest.fn()
         }
         queryBus = {
-            execute: jest.fn()
+            execute: jest.fn(async (query: unknown) =>
+                query instanceof FindXpertQuery
+                    ? {
+                          id: query.conditions.id,
+                          organizationId: 'org-1',
+                          workspaceId: 'workspace-1',
+                          publishAt: new Date('2026-01-01'),
+                          agent: { key: 'agent-main' },
+                          graph: { nodes: [], connections: [] }
+                      }
+                    : undefined
+            )
         }
         volumeClient = {
             resolve: jest.fn((scope) => createTestVolumeHandle(scope, volumeRoot))
@@ -264,10 +281,27 @@ describe('AgentMiddlewareRuntimeService', () => {
             copilotUsage as never
         )
         const fileRuntime = new FileRuntimeService(queryBus as never)
+        const invocationRegistry = new AgentRuntimeRegistry({} as DiscoveryService, new Reflector())
+        invocationRegistry.register('xpert-task', new AssistantTaskRuntimeStrategy(), {
+            kind: 'builtin',
+            scopeKey: BUILTIN_GLOBAL_SCOPE
+        })
+        const invocations = new AgentInvocationRuntime(new MemoryInvocationStore(), invocationRegistry)
         assistantTaskRuntime = new AssistantTaskRuntimeService(
             commandBus as never,
             queryBus as never,
-            { get: jest.fn() } as never
+            {
+                get: jest.fn((token) =>
+                    token === AgentInvocationRuntime
+                        ? invocations
+                        : token === PublishedXpertAccessService
+                          ? {
+                                getAccessiblePublishedXpert: (id: string) =>
+                                    queryBus.execute(new FindXpertQuery({ id }, { relations: ['agent'] }))
+                            }
+                          : undefined
+                )
+            } as never
         )
         platformCapabilities
             .register(
@@ -2665,6 +2699,7 @@ function roleAssistantFixture(
         name: templateKey,
         title: 'BOM 工程助手（组织实例）',
         organizationId: overrides.organizationId ?? 'org-1',
+        workspaceId: 'executor-workspace',
         active: true,
         version: '10',
         agent: { key: 'Agent_BomEngineer' },

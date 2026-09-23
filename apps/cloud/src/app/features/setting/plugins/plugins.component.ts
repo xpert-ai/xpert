@@ -1,3 +1,4 @@
+import { AgentPluginsComponent } from './agent-plugins/agent-plugins.component'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
@@ -90,7 +91,8 @@ function parseListParam(value: string | null): string[] {
     XpHighlightDirective,
     IconComponent,
     XpSpinComponent,
-    PluginsMarketplaceComponent
+    PluginsMarketplaceComponent,
+    AgentPluginsComponent
   ],
   selector: 'xp-settings-plugins',
   templateUrl: './plugins.component.html',
@@ -102,7 +104,7 @@ export class PluginsComponent {
   readonly isDevEnvironment = !environment.production
   readonly router = inject(Router)
   readonly #dialog = inject(Dialog)
-  readonly _category = injectQueryParams<'plugins' | 'marketplace'>('category')
+  readonly _category = injectQueryParams<'plugins' | 'marketplace' | 'agent-plugins'>('category')
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
@@ -224,6 +226,9 @@ export class PluginsComponent {
   })
   readonly marketplaceLoading = computed(() => this.marketplace()?.loading() ?? true)
   readonly marketplaceRefreshingSource = computed(() => this.marketplace()?.refreshingSource() ?? false)
+  readonly isResourceAdmin = computed(() =>
+    [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN].some((role) => role === this.currentUser()?.role?.name)
+  )
   readonly isSuperAdmin = computed(() => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN)
 
   readonly filteredPlugins = computed(() => {

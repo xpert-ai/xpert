@@ -5,12 +5,11 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ApiKeyBindingType, IfAnimation, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
+import { ApiKeyBindingType, IfAnimation, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
 import { XpertWorkspaceSettingsGeneralComponent } from './general/general.component'
 import { XpertWorkspaceMembersComponent } from './members/members.component'
-import { XpertWorkspaceModelsComponent } from './models/models.component'
 
 @Component({
   selector: 'xpert-workspace-settings',
@@ -20,7 +19,6 @@ import { XpertWorkspaceModelsComponent } from './models/models.component'
     CdkListboxModule,
     DragDropModule,
     TranslateModule,
-    XpertWorkspaceModelsComponent,
     XpertWorkspaceMembersComponent,
     XpertWorkspaceSettingsGeneralComponent,
     XpertDevelopApiKeyComponent
@@ -38,7 +36,10 @@ export class XpertWorkspaceSettingsComponent {
 
   readonly workspaceId = signal(this.#data.id)
 
+  readonly workspaceRevision = signal(0)
+
   readonly workspace = derivedAsync(() => {
+    this.workspaceRevision()
     return this.workspaceId()
       ? this.workspaceService.getOneById(this.workspaceId(), { relations: ['owner', 'members'] })
       : null
@@ -46,11 +47,19 @@ export class XpertWorkspaceSettingsComponent {
 
   readonly owner = computed(() => this.workspace()?.owner)
 
-  readonly selectedMenus = model<Array<'general' | 'models' | 'members' | 'apiKeys'>>(['general'])
+  readonly selectedMenus = model<Array<'general' | 'members' | 'apiKeys'>>(['general'])
   readonly menu = computed(() => this.selectedMenus()[0])
 
   close(reason?: string) {
     this.#dialogRef.close(reason)
+  }
+
+  onUpdated(workspace: IXpertWorkspace) {
+    if (workspace.capabilities?.canRead === false) {
+      this.close('updated')
+      return
+    }
+    this.workspaceRevision.update((revision) => revision + 1)
   }
 
   onDeleted() {

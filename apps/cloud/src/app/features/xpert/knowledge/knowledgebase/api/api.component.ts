@@ -69,6 +69,8 @@ export class XpertKBAPIComponent {
   openApiKey() {
     this.#dialog
       .open(XpertDevelopApiKeyComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
         data: {
           id: this.id(),
           type: ApiKeyBindingType.KNOWLEDGEBASE

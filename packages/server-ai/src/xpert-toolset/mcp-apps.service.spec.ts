@@ -237,7 +237,14 @@ describe('McpAppsService RPC approval orchestration', () => {
         ).resolves.toMatchObject({ error: { code: -32000, message: expect.stringContaining('http or https') } })
     })
 
-    it('revives a historical App from persisted chat message metadata after API state is lost', async () => {
+    it.each([false, true])('revives a historical App with persisted execution context: %s', async (withContext) => {
+        const executionContext = {
+            xpertId: 'assistant-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1',
+            projectId: 'project-1'
+        }
+        if (withContext) instanceStore.get.mockResolvedValue({ executionContext })
         const client = { close: jest.fn() } as unknown as MultiServerMCPClient
         const toolset = {
             id: 'toolset-history',
@@ -326,11 +333,12 @@ describe('McpAppsService RPC approval orchestration', () => {
             expect.any(Object),
             {},
             undefined,
-            expect.objectContaining({ appInstanceId: 'app-history' })
+            expect.objectContaining({ appInstanceId: 'app-history', ...(withContext ? executionContext : {}) })
         )
         expect(mockRestoreMcpAppInstance).toHaveBeenCalledWith(
             expect.objectContaining({
                 id: 'app-history',
+                executionContext: withContext ? executionContext : undefined,
                 toolset,
                 toolMeta,
                 toolCallId: 'call-history'

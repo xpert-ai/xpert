@@ -62,5 +62,7 @@ export interface IntegrationQrAuthorization {
 }
 
 export type IntegrationQrAuthorizationResult =
-  | { status: 'waiting' | 'expired' | 'denied' | 'failed' }
+  /** Additive provider backoff, persisted by the host for the rest of the session. */
+  | { status: 'waiting'; intervalIncrementSeconds?: number }
+  | { status: 'expired' | 'denied' | 'failed' }
   | { status: 'authorized'; options: Record<string, unknown> }

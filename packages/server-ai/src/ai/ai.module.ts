@@ -35,6 +35,13 @@ import { FileUnderstandingModule } from '../file-understanding'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution/agent-execution.module'
 import { ConversationAgentRunsService } from './conversation-agent-runs.service'
 
+import { RuntimeResourceController } from '../agent-plugin/runtime-resource.controller'
+import { ConnectorModule } from '../connector/connector.module'
+import { ConnectorRuntimeController } from './connector-runtime.controller'
+import { ConversationBranchController } from './conversation-branch.controller'
+import { ConversationBranchService } from '../chat-conversation/conversation-branch.service'
+import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
+
 @Module({
     imports: [
         RouterModule.register([
@@ -44,9 +51,11 @@ import { ConversationAgentRunsService } from './conversation-agent-runs.service'
             }
         ]),
         TenantModule,
+        CopilotCheckpointModule,
         SecretTokenModule,
         RedisModule,
         CqrsModule,
+        ConnectorModule,
         CopilotModule,
         CopilotUserModule,
         CopilotOrganizationModule,
@@ -68,16 +77,20 @@ import { ConversationAgentRunsService } from './conversation-agent-runs.service'
         XpertProjectModule
     ],
     controllers: [
+        ConversationBranchController,
         AIController,
         AIV1Controller,
         ContextsController,
         KnowledgesController,
         AssistantsController,
+        RuntimeResourceController,
+        ConnectorRuntimeController,
         ThreadsController,
         ConversationsController,
         StoreController
     ],
     providers: [
+        ConversationBranchService,
         AiService,
         RuntimeCommandService,
         RuntimeCapabilitiesService,

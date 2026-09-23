@@ -136,6 +136,10 @@ export class XpertTriggerConnectionService {
                         strict: true
                     })
                 )
+                // Repeated disconnects must repair stale runtime bindings even when the graph is already disabled.
+                if (!integrationId && triggerConfig(xpert.graph, provider)?.enabled === false) {
+                    await strategy.stop({ xpertId: id, config })
+                }
                 const result = await this.status(next, provider)
                 if (integrationId && !result.connected)
                     throw new BadRequestException(

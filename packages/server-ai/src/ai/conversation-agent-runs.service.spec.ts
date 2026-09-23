@@ -7,7 +7,7 @@ describe('conversation agent run history', () => {
     it('expands only authorized message roots and keeps each descendant in its original thread', async () => {
         const find = jest
             .fn()
-            .mockResolvedValueOnce({ items: [{ id: 'root', threadId: 'source-thread' }] })
+            .mockResolvedValueOnce({ items: [{ id: 'root', threadId: 'source-thread', elapsedTime: 479000 }] })
             .mockResolvedValueOnce({
                 items: [
                     {
@@ -48,6 +48,7 @@ describe('conversation agent run history', () => {
         expect(find.mock.calls[0][0].where.id.value).toEqual(['root'])
         expect(find.mock.calls[0][0].where.threadId.value).toEqual(['source-thread', 'sibling-thread'])
         expect(result.get('message')).toEqual([
+            expect.objectContaining({ id: 'root', isRoot: true, elapsedTime: 479000 }),
             expect.objectContaining({
                 id: 'external',
                 invocationKind: 'external_assistant',
@@ -70,6 +71,18 @@ describe('conversation agent run history', () => {
         await service.forMessages([{ id: 'h', role: 'human', executionId: 'root' }], ['thread'])
         await service.forMessages([{ id: 'a', role: 'ai', executionId: 'root' }], [])
         expect(find).not.toHaveBeenCalled()
+    })
+
+    it('returns root timing even when a reply has no sub-agents', async () => {
+        const find = jest
+            .fn()
+            .mockResolvedValueOnce({ items: [{ id: 'root', threadId: 'thread', elapsedTime: 1200 }] })
+            .mockResolvedValueOnce({ items: [] })
+        const service = new ConversationAgentRunsService({
+            findAllInOrganizationOrTenant: find
+        } as unknown as XpertAgentExecutionService)
+        const result = await service.forMessages([{ id: 'a', role: 'ai', executionId: 'root' }], ['thread'])
+        expect(result.get('a')).toEqual([expect.objectContaining({ isRoot: true, elapsedTime: 1200 })])
     })
 
     it('exposes only presentation metadata and leaves legacy executions unclassified', () => {

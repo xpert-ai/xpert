@@ -8,6 +8,8 @@ export const ConnectorRuntimeCapability = createRuntimeCapability<ConnectorRunti
 
 /** No binding or provider grants means no connector access. */
 export type ConnectorRuntimeScope = RuntimeIdentityScope & {
+  /** Host-validated Agent Plugin dependencies may use their workspace binding in an authorized project. */
+  allowWorkspaceBindingsInProject?: boolean
   /** Host-selected bindings, including IDs pinned by enabled graph Connector nodes. */
   connectorBindingIds?: string[] | null
   /** Providers configured by enabled graph Connector nodes without a pinned ID. */

@@ -212,6 +212,19 @@ class HistogramMetric {
 }
 
 export class ApplicationMetricsRegistry {
+    private readonly conversationBranches = new CounterMetric(
+        'xpert_conversation_branches_total',
+        'Conversation branch outcomes.'
+    )
+    private readonly conversationBranchDuration = new HistogramMetric(
+        'xpert_conversation_branch_duration_seconds',
+        'Conversation branch duration.'
+    )
+    private readonly conversationBranchSize = new HistogramMetric(
+        'xpert_conversation_branch_items',
+        'Items copied into a new conversation.',
+        [1, 10, 50, 100, 500, 1000, 5000]
+    )
     private readonly info = new GaugeMetric('xpert_metrics_info', 'Xpert metrics endpoint information.')
     private readonly chatRequests = new CounterMetric(
         'xpert_chat_requests_total',
@@ -277,6 +290,9 @@ export class ApplicationMetricsRegistry {
     }
 
     reset() {
+        this.conversationBranches.reset()
+        this.conversationBranchDuration.reset()
+        this.conversationBranchSize.reset()
         this.info.reset()
         this.chatRequests.reset()
         this.activeChats.reset()
@@ -304,6 +320,22 @@ export class ApplicationMetricsRegistry {
 
     startChat(input: Pick<ChatMetricInput, 'from'>) {
         this.activeChats.inc({ from: labelValue(input.from) })
+    }
+
+    /** Record low-cardinality outcomes only; retries omit sizes because no history was copied again. */
+    recordConversationBranch(input: {
+        outcome: 'success' | 'failure'
+        reason: string
+        durationMs: number
+        messages?: number
+        checkpoints?: number
+    }) {
+        const labels = { outcome: input.outcome, reason: input.reason }
+        this.conversationBranches.inc(labels)
+        this.observeDuration(this.conversationBranchDuration, labels, input.durationMs)
+        if (input.messages !== undefined) this.conversationBranchSize.observe({ kind: 'messages' }, input.messages)
+        if (input.checkpoints !== undefined)
+            this.conversationBranchSize.observe({ kind: 'checkpoints' }, input.checkpoints)
     }
 
     finishChat(input: Required<Pick<ChatMetricInput, 'status'>> & ChatMetricInput) {
@@ -493,6 +525,9 @@ export class ApplicationMetricsRegistry {
         return (
             [
                 this.info.render(),
+                this.conversationBranches.render(),
+                this.conversationBranchDuration.render(),
+                this.conversationBranchSize.render(),
                 this.chatRequests.render(),
                 this.activeChats.render(),
                 this.chatDuration.render(),

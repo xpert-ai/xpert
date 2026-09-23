@@ -1,7 +1,7 @@
 import { avatarForChat } from '../avatar'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
-import { DynamicStructuredTool, tool } from '@langchain/core/tools'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
     agentLabel,
@@ -17,11 +17,9 @@ import {
 } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
-import z from 'zod'
 import { TAgentSubgraphResult } from '../../xpert-agent'
 import { XpertAgentSubgraphCommand } from '../../xpert-agent/commands/subgraph.command'
 import { wrapAgentExecution } from './execution'
-import { createParameters } from './parameter'
 import { AgentStateAnnotation, TAgentSubgraphParams } from './state'
 import { IXpertSubAgent } from './types'
 import { GetXpertWorkflowQuery } from '../../xpert/queries'
@@ -56,8 +54,12 @@ export class XpertCollaborator implements IXpertSubAgent {
      */
     static async build(params: {
         xpert: Partial<IXpert>
+        tool: DynamicStructuredTool
         config: TAgentSubgraphParams & {
-            options: {
+            options: Pick<
+                XpertAgentSubgraphCommand['options'],
+                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath'
+            > & {
                 leaderKey: string
                 isDraft: boolean
                 subscriber: Subscriber<MessageEvent>
@@ -71,7 +73,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         commandBus: CommandBus
         queryBus: QueryBus
     }): Promise<XpertCollaborator> {
-        const { xpert, config, commandBus, queryBus } = params
+        const { xpert, config, commandBus, queryBus, tool: agentTool } = params
         const { options, thread_id, rootController, signal, variables, partners } = config
         const { subscriber, leaderKey } = options
 
@@ -105,28 +107,12 @@ export class XpertCollaborator implements IXpertSubAgent {
                 variables,
                 channel: channelName(agent.key),
                 partners,
-                environment: config.environment
+                environment: config.environment,
+                conversationId: options.conversationId,
+                projectId: options.projectId,
+                workspaceRoot: options.workspaceRoot,
+                workspacePath: options.workspacePath
             })
-        )
-
-        // Prepare parameters
-        const parameters = xpert.agentConfig?.parameters ?? (xpert.agent.options?.hidden ? [] : xpert.agent.parameters)
-
-        const uniqueName = xpert.slug
-
-        // Create Tool
-        const agentTool = tool(
-            () => {
-                // The actual execution will be handled by State Graph
-            },
-            {
-                name: uniqueName,
-                description: xpert.description,
-                schema: z.object({
-                    ...(createParameters(parameters) ?? {}),
-                    input: z.string().describe('Ask me some question or give me task to complete')
-                })
-            }
         )
 
         // Define State Graph
@@ -141,6 +127,9 @@ export class XpertCollaborator implements IXpertSubAgent {
 
                 const _execution = {
                     ...execution,
+                    ...(typeof config.configurable?.agentInvocationId === 'string'
+                        ? { id: config.configurable.agentInvocationId }
+                        : {}),
                     threadId: configurable.thread_id,
                     checkpointNs: configurable.checkpoint_ns,
                     xpert: { id: xpert.id } as IXpert,
@@ -240,7 +229,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         )
 
         return new XpertCollaborator({
-            name: uniqueName,
+            name: agentTool.name,
             tool: agentTool,
             nextNodes,
             failNode,

@@ -1,3 +1,4 @@
+import { normalizeThreadReference } from '@xpert-ai/chatkit-types'
 import {
     ChatKitCodeReference,
     ChatKitImageReference,
@@ -392,6 +393,9 @@ function toFileElementReference(reference: FileElementReferenceCandidate): TChat
 }
 
 export function normalizeReferenceLike(value: unknown): ReferenceLike | null {
+    const thread = normalizeThreadReference(value)
+    if (thread) return thread
+
     if (isQuoteReferenceLike(value)) {
         return toQuoteReference(value)
     }
@@ -532,6 +536,7 @@ function formatFileElementReference(reference: FileElementReferenceLike): string
     ].join('\n')
 }
 
+/** Thread references contribute locators only; authorized history is loaded later through read_thread. */
 export function buildReferencedPrompt(references: ReferenceLike[]): string {
     if (!references.length) {
         return ''
@@ -540,15 +545,17 @@ export function buildReferencedPrompt(references: ReferenceLike[]): string {
     const header = getReferencedPromptHeader(references)
     const body = references
         .map((reference) =>
-            reference.type === 'quote'
-                ? formatQuoteReference(reference)
-                : reference.type === 'image'
-                  ? formatImageReference(reference)
-                  : reference.type === 'element'
-                    ? formatElementReference(reference)
-                    : reference.type === 'file_element'
-                      ? formatFileElementReference(reference)
-                      : formatCodeReference(reference)
+            reference.type === 'thread'
+                ? `Referenced thread (live locator, not contents; use read_thread before relying on it): ${JSON.stringify({ conversationId: reference.conversationId, threadId: reference.threadId, title: reference.label })}`
+                : reference.type === 'quote'
+                  ? formatQuoteReference(reference)
+                  : reference.type === 'image'
+                    ? formatImageReference(reference)
+                    : reference.type === 'element'
+                      ? formatElementReference(reference)
+                      : reference.type === 'file_element'
+                        ? formatFileElementReference(reference)
+                        : formatCodeReference(reference)
         )
         .join('\n\n')
 

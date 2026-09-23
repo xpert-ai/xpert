@@ -29,7 +29,15 @@ describe('McpAppInstanceStoreService', () => {
     })
 
     it('persists and restores a bounded instance snapshot for another API replica', async () => {
-        const value = snapshot('app-1')
+        const value = {
+            ...snapshot('app-1'),
+            executionContext: {
+                xpertId: 'assistant-1',
+                conversationId: 'conversation-1',
+                executionId: 'execution-1',
+                projectId: 'project-1'
+            }
+        }
 
         await service.save(value)
 

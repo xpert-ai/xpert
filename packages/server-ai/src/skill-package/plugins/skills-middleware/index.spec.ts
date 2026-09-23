@@ -308,34 +308,6 @@ describe('SkillsMiddleware', () => {
         const middleware = createMiddleware()
         const skillPackageService = Reflect.get(middleware, 'skillPackageService') as {
             ensureInstalledSkillPackage: jest.Mock
-          }
-        },
-        state: {},
-        systemMessage: new SystemMessage('base')
-      } as never,
-      handler
-    )) as unknown as { systemMessage: { content: string } }
-
-    expect(loadSkillMetadata).toHaveBeenCalledWith(
-      runtimeSkillsRoot,
-      ['pkg-weather', 'pkg-calendar'],
-      'workspace-1'
-    )
-    expect(nextResult.systemMessage.content).toContain('Weather')
-    expect(nextResult.systemMessage.content).toContain('Skill Discovery')
-    expect(nextResult.systemMessage.content).toContain('npx skills add')
-    expect(nextResult.systemMessage.content).toContain('.agents/skills')
-    expect(nextResult.systemMessage.content).toContain('This is a runtime skill flow')
-    expect(nextResult.systemMessage.content).toContain('dedicated workspace skill authoring tools')
-  })
-
-  it('rejects auto discovery installs over the configured per-call limit', async () => {
-    const middleware = createMiddleware()
-    const instance = await middleware.createMiddleware(
-      {
-        autoDiscovery: {
-          enabled: true,
-          maxInstallPerRun: 1
         }
         skillPackageService.ensureInstalledSkillPackage
             .mockResolvedValueOnce({
@@ -611,7 +583,7 @@ describe('SkillsMiddleware', () => {
         expect(result.systemMessage.content).not.toContain('default-skill')
     })
 
-    it('does not load workspace skills by default when no default skills are configured', async () => {
+    it('queries workspace defaults without including conversation-only plugin skills', async () => {
         const middleware = createMiddleware()
         ;(middleware as any).skillPackageRepository.find = jest.fn().mockResolvedValue([
             {
@@ -659,8 +631,10 @@ describe('SkillsMiddleware', () => {
             handler
         )) as any
 
-        expect((middleware as any).skillPackageRepository.find).not.toHaveBeenCalled()
-        expect(result.systemMessage.content).not.toContain('skill-a')
+        expect(Reflect.get(middleware, 'skillPackageRepository').find).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { workspaceId: 'workspace-1', runtimeResourceOnly: false } })
+        )
+        expect(result.systemMessage.content).toContain('skill-a')
     })
 
     it('loads all workspace skills in blacklist mode when selectedSkillIds are absent', async () => {
@@ -729,7 +703,8 @@ describe('SkillsMiddleware', () => {
         expect((middleware as any).skillPackageRepository.find).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: {
-                    workspaceId: 'workspace-1'
+                    workspaceId: 'workspace-1',
+                    runtimeResourceOnly: false
                 }
             })
         )

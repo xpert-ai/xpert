@@ -4,7 +4,7 @@
  * - Register HTTP routes and strategies only after the module is loaded into Nest.
  * - Preserve tenant/organization scope and existing plugin lifecycle semantics during install and refresh.
  */
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
@@ -79,6 +79,7 @@ import {
 } from './plugin-bundle-manifest'
 import { RuntimeControlService } from '../runtime-control/runtime-control.service'
 import { PluginRuntimeStateService, resolvePluginRuntimeRevision } from './plugin-runtime-state.service'
+import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 
 @Injectable()
 export class PluginManagementService {
@@ -95,7 +96,9 @@ export class PluginManagementService {
 		private readonly dataSource: DataSource,
 		private readonly applicationConfig: ApplicationConfig,
 		private readonly runtimeControl: RuntimeControlService,
-		private readonly runtimeState: PluginRuntimeStateService
+		private readonly runtimeState: PluginRuntimeStateService,
+		@Optional()
+		private readonly pluginSchemaSync?: PluginSchemaSyncService
 	) {}
 
 	findLoadedPlugin(
@@ -434,6 +437,17 @@ export class PluginManagementService {
 					pluginName: normalizePluginName(packageName),
 					packageName
 				})
+				await this.pluginSchemaSync?.synchronize({
+					pluginName: packageName,
+					pluginBaseDir,
+					source,
+					workspacePath,
+					config: body.config,
+					organizationId: targetOrganizationId,
+					tenantId: targetTenantId,
+					scopeKey: scope.scopeKey,
+					artifactNamespace
+				})
 
 				const existingRestartRequiredPlugin = await this.pluginInstanceService.findOneByPluginName(
 					normalizePluginName(packageName),
@@ -463,28 +477,93 @@ export class PluginManagementService {
 					},
 					{ syncLoadedConfig: false }
 				)
+				const stagedVersion = stagedCompatibility.version ?? body.version
+				const stagedRuntimeRevision = source === 'code' ? `runtime:${runtimePluginName}` : undefined
+				const convergence = await this.runtimeControl.recordPluginRuntimeChange({
+					pluginName: normalizePluginName(packageName),
+					version: stagedVersion,
+					runtimeRevision: stagedRuntimeRevision,
+					scopeKey: scope.scopeKey
+				})
 				this.logger.log(
-					`Staged ${level}-level plugin ${packageName}@${stagedCompatibility.version ?? body.version ?? 'latest'} in ${scope.scopeKey}; API restart required for activation`
+					`Staged ${level}-level plugin ${packageName}@${stagedVersion ?? 'latest'} in ${scope.scopeKey}; ${
+						convergence.scheduled
+							? 'API runtime convergence scheduled'
+							: 'API restart required for activation'
+					}`
 				)
 				return {
 					success: true,
 					name: normalizePluginName(packageName),
 					packageName: normalizePluginName(packageName),
 					organizationId: targetOrganizationId,
-					currentVersion: stagedCompatibility.version ?? body.version,
-					restartRequired: true,
+					currentVersion: stagedVersion,
 					runtimeRequirements: [
 						{
 							scopeKey: scope.scopeKey,
 							pluginName: normalizePluginName(packageName),
-							...((stagedCompatibility.version ?? body.version)
-								? { version: stagedCompatibility.version ?? body.version }
-								: {}),
-							...(source === 'code' ? { runtimeRevision: `runtime:${runtimePluginName}` } : {}),
+							...(stagedVersion ? { version: stagedVersion } : {}),
+							...(stagedRuntimeRevision ? { runtimeRevision: stagedRuntimeRevision } : {}),
 							state: 'loaded'
 						}
-					]
+					],
+					...(convergence.scheduled
+						? { runtimeConvergence: { generation: convergence.generation } }
+						: { restartRequired: true })
 				}
+			}
+
+			if (this.pluginSchemaSync) {
+				const staged = await registerPluginsAsync(
+					{
+						module: this.moduleRef,
+						tenantId: targetTenantId,
+						organizationId: targetOrganizationId,
+						defaultTenantId,
+						scopeKey: scope.scopeKey,
+						plugins: [
+							{
+								name: source === 'code' ? packageName : packageNameWithVersion,
+								runtimeName: source === 'code' ? runtimePluginName : undefined,
+								source,
+								level,
+								sourceConfig
+							}
+						],
+						baseDir: organizationBaseDir,
+						allowSystemPlugins,
+						stageOnly: true
+					},
+					this.logger
+				)
+				if (staged.errors.length) {
+					throw new BadRequestException(staged.errors[0].error)
+				}
+				const stagedPluginBaseDir = getOrganizationPluginPath(
+					targetOrganizationId,
+					runtimePluginName,
+					scopeStoreOptions
+				)
+				const stagedPlugin = await loadPlugin(packageName, {
+					basedir: stagedPluginBaseDir,
+					source,
+					workspacePath,
+					codeLoadMode: source === 'code' ? 'staged-package' : undefined
+				})
+				await this.pluginSchemaSync.synchronize({
+					pluginName: packageName,
+					pluginBaseDir: stagedPluginBaseDir,
+					source,
+					workspacePath,
+					config: body.config,
+					organizationId: targetOrganizationId,
+					tenantId: targetTenantId,
+					scopeKey: scope.scopeKey,
+					artifactNamespace:
+						stagedPlugin.meta?.artifactNamespace ??
+						readPluginBundleManifest(stagedPluginBaseDir)?.manifest.artifactNamespace ??
+						null
+				})
 			}
 
 			await this.uninstallByPackageNameWithGuard(

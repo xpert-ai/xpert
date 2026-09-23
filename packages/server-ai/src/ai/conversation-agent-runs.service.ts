@@ -31,14 +31,17 @@ export class ConversationAgentRunsService {
 
         const roots = await this.executions.findAllInOrganizationOrTenant({
             where: { id: In(rootIds), threadId: In(allowedThreadIds) },
-            select: ['id', 'threadId']
+            select: ['id', 'threadId', 'status', 'elapsedTime', 'createdAt', 'updatedAt']
         })
         const owner = new Map(roots.items.map((root) => [root.id, root.id]))
         const threadByRoot = new Map(roots.items.map((root) => [root.id, root.threadId]))
         const threads = [...new Set(roots.items.map((root) => root.threadId).filter(Boolean))]
         if (!threads.length) return result
         let frontier = roots.items.map((root) => root.id)
-        const runsByRoot = new Map<string, TChatAgentRunSummary[]>()
+        // Keep root timing even when there are no child runs; it is also copied into branch history.
+        const runsByRoot = new Map<string, TChatAgentRunSummary[]>(
+            roots.items.map((root) => [root.id, [{ ...toAgentRunSummary(root), isRoot: true }]])
+        )
         while (frontier.length) {
             const children = await this.executions.findAllInOrganizationOrTenant({
                 where: { parentId: In(frontier), threadId: In(threads) },

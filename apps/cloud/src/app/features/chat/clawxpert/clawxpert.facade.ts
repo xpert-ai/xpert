@@ -54,6 +54,7 @@ import {
 import { WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
 import { ClawXpertConversationStartIntentService } from './clawxpert-conversation-start-intent.service'
+import { ClawXpertBindingState, normalizeClawXpertXperts } from './clawxpert-binding-state'
 
 export type ClawXpertViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
 
@@ -83,8 +84,6 @@ type ClawXpertBindPublishedXpertOptions = {
   rethrowOnError?: boolean
 }
 
-type XpertCollection = IXpert[] | { items?: IXpert[] } | null | undefined
-
 const HEATMAP_DAY_COUNT = 84
 const ALL_TIME_START = '2000-01-01'
 const CLAWXPERT_PUBLISH_RELEASE_NOTES = 'Published from ClawXpert workspace.'
@@ -102,7 +101,6 @@ const XPERT_TEAM_RELATIONS = [
 
 @Injectable()
 export class ClawXpertFacade implements WorkbenchChatFacade {
-  #loadRequestId = 0
   #preferenceLoadRequestId = 0
   #triggerDraftLoadRequestId = 0
   #lastConversationEntryKey: string | null = null
@@ -131,7 +129,9 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
   })
-  readonly userId = signal(this.#store.userId ?? null)
+  readonly userId = toSignal(this.#store.user$.pipe(map((user) => user?.id ?? this.#store.userId ?? null)), {
+    initialValue: this.#store.userId ?? null
+  })
   readonly currentUrl = toSignal(
     this.#router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -141,10 +141,11 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     { initialValue: normalizeClawXpertPath(this.#router.url) }
   )
   readonly threadId = computed(() => parseClawXpertThreadId(this.currentUrl()))
-  readonly preference = signal<IAssistantBinding | null>(null)
+  readonly #bindingState = new ClawXpertBindingState(this)
+  readonly preference = this.#bindingState.preference
   readonly userPreference = signal<IAssistantBindingUserPreference | null>(null)
-  readonly availableXperts = signal<IXpert[]>([])
-  readonly loading = signal(false)
+  readonly availableXperts = this.#bindingState.availableXperts
+  readonly loading = this.#bindingState.loading
   readonly saving = signal(false)
   readonly clearing = signal(false)
   readonly loadingUserPreference = signal(false)
@@ -153,14 +154,14 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
   readonly savingTriggerDraft = signal(false)
   readonly publishingXpert = signal(false)
   readonly savingCopilotModel = signal(false)
-  readonly showWizard = signal(false)
+  readonly showWizard = this.#bindingState.showWizard
   readonly suppressAutoResume = signal(false)
   readonly pendingConversationStartId = signal(0)
   readonly taskRefreshTick = signal(0)
   readonly activeConversation = signal<IChatConversation | null>(null)
-  readonly errorMessage = signal<string | null>(null)
+  readonly errorMessage = this.#bindingState.errorMessage
   readonly triggerDraftErrorMessage = signal<string | null>(null)
-  readonly hasLoadedXperts = signal(false)
+  readonly hasLoadedXperts = this.#bindingState.hasLoadedXperts
   readonly triggerDraftSource = signal<IXpert | null>(null)
   readonly triggerDraft = signal<TXpertTeamDraft | null>(null)
   readonly identity = computed(() => AssistantCode.CLAWXPERT)
@@ -353,14 +354,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       const organizationId = this.organizationId()
 
       if (!organizationId) {
-        this.#loadRequestId++
-        this.preference.set(null)
         this.userPreference.set(null)
-        this.availableXperts.set([])
-        this.errorMessage.set(null)
-        this.showWizard.set(false)
-        this.hasLoadedXperts.set(false)
-        this.loading.set(false)
         this.loadingUserPreference.set(false)
         this.loadingTriggerDraft.set(false)
         this.savingTriggerDraft.set(false)
@@ -371,10 +365,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
         this.triggerDraftErrorMessage.set(null)
         this.triggerDraftSource.set(null)
         this.triggerDraft.set(null)
-        return
       }
-
-      void this.loadState()
     })
 
     effect(() => {
@@ -467,6 +458,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
           })
         }
         this.showWizard.set(false)
+        this.#bindingState.persistCurrent()
       }
 
       if (!this.#pendingWizardConversationXpertId) {
@@ -555,6 +547,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
     }
   ) {
     this.saving.set(true)
+    const scope = this.#bindingState.scope()
     const currentPreference = this.preference()
     const previousAssistantId = currentPreference?.assistantId?.trim() || null
     try {
@@ -566,13 +559,15 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
         })
       )) as IAssistantBinding
 
+      if (!this.#bindingState.isCurrentScope(scope)) return
+
       const preference = this.normalizePersistedPreference(
         persistedPreference,
         currentPreference,
         options?.forceAssistantId ? assistantId : undefined
       )
 
-      this.preference.set(preference)
+      this.#bindingState.commit(preference)
       if (previousAssistantId && previousAssistantId !== assistantId) {
         await this.persistConversationPreferences(
           {
@@ -628,7 +623,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
     this.availableXperts.update((items) => {
       const nextItems = [xpert, ...items.filter((item) => item.id !== xpert.id)]
-      return this.normalizeXperts(nextItems)
+      return normalizeClawXpertXperts(nextItems)
     })
     this.hasLoadedXperts.set(true)
     this.errorMessage.set(null)
@@ -636,9 +631,11 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
   async clearPreference() {
     this.clearing.set(true)
+    const scope = this.#bindingState.scope()
     try {
       await firstValueFrom(this.#assistantBindingService.delete(AssistantCode.CLAWXPERT, AssistantBindingScope.USER))
-      this.preference.set(null)
+      if (!this.#bindingState.isCurrentScope(scope)) return
+      this.#bindingState.commit(null)
       this.userPreference.set(null)
       this.showWizard.set(true)
       this.navigateToOverview()
@@ -664,6 +661,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       return null
     }
 
+    const scope = this.#bindingState.scope()
     const previousAvailableXperts = this.availableXperts()
     const previousTriggerDraftSource = this.triggerDraftSource()
     const previousTriggerDraft = this.triggerDraft()
@@ -697,10 +695,12 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       }
 
       await firstValueFrom(this.#xpertService.update(xpertId, updatePayload))
+      if (!this.#bindingState.isCurrentScope(scope)) return null
 
       const refreshedXpert = (await firstValueFrom(
         this.#xpertService.getTeam(xpertId, { relations: [...XPERT_TEAM_RELATIONS] }).pipe(catchError(() => of(null)))
       )) as IXpert | null
+      if (!this.#bindingState.isCurrentScope(scope)) return null
 
       const nextXpert = {
         ...(currentXpert ?? {}),
@@ -709,6 +709,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
       } as IXpert
 
       this.mergeAvailableXpert(nextXpert)
+      this.#bindingState.commit(this.preference())
       this.triggerDraftErrorMessage.set(null)
       this.triggerDraftSource.set(nextXpert)
       this.triggerDraft.set(buildEditableXpertDraft(nextXpert))
@@ -716,6 +717,7 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
       return nextXpert
     } catch (error) {
+      if (!this.#bindingState.isCurrentScope(scope)) return null
       this.availableXperts.set(previousAvailableXperts)
       this.triggerDraftSource.set(previousTriggerDraftSource)
       this.triggerDraft.set(previousTriggerDraft)
@@ -1356,87 +1358,6 @@ export class ClawXpertFacade implements WorkbenchChatFacade {
 
       return null
     }
-  }
-
-  private async loadState() {
-    const requestId = ++this.#loadRequestId
-    this.loading.set(true)
-    this.errorMessage.set(null)
-    this.hasLoadedXperts.set(false)
-
-    try {
-      const [preference, xperts] = await Promise.all([
-        firstValueFrom(
-          this.#assistantBindingService.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-        ) as Promise<IAssistantBinding | null>,
-        firstValueFrom(
-          this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
-        ) as Promise<XpertCollection>
-      ])
-
-      let normalizedPreference = preference ?? null
-      const loadedXperts = this.normalizeXperts(xperts)
-      let normalizedXperts = loadedXperts
-      const pendingXpert = this.currentUrl() === '/chat/clawxpert/c' ? this.#bootstrap.pendingCreatedClawXpert() : null
-      const pendingXpertLoaded = !!pendingXpert?.id && loadedXperts.some((item) => item.id === pendingXpert.id)
-
-      if (pendingXpert?.id) {
-        normalizedPreference = {
-          ...(normalizedPreference ?? {}),
-          code: AssistantCode.CLAWXPERT,
-          scope: AssistantBindingScope.USER,
-          assistantId: pendingXpert.id
-        }
-        normalizedXperts = pendingXpertLoaded
-          ? normalizedXperts
-          : this.normalizeXperts([pendingXpert, ...normalizedXperts])
-      }
-
-      const isCurrentBindingAvailable = normalizedPreference
-        ? normalizedXperts.some((item) => item.id === normalizedPreference.assistantId)
-        : false
-
-      if (requestId !== this.#loadRequestId) {
-        return
-      }
-
-      this.preference.set(normalizedPreference)
-      this.availableXperts.set(normalizedXperts)
-      this.hasLoadedXperts.set(true)
-      this.showWizard.set(!normalizedPreference || !isCurrentBindingAvailable)
-      if (pendingXpertLoaded) {
-        this.#bootstrap.clearPendingCreatedClawXpert(pendingXpert.id)
-      }
-    } catch (error) {
-      if (requestId !== this.#loadRequestId) {
-        return
-      }
-
-      this.errorMessage.set(
-        getErrorMessage(error) ||
-          this.#translate.instant('XP.Chat.ClawXpert.LoadFailedDesc', {
-            Default: 'Check your assistant access and try again.'
-          })
-      )
-    } finally {
-      if (requestId === this.#loadRequestId) {
-        this.loading.set(false)
-      }
-    }
-  }
-
-  private normalizeXperts(items: XpertCollection) {
-    const seen = new Set<string>()
-    const candidates = Array.isArray(items) ? items : Array.isArray(items?.items) ? items.items : []
-
-    return candidates.filter((xpert): xpert is IXpert => {
-      if (!xpert?.id || xpert.latest === false || seen.has(xpert.id)) {
-        return false
-      }
-
-      seen.add(xpert.id)
-      return true
-    })
   }
 
   private async loadUserPreference() {

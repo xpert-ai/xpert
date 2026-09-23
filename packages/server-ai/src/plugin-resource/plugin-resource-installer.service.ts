@@ -498,7 +498,8 @@ export class PluginResourceInstallerService {
         return expandPluginRuntimeComponents(installable, selectors, normalizedPluginName, rootDir, pluginVersion)
     }
 
-    private async installRuntimeComponent(
+    /** Internal service entry for validated, administrator-installed portable components. */
+    async installRuntimeComponent(
         runtimeComponent: RuntimeComponent,
         workspaceId: string | null,
         xpertId: string | null,

@@ -33,6 +33,6 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
     ],
     controllers: [ConnectorController],
     providers: [ConnectorService, ConnectorStrategyRegistry],
-    exports: [ConnectorService]
+    exports: [ConnectorService, ConnectorStrategyRegistry]
 })
 export class ConnectorModule {}

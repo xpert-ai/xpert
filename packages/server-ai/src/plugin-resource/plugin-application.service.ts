@@ -243,7 +243,8 @@ export class PluginApplicationService {
                     status: 'active',
                     ownerId: RequestContext.currentUserId(),
                     settings: {
-                        access: { visibility: 'organization-shared' },
+                        // Workspace maintenance requires explicit membership; runtime access uses Assistant grants.
+                        access: { visibility: 'private' },
                         system: {
                             kind: 'plugin-app',
                             pluginName: application.pluginName,
@@ -397,7 +398,12 @@ export class PluginApplicationService {
                     if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
                     const id = `${pluginName}:${app.name}`
                     if (applications.has(id)) continue
-                    const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    // Keep legacy plugin declarations compatible without granting organization-wide authoring.
+                    const appConfig = {
+                        ...declaredConfig,
+                        workspace: { ...declaredConfig.workspace, sharing: 'private' as const }
+                    }
                     applications.set(id, {
                         application: {
                             id,

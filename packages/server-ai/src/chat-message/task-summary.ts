@@ -1,3 +1,4 @@
+import { getMessageSkillUsages } from '@xpert-ai/chatkit-types'
 import type {
     ChatKitReference,
     ChatTaskSummaryOutput,
@@ -757,6 +758,15 @@ function partOutputs(part: MessageContentPart, messageId?: string, updatedAt?: s
 }
 
 function referenceSource(reference: ChatKitReference, messageId?: string, updatedAt?: string): ChatTaskSummarySource {
+    if (reference.type === 'thread') {
+        return {
+            id: `thread:${reference.conversationId}:${reference.threadId}`,
+            kind: 'quote',
+            title: reference.label || reference.threadId,
+            messageId,
+            updatedAt
+        }
+    }
     const common = {
         id: reference.id ?? `${reference.type}:${reference.text}`,
         title: reference.label ?? compactText(reference.text, 80),
@@ -940,8 +950,12 @@ export function extractChatMessageTaskSummary(
         }
         return readExplicitContribution(part.data as ComponentData, messageId, updatedAt) ?? []
     })
+    // A skill-only tool completion must not replace an earlier plan or output contribution.
     const latestExplicit =
-        normalizeContribution(message.taskSummary, messageId, updatedAt) ?? explicitContributions.at(-1)
+        normalizeContribution(message.taskSummary, messageId, updatedAt) ??
+        explicitContributions
+            .filter((summary) => summary.plan || summary.todos || summary.outputs?.length || summary.sources?.length)
+            .at(-1)
     const plan = latestExplicit?.plan ?? extractPlan(message.content, messageId, updatedAt)
     const todos =
         latestExplicit?.todos ?? parts.flatMap((part) => extractTodos(part, messageId, updatedAt) ?? []).at(-1)
@@ -957,12 +971,15 @@ export function extractChatMessageTaskSummary(
         ...parts.flatMap((part) => webSearchSources(part, messageId, updatedAt)),
         ...knowledgeSources(message.content, messageId, updatedAt)
     ])
+    // Aggregate structured observations from this message only; prose is never evidence of a skill load.
+    const skillUsages = getMessageSkillUsages(message)
 
     return {
         version: SUMMARY_VERSION,
         ...(plan ? { plan } : {}),
         ...(todos ? { todos } : {}),
         ...(outputs.length ? { outputs } : {}),
-        ...(sources.length ? { sources } : {})
+        ...(sources.length ? { sources } : {}),
+        ...(skillUsages.length ? { skillUsages } : {})
     }
 }
