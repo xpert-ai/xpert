@@ -90,34 +90,42 @@
       </div>
 
       @if (workspace()) {
-        <ul class="relative flex flex-wrap" cdkListbox [cdkListboxDisabled]="!workspace()" [(ngModel)]="types">
-          <li [cdkOption]="null" class="xpert-list-option" [ngClass]="{ active: !type() }" [routerLink]="['.']">
-            @if (type()) {
+        <nav class="relative flex flex-wrap">
+          <a
+            class="xpert-list-option"
+            [routerLink]="['.']"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            [routerLinkActiveOptions]="homeRouteMatchOptions"
+            #allRoute="routerLinkActive"
+          >
+            @if (!allRoute.isActive) {
               <i class="ri-apps-line text-lg mr-1"></i>
             } @else {
               <i class="ri-apps-fill text-lg mr-1"></i>
             }
             {{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}
-          </li>
-          <li
-            [cdkOption]="XpertRoleTypeEnum.Agent"
+          </a>
+          <a
             class="xpert-list-option"
-            [ngClass]="{ active: type() === XpertRoleTypeEnum.Agent }"
             [routerLink]="['xperts']"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            #xpertsRoute="routerLinkActive"
           >
-            @if (type() === XpertRoleTypeEnum.Agent) {
+            @if (xpertsRoute.isActive) {
               <i class="ri-team-fill text-lg mr-1"></i>
             } @else {
               <i class="ri-team-line text-lg mr-1"></i>
             }
             {{ 'XP.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' } }}
-          </li>
+          </a>
 
-          <li
-            [cdkOption]="XpertToolsetCategory.BUILTIN"
+          <a
             class="xpert-list-option"
             [routerLink]="['builtin']"
             routerLinkActive="active"
+            ariaCurrentWhenActive="page"
             #rla3="routerLinkActive"
           >
             <svg
@@ -188,33 +196,28 @@
               </g>
             </svg>
             {{ 'XP.Xpert.BuiltinTool' | translate: { Default: 'Built-in Tool' } }}
-          </li>
+          </a>
 
-          <li
-            [cdkOption]="XpertToolsetCategory.MCP"
-            class="xpert-list-option"
-            [routerLink]="['mcp']"
-            routerLinkActive="active"
-          >
+          <a class="xpert-list-option" [routerLink]="['mcp']" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="ri-route-line text-lg mr-1"></i>
             {{ 'XP.Xpert.MCPAccess' | translate: { Default: 'MCP access' } }}
-          </li>
+          </a>
 
-          <li
-            [cdkOption]="XpertToolsetCategory.API"
+          <a
             class="xpert-list-option"
             [routerLink]="['custom']"
             routerLinkActive="active"
+            ariaCurrentWhenActive="page"
             #rla2="routerLinkActive"
           >
             <i class="ri-links-line text-lg mr-1"></i>
             {{ 'XP.Xpert.APITool' | translate: { Default: 'API Tool' } }}
-          </li>
-          <li
-            [cdkOption]="'connectors'"
+          </a>
+          <a
             class="xpert-list-option"
             [routerLink]="['connectors']"
             routerLinkActive="active"
+            ariaCurrentWhenActive="page"
             #rla9="routerLinkActive"
           >
             @if (rla9.isActive) {
@@ -223,12 +226,12 @@
               <i class="ri-plug-line text-lg mr-1"></i>
             }
             {{ 'XP.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
-          </li>
-          <li
-            [cdkOption]="'knowledgebase'"
+          </a>
+          <a
             class="xpert-list-option"
             [routerLink]="['knowledges']"
             routerLinkActive="active"
+            ariaCurrentWhenActive="page"
             #rla1="routerLinkActive"
           >
             @if (rla1.isActive) {
@@ -237,9 +240,15 @@
               <i class="ri-book-shelf-line text-lg mr-1"></i>
             }
             {{ 'XP.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' } }}
-          </li>
+          </a>
 
-          <li class="xpert-list-option" [routerLink]="['database']" routerLinkActive="active" #rla6="routerLinkActive">
+          <a
+            class="xpert-list-option"
+            [routerLink]="['database']"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            #rla6="routerLinkActive"
+          >
             @if (rla6.isActive) {
               <i class="ri-database-2-fill text-lg mr-1"></i>
             } @else {
@@ -247,9 +256,15 @@
             }
 
             {{ 'XP.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
-          </li>
+          </a>
 
-          <li class="xpert-list-option" [routerLink]="['skills']" routerLinkActive="active" #rla7="routerLinkActive">
+          <a
+            class="xpert-list-option"
+            [routerLink]="['skills']"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            #rla7="routerLinkActive"
+          >
             @if (rla7.isActive) {
               <i class="ri-pencil-ruler-fill text-lg mr-1"></i>
             } @else {
@@ -257,12 +272,13 @@
             }
 
             {{ 'XP.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
-          </li>
+          </a>
 
-          <li
+          <a
             class="xpert-list-option"
             [routerLink]="['prompt-workflows']"
             routerLinkActive="active"
+            ariaCurrentWhenActive="page"
             #rla8="routerLinkActive"
           >
             @if (rla8.isActive) {
@@ -272,10 +288,12 @@
             }
 
             {{ 'XP.PromptWorkflow.ShortTitle' | translate: { Default: 'Prompt Workflows' } }}
-          </li>
+          </a>
 
-          <li
+          <button
+            type="button"
             [class]="canWriteWorkspace() ? 'xpert-list-option' : 'xpert-list-option opacity-50 cursor-not-allowed'"
+            [disabled]="!canWriteWorkspace()"
             (click)="openEnvs()"
           >
             <svg
@@ -322,8 +340,8 @@
               </g>
             </svg>
             {{ 'XP.Environment.Environments' | translate: { Default: 'Environments' } }}
-          </li>
-        </ul>
+          </button>
+        </nav>
       }
     </div>
 
