@@ -7,71 +7,71 @@
  * You might need to authenticate with NPM before running this script.
  */
 
-import { execSync } from 'child_process';
-import { readFileSync, writeFileSync } from 'fs';
-import chalk from 'chalk';
+import { execSync } from 'child_process'
+import { readFileSync, writeFileSync } from 'fs'
+import chalk from 'chalk'
+import { parse as parseYaml } from 'yaml'
+import { rewriteCatalogDependencies } from '../release/catalog-dependencies.mjs'
 
-import devkit from '@nx/devkit';
-const { readCachedProjectGraph } = devkit;
+import devkit from '@nx/devkit'
+const { readCachedProjectGraph } = devkit
 
 function invariant(condition, message) {
   if (!condition) {
-    console.error(chalk.bold.red(message));
-    process.exit(1);
+    console.error(chalk.bold.red(message))
+    process.exit(1)
   }
 }
 
 // Executing publish script: node path/to/publish.mjs {name} {version} --tag={tag} --otp={otp}
 // Default "tag" to "next" so we won't publish the "latest" tag by accident.
-const [, , name, version, ] = process.argv;
-let tag = 'next';
-let otp;
+const [, , name, version] = process.argv
+let tag = 'next'
+let otp
 for (const arg of process.argv) {
   if (arg.startsWith('--otp=')) {
-    otp = arg.split('=')[1];
-    break;
+    otp = arg.split('=')[1]
+    break
   } else if (arg.startsWith('--tag=')) {
-    tag = arg.split('=')[1];
+    tag = arg.split('=')[1]
   }
 }
 
 // A simple SemVer validation to validate the version
-const validVersion = /^\d+\.\d+\.\d+(-\w+\.\d+)?/;
+const validVersion = /^\d+\.\d+\.\d+(-\w+\.\d+)?/
 invariant(
   version && validVersion.test(version),
   `No version provided or version did not match Semantic Versioning, expected: #.#.#-tag.# or #.#.#, got ${version}.`
-);
+)
 
-const graph = readCachedProjectGraph();
-const project = graph.nodes[name];
+const graph = readCachedProjectGraph()
+const project = graph.nodes[name]
 
-invariant(
-  project,
-  `Could not find project "${name}" in the workspace. Is the project.json configured correctly?`
-);
+invariant(project, `Could not find project "${name}" in the workspace. Is the project.json configured correctly?`)
 
-const outputPath = project.data?.targets?.build?.options?.outputPath;
+const outputPath = project.data?.targets?.build?.options?.outputPath
 invariant(
   outputPath,
   `Could not find "build.options.outputPath" of project "${name}". Is project.json configured  correctly?`
-);
+)
 
-process.chdir(outputPath);
+const workspace = parseYaml(readFileSync('pnpm-workspace.yaml', 'utf8'))
+process.chdir(outputPath)
 
 // Updating the version in "package.json" before publishing
 try {
-  const json = JSON.parse(readFileSync(`package.json`).toString());
-  json.version = version;
-  writeFileSync(`package.json`, JSON.stringify(json, null, 2));
+  const json = JSON.parse(readFileSync(`package.json`).toString())
+  json.version = version
+  rewriteCatalogDependencies(json, workspace)
+  writeFileSync(`package.json`, JSON.stringify(json, null, 2))
 } catch (e) {
-  console.error(
-    chalk.bold.red(`Error reading package.json file from library build output.`)
-  );
+  console.error(chalk.bold.red(`Error reading package.json file from library build output.`))
+  throw e
 }
 
 // Execute "npm publish" to publish
-let publishCommand = `npm publish --access public --tag ${tag}`;
+let publishCommand = `npm publish --access public --tag ${tag}`
 if (otp) {
-  publishCommand += ` --otp ${otp}`;
+  publishCommand += ` --otp ${otp}`
 }
-execSync(publishCommand);
+execSync(publishCommand)

@@ -85,14 +85,5 @@
     "packages/*",
     "packages/plugins/*"
   ],
-  "pnpm": {
-    "overrides": {
-      "@langchain/core": "0.3.72",
-      "langchain": "0.3.31",
-      "@modelcontextprotocol/sdk": "1.12.1",
-      "zod": "3.25.67",
-      "web-streams-polyfill": "^4.2.0"
-    }
-  },
   "packageManager": "pnpm@10.24.0"
 }

@@ -4,7 +4,21 @@ on:
   pull_request:
     paths:
       - '.deploy/api/**'
-      - 'packages/server-ai/package.json'
+      - '.deploy/webapp/**'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'tsconfig.base.json'
+      - 'nx.json'
+      - 'docker-compose.yml'
+      - 'docker/.scripts/initdb.d/**'
+      - '**/package.json'
+      - 'package.json'
+      - '.npmrc'
+      - 'tools/release/**'
+      - 'tools/scripts/publish.mjs'
+      - 'tools/scripts/build.mjs'
+      - 'tools/scripts/update-pnpm-lock-if-needed.cjs'
+      - '**/project.json'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/api-runtime-dependencies.yml'
@@ -12,7 +26,21 @@ on:
     branches: [develop, main]
     paths:
       - '.deploy/api/**'
-      - 'packages/server-ai/package.json'
+      - '.deploy/webapp/**'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'tsconfig.base.json'
+      - 'nx.json'
+      - 'docker-compose.yml'
+      - 'docker/.scripts/initdb.d/**'
+      - '**/package.json'
+      - 'package.json'
+      - '.npmrc'
+      - 'tools/release/**'
+      - 'tools/scripts/publish.mjs'
+      - 'tools/scripts/build.mjs'
+      - 'tools/scripts/update-pnpm-lock-if-needed.cjs'
+      - '**/project.json'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/api-runtime-dependencies.yml'
@@ -28,4 +56,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --test .deploy/api/runtime-dependencies.test.cjs
+      - run: node --test .deploy/api/catalog-declarations.test.cjs
+      - run: node --test tools/release/catalog-dependencies.test.mjs
+      - run: node --test .deploy/api/dependencies.test.cjs
+      - name: Enable the repository pnpm version
+        run: corepack enable
+      - name: Check workspace dependency lock
+        run: corepack pnpm install --lockfile-only --frozen-lockfile --ignore-scripts
+      - name: Check API build and production dependency locks
+        run: node .deploy/api/dependencies.cjs check
+
+  image-health:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build production image
+        run: docker build --target production -f .deploy/api/Dockerfile -t xpert-api:health-check .
+      - name: Check startup and dependency health
+        run: node .deploy/api/check-image.cjs

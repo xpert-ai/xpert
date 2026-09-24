@@ -8,8 +8,9 @@ packages:
 
 # API source and both Docker stages must resolve the same ChatKit runtime.
 catalog:
-  '@xpert-ai/chatkit-types': 0.6.2
+  '@xpert-ai/chatkit-types': 0.6.3
 
+# Keep overrides here so replacing the root manifest in Docker preserves them.
 overrides:
   '@xpert-ai/plugin-sdk': workspace:*
   '@langchain/core': 0.3.72
@@ -21,6 +22,8 @@ overrides:
   '@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk': 1.29.0
   zod: 3.25.67
   web-streams-polyfill: ^4.2.0
+  ws: 8.18.0
+  zod-to-json-schema: 3.25.2
 
 allowBuilds:
   '@apollo/protobufjs': true

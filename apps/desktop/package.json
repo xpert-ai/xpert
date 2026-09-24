@@ -17,7 +17,7 @@
   "devDependencies": {
     "@emoji-mart/data": "^1.2.1",
     "@xpert-ai/contracts": "workspace:*",
-    "@xpert-ai/chatkit-types": "~0.6.2",
+    "@xpert-ai/chatkit-types": "catalog:",
     "@xpert-ai/chatkit-web-component": "~0.6.0",
     "@xpert-ai/shadcn-ui": "workspace:*",
     "lucide-react": "^1.21.0",

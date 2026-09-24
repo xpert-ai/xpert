@@ -14,6 +14,8 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { getPackages } from '@manypkg/get-packages'
+import { parse as parseYaml } from 'yaml'
+import { rewriteCatalogDependencies } from './catalog-dependencies.mjs'
 
 const workspaceRoot = process.cwd()
 const dependencySections = ['dependencies', 'peerDependencies', 'optionalDependencies']
@@ -396,14 +398,18 @@ async function readPublishManifest(pkg, publishRoot) {
 async function preparePublishManifest(pkg, publishRoot, workspacePackageIndex) {
   const manifestPath = path.join(publishRoot, 'package.json')
   const publishManifest = await readPublishManifest(pkg, publishRoot)
-  const rewrites = rewriteWorkspaceProtocolDependencies(pkg, publishManifest, workspacePackageIndex)
+  const workspace = parseYaml(await readFile(path.join(workspaceRoot, 'pnpm-workspace.yaml'), 'utf8'))
+  const rewrites = [
+    ...rewriteCatalogDependencies(publishManifest, workspace),
+    ...rewriteWorkspaceProtocolDependencies(pkg, publishManifest, workspacePackageIndex)
+  ]
 
   assertNoWorkspaceProtocolDependencies(pkg, publishManifest)
 
   if (rewrites.length > 0) {
     await writeFile(manifestPath, `${JSON.stringify(publishManifest, null, 2)}\n`)
     console.log(
-      `Rewrote ${rewrites.length} workspace protocol dependency specifier(s) in ${relativeToWorkspace(manifestPath)}.`
+      `Rewrote ${rewrites.length} workspace/catalog dependency specifier(s) in ${relativeToWorkspace(manifestPath)}.`
     )
     for (const rewrite of rewrites) {
       console.log(`- ${rewrite}`)

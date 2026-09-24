@@ -61,9 +61,10 @@
     "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=7000 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json ./apps/api/src/seed-module.ts --name",
     "bootstrap": "bash ./tools/scripts/bootstrap.sh",
     "changeset": "changeset",
-    "changeset:version": "changeset version && node packages/sandbox-runtime/scripts/sync-version.mjs && pnpm install --lockfile-only --ignore-scripts",
-    "lockfile:update": "pnpm install --lockfile-only --ignore-scripts",
-    "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts",
+    "changeset:version": "changeset version && node packages/sandbox-runtime/scripts/sync-version.mjs && pnpm run lockfile:update",
+    "lockfile:update": "pnpm install --lockfile-only --ignore-scripts && node .deploy/api/dependencies.cjs update",
+    "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts && node .deploy/api/dependencies.cjs check",
+    "api:image:check": "docker build --target production -f .deploy/api/Dockerfile -t xpert-api:health-check . && node .deploy/api/check-image.cjs",
     "check:typeorm-columns": "node tools/scripts/check-typeorm-column-types.cjs",
     "migrate:knowledge-filter-v2": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts --command knowledge-filter-v2",
     "release:publish": "node tools/release/publish-npm-packages.mjs",
@@ -267,22 +268,6 @@
   ],
   "nx": {
     "includedScripts": []
-  },
-  "pnpm": {
-    "overrides": {
-      "@xpert-ai/plugin-sdk": "workspace:*",
-      "@langchain/core": "0.3.72",
-      "langchain": "0.3.31",
-      "@modelcontextprotocol/sdk": "1.12.1",
-      "@modelcontextprotocol/core>zod": "4.2.0",
-      "@modelcontextprotocol/server>zod": "4.2.0",
-      "@modelcontextprotocol/ext-apps>@modelcontextprotocol/sdk": "1.29.0",
-      "@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk": "1.29.0",
-      "zod": "3.25.67",
-      "web-streams-polyfill": "^4.2.0",
-      "ws": "8.18.0",
-      "zod-to-json-schema": "3.25.2"
-    }
   },
   "packageManager": "pnpm@10.24.0"
 }
