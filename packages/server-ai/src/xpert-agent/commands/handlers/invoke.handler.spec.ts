@@ -79,7 +79,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable, Subscriber } from 'rxjs'
 import { createMapStreamEvents } from '../../agent'
-import { Command } from '@langchain/langgraph'
+import { Command, getConfig } from '@langchain/langgraph'
 import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
@@ -88,6 +88,7 @@ import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { CompleteToolCallsQuery } from '../../queries'
+import { getExecutionContext } from '../../../shared/agent/execution-context'
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -487,16 +488,33 @@ describe('XpertAgentInvokeHandler', () => {
 
     it('uses the xpert workspace root as sandbox working directory', async () => {
         const graph = createGraph()
+        const sandbox = {
+            provider: 'local-shell-sandbox',
+            workingDirectory: '/tmp/xpert-workspace'
+        }
+        graph.streamEvents.mockImplementation((_input, config) => {
+            expect(config.context).toBe(getConfig().context)
+            expect(config.context).toBe(getExecutionContext())
+            expect(getExecutionContext()?.sandbox).toBe(sandbox)
+            return (async function* () {
+                await Promise.resolve()
+                expect(getExecutionContext()?.sandbox).toBe(sandbox)
+            })()
+        })
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof SandboxAcquireBackendCommand) {
-                return {
-                    provider: 'local-shell-sandbox',
-                    workingDirectory: '/tmp/xpert-workspace'
-                }
+                return sandbox
             }
             if (command instanceof CompileGraphCommand) {
+                expect(getConfig().context).toBe(getExecutionContext())
+                expect(getConfig().context?.sandbox).toBe(sandbox)
+                expect(getExecutionContext()?.sandbox).toBe(sandbox)
+                expect(command.options).not.toHaveProperty('sandbox')
                 return createCompiledGraph(graph)
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                expect(getExecutionContext()?.sandbox).toBe(sandbox)
             }
             return null
         })
@@ -534,7 +552,10 @@ describe('XpertAgentInvokeHandler', () => {
             )
         )
 
+        expect(graph.streamEvents).not.toHaveBeenCalled()
+        expect(getExecutionContext()).toBeUndefined()
         await consumeStream(stream)
+        expect(getExecutionContext()).toBeUndefined()
 
         expect(commandBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -844,6 +865,8 @@ describe('XpertAgentInvokeHandler', () => {
 
     it('passes the active Project to interrupted tool-call completion', async () => {
         const graph = createGraph()
+        const sandbox = { provider: 'local-shell-sandbox', backend: { id: 'approval-backend' } }
+        const completionScopes: ReturnType<typeof getExecutionContext>[] = []
         graph.getState.mockResolvedValue({
             config: {
                 configurable: {
@@ -858,12 +881,16 @@ describe('XpertAgentInvokeHandler', () => {
             tasks: [{ id: 'task-1', name: 'search' }]
         })
         commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) return sandbox
             if (command instanceof CompileGraphCommand) {
                 return createCompiledGraph(graph)
             }
             return null
         })
-        queryBus.execute.mockResolvedValue({ tasks: [] })
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof CompleteToolCallsQuery) completionScopes.push(getExecutionContext())
+            return { tasks: [] }
+        })
 
         const stream = await handler.execute(
             new XpertAgentInvokeCommand(
@@ -874,7 +901,7 @@ describe('XpertAgentInvokeHandler', () => {
                 {
                     id: 'xpert-1',
                     workspaceDataScope: 'user',
-                    features: {}
+                    features: { sandbox: { enabled: true, provider: 'local-shell-sandbox' } }
                 } as any,
                 {
                     isDraft: true,
@@ -898,6 +925,9 @@ describe('XpertAgentInvokeHandler', () => {
             ([query]) => query instanceof CompleteToolCallsQuery
         )?.[0] as CompleteToolCallsQuery
         expect(completeQuery.projectId).toBe('project-1')
+        expect(completeQuery).not.toHaveProperty('sandbox')
+        expect(completionScopes).toHaveLength(1)
+        expect(completionScopes[0]?.sandbox).toBe(sandbox)
     })
     it.each([
         { label: 'pause only', completedTasks: [] },
