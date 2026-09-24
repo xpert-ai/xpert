@@ -1,3 +1,4 @@
+import type { FileChangeReport } from '@xpert-ai/chatkit-types'
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX } from '@cloud/app/@core/state'
@@ -30,6 +31,12 @@ export type SignedArtifactPreviewLink = {
 export class ArtifactService {
   readonly #http = inject(HttpClient)
 
+  getFileChangeReport(artifactId: string, artifactVersionId: string) {
+    return this.#http.get<FileChangeReport>(
+      `${API_PREFIX}/artifacts/${encodeURIComponent(artifactId)}/versions/${encodeURIComponent(artifactVersionId)}/content`
+    )
+  }
+
   createSignedPreviewLink(artifactId: string, ttlSeconds = 300) {
     return this.#http.post<SignedArtifactPreviewLink>(
       `${API_PREFIX}/artifacts/${encodeURIComponent(artifactId)}/links/signed-preview`,
@@ -44,7 +51,12 @@ export class ArtifactService {
     )
   }
 
-  createSignedVersionPreviewLink(artifactId: string, artifactVersionId: string, ttlSeconds = 300) {
+  createSignedVersionPreviewLink(
+    artifactId: string,
+    artifactVersionId: string,
+    ttlSeconds = 300,
+    allowDownload = false
+  ) {
     return this.#http.post<SignedArtifactPreviewLink>(
       `${API_PREFIX}/artifacts/${encodeURIComponent(artifactId)}/links/signed-preview`,
       {
@@ -53,7 +65,7 @@ export class ArtifactService {
         ttlSeconds,
         presentation: {
           disposition: 'inline',
-          allowDownload: false
+          allowDownload
         }
       }
     )

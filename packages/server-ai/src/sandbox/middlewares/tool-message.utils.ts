@@ -92,8 +92,9 @@ export async function withStreamingToolMessage(
     toolCallId: string,
     toolName: string,
     command: string,
-    backend: SandboxBackendProtocol,
-    executionOptions?: SandboxExecutionOptions
+    backend: Pick<SandboxBackendProtocol, 'execute' | 'streamExecute'>,
+    executionOptions?: SandboxExecutionOptions,
+    finalize?: () => Promise<void>
 ): Promise<ExecuteResponse> {
     const input = {
         command,
@@ -132,33 +133,66 @@ export async function withStreamingToolMessage(
 
     // Phase 2: streaming execution
     let result: ExecuteResponse
-    if (typeof backend.streamExecute === 'function') {
-        let accumulatedOutput = ''
-        let lastDispatchTime = 0
+    try {
+        if (typeof backend.streamExecute === 'function') {
+            let accumulatedOutput = ''
+            let lastDispatchTime = 0
 
-        result = await backend.streamExecute(
-            command,
-            (line) => {
-                accumulatedOutput += (accumulatedOutput ? '\n' : '') + line
-                const now = Date.now()
-                if (now - lastDispatchTime >= STREAM_THROTTLE_MS) {
-                    lastDispatchTime = now
-                    dispatchCustomEvent(
-                        ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-                        makeStep({
-                            status: 'running',
-                            output: accumulatedOutput,
-                            data: { code: command, output: accumulatedOutput }
+            result = await backend.streamExecute(
+                command,
+                (line) => {
+                    accumulatedOutput += (accumulatedOutput ? '\n' : '') + line
+                    const now = Date.now()
+                    if (now - lastDispatchTime >= STREAM_THROTTLE_MS) {
+                        lastDispatchTime = now
+                        dispatchCustomEvent(
+                            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+                            makeStep({
+                                status: 'running',
+                                output: accumulatedOutput,
+                                data: { code: command, output: accumulatedOutput }
+                            })
+                        ).catch((e) => {
+                            console.warn('[ToolMessage] dispatch failed:', e?.message)
                         })
-                    ).catch((e) => {
-                        console.warn('[ToolMessage] dispatch failed:', e?.message)
-                    })
-                }
-            },
-            executionOptions
-        )
-    } else {
-        result = await backend.execute(command, executionOptions)
+                    }
+                },
+                executionOptions
+            )
+        } else {
+            result = await backend.execute(command, executionOptions)
+        }
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error)
+        await dispatchCustomEvent(
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            makeStep({
+                status: 'fail',
+                end_date: new Date(),
+                error: reason
+            })
+        ).catch(() => undefined)
+        throw error
+    }
+
+    // Finalize host-owned delivery before emitting the one terminal tool status.
+    if (result.exitCode === 0 && !result.timedOut && finalize) {
+        try {
+            await finalize()
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error)
+            await dispatchCustomEvent(
+                ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+                makeStep({
+                    status: 'fail',
+                    end_date: new Date(),
+                    error: reason,
+                    output: result.output,
+                    data: { code: command, output: result.output }
+                })
+            ).catch(() => undefined)
+            throw error
+        }
     }
 
     // Phase 3: completion
@@ -166,11 +200,11 @@ export async function withStreamingToolMessage(
     await dispatchCustomEvent(
         ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
         makeStep({
-            status: result.exitCode === 0 ? 'success' : 'fail',
+            status: result.exitCode === 0 && !result.timedOut ? 'success' : 'fail',
             end_date: new Date(),
             output: finalOutput,
             data: { code: command, output: finalOutput },
-            error: result.exitCode !== 0 ? finalOutput : undefined
+            error: result.exitCode !== 0 || result.timedOut ? finalOutput : undefined
         })
     ).catch((e) => {
         console.warn('[ToolMessage] dispatch failed:', e?.message)

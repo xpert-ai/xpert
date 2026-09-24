@@ -1,0 +1,205 @@
+<header class="flex min-h-11 shrink-0 flex-wrap items-center gap-2 border-b border-divider-regular px-3 py-2">
+  <button
+    z-button
+    zType="ghost"
+    zSize="sm"
+    z-menu
+    [zMenuTriggerFor]="scopeMenu"
+    [attr.aria-label]="'FileActivity.Scope' | translate"
+  >
+    {{ (scope() === 'selected' ? selectedLabel() : 'FileActivity.ConversationChanges') | translate }}
+    <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+  </button>
+  <ng-template #scopeMenu
+    ><div z-menu-content>
+      <button z-menu-item (click)="selectScope('selected')">{{ selectedLabel() | translate }}</button>
+      <button z-menu-item [disabled]="!tab().conversationId" (click)="selectScope('conversation')">
+        {{ 'FileActivity.ConversationChanges' | translate }}
+      </button>
+    </div></ng-template
+  >
+  @if (!loading() && !failed()) {
+    <span class="text-xs text-text-tertiary">{{
+      'FileActivity.FileCount' | translate: { count: entries().length }
+    }}</span>
+    @if (totals(); as total) {
+      <span class="text-sm text-text-success">+{{ total.added }}</span
+      ><span class="text-sm text-text-destructive">−{{ total.removed }}</span>
+    }
+  }
+  <span class="flex-1"></span>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    [disabled]="loading()"
+    (click)="refresh()"
+    [zTooltip]="'FileActivity.Refresh' | translate"
+    [attr.aria-label]="'FileActivity.Refresh' | translate"
+  >
+    <i class="ri-refresh-line" aria-hidden="true"></i>
+  </button>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    [attr.aria-pressed]="wordWrap()"
+    (click)="wordWrap.set(!wordWrap())"
+    [zTooltip]="(wordWrap() ? 'FileActivity.DisableWrap' : 'FileActivity.EnableWrap') | translate"
+    [attr.aria-label]="(wordWrap() ? 'FileActivity.DisableWrap' : 'FileActivity.EnableWrap') | translate"
+  >
+    <i class="ri-text-wrap" aria-hidden="true"></i>
+  </button>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    [disabled]="!entries().length"
+    [attr.aria-pressed]="allCollapsed()"
+    (click)="toggleAll()"
+    [zTooltip]="(allCollapsed() ? 'FileActivity.ExpandAll' : 'FileActivity.CollapseAll') | translate"
+    [attr.aria-label]="(allCollapsed() ? 'FileActivity.ExpandAll' : 'FileActivity.CollapseAll') | translate"
+  >
+    <i [class]="allCollapsed() ? 'ri-expand-up-down-line' : 'ri-contract-up-down-line'" aria-hidden="true"></i>
+  </button>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    [attr.aria-pressed]="!sideBySide()"
+    (click)="sideBySide.set(!sideBySide())"
+    [zTooltip]="(sideBySide() ? 'FileActivity.Unified' : 'FileActivity.SideBySide') | translate"
+    [attr.aria-label]="(sideBySide() ? 'FileActivity.Unified' : 'FileActivity.SideBySide') | translate"
+  >
+    <i [class]="sideBySide() ? 'ri-layout-row-line' : 'ri-layout-column-line'" aria-hidden="true"></i>
+  </button>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    [attr.aria-pressed]="showFiles()"
+    (click)="showFiles.set(!showFiles())"
+    [zTooltip]="'FileActivity.FileList' | translate"
+    [attr.aria-label]="'FileActivity.FileList' | translate"
+  >
+    <i class="ri-folder-open-line" aria-hidden="true"></i>
+  </button>
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon-sm"
+    z-menu
+    [zMenuTriggerFor]="optionsMenu"
+    [zTooltip]="'FileActivity.Options' | translate"
+    [attr.aria-label]="'FileActivity.Options' | translate"
+  >
+    <i class="ri-more-line" aria-hidden="true"></i>
+  </button>
+  <ng-template #optionsMenu
+    ><div z-menu-content>
+      <button z-menu-item (click)="wordWrap.set(!wordWrap())">
+        {{ (wordWrap() ? 'FileActivity.DisableWrap' : 'FileActivity.EnableWrap') | translate }}
+      </button>
+      <button z-menu-item (click)="sideBySide.set(!sideBySide())">
+        {{ (sideBySide() ? 'FileActivity.Unified' : 'FileActivity.SideBySide') | translate }}
+      </button>
+      <button z-menu-item [disabled]="!entries().length" (click)="toggleAll()">
+        {{ (allCollapsed() ? 'FileActivity.ExpandAll' : 'FileActivity.CollapseAll') | translate }}
+      </button>
+      <button z-menu-item (click)="showWhitespace.set(!showWhitespace())">
+        {{ (showWhitespace() ? 'FileActivity.HideWhitespace' : 'FileActivity.ShowWhitespace') | translate }}
+      </button>
+      <button z-menu-item (click)="showMetadata.set(!showMetadata())">
+        {{ (showMetadata() ? 'FileActivity.HideDetails' : 'FileActivity.ShowDetails') | translate }}
+      </button>
+    </div></ng-template
+  >
+</header>
+<div class="flex min-h-0 flex-1">
+  @if (showFiles() && entries().length) {
+    <nav
+      class="w-48 shrink-0 overflow-auto border-r border-divider-regular p-2"
+      [attr.aria-label]="'FileActivity.FileList' | translate"
+    >
+      @for (entry of entries(); track entry.key; let index = $index) {
+        <button
+          type="button"
+          class="block w-full truncate rounded-md px-2 py-2 text-left text-xs hover:bg-hover-bg"
+          [title]="entry.path"
+          (click)="rowList.children.item(index)?.scrollIntoView({ block: 'start', behavior: 'smooth' })"
+        >
+          {{ entry.path || ('FileActivity.Unavailable' | translate) }}
+        </button>
+      }
+    </nav>
+  }
+  <div class="min-w-0 flex-1 overflow-auto" [attr.aria-busy]="loading()">
+    @if (loading()) {
+      <p role="status" class="p-5 text-sm text-text-tertiary">{{ 'FileActivity.Loading' | translate }}</p>
+    } @else if (failed()) {
+      <p role="alert" class="p-5 text-sm text-text-destructive">{{ 'FileActivity.LoadFailed' | translate }}</p>
+    } @else if (!entries().length) {
+      <p class="p-5 text-sm text-text-tertiary">{{ 'FileActivity.Empty' | translate }}</p>
+    }
+    <div #rowList>
+      @for (entry of entries(); track entry.key) {
+        <section class="border-b border-divider-regular" [attr.data-review-file]="entry.path">
+          <button
+            type="button"
+            class="sticky top-0 z-10 flex w-full items-center gap-2 bg-background-default px-3 py-2 text-left text-sm hover:bg-hover-bg"
+            [attr.aria-expanded]="!collapsed().has(entry.key)"
+            (click)="toggle(entry.key)"
+          >
+            <i
+              [class]="collapsed().has(entry.key) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"
+              aria-hidden="true"
+            ></i>
+            <i class="ri-file-code-line text-text-tertiary" aria-hidden="true"></i>
+            <span class="min-w-0 flex-1 truncate" [title]="entry.path">{{
+              entry.path || ('FileActivity.Unavailable' | translate)
+            }}</span>
+            @if (counts().get(entry.key); as count) {
+              <span class="text-text-success">+{{ count.added }}</span
+              ><span class="text-text-destructive">−{{ count.removed }}</span>
+            }
+          </button>
+          <div [class.hidden]="collapsed().has(entry.key)" [attr.inert]="collapsed().has(entry.key) ? '' : null">
+            @if (entry.report; as report) {
+              @if (showMetadata() || !hasText(report)) {
+                <div class="grid grid-cols-2 gap-4 px-4 py-3 text-xs text-text-secondary">
+                  <div>
+                    <b>{{ 'FileActivity.Before' | translate }}</b>
+                    <p>{{ report.before ? report.before.size + ' B' : '—' }}</p>
+                    <code class="break-all text-text-tertiary">{{ report.before?.sha256 }}</code>
+                  </div>
+                  <div>
+                    <b>{{ 'FileActivity.After' | translate }}</b>
+                    <p>{{ report.after ? report.after.size + ' B' : '—' }}</p>
+                    <code class="break-all text-text-tertiary">{{ report.after?.sha256 }}</code>
+                  </div>
+                </div>
+              }
+              @if (hasText(report)) {
+                @defer (on viewport) {
+                  <xp-file-change-diff
+                    [report]="report"
+                    [sideBySide]="sideBySide()"
+                    [wordWrap]="wordWrap()"
+                    [showWhitespace]="showWhitespace()"
+                    [active]="active() && !collapsed().has(entry.key)"
+                  />
+                } @placeholder {
+                  <div class="h-32" [attr.aria-label]="'FileActivity.Loading' | translate"></div>
+                }
+              } @else {
+                <p class="px-4 pb-5 text-sm text-text-secondary">{{ 'FileActivity.Binary' | translate }}</p>
+              }
+            } @else {
+              <p role="alert" class="p-4 text-sm text-text-tertiary">{{ 'FileActivity.Unavailable' | translate }}</p>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+</div>

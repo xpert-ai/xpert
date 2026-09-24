@@ -1,6 +1,17 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
     "Error": {
+        "FileChangeMessageUnavailable": "消息不可用。",
+        "FilePresentationConversation": "交付文件需要当前对话上下文。",
+        "FilePresentationSandbox": "交付工作区文件需要启用沙箱。",
+        "FilePresentationFailed": "无法交付所选文件，未添加输出卡片，请重试。",
+        "FilePresentationFormat": "文件尚未完整写入或与其格式不符：{{path}}",
+        "FilePresentationSize": "所选文件总大小超过 64 MiB，请分批交付。",
+        "FilePresentationPath": "请使用工作区相对路径，不能包含上级目录或内部目录。",
+        "FilePresentationCount": "请选择 1 至 {{count}} 个文件。",
+        "FileOutputUnavailable": "无法交付文件：文件不存在、为空、路径不安全或超过 25 MiB：{{path}}",
+        "FileOutputReadFailed": "无法读取所选文件：{{path}}",
+        "FileOutputChanged": "读取期间文件发生变化，请重新交付：{{path}}",
         "ThreadReferenceUnavailable": "无法读取此引用对话，或其访问范围与当前对话不兼容。",
         "ThreadReferenceCursorInvalid": "对话历史游标无效、已过期或不适用于当前上下文，请不传 cursor 从最新页面重新读取。",
         "ThreadReferenceCursorStoreUnavailable": "对话历史分页服务暂时不可用，请稍后重试。",
@@ -951,6 +962,7 @@
         "ConversationNeedsInput": "会话需要输入"
     },
     "Tools": {
+        "PresentFiles": "交付文件",
         "MCP": {
             "Starting": "MCP 服务器正在启动...",
             "Ready": "MCP 服务器已就绪",

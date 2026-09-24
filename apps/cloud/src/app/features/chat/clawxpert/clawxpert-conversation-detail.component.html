@@ -73,6 +73,9 @@
                 <span data-workspace-tab-icon class="relative flex size-[20px] shrink-0 items-center justify-center">
                   <span class="flex size-full items-center justify-center text-text-primary">
                     @switch (tab.kind) {
+                      @case ('file-review') {
+                        <i class="ri-file-code-line shrink-0 text-lg"></i>
+                      }
                       @case ('artifact') {
                         <i class="ri-file-text-line shrink-0 text-lg"></i>
                       }
@@ -105,7 +108,11 @@
                     [attr.data-close-tab]="tab.id"
                     [attr.aria-label]="
                       ('XP.ACTIONS.Close' | translate: { Default: 'Close' }) +
-                      (tab.kind === 'fixed-view' || tab.kind === 'artifact' ? ' ' + tab.title : '')
+                      (tab.kind === 'file-review'
+                        ? ' ' + ('FileActivity.ReviewTab' | translate)
+                        : tab.kind === 'fixed-view' || tab.kind === 'artifact'
+                          ? ' ' + tab.title
+                          : '')
                     "
                     zType="ghost"
                     zSize="icon"
@@ -122,6 +129,9 @@
                 </span>
                 <span data-workspace-tab-label class="relative flex h-full min-w-0 items-center">
                   @switch (tab.kind) {
+                    @case ('file-review') {
+                      <span class="truncate">{{ 'FileActivity.ReviewTab' | translate }}</span>
+                    }
                     @case ('artifact') {
                       <span class="max-w-[12rem] truncate">{{ tab.title }}</span>
                     }
@@ -421,6 +431,15 @@
               />
             }
           }
+          @for (tab of reviewTabs(); track tab.id) {
+            <xp-file-change-review
+              [class.hidden]="tab.id !== activeTabId()"
+              [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+              [attr.inert]="tab.id === activeTabId() ? null : ''"
+              [tab]="tab"
+              [active]="tab.id === activeTabId()"
+            />
+          }
           @for (tab of artifactTabs(); track tab.id) {
             <xp-workbench-artifact-panel
               [class.hidden]="tab.id !== activeTabId()"
@@ -455,7 +474,7 @@
                 {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
               </div>
             }
-          } @else if (activeTab()?.kind === 'artifact') {
+          } @else if (activeTab()?.kind === 'artifact' || activeTab()?.kind === 'file-review') {
           } @else if (activeTab()?.kind === 'tasks') {
             <div class="h-full min-h-0 overflow-hidden px-4 py-3">
               <xp-chat-tasks

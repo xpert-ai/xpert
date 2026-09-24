@@ -409,6 +409,15 @@ export class ConversationsController {
         return this.taskSummaryService.listSection(conversation, section, offset, limit)
     }
 
+    @Get(':conversation_id/messages/:message_id/file-changes')
+    async getMessageFileChanges(
+        @Param('conversation_id', UUIDValidationPipe) conversationId: string,
+        @Param('message_id', UUIDValidationPipe) messageId: string
+    ) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.taskSummaryService.getMessageFileChanges(conversation, messageId)
+    }
+
     @Get(':conversation_id/messages')
     async listMessages(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,

@@ -1,3 +1,5 @@
+import { FileChangeReviewComponent } from './file-change-review.component'
+import { createFileChangeReviewTab, upsertFileChangeReviewTab } from './file-change-review.types'
 import {
   chatProjectCreateRequest,
   executeChatProjectCreate,
@@ -213,7 +215,8 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
     IconComponent,
     EmojiAvatarComponent,
     ClawXpertFixedViewStackComponent,
-    WorkbenchArtifactPanelComponent
+    WorkbenchArtifactPanelComponent,
+    FileChangeReviewComponent
   ],
   providers: [FileDocumentStore],
   templateUrl: './clawxpert-conversation-detail.component.html',
@@ -467,6 +470,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly artifactTabs = computed(() =>
     this.workspaceTabs().filter((tab): tab is WorkbenchArtifactTab => tab.kind === 'artifact')
   )
+  readonly reviewTabs = computed(() => this.workspaceTabs().filter((tab) => tab.kind === 'file-review'))
   readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
   )
@@ -1718,8 +1722,24 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           )
           return
         }
+        case 'file_change':
+        case 'file_change_set': {
+          const tab = createFileChangeReviewTab(threadId, conversationId, target)
+          this.workspaceTabs.update((tabs) => upsertFileChangeReviewTab(tabs, tab))
+          this.activateWorkspaceTab(tab.id, 'replace')
+          return
+        }
         case 'artifact': {
-          const link = await firstValueFrom(this.#artifactService.createSignedPreviewLink(target.artifactId))
+          const link = await firstValueFrom(
+            target.artifactVersionId
+              ? this.#artifactService.createSignedVersionPreviewLink(
+                  target.artifactId,
+                  target.artifactVersionId,
+                  300,
+                  true
+                )
+              : this.#artifactService.createSignedPreviewLink(target.artifactId)
+          )
           if (!isCurrent()) return
           const url = readHttpUrl(link.publicUrl)
           if (!url) {
@@ -1846,9 +1866,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   private clearArtifactTabs() {
     untracked(() => {
       const artifacts = this.artifactTabs()
-      if (!artifacts.length) return
+      if (!artifacts.length && !this.reviewTabs().length) return
       artifacts.forEach(releaseArtifactTab)
-      const tabs = this.workspaceTabs().filter((tab) => tab.kind !== 'artifact')
+      const tabs = this.workspaceTabs().filter((tab) => tab.kind !== 'artifact' && tab.kind !== 'file-review')
       this.workspaceTabs.set(tabs)
       if (!tabs.some((tab) => tab.id === this.activeTabId())) this.activeTabId.set(tabs[0]?.id ?? '')
     })

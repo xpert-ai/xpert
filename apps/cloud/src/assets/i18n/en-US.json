@@ -4812,5 +4812,35 @@
     "VALUE_HELP": {
       "TITLE": "Set Filters for '{{value}}'"
     }
+  },
+  "FileActivity": {
+    "Review": "File change review · read only",
+    "Before": "Before",
+    "After": "After",
+    "Close": "Close",
+    "Binary": "Binary file or outside text preview limits. Compare size and SHA-256 checksums.",
+    "ReviewTab": "Review",
+    "Scope": "Review scope",
+    "MessageChanges": "Message changes",
+    "SelectedChange": "Selected change",
+    "ConversationChanges": "Entire conversation",
+    "FileCount": "{{count}} files",
+    "Refresh": "Refresh",
+    "EnableWrap": "Enable word wrap",
+    "DisableWrap": "Disable word wrap",
+    "CollapseAll": "Collapse all differences",
+    "ExpandAll": "Expand all differences",
+    "Unified": "Switch to unified diff",
+    "SideBySide": "Switch to side-by-side diff",
+    "FileList": "File list",
+    "Options": "Review options",
+    "ShowWhitespace": "Show whitespace",
+    "HideWhitespace": "Hide whitespace",
+    "ShowDetails": "Show file details",
+    "HideDetails": "Hide file details",
+    "Loading": "Loading changes…",
+    "LoadFailed": "Unable to load changes. Try refreshing.",
+    "Empty": "No file changes",
+    "Unavailable": "The saved comparison is unavailable."
   }
 }

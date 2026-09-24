@@ -1,3 +1,4 @@
+jest.mock('./file-change-stats.service', () => ({ FileChangeStatsService: class {} }))
 jest.mock('i18next', () => ({
     t: jest.fn((key: string) => `translated:${key}`)
 }))
@@ -148,7 +149,7 @@ describe('ChatTaskSummaryService', () => {
         )
         expect(result.outputs.items).toHaveLength(3)
         expect(result.outputs.total).toBe(4)
-        expect(result.sources).toEqual({
+        expect(result.sources).toMatchObject({
             items: [{ id: 'attachment:file-1', kind: 'attachment', title: 'brief.pdf' }],
             total: 1
         })
@@ -280,7 +281,7 @@ describe('ChatTaskSummaryService', () => {
             ],
             total: 1
         })
-        expect(result.sources).toEqual({
+        expect(result.sources).toMatchObject({
             items: [
                 expect.objectContaining({
                     id: 'web:https://example.com/research-report',

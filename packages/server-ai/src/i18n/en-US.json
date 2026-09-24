@@ -1,6 +1,17 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "FileChangeMessageUnavailable": "The message is unavailable.",
+        "FilePresentationConversation": "An active conversation is required to present files.",
+        "FilePresentationSandbox": "A sandbox is required to present workspace files.",
+        "FilePresentationFailed": "Could not present the selected files. No output cards were added; please retry.",
+        "FilePresentationFormat": "The file is incomplete or does not match its format: {{path}}",
+        "FilePresentationSize": "The selected files exceed the 64 MiB batch limit. Present fewer files at a time.",
+        "FilePresentationPath": "Use workspace-relative file paths without parent traversal or internal directories.",
+        "FilePresentationCount": "Select between 1 and {{count}} files.",
+        "FileOutputUnavailable": "Cannot present this file: it is missing, empty, unsafe, or larger than 25 MiB: {{path}}",
+        "FileOutputReadFailed": "Cannot read the selected file: {{path}}",
+        "FileOutputChanged": "The selected file changed while being read. Retry presenting it: {{path}}",
         "ThreadReferenceUnavailable": "This referenced conversation is unavailable or its audience is incompatible with the current conversation.",
         "ThreadReferenceCursorInvalid": "The history cursor is invalid, expired, or unavailable in this context. Read the latest page again without cursor.",
         "ThreadReferenceCursorStoreUnavailable": "History pagination is temporarily unavailable. Please retry later.",
@@ -951,6 +962,7 @@
         "ConversationNeedsInput": "Conversation needs input"
     },
     "Tools": {
+        "PresentFiles": "Present files",
         "MCP": {
             "Starting": "MCP Server is starting...",
             "Ready": "MCP Server is ready",
