@@ -39,6 +39,7 @@ import { ChatConversation } from './conversation.entity'
 import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
 import { ChatConversationThreadService } from './conversation-thread.service'
+import { mergeConversationOptionsSql } from './conversation-options-sql'
 
 export type ChatConversationAccessOperation = 'read' | 'contribute' | 'manage'
 
@@ -98,10 +99,9 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 // Only the revisioned resource endpoint can write this reserved field. Internal
                 // execution completion may carry an older options snapshot; never replay it.
                 const { runtimeResources, ...rest } = patch
-                const json = JSON.stringify(rest).replace(/'/g, "''")
                 partialEntity = {
                     ...partialEntity,
-                    options: () => `COALESCE("options"::jsonb, '{}'::jsonb) || '${json}'::jsonb`
+                    options: () => mergeConversationOptionsSql(JSON.stringify(rest))
                 }
             }
         }
