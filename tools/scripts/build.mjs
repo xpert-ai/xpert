@@ -1,4 +1,4 @@
-import { execSync } from 'child_process'
+import { execFileSync, execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import archiver from 'archiver'
@@ -44,17 +44,18 @@ try {
   // 编译后端
   execSync('pnpm nx build api', { stdio: 'inherit' })
 
-  // copyDir('dist/packages', 'dist/apps/api/packages');
-  fs.copyFileSync('.deploy/api/package-prod.json', 'dist/apps/api/package.json')
+  // Share the Docker runtime layout and committed production dependency lock.
+  execFileSync(process.execPath, ['.deploy/api/dependencies.cjs', 'check'], { stdio: 'inherit' })
+  execFileSync(process.execPath, ['.deploy/api/dependencies.cjs', 'prepare-runtime', 'dist/api-runtime'], {
+    stdio: 'inherit'
+  })
+  fs.rmSync('dist/apps/api', { recursive: true })
+  fs.renameSync('dist/api-runtime', 'dist/apps/api')
   fs.copyFileSync('tsconfig.base.json', 'dist/apps/api/tsconfig.json')
-  fs.copyFileSync('pnpm-lock.yaml', 'dist/apps/api/pnpm-lock.yaml')
-  fs.copyFileSync('pnpm-workspace.yaml', 'dist/apps/api/pnpm-workspace.yaml')
-  fs.copyFileSync('.npmrc', 'dist/apps/api/.npmrc')
 
   // 切换到 dist/apps/api 目录并执行 pnpm install
   process.chdir('dist/apps/api')
-  execSync('mv ../../packages ./packages', { stdio: 'inherit' })
-  execSync('pnpm install --prod --no-frozen-lockfile', { stdio: 'inherit' })
+  execFileSync('corepack', ['pnpm', 'install', '--prod', '--frozen-lockfile'], { stdio: 'inherit' })
   // 切换回原始目录（可选，如果你需要在原目录继续后续操作）
   process.chdir('../../..')
 

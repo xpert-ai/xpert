@@ -7,6 +7,8 @@ import { runWithRequestContext, WORKSPACE_FILES_SOURCE } from '@xpert-ai/plugin-
 import { runWithRequestContext as runWithServerRequestContext } from '@xpert-ai/server-core'
 import { VolumeHandle } from '../shared/volume'
 import { ArtifactsService } from './artifacts.service'
+import { getArtifactArchiveMimeType } from './artifact-mime-policy'
+import { getFileOutputRule } from '../sandbox/middlewares/file-presentation-format'
 
 describe('ArtifactsService', () => {
     let volumeRoot: string
@@ -36,6 +38,57 @@ describe('ArtifactsService', () => {
 
     afterEach(() => {
         rmSync(volumeRoot, { recursive: true, force: true })
+    })
+
+    it.each([
+        ['table.tsv', 'a\tb\n1\t2', 'application/octet-stream'],
+        ['drawing.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>', 'application/octet-stream'],
+        ['example.py', 'print(1)', 'application/octet-stream'],
+        ['example.js', 'console.log(1)', 'application/octet-stream'],
+        ['sound.mp3', 'audio bytes', 'application/octet-stream'],
+        ['report.pdf', '%PDF-1.7\n%%EOF', 'application/pdf']
+    ])('archives and serves selected %s with an accepted response MIME type', async (fileName, content, mimeType) => {
+        const api = service.createScopedApi({ tenantId: 'tenant-1', userId: 'user-1' })
+        const artifact = await api.createArtifact({
+            source: { pluginName: 'platform.file-activity', resourceType: 'deliverable', resourceId: fileName },
+            kind: 'file'
+        })
+        writeWorkspaceFile(fileName, content)
+        const archivedMimeType = getArtifactArchiveMimeType(getFileOutputRule(fileName).mimeType)
+        const { version } = await api.ensureArtifactVersion({
+            artifactId: artifact.id,
+            idempotencyKey: 'content-hash',
+            workspaceFileRef: { ...workspaceRef(fileName), mimeType: archivedMimeType },
+            fileName,
+            mimeType: archivedMimeType
+        })
+        const link = await api.createSignedPreviewLink({
+            artifactId: artifact.id,
+            artifactVersionId: version.id,
+            presentation: { allowDownload: true }
+        })
+        const token = new URL(link.publicUrl).searchParams.get('xpert_artifact_preview')!
+        const resolved = await service.resolveForPublicAccess({ slug: link.slug, previewToken: token })
+        expect(resolved.mimeType).toBe(mimeType)
+        expect(resolved.fileName).toBe(fileName)
+        expect(resolved.buffer.toString()).toBe(content)
+    })
+
+    it('continues to reject directly registered inline SVG artifacts', async () => {
+        const api = service.createScopedApi({ tenantId: 'tenant-1', userId: 'user-1' })
+        const artifact = await api.createArtifact({
+            source: { pluginName: 'test', resourceType: 'file', resourceId: 'svg' },
+            kind: 'file'
+        })
+        await expect(
+            api.ensureArtifactVersion({
+                artifactId: artifact.id,
+                idempotencyKey: 'svg',
+                workspaceFileRef: workspaceRef('drawing.svg'),
+                mimeType: 'image/svg+xml'
+            })
+        ).rejects.toThrow('SVG artifacts cannot be shared directly')
+        expect(versionRepository.items).toHaveLength(0)
     })
 
     it('rejects public artifact links without explicit user confirmation before saving a link', async () => {

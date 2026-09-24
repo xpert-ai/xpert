@@ -239,6 +239,13 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  saveBinaryFile(id: string, path: string, file: Blob, organizationId?: string) {
+    const separator = path.lastIndexOf('/')
+    const name = path.slice(separator + 1)
+    const folder = separator < 0 ? '' : path.slice(0, separator)
+    return this.uploadFile(id, new File([file], name, { type: file.type }), folder, organizationId)
+  }
+
   deleteFile(id: string, filePath: string, organizationId?: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file`, {
       params: createOptionalQueryParams({

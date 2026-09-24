@@ -2,8 +2,8 @@
 
 const { execFileSync, spawnSync } = require('node:child_process')
 
-const lockfilePath = 'pnpm-lock.yaml'
-const watchedFiles = new Set(['.npmrc', 'pnpm-workspace.yaml'])
+const lockfilePaths = ['pnpm-lock.yaml', '.deploy/api/pnpm-lock.build.yaml', '.deploy/api/pnpm-lock.production.yaml']
+const watchedFiles = new Set(['.npmrc', 'pnpm-workspace.yaml', '.deploy/api/dependencies.cjs'])
 const manifestFields = [
   'name',
   'version',
@@ -99,9 +99,9 @@ if (!shouldUpdateLockfile) {
   process.exit(0)
 }
 
-console.log('Dependency metadata changed; updating pnpm-lock.yaml...')
+console.log('Dependency metadata changed; updating workspace and API deployment locks...')
 
-const installResult = spawnSync('pnpm', ['install', '--lockfile-only', '--ignore-scripts'], {
+const installResult = spawnSync('corepack', ['pnpm', 'run', 'lockfile:update'], {
   stdio: 'inherit'
 })
 
@@ -114,11 +114,11 @@ if (installResult.status !== 0) {
   process.exit(installResult.status || 1)
 }
 
-const lockfileStatus = git(['status', '--short', '--', lockfilePath]).trim()
+const lockfileStatus = git(['status', '--short', '--', ...lockfilePaths]).trim()
 
 if (lockfileStatus) {
-  git(['add', lockfilePath], { stdio: 'inherit' })
-  console.log('Updated and staged pnpm-lock.yaml.')
+  git(['add', ...lockfilePaths], { stdio: 'inherit' })
+  console.log('Updated and staged dependency locks.')
 } else {
-  console.log('pnpm-lock.yaml is already up to date.')
+  console.log('Dependency locks are already up to date.')
 }

@@ -35,6 +35,7 @@ jest.mock('../../../@shared/files', () => {
     @Input() filesLoader?: unknown
     @Input() fileLoader?: unknown
     @Input() fileSaver?: unknown
+    @Input() binaryFileSaver?: unknown
     @Input() fileDeleter?: unknown
     @Input() fileUploader?: unknown
     @Input() fileDownloader?: unknown
@@ -55,6 +56,7 @@ describe('ClawXpertConversationFilesComponent', () => {
     getFiles: jest.fn(),
     getFile: jest.fn(),
     saveFile: jest.fn(),
+    saveBinaryFile: jest.fn(),
     downloadFile: jest.fn(),
     uploadFile: jest.fn(),
     deleteFile: jest.fn()
@@ -63,6 +65,7 @@ describe('ClawXpertConversationFilesComponent', () => {
     getWorkspaceFiles: jest.fn(),
     getWorkspaceFile: jest.fn(),
     saveWorkspaceFile: jest.fn(),
+    saveWorkspaceBinaryFile: jest.fn(),
     downloadWorkspaceFile: jest.fn(),
     uploadWorkspaceFileToFolder: jest.fn(),
     deleteWorkspaceFile: jest.fn()
@@ -101,6 +104,7 @@ describe('ClawXpertConversationFilesComponent', () => {
 
     expect(workbench.rootId).toBe('xpert-1')
     expect(workbench.fileSaver).toBeNull()
+    expect(workbench.binaryFileSaver).toBeNull()
     expect(workbench.referenceable).toBe(true)
     expect(workbench.treeSize).toBe('sm')
   })
@@ -118,6 +122,7 @@ describe('ClawXpertConversationFilesComponent', () => {
     expect(typeof workbench.filesLoader).toBe('function')
     expect(typeof workbench.fileLoader).toBe('function')
     expect(typeof workbench.fileSaver).toBe('function')
+    expect(typeof workbench.binaryFileSaver).toBe('function')
     expect(typeof workbench.fileDownloader).toBe('function')
     expect(workbench.reloadKey).toBe('personal:conversation-1:xpert-1:3')
   })
@@ -184,5 +189,19 @@ describe('ClawXpertConversationFilesComponent', () => {
         language: 'typescript'
       }
     ])
+  })
+
+  it('saves PPTX bytes to the selected personal or project workspace', () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationFilesComponent)
+    fixture.componentRef.setInput('xpertId', 'xpert-1')
+    fixture.componentRef.setInput('conversationId', 'conversation-1')
+    const file = new Blob(['pptx bytes'])
+    fixture.componentInstance.saveWorkspaceBinaryFile('slides/deck.pptx', file)
+    expect(xpertService.saveWorkspaceBinaryFile).toHaveBeenCalledWith('xpert-1', 'slides/deck.pptx', file)
+    expect(conversationService.saveBinaryFile).not.toHaveBeenCalled()
+    fixture.componentRef.setInput('projectId', 'project-1')
+    fixture.componentInstance.saveWorkspaceBinaryFile('slides/deck.pptx', file)
+    expect(conversationService.saveBinaryFile).toHaveBeenCalledWith('conversation-1', 'slides/deck.pptx', file)
+    expect(xpertService.saveWorkspaceBinaryFile).toHaveBeenCalledTimes(1)
   })
 })

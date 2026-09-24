@@ -17,6 +17,7 @@ USER node:node
 
 WORKDIR /srv/xpert
 
+COPY --chown=node:node apps/api/package.json ./apps/api/
 COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
 COPY --chown=node:node packages/common/package.json ./packages/common/
 COPY --chown=node:node packages/config/package.json ./packages/config/
@@ -25,27 +26,35 @@ COPY --chown=node:node packages/server/package.json ./packages/server/
 COPY --chown=node:node packages/server-ai/package.json ./packages/server-ai/
 COPY --chown=node:node packages/plugin-sdk/package.json ./packages/plugin-sdk/
 COPY --chown=node:node packages/shadcn-ui/package.json ./packages/shadcn-ui/
+COPY --chown=node:node packages/desktop-protocol/package.json ./packages/desktop-protocol/
+COPY --chown=node:node packages/plugins/draft/package.json ./packages/plugins/draft/
+COPY --chown=node:node packages/plugins/vlm-default/package.json ./packages/plugins/vlm-default/
 
 COPY --chown=node:node .deploy/api/package.json ./
-COPY --chown=node:node pnpm-lock.yaml ./
+COPY --chown=node:node .deploy/api/pnpm-lock.build.yaml ./pnpm-lock.yaml
 COPY --chown=node:node pnpm-workspace.yaml ./
 COPY --chown=node:node .npmrc ./
 COPY --chown=node:node .eslintrc.json ./
 COPY --chown=node:node .nxignore ./
 
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node apps/api ./apps/api
-RUN rm -rf packages/angular packages/ui
+COPY --chown=node:node .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml ./.deploy/api/
+RUN rm -rf packages/angular packages/ui packages/sandbox-runtime
 
-# Reinstall built-in plugins dependencies
-RUN pnpm install --no-frozen-lockfile
+# All package manifests were installed above; reject any source-layout drift.
+RUN node .deploy/api/dependencies.cjs check && \
+    pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --offline
 RUN pnpm build:plugins
 RUN pnpm nx run server-ai:build-remote-components
 RUN pnpm nx build api --verbose
+RUN node .deploy/api/dependencies.cjs prepare-runtime /srv/xpert/api-runtime && \
+    cd /srv/xpert/api-runtime && \
+    pnpm install --prod --lockfile-only --frozen-lockfile --ignore-scripts --offline
 
 #////////////////////////////////////////////////////////////////////////////////
 FROM node:20 AS production
@@ -89,29 +98,16 @@ RUN npm install pm2 -g
 RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 COPY --chown=node:node wait ./
-# Keep production workspace layout aligned with pnpm lockfile links.
-# Some packages publish from nested dist dirs, so pnpm links workspace deps to
-# those publish roots instead of the package root when publishConfig.directory is set.
-COPY --chown=node:node --from=build /srv/xpert/dist/packages ./packages
-COPY --chown=node:node --from=build /srv/xpert/dist/packages ./dist/packages
-COPY --chown=node:node --from=build /srv/xpert/packages/contracts/package.json ./packages/contracts/package.json
-COPY --chown=node:node --from=build /srv/xpert/packages/contracts/dist ./packages/contracts/dist
-COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/package.json ./packages/plugin-sdk/package.json
-COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/dist ./packages/plugin-sdk/dist
-COPY --chown=node:node --from=build /srv/xpert/dist/apps/api .
-COPY --chown=node:node --from=build /srv/xpert/tsconfig.base.json ./
-COPY --chown=node:node --from=build /srv/xpert/pnpm-lock.yaml ./
-COPY --chown=node:node --from=build /srv/xpert/pnpm-workspace.yaml ./
-COPY --chown=node:node --from=build /srv/xpert/.npmrc ./
-COPY --chown=node:node .deploy/api/package-prod.json ./package.json
-COPY --chown=node:node .deploy/api/verify-runtime-dependencies.cjs ./
+# Assembly preserves nested publish directories and uses source dependency
+# declarations with compiler-generated entry points and the production lock.
+COPY --chown=node:node --from=build /srv/xpert/api-runtime ./
 
 COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
 COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
+COPY --chown=node:node .deploy/api/healthcheck.cjs ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
-RUN pnpm install --prod --no-frozen-lockfile && \
-    node verify-runtime-dependencies.cjs && \
+RUN pnpm install --prod --frozen-lockfile && \
     # node-pty@1.1.x can publish a linux-arm64 package where the prebuild
     # directory exists but the actual native addon does not. Validate by
     # loading the module for real, then fall back to a source rebuild only if
@@ -122,6 +118,8 @@ RUN pnpm install --prod --no-frozen-lockfile && \
 USER node:node
 
 EXPOSE ${PORT}
+
+HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=3 CMD ["node", "healthcheck.cjs"]
 
 ENTRYPOINT [ "sh", "./entrypoint.prod.sh" ]
 CMD [ "pm2-runtime", "main.js" ]

@@ -82,7 +82,7 @@ export interface RuntimeResourceCatalog {
 }
 
 /**
- * Portable extensions["cn.xpertai"] manifest data. References installed capabilities;
+ * Portable extensions["xpertai"] manifest data. References installed capabilities;
  * contains no server code, deployment IDs or credentials.
  */
 export interface AgentPluginXpertExtension {

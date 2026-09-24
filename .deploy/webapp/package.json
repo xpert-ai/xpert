@@ -68,8 +68,8 @@
     "@sentry/tracing": "^7.38.0",
     "@swc/helpers": "0.5.3",
     "@xpert-ai/chatkit-angular": "~0.4.4",
-    "@xpert-ai/chatkit-types": "~0.6.2",
-    "@xpert-ai/chatkit-ui": "~0.6.2",
+    "@xpert-ai/chatkit-types": "catalog:",
+    "@xpert-ai/chatkit-ui": "~0.6.3",
     "@xpert-ai/chatkit-web-component": "~0.6.0",
     "@xpert-ai/chatkit-web-shared": "~0.4.5",
     "axios": "1.6.8",
@@ -184,15 +184,6 @@
   ],
   "nx": {
     "includedScripts": []
-  },
-  "pnpm": {
-    "overrides": {
-      "@langchain/core": "0.3.72",
-      "@xpert-ai/chatkit-web-component": "~0.5.3",
-      "langchain": "0.3.31",
-      "zod": "3.25.67",
-      "minimatch": "9.0.4"
-    }
   },
   "packageManager": "pnpm@10.24.0"
 }

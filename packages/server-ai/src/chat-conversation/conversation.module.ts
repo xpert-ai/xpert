@@ -1,3 +1,5 @@
+import { ArtifactsModule } from '../artifacts/artifacts.module'
+import { FileChangeStatsService } from './file-change-stats.service'
 import { RedisModule, SharedModule, StorageFileModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
@@ -49,6 +51,7 @@ import { ThreadCursorStore } from './thread-cursor.store'
             CopilotCheckpointWrites,
             XpertAgent
         ]),
+        forwardRef(() => ArtifactsModule),
         SharedModule,
         RedisModule,
         CqrsModule,
@@ -76,6 +79,7 @@ import { ThreadCursorStore } from './thread-cursor.store'
         ThreadRunControlService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
+        FileChangeStatsService,
         WorkbenchAssistantConversationNavigationService,
         ConversationSummaryProcessor,
         ...CommandHandlers,

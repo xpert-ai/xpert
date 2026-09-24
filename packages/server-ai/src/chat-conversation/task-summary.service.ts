@@ -1,3 +1,5 @@
+import { FileChangeStatsService } from './file-change-stats.service'
+import { mergeFileChanges, type ChatFileChange } from '@xpert-ai/chatkit-types'
 import {
     ChatTaskSummaryOutput,
     ChatTaskSummarySource,
@@ -9,7 +11,7 @@ import {
     TChatTaskSummarySectionPage,
     TChatTaskSummarySnapshot
 } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
@@ -29,6 +31,7 @@ type TaskSummaryCollections = {
     goal?: IThreadGoal | null
     plan?: TChatTaskSummarySnapshot['task']['plan']
     todos?: TChatTaskSummarySnapshot['task']['todos']
+    fileChanges: ChatFileChange[]
     outputs: ChatTaskSummaryOutput[]
     sources: ChatTaskSummarySource[]
     agents: TChatTaskSummaryAgent[]
@@ -43,8 +46,21 @@ export class ChatTaskSummaryService {
         private readonly goalService: ChatConversationGoalService,
         private readonly executionService: XpertAgentExecutionService,
         @InjectRepository(XpertAgent)
-        private readonly agentRepository: Repository<XpertAgent>
+        private readonly agentRepository: Repository<XpertAgent>,
+        @Optional() private readonly fileChangeStats?: FileChangeStatsService
     ) {}
+
+    async getMessageFileChanges(conversation: ChatConversation, messageId: string) {
+        const result = await this.messageService.findAllInOrganizationOrTenant({
+            where: { conversationId: conversation.id, id: messageId },
+            select: ['id', 'content', 'taskSummary', 'createdAt', 'updatedAt'],
+            take: 1
+        })
+        const message = result.items[0]
+        if (!message) throw new NotFoundException(t('server-ai:Error.FileChangeMessageUnavailable'))
+        const changes = mergeFileChanges(extractChatMessageTaskSummary(message).fileChanges ?? [])
+        return this.fileChangeStats?.forChanges(messageId, changes) ?? { messageId, items: [] }
+    }
 
     async getSnapshot(conversation: ChatConversation): Promise<TChatTaskSummarySnapshot> {
         const collections = await this.collect(conversation)
@@ -57,6 +73,7 @@ export class ChatTaskSummaryService {
                 plan: collections.plan,
                 todos: collections.todos
             },
+            fileChanges: this.preview(collections.fileChanges),
             outputs: this.preview(collections.outputs),
             sources: this.preview(collections.sources),
             agents: this.preview(collections.agents),
@@ -128,28 +145,9 @@ export class ChatTaskSummaryService {
         ])
 
         const messages = messageResult.items
-        const contributions = messages.flatMap((message) => {
-            const persisted = message.taskSummary?.version === TASK_SUMMARY_VERSION ? message.taskSummary : undefined
-            const extracted = extractChatMessageTaskSummary(message)
-            if (!persisted) {
-                return extracted.outputs?.length || extracted.sources?.length ? [extracted] : []
-            }
-            const existingOutputIds = new Set(persisted.outputs?.map((output) => output.id) ?? [])
-            const additionalOutputs = extracted.outputs?.filter((output) => !existingOutputIds.has(output.id)) ?? []
-            const existingSourceIds = new Set(persisted.sources?.map((source) => source.id) ?? [])
-            const additionalSources = extracted.sources?.filter((source) => !existingSourceIds.has(source.id)) ?? []
-            return [
-                {
-                    ...persisted,
-                    ...(additionalOutputs.length
-                        ? { outputs: [...(persisted.outputs ?? []), ...additionalOutputs] }
-                        : {}),
-                    ...(additionalSources.length
-                        ? { sources: [...(persisted.sources ?? []), ...additionalSources] }
-                        : {})
-                }
-            ]
-        })
+        // Always apply the same semantic projection as live streaming, including persisted v1 data.
+        const contributions = messages.map((message) => extractChatMessageTaskSummary(message))
+        const fileChanges = mergeFileChanges(contributions.flatMap((contribution) => contribution.fileChanges ?? []))
         const plan = this.latestItem(contributions.flatMap((contribution) => contribution.plan ?? []))
         const todos = this.latestItem(contributions.flatMap((contribution) => contribution.todos ?? []))
         const outputs = this.mergeLatest(
@@ -201,7 +199,7 @@ export class ChatTaskSummaryService {
             ...pending.map((item) => item.createdAt)
         ])
 
-        return { goal, plan, todos, outputs, sources, agents, pending, updatedAt }
+        return { goal, plan, todos, outputs, fileChanges, sources, agents, pending, updatedAt }
     }
 
     private async backfillLegacyMessages(conversationId: string) {
@@ -386,7 +384,13 @@ export class ChatTaskSummaryService {
     }
 
     private normalizeSection(section: string): TChatTaskSummarySection {
-        if (section === 'outputs' || section === 'sources' || section === 'agents' || section === 'pending') {
+        if (
+            section === 'fileChanges' ||
+            section === 'outputs' ||
+            section === 'sources' ||
+            section === 'agents' ||
+            section === 'pending'
+        ) {
             return section
         }
         throw new BadRequestException(

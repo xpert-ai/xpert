@@ -35,6 +35,64 @@ describe('portable Agent Plugins 1.0.0', () => {
         const parsed = await parseAgentPlugin(root)
         expect(parsed.diagnostics[0].code).toBe('unknown_field')
     })
+    it.each(['xpertai', 'cn.xpertai'])('loads the %s host extension', async (namespace) => {
+        const extension = {
+            version: 1,
+            interface: { displayName: 'Documents', icon: 'data:image/png;base64,example' },
+            middlewares: [{ key: 'files', provider: 'SandboxFile', options: {} }],
+            experts: [{ key: 'reviewer', reference: 'document-reviewer' }],
+            connectors: { search: { type: 'mcp_oauth', scopes: ['read'] } }
+        }
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: { [namespace]: extension, 'com.unknown': 'opaque' }
+        })
+        const parsed = await parseAgentPlugin(root)
+        expect(parsed.extension).toEqual(extension)
+        expect(parsed.diagnostics).toEqual([])
+    })
+    it('prefers xpertai without merging the legacy extension', async () => {
+        const extension = { version: 1, interface: { displayName: 'Current' } }
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: {
+                xpertai: extension,
+                'cn.xpertai': { version: 1, middlewares: [{ key: 'files', provider: 'SandboxFile' }] }
+            }
+        })
+        const parsed = await parseAgentPlugin(root)
+        expect(parsed.extension).toEqual(extension)
+        expect(parsed.diagnostics).toEqual([])
+    })
+    it.each([null, { version: 2 }])(
+        'reports invalid xpertai without falling back to the legacy key: %p',
+        async (extension) => {
+            await json('plugin.json', {
+                $schema: schema + 'plugin.schema.json',
+                name: 'example',
+                extensions: { xpertai: extension, 'cn.xpertai': { version: 1 } }
+            })
+            const parsed = await parseAgentPlugin(root)
+            expect(parsed.extension).toBeUndefined()
+            expect(parsed.diagnostics).toEqual([
+                expect.objectContaining({ component: 'xpertai', code: 'invalid_extension' })
+            ])
+        }
+    )
+    it('attributes invalid legacy extension diagnostics to the legacy key', async () => {
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: { 'cn.xpertai': { version: 2 } }
+        })
+        const parsed = await parseAgentPlugin(root)
+        expect(parsed.extension).toBeUndefined()
+        expect(parsed.diagnostics).toEqual([
+            expect.objectContaining({ component: 'cn.xpertai', code: 'invalid_extension' })
+        ])
+    })
     it('isolates invalid and unsupported servers', async () => {
         await json('mcp.json', {
             $schema: schema + 'mcp.schema.json',

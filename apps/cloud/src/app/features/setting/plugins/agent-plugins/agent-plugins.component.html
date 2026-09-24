@@ -1,217 +1,551 @@
-<div class="mx-auto flex max-w-5xl flex-col gap-6">
-  <p class="text-text-secondary">{{ 'XP.AgentPlugins.Intro' | translate }}</p>
-  @if (error()) {
-    <p role="alert" class="rounded-lg border border-divider-regular p-3">{{ error() }}</p>
-  }
-  <section class="border-b border-divider-regular pb-6">
-    <h2 class="mb-3 text-lg font-semibold">{{ 'XP.AgentPlugins.Import' | translate }}</h2>
-    <form [formGroup]="git" (ngSubmit)="importGit()" class="flex flex-wrap items-end gap-3">
-      <label class="flex min-w-60 flex-1 flex-col gap-1 text-sm"
-        >{{ 'XP.AgentPlugins.Repository' | translate
-        }}<input
-          formControlName="url"
-          type="url"
-          placeholder="https://github.com/team/plugin"
-          class="rounded-lg border border-divider-regular bg-transparent p-2"
-      /></label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ 'XP.AgentPlugins.Ref' | translate
-        }}<input
-          formControlName="ref"
-          placeholder="v1.0.0"
-          class="rounded-lg border border-divider-regular bg-transparent p-2"
-      /></label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ 'XP.AgentPlugins.Directory' | translate
-        }}<input formControlName="subdirectory" class="rounded-lg border border-divider-regular bg-transparent p-2"
-      /></label>
-      <button type="submit" [disabled]="busy() || git.invalid" class="btn btn-primary btn-medium">
-        {{ 'XP.AgentPlugins.Import' | translate }}
-      </button>
-      <label class="btn btn-secondary btn-medium cursor-pointer"
-        >{{ 'XP.AgentPlugins.UploadZip' | translate
-        }}<input type="file" accept=".zip" class="sr-only" [disabled]="busy()" (change)="importZip($event)"
-      /></label>
-    </form>
-  </section>
-  <section>
-    <h2 class="mb-3 text-lg font-semibold">{{ 'XP.AgentPlugins.Publish' | translate }}</h2>
-    <div class="mb-4 flex flex-wrap gap-2">
-      <button
-        type="button"
-        class="btn btn-secondary btn-medium"
-        [attr.aria-pressed]="kind() === 'agent_plugin'"
-        (click)="kind.set('agent_plugin')"
-      >
-        {{ 'XP.AgentPlugins.Plugin' | translate }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-secondary btn-medium"
-        [attr.aria-pressed]="kind() === 'middleware'"
-        (click)="kind.set('middleware')"
-      >
-        {{ 'XP.AgentPlugins.Middleware' | translate }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-secondary btn-medium"
-        [attr.aria-pressed]="kind() === 'external_xpert'"
-        (click)="kind.set('external_xpert')"
-      >
-        {{ 'XP.AgentPlugins.Expert' | translate }}
-      </button>
-    </div>
-    @if (kind() === 'agent_plugin') {
-      <div class="mb-4 flex flex-wrap gap-2">
-        @for (pkg of packages(); track pkg.id) {
-          <button
-            type="button"
-            class="btn btn-secondary btn-medium"
-            [attr.aria-pressed]="selectedPackageId() === pkg.id"
-            (click)="selectPackage(pkg)"
-          >
-            {{ pkg.descriptor.name }} · {{ pkg.descriptor.version || pkg.digest.slice(0, 8) }}
-          </button>
-        } @empty {
-          <p class="text-text-secondary">{{ 'XP.AgentPlugins.NoPackages' | translate }}</p>
-        }
+<div
+  class="grid min-h-[calc(100dvh-5rem)] border-t border-divider-regular text-text-primary"
+  [class]="selectedGroup() ? 'lg:grid-cols-[minmax(0,1fr)_29rem] xl:grid-cols-[minmax(0,1fr)_32rem]' : 'grid-cols-1'"
+>
+  <section
+    class="min-w-0 px-5 py-6 xl:px-8"
+    [attr.aria-label]="'XP.AgentPlugins.PageTitle' | translate"
+    [attr.inert]="selectedGroup() && compact() ? '' : null"
+  >
+    <header class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-[1.75rem] font-semibold">{{ 'XP.AgentPlugins.PageTitle' | translate }}</h1>
+        <p class="mt-1.5 text-sm text-text-secondary">{{ 'XP.AgentPlugins.ManageIntro' | translate }}</p>
       </div>
-      @if (selectedPackage(); as pkg) {
-        <details class="mb-4 text-sm" open>
-          <summary>{{ 'XP.AgentPlugins.Components' | translate }}</summary>
-          @for (skill of pkg.descriptor.skills; track skill.key) {
-            <p class="py-1">Skill · {{ skill.key }}</p>
-          }
-          @for (server of pkg.descriptor.servers; track server.key) {
-            @if (pkg.descriptor.extension?.connectors?.[server.key]) {
-              <p class="py-1">MCP · {{ server.key }} · {{ 'XP.AgentPlugins.ConnectorAuthorization' | translate }}</p>
-            } @else {
-              <p class="py-1">MCP · {{ server.key }}</p>
-            }
-          }
-          @for (diagnostic of pkg.descriptor.diagnostics; track $index) {
-            <p class="py-1 text-text-secondary">{{ diagnostic.component }}: {{ diagnostic.message }}</p>
-          }
-          @for (expert of pkg.descriptor.extension?.experts || []; track expert.key) {
-            <label class="flex flex-col gap-1 py-2"
-              >{{ expert.reference
-              }}<select
-                class="rounded border border-divider-regular bg-components-panel-bg p-2"
-                (change)="mapExpert(expert.reference, $event)"
-              >
-                <option value="">{{ 'XP.AgentPlugins.SelectExpert' | translate }}</option>
-                @for (item of options().experts; track item.id) {
-                  <option [value]="item.id">{{ item.name }}</option>
-                }
-              </select></label
-            >
-          }
-        </details>
-      }
-    }
-    <form [formGroup]="binding" (ngSubmit)="publish()" class="flex flex-col gap-3">
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ 'XP.AgentPlugins.Replace' | translate
-        }}<select
-          [value]="replacesBindingId()"
-          (change)="replaceSelection($event)"
-          class="rounded-lg border border-divider-regular bg-components-panel-bg p-2"
-        >
-          <option value="">{{ 'XP.AgentPlugins.CreateNew' | translate }}</option>
-          @for (item of bindings(); track item.id) {
-            @if (!item.supersededById && item.definition.kind === kind()) {
-              <option [value]="item.id">{{ item.title }}</option>
-            }
-          }</select
-        ><span class="text-text-secondary">{{ 'XP.AgentPlugins.PinnedVersion' | translate }}</span></label
-      >
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ 'XP.AgentPlugins.Title' | translate
-        }}<input formControlName="title" class="rounded-lg border border-divider-regular bg-transparent p-2"
-      /></label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ 'XP.AgentPlugins.Description' | translate
-        }}<input formControlName="description" class="rounded-lg border border-divider-regular bg-transparent p-2"
-      /></label>
-      @if (kind() === 'middleware') {
-        <label class="flex flex-col gap-1 text-sm"
-          >{{ 'XP.AgentPlugins.Middleware' | translate
-          }}<select
-            formControlName="provider"
-            class="rounded-lg border border-divider-regular bg-components-panel-bg p-2"
-          >
-            <option value="">{{ 'XP.AgentPlugins.SelectMiddleware' | translate }}</option>
-            @for (item of options().middlewares; track item.name) {
-              <option [value]="item.name">{{ item.name }}</option>
-            }
-          </select></label
-        >
-        <label class="flex flex-col gap-1 text-sm"
-          >{{ 'XP.AgentPlugins.Options' | translate
-          }}<textarea
-            formControlName="options"
-            rows="5"
-            class="rounded-lg border border-divider-regular bg-transparent p-2 font-mono"
-          ></textarea>
-        </label>
-      }
-      @if (kind() === 'external_xpert') {
-        <label class="flex flex-col gap-1 text-sm"
-          >{{ 'XP.AgentPlugins.Expert' | translate
-          }}<select
-            formControlName="expert"
-            class="rounded-lg border border-divider-regular bg-components-panel-bg p-2"
-          >
-            <option value="">{{ 'XP.AgentPlugins.SelectExpert' | translate }}</option>
-            @for (item of options().experts; track item.id) {
-              <option [value]="item.id">{{ item.name }}</option>
-            }
-          </select></label
-        >
-      }
-      <fieldset class="flex flex-wrap gap-3">
-        <legend class="mb-2 text-sm font-medium">{{ 'XP.AgentPlugins.Workspaces' | translate }}</legend>
-        @for (workspace of options().workspaces; track workspace.id) {
-          <label class="flex items-center gap-2 text-sm"
-            ><input
-              type="checkbox"
-              [checked]="workspaceIds().includes(workspace.id)"
-              (change)="toggleWorkspace(workspace.id)"
-            />{{ workspace.name }}</label
-          >
-        } @empty {
-          <p>{{ 'XP.AgentPlugins.NoWorkspaces' | translate }}</p>
-        }
-      </fieldset>
       <button
-        type="submit"
-        [disabled]="busy() || binding.invalid || !workspaceIds().length"
-        class="btn btn-primary btn-medium self-start"
+        type="button"
+        class="btn btn-secondary btn-medium shrink-0 gap-1.5"
+        [disabled]="busy()"
+        (click)="openImport(importTemplate)"
       >
-        {{ 'XP.AgentPlugins.Publish' | translate }}
+        <i class="ri-add-line text-lg" aria-hidden="true"></i>{{ 'XP.AgentPlugins.Import' | translate }}
       </button>
-    </form>
-  </section>
-  <section class="border-t border-divider-regular pt-6">
-    <h2 class="mb-3 text-lg font-semibold">{{ 'XP.AgentPlugins.Published' | translate }}</h2>
-    @for (item of bindings(); track item.id) {
-      <div class="flex items-center justify-between gap-4 border-b border-divider-regular py-3">
-        <div>
-          <p class="font-medium">
-            {{ item.title }}
-            @if (item.supersededById) {
-              <span class="text-sm text-text-secondary">{{ 'XP.AgentPlugins.Replaced' | translate }}</span>
-            }
-          </p>
-          <p class="text-sm text-text-secondary">{{ item.description }}</p>
-        </div>
-        <button type="button" class="btn btn-secondary btn-medium" [disabled]="busy()" (click)="toggleBinding(item)">
-          {{ (item.enabled ? 'XP.AgentPlugins.Disable' : 'XP.AgentPlugins.Enable') | translate }}
+    </header>
+    <div class="mb-6 flex flex-wrap items-center justify-end gap-3">
+      <z-search-input
+        class="min-w-0 flex-1 sm:max-w-sm"
+        [value]="search()"
+        (valueChange)="filterSearch($event)"
+        [placeholder]="'XP.AgentPlugins.SearchPlugins' | translate"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate"
+      />
+      <label class="w-40 shrink-0">
+        <span class="sr-only">{{ 'XP.AgentPlugins.Status' | translate }}</span>
+        <z-select [zValue]="status()" (zSelectionChange)="filterStatus($event)">
+          <z-select-item zValue="all">{{ 'XP.AgentPlugins.AllStatuses' | translate }}</z-select-item>
+          <z-select-item zValue="published">{{ 'XP.AgentPlugins.Status_published' | translate }}</z-select-item>
+          <z-select-item zValue="unpublished">{{ 'XP.AgentPlugins.Status_unpublished' | translate }}</z-select-item>
+          <z-select-item zValue="disabled">{{ 'XP.AgentPlugins.Status_disabled' | translate }}</z-select-item>
+        </z-select>
+      </label>
+    </div>
+    @if (error()) {
+      <div class="mb-4 flex items-center gap-3 text-sm text-text-destructive" role="alert">
+        <span class="min-w-0 break-words">{{ error() }}</span>
+        <button
+          type="button"
+          class="btn btn-ghost btn-small shrink-0"
+          [disabled]="busy() || loading()"
+          (click)="refresh()"
+        >
+          {{ 'XP.AgentPlugins.Retry' | translate }}
         </button>
       </div>
-    } @empty {
-      <p class="text-text-secondary">{{ 'XP.AgentPlugins.NoBindings' | translate }}</p>
     }
+    <div class="overflow-x-auto" [attr.aria-busy]="loading()">
+      <table class="w-full min-w-[640px] table-fixed text-left text-base">
+        <caption class="sr-only">
+          {{
+            'XP.AgentPlugins.PageTitle' | translate
+          }}
+        </caption>
+        <thead class="border-y border-divider-regular bg-background-default-subtle text-xs text-text-secondary">
+          <tr>
+            <th scope="col" class="w-[39%] px-3 py-3 font-medium">{{ 'XP.AgentPlugins.Plugin' | translate }}</th>
+            <th scope="col" class="w-[16%] px-3 py-3 font-medium">
+              {{ 'XP.AgentPlugins.CurrentVersion' | translate }}
+            </th>
+            <th scope="col" class="w-[17%] px-3 py-3 font-medium">{{ 'XP.AgentPlugins.Status' | translate }}</th>
+            <th scope="col" class="w-[20%] px-3 py-3 font-medium">
+              {{ 'XP.AgentPlugins.AvailableWorkspaces' | translate }}
+            </th>
+            <th scope="col" class="w-[8%] px-2 py-3 text-right font-medium">
+              {{ 'XP.AgentPlugins.Actions' | translate }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (group of visibleGroups(); track group.name) {
+            <tr
+              class="border-b border-divider-regular transition-colors hover:bg-hover-bg"
+              [class]="selectedName() === group.name ? 'bg-background-default-subtle' : ''"
+            >
+              <td class="px-3 py-5">
+                <button
+                  type="button"
+                  class="flex w-full min-w-0 items-center gap-3 text-left outline-offset-4"
+                  [disabled]="busy()"
+                  [attr.aria-label]="group.title"
+                  [attr.aria-pressed]="selectedName() === group.name"
+                  (click)="openGroup(group)"
+                >
+                  <xp-agent-plugin-avatar [src]="group.icon" />
+                  <span class="min-w-0"
+                    ><span class="block truncate font-semibold">{{ group.title }}</span>
+                    <span class="mt-1 block truncate text-sm text-text-tertiary" [title]="group.description">{{
+                      group.description
+                    }}</span>
+                  </span>
+                </button>
+              </td>
+              <td class="px-3 py-5">
+                @if (group.publishedVersions.length > 1) {
+                  {{ 'XP.AgentPlugins.VersionCount' | translate: { count: group.publishedVersions.length } }}
+                } @else {
+                  {{ packageVersion(group.displayPackage) }}
+                }
+              </td>
+              <td class="px-3 py-5">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm whitespace-nowrap"
+                  [ngClass]="statusClasses[group.status]"
+                >
+                  <i class="ri-circle-fill text-[7px]" aria-hidden="true"></i
+                  >{{ 'XP.AgentPlugins.Status_' + group.status | translate }}
+                </span>
+              </td>
+              <td class="px-3 py-5 text-text-secondary">
+                @if (group.workspaceIds.length) {
+                  {{ 'XP.AgentPlugins.WorkspaceCount' | translate: { count: group.workspaceIds.length } }}
+                } @else {
+                  &mdash;
+                }
+              </td>
+              <td class="px-2 py-4 text-right">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-small h-8 w-8"
+                  [disabled]="busy()"
+                  [cdkMenuTriggerFor]="rowMenu"
+                  [attr.aria-label]="('XP.AgentPlugins.ManagePlugin' | translate) + ' ' + group.title"
+                >
+                  <i class="ri-more-fill" aria-hidden="true"></i>
+                </button>
+                <ng-template #rowMenu>
+                  <div
+                    cdkMenu
+                    class="min-w-40 rounded-xl border border-divider-regular bg-components-panel-bg p-1.5 text-sm shadow-lg"
+                  >
+                    <button
+                      cdkMenuItem
+                      class="w-full rounded-lg px-3 py-2 text-left hover:bg-hover-bg"
+                      (click)="openGroup(group, 'workspaces')"
+                    >
+                      {{ 'XP.AgentPlugins.ManageAvailability' | translate }}
+                    </button>
+                    <button
+                      cdkMenuItem
+                      class="w-full rounded-lg px-3 py-2 text-left hover:bg-hover-bg"
+                      (click)="openGroup(group, 'history')"
+                    >
+                      {{ 'XP.AgentPlugins.VersionHistory' | translate }}
+                    </button>
+                  </div>
+                </ng-template>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="py-20 text-center text-text-tertiary" role="status">
+                <i class="ri-puzzle-2-line mb-3 block text-3xl" aria-hidden="true"></i>
+                {{
+                  (loading()
+                    ? 'XP.AgentPlugins.Loading'
+                    : groups().length
+                      ? 'XP.AgentPlugins.NoResults'
+                      : 'XP.AgentPlugins.NoPackages'
+                  ) | translate
+                }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <footer class="mt-5 flex items-center justify-between gap-4 text-xs text-text-secondary">
+      <span>{{ 'XP.AgentPlugins.PluginCount' | translate: { count: filteredGroups().length } }}</span>
+      @if (pageCount() > 1) {
+        <nav class="flex items-center gap-2" [attr.aria-label]="'XP.AgentPlugins.Pagination' | translate">
+          <button
+            class="btn btn-secondary btn-small h-8 w-8"
+            [disabled]="currentPage() === 0"
+            (click)="page.set(currentPage() - 1)"
+            [attr.aria-label]="'XP.AgentPlugins.PreviousPage' | translate"
+          >
+            <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+          </button>
+          <span class="px-2">{{ currentPage() + 1 }} / {{ pageCount() }}</span>
+          <button
+            class="btn btn-secondary btn-small h-8 w-8"
+            [disabled]="currentPage() + 1 >= pageCount()"
+            (click)="page.set(currentPage() + 1)"
+            [attr.aria-label]="'XP.AgentPlugins.NextPage' | translate"
+          >
+            <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+          </button>
+        </nav>
+      }
+    </footer>
   </section>
+
+  @if (selectedGroup(); as group) {
+    <aside
+      class="fixed inset-0 z-30 flex min-h-0 flex-col bg-components-panel-bg lg:sticky lg:top-0 lg:z-auto lg:h-[calc(100dvh-5rem)] lg:border-l lg:border-divider-regular"
+      [attr.aria-label]="group.title"
+      [cdkTrapFocus]="compact()"
+      [cdkTrapFocusAutoCapture]="compact()"
+    >
+      <div class="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-4">
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="btn btn-ghost btn-small h-8 w-8"
+            [disabled]="busy()"
+            (click)="closeDetails()"
+            [attr.aria-label]="'XP.AgentPlugins.Close' | translate"
+          >
+            <i class="ri-close-line text-xl" aria-hidden="true"></i>
+          </button>
+        </div>
+        <header class="mb-7 mt-2 flex items-center gap-4">
+          <xp-agent-plugin-avatar [src]="group.icon" [size]="56" />
+          <div class="min-w-0">
+            <h2 class="break-words text-[1.75rem] font-semibold">{{ group.title }}</h2>
+            <p class="mt-1 line-clamp-3 text-sm text-text-secondary">{{ group.description }}</p>
+          </div>
+        </header>
+        @if (group.currentBindings.length > 1 || !replacesBindingId()) {
+          <label class="mb-4 flex flex-col gap-1.5 text-xs text-text-secondary">
+            {{ 'XP.AgentPlugins.PublishingConfiguration' | translate }}
+            <z-select [zDisabled]="busy()" [zValue]="replacesBindingId()" (zSelectionChange)="chooseBinding($event)">
+              @for (item of group.currentBindings; track item.id) {
+                <z-select-item [zValue]="item.id">
+                  {{ $index + 1 }}. {{ item.title }} · {{ bindingVersion(item) }} ·
+                  {{ 'XP.AgentPlugins.WorkspaceCount' | translate: { count: item.workspaceIds.length } }}
+                </z-select-item>
+              }
+              <z-select-item zValue="">{{ 'XP.AgentPlugins.NewConfiguration' | translate }}</z-select-item>
+            </z-select>
+          </label>
+        }
+        <label class="mb-4 flex flex-col gap-1.5 text-xs text-text-secondary">
+          {{ 'XP.AgentPlugins.SelectedVersion' | translate }}
+          <span class="flex items-center gap-3">
+            <z-select
+              class="min-w-0 flex-1"
+              [zValue]="selectedPackageId()"
+              [zDisabled]="busy()"
+              (zSelectionChange)="changeVersion($event)"
+            >
+              @for (pkg of group.packages; track pkg.id) {
+                <z-select-item [zValue]="pkg.id">{{ versionLabel(pkg) }}</z-select-item>
+              }
+            </z-select>
+            <button type="button" class="shrink-0 text-sm text-text-accent" (click)="detailTab.set('history')">
+              {{ 'XP.AgentPlugins.VersionHistory' | translate }}
+            </button>
+          </span>
+        </label>
+        <nav
+          class="mb-6 flex gap-6 border-b border-divider-regular"
+          [attr.aria-label]="'XP.AgentPlugins.PluginDetails' | translate"
+        >
+          <button
+            type="button"
+            class="border-b-2 px-2 py-3 text-sm"
+            [class]="
+              detailTab() === 'overview' ? 'border-text-primary font-semibold' : 'border-transparent text-text-tertiary'
+            "
+            [attr.aria-pressed]="detailTab() === 'overview'"
+            (click)="detailTab.set('overview')"
+          >
+            {{ 'XP.AgentPlugins.Overview' | translate }}
+          </button>
+          <button
+            type="button"
+            class="border-b-2 px-2 py-3 text-sm"
+            [class]="
+              detailTab() === 'workspaces'
+                ? 'border-text-primary font-semibold'
+                : 'border-transparent text-text-tertiary'
+            "
+            [attr.aria-pressed]="detailTab() === 'workspaces'"
+            (click)="detailTab.set('workspaces')"
+          >
+            {{ 'XP.AgentPlugins.WorkspaceTab' | translate }}
+          </button>
+          @if (detailTab() === 'history') {
+            <span class="border-b-2 border-text-primary px-2 py-3 text-sm font-semibold">{{
+              'XP.AgentPlugins.History' | translate
+            }}</span>
+          }
+        </nav>
+        @if (detailTab() === 'workspaces') {
+          <h3 class="font-semibold">{{ 'XP.AgentPlugins.Availability' | translate }}</h3>
+          <p class="mt-1 text-xs text-text-tertiary">{{ 'XP.AgentPlugins.SelectWorkspaces' | translate }}</p>
+          <z-search-input
+            class="my-4"
+            [value]="workspaceSearch()"
+            (valueChange)="workspaceSearch.set($event)"
+            [placeholder]="'XP.AgentPlugins.SearchWorkspaces' | translate"
+            [clearLabel]="'XP.ACTIONS.Clear' | translate"
+          />
+          <div class="flex flex-col gap-1 rounded-lg border border-divider-regular p-2">
+            @for (workspace of filteredWorkspaces(); track workspace.id) {
+              <label class="flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-2 text-base hover:bg-hover-bg">
+                <input
+                  type="checkbox"
+                  class="mt-0.5 h-4 w-4 shrink-0 accent-text-primary"
+                  [disabled]="busy()"
+                  [checked]="workspaceIds().includes(workspace.id)"
+                  (change)="toggleWorkspace(workspace.id)"
+                />
+                <span class="min-w-0 break-words">{{ workspace.name }}</span>
+              </label>
+            } @empty {
+              <p class="p-3 text-sm text-text-tertiary">
+                {{
+                  (options().workspaces.length ? 'XP.AgentPlugins.NoResults' : 'XP.AgentPlugins.NoWorkspaces')
+                    | translate
+                }}
+              </p>
+            }
+          </div>
+          <p class="my-4 text-xs text-text-tertiary">{{ 'XP.AgentPlugins.AvailabilityHint' | translate }}</p>
+          @if (unavailableWorkspaceCount()) {
+            <p role="alert" class="mb-4 text-sm text-text-destructive">
+              {{ 'XP.AgentPlugins.UnavailableWorkspaces' | translate }}
+            </p>
+          }
+          @if (selectedBinding(); as item) {
+            <div class="mt-auto flex items-center justify-between gap-2 border-t border-divider-regular py-4 text-sm">
+              <span>{{
+                (item.enabled ? 'XP.AgentPlugins.Status_published' : 'XP.AgentPlugins.Status_disabled') | translate
+              }}</span>
+              <button type="button" class="btn btn-ghost btn-small" [disabled]="busy()" (click)="toggleBinding(item)">
+                {{ (item.enabled ? 'XP.AgentPlugins.Disable' : 'XP.AgentPlugins.Enable') | translate }}
+              </button>
+            </div>
+          }
+        } @else if (detailTab() === 'overview') {
+          @if (selectedPackage(); as pkg) {
+            <form [formGroup]="binding" class="mb-5 flex flex-col gap-4">
+              <label class="flex flex-col gap-1.5 text-sm"
+                >{{ 'XP.AgentPlugins.Title' | translate }}<input formControlName="title" class="xp-input"
+              /></label>
+              <label class="flex flex-col gap-1.5 text-sm"
+                >{{ 'XP.AgentPlugins.Description' | translate
+                }}<textarea formControlName="description" class="xp-input min-h-24" rows="3"></textarea>
+              </label>
+            </form>
+            @if (selectedBinding()) {
+              <button
+                type="button"
+                class="btn btn-secondary btn-small mb-5 self-start"
+                [disabled]="busy()"
+                (click)="loadBinding(); detailTab.set('workspaces')"
+              >
+                {{ 'XP.AgentPlugins.NewConfiguration' | translate }}
+              </button>
+            }
+            <h3 class="mb-3 font-semibold">{{ 'XP.AgentPlugins.IncludedCapabilities' | translate }}</h3>
+            <ul class="mb-5 divide-y divide-divider-regular text-sm">
+              @for (skill of pkg.descriptor.skills; track skill.key) {
+                <li class="flex items-center gap-3 py-3">
+                  <i class="ri-sparkling-line text-text-tertiary" aria-hidden="true"></i
+                  ><span class="min-w-0 break-words">{{ skill.key }}</span
+                  ><span class="ml-auto text-xs text-text-tertiary">Skill</span>
+                </li>
+              }
+              @for (server of pkg.descriptor.servers; track server.key) {
+                <li class="flex items-center gap-3 py-3">
+                  <i class="ri-plug-line text-text-tertiary" aria-hidden="true"></i
+                  ><span class="min-w-0 break-words">{{ server.key }}</span
+                  ><span class="ml-auto text-xs text-text-tertiary">MCP</span>
+                </li>
+              }
+            </ul>
+            @for (expert of pkg.descriptor.extension?.experts || []; track expert.key) {
+              <label class="mb-4 flex flex-col gap-1.5 text-sm"
+                >{{ expert.reference }}
+                <z-select
+                  [zValue]="expertMappings()[expert.reference] || ''"
+                  (zSelectionChange)="mapExpert(expert.reference, $event)"
+                >
+                  <z-select-item zValue="">{{ 'XP.AgentPlugins.SelectExpert' | translate }}</z-select-item>
+                  @for (item of options().experts; track item.id) {
+                    <z-select-item [zValue]="item.id">{{ item.name }}</z-select-item>
+                  }
+                </z-select>
+              </label>
+            }
+            @if (pkg.descriptor.diagnostics.length) {
+              <details class="mb-4 border-t border-divider-regular pt-4 text-sm">
+                <summary class="cursor-pointer">{{ 'XP.AgentPlugins.Diagnostics' | translate }}</summary>
+                @for (diagnostic of pkg.descriptor.diagnostics; track $index) {
+                  <p class="mt-2 break-words text-xs text-text-secondary">
+                    {{ diagnostic.component }}: {{ diagnostic.message }}
+                  </p>
+                }
+              </details>
+            }
+            @if (pkg.source; as source) {
+              <details class="mb-4 border-t border-divider-regular pt-4 text-sm">
+                <summary class="cursor-pointer">{{ 'XP.AgentPlugins.Source' | translate }}</summary>
+                <p class="mt-2 break-all text-xs text-text-secondary">
+                  {{ source.kind === 'git' ? source.url : 'ZIP' }}
+                </p>
+                @if (source.ref) {
+                  <p class="mt-1 break-all text-xs text-text-secondary">{{ source.ref }}</p>
+                }
+              </details>
+            }
+          }
+        } @else {
+          <h3 class="mb-3 font-semibold">{{ 'XP.AgentPlugins.VersionHistory' | translate }}</h3>
+          @for (pkg of group.packages; track pkg.id) {
+            <button
+              type="button"
+              class="mb-1 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-3 text-left text-sm hover:bg-hover-bg"
+              [disabled]="busy()"
+              [class]="selectedPackageId() === pkg.id ? 'bg-background-default-subtle' : ''"
+              (click)="selectVersion(pkg.id); detailTab.set('workspaces')"
+            >
+              <span
+                >{{ versionLabel(pkg)
+                }}<span class="mt-1 block text-xs text-text-tertiary">{{
+                  pkg.createdAt | date: 'yyyy-MM-dd'
+                }}</span></span
+              >
+              @if (selectedPackageId() === pkg.id) {
+                <i class="ri-check-line" aria-hidden="true"></i>
+              }
+            </button>
+          }
+          @if (group.bindings.length) {
+            <h3 class="mb-2 mt-6 border-t border-divider-regular pt-4 font-semibold">
+              {{ 'XP.AgentPlugins.PublishingHistory' | translate }}
+            </h3>
+            @for (item of group.bindings; track item.id) {
+              <div class="flex items-center justify-between gap-3 border-b border-divider-regular py-3 text-sm">
+                <span class="min-w-0"
+                  ><span class="block truncate">{{ item.title }}</span
+                  ><span class="text-xs text-text-tertiary"
+                    >{{ bindingVersion(item) }} ·
+                    {{
+                      (item.supersededById
+                        ? 'XP.AgentPlugins.Replaced'
+                        : item.enabled
+                          ? 'XP.AgentPlugins.Status_published'
+                          : 'XP.AgentPlugins.Status_disabled'
+                      ) | translate
+                    }}</span
+                  ></span
+                >
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-small shrink-0"
+                  [disabled]="busy()"
+                  (click)="toggleBinding(item)"
+                >
+                  {{ (item.enabled ? 'XP.AgentPlugins.Disable' : 'XP.AgentPlugins.Enable') | translate }}
+                </button>
+              </div>
+            }
+          }
+        }
+      </div>
+      <footer class="shrink-0 border-t border-divider-regular p-5">
+        @if (notice()) {
+          <p role="status" class="mb-3 text-sm text-text-success">{{ 'XP.AgentPlugins.Saved' | translate }}</p>
+        }
+        @if (missingMappings()) {
+          <p role="alert" class="mb-3 text-xs text-text-destructive">
+            {{ 'XP.AgentPlugins.CompleteMappings' | translate }}
+          </p>
+        }
+        <p class="mb-3 text-xs text-text-tertiary">{{ 'XP.AgentPlugins.VersionHint' | translate }}</p>
+        <div class="flex gap-3">
+          <button
+            type="button"
+            class="btn btn-primary btn-medium min-w-0 flex-1"
+            [disabled]="
+              busy() ||
+              loading() ||
+              binding.invalid ||
+              !workspaceIds().length ||
+              missingMappings() ||
+              !!unavailableWorkspaceCount()
+            "
+            (click)="publish()"
+          >
+            @if (busy()) {
+              <i class="ri-loader-4-line mr-1 animate-spin" aria-hidden="true"></i>
+            }
+            {{ (selectedBinding() ? 'XP.AgentPlugins.SaveAvailability' : 'XP.AgentPlugins.PublishPlugin') | translate }}
+          </button>
+          <button type="button" class="btn btn-secondary btn-medium px-6" [disabled]="busy()" (click)="closeDetails()">
+            {{ 'XP.AgentPlugins.Cancel' | translate }}
+          </button>
+        </div>
+      </footer>
+    </aside>
+  }
 </div>
+
+<ng-template #importTemplate>
+  <div class="flex max-h-[85dvh] w-[min(36rem,calc(100vw-2rem))] flex-col p-6">
+    <header class="mb-6 flex items-center justify-between gap-3">
+      <h2 id="agent-plugin-import-title" class="text-xl font-semibold">{{ 'XP.AgentPlugins.Import' | translate }}</h2>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small h-8 w-8"
+        [disabled]="busy()"
+        (click)="closeImport()"
+        [attr.aria-label]="'XP.AgentPlugins.Close' | translate"
+      >
+        <i class="ri-close-line text-xl" aria-hidden="true"></i>
+      </button>
+    </header>
+    <form [formGroup]="git" (ngSubmit)="importGit()" class="flex min-h-0 flex-col gap-4 overflow-y-auto">
+      <label class="flex flex-col gap-1.5 text-sm"
+        >{{ 'XP.AgentPlugins.Repository' | translate
+        }}<input formControlName="url" type="url" class="xp-input" placeholder="https://github.com/team/plugin"
+      /></label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="flex flex-col gap-1.5 text-sm"
+          >{{ 'XP.AgentPlugins.Ref' | translate }}<input formControlName="ref" class="xp-input" placeholder="v1.0.0"
+        /></label>
+        <label class="flex flex-col gap-1.5 text-sm"
+          >{{ 'XP.AgentPlugins.Directory' | translate
+          }}<input formControlName="subdirectory" class="xp-input" placeholder="."
+        /></label>
+      </div>
+      @if (error()) {
+        <p class="break-words text-sm text-text-destructive" role="alert">{{ error() }}</p>
+      }
+      <div class="mt-3 flex justify-end gap-3">
+        <button type="button" class="btn btn-secondary btn-medium" [disabled]="busy()" (click)="zipInput.click()">
+          <i class="ri-upload-2-line mr-1" aria-hidden="true"></i>{{ 'XP.AgentPlugins.UploadZip' | translate }}
+        </button>
+        <button type="submit" class="btn btn-primary btn-medium" [disabled]="busy() || git.invalid">
+          @if (busy()) {
+            <i class="ri-loader-4-line mr-1 animate-spin" aria-hidden="true"></i>
+          }
+          {{ 'XP.AgentPlugins.Import' | translate }}
+        </button>
+      </div>
+    </form>
+    <input #zipInput type="file" class="hidden" accept=".zip,application/zip" (change)="importZip($event)" />
+  </div>
+</ng-template>

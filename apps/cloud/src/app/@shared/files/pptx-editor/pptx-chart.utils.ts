@@ -820,7 +820,9 @@ function readChartTitle(title: XmlElement | null) {
 }
 
 function textCache(node: XmlElement | null): string[] {
-  const cache = node ? descendant(node, 'strCache') : null
+  // PptxGenJS also writes single-level categories as multiLvlStrCache. The
+  // first level holds the leaf labels aligned with the series' value indexes.
+  const cache = node ? (descendant(node, 'strCache') ?? directChild(descendant(node, 'multiLvlStrCache'), 'lvl')) : null
   return directChildren(cache, 'pt')
     .sort((a, b) => Number(attr(a, 'idx')) - Number(attr(b, 'idx')))
     .map((point) => textOf(directChild(point, 'v')))

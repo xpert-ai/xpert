@@ -1,4 +1,4 @@
-import { getMessageSkillUsages } from '@xpert-ai/chatkit-types'
+import { getMessageSkillUsages, projectMessageFileActivity, normalizeFileChanges } from '@xpert-ai/chatkit-types'
 import type {
     ChatKitReference,
     ChatTaskSummaryOutput,
@@ -16,12 +16,6 @@ const PLAN_EXCERPT_LENGTH = 160
 const PLAN_PATTERN = /<proposed_plan>\s*([\s\S]*?)\s*<\/proposed_plan>/i
 const MARKDOWN_LINK_PATTERN = /\[[^\]]*\]\((xpert:\/\/knowledgebase\/chunk\?[^)]+)\)/g
 const WEB_SEARCH_RESULT_PATTERN = /^Title:\s*(.+?)\r?\nURL:\s*(https?:\/\/\S+)\s*$/gim
-const SANDBOX_FILE_OUTPUT_TOOLS = new Set([
-    'sandbox_write_file',
-    'sandbox_append_file',
-    'sandbox_edit_file',
-    'sandbox_multi_edit_file'
-])
 
 type MessageContentPart = {
     id?: unknown
@@ -78,11 +72,17 @@ type TaskSummaryResourceCandidate = {
     fileAssetId?: unknown
     storageFileId?: unknown
     artifactId?: unknown
+    artifactVersionId?: unknown
     serviceId?: unknown
     url?: unknown
 }
 
 type TaskSummaryOutputCandidate = {
+    origin?: ChatTaskSummaryOutput['origin']
+    workspacePath?: string
+    mimeType?: string
+    size?: number
+    sha256?: string
     id?: unknown
     kind?: unknown
     title?: unknown
@@ -119,6 +119,9 @@ type TaskSummaryTodosCandidate = {
 }
 
 type TaskSummaryContributionCandidate = {
+    fileChanges?: unknown
+    fileChangeCoverage?: 'bounded' | 'partial' | 'unavailable'
+    fileActivityVersion?: unknown
     version?: unknown
     plan?: unknown
     todos?: unknown
@@ -303,7 +306,9 @@ function normalizeResource(value: unknown): ChatTaskSummaryOutput['resource'] | 
         }
         case 'artifact': {
             const artifactId = readString(candidate.artifactId)
-            return artifactId ? { type: 'artifact', artifactId } : undefined
+            return artifactId
+                ? { type: 'artifact', artifactId, artifactVersionId: readString(candidate.artifactVersionId) }
+                : undefined
         }
         case 'browser': {
             const serviceId = readString(candidate.serviceId)
@@ -388,6 +393,11 @@ function normalizeOutput(value: unknown, messageId?: string, updatedAt?: string)
     return {
         id,
         kind: output.kind,
+        origin: output.origin,
+        workspacePath: output.workspacePath,
+        mimeType: output.mimeType,
+        size: output.size,
+        sha256: output.sha256,
         title: compactText(title, 160),
         description: readString(output.description),
         status,
@@ -450,6 +460,9 @@ function normalizeContribution(
     const todos = normalizeTodos(candidate.todos, messageId, updatedAt)
     return {
         version: SUMMARY_VERSION,
+        fileChanges: normalizeFileChanges(candidate.fileChanges),
+        fileChangeCoverage: candidate.fileChangeCoverage,
+        ...(candidate.fileActivityVersion === 1 ? { fileActivityVersion: 1 as const } : {}),
         ...(plan ? { plan } : {}),
         ...(todos ? { todos } : {}),
         ...(outputs.length ? { outputs } : {}),
@@ -551,11 +564,6 @@ function parseStructuredOutput(value: unknown): Record<string, unknown> | undefi
 }
 
 function structuredToolOutputs(data: ComponentData, messageId?: string, updatedAt?: string) {
-    const sandboxOutput = sandboxFileOutput(data, messageId, updatedAt)
-    if (sandboxOutput) {
-        return [sandboxOutput]
-    }
-
     const payload = parseStructuredOutput(data.output)
     if (!payload) {
         return []
@@ -584,47 +592,6 @@ function structuredToolOutputs(data: ComponentData, messageId?: string, updatedA
         outputs.push(...artifactOutputs(payload.file, messageId, updatedAt))
     }
     return outputs
-}
-
-function sandboxFileOutput(
-    data: ComponentData,
-    messageId?: string,
-    updatedAt?: string
-): ChatTaskSummaryOutput | undefined {
-    const tool = readString(data.tool)
-    const status = readString(data.status)?.toLowerCase()
-    if (!tool || !SANDBOX_FILE_OUTPUT_TOOLS.has(tool) || status !== 'success' || !isObjectValue(data.input)) {
-        return undefined
-    }
-    const workspacePath = portableWorkspacePath((data.input as SandboxFileInputCandidate).file_path)
-    if (!workspacePath) {
-        return undefined
-    }
-    return {
-        id: `workspace-file:${workspacePath}`,
-        kind: artifactKind({ fileName: workspacePath }),
-        title: fileNameFromPath(workspacePath) ?? workspacePath,
-        status: 'success',
-        resource: { type: 'workspace_file', workspacePath },
-        ...(messageId ? { messageId } : {}),
-        ...(updatedAt ? { updatedAt } : {})
-    }
-}
-
-function portableWorkspacePath(value: unknown) {
-    const path = readString(value)
-        ?.replace(/\\/g, '/')
-        .replace(/^\.\/+/, '')
-        .replace(/\/{2,}/g, '/')
-    if (
-        !path ||
-        path.startsWith('/') ||
-        /^[a-z]:\//i.test(path) ||
-        path.split('/').some((segment) => segment === '..')
-    ) {
-        return undefined
-    }
-    return path
 }
 
 function artifactKind(artifact: ArtifactCandidate): ChatTaskSummaryOutputKind {
@@ -916,15 +883,13 @@ function httpUrl(value: unknown) {
     }
 }
 
-function dedupeById<T extends { id: string }>(items: T[]) {
-    const seen = new Set<string>()
-    return items.filter((item) => {
-        if (seen.has(item.id)) {
-            return false
-        }
-        seen.add(item.id)
-        return true
-    })
+function dedupeById<T extends { id: string; updatedAt?: string }>(items: T[]) {
+    const byId = new Map<string, T>()
+    for (const item of items) {
+        const previous = byId.get(item.id)
+        if (!previous || (item.updatedAt ?? '') >= (previous.updatedAt ?? '')) byId.set(item.id, item)
+    }
+    return [...byId.values()]
 }
 
 export function extractChatMessageTaskSummary(
@@ -974,12 +939,14 @@ export function extractChatMessageTaskSummary(
     // Aggregate structured observations from this message only; prose is never evidence of a skill load.
     const skillUsages = getMessageSkillUsages(message)
 
-    return {
+    return projectMessageFileActivity(message, {
         version: SUMMARY_VERSION,
+        fileChanges: latestExplicit?.fileChanges,
+        fileChangeCoverage: latestExplicit?.fileChangeCoverage,
         ...(plan ? { plan } : {}),
         ...(todos ? { todos } : {}),
         ...(outputs.length ? { outputs } : {}),
         ...(sources.length ? { sources } : {}),
         ...(skillUsages.length ? { skillUsages } : {})
-    }
+    })
 }

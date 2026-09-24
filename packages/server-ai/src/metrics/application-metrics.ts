@@ -1,3 +1,5 @@
+import { isFileActivityContent } from '@xpert-ai/chatkit-types'
+
 type MetricLabelValue = string | number | boolean | null | undefined
 type MetricLabels = Record<string, string>
 type MetricType = 'counter' | 'gauge' | 'histogram'
@@ -397,6 +399,7 @@ export class ApplicationMetricsRegistry {
     }
 
     recordToolMessage(input: unknown) {
+        if (isFileActivityContent(input)) return
         if (!isToolMessageMetricInput(input)) {
             return
         }
@@ -418,6 +421,7 @@ export class ApplicationMetricsRegistry {
     }
 
     recordToolComponentMessage(input: unknown, previousContent: unknown) {
+        if (isFileActivityContent(input)) return
         const component = toolComponentMetricInput(input)
         if (!component) {
             return

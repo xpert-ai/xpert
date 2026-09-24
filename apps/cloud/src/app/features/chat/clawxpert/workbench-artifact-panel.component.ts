@@ -7,6 +7,7 @@ import { FileDocumentState } from '../../../@shared/files/document/file-document
 import type {
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
+  FileWorkbenchBinaryFileSaver,
   FileWorkbenchFileUploader,
   FileWorkbenchFileDownloader,
   FileWorkbenchReferenceRequest
@@ -84,6 +85,15 @@ export class WorkbenchArtifactPanelComponent {
       fileName: path.split('/').pop() || path
     })
   })
+  readonly binaryFileSaver = computed<FileWorkbenchBinaryFileSaver | null>(() => {
+    const workspace = this.workspace()
+    if (!workspace || this.mode() !== 'editable') return null
+    const { xpertId, conversationId } = workspace
+    return (path, file) =>
+      conversationId
+        ? this.#conversationService.saveBinaryFile(conversationId, path, file)
+        : this.#xpertService.saveWorkspaceBinaryFile(xpertId, path, file)
+  })
   readonly document = new FileDocumentState({
     rootId: () => this.tab().id,
     documentScope: () => workspaceDocumentScope(this.workspace()?.xpertId, this.workspace()?.projectId),
@@ -91,7 +101,7 @@ export class WorkbenchArtifactPanelComponent {
     fileSaver: this.fileSaver,
     fileUploader: this.fileUploader,
     fileDownloader: this.fileDownloader,
-    binaryFileSaver: () => null,
+    binaryFileSaver: this.binaryFileSaver,
     referenceable: () => !!this.workspace(),
     onReference: (request) => this.referenceRequest.emit(request),
     openInEditMode: false

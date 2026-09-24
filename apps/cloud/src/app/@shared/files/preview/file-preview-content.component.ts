@@ -11,7 +11,6 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { SafePipe } from '@xpert-ai/headless-ui'
 import { XpSpinComponent, XpTableComponent } from '@xpert-ai/headless-ui'
 import type { TChatFileElementReference } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
@@ -19,6 +18,7 @@ import { MarkdownModule } from 'ngx-markdown'
 import { FileEditorSelection } from '../editor/editor.component'
 import { FileDocxPreviewComponent } from './file-docx-preview.component'
 import { FileHtmlPreviewComponent } from './file-html-preview.component'
+import { FilePdfPreviewComponent } from './file-pdf-preview.component'
 import { FilePreviewKind, SpreadsheetPreview } from './file-preview.utils'
 import { clamp, inferTextPreviewSelection, toSelectionElement } from './preview-selection.utils'
 
@@ -35,11 +35,11 @@ type FilePreviewReferenceSelection = {
   imports: [
     TranslateModule,
     MarkdownModule,
-    SafePipe,
     XpSpinComponent,
     XpTableComponent,
     FileDocxPreviewComponent,
-    FileHtmlPreviewComponent
+    FileHtmlPreviewComponent,
+    FilePdfPreviewComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

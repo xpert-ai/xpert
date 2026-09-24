@@ -6,7 +6,7 @@
 
 1. 进入组织范围的「插件 → Agent Plugins」。管理员必须拥有目标工作空间的管理权限。
 2. 输入 HTTPS Git 地址、明确 ref 和可选子目录，或上传 ZIP。ZIP 可直接包含包内容，也可包含一个顶层目录。系统保留来源、Git commit、内容摘要和组件诊断。有效 Skill 不会因同包另一个 Skill 或 MCP 配置无效而被丢弃。
-3. 查看组件清单。声明了 `cn.xpertai.connectors` 的 MCP 自动使用 Connector 授权；旧个人 OAuth 包需要发布新的 Connector 配置版本，不再提供个人授权入口。将 `cn.xpertai` 的逻辑专家引用映射到当前组织可用的已发布专家。中间件 provider 必须已通过原生插件安装，配置遵守 provider schema。
+3. 查看组件清单。声明了 `xpertai.connectors` 的 MCP 自动使用 Connector 授权；旧个人 OAuth 包需要发布新的 Connector 配置版本，不再提供个人授权入口。将 `xpertai` 的逻辑专家引用映射到当前组织可用的已发布专家。中间件 provider 必须已通过原生插件安装，配置遵守 provider schema。
 4. 选择可使用的工作空间并上架。也可以直接上架已有中间件配置或已发布数字专家，无需构造插件包。
 5. 升级时先导入新包，在上架表单选择「替换版本」。已有会话继续使用旧绑定，新目录仅展示新版本。停用旧绑定会阻止后续调用；用户需要移除或重新选择。
 
@@ -67,11 +67,15 @@ Connector runtime reads accept Assistant-scoped ChatKit credentials under `/api/
 - 单元测试：`corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand packages/server-ai/src/agent-plugin`。
 - 本地实际调用验收使用专用 Assistant 和本地 Streamable HTTP 测试服务器，不修改现有业务 Assistant。
 
-规范依据：[Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md)。`cn.xpertai` 是宿主扩展，非标准内建资源类型。
+规范依据：[Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md)。`xpertai` 是宿主扩展，非标准内建资源类型。
 
 ## Agent Plugin 与 Connector 授权
 
-标准包通过 `extensions["cn.xpertai"].connectors` 按 MCP server key 声明依赖：
+The host uses `extensions.xpertai` as its current short namespace. Importing older
+packages with `extensions["cn.xpertai"]` remains supported. When both keys exist,
+`xpertai` takes precedence and must pass validation; their contents are not merged.
+
+标准包通过 `extensions["xpertai"].connectors` 按 MCP server key 声明依赖：
 
 ```json
 {

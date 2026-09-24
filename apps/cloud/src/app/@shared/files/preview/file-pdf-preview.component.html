@@ -1,0 +1,95 @@
+<div
+  class="flex flex-wrap items-center justify-between gap-2 border-b border-divider-regular bg-components-panel-bg px-3 py-2 text-sm"
+>
+  <div class="flex items-center gap-2">
+    <button
+      type="button"
+      class="btn btn-secondary btn-small"
+      data-testid="pdf-previous"
+      [disabled]="!pageCount() || pageNumber() <= 1"
+      (click)="changePage(-1)"
+      [attr.aria-label]="'XP.Files.Pdf.Previous' | translate: { Default: 'Previous page' }"
+    >
+      <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+    </button>
+    <span aria-live="polite" data-testid="pdf-page-count"
+      >{{ pageCount() ? pageNumber() : 0 }} / {{ pageCount() }}</span
+    >
+    <button
+      type="button"
+      class="btn btn-secondary btn-small"
+      data-testid="pdf-next"
+      [disabled]="!pageCount() || pageNumber() >= pageCount()"
+      (click)="changePage(1)"
+      [attr.aria-label]="'XP.Files.Pdf.Next' | translate: { Default: 'Next page' }"
+    >
+      <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+    </button>
+  </div>
+  <div class="flex items-center gap-2">
+    <button
+      type="button"
+      class="btn btn-secondary btn-small"
+      data-testid="pdf-zoom-out"
+      [disabled]="!pageCount() || zoom() <= 0.5"
+      (click)="changeZoom(-0.25)"
+      [attr.aria-label]="'XP.Files.Pdf.ZoomOut' | translate: { Default: 'Zoom out' }"
+    >
+      <i class="ri-subtract-line" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="btn btn-secondary btn-small" [disabled]="!pageCount()" (click)="zoom.set(1)">
+      {{ 'XP.Files.Pdf.FitWidth' | translate: { Default: 'Fit width' } }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-secondary btn-small"
+      data-testid="pdf-zoom-in"
+      [disabled]="!pageCount() || zoom() >= 3"
+      (click)="changeZoom(0.25)"
+      [attr.aria-label]="'XP.Files.Pdf.ZoomIn' | translate: { Default: 'Zoom in' }"
+    >
+      <i class="ri-add-line" aria-hidden="true"></i>
+    </button>
+  </div>
+</div>
+<div
+  #viewport
+  class="relative min-h-0 flex-1 overflow-auto bg-components-panel-bg p-4"
+  [attr.aria-busy]="loading() || rendering()"
+>
+  @if (loading() || rendering()) {
+    <div
+      role="status"
+      class="sticky top-0 z-10 flex justify-center gap-2 bg-components-panel-bg/90 p-3 text-text-secondary"
+    >
+      <i class="ri-loader-4-line animate-spin" aria-hidden="true"></i>
+      {{ 'XP.Files.Pdf.Loading' | translate: { Default: 'Rendering PDF...' } }}
+    </div>
+  }
+  @if (failed()) {
+    <div
+      role="alert"
+      class="flex h-full min-h-40 flex-col items-center justify-center gap-3 text-center text-text-secondary"
+    >
+      <p>
+        {{ 'XP.Files.Pdf.Failed' | translate: { Default: 'Unable to preview this PDF. Retry or download the file.' } }}
+      </p>
+      <div class="flex gap-2">
+        <button type="button" class="btn btn-secondary btn-small" (click)="retryCount.set(retryCount() + 1)">
+          {{ 'XP.Files.Pdf.Retry' | translate: { Default: 'Retry' } }}
+        </button>
+        @if (downloadable()) {
+          <button type="button" class="btn btn-primary btn-small" (click)="download.emit()">
+            {{ 'XP.Chat.Download' | translate: { Default: 'Download' } }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+  <div
+    #pageHost
+    role="img"
+    [attr.aria-label]="fileName() + ' - ' + pageNumber()"
+    [class.hidden]="failed() || loading()"
+  ></div>
+</div>

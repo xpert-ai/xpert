@@ -42,7 +42,7 @@ COPY --chown=node:node apps ./apps
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node libs ./libs
 
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 RUN pnpm nx build cloud --configuration=production
 

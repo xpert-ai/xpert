@@ -53,6 +53,7 @@ import { captureRequestContext, runWithCapturedRequestContext } from '../shared/
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { Artifact, ArtifactAccessLog, ArtifactLink, ArtifactVersion } from './entities'
+import { isSupportedArtifactMimeType, PPTX_MIME_TYPE } from './artifact-mime-policy'
 
 const SIGNED_PREVIEW_QUERY_PARAM = 'xpert_artifact_preview'
 const DEFAULT_SIGNED_PREVIEW_TTL_SECONDS = 15 * 60
@@ -71,19 +72,6 @@ const MAX_PAGE_SIZE = 100
  */
 const ARTIFACT_LINK_SLUG_LENGTH = 12
 const ARTIFACT_LINK_SLUG_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
-const PPTX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-const ALLOWED_EXACT_MIME_TYPES = new Set([
-    'application/json',
-    'application/octet-stream',
-    'application/pdf',
-    'application/zip',
-    PPTX_MIME_TYPE,
-    'text/csv',
-    'text/html',
-    'text/markdown',
-    'text/plain'
-])
 
 export type ArtifactsRuntimeScope = {
     tenantId?: string | null
@@ -1742,7 +1730,7 @@ function normalizeMimeType(value?: string | null) {
     if (mimeType === 'image/svg+xml') {
         throw new BadRequestException('SVG artifacts cannot be shared directly')
     }
-    if (ALLOWED_EXACT_MIME_TYPES.has(mimeType) || mimeType.startsWith('image/')) {
+    if (isSupportedArtifactMimeType(mimeType)) {
         return mimeType
     }
     throw new BadRequestException(`Unsupported artifact MIME type: ${mimeType}`)

@@ -12,6 +12,7 @@ export function rebindTaskSummary(
         ...summary,
         plan: rebind(summary.plan),
         todos: rebind(summary.todos),
+        fileChanges: summary.fileChanges?.map(rebind),
         outputs: summary.outputs?.map(rebind),
         sources: summary.sources?.map(rebind)
     }

@@ -28,7 +28,7 @@
           [class.active]="category() === 'agent-plugins'"
           (click)="category.set('agent-plugins')"
         >
-          Agent Plugins
+          {{ 'XP.AgentPlugins.PageTitle' | translate: { Default: 'Agent Plugins' } }}
         </button>
       }
     </div>

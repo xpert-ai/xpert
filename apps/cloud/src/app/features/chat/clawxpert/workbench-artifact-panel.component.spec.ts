@@ -44,12 +44,14 @@ describe('artifact file document', () => {
     getFile: jest.fn(),
     downloadFile: jest.fn(),
     saveFile: jest.fn(),
+    saveBinaryFile: jest.fn(),
     uploadFile: jest.fn()
   }
   const xpertService = {
     getWorkspaceFile: jest.fn(),
     downloadWorkspaceFile: jest.fn(),
     saveWorkspaceFile: jest.fn(),
+    saveWorkspaceBinaryFile: jest.fn(),
     uploadWorkspaceFileToFolder: jest.fn()
   }
   const originalCreateObjectURL = URL.createObjectURL
@@ -160,6 +162,19 @@ describe('artifact file document', () => {
     expect(fixture.componentInstance.document.panelMode()).toBe('view')
     expect(fixture.componentInstance.fileSaver()).toBeNull()
     expect(fixture.componentInstance.fileUploader()).toBeNull()
+    expect(fixture.componentInstance.binaryFileSaver()).toBeNull()
+  })
+
+  it('routes binary saves from editable artifact tabs to their original workspace', async () => {
+    const file = new Blob(['presentation'])
+    const project = await setup(workspaceTab(), 'editable')
+    project.componentInstance.binaryFileSaver()!('slides/deck.pptx', file)
+    expect(conversationService.saveBinaryFile).toHaveBeenCalledWith('conversation', 'slides/deck.pptx', file)
+    const personal = await setup(workspaceTab('notes.md', null), 'editable')
+    personal.componentInstance.binaryFileSaver()!('slides/deck.pptx', file)
+    expect(xpertService.saveWorkspaceBinaryFile).toHaveBeenCalledWith('assistant', 'slides/deck.pptx', file)
+    const remote = await setup(remoteTab(), 'editable')
+    expect(remote.componentInstance.binaryFileSaver()).toBeNull()
   })
 
   it('allows cancelling a dirty close, and closes only after save or discard', async () => {

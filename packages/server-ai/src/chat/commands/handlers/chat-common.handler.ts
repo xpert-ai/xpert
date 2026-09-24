@@ -1,3 +1,4 @@
+import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
 import { avatarForChat } from '../../../shared/avatar'
 import {
     AIMessage,
@@ -64,7 +65,7 @@ import { isUUID } from 'class-validator'
 import { format } from 'date-fns/format'
 import { t } from 'i18next'
 import { isNil } from 'lodash'
-import { EMPTY, Observable, Subscriber, tap } from 'rxjs'
+import { EMPTY, Observable, Subscriber, map, tap } from 'rxjs'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import {
     appendMessageSteps,
@@ -807,6 +808,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     console.error(err)
                 })
         }).pipe(
+            map((event) => {
+                const receipt = bindFileActivityEvent(event.data, { messageId: aiMessage.id, executionId })
+                return receipt ? { ...event, data: receipt } : event
+            }),
             tap({
                 next: (event) => {
                     if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
