@@ -18,10 +18,17 @@ import {
 } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import type { FUniver, IDisposable, Univer } from '@univerjs/presets'
+import type { FUniver, IDisposable, IWorkbookData, Univer } from '@univerjs/presets'
 import { firstValueFrom } from 'rxjs'
 import { exportSpreadsheetFile, importSpreadsheetFile } from './spreadsheet-file.utils'
 import { ensureUniverStylesheet } from './univer-styles'
+import {
+  assertUnchangedSpreadsheet,
+  exportXlsxEdits,
+  hydrateXlsxSnapshot,
+  spreadsheetBytes,
+  XlsxEditSession
+} from './spreadsheet-xlsx-preservation'
 
 @Component({
   standalone: true,
@@ -54,6 +61,8 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
   #destroyed = false
   #viewReady = false
   #userInteracted = false
+  #xlsxSession: XlsxEditSession | null = null
+  #pendingExport: { file: File; snapshot: IWorkbookData } | null = null
 
   readonly #markUserInteraction = () => {
     this.#userInteracted = true
@@ -108,6 +117,8 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
     this.loading.set(true)
     this.error.set(null)
     this.#userInteracted = false
+    this.#xlsxSession = null
+    this.#pendingExport = null
     this.disposeUniver()
 
     try {
@@ -116,6 +127,7 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
         ensureUniverStylesheet()
       ])
       const workbookData = await importSpreadsheetFile(blob, this.fileName())
+      const xlsxSource = /\.xlsx$/i.test(this.fileName()) ? await hydrateXlsxSnapshot(blob, workbookData) : null
       const [{ createUniver, LocaleType, mergeLocales, CommandType }, { UniverSheetsCorePreset }, locale] =
         await Promise.all([
           import('@univerjs/presets'),
@@ -161,6 +173,7 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
       }
       await this.applyEditable()
       if (this.#destroyed || loadToken !== this.#loadToken) return
+      if (xlsxSource) this.#xlsxSession = { source: xlsxSource, baseline: structuredClone(workbook.save()) }
       this.#commandListener = univerAPI.addEvent(univerAPI.Event.CommandExecuted, (event) => {
         const params: unknown = event.params
         // The cell input is a separate Univer document; its transient mutations are not workbook edits.
@@ -195,6 +208,27 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
     }
 
     if (finishEditing) await workbook.endEditingAsync(true)
+    if (this.#xlsxSession) {
+      const sourceUrl = this.sourceUrl()
+      const params = sourceUrl.startsWith('blob:') ? undefined : { _xlsxRevisionCheck: String(Date.now()) }
+      const current = await firstValueFrom(this.#httpClient.get(sourceUrl, { responseType: 'blob', params }))
+      assertUnchangedSpreadsheet(this.#xlsxSession.source, await spreadsheetBytes(current))
+      const snapshot = workbook.save()
+      const hasFormulas = snapshot.sheetOrder.some((id) => {
+        const data = snapshot.sheets[id].cellData
+        return Object.keys(data).some((r) => Object.keys(data[Number(r)]).some((c) => data[Number(r)][Number(c)]?.f))
+      })
+      if (hasFormulas) {
+        const formula = this.#univerAPI.getFormula()
+        const applied = formula.onCalculationResultApplied(20000)
+        formula.executeCalculation()
+        await applied
+      }
+      const calculated = workbook.save()
+      const file = await exportXlsxEdits(this.#xlsxSession, calculated, this.fileName())
+      this.#pendingExport = { file, snapshot: structuredClone(calculated) }
+      return file
+    }
     return exportSpreadsheetFile(workbook.save(), this.fileName())
   }
 
@@ -240,7 +274,14 @@ export class SpreadsheetEditorComponent implements AfterViewInit, OnChanges, OnD
     event.stopImmediatePropagation()
   }
 
-  markSaved() {
+  async markSaved() {
+    if (this.#pendingExport) {
+      this.#xlsxSession = {
+        source: await spreadsheetBytes(this.#pendingExport.file),
+        baseline: this.#pendingExport.snapshot
+      }
+      this.#pendingExport = null
+    }
     this.#userInteracted = false
     this.dirtyChange.emit(false)
   }

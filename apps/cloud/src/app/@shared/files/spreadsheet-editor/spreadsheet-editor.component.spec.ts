@@ -9,6 +9,9 @@ interface SheetEvent {
   cancel?: boolean
   params?: { unitId: string }
 }
+const mockHydrate = jest.fn<Promise<Uint8Array | null>, []>(async () => null)
+const mockExport = jest.fn(async () => new File(['saved'], 'budget.xlsx'))
+const mockCalculate = { executeCalculation: jest.fn(), onCalculationResultApplied: jest.fn(async () => undefined) }
 const mockListeners = new Map<string, (event: SheetEvent) => void>()
 const mockPermission = {
   setMode: jest.fn(async (_mode: string) => undefined),
@@ -20,9 +23,10 @@ const mockWorkbook = {
   getId: () => 'workbook',
   isCellEditing: jest.fn(() => false),
   endEditingAsync: jest.fn(async () => undefined),
-  save: jest.fn(() => ({ id: 'workbook' }))
+  save: jest.fn((): { id: string; sheetOrder?: string[]; sheets?: object } => ({ id: 'workbook' }))
 }
 const mockAPI = {
+  getFormula: () => mockCalculate,
   createWorkbook: jest.fn(() => mockWorkbook),
   getActiveWorkbook: jest.fn(() => mockWorkbook),
   setPermissionDialogVisible: jest.fn(),
@@ -43,6 +47,11 @@ jest.mock('@univerjs/presets', () => ({
 jest.mock('@univerjs/preset-sheets-core', () => ({ UniverSheetsCorePreset: () => ({}) }))
 jest.mock('@univerjs/preset-sheets-core/locales/zh-CN', () => ({ default: {} }))
 jest.mock('./univer-styles', () => ({ ensureUniverStylesheet: async () => undefined }))
+jest.mock('./spreadsheet-xlsx-preservation', () => ({
+  ...jest.requireActual('./spreadsheet-xlsx-preservation'),
+  hydrateXlsxSnapshot: () => mockHydrate(),
+  exportXlsxEdits: (...args: []) => mockExport(...args)
+}))
 jest.mock('./spreadsheet-file.utils', () => ({
   importSpreadsheetFile: async () => ({ id: 'workbook' }),
   exportSpreadsheetFile: async () => new File(['snapshot'], 'budget.xlsx')
@@ -54,6 +63,8 @@ describe('spreadsheet view mode', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks()
+    mockHydrate.mockResolvedValue(null)
+    mockWorkbook.save.mockReturnValue({ id: 'workbook' })
     mockListeners.clear()
     mockWorkbook.isCellEditing.mockReturnValue(false)
     await TestBed.configureTestingModule({
@@ -161,5 +172,29 @@ describe('spreadsheet view mode', () => {
     expect(mockWorkbook.endEditingAsync).toHaveBeenCalledWith(true)
     expect(mockWorkbook.setEditable).toHaveBeenLastCalledWith(false)
     expect(mockAPI.setPermissionDialogVisible).toHaveBeenLastCalledWith(false)
+  })
+
+  it('rechecks source bytes without a CORS-only header and awaits formula results before export', async () => {
+    mockHydrate.mockResolvedValue(new TextEncoder().encode('xlsx'))
+    mockWorkbook.save.mockReturnValue({
+      id: 'workbook',
+      sheetOrder: ['s'],
+      sheets: {
+        s: { cellData: { 0: { 0: { f: '=1+1', v: 2 } } } }
+      }
+    })
+    const loading = fixture.componentInstance.reload()
+    http.expectOne('https://files/budget.xlsx').flush(new Blob(['xlsx']))
+    await loading
+    expect(fixture.componentInstance.error()).toBeNull()
+    const exporting = fixture.componentInstance.exportFile()
+    await Promise.resolve()
+    const check = http.expectOne((req) => req.url === 'https://files/budget.xlsx')
+    expect(check.request.headers.has('Cache-Control')).toBe(false)
+    expect(check.request.params.has('_xlsxRevisionCheck')).toBe(true)
+    check.flush(new Blob(['xlsx']))
+    await exporting
+    expect(mockCalculate.executeCalculation).toHaveBeenCalledTimes(1)
+    expect(mockExport).toHaveBeenCalledTimes(1)
   })
 })
