@@ -104,12 +104,14 @@ COPY --chown=node:node --from=build /srv/xpert/pnpm-lock.yaml ./
 COPY --chown=node:node --from=build /srv/xpert/pnpm-workspace.yaml ./
 COPY --chown=node:node --from=build /srv/xpert/.npmrc ./
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
+COPY --chown=node:node .deploy/api/verify-runtime-dependencies.cjs ./
 
 COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
 COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
 RUN pnpm install --prod --no-frozen-lockfile && \
+    node verify-runtime-dependencies.cjs && \
     # node-pty@1.1.x can publish a linux-arm64 package where the prebuild
     # directory exists but the actual native addon does not. Validate by
     # loading the module for real, then fall back to a source rebuild only if
