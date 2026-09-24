@@ -215,6 +215,42 @@ describe('KnowledgeWorkbenchService', () => {
         expect(preview.totalChunks).toBe(8)
     })
 
+    it('preserves embedding split order when adding a highlighted chunk to the preview', async () => {
+        const { service, documentService } = createService()
+        documentService.findAll.mockResolvedValueOnce({
+            items: [
+                {
+                    id: 'doc-1',
+                    knowledgebaseId: 'kb-1',
+                    name: 'manual.pdf',
+                    sourceType: 'local-file',
+                    type: 'pdf',
+                    fileUrl: 'https://files.local/manual.pdf'
+                }
+            ],
+            total: 1
+        })
+        const chunks = [0, 1, 2, 3].map((index) => ({
+            id: `part-${index}`,
+            documentId: 'doc-1',
+            pageContent: `Part ${index}`,
+            metadata: {
+                chunkId: `logical::embedding-part:${index + 1}`,
+                chunkIndex: 0,
+                embeddingSplitIndex: index
+            }
+        }))
+        documentService.getChunks
+            .mockResolvedValueOnce({ items: [chunks[0], chunks[2], chunks[3]], total: 4 })
+            .mockResolvedValueOnce({ items: [chunks[1]], total: 1 })
+        documentService.previewFile.mockResolvedValueOnce([])
+
+        const preview = await service.getDocumentPreview('doc-1', ['kb-1'], 'part-1')
+
+        expect(preview.chunks.map((chunk) => chunk.id)).toEqual(['part-0', 'part-1', 'part-2', 'part-3'])
+        expect(preview.totalChunks).toBe(4)
+    })
+
     it('exposes preview chunk parent ids while preserving document order', async () => {
         const { service, documentService } = createService()
         documentService.findAll.mockResolvedValueOnce({

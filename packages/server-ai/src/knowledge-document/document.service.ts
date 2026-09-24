@@ -1,3 +1,4 @@
+import { sortChunksByDocumentOrder } from './document-chunk-order'
 import { isKnowledgeDocumentVisible } from '@xpert-ai/contracts'
 import { visibleDocumentSql } from './document-list-filter'
 import { assertUserManagedDocument } from './document-management'
@@ -269,28 +270,6 @@ function getChunkLogicalId(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata
 function getChunkMatchType(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'metadata'>) {
     const metadata = getChunkMetadata(chunk)
     return `${metadata.mediaType ?? 'text'}:${metadata.type ?? ''}:${metadata.source ?? ''}`
-}
-
-// Keep chunk previews in document order even when database order falls back to creation time.
-function sortChunksByDocumentOrder<T extends Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'metadata'>>(
-    chunks: T[]
-) {
-    return chunks
-        .map((chunk, index) => ({ chunk, index, chunkIndex: getFiniteNumber(getChunkMetadata(chunk).chunkIndex) }))
-        .sort((left, right) => {
-            if (
-                left.chunkIndex !== undefined &&
-                right.chunkIndex !== undefined &&
-                left.chunkIndex !== right.chunkIndex
-            ) {
-                return left.chunkIndex - right.chunkIndex
-            }
-            if (left.chunkIndex !== undefined || right.chunkIndex !== undefined) {
-                return left.chunkIndex !== undefined ? -1 : 1
-            }
-            return left.index - right.index
-        })
-        .map(({ chunk }) => chunk)
 }
 
 function getFiniteNumber(value: unknown) {
