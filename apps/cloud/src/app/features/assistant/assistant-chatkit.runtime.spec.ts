@@ -21,7 +21,8 @@ import {
   hasAssistantBindingSource,
   hasCompleteAssistantBinding,
   injectHostedAssistantChatkitControl,
-  resolveAssistantMcpAppsOptions
+  resolveAssistantMcpAppsOptions,
+  CHATKIT_ATTACHMENT_MAX_BYTES
 } from './assistant-chatkit.runtime'
 
 jest.mock('../../app.service', () => ({
@@ -263,7 +264,7 @@ describe('assistant chatkit runtime helpers', () => {
         composer: expect.objectContaining({
           projects: { enabled: false },
           connectors: { enabled: true },
-          attachments: expect.objectContaining({ enabled: true }),
+          attachments: expect.objectContaining({ enabled: true, maxSize: CHATKIT_ATTACHMENT_MAX_BYTES }),
           tools: []
         }),
         request: {

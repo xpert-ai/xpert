@@ -7,6 +7,7 @@ import * as DocumentLifecycleEntities from '../../knowledge-document/deletion'
 import * as GraphEntities from '../../graphrag/entities'
 import { MCP_PUBLICATION_ENTITIES, McpApiKey } from '../../mcp-publication/entities'
 import { ModelUsageDeliveryReceipt } from '../../copilot-usage/model-usage/model-usage-delivery-receipt.entity'
+import { AgentPluginPackage, AgentResourceBinding } from '../../agent-plugin/agent-plugin.entity'
 
 class MetadataDataSource extends DataSource {
     buildMetadata() {
@@ -19,7 +20,8 @@ describe('ALL_AI_ENTITIES', () => {
         ['GraphRAG', Object.values(GraphEntities)],
         ['document lifecycle', Object.values(DocumentLifecycleEntities)],
         ['MCP publication', MCP_PUBLICATION_ENTITIES],
-        ['model usage delivery', [ModelUsageDeliveryReceipt]]
+        ['model usage delivery', [ModelUsageDeliveryReceipt]],
+        ['agent plugins', [AgentPluginPackage, AgentResourceBinding]]
     ])('registers %s entities for standalone schema-sync', (_name, entities) => {
         expect(ALL_AI_ENTITIES).toEqual(expect.arrayContaining(entities))
     })
@@ -42,7 +44,9 @@ describe('ALL_AI_ENTITIES', () => {
                 'knowledge_document_publication_attempt',
                 'knowledge_document_publication_attempt_source',
                 'model_usage_delivery_receipt',
-                'mcp_publication_access'
+                'mcp_publication_access',
+                'agent_plugin_package',
+                'agent_resource_binding'
             ])
         )
         expect(dataSource.getMetadata(McpApiKey).findColumnWithPropertyName('encryptedSecret')).toMatchObject({

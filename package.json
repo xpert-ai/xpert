@@ -251,7 +251,7 @@
     "terser": "5.46.0",
     "ts-jest": "29.4.6",
     "ts-morph": "^27.0.0",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "typedoc": "^0.25.4",
     "typescript": "5.9.3",
     "verdaccio": "^5.0.4",
@@ -278,7 +278,9 @@
       "@modelcontextprotocol/ext-apps>@modelcontextprotocol/sdk": "1.29.0",
       "@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk": "1.29.0",
       "zod": "3.25.67",
-      "web-streams-polyfill": "^4.2.0"
+      "web-streams-polyfill": "^4.2.0",
+      "ws": "8.18.0",
+      "zod-to-json-schema": "3.25.2"
     }
   },
   "packageManager": "pnpm@10.24.0"

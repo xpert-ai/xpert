@@ -34,6 +34,11 @@ type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
 type AssistantTheme = NonNullable<ChatKitOptions['theme']>
 type ReactiveChatKitOption<T> = T | Signal<T>
 
+// Bid intake supports source files up to 50 MiB. Keep the ChatKit client-side
+// guard aligned with the server parser so a valid tender is not rejected before
+// it can reach the autonomous workflow.
+export const CHATKIT_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024
+
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
   requestContext?: Signal<Record<string, unknown> | null>
@@ -398,7 +403,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         attachments: {
           enabled: true,
           maxCount: 5,
-          maxSize: 10 * 1024 * 1024,
+          maxSize: CHATKIT_ATTACHMENT_MAX_BYTES,
           ...composer?.attachments
         },
         tools: composer?.tools ?? []

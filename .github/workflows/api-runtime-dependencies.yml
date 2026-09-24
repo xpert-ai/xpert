@@ -1,0 +1,31 @@
+name: Validate API runtime dependencies
+
+on:
+  pull_request:
+    paths:
+      - '.deploy/api/**'
+      - 'packages/server-ai/package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/api-runtime-dependencies.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - '.deploy/api/**'
+      - 'packages/server-ai/package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/api-runtime-dependencies.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test .deploy/api/runtime-dependencies.test.cjs

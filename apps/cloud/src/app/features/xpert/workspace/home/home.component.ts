@@ -1,6 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
@@ -17,7 +16,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router'
+import { ActivatedRoute, IsActiveMatchOptions, NavigationEnd, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@cloud/app/@core/state'
 import { injectConfirmUnique, XpCommonModule, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
@@ -62,7 +61,6 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     ReactiveFormsModule,
     RouterModule,
     DragDropModule,
-    CdkListboxModule,
     CdkMenuModule,
     OverlayModule,
     TranslateModule,
@@ -81,8 +79,12 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 })
 export class XpertWorkspaceHomeComponent {
   DisplayBehaviour = DisplayBehaviour
-  XpertRoleTypeEnum = XpertTypeEnum
-  XpertToolsetCategory = XpertToolsetCategoryEnum
+  readonly homeRouteMatchOptions: IsActiveMatchOptions = {
+    paths: 'exact',
+    queryParams: 'ignored',
+    matrixParams: 'ignored',
+    fragment: 'ignored'
+  }
 
   readonly store = inject(Store)
   readonly appService = inject(AppService)
@@ -145,9 +147,31 @@ export class XpertWorkspaceHomeComponent {
   readonly refresh$ = new BehaviorSubject<void>(null)
   #defaultWorkspaceQueryVersion = 0
 
-  // Xpert or tool type filter
-  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase' | 'prompt_workflow'>>(null)
-  readonly type = computed(() => this.types()?.[0])
+  // Derive filters from the active child route on both initial load and navigation.
+  readonly section = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => this.route.snapshot.firstChild?.routeConfig?.path ?? '')
+    ),
+    { requireSync: true }
+  )
+  readonly type = computed<XpertFilterEnum | 'prompt_workflow' | null>(() => {
+    switch (this.section()) {
+      case 'xperts':
+        return XpertTypeEnum.Agent
+      case 'builtin':
+        return XpertToolsetCategoryEnum.BUILTIN
+      case 'mcp':
+        return XpertToolsetCategoryEnum.MCP
+      case 'custom':
+        return XpertToolsetCategoryEnum.API
+      case 'prompt-workflows':
+        return 'prompt_workflow'
+      default:
+        return null
+    }
+  })
 
   // TagFilter's state
   readonly tags = model<ITag[]>([])
@@ -168,10 +192,8 @@ export class XpertWorkspaceHomeComponent {
     )
   )
 
-  readonly isAll = computed(() => !this.type())
-  readonly isXperts = computed(
-    () => !this.type() || Object.values(XpertTypeEnum).includes(this.type() as XpertTypeEnum)
-  )
+  readonly isAll = computed(() => this.section() === '')
+  readonly isXperts = computed(() => this.isAll() || this.type() === XpertTypeEnum.Agent)
   readonly isTools = computed(() => this.type() === XpertToolsetCategoryEnum.API)
   readonly isBuiltinTools = computed(() => this.type() === XpertToolsetCategoryEnum.BUILTIN)
 

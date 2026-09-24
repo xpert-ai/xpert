@@ -6,6 +6,10 @@ packages:
   - 'docs'
   - 'legacies/*'
 
+# API source and both Docker stages must resolve the same ChatKit runtime.
+catalog:
+  '@xpert-ai/chatkit-types': 0.6.2
+
 overrides:
   '@xpert-ai/plugin-sdk': workspace:*
   '@langchain/core': 0.3.72
@@ -29,6 +33,7 @@ allowBuilds:
   core-js: true
   cypress: true
   es5-ext: true
+  electron: true
   esbuild: true
   ffmpeg-ffprobe-static: true
   isolated-vm: true

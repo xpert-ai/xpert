@@ -22,6 +22,8 @@ import {
     KnowledgebaseReadImageInput,
     KnowledgebaseReadTextInput,
     KnowledgebaseReadTextResult,
+    KnowledgebaseReadSourceInput,
+    KnowledgebaseReadSourceResult,
     KnowledgebaseReadImageResult,
     KnowledgebaseReprocessDocumentsInput,
     KnowledgebaseStartProcessingInput,
@@ -39,6 +41,7 @@ import {
     MoveKnowledgebaseDocumentCommand,
     ReadKnowledgebaseDocumentImageCommand,
     ReadKnowledgebaseDocumentTextCommand,
+    ReadKnowledgebaseDocumentSourceCommand,
     ReprocessKnowledgebaseDocumentsCommand,
     StartKnowledgebaseDocumentsProcessingCommand,
     UploadKnowledgebaseDocumentFileCommand
@@ -98,6 +101,10 @@ export class KnowledgebaseDocumentsRuntimeService implements KnowledgebaseDocume
 
     async readText(input: KnowledgebaseReadTextInput): Promise<KnowledgebaseReadTextResult> {
         return this.commandBus.execute(new ReadKnowledgebaseDocumentTextCommand(input))
+    }
+
+    async readSource(input: KnowledgebaseReadSourceInput): Promise<KnowledgebaseReadSourceResult> {
+        return this.commandBus.execute(new ReadKnowledgebaseDocumentSourceCommand(input))
     }
 
     async readImage(input: KnowledgebaseReadImageInput): Promise<KnowledgebaseReadImageResult> {

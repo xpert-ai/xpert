@@ -196,6 +196,10 @@ export class KnowledgeFAQComponent {
     return this.entries().filter((entry) => this.selectionModel.isSelected(entry.id))
   }
 
+  canSetSelectedEnabled(enabled: boolean) {
+    return this.selectedEntries().some((entry) => entry.enabled !== enabled)
+  }
+
   async setSelectedEnabled(enabled: boolean) {
     const knowledgebaseId = this.knowledgebaseId()
     if (!knowledgebaseId || !this.selectionModel.hasValue() || this.updatingStatus()) return
