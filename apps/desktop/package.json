@@ -1,0 +1,71 @@
+{
+  "name": "@xpert-ai/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --host 127.0.0.1 --port 4390 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:local": "node scripts/test-local.mjs",
+    "package": "pnpm build && electron-builder --dir"
+  },
+  "devDependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@xpert-ai/chatkit-types": "~0.6.2",
+    "@xpert-ai/chatkit-web-component": "~0.6.0",
+    "@xpert-ai/shadcn-ui": "workspace:*",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "44.4.5",
+    "electron-builder": "^26.0.12",
+    "tailwindcss": "^4.1.18",
+    "typescript": "5.9.3",
+    "vite": "6.4.3"
+  },
+  "build": {
+    "appId": "ai.xpert.desktop",
+    "productName": "Xpert",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "!**/node_modules/**/*"
+    ],
+    "mac": {
+      "icon": "../cloud/src/assets/icon.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "icon": "../cloud/src/assets/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "icon": "../cloud/src/assets/icon.png",
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    }
+  },
+  "description": "Xpert desktop client with a React sidebar and hosted ChatKit workspace",
+  "author": "XpertAI",
+  "license": "AGPL-3.0"
+}

@@ -29,6 +29,7 @@ allowBuilds:
   core-js: true
   cypress: true
   es5-ext: true
+  electron: true
   esbuild: true
   ffmpeg-ffprobe-static: true
   isolated-vm: true
