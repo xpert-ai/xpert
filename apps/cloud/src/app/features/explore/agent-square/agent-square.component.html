@@ -176,6 +176,7 @@
             <button
               z-button
               type="button"
+              zSize="lg"
               class="mt-6 w-fit cursor-pointer"
               [disabled]="featured.accessStatus === 'requested'"
               (click)="handleExpertAction(featured)"
@@ -352,7 +353,7 @@
             @for (item of experts(); track item.xpert.id) {
               <article
                 role="button"
-                class="group flex min-h-60 flex-col rounded-2xl border border-border bg-card p-6 outline-none transition-colors duration-200 hover:border-foreground/20 hover:bg-accent/20 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                class="group relative flex min-h-40 flex-col rounded-2xl border border-border bg-card p-6 outline-none transition-colors duration-200 hover:bg-accent/20 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 [class.cursor-pointer]="item.accessStatus !== 'requested'"
                 [class.cursor-not-allowed]="item.accessStatus === 'requested'"
                 [attr.tabindex]="item.accessStatus === 'requested' ? -1 : 0"
@@ -389,11 +390,37 @@
                 <p class="mt-6 line-clamp-2 min-h-12 text-sm leading-6 text-muted-foreground">
                   {{ expertSummary(item) }}
                 </p>
-                <div class="mt-auto flex min-h-7 flex-wrap gap-2 pt-5">
-                  @for (tag of expertTags(item).slice(0, 3); track tag) {
-                    <span class="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{{
-                      tag
-                    }}</span>
+                <div
+                  class="absolute bottom-0 left-0 w-full flex justify-between min-h-7 flex-wrap gap-2 p-4 rounded-2xl backdrop-blur-sm bg-card/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                  <span>
+                    @for (tag of expertTags(item).slice(0, 3); track tag) {
+                      <span class="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{{
+                        tag
+                      }}</span>
+                    }
+                  </span>
+
+                  @if (canUseExpert(item)) {
+                    <button
+                      z-button
+                      zType="default"
+                      type="button"
+                      class="cursor-pointer"
+                      (click)="handleExpertAction(item)"
+                    >
+                      {{ 'XP.Explore.AgentSquare.UseExpert' | translate: { Default: 'Use Expert' } }}
+                    </button>
+                  } @else {
+                    <button
+                      z-button
+                      zType="outline"
+                      type="button"
+                      class="cursor-pointer text-foreground"
+                      (click)="handleExpertAction(item)"
+                    >
+                      {{ 'XP.Explore.AgentSquare.RequestAccess' | translate: { Default: 'Request Access' } }}
+                    </button>
                   }
                 </div>
               </article>

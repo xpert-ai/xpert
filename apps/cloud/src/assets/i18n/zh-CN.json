@@ -394,6 +394,9 @@
       "RemoteComponentLoadFailedHint": "远程组件未能启动。请重试，或查看技术详情。"
     },
     "Explore": {
+      "AgentSquare": {
+        "UseExpert": "使用专家"
+      },
       "Application": {
         "McpProviders": "MCP 服务提供方",
         "McpProvidersDescription": "将外部 MCP 客户端连接到此应用插件提供的服务。"
