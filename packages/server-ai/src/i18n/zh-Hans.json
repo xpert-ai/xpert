@@ -1,6 +1,8 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
     "Error": {
+        "DocumentSourceOutsideKnowledgebase": "来源文件不属于所选知识库。",
+        "DocumentSourceRevisionChanged": "读取期间解析结果已变化，请从第一页重新读取。",
         "ThreadReferenceUnavailable": "无法读取此引用对话，或其访问范围与当前对话不兼容。",
         "ThreadReferenceCursorInvalid": "对话历史游标无效、已过期或不适用于当前上下文，请不传 cursor 从最新页面重新读取。",
         "ThreadReferenceCursorStoreUnavailable": "对话历史分页服务暂时不可用，请稍后重试。",

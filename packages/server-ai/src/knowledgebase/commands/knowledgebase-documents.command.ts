@@ -9,6 +9,7 @@ import {
     KnowledgebaseMoveDocumentInput,
     KnowledgebaseReadImageInput,
     KnowledgebaseReadTextInput,
+    KnowledgebaseReadSourceInput,
     KnowledgebaseReprocessDocumentsInput,
     KnowledgebaseStartProcessingInput,
     KnowledgebaseUploadFileInput
@@ -62,6 +63,10 @@ export class ReadKnowledgebaseDocumentImageCommand {
 
 export class ReadKnowledgebaseDocumentTextCommand {
     constructor(public readonly input: KnowledgebaseReadTextInput) {}
+}
+
+export class ReadKnowledgebaseDocumentSourceCommand {
+    constructor(public readonly input: KnowledgebaseReadSourceInput) {}
 }
 
 export class GetKnowledgebaseProcessingOptionsCommand {

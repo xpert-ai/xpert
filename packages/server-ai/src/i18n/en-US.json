@@ -1,6 +1,8 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "DocumentSourceOutsideKnowledgebase": "The source document is outside the selected knowledgebase.",
+        "DocumentSourceRevisionChanged": "The parsed source changed during reading. Restart from its first page.",
         "ThreadReferenceUnavailable": "This referenced conversation is unavailable or its audience is incompatible with the current conversation.",
         "ThreadReferenceCursorInvalid": "The history cursor is invalid, expired, or unavailable in this context. Read the latest page again without cursor.",
         "ThreadReferenceCursorStoreUnavailable": "History pagination is temporarily unavailable. Please retry later.",

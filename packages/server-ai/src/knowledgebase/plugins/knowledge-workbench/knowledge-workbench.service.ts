@@ -28,6 +28,7 @@ import { KnowledgeSearchResult } from '../../queries/knowledge-search.query'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
 import { resolveKnowledgeDocumentParserConfig } from '../../../knowledge-document/parser-config'
+import { sortChunksByDocumentOrder } from '../../../knowledge-document/document-chunk-order'
 import { KnowledgeGraphNodeDetailQuery, KnowledgeGraphViewQuery } from '../../../graphrag/queries'
 import { addKnowledgebaseCitationLink } from '../../citation'
 
@@ -953,25 +954,6 @@ function normalizeChunkPage(value: unknown): {
         items: items as Array<KnowledgeWorkbenchChunkPreview & { id?: string }>,
         total
     }
-}
-
-function sortChunksByDocumentOrder<T extends { metadata?: unknown }>(chunks: T[]) {
-    return chunks
-        .map((chunk, index) => ({ chunk, index, chunkIndex: getNumberField(chunk.metadata, 'chunkIndex') }))
-        .sort((left, right) => {
-            if (
-                left.chunkIndex !== undefined &&
-                right.chunkIndex !== undefined &&
-                left.chunkIndex !== right.chunkIndex
-            ) {
-                return left.chunkIndex - right.chunkIndex
-            }
-            if (left.chunkIndex !== undefined || right.chunkIndex !== undefined) {
-                return left.chunkIndex !== undefined ? -1 : 1
-            }
-            return left.index - right.index
-        })
-        .map(({ chunk }) => chunk)
 }
 
 function getChunkParentId(chunk: Pick<KnowledgeWorkbenchChunkPreview, 'parentId' | 'metadata'>) {
