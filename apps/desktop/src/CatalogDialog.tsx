@@ -14,7 +14,7 @@ import {
   TabsTrigger
 } from '@xpert-ai/shadcn-ui'
 import { ArrowLeft, ArrowUpRight, Layers, LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
-import { BotAvatar } from './Sidebar'
+import { BotAvatar } from './BotAvatar'
 import { CatalogSetup } from './CatalogSetup'
 import { invoke } from './host'
 import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLabel } from './catalog-labels'

@@ -78,6 +78,43 @@ packages in a running Angular development server, restart that server so its
 asset manifest matches the installed package. Remote services require HTTPS;
 HTTP is accepted only for loopback development addresses.
 
+## Assistant list and split panels
+
+Right-click an assistant (including pinned cards and the collapsed avatar rail)
+to pin/unpin, move to a personal section, mark read/unread, edit its local profile,
+duplicate its local entry, or copy its current/latest conversation ID. Pinned
+assistants appear as avatar cards above the list. Unread assistants sort before
+read assistants within each group; groups with unread activity also move first.
+Rows show the latest conversation title, falling back to the assistant description.
+Activity refreshes every 15 seconds while visible and when the window regains focus.
+
+Profile edits and duplicates affect **only this computer's list**. A duplicate
+connects to the same platform Assistant and conversation history; it does not clone
+or publish a server Assistant. Pins, sections, manual unread, profile overrides,
+copies, and sidebar layout persist per service/account/organization. Reading a
+conversation or selecting **Mark as read** updates the platform's existing read
+state; **Mark as unread** is a local reminder.
+
+Drag the sidebar divider to resize between 240 and 520 CSS pixels. Drag past the
+minimum by more than 120 pixels to collapse into a 72-pixel avatar rail. The toggle
+restores it; double-click the divider to reset to 320. Keyboard arrows resize,
+Home/End select the limits, and Enter collapses. In local ChatKit, the chat / Workbench
+divider similarly collapses the chat below half of its 384-pixel minimum; use
+**Restore panel** to bring chat back without losing its draft.
+
+For local ChatKit development, start the sibling repository with the API proxy
+target set to your running Xpert service:
+
+```sh
+cd ../chatkit-js
+XPERT_API_PROXY_TARGET=http://127.0.0.1:3190 corepack pnpm --filter @xpert-ai/chatkit-ui dev --host 127.0.0.1 --strictPort
+```
+
+In desktop connection settings set both **API URL** and **ChatKit URL** to
+`http://127.0.0.1:5173`. Vite proxies `/api` and `/socket.io` to the target service,
+so the embedded frame can authenticate without adding a development origin to
+the API's CORS configuration. Keep the Web URL pointed at your local Xpert web app.
+
 ## Desktop Shell
 
 The native macOS app can execute commands for an authorized server Assistant.

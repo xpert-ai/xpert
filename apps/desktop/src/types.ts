@@ -1,3 +1,4 @@
+import type { BotActivity, SidebarState, SidebarUpdate } from './assistant-list-types'
 import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
 import type { Locale, MessageParams } from './i18n'
 import type { AppearanceConfig } from './appearance-types'
@@ -21,6 +22,7 @@ export interface AppState {
   localLoginAvailable: boolean
 }
 export interface Bot {
+  assistantId?: string
   id: string
   name: string
   description: string
@@ -44,6 +46,17 @@ export interface DesktopShellGrant {
   threadId: string | null
 }
 export interface HostMethods {
+  sidebarState: { input: undefined; output: SidebarState }
+  updateSidebar: { input: SidebarUpdate; output: SidebarState }
+  botActivity: { input: undefined; output: BotActivity[] }
+  botConversation: {
+    input: { botId: string; threadId: string }
+    output: { id: string; title: string | null; threadId: string | null }
+  }
+  markBotRead: { input: { botId: string; threadId: string }; output: { read: boolean } }
+  markAllBotRead: { input: string; output: SidebarState }
+  editBot: { input: { botId: string; name: string; description: string }; output: { botId: string } }
+  duplicateBot: { input: { botId: string; name: string }; output: { botId: string } }
   shellState: { input: undefined; output: DesktopShellState }
   shellEnable: { input: ShellSettings; output: DesktopShellState }
   shellDisable: { input: undefined; output: DesktopShellState }

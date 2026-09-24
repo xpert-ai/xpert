@@ -10,7 +10,19 @@ import { getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
-export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionConfig; dark: boolean }) {
+export function ChatPanel({
+  bot,
+  config,
+  dark,
+  initialThread,
+  onConversationRead
+}: {
+  bot: Bot
+  config: ConnectionConfig
+  dark: boolean
+  initialThread: string | null
+  onConversationRead: (botId: string, threadId: string | null) => void
+}) {
   const container = useRef<HTMLDivElement>(null)
   const instance = useRef<XpertAIChatKit | null>(null)
   const optionsRef = useRef<ChatKitOptions | null>(null)
@@ -29,19 +41,20 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
       instance.current.setOptions(next)
     }
   }, [])
-  const [threadId, setThreadId] = useState<string | null>(null)
+  const [threadId, setThreadId] = useState<string | null>(initialThread)
 
   useEffect(() => {
     const node = document.createElement('xpertai-chatkit')
     const element = node as XpertAIChatKit
     let disposed = false
+    let activeThread = threadId
     setReady(false)
     setError('')
     const options: ChatKitOptions = {
       frameUrl: config.frameUrl,
       api: {
         apiUrl: `${config.apiUrl}/api/ai`,
-        xpertId: bot.id,
+        xpertId: bot.assistantId || bot.id,
         getClientSecret: async () => {
           try {
             return await invoke('chatSession', bot.id)
@@ -80,8 +93,16 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
         setError(event.detail.error.message || t('ChatKit could not connect. Check your connection settings.'))
     })
     element.addEventListener('chatkit.thread.change', (event) => {
-      if (!disposed) setThreadId(event.detail.threadId)
+      if (!disposed) {
+        activeThread = event.detail.threadId
+        setThreadId(event.detail.threadId)
+      }
     })
+    const read = () => {
+      if (!disposed) onConversationRead(bot.id, activeThread)
+    }
+    element.addEventListener('chatkit.thread.load.end', read)
+    element.addEventListener('chatkit.response.end', read)
     container.current?.appendChild(node)
     instance.current = element
     const timer = window.setTimeout(() => {
@@ -116,7 +137,7 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
       aria-label={t('Chat with {{name}}', { name: bot.name })}
       className="relative flex h-full min-w-0 flex-1 flex-col bg-background"
     >
-      <ShellControls assistantId={bot.id} threadId={threadId} onGrant={onGrant} />
+      <ShellControls assistantId={bot.assistantId || bot.id} threadId={threadId} onGrant={onGrant} />
       {error && (
         <div
           role="alert"

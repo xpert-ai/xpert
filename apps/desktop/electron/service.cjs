@@ -127,9 +127,12 @@ class DesktopService {
     } catch {
       this.config = parseConfig(DEFAULT_CONFIG)
     }
+    this.sidebars =
+      saved?.sidebars && typeof saved.sidebars === 'object' && !Array.isArray(saved.sidebars) ? saved.sidebars : {}
     this.credentials = saved?.credentials || null
     this.profile = null
     this.bots = []
+    this.sourceBots = []
     this.generation = 0
     this.refreshing = null
   }
@@ -143,7 +146,7 @@ class DesktopService {
   }
 
   persist() {
-    this.storage.write({ config: this.config, credentials: this.credentials })
+    this.storage.write({ config: this.config, credentials: this.credentials, sidebars: this.sidebars })
   }
 
   async state() {
@@ -214,6 +217,7 @@ class DesktopService {
     await this.shell?.disable()
     this.generation++
     this.bots = []
+    this.sourceBots = []
     this.profile = { ...this.profile, organizationId: id }
     this.credentials = { ...this.credentials, organizationId: id }
     this.persist()
@@ -235,8 +239,9 @@ class DesktopService {
       if (!page.items.length) break
     } while (items.length < total)
     if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
-    this.bots = items
-    return items
+    this.sourceBots = items
+    this.bots = this.decorateBots(items)
+    return this.bots
   }
 
   async chatSession(botId) {
@@ -245,7 +250,7 @@ class DesktopService {
     const organizationId = this.profile?.organizationId
     const result = await this.request('/api/ai/v1/chatkit/sessions', {
       method: 'POST',
-      body: { assistant: { id: botId } }
+      body: { assistant: { id: this.bots.find((item) => item.id === botId).assistantId || botId } }
     })
     if (typeof result?.client_secret !== 'string' || !result.client_secret)
       throw new ClientError('Could not create a ChatKit session.')
@@ -258,6 +263,7 @@ class DesktopService {
     this.credentials = null
     this.profile = null
     this.bots = []
+    this.sourceBots = []
     this.persist()
     return this.snapshot()
   }
@@ -338,6 +344,7 @@ class DesktopService {
   }
 }
 
+Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 
