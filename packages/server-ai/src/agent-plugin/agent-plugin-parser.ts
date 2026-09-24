@@ -21,7 +21,7 @@ const manifestShape = z.object({
     name: z.string(),
     version: z.string().optional(),
     description: z.string().optional(),
-    extensions: z.object({ 'cn.xpertai': z.unknown().optional() }).passthrough().optional()
+    extensions: z.object({ xpertai: z.unknown().optional() }).passthrough().optional()
 })
 export const jsonValue: z.ZodType<import('@xpert-ai/contracts').JSONValue> = z.lazy(() =>
     z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(jsonValue), z.record(jsonValue)])
@@ -112,7 +112,11 @@ export async function parseAgentPlugin(root: string): Promise<PortablePlugin> {
         }
     }
     // Unknown namespaces are opaque, including values with client-specific shapes.
-    const extension = object(manifest.extensions) ? manifest.extensions['cn.xpertai'] : undefined
+    const extensions = object(manifest.extensions) ? manifest.extensions : undefined
+    // Prefer the current namespace, including invalid values; only old packages use the alias.
+    const extensionNamespace =
+        extensions && Object.prototype.hasOwnProperty.call(extensions, 'xpertai') ? 'xpertai' : 'cn.xpertai'
+    const extension = extensions?.[extensionNamespace]
     if (manifest.extensions !== undefined && !object(manifest.extensions))
         report('manifest', 'invalid_extensions', 'Ignoring non-object extensions')
     delete manifest.extensions
@@ -129,7 +133,7 @@ export async function parseAgentPlugin(root: string): Promise<PortablePlugin> {
     if (extension !== undefined) {
         const result = extensionShape.safeParse(extension)
         if (result.success) plugin.extension = result.data as AgentPluginXpertExtension
-        else report('cn.xpertai', 'invalid_extension', result.error)
+        else report(extensionNamespace, 'invalid_extension', result.error)
     }
     try {
         const directory = await containedPath(root, 'skills')
