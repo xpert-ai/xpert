@@ -999,5 +999,23 @@
             "Update": "Update",
             "Step": "Step"
         }
+    },
+    "DesktopShell": {
+        "INVALID_MESSAGE": "Invalid desktop shell request.",
+        "INVALID_SETTINGS": "Invalid Shell settings.",
+        "DEVICE_OFFLINE": "This computer is offline. Open Xpert Desktop and enable Shell.",
+        "DEVICE_BUSY": "This computer is already running a command.",
+        "GRANT_REVOKED": "Desktop Shell is not authorized for this conversation.",
+        "NOT_FOUND": "The desktop shell operation is unavailable.",
+        "OPERATION_CONFLICT": "This operation ID belongs to a different command.",
+        "OUTPUT_EXPIRED": "Some command output is no longer available.",
+        "EXECUTION_UNKNOWN": "The command result is unknown. It was not executed again.",
+        "PROTOCOL_MISMATCH": "Update Xpert Desktop to connect to this service.",
+        "SPAWN_FAILED": "The Shell process could not start.",
+        "JOURNAL_FAILED": "The execution log could not be saved. The command was stopped.",
+        "JOURNAL_FULL": "The local execution log is full.",
+        "WORKER_RESTARTED": "The Shell worker restarted. The command result is unknown.",
+        "CANCEL_FAILED": "The process could not be confirmed stopped.",
+        "EXPIRED_COMMAND": "The command expired before it could start."
     }
 }

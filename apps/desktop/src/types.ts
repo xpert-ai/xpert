@@ -1,3 +1,4 @@
+import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
 import type { Locale, MessageParams } from './i18n'
 import type { AppearanceConfig } from './appearance-types'
 
@@ -29,7 +30,27 @@ export interface Bot {
 export type HostResult<T> =
   | { ok: true; value: T }
   | { ok: false; message: string; status: number; key?: string; params?: MessageParams }
+export interface DesktopShellState {
+  available: boolean
+  enabled: boolean
+  connected: boolean
+  deviceId: string | null
+  settings: ShellSettings | null
+  errorCode: string | null
+}
+export interface DesktopShellGrant {
+  id: string
+  expiresAt: number
+  threadId: string | null
+}
 export interface HostMethods {
+  shellState: { input: undefined; output: DesktopShellState }
+  shellEnable: { input: ShellSettings; output: DesktopShellState }
+  shellDisable: { input: undefined; output: DesktopShellState }
+  shellBind: { input: { assistantId: string; threadId: string | null }; output: DesktopShellGrant }
+  shellUnbind: { input: string; output: { revoked: boolean } }
+  shellOperations: { input: undefined; output: ShellResult[] }
+  shellCancel: { input: string; output: ShellResult }
   state: { input: undefined; output: AppState }
   configure: { input: ConnectionConfig; output: AppState }
   login: { input: { email: string; password: string }; output: AppState }

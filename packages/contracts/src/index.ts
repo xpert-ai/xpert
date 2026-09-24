@@ -91,3 +91,5 @@ export type {
   RuntimeResourceDefinition,
   RuntimeResourceBindingInput
 } from './agent-plugin'
+
+export * from './desktop-shell.model'

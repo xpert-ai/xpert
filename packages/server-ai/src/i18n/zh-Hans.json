@@ -999,5 +999,23 @@
             "Update": "更新",
             "Step": "步骤"
         }
+    },
+    "DesktopShell": {
+        "INVALID_MESSAGE": "无效的桌面 Shell 请求。",
+        "INVALID_SETTINGS": "无效的 Shell 设置。",
+        "DEVICE_OFFLINE": "此电脑已离线，请打开 Xpert Desktop 并启用 Shell。",
+        "DEVICE_BUSY": "此电脑已有正在运行的命令。",
+        "GRANT_REVOKED": "此会话未获桌面 Shell 授权。",
+        "NOT_FOUND": "桌面 Shell 操作不可用。",
+        "OPERATION_CONFLICT": "此操作 ID 已关联其他命令。",
+        "OUTPUT_EXPIRED": "部分命令输出已过期。",
+        "EXECUTION_UNKNOWN": "命令结果未知，未被重复执行。",
+        "PROTOCOL_MISMATCH": "请更新 Xpert Desktop 后连接此服务。",
+        "SPAWN_FAILED": "Shell 进程无法启动。",
+        "JOURNAL_FAILED": "执行日志无法保存，命令已停止。",
+        "JOURNAL_FULL": "本地执行日志已满。",
+        "WORKER_RESTARTED": "Shell 执行器已重启，命令结果未知。",
+        "CANCEL_FAILED": "无法确认进程已停止。",
+        "EXPIRED_COMMAND": "命令启动前已过期。"
     }
 }

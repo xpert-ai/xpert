@@ -84,3 +84,5 @@ export * from '../../knowledgebase/tags/knowledgebase-tag.entity'
 export * from '../../knowledgebase/tags/document-tag.entity'
 export * from '../../agent-plugin/agent-plugin.entity'
 export * from '../../agent-invocation/invocation.entity'
+
+export * from '../../desktop-shell/desktop-shell.entities'

@@ -1,5 +1,6 @@
+import { ShellControls } from './ShellControls'
 import { t } from './i18n'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import '@xpert-ai/chatkit-web-component'
 import type { ChatKitOptions, XpertAIChatKit } from '@xpert-ai/chatkit-types'
 import { Button } from '@xpert-ai/shadcn-ui'
@@ -16,6 +17,18 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const grantRef = useRef<string | null>(null)
+  const onGrant = useCallback((id: string | null) => {
+    grantRef.current = id
+    if (instance.current && optionsRef.current) {
+      const next = {
+        ...optionsRef.current,
+        request: { context: { source: 'desktop', ...(id ? { desktopShellGrantId: id } : {}) } }
+      }
+      optionsRef.current = next
+      instance.current.setOptions(next)
+    }
+  }, [])
   const [threadId, setThreadId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -50,7 +63,9 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
         connectors: { enabled: true }
       },
       workbench: { enabled: true },
-      request: { context: { source: 'desktop' } }
+      request: {
+        context: { source: 'desktop', ...(grantRef.current ? { desktopShellGrantId: grantRef.current } : {}) }
+      }
     }
     element.setOptions(options)
     optionsRef.current = options
@@ -101,6 +116,7 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
       aria-label={t('Chat with {{name}}', { name: bot.name })}
       className="relative flex h-full min-w-0 flex-1 flex-col bg-background"
     >
+      <ShellControls assistantId={bot.id} threadId={threadId} onGrant={onGrant} />
       {error && (
         <div
           role="alert"

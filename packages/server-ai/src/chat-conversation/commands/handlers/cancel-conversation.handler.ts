@@ -1,3 +1,4 @@
+import { DesktopShellOperationService } from '../../../desktop-shell/desktop-shell-operation.service'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CancelConversationCommand } from '../cancel-conversation.command'
 import { ChatConversationService } from '../../conversation.service'
@@ -29,7 +30,8 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         private readonly executionCancelService: ExecutionCancelService,
         private readonly commandBus: CommandBus,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
-        @Optional() private readonly threadRunControl?: ThreadRunControlService
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly desktopShellOperations?: DesktopShellOperationService
     ) {}
 
     public async execute(command: CancelConversationCommand) {
@@ -94,6 +96,7 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         }
 
         if (executionIds.length) {
+            await this.desktopShellOperations?.cancelRuns(executionIds)
             await this.executionCancelService.cancelExecutions(executionIds, 'Canceled by user')
             try {
                 await this.commandBus.execute(

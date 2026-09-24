@@ -5,6 +5,7 @@
     "type": "commonjs",
     "license": "AGPL-3.0",
     "dependencies": {
+        "@xpert-ai/desktop-protocol": "workspace:*",
         "@apidevtools/swagger-parser": "^10.1.0",
         "@emoji-mart/data": "^1.2.1",
         "@langchain/community": "0.3.53",
