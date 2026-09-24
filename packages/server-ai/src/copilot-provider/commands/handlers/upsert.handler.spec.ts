@@ -70,4 +70,16 @@ describe('CopilotProviderUpsertHandler', () => {
 		expect(service.create).not.toHaveBeenCalled()
 		expect(service.update).not.toHaveBeenCalled()
 	})
+
+	it.each([undefined, 'provider-id'])('does not save invalid credentials for id %p', async (id) => {
+		const error = new Error('Invalid API key')
+		commandBus.execute.mockRejectedValue(error)
+		await expect(handler.execute(new CopilotProviderUpsertCommand({
+			id,
+			providerName: 'volcengine',
+			credentials: { ark_api_key: 'invalid-key' }
+		}))).rejects.toBe(error)
+		expect(service.create).not.toHaveBeenCalled()
+		expect(service.update).not.toHaveBeenCalled()
+	})
 })
