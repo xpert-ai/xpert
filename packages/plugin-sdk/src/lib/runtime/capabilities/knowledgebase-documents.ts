@@ -247,6 +247,23 @@ export type KnowledgebaseReadTextResult = {
   chunks: Array<{ id: string; text: string; page?: number; version: number }>
 }
 
+/** Pre-split conversion evidence. Index chunk size and embedding models do not affect this view. */
+export type KnowledgebaseReadSourceInput = KnowledgebaseReadTextInput & {
+  /** Pin all pages to the revision returned by the first page. */
+  revision?: string
+}
+
+export type KnowledgebaseReadSourceResult = {
+  knowledgebaseId: string
+  documentId: string
+  /** Content identity of the complete parsed source, independent of index/document versions. */
+  revision: string
+  sourceHash?: string | null
+  total: number
+  /** Complete converter blocks in source order, never vector fragments or overlapping windows. */
+  chunks: Array<{ id: string; text: string; page?: number }>
+}
+
 export type KnowledgebaseProcessingOptionsInput = {
   knowledgebaseId: string
   fileName: string
@@ -272,6 +289,9 @@ export interface KnowledgebaseDocumentsApi {
   getProcessingOptions(input: KnowledgebaseProcessingOptionsInput): Promise<KnowledgebaseProcessingOptionsResult>
 
   readText(input: KnowledgebaseReadTextInput): Promise<KnowledgebaseReadTextResult>
+
+  /** Missing/stale conversion snapshots fail explicitly; this never falls back to indexed chunks. */
+  readSource(input: KnowledgebaseReadSourceInput): Promise<KnowledgebaseReadSourceResult>
 
   listDocuments(input: KnowledgebaseListDocumentsInput): Promise<KnowledgebaseListDocumentsResult>
 
