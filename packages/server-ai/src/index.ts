@@ -43,3 +43,5 @@ export * from './knowledgebase/migration'
 
 export * from './shared/runtime/workspace-files-runtime.module'
 export * from './actor-token/actor-token-runtime.module'
+
+export * from './desktop-shell/desktop-shell.module'

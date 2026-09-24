@@ -1,3 +1,4 @@
+import { DesktopShellAuthService } from '../../../desktop-shell/desktop-shell-auth.service'
 import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import {
     IChatConversation,
@@ -364,7 +365,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly xpertPrincipalService?: XpertPrincipalService,
         @Optional() private readonly projectService?: XpertProjectService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
-        @Optional() private readonly threadRunControl?: ThreadRunControlService
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly desktopShellAuth?: DesktopShellAuthService
     ) {}
 
     private async resolveRequestEnvironment(
@@ -469,6 +471,11 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         if (chatRequest.action === 'send' && conversation.projectId) {
             // Replace transient request scope with the authorized persisted id.
             chatRequest.projectId = conversation.projectId
+        }
+
+        if (runtimeContext?.desktopShellGrantId !== undefined) {
+            if (!this.desktopShellAuth) throw new BadRequestException(t('server-ai:DesktopShell.DEVICE_OFFLINE'))
+            await this.desktopShellAuth.bindForRun(runtimeContext.desktopShellGrantId, threadId, runCreate.assistant_id)
         }
 
         applyAssistantScope(xpert)

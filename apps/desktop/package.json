@@ -11,10 +11,12 @@
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
     "test:local": "node scripts/test-local.mjs",
+    "test:shell:local": "node scripts/test-shell-local.mjs",
     "package": "pnpm build && electron-builder --dir"
   },
   "devDependencies": {
     "@emoji-mart/data": "^1.2.1",
+    "@xpert-ai/contracts": "workspace:*",
     "@xpert-ai/chatkit-types": "~0.6.2",
     "@xpert-ai/chatkit-web-component": "~0.6.0",
     "@xpert-ai/shadcn-ui": "workspace:*",
@@ -41,8 +43,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json",
-      "!**/node_modules/**/*"
+      "package.json"
     ],
     "mac": {
       "icon": "../cloud/src/assets/icon.png",
@@ -67,5 +68,9 @@
   },
   "description": "Xpert desktop client with a React sidebar and hosted ChatKit workspace",
   "author": "XpertAI",
-  "license": "AGPL-3.0"
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "@xpert-ai/desktop-protocol": "workspace:*",
+    "socket.io-client": "^4.7.5"
+  }
 }

@@ -2,6 +2,13 @@ const { translate } = require('./i18n/index.mjs')
 const { ClientError } = require('./service.cjs')
 const methods = new Set([
   'state',
+  'shellState',
+  'shellEnable',
+  'shellDisable',
+  'shellBind',
+  'shellUnbind',
+  'shellOperations',
+  'shellCancel',
   'configure',
   'login',
   'loginLocal',

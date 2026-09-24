@@ -1,3 +1,4 @@
+import { DesktopShellModule } from './desktop-shell/desktop-shell.module'
 import { UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -98,6 +99,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         ModelAccessModule,
         ModelGatewayModule,
         MobileModule,
+        DesktopShellModule,
         XpertModule,
         EnterpriseChatkitModule,
         XpertAgentModule,

@@ -148,6 +148,9 @@ importers:
       '@swc/helpers':
         specifier: 0.5.3
         version: 0.5.3
+      '@xpert-ai/desktop-protocol':
+        specifier: workspace:*
+        version: link:packages/desktop-protocol
       axios:
         specifier: 1.6.8
         version: 1.6.8
@@ -720,6 +723,13 @@ importers:
         version: 4.1.18
 
   apps/desktop:
+    dependencies:
+      '@xpert-ai/desktop-protocol':
+        specifier: workspace:*
+        version: link:../../packages/desktop-protocol
+      socket.io-client:
+        specifier: ^4.7.5
+        version: 4.8.3
     devDependencies:
       '@emoji-mart/data':
         specifier: ^1.2.1
@@ -745,6 +755,9 @@ importers:
       '@xpert-ai/chatkit-web-component':
         specifier: ~0.6.0
         version: 0.6.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts/dist
       '@xpert-ai/shadcn-ui':
         specifier: workspace:*
         version: link:../../packages/shadcn-ui
@@ -938,6 +951,12 @@ importers:
         specifier: 3.25.2
         version: 3.25.2(zod@3.25.67)
     publishDirectory: dist
+
+  packages/desktop-protocol:
+    dependencies:
+      '@xpert-ai/contracts':
+        specifier: workspace:*
+        version: link:../contracts/dist
 
   packages/plugin-sdk:
     dependencies:
@@ -1447,6 +1466,9 @@ importers:
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../contracts/dist
+      '@xpert-ai/desktop-protocol':
+        specifier: workspace:*
+        version: link:../desktop-protocol
       '@xpert-ai/plugin-sdk':
         specifier: workspace:*
         version: link:../plugin-sdk/dist

@@ -78,6 +78,13 @@ packages in a running Angular development server, restart that server so its
 asset manifest matches the installed package. Remote services require HTTPS;
 HTTP is accepted only for loopback development addresses.
 
+## Desktop Shell
+
+The native macOS app can execute commands for an authorized server Assistant.
+Enable **Desktop Shell** middleware in the Assistant, then use **Connection &
+appearance → Desktop Shell → Enable Shell** and **Use this computer** in the
+conversation. See [setup, protocol and limits](docs/desktop-shell.md).
+
 ## Client boundary
 
 - **Sidebar:** organization switch, searchable published Bots, refresh, open

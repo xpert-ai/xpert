@@ -5,9 +5,12 @@ const { DesktopService, webUrl } = require('./service.cjs')
 const { createStorage } = require('./storage.cjs')
 const { dispatch } = require('./dispatch.cjs')
 const { menuTemplate } = require('./menu.cjs')
+const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 
 app.setName('Xpert')
+// A separate profile supports local acceptance without touching the daily app account.
+if (process.env.XPERT_DESKTOP_USER_DATA) app.setPath('userData', path.resolve(process.env.XPERT_DESKTOP_USER_DATA))
 const devUrl = !app.isPackaged ? process.env.XPERT_DESKTOP_DEV_URL : null
 const rendererUrl = devUrl || pathToFileURL(path.join(__dirname, '../dist/index.html')).href
 let window
@@ -89,6 +92,7 @@ else {
       decryptString: (value) => safeStorage.decryptString(value)
     }
     service = new DesktopService({ storage: createStorage(app.getPath('userData'), encryption), localLogin })
+    service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) =>
       callback(allowClipboardWrite(contents, permission, details.requestingUrl))
     )
@@ -126,3 +130,13 @@ else {
     if (process.platform !== 'darwin') app.quit()
   })
 }
+
+let shellShutdownComplete = false
+app.on('before-quit', (event) => {
+  if (!service?.shell || shellShutdownComplete) return
+  event.preventDefault()
+  void service.shell.disable().finally(() => {
+    shellShutdownComplete = true
+    app.quit()
+  })
+})

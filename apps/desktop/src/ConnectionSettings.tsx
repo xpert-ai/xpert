@@ -1,3 +1,4 @@
+import { ShellSettings } from './ShellSettings'
 import { t, languages } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -101,6 +102,9 @@ export function ConnectionSettings({
                 <TabsTrigger value="appearance" disabled={pending}>
                   {t('Appearance')}
                 </TabsTrigger>
+                <TabsTrigger value="shell" disabled={pending}>
+                  {t('Desktop Shell')}
+                </TabsTrigger>
                 <TabsTrigger value="connection" disabled={pending}>
                   {t('Connection')}
                 </TabsTrigger>
@@ -133,6 +137,9 @@ export function ConnectionSettings({
                   }
                   onChange={(appearance) => setDraft({ ...draft, appearance })}
                 />
+              </TabsContent>
+              <TabsContent value="shell">
+                <ShellSettings />
               </TabsContent>
               <TabsContent value="connection">
                 <p className="mb-4 text-xs leading-5 text-muted-foreground">

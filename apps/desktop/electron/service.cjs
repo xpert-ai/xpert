@@ -211,6 +211,7 @@ class DesktopService {
   async selectOrganization(id) {
     if (!this.profile?.organizations.some((item) => item.id === id))
       throw new ClientError('You cannot access this workspace.', 403)
+    await this.shell?.disable()
     this.generation++
     this.bots = []
     this.profile = { ...this.profile, organizationId: id }
@@ -252,6 +253,7 @@ class DesktopService {
   }
 
   logout() {
+    void this.shell?.disable().catch(() => undefined)
     this.generation++
     this.credentials = null
     this.profile = null
@@ -337,5 +339,6 @@ class DesktopService {
 }
 
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 
 module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, webUrl }
