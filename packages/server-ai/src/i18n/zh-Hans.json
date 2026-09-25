@@ -881,6 +881,9 @@
             "WebSearch": "网络搜索",
             "Searching": "正在搜索"
         },
+        "SerplySearch": {
+            "WebSearch": "网络搜索"
+        },
         "Python": {
             "ExecPythonCode": "执行 Python 代码"
         },
