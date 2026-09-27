@@ -1,4 +1,7 @@
 {
+  "Invalid tool output attachment.": "\u5de5\u5177\u8f38\u51fa\u9644\u4ef6\u7121\u6548\u3002",
+  "The image preview does not match the requested attachment.": "\u5716\u7247\u9810\u89bd\u8207\u8acb\u6c42\u7684\u9644\u4ef6\u4e0d\u7b26\u3002",
+  "The service returned an invalid image preview.": "\u670d\u52d9\u50b3\u56de\u4e86\u7121\u6548\u7684\u5716\u7247\u9810\u89bd\u3002",
   "Connection & appearance": "連線與外觀",
   "Appearance": "外觀",
   "Connection": "連線",

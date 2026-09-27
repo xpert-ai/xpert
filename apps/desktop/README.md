@@ -115,6 +115,12 @@ In desktop connection settings set both **API URL** and **ChatKit URL** to
 so the embedded frame can authenticate without adding a development origin to
 the API's CORS configuration. Keep the Web URL pointed at your local Xpert web app.
 
+The desktop follows that runtime's Workbench implementation. Views must receive
+the current conversation record ID through SDK `runtimeScope`; they must not use
+the execution thread ID. Keep the remote iframe sandbox enabled. Switching a
+conversation disposes its old remote view and connections. A production deployment
+must ship the updated ChatKit frame assets, not just the desktop executable.
+
 ## Desktop Shell
 
 The native macOS app can execute commands for an authorized server Assistant.

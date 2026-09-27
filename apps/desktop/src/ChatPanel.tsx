@@ -91,6 +91,9 @@ export function ChatPanel({
           }
         })
       },
+      toolOutputAttachments: {
+        onRequestPreview: ({ attachment }) => invoke('toolOutputPreview', attachment)
+      },
       request: {
         context: { source: 'desktop', ...(grantRef.current ? { desktopShellGrantId: grantRef.current } : {}) }
       }

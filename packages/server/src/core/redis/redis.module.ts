@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import * as Redis from 'ioredis'
 import { createClient } from 'redis'
+import { RedisEphemeralService } from './redis-ephemeral.service'
 import { RedisLockService } from './redis-lock.service'
 import { REDIS_CLIENT, REDIS_OPTIONS } from './types'
-
-
 
 @Module({
 	imports: [ConfigModule],
@@ -40,8 +39,9 @@ import { REDIS_CLIENT, REDIS_OPTIONS } from './types'
 				return client
 			}
 		},
-		RedisLockService
+		RedisLockService,
+		RedisEphemeralService
 	],
-	exports: [REDIS_OPTIONS, REDIS_CLIENT, RedisLockService]
+	exports: [REDIS_OPTIONS, REDIS_CLIENT, RedisLockService, RedisEphemeralService]
 })
 export class RedisModule {}

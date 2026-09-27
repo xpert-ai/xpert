@@ -459,6 +459,9 @@
       "RemoteComponentLoadFailedHint": "The remote component did not start. Try again or review the technical details."
     },
     "Explore": {
+      "AgentSquare": {
+        "UseExpert": "Use Expert"
+      },
       "Application": {
         "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",
         "AppTemplate": "App template",

@@ -62,3 +62,25 @@ describe('shell completion includes delivery finalization', () => {
         expect(finalize).not.toHaveBeenCalled()
     })
 })
+
+describe('bounded shell streaming', () => {
+    it('caps progress output even when a provider emits unbounded lines', async () => {
+        jest.clearAllMocks()
+        const result = { output: 'bounded final result', exitCode: 0, truncated: true }
+        const backend = {
+            execute: jest.fn().mockResolvedValue(result),
+            streamExecute: async (_command: string, onLine: (line: string) => void) => {
+                for (let index = 0; index < 20; index++) onLine('x'.repeat(100000))
+                return result
+            }
+        }
+        await withStreamingToolMessage('bounded', 'sandbox_shell', 'verbose-command', backend, { maxOutputBytes: 4096 })
+        const events = jest.mocked(dispatchCustomEvent).mock.calls.map((call) => call[1])
+        for (const event of events) {
+            if (typeof event === 'object' && event !== null && 'output' in event && typeof event.output === 'string') {
+                expect(Buffer.byteLength(event.output)).toBeLessThanOrEqual(4096)
+            }
+        }
+        expect(events).toContainEqual(expect.objectContaining({ status: 'success', output: result.output }))
+    })
+})

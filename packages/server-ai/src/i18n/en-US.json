@@ -2,6 +2,9 @@
     "Project": { "ConversationProjectName": "{{assistant}} project" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "ToolImageInvalid": "The tool image is invalid, unsupported or exceeds the image limit.",
+        "ToolImageUnavailable": "The tool image is unavailable in this conversation or its content has changed. Capture a new image.",
+        "ToolImageBatchLimit": "At most three tool images can be inspected in one model step.",
         "AgentToolChoiceReservedName": "This model adapter cannot force a tool whose name is a reserved tool choice: {{name}}",
         "AgentToolChoiceStructuredConflict": "Tool choice none cannot be combined with functionCalling output. Use a JSON output method.",
         "AgentModelCannotBindTools": "The selected model must support bindTools. Supply an unbound chat model.",
@@ -700,6 +703,7 @@
         "ProjectXpertOrganizationMismatch": "The Xpert must belong to the Project Organization.",
         "ProjectXpertRequired": "The Xpert is not part of this Project.",
         "ProjectXpertSelectionRequired": "A Project Xpert is required.",
+        "ConversationInitializerDuplicate": "Conversation initializer already registered: {{key}}",
         "ConversationScopeMismatch": "The conversation does not belong to the current tenant and Organization.",
         "ConversationXpertImmutable": "A conversation cannot be moved to another Xpert.",
         "RequestedXpertConversationMismatch": "The requested Xpert does not match the conversation Xpert.",

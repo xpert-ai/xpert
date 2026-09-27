@@ -353,6 +353,9 @@ export interface BackendProtocol extends IBackendProtocol {
  * and communicate via defined interfaces.
  */
 export interface SandboxBackendProtocol extends BackendProtocol {
+  /** Optional host guarantees; do not infer missing facts from the backend ID. */
+  readonly executionEnvironment?: import('./execution-environment').SandboxExecutionEnvironment
+
   /**
    * Execute a command in the sandbox.
    *

@@ -6,7 +6,12 @@ import {
     TProgramToolMessage,
     getToolCallIdFromConfig
 } from '@xpert-ai/contracts'
-import { ExecuteResponse, SandboxBackendProtocol, SandboxExecutionOptions } from '@xpert-ai/plugin-sdk'
+import {
+    DEFAULT_SANDBOX_EXECUTION_MAX_OUTPUT_BYTES,
+    ExecuteResponse,
+    SandboxBackendProtocol,
+    SandboxExecutionOptions
+} from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'node:crypto'
 
 export function shortuuid(): string {
@@ -136,12 +141,18 @@ export async function withStreamingToolMessage(
     try {
         if (typeof backend.streamExecute === 'function') {
             let accumulatedOutput = ''
+            const maxBytes = executionOptions?.maxOutputBytes ?? DEFAULT_SANDBOX_EXECUTION_MAX_OUTPUT_BYTES
+            let accumulatedBytes = 0
             let lastDispatchTime = 0
 
             result = await backend.streamExecute(
                 command,
                 (line) => {
-                    accumulatedOutput += (accumulatedOutput ? '\n' : '') + line
+                    const chunk = (accumulatedOutput ? '\n' : '') + line
+                    if (accumulatedBytes >= maxBytes) return
+                    const accepted = Buffer.from(chunk).subarray(0, maxBytes - accumulatedBytes)
+                    accumulatedBytes += accepted.length
+                    accumulatedOutput += accepted.toString('utf8')
                     const now = Date.now()
                     if (now - lastDispatchTime >= STREAM_THROTTLE_MS) {
                         lastDispatchTime = now

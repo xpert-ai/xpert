@@ -2137,6 +2137,7 @@
         }
       },
       "AgentSquare": {
+        "UseExpert": "使用专家",
         "Tab": "专家",
         "SearchPlaceholder": "搜索智能体、场景、能力或模板",
         "SearchExpertsPlaceholder": "搜索专家、业务场景或能力",

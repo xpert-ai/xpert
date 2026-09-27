@@ -2566,6 +2566,7 @@
         }
       },
       "AgentSquare": {
+        "UseExpert": "Use Expert",
         "Tab": "Experts",
         "SearchPlaceholder": "Search agents, scenarios, capabilities, or templates",
         "SearchExpertsPlaceholder": "Search experts, scenarios, or capabilities",

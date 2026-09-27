@@ -2,6 +2,7 @@ import { ChatConversationUpsertCommand } from '../upsert.command'
 import { ChatConversationUpsertHandler } from './upsert.handler'
 import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/server-core'
+import { ConversationInitializerRegistry } from '../../conversation-initializer.registry'
 
 describe('ChatConversationUpsertHandler', () => {
     let tenantIdSpy: jest.SpyInstance
@@ -15,6 +16,37 @@ describe('ChatConversationUpsertHandler', () => {
     afterAll(() => {
         tenantIdSpy.mockRestore()
         organizationIdSpy.mockRestore()
+    })
+
+    it('awaits runtime initialization before returning a newly created conversation', async () => {
+        const created = { id: 'new-conversation', options: { parameters: { input: 'hello' } } }
+        const service = {
+            create: jest.fn().mockResolvedValue(created),
+            repository: { findOne: jest.fn().mockResolvedValue(created) }
+        }
+        const initializers = new ConversationInitializerRegistry()
+        initializers.register('test', async (conversation) => {
+            await Promise.resolve()
+            conversation.options = { ...conversation.options, sandboxEnvironmentId: 'chosen-environment' }
+        })
+        const handler = new ChatConversationUpsertHandler(service as never, initializers)
+        const result = await handler.execute(new ChatConversationUpsertCommand({ status: 'busy' }))
+        expect(result.options).toEqual({ parameters: { input: 'hello' }, sandboxEnvironmentId: 'chosen-environment' })
+    })
+
+    it('propagates initialization failures instead of running with an incomplete binding', async () => {
+        const service = {
+            create: jest.fn().mockResolvedValue({ id: 'new-conversation' }),
+            repository: { findOne: jest.fn().mockResolvedValue({ id: 'new-conversation' }) }
+        }
+        const initializers = new ConversationInitializerRegistry()
+        initializers.register('test', async () => {
+            throw new Error('initialization failed')
+        })
+        const handler = new ChatConversationUpsertHandler(service as never, initializers)
+        await expect(handler.execute(new ChatConversationUpsertCommand({ status: 'busy' }))).rejects.toThrow(
+            'initialization failed'
+        )
     })
 
     it('updates an existing conversation with a scope compare-and-set before reloading relations', async () => {

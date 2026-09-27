@@ -2,6 +2,9 @@
     "Project": { "ConversationProjectName": "{{assistant}} 项目" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
     "Error": {
+        "ToolImageInvalid": "\u5de5\u5177\u56fe\u7247\u65e0\u6548\u3001\u683c\u5f0f\u4e0d\u652f\u6301\u6216\u8d85\u8fc7\u5927\u5c0f\u9650\u5236\u3002",
+        "ToolImageUnavailable": "\u6b64\u56fe\u7247\u5728\u5f53\u524d\u5bf9\u8bdd\u4e2d\u4e0d\u53ef\u7528\u6216\u5185\u5bb9\u5df2\u6539\u53d8\uff0c\u8bf7\u91cd\u65b0\u622a\u56fe\u3002",
+        "ToolImageBatchLimit": "\u6bcf\u6b21\u6a21\u578b\u8c03\u7528\u6700\u591a\u68c0\u67e5\u4e09\u5f20\u5de5\u5177\u56fe\u7247\u3002",
         "AgentToolChoiceReservedName": "当前模型适配器无法强制调用与工具选择保留字同名的工具：{{name}}",
         "AgentToolChoiceStructuredConflict": "禁止工具调用时不能使用 functionCalling 结构化输出，请改用 JSON 输出方式。",
         "AgentModelCannotBindTools": "所选模型必须支持 bindTools，请提供未绑定工具的聊天模型。",
@@ -700,6 +703,7 @@
         "ProjectXpertOrganizationMismatch": "数字专家必须属于项目所在的组织。",
         "ProjectXpertRequired": "该数字专家不属于此项目。",
         "ProjectXpertSelectionRequired": "必须选择一个项目数字专家。",
+        "ConversationInitializerDuplicate": "\u4f1a\u8bdd\u521d\u59cb\u5316\u5668\u5df2\u6ce8\u518c\uff1a{{key}}",
         "ConversationScopeMismatch": "该会话不属于当前租户和组织。",
         "ConversationXpertImmutable": "会话不能迁移到其他数字专家。",
         "RequestedXpertConversationMismatch": "请求的数字专家与会话所属数字专家不一致。",
