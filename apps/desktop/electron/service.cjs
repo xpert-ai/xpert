@@ -95,6 +95,8 @@ function parseBots(value, locale) {
       const avatar = item.avatar
       return {
         id: item.id,
+        createdAt:
+          typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : null,
         name: [...(locale?.startsWith('zh') ? [item.titleCN] : []), item.title, item.name].find(
           (title) => typeof title === 'string' && title.trim()
         ),

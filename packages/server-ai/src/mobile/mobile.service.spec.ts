@@ -9,6 +9,14 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
+jest.mock('@xpert-ai/server-core', () => ({ UserService: class UserService {} }))
+jest.mock('../assistant-binding/assistant-binding.service', () => ({
+    AssistantBindingService: class AssistantBindingService {}
+}))
+jest.mock('../xpert/published-xpert-access.service', () => ({
+    PublishedXpertAccessService: class PublishedXpertAccessService {}
+}))
+
 import { AssistantBindingScope, AssistantBindingSourceScope, AssistantCode, XpertTypeEnum } from '@xpert-ai/contracts'
 import { UnauthorizedException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -85,6 +93,7 @@ describe('MobileService', () => {
         publishedXpertAccessService.findAccessiblePublishedXperts.mockResolvedValue([
             {
                 id: 'xpert-1',
+                createdAt: new Date('2026-09-24T00:00:00Z'),
                 slug: 'sales',
                 name: 'sales',
                 type: XpertTypeEnum.Agent,
@@ -165,7 +174,8 @@ describe('MobileService', () => {
             expect.objectContaining({
                 id: 'xpert-1',
                 slug: 'sales',
-                title: 'Sales'
+                title: 'Sales',
+                createdAt: new Date('2026-09-24T00:00:00Z')
             })
         ])
         expect(JSON.stringify(result)).not.toContain('not-returned')

@@ -121,7 +121,7 @@ export function Sidebar({
           !list.sidebar.sections.some((section) => section.id === row.preference?.sectionId)
       )
     }
-  ].sort((a, b) => Number(b.rows.some((row) => row.unread)) - Number(a.rows.some((row) => row.unread)))
+  ]
   const [history, setHistory] = useState<{ ids: string[]; index: number }>({ ids: [], index: -1 })
   const searchInput = useRef<HTMLInputElement>(null)
   const searchButton = useRef<HTMLButtonElement>(null)

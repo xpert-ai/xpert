@@ -190,6 +190,7 @@ export function summarizeAssistantBinding(binding: IResolvedAssistantBinding): X
 export function summarizeXpert(xpert: Xpert): XpertMobileXpertSummary {
     return {
         id: xpert.id,
+        createdAt: xpert.createdAt ?? null,
         slug: xpert.slug,
         name: `${xpert.name}`,
         type: xpert.type,

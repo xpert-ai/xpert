@@ -83,8 +83,11 @@ HTTP is accepted only for loopback development addresses.
 Right-click an assistant (including pinned cards and the collapsed avatar rail)
 to pin/unpin, move to a personal section, mark read/unread, edit its local profile,
 duplicate its local entry, or copy its current/latest conversation ID. Pinned
-assistants appear as avatar cards above the list. Unread assistants sort before
-read assistants within each group; groups with unread activity also move first.
+assistants appear as avatar cards above the list. Within each group, assistants
+sort by creation time (newest first), using the same ordering helper as Cloud.
+Unread indicators and conversation activity do not reorder assistants or groups.
+Equal or missing creation dates keep their source order. Existing Cloud drag order
+and Desktop pins/groups remain local preferences; they do not sync across clients.
 Rows show the latest conversation title, falling back to the assistant description.
 Activity refreshes every 15 seconds while visible and when the window regains focus.
 

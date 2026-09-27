@@ -96,23 +96,32 @@ test('pinning, sections, local unread and profile overrides survive restart and 
   assert.throws(() => service.updateSidebar({ action: 'pin', botId: 'inaccessible', pinned: true }))
 })
 
-test('unread sorts first, local copies reuse source activity, and titles fall back only when absent', () => {
+test('creation order stays stable while unread state and conversation activity change', () => {
   const bots = [
-    { id: 'a', name: 'A', description: 'Fallback' },
-    { id: 'b', name: 'B', description: 'B' },
-    { id: 'copy', assistantId: 'a', name: 'Copy', description: 'Local fallback' }
+    { id: 'a', name: 'A', description: 'Fallback', createdAt: '2026-09-24T00:00:00Z' },
+    { id: 'b', name: 'B', description: 'B', createdAt: '2026-09-25T00:00:00Z' },
+    { id: 'copy', assistantId: 'a', name: 'Copy', description: 'Local fallback', createdAt: '2026-09-24T00:00:00Z' }
   ]
-  const sidebar = { items: [{ botId: 'b', unreadAt: 100 }], sections: [], copies: [], width: 320, collapsed: false }
+  const sidebar = { items: [{ botId: 'a', unreadAt: 100 }], sections: [], copies: [], width: 320, collapsed: false }
   const activity = [
     {
       xpertId: 'a',
-      unreadMessages: 0,
+      unreadMessages: 1,
       latestConversationTitle: 'Recent conversation',
-      latestConversationAt: '2026-09-24'
+      latestConversationAt: '2026-09-27',
+      latestUnreadAt: '2026-09-27'
     }
   ]
   const rows = assistantRows(bots, sidebar, activity, '')
-  assert.equal(rows[0].bot.id, 'b')
+  assert.deepEqual(
+    rows.map((row) => row.bot.id),
+    ['b', 'a', 'copy']
+  )
+  assert.equal(rows.find((row) => row.bot.id === 'a').unread, true)
+  assert.deepEqual(
+    assistantRows(bots, { ...sidebar, items: [] }, [], '').map((row) => row.bot.id),
+    ['b', 'a', 'copy']
+  )
   assert.equal(rows.find((row) => row.bot.id === 'copy').subtitle, 'Recent conversation')
   assert.equal(assistantRows(bots, sidebar, [], '')[1].subtitle, 'Fallback')
   assert.equal(assistantRows(bots, sidebar, activity, 'recent').length, 2)

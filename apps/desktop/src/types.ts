@@ -25,6 +25,7 @@ export interface AppState {
 export interface Bot {
   assistantId?: string
   id: string
+  createdAt?: string | null
   name: string
   description: string
   avatarUrl: string | null

@@ -71,6 +71,7 @@ export interface XpertMobileBootstrap {
 
 export interface XpertMobileXpertSummary {
   id: string
+  createdAt?: Date | string | null
   slug: string
   name: string
   type: XpertTypeEnum | string

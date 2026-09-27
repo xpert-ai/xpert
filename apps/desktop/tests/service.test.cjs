@@ -87,6 +87,28 @@ test('avatar metadata is normalized before reaching the renderer', async () => {
   assert.equal(bots[1].avatarEmoji, null)
 })
 
+test('Bot creation dates survive pagination and missing or invalid dates remain unknown', async () => {
+  const { service } = fixture((url) => {
+    if (!url.includes('/mobile/xperts')) return null
+    const offset = Number(new URL(url).searchParams.get('offset'))
+    return response({
+      items:
+        offset === 0
+          ? [{ ...bot, createdAt: '2026-09-24T00:00:00Z' }]
+          : [
+              { ...bot, id: 'missing' },
+              { ...bot, id: 'invalid', createdAt: 'bad-date' }
+            ],
+      total: 3
+    })
+  })
+  await service.login(input)
+  assert.deepEqual(
+    (await service.listBots()).map((item) => item.createdAt),
+    ['2026-09-24T00:00:00Z', null, null]
+  )
+})
+
 test('401 refreshes the access token once and retries with the new token', async () => {
   const { service, calls } = fixture((url, options) => {
     if (url.includes('/mobile/xperts') && options.headers.Authorization === 'Bearer access-private')
