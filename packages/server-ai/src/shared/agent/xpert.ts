@@ -9,7 +9,6 @@ import {
     IXpert,
     IXpertAgent,
     IXpertAgentExecution,
-    STATE_VARIABLE_HUMAN,
     TAgentRunnableConfigurable,
     TXpertParameter,
     TXpertTeamNode,
@@ -23,6 +22,7 @@ import { wrapAgentExecution } from './execution'
 import { AgentStateAnnotation, TAgentSubgraphParams } from './state'
 import { IXpertSubAgent } from './types'
 import { GetXpertWorkflowQuery } from '../../xpert/queries'
+import { externalAssistantState } from './external-assistant-state'
 
 /**
  * @experiment class for External Expert SubAgent
@@ -152,18 +152,13 @@ export class XpertCollaborator implements IXpertSubAgent {
                 return await wrapAgentExecution(
                     async () => {
                         let result = ''
-                        const subState = {
-                            ...state,
-                            ...call.args,
-                            [STATE_VARIABLE_HUMAN]: {
-                                ...call.args
-                            }
-                        }
+                        const subState = externalAssistantState(state, call.args)
                         const output = await graph.invoke(subState, {
                             ...config,
                             signal,
                             configurable: {
                                 ...config.configurable,
+                                xpertId: xpert.id,
                                 agentKey: agent.key,
                                 executionId: _execution.id
                             },

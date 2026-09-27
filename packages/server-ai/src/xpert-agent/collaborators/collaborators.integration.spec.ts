@@ -1,4 +1,11 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
+// Reference loading has its own tests; this fixture exercises native delegation and resume.
+jest.mock('../../xpert-middleware/thread-reference.runtime', () => ({
+    createThreadReferenceMiddleware: jest.fn(async () => ({
+        key: '__thread_reference_middleware__',
+        middleware: { name: 'ThreadReferenceMiddleware' }
+    }))
+}))
 
 import { AIMessage, BaseMessage, HumanMessage, isToolMessage } from '@langchain/core/messages'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
@@ -293,6 +300,7 @@ describe('Collaborators middleware in the Agent graph', () => {
         })
         expect(f.childCommands[0].options.runtimeResources).toBeUndefined()
         expect(f.childInvocations[0].config.recursionLimit).toBeGreaterThan(0)
+        expect(f.childInvocations[0].config.configurable.xpertId).toBe(f.expert.id)
         expect(f.childInvocations[0].config.recursionLimit).toBeLessThanOrEqual(f.config.recursionLimit)
         expect(JSON.stringify(f.definition)).toBe(original)
         if (dynamic)
