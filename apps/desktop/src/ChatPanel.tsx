@@ -1,3 +1,4 @@
+import { createWorkbenchHandler } from './workbench'
 import { ShellControls } from './ShellControls'
 import { t } from './i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -41,6 +42,7 @@ export function ChatPanel({
       instance.current.setOptions(next)
     }
   }, [])
+  const [shellAssistantId, setShellAssistantId] = useState(bot.assistantId || bot.id)
   const [threadId, setThreadId] = useState<string | null>(initialThread)
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export function ChatPanel({
     const element = node as XpertAIChatKit
     let disposed = false
     let activeThread = threadId
+    let activeAssistant = bot.assistantId || bot.id
+    setShellAssistantId(bot.assistantId || bot.id)
     setReady(false)
     setError('')
     const options: ChatKitOptions = {
@@ -75,7 +79,18 @@ export function ChatPanel({
         resources: { enabled: true },
         connectors: { enabled: true }
       },
-      workbench: { enabled: true },
+      workbench: {
+        enabled: true,
+        onClientCommand: createWorkbenchHandler(bot.id, config.webUrl, (session) => {
+          if (!disposed) {
+            if (activeAssistant !== session.assistantId || activeThread !== session.threadId) onGrant(null)
+            activeAssistant = session.assistantId
+            activeThread = session.threadId
+            setShellAssistantId(session.assistantId)
+            setThreadId(session.threadId)
+          }
+        })
+      },
       request: {
         context: { source: 'desktop', ...(grantRef.current ? { desktopShellGrantId: grantRef.current } : {}) }
       }
@@ -99,7 +114,7 @@ export function ChatPanel({
       }
     })
     const read = () => {
-      if (!disposed) onConversationRead(bot.id, activeThread)
+      if (!disposed && activeAssistant === (bot.assistantId || bot.id)) onConversationRead(bot.id, activeThread)
     }
     element.addEventListener('chatkit.thread.load.end', read)
     element.addEventListener('chatkit.response.end', read)
@@ -117,7 +132,7 @@ export function ChatPanel({
     }
     // Remount only for a binding change or explicit retry; thread changes belong to ChatKit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bot.id, config.apiUrl, config.frameUrl, retry])
+  }, [bot.id, config.apiUrl, config.frameUrl, config.webUrl, retry])
 
   useEffect(() => {
     if (ready && instance.current && optionsRef.current) {
@@ -137,7 +152,7 @@ export function ChatPanel({
       aria-label={t('Chat with {{name}}', { name: bot.name })}
       className="relative flex h-full min-w-0 flex-1 flex-col bg-background"
     >
-      <ShellControls assistantId={bot.assistantId || bot.id} threadId={threadId} onGrant={onGrant} />
+      <ShellControls key={shellAssistantId} assistantId={shellAssistantId} threadId={threadId} onGrant={onGrant} />
       {error && (
         <div
           role="alert"

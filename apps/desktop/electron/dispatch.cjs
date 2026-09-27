@@ -23,6 +23,7 @@ const methods = new Set([
   'editBot',
   'duplicateBot',
   'chatSession',
+  'workbenchSession',
   'listCatalog',
   'requestExpertAccess',
   'applicationSetup',

@@ -10,6 +10,13 @@ The functional design and rollout sequence are in
 - `assistant-task-adapter`: compatible background task transport, without facade recursion.
 - `invocation-wait`: durable graph pause/resume; no model-driven polling.
 
+Native tool calls record `invocationKind` and `sourceToolCallId` in execution
+metadata. The latter identifies the Tool component ID within the parent
+execution (`parentId`), and is exposed unchanged in conversation run summaries.
+Workflow-driven runs omit the tool association. Consumers can merge correlated
+dispatch rows into execution views without depending on private middleware names;
+unassociated or failed dispatches must remain visible.
+
 Apply `migrations/20260922-agent-invocation.sql` before deploying this host version.
 No migration or service restart is performed by unit tests. External strategies
 and their operator instructions live in `xpert-plugins/xpertai/integrations/agent-runtimes`.
