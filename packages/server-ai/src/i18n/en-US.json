@@ -1,6 +1,7 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "AgentPluginWorkspaceDisabled": "This plugin was disabled in the workspace. Ask an administrator to restore it.",
         "ToolImageInvalid": "The tool image is invalid, unsupported or exceeds the image limit.",
         "ToolImageUnavailable": "The tool image is unavailable in this conversation or its content has changed. Capture a new image.",
         "ToolImageBatchLimit": "At most three tool images can be inspected in one model step.",

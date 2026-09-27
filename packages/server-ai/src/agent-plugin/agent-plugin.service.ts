@@ -12,7 +12,10 @@ import {
     PLUGIN_COMPONENT_TYPE,
     RolesEnum,
     isUserAddableAgentMiddleware,
-    type RuntimeResourceBindingInput
+    type RuntimeResourceBindingInput,
+    type WorkspaceAgentPluginAddInput,
+    type WorkspaceAgentPluginAddResult,
+    type WorkspaceAgentPluginOptions
 } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { createHash, randomUUID } from 'node:crypto'
@@ -28,6 +31,7 @@ import Ajv from 'ajv'
 import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { publishedResourceVersion } from './published-resource-version'
+import { workspacePluginCatalog } from './workspace-plugin-catalog'
 
 export function resourceScope() {
     const tenantId = RequestContext.currentTenantId()
@@ -117,6 +121,92 @@ export class AgentPluginService {
             this.bindings.find({ where: scope, order: { createdAt: 'DESC' } })
         ])
         return { packages: packages.map(({ rootPath, ...item }) => item), bindings }
+    }
+
+    private async workspaceAccess() {
+        return this.modules.get(
+            (await import('../xpert-workspace/workspace-access.service')).XpertWorkspaceAccessService,
+            { strict: false }
+        )
+    }
+
+    private async assertWorkspaceEditor(workspaceId: string) {
+        const scope = resourceScope()
+        const access = await this.workspaceAccess()
+        const { workspace } = await access.assertCanWrite(workspaceId)
+        if (workspace.organizationId !== scope.organizationId)
+            throw new ForbiddenException(t('server-ai:Error.AgentResourceScopeMismatch'))
+        return scope
+    }
+
+    async workspaceOptions(): Promise<WorkspaceAgentPluginOptions> {
+        const scope = resourceScope()
+        const access = await this.workspaceAccess()
+        const accessible = await access.findAccessibleWorkspaces(undefined, { purpose: 'authoring' })
+        const workspaces: WorkspaceAgentPluginOptions['workspaces'] = []
+        for (const workspace of accessible) {
+            if (workspace.organizationId !== scope.organizationId) continue
+            const current = await access.getAccess(workspace.id)
+            if (current.capabilities.canWrite) workspaces.push({ id: workspace.id, name: workspace.name })
+        }
+        // Do not enumerate package or expert metadata for users without an editable workspace.
+        if (!workspaces.length) return { workspaces, experts: [] }
+        const experts = await this.modules
+            .get((await import('../xpert/published-xpert-access.service')).PublishedXpertAccessService, {
+                strict: false
+            })
+            .findAccessiblePublishedXperts({ where: { latest: true } })
+        return { workspaces, experts: experts.map(({ id, name, title }) => ({ id, name: title || name })) }
+    }
+
+    async workspaceCatalog(workspaceId: string) {
+        const scope = await this.assertWorkspaceEditor(workspaceId)
+        const [packages, bindings] = await Promise.all([
+            this.packages.find({ where: scope, order: { createdAt: 'DESC' } }),
+            this.bindings.find({ where: scope, order: { createdAt: 'DESC' } })
+        ])
+        return { items: workspacePluginCatalog(packages, bindings, workspaceId) }
+    }
+
+    async addToWorkspace(
+        workspaceId: string,
+        input: WorkspaceAgentPluginAddInput
+    ): Promise<WorkspaceAgentPluginAddResult> {
+        const scope = await this.assertWorkspaceEditor(workspaceId)
+        const pkg = await this.packages.findOneBy({ ...scope, id: input.packageId })
+        if (!pkg) throw new NotFoundException(t('server-ai:Error.AgentPluginNotFound'))
+        // Serialize additions by package family and workspace across API instances. Other workspaces are never replaced.
+        return this.bindings.manager.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
+                `${scope.tenantId}:${scope.organizationId}`,
+                `${workspaceId}:${pkg.descriptor.name}`
+            ])
+            await this.assertWorkspaceEditor(workspaceId)
+            const packages = await this.packages.find({ where: scope })
+            const ids = new Set(
+                packages.filter((item) => item.descriptor.name === pkg.descriptor.name).map((item) => item.id)
+            )
+            const bindings = await this.bindings.find({ where: scope })
+            const current = bindings.filter(
+                (binding) =>
+                    binding.definition.kind === 'agent_plugin' &&
+                    ids.has(binding.definition.packageId) &&
+                    !binding.supersededById &&
+                    binding.workspaceIds.includes(workspaceId)
+            )
+            const existing = current.find((binding) => binding.enabled)
+            if (existing) return { status: 'already_added', bindingId: existing.id }
+            if (current.length) throw new ConflictException(t('server-ai:Error.AgentPluginWorkspaceDisabled'))
+            const saved = await this.createAuthorizedBinding(
+                {
+                    title: (pkg.descriptor.extension?.interface?.displayName || pkg.descriptor.name).slice(0, 200),
+                    workspaceIds: [workspaceId],
+                    definition: { kind: 'agent_plugin', packageId: pkg.id, experts: input.experts }
+                },
+                scope
+            )
+            return { status: 'added', bindingId: saved.id }
+        })
     }
 
     async importGit(input: { url: string; ref: string; subdirectory?: string }) {
@@ -218,6 +308,11 @@ export class AgentPluginService {
             if (workspace.organizationId !== scope.organizationId)
                 throw new ForbiddenException(t('server-ai:Error.AgentResourceScopeMismatch'))
         }
+        return this.createAuthorizedBinding(input, scope)
+    }
+
+    // Callers authorize either organization-wide management or a single-workspace editor addition first.
+    private async createAuthorizedBinding(input: RuntimeResourceBindingInput, scope: ReturnType<typeof resourceScope>) {
         if (input.replacesBindingId) {
             const previous = await this.bindings.findOneBy({ ...scope, id: input.replacesBindingId })
             if (!previous || previous.definition.kind !== input.definition.kind)
