@@ -61,6 +61,8 @@ export function ChatPanel({
     const header = { enabled: true, windowDrag: !!window.xpertDesktop, title: { text: bot.name } }
     const options: ChatKitOptions = {
       frameUrl: config.frameUrl,
+      displayMode: 'chat',
+      pet: false,
       api: {
         apiUrl: `${config.apiUrl}/api/ai`,
         xpertId: bot.assistantId || bot.id,
@@ -79,6 +81,7 @@ export function ChatPanel({
       initialThread: threadId,
       header,
       history: { enabled: true },
+      taskSummary: { enabled: true },
       composer: {
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
         resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
