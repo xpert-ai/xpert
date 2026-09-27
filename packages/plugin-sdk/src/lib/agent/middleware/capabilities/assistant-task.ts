@@ -170,6 +170,31 @@ export type AgentMiddlewareAssistantTaskCancelResult = {
 
 /** Host Assistant Task API. Feature-detect optional methods before calling them. */
 export interface AgentMiddlewareAssistantTaskApi {
+  /**
+   * Verify that a running native delegate is the requester's bound external role.
+   *
+   * Re-resolves the requester's direct, required external-Assistant connections on
+   * every call. Exactly one candidate must match the plugin, template and primary
+   * Agent identity, be published and active in the same organization, and have
+   * the same instance ID as the actual executor. This only validates a binding;
+   * it does not create a task, invoke an Assistant or authorize domain artifacts.
+   *
+   * @param input - Requester identity, actual runtime executor and expected role.
+   * @param input.requesterXpertId - Assistant that owns the external connection.
+   * @param input.requesterAgentKey - The requesting Assistant's primary Agent key.
+   * @param input.executorXpertId - Actual executor ID from the trusted runtime context.
+   * @param input.expectation - Portable plugin, template and primary Agent identity.
+   * @returns Validated binding metadata with instance and workspace IDs omitted.
+   * @throws If the binding is missing, ambiguous, unpublished, incompatible, or
+   * the resolved instance differs from the runtime executor.
+   */
+  assertExternalAssistantBinding?(input: {
+    requesterXpertId: string
+    requesterAgentKey: string
+    executorXpertId: string
+    expectation: { pluginName: string; templateKey: string; agentKey: string }
+  }): Promise<AgentMiddlewareExternalAssistantBinding>
+
   getModels?(xpertId: string): Promise<import('@xpert-ai/contracts').TAssistantModelsResponse>
   /** Submit once and retain the receipt; use getTaskStatus to follow asynchronous progress. */
   startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult>

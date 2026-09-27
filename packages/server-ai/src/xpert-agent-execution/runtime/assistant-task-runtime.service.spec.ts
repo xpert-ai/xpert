@@ -124,6 +124,26 @@ describe('Assistant Task workspace scope', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
+    it('authorizes only the exact published native role binding without exposing its instance ID', async () => {
+        const f = fixture(true)
+        const target = f.input.target!
+        const input = {
+            requesterXpertId: target.requesterXpertId,
+            requesterAgentKey: target.requesterAgentKey,
+            expectation: target.expectation,
+            executorXpertId: f.target.id
+        }
+        const descriptor = await f.service.assertExternalAssistantBinding(input)
+        expect(descriptor.primaryAgentKey).toBe('executor')
+        expect(descriptor).not.toHaveProperty('xpertId')
+        await expect(
+            f.service.assertExternalAssistantBinding({ ...input, executorXpertId: 'unrelated-assistant' })
+        ).rejects.toThrow('assistant_binding_executor_mismatch')
+        f.target.publishAt = undefined
+        await expect(f.service.assertExternalAssistantBinding(input)).rejects.toThrow('assistant_unpublished')
+        expect(f.commands.execute).not.toHaveBeenCalled()
+    })
+
     it.each([false, true])('persists an inspectable task from startTask (external=%s)', async (external) => {
         const f = fixture(external)
         await f.service.startTask(f.input)
