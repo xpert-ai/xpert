@@ -4,6 +4,7 @@ import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding'
 import { VolumeClient, VolumeHandle, type VolumeRootResolution, type VolumeScope } from '../../volume'
 import { LoadFileCommand } from '../load-file.command'
 import { LoadFileHandler } from './load-file.handler'
+import { OfficeFileParser } from '../../../file-understanding/parsers/office.parser'
 
 class TestVolumeClient extends VolumeClient {
     readonly scopes: VolumeScope[] = []
@@ -23,6 +24,24 @@ class TestVolumeClient extends VolumeClient {
 }
 
 describe('LoadFileHandler', () => {
+    it('uses the shared Office parser for attachment fallback without injecting its summary twice', async () => {
+        const parse = jest.spyOn(OfficeFileParser.prototype, 'parse').mockResolvedValue({
+            capabilities: ['read'],
+            artifacts: [
+                { kind: 'summary', content: 'Tender summary' },
+                { kind: 'text', content: 'Tender source text', metadata: { source: 'tender.docx' } }
+            ]
+        })
+        try {
+            await expect(LoadFileHandler.prototype.processDoc('/tmp/tender.docx')).resolves.toEqual([
+                new Document({ pageContent: 'Tender source text', metadata: { source: 'tender.docx' } })
+            ])
+            expect(parse).toHaveBeenCalledWith({ filePath: '/tmp/tender.docx' })
+        } finally {
+            parse.mockRestore()
+        }
+    })
+
     it.each([
         ['projects', 'project-1', { catalog: 'projects', projectId: 'project-1', userId: 'user-1' }],
         ['xperts', 'xpert-1', { catalog: 'xperts', xpertId: 'xpert-1', userId: 'user-1', isolateByUser: false }],

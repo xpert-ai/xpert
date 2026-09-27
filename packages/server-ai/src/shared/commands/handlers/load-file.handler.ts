@@ -1,4 +1,3 @@
-import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
@@ -17,6 +16,7 @@ import {
 import type { FileAsset } from '../../../file-understanding'
 import { VOLUME_CLIENT, VolumeClient } from '../../volume'
 import { LoadFileCommand } from '../load-file.command'
+import { OfficeFileParser } from '../../../file-understanding/parsers/office.parser'
 
 /**
  * @deprecated Prefer FileUnderstanding tools/queries for parsed assets. This
@@ -93,9 +93,12 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
         return await loader.load()
     }
 
-    async processDoc(filePath: string): Promise<Document<Record<string, any>>[]> {
-        const loader = new DocxLoader(filePath)
-        return await loader.load()
+    async processDoc(filePath: string): Promise<Document[]> {
+        // Legacy attachment fallback must use the same format detection as File Understanding.
+        const parsed = await new OfficeFileParser().parse({ filePath })
+        return parsed.artifacts
+            .filter((artifact) => artifact.kind === 'text')
+            .map((artifact) => new Document({ pageContent: artifact.content ?? '', metadata: artifact.metadata ?? {} }))
     }
 
     async processText(url: string): Promise<Document<Record<string, any>>[]> {
