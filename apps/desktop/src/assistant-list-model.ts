@@ -55,7 +55,9 @@ export function assistantGroups(rows: AssistantRow[], sidebar: SidebarState) {
   ].filter((group) => group.rows.length > 0)
 }
 
-export function assistantStatusLabel(activity?: BotActivity) {
+export function assistantStatusLabel(
+  activity?: Pick<BotActivity, 'latestConversationStatus' | 'latestConversationId'>
+) {
   const labels = {
     idle: 'Idle',
     busy: 'Working',

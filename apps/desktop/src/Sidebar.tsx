@@ -63,10 +63,15 @@ export function Sidebar({
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
   const pinned = rows.filter((row) => !!row.preference?.pinnedAt)
   const groups = assistantGroups(rows, list.sidebar)
-  const selectRow = (row: AssistantRow) => {
+  const selectRow = (row: AssistantRow, threadId?: string | null) => {
     if (row.preference?.unreadAt)
       void list.run(() => list.update({ action: 'unread', botId: row.bot.id, unread: false }))
-    onSelect(row.bot.id, row.activity?.latestUnreadThreadId || row.activity?.latestConversationThreadId || null)
+    onSelect(
+      row.bot.id,
+      threadId === undefined
+        ? row.activity?.latestUnreadThreadId || row.activity?.latestConversationThreadId || null
+        : threadId
+    )
   }
   const action = (row: AssistantRow, action: AssistantAction) => {
     if (action === 'edit' || action === 'duplicate' || action === 'section') {
@@ -100,6 +105,7 @@ export function Sidebar({
       key={row.bot.id}
       row={row}
       mode={mode}
+      preview={mode === 'compact' || !collapsed}
       selected={selected}
       sidebar={list.sidebar}
       busy={list.busy}

@@ -12,6 +12,7 @@ import { HostError, invoke } from './host'
 import type { AppState, Bot, ConnectionConfig } from './types'
 import { applyDesktopTheme } from './theme'
 import { defaultAppearance } from './appearance-types'
+import { AssistantPreviewScope } from './profile/PreviewScope'
 
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
@@ -144,36 +145,38 @@ export function App() {
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
       {state.profile ? (
         <div className="flex h-full">
-          <Sidebar
-            key={binding}
-            state={state}
-            bots={bots}
-            selected={selected}
-            pending={pending}
-            error={error}
-            onSelect={selectBot}
-            notice={notice}
-            onBotSaved={async (id) => {
-              await loadBots()
-              selectBot(id)
-            }}
-            onRefresh={() => void loadBots()}
-            onSettings={() => setSettings(true)}
-            onBrowse={() => setCatalog(true)}
-            onLogout={async () => setState(await invoke('logout'))}
-            onOrganization={async (id) => {
-              request.current++
-              setBots([])
-              setSelected(null)
-              setPending(true)
-              try {
-                setState(await invoke('selectOrganization', id))
-              } catch (error) {
-                setError(error instanceof Error ? error.message : t('Could not switch organization.'))
-                setPending(false)
-              }
-            }}
-          />
+          <AssistantPreviewScope key={binding}>
+            <Sidebar
+              key={binding}
+              state={state}
+              bots={bots}
+              selected={selected}
+              pending={pending}
+              error={error}
+              onSelect={selectBot}
+              notice={notice}
+              onBotSaved={async (id) => {
+                await loadBots()
+                selectBot(id)
+              }}
+              onRefresh={() => void loadBots()}
+              onSettings={() => setSettings(true)}
+              onBrowse={() => setCatalog(true)}
+              onLogout={async () => setState(await invoke('logout'))}
+              onOrganization={async (id) => {
+                request.current++
+                setBots([])
+                setSelected(null)
+                setPending(true)
+                try {
+                  setState(await invoke('selectOrganization', id))
+                } catch (error) {
+                  setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                  setPending(false)
+                }
+              }}
+            />
+          </AssistantPreviewScope>
           <main className="flex min-w-0 flex-1 flex-col">
             {bot ? (
               <ChatPanel

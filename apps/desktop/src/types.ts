@@ -3,6 +3,13 @@ import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
 import type { ToolOutputAttachmentPreview, ToolOutputImageAttachment } from '@xpert-ai/chatkit-types'
 import type { Locale, MessageParams } from './i18n'
 import type { AppearanceConfig } from './appearance-types'
+import type {
+  AssistantProfile,
+  ProfileConversation,
+  ProfileViewSession,
+  ProfileViewRequest
+} from './assistant-profile-types'
+import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 
 export interface ConnectionConfig {
   locale: Locale
@@ -65,6 +72,12 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  botProfile: { input: string; output: AssistantProfile }
+  botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
+  botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
+  openProfileView: { input: { botId: string; viewKey: string }; output: ProfileViewSession }
+  closeProfileView: { input: string; output: { closed: boolean } }
+  profileViewRequest: { input: ProfileViewRequest; output: unknown }
   workbenchSession: { input: WorkbenchSessionInput; output: WorkbenchSession }
 
   sidebarState: { input: undefined; output: SidebarState }

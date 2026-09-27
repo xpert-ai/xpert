@@ -285,7 +285,10 @@ class DesktopService {
     return this.refreshing
   }
 
-  async request(path, { method = 'GET', body, auth = true, token, scope, retry = true, timeout = 20000 } = {}) {
+  async request(
+    path,
+    { method = 'GET', body, auth = true, token, scope, retry = true, timeout = 20000, responseType = 'json' } = {}
+  ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
     const generation = this.generation
     const headers = {
@@ -323,7 +326,7 @@ class DesktopService {
         if (error.status === 401) this.logout()
         throw error
       }
-      return this.request(path, { method, body, auth, scope, retry: false, timeout })
+      return this.request(path, { method, body, auth, scope, retry: false, timeout, responseType })
     }
     if (!response.ok) {
       if (response.status === 401)
@@ -338,7 +341,7 @@ class DesktopService {
     }
     let value
     try {
-      value = await response.json()
+      value = responseType === 'text' ? await response.text() : response.status === 204 ? null : await response.json()
     } catch {
       throw new ClientError('Invalid service response. Check the API URL.', 502)
     }
@@ -348,6 +351,7 @@ class DesktopService {
 }
 
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
