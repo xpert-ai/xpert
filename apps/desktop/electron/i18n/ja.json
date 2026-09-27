@@ -421,5 +421,15 @@
   "Keep the description within 4,000 characters.": "説明は 4,000 文字以内で入力してください。",
   "No conversation is available yet.": "まだ会話がありません。",
   "This conversation does not belong to the assistant.": "この会話はこのアシスタントに属していません。",
-  "Invalid conversation activity response.": "会話のアクティビティデータが無効です。"
+  "Invalid conversation activity response.": "会話のアクティビティデータが無効です。",
+  "Scroll assistants up": "アシスタントを上にスクロール",
+  "Scroll assistants down": "アシスタントを下にスクロール",
+  "Idle": "待機中",
+  "Working": "実行中",
+  "Pausing": "一時停止中",
+  "Paused": "一時停止",
+  "Waiting for input": "入力待ち",
+  "Status unavailable": "状態を取得できません",
+  "No conversations yet": "まだ会話がありません",
+  "Untitled conversation": "無題の会話"
 }

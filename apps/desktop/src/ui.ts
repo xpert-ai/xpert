@@ -28,3 +28,5 @@ export {
 } from '../../../packages/shadcn-ui/src/components/ui/select'
 export * from '../../../packages/shadcn-ui/src/components/ui/context-menu'
 export { Textarea } from '../../../packages/shadcn-ui/src/components/ui/textarea'
+
+export * from '../../../packages/shadcn-ui/src/components/ui/hover-card'

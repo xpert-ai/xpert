@@ -111,7 +111,12 @@ function createAssistantListMethods(ClientError) {
           latestConversationAt: text(item.latestConversationAt),
           latestConversationId: text(item.latestConversationId),
           latestConversationThreadId: text(item.latestConversationThreadId),
-          latestConversationTitle: text(item.latestConversationTitle)
+          latestConversationTitle: text(item.latestConversationTitle),
+          latestConversationStatus: ['idle', 'busy', 'pausing', 'paused', 'interrupted', 'error'].includes(
+            item.latestConversationStatus
+          )
+            ? item.latestConversationStatus
+            : null
         }))
     },
     botConversation(input) {

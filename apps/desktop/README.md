@@ -206,3 +206,20 @@ Choose **User menu → Connection & appearance → Appearance → Language**. Ch
 The renderer passes the selected locale to ChatKit and the host sends it in `Accept-Language`. Hosted ChatKit owns its translations: the currently tested local ChatKit UI bundle contains only `en-US` and `zh-CN`; Japanese falls back to English and Traditional Chinese resolves to Simplified Chinese in that version. Full ChatKit translations require a hosted ChatKit version with those resources. User-authored organization names, assistant names and plain descriptions are preserved. Structured marketplace translations select the requested language with English fallback.
 
 To add a language, add a JSON resource matching every English key and interpolation placeholder, register it in `electron/i18n/index.mjs` and its declaration, and update locale normalization. Use English source messages in `t(...)`; do not translate module-level constants at import time. Host errors carry message keys and parameters so even an unsaved language preview can display errors in the chosen language. `tests/i18n.test.cjs` checks resource coverage, placeholders, untranslated JSX, aliases, persistence, host error handling and localized marketplace metadata.
+
+### Native headers and assistant rail
+
+Desktop enables ChatKit's opt-in `header.windowDrag` integration. Blank chat and Workbench header space is projected into native Electron drag regions, excluding interactive controls. Double-click follows the operating system's title-bar preference (normally zoom/maximize on macOS); it does not enter fullscreen. Frame menus and dialogs suspend the projected regions. No new native IPC permission is exposed.
+
+This requires the matching ChatKit UI **and** web-component build containing `header.windowDrag`. For local integration before publishing the ChatKit packages, build `@xpert-ai/chatkit-types`, `@xpert-ai/chatkit-web-shared`, and `@xpert-ai/chatkit-web-component` in order, run the matching ChatKit UI, and supply the local bundle to Desktop:
+
+```sh
+XPERT_DESKTOP_CHATKIT_BUNDLE=/absolute/path/to/chatkit-js/packages/web-component/dist/xpert-chatkit.js \
+  corepack pnpm --filter @xpert-ai/desktop dev
+```
+
+The override also applies to `build`. Normal installs use the packaged web component; upgrade that dependency together with the hosted ChatKit UI when releasing this integration. Older hosts safely ignore the option.
+
+The assistant list hides native scrollbars and provides press-and-hold arrows. Wheel/trackpad and keyboard navigation remain available. Release, pointer cancellation, blur and unmount stop continuous scrolling. Collapsed avatars show a hover/focus card with the latest conversation title, timestamp, unread indicator and explicit conversation status. Activity refresh uses the existing 15-second polling cycle. Older APIs that omit status show “Status unavailable”, not a guessed idle state.
+
+Pinned assistants, user-created sections and unassigned assistants use the same grouping in both layouts, with divider lines between nonempty groups. Create or change sections from the assistant context menu (`Move to` / `New section`). Section membership is stored locally per account, organization and API endpoint; it is not yet shared with Cloud or other devices.

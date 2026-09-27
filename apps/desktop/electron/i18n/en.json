@@ -421,5 +421,15 @@
   "Keep the description within 4,000 characters.": "Keep the description within 4,000 characters.",
   "No conversation is available yet.": "No conversation is available yet.",
   "This conversation does not belong to the assistant.": "This conversation does not belong to the assistant.",
-  "Invalid conversation activity response.": "Invalid conversation activity response."
+  "Invalid conversation activity response.": "Invalid conversation activity response.",
+  "Scroll assistants up": "Scroll assistants up",
+  "Scroll assistants down": "Scroll assistants down",
+  "Idle": "Idle",
+  "Working": "Working",
+  "Pausing": "Pausing",
+  "Paused": "Paused",
+  "Waiting for input": "Waiting for input",
+  "Status unavailable": "Status unavailable",
+  "No conversations yet": "No conversations yet",
+  "Untitled conversation": "Untitled conversation"
 }

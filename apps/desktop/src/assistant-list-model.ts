@@ -29,3 +29,44 @@ export function assistantRows(bots: Bot[], sidebar: SidebarState, activities: Bo
     .filter((item) => `${item.bot.name} ${item.subtitle}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
 }
 export type AssistantRow = ReturnType<typeof assistantRows>[number]
+
+export function assistantGroups(rows: AssistantRow[], sidebar: SidebarState) {
+  return [
+    {
+      id: 'pinned',
+      name: 'Pinned assistants',
+      kind: 'pinned' as const,
+      rows: rows.filter((row) => row.preference?.pinnedAt)
+    },
+    ...sidebar.sections.map((section) => ({
+      ...section,
+      kind: 'section' as const,
+      rows: rows.filter((row) => !row.preference?.pinnedAt && row.preference?.sectionId === section.id)
+    })),
+    {
+      id: '',
+      name: 'Unassigned',
+      kind: 'unassigned' as const,
+      rows: rows.filter(
+        (row) =>
+          !row.preference?.pinnedAt && !sidebar.sections.some((section) => section.id === row.preference?.sectionId)
+      )
+    }
+  ].filter((group) => group.rows.length > 0)
+}
+
+export function assistantStatusLabel(activity?: BotActivity) {
+  const labels = {
+    idle: 'Idle',
+    busy: 'Working',
+    pausing: 'Pausing',
+    paused: 'Paused',
+    interrupted: 'Waiting for input',
+    error: 'Failed'
+  }
+  return activity?.latestConversationStatus
+    ? labels[activity.latestConversationStatus]
+    : activity?.latestConversationId
+      ? 'Status unavailable'
+      : 'No conversations yet'
+}

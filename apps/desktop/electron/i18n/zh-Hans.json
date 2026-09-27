@@ -421,5 +421,15 @@
   "Keep the description within 4,000 characters.": "简介请勿超过 4,000 个字符。",
   "No conversation is available yet.": "尚无可用会话。",
   "This conversation does not belong to the assistant.": "此会话不属于该助手。",
-  "Invalid conversation activity response.": "会话活动数据无效。"
+  "Invalid conversation activity response.": "会话活动数据无效。",
+  "Scroll assistants up": "向上滚动助手",
+  "Scroll assistants down": "向下滚动助手",
+  "Idle": "空闲",
+  "Working": "正在处理",
+  "Pausing": "正在暂停",
+  "Paused": "已暂停",
+  "Waiting for input": "等待输入",
+  "Status unavailable": "状态暂不可用",
+  "No conversations yet": "暂无会话",
+  "Untitled conversation": "未命名会话"
 }

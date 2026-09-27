@@ -54,6 +54,7 @@ export function ChatPanel({
     setShellAssistantId(bot.assistantId || bot.id)
     setReady(false)
     setError('')
+    const header = { enabled: true, windowDrag: !!window.xpertDesktop, title: { text: bot.name } }
     const options: ChatKitOptions = {
       frameUrl: config.frameUrl,
       api: {
@@ -72,7 +73,7 @@ export function ChatPanel({
       theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance),
       layout: { maxWidth: 960 },
       initialThread: threadId,
-      header: { enabled: true, title: { text: bot.name } },
+      header,
       history: { enabled: true },
       composer: {
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
@@ -143,7 +144,7 @@ export function ChatPanel({
         ...optionsRef.current,
         theme: getChatKitTheme(dark, config.appearance),
         locale: config.locale,
-        header: { enabled: true, title: { text: bot.name } }
+        header: { ...optionsRef.current.header, title: { text: bot.name } }
       }
       optionsRef.current = options
       instance.current.setOptions(options)

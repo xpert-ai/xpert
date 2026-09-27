@@ -1,7 +1,12 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
-const { assistantRows, resizeSidebar } = require('../src/assistant-list-model.ts')
+const {
+  assistantRows,
+  assistantGroups,
+  assistantStatusLabel,
+  resizeSidebar
+} = require('../src/assistant-list-model.ts')
 
 function fixture() {
   let saved
@@ -33,6 +38,7 @@ function fixture() {
               xpertId: 'source',
               unreadMessages: 2,
               unreadConversations: 1,
+              latestConversationStatus: 'busy',
               latestConversationTitle: 'Latest task',
               latestConversationThreadId: 'thread'
             }
@@ -65,6 +71,7 @@ test('profiles and copies stay local while sessions and activity use the origina
   const activity = await service.botActivity()
   assert.deepEqual(JSON.parse(calls.at(-1).options.body), { xpertIds: ['source'] })
   assert.equal(activity[0].latestConversationTitle, 'Latest task')
+  assert.equal(activity[0].latestConversationStatus, 'busy')
   await service.markBotRead({ botId: copy.botId, threadId: 'thread' })
   assert.ok(calls.every((call) => !/\/api\/xpert\//.test(call.url)))
   assert.equal(bots[0].description, 'My notes')
@@ -132,4 +139,47 @@ test('resize clamps before collapsing only past half the minimum width', () => {
   assert.deepEqual(resizeSidebar(120, 1280), { width: 240, collapsed: false })
   assert.deepEqual(resizeSidebar(119, 1280), { width: 240, collapsed: true })
   assert.deepEqual(resizeSidebar(800, 800), { width: 440, collapsed: false })
+})
+
+test('both sidebar modes share nonempty groups, pinned precedence and stable within-group order', () => {
+  const sidebar = {
+    items: [
+      { botId: 'a', sectionId: 'work', pinnedAt: 1 },
+      { botId: 'b', sectionId: 'work' },
+      { botId: 'c', sectionId: 'deleted' }
+    ],
+    sections: [
+      { id: 'empty', name: 'Empty' },
+      { id: 'work', name: 'Work' }
+    ]
+  }
+  const bots = ['a', 'b', 'c', 'd'].map((id) => ({ id, name: id, description: '' }))
+  const groups = assistantGroups(assistantRows(bots, sidebar, [], ''), sidebar)
+  assert.deepEqual(
+    groups.map((group) => [group.kind, group.rows.map((row) => row.bot.id)]),
+    [
+      ['pinned', ['a']],
+      ['section', ['b']],
+      ['unassigned', ['c', 'd']]
+    ]
+  )
+  assert.equal(assistantGroups(assistantRows(bots, sidebar, [], 'missing'), sidebar).length, 0)
+})
+
+test('hover status follows the typed conversation state and never guesses activity from a title', () => {
+  assert.equal(assistantStatusLabel(), 'No conversations yet')
+  assert.equal(
+    assistantStatusLabel({ latestConversationId: 'c', latestConversationTitle: 'Working' }),
+    'Status unavailable'
+  )
+  for (const [state, label] of Object.entries({
+    idle: 'Idle',
+    busy: 'Working',
+    pausing: 'Pausing',
+    paused: 'Paused',
+    interrupted: 'Waiting for input',
+    error: 'Failed'
+  })) {
+    assert.equal(assistantStatusLabel({ latestConversationStatus: state }), label)
+  }
 })

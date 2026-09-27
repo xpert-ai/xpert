@@ -5,7 +5,8 @@ import { ArrowLeft, ArrowRight, LoaderCircle, PanelLeft, Plus, RefreshCw, Search
 import { AssistantItem, type AssistantAction } from './AssistantItems'
 import { AssistantDialog } from './AssistantDialog'
 import { useAssistantList } from './useAssistantList'
-import { assistantRows, type AssistantRow } from './assistant-list-model'
+import { AssistantScrollArea } from './AssistantScrollArea'
+import { assistantGroups, assistantRows, type AssistantRow } from './assistant-list-model'
 import { SidebarResizer } from './SidebarResizer'
 import type { ConversationNotice } from './assistant-list-types'
 import { invoke } from './host'
@@ -61,7 +62,7 @@ export function Sidebar({
   }
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
   const pinned = rows.filter((row) => !!row.preference?.pinnedAt)
-  const unpinned = rows.filter((row) => !row.preference?.pinnedAt)
+  const groups = assistantGroups(rows, list.sidebar)
   const selectRow = (row: AssistantRow) => {
     if (row.preference?.unreadAt)
       void list.run(() => list.update({ action: 'unread', botId: row.bot.id, unread: false }))
@@ -107,21 +108,7 @@ export function Sidebar({
       onMove={(row, sectionId) => void list.run(() => list.update({ action: 'move', botId: row.bot.id, sectionId }))}
     />
   )
-  const sections = [
-    ...list.sidebar.sections.map((section) => ({
-      ...section,
-      rows: unpinned.filter((row) => row.preference?.sectionId === section.id)
-    })),
-    {
-      id: '',
-      name: t('Unassigned'),
-      rows: unpinned.filter(
-        (row) =>
-          !row.preference?.sectionId ||
-          !list.sidebar.sections.some((section) => section.id === row.preference?.sectionId)
-      )
-    }
-  ]
+  const sections = groups.filter((group) => group.kind !== 'pinned')
   const [history, setHistory] = useState<{ ids: string[]; index: number }>({ ids: [], index: -1 })
   const searchInput = useRef<HTMLInputElement>(null)
   const searchButton = useRef<HTMLButtonElement>(null)
@@ -220,10 +207,7 @@ export function Sidebar({
           >
             <Search className="size-5" />
           </Button>
-          <nav
-            aria-label={t('Assistant avatars')}
-            className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1 py-2 [scrollbar-width:thin]"
-          >
+          <AssistantScrollArea label={t('Assistant avatars')} className="flex flex-col items-center gap-1 px-1 py-1">
             {pending && (
               <span
                 role="status"
@@ -245,20 +229,29 @@ export function Sidebar({
                 <RefreshCw />
               </Button>
             )}
-            {!pending && !error && [...pinned, ...unpinned].map((row) => renderRow(row, 'compact'))}
-            {!pending && !error && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-12 shrink-0"
-                aria-label={t('Discover & add')}
-                title={t('Discover experts, apps and agent templates')}
-                onClick={onBrowse}
-              >
-                <Plus />
-              </Button>
-            )}
-          </nav>
+            {!pending &&
+              !error &&
+              groups.map((group, index) => (
+                <section
+                  key={group.id}
+                  aria-label={group.kind === 'section' ? group.name : t(group.name)}
+                  className="flex w-full flex-col items-center gap-1"
+                >
+                  {index > 0 && <div role="separator" className="my-2 w-8 shrink-0 border-t" />}
+                  {group.rows.map((row) => renderRow(row, 'compact'))}
+                </section>
+              ))}
+          </AssistantScrollArea>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="my-1 size-12 shrink-0"
+            aria-label={t('Discover & add')}
+            title={t('Discover experts, apps and agent templates')}
+            onClick={onBrowse}
+          >
+            <Plus />
+          </Button>
           <div className="flex w-full shrink-0 justify-center border-t py-3">
             <UserMenu
               profile={profile}
@@ -353,10 +346,7 @@ export function Sidebar({
             </div>
           </div>
         </div>
-        <nav
-          aria-label={t('My Bots')}
-          className="min-h-0 flex-1 space-y-[var(--desktop-row-gap)] overflow-y-auto px-3 pb-2"
-        >
+        <AssistantScrollArea label={t('My Bots')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
           {pending && (
             <p role="status" className="flex items-center gap-2 px-3 py-5 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
@@ -396,11 +386,17 @@ export function Sidebar({
           {!pending &&
             !error &&
             sections.map(
-              (section) =>
+              (section, index) =>
                 section.rows.length > 0 && (
-                  <section key={section.id} aria-label={section.name}>
+                  <section
+                    key={section.id}
+                    aria-label={section.kind === 'section' ? section.name : t(section.name)}
+                    className={index > 0 ? 'border-t pt-2' : ''}
+                  >
                     {list.sidebar.sections.length > 0 && (
-                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">{section.name}</h3>
+                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                        {section.kind === 'section' ? section.name : t(section.name)}
+                      </h3>
                     )}
                     <div className="space-y-[var(--desktop-row-gap)]">{section.rows.map((row) => renderRow(row))}</div>
                   </section>
@@ -413,7 +409,7 @@ export function Sidebar({
                 : t('No Bots are available in this workspace. Publish an assistant in Xpert, then refresh.')}
             </p>
           )}
-        </nav>
+        </AssistantScrollArea>
         <div className="shrink-0 px-4 pb-3">
           <div className="mt-2 border-t pt-2">
             <UserMenu profile={profile} webUrl={state.config.webUrl} onSettings={onSettings} onLogout={onLogout} />
