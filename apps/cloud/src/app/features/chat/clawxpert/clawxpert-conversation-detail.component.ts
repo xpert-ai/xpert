@@ -2094,26 +2094,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private scheduleWorkspaceFileListRefresh() {
-    this.openDetailPanelForWorkspaceFileEvent()
     this.clearScheduledWorkspaceFileListRefresh()
     this.#workspaceFileRefreshTimer = setTimeout(() => {
       this.#workspaceFileRefreshTimer = null
       this.fileListReloadKey.update((value) => value + 1)
     }, WORKSPACE_FILE_REFRESH_DEBOUNCE_MS)
-  }
-
-  private openDetailPanelForWorkspaceFileEvent() {
-    const filesTab = this.workspaceTabs().find((tab) => tab.kind === 'files')
-    if (filesTab) {
-      if (!this.showDetailPanel()) {
-        this.activateWorkspaceTab(filesTab.id, 'push')
-        return
-      }
-      this.openDetailPanel()
-      return
-    }
-
-    this.addWorkspaceTab('files')
   }
 
   private clearScheduledWorkspaceFileListRefresh() {

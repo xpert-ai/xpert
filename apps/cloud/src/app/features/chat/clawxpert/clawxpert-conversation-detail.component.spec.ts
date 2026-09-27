@@ -3742,7 +3742,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(setThreadId).not.toHaveBeenCalledWith('thread-new')
   })
 
-  it('passes the file list reload key to the files panel and refreshes it after relevant log events', async () => {
+  it('refreshes a manually opened files panel after relevant log events', async () => {
     jest.useFakeTimers()
     facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -3751,6 +3751,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     const runtimeInput = getRuntimeInput()
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+
+    fixture.componentInstance.openFilesTab()
+    fixture.detectChanges()
+    const activeTabId = fixture.componentInstance.activeTabId()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -3766,6 +3770,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.activeTabId()).toBe(activeTabId)
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
 
@@ -3846,7 +3851,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((preview.componentInstance as ClawXpertConversationPreviewComponent).url).toBe('localhost:3000')
   })
 
-  it('debounces multiple relevant log events into a single file list refresh', async () => {
+  it('debounces file changes without opening the files view or switching tabs', async () => {
     jest.useFakeTimers()
     facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -3855,6 +3860,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     const runtimeInput = getRuntimeInput()
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+    const activeTabId = fixture.componentInstance.activeTabId()
+    const tabs = fixture.componentInstance.workspaceTabs()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -3867,9 +3874,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.advanceTimersByTime(200)
     fixture.detectChanges()
 
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(filesPanel).not.toBeNull()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -3883,10 +3889,21 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     jest.advanceTimersByTime(299)
     fixture.detectChanges()
-    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+    expect(fixture.componentInstance.fileListReloadKey()).toBe(0)
 
     jest.advanceTimersByTime(1)
     fixture.detectChanges()
+    expect(fixture.componentInstance.fileListReloadKey()).toBe(1)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.activeTabId()).toBe(activeTabId)
+    expect(fixture.componentInstance.workspaceTabs()).toEqual(tabs)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+
+    fixture.componentInstance.openFilesTab()
+    fixture.detectChanges()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
   })
 
