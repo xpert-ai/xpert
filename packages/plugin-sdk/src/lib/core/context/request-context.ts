@@ -5,7 +5,6 @@ import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { ExtractJwt } from 'passport-jwt'
-import { JsonWebTokenError, verify } from 'jsonwebtoken'
 
 const TENANT_SCOPE = 'tenant' as RequestScopeLevel
 const ORGANIZATION_SCOPE = 'organization' as RequestScopeLevel
@@ -186,28 +185,16 @@ export class RequestContext {
     return scope.organizationId
   }
 
+  /**
+   * Check the authenticated principal's enabled role permissions, matching the
+   * server RequestContext. Authentication guards resolve JWTs, API keys and
+   * ChatKit client secrets before this check; the bearer is not always a JWT.
+   */
   static hasPermissions(findPermissions: Array<PermissionsEnum | string>, throwError?: boolean): boolean {
-    const requestContext = RequestContext.currentRequestContext()
-
-    if (requestContext) {
-      // tslint:disable-next-line
-      const token = ExtractJwt.fromAuthHeaderAsBearerToken()(requestContext.request as any)
-
-      if (token) {
-        const { permissions } = verify(token, process.env['JWT_SECRET']) as {
-          id: string
-          permissions: PermissionsEnum[]
-        }
-        if (permissions) {
-          const found = permissions.filter((value) => findPermissions.indexOf(value) >= 0)
-
-          if (found.length === findPermissions.length) {
-            return true
-          }
-        } else {
-          return false
-        }
-      }
+    const permissions = this.currentPermissions()
+    if (permissions.length > 0) {
+      const found = permissions.filter((value) => findPermissions.indexOf(value) >= 0)
+      if (found.length === findPermissions.length) return true
     }
 
     if (throwError) {
@@ -217,22 +204,9 @@ export class RequestContext {
   }
 
   static hasAnyPermission(findPermissions: PermissionsEnum[], throwError?: boolean): boolean {
-    const requestContext = RequestContext.currentRequestContext()
-
-    if (requestContext) {
-      // tslint:disable-next-line
-      const token = ExtractJwt.fromAuthHeaderAsBearerToken()(requestContext.request as any)
-
-      if (token) {
-        const { permissions } = verify(token, process.env['JWT_SECRET']) as {
-          id: string
-          permissions: PermissionsEnum[]
-        }
-        const found = permissions.filter((value) => findPermissions.indexOf(value) >= 0)
-        if (found.length > 0) {
-          return true
-        }
-      }
+    const permissions = this.currentPermissions()
+    if (permissions.some((value) => findPermissions.includes(value as PermissionsEnum))) {
+      return true
     }
 
     if (throwError) {
@@ -275,21 +249,6 @@ export class RequestContext {
   static hasRoles(roles: RolesEnum[], throwError?: boolean): boolean {
     const context = RequestContext.currentRequestContext()
     if (context) {
-      // tslint:disable-next-line
-      const token = this.currentToken()
-      if (token) {
-        try {
-          const { role } = verify(token, process.env['JWT_SECRET']) as { id: string; role: RolesEnum }
-          if (role) {
-            return roles.includes(role)
-          }
-        } catch (error) {
-          if (!(error instanceof JsonWebTokenError)) {
-            throw error
-          }
-        }
-      }
-
       const role = this.currentUser()?.role?.name
       if (role) {
         return roles.includes(role as RolesEnum)
@@ -299,6 +258,13 @@ export class RequestContext {
       throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
     }
     return false
+  }
+
+  private static currentPermissions(): Array<PermissionsEnum | string> {
+    return (this.currentUser()?.role?.rolePermissions ?? [])
+      .filter((rolePermission) => rolePermission?.enabled)
+      .map((rolePermission) => rolePermission?.permission)
+      .filter((permission): permission is PermissionsEnum | string => !!permission)
   }
 }
 

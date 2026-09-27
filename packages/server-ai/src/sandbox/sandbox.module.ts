@@ -86,6 +86,7 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         ...CommandHandlers
     ],
     exports: [
+        SandboxPreviewSessionService,
         SandboxService,
         SandboxManagedServiceService,
         SandboxProviderRegistry,
