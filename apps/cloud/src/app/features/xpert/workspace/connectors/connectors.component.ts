@@ -32,6 +32,7 @@ import { IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { WORKSPACE_CONNECTOR_DIALOG } from './workspace-connector-dialog'
+import { navigateConnectorAuthorization } from './connector-authorization-navigation'
 
 type ConnectorStatusLabel = {
   key: string
@@ -287,7 +288,11 @@ export class XpertConnectorsComponent {
     const usesEmbeddedAuthorization = this.usesEmbeddedAuthorization(authMethod)
     const connectionKey = binding?.id ?? definition.provider
     const reservedPopup =
-      authMethod.type === 'oauth2' && !usesEmbeddedAuthorization ? this.openAuthorizationPopup(connectionKey) : null
+      authMethod.type === 'oauth2' &&
+      !usesEmbeddedAuthorization &&
+      this.connectionContext?.authorizationNavigation !== 'current-tab'
+        ? this.openAuthorizationPopup(connectionKey)
+        : null
     this.connectingBindingId.set(connectionKey)
     try {
       const values = this.connectorValues(binding, definition, authMethod)
@@ -550,6 +555,11 @@ export class XpertConnectorsComponent {
 
   private openAuthorizationUrl(bindingId: string, authorizationUrl: string) {
     if (!authorizationUrl) {
+      return
+    }
+
+    if (this.connectionContext?.authorizationNavigation === 'current-tab') {
+      navigateConnectorAuthorization(authorizationUrl)
       return
     }
 

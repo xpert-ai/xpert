@@ -16,6 +16,15 @@ export function platformCommandUrl(webUrl, payload) {
     path = 'plugins'
     query.set('category', 'agent-plugins')
     for (const key of ['organizationId', 'packageId', 'workspaceId']) if (payload[key]) query.set(key, payload[key])
+  } else if (
+    payload.target === 'workspace.connector.connect' &&
+    id(payload.assistantId) &&
+    id(payload.bindingId) &&
+    id(payload.organizationId)
+  ) {
+    path = 'workspace-connection'
+    for (const key of ['assistantId', 'bindingId', 'organizationId']) query.set(key, payload[key])
+    query.set('autostart', '1')
   } else if (payload.target === 'agent-evolution.target' && id(payload.targetId))
     path = `agent-evolution/targets/${segment(payload.targetId)}`
   else if (payload.target === 'knowledgebase.documents' && id(payload.knowledgebaseId)) {

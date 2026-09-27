@@ -1,3 +1,4 @@
+import { useWorkspaceConnection } from './WorkspaceConnection'
 import { createWorkbenchHandler } from './workbench'
 import { ShellControls } from './ShellControls'
 import { t } from './i18n'
@@ -44,6 +45,9 @@ export function ChatPanel({
   }, [])
   const [shellAssistantId, setShellAssistantId] = useState(bot.assistantId || bot.id)
   const [threadId, setThreadId] = useState<string | null>(initialThread)
+  const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
+  const connectRef = useRef(connection.connect)
+  connectRef.current = connection.connect
 
   useEffect(() => {
     const node = document.createElement('xpertai-chatkit')
@@ -77,7 +81,7 @@ export function ChatPanel({
       history: { enabled: true },
       composer: {
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
-        resources: { enabled: true },
+        resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
         connectors: { enabled: true }
       },
       workbench: {
@@ -156,6 +160,7 @@ export function ChatPanel({
       aria-label={t('Chat with {{name}}', { name: bot.name })}
       className="relative flex h-full min-w-0 flex-1 flex-col bg-background"
     >
+      {connection.status}
       <ShellControls key={shellAssistantId} assistantId={shellAssistantId} threadId={threadId} onGrant={onGrant} />
       {error && (
         <div

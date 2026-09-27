@@ -14,6 +14,9 @@ import { ToastrService, XpertConnectorService, XpertWorkspaceService } from 'app
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { ClawXpertConnectorsComponent, XpertConnectorsComponent } from './connectors.component'
 import { WORKSPACE_CONNECTOR_DIALOG } from './workspace-connector-dialog'
+import { navigateConnectorAuthorization } from './connector-authorization-navigation'
+
+jest.mock('./connector-authorization-navigation', () => ({ navigateConnectorAuthorization: jest.fn() }))
 
 jest.mock('apps/cloud/src/app/@core', () => {
   const { inject } = require('@angular/core')
@@ -183,6 +186,7 @@ async function setup(options?: {
   connectResponse?: ConnectorConnectResponse
   pollResponse?: ConnectorOAuthStatusResponse
   targetBindingId?: string
+  authorizationNavigation?: 'current-tab'
 }) {
   const workspace = signal({ id: 'workspace-1' })
   const connectorSearchQuery = signal('')
@@ -240,7 +244,11 @@ async function setup(options?: {
         ? [
             {
               provide: WORKSPACE_CONNECTOR_DIALOG,
-              useValue: { workspaceId: 'workspace-1', bindingId: options.targetBindingId }
+              useValue: {
+                workspaceId: 'workspace-1',
+                bindingId: options.targetBindingId,
+                authorizationNavigation: options.authorizationNavigation
+              }
             },
             { provide: DialogRef, useValue: { close: closeDialog } }
           ]
@@ -284,6 +292,25 @@ async function setup(options?: {
 }
 
 describe('XpertConnectorsComponent', () => {
+  it('automatically enters Desktop OAuth in the current browser tab without a second click or popup', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null)
+    const { fixture, connectorService } = await setup({
+      targetBindingId: workspaceBinding.id,
+      authorizationNavigation: 'current-tab',
+      bindings: [workspaceBinding],
+      connectResponse: {
+        status: 'pending',
+        connector: { ...workspaceBinding, status: 'pending' },
+        authorizationUrl: 'https://accounts.example.com/oauth/start'
+      }
+    })
+    await fixture.whenStable()
+    expect(connectorService.connectBinding).toHaveBeenCalledTimes(1)
+    expect(navigateConnectorAuthorization).toHaveBeenCalledWith('https://accounts.example.com/oauth/start')
+    expect(openSpy).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+
   it('connects only the requested workspace binding in a host dialog', async () => {
     jest.spyOn(window, 'open').mockReturnValue(null)
     const { fixture, connectorService, closeDialog } = await setup({

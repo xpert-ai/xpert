@@ -78,6 +78,24 @@ export interface HostMethods {
     input: { workspaceId: string; packageId: string; experts: { [reference: string]: string } }
     output: { status: 'added' | 'already_added'; bindingId: string }
   }
+  pluginConnection: {
+    input: { assistantId: string; bindingId: string }
+    output: {
+      connected: boolean
+      target: { target: 'workspace.connector.connect'; assistantId: string; bindingId: string; organizationId: string }
+    }
+  }
+  startPluginConnection: {
+    input: HostMethods['pluginConnection']['input']
+    output:
+      | { status: 'connected' }
+      | { status: 'pending'; attemptId: string; target: HostMethods['pluginConnection']['output']['target'] }
+  }
+  checkPluginConnection: {
+    input: { attemptId: string }
+    output: { status: 'pending' | 'connected' }
+  }
+  cancelPluginConnection: { input: { attemptId: string }; output: { status: 'cancelled' } }
   botProfile: { input: string; output: AssistantProfile }
   botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }

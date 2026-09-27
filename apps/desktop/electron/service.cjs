@@ -353,6 +353,7 @@ class DesktopService {
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))

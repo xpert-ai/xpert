@@ -6,18 +6,25 @@ import { firstValueFrom } from 'rxjs'
 import { XpertConnectorService } from '../../@core/services/xpert-connector.service'
 import { WORKSPACE_CONNECTOR_DIALOG } from '../xpert/workspace/connectors/workspace-connector-dialog'
 
-export function injectWorkspaceConnectorConnect(assistantId: Signal<string | null>): WorkspaceConnectorConnectHandler {
+export function injectWorkspaceConnectorConnect(
+  assistantId: Signal<string | null>,
+  options?: { authorizationNavigation?: 'current-tab'; requestKey?: Signal<string> }
+): WorkspaceConnectorConnectHandler {
   const injector = inject(Injector)
   const destroyRef = inject(DestroyRef)
-  let active: { assistantId: string; bindingId: string; promise: Promise<WorkspaceConnectorConnectResult> } | undefined
+  let active:
+    | { assistantId: string; bindingId: string; requestKey?: string; promise: Promise<WorkspaceConnectorConnectResult> }
+    | undefined
   let dialogRef: DialogRef<WorkspaceConnectorConnectResult> | undefined
   effect(() => {
     const currentId = assistantId()
-    if (active && active.assistantId !== currentId) dialogRef?.close({ status: 'cancelled' })
+    const requestKey = options?.requestKey?.()
+    if (active && (active.assistantId !== currentId || active.requestKey !== requestKey))
+      dialogRef?.close({ status: 'cancelled' })
   })
   destroyRef.onDestroy(() => dialogRef?.close({ status: 'cancelled' }))
 
-  return (request: unknown) => {
+  return function connect(request: unknown): Promise<WorkspaceConnectorConnectResult> {
     if (
       !request ||
       typeof request !== 'object' ||
@@ -32,24 +39,30 @@ export function injectWorkspaceConnectorConnect(assistantId: Signal<string | nul
       return Promise.reject(new Error('Invalid workspace connection request'))
     }
     const target = { assistantId: request.assistantId, bindingId: request.bindingId }
+    const requestKey = options?.requestKey?.()
     if (active) {
+      if (active.requestKey !== requestKey) {
+        dialogRef?.close({ status: 'cancelled' })
+        return active.promise.catch(() => undefined).then(() => connect(request))
+      }
       return active.assistantId === target.assistantId && active.bindingId === target.bindingId
         ? active.promise
         : Promise.reject(new Error('A workspace connection is already in progress'))
     }
-    const isCurrent = () => !destroyRef.destroyed && assistantId() === target.assistantId
+    const isCurrent = () =>
+      !destroyRef.destroyed && assistantId() === target.assistantId && options?.requestKey?.() === requestKey
     const promise = (async (): Promise<WorkspaceConnectorConnectResult> => {
       const service = injector.get(XpertConnectorService)
-      const options = await firstValueFrom(service.runtimeOptions(target.assistantId))
+      const runtimeOptions = await firstValueFrom(service.runtimeOptions(target.assistantId))
       if (!isCurrent()) return { status: 'cancelled' }
-      const workspace = options.workspaceScope ?? options.scope
-      const binding = options.items.find((item) => item.bindingId === target.bindingId)
-      const scope = binding?.scope ?? options.scope
+      const workspace = runtimeOptions.workspaceScope ?? runtimeOptions.scope
+      const binding = runtimeOptions.items.find((item) => item.bindingId === target.bindingId)
+      const scope = binding?.scope ?? runtimeOptions.scope
       if (
         workspace.type !== 'workspace' ||
         scope.type !== 'workspace' ||
         scope.workspaceId !== workspace.workspaceId ||
-        !options.canManageWorkspace ||
+        !runtimeOptions.canManageWorkspace ||
         !binding?.canManage
       ) {
         throw new Error('Workspace connection configuration is not permitted')
@@ -63,7 +76,11 @@ export function injectWorkspaceConnectorConnect(assistantId: Signal<string | nul
         providers: [
           {
             provide: WORKSPACE_CONNECTOR_DIALOG,
-            useValue: { workspaceId: workspace.workspaceId, bindingId: binding.bindingId }
+            useValue: {
+              workspaceId: workspace.workspaceId,
+              bindingId: binding.bindingId,
+              ...(options?.authorizationNavigation ? { authorizationNavigation: options.authorizationNavigation } : {})
+            }
           }
         ]
       })
@@ -83,7 +100,7 @@ export function injectWorkspaceConnectorConnect(assistantId: Signal<string | nul
       active = undefined
       dialogRef = undefined
     })
-    active = { ...target, promise }
+    active = { ...target, requestKey, promise }
     return promise
   }
 }

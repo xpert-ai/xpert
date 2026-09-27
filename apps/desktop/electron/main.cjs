@@ -114,6 +114,13 @@ else {
           status: 403
         }
       const result = await dispatch(service, method, argument)
+      // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
+      if (method === 'checkPluginConnection' && result.ok && result.value.status === 'connected') {
+        if (window?.isMinimized()) window.restore()
+        window?.show()
+        app.focus({ steal: true })
+        window?.focus()
+      }
       if (method === 'configure' && result.ok)
         Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(service.config.locale)))
       return result
