@@ -3,15 +3,19 @@ import { ChatConversationService } from '../../conversation.service'
 import { ChatConversationUpsertCommand } from '../upsert.command'
 import { ChatConversation } from '../../conversation.entity'
 import { applicationTracing } from '../../../tracing'
-import { ForbiddenException } from '@nestjs/common'
+import { ForbiddenException, Optional } from '@nestjs/common'
 import { t } from 'i18next'
 import { IsNull } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { RequestContext } from '@xpert-ai/server-core'
+import { ConversationInitializerRegistry } from '../../conversation-initializer.registry'
 
 @CommandHandler(ChatConversationUpsertCommand)
 export class ChatConversationUpsertHandler implements ICommandHandler<ChatConversationUpsertCommand> {
-    constructor(private readonly service: ChatConversationService) {}
+    constructor(
+        private readonly service: ChatConversationService,
+        @Optional() private readonly initializers?: ConversationInitializerRegistry
+    ) {}
 
     public async execute(command: ChatConversationUpsertCommand): Promise<ChatConversation> {
         return applicationTracing.traceAsync(
@@ -76,6 +80,7 @@ export class ChatConversationUpsertHandler implements ICommandHandler<ChatConver
                 if (!result) {
                     throw this.scopeMismatch()
                 }
+                await this.initializers?.initialize(result)
                 return result
             }
         )

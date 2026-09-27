@@ -689,6 +689,7 @@
         "ProjectXpertOrganizationMismatch": "The Xpert must belong to the Project Organization.",
         "ProjectXpertRequired": "The Xpert is not part of this Project.",
         "ProjectXpertSelectionRequired": "A Project Xpert is required.",
+        "ConversationInitializerDuplicate": "Conversation initializer already registered: {{key}}",
         "ConversationScopeMismatch": "The conversation does not belong to the current tenant and Organization.",
         "ConversationXpertImmutable": "A conversation cannot be moved to another Xpert.",
         "RequestedXpertConversationMismatch": "The requested Xpert does not match the conversation Xpert.",

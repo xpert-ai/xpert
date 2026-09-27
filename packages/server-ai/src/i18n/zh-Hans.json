@@ -689,6 +689,7 @@
         "ProjectXpertOrganizationMismatch": "数字专家必须属于项目所在的组织。",
         "ProjectXpertRequired": "该数字专家不属于此项目。",
         "ProjectXpertSelectionRequired": "必须选择一个项目数字专家。",
+        "ConversationInitializerDuplicate": "\u4f1a\u8bdd\u521d\u59cb\u5316\u5668\u5df2\u6ce8\u518c\uff1a{{key}}",
         "ConversationScopeMismatch": "该会话不属于当前租户和组织。",
         "ConversationXpertImmutable": "会话不能迁移到其他数字专家。",
         "RequestedXpertConversationMismatch": "请求的数字专家与会话所属数字专家不一致。",

@@ -36,6 +36,7 @@ import { MessageCheckpointService } from './message-checkpoint.service'
 import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.service'
 import { ThreadReferenceService } from './thread-reference.service'
 import { ThreadCursorStore } from './thread-cursor.store'
+import { ConversationInitializerRegistry } from './conversation-initializer.registry'
 
 @Module({
     imports: [
@@ -69,6 +70,7 @@ import { ThreadCursorStore } from './thread-cursor.store'
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ConversationInitializerRegistry,
         ThreadCursorStore,
         ThreadReferenceService,
         ConversationAgentRunsService,
@@ -86,6 +88,7 @@ import { ThreadCursorStore } from './thread-cursor.store'
         ...QueryHandlers
     ],
     exports: [
+        ConversationInitializerRegistry,
         ThreadReferenceService,
         MessageCheckpointService,
         ThreadRunControlService,
