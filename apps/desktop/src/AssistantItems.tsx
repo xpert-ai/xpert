@@ -107,7 +107,11 @@ export function AssistantItem(props: ItemProps & { mode?: 'list' | 'pinned' | 'c
       className={`relative flex shrink-0 items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${compact ? 'size-12' : ''}`}
     >
       <span className="relative shrink-0">
-        <BotAvatar bot={row.bot} size={compact ? 'compact' : pinned ? 'large' : 'default'} />
+        <BotAvatar
+          bot={row.bot}
+          size={compact ? 'compact' : pinned ? 'large' : 'default'}
+          status={row.activity?.latestConversationStatus}
+        />
         {row.unread && (
           <span
             aria-label={t('Unread')}

@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { followAvatarPointer } from './motion'
+import { avatarExpression } from './expression'
+import type { AvatarConversationStatus } from './expression'
 
-export function AnimatedAssistantAvatar() {
+export function AnimatedAssistantAvatar({ status }: { status?: AvatarConversationStatus }) {
+  const expression = avatarExpression(status)
   const face = useRef<SVGSVGElement>(null)
   const left = useRef<SVGGElement>(null)
   const right = useRef<SVGGElement>(null)
@@ -20,17 +23,18 @@ export function AnimatedAssistantAvatar() {
       aria-hidden="true"
       focusable="false"
       data-assistant-mascot=""
+      data-expression={expression.mood}
     >
       {/* Independent vector layers reproduce the smile tile used by resources/icon-macos.svg. */}
       <g fill="none" className="stroke-current" strokeLinecap="round" strokeLinejoin="round">
         <g ref={left} data-face-part="left-eye">
-          <path d="M23 31 L39 46 L23 60" strokeWidth="7.5" />
+          <path d={expression.left} strokeWidth="7.5" />
         </g>
         <g ref={right} data-face-part="right-eye">
-          <path d="M78 35 L64 46 L78 59" strokeWidth="3.3" />
+          <path d={expression.right} strokeWidth="3.3" />
         </g>
         <g ref={mouth} data-face-part="mouth">
-          <path d="M39 70 Q50 78 61 70" strokeWidth="4.4" />
+          <path d={expression.mouth} strokeWidth="4.4" />
         </g>
       </g>
     </svg>

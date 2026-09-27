@@ -3,8 +3,17 @@ import { AnimatedAssistantAvatar } from './AnimatedAssistantAvatar'
 import { avatarEmoji } from './emoji'
 import { avatarColorIndex } from './color'
 import type { Bot } from '../types'
+import type { AvatarConversationStatus } from './expression'
 
-export function BotAvatar({ bot, size = 'default' }: { bot: Bot; size?: 'compact' | 'default' | 'large' | 'profile' }) {
+export function BotAvatar({
+  bot,
+  size = 'default',
+  status
+}: {
+  bot: Bot
+  size?: 'compact' | 'default' | 'large' | 'profile'
+  status?: AvatarConversationStatus
+}) {
   const [failedUrl, setFailedUrl] = useState('')
   const emoji = avatarEmoji(bot.avatarEmoji)
   const imageUrl = bot.avatarUrl && failedUrl !== bot.avatarUrl ? bot.avatarUrl : null
@@ -24,7 +33,7 @@ export function BotAvatar({ bot, size = 'default' }: { bot: Bot; size?: 'compact
           {emoji}
         </span>
       ) : (
-        <AnimatedAssistantAvatar />
+        <AnimatedAssistantAvatar status={status} />
       )}
     </span>
   )

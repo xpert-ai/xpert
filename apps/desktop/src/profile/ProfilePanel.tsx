@@ -137,7 +137,7 @@ export function ProfilePanel({
         </div>
         <div className="flex justify-center">
           <div className="relative">
-            <BotAvatar bot={row.bot} size="profile" />
+            <BotAvatar bot={row.bot} size="profile" status={row.activity?.latestConversationStatus} />
             <Button
               variant="outline"
               size="icon"
