@@ -305,7 +305,7 @@ jest.mock('./clawxpert.facade', () => ({
 
 import { Component, Input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { Router } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import type { CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
@@ -429,7 +429,10 @@ type MockChatKitRuntimeInput = {
   workbench?: CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
-  onProjectChange?: (event: { projectId: string | null }) => void
+  onProjectChange?: (event: {
+    projectId: string | null
+    selection?: import('@xpert-ai/contracts').ProjectSelection
+  }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
   onEffect?: (event: MockChatKitEvent) => void
@@ -704,6 +707,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertConversationDetailComponent],
       providers: [
+        provideRouter([]),
         {
           provide: ClawXpertFacade,
           useValue: facade
@@ -943,14 +947,16 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().projectId?.()).toBe('project-1')
     getRuntimeInput().onProjectChange?.({ projectId: 'project-2' })
 
-    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2')
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2', undefined, undefined)
+    getRuntimeInput().onProjectChange?.({ projectId: null, selection: { mode: 'none' } })
+    expect(facade.onChatProjectChange).toHaveBeenLastCalledWith(null, undefined, { mode: 'none' })
   })
 
-  it('hides Project selection after a conversation starts', async () => {
+  it('keeps Project display enabled but disables creation after a conversation starts', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: false })
   })
 
   it('keeps Project selection available before the first message, including after a Project is selected', async () => {
@@ -991,11 +997,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(input.active()).toBe(false)
   })
 
-  it('hides the entire Project selector rail for an existing conversation', async () => {
+  it('keeps a bound Project available to ChatKit without changing its mount scope', async () => {
+    Object.assign(facade, { chatkitMountProjectId: signal(null) })
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    const chatkitElement = fixture.nativeElement.querySelector('xpert-chatkit')
+    facade.projectId.set('auto-created-project')
+    await settle(fixture)
 
-    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: false })
+    expect(getRuntimeInput().projectId?.()).toBeNull()
+    expect(fixture.nativeElement.querySelector('xpert-chatkit')).toBe(chatkitElement)
     expect(projectApi.availableForXpert).not.toHaveBeenCalled()
   })
 
@@ -2226,6 +2238,10 @@ describe('ClawXpertConversationDetailComponent', () => {
   })
 
   it('opens assistant conversation client commands inside the embedded chatkit', async () => {
+    Object.assign(facade, {
+      chatkitProjectSelection: signal({ mode: 'auto-new' }),
+      currentXpert: signal({ options: { workspaceScope: { mode: 'project-required', onMissing: 'create' } } })
+    })
     const setThreadId = jest.fn().mockResolvedValue(undefined)
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
       signal({
@@ -2286,6 +2302,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.getById).not.toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
     expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
     expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({
+      selection: undefined,
+      autoNewEnabled: false
+    })
     expect(getRuntimeInput().initialThread?.()).toBe('job-thread-1')
     expect(getRuntimeInput().delegatedConversation?.()).toEqual({
       conversationId: 'job-conversation-1',

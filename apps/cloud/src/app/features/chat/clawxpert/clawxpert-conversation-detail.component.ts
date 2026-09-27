@@ -27,6 +27,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import type { ChatKitReference } from '@xpert-ai/chatkit-types'
 import type {
+  ProjectSelection,
   WorkbenchOpenFile,
   TChatElementReference,
   XpertExtensionViewManifest,
@@ -285,12 +286,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly runtimeProjectId = computed(() =>
     this.facade.projectId ? this.projectId() : (this.resolvedConversation()?.projectId ?? null)
   )
-  readonly #projectSelectionEnabled = computed(
-    () =>
-      !this.#workbenchConversationScope() &&
-      Boolean(this.facade.assistantId()?.trim()) &&
-      !this.facade.threadId()?.trim()
+  readonly #projectControlsEnabled = computed(
+    () => !this.#workbenchConversationScope() && Boolean(this.facade.assistantId()?.trim())
   )
+  readonly #projectSelectionEnabled = computed(() => this.#projectControlsEnabled() && !this.facade.threadId()?.trim())
   readonly #hostChatRouteKey = computed(() =>
     JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
@@ -305,7 +304,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
   readonly chatkitProjectId = computed(() => {
     const scope = this.#workbenchConversationScope()
-    return scope ? scope.projectId : this.projectId()
+    return scope
+      ? scope.projectId
+      : this.facade.chatkitMountProjectId
+        ? this.facade.chatkitMountProjectId()
+        : this.projectId()
   })
   readonly chatkitInitialThread = computed(() => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId())
   readonly chatkitDelegatedConversation = computed(() => {
@@ -344,8 +347,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     delegatedConversation: this.chatkitDelegatedConversation,
     composer: computed(() => ({
       projects: {
-        enabled: this.#projectSelectionEnabled(),
-        createEnabled: this.#projectSelectionEnabled()
+        enabled: this.#projectControlsEnabled(),
+        createEnabled: this.#projectSelectionEnabled(),
+        selection: this.#workbenchConversationScope() ? undefined : this.facade.chatkitProjectSelection?.(),
+        autoNewEnabled:
+          !this.#workbenchConversationScope() &&
+          this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing === 'create',
+        allowNone: this.facade.currentXpert?.()?.options?.workspaceScope?.mode !== 'project-required'
       },
       connectors: { enabled: true }
     })),
@@ -382,14 +390,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.#chatkitOriginThreadId = normalizedThreadId
       this.facade.onChatThreadChange(threadId)
     },
-    onProjectChange: ({ projectId }) => {
+    onProjectChange: ({ projectId, selection }: { projectId: string | null; selection?: ProjectSelection }) => {
       if (this.#workbenchConversationScope()) {
         return
       }
-      this.facade.onChatProjectChange?.(projectId)
+      this.facade.onChatProjectChange?.(projectId, undefined, selection)
     },
     onThreadLoadEnd: ({ threadId }) => {
       this.markChatkitThreadRead(threadId)
+      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
     },
     onEffect: (event) => {
       const projectRequest = chatProjectCreateRequest(event)
@@ -419,6 +428,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onLog: (event) => {
+      if (event.name === 'lg.conversation.start' && !this.#workbenchConversationScope()) {
+        const threadId = this.activeChatkitThreadId()
+        if (threadId) void this.facade.syncConversationProject?.(threadId)
+      }
       const toolCompletedEvent = createAssistantToolCompletedHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
@@ -457,6 +470,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseEnd: () => {
+      const threadId = this.activeChatkitThreadId()
+      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
       void this.openGeneratedOutputs()
       this.#responseActive.set(false)
       if (!this.#workbenchConversationScope()) {
