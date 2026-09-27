@@ -19,6 +19,7 @@ export interface ApplicationItem extends CatalogBase {
   initializationAccess: string
   summary: string
   steps: string[]
+  screenshots: string[]
 }
 export interface TemplateItem extends CatalogBase {
   kind: 'templates'

@@ -49,10 +49,28 @@ const metadataKeys = {
   'zh-Hant': ['zh-Hant', 'zh_Hant', 'zh-TW', 'zh_TW', 'zh-HK', 'zh_HK'],
   ja: ['ja', 'ja-JP', 'ja_JP', 'jp', 'jp_JP']
 }
+const metadataLocaleKeys = new Set(Object.values(metadataKeys).flat())
 
 // Platform-owned localized metadata uses the chosen locale, then English, then an available translation.
 export function localizedText(value, locale) {
-  if (typeof value === 'string') return value
+  if (typeof value === 'string') {
+    if (!value.trimStart().startsWith('{')) return value
+    try {
+      const parsed = JSON.parse(value)
+      // Text-backed descriptions may serialize I18nObject; ordinary JSON prose stays literal.
+      if (
+        !parsed ||
+        typeof parsed !== 'object' ||
+        Array.isArray(parsed) ||
+        !Object.keys(parsed).some((key) => metadataLocaleKeys.has(key)) ||
+        !Object.values(parsed).every((translation) => typeof translation === 'string')
+      )
+        return value
+      value = parsed
+    } catch {
+      return value
+    }
+  }
   if (!value || typeof value !== 'object' || Array.isArray(value)) return ''
   for (const key of [...metadataKeys[normalizeLocale(locale)], ...metadataKeys.en, ...Object.keys(value)]) {
     if (typeof value[key] === 'string' && value[key].trim()) return value[key]

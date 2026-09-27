@@ -13,6 +13,7 @@ import {
 import { Check, ExternalLink, LoaderCircle } from 'lucide-react'
 import { HostError, invoke, openWorkspace } from './host'
 import { canUseExpert } from './catalog-labels'
+import { ApplicationScreenshots } from './ApplicationScreenshots'
 import type { ApplicationSetup, CatalogItem, ExpertItem, WorkspaceOption } from './catalog-types'
 
 function ModelSelect({
@@ -170,6 +171,9 @@ export function CatalogSetup({
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
           <p className="text-sm leading-7 text-muted-foreground">{item.description}</p>
+          {item.kind === 'applications' && (
+            <ApplicationScreenshots name={item.name} screenshots={setup?.application.screenshots ?? item.screenshots} />
+          )}
           {loading ? (
             <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
               <LoaderCircle className="size-5 animate-spin" />

@@ -186,3 +186,92 @@ test('localized marketplace metadata follows the selected language with English 
     assert.deepEqual(items[0].steps, [expected])
   }
 })
+
+test('localized descriptions decode serialized I18nObject and keep literal text intact', () => {
+  const description = {
+    en_US: 'Video editor',
+    zh_Hans: '\u89c6\u9891\u7f16\u8f91\u5668',
+    zh_Hant: '\u5f71\u7247\u7de8\u8f2f\u5668',
+    ja_JP: '\u52d5\u753b\u30a8\u30c7\u30a3\u30bf\u30fc'
+  }
+  for (const [locale, expected] of [
+    ['en-US', description.en_US],
+    ['zh_CN', description.zh_Hans],
+    ['zh-TW', description.zh_Hant],
+    ['ja', description.ja_JP]
+  ]) {
+    assert.equal(localizedText(description, locale), expected)
+    assert.equal(localizedText(`  ${JSON.stringify(description)}  `, locale), expected)
+  }
+  assert.equal(localizedText('{"en_US":"English fallback"}', 'ja'), 'English fallback')
+  assert.equal(localizedText('{"en_US":"","zh_Hans":"  ","fr":"Bonjour"}', 'zh-Hans'), 'Bonjour')
+  assert.equal(localizedText('{"en_US":"","zh_Hans":""}', 'zh-Hans'), '')
+  for (const literal of [
+    'Plain description with {braces}',
+    '{"en_US":',
+    '{"title":"JSON example"}',
+    '{"en_US":{"nested":"invalid translation"}}',
+    '["one", "two"]',
+    'null',
+    '{}'
+  ])
+    assert.equal(localizedText(literal, 'zh-Hans'), literal)
+})
+
+test('catalog and sidebar descriptions resolve serialized translations at the host boundary', async () => {
+  const description = { en_US: 'Video editor', zh_Hans: '\u89c6\u9891\u7f16\u8f91\u5668' }
+  const serialized = JSON.stringify(description)
+  const bot = { id: 'expert', name: 'Editor', description: serialized }
+  const service = new DesktopService({
+    fetcher: async (url) => {
+      const pathname = new URL(url).pathname
+      if (pathname === '/api/xpert-marketplace')
+        return new Response(
+          JSON.stringify({
+            items: [
+              { xpert: bot, marketplace: { summary: serialized }, accessStatus: 'owned' },
+              { xpert: { ...bot, id: 'fallback' }, marketplace: {}, accessStatus: 'owned' }
+            ],
+            total: 2
+          })
+        )
+      if (pathname === '/api/plugin-applications/catalog')
+        return new Response(
+          JSON.stringify([
+            {
+              application: {
+                id: 'app',
+                pluginName: 'plugin',
+                appName: 'editor',
+                displayName: 'Editor',
+                description: serialized,
+                config: { presentation: { tagline: serialized } }
+              },
+              status: { status: 'not_installed' }
+            }
+          ])
+        )
+      if (pathname === '/api/xpert-template/catalog')
+        return new Response(JSON.stringify({ items: [{ ...bot, type: 'agent' }], total: 1 }))
+      assert.equal(pathname, '/api/mobile/xperts')
+      return new Response(JSON.stringify({ items: [bot], total: 1 }))
+    }
+  })
+  service.credentials = { token: 'fixture' }
+  service.profile = { user: { id: 'user', tenantId: 'tenant' }, organizationId: 'org' }
+  for (const [locale, expected] of [
+    ['zh-Hans', description.zh_Hans],
+    ['en', description.en_US]
+  ]) {
+    service.configure({ ...service.config, locale })
+    for (const kind of ['experts', 'applications', 'templates']) {
+      const items = await service.listCatalog(kind)
+      assert.ok(items.length)
+      assert.ok(
+        items.every((item) => item.description === expected),
+        kind
+      )
+    }
+    assert.equal((await service.listBots())[0].description, expected)
+  }
+})

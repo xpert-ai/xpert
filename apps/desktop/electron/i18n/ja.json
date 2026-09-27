@@ -1,7 +1,7 @@
 {
-  "Invalid tool output attachment.": "\u30c4\u30fc\u30eb\u51fa\u529b\u306e\u6dfb\u4ed8\u30d5\u30a1\u30a4\u30eb\u304c\u7121\u52b9\u3067\u3059\u3002",
-  "The image preview does not match the requested attachment.": "\u753b\u50cf\u30d7\u30ec\u30d3\u30e5\u30fc\u304c\u8981\u6c42\u3055\u308c\u305f\u6dfb\u4ed8\u30d5\u30a1\u30a4\u30eb\u3068\u4e00\u81f4\u3057\u307e\u305b\u3093\u3002",
-  "The service returned an invalid image preview.": "\u30b5\u30fc\u30d3\u30b9\u304b\u3089\u7121\u52b9\u306a\u753b\u50cf\u30d7\u30ec\u30d3\u30e5\u30fc\u304c\u8fd4\u3055\u308c\u307e\u3057\u305f\u3002",
+  "Invalid tool output attachment.": "ツール出力の添付ファイルが無効です。",
+  "The image preview does not match the requested attachment.": "画像プレビューが要求された添付ファイルと一致しません。",
+  "The service returned an invalid image preview.": "サービスから無効な画像プレビューが返されました。",
   "Connection & appearance": "接続と外観",
   "Appearance": "外観",
   "Connection": "接続",
@@ -431,5 +431,16 @@
   "Waiting for input": "入力待ち",
   "Status unavailable": "状態を取得できません",
   "No conversations yet": "まだ会話がありません",
-  "Untitled conversation": "無題の会話"
+  "Untitled conversation": "無題の会話",
+  "View details": "詳細を見る",
+  "App screenshots": "アプリのスクリーンショット",
+  "carousel": "カルーセル",
+  "slide": "スライド",
+  "Screenshot {{current}} of {{total}}": "{{current}} / {{total}} 枚目",
+  "{{name}} screenshot {{number}}": "{{name}} のスクリーンショット {{number}}",
+  "Could not load screenshot.": "スクリーンショットを読み込めませんでした。",
+  "Previous screenshot": "前のスクリーンショット",
+  "Next screenshot": "次のスクリーンショット",
+  "Choose screenshot": "スクリーンショットを選択",
+  "Show screenshot {{number}}": "スクリーンショット {{number}} を表示"
 }

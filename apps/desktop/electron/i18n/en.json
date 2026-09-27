@@ -431,5 +431,16 @@
   "Waiting for input": "Waiting for input",
   "Status unavailable": "Status unavailable",
   "No conversations yet": "No conversations yet",
-  "Untitled conversation": "Untitled conversation"
+  "Untitled conversation": "Untitled conversation",
+  "View details": "View details",
+  "App screenshots": "App screenshots",
+  "carousel": "carousel",
+  "slide": "slide",
+  "Screenshot {{current}} of {{total}}": "Screenshot {{current}} of {{total}}",
+  "{{name}} screenshot {{number}}": "{{name}} screenshot {{number}}",
+  "Could not load screenshot.": "Could not load screenshot.",
+  "Previous screenshot": "Previous screenshot",
+  "Next screenshot": "Next screenshot",
+  "Choose screenshot": "Choose screenshot",
+  "Show screenshot {{number}}": "Show screenshot {{number}}"
 }

@@ -23,6 +23,27 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         ? { id: value.emoji.id, unified: typeof value.emoji.unified === 'string' ? value.emoji.unified : null }
         : null
   })
+  const screenshots = (value, webUrl) => {
+    const images = strings(value).flatMap((entry) => {
+      const source = entry.trim()
+      if (/^data:image\/(?:png|jpeg|gif|webp|avif|svg\+xml);base64,[a-z\d+/]+={0,2}$/i.test(source)) return [source]
+      // Local plugin assets are resolved by the API; host-relative assets belong to the configured web app.
+      if (!/^https?:\/\//i.test(source) && !/^\/(?![\/\\])/.test(source)) return []
+      try {
+        const url = new URL(source, webUrl)
+        if (url.username || url.password) return []
+        if (
+          url.protocol === 'https:' ||
+          (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))
+        )
+          return [url.href]
+      } catch {
+        // Invalid image metadata must not prevent the application catalog from loading.
+      }
+      return []
+    })
+    return [...new Set(images)]
+  }
   const expert = (value, locale) => {
     const xpert = value?.xpert
     return {
@@ -44,7 +65,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       access: choice(value.accessStatus, ['owned', 'accessible', 'approved', 'requested', 'not_requested', 'rejected'])
     }
   }
-  const application = (value, locale) => {
+  const application = (value, locale, webUrl) => {
     const localized = (value) => localizedText(value, locale)
     const app = value?.application
     const presentation = app?.config?.presentation
@@ -55,6 +76,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       appName: required(app.appName, 'App name'),
       name: localized(app.displayName),
       description: localized(presentation?.tagline) || localized(app.description),
+      screenshots: screenshots(presentation?.screenshots, webUrl),
       publisher: text(presentation?.developer) || text(app.pluginName),
       ...avatar(null),
       categories: [
@@ -103,7 +125,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       scope(this)
       if (kind === 'applications')
         return list(await this.request('/api/plugin-applications/catalog')).map((item) =>
-          application(item, this.config.locale)
+          application(item, this.config.locale, this.config.webUrl)
         )
       if (!['experts', 'templates'].includes(kind)) throw new ClientError('Invalid catalog type.')
       const items = []
@@ -151,7 +173,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       const embeddingModels = modelOptions(check.embeddingModels, this.config.locale)
       const visionModels = modelOptions(check.visionModels, this.config.locale)
       return {
-        application: application(detail, this.config.locale),
+        application: application(detail, this.config.locale, this.config.webUrl),
         canInitialize: check.supported === true && check.canInitialize,
         reason:
           preflightReasons[check.reason] ||

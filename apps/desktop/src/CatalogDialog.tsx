@@ -15,6 +15,7 @@ import {
 } from '@xpert-ai/shadcn-ui'
 import { ArrowLeft, ArrowUpRight, Layers, LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
 import { BotAvatar } from './BotAvatar'
+import { ApplicationCardBackground } from './ApplicationScreenshots'
 import { CatalogSetup } from './CatalogSetup'
 import { invoke } from './host'
 import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLabel } from './catalog-labels'
@@ -254,9 +255,12 @@ export function CatalogDialog({
                   {filtered.map((item) => (
                     <article
                       key={item.id}
-                      className="flex min-h-64 flex-col rounded-xl border bg-background p-5 transition-shadow hover:shadow-sm"
+                      tabIndex={0}
+                      aria-label={item.name}
+                      className="group/catalog relative isolate flex h-44 flex-col overflow-hidden rounded-xl border bg-background p-4 outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <div className="mb-5 flex items-start gap-3">
+                      {item.kind === 'applications' && <ApplicationCardBackground screenshots={item.screenshots} />}
+                      <div className="mb-2 flex shrink-0 items-start gap-3">
                         {item.kind === 'applications' ? (
                           <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-accent-foreground">
                             <Layers className="size-6" />
@@ -265,26 +269,57 @@ export function CatalogDialog({
                           <BotAvatar bot={item} />
                         )}
                         <div className="min-w-0 flex-1">
-                          <h3 className="line-clamp-2 text-base leading-6 font-semibold" title={item.name}>
-                            {item.name}
+                          <h3 className="line-clamp-2 text-base leading-5 font-semibold" title={item.name}>
+                            {item.kind === 'applications' ? (
+                              <button
+                                type="button"
+                                className="text-left outline-none hover:underline focus-visible:underline"
+                                disabled={busy}
+                                onClick={() => setSelected(item)}
+                              >
+                                {item.name}
+                              </button>
+                            ) : (
+                              item.name
+                            )}
                           </h3>
                           <p className="mt-1 truncate text-xs text-muted-foreground" title={item.publisher}>
                             {item.publisher || 'Xpert'}
                           </p>
                         </div>
                       </div>
-                      <p className="mb-5 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                      <p className="mb-2 line-clamp-2 shrink-0 text-sm leading-5 text-muted-foreground">
                         {item.description || t('Explore this assistant and start a new chat.')}
                       </p>
-                      <div className="mt-auto flex flex-wrap gap-1.5 pb-4">
+                      <div className="mt-auto flex shrink-0 flex-nowrap gap-1.5 overflow-hidden">
                         {item.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+                          <span
+                            key={tag}
+                            title={categoryLabel(tag)}
+                            className="min-w-0 truncate rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+                          >
                             {categoryLabel(tag)}
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between gap-2 border-t pt-3">
-                        <span className="text-xs text-muted-foreground">{statusLabel(item)}</span>
+                      <div
+                        data-slot="catalog-card-actions"
+                        className="pointer-events-none absolute bottom-0 left-0 flex w-full translate-y-2 items-center justify-between gap-2 border-t bg-background px-4 py-3 opacity-0 transition-[opacity,transform] duration-150 group-hover/catalog:pointer-events-auto group-hover/catalog:translate-y-0 group-hover/catalog:opacity-100 group-focus-within/catalog:pointer-events-auto group-focus-within/catalog:translate-y-0 group-focus-within/catalog:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+                      >
+                        {item.kind === 'applications' ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="-ml-2"
+                            disabled={busy}
+                            onClick={() => setSelected(item)}
+                          >
+                            {t('View details')}
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{statusLabel(item)}</span>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"

@@ -81,6 +81,8 @@ The `+` button opens **发现与添加**, a searchable catalog with three tabs:
 
 Successful installation refreshes the Sidebar and opens the assistant in ChatKit.
 
+Application cards use `config.presentation.screenshots` as a lightly blurred background with a theme-aware text scrim. Select the application name or **View details** to browse full screenshots, including for installed applications. The detail carousel supports previous/next buttons, numbered indicators and arrow keys, without autoplay. Missing screenshots keep the plain card; failed images can be retried in the detail view. Screenshot URLs are normalized at the host boundary, accepting inline images, HTTPS and loopback development URLs; root-relative assets resolve against the configured Web URL.
+
 The frame URL must point at a trusted deployment of Xpert ChatKit. Check both its
 HTML and referenced JS/CSS assets if the panel is blank. After updating ChatKit
 packages in a running Angular development server, restart that server so its
@@ -203,7 +205,7 @@ English (`en`) is the source language and the default for new and legacy configu
 
 Choose **User menu → Connection & appearance → Appearance → Language**. Changes preview immediately; Cancel restores the saved language and Save persists it locally. Changing only the language retains authentication, organization, selected assistant and the existing ChatKit element. Login, discovery, installation, tooltips, accessibility labels, form validation, host errors and native application menus use the shared resources in `electron/i18n/`. Native menu updates take effect on Save.
 
-The renderer passes the selected locale to ChatKit and the host sends it in `Accept-Language`. Hosted ChatKit owns its translations: the currently tested local ChatKit UI bundle contains only `en-US` and `zh-CN`; Japanese falls back to English and Traditional Chinese resolves to Simplified Chinese in that version. Full ChatKit translations require a hosted ChatKit version with those resources. User-authored organization names, assistant names and plain descriptions are preserved. Structured marketplace translations select the requested language with English fallback.
+The renderer passes the selected locale to ChatKit and the host sends it in `Accept-Language`. Hosted ChatKit owns its translations: the currently tested local ChatKit UI bundle contains only `en-US` and `zh-CN`; Japanese falls back to English and Traditional Chinese resolves to Simplified Chinese in that version. Full ChatKit translations require a hosted ChatKit version with those resources. User-authored organization names, assistant names and plain descriptions are preserved. Structured marketplace translations, including JSON-serialized I18nObject descriptions, select the requested language with English fallback. Malformed JSON and ordinary JSON prose remain literal text.
 
 To add a language, add a JSON resource matching every English key and interpolation placeholder, register it in `electron/i18n/index.mjs` and its declaration, and update locale normalization. Use English source messages in `t(...)`; do not translate module-level constants at import time. Host errors carry message keys and parameters so even an unsaved language preview can display errors in the chosen language. `tests/i18n.test.cjs` checks resource coverage, placeholders, untranslated JSX, aliases, persistence, host error handling and localized marketplace metadata.
 

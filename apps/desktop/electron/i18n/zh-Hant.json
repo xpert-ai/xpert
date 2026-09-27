@@ -1,7 +1,7 @@
 {
-  "Invalid tool output attachment.": "\u5de5\u5177\u8f38\u51fa\u9644\u4ef6\u7121\u6548\u3002",
-  "The image preview does not match the requested attachment.": "\u5716\u7247\u9810\u89bd\u8207\u8acb\u6c42\u7684\u9644\u4ef6\u4e0d\u7b26\u3002",
-  "The service returned an invalid image preview.": "\u670d\u52d9\u50b3\u56de\u4e86\u7121\u6548\u7684\u5716\u7247\u9810\u89bd\u3002",
+  "Invalid tool output attachment.": "工具輸出附件無效。",
+  "The image preview does not match the requested attachment.": "圖片預覽與請求的附件不符。",
+  "The service returned an invalid image preview.": "服務傳回了無效的圖片預覽。",
   "Connection & appearance": "連線與外觀",
   "Appearance": "外觀",
   "Connection": "連線",
@@ -431,5 +431,16 @@
   "Waiting for input": "等待輸入",
   "Status unavailable": "狀態暫不可用",
   "No conversations yet": "尚無對話",
-  "Untitled conversation": "未命名對話"
+  "Untitled conversation": "未命名對話",
+  "View details": "檢視詳情",
+  "App screenshots": "應用程式截圖",
+  "carousel": "輪播",
+  "slide": "投影片",
+  "Screenshot {{current}} of {{total}}": "第 {{current}} / {{total}} 張",
+  "{{name}} screenshot {{number}}": "{{name}} 截圖 {{number}}",
+  "Could not load screenshot.": "截圖載入失敗。",
+  "Previous screenshot": "上一張截圖",
+  "Next screenshot": "下一張截圖",
+  "Choose screenshot": "選擇截圖",
+  "Show screenshot {{number}}": "顯示第 {{number}} 張截圖"
 }

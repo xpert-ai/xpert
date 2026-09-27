@@ -71,6 +71,46 @@ test('catalog follows pagination and does not leak DSL, application configuratio
   assert.ok(calls.every((call) => call.headers['organization-id'] === 'org-1'))
 })
 
+test('application screenshots are normalized consistently for catalog and detail without exposing local files', async () => {
+  const inline = 'data:image/png;base64,cHJldmlldw=='
+  const sources = [
+    inline,
+    ' https://cdn.example.com/screen.webp ',
+    inline,
+    '/assets/screenshot.png',
+    'http://127.0.0.1:4200/local.png',
+    './assets/unresolved-plugin-file.png',
+    'file:///private/screenshot.png',
+    'javascript:alert(1)',
+    'data:text/html;base64,cHJldmlldw==',
+    'https://user:secret@example.com/private.png',
+    '//untrusted.example.com/image.png',
+    'http://remote.example.com/insecure.png',
+    'https://',
+    '  ',
+    null,
+    42
+  ]
+  const response = {
+    ...detail,
+    application: { ...app, config: { presentation: { screenshots: sources } } }
+  }
+  const { service } = fixture((path) => (path.endsWith('/catalog') ? [response] : response))
+  service.configure({ ...service.config, webUrl: 'https://workspace.example.com/explore' })
+  service.credentials = { token: 'fixture' }
+  service.profile = { organizationId: 'org-1' }
+  const expected = [
+    inline,
+    'https://cdn.example.com/screen.webp',
+    'https://workspace.example.com/assets/screenshot.png',
+    'http://127.0.0.1:4200/local.png'
+  ]
+  assert.deepEqual((await service.listCatalog('applications'))[0].screenshots, expected)
+  assert.deepEqual((await service.applicationSetup(app)).application.screenshots, expected)
+  response.application.config.presentation.screenshots = null
+  assert.deepEqual((await service.listCatalog('applications'))[0].screenshots, [])
+})
+
 test('expert access request rechecks access and submits only the reason, not renderer scope', async () => {
   let requested = false
   const { service, calls } = fixture((path, options) => {
