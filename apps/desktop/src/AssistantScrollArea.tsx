@@ -44,15 +44,15 @@ export function AssistantScrollArea({
   }, [measure, stop])
   const arrow = (direction: -1 | 1) => {
     const enabled = direction === -1 ? edges.up : edges.down
+    if (!enabled) return null
     const Icon = direction === -1 ? ChevronUp : ChevronDown
     return (
       <Button
         size="icon"
         variant="ghost"
-        disabled={!enabled}
         aria-label={t(direction === -1 ? 'Scroll assistants up' : 'Scroll assistants down')}
         aria-controls={id}
-        className={`h-6 w-full shrink-0 touch-none rounded-none text-muted-foreground ${enabled ? '' : 'invisible'}`}
+        className="h-6 w-full shrink-0 touch-none rounded-none text-muted-foreground"
         onPointerDown={(event) => {
           if (event.button !== 0) return
           event.preventDefault()

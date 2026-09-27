@@ -204,8 +204,8 @@ export function Sidebar({
             size="icon"
             variant="ghost"
             className="mb-2 size-12 shrink-0 text-muted-foreground"
-            aria-label={t('Search Bots')}
-            title={t('Search Bots')}
+            aria-label={t('Search digital experts')}
+            title={t('Search digital experts')}
             onClick={() => {
               setCollapsed(false)
               setSearchOpen(true)
@@ -297,8 +297,8 @@ export function Sidebar({
               size="icon"
               variant="ghost"
               className="ml-auto size-8 shrink-0 text-muted-foreground"
-              aria-label={searchOpen ? t('Close search') : t('Search Bots')}
-              title={searchOpen ? t('Close search') : t('Search Bots')}
+              aria-label={searchOpen ? t('Close search') : t('Search digital experts')}
+              title={searchOpen ? t('Close search') : t('Search digital experts')}
               aria-expanded={searchOpen}
               aria-controls="bot-search"
               onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
@@ -311,8 +311,8 @@ export function Sidebar({
               <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
               <Input
                 ref={searchInput}
-                aria-label={t('Search Bots')}
-                placeholder={t('Search Bots')}
+                aria-label={t('Search digital experts')}
+                placeholder={t('Search digital experts')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -324,7 +324,7 @@ export function Sidebar({
           )}
           <div className="mt-4 mb-2 flex items-center justify-between">
             <h2 className="text-[0.8125rem] leading-5 font-medium text-muted-foreground">
-              {t('My Bots')}
+              {t('My digital experts')}
               <span className="ml-1 text-xs font-normal">{bots.length || ''}</span>
             </h2>
             <div className="flex">
@@ -352,7 +352,7 @@ export function Sidebar({
             </div>
           </div>
         </div>
-        <AssistantScrollArea label={t('My Bots')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
+        <AssistantScrollArea label={t('My digital experts')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
           {pending && (
             <p role="status" className="flex items-center gap-2 px-3 py-5 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
