@@ -1,4 +1,7 @@
 {
+  "Invalid tool output attachment.": "Invalid tool output attachment.",
+  "The image preview does not match the requested attachment.": "The image preview does not match the requested attachment.",
+  "The service returned an invalid image preview.": "The service returned an invalid image preview.",
   "Connection & appearance": "Connection & appearance",
   "Appearance": "Appearance",
   "Connection": "Connection",

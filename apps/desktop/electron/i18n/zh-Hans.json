@@ -1,4 +1,7 @@
 {
+  "Invalid tool output attachment.": "\u5de5\u5177\u8f93\u51fa\u9644\u4ef6\u65e0\u6548\u3002",
+  "The image preview does not match the requested attachment.": "\u56fe\u7247\u9884\u89c8\u4e0e\u8bf7\u6c42\u7684\u9644\u4ef6\u4e0d\u5339\u914d\u3002",
+  "The service returned an invalid image preview.": "\u670d\u52a1\u8fd4\u56de\u4e86\u65e0\u6548\u7684\u56fe\u7247\u9884\u89c8\u3002",
   "Connection & appearance": "连接与外观",
   "Appearance": "外观",
   "Connection": "连接",

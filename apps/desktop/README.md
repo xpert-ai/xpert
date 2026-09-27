@@ -78,6 +78,14 @@ packages in a running Angular development server, restart that server so its
 asset manifest matches the installed package. Remote services require HTTPS;
 HTTP is accepted only for loopback development addresses.
 
+For local ChatKit development, start `@xpert-ai/chatkit-ui` in its source checkout
+and set **ChatKit frame** to `http://localhost:5173`. The desktop follows that
+runtime's Workbench implementation. Views must receive the current conversation
+record ID through SDK `runtimeScope`; they must not use the execution thread ID.
+Keep the remote iframe sandbox enabled. Switching a conversation disposes its
+old remote view and connections. A production deployment must ship the updated
+ChatKit frame assets, not just the desktop executable.
+
 ## Desktop Shell
 
 The native macOS app can execute commands for an authorized server Assistant.

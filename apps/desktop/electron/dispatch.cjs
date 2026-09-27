@@ -15,6 +15,7 @@ const methods = new Set([
   'selectOrganization',
   'listBots',
   'chatSession',
+  'toolOutputPreview',
   'listCatalog',
   'requestExpertAccess',
   'applicationSetup',

@@ -63,6 +63,9 @@ export function ChatPanel({ bot, config, dark }: { bot: Bot; config: ConnectionC
         connectors: { enabled: true }
       },
       workbench: { enabled: true },
+      toolOutputAttachments: {
+        onRequestPreview: ({ attachment }) => invoke('toolOutputPreview', attachment)
+      },
       request: {
         context: { source: 'desktop', ...(grantRef.current ? { desktopShellGrantId: grantRef.current } : {}) }
       }

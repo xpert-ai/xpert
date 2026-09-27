@@ -1,4 +1,5 @@
 import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
+import type { ToolOutputAttachmentPreview, ToolOutputImageAttachment } from '@xpert-ai/chatkit-types'
 import type { Locale, MessageParams } from './i18n'
 import type { AppearanceConfig } from './appearance-types'
 
@@ -58,6 +59,10 @@ export interface HostMethods {
   selectOrganization: { input: string; output: AppState }
   listBots: { input: undefined; output: Bot[] }
   chatSession: { input: string; output: { secret: string; organizationId: string } }
+  toolOutputPreview: {
+    input: Pick<ToolOutputImageAttachment, 'artifactId' | 'artifactVersionId' | 'sha256' | 'mimeType'>
+    output: ToolOutputAttachmentPreview
+  }
   listCatalog: { input: CatalogKind; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }

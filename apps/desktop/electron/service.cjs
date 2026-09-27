@@ -277,7 +277,7 @@ class DesktopService {
     return this.refreshing
   }
 
-  async request(path, { method = 'GET', body, auth = true, token, retry = true, timeout = 20000 } = {}) {
+  async request(path, { method = 'GET', body, auth = true, token, scope, retry = true, timeout = 20000 } = {}) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
     const generation = this.generation
     const headers = {
@@ -289,6 +289,7 @@ class DesktopService {
     if (auth && this.credentials.tenantId) headers['tenant-id'] = this.credentials.tenantId
     const organizationId = this.profile?.organizationId || this.credentials?.organizationId
     if (auth && organizationId) headers['organization-id'] = organizationId
+    if (auth && scope) headers['x-scope-level'] = scope
     let response
     try {
       response = await this.fetcher(`${this.config.apiUrl}${path}`, {
@@ -314,7 +315,7 @@ class DesktopService {
         if (error.status === 401) this.logout()
         throw error
       }
-      return this.request(path, { method, body, auth, retry: false, timeout })
+      return this.request(path, { method, body, auth, scope, retry: false, timeout })
     }
     if (!response.ok) {
       if (response.status === 401)
@@ -339,6 +340,7 @@ class DesktopService {
 }
 
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 
 module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, webUrl }
