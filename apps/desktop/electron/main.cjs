@@ -7,6 +7,7 @@ const { dispatch } = require('./dispatch.cjs')
 const { menuTemplate } = require('./menu.cjs')
 const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
+const { platformCommandUrl } = require('./workbench-platform.mjs')
 
 app.setName('Xpert')
 // A separate profile supports local acceptance without touching the daily app account.
@@ -115,6 +116,17 @@ else {
     })
     ipcMain.handle('xpert:open-workspace', (event) => {
       if (trusted(event)) openExternal(service.config.webUrl)
+    })
+    ipcMain.handle('xpert:open-platform', async (event, payload) => {
+      if (!trusted(event)) return false
+      const url = platformCommandUrl(service.config.webUrl, payload)
+      if (!url) return false
+      try {
+        await shell.openExternal(url)
+        return true
+      } catch {
+        return false
+      }
     })
     ipcMain.on('xpert:sidebar-collapsed', (event, collapsed) => {
       if (trusted(event) && typeof collapsed === 'boolean' && process.platform === 'darwin') {

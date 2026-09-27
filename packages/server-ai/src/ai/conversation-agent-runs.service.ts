@@ -106,6 +106,7 @@ export function toAgentRunSummary(
         avatar: avatarForChat(metadata?.assistantAvatar ?? execution.xpert?.avatar),
         title: execution.title,
         invocationKind: metadata?.invocationKind,
+        sourceToolCallId: metadata?.sourceToolCallId,
         model: metadata?.model,
         status: execution.status,
         elapsedTime: execution.elapsedTime,

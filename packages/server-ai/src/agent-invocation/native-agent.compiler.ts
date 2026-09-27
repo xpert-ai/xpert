@@ -130,7 +130,11 @@ export class NativeAgentCompiler {
                         agentKey: agent.key,
                         inputs: call?.args,
                         parentId: executionId,
-                        metadata: { ...execution.metadata, invocationKind: 'sub_agent' },
+                        metadata: {
+                            ...execution.metadata,
+                            invocationKind: 'sub_agent',
+                            sourceToolCallId: isTool ? call?.id : undefined
+                        },
                         status: XpertAgentExecutionStatusEnum.RUNNING,
                         predecessor: configurable.agentKey
                     })

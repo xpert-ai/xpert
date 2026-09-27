@@ -164,14 +164,17 @@ function installedTitle(definition, runId) {
 
 /** Fetches an exact name match in the target workspace for collision detection and explicit resume. */
 async function findByName(apiRoot, headers, workspaceId, name) {
-  const data = encodeURIComponent(JSON.stringify({ where: { name }, take: 10 }))
+  const data = encodeURIComponent(JSON.stringify({ where: { name, latest: true }, take: 10 }))
   const response = await getJson(
     `${apiRoot}/xpert/by-workspace/${encodeURIComponent(workspaceId)}?data=${data}`,
     headers
   )
   assertResponseOk('Assistant lookup', response)
   const items = Array.isArray(response.body?.items) ? response.body.items : []
-  return items.find((item) => item?.name === name) ?? null
+  const matches = items.filter((item) => item?.name === name && item.latest !== false)
+  if (matches.length > 1)
+    throw new LocalPluginCliError(`Multiple current Assistants match ${name}; refusing an ambiguous update.`)
+  return matches[0] ?? null
 }
 
 /** Loads the complete draft and published graph used for provenance and connection validation. */
@@ -510,6 +513,16 @@ async function main() {
     runId,
     workspaceId
   })
+  // The published /team projection can omit the select:false authoring draft.
+  // Fetch it from the authoring endpoint; never synthesize it from the published graph.
+  if (!orchestratorDraft.draft) {
+    const authoringResponse = await getJson(`${apiRoot}/xpert/${encodeURIComponent(orchestratorDraft.id)}`, headers)
+    assertResponseOk('Orchestrator authoring draft lookup', authoringResponse)
+    if (authoringResponse.body?.id !== orchestratorDraft.id)
+      throw new LocalPluginCliError('Orchestrator authoring identity mismatch.')
+    assertAssistantIdentity(authoringResponse.body, profile, profile.orchestrator)
+    orchestratorDraft.draft = authoringResponse.body.draft
+  }
   const draft = connectExternalRoles(orchestratorDraft, profile, rolesByKey)
   const saveResponse = await postJson(
     `${apiRoot}/xpert/${encodeURIComponent(orchestratorDraft.id)}/draft`,

@@ -119,6 +119,8 @@ export enum XpertAgentExecutionStatusEnum {
 export type TAgentExecutionMetadata = {
   /** Recorded by the invocation boundary; never inferred from agent names. */
   invocationKind?: 'external_assistant' | 'sub_agent'
+  /** Tool call in the parent execution that started this run. Omit for workflow-driven runs. */
+  sourceToolCallId?: string
   assistantName?: string
   assistantAvatar?: TAvatar
   /**
@@ -176,6 +178,8 @@ export type TChatAgentRunSummary = {
   avatar?: TAvatar
   title?: string
   invocationKind?: TAgentExecutionMetadata['invocationKind']
+  /** Matches the Tool component id within parentId; never match by tool name or provider. */
+  sourceToolCallId?: TAgentExecutionMetadata['sourceToolCallId']
   model?: string
   status?: string
   elapsedTime?: number

@@ -1,4 +1,11 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
+// Reference loading has its own tests; this fixture exercises native delegation and resume.
+jest.mock('../../xpert-middleware/thread-reference.runtime', () => ({
+    createThreadReferenceMiddleware: jest.fn(async () => ({
+        key: '__thread_reference_middleware__',
+        middleware: { name: 'ThreadReferenceMiddleware' }
+    }))
+}))
 
 import { AIMessage, BaseMessage, HumanMessage, isToolMessage } from '@langchain/core/messages'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
@@ -7,6 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Logger } from '@nestjs/common'
 import {
     channelName,
+    ChatMessageEventTypeEnum,
     IEnvironment,
     IXpert,
     IXpertAgent,
@@ -36,6 +44,7 @@ import { NativeAgentRuntimeStrategy } from '../../agent-invocation/native-agent.
 import { MemoryInvocationStore } from '../../agent-invocation/invocation-test-store'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import { THREAD_REFERENCE_MIDDLEWARE_NAME } from '../../xpert-middleware/thread-reference.middleware'
 
 function fixture(
     settings: { dynamic?: boolean; interruptBefore?: boolean; interruptInside?: boolean; endNode?: boolean } = {}
@@ -174,7 +183,16 @@ function fixture(
     Object.defineProperties(handler, {
         invocationGraph: { value: runtime },
         runtimeResourceService: { value: resourceService },
-        agentMiddlewareRegistry: { value: { get: jest.fn() } }
+        // The graph now always constructs this gate; these fixtures have no thread references.
+        agentMiddlewareRegistry: {
+            value: {
+                get: jest.fn((name: string) =>
+                    name === THREAD_REFERENCE_MIDDLEWARE_NAME
+                        ? { createMiddleware: async () => ({ name: THREAD_REFERENCE_MIDDLEWARE_NAME }) }
+                        : undefined
+                )
+            }
+        }
     })
     const events: MessageEvent[] = []
     const controller = new AbortController()
@@ -278,9 +296,24 @@ describe('Collaborators middleware in the Agent graph', () => {
         expect([...f.executions.values()][0]).toMatchObject({
             parentId: 'parent-run',
             agentKey: 'reviewer',
-            metadata: { invocationKind: 'external_assistant', requesterXpertId: 'parent' }
+            metadata: { invocationKind: 'external_assistant', sourceToolCallId: 'call-1', requesterXpertId: 'parent' }
         })
         expect(f.events.length).toBeGreaterThanOrEqual(2)
+        for (const event of [ChatMessageEventTypeEnum.ON_AGENT_START, ChatMessageEventTypeEnum.ON_AGENT_END]) {
+            expect(f.events).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        data: expect.objectContaining({
+                            event,
+                            data: expect.objectContaining({
+                                parentId: 'parent-run',
+                                metadata: expect.objectContaining({ sourceToolCallId: 'call-1' })
+                            })
+                        })
+                    })
+                ])
+            )
+        }
         expect(f.command.options.mute).toContainEqual(['expert-1', 'private-step'])
         expect(f.childCommands[0].options).toMatchObject({
             leaderKey: 'leader',
@@ -293,6 +326,7 @@ describe('Collaborators middleware in the Agent graph', () => {
         })
         expect(f.childCommands[0].options.runtimeResources).toBeUndefined()
         expect(f.childInvocations[0].config.recursionLimit).toBeGreaterThan(0)
+        expect(f.childInvocations[0].config.configurable.xpertId).toBe(f.expert.id)
         expect(f.childInvocations[0].config.recursionLimit).toBeLessThanOrEqual(f.config.recursionLimit)
         expect(JSON.stringify(f.definition)).toBe(original)
         if (dynamic)

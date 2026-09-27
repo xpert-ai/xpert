@@ -1,3 +1,4 @@
+import type { BotActivity, SidebarState, SidebarUpdate } from './assistant-list-types'
 import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
 import type { ToolOutputAttachmentPreview, ToolOutputImageAttachment } from '@xpert-ai/chatkit-types'
 import type { Locale, MessageParams } from './i18n'
@@ -22,6 +23,7 @@ export interface AppState {
   localLoginAvailable: boolean
 }
 export interface Bot {
+  assistantId?: string
   id: string
   name: string
   description: string
@@ -44,7 +46,37 @@ export interface DesktopShellGrant {
   expiresAt: number
   threadId: string | null
 }
+export interface WorkbenchSessionInput {
+  botId: string
+  target: 'assistant.conversation' | 'assistant.project'
+  /** Current host-resolved Assistant for project navigation; the server checks project access. */
+  assistantId?: string
+  conversationId?: string
+  projectId?: string
+  threadId?: string
+}
+export interface WorkbenchSession {
+  assistantId: string
+  projectId: string | null
+  threadId: string | null
+  conversationId?: string
+  secret: string
+  organizationId: string
+}
 export interface HostMethods {
+  workbenchSession: { input: WorkbenchSessionInput; output: WorkbenchSession }
+
+  sidebarState: { input: undefined; output: SidebarState }
+  updateSidebar: { input: SidebarUpdate; output: SidebarState }
+  botActivity: { input: undefined; output: BotActivity[] }
+  botConversation: {
+    input: { botId: string; threadId: string }
+    output: { id: string; title: string | null; threadId: string | null }
+  }
+  markBotRead: { input: { botId: string; threadId: string }; output: { read: boolean } }
+  markAllBotRead: { input: string; output: SidebarState }
+  editBot: { input: { botId: string; name: string; description: string }; output: { botId: string } }
+  duplicateBot: { input: { botId: string; name: string }; output: { botId: string } }
   shellState: { input: undefined; output: DesktopShellState }
   shellEnable: { input: ShellSettings; output: DesktopShellState }
   shellDisable: { input: undefined; output: DesktopShellState }
@@ -79,6 +111,7 @@ declare global {
         argument?: HostMethods[K]['input']
       ) => Promise<HostResult<HostMethods[K]['output']>>
       openWorkspace: () => Promise<void>
+      openPlatform: (payload: unknown) => Promise<boolean>
       setSidebarCollapsed: (collapsed: boolean) => void
       platform: string
     }

@@ -12,7 +12,7 @@ function createStorage(directory, encryption) {
           credentials = JSON.parse(encryption.decryptString(Buffer.from(state.encrypted, 'base64')))
           if (typeof credentials?.token !== 'string' || typeof credentials.refreshToken !== 'string') credentials = null
         }
-        return { config: state.config, credentials }
+        return { config: state.config, credentials, sidebars: state.sidebars }
       } catch {
         return null
       }
@@ -24,7 +24,9 @@ function createStorage(directory, encryption) {
           ? encryption.encryptString(JSON.stringify(state.credentials)).toString('base64')
           : null
       const temporary = `${file}.tmp`
-      fs.writeFileSync(temporary, JSON.stringify({ config: state.config, encrypted }), { mode: 0o600 })
+      fs.writeFileSync(temporary, JSON.stringify({ config: state.config, encrypted, sidebars: state.sidebars }), {
+        mode: 0o600
+      })
       fs.renameSync(temporary, file)
     }
   }

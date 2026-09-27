@@ -4,6 +4,7 @@ import { ModuleRef } from '@nestjs/core'
 import { AssistantModelSelectionService } from '../../xpert/assistant-model-selection.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { randomUUID } from 'crypto'
+import { t } from 'i18next'
 import {
     createRuntimeSkillCapabilityId,
     figureOutXpert,
@@ -95,6 +96,27 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             threadId: execution?.threadId ?? conversation?.threadId ?? normalizeOptionalString(input.threadId),
             errorMessage: execution?.error ?? conversation?.error
         }
+    }
+
+    /** Re-resolve the published graph so required-edge changes take effect without persisted instance IDs. */
+    async assertExternalAssistantBinding(input: {
+        requesterXpertId: string
+        requesterAgentKey: string
+        executorXpertId: string
+        expectation: { pluginName: string; templateKey: string; agentKey: string }
+    }): Promise<AgentMiddlewareExternalAssistantBinding> {
+        const binding = await this.resolveExternalAssistantTarget({
+            kind: 'external_assistant',
+            requesterXpertId: input.requesterXpertId,
+            requesterAgentKey: input.requesterAgentKey,
+            expectation: input.expectation
+        })
+        if (binding.xpertId !== input.executorXpertId) {
+            throw new Error(
+                `assistant_binding_executor_mismatch: ${t('server-ai:Error.ProjectAssistantBindingIncompatible')}`
+            )
+        }
+        return safeExternalAssistantBinding(binding)
     }
 
     /** Re-resolve the published graph so required-edge changes take effect without persisted instance IDs. */

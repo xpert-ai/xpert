@@ -1,3 +1,4 @@
+import type { ConversationNotice } from './assistant-list-types'
 import { t, useLocale, setLocale, localizeValidation, clearValidation } from './i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
@@ -17,6 +18,18 @@ export function App() {
   const [fatal, setFatal] = useState('')
   const [bots, setBots] = useState<Bot[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  const [initialThread, setInitialThread] = useState<string | null>(null)
+  const [notice, setNotice] = useState<ConversationNotice>()
+  const [selectionVersion, setSelectionVersion] = useState(0)
+  const selectBot = (id: string, threadId: string | null = null) => {
+    setSelected(id)
+    setInitialThread(threadId)
+    setSelectionVersion((value) => value + 1)
+    setNotice(undefined)
+  }
+  const onConversationRead = useCallback((botId: string, threadId: string | null) => {
+    setNotice((value) => ({ botId, threadId, revision: (value?.revision ?? 0) + 1 }))
+  }, [])
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [settings, setSettings] = useState(false)
@@ -80,6 +93,8 @@ export function App() {
     request.current++
     setBots([])
     setSelected(null)
+    setInitialThread(null)
+    setNotice(undefined)
     setCatalog(false)
     setError('')
     if (state?.profile?.organizationId) void loadBots()
@@ -136,7 +151,12 @@ export function App() {
             selected={selected}
             pending={pending}
             error={error}
-            onSelect={setSelected}
+            onSelect={selectBot}
+            notice={notice}
+            onBotSaved={async (id) => {
+              await loadBots()
+              selectBot(id)
+            }}
             onRefresh={() => void loadBots()}
             onSettings={() => setSettings(true)}
             onBrowse={() => setCatalog(true)}
@@ -157,7 +177,9 @@ export function App() {
           <main className="flex min-w-0 flex-1 flex-col">
             {bot ? (
               <ChatPanel
-                key={`${binding}:${bot.id}`}
+                key={`${binding}:${bot.id}:${selectionVersion}`}
+                initialThread={initialThread}
+                onConversationRead={onConversationRead}
                 bot={bot}
                 config={{ ...state.config, appearance, locale }}
                 dark={dark}

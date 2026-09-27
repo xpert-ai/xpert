@@ -1,43 +1,16 @@
 import { t } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@xpert-ai/shadcn-ui'
-import {
-  Bot as BotIcon,
-  ArrowLeft,
-  ArrowRight,
-  LoaderCircle,
-  PanelLeft,
-  Plus,
-  RefreshCw,
-  Search,
-  X
-} from 'lucide-react'
-import { avatarEmoji } from './avatar'
+import { ArrowLeft, ArrowRight, LoaderCircle, PanelLeft, Plus, RefreshCw, Search, X } from 'lucide-react'
+import { AssistantItem, type AssistantAction } from './AssistantItems'
+import { AssistantDialog } from './AssistantDialog'
+import { useAssistantList } from './useAssistantList'
+import { assistantRows, type AssistantRow } from './assistant-list-model'
+import { SidebarResizer } from './SidebarResizer'
+import type { ConversationNotice } from './assistant-list-types'
+import { invoke } from './host'
 import { UserMenu } from './UserMenu'
 import type { AppState, Bot } from './types'
-
-export function BotAvatar({ bot }: { bot: Bot }) {
-  const [failedUrl, setFailedUrl] = useState('')
-  const emoji = avatarEmoji(bot.avatarEmoji)
-  return (
-    <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-accent-foreground">
-      {bot.avatarUrl && failedUrl !== bot.avatarUrl ? (
-        <img
-          src={bot.avatarUrl}
-          alt=""
-          className="size-full object-cover"
-          onError={() => setFailedUrl(bot.avatarUrl!)}
-        />
-      ) : emoji ? (
-        <span aria-hidden="true" className="text-2xl leading-none">
-          {emoji}
-        </span>
-      ) : (
-        <BotIcon className="size-5" />
-      )}
-    </span>
-  )
-}
 
 export function Sidebar({
   state,
@@ -50,29 +23,110 @@ export function Sidebar({
   onOrganization,
   onSettings,
   onBrowse,
-  onLogout
+  onLogout,
+  notice,
+  onBotSaved
 }: {
   state: AppState
   bots: Bot[]
   selected: string | null
   pending: boolean
   error: string
-  onSelect: (id: string) => void
+  onSelect: (id: string, threadId?: string | null) => void
   onRefresh: () => void
   onOrganization: (id: string) => void
   onSettings: () => void
   onBrowse: () => void
   onLogout: () => void
+  notice?: ConversationNotice
+  onBotSaved: (id: string) => Promise<void>
 }) {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+  const list = useAssistantList(
+    `${state.config.apiUrl}:${state.profile?.user.id}:${state.profile?.organizationId}`,
+    bots.map((bot) => bot.id).join(','),
+    notice
+  )
+  const collapsed = list.sidebar.collapsed
+  const [dialog, setDialog] = useState<{ bot: Bot; mode: 'edit' | 'duplicate' | 'section' } | null>(null)
+  const [feedback, setFeedback] = useState('')
+  const setLayout = (width: number, collapsed: boolean) =>
+    list.setSidebar((current) => ({ ...current, width, collapsed }))
+  const saveLayout = (width: number, collapsed: boolean) =>
+    void list.run(() => list.update({ action: 'layout', width, collapsed }))
+  const setCollapsed = (value: boolean) => {
+    setLayout(list.sidebar.width, value)
+    saveLayout(list.sidebar.width, value)
+  }
+  const rows = assistantRows(bots, list.sidebar, list.activities, query)
+  const pinned = rows.filter((row) => !!row.preference?.pinnedAt)
+  const unpinned = rows.filter((row) => !row.preference?.pinnedAt)
+  const selectRow = (row: AssistantRow) => {
+    if (row.preference?.unreadAt)
+      void list.run(() => list.update({ action: 'unread', botId: row.bot.id, unread: false }))
+    onSelect(row.bot.id, row.activity?.latestUnreadThreadId || row.activity?.latestConversationThreadId || null)
+  }
+  const action = (row: AssistantRow, action: AssistantAction) => {
+    if (action === 'edit' || action === 'duplicate' || action === 'section') {
+      setDialog({ bot: row.bot, mode: action })
+      return
+    }
+    void list.run(async () => {
+      if (action === 'pin') await list.update({ action: 'pin', botId: row.bot.id, pinned: !row.preference?.pinnedAt })
+      if (action === 'unread') {
+        if (row.unread) {
+          list.setSidebar(await invoke('markAllBotRead', row.bot.id))
+          await list.refresh()
+        } else await list.update({ action: 'unread', botId: row.bot.id, unread: true })
+      }
+      if (action === 'copy') {
+        const threadId = notice?.botId === row.bot.id ? notice.threadId : null
+        const resolveId = async () => {
+          const id = threadId
+            ? (await invoke('botConversation', { botId: row.bot.id, threadId })).id
+            : row.activity?.latestConversationId
+          if (!id) throw new Error(t('No conversation is available yet.'))
+          return new Blob([id], { type: 'text/plain' })
+        }
+        await navigator.clipboard.write([new ClipboardItem({ 'text/plain': resolveId() })])
+        setFeedback(t('Conversation ID copied.'))
+      }
+    })
+  }
+  const renderRow = (row: AssistantRow, mode: 'list' | 'pinned' | 'compact' = 'list') => (
+    <AssistantItem
+      key={row.bot.id}
+      row={row}
+      mode={mode}
+      selected={selected}
+      sidebar={list.sidebar}
+      busy={list.busy}
+      onSelect={selectRow}
+      onAction={action}
+      onMove={(row, sectionId) => void list.run(() => list.update({ action: 'move', botId: row.bot.id, sectionId }))}
+    />
+  )
+  const sections = [
+    ...list.sidebar.sections.map((section) => ({
+      ...section,
+      rows: unpinned.filter((row) => row.preference?.sectionId === section.id)
+    })),
+    {
+      id: '',
+      name: t('Unassigned'),
+      rows: unpinned.filter(
+        (row) =>
+          !row.preference?.sectionId ||
+          !list.sidebar.sections.some((section) => section.id === row.preference?.sectionId)
+      )
+    }
+  ].sort((a, b) => Number(b.rows.some((row) => row.unread)) - Number(a.rows.some((row) => row.unread)))
   const [history, setHistory] = useState<{ ids: string[]; index: number }>({ ids: [], index: -1 })
   const searchInput = useRef<HTMLInputElement>(null)
   const searchButton = useRef<HTMLButtonElement>(null)
   const profile = state.profile!
   const organization = profile.organizations.find((org) => org.id === profile.organizationId)
-  const filtered = bots.filter((bot) => `${bot.name} ${bot.description}`.toLowerCase().includes(query.toLowerCase()))
   const isMac = window.xpertDesktop?.platform === 'darwin'
   useEffect(() => {
     window.xpertDesktop?.setSidebarCollapsed?.(collapsed)
@@ -94,7 +148,8 @@ export function Sidebar({
     if (!canNavigate(offset)) return
     const index = history.index + offset
     setHistory({ ...history, index })
-    onSelect(history.ids[index])
+    const row = assistantRows(bots, list.sidebar, list.activities, '').find((row) => row.bot.id === history.ids[index])
+    if (row) selectRow(row)
   }
   const closeSearch = () => {
     setQuery('')
@@ -104,22 +159,24 @@ export function Sidebar({
   return (
     <aside
       aria-label={t('Bot navigation')}
-      className={`flex h-full shrink-0 flex-col border-r bg-muted/35 ${collapsed ? 'w-[72px]' : 'w-[360px] max-[1100px]:w-[268px]'}`}
+      className="relative flex h-full shrink-0 flex-col border-r bg-muted/35"
+      style={{ width: collapsed ? 72 : `min(${list.sidebar.width}px, max(240px, calc(100vw - 360px)))` }}
     >
+      {!collapsed && <SidebarResizer width={list.sidebar.width} onChange={setLayout} onCommit={saveLayout} />}
       <div
         className={`window-drag flex shrink-0 gap-1 text-muted-foreground ${collapsed ? `justify-center ${isMac ? 'h-[88px] items-end pb-2' : 'h-[48px] items-center'}` : `h-[48px] items-center pr-4 ${isMac ? 'pt-[2px] pl-[88px]' : 'pl-5'}`}`}
       >
         <Button
           size="icon"
           variant="ghost"
-          className="size-8 shrink-0"
+          className={`shrink-0 ${collapsed ? 'size-12' : 'size-8'}`}
           aria-label={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}
           aria-expanded={!collapsed}
           aria-controls="bot-sidebar-content"
           title={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}
           onClick={() => setCollapsed(!collapsed)}
         >
-          <PanelLeft className="size-4" />
+          <PanelLeft className={collapsed ? 'size-5' : 'size-4'} />
         </Button>
         {!collapsed && (
           <>
@@ -153,7 +210,7 @@ export function Sidebar({
           <Button
             size="icon"
             variant="ghost"
-            className="mb-2 size-8 shrink-0 text-muted-foreground"
+            className="mb-2 size-12 shrink-0 text-muted-foreground"
             aria-label={t('Search Bots')}
             title={t('Search Bots')}
             onClick={() => {
@@ -161,7 +218,7 @@ export function Sidebar({
               setSearchOpen(true)
             }}
           >
-            <Search className="size-[18px]" />
+            <Search className="size-5" />
           </Button>
           <nav
             aria-label={t('Assistant avatars')}
@@ -171,7 +228,7 @@ export function Sidebar({
               <span
                 role="status"
                 aria-label={t('Loading assistants')}
-                className="flex size-14 shrink-0 items-center justify-center"
+                className="flex size-12 shrink-0 items-center justify-center"
               >
                 <LoaderCircle className="size-5 animate-spin text-muted-foreground" />
               </span>
@@ -188,20 +245,7 @@ export function Sidebar({
                 <RefreshCw />
               </Button>
             )}
-            {!pending &&
-              !error &&
-              bots.map((bot) => (
-                <button
-                  key={bot.id}
-                  aria-label={bot.name}
-                  title={`${bot.name}${bot.description ? ` · ${bot.description}` : ''}`}
-                  aria-current={selected === bot.id ? 'page' : undefined}
-                  onClick={() => onSelect(bot.id)}
-                  className={`flex size-14 shrink-0 items-center justify-center rounded-2xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selected === bot.id ? 'bg-primary/15 ring-1 ring-primary/40 ring-inset' : 'hover:bg-muted'}`}
-                >
-                  <BotAvatar bot={bot} />
-                </button>
-              ))}
+            {!pending && !error && [...pinned, ...unpinned].map((row) => renderRow(row, 'compact'))}
             {!pending && !error && (
               <Button
                 size="icon"
@@ -329,29 +373,40 @@ export function Sidebar({
               </Button>
             </div>
           )}
+          {list.error && (
+            <div className="px-2 py-2 text-xs text-destructive" role="alert">
+              {list.error}
+              <button className="ml-2 underline" onClick={() => void list.refresh()}>
+                {t('Retry')}
+              </button>
+            </div>
+          )}
+          {feedback && (
+            <p role="status" className="px-2 py-1 text-xs text-muted-foreground" onClick={() => setFeedback('')}>
+              {feedback}
+            </p>
+          )}
+          {!pending && !error && pinned.length > 0 && (
+            <section aria-label={t('Pinned assistants')} className="mb-3 border-b pb-3">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
+                {pinned.map((row) => renderRow(row, 'pinned'))}
+              </div>
+            </section>
+          )}
           {!pending &&
             !error &&
-            filtered.map((bot) => (
-              <button
-                key={bot.id}
-                onClick={() => onSelect(bot.id)}
-                aria-current={selected === bot.id ? 'page' : undefined}
-                className={`flex w-full items-center gap-[var(--desktop-avatar-gap)] rounded-xl px-2 py-[var(--desktop-row-padding)] text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected === bot.id ? 'bg-primary/10' : 'hover:bg-muted'}`}
-              >
-                <BotAvatar bot={bot} />
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block truncate text-sm leading-5 ${selected === bot.id ? 'font-semibold' : 'font-medium'}`}
-                  >
-                    {bot.name}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[0.8125rem] leading-5 text-muted-foreground">
-                    {bot.description || t('Start a chat with this Bot')}
-                  </span>
-                </span>
-              </button>
-            ))}
-          {!pending && !error && !filtered.length && (
+            sections.map(
+              (section) =>
+                section.rows.length > 0 && (
+                  <section key={section.id} aria-label={section.name}>
+                    {list.sidebar.sections.length > 0 && (
+                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">{section.name}</h3>
+                    )}
+                    <div className="space-y-[var(--desktop-row-gap)]">{section.rows.map((row) => renderRow(row))}</div>
+                  </section>
+                )
+            )}
+          {!pending && !error && !rows.length && (
             <p className="px-3 py-6 text-sm leading-6 text-muted-foreground">
               {query
                 ? t('No matching Bots.')
@@ -365,6 +420,19 @@ export function Sidebar({
           </div>
         </div>
       </div>
+      {dialog && (
+        <AssistantDialog
+          bot={dialog.bot}
+          mode={dialog.mode}
+          onClose={() => setDialog(null)}
+          onSidebar={list.setSidebar}
+          onSaved={async (id) => {
+            await onBotSaved(id)
+            list.setSidebar(await invoke('sidebarState'))
+            await list.refresh()
+          }}
+        />
+      )}
     </aside>
   )
 }
