@@ -157,7 +157,7 @@ export function Sidebar({
     >
       {!collapsed && <SidebarResizer width={list.sidebar.width} onChange={setLayout} onCommit={saveLayout} />}
       <div
-        className={`window-drag flex shrink-0 gap-1 text-muted-foreground ${collapsed ? `justify-center ${isMac ? 'h-[88px] items-end pb-2' : 'h-[48px] items-center'}` : `h-[48px] items-center pr-4 ${isMac ? 'pt-[2px] pl-[88px]' : 'pl-5'}`}`}
+        className={`window-drag flex shrink-0 gap-1 text-muted-foreground ${collapsed ? `justify-center ${isMac ? 'h-[88px] items-end' : 'h-[48px] items-center'}` : `h-[48px] items-center pr-4 ${isMac ? 'pt-[2px] pl-[88px]' : 'pl-5'}`}`}
       >
         <Button
           size="icon"
