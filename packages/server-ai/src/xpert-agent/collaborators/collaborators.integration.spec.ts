@@ -7,6 +7,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Logger } from '@nestjs/common'
 import {
     channelName,
+    ChatMessageEventTypeEnum,
     IEnvironment,
     IXpert,
     IXpertAgent,
@@ -36,6 +37,7 @@ import { NativeAgentRuntimeStrategy } from '../../agent-invocation/native-agent.
 import { MemoryInvocationStore } from '../../agent-invocation/invocation-test-store'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import { THREAD_REFERENCE_MIDDLEWARE_NAME } from '../../xpert-middleware/thread-reference.middleware'
 
 function fixture(
     settings: { dynamic?: boolean; interruptBefore?: boolean; interruptInside?: boolean; endNode?: boolean } = {}
@@ -174,7 +176,16 @@ function fixture(
     Object.defineProperties(handler, {
         invocationGraph: { value: runtime },
         runtimeResourceService: { value: resourceService },
-        agentMiddlewareRegistry: { value: { get: jest.fn() } }
+        // The graph now always constructs this gate; these fixtures have no thread references.
+        agentMiddlewareRegistry: {
+            value: {
+                get: jest.fn((name: string) =>
+                    name === THREAD_REFERENCE_MIDDLEWARE_NAME
+                        ? { createMiddleware: async () => ({ name: THREAD_REFERENCE_MIDDLEWARE_NAME }) }
+                        : undefined
+                )
+            }
+        }
     })
     const events: MessageEvent[] = []
     const controller = new AbortController()
@@ -278,9 +289,24 @@ describe('Collaborators middleware in the Agent graph', () => {
         expect([...f.executions.values()][0]).toMatchObject({
             parentId: 'parent-run',
             agentKey: 'reviewer',
-            metadata: { invocationKind: 'external_assistant', requesterXpertId: 'parent' }
+            metadata: { invocationKind: 'external_assistant', sourceToolCallId: 'call-1', requesterXpertId: 'parent' }
         })
         expect(f.events.length).toBeGreaterThanOrEqual(2)
+        for (const event of [ChatMessageEventTypeEnum.ON_AGENT_START, ChatMessageEventTypeEnum.ON_AGENT_END]) {
+            expect(f.events).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        data: expect.objectContaining({
+                            event,
+                            data: expect.objectContaining({
+                                parentId: 'parent-run',
+                                metadata: expect.objectContaining({ sourceToolCallId: 'call-1' })
+                            })
+                        })
+                    })
+                ])
+            )
+        }
         expect(f.command.options.mute).toContainEqual(['expert-1', 'private-step'])
         expect(f.childCommands[0].options).toMatchObject({
             leaderKey: 'leader',

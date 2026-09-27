@@ -15,7 +15,12 @@ describe('conversation agent run history', () => {
                         parentId: 'root',
                         threadId: 'source-thread',
                         category: 'agent',
-                        metadata: { invocationKind: 'external_assistant', assistantName: 'Reviewer', model: 'model-a' },
+                        metadata: {
+                            invocationKind: 'external_assistant',
+                            sourceToolCallId: 'call-1',
+                            assistantName: 'Reviewer',
+                            model: 'model-a'
+                        },
                         xpert: { id: 'reviewer', avatar: { emoji: { id: 'memo', unified: '1f4dd' } } }
                     },
                     { id: 'wrong-thread', parentId: 'root', threadId: 'other-thread', category: 'agent' }
@@ -28,7 +33,7 @@ describe('conversation agent run history', () => {
                         parentId: 'external',
                         threadId: 'source-thread',
                         category: 'agent',
-                        metadata: { invocationKind: 'sub_agent' }
+                        metadata: { invocationKind: 'sub_agent', sourceToolCallId: 'call-2' }
                     },
                     { id: 'root', parentId: 'external', threadId: 'source-thread', category: 'agent' }
                 ]
@@ -52,10 +57,17 @@ describe('conversation agent run history', () => {
             expect.objectContaining({
                 id: 'external',
                 invocationKind: 'external_assistant',
+                parentId: 'root',
+                sourceToolCallId: 'call-1',
                 model: 'model-a',
                 avatar: { emoji: { id: 'memo', unified: '1f4dd' } }
             }),
-            expect.objectContaining({ id: 'sub', invocationKind: 'sub_agent' })
+            expect.objectContaining({
+                id: 'sub',
+                invocationKind: 'sub_agent',
+                parentId: 'external',
+                sourceToolCallId: 'call-2'
+            })
         ])
         expect(result.has('human')).toBe(false)
         expect(result.has('sibling')).toBe(false)
@@ -93,6 +105,7 @@ describe('conversation agent run history', () => {
             createdAt: new Date('2026-01-01')
         })
         expect(summary.invocationKind).toBeUndefined()
+        expect(summary.sourceToolCallId).toBeUndefined()
         expect(summary.model).toBe('model-b')
         expect(summary.createdAt).toBe('2026-01-01T00:00:00.000Z')
         expect(summary).not.toHaveProperty('metadata')

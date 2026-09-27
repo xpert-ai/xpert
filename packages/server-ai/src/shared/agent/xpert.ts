@@ -142,6 +142,7 @@ export class XpertCollaborator implements IXpertSubAgent {
                     metadata: {
                         ...execution.metadata,
                         invocationKind: 'external_assistant' as const,
+                        sourceToolCallId: call?.id,
                         assistantName: xpert.title || xpert.name,
                         assistantAvatar: avatarForChat(xpert.avatar),
                         ...(configurable.xpertId ? { requesterXpertId: configurable.xpertId } : {}),
