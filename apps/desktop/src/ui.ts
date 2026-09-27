@@ -30,3 +30,5 @@ export * from '../../../packages/shadcn-ui/src/components/ui/context-menu'
 export { Textarea } from '../../../packages/shadcn-ui/src/components/ui/textarea'
 
 export * from '../../../packages/shadcn-ui/src/components/ui/hover-card'
+export * from '../../../packages/shadcn-ui/src/components/ui/command'
+export * from '../../../packages/shadcn-ui/src/components/ui/popover'

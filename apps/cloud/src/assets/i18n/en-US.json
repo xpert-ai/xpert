@@ -4389,6 +4389,10 @@
       "CopySkillCommand": "Copy skill command",
       "EditorVisibility": "Visibility",
       "WorkspaceScopeCommandsHelp": "Workspace prompts follow their expert associations and are enabled by default. You can explicitly disable a prompt for this expert; skill commands follow this command profile."
+    },
+    "Desktop": {
+      "ConnectionOrganizationMismatch": "Select the same organization as Desktop before continuing.",
+      "PluginWorkspaceHint": "From Desktop: {{workspace}}. Review the workspace selections below, then save availability."
     }
   },
   "STORY_DESIGNER": {

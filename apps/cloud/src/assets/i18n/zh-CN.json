@@ -4899,6 +4899,10 @@
       "Target": {
         "prompt_workflow": "提示词"
       }
+    },
+    "Desktop": {
+      "ConnectionOrganizationMismatch": "请先选择与 Desktop 相同的组织再继续。",
+      "PluginWorkspaceHint": "来自 Desktop：{{workspace}}。请核对下方工作空间选择，再保存可用范围。"
     }
   },
   "AUTH": {

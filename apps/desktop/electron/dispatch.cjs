@@ -32,6 +32,8 @@ const methods = new Set([
   'toolOutputPreview',
   'workbenchSession',
   'listCatalog',
+  'pluginLibrary',
+  'addWorkspacePlugin',
   'requestExpertAccess',
   'applicationSetup',
   'initializeApplication',

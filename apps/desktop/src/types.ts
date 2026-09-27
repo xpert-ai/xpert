@@ -1,3 +1,4 @@
+import type { PluginLibrary } from './plugin-library-types'
 import type { BotActivity, SidebarState, SidebarUpdate } from './assistant-list-types'
 import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
 import type { ToolOutputAttachmentPreview, ToolOutputImageAttachment } from '@xpert-ai/chatkit-types'
@@ -72,6 +73,11 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  pluginLibrary: { input: { workspaceId?: string }; output: PluginLibrary }
+  addWorkspacePlugin: {
+    input: { workspaceId: string; packageId: string; experts: { [reference: string]: string } }
+    output: { status: 'added' | 'already_added'; bindingId: string }
+  }
   botProfile: { input: string; output: AssistantProfile }
   botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
@@ -109,7 +115,7 @@ export interface HostMethods {
     input: Pick<ToolOutputImageAttachment, 'artifactId' | 'artifactVersionId' | 'sha256' | 'mimeType'>
     output: ToolOutputAttachmentPreview
   }
-  listCatalog: { input: CatalogKind; output: CatalogItem[] }
+  listCatalog: { input: Exclude<CatalogKind, 'plugins'>; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }

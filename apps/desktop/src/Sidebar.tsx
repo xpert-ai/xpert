@@ -253,7 +253,7 @@ export function Sidebar({
             variant="ghost"
             className="my-1 size-12 shrink-0"
             aria-label={t('Discover & add')}
-            title={t('Discover experts, apps and agent templates')}
+            title={t('Discover digital experts, apps, plugins and templates')}
             onClick={onBrowse}
           >
             <Plus />
@@ -344,7 +344,7 @@ export function Sidebar({
                 variant="ghost"
                 className="size-7"
                 aria-label={t('Discover & add')}
-                title={t('Discover experts, apps and agent templates')}
+                title={t('Discover digital experts, apps, plugins and templates')}
                 onClick={onBrowse}
               >
                 <Plus />

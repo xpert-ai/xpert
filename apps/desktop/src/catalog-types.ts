@@ -1,6 +1,6 @@
 import type { Bot } from './types'
 
-export type CatalogKind = 'experts' | 'applications' | 'templates'
+export type CatalogKind = 'experts' | 'applications' | 'plugins' | 'templates'
 interface CatalogBase extends Bot {
   publisher: string
   categories: string[]

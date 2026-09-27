@@ -7960,6 +7960,10 @@
       "Target": {
         "prompt_workflow": "提示词"
       }
+    },
+    "Desktop": {
+      "ConnectionOrganizationMismatch": "請先選擇與 Desktop 相同的組織再繼續。",
+      "PluginWorkspaceHint": "來自 Desktop：{{workspace}}。請核對下方工作空間選擇，再儲存可用範圍。"
     }
   },
   "ViewExtension": {

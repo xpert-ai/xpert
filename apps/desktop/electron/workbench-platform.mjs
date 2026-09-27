@@ -7,7 +7,16 @@ export function platformCommandUrl(webUrl, payload) {
   let path
   const query = new URLSearchParams()
   if (payload.target === 'platform.data-source.create') path = 'settings/data-sources'
-  else if (payload.target === 'agent-evolution.target' && id(payload.targetId))
+  else if (
+    payload.target === 'workspace.plugins.manage' &&
+    id(payload.organizationId) &&
+    (!payload.packageId || id(payload.packageId)) &&
+    (!payload.workspaceId || id(payload.workspaceId))
+  ) {
+    path = 'plugins'
+    query.set('category', 'agent-plugins')
+    for (const key of ['organizationId', 'packageId', 'workspaceId']) if (payload[key]) query.set(key, payload[key])
+  } else if (payload.target === 'agent-evolution.target' && id(payload.targetId))
     path = `agent-evolution/targets/${segment(payload.targetId)}`
   else if (payload.target === 'knowledgebase.documents' && id(payload.knowledgebaseId)) {
     if (payload.documentId !== undefined && !id(payload.documentId)) return null

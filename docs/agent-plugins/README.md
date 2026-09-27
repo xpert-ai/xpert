@@ -12,6 +12,16 @@
 
 Packages are organization-scoped. Runtime checks cover the organization, workspace, project, Assistant, resource and expert permissions. Users can select published package bindings and automatically discovered resources described below, and use connections configured by workspace administrators. Assistant access governs runtime use; users do not own Connector accounts.
 
+## Workspace editor additions in Desktop
+
+Discover & add > Plugins uses a searchable workspace combobox containing only current-organization workspaces the actor can edit. It adds already imported organization packages without opening the administrator page. Required logical expert references must be mapped to accessible published experts before adding.
+
+- `GET /api/agent-plugins/workspace-options`: editable workspace and authorized expert choices.
+- `GET /api/agent-plugins/workspaces/:id`: safe display catalog and workspace publication status; no source paths, MCP configuration or credentials.
+- `POST /api/agent-plugins/workspaces/:id/plugins`: `{ packageId, experts }`; returns `added` or `already_added` and `bindingId`.
+
+Each read/write checks workspace edit permission and organization scope. Addition targets exactly one workspace, uses the existing resource installer, preserves other workspace bindings and existing published versions, and cannot re-enable a disabled binding. A package-family/workspace advisory lock serializes repeated additions. Git/ZIP import, replacement, disabling and shared connection administration retain their existing administrator checks. Connector dependencies may need a workspace administrator to configure them first. Adding a plugin does not select it in a conversation; users select available capabilities in ChatKit afterward.
+
 ## 会话行为
 
 ### Automatic resource discovery

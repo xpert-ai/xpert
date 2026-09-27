@@ -1,3 +1,4 @@
+import { PluginCatalog } from './PluginCatalog'
 import { t } from './i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -22,8 +23,9 @@ import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLab
 import type { CatalogItem, CatalogKind } from './catalog-types'
 
 const tabs: { id: CatalogKind; label: string }[] = [
-  { id: 'experts', label: 'Experts' },
+  { id: 'experts', label: 'Digital experts' },
   { id: 'applications', label: 'Apps' },
+  { id: 'plugins', label: 'Plugins' },
   { id: 'templates', label: 'Agent templates' }
 ]
 
@@ -47,11 +49,18 @@ export function CatalogDialog({
   const [category, setCategory] = useState('all')
   const [selected, setSelected] = useState<CatalogItem | null>(null)
   const [busy, setBusy] = useState(false)
+  const [pluginRevision, setPluginRevision] = useState(0)
   const version = useRef(0)
   const reload = useCallback(async () => {
     const current = ++version.current
     setLoading(true)
     setError('')
+    if (kind === 'plugins') {
+      setItems([])
+      setLoading(false)
+      setPluginRevision((value) => value + 1)
+      return
+    }
     try {
       const result = await invoke('listCatalog', kind)
       if (current === version.current) setItems(result)
@@ -138,7 +147,7 @@ export function CatalogDialog({
             <DialogDescription className="truncate">
               {selected
                 ? statusLabel(selected)
-                : t('Add experts, apps and assistants to {{organization}}', { organization })}
+                : t('Discover digital experts, apps, plugins and templates for {{organization}}', { organization })}
             </DialogDescription>
           </div>
           <Button
@@ -170,7 +179,8 @@ export function CatalogDialog({
             className="min-h-0 flex-1 gap-0"
             value={kind}
             onValueChange={(value) => {
-              if (value === 'experts' || value === 'applications' || value === 'templates') setKind(value)
+              if (value === 'experts' || value === 'applications' || value === 'plugins' || value === 'templates')
+                setKind(value)
             }}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 pb-3">
@@ -183,7 +193,7 @@ export function CatalogDialog({
                     className="px-1 text-lg data-[state=active]:text-accent-foreground"
                   >
                     {t(tab.label)}
-                    {kind === tab.id && !loading && (
+                    {kind === tab.id && kind !== 'plugins' && !loading && (
                       <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span>
                     )}
                   </TabsTrigger>
@@ -211,152 +221,161 @@ export function CatalogDialog({
                 </Button>
               </div>
             </div>
-            <TabsContent
-              value={kind}
-              className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5 [scrollbar-gutter:stable]"
-            >
-              <div aria-label={t('Catalog categories')} className="mb-5 flex flex-wrap gap-1">
-                {[['all', t('All')], ...categories].map(([id, label]) => (
-                  <Button
-                    key={id}
-                    variant="ghost"
-                    size="sm"
-                    aria-pressed={category === id}
-                    className={category === id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
-                    onClick={() => setCategory(id)}
-                  >
-                    {t(label)}
-                  </Button>
-                ))}
-              </div>
-              {error && (
-                <div
-                  role="alert"
-                  className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-                >
-                  {error}
-                </div>
-              )}
-              {notice && (
-                <div role="status" className="mb-4 rounded-lg bg-accent p-3 text-sm text-accent-foreground">
-                  {notice}
-                </div>
-              )}
-              {loading ? (
-                <div
-                  role="status"
-                  className="flex h-56 items-center justify-center gap-2 text-sm text-muted-foreground"
-                >
-                  <LoaderCircle className="size-5 animate-spin" />
-                  {t('Loading {{section}}…', { section: t(tabs.find((tab) => tab.id === kind)?.label || '') })}
-                </div>
-              ) : filtered.length ? (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4" aria-busy={busy}>
-                  {filtered.map((item) => (
-                    <article
-                      key={item.id}
-                      tabIndex={0}
-                      aria-label={item.name}
-                      className="group/catalog relative isolate flex h-44 flex-col overflow-hidden rounded-xl border bg-background p-4 outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
+            {kind === 'plugins' ? (
+              <TabsContent value="plugins" className="flex min-h-0 flex-1 flex-col">
+                <PluginCatalog search={search} revision={pluginRevision} />
+              </TabsContent>
+            ) : (
+              <TabsContent
+                value={kind}
+                className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5 [scrollbar-gutter:stable]"
+              >
+                <div aria-label={t('Catalog categories')} className="mb-5 flex flex-wrap gap-1">
+                  {[['all', t('All')], ...categories].map(([id, label]) => (
+                    <Button
+                      key={id}
+                      variant="ghost"
+                      size="sm"
+                      aria-pressed={category === id}
+                      className={category === id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
+                      onClick={() => setCategory(id)}
                     >
-                      {item.kind === 'applications' && <ApplicationCardBackground screenshots={item.screenshots} />}
-                      <div className="mb-2 flex shrink-0 items-start gap-3">
-                        {item.kind === 'applications' ? (
-                          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-accent-foreground">
-                            <Layers className="size-6" />
-                          </span>
-                        ) : (
-                          <BotAvatar bot={item} />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <h3 className="line-clamp-2 text-base leading-5 font-semibold" title={item.name}>
-                            {item.kind === 'applications' ? (
-                              <button
-                                type="button"
-                                className="text-left outline-none hover:underline focus-visible:underline"
-                                disabled={busy}
-                                onClick={() => setSelected(item)}
-                              >
-                                {item.name}
-                              </button>
-                            ) : (
-                              item.name
-                            )}
-                          </h3>
-                          <p className="mt-1 truncate text-xs text-muted-foreground" title={item.publisher}>
-                            {item.publisher || 'Xpert'}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="mb-2 line-clamp-2 shrink-0 text-sm leading-5 text-muted-foreground">
-                        {item.description || t('Explore this assistant and start a new chat.')}
-                      </p>
-                      <div className="mt-auto flex shrink-0 flex-nowrap gap-1.5 overflow-hidden">
-                        {item.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            title={categoryLabel(tag)}
-                            className="min-w-0 truncate rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
-                          >
-                            {categoryLabel(tag)}
-                          </span>
-                        ))}
-                      </div>
-                      <div
-                        data-slot="catalog-card-actions"
-                        className="pointer-events-none absolute bottom-0 left-0 flex w-full translate-y-2 items-center justify-between gap-2 border-t bg-background px-4 py-3 opacity-0 transition-[opacity,transform] duration-150 group-hover/catalog:pointer-events-auto group-hover/catalog:translate-y-0 group-hover/catalog:opacity-100 group-focus-within/catalog:pointer-events-auto group-focus-within/catalog:translate-y-0 group-focus-within/catalog:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
-                      >
-                        {item.kind === 'applications' ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="-ml-2"
-                            disabled={busy}
-                            onClick={() => setSelected(item)}
-                          >
-                            {t('View details')}
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{statusLabel(item)}</span>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="shrink-0 hover:border-primary/50 hover:text-accent-foreground"
-                          disabled={busy || (item.kind === 'experts' && item.access === 'requested')}
-                          onClick={() => open(item)}
-                        >
-                          {actionLabel(item)}
-                          <ArrowUpRight className="size-3.5" />
-                        </Button>
-                      </div>
-                    </article>
+                      {t(label)}
+                    </Button>
                   ))}
                 </div>
-              ) : (
-                <div className="flex h-56 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-                  <Search className="size-7" />
-                  <p>
-                    {search || category !== 'all'
-                      ? t('No matching results')
-                      : t('No content available for this organization')}
-                  </p>
-                  {(search || category !== 'all') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSearch('')
-                        setCategory('all')
-                      }}
-                    >
-                      {t('Clear filters')}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </TabsContent>
+                {error && (
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+                  >
+                    {error}
+                  </div>
+                )}
+                {notice && (
+                  <div role="status" className="mb-4 rounded-lg bg-accent p-3 text-sm text-accent-foreground">
+                    {notice}
+                  </div>
+                )}
+                {loading ? (
+                  <div
+                    role="status"
+                    className="flex h-56 items-center justify-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <LoaderCircle className="size-5 animate-spin" />
+                    {t('Loading {{section}}…', { section: t(tabs.find((tab) => tab.id === kind)?.label || '') })}
+                  </div>
+                ) : filtered.length ? (
+                  <div
+                    className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4"
+                    aria-busy={busy}
+                  >
+                    {filtered.map((item) => (
+                      <article
+                        key={item.id}
+                        tabIndex={0}
+                        aria-label={item.name}
+                        className="group/catalog relative isolate flex h-44 flex-col overflow-hidden rounded-xl border bg-background p-4 outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {item.kind === 'applications' && <ApplicationCardBackground screenshots={item.screenshots} />}
+                        <div className="mb-2 flex shrink-0 items-start gap-3">
+                          {item.kind === 'applications' ? (
+                            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-accent-foreground">
+                              <Layers className="size-6" />
+                            </span>
+                          ) : (
+                            <BotAvatar bot={item} />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h3 className="line-clamp-2 text-base leading-5 font-semibold" title={item.name}>
+                              {item.kind === 'applications' ? (
+                                <button
+                                  type="button"
+                                  className="text-left outline-none hover:underline focus-visible:underline"
+                                  disabled={busy}
+                                  onClick={() => setSelected(item)}
+                                >
+                                  {item.name}
+                                </button>
+                              ) : (
+                                item.name
+                              )}
+                            </h3>
+                            <p className="mt-1 truncate text-xs text-muted-foreground" title={item.publisher}>
+                              {item.publisher || 'Xpert'}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="mb-2 line-clamp-2 shrink-0 text-sm leading-5 text-muted-foreground">
+                          {item.description || t('Explore this assistant and start a new chat.')}
+                        </p>
+                        <div className="mt-auto flex shrink-0 flex-nowrap gap-1.5 overflow-hidden">
+                          {item.tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              title={categoryLabel(tag)}
+                              className="min-w-0 truncate rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+                            >
+                              {categoryLabel(tag)}
+                            </span>
+                          ))}
+                        </div>
+                        <div
+                          data-slot="catalog-card-actions"
+                          className="pointer-events-none absolute bottom-0 left-0 flex w-full translate-y-2 items-center justify-between gap-2 border-t bg-background px-4 py-3 opacity-0 transition-[opacity,transform] duration-150 group-hover/catalog:pointer-events-auto group-hover/catalog:translate-y-0 group-hover/catalog:opacity-100 group-focus-within/catalog:pointer-events-auto group-focus-within/catalog:translate-y-0 group-focus-within/catalog:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+                        >
+                          {item.kind === 'applications' ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="-ml-2"
+                              disabled={busy}
+                              onClick={() => setSelected(item)}
+                            >
+                              {t('View details')}
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{statusLabel(item)}</span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0 hover:border-primary/50 hover:text-accent-foreground"
+                            disabled={busy || (item.kind === 'experts' && item.access === 'requested')}
+                            onClick={() => open(item)}
+                          >
+                            {actionLabel(item)}
+                            <ArrowUpRight className="size-3.5" />
+                          </Button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex h-56 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+                    <Search className="size-7" />
+                    <p>
+                      {search || category !== 'all'
+                        ? t('No matching results')
+                        : t('No content available for this organization')}
+                    </p>
+                    {(search || category !== 'all') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSearch('')
+                          setCategory('all')
+                        }}
+                      >
+                        {t('Clear filters')}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </DialogContent>
