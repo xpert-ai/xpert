@@ -88,7 +88,7 @@
         "playwright": "^1.50.1",
         "python-shell": "5.0.0",
         "react-markdown": "10.1.0",
-        "reflect-metadata": "^0.1.13",
+        "reflect-metadata": "^0.2.2",
         "remark-gfm": "4.0.1",
         "rxjs": "~7.8.0",
         "sharp": "^0.33.5",
