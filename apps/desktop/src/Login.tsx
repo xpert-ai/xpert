@@ -2,7 +2,8 @@ import { t } from './i18n'
 import { useState } from 'react'
 import { Button, Input, Label } from '@xpert-ai/shadcn-ui'
 import { ArrowRight, LoaderCircle, Settings2, ShieldCheck } from 'lucide-react'
-import { XpertLogo } from './XpertLogo'
+import { BrandLogo } from './branding/BrandLogo'
+import branding from '../electron/branding.json'
 import { invoke } from './host'
 import type { AppState } from './types'
 
@@ -37,12 +38,15 @@ export function Login({
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-8 py-10">
         <div className="w-full max-w-sm">
           <div className="mb-10 flex items-center gap-3">
-            <XpertLogo className="size-10 text-foreground" />
-            <span className="text-2xl font-semibold tracking-tight">Xpert</span>
+            <BrandLogo className="size-14" />
+            <div>
+              <div className="text-2xl font-semibold tracking-tight">{branding.fullName}</div>
+              <p className="mt-1 text-sm text-muted-foreground">{t('Your AI team leader.')}</p>
+            </div>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('Work with your Bots')}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('You set the goal. Bosi leads the team.')}</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {t('Sign in to Xpert to continue your chats and work.')}
+            {t('Sign in with your Xpert account to get started.')}
           </p>
           <form
             className="mt-8 space-y-5"

@@ -7,6 +7,7 @@ const { resources, languages, normalizeLocale, translate, localizedText } = requ
 const { DesktopService, DEFAULT_CONFIG, parseConfig } = require('../electron/service.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const { menuTemplate } = require('../electron/menu.cjs')
+const branding = require('../electron/branding.json')
 
 const placeholders = (value) => [...value.matchAll(/\{\{(\w+)\}\}/g)].map((match) => match[1]).sort()
 
@@ -62,7 +63,7 @@ test('desktop source messages and native menus have translations; JSX cannot int
     const labels = (entries) =>
       entries.flatMap((entry) => [entry.label, ...(entry.submenu ? labels(entry.submenu) : [])]).filter(Boolean)
     for (const label of labels(menuTemplate(locale))) {
-      assert.ok(label === 'Xpert' || Object.values(resources[locale]).includes(label), label)
+      assert.ok(label === branding.name || Object.values(resources[locale]).includes(label), label)
     }
   }
 })

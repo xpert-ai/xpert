@@ -37,7 +37,7 @@
   },
   "build": {
     "appId": "ai.xpert.desktop",
-    "productName": "Xpert",
+    "productName": "Bosi",
     "directories": {
       "output": "release"
     },
@@ -68,7 +68,7 @@
       "category": "Office"
     }
   },
-  "description": "Xpert desktop client with a React sidebar and hosted ChatKit workspace",
+  "description": "Xpert Bosi - Your AI team leader.",
   "author": "XpertAI",
   "license": "AGPL-3.0",
   "dependencies": {

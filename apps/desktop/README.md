@@ -1,4 +1,10 @@
-# Xpert Desktop
+# Xpert Bosi
+
+**Bosi** is your AI team leader. **You set the goal. Bosi leads the team.**
+
+**日常称呼：Bosi · 完整名称：Xpert Bosi · 定位：你的 AI 小队长 · 宣传语：你定目标，Bosi 带队。**
+
+See [brand naming and compatibility](docs/branding.md).
 
 Electron + React 19 + the repository's shadcn/ui primitives. The client owns a
 Sidebar and a Right Content Panel. The right panel embeds the official
@@ -30,7 +36,7 @@ overridden by the desktop client.
 
 ## Run
 
-Desktop branding lives in `resources/`: `logo.svg` is the theme-aware login mark;
+Bosi branding lives in `resources/`: `icon-macos.png` supplies the login mark;
 `logo.png` supplies the favicon and Windows/Linux application icons. On macOS,
 `icon-macos.svg` frames the supplied PNG tile with transparent margins;
 its 1024px RGBA export, `icon-macos.png`, supplies the development Dock icon.

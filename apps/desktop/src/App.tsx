@@ -52,7 +52,7 @@ export function App() {
     try {
       setState(await invoke('state'))
     } catch (error) {
-      setFatal(error instanceof Error ? error.message : t('Could not load Xpert.'))
+      setFatal(error instanceof Error ? error.message : t('Could not load Bosi.'))
     }
   }, [])
   useEffect(() => {
@@ -135,7 +135,7 @@ export function App() {
         ) : (
           <>
             <LoaderCircle className="size-5 animate-spin" />
-            {t('Opening Xpert…')}
+            {t('Opening Bosi…')}
           </>
         )}
       </div>

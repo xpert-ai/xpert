@@ -10,7 +10,10 @@ const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
 const { installAvatarPointer } = require('./avatar-pointer.cjs')
 
-app.setName('Xpert')
+const branding = require('./branding.json')
+
+// Keep the existing profile and OS encryption identity when changing the display brand.
+app.setName(branding.storageName)
 // A separate profile supports local acceptance without touching the daily app account.
 if (process.env.XPERT_DESKTOP_USER_DATA) app.setPath('userData', path.resolve(process.env.XPERT_DESKTOP_USER_DATA))
 const devUrl = !app.isPackaged ? process.env.XPERT_DESKTOP_DEV_URL : null
@@ -45,13 +48,24 @@ function allowClipboardWrite(contents, permission, source) {
   }
 }
 
+function updateApplicationMenu() {
+  const locale = service.config.locale
+  app.setAboutPanelOptions({
+    applicationName: branding.fullName,
+    applicationVersion: app.getVersion(),
+    iconPath: appIcon,
+    credits: `${translate(locale, 'Your AI team leader.')}\n${translate(locale, 'You set the goal. Bosi leads the team.')}`
+  })
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(locale)))
+}
+
 function createWindow() {
   window = new BrowserWindow({
     width: 1440,
     height: 1024,
     minWidth: 860,
     minHeight: 640,
-    title: 'Xpert',
+    title: branding.name,
     icon: appIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 18 },
@@ -106,7 +120,7 @@ else {
     session.defaultSession.setPermissionCheckHandler((contents, permission, origin) =>
       allowClipboardWrite(contents, permission, origin)
     )
-    Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(service.config.locale)))
+    updateApplicationMenu()
     ipcMain.handle('xpert:request', async (event, method, argument) => {
       if (!trusted(event))
         return {
@@ -123,8 +137,7 @@ else {
         app.focus({ steal: true })
         window?.focus()
       }
-      if (method === 'configure' && result.ok)
-        Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(service.config.locale)))
+      if (method === 'configure' && result.ok) updateApplicationMenu()
       return result
     })
     ipcMain.handle('xpert:open-workspace', (event) => {

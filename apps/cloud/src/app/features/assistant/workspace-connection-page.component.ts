@@ -18,7 +18,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
       <div class="w-full max-w-[480px]">
         <div class="mb-6 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
           <z-icon zType="monitor" zSize="sm" aria-hidden="true" />
-          <span>Xpert Desktop</span>
+          <span>Xpert Bosi</span>
         </div>
         <section
           aria-labelledby="connection-title"
@@ -53,7 +53,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
                   | translate
                     : {
                         Default:
-                          'Complete the service connection here. Desktop will return automatically when it is ready.'
+                          'Complete the service connection here. Bosi will return automatically when it is ready.'
                       }
               }}
             </p>
@@ -62,14 +62,14 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
                 <p role="alert" class="text-sm leading-6 text-destructive">
                   {{
                     'XP.Desktop.ConnectionInvalidLink'
-                      | translate: { Default: 'This connection link is incomplete. Open it again from Desktop.' }
+                      | translate: { Default: 'This connection link is incomplete. Open it again from Bosi.' }
                   }}
                 </p>
               } @else if (!assistantId()) {
                 <p role="alert" class="text-sm leading-6 text-destructive">
                   {{
                     'XP.Desktop.ConnectionOrganizationMismatch'
-                      | translate: { Default: 'Select the same organization as Desktop before continuing.' }
+                      | translate: { Default: 'Select the same organization as Bosi before continuing.' }
                   }}
                 </p>
               } @else if (error()) {
@@ -79,7 +79,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
                 <p role="status" class="text-sm font-medium text-primary">
                   {{
                     'XP.Desktop.ConnectionAutoReady'
-                      | translate: { Default: 'Connected. Desktop is checking the result. You may close this tab.' }
+                      | translate: { Default: 'Connected. Bosi is checking the result. You may close this tab.' }
                   }}
                 </p>
               } @else if (busy()) {
@@ -104,7 +104,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
                   | translate
                     : {
                         Default:
-                          'Your draft stays in Desktop. Connecting a shared service requires workspace management permission.'
+                          'Your draft stays in Bosi. Connecting a shared service requires workspace management permission.'
                       }
               }}
             </p>
@@ -113,7 +113,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
         <div class="mt-6 flex items-center justify-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
           <span>{{ 'XP.Desktop.ConnectionAuthorizeStep' | translate: { Default: 'Authorize service' } }}</span>
           <z-icon zType="arrow-right" zSize="sm" />
-          <span>{{ 'XP.Desktop.ConnectionReturnStep' | translate: { Default: 'Return to Desktop' } }}</span>
+          <span>{{ 'XP.Desktop.ConnectionReturnStep' | translate: { Default: 'Return to Bosi' } }}</span>
         </div>
       </div>
     </main>

@@ -10239,20 +10239,20 @@
     },
     "Desktop": {
       "ConnectWorkspaceService": "连接工作空间服务",
-      "ConnectionReturnHint": "连接服务后，请返回 Desktop 检查连接。消息草稿保留在 Desktop 中。",
-      "ConnectionOrganizationMismatch": "请先选择与 Desktop 相同的组织再继续。",
-      "ConnectionReady": "连接成功。请返回 Desktop 继续。",
+      "ConnectionReturnHint": "连接服务后，请返回 Bosi 检查连接。消息草稿保留在 Bosi 中。",
+      "ConnectionOrganizationMismatch": "请先选择与 Bosi 相同的组织再继续。",
+      "ConnectionReady": "连接成功。请返回 Bosi 继续。",
       "ConfigureConnection": "配置工作空间连接",
-      "PluginWorkspaceHint": "来自 Desktop：{{workspace}}。请核对下方工作空间选择，再保存可用范围。",
-      "ConnectionAutoReturnHint": "请在此完成服务连接，连接成功后将自动回到 Desktop。",
-      "ConnectionAutoReady": "连接成功，Desktop 正在检查结果。可以关闭此标签页。",
+      "PluginWorkspaceHint": "来自 Bosi：{{workspace}}。请核对下方工作空间选择，再保存可用范围。",
+      "ConnectionAutoReturnHint": "请在此完成服务连接，连接成功后将自动回到 Bosi。",
+      "ConnectionAutoReady": "连接成功，Bosi 正在检查结果。可以关闭此标签页。",
       "ConnectionOpening": "正在打开服务连接…",
       "ConnectionComplete": "连接成功",
       "ConnectionContinue": "继续连接",
-      "ConnectionInvalidLink": "连接链接不完整，请从 Desktop 重新发起。",
-      "ConnectionDraftSafe": "消息草稿保留在 Desktop 中。配置共享服务需要相应工作空间的管理权限。",
+      "ConnectionInvalidLink": "连接链接不完整，请从 Bosi 重新发起。",
+      "ConnectionDraftSafe": "消息草稿保留在 Bosi 中。配置共享服务需要相应工作空间的管理权限。",
       "ConnectionAuthorizeStep": "完成服务授权",
-      "ConnectionReturnStep": "返回 Desktop"
+      "ConnectionReturnStep": "返回 Bosi"
     }
   },
   "ViewExtension": {

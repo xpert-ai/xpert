@@ -135,7 +135,7 @@ This opt-in test signs in using the existing local Keychain convention (or
 command in a temporary directory, checks the actual file, revokes access and removes
 its local fixture. It does not create or modify an Assistant.
 
-The output is `apps/desktop/release/mac-arm64/Xpert.app`. `XPERT_DESKTOP_USER_DATA`
+The output is `apps/desktop/release/mac-arm64/Bosi.app`. `XPERT_DESKTOP_USER_DATA`
 can select a separate absolute profile directory for testing without replacing the
 normal account. No system Node/pnpm is required to run the packaged Worker.
 
