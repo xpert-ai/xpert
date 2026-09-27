@@ -201,7 +201,10 @@ test('installs roles first and publishes an Orchestrator with one direct require
       )
       return
     }
-    if (request.method === 'GET' && request.url === '/api/xpert/orchestrator-id/team') {
+    if (
+      request.method === 'GET' &&
+      ['/api/xpert/orchestrator-id/team', '/api/xpert/orchestrator-id'].includes(request.url)
+    ) {
       const item = installed.get('orchestrator-id')
       const draft = {
         team: {
@@ -222,7 +225,7 @@ test('installs roles first and publishes an Orchestrator with one direct require
             templateKey: 'orchestrator',
             agentKey: 'Agent_LifecycleOrchestrator',
             version: published ? 1 : null,
-            draft,
+            draft: request.url.endsWith('/team') ? undefined : draft,
             graph: published ? { nodes: savedDraft.nodes, connections: savedDraft.connections } : undefined
           })
         )
@@ -304,9 +307,13 @@ test('refreshes an exact existing suite, restores required bindings, and republi
     if (request.method === 'GET' && request.url.startsWith('/api/xpert/by-workspace/')) {
       const data = JSON.parse(new URL(request.url, server.url).searchParams.get('data'))
       const isOrchestrator = data.where.name === 'test-orchestrator-refresh-01'
+      assert.equal(data.where.latest, true)
       response.end(
         JSON.stringify({
-          items: [{ id: isOrchestrator ? 'orchestrator-id' : 'role-id', name: data.where.name }]
+          items: [
+            { id: 'historical-version', name: data.where.name, latest: false },
+            { id: isOrchestrator ? 'orchestrator-id' : 'role-id', name: data.where.name, latest: true }
+          ]
         })
       )
       return
