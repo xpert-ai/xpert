@@ -1,4 +1,5 @@
 {
+    "Project": { "ConversationProjectName": "{{assistant}} 项目" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
     "Error": {
         "AgentToolChoiceReservedName": "当前模型适配器无法强制调用与工具选择保留字同名的工具：{{name}}",
@@ -618,6 +619,7 @@
         "ProjectAdvancedModeDowngradeUnsupported": "高级模式项目不能降级为简单模式。",
         "ProjectArchived": "该项目已归档。",
         "ProjectConversationUnavailable": "项目会话当前不可用。",
+        "ProjectAutoCreateUnavailable": "此助手不支持自动创建项目。",
         "ProjectConversationXpertRequired": "项目会话必须指定数字专家 ID。",
         "ProjectAdminInterventionInvalid": "项目管理员介入必须填写原因。",
         "ProjectAdminInterventionPermissionRequired": "介入此项目需要组织用户管理权限。",

@@ -6,6 +6,7 @@ export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum 
 export type * from '@xpert-ai/chatkit-types'
 export type { IconDefinition, IconType } from '../types'
 export type { TChatRequest } from './xpert-chat.model'
+export type { ProjectSelection } from './project-selection.model'
 export { CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED } from './chat-event.model'
 export * from './assistant-binding.model'
 export * from './assistant-model.model'

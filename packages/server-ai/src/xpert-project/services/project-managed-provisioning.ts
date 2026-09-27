@@ -86,9 +86,11 @@ export async function ensureManagedProject(
         project.xperts = requiredXperts
         project = await store.repository.save(project)
     } else {
-        // Bid/business state is authoritative while existing Assistant
-        // connections are preserved and de-duplicated.
-        project.name = name
+        // Reconcile a conversation-created name once. Subsequent provisioning
+        // must preserve user naming, including changes before the first ensure.
+        const bootstrap = project.settings?.conversationBootstrap
+        if (!bootstrap || (!bootstrap.nameResolved && project.name === bootstrap.initialName)) project.name = name
+        if (bootstrap) bootstrap.nameResolved = true
         project.status = input.status
         project.xperts ??= []
         await store.bindings.normalize(project)

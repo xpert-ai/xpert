@@ -66,6 +66,42 @@ describe('XpertProjectService managed provisioning', () => {
         expect(harness.content.initialize).toHaveBeenCalledWith(harness.createdProject)
     })
 
+    it('replaces a provisional conversation name once and preserves subsequent user naming', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const project = harness.createdProject
+        project.name = 'Bid project'
+        project.settings = { conversationBootstrap: { conversationId: 'conversation', initialName: project.name } }
+        harness.repository.findOne.mockResolvedValue(project)
+        const input = {
+            projectId: project.id,
+            xpertId: requester.id,
+            name: 'Tender project',
+            status: 'active' as const
+        }
+        await harness.service.ensureManagedProject(input)
+        expect(project.name).toBe('Tender project')
+        project.name = 'User name'
+        await harness.service.ensureManagedProject(input)
+        expect(project.name).toBe('User name')
+    })
+
+    it('preserves a name edited before the business app first provisions the conversation Project', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const project = harness.createdProject
+        project.name = 'User name'
+        project.settings = { conversationBootstrap: { conversationId: 'conversation', initialName: 'Bid project' } }
+        harness.repository.findOne.mockResolvedValue(project)
+        await harness.service.ensureManagedProject({
+            projectId: project.id,
+            xpertId: requester.id,
+            name: 'Tender',
+            status: 'active'
+        })
+        expect(project.name).toBe('User name')
+    })
+
     it('connects the requester and every validated direct required External Assistant in one save', async () => {
         const role = buildRole()
         const requester = buildRequester([role.id])

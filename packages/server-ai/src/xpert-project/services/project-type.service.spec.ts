@@ -119,6 +119,22 @@ describe('application Project types', () => {
         ).rejects.toThrow()
         await expect(fixture().service.forEnsure(null, undefined, xpert, 'project', desired)).resolves.toEqual({})
     })
+    it('preserves a chat-created generic Project when a legacy client adds Assistant bindings', async () => {
+        const project = { applicationKey: 'platform', projectTypeKey: 'general' } as XpertProject
+        await expect(fixture().service.forEnsure(project, undefined, xpert, 'project', desired)).resolves.toEqual({})
+        expect(project).toMatchObject({ applicationKey: 'platform', projectTypeKey: 'general' })
+    })
+    it('does not treat another platform type as the generic compatibility case', async () => {
+        await expect(
+            fixture().service.forEnsure(
+                { applicationKey: 'platform', projectTypeKey: 'other' } as XpertProject,
+                undefined,
+                xpert,
+                'project',
+                desired
+            )
+        ).rejects.toThrow()
+    })
     it('does not allow another plugin provider to impersonate the type owner', async () => {
         const { service, registry, provider } = fixture()
         registry.unregister('automotive-case', { kind: 'plugin', pluginName: '@example/automotive', scopeKey: 'org' })

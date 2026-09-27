@@ -183,7 +183,13 @@ export class XpertProjectTypeService {
         desired: { name: string; status: 'active' | 'archived' }
     ) {
         if (!ref) {
-            if (project?.applicationKey) throw new ConflictException(t('server-ai:Error.ProjectTypeConflict'))
+            // Chat-created generic Projects remain usable by existing provisioning clients.
+            // Preserve their explicit classification; application-owned types still require a matching ref.
+            const isGeneral =
+                project?.applicationKey === GENERAL_PROJECT_TYPE.applicationKey &&
+                project.projectTypeKey === GENERAL_PROJECT_TYPE.projectTypeKey
+            if (project?.applicationKey && !isGeneral)
+                throw new ConflictException(t('server-ai:Error.ProjectTypeConflict'))
             return {}
         }
         if (
