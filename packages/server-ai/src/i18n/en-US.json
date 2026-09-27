@@ -1,6 +1,9 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "ToolImageInvalid": "The tool image is invalid, unsupported or exceeds the image limit.",
+        "ToolImageUnavailable": "The tool image is unavailable in this conversation or its content has changed. Capture a new image.",
+        "ToolImageBatchLimit": "At most three tool images can be inspected in one model step.",
         "FileChangeMessageUnavailable": "The message is unavailable.",
         "FilePresentationConversation": "An active conversation is required to present files.",
         "FilePresentationSandbox": "A sandbox is required to present workspace files.",
