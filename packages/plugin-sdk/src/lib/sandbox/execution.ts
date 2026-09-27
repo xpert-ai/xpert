@@ -1,11 +1,14 @@
 export interface SandboxExecutionOptions {
   timeoutMs?: number
   maxOutputBytes?: number
+  /** Request cancellation; the backend must implement guest process termination. */
+  signal?: AbortSignal
 }
 
 export interface ResolvedSandboxExecutionOptions {
   timeoutMs: number
   maxOutputBytes: number
+  signal?: AbortSignal
 }
 
 export const SANDBOX_SHELL_TIMEOUT_LIMITS_SEC = {
@@ -80,6 +83,7 @@ export function resolveSandboxExecutionOptions(
 
   return {
     timeoutMs,
-    maxOutputBytes
+    maxOutputBytes,
+    ...(options?.signal ? { signal: options.signal } : {})
   }
 }

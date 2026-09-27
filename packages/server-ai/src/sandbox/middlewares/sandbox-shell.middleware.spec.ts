@@ -3,6 +3,8 @@ import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { DEFAULT_SANDBOX_SHELL_TIMEOUT_MS, ExecuteResponse } from '@xpert-ai/plugin-sdk'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { SandboxShellMiddleware } from './sandbox-shell.middleware'
+import { AIMessage, SystemMessage } from '@langchain/core/messages'
+import { FakeListChatModel } from '@langchain/core/utils/testing'
 
 jest.mock('@langchain/core/callbacks/dispatch', () => ({
     dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
@@ -33,6 +35,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     return {
         __esModule: true,
         BaseSandbox,
+        DEFAULT_SANDBOX_EXECUTION_MAX_OUTPUT_BYTES: 1024 * 1024,
         DEFAULT_SANDBOX_SHELL_TIMEOUT_SEC: 600,
         DEFAULT_SANDBOX_SHELL_TIMEOUT_MS: 600000,
         SANDBOX_SHELL_TIMEOUT_LIMITS_SEC: {
@@ -113,6 +116,46 @@ describe('SandboxShellMiddleware', () => {
         jest.clearAllMocks()
     })
 
+    it('adds backend guarantees to model context without changing legacy backends or adding tools', async () => {
+        const middleware = await new SandboxShellMiddleware({ persist: jest.fn() }).createMiddleware(
+            {},
+            {
+                tenantId: 'tenant',
+                userId: 'user',
+                xpertFeatures: createXpertFeatures(),
+                node: { id: 'shell', key: 'shell', type: WorkflowNodeTypeEnum.MIDDLEWARE, provider: 'SandboxShell' },
+                runtime: {} as never,
+                tools: new Map()
+            }
+        )
+        const handler = jest.fn().mockResolvedValue(new AIMessage('ok'))
+        const backend = {
+            id: 'test',
+            execute: jest.fn(),
+            executionEnvironment: {
+                homeDirectory: '/home/custom',
+                persistentDirectories: ['/home/custom'],
+                canInstallSystemPackages: false
+            }
+        }
+        const request = {
+            model: new FakeListChatModel({ responses: ['unused'] }),
+            messages: [],
+            systemMessage: new SystemMessage('Original'),
+            tools: [],
+            state: { messages: [] },
+            runtime: { configurable: { sandbox: { backend } } }
+        }
+        await middleware.wrapModelCall?.(request, handler)
+        expect(handler.mock.calls[0][0].systemMessage.content).toContain('/home/custom')
+        expect(request.systemMessage.content).toBe('Original')
+        expect(backend.execute).not.toHaveBeenCalled()
+        const legacy = { ...request, runtime: {} }
+        await middleware.wrapModelCall?.(legacy, handler)
+        expect(handler.mock.calls[1][0]).toBe(legacy)
+        expect(middleware.tools.map((item) => item.name)).toEqual(['sandbox_shell'])
+    })
+
     it('requires the sandbox xpert feature before creating middleware', async () => {
         const middleware = new SandboxShellMiddleware({ persist: jest.fn() })
 
@@ -191,6 +234,20 @@ describe('SandboxShellMiddleware', () => {
             timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS
         })
         expect(dispatchCustomEvent).toHaveBeenCalled()
+    })
+
+    it('forwards cancellation to the same backend without adding model tool parameters', async () => {
+        const shell = await createTool('sandbox_shell')
+        const controller = new AbortController()
+        const backend = createBackend({ output: 'ok', exitCode: 0, truncated: false })
+        await shell.invoke(
+            { command: 'echo ok' },
+            { signal: controller.signal, configurable: { sandbox: { backend } } }
+        )
+        expect(backend.streamExecute).toHaveBeenCalledWith('echo ok', expect.any(Function), {
+            timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS,
+            signal: controller.signal
+        })
     })
 
     it('passes timeout_sec overrides through to the backend', async () => {

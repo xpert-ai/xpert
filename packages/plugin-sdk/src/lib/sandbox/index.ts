@@ -1,4 +1,5 @@
 export * from './execution'
+export * from './execution-environment'
 export * from './managed-service'
 export * from './protocol'
 export * from './sandbox'

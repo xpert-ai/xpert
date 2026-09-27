@@ -20,6 +20,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
 import { observeFileChanges } from './file-activity'
 import { FILE_PRESENTATION_DESCRIPTION } from './file-presentation-format'
+import { withSandboxExecutionContext } from './sandbox-execution-context'
 
 const SANDBOX_SHELL_MIDDLEWARE_NAME = 'SandboxShell'
 const SANDBOX_SHELL_TOOL_NAME = 'sandbox_shell'
@@ -137,7 +138,10 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
                     SANDBOX_SHELL_TOOL_NAME,
                     command,
                     observedBackend,
-                    { timeoutMs: secondsToMilliseconds(timeoutSec) }
+                    {
+                        timeoutMs: secondsToMilliseconds(timeoutSec),
+                        ...(config.signal ? { signal: config.signal } : {})
+                    }
                 )
 
                 if (result.timedOut) {
@@ -165,7 +169,16 @@ Do not use this tool to background a long-running server with &, nohup, or disow
 
         return {
             name: SANDBOX_SHELL_MIDDLEWARE_NAME,
-            tools: [shellTool]
+            tools: [shellTool],
+            wrapModelCall: (request, handler) => {
+                const backend = resolveSandboxBackend(request.runtime.configurable?.sandbox)
+                const environment = backend?.executionEnvironment
+                return handler(
+                    environment
+                        ? { ...request, systemMessage: withSandboxExecutionContext(request.systemMessage, environment) }
+                        : request
+                )
+            }
         }
     }
 }
