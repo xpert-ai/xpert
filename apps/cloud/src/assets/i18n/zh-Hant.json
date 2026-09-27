@@ -288,7 +288,10 @@
     "Title": "元數分析雲",
     "Explore": {
       "AgentSquare": {
-        "UseExpert": "使用專家"
+        "UseExpert": "使用專家",
+        "BusinessDomains": "業務領域",
+        "MarketplaceCategories": "業務分類",
+        "ClearBusinessDomain": "清除業務領域"
       },
       "Application": {
         "SetupExplanation": "應用程式已可用。初始化後，將為目前組織建立工作空間和入口助理。",

@@ -109,6 +109,26 @@ test('Bot creation dates survive pagination and missing or invalid dates remain 
   )
 })
 
+test('published business domains are normalized at the API boundary and older servers remain supported', async () => {
+  const { service } = fixture((url) => {
+    if (url.includes('/mobile/xperts'))
+      return response({
+        items: [
+          { ...bot, businessArea: { id: ' sales-area ', name: ' Sales ', secret: 'never-expose' } },
+          { ...bot, id: 'legacy', businessCategories: ['sales'] },
+          { ...bot, id: 'invalid', businessArea: { id: 'invalid', name: 42 } },
+          { ...bot, id: 'unnamed', businessArea: { id: 'old-area', name: ' ' } }
+        ],
+        total: 4
+      })
+  })
+  await service.login(input)
+  assert.deepEqual(
+    (await service.listBots()).map((bot) => bot.businessArea),
+    [{ id: 'sales-area', name: 'Sales' }, null, null, null]
+  )
+})
+
 test('401 refreshes the access token once and retries with the new token', async () => {
   const { service, calls } = fixture((url, options) => {
     if (url.includes('/mobile/xperts') && options.headers.Authorization === 'Bearer access-private')

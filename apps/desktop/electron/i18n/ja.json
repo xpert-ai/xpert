@@ -545,5 +545,8 @@
   "Opening the service connection...": "サービスの接続を開いています…",
   "Your AI team leader.": "あなたの AI チームリーダー。",
   "You set the goal. Bosi leads the team.": "目標を決めるのはあなた。チームを率いるのは Bosi。",
-  "Sign in with your Xpert account to get started.": "Xpert アカウントでログインして、Bosi と始めましょう。"
+  "Sign in with your Xpert account to get started.": "Xpert アカウントでログインして、Bosi と始めましょう。",
+  "Group by business domain": "業務分野でグループ化",
+  "Business domains": "業務分野",
+  "Marketplace categories": "ビジネスカテゴリ"
 }

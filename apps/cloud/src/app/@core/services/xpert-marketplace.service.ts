@@ -62,6 +62,7 @@ export class XpertMarketplaceService {
     }
 
     append('search', query.search)
+    appendList('businessAreaIds', query.businessAreaIds)
     appendList('businessCategories', query.businessCategories)
     appendList('capabilityTags', query.capabilityTags)
     appendList('collaborationModes', query.collaborationModes)

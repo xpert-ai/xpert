@@ -310,19 +310,50 @@
 
   <div class="min-w-0 space-y-5 bg-background">
     <section class="min-w-0 space-y-5">
-      <div class="flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
+      <div
+        role="group"
+        [attr.aria-label]="
+          'XP.Explore.AgentSquare.MarketplaceCategories' | translate: { Default: 'Marketplace categories' }
+        "
+        class="flex min-w-0 items-center gap-2 overflow-x-auto pb-1"
+      >
         <button
           type="button"
           [class]="
-            selectedBusinessCategories().length === 0
+            selectedBusinessCategories().length === 0 &&
+            (catalog() !== 'experts' || selectedBusinessAreaIds().length === 0)
               ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
               : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           "
-          [attr.aria-pressed]="selectedBusinessCategories().length === 0"
-          (click)="selectedBusinessCategories.set([])"
+          [attr.aria-pressed]="
+            selectedBusinessCategories().length === 0 &&
+            (catalog() !== 'experts' || selectedBusinessAreaIds().length === 0)
+          "
+          (click)="resetExpertFilters()"
         >
           {{ 'XP.Explore.AgentSquare.All' | translate: { Default: 'All' } }}
         </button>
+        @if (catalog() === 'experts') {
+          @for (area of businessAreas(); track area.id) {
+            <button
+              type="button"
+              [class]="
+                selectedBusinessAreaIds().includes(area.id)
+                  ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              "
+              [attr.title]="
+                ('XP.Explore.AgentSquare.BusinessDomains' | translate: { Default: 'Business domains' }) +
+                ': ' +
+                area.name
+              "
+              [attr.aria-pressed]="selectedBusinessAreaIds().includes(area.id)"
+              (click)="toggleBusinessArea(area.id)"
+            >
+              {{ area.name }}
+            </button>
+          }
+        }
         @for (category of businessCategories; track category) {
           <button
             type="button"
@@ -332,6 +363,11 @@
                 : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
             "
             [attr.aria-pressed]="selectedBusinessCategories().includes(category)"
+            [attr.title]="
+              ('XP.Explore.AgentSquare.MarketplaceCategories' | translate: { Default: 'Marketplace categories' }) +
+              ': ' +
+              (businessLabelKey(category) | translate)
+            "
             (click)="toggleBusinessCategory(category)"
           >
             {{ businessLabelKey(category) | translate }}

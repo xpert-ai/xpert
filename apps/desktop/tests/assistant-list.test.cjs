@@ -23,7 +23,17 @@ function fixture() {
       calls.push({ url, options })
       if (url.includes('/mobile/xperts'))
         return new Response(
-          JSON.stringify({ items: [{ id: 'source', name: 'Original', description: 'Original description' }], total: 1 })
+          JSON.stringify({
+            items: [
+              {
+                id: 'source',
+                name: 'Original',
+                description: 'Original description',
+                businessArea: { id: 'sales-area', name: 'Sales' }
+              }
+            ],
+            total: 1
+          })
         )
       if (url.includes('/chatkit/sessions')) return new Response(JSON.stringify({ client_secret: 'scoped-secret' }))
       if (url.includes('/by-thread'))
@@ -66,6 +76,13 @@ test('profiles and copies stay local while sessions and activity use the origina
   assert.equal(bots[0].name, 'My assistant')
   assert.equal(bots[1].name, 'Personal copy')
   assert.equal(bots[1].assistantId, 'source')
+  assert.deepEqual(
+    bots.map((bot) => bot.businessArea),
+    [
+      { id: 'sales-area', name: 'Sales' },
+      { id: 'sales-area', name: 'Sales' }
+    ]
+  )
   await service.chatSession(copy.botId)
   assert.deepEqual(JSON.parse(calls.at(-1).options.body), { assistant: { id: 'source' } })
   const activity = await service.botActivity()
@@ -164,6 +181,66 @@ test('both sidebar modes share nonempty groups, pinned precedence and stable wit
     ]
   )
   assert.equal(assistantGroups(assistantRows(bots, sidebar, [], 'missing'), sidebar).length, 0)
+})
+
+test('unassigned assistants use published domains after pins and manual sections without duplicates', () => {
+  const sidebar = {
+    items: [
+      { botId: 'pinned', pinnedAt: 1, sectionId: 'manual' },
+      { botId: 'manual', sectionId: 'manual' },
+      { botId: 'deleted', sectionId: 'deleted' }
+    ],
+    sections: [{ id: 'manual', name: 'My team' }]
+  }
+  const bots = [
+    { id: 'pinned', businessArea: { id: 'sales-area', name: 'Sales' } },
+    { id: 'manual', businessArea: { id: 'sales-area', name: 'Sales' } },
+    {
+      id: 'sales-old',
+      businessArea: { id: 'sales-area', name: 'Sales' },
+      businessCategories: ['finance'],
+      createdAt: '2026-09-01'
+    },
+    { id: 'sales-new', businessArea: { id: 'sales-area', name: 'Sales' }, createdAt: '2026-09-02' },
+    { id: 'deleted', businessArea: { id: 'finance-area', name: 'Finance' } },
+    { id: 'other', businessArea: { id: 'material-area', name: 'Material master data' } },
+    { id: 'missing', businessCategories: ['business-operations'] }
+  ].map((bot) => ({ name: bot.id, description: 'Finance expert', ...bot }))
+  const groups = assistantGroups(assistantRows(bots, sidebar, [], ''), sidebar)
+  assert.deepEqual(
+    groups.map((group) => [group.kind, group.name, group.rows.map((row) => row.bot.id)]),
+    [
+      ['pinned', 'Pinned assistants', ['pinned']],
+      ['section', 'My team', ['manual']],
+      ['domain', 'Finance', ['deleted']],
+      ['domain', 'Material master data', ['other']],
+      ['domain', 'Sales', ['sales-new', 'sales-old']],
+      ['unassigned', 'Unassigned', ['missing']]
+    ]
+  )
+  assert.equal(new Set(groups.flatMap((group) => group.rows.map((row) => row.bot.id))).size, bots.length)
+  assert.deepEqual(
+    assistantGroups(assistantRows(bots, sidebar, [], 'sales-new'), sidebar).map((group) => group.name),
+    ['Sales']
+  )
+  const automatic = assistantGroups(assistantRows(bots, { ...sidebar, items: [] }, [], ''), sidebar)
+  assert.equal(
+    automatic.some((group) => group.kind === 'section' || group.kind === 'pinned'),
+    false
+  )
+  assert.ok(automatic.find((group) => group.name === 'Sales').rows.some((row) => row.bot.id === 'manual'))
+})
+
+test('business areas use IDs so renames and equal display names do not merge independent domains', () => {
+  const sidebar = { items: [], sections: [] }
+  const bots = [
+    { id: 'a', name: 'A', description: '', businessArea: { id: 'area-a', name: 'Sales' } },
+    { id: 'b', name: 'B', description: '', businessArea: { id: 'area-b', name: 'Sales' } }
+  ]
+  const groups = () => assistantGroups(assistantRows(bots, sidebar, [], ''), sidebar)
+  assert.equal(groups().length, 2)
+  bots[0].businessArea.name = 'Procurement'
+  assert.equal(groups().find((group) => group.id === 'domain:area-a').name, 'Procurement')
 })
 
 test('hover status follows the typed conversation state and never guesses activity from a title', () => {

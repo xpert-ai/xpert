@@ -71,6 +71,16 @@ test('catalog follows pagination and does not leak DSL, application configuratio
   assert.ok(calls.every((call) => call.headers['organization-id'] === 'org-1'))
 })
 
+test('expert discovery exposes the published business area separately from marketplace categories', async () => {
+  const entry = expert('owned')
+  entry.xpert.businessArea = { id: 'area-sales', name: 'Sales', secret: 'never-expose' }
+  const { service } = fixture(() => ({ items: [entry], total: 1 }))
+  const [item] = await service.listCatalog('experts')
+  assert.deepEqual(item.businessArea, { id: 'area-sales', name: 'Sales' })
+  assert.deepEqual(item.categories, ['productivity'])
+  assert.doesNotMatch(JSON.stringify(item), /never-expose/)
+})
+
 test('application screenshots are normalized consistently for catalog and detail without exposing local files', async () => {
   const inline = 'data:image/png;base64,cHJldmlldw=='
   const sources = [

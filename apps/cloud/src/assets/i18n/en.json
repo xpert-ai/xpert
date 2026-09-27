@@ -2676,7 +2676,10 @@
           "code": "Code",
           "database": "Database",
           "structured-output": "Structured output"
-        }
+        },
+        "BusinessDomains": "Business domains",
+        "MarketplaceCategories": "Marketplace categories",
+        "ClearBusinessDomain": "Clear domain"
       }
     },
     "XpertAccessRequests": {
@@ -5130,7 +5133,7 @@
       "EndTool": "End point tool. The conversation ends when the tool completes.",
       "XpertUserGroups": "Xpert User Groups",
       "BusinessArea": "Business area",
-      "BusinessAreaHint": "Optional. The selected business area is shown as the prefix of this assistant in the menu.",
+      "BusinessAreaHint": "Optional. Used for the menu prefix and automatic grouping in Bosi when no custom group is assigned. Maintain business areas such as Sales, Purchasing or Finance in Settings.",
       "SelectBusinessArea": "Select a business area",
       "BusinessAreaLoadFailed": "Business areas could not be loaded.",
       "NoBusinessAreas": "No named business areas are available. You can maintain them in Settings.",

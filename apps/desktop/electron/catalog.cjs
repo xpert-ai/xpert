@@ -1,4 +1,5 @@
 const { localizedText } = require('./i18n/index.mjs')
+const { parseBusinessArea } = require('./business-area.cjs')
 // A narrow marketplace boundary: credentials, template DSL and plugin configuration stay in the host.
 module.exports.createCatalogMethods = function createCatalogMethods(ClientError) {
   const text = (value) => (typeof value === 'string' ? value : '')
@@ -57,6 +58,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         text(xpert.createdBy?.name) ||
         text(xpert.createdBy?.username),
       ...avatar(xpert.avatar),
+      businessArea: parseBusinessArea(xpert.businessArea),
       categories: [
         ...strings(value.marketplace?.businessCategories),
         ...(value.marketplace?.featured ? ['featured'] : [])

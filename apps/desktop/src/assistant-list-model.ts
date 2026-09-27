@@ -31,6 +31,19 @@ export function assistantRows(bots: Bot[], sidebar: SidebarState, activities: Bo
 export type AssistantRow = ReturnType<typeof assistantRows>[number]
 
 export function assistantGroups(rows: AssistantRow[], sidebar: SidebarState) {
+  const automatic = rows.filter(
+    (row) => !row.preference?.pinnedAt && !sidebar.sections.some((section) => section.id === row.preference?.sectionId)
+  )
+  const domains = new Map<string, { id: string; name: string; kind: 'domain'; rows: AssistantRow[] }>()
+  const unassigned: AssistantRow[] = []
+  for (const row of automatic) {
+    const area = row.bot.businessArea
+    if (area) {
+      const group = domains.get(area.id)
+      if (group) group.rows.push(row)
+      else domains.set(area.id, { id: `domain:${area.id}`, name: area.name, kind: 'domain', rows: [row] })
+    } else unassigned.push(row)
+  }
   return [
     {
       id: 'pinned',
@@ -43,14 +56,12 @@ export function assistantGroups(rows: AssistantRow[], sidebar: SidebarState) {
       kind: 'section' as const,
       rows: rows.filter((row) => !row.preference?.pinnedAt && row.preference?.sectionId === section.id)
     })),
+    ...[...domains.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
     {
       id: '',
       name: 'Unassigned',
       kind: 'unassigned' as const,
-      rows: rows.filter(
-        (row) =>
-          !row.preference?.pinnedAt && !sidebar.sections.some((section) => section.id === row.preference?.sectionId)
-      )
+      rows: unassigned
     }
   ].filter((group) => group.rows.length > 0)
 }

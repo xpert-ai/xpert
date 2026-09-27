@@ -99,6 +99,9 @@ describe('MobileService', () => {
                 type: XpertTypeEnum.Agent,
                 title: 'Sales',
                 description: 'Helps sales teams.',
+                marketplace: { businessCategories: ['business-operations'] },
+                businessAreaId: 'sales-area',
+                businessArea: { id: 'sales-area', name: 'Sales', children: [{ id: 'private-child' }] },
                 avatar: null,
                 latest: true,
                 workspaceId: 'workspace-1',
@@ -155,6 +158,7 @@ describe('MobileService', () => {
                 type: XpertTypeEnum.Agent,
                 latest: true
             },
+            relations: ['businessArea'],
             search: 'Sales',
             take: 100,
             skip: 3,
@@ -175,10 +179,25 @@ describe('MobileService', () => {
                 id: 'xpert-1',
                 slug: 'sales',
                 title: 'Sales',
+                businessArea: { id: 'sales-area', name: 'Sales' },
                 createdAt: new Date('2026-09-24T00:00:00Z')
             })
         ])
         expect(JSON.stringify(result)).not.toContain('not-returned')
+        expect(JSON.stringify(result)).not.toContain('private-child')
+        expect(result.items[0]).not.toHaveProperty('businessCategories')
+    })
+
+    it('does not infer a business area from marketplace categories or a stale relation', async () => {
+        publishedXpertAccessService.findAccessiblePublishedXperts.mockResolvedValue([
+            { id: 'missing', name: 'Sales expert', marketplace: { businessCategories: ['sales'] } },
+            { id: 'deleted', name: 'Deleted area', businessAreaId: 'deleted-area', businessArea: null },
+            { id: 'unnamed', name: 'Unnamed area', businessArea: { id: 'legacy-area', name: ' ' } }
+        ])
+        publishedXpertAccessService.countAccessiblePublishedXperts.mockResolvedValue(3)
+
+        const result = await createService().listXperts({})
+        expect(result.items.map((item) => item.businessArea)).toEqual([null, null, null])
     })
 
     it('maps only mobile-safe user, organization, and xpert fields', () => {

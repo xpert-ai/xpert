@@ -84,6 +84,7 @@ export interface XpertMobileXpertSummary {
   workspaceId?: string | null
   organizationId?: string | null
   publishAt?: Date | string | null
+  businessArea?: { id: string; name: string } | null
   starters?: string[] | null
 }
 

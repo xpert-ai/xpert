@@ -1,6 +1,7 @@
 // Credentials stay in the host. Only scoped ChatKit secrets cross into the renderer.
 const { MessageError, normalizeLocale, isSupportedLocale, localizedText } = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
+const { parseBusinessArea } = require('./business-area.cjs')
 const DEFAULT_CONFIG = {
   apiUrl: 'http://localhost:3000',
   webUrl: 'http://localhost:4200',
@@ -101,6 +102,7 @@ function parseBots(value, locale) {
           (title) => typeof title === 'string' && title.trim()
         ),
         description: localizedText(item.description, locale),
+        businessArea: parseBusinessArea(item.businessArea),
         avatarEmoji:
           typeof avatar?.emoji?.id === 'string'
             ? { id: avatar.emoji.id, unified: typeof avatar.emoji.unified === 'string' ? avatar.emoji.unified : null }

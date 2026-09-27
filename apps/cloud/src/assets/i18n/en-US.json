@@ -460,7 +460,10 @@
     },
     "Explore": {
       "AgentSquare": {
-        "UseExpert": "Use Expert"
+        "UseExpert": "Use Expert",
+        "BusinessDomains": "Business domains",
+        "MarketplaceCategories": "Marketplace categories",
+        "ClearBusinessDomain": "Clear domain"
       },
       "Application": {
         "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",

@@ -95,6 +95,8 @@ export class ExploreAgentSquareComponent {
   readonly templateTypeOptions = [XpertTypeEnum.Agent, XpertTypeEnum.Copilot]
 
   readonly selectedBusinessCategories = signal<TXpertMarketplaceBusinessCategory[]>([])
+  readonly selectedBusinessAreaIds = signal<string[]>([])
+  readonly businessAreas = signal<{ id: string; name: string }[]>([])
   readonly expertSort = signal<ExpertSort>('match')
 
   readonly experts = signal<IXpertMarketplaceItem[]>([])
@@ -125,7 +127,9 @@ export class ExploreAgentSquareComponent {
   readonly selectedTemplateTypes = signal<XpertTypeEnum[]>([])
   readonly templateSort = signal<CatalogSort>('comprehensive')
 
-  readonly activeExpertFilterCount = computed(() => this.selectedBusinessCategories().length)
+  readonly activeExpertFilterCount = computed(
+    () => this.selectedBusinessCategories().length + this.selectedBusinessAreaIds().length
+  )
   readonly activeApplicationFilterCount = computed(
     () =>
       this.selectedApplicationCategories().length +
@@ -301,6 +305,7 @@ export class ExploreAgentSquareComponent {
       if (catalog === 'experts') {
         const query = {
           search: this.search(),
+          businessAreaIds: this.selectedBusinessAreaIds(),
           businessCategories: this.selectedBusinessCategories(),
           sort: this.expertSort(),
           take: 60
@@ -330,6 +335,7 @@ export class ExploreAgentSquareComponent {
         return
       }
       this.experts.set(result.items ?? [])
+      this.businessAreas.set(result.businessAreas ?? [])
       this.expertTotal.set(result.total ?? 0)
       this.reviewableCount.set(result.reviewableCount ?? 0)
     } catch (error) {
@@ -427,6 +433,7 @@ export class ExploreAgentSquareComponent {
   }
 
   resetExpertFilters() {
+    this.selectedBusinessAreaIds.set([])
     this.selectedBusinessCategories.set([])
   }
 
@@ -445,6 +452,10 @@ export class ExploreAgentSquareComponent {
 
   toggleBusinessCategory(category: TXpertMarketplaceBusinessCategory) {
     this.selectedBusinessCategories.update((selected) => (selected[0] === category ? [] : [category]))
+  }
+
+  toggleBusinessArea(id: string) {
+    this.selectedBusinessAreaIds.update((selected) => (selected[0] === id ? [] : [id]))
   }
 
   toggleApplicationCategory(category: PluginMarketplaceCategory) {
@@ -770,6 +781,7 @@ export class ExploreAgentSquareComponent {
   private currentExpertQuery() {
     return {
       search: this.search(),
+      businessAreaIds: this.selectedBusinessAreaIds(),
       businessCategories: this.selectedBusinessCategories(),
       sort: this.expertSort(),
       take: 60

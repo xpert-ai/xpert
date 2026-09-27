@@ -21,6 +21,7 @@ import { CatalogSetup } from './CatalogSetup'
 import { invoke } from './host'
 import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLabel } from './catalog-labels'
 import type { CatalogItem, CatalogKind } from './catalog-types'
+import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
 
 const tabs: { id: CatalogKind; label: string }[] = [
   { id: 'experts', label: 'Digital experts' },
@@ -47,6 +48,7 @@ export function CatalogDialog({
   const [notice, setNotice] = useState('')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
+  const [businessAreaId, setBusinessAreaId] = useState<string | null>(null)
   const [selected, setSelected] = useState<CatalogItem | null>(null)
   const [busy, setBusy] = useState(false)
   const [pluginRevision, setPluginRevision] = useState(0)
@@ -74,6 +76,7 @@ export function CatalogDialog({
   useEffect(() => {
     setItems([])
     setCategory('all')
+    setBusinessAreaId(null)
     setSearch('')
     setNotice('')
     void reload()
@@ -83,11 +86,13 @@ export function CatalogDialog({
   }, [reload])
   const filtered = items.filter(
     (item) =>
+      matchesBusinessArea(item, kind === 'experts' ? businessAreaId : null) &&
       (category === 'all' || item.categories.includes(category)) &&
       `${item.name} ${item.description} ${item.publisher} ${item.tags.map(categoryLabel).join(' ')}`
         .toLowerCase()
         .includes(search.trim().toLowerCase())
   )
+  const businessAreas = catalogBusinessAreas(items)
   const categories =
     kind === 'templates'
       ? [...new Set(items.flatMap((item) => item.categories))].map((id) => [id, categoryLabel(id)])
@@ -230,15 +235,46 @@ export function CatalogDialog({
                 value={kind}
                 className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5 [scrollbar-gutter:stable]"
               >
-                <div aria-label={t('Catalog categories')} className="mb-5 flex flex-wrap gap-1">
-                  {[['all', t('All')], ...categories].map(([id, label]) => (
+                <div
+                  role="group"
+                  aria-label={t('Catalog categories')}
+                  className="mb-5 flex items-center gap-1 overflow-x-auto pb-1"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-pressed={category === 'all' && !businessAreaId}
+                    className={`shrink-0 ${category === 'all' && !businessAreaId ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}
+                    onClick={() => {
+                      setBusinessAreaId(null)
+                      setCategory('all')
+                    }}
+                  >
+                    {t('All')}
+                  </Button>
+                  {kind === 'experts' &&
+                    businessAreas.map((area) => (
+                      <Button
+                        key={area.id}
+                        variant="ghost"
+                        size="sm"
+                        title={`${t('Business domains')}: ${area.name}`}
+                        aria-pressed={businessAreaId === area.id}
+                        className={`shrink-0 ${businessAreaId === area.id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}
+                        onClick={() => setBusinessAreaId(businessAreaId === area.id ? null : area.id)}
+                      >
+                        {area.name}
+                      </Button>
+                    ))}
+                  {categories.map(([id, label]) => (
                     <Button
                       key={id}
                       variant="ghost"
                       size="sm"
+                      title={`${t('Marketplace categories')}: ${t(label)}`}
                       aria-pressed={category === id}
-                      className={category === id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}
-                      onClick={() => setCategory(id)}
+                      className={`shrink-0 ${category === id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}
+                      onClick={() => setCategory(category === id ? 'all' : id)}
                     >
                       {t(label)}
                     </Button>
@@ -356,17 +392,18 @@ export function CatalogDialog({
                   <div className="flex h-56 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
                     <Search className="size-7" />
                     <p>
-                      {search || category !== 'all'
+                      {search || category !== 'all' || businessAreaId
                         ? t('No matching results')
                         : t('No content available for this organization')}
                     </p>
-                    {(search || category !== 'all') && (
+                    {(search || category !== 'all' || businessAreaId) && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
                           setSearch('')
                           setCategory('all')
+                          setBusinessAreaId(null)
                         }}
                       >
                         {t('Clear filters')}

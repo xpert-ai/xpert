@@ -2247,7 +2247,10 @@
           "code": "代码",
           "database": "数据库",
           "structured-output": "结构化输出"
-        }
+        },
+        "BusinessDomains": "业务域",
+        "MarketplaceCategories": "业务分类",
+        "ClearBusinessDomain": "清除业务域"
       }
     },
     "XpertAccessRequests": {
@@ -9924,7 +9927,7 @@
       "Conditions": "条件",
       "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素",
       "BusinessArea": "业务区域",
-      "BusinessAreaHint": "可选。所选业务区域会作为该助理在菜单中的名称前缀。",
+      "BusinessAreaHint": "可选。用于菜单名称前缀，并在 Bosi 中自动归组未设置自定义分组的专家。可在设置中维护销售、采购、财务等业务域。",
       "SelectBusinessArea": "选择业务区域",
       "BusinessAreaLoadFailed": "业务区域加载失败。",
       "NoBusinessAreas": "暂无可选的已命名业务区域，可前往设置中维护。",

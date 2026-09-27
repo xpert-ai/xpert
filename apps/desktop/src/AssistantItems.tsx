@@ -60,9 +60,12 @@ function AssistantMenu({
                 {section.name}
               </ContextMenuCheckboxItem>
             ))}
-            <ContextMenuCheckboxItem checked={!row.preference?.sectionId} onSelect={() => onMove(row, null)}>
+            <ContextMenuCheckboxItem
+              checked={!sidebar.sections.some((section) => section.id === row.preference?.sectionId)}
+              onSelect={() => onMove(row, null)}
+            >
               <Folder />
-              {t('Unassigned')}
+              {t('Group by business domain')}
             </ContextMenuCheckboxItem>
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={() => onAction(row, 'section')}>

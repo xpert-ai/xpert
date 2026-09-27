@@ -76,6 +76,7 @@ export class MobileService {
         const [items, total] = await Promise.all([
             this.publishedXpertAccessService.findAccessiblePublishedXperts({
                 where,
+                relations: ['businessArea'],
                 search,
                 take: limit,
                 skip: offset,
@@ -188,6 +189,8 @@ export function summarizeAssistantBinding(binding: IResolvedAssistantBinding): X
 }
 
 export function summarizeXpert(xpert: Xpert): XpertMobileXpertSummary {
+    const area = xpert.businessArea
+    const areaName = area?.name?.trim()
     return {
         id: xpert.id,
         createdAt: xpert.createdAt ?? null,
@@ -203,6 +206,7 @@ export function summarizeXpert(xpert: Xpert): XpertMobileXpertSummary {
         workspaceId: xpert.workspaceId ?? null,
         organizationId: xpert.organizationId ?? null,
         publishAt: xpert.publishAt ?? null,
+        businessArea: area?.id && areaName ? { id: area.id, name: areaName } : null,
         starters: xpert.starters ?? null
     }
 }

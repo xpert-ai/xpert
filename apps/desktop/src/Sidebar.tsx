@@ -63,6 +63,8 @@ export function Sidebar({
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
   const pinned = rows.filter((row) => !!row.preference?.pinnedAt)
   const groups = assistantGroups(rows, list.sidebar)
+  const groupLabel = (group: (typeof groups)[number]) =>
+    group.kind === 'section' || group.kind === 'domain' ? group.name : t(group.name)
   const selectRow = (row: AssistantRow, threadId?: string | null) => {
     if (row.preference?.unreadAt)
       void list.run(() => list.update({ action: 'unread', botId: row.bot.id, unread: false }))
@@ -240,7 +242,7 @@ export function Sidebar({
               groups.map((group, index) => (
                 <section
                   key={group.id}
-                  aria-label={group.kind === 'section' ? group.name : t(group.name)}
+                  aria-label={groupLabel(group)}
                   className="flex w-full flex-col items-center gap-1"
                 >
                   {index > 0 && <div role="separator" className="my-2 w-8 shrink-0 border-t" />}
@@ -396,12 +398,12 @@ export function Sidebar({
                 section.rows.length > 0 && (
                   <section
                     key={section.id}
-                    aria-label={section.kind === 'section' ? section.name : t(section.name)}
+                    aria-label={groupLabel(section)}
                     className={index > 0 ? 'border-t pt-2' : ''}
                   >
-                    {list.sidebar.sections.length > 0 && (
+                    {(section.kind === 'domain' || sections.length > 1 || list.sidebar.sections.length > 0) && (
                       <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">
-                        {section.kind === 'section' ? section.name : t(section.name)}
+                        {groupLabel(section)}
                       </h3>
                     )}
                     <div className="space-y-[var(--desktop-row-gap)]">{section.rows.map((row) => renderRow(row))}</div>

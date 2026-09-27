@@ -395,7 +395,10 @@
     },
     "Explore": {
       "AgentSquare": {
-        "UseExpert": "使用专家"
+        "UseExpert": "使用专家",
+        "BusinessDomains": "业务域",
+        "MarketplaceCategories": "业务分类",
+        "ClearBusinessDomain": "清除业务域"
       },
       "Application": {
         "McpProviders": "MCP 服务提供方",

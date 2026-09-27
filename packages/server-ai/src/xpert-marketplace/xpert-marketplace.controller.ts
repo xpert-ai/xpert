@@ -12,10 +12,12 @@ import {
 import { BadRequestException, Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common'
 import { t } from 'i18next'
 import { I18nLang } from 'nestjs-i18n'
+import { isUUID } from 'class-validator'
 import { XpertMarketplaceService } from './xpert-marketplace.service'
 
 type XpertMarketplaceQueryParams = {
     search?: string
+    businessAreaIds?: string | string[]
     businessCategories?: string | string[]
     capabilityTags?: string | string[]
     collaborationModes?: string | string[]
@@ -77,6 +79,7 @@ export class XpertMarketplaceController {
     private parseQuery(query: XpertMarketplaceQueryParams): TXpertMarketplaceQuery {
         return {
             search: query.search,
+            businessAreaIds: this.readBusinessAreaIds(query.businessAreaIds),
             businessCategories: this.readEnumList(
                 query.businessCategories,
                 PLUGIN_MARKETPLACE_CATEGORIES,
@@ -106,6 +109,19 @@ export class XpertMarketplaceController {
         }
         const rawItems = Array.isArray(value) ? value : value.split(',')
         return rawItems.map((item) => item.trim()).filter(Boolean)
+    }
+
+    private readBusinessAreaIds(value?: string | string[]) {
+        const ids = Array.from(new Set(this.readStringList(value)))
+        if (ids.length > 100 || ids.some((id) => !isUUID(id))) {
+            throw new BadRequestException(
+                t('server-ai:Error.XpertMarketplaceInvalidField', {
+                    field: 'businessAreaIds',
+                    defaultValue: 'Invalid marketplace field.'
+                })
+            )
+        }
+        return ids
     }
 
     private readEnumList<T extends string>(

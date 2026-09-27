@@ -545,5 +545,8 @@
   "Opening the service connection...": "正在開啟服務連線…",
   "Your AI team leader.": "你的 AI 小隊長",
   "You set the goal. Bosi leads the team.": "你定目標，Bosi 帶隊。",
-  "Sign in with your Xpert account to get started.": "使用 Xpert 帳號登入，開始與 Bosi 一起工作。"
+  "Sign in with your Xpert account to get started.": "使用 Xpert 帳號登入，開始與 Bosi 一起工作。",
+  "Group by business domain": "按業務領域分組",
+  "Business domains": "業務領域",
+  "Marketplace categories": "業務分類"
 }

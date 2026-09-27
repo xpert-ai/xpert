@@ -32,6 +32,7 @@ export interface AppState {
 }
 export interface Bot {
   assistantId?: string
+  businessArea?: { id: string; name: string } | null
   id: string
   createdAt?: string | null
   name: string
