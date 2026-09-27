@@ -30,6 +30,15 @@ overridden by the desktop client.
 
 ## Run
 
+Desktop branding lives in `resources/`: `logo.svg` is the theme-aware login mark;
+`logo.png` supplies the favicon and Windows/Linux application icons. On macOS,
+`icon-macos.svg` adapts the original mark to a rounded tile with transparent margins;
+its 1024px RGBA export, `icon-macos.png`, supplies the development Dock icon.
+Run `corepack pnpm --filter @xpert-ai/desktop icons:macos` on macOS to regenerate
+`Xpert.iconset` and the packaged `Xpert.icns`. See [icon resources](resources/README.md).
+Packaged macOS apps use their bundle icon.
+Assistant avatars keep their custom images, emoji, and original robot fallback.
+
 Use Node 22.12+ (Node 24 LTS recommended) and the repository's Corepack-managed
 pnpm 10.24.0. Run these commands from the Xpert repository root:
 

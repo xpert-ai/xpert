@@ -14,6 +14,7 @@ app.setName('Xpert')
 if (process.env.XPERT_DESKTOP_USER_DATA) app.setPath('userData', path.resolve(process.env.XPERT_DESKTOP_USER_DATA))
 const devUrl = !app.isPackaged ? process.env.XPERT_DESKTOP_DEV_URL : null
 const rendererUrl = devUrl || pathToFileURL(path.join(__dirname, '../dist/index.html')).href
+const appIcon = path.join(__dirname, '../resources', process.platform === 'darwin' ? 'icon-macos.png' : 'logo.png')
 let window
 let service
 
@@ -50,6 +51,7 @@ function createWindow() {
     minWidth: 860,
     minHeight: 640,
     title: 'Xpert',
+    icon: appIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 18 },
     webPreferences: {
@@ -81,6 +83,8 @@ else {
     window?.focus()
   })
   app.whenReady().then(async () => {
+    // Packaged macOS apps use the bundle's ICNS; development runs in Electron's bundle.
+    if (process.platform === 'darwin' && !app.isPackaged) app.dock.setIcon(appIcon)
     let localLogin
     if (!app.isPackaged && process.env.XPERT_DESKTOP_LOCAL_LOGIN === '1') {
       localLogin = (await import('../scripts/local-credentials.mjs')).readLocalCredentials

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="512" y1="100" x2="512" y2="924" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#F3F3F5" />
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1024" height="1024" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.16" />
+    </filter>
+  </defs>
+  <!-- Transparent margins match the visual footprint of neighboring macOS Dock tiles. -->
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="url(#tile)" filter="url(#shadow)" />
+  <rect x="101" y="101" width="822" height="822" rx="183" stroke="#FFFFFF" stroke-width="2" />
+  <!-- Original logo.svg geometry, scaled and optically centered within the tile. -->
+  <g transform="translate(166.48 168.72) scale(1.12)" stroke="#000000">
+    <rect x="69" y="67" width="479" height="479" rx="14" stroke-width="40" stroke-linejoin="round" />
+    <path d="M142 146 L297 302 L143 467" stroke-width="40" stroke-linecap="butt" stroke-linejoin="round" />
+    <path d="M493 154 L343 304 L493 459" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter" />
+    <path d="M479 254 L429 304 L482 357" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter" />
+  </g>
+</svg>

@@ -8,6 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite --host 127.0.0.1 --port 4390 --strictPort",
     "build": "tsc --noEmit && vite build",
+    "icons:macos": "node scripts/generate-macos-icons.mjs",
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
     "test:local": "node scripts/test-local.mjs",
@@ -43,23 +44,24 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "resources/**/*",
       "package.json"
     ],
     "mac": {
-      "icon": "../cloud/src/assets/icon.png",
+      "icon": "resources/Xpert.icns",
       "category": "public.app-category.productivity",
       "target": [
         "dmg"
       ]
     },
     "win": {
-      "icon": "../cloud/src/assets/icon.ico",
+      "icon": "resources/logo.png",
       "target": [
         "nsis"
       ]
     },
     "linux": {
-      "icon": "../cloud/src/assets/icon.png",
+      "icon": "resources/logo.png",
       "target": [
         "AppImage"
       ],

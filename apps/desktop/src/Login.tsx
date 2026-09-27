@@ -2,7 +2,7 @@ import { t } from './i18n'
 import { useState } from 'react'
 import { Button, Input, Label } from '@xpert-ai/shadcn-ui'
 import { ArrowRight, LoaderCircle, Settings2, ShieldCheck } from 'lucide-react'
-import logo from '../../cloud/src/assets/icon.png'
+import { XpertLogo } from './XpertLogo'
 import { invoke } from './host'
 import type { AppState } from './types'
 
@@ -37,7 +37,7 @@ export function Login({
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-8 py-10">
         <div className="w-full max-w-sm">
           <div className="mb-10 flex items-center gap-3">
-            <img src={logo} alt="" className="size-10 object-contain" />
+            <XpertLogo className="size-10 text-foreground" />
             <span className="text-2xl font-semibold tracking-tight">Xpert</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">{t('Work with your Bots')}</h1>
