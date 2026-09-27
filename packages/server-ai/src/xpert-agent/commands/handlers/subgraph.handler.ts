@@ -19,7 +19,7 @@ import {
     ToolMessage
 } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
+import { RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { DynamicStructuredTool } from '@langchain/core/tools'
@@ -85,10 +85,9 @@ import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import { t } from 'i18next'
-import z from 'zod'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
-import { prepareMessagesForModel, setModelPreparesOwnMessages } from '../../../copilot-model/model-capabilities'
+import { exposeModelProfile, prepareModelCall } from '../../../shared/agent/model-call'
 import {
     createExecutionModelUsageRecorder,
     type TExecutionUsageRecord,
@@ -106,26 +105,18 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { CopilotGetOneQuery } from '../../../copilot'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException } from '../../../core/errors'
-import {
-    FakeStreamingChatModel,
-    getChannelState,
-    messageEvent,
-    TAgentSubgraphParams,
-    TAgentSubgraphResult
-} from '../../agent'
+import { getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult } from '../../agent'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
 import {
     _BaseToolset,
-    ToolSchemaParser,
     AgentStateAnnotation,
     createHumanMessage,
     stateToParameters,
     createSummarizeAgent,
     translate,
     stateVariable,
-    createParameters,
     TGraphTool,
     TSubAgent,
     TWorkflowGraphNode,
@@ -1258,11 +1249,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             }
         }
 
-        const stateModifier = async (
-            state: typeof AgentStateAnnotation.State,
-            isStart: boolean,
-            jsonSchema: string
-        ) => {
+        const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean) => {
             const { memories } = state
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
@@ -1279,9 +1266,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
                 templateFormat: 'mustache'
             }).format(parameters)
-            if (jsonSchema) {
-                systemMessage.content += `\n\n\`\`\`json\n${jsonSchema}\n\`\`\``
-            }
 
             this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
@@ -1335,66 +1319,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // Execute agent
         const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
-            const { structuredChatModel, jsonSchema } = withStructured(chatModel, agent, withTools)
-            let withFallbackModel: Runnable = withModelMessagePreparation(structuredChatModel, chatModel)
-            if (agent.options?.retry?.enabled) {
-                withFallbackModel = withFallbackModel.withRetry({
-                    stopAfterAttempt: agent.options.retry.stopAfterAttempt ?? 2
-                })
-            }
-            // Fallback model
-            if (agent.options?.fallback?.enabled) {
-                if (!agent.options?.fallback?.copilotModel?.model) {
-                    throw new XpertConfigException(
-                        await this.i18nService.translate('xpert.Error.FallbackModelNotFound', {
-                            lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-                            args: {
-                                agent: agentLabel(agent)
-                            }
-                        })
-                    )
-                }
-                const _fallbackChatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+            let fallbackModel: Promise<BaseChatModel> | undefined
+            const resolveFallbackModel = () =>
+                (fallbackModel ??= this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
                     new GetXpertChatModelQuery(agent.team, null, {
                         copilotModel: agent.options.fallback.copilotModel,
                         abortController: rootController,
                         usageCallback: modelUsageRecorder.usageCallback,
                         threadId: thread_id
                     })
-                )
-                const { structuredChatModel: fallbackChatModel } = withStructured(_fallbackChatModel, agent, withTools)
-                withFallbackModel = withFallbackModel.withFallbacks([
-                    withModelMessagePreparation(fallbackChatModel, _fallbackChatModel)
-                ])
-            }
-
-            // Error handling
-            if (errorHandling?.type === 'defaultValue') {
-                if (!errorHandling.defaultValue?.content) {
-                    throw new XpertConfigException(
-                        await this.i18nService.translate('xpert.Error.NoContent4DefaultValue', {
-                            lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-                            args: {
-                                agent: agentLabel(agent)
-                            }
-                        })
-                    )
-                }
-                withFallbackModel = withFallbackModel.withFallbacks([
-                    new FakeStreamingChatModel({ responses: [new AIMessage(errorHandling.defaultValue?.content)] })
-                ])
-            }
-            // RunnableLambda/Retry/Fallback wrappers intentionally hide the
-            // provider client, but middleware still needs the provider's
-            // public capability profile to make safe decisions (for example,
-            // whether checksum-verified image evidence may be attached).
-            // Preserve that profile on the final primary-model wrapper.
-            setModelPreparesOwnMessages(copyPublicModelProfile(withFallbackModel, chatModel))
-
+                ))
+            // Keep registration separate from the mutable per-request selection.
+            const registeredTools = [...withTools]
             const { systemMessage, messageHistory, humanMessages } = await stateModifier(
                 state,
-                (<string>config.metadata.langgraph_triggers[0])?.startsWith(START),
-                jsonSchema
+                (<string>config.metadata.langgraph_triggers[0])?.startsWith(START)
             )
             const channelState = getChannelState(state, agentChannel)
             const isInternalGoalVerification = readGoalPhaseFromChannelState(channelState) === 'verify'
@@ -1408,23 +1347,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 ...humanMessages
             ]
             const baseRequest: ModelRequest<AgentBuiltInState> = {
-                model: withFallbackModel,
+                model: exposeModelProfile(chatModel),
                 messages: baseMessages,
                 systemMessage,
-                tools: withTools,
+                tools: [...registeredTools],
                 state,
                 runtime: config
             }
             let systemMessageContent = systemMessage.content
             const defaultModelHandler: WrapModelCallHandler = async (request) => {
-                const model = request.model ?? withFallbackModel
-                const reqMessages = request.messages ?? baseMessages
-                const systemMsg = request.systemMessage ?? systemMessage
-                systemMessageContent = systemMsg.content
-                const finalMessages = prepareMessagesForModel(
-                    systemMsg ? [systemMsg, ...reqMessages] : reqMessages,
-                    model
-                )
+                const {
+                    model,
+                    messages: finalMessages,
+                    systemMessage: effectiveSystemMessage
+                } = await prepareModelCall(request, { registeredTools, agent, resolveFallbackModel })
+                systemMessageContent = effectiveSystemMessage?.content ?? ''
                 const scopedSignal = createScopedAbortSignal()
                 const invokeConfig = isInternalGoalVerification
                     ? {
@@ -2131,77 +2068,8 @@ function createAfterAgentNavigator(
     }
 }
 
-// Fill tools or structured output into chatModel
 function isFileUnderstandingEnabled(agent: IXpertAgent) {
     return !agent.options?.structuredOutputMethod && agent.options?.fileUnderstanding?.enabled !== false
-}
-
-function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools: TGraphTool['tool'][]) {
-    let structuredChatModel = null
-    let jsonSchema: string = null
-    if (withTools.length) {
-        if (agent.options?.parallelToolCalls === false && supportsParallelToolCallsParam(chatModel)) {
-            const bindOptions = { parallel_tool_calls: false } as Parameters<BaseChatModel['bindTools']>[1] & {
-                parallel_tool_calls: false
-            }
-            structuredChatModel = chatModel.bindTools(withTools, bindOptions)
-        } else {
-            structuredChatModel = chatModel.bindTools(withTools)
-        }
-    } else if (agent.options?.structuredOutputMethod) {
-        const zodSchema = z.object({
-            ...createParameters(agent.outputVariables)
-        })
-        if (agent.options.structuredOutputMethod === 'jsonMode') {
-            jsonSchema = ToolSchemaParser.serializeJsonSchema(ToolSchemaParser.parseZodToJsonSchema(zodSchema))
-        }
-        structuredChatModel = chatModel.withStructuredOutput(zodSchema, {
-            method: agent.options.structuredOutputMethod
-        })
-    } else {
-        structuredChatModel = chatModel
-    }
-    return {
-        structuredChatModel,
-        jsonSchema
-    }
-}
-
-function withModelMessagePreparation(model: Runnable, capabilityModel: object) {
-    return setModelPreparesOwnMessages(
-        copyPublicModelProfile(
-            RunnableLambda.from((messages: BaseMessage[], config?: RunnableConfig) =>
-                model.invoke(prepareMessagesForModel(messages, capabilityModel), config)
-            ),
-            capabilityModel
-        )
-    )
-}
-
-function copyPublicModelProfile<T extends object>(target: T, source: object): T {
-    const directProfile = 'profile' in source ? source.profile : undefined
-    const metadata = 'metadata' in source ? source.metadata : undefined
-    const metadataProfile =
-        metadata && typeof metadata === 'object' && 'profile' in metadata ? metadata.profile : undefined
-    const profile = directProfile ?? metadataProfile
-    if (!profile || typeof profile !== 'object') {
-        return target
-    }
-    Object.defineProperty(target, 'profile', {
-        configurable: true,
-        enumerable: true,
-        value: profile,
-        writable: false
-    })
-    return target
-}
-
-function supportsParallelToolCallsParam(chatModel: BaseChatModel) {
-    return getChatModelName(chatModel) === 'ChatOpenAI'
-}
-
-function getChatModelName(chatModel: BaseChatModel) {
-    return (chatModel as { lc_name?: () => string }).lc_name?.() || chatModel.constructor?.name
 }
 
 function stringifyStructuredResponse(response: unknown) {

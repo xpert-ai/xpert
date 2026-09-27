@@ -150,7 +150,10 @@ export type AfterAgentHook<TSchema extends InteropZodObject | undefined = undefi
  */
 export interface ModelRequest<TState extends Record<string, unknown> = Record<string, unknown>, TContext = unknown> {
   /**
-   * The model to use for this step.
+   * The unbound model to use for this step. Middleware may replace it before
+   * the host binds the final tool selection or structured output schema.
+   * Replacements must expose bindTools/withStructuredOutput when those features
+   * are used. A plain Runnable is supported for calls without either feature.
    */
   model: LanguageModelLike
   /**
@@ -161,7 +164,8 @@ export interface ModelRequest<TState extends Record<string, unknown> = Record<st
   systemMessage?: SystemMessage
 
   /**
-   * Tool choice configuration (model-specific format).
+   * Portable tool choice configuration, applied by the host after selection.
+   * A named tool must remain selected; "required" needs a non-empty selection.
    * Can be one of:
    * - `"auto"`: means the model can pick between generating a message or calling one or more tools.
    * - `"none"`: means the model will not call any tool and instead generates a message.
@@ -171,7 +175,11 @@ export interface ModelRequest<TState extends Record<string, unknown> = Record<st
   toolChoice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } }
 
   /**
-   * The tools to make available for this step.
+   * The registered tools to make available for this step. Return a subset of
+   * these instances (or an empty array) to change the model's available tools.
+   * New definitions, cloned tools and schema replacements require separate
+   * runtime registration so that every advertised tool has an execution route.
+   * Selection does not replace authorization at the tool execution boundary.
    */
   tools: (ServerTool | ClientTool)[]
 

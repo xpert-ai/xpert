@@ -448,6 +448,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         fallbackSupportsVision?: boolean
         middlewareReplacementSupportsVision?: boolean
         observePublicProfile?: boolean
+        allowedToolNames?: string[]
         workspaceDataScope?: 'shared' | 'user'
         commandXpert?: Partial<IXpert>
     }) {
@@ -473,6 +474,24 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             RunnableLambda.from(replacementInvoke),
             options.middlewareReplacementSupportsVision ?? false
         )
+        const toolSelectionsAtInvocation: Array<{ model: string; names: string[] }> = []
+        const bindingsBeforeMiddleware: number[] = []
+        let bindingCount = 0
+        for (const [name, model] of [
+            ['primary', primaryModel],
+            ['fallback', fallbackModel],
+            ['replacement', replacementModel]
+        ] as const) {
+            Object.defineProperty(model, 'bindTools', {
+                value: (tools: Array<{ name: string }>) => {
+                    bindingCount++
+                    return RunnableLambda.from(async (messages, config) => {
+                        toolSelectionsAtInvocation.push({ model: name, names: tools.map((tool) => tool.name) })
+                        return model.invoke(messages, config)
+                    })
+                }
+            })
+        }
         const configuredModels = [primaryModel, fallbackModel]
         const agent = {
             key: 'agent-1',
@@ -516,7 +535,9 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         }
         const observedModelProfiles: unknown[] = []
         const middlewareEnabled =
-            options.middlewareReplacementSupportsVision !== undefined || options.observePublicProfile
+            options.middlewareReplacementSupportsVision !== undefined ||
+            options.observePublicProfile ||
+            options.allowedToolNames !== undefined
         const graphDefinition = {
             nodes: [
                 {
@@ -599,16 +620,26 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
                 get: jest.fn().mockReturnValue({
                     createMiddleware: jest.fn().mockReturnValue({
                         name: 'test-model-replacement',
+                        tools:
+                            options.allowedToolNames === undefined
+                                ? []
+                                : ['allowed_tool', 'forbidden_tool'].map((name) =>
+                                      tool(async () => 'ok', { name, description: name, schema: z.object({}) })
+                                  ),
                         wrapModelCall: (request, next) => {
+                            bindingsBeforeMiddleware.push(bindingCount)
                             observedModelProfiles.push('profile' in request.model ? request.model.profile : undefined)
-                            return next(
-                                options.middlewareReplacementSupportsVision === undefined
-                                    ? request
-                                    : {
-                                          ...request,
-                                          model: replacementModel
-                                      }
-                            )
+                            return next({
+                                ...request,
+                                tools:
+                                    options.allowedToolNames === undefined
+                                        ? request.tools
+                                        : request.tools.filter((tool) => options.allowedToolNames.includes(tool.name)),
+                                model:
+                                    options.middlewareReplacementSupportsVision === undefined
+                                        ? request.model
+                                        : replacementModel
+                            })
                         }
                     })
                 })
@@ -650,6 +681,8 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
             commandBus,
             middlewareRuntime,
             observedModelProfiles,
+            toolSelectionsAtInvocation,
+            bindingsBeforeMiddleware,
             primaryInvoke,
             replacementInvoke
         }
@@ -723,6 +756,42 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         )
     }
 
+    it.each([false, true])(
+        'binds only middleware-selected tools on actual model invocation (fallback=%s)',
+        async (fallback) => {
+            const fixture = createFixture({
+                primarySupportsVision: false,
+                allowedToolNames: ['allowed_tool'],
+                ...(fallback ? { primaryError: new Error('transient failure'), fallbackSupportsVision: false } : {})
+            })
+            await invokeGraph(fixture)
+            expect(fixture.toolSelectionsAtInvocation).toEqual([
+                { model: 'primary', names: ['allowed_tool'] },
+                ...(fallback ? [{ model: 'fallback', names: ['allowed_tool'] }] : [])
+            ])
+        }
+    )
+
+    it('binds once after middleware selects both a replacement model and its tools', async () => {
+        const fixture = createFixture({
+            primarySupportsVision: true,
+            middlewareReplacementSupportsVision: false,
+            allowedToolNames: ['allowed_tool']
+        })
+        await invokeGraph(fixture)
+        expect(fixture.bindingsBeforeMiddleware).toEqual([0])
+        expect(fixture.primaryInvoke).not.toHaveBeenCalled()
+        expect(fixture.toolSelectionsAtInvocation).toEqual([{ model: 'replacement', names: ['allowed_tool'] }])
+        expect(JSON.stringify(fixture.replacementInvoke.mock.calls[0]?.[0])).not.toContain('image_url')
+    })
+
+    it('removes every tool when middleware returns an empty tool list', async () => {
+        const fixture = createFixture({ primarySupportsVision: false, allowedToolNames: [] })
+        await invokeGraph(fixture)
+        expect(fixture.primaryInvoke).toHaveBeenCalledTimes(1)
+        expect(fixture.toolSelectionsAtInvocation).toEqual([])
+    })
+
     it('filters images before invoking a text-only primary model', async () => {
         const fixture = createFixture({ primarySupportsVision: false })
 
@@ -739,7 +808,7 @@ describe('XpertAgentSubgraphHandler model image preparation', () => {
         expect(JSON.stringify(fixture.primaryInvoke.mock.calls[0]?.[0])).toContain('image_url')
     })
 
-    it('preserves the provider public profile on the model wrapper exposed to middleware', async () => {
+    it('exposes the provider public profile without binding the model before middleware', async () => {
         const fixture = createFixture({
             primarySupportsVision: true,
             observePublicProfile: true
