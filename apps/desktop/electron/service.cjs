@@ -349,3 +349,5 @@ Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMe
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 
 module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, webUrl }
+
+Object.assign(DesktopService.prototype, require('./workbench.cjs').createWorkbenchMethods(ClientError))

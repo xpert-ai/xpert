@@ -45,7 +45,26 @@ export interface DesktopShellGrant {
   expiresAt: number
   threadId: string | null
 }
+export interface WorkbenchSessionInput {
+  botId: string
+  target: 'assistant.conversation' | 'assistant.project'
+  /** Current host-resolved Assistant for project navigation; the server checks project access. */
+  assistantId?: string
+  conversationId?: string
+  projectId?: string
+  threadId?: string
+}
+export interface WorkbenchSession {
+  assistantId: string
+  projectId: string | null
+  threadId: string | null
+  conversationId?: string
+  secret: string
+  organizationId: string
+}
 export interface HostMethods {
+  workbenchSession: { input: WorkbenchSessionInput; output: WorkbenchSession }
+
   sidebarState: { input: undefined; output: SidebarState }
   updateSidebar: { input: SidebarUpdate; output: SidebarState }
   botActivity: { input: undefined; output: BotActivity[] }
@@ -87,6 +106,7 @@ declare global {
         argument?: HostMethods[K]['input']
       ) => Promise<HostResult<HostMethods[K]['output']>>
       openWorkspace: () => Promise<void>
+      openPlatform: (payload: unknown) => Promise<boolean>
       setSidebarCollapsed: (collapsed: boolean) => void
       platform: string
     }
