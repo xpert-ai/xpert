@@ -38,6 +38,10 @@ export function desktopThemeStyle(appearance: AppearanceConfig, mode: ColorMode)
   const values: { [key: `--${string}`]: string } = {}
   const colors = desktopColors(appearance, mode)
   for (const key of Object.keys(colors) as ColorToken[]) values[`--xui-color-${key}`] = colors[key]
+  defaults.avatarPalette.forEach((color, index) => {
+    values[`--xui-color-avatar-${index}`] = color
+  })
+  values['--xui-color-avatar-foreground'] = defaults.avatarForeground
   values['--xui-radius-md'] = `${appearance.desktop.radius}px`
   values['--xui-font-family'] = appearance.desktop.fontFamily || defaults.appearance.desktop.fontFamily
   const density = appearance.desktop.density

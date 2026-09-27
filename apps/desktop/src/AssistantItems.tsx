@@ -12,7 +12,7 @@ import {
   ContextMenuSeparator
 } from '@xpert-ai/shadcn-ui'
 import { AssistantPreview } from './AssistantPreview'
-import { BotAvatar } from './BotAvatar'
+import { BotAvatar } from './avatar'
 import { t } from './i18n'
 import type { AssistantRow } from './assistant-list-model'
 import type { SidebarState } from './assistant-list-types'

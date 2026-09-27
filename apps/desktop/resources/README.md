@@ -2,7 +2,8 @@
 
 `logo.png` is the supplied black smile tile, copied unchanged from
 `apps/desktop/docs/logo.png`. It supplies the favicon and Windows/Linux app icons.
-`logo.svg` remains the theme-aware login mark. Assistant avatars retain their robot fallback.
+`logo.svg` remains the theme-aware login mark. Missing Assistant avatars use the
+separate vector layers in `src/avatar/AnimatedAssistantAvatar.tsx`; custom avatars are preserved.
 
 ## macOS: current Electron ICNS pipeline
 

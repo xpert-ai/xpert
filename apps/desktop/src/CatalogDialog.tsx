@@ -15,7 +15,7 @@ import {
   TabsTrigger
 } from '@xpert-ai/shadcn-ui'
 import { ArrowLeft, ArrowUpRight, Layers, LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
-import { BotAvatar } from './BotAvatar'
+import { BotAvatar } from './avatar'
 import { ApplicationCardBackground } from './ApplicationScreenshots'
 import { CatalogSetup } from './CatalogSetup'
 import { invoke } from './host'

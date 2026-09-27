@@ -1,6 +1,6 @@
 import type { EmojiMartData } from '@emoji-mart/data'
 import data from '@emoji-mart/data/sets/15/native.json'
-import type { Bot } from './types'
+import type { Bot } from '../types'
 
 const emojiIndex: Pick<EmojiMartData, 'emojis' | 'aliases'> = data
 

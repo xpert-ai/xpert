@@ -21,6 +21,19 @@
       "dark": {}
     }
   },
+  "avatarPalette": [
+    "#2563eb",
+    "#0e7490",
+    "#0f766e",
+    "#15803d",
+    "#a16207",
+    "#c2410c",
+    "#be123c",
+    "#a21caf",
+    "#7c3aed",
+    "#4f46e5"
+  ],
+  "avatarForeground": "#ffffff",
   "colors": {
     "light": {
       "background": "#ffffff",

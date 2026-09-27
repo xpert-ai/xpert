@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen } = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
@@ -8,6 +8,7 @@ const { menuTemplate } = require('./menu.cjs')
 const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
+const { installAvatarPointer } = require('./avatar-pointer.cjs')
 
 app.setName('Xpert')
 // A separate profile supports local acceptance without touching the daily app account.
@@ -62,6 +63,7 @@ function createWindow() {
       webSecurity: true
     }
   })
+  installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
   window.webContents.setWindowOpenHandler(({ url }) => {
     openExternal(url)
     return { action: 'deny' }

@@ -37,7 +37,21 @@ its 1024px RGBA export, `icon-macos.png`, supplies the development Dock icon.
 Run `corepack pnpm --filter @xpert-ai/desktop icons:macos` on macOS to regenerate
 `Xpert.iconset` and the packaged `Xpert.icns`. See [icon resources](resources/README.md).
 Packaged macOS apps use their bundle icon.
-Assistant avatars keep their custom images, emoji, and original robot fallback.
+Avatar components and their emoji, color and motion helpers live together in
+`src/avatar/`. Consumers import `BotAvatar` and `PluginAvatar` from this directory;
+its animation helpers remain internal.
+Assistant avatars keep their custom images and emoji. Missing avatars use a vector
+version of the smile tile: eyes and mouth follow the pointer with bounded parallax,
+and the eye on the gaze side shrinks while the opposite eye grows. Pointer proximity
+also changes eye scale. The background uses a stable pseudorandom color from the ten
+`avatarPalette` entries in `electron/theme-defaults.json`, keyed by Assistant ID (not
+name or row position). Palette order and the hash are stable across releases, so
+refresh, restart, renamed Assistants and sidebar copies retain the same color.
+The tile uses the Desktop theme radius directly, including square and circular limits.
+Visible avatars share one animation driver; offscreen avatars and reduced-motion/coarse-pointer environments remain still.
+The native host supplies window-local cursor positions while Desktop is focused,
+including over ChatKit frames. It stops sampling when no visible avatar requests it
+or the window loses focus. Browser previews follow the host document's pointer only.
 
 Use Node 22.12+ (Node 24 LTS recommended) and the repository's Corepack-managed
 pnpm 10.24.0. Run these commands from the Xpert repository root:
