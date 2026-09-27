@@ -124,9 +124,6 @@ import {
   CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX,
   CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
   CLAWXPERT_CHAT_COLUMN_MAX_WIDTH,
-  CHAT_SHELL_TRANSITION_CLASSES,
-  DETAIL_PANEL_SHELL_TRANSITION_CLASSES,
-  DETAIL_PANEL_CONTENT_TRANSITION_CLASSES,
   clampChatkitWidth,
   toConfiguredWorkbenchLayoutState,
   resolveEmbeddedChatkitElement,
@@ -135,6 +132,7 @@ import {
 import { installChatkitOverlayDialogControls } from './conversation-detail/chatkit/overlay-controls'
 import { startChatkitPanelResize } from './conversation-detail/chatkit/panel-resize'
 import { createWorkspaceLayoutClasses } from './conversation-detail/chatkit/workspace-layout'
+import { createWorkspacePanelClasses } from './conversation-detail/chatkit/workspace-panels'
 import {
   CONVERSATION_DETAIL_RELATIONS,
   type WorkbenchConversationChatkitScope,
@@ -597,33 +595,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       !this.chatkitHiddenFromWorkspace()
   )
   readonly workspaceLayoutClasses = createWorkspaceLayoutClasses(this)
-  readonly detailPanelShellClasses = computed(() =>
-    this.showDetailPanel()
-      ? `min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
-      : `pointer-events-none min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-0 -translate-y-4 opacity-0 lg:max-h-none lg:-translate-x-6 lg:translate-y-0`
-  )
-  readonly detailPanelContentClasses = computed(() =>
-    this.showDetailPanel()
-      ? `flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
-      : `pointer-events-none flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} -translate-y-3 opacity-0 lg:-translate-x-3 lg:translate-y-0`
-  )
-  readonly chatShellClasses = computed(() => {
-    if (this.overlayDialog()) {
-      return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-    }
-
-    if (this.chatkitHiddenFromWorkspace()) {
-      if (this.isChatMinimizedToPet()) {
-        return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-      }
-
-      return `pointer-events-none relative min-h-0 min-w-0 overflow-hidden p-0 opacity-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-    }
-
-    return this.showDetailPanel()
-      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[var(--clawxpert-chatkit-width)] lg:justify-self-end`
-      : `relative min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full`
-  })
+  readonly narrowChatSidebarCollapsed = signal(false)
+  readonly chatSidebarOpenerElement = viewChild('chatSidebarOpener', { read: ElementRef<HTMLButtonElement> })
+  private readonly workspacePanels = createWorkspacePanelClasses(this)
+  readonly detailPanelShellClasses = this.workspacePanels.detailPanelShellClasses
+  readonly detailPanelContentClasses = this.workspacePanels.detailPanelContentClasses
+  readonly chatShellClasses = this.workspacePanels.chatShellClasses
   readonly chatSurfaceClasses = computed(() =>
     this.showChatkitResizeHandle() ? 'bg-components-card-bg border-l border-border' : ''
   )

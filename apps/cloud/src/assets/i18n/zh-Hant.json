@@ -4927,6 +4927,8 @@
         "Computer": "電腦",
         "Browser": "瀏覽器",
         "BrowserLauncherDesc": "開啟網站",
+        "OpenChatSidebar": "開啟聊天側欄",
+        "CloseChatSidebar": "收起聊天側欄",
         "NewWorkspaceTab": "新增工作區標籤",
         "ScrollTabsLeft": "向左捲動標籤",
         "ScrollTabsRight": "向右捲動標籤",

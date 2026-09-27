@@ -809,7 +809,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[0rem_minmax(0,1fr)]')
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBeNull()
   })
 
@@ -2583,9 +2583,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)]'
-    )
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-1')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-rows-1')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
@@ -2609,6 +2607,25 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(addTabButton?.className).toContain('!h-9')
     expect(addTabButton?.className).toContain('!w-9')
     expect(addTabButton?.className).toContain('rounded-xl')
+
+    const host: HTMLElement = fixture.nativeElement
+    const chatkit = host.querySelector('xpert-chatkit')
+    const workspace = host.querySelector('[data-workbench-layout]')
+    const opener = host.querySelector<HTMLButtonElement>('[data-open-chat-sidebar]')!
+    expect(host.querySelector('[data-chat-sidebar-header]')).toBeNull()
+    host.querySelector<HTMLButtonElement>('[data-chat-sidebar-backdrop]')!.click()
+    await settle(fixture)
+    expect(workspace?.getAttribute('data-chat-sidebar-collapsed')).toBe('true')
+    expect(opener.getAttribute('aria-expanded')).toBe('false')
+    expect(host.querySelector('[data-chat-sidebar-backdrop]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+    expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
+    opener.click()
+    await settle(fixture)
+    expect(workspace?.getAttribute('data-chat-sidebar-collapsed')).toBe('false')
+    expect(host.querySelector('[data-chat-sidebar-backdrop]')).not.toBeNull()
+    expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
+    expect(component.activeTabId()).toBe(tabButton?.getAttribute('data-tab-id'))
   })
 
   it.each([false, true])(
@@ -2722,7 +2739,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[0rem_minmax(0,1fr)]')
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('minimized')
 
     const showWorkbenchButton = fixture.nativeElement.querySelector(
@@ -2960,7 +2977,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(activatePet).toHaveBeenCalledTimes(1)
     expect(chatkit.dataset.chatOpen).toBe('true')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).toBeNull()
 
     const dragBar = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-drag-bar]')
@@ -3221,7 +3238,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(showDetailPanelButton).not.toBeNull()
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[0rem_minmax(0,1fr)]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-full')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
@@ -3242,8 +3259,8 @@ describe('ClawXpertConversationDetailComponent', () => {
       '[data-toggle-chatkit-maximized]'
     ) as HTMLElement | null
     expect(maximizeChatkitButton).toBeNull()
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-1')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')

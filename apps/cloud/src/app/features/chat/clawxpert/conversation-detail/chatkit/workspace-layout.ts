@@ -26,17 +26,17 @@ export function createWorkspaceLayoutClasses(state: {
   return computed(() => {
     const transitionClasses =
       state.isResizingChatkit() || !animateLayout() ? 'transition-none' : WORKSPACE_LAYOUT_TRANSITION_CLASSES
-    const base = `grid h-full min-h-0 grid-cols-1 ${transitionClasses}`
+    const base = `relative grid h-full min-h-0 grid-rows-1 ${transitionClasses}`
 
     switch (layout()) {
       case 'workbench':
-        return `${base} grid-rows-[minmax(0,1fr)_0rem] lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
+        return `${base} grid-cols-[minmax(0,1fr)_0rem]`
       case 'empty':
-        return `${base} grid-rows-[0rem_0rem] lg:grid-cols-[0rem_0rem] lg:grid-rows-1`
+        return `${base} grid-cols-[0rem_0rem]`
       case 'split':
-        return `${base} grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))] lg:grid-rows-1`
+        return `${base} grid-cols-[minmax(0,1fr)_0rem] lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))] lg:grid-rows-1`
       case 'chat':
-        return `${base} grid-rows-[0rem_minmax(0,1fr)] lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1`
+        return `${base} grid-cols-[0rem_minmax(0,1fr)]`
     }
   })
 }

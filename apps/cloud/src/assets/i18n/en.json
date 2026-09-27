@@ -3226,6 +3226,8 @@
         "Computer": "Computer",
         "Browser": "Browser",
         "BrowserLauncherDesc": "Open website",
+        "OpenChatSidebar": "Open chat sidebar",
+        "CloseChatSidebar": "Close chat sidebar",
         "NewWorkspaceTab": "New workspace tab",
         "ScrollTabsLeft": "Scroll tabs left",
         "ScrollTabsRight": "Scroll tabs right",
