@@ -45,7 +45,7 @@ const expressions: Record<NonNullable<AvatarConversationStatus>, AvatarExpressio
     mood: 'dejected',
     left: 'M23 50 Q31 49 39 39',
     right: 'M63 39 Q71 49 79 50',
-    mouth: 'M39 78 Q50 -12 61 78'
+    mouth: 'M39 78 Q50 63 61 78'
   }
 }
 

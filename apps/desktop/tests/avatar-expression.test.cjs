@@ -45,7 +45,7 @@ test('fallback avatar renders distinct expressions for every supported latest-co
     for (const part of ['left-eye', 'right-eye', 'mouth']) assert.ok(face.includes(`data-face-part="${part}"`))
   }
   assert.match(render('error'), /data-expression="dejected"/)
-  assert.match(render('error'), /d="M39 78 Q50 -12 61 78"/, 'the failed state has a visibly downturned mouth')
+  assert.match(render('error'), /d="M39 78 Q50 63 61 78"/, 'the failed state has a restrained 15-unit mouth bend')
   assert.match(render('interrupted'), /data-expression="questioning"/)
 })
 
