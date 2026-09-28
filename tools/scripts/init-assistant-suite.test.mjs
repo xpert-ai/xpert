@@ -139,6 +139,140 @@ test('dry-run validates a suite locally and preserves a null publication environ
   assert.match(result.stdout, /No API request was sent/)
 })
 
+test('publishes nested role delegation without exposing the nested role to the orchestrator', async (t) => {
+  const fixture = createProfile({
+    roles: [
+      {
+        key: 'writer',
+        templateKey: 'writer',
+        name: 'writer',
+        title: 'Writer',
+        primaryAgentKey: 'Agent_Writer',
+        externalRoleKeys: ['figures']
+      },
+      { key: 'figures', templateKey: 'figures', name: 'figures', title: 'Figures', primaryAgentKey: 'Agent_Figures' }
+    ],
+    orchestrator: {
+      key: 'main',
+      templateKey: 'main',
+      name: 'main',
+      title: 'Main',
+      primaryAgentKey: 'Agent_Main',
+      externalRoleKeys: ['writer']
+    }
+  })
+  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
+  const installed = new Map(),
+    drafts = new Map(),
+    published = new Map(),
+    publishOrder = []
+  const definitions = [...fixture.profile.roles, fixture.profile.orchestrator]
+  const server = await listen(async (request, response) => {
+    const body = await readRequestBody(request),
+      url = request.url
+    response.setHeader('content-type', 'application/json')
+    const send = (value) => response.end(JSON.stringify(value))
+    if (url === '/api/plugin/by-names') return send([{ name: fixture.profile.plugin.name, version: '1.2.3' }])
+    if (request.method === 'GET' && url.startsWith('/api/xpert-template/'))
+      return send({
+        pluginName: fixture.profile.plugin.name,
+        key: decodeURIComponent(url.slice('/api/xpert-template/'.length))
+      })
+    if (request.method === 'GET' && url.startsWith('/api/xpert/by-workspace/')) return send({ items: [] })
+    if (request.method === 'POST' && url.endsWith('/install')) {
+      const key = decodeURIComponent(url.slice('/api/xpert-template/'.length, -'/install'.length)).split(':').at(-1)
+      const definition = definitions.find((item) => item.templateKey === key)
+      installed.set(key, body.basic)
+      const graph = {
+        team: { agent: { key: definition.primaryAgentKey } },
+        nodes: [{ key: definition.primaryAgentKey, type: 'agent', entity: { key: definition.primaryAgentKey } }],
+        connections: []
+      }
+      drafts.set(key, graph)
+      if (body.publish) published.set(key, graph)
+      return send({ xpert: { id: key } })
+    }
+    const match = /^\/api\/xpert\/([^/]+)(.*)$/.exec(url)
+    if (match) {
+      const [, key, tail] = match,
+        definition = definitions.find((item) => item.templateKey === key)
+      if (request.method === 'POST' && tail === '/draft') {
+        drafts.set(key, body)
+        return send({ success: true })
+      }
+      if (request.method === 'POST' && tail.startsWith('/publish?')) {
+        published.set(key, drafts.get(key))
+        publishOrder.push(key)
+        return send({ success: true })
+      }
+      if (request.method === 'GET' && ['', '/team'].includes(tail))
+        return send(
+          team({
+            id: key,
+            ...installed.get(key),
+            templateKey: key,
+            agentKey: definition.primaryAgentKey,
+            version: published.has(key) ? 1 : null,
+            graph: published.get(key),
+            draft: tail ? undefined : drafts.get(key)
+          })
+        )
+    }
+    response.statusCode = 404
+    send({ message: `Unhandled ${request.method} ${url}` })
+  })
+  t.after(() => server.close())
+  const result = await runCli(
+    [
+      '--profile',
+      fixture.profilePath,
+      '--workspace-id',
+      'workspace',
+      '--org-id',
+      'org',
+      '--run-id',
+      'nested',
+      '--api-url',
+      server.url,
+      '--no-keychain'
+    ],
+    { XPERT_TOKEN: 'test-token' }
+  )
+  assert.equal(result.code, 0, result.stderr)
+  assert.deepEqual(publishOrder, ['writer', 'main'])
+  assert.deepEqual(
+    published.get('main').connections.map((edge) => edge.to),
+    ['writer']
+  )
+  assert.deepEqual(
+    published.get('writer').connections.map((edge) => [edge.from, edge.to, edge.required]),
+    [['Agent_Writer', 'figures', true]]
+  )
+  assert.equal(
+    published.get('main').nodes.find((node) => node.key === 'writer').entity.graph.connections[0].to,
+    'figures'
+  )
+})
+
+test('rejects nested dependency cycles before making requests', async (t) => {
+  const fixture = createProfile({
+    roles: [
+      {
+        key: 'bom',
+        templateKey: 'bom',
+        name: 'bom',
+        title: 'BOM',
+        primaryAgentKey: 'Agent_Bom',
+        externalRoleKeys: ['bom']
+      }
+    ]
+  })
+  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
+  const result = await runCli(['--profile', fixture.profilePath, '--dry-run', '--no-keychain'])
+  assert.notEqual(result.code, 0)
+  assert.match(result.stderr, /dependency cycle/)
+})
+
 test('installs roles first and publishes an Orchestrator with one direct required external Xpert', async (t) => {
   const fixture = createProfile()
   t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
