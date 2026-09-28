@@ -6,9 +6,13 @@ packages:
   - 'docs'
   - 'legacies/*'
 
-# API source and both Docker stages must resolve the same ChatKit runtime.
+# Cloud, Desktop, API source and Docker stages share one ChatKit release.
 catalog:
-  '@xpert-ai/chatkit-types': 0.6.3
+  '@xpert-ai/chatkit-angular': 0.7.0
+  '@xpert-ai/chatkit-types': 0.7.0
+  '@xpert-ai/chatkit-ui': 0.7.0
+  '@xpert-ai/chatkit-web-component': 0.7.0
+  '@xpert-ai/chatkit-web-shared': 0.7.0
 
 # Keep overrides here so replacing the root manifest in Docker preserves them.
 overrides:
