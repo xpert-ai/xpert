@@ -101,7 +101,8 @@ describe('ThreadsController', () => {
         const response = Object.assign(new EventEmitter(), {
             destroyed: false,
             writableEnded: false,
-            write: jest.fn()
+            write: jest.fn(),
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController(
             {} as never,
@@ -118,6 +119,10 @@ describe('ThreadsController', () => {
                 }
             } as never)
 
+            expect(response.setHeader).toHaveBeenCalledWith(
+                'Content-Location',
+                '/api/ai/threads/thread-1/runs/execution-1'
+            )
             expect(result).toBe(stream)
             expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
             expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
@@ -146,7 +151,8 @@ describe('ThreadsController', () => {
         const response = Object.assign(new EventEmitter(), {
             destroyed: false,
             writableEnded: false,
-            write: jest.fn()
+            write: jest.fn(),
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController(
             {} as never,
@@ -192,7 +198,8 @@ describe('ThreadsController', () => {
         const response = Object.assign(new EventEmitter(), {
             destroyed: false,
             writableEnded: false,
-            write: jest.fn()
+            write: jest.fn(),
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController({} as never, {} as never, commandBus as never, {} as never)
 

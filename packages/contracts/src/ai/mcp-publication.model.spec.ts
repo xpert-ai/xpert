@@ -18,7 +18,13 @@ describe('MCP Streamable HTTP browser contract', () => {
 
   it('exposes OAuth challenge and request correlation headers to browser clients', () => {
     expect(MCP_HTTP_CORS_EXPOSED_HEADERS).toEqual(
-      expect.arrayContaining(['WWW-Authenticate', 'MCP-Protocol-Version', 'Mcp-Session-Id', 'X-Request-Id'])
+      expect.arrayContaining([
+        'Content-Location',
+        'WWW-Authenticate',
+        'MCP-Protocol-Version',
+        'Mcp-Session-Id',
+        'X-Request-Id'
+      ])
     )
   })
 })

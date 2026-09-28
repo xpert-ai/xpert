@@ -18,6 +18,7 @@ export const MCP_HTTP_CORS_REQUEST_HEADERS = [
 ] as const
 
 export const MCP_HTTP_CORS_EXPOSED_HEADERS = [
+  'Content-Location',
   'WWW-Authenticate',
   'MCP-Protocol-Version',
   'Mcp-Session-Id',
