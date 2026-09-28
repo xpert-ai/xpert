@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
+import { PARAMTYPES_METADATA } from '@nestjs/common/constants'
 import { CommandBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
+import { Test } from '@nestjs/testing'
+import { getRepositoryToken } from '@nestjs/typeorm'
 import { I18nService } from 'nestjs-i18n'
 
 jest.mock('@xpert-ai/server-core', () => ({
@@ -15,7 +18,7 @@ jest.mock('../../xpert.service', () => ({
     XpertService: class XpertService {}
 }))
 
-jest.mock('../../../xpert-agent', () => ({
+jest.mock('../../../xpert-agent/xpert-agent.service', () => ({
     XpertAgentService: class XpertAgentService {}
 }))
 
@@ -30,7 +33,8 @@ jest.mock('../../types', () => ({
 import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
 import type { Repository } from 'typeorm'
 import { IWorkflowNode, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
-import { XpertAgentService } from '../../../xpert-agent'
+import { XpertAgentService } from '../../../xpert-agent/xpert-agent.service'
+import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
 import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
@@ -39,6 +43,41 @@ import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertPublishHandler } from './publish.handler'
 
 describe('XpertPublishHandler', () => {
+    it('resolves the agent provider when circular loading emits Object as its parameter type', async () => {
+        const parameterTypes: unknown[] = Reflect.getMetadata(PARAMTYPES_METADATA, XpertPublishHandler)
+        // The production bundle evaluates this handler before the agent service export is initialized.
+        Reflect.defineMetadata(
+            PARAMTYPES_METADATA,
+            parameterTypes.map((type, index) => (index === 1 ? Object : type)),
+            XpertPublishHandler
+        )
+
+        try {
+            const moduleRef = await Test.createTestingModule({
+                providers: [
+                    XpertPublishHandler,
+                    ...[
+                        XpertService,
+                        XpertAgentService,
+                        I18nService,
+                        CommandBus,
+                        EventEmitter2,
+                        getRepositoryToken(BusinessArea),
+                        PromptWorkflowService,
+                        XpertPrincipalService
+                    ].map((provide) => ({ provide, useValue: {} }))
+                ]
+            }).compile()
+            try {
+                expect(moduleRef.get(XpertPublishHandler)).toBeInstanceOf(XpertPublishHandler)
+            } finally {
+                await moduleRef.close()
+            }
+        } finally {
+            Reflect.defineMetadata(PARAMTYPES_METADATA, parameterTypes, XpertPublishHandler)
+        }
+    })
+
     function createHandler(xpertOverrides: Partial<Xpert> = {}) {
         const xpert = {
             id: 'xpert-1',

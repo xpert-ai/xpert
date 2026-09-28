@@ -14,7 +14,7 @@ import {
 } from '@xpert-ai/contracts'
 import { omit, pick } from '@xpert-ai/server-common'
 import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, forwardRef, HttpException, Inject, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -25,7 +25,7 @@ import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
-import { XpertAgentService } from '../../../xpert-agent'
+import { XpertAgentService } from '../../../xpert-agent/xpert-agent.service'
 import { EventName_XpertPublished } from '../../types'
 import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
@@ -38,6 +38,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 
     constructor(
         private readonly xpertService: XpertService,
+        // The Xpert/agent import cycle can leave the emitted parameter type as Object during bootstrap.
+        @Inject(forwardRef(() => XpertAgentService))
         private readonly xpertAgentService: XpertAgentService,
         private readonly i18nService: I18nService,
         private readonly commandBus: CommandBus,
