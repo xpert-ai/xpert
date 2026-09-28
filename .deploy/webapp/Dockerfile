@@ -11,16 +11,20 @@ FROM node:20-alpine AS build
 LABEL maintainer="meta.digital.cloud@gmail.com"
 LABEL org.opencontainers.image.source="https://github.com/xpert-ai/xpert"
 
-ENV CI=true
+# The static web build does not need the desktop or E2E browser binaries.
+ENV CI=true \
+    CYPRESS_INSTALL_BINARY=0 \
+    ELECTRON_SKIP_BINARY_DOWNLOAD=1
 
 # We make NODE_OPTIONS and other env vars passed as build argument to be available in this stage
 ARG NODE_OPTIONS
 
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=4096"}
 
-RUN apk --update add bash && \
+# The shared workspace includes native dependencies such as node-pty.
+# Keep their compiler toolchain in the build stage; production only ships Nginx.
+RUN apk add --no-cache bash python3 make g++ && \
     corepack enable && corepack prepare pnpm@10.24.0 --activate && \
-    # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
     mkdir /srv/xpert && chown -R node:node /srv/xpert
 
 COPY wait .deploy/api/entrypoint.prod.sh .deploy/api/entrypoint.compose.sh /
