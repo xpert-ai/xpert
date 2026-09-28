@@ -136,14 +136,17 @@ export class MarkdownRecursiveTextSplitter extends BaseDocumentTransformer {
         }
 
         for (const line of lines) {
-            if (/^```/.test(line.trim())) {
+            // split('\n') keeps the CR from CRLF. Match the logical line, but store the original
+            // line so later indexOf offsets still land in the unnormalized source.
+            const logicalLine = line.endsWith('\r') ? line.slice(0, -1) : line
+            if (/^```/.test(logicalLine.trim())) {
                 insideCodeBlock = !insideCodeBlock
                 currentContent.push(line)
                 continue
             }
 
             if (!insideCodeBlock) {
-                const match = line.match(/^(#{1,6})\s+(.*)$/)
+                const match = logicalLine.match(/^(#{1,6})\s+(.*)$/)
                 if (match) {
                     const level = match[1].length
                     const text = match[2].trim()
