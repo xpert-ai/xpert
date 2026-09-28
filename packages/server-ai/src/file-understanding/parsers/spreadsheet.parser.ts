@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
-import fs from 'fs/promises'
 import * as XLSX from 'xlsx'
 import { FileParseSource, ParsedFileResult } from '../domain/types'
 import { FileParser, getFileExtension, summarizeText } from './file-parser'
+import { readTextFile } from './text-file'
 
 @Injectable()
 export class SpreadsheetFileParser implements FileParser {
@@ -16,7 +16,7 @@ export class SpreadsheetFileParser implements FileParser {
     async parse(source: FileParseSource): Promise<ParsedFileResult> {
         const extension = getFileExtension(source.originalName ?? source.filePath)
         if (extension === 'csv' || extension === 'tsv') {
-            const content = await fs.readFile(source.filePath, 'utf8')
+            const content = await readTextFile(source.filePath)
             return {
                 capabilities: ['preview', 'read', 'search', 'table_query'],
                 summary: summarizeText(content),

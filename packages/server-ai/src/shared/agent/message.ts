@@ -6,7 +6,10 @@ import { ForbiddenException } from '@nestjs/common'
 import fs from 'fs'
 import { get } from 'lodash'
 import sharp from 'sharp'
+import { t } from 'i18next'
 import type { FileAsset } from '../../file-understanding/entities/file-asset.entity'
+import { isZipFile } from '../../file-understanding/parsers/file-parser'
+import { UnsupportedFileContentError } from '../../file-understanding/parsers/unsupported-file-content.error'
 import type { FileAssetAuthority, FileAssetLocator } from '../../file-understanding/file-asset-access.service'
 import { GetFilePreviewQuery, type FilePreviewResult } from '../../file-understanding/queries/get-file-preview.query'
 import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
@@ -354,6 +357,9 @@ export async function createHumanMessage(
     if (files.length || imageReferenceParts.length) {
         const fileParts = await Promise.all(
             files.map(async (file) => {
+                if (isZipFile({ ...file, filePath: file.filePath ?? file.workspacePath ?? '' })) {
+                    return { type: 'text', text: buildFileReferencePrompt(file) }
+                }
                 if (file.mimeType?.startsWith('image')) {
                     if (!file.sourceData && !file.filePath && !file.fileUrl) {
                         return {
@@ -407,14 +413,16 @@ export async function createHumanMessage(
                     }
                 }
 
-                // Compatibility fallback for legacy attachments or unsupported
-                // parser states. Ready FileAssets should reach the compact card above.
-                const docs = await commandBus.execute(
-                    new LoadFileCommand({ ...file, filePath: loadFilePath } as _TFile)
-                )
-                return {
-                    type: 'text',
-                    text: `Attachment File: ${formatAttachmentPath(file)}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
+                // Only unsupported content becomes a reference; access and parser failures remain errors.
+                try {
+                    const docs = await commandBus.execute(new LoadFileCommand({ ...file, filePath: loadFilePath }))
+                    return {
+                        type: 'text',
+                        text: `Attachment File: ${formatAttachmentPath(file)}\n<file_content>\n${docs?.map((doc) => doc.pageContent).join('\n') || 'No text recognized!'}\n</file_content>`
+                    }
+                } catch (error) {
+                    if (!(error instanceof UnsupportedFileContentError)) throw error
+                    return { type: 'text', text: buildFileReferencePrompt(file) }
                 }
             })
         )
@@ -448,6 +456,28 @@ function resolveFileAssetAuthority(state: Partial<typeof AgentStateAnnotation.St
 
 function formatAttachmentPath(file: ResolvedFile) {
     return file.workspacePath ?? file.originalName ?? file.filePath ?? file.fileAssetId ?? file.fileId ?? 'attachment'
+}
+
+function buildFileReferencePrompt(file: ResolvedFile) {
+    const asset = file.fileAsset
+    return [
+        `Attachment File: ${file.originalName ?? asset?.originalName ?? formatAttachmentPath(file)}`,
+        '<file_reference>',
+        `fileId: ${asset?.id ?? file.fileId ?? file.fileAssetId ?? ''}`,
+        file.storageFileId ? `storageFileId: ${file.storageFileId}` : '',
+        `mimeType: ${asset?.mimeType ?? file.mimeType ?? 'application/octet-stream'}`,
+        `size: ${asset?.size ?? file.size ?? 'unknown'}`,
+        `status: ${asset?.status ?? 'unknown'}`,
+        file.workspacePath ? `workspacePath: ${file.workspacePath}` : '',
+        !file.workspacePath && file.filePath ? `filePath: ${file.filePath}` : '',
+        t('server-ai:File.ReferenceOnlyPrompt', {
+            defaultValue:
+                'File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions.'
+        }),
+        '</file_reference>'
+    ]
+        .filter(Boolean)
+        .join('\n')
 }
 
 /**

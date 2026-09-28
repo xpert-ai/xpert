@@ -1,6 +1,9 @@
 {
     "Project": { "ConversationProjectName": "{{assistant}} project" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
+    "File": {
+        "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
+    },
     "Error": {
         "InvalidTemplateCatalogUpgrade": "Template catalog {{filePath}} is invalid. The upgrade was not applied.",
         "AgentPluginWorkspaceDisabled": "This plugin was disabled in the workspace. Ask an administrator to restore it.",
@@ -26,6 +29,7 @@
         "FilePresentationCount": "Select between 1 and {{count}} files.",
         "FileOutputUnavailable": "Cannot present this file: it is missing, empty, unsafe, or larger than 25 MiB: {{path}}",
         "FileOutputReadFailed": "Cannot read the selected file: {{path}}",
+        "FileContentNotReadable": "This file cannot be read directly as text. Use a parser or tool that supports its format.",
         "FileOutputChanged": "The selected file changed while being read. Retry presenting it: {{path}}",
         "DocumentSourceOutsideKnowledgebase": "The source document is outside the selected knowledgebase.",
         "DocumentSourceRevisionChanged": "The parsed source changed during reading. Restart from its first page.",

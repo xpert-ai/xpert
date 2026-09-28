@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { Open } from 'unzipper'
 import { FileParseSource, ParsedFileArtifact, ParsedFileResult } from '../domain/types'
-import { FileParser, getFileExtension, summarizeText } from './file-parser'
+import { FileParser, getFileExtension, isZipFile, summarizeText } from './file-parser'
+import { decodeTextFileContent } from './text-file'
+import { UnsupportedFileContentError } from './unsupported-file-content.error'
 
 const TEXT_IN_ARCHIVE_EXTENSIONS = new Set([
     'txt',
@@ -30,7 +32,7 @@ export class ArchiveFileParser implements FileParser {
     readonly name = 'archive'
 
     supports(source: FileParseSource): boolean {
-        return getFileExtension(source.originalName ?? source.filePath) === 'zip'
+        return isZipFile(source)
     }
 
     async parse(source: FileParseSource): Promise<ParsedFileResult> {
@@ -63,9 +65,17 @@ export class ArchiveFileParser implements FileParser {
                 continue
             }
             const buffer = await entry.buffer()
+            let content: string
+            try {
+                content = decodeTextFileContent(buffer)
+            } catch (error) {
+                if (!(error instanceof UnsupportedFileContentError)) throw error
+                // Keep binary entries in the manifest without indexing them as text.
+                continue
+            }
             artifacts.push({
                 kind: 'text',
-                content: buffer.toString('utf8'),
+                content,
                 mimeType: 'text/plain',
                 anchor: { path: entry.path },
                 metadata: { size: entry.uncompressedSize }
