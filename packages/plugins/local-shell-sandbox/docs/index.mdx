@@ -1,0 +1,41 @@
+---
+title: 'Local Shell Sandbox'
+description: 'Optional API-host shell and interactive terminal provider'
+---
+
+This plugin supplies the existing `local-shell-sandbox` provider. It supports shell
+commands, streaming output, file uploads/downloads, managed services and interactive
+terminals. The terminal uses `node-pty`; ordinary commands use Node's child process API.
+
+The host's existing authenticated terminal gateway continues to handle conversation
+access, input, output, resize and close. Installing the plugin does not add another
+terminal endpoint or change the permission checks.
+
+## Execution boundary
+
+Commands and terminals run on the **API host**, with the API process's operating-system
+permissions. The working directory is not an OS isolation boundary. Enable this
+provider only on trusted installations. Bosi's per-operation approved desktop Shell
+is a separate feature and does not depend on this plugin.
+
+The plugin is system-level and uses the `local_shell_sandbox` artifact namespace.
+The legacy `local-shell-sandbox` strategy key is intentionally preserved for saved
+Assistant configurations. Local Shell Sandbox Jobs remain disabled in production.
+
+## Build and verify
+
+From the Xpert source root:
+
+```bash
+corepack pnpm nx build local-shell-sandbox
+corepack pnpm exec jest --config packages/plugins/local-shell-sandbox/jest.config.cjs --runInBand
+```
+
+The package keeps `node-pty` as an external native dependency; its binary must be
+installed or rebuilt for the destination OS, architecture and Node version. On
+Alpine the installation requires `python3 make g++`; on macOS use Xcode Command
+Line Tools. Do not copy a native binary built on macOS into a Linux installation.
+
+After installation, verify one ordinary command, terminal output, typing, resizing
+and closing through an authorized conversation. Missing terminal bindings must
+report a terminal error without preventing ordinary command execution or host startup.

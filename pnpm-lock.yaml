@@ -1066,6 +1066,30 @@ importers:
         specifier: 3.25.67
         version: 3.25.67
 
+  packages/plugins/local-shell-sandbox:
+    dependencies:
+      '@nestjs/common':
+        specifier: '>=11'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: '>=11'
+        version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@xpert-ai/contracts':
+        specifier: workspace:*
+        version: link:../../contracts/dist
+      '@xpert-ai/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../plugin-sdk/dist
+      i18next:
+        specifier: ^23.14.0
+        version: 23.14.0
+      node-pty:
+        specifier: 1.1.0
+        version: 1.1.0
+      zod:
+        specifier: 3.25.67
+        version: 3.25.67
+
   packages/plugins/vlm-default:
     dependencies:
       '@nestjs/common':
@@ -1579,9 +1603,6 @@ importers:
       nestjs-i18n:
         specifier: ^10.5.1
         version: 10.6.0(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13)(class-validator@0.13.2)(rxjs@7.8.2)
-      node-pty:
-        specifier: ^1.0.0
-        version: 1.1.0
       notion-to-md:
         specifier: 3.1.5
         version: 3.1.5(encoding@0.1.13)

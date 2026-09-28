@@ -79,7 +79,6 @@
         "marked": "^17.0.2",
         "mime-types": "2.1.35",
         "nestjs-i18n": "^10.5.1",
-        "node-pty": "^1.0.0",
         "notion-to-md": "3.1.5",
         "octokit": "^3.2.2",
         "officeparser": "5.1.1",

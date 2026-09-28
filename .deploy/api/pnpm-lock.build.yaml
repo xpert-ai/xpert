@@ -960,9 +960,6 @@ importers:
       nestjs-i18n:
         specifier: ^10.5.1
         version: 10.6.0(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13)(class-validator@0.13.2)(rxjs@7.8.2)
-      node-pty:
-        specifier: ^1.0.0
-        version: 1.1.0
       notion-to-md:
         specifier: 3.1.5
         version: 3.1.5(encoding@0.1.13)
@@ -13772,10 +13769,6 @@ packages:
   node-machine-id@1.1.12:
     resolution:
       { integrity: sha512-QNABxbrPa3qEIfrE6GOJ7BYIuignnJw7iQ2YPbc3Nla1HzRJjXzZOiikfF8m7eAMfichLt3M4VgLOetqgDmgGQ== }
-
-  node-pty@1.1.0:
-    resolution:
-      { integrity: sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg== }
 
   node-readable-to-web-readable-stream@0.4.2:
     resolution:
@@ -30828,10 +30821,6 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-machine-id@1.1.12: {}
-
-  node-pty@1.1.0:
-    dependencies:
-      node-addon-api: 7.1.1
 
   node-readable-to-web-readable-stream@0.4.2:
     optional: true
