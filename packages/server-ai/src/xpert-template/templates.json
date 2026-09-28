@@ -14,6 +14,20 @@
             ],
             "recommendedApps": [
                 {
+                    "id": "xpert-bosi-desktop",
+                    "name": "xpert-bosi-desktop",
+                    "type": "agent",
+                    "title": "Bosi Desktop Assistant",
+                    "description": "Run authorized commands on this computer and use conversation-selected plugins.",
+                    "category": "Assistant",
+                    "order": -20,
+                    "avatar": {
+                        "emoji": {
+                            "id": "computer"
+                        }
+                    }
+                },
+                {
                     "name": "Smart HR Assistant",
                     "type": "agent",
                     "title": "Smart HR Assistant",
@@ -276,6 +290,20 @@
                 "Xpert"
             ],
             "recommendedApps": [
+                {
+                    "id": "xpert-bosi-desktop",
+                    "name": "xpert-bosi-desktop",
+                    "type": "agent",
+                    "title": "Bosi 本机助手",
+                    "description": "在 Bosi 中使用已授权的本机 Bash，并结合当前对话选择的插件完成任务。",
+                    "category": "Assistant",
+                    "order": -20,
+                    "avatar": {
+                        "emoji": {
+                            "id": "computer"
+                        }
+                    }
+                },
                 {
                     "name": "Claw Xpert",
                     "type": "agent",

@@ -35,7 +35,7 @@ export class DesktopShellMiddleware implements IAgentMiddlewareStrategy {
     constructor(private readonly operations: DesktopShellOperationService) {}
     meta: TAgentMiddlewareMeta = {
         name: 'DesktopShell',
-        icon: { type: 'emoji', value: 'desktop_computer' },
+        icon: { type: 'emoji', value: '\u{1F5A5}\uFE0F' },
         label: { en_US: 'Desktop Shell', zh_Hans: '\u684c\u9762 Shell' },
         description: {
             en_US: 'Execute commands on the computer authorized for this conversation. The server sandbox remains separate.',

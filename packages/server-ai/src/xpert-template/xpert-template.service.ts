@@ -50,6 +50,7 @@ import {
 } from './plugin-template-descriptor'
 import { resolvePluginApplicationConfigAssets } from '../plugin-resource/plugin-application-assets'
 import { isTemplateCatalogProvider, paginateTemplateCatalog } from './template-catalog'
+import { upgradeBuiltinTemplateCatalog } from './template-catalog-upgrade'
 
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
@@ -1254,6 +1255,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         }
 
         await this.assertExternalTemplateLayout(externalRoot)
+        await upgradeBuiltinTemplateCatalog(builtinRoot, externalRoot)
         this.#logger.log(`Xpert templates ready at '${externalRoot}'`)
 
         return externalRoot

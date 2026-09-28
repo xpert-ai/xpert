@@ -1,6 +1,7 @@
 {
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
+        "InvalidTemplateCatalogUpgrade": "Template catalog {{filePath}} is invalid. The upgrade was not applied.",
         "AgentPluginWorkspaceDisabled": "This plugin was disabled in the workspace. Ask an administrator to restore it.",
         "ToolImageInvalid": "The tool image is invalid, unsupported or exceeds the image limit.",
         "ToolImageUnavailable": "The tool image is unavailable in this conversation or its content has changed. Capture a new image.",
