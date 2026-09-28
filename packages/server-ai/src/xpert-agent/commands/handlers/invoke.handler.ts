@@ -505,12 +505,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
                     // Interrupted event
                     if (state.tasks?.length) {
-                        // Snapshots also contain completed parallel tasks; only unfinished tasks can await approval.
+                        // Resumed dynamic tools can have interrupts with an empty `next` list.
+                        // Explicit unfinished interrupts take precedence; completed parallel tasks remain excluded.
                         const pendingTasks = state.tasks.filter(
                             (task) =>
-                                state.next.includes(task.name) &&
                                 task.result === undefined &&
-                                (!task.interrupts?.length || task.interrupts.some((item) => !isThreadPause(item.value)))
+                                (task.interrupts?.some((item) => !isThreadPause(item.value)) ||
+                                    (!task.interrupts?.length && state.next.includes(task.name)))
                         )
                         if (!pendingTasks.length) throw new NodeInterrupt({ type: 'thread_pause' })
                         // Has bugs

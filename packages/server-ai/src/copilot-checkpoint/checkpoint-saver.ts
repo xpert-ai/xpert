@@ -1,6 +1,7 @@
 import { RunnableConfig } from '@langchain/core/runnables'
 import {
     BaseCheckpointSaver,
+    WRITES_IDX_MAP,
     type Checkpoint,
     type CheckpointListOptions,
     type CheckpointMetadata,
@@ -195,7 +196,8 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
                         checkpoint_ns: config.configurable?.checkpoint_ns,
                         checkpoint_id: config.configurable?.checkpoint_id ?? '',
                         task_id: taskId,
-                        idx,
+                        // Interrupt and resume writes must coexist across successive pauses.
+                        idx: WRITES_IDX_MAP[write[0]] ?? idx,
                         channel: write[0],
                         type,
                         value: serializedWrite
