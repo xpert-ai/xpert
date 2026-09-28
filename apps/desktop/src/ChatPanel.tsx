@@ -28,7 +28,8 @@ export function ChatPanel({
   const container = useRef<HTMLDivElement>(null)
   const instance = useRef<XpertAIChatKit | null>(null)
   const optionsRef = useRef<ChatKitOptions | null>(null)
-  const [ready, setReady] = useState(false)
+  // The frame load event precedes ChatKit's own session/data loading state.
+  const [frameReady, setFrameReady] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
   const grantRef = useRef<string | null>(null)
@@ -56,9 +57,22 @@ export function ChatPanel({
     let activeThread = threadId
     let activeAssistant = bot.assistantId || bot.id
     setShellAssistantId(bot.assistantId || bot.id)
-    setReady(false)
+    setFrameReady(false)
     setError('')
     const header = { enabled: true, windowDrag: !!window.xpertDesktop, title: { text: bot.name } }
+    const workbench = {
+      enabled: true,
+      viewRail: { enabled: true },
+      onClientCommand: createWorkbenchHandler(bot.id, config.webUrl, (session) => {
+        if (!disposed) {
+          if (activeAssistant !== session.assistantId || activeThread !== session.threadId) onGrant(null)
+          activeAssistant = session.assistantId
+          activeThread = session.threadId
+          setShellAssistantId(session.assistantId)
+          setThreadId(session.threadId)
+        }
+      })
+    }
     const options: ChatKitOptions = {
       frameUrl: config.frameUrl,
       displayMode: 'chat',
@@ -87,18 +101,7 @@ export function ChatPanel({
         resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
         connectors: { enabled: true }
       },
-      workbench: {
-        enabled: true,
-        onClientCommand: createWorkbenchHandler(bot.id, config.webUrl, (session) => {
-          if (!disposed) {
-            if (activeAssistant !== session.assistantId || activeThread !== session.threadId) onGrant(null)
-            activeAssistant = session.assistantId
-            activeThread = session.threadId
-            setShellAssistantId(session.assistantId)
-            setThreadId(session.threadId)
-          }
-        })
-      },
+      workbench,
       toolOutputAttachments: {
         onRequestPreview: ({ attachment }) => invoke('toolOutputPreview', attachment)
       },
@@ -110,7 +113,7 @@ export function ChatPanel({
     optionsRef.current = options
     element.addEventListener('chatkit.ready', () => {
       if (!disposed) {
-        setReady(true)
+        setFrameReady(true)
         setError('')
       }
     })
@@ -129,8 +132,12 @@ export function ChatPanel({
     }
     element.addEventListener('chatkit.thread.load.end', read)
     element.addEventListener('chatkit.response.end', read)
-    container.current?.appendChild(node)
-    instance.current = element
+    // StrictMode's discarded effect must not start an iframe navigation.
+    queueMicrotask(() => {
+      if (disposed) return
+      container.current?.appendChild(node)
+      instance.current = element
+    })
     const timer = window.setTimeout(() => {
       if (!disposed) setError(t('ChatKit took too long to load. Check the ChatKit URL and retry.'))
     }, 30000)
@@ -146,17 +153,24 @@ export function ChatPanel({
   }, [bot.id, config.apiUrl, config.frameUrl, config.webUrl, retry])
 
   useEffect(() => {
-    if (ready && instance.current && optionsRef.current) {
+    if (frameReady && instance.current && optionsRef.current) {
+      const theme = getChatKitTheme(dark, config.appearance)
+      if (
+        JSON.stringify(optionsRef.current.theme) === JSON.stringify(theme) &&
+        optionsRef.current.locale === config.locale &&
+        optionsRef.current.header?.title?.text === bot.name
+      )
+        return
       const options = {
         ...optionsRef.current,
-        theme: getChatKitTheme(dark, config.appearance),
+        theme,
         locale: config.locale,
         header: { ...optionsRef.current.header, title: { text: bot.name } }
       }
       optionsRef.current = options
       instance.current.setOptions(options)
     }
-  }, [dark, ready, config.appearance, config.locale, bot.name])
+  }, [dark, frameReady, config.appearance, config.locale, bot.name])
 
   return (
     <section
@@ -176,7 +190,7 @@ export function ChatPanel({
           </Button>
         </div>
       )}
-      {!ready && !error && (
+      {!frameReady && !error && (
         <div
           role="status"
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-3 bg-background text-sm text-muted-foreground"

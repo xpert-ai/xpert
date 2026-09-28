@@ -254,7 +254,7 @@ export function App() {
                     'The assistant is not available yet. Check its publishing status and access permissions, then retry.'
                   )
                 )
-              setSelected(id)
+              selectBot(id)
               setError('')
               setCatalog(false)
             } finally {
