@@ -3,6 +3,8 @@ import os from 'os'
 import path from 'path'
 import JSZip from 'jszip'
 import { loadDocxStructuredMarkdown } from './docx-outline'
+import { Marked } from 'marked'
+import { analyzeStructuredDocuments } from '../textsplitter-common/structured-document'
 
 describe('DOCX numbering in structured markdown', () => {
     it('preserves nested cell content and advances numbering in document order', async () => {
@@ -39,6 +41,54 @@ describe('DOCX numbering in structured markdown', () => {
                 '5. Outside'
             ].join('\n')
         )
+    })
+
+    it.each([
+        ['lowerLetter', '%1.', 'a.'],
+        ['upperRoman', '%1.', 'I.'],
+        ['decimal', 'Article %1:', 'Article 1:']
+    ])('keeps %s numbering visible inside valid Markdown list items', async (format, label, expected) => {
+        const filePath = await writeNumberedDocx({
+            numberingXml: numberingXml(`<w:abstractNum w:abstractNumId="1"><w:lvl w:ilvl="0">
+                <w:start w:val="1"/><w:numFmt w:val="${format}"/><w:lvlText w:val="${label}"/>
+                </w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="1"/></w:num>`),
+            bodyXml: numberedParagraph('1', '0', 'First') + numberedParagraph('1', '0', 'Second')
+        })
+        const result = await loadDocxStructuredMarkdown(filePath)
+        if (!result) throw new Error('Expected structured DOCX')
+        const units = analyzeStructuredDocuments(result.documents)[0].units
+        expect(units.map((unit) => unit.kind)).toEqual(['list'])
+        expect(units[0].parts).toHaveLength(2)
+        expect(result.documents[0].pageContent).toContain(`- ${expected} First`)
+    })
+
+    it.each([1, 9, 10])('retains nested ordered items when parent numbering starts at %s', async (start) => {
+        const filePath = await writeNumberedDocx({
+            numberingXml: numberingXml(`<w:abstractNum w:abstractNumId="1">
+                ${[0, 1, 2]
+                    .map(
+                        (level) => `<w:lvl w:ilvl="${level}"><w:start w:val="${level === 0 ? start : 1}"/>
+                <w:numFmt w:val="decimal"/><w:lvlText w:val="%${level + 1}."/></w:lvl>`
+                    )
+                    .join('')}
+                </w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="1"/></w:num>`),
+            bodyXml:
+                numberedParagraph('1', '0', 'Parent') +
+                numberedParagraph('1', '1', 'Child') +
+                numberedParagraph('1', '2', 'Grandchild') +
+                numberedParagraph('1', '0', 'Next parent') +
+                numberedParagraph('1', '1', 'Next child')
+        })
+        const markdown = await convert(filePath)
+        const [list] = new Marked({ gfm: true }).lexer(markdown)
+        if (list.type !== 'list') throw new Error('Expected a list')
+        expect(list.items).toHaveLength(2)
+        const child = list.items[0].tokens.find((token) => token.type === 'list')
+        if (child?.type !== 'list') throw new Error('Expected a nested child list')
+        expect(child.items).toHaveLength(1)
+        expect(child.items[0].tokens.some((token) => token.type === 'list')).toBe(true)
+        const nextChild = list.items[1].tokens.find((token) => token.type === 'list')
+        expect(nextChild?.type).toBe('list')
     })
 
     it('keeps decimal numbering defined on a paragraph style and preserves tables', async () => {
@@ -225,10 +275,10 @@ describe('DOCX numbering in structured markdown', () => {
                 '# 2 下一步',
                 '',
                 '1. 父步骤',
-                '  a. 子步骤',
-                '  b. 另一子步骤',
+                '   - a. 子步骤',
+                '   - b. 另一子步骤',
                 '2. 回到上级',
-                '  a. 重新开始',
+                '   - a. 重新开始',
                 '',
                 '普通段落',
                 '',

@@ -105,13 +105,13 @@ export function toMarkdownListMarker(marker: DocxNumberingMarker): string {
     if (marker.kind === 'bullet') {
         return '-'
     }
-    if (/[.)]$/.test(marker.label)) {
+    if (/^\d{1,9}[.)]$/.test(marker.label)) {
         return marker.label
     }
-    if (/^[0-9A-Za-z]+$/.test(marker.label)) {
+    if (/^\d{1,9}$/.test(marker.label)) {
         return `${marker.label}.`
     }
-    return marker.label
+    return '-'
 }
 
 export function joinNumberLabel(label: string, text: string): string {

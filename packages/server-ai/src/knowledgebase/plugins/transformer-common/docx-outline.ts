@@ -201,13 +201,15 @@ function readParagraph(node: Element, context: ReadContext): ParagraphBlock | nu
     const tocLevel = style?.tocLevel ?? fallbackToc
     const marker = text ? markerFor(node, context) : null
     const showInline = Boolean(marker && (headingLevel || tocLevel))
+    const list = marker && !showInline ? toParagraphList(marker) : undefined
+    const preserveLabel = showInline || (marker?.kind === 'ordered' && list?.marker === '-')
 
     return {
         type: 'paragraph',
-        text: showInline && marker ? joinNumberLabel(marker.label, text) : text,
+        text: preserveLabel && marker ? joinNumberLabel(marker.label, text) : text,
         headingLevel,
         tocLevel,
-        ...(marker && !showInline ? { list: toParagraphList(marker) } : {}),
+        ...(list ? { list } : {}),
         images
     }
 }
@@ -296,6 +298,7 @@ function blocksToMarkdown(blocks: DocxBlock[], images: Map<string, TDocumentAsse
     let previousWasToc = false
     let previousWasList = false
     let previousListNumId: string | undefined
+    const listParents: Array<{ level: number; contentIndent: number }> = []
 
     for (const block of blocks) {
         if (block.type === 'table') {
@@ -326,9 +329,18 @@ function blocksToMarkdown(blocks: DocxBlock[], images: Map<string, TDocumentAsse
             const continues = previousWasList && previousListNumId === block.list.numId
             if (!continues) {
                 appendBlankLine(lines)
+                listParents.length = 0
             }
-            lines.push(`${'  '.repeat(Math.max(0, block.list.level))}${block.list.marker} ${block.text}`)
-            lines.push(...imageLines)
+            while (listParents.length && listParents[listParents.length - 1].level >= block.list.level) {
+                listParents.pop()
+            }
+            // Markdown children align with the parent's content, including the full marker width.
+            const indent = listParents.at(-1)?.contentIndent ?? 0
+            const contentIndent = indent + block.list.marker.length + 1
+            listParents.push({ level: block.list.level, contentIndent })
+            const text = block.text.replace(/\n/g, `\n${' '.repeat(contentIndent)}`)
+            lines.push(`${' '.repeat(indent)}${block.list.marker} ${text}`)
+            lines.push(...imageLines.map((line) => `${' '.repeat(contentIndent)}${line}`))
             previousWasToc = false
             previousWasList = true
             previousListNumId = block.list.numId
