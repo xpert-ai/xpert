@@ -1,4 +1,4 @@
-import { ShellSettings } from './ShellSettings'
+import { ShellSettings } from './shell/ShellSettings'
 import { t, languages } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import {

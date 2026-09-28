@@ -24,5 +24,6 @@ export default defineConfig({
     ]
   },
   server: { host: '127.0.0.1', port: 4390, strictPort: true },
-  build: { outDir: 'dist' }
+  optimizeDeps: { include: ['@xpert-ai/desktop-protocol'] },
+  build: { outDir: 'dist', commonjsOptions: { include: [/node_modules/, /packages\/desktop-protocol/] } }
 })

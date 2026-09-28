@@ -1,9 +1,9 @@
 import { useWorkspaceConnection } from './WorkspaceConnection'
 import { useDeliveredFile } from './files/DeliveredFile'
 import { createWorkbenchHandler } from './workbench'
-import { ShellControls } from './ShellControls'
+import { useShellIntegration } from './shell/useShellIntegration'
 import { t } from './i18n'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import '@xpert-ai/chatkit-web-component'
 import type { ChatKitOptions, XpertAIChatKit } from '@xpert-ai/chatkit-types'
 import { Button } from '@xpert-ai/shadcn-ui'
@@ -36,18 +36,7 @@ export function ChatPanel({
   const delivery = useDeliveredFile()
   const deliveryRef = useRef(delivery.open)
   deliveryRef.current = delivery.open
-  const grantRef = useRef<string | null>(null)
-  const onGrant = useCallback((id: string | null) => {
-    grantRef.current = id
-    if (instance.current && optionsRef.current) {
-      const next = {
-        ...optionsRef.current,
-        request: { context: { source: 'desktop', ...(id ? { desktopShellGrantId: id } : {}) } }
-      }
-      optionsRef.current = next
-      instance.current.setOptions(next)
-    }
-  }, [])
+  const shell = useShellIntegration()
   const [shellAssistantId, setShellAssistantId] = useState(bot.assistantId || bot.id)
   const [threadId, setThreadId] = useState<string | null>(initialThread)
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
@@ -69,7 +58,6 @@ export function ChatPanel({
       viewRail: { enabled: true },
       onClientCommand: createWorkbenchHandler(bot.id, config.webUrl, (session) => {
         if (!disposed) {
-          if (activeAssistant !== session.assistantId || activeThread !== session.threadId) onGrant(null)
           activeAssistant = session.assistantId
           activeThread = session.threadId
           setShellAssistantId(session.assistantId)
@@ -78,6 +66,7 @@ export function ChatPanel({
       })
     }
     const options: ChatKitOptions = {
+      ...shell.handlers,
       frameUrl: config.frameUrl,
       displayMode: 'chat',
       pet: false,
@@ -110,7 +99,7 @@ export function ChatPanel({
         onRequestPreview: ({ attachment }) => invoke('toolOutputPreview', attachment)
       },
       request: {
-        context: { source: 'desktop', ...(grantRef.current ? { desktopShellGrantId: grantRef.current } : {}) }
+        context: { source: 'desktop' }
       }
     }
     element.setOptions(options)
@@ -186,7 +175,7 @@ export function ChatPanel({
     >
       {connection.status}
       {delivery.dialog}
-      <ShellControls key={shellAssistantId} assistantId={shellAssistantId} threadId={threadId} onGrant={onGrant} />
+      {shell.dialog}
       {error && (
         <div
           role="alert"

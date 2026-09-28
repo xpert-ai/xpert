@@ -1030,6 +1030,12 @@
         }
     },
     "DesktopShell": {
+        "ApprovalTitle": "Allow this command on your computer?",
+        "Directory": "Working directory",
+        "Command": "Command",
+        "Access": "Local access",
+        "ApprovalNotice": "Runs as your computer user. Output is sent to Xpert. The working directory does not restrict file access.",
+        "Denied": "Local execution was denied or unavailable. Stop this operation; do not retry or switch computers without a new user request.",
         "INVALID_MESSAGE": "Invalid desktop shell request.",
         "INVALID_SETTINGS": "Invalid Shell settings.",
         "DEVICE_OFFLINE": "This computer is offline. Open Xpert Desktop and enable Shell.",

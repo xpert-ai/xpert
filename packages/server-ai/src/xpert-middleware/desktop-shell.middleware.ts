@@ -1,3 +1,5 @@
+import { requestShellApproval } from '../desktop-shell/shell-approval'
+import { t } from 'i18next'
 import { Injectable } from '@nestjs/common'
 import { tool } from '@langchain/core/tools'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -54,8 +56,8 @@ export class DesktopShellMiddleware implements IAgentMiddlewareStrategy {
                 const threadId = runtime?.thread_id
                 const runId = runtime?.rootExecutionId ?? runtime?.executionId
                 const toolCallId = getToolCallIdFromConfig(config)
-                const grantId = runtime?.context?.desktopShellGrantId
-                if (!isId(threadId) || !isId(runId) || typeof toolCallId !== 'string') shellError('INVALID_MESSAGE')
+                if (!isId(threadId) || !isId(runId) || !isId(context.xpertId) || typeof toolCallId !== 'string')
+                    shellError('INVALID_MESSAGE')
                 const scope = {
                     tenantId: context.tenantId,
                     organizationId: context.organizationId,
@@ -64,14 +66,35 @@ export class DesktopShellMiddleware implements IAgentMiddlewareStrategy {
                 if (!scope.organizationId) shellError('GRANT_REVOKED', 403)
                 let result: ShellResult
                 if (input.action === 'exec') {
-                    if (!isId(grantId)) shellError('GRANT_REVOKED', 403)
-                    const operation = await this.operations.execute(input, {
-                        ...scope,
+                    const ready = await requestShellApproval({
+                        kind: 'desktop-shell',
+                        assistantId: context.xpertId,
                         threadId,
                         runId,
                         toolCallId,
-                        grantId
+                        command: input.command,
+                        cwd: input.cwd,
+                        timeoutSec: input.timeout_sec ?? LIMITS.timeout
                     })
+                    if (!ready)
+                        return JSON.stringify({
+                            status: 'denied',
+                            message: t('server-ai:DesktopShell.Denied', {
+                                defaultValue:
+                                    'Local execution was denied or unavailable. Stop this operation; do not retry or switch computers without a new user request.'
+                            })
+                        })
+                    const grantId = ready.grantId
+                    const operation = await this.operations.execute(
+                        { ...input, cwd: ready.cwd },
+                        {
+                            ...scope,
+                            threadId,
+                            runId,
+                            toolCallId,
+                            grantId
+                        }
+                    )
                     const cancel = () => {
                         void this.operations.cancel(operation.id, scope, threadId).catch(() => undefined)
                     }
@@ -113,7 +136,7 @@ export class DesktopShellMiddleware implements IAgentMiddlewareStrategy {
                 name: 'desktop_shell',
                 schema,
                 description:
-                    'Execute a non-interactive command on the user-authorized desktop computer, not the server sandbox. Use exec to start, status with operationId and cursor to collect incremental output, and cancel to stop. Each exec starts a fresh shell; specify an absolute cwd. Long commands return running. The computer OS, shell and cwd are in the result. Do not retry an unknown result or an offline device on another machine. No interactive stdin, sudo or persistent background services. Use sandbox_shell for server-side work.'
+                    'Request a non-interactive command on the local desktop computer. Bosi connects automatically and asks for permission according to the device policy. If denied, expired or unavailable, stop; never repeat the request without new user instruction. Execute on this computer, not the server sandbox. Use exec to start, status with operationId and cursor to collect incremental output, and cancel to stop. Each exec starts a fresh shell; specify an absolute cwd. Long commands return running. The computer OS, shell and cwd are in the result. Do not retry an unknown result or an offline device on another machine. No interactive stdin, sudo or persistent background services. Use sandbox_shell for server-side work.'
             }
         )
         return { name: 'DesktopShell', tools: [shell] }

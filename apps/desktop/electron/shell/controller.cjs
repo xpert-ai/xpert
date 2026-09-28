@@ -1,9 +1,9 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const os = require('node:os')
-const { randomUUID } = require('node:crypto')
+const { randomUUID, createHash } = require('node:crypto')
 const { fork } = require('node:child_process')
-const { parseSettings, isId } = require('@xpert-ai/desktop-protocol')
+const { parseSettings, isId, parsePreparation, parsePolicy } = require('@xpert-ai/desktop-protocol')
 
 class DesktopShellController {
   constructor(service, directory) {
@@ -16,11 +16,17 @@ class DesktopShellController {
     this.generation = 0
     this.errorCode = null
     this.refreshing = null
+    this.preparations = new Map()
+    this.prepareQueue = Promise.resolve()
+    this.policies = {}
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 })
     const file = path.join(directory, 'settings.json')
     try {
       const saved = JSON.parse(fs.readFileSync(file, 'utf8'))
       this.settings = parseSettings(saved.settings)
+      for (const [key, policy] of Object.entries(saved.policies || {})) {
+        if (/^[a-f0-9]{64}$/.test(key) && ['ask', 'allow', 'deny'].includes(policy)) this.policies[key] = policy
+      }
       this.installationId = isId(saved.installationId) ? saved.installationId : randomUUID()
     } catch {
       this.installationId = randomUUID()
@@ -34,6 +40,7 @@ class DesktopShellController {
   }
   snapshot() {
     return {
+      policy: this.policy(),
       available: process.platform === 'darwin',
       enabled: !!this.deviceId,
       connected: this.connected,
@@ -45,9 +52,162 @@ class DesktopShellController {
   persist() {
     fs.writeFileSync(
       path.join(this.directory, 'settings.json'),
-      JSON.stringify({ installationId: this.installationId, settings: this.settings }),
+      JSON.stringify({ installationId: this.installationId, settings: this.settings, policies: this.policies }),
       { mode: 0o600 }
     )
+  }
+  scopeKey() {
+    const profile = this.service.profile
+    if (!profile?.user?.id || !profile.user.tenantId || !profile.organizationId) throw new Error('SESSION_CHANGED')
+    return createHash('sha256')
+      .update(
+        JSON.stringify([
+          this.service.config.apiUrl,
+          profile.user.tenantId,
+          profile.user.id,
+          profile.organizationId,
+          this.installationId
+        ])
+      )
+      .digest('hex')
+  }
+  policy() {
+    try {
+      return this.policies[this.scopeKey()] || 'ask'
+    } catch {
+      return 'ask'
+    }
+  }
+  async setPolicy(value) {
+    const policy = parsePolicy(value)
+    this.policies[this.scopeKey()] = policy
+    this.persist()
+    if (policy === 'deny') await this.disable()
+    return this.snapshot()
+  }
+  async configureSettings(value) {
+    const settings = parseSettings(value)
+    if (!fs.statSync(settings.cwd).isDirectory()) throw new Error('INVALID_SETTINGS')
+    await this.disable()
+    this.settings = settings
+    this.persist()
+    return this.snapshot()
+  }
+  prepare(raw) {
+    const input = parsePreparation(raw)
+    const scope = this.scopeKey()
+    const task = this.prepareQueue.then(() => {
+      if (scope !== this.scopeKey()) throw new Error('SESSION_CHANGED')
+      return this.prepareOperation(input)
+    })
+    this.prepareQueue = task.catch(() => undefined)
+    return task
+  }
+  async prepareOperation(input) {
+    if (this.policy() === 'deny') throw new Error('SHELL_DENIED')
+    const scope = this.scopeKey()
+    if (!this.deviceId) await this.enable(this.settings)
+    const generation = this.generation
+    const deadline = Date.now() + 10000
+    while (!this.connected && this.child && Date.now() < deadline && generation === this.generation)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    if (generation !== this.generation || scope !== this.scopeKey()) throw new Error('SESSION_CHANGED')
+    if (!this.connected) throw new Error('DEVICE_OFFLINE')
+    const key = JSON.stringify([scope, input.runId, input.toolCallId])
+    const cwd = input.cwd || this.settings.cwd
+    const argsHash = createHash('sha256')
+      .update(JSON.stringify([input.command, cwd, input.timeoutSec]))
+      .digest('hex')
+    const existing = this.preparations.get(key)
+    if (existing) {
+      if (existing.argsHash !== argsHash || existing.result.expiresAt <= Date.now())
+        throw new Error('OPERATION_CONFLICT')
+      if (existing.decision === 'reject') throw new Error('SHELL_DENIED')
+      return existing.result
+    }
+    const result = await this.service.request(`/api/desktop-shell/devices/${this.deviceId}/prepare`, {
+      method: 'POST',
+      body: { ...input, cwd }
+    })
+    if (generation !== this.generation || scope !== this.scopeKey()) throw new Error('SESSION_CHANGED')
+    if (
+      result.kind !== 'desktop-shell' ||
+      !isId(result.grantId) ||
+      !Number.isFinite(result.expiresAt) ||
+      result.cwd !== cwd ||
+      result.decision !== 'pending'
+    )
+      throw new Error('INVALID_MESSAGE')
+    const entry = { result, argsHash, scope, input }
+    this.preparations.set(key, entry)
+    if (this.policy() === 'allow') await this.decide({ id: result.grantId, decision: 'approve' })
+    return result
+  }
+  async decide(input) {
+    if (!input || !isId(input.id) || !['approve', 'reject'].includes(input.decision)) throw new Error('INVALID_MESSAGE')
+    const entry = [...this.preparations.values()].find((item) => item.result.grantId === input.id)
+    // Rejecting a stale request is always safe; never recreate a local execution permit.
+    if (input.decision === 'reject') {
+      this.grants.delete(input.id)
+      if (this.child?.connected) await this.syncGrants()
+      if (entry) entry.decision = 'reject'
+      await this.service
+        .request(`/api/desktop-shell/grants/${input.id}/revoke`, { method: 'POST' })
+        .catch(() => undefined)
+      return { accepted: true }
+    }
+    const generation = this.generation
+    if (!entry || entry.scope !== this.scopeKey() || entry.result.expiresAt <= Date.now() || this.policy() === 'deny')
+      throw new Error('GRANT_REVOKED')
+    if (entry.decision && entry.decision !== input.decision) throw new Error('OPERATION_CONFLICT')
+    await this.service.request(`/api/desktop-shell/grants/${input.id}/decision`, {
+      method: 'POST',
+      body: { decision: input.decision }
+    })
+    if (generation !== this.generation || entry.scope !== this.scopeKey() || !this.child?.connected)
+      throw new Error('SESSION_CHANGED')
+    entry.decision = input.decision
+    if (input.decision === 'approve') {
+      this.grants.set(input.id, { id: input.id, expiresAt: entry.result.expiresAt, argsHash: entry.argsHash })
+    } else this.grants.delete(input.id)
+    await this.syncGrants()
+    if (generation !== this.generation || entry.scope !== this.scopeKey()) throw new Error('SESSION_CHANGED')
+    if (input.decision === 'approve') entry.result.decision = 'approved'
+    return { accepted: true }
+  }
+  async syncGrants() {
+    const child = this.child
+    if (!child?.connected) throw new Error('DEVICE_OFFLINE')
+    const requestId = randomUUID()
+    await new Promise((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timer)
+        child.off('message', onMessage)
+        child.off('exit', onExit)
+      }
+      const onMessage = (message) => {
+        if (message.type !== 'grants-applied' || message.requestId !== requestId) return
+        cleanup()
+        if (this.child !== child) reject(new Error('SESSION_CHANGED'))
+        else resolve()
+      }
+      const onExit = () => {
+        cleanup()
+        reject(new Error('DEVICE_OFFLINE'))
+      }
+      const timer = setTimeout(() => {
+        cleanup()
+        reject(new Error('DEVICE_OFFLINE'))
+      }, 5000)
+      child.on('message', onMessage)
+      child.once('exit', onExit)
+      child.send({ type: 'grants', requestId, grants: [...this.grants.values()] }, (error) => {
+        if (error) {
+          cleanup()
+          reject(error)
+        }
+      })
+    })
   }
   async enable(value) {
     if (process.platform !== 'darwin') throw new Error('UNSUPPORTED_PLATFORM')
@@ -158,6 +318,7 @@ class DesktopShellController {
     this.deviceId = null
     this.connected = false
     this.grants.clear()
+    this.preparations.clear()
     const child = this.child
     this.child = null
     // Start the authenticated revoke before logout clears the account in DesktopService.

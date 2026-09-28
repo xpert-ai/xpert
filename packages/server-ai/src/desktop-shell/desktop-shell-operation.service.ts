@@ -7,7 +7,7 @@ import type { RedisClientType } from 'redis'
 import type { ShellExecInput, ShellResult, ShellScope, ShellReport } from '@xpert-ai/contracts'
 import { LIMITS, isFinal, isId } from '@xpert-ai/desktop-protocol'
 import { DesktopShellAuthService } from './desktop-shell-auth.service'
-import { DesktopShellDevice, DesktopShellOperation } from './desktop-shell.entities'
+import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './desktop-shell.entities'
 import { shellError, shellMessage } from './desktop-shell.errors'
 
 export const SHELL_DISPATCH_CHANNEL = 'xpert:desktop-shell:dispatch'
@@ -39,6 +39,14 @@ export class DesktopShellOperationService {
         const argsHash = createHash('sha256')
             .update(JSON.stringify([input.command, cwd, timeoutSec]))
             .digest('hex')
+        if (
+            !grant.operation ||
+            grant.operation.decision !== 'approved' ||
+            grant.operation.runId !== scope.runId ||
+            grant.operation.toolCallId !== scope.toolCallId ||
+            grant.operation.argsHash !== argsHash
+        )
+            shellError('GRANT_REVOKED', 403)
         const operation = await this.auth.devices.manager.transaction(async (manager) => {
             const devices = manager.getRepository(DesktopShellDevice)
             const operations = manager.getRepository(DesktopShellOperation)
@@ -46,6 +54,17 @@ export class DesktopShellOperationService {
                 where: { id: device.id },
                 lock: { mode: 'pessimistic_write' }
             })
+            const currentGrant = await manager.getRepository(DesktopShellGrant).findOne({
+                where: { id: grant.id, enabled: true },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (
+                !currentGrant ||
+                currentGrant.expiresAt.getTime() <= Date.now() ||
+                currentGrant.operation?.decision !== 'approved' ||
+                currentGrant.operation.argsHash !== argsHash
+            )
+                shellError('GRANT_REVOKED', 403)
             const existing = await operations.findOneBy({
                 tenantId: scope.tenantId,
                 runId: scope.runId,

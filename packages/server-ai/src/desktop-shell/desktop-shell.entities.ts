@@ -3,7 +3,8 @@ import type {
     IDesktopShellGrant,
     IDesktopShellOperation,
     ShellChunk,
-    ShellState
+    ShellState,
+    ShellOperationAuthorization
 } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index } from 'typeorm'
@@ -30,6 +31,7 @@ export class DesktopShellDevice extends TenantOrganizationBaseEntity implements 
 @Entity('desktop_shell_grant')
 @Index(['deviceId', 'enabled'])
 export class DesktopShellGrant extends TenantOrganizationBaseEntity implements IDesktopShellGrant {
+    @Column({ type: 'jsonb', nullable: true }) operation: ShellOperationAuthorization | null
     declare id: string
     declare tenantId: string
     declare organizationId: string

@@ -1030,6 +1030,12 @@
         }
     },
     "DesktopShell": {
+        "ApprovalTitle": "允许在此电脑运行命令？",
+        "Directory": "工作目录",
+        "Command": "执行命令",
+        "Access": "本机访问",
+        "ApprovalNotice": "以你的系统用户身份执行，命令输出会发送给 Xpert。工作目录不限制文件访问范围。",
+        "Denied": "本机执行已拒绝或不可用。停止本次操作，未收到用户新请求前不要重试或改用其他电脑。",
         "INVALID_MESSAGE": "无效的桌面 Shell 请求。",
         "INVALID_SETTINGS": "无效的 Shell 设置。",
         "DEVICE_OFFLINE": "此电脑已离线，请打开 Xpert Desktop 并启用 Shell。",

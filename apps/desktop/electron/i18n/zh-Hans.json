@@ -560,5 +560,20 @@
   "Loading file…": "正在加载文件…",
   "Download": "下载",
   "Rendering document…": "正在渲染文档…",
-  "Preview unavailable. Download the file to view it.": "暂不支持此文件的预览，请下载后查看。"
+  "Preview unavailable. Download the file to view it.": "暂不支持此文件的预览，请下载后查看。",
+  "Local execution permissions": "本机执行权限",
+  "Connects when needed": "按需自动连接",
+  "Execution permission": "执行权限",
+  "Ask for every command": "每条命令先询问",
+  "Always allow in this organization": "始终允许此组织的命令",
+  "Never allow": "禁止执行",
+  "Applies only to your account, this organization and this computer. Always allow permits future commands without asking.": "仅适用于当前账号、组织和此电脑。始终允许将不再逐条询问后续命令。",
+  "Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.": "请求本机命令时 Bosi 自动连接。每条命令使用独立的非交互 Shell。",
+  "Apply Shell settings": "应用 Shell 设置",
+  "Local Shell is disabled in permissions. Change the policy before requesting another command.": "本机 Shell 已在权限设置中禁用。请先修改权限，再发起新的命令。",
+  "This command permission expired or was revoked. It was not executed.": "此命令的授权已过期或撤销，命令未执行。",
+  "This command no longer matches the approved request. It was not executed.": "此命令与已批准的请求不一致，命令未执行。",
+  "The account or organization changed. Request permission again in the current conversation.": "账号或组织已切换。请在当前对话中重新请求授权。",
+  "This computer is offline. Stop this operation; do not retry automatically.": "此电脑已离线。请停止本次操作，不要自动重试。",
+  "Desktop Shell could not connect. Check the service and try a new command.": "本机 Shell 连接失败。请检查服务后发起新的命令。"
 }

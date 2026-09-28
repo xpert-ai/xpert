@@ -560,5 +560,20 @@
   "Loading file…": "Loading file…",
   "Download": "Download",
   "Rendering document…": "Rendering document…",
-  "Preview unavailable. Download the file to view it.": "Preview unavailable. Download the file to view it."
+  "Preview unavailable. Download the file to view it.": "Preview unavailable. Download the file to view it.",
+  "Local execution permissions": "Local execution permissions",
+  "Connects when needed": "Connects when needed",
+  "Execution permission": "Execution permission",
+  "Ask for every command": "Ask for every command",
+  "Always allow in this organization": "Always allow in this organization",
+  "Never allow": "Never allow",
+  "Applies only to your account, this organization and this computer. Always allow permits future commands without asking.": "Applies only to your account, this organization and this computer. Always allow permits future commands without asking.",
+  "Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.": "Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.",
+  "Apply Shell settings": "Apply Shell settings",
+  "Local Shell is disabled in permissions. Change the policy before requesting another command.": "Local Shell is disabled in permissions. Change the policy before requesting another command.",
+  "This command permission expired or was revoked. It was not executed.": "This command permission expired or was revoked. It was not executed.",
+  "This command no longer matches the approved request. It was not executed.": "This command no longer matches the approved request. It was not executed.",
+  "The account or organization changed. Request permission again in the current conversation.": "The account or organization changed. Request permission again in the current conversation.",
+  "This computer is offline. Stop this operation; do not retry automatically.": "This computer is offline. Stop this operation; do not retry automatically.",
+  "Desktop Shell could not connect. Check the service and try a new command.": "Desktop Shell could not connect. Check the service and try a new command."
 }

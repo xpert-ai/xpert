@@ -28,6 +28,13 @@ export class DesktopShellController {
         if (!body || typeof body !== 'object' || !('assistantId' in body)) shellError('INVALID_MESSAGE')
         return this.auth.issueGrant(id, body.assistantId, 'threadId' in body ? body.threadId : null)
     }
+    @Post('devices/:id/prepare') prepare(@Param('id') id: string, @Body() body: unknown) {
+        return this.auth.prepareOperation(id, body)
+    }
+    @Post('grants/:id/decision') decision(@Param('id') id: string, @Body() body: unknown) {
+        if (!body || typeof body !== 'object' || !('decision' in body)) shellError('INVALID_MESSAGE')
+        return this.auth.decideOperation(id, body.decision)
+    }
     @Post('grants/:id/revoke') async revoke(@Param('id') id: string) {
         return this.auth.revokeGrant(id)
     }

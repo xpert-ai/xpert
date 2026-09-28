@@ -1,6 +1,12 @@
 import type { PluginLibrary } from './plugin-library-types'
 import type { BotActivity, SidebarState, SidebarUpdate } from './assistant-list-types'
-import type { ShellSettings, ShellResult } from '@xpert-ai/contracts'
+import type {
+  ShellSettings,
+  ShellResult,
+  ShellPreparationRequest,
+  ShellPreparation,
+  ShellPolicy
+} from '@xpert-ai/contracts'
 import type { ToolOutputAttachmentPreview, ToolOutputImageAttachment } from '@xpert-ai/chatkit-types'
 import type { Locale, MessageParams } from './i18n'
 import type { AppearanceConfig } from './appearance-types'
@@ -44,6 +50,7 @@ export type HostResult<T> =
   | { ok: true; value: T }
   | { ok: false; message: string; status: number; key?: string; params?: MessageParams }
 export interface DesktopShellState {
+  policy: ShellPolicy
   available: boolean
   enabled: boolean
   connected: boolean
@@ -116,6 +123,10 @@ export interface HostMethods {
   markAllBotRead: { input: string; output: SidebarState }
   editBot: { input: { botId: string; name: string; description: string }; output: { botId: string } }
   duplicateBot: { input: { botId: string; name: string }; output: { botId: string } }
+  shellConfigure: { input: ShellSettings; output: DesktopShellState }
+  shellPrepare: { input: ShellPreparationRequest; output: ShellPreparation }
+  shellDecide: { input: { id: string; decision: 'approve' | 'reject' }; output: { accepted: boolean } }
+  shellPolicy: { input: ShellPolicy; output: DesktopShellState }
   shellState: { input: undefined; output: DesktopShellState }
   shellEnable: { input: ShellSettings; output: DesktopShellState }
   shellDisable: { input: undefined; output: DesktopShellState }
