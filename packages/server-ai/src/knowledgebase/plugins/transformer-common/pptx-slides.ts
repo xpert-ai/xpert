@@ -168,16 +168,19 @@ function readTable(frame: Element): TableBlock | null {
     const rows: string[][] = []
     for (const row of elementChildren(table).filter((child) => localName(child) === 'tr')) {
         const cells: string[] = []
+        let coveredColumns = 0
         for (const cell of elementChildren(row).filter((child) => localName(child) === 'tc')) {
-            if (isMergeContinuation(cell)) {
-                cells.push('')
+            // gridSpan already emitted these columns; physical hMerge cells must not add them again.
+            if (coveredColumns > 0 && hasMergeFlag(cell, 'hMerge')) {
+                coveredColumns -= 1
                 continue
             }
-            cells.push(readTextBody(cell))
+            cells.push(isMergeContinuation(cell) ? '' : readTextBody(cell))
             const span = readGridSpan(cell)
             for (let index = 1; index < span; index += 1) {
                 cells.push('')
             }
+            coveredColumns = span - 1
         }
         if (cells.some((cell) => cell.trim())) {
             rows.push(cells)
@@ -270,13 +273,13 @@ function appendInlineText(node: Element, pieces: string[]) {
 }
 
 function isMergeContinuation(cell: Element) {
-    if (cell.getAttribute('hMerge') || cell.getAttribute('vMerge')) {
-        return true
-    }
-    return elementChildren(cell).some((child) => {
-        const name = localName(child)
-        return name === 'hMerge' || name === 'vMerge'
-    })
+    return hasMergeFlag(cell, 'hMerge') || hasMergeFlag(cell, 'vMerge')
+}
+
+function hasMergeFlag(cell: Element, name: 'hMerge' | 'vMerge') {
+    const value = cell.getAttribute(name)
+    if (value) return value === '1' || value === 'true'
+    return elementChildren(cell).some((child) => localName(child) === name)
 }
 
 function readGridSpan(cell: Element) {

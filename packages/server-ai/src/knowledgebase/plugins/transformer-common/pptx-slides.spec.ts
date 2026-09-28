@@ -91,6 +91,37 @@ describe('processPPT table structure', () => {
         const split = await auto.splitDocuments(documents, { chunkSize: 1000, chunkOverlap: 0 })
         expect(split.decisions[0]?.resolvedStrategy).toBe('recursive-character')
     })
+
+    it('keeps merged-cell continuations in their original grid columns', async () => {
+        const zip = new JSZip()
+        addPresentation(zip, [['rId2', 'slides/slide1.xml']])
+        const cell = (text: string, attributes = '') =>
+            `<a:tc ${attributes}><a:txBody><a:bodyPr/><a:p><a:r><a:t>${text}</a:t></a:r></a:p></a:txBody></a:tc>`
+        // DrawingML retains a physical cell for each covered grid column.
+        const rows = [
+            [cell('Col A'), cell('Col B'), cell('Col C')],
+            [cell('Merged', 'gridSpan="2" rowSpan="2"'), cell('', 'hMerge="1"'), cell('RIGHT')],
+            [cell('', 'gridSpan="2" vMerge="1"'), cell('', 'hMerge="1" vMerge="1"'), cell('BELOW')],
+            [cell('A4', 'hMerge="0"'), cell('B4', 'vMerge="false"'), cell('C4')]
+        ]
+        const table = `<p:graphicFrame><a:graphic><a:graphicData><a:tbl>
+            <a:tblGrid><a:gridCol w="100"/><a:gridCol w="100"/><a:gridCol w="100"/></a:tblGrid>
+            ${rows.map((row) => `<a:tr>${row.join('')}</a:tr>`).join('')}
+            </a:tbl></a:graphicData></a:graphic></p:graphicFrame>`
+        zip.file('ppt/slides/slide1.xml', slideXml(table))
+
+        const documents = await transformer.processPPT(await writeZip(zip, 'merged-grid.pptx'))
+
+        expect(documents[0]?.pageContent).toBe(
+            [
+                '| Col A | Col B | Col C |',
+                '| --- | --- | --- |',
+                '| Merged |  | RIGHT |',
+                '|  |  | BELOW |',
+                '| A4 | B4 | C4 |'
+            ].join('\n')
+        )
+    })
 })
 
 async function writeDeckFixture() {
