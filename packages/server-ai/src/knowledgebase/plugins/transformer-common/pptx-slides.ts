@@ -137,9 +137,20 @@ function readShapes(container: Element, blocks: PptxBlock[]) {
             continue
         }
         if (name === 'AlternateContent') {
-            const choice = elementChildren(child).find((item) => localName(item) === 'Choice')
-            if (choice) {
-                readShapes(choice, blocks)
+            const alternatives = elementChildren(child)
+            let supported = false
+            for (const choice of alternatives.filter((item) => localName(item) === 'Choice')) {
+                const candidate: PptxBlock[] = []
+                readShapes(choice, candidate)
+                if (candidate.length) {
+                    blocks.push(...candidate)
+                    supported = true
+                    break
+                }
+            }
+            if (!supported) {
+                const fallback = alternatives.find((item) => localName(item) === 'Fallback')
+                if (fallback) readShapes(fallback, blocks)
             }
             continue
         }
@@ -291,7 +302,14 @@ function readGridSpan(cell: Element) {
 function escapePlainParagraph(value: string) {
     return value
         .split('\n')
-        .map((line) => line.replace(/\|/g, '\\|').replace(/^(\s{0,3})(#{1,6}\s|[-+*]\s|>\s|\d+[.)]\s)/, '$1\\$2'))
+        .map((line) =>
+            line
+                .replace(/\|/g, '\\|')
+                .replace(
+                    /^(\s{0,3})(#{1,6}(?:\s|$)|[-+*]\s|>|\d+[.)]\s|`{3,}|~{3,}|[-*_](?:\s*[-*_]){2,}\s*$|[=-]+\s*$|<)/,
+                    '$1\\$2'
+                )
+        )
         .join('\n')
 }
 

@@ -3,6 +3,7 @@ import os from 'os'
 import path from 'path'
 import JSZip from 'jszip'
 import { init } from 'i18next'
+import { analyzeStructuredDocuments } from '../textsplitter-common/structured-document'
 import { DefaultTransformerStrategy } from './transformer.strategy'
 import { AutoTextSplitterStrategy } from '../textsplitter-common/auto.strategy'
 import { StructureAwareStrategy } from '../textsplitter-common/structure-aware.strategy'
@@ -80,6 +81,46 @@ describe('processPPT table structure', () => {
         const split = await auto.splitDocuments(documents, { chunkSize: 1000, chunkOverlap: 0 })
         expect(split.decisions[0]?.resolvedStrategy).toBe('structure-aware')
     })
+
+    it.each([false, true])(
+        'reads compatible shape content exactly once when a choice is supported: %s',
+        async (supported) => {
+            const zip = new JSZip()
+            addPresentation(zip, [['rId2', 'slides/slide1.xml']])
+            const choice = supported
+                ? textShape('CHOICE_TEXT')
+                : '<p:graphicFrame><a:graphic><a:graphicData uri="urn:unsupported-diagram"/></a:graphic></p:graphicFrame>'
+            const compatibility = `<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram">
+            <mc:Choice Requires="dgm">${choice}</mc:Choice>
+            <mc:Fallback>${textShape('FALLBACK_TEXT')}</mc:Fallback>
+        </mc:AlternateContent>`
+            zip.file('ppt/slides/slide1.xml', slideXml(`${compatibility}${tableShape([['Header'], ['Row']])}`))
+            const documents = await transformer.processPPT(await writeZip(zip, 'compatibility.pptx'))
+            const markdown = documents[0].pageContent
+            expect(markdown).toContain(supported ? 'CHOICE_TEXT' : 'FALLBACK_TEXT')
+            expect(markdown).not.toContain(supported ? 'FALLBACK_TEXT' : 'CHOICE_TEXT')
+            expect(analyzeStructuredDocuments(documents)[0].units.map((unit) => unit.kind)).toEqual([
+                'paragraph',
+                'table'
+            ])
+        }
+    )
+
+    it.each(['```sample', '~~~sample', '***', '---', '===', '<div>'])(
+        'preserves a table after plain slide prose starting with %s',
+        async (text) => {
+            const zip = new JSZip()
+            addPresentation(zip, [['rId2', 'slides/slide1.xml']])
+            zip.file(
+                'ppt/slides/slide1.xml',
+                slideXml(`${textShape(text.replace(/</g, '&lt;'))}${tableShape([['Header'], ['Row']])}`)
+            )
+            const documents = await transformer.processPPT(await writeZip(zip, 'prose.pptx'))
+            const units = analyzeStructuredDocuments(documents)[0].units
+            expect(units.map((unit) => unit.kind)).toEqual(['paragraph', 'table'])
+            expect(units[1].text).toContain('| Row |')
+        }
+    )
 
     it('leaves a text-only deck on the plain-text loader', async () => {
         const filePath = await writeTextOnlyFixture()
