@@ -5,6 +5,16 @@ import fsPromises from 'fs/promises'
 import JSZip from 'jszip'
 import { DOMParser } from 'xmldom'
 import { v4 as uuid } from 'uuid'
+import {
+    createDocxNumberingState,
+    DocxNumberingMarker,
+    DocxNumberingState,
+    DocxNumPr,
+    DocxStyleNumbering,
+    joinNumberLabel,
+    toDocxNumPr,
+    toMarkdownListMarker
+} from './docx-numbering'
 
 type DocxEmbeddedImageInput = {
     data: Buffer
@@ -30,11 +40,18 @@ type EmbeddedImageRef = {
 }
 
 // Minimal OOXML block model used to preserve headings, TOC entries, and tables.
+type ParagraphList = {
+    numId: string
+    level: number
+    marker: string
+}
+
 type ParagraphBlock = {
     type: 'paragraph'
     text: string
     headingLevel?: number
     tocLevel?: number
+    list?: ParagraphList
     images: EmbeddedImageRef[]
 }
 
@@ -50,7 +67,7 @@ type TableBlock = {
 
 type DocxBlock = ParagraphBlock | TableBlock
 
-type StyleInfo = {
+interface StyleInfo extends DocxStyleNumbering {
     headingLevel?: number
     tocLevel?: number
 }
@@ -63,6 +80,8 @@ type RelationshipInfo = {
 
 type ReadContext = {
     imageCount: number
+    styles: Map<string, StyleInfo>
+    numbering: DocxNumberingState
 }
 
 /**
@@ -82,19 +101,20 @@ export async function loadDocxStructuredMarkdown(
 
     const styles = await loadStyleMap(zip)
     const relationships = await loadRelationshipMap(zip)
+    const numbering = createDocxNumberingState(await zip.file('word/numbering.xml')?.async('string'))
     const document = parseXml(documentXml)
     const body = firstElementByLocalName(document, 'body')
     if (!body) {
         return null
     }
 
-    const context: ReadContext = { imageCount: 0 }
+    const context: ReadContext = { imageCount: 0, styles, numbering }
     const blocks = elementChildren(body)
-        .map((node) => readBlock(node, styles, context))
+        .map((node) => readBlock(node, context))
         .filter((block): block is DocxBlock => !!block)
     const resolvedImages = await writeEmbeddedImages(zip, relationships, collectBlockImages(blocks), options)
     const markdown = blocksToMarkdown(blocks, resolvedImages.byOccurrenceId)
-    if (!hasUsefulStructure(markdown) && !resolvedImages.assets.length) {
+    if (!hasUsefulStructure(markdown) && !resolvedImages.assets.length && !numbering.applied) {
         return null
     }
 
@@ -139,20 +159,25 @@ async function loadStyleMap(zip: JSZip) {
         const styleText = `${styleId} ${name}`.toLowerCase()
         const headingLevel = readStyleLevel(styleText, /heading\s*(\d)/, /标题\s*(\d)/)
         const tocLevel = readStyleLevel(styleText, /toc\s*(\d)/, /目录\s*(\d)/)
-        if (headingLevel || tocLevel) {
-            styles.set(styleId, {
-                ...(headingLevel ? { headingLevel } : {}),
-                ...(tocLevel ? { tocLevel } : {})
-            })
+        const basedOn = attribute(directChild(style, 'basedOn'), 'val')
+        const numPr = readNumPr(directChild(style, 'pPr'))
+        if (!headingLevel && !tocLevel && !basedOn && !numPr) {
+            continue
         }
+        styles.set(styleId, {
+            ...(headingLevel ? { headingLevel } : {}),
+            ...(tocLevel ? { tocLevel } : {}),
+            ...(basedOn ? { basedOn } : {}),
+            ...(numPr ? { numPr } : {})
+        })
     }
     return styles
 }
 
-function readBlock(node: Element, styles: Map<string, StyleInfo>, context: ReadContext): DocxBlock | null {
+function readBlock(node: Element, context: ReadContext): DocxBlock | null {
     const name = localName(node)
     if (name === 'p') {
-        return readParagraph(node, styles, context)
+        return readParagraph(node, context)
     }
     if (name === 'tbl') {
         return readTable(node, context)
@@ -160,23 +185,29 @@ function readBlock(node: Element, styles: Map<string, StyleInfo>, context: ReadC
     return null
 }
 
-function readParagraph(node: Element, styles: Map<string, StyleInfo>, context: ReadContext): ParagraphBlock | null {
+function readParagraph(node: Element, context: ReadContext): ParagraphBlock | null {
     const text = normalizeParagraphText(readText(node))
     const images = collectImageRefs(node, context)
     if (!text && !images.length) {
         return null
     }
 
-    const styleId = attribute(firstElementByLocalName(firstElementByLocalName(node, 'pPr'), 'pStyle'), 'val')
-    const style = styleId ? styles.get(styleId) : undefined
+    const properties = firstElementByLocalName(node, 'pPr')
+    const styleId = attribute(firstElementByLocalName(properties, 'pStyle'), 'val')
+    const style = styleId ? context.styles.get(styleId) : undefined
     const fallbackHeading = styleId ? readStyleLevel(styleId.toLowerCase(), /heading\s*(\d)/, /标题\s*(\d)/) : undefined
     const fallbackToc = styleId ? readStyleLevel(styleId.toLowerCase(), /toc\s*(\d)/, /目录\s*(\d)/) : undefined
+    const headingLevel = style?.headingLevel ?? fallbackHeading
+    const tocLevel = style?.tocLevel ?? fallbackToc
+    const marker = text ? markerFor(node, context) : null
+    const showInline = Boolean(marker && (headingLevel || tocLevel))
 
     return {
         type: 'paragraph',
-        text,
-        headingLevel: style?.headingLevel ?? fallbackHeading,
-        tocLevel: style?.tocLevel ?? fallbackToc,
+        text: showInline && marker ? joinNumberLabel(marker.label, text) : text,
+        headingLevel,
+        tocLevel,
+        ...(marker && !showInline ? { list: toParagraphList(marker) } : {}),
         images
     }
 }
@@ -187,19 +218,76 @@ function readTable(node: Element, context: ReadContext): TableBlock | null {
         .map((row) =>
             elementChildren(row)
                 .filter((cell) => localName(cell) === 'tc')
-                .map((cell) => ({
-                    text: normalizeParagraphText(readText(cell)),
-                    images: collectImageRefs(cell, context)
-                }))
+                .map((cell) => readCell(cell, context))
         )
         .filter((row) => row.some((cell) => cell.text || cell.images.length))
 
     return rows.length ? { type: 'table', rows } : null
 }
 
+function readCell(cell: Element, context: ReadContext): TableCell {
+    const images = collectImageRefs(cell, context)
+    const parts: string[] = []
+    let hasNumbering = false
+    for (const paragraph of elementChildren(cell)) {
+        if (localName(paragraph) !== 'p') {
+            continue
+        }
+        const text = normalizeParagraphText(readText(paragraph))
+        if (!text) {
+            continue
+        }
+        const marker = markerFor(paragraph, context)
+        if (!marker) {
+            parts.push(text)
+            continue
+        }
+        hasNumbering = true
+        parts.push(joinNumberLabel(marker.label, text))
+    }
+    return {
+        text: hasNumbering ? parts.join('\n') : normalizeParagraphText(readText(cell)),
+        images
+    }
+}
+
+function markerFor(node: Element, context: ReadContext): DocxNumberingMarker | null {
+    const properties = firstElementByLocalName(node, 'pPr')
+    const styleId = attribute(firstElementByLocalName(properties, 'pStyle'), 'val')
+    return context.numbering.mark({
+        styles: context.styles,
+        ...(styleId ? { styleId } : {}),
+        paragraphNumPr: readNumPr(properties)
+    })
+}
+
+function readNumPr(properties: Element | undefined): DocxNumPr | undefined {
+    if (!properties) {
+        return undefined
+    }
+    const numPr = directChild(properties, 'numPr')
+    if (!numPr) {
+        return undefined
+    }
+    return toDocxNumPr({
+        numId: attribute(directChild(numPr, 'numId'), 'val'),
+        ilvl: attribute(directChild(numPr, 'ilvl'), 'val')
+    })
+}
+
+function toParagraphList(marker: DocxNumberingMarker): ParagraphList {
+    return {
+        numId: marker.numId,
+        level: marker.level,
+        marker: toMarkdownListMarker(marker)
+    }
+}
+
 function blocksToMarkdown(blocks: DocxBlock[], images: Map<string, TDocumentAsset>) {
     const lines: string[] = []
     let previousWasToc = false
+    let previousWasList = false
+    let previousListNumId: string | undefined
 
     for (const block of blocks) {
         if (block.type === 'table') {
@@ -207,6 +295,7 @@ function blocksToMarkdown(blocks: DocxBlock[], images: Map<string, TDocumentAsse
             lines.push(...tableToMarkdown(block.rows, images))
             appendBlankLine(lines)
             previousWasToc = false
+            previousWasList = false
             continue
         }
 
@@ -221,6 +310,20 @@ function blocksToMarkdown(blocks: DocxBlock[], images: Map<string, TDocumentAsse
             }
             lines.push(...imageLines)
             previousWasToc = true
+            previousWasList = false
+            continue
+        }
+
+        if (block.list && block.text) {
+            const continues = previousWasList && previousListNumId === block.list.numId
+            if (!continues) {
+                appendBlankLine(lines)
+            }
+            lines.push(`${'  '.repeat(Math.max(0, block.list.level))}${block.list.marker} ${block.text}`)
+            lines.push(...imageLines)
+            previousWasToc = false
+            previousWasList = true
+            previousListNumId = block.list.numId
             continue
         }
 
@@ -232,6 +335,7 @@ function blocksToMarkdown(blocks: DocxBlock[], images: Map<string, TDocumentAsse
         }
         lines.push(...imageLines)
         previousWasToc = false
+        previousWasList = false
     }
 
     return lines
@@ -445,6 +549,10 @@ function parseXml(value: string) {
 
 function elementChildren(node: Node): Element[] {
     return childNodes(node).filter((child): child is Element => child.nodeType === 1)
+}
+
+function directChild(element: Element, name: string): Element | undefined {
+    return elementChildren(element).find((child) => localName(child) === name)
 }
 
 function elementsByLocalName(node: Node, name: string): Element[] {
