@@ -261,7 +261,11 @@ export class ThreadsController {
             )
             // The SDK uses this header to acknowledge an accepted run before
             // consuming its potentially long-lived SSE response.
-            res.setHeader('Content-Location', `/api/ai/threads/${thread_id}/runs/${execution.id}`)
+            // SSE may flush headers while async run setup is pending. An optional
+            // acknowledgement header must not prevent subscribing the accepted run.
+            if (!res.headersSent && !res.destroyed && !res.writableEnded) {
+                res.setHeader('Content-Location', `/api/ai/threads/${thread_id}/runs/${execution.id}`)
+            }
             if (streamTransport === 'direct') {
                 startSseHeartbeat(res)
                 return stream

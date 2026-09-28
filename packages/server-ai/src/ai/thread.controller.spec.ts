@@ -132,6 +132,47 @@ describe('ThreadsController', () => {
         }
     })
 
+    it('starts the accepted run even when SSE headers were already flushed', async () => {
+        const subscribe = jest.fn()
+        const commandBus = {
+            execute: jest.fn().mockResolvedValue({
+                execution: { id: 'run-1' },
+                stream: { subscribe },
+                streamTransport: 'redis'
+            })
+        }
+        const redisSseStreamService = {
+            createSseStream: jest.fn().mockResolvedValue({ connectionId: 'connection-1', stream: EMPTY }),
+            releaseConnection: jest.fn().mockResolvedValue(true)
+        }
+        const response = Object.assign(new EventEmitter(), {
+            headersSent: true,
+            destroyed: false,
+            writableEnded: false,
+            write: jest.fn(),
+            setHeader: jest.fn(() => {
+                throw new Error('ERR_HTTP_HEADERS_SENT')
+            })
+        })
+        const controller = new ThreadsController(
+            {} as never,
+            {} as never,
+            commandBus as never,
+            redisSseStreamService as never
+        )
+        try {
+            await controller.runStream({ headers: {} } as never, response as never, 'thread-1', {
+                assistant_id: 'xpert-1',
+                input: { action: 'send' }
+            } as never)
+            expect(response.setHeader).not.toHaveBeenCalled()
+            expect(subscribe).toHaveBeenCalledTimes(1)
+            expect(redisSseStreamService.createSseStream).toHaveBeenCalledTimes(1)
+        } finally {
+            response.emit('close')
+        }
+    })
+
     it('writes SSE comments while a Redis-backed run has no new events', async () => {
         jest.useFakeTimers()
         const commandBus = {
