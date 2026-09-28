@@ -12,8 +12,10 @@ import {
 } from '../../xpert/external-assistant-binding'
 
 /**
- * Resolve required portable roles only through the requester's direct Assistant edges.
- * Reject missing, ambiguous, unpublished or incompatible bindings before Project provisioning.
+ * Resolve portable roles only through the authenticated requester's direct Assistant edges.
+ * Include each selected role's required dependency graph in the Project, without granting
+ * those dependencies direct API access under the root Assistant's client secret.
+ * Validate the complete graph before Project writes; never traverse optional or unselected roles.
  */
 export async function resolveProjectExternalXperts(
     queryBus: QueryBus,
@@ -89,7 +91,45 @@ export async function resolveProjectExternalXperts(
         // validated for publication, organization and portable identity.
         resolved.push(match.candidate)
     }
-    return resolved
+    return includeRequiredDependencies(queryBus, requester, resolved)
+}
+
+async function includeRequiredDependencies(queryBus: QueryBus, requester: IXpert, roots: IXpert[]) {
+    const resolved = new Map(roots.map((root) => [root.id, root]))
+    const visited = new Set<string>()
+    const visit = async (owner: IXpert, ancestors: Set<string>) => {
+        if (ancestors.has(owner.id))
+            throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
+        if (visited.has(owner.id)) return
+        visited.add(owner.id)
+        const path = new Set([...ancestors, owner.id])
+        for (const id of directExternalAssistantIds(owner, owner.agent?.key ?? '')) {
+            if (path.has(id) || (resolved.size >= 32 && !resolved.has(id))) {
+                throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
+            }
+            let candidate = resolved.get(id)
+            if (!candidate) {
+                try {
+                    candidate = await queryBus.execute<FindXpertQuery, IXpert>(
+                        new FindXpertQuery({ id }, { relations: ['agent'] })
+                    )
+                } catch {
+                    throw projectExternalAssistantError('ProjectAssistantBindingMissing', 'missing')
+                }
+            }
+            const binding = describeExternalAssistantBinding(owner, candidate)
+            if (candidate.tenantId !== requester.tenantId || binding.status === 'cross_organization') {
+                throw projectExternalAssistantError('ProjectAssistantBindingCrossOrganization', 'cross_organization')
+            }
+            if (binding.status !== 'available') {
+                throw projectExternalAssistantError('ProjectAssistantBindingUnpublished', 'unpublished')
+            }
+            resolved.set(candidate.id, candidate)
+            await visit(candidate, path)
+        }
+    }
+    for (const root of roots) await visit(root, new Set([requester.id]))
+    return [...resolved.values()]
 }
 
 export function requiredProjectText(value: string, field: string, maxLength: number): string {
