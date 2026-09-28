@@ -289,7 +289,7 @@ function buildImageChunkId(parentChunkId: string, imagePath: string, order: numb
 
 /** A copied document asset can omit sourceType while a chunk, or that chunk's asset list, still marks the page. */
 function resolvePdfPageAsset(asset: TDocumentAsset, chunks: Document<ChunkMetadata>[]): TDocumentAsset {
-  if (asset.sourceType === PDF_PAGE_SOURCE_TYPE) {
+  if (asset.sourceType !== undefined) {
     return asset
   }
   const listed = chunks
@@ -321,7 +321,9 @@ function isSameImageAsset(left: TDocumentAsset, right: TDocumentAsset): boolean 
 }
 
 function chunkReferencesImage(chunk: Document<ChunkMetadata>, asset: TDocumentAsset): boolean {
-  return asset.url.length > 0 && chunk.pageContent.includes(asset.url)
+  return (
+    asset.url.length > 0 && Array.from(chunk.pageContent.matchAll(IMAGE_REGEX)).some((match) => match[1] === asset.url)
+  )
 }
 
 function getNumber(value: unknown, fallback: number) {

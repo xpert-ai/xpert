@@ -451,4 +451,46 @@ describe('image routing and resize', () => {
       'docx_embedded_image'
     )
   })
+  it.each(['docx_embedded_image', 'image_file'] as const)(
+    'preserves explicit %s assets when chunk metadata has a conflicting page tag',
+    async (sourceType) => {
+      const { invoke, result } = await understand({
+        asset: { sourceType },
+        chunks: [
+          imageChunk({
+            sourceType: 'pdf_page',
+            page: 2,
+            assets: [{ ...figureAsset, sourceType: 'pdf_page', page: 2 }]
+          })
+        ]
+      })
+      expect(systemMessage(invoke).content).toBe(NARRATIVE_PROMPT)
+      expectPreparedImage(2048, 'jpeg')
+      expect(result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')?.metadata).toEqual(
+        expect.objectContaining({ sourceType, parentId: 'leaf' })
+      )
+    }
+  )
+
+  it.each([`${FIGURE_URL}?render=page`, `${FIGURE_URL}.preview`])(
+    'does not recover a page tag from a different complete image URL: %s',
+    async (pageUrl) => {
+      const { invoke, result } = await understand({
+        chunks: [
+          imageChunk(),
+          imageChunk({ chunkId: 'second' }),
+          new Document({
+            pageContent: `![page](${pageUrl})`,
+            metadata: { chunkId: 'page', sourceType: 'pdf_page', page: 9 }
+          })
+        ]
+      })
+      expect(systemMessage(invoke).content).toBe(NARRATIVE_PROMPT)
+      expect(invoke).toHaveBeenCalledTimes(2)
+      expectPreparedImage(2048, 'jpeg')
+      const descriptions = result.chunks.filter((chunk) => chunk.metadata['parser'] === 'vlm')
+      expect(descriptions.map((chunk) => chunk.metadata.parentId)).toEqual(['leaf', 'second'])
+      expect(descriptions.every((chunk) => chunk.metadata['sourceType'] === undefined)).toBe(true)
+    }
+  )
 })
