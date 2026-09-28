@@ -44,7 +44,7 @@ COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node apps/api ./apps/api
 COPY --chown=node:node .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml ./.deploy/api/
-RUN rm -rf packages/angular packages/ui packages/sandbox-runtime packages/plugins/local-shell-sandbox
+RUN rm -rf packages/angular packages/ui packages/sandbox-runtime packages/nsjail-runner packages/plugins/local-shell-sandbox
 
 # All package manifests were installed above; reject any source-layout drift.
 RUN node .deploy/api/dependencies.cjs check && \

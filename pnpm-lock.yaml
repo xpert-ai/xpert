@@ -972,6 +972,8 @@ importers:
         specifier: workspace:*
         version: link:../contracts/dist
 
+  packages/nsjail-runner: {}
+
   packages/plugin-sdk:
     dependencies:
       '@langchain/core':
