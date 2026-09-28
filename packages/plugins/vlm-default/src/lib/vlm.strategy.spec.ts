@@ -3,7 +3,17 @@ import { buildChunkTree } from '@xpert-ai/contracts'
 import type { XpFileSystem } from '@xpert-ai/plugin-sdk'
 import { Document } from '@langchain/core/documents'
 import { VlmDefaultStrategy } from './vlm.strategy'
-import sharp from 'sharp'
+import sharp, { type Metadata } from 'sharp'
+
+type SharpPipeline = {
+  metadata: jest.Mock
+  resize: jest.Mock
+  jpeg: jest.Mock
+  png: jest.Mock
+  toBuffer: jest.Mock
+}
+
+const mockSharpPipelines: SharpPipeline[] = []
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
   ImageUnderstandingStrategy: () => () => undefined,
@@ -11,13 +21,20 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 }))
 
 jest.mock('sharp', () =>
-  jest.fn(() => ({
-    metadata: jest.fn(async () => ({ width: 1000, height: 1400 })),
-    resize: jest.fn().mockReturnThis(),
-    jpeg: jest.fn().mockReturnThis(),
-    png: jest.fn().mockReturnThis(),
-    toBuffer: jest.fn(async () => Buffer.from('optimized-image'))
-  }))
+  jest.fn(() => {
+    const pipeline: SharpPipeline = {
+      metadata: jest.fn(async () => ({ width: 1000, height: 1400 })),
+      resize: jest.fn(),
+      jpeg: jest.fn(),
+      png: jest.fn(),
+      toBuffer: jest.fn(async () => Buffer.from('optimized-image'))
+    }
+    pipeline.resize.mockReturnValue(pipeline)
+    pipeline.jpeg.mockReturnValue(pipeline)
+    pipeline.png.mockReturnValue(pipeline)
+    mockSharpPipelines.push(pipeline)
+    return pipeline
+  })
 )
 
 describe('PDF page transcription', () => {
@@ -25,7 +42,7 @@ describe('PDF page transcription', () => {
     const page = options.page !== false
     if (options.placeholder) {
       const image = sharp(Buffer.from('test'))
-      jest.spyOn(image, 'metadata').mockResolvedValue({ width: 1, height: 1 })
+      jest.spyOn(image, 'metadata').mockResolvedValue({ width: 1, height: 1 } as Metadata)
       jest.mocked(sharp).mockReturnValueOnce(image)
     }
     const model = new FakeListChatModel({ responses: [options.empty ? '' : 'PAGE2-OCR 385.50'] })
@@ -55,7 +72,7 @@ describe('PDF page transcription', () => {
       {
         stage: 'test',
         visionModel: model,
-        permissions: { fileSystem: { readFile: async () => Buffer.from('image') } as XpFileSystem }
+        permissions: { fileSystem: { readFile: async () => Buffer.from('image') } as unknown as XpFileSystem }
       }
     )
     return { result, invoke, source }
@@ -70,7 +87,7 @@ describe('PDF page transcription', () => {
         content: expect.stringContaining('Transcribe all visible content')
       })
     )
-    const text = result.chunks.find((chunk) => chunk.metadata.parser === 'vlm')
+    const text = result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')
     expect(text.metadata).toEqual(
       expect.objectContaining({ sourceType: 'pdf_page', page: 2, contentFormat: 'markdown' })
     )
@@ -89,7 +106,7 @@ describe('PDF page transcription', () => {
   })
   it('does not emit a successful page transcription for empty model output', async () => {
     const { result } = await run({ empty: true })
-    expect(result.chunks.some((chunk) => chunk.metadata.parser === 'vlm')).toBe(false)
+    expect(result.chunks.some((chunk) => chunk.metadata['parser'] === 'vlm')).toBe(false)
     expect(result.metadata.warnings).toHaveLength(1)
   })
 })
@@ -258,5 +275,180 @@ describe('VLM prompt template execution', () => {
       const result = await run(template)
       expect(result.messages[0]).toEqual(omitted.messages[0])
     }
+  })
+})
+
+const FIGURE_URL = 'https://files.test/figure.png'
+const FIGURE_PATH = 'images/figure.png'
+const NARRATIVE_PROMPT =
+  'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
+
+function latestPipeline(): SharpPipeline {
+  const pipeline = mockSharpPipelines.at(-1)
+  if (!pipeline) throw new Error('sharp was not called')
+  return pipeline
+}
+
+function expectPreparedImage(maxEdge: number, format: 'png' | 'jpeg') {
+  const pipeline = latestPipeline()
+  expect(pipeline.resize).toHaveBeenCalledWith(maxEdge, maxEdge, {
+    fit: 'inside',
+    withoutEnlargement: true
+  })
+  if (format === 'png') {
+    expect(pipeline.png).toHaveBeenCalled()
+    expect(pipeline.jpeg).not.toHaveBeenCalled()
+    return
+  }
+  expect(pipeline.jpeg).toHaveBeenCalledWith({ quality: 85, mozjpeg: true })
+  expect(pipeline.png).not.toHaveBeenCalled()
+}
+
+function systemMessage(invoke: jest.SpyInstance) {
+  const messages = invoke.mock.calls[0]?.[0]
+  if (!Array.isArray(messages)) throw new Error('Expected chat messages')
+  return messages[0]
+}
+
+describe('image routing and resize', () => {
+  const figureAsset = {
+    type: 'image' as const,
+    filePath: FIGURE_PATH,
+    url: FIGURE_URL
+  }
+
+  async function understand(options: {
+    asset?: Partial<typeof figureAsset> & {
+      sourceType?: 'pdf_page' | 'docx_embedded_image' | 'image_file'
+      page?: number
+    }
+    chunks: Document[]
+  }) {
+    mockSharpPipelines.length = 0
+    const model = new FakeListChatModel({ responses: ['recognized text'] })
+    const invoke = jest.spyOn(model, 'invoke')
+    const result = await new VlmDefaultStrategy().understandImages(
+      {
+        name: 'sample.pdf',
+        filePath: 'sample.pdf',
+        type: 'pdf',
+        parserId: 'pdf-visual',
+        parserConfig: {},
+        chunks: options.chunks,
+        metadata: { assets: [{ ...figureAsset, ...options.asset }] }
+      },
+      {
+        stage: 'test',
+        visionModel: model,
+        permissions: { fileSystem: { readFile: async () => Buffer.from('image') } as unknown as XpFileSystem }
+      }
+    )
+    return { result, invoke }
+  }
+
+  function imageChunk(metadata: Record<string, unknown> = {}) {
+    return new Document({
+      pageContent: `![figure](${FIGURE_URL})`,
+      metadata: { chunkId: 'leaf', ...metadata }
+    })
+  }
+
+  it('keeps a tagged PDF page at reading resolution and transcribes it', async () => {
+    const { invoke, result } = await understand({
+      asset: { sourceType: 'pdf_page', page: 2 },
+      chunks: [imageChunk({ sourceType: 'pdf_page', page: 2 })]
+    })
+    expect(systemMessage(invoke)).toEqual(
+      expect.objectContaining({ role: 'system', content: expect.stringContaining('Transcribe all visible content') })
+    )
+    expectPreparedImage(2200, 'png')
+    expect(result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')?.metadata).toEqual(
+      expect.objectContaining({ sourceType: 'pdf_page', page: 2, contentFormat: 'markdown' })
+    )
+  })
+
+  it('recovers pdf_page from the chunk when the document asset lost the tag', async () => {
+    const { invoke, result } = await understand({
+      asset: { page: 2 },
+      chunks: [imageChunk({ sourceType: 'pdf_page', page: 2 })]
+    })
+    expect(systemMessage(invoke).content).toEqual(expect.stringContaining('Transcribe all visible content'))
+    expect(systemMessage(invoke).content).not.toContain('narrative description')
+    expectPreparedImage(2200, 'png')
+    const transcript = result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')
+    expect(transcript?.metadata).toEqual(
+      expect.objectContaining({ sourceType: 'pdf_page', page: 2, contentFormat: 'markdown' })
+    )
+    expect(transcript?.metadata.parentId).toBeUndefined()
+  })
+
+  it('recovers pdf_page from a chunk asset list after the chunk source type was dropped', async () => {
+    const { invoke, result } = await understand({
+      asset: {},
+      chunks: [
+        imageChunk({
+          assets: [{ ...figureAsset, sourceType: 'pdf_page', page: 4 }]
+        })
+      ]
+    })
+    expect(systemMessage(invoke).content).toEqual(expect.stringContaining('Transcribe all visible content'))
+    expectPreparedImage(2200, 'png')
+    expect(result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')?.metadata.page).toBe(4)
+  })
+
+  it('recovers pdf_page from another chunk when the leaf image lost the tag', async () => {
+    const { invoke } = await understand({
+      asset: {},
+      chunks: [
+        new Document({
+          pageContent: 'Parent text',
+          metadata: {
+            chunkId: 'parent',
+            assets: [{ ...figureAsset, sourceType: 'pdf_page', page: 5 }]
+          }
+        }),
+        imageChunk({ chunkId: 'leaf', parentId: 'parent' })
+      ]
+    })
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(systemMessage(invoke).content).toEqual(expect.stringContaining('Transcribe all visible content'))
+    expectPreparedImage(2200, 'png')
+  })
+
+  it('transcribes a recovered page image once when several leaves point at it', async () => {
+    const { invoke } = await understand({
+      asset: {},
+      chunks: [
+        imageChunk({ chunkId: 'leaf-a', sourceType: 'pdf_page', page: 1 }),
+        imageChunk({ chunkId: 'leaf-b', sourceType: 'pdf_page', page: 1 })
+      ]
+    })
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expectPreparedImage(2200, 'png')
+  })
+
+  it('does not treat a page number alone as a scanned page', async () => {
+    const { invoke, result } = await understand({
+      asset: { page: 3 },
+      chunks: [imageChunk({ page: 3 })]
+    })
+    expect(systemMessage(invoke)).toEqual({ role: 'system', content: NARRATIVE_PROMPT })
+    expectPreparedImage(2048, 'jpeg')
+    expect(result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')?.metadata).toEqual(
+      expect.objectContaining({ parentId: 'leaf' })
+    )
+    expect(result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')?.metadata['sourceType']).toBeUndefined()
+  })
+
+  it('keeps embedded document images on the description path above the old 512px cap', async () => {
+    const { invoke, result } = await understand({
+      asset: { sourceType: 'docx_embedded_image' },
+      chunks: [imageChunk({ sourceType: 'docx_embedded_image' })]
+    })
+    expect(systemMessage(invoke)).toEqual({ role: 'system', content: NARRATIVE_PROMPT })
+    expectPreparedImage(2048, 'jpeg')
+    expect(result.chunks.find((chunk) => chunk.metadata['parser'] === 'vlm')?.metadata['sourceType']).toBe(
+      'docx_embedded_image'
+    )
   })
 })

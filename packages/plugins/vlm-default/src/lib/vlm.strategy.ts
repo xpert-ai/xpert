@@ -24,6 +24,10 @@ const DEFAULT_PROMPT_TEMPLATE =
 const CONTEXT_PLACEHOLDER = '{{context}}'
 const PAGE_TRANSCRIPTION_PROMPT =
   'Transcribe all visible content of this document page into Markdown in reading order. Preserve headings, lists, table rows and merged-cell relationships. Copy numbers, leading zeroes, codes and punctuation exactly. Do not summarize, describe the page, invent text, or add a preface. Mark unreadable text as [unreadable].'
+const PDF_PAGE_SOURCE_TYPE = 'pdf_page'
+const PDF_PAGE_MAX_EDGE = 2200
+// 512px turned body text on a page render into a few pixels. Keep JPEG, and do not enlarge icons.
+const IMAGE_MAX_EDGE = 2048
 
 type VlmDefaultConfig = TImageUnderstandingConfig & {
   promptTemplate?: string
@@ -131,10 +135,11 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
       const matches = Array.from(chunk.pageContent.matchAll(IMAGE_REGEX))
       for (const match of matches) {
         const url = match[1] // image-url.png
-        const asset = files.find((a) => a.url === url)
-        if (asset && !assets.some((_) => _ === asset.url)) {
+        const matched = files.find((item) => item.url === url)
+        const asset = matched ? resolvePdfPageAsset(matched, chunks) : undefined
+        if (asset && !assets.some((item) => item === asset.url)) {
           if (processedAssets.has(asset.filePath)) continue
-          if (asset.sourceType === 'pdf_page') processedAssets.add(asset.filePath)
+          if (asset.sourceType === PDF_PAGE_SOURCE_TYPE) processedAssets.add(asset.filePath)
           assets.push(asset.url)
           let description: string
           try {
@@ -172,7 +177,9 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
                 mediaType: 'image',
                 chunkId: buildImageChunkId(parentChunkId, asset.filePath, asset.order ?? imageOffset),
                 chunkIndex: parentChunkIndex + imageOffset / 1000,
-                ...(asset.sourceType === 'pdf_page' ? { contentFormat: 'markdown' } : { parentId: parentChunkId }),
+                ...(asset.sourceType === PDF_PAGE_SOURCE_TYPE
+                  ? { contentFormat: 'markdown' }
+                  : { parentId: parentChunkId }),
                 imagePath: asset.filePath,
                 imageUrl: asset.url,
                 sourceType: asset.sourceType,
@@ -204,15 +211,15 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
   ): Promise<{ type: 'recognized'; text: string } | { type: 'skipped'; reason: string }> {
     const imageStr = await config.permissions.fileSystem.readFile(asset.filePath)
     const sharped = sharp(imageStr)
-    const page = asset.sourceType === 'pdf_page'
+    const page = asset.sourceType === PDF_PAGE_SOURCE_TYPE
     const { width, height } = await sharped.metadata()
     if (width === 1 || height === 1) {
       if (page) throw new Error(`PDF page image is too small to recognize (${width}x${height}).`)
       return { type: 'skipped', reason: `Skipped a ${width}x${height} placeholder image.` }
     }
 
-    // Preserve page text at reading resolution; ordinary image descriptions retain the smaller payload.
-    const resized = sharped.resize(page ? 2200 : 512, page ? 2200 : 512, { fit: 'inside', withoutEnlargement: true })
+    const maxEdge = page ? PDF_PAGE_MAX_EDGE : IMAGE_MAX_EDGE
+    const resized = sharped.resize(maxEdge, maxEdge, { fit: 'inside', withoutEnlargement: true })
     const imageData = await (page ? resized.png() : resized.jpeg({ quality: 85, mozjpeg: true })).toBuffer()
 
     const mimetype = page ? 'image/png' : 'image/jpeg'
@@ -278,6 +285,43 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
 
 function buildImageChunkId(parentChunkId: string, imagePath: string, order: number) {
   return `img-${parentChunkId}-${order}-${imagePath}`.replace(/[^a-zA-Z0-9._:-]+/g, '-').slice(0, 180)
+}
+
+/** A copied document asset can omit sourceType while a chunk, or that chunk's asset list, still marks the page. */
+function resolvePdfPageAsset(asset: TDocumentAsset, chunks: Document<ChunkMetadata>[]): TDocumentAsset {
+  if (asset.sourceType === PDF_PAGE_SOURCE_TYPE) {
+    return asset
+  }
+  const listed = chunks
+    .flatMap((chunk) => chunk.metadata.assets ?? [])
+    .find((item) => item.sourceType === PDF_PAGE_SOURCE_TYPE && isSameImageAsset(item, asset))
+  if (listed) {
+    return withPdfPage(asset, listed.page)
+  }
+  const markedChunk = chunks.find(
+    (chunk) => chunk.metadata['sourceType'] === PDF_PAGE_SOURCE_TYPE && chunkReferencesImage(chunk, asset)
+  )
+  if (!markedChunk) {
+    return asset
+  }
+  return withPdfPage(asset, markedChunk.metadata.page)
+}
+
+function withPdfPage(asset: TDocumentAsset, page: unknown): TDocumentAsset {
+  if (asset.page !== undefined || typeof page !== 'number') {
+    return { ...asset, sourceType: PDF_PAGE_SOURCE_TYPE }
+  }
+  return { ...asset, sourceType: PDF_PAGE_SOURCE_TYPE, page }
+}
+
+function isSameImageAsset(left: TDocumentAsset, right: TDocumentAsset): boolean {
+  return (
+    (left.url.length > 0 && left.url === right.url) || (left.filePath.length > 0 && left.filePath === right.filePath)
+  )
+}
+
+function chunkReferencesImage(chunk: Document<ChunkMetadata>, asset: TDocumentAsset): boolean {
+  return asset.url.length > 0 && chunk.pageContent.includes(asset.url)
 }
 
 function getNumber(value: unknown, fallback: number) {
