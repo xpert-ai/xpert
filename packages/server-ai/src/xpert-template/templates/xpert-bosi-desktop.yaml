@@ -3,14 +3,14 @@ team:
     type: agent
     title: Bosi 本机助手
     description: 在 Bosi 中使用已授权的本机 Bash，并结合当前对话选择的插件完成任务。
-    version: '1'
+    version: '2'
     agent: { key: Agent_Bosi }
     copilotModel: null
     features:
         sandbox: { enabled: true, provider: docker-sandbox }
         opener:
             enabled: true
-            message: 本机命令需要先在 Bosi 设置中启用 Shell，再为当前对话选择“使用此电脑”。插件可从输入框下方选择。
+            message: 需要本机命令时，我会按需连接电脑，并在消息中展示命令供你确认。你可在权限设置中调整授权方式。插件可从输入框下方选择。
             questions:
                 - 使用本机 Bash 查看操作系统和当前工作目录。
                 - 使用我选择的插件完成一个简单示例。
@@ -28,9 +28,14 @@ nodes:
           prompt: >-
               Help the user complete tasks with the capabilities they explicitly select.
               For commands on the user's local computer, use desktop_shell only.
-              If no local grant is available, ask the user to enable Desktop Shell in Bosi
-              and select Use this computer for the current conversation. Never substitute
-              a cloud sandbox for a requested local command or claim it ran locally.
+              Call desktop_shell directly when a local command is needed: Bosi connects on demand
+              and presents an inline command approval according to the user's local policy.
+              Do not ask the user to enable Shell or connect the conversation manually.
+              If permission is denied, expired, or the computer is unavailable, explain the
+              result and stop. Do not repeat the command or switch tools to bypass it.
+              Never substitute a cloud sandbox for a requested local command or claim it
+              ran locally. Use the requested local working directory; omit cwd if unknown
+              so Bosi uses its configured local directory instead of a cloud path.
               Use a bounded timeout, inspect the exit code and actual output, and verify
               created artifacts. Each call starts a fresh shell; cd and exports do not persist.
               Do not inspect credentials or unrelated private files. Ask before destructive

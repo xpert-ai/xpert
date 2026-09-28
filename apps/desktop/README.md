@@ -158,9 +158,10 @@ must ship the updated ChatKit frame assets, not just the desktop executable.
 ## Desktop Shell
 
 The native macOS app can execute commands for an authorized server Assistant.
-Enable **Desktop Shell** middleware in the Assistant, then use **Connection &
-appearance → Desktop Shell → Enable Shell** and **Use this computer** in the
-conversation. See [setup, protocol and limits](docs/desktop-shell.md).
+Enable **Desktop Shell** middleware in the Assistant. Bosi connects when the
+Agent requests a local command and shows an approval card in the message. The
+default is **Ask for every command**; manage the scoped policy in **Connection &
+appearance → Desktop Shell**. See [setup, protocol and limits](docs/desktop-shell.md).
 
 ## Client boundary
 
