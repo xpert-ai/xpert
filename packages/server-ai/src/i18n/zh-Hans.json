@@ -49,6 +49,8 @@
         "TagUseStatus": "请通过标签状态启用或停用标签。",
         "KnowledgeTableMetadataReservedKey": "tableMetadata 为服务端生成的表格说明保留，不能用作自定义元数据字段。",
         "KnowledgeTableMetadataInvalidResponse": "模型返回的表格元数据无效。",
+        "KnowledgeTableMetadataCopiedSample": "列说明重复了样例值「{{sample}}」。",
+        "KnowledgeTableMetadataUnsupportedEvidence": "列 {{columnId}} 的证据「{{evidence}}」不是列标签或业务说明中的原文摘录。",
         "KnowledgeTableMetadataStale": "表格或处理设置已更改，请重新处理文档。",
         "KnowledgeTableMetadataInputTooLarge": "表格元数据输入超出模型上下文预算。",
         "InvalidKnowledgeTableIndexedFields": "工作表 {{sheetName}} 中不存在已选索引列：{{fields}}。请预览后重新选择有效列。",

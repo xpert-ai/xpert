@@ -49,6 +49,8 @@
         "TagUseStatus": "Use tag status to enable or disable a tag.",
         "KnowledgeTableMetadataReservedKey": "tableMetadata is reserved for generated table descriptions.",
         "KnowledgeTableMetadataInvalidResponse": "The model returned invalid table metadata.",
+        "KnowledgeTableMetadataCopiedSample": "The description repeats the sample value \"{{sample}}\".",
+        "KnowledgeTableMetadataUnsupportedEvidence": "Column {{columnId}} evidence \"{{evidence}}\" is not an exact excerpt of its column label or the business guidance.",
         "KnowledgeTableMetadataStale": "The table or its processing settings changed. Reprocess the document.",
         "KnowledgeTableMetadataInputTooLarge": "The table metadata input exceeds the model context budget.",
         "InvalidKnowledgeTableIndexedFields": "Selected table columns are unavailable in {{sheetName}}: {{fields}}. Preview the table and select valid columns.",
