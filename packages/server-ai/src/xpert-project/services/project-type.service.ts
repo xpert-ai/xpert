@@ -13,6 +13,7 @@ import {
     RequestContext,
     ProjectTypeProviderRegistry,
     type ProjectTypeContext,
+    type ConversationProjectCreation,
     type IProjectTypeProvider
 } from '@xpert-ai/plugin-sdk'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
@@ -169,6 +170,35 @@ export class XpertProjectTypeService {
         if (this.resolve(ref).binding.kind !== 'project')
             throw new BadRequestException(t('server-ai:Error.ProjectApplicationWorkflowRequired'))
         return this.classification(ref)
+    }
+
+    /**
+     * Create the application's business record within the first-send transaction.
+     * Providers must explicitly support this entry; generic creation remains
+     * forbidden for entity types and an unavailable provider never falls back.
+     */
+    async forConversation(
+        ref: XpertProjectTypeRef = GENERAL_PROJECT_TYPE,
+        xpert: IXpert,
+        input: ConversationProjectCreation
+    ) {
+        const type = this.resolve(ref)
+        const classification = await this.classification(ref)
+        if (type.binding.kind === 'project') return { classification, name: input.name }
+        const provider = this.provider(type)
+        if (!provider.createForConversation) {
+            throw new BadRequestException(t('server-ai:Error.ProjectApplicationWorkflowRequired'))
+        }
+        const state = await provider.createForConversation(this.context(ref, xpert.id, 'create'), input)
+        if (
+            !state.name?.trim() ||
+            state.name.length > 240 ||
+            state.status !== 'active' ||
+            (state.xpertId && state.xpertId !== xpert.id)
+        ) {
+            throw new ConflictException(t('server-ai:Error.ProjectManagedStateConflict'))
+        }
+        return { classification, name: state.name }
     }
 
     /**

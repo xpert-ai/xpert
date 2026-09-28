@@ -89,7 +89,9 @@ export async function ensureManagedProject(
         // Reconcile a conversation-created name once. Subsequent provisioning
         // must preserve user naming, including changes before the first ensure.
         const bootstrap = project.settings?.conversationBootstrap
-        if (!bootstrap || (!bootstrap.nameResolved && project.name === bootstrap.initialName)) project.name = name
+        const entityManaged = project.projectTypeSnapshot?.binding.kind === 'entity'
+        if (entityManaged || !bootstrap || (!bootstrap.nameResolved && project.name === bootstrap.initialName))
+            project.name = name
         if (bootstrap) bootstrap.nameResolved = true
         project.status = input.status
         project.xperts ??= []

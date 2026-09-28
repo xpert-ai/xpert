@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing'
 import { QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
-import { RequestContext, runWithRequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, runWithRequestContext, type ConversationProjectCreation } from '@xpert-ai/plugin-sdk'
 import { AIPermissionsEnum, IUser, IXpert } from '@xpert-ai/contracts'
 import { EntityManager, IsNull } from 'typeorm'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
@@ -37,6 +37,7 @@ describe('first-send Project creation', () => {
     const access = jest.fn()
     const feature = jest.fn()
     const classification = jest.fn()
+    const transactionalSave = jest.fn(async (entity: object) => entity)
     let service: ConversationProjectService
 
     beforeEach(async () => {
@@ -54,8 +55,12 @@ describe('first-send Project creation', () => {
         initialize.mockResolvedValue(undefined)
         feature.mockResolvedValue(true)
         access.mockResolvedValue(xpert)
-        classification.mockResolvedValue({ applicationKey: 'platform', projectTypeKey: 'general' })
+        classification.mockResolvedValue({
+            classification: { applicationKey: 'platform', projectTypeKey: 'general' },
+            name: 'Bid project'
+        })
         const manager = Object.assign(new EntityManager(undefined), {
+            save: transactionalSave,
             getRepository: jest.fn((entity) =>
                 entity === ChatConversation
                     ? { findOneOrFail: locked, findOneByOrFail: bound, query }
@@ -72,7 +77,7 @@ describe('first-send Project creation', () => {
                 },
                 { provide: QueryBus, useValue: { execute: access } },
                 { provide: XpertProjectFeatureGuard, useValue: { canActivate: feature } },
-                { provide: XpertProjectTypeService, useValue: { forCreate: classification } },
+                { provide: XpertProjectTypeService, useValue: { forConversation: classification } },
                 { provide: XpertProjectXpertBindingService, useValue: { resolveCurrent: async () => xpert } },
                 { provide: PublishedXpertAccessService, useValue: { getAccessiblePublishedXpert: access } },
                 { provide: XpertProjectContentService, useValue: { initialize } }
@@ -116,6 +121,42 @@ describe('first-send Project creation', () => {
         await expect(service.prepare(conversation, xpert)).resolves.toMatchObject({ projectId: 'winner' })
         expect(save).not.toHaveBeenCalled()
         expect(query).not.toHaveBeenCalled()
+        expect(classification).not.toHaveBeenCalled()
+    })
+
+    it('shares the generated Project identity and transaction with the business provider', async () => {
+        classification.mockResolvedValue({
+            classification: { applicationKey: 'bid', projectTypeKey: 'bid' },
+            name: 'Tender'
+        })
+        await service.prepare(conversation, xpert)
+        const creation = classification.mock.calls[0][2]
+        expect(creation).not.toHaveProperty('manager')
+        expect(Object.keys(creation.transaction)).toEqual(['save'])
+        const entity = { id: 'business-record' }
+        await expect(creation.transaction.save(entity)).resolves.toBe(entity)
+        expect(transactionalSave).toHaveBeenCalledWith(entity)
+        expect(creation.conversationId).toBe(conversation.id)
+        expect(save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: creation.projectId,
+                name: 'Tender',
+                applicationKey: 'bid',
+                projectTypeKey: 'bid'
+            })
+        )
+    })
+
+    it('propagates a transaction writer failure before platform creation or conversation binding', async () => {
+        transactionalSave.mockRejectedValueOnce(new Error('business write failed'))
+        classification.mockImplementationOnce(async (_ref, _xpert, input: ConversationProjectCreation) => {
+            await input.transaction.save({ id: 'business-record' })
+        })
+        await expect(service.prepare(conversation, xpert)).rejects.toThrow('business write failed')
+        await expect(transaction.mock.results[0].value).rejects.toThrow('business write failed')
+        expect(save).not.toHaveBeenCalled()
+        expect(query).not.toHaveBeenCalled()
+        expect(initialize).not.toHaveBeenCalled()
     })
 
     it('rejects stale auto-create intent when a personal choice won the row lock', async () => {
@@ -162,7 +203,7 @@ describe('first-send Project creation', () => {
         expect(save).not.toHaveBeenCalled()
     })
 
-    it('rejects disabled features and entity-bound types before writes', async () => {
+    it('rejects disabled features and unsupported entity-bound types before writes', async () => {
         feature.mockRejectedValueOnce(new Error('disabled'))
         await expect(service.prepare(conversation, xpert)).rejects.toThrow('disabled')
         classification.mockRejectedValueOnce(new Error('business entry required'))

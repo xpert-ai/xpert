@@ -86,6 +86,29 @@ describe('XpertProjectService managed provisioning', () => {
         expect(project.name).toBe('User name')
     })
 
+    it('keeps entity names owned by the application after conversation bootstrap', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const project = harness.createdProject
+        project.name = 'Original tender'
+        project.projectTypeSnapshot = {
+            applicationTitle: 'Bid',
+            title: 'Tender',
+            binding: { kind: 'entity', providerKey: 'bid' }
+        }
+        project.settings = {
+            conversationBootstrap: { conversationId: 'conversation', initialName: 'Bid project', nameResolved: true }
+        }
+        harness.repository.findOne.mockResolvedValue(project)
+        await harness.service.ensureManagedProject({
+            projectId: project.id,
+            xpertId: requester.id,
+            name: 'Renamed tender',
+            status: 'active'
+        })
+        expect(project.name).toBe('Renamed tender')
+    })
+
     it('preserves a name edited before the business app first provisions the conversation Project', async () => {
         const requester = buildRequester([])
         const harness = buildHarness({ requester })

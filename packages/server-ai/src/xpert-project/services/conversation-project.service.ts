@@ -7,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
+import { randomUUID } from 'node:crypto'
 import { IsNull, Repository } from 'typeorm'
 import {
     bindEmptyConversationProject,
@@ -90,14 +91,26 @@ export class ConversationProjectService {
                     })
                 )
             }
-            const classification = await this.types.forCreate(xpert.options.workspaceScope.projectType)
             const projects = manager.getRepository(XpertProject)
-            const name = t('server-ai:Project.ConversationProjectName', {
+            const projectId = randomUUID()
+            const initialName = t('server-ai:Project.ConversationProjectName', {
                 defaultValue: '{{assistant}} project',
                 assistant: xpert.title || xpert.name
             })
+            const { classification, name } = await this.types.forConversation(
+                currentXpert.options?.workspaceScope?.projectType,
+                currentXpert,
+                {
+                    projectId,
+                    conversationId: current.id,
+                    workspaceId: currentXpert.workspaceId,
+                    name: initialName,
+                    transaction: { save: (entity) => manager.save(entity) }
+                }
+            )
             const project = await projects.save(
                 projects.create({
+                    id: projectId,
                     ...classification,
                     name,
                     status: 'active',

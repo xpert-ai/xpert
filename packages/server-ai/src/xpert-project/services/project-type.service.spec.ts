@@ -71,6 +71,61 @@ describe('application Project types', () => {
     it('requires the business creation workflow for entity types', async () => {
         await expect(fixture().service.forCreate(ref)).rejects.toThrow()
     })
+    it('requires an explicit first-send hook; never falls back for entity types', async () => {
+        const { service } = fixture()
+        await expect(
+            service.forConversation(ref, xpert, {
+                projectId: 'project',
+                conversationId: 'conversation',
+                workspaceId: 'workspace',
+                name: 'Bid',
+                transaction: { save: async <T extends object>(entity: T): Promise<T> => entity }
+            })
+        ).rejects.toThrow()
+    })
+    it('passes host identity and the transaction to an opted-in business provider', async () => {
+        const { service, provider } = fixture()
+        provider.createForConversation = jest.fn(async () => ({ ...desired, viewKey: 'cases', xpertId: xpert.id }))
+        const input = {
+            projectId: 'project',
+            conversationId: 'conversation',
+            workspaceId: 'workspace',
+            name: 'Bid',
+            transaction: { save: async <T extends object>(entity: T): Promise<T> => entity }
+        }
+        await expect(service.forConversation(ref, xpert, input)).resolves.toMatchObject({
+            classification: ref,
+            name: desired.name
+        })
+        expect(provider.createForConversation).toHaveBeenCalledWith(
+            expect.objectContaining({
+                ...ref,
+                tenantId: 'tenant',
+                organizationId: 'org',
+                userId: 'owner',
+                xpertId: 'assistant',
+                purpose: 'create'
+            }),
+            input
+        )
+        provider.createForConversation = jest.fn(async () => ({ ...desired, viewKey: 'cases', xpertId: 'other' }))
+        await expect(service.forConversation(ref, xpert, input)).rejects.toThrow()
+    })
+    it('propagates provider failures to roll back first-send creation', async () => {
+        const { service, provider } = fixture()
+        provider.createForConversation = jest.fn(async () => {
+            throw new Error('business write failed')
+        })
+        await expect(
+            service.forConversation(ref, xpert, {
+                projectId: 'project',
+                conversationId: 'conversation',
+                workspaceId: 'workspace',
+                name: 'Bid',
+                transaction: { save: async <T extends object>(entity: T): Promise<T> => entity }
+            })
+        ).rejects.toThrow('business write failed')
+    })
     it('uses loader provenance and the persisted business link before claiming a Project', async () => {
         const { service, provider } = fixture()
         await expect(service.forEnsure(null, ref, xpert, 'project', desired)).resolves.toMatchObject(ref)
