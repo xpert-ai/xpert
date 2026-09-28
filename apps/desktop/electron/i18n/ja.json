@@ -97,7 +97,7 @@
   "ChatKit background": "ChatKit の背景",
   "ChatKit text": "ChatKit の文字",
   "API service URL": "API サービス URL",
-  "Enter the service root URL, without /api.": "/api を含めず、サービスのルート URL を入力してください。",
+  "Enter the API URL, including /api. Existing service root URLs also work.": "/api を含む API URL を入力してください。従来のサービスルート URL も使用できます。",
   "Xpert web URL": "Xpert Web URL",
   "ChatKit URL": "ChatKit URL",
   "Use the ChatKit page deployed by this service. Chats connect to this URL.": "このサービスにデプロイされた ChatKit ページを指定します。チャットはこの URL に接続します。",

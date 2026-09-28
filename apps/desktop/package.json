@@ -13,7 +13,8 @@
     "test": "node --test tests/*.test.cjs",
     "test:local": "node scripts/test-local.mjs",
     "test:shell:local": "node scripts/test-shell-local.mjs",
-    "package": "pnpm build && electron-builder --dir"
+    "package": "pnpm build && electron-builder --dir",
+    "package:installers": "pnpm build && electron-builder --publish never"
   },
   "devDependencies": {
     "@emoji-mart/data": "^1.2.1",

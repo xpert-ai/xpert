@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen }
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
+const { connectionDefaults, packagedConnection } = require('./connection/defaults.cjs')
 const { createStorage } = require('./storage.cjs')
 const { dispatch } = require('./dispatch.cjs')
 const { menuTemplate } = require('./menu.cjs')
@@ -119,7 +120,11 @@ else {
       encryptString: (value) => safeStorage.encryptString(value),
       decryptString: (value) => safeStorage.decryptString(value)
     }
-    service = new DesktopService({ storage: createStorage(app.getPath('userData'), encryption), localLogin })
+    service = new DesktopService({
+      storage: createStorage(app.getPath('userData'), encryption),
+      localLogin,
+      defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults()
+    })
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) =>
       callback(allowClipboardWrite(contents, permission, details.requestingUrl))

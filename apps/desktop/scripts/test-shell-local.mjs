@@ -6,6 +6,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { isId } from '@xpert-ai/desktop-protocol'
 import { DesktopService, DEFAULT_CONFIG } from '../electron/service.cjs'
+import { apiRootUrl } from '../electron/connection/urls.mjs'
 import { DesktopShellController } from '../electron/shell/controller.cjs'
 import { requireAuthentication, createRequestHeaders } from '../../../tools/scripts/local-plugin-cli.mjs'
 
@@ -23,11 +24,11 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-desktop-shell-test-'))
 const cwd = path.join(root, 'project')
 fs.mkdirSync(cwd)
 const service = new DesktopService()
-service.configure({ ...DEFAULT_CONFIG, apiUrl: process.env.XPERT_API_URL || DEFAULT_CONFIG.apiUrl })
+service.configure({ ...DEFAULT_CONFIG, apiUrl: process.env.XPERT_API_URL || 'http://localhost:3000' })
 service.shell = new DesktopShellController(service, path.join(root, 'profile'))
 
 async function chatRequest(route, body, secret) {
-  const response = await fetch(`${service.config.apiUrl}/api/ai${route}`, {
+  const response = await fetch(`${apiRootUrl(service.config.apiUrl)}/api/ai${route}`, {
     method: 'POST',
     headers: {
       ...createRequestHeaders(
@@ -46,7 +47,7 @@ async function chatRequest(route, body, secret) {
 }
 
 try {
-  const auth = await requireAuthentication({ apiUrl: service.config.apiUrl })
+  const auth = await requireAuthentication({ apiUrl: apiRootUrl(service.config.apiUrl) })
   service.credentials = { token: auth.token, tenantId: auth.tenantId }
   const fetcher = service.fetcher
   service.fetcher = (url, options) => {

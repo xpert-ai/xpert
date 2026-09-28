@@ -97,7 +97,7 @@
   "ChatKit background": "ChatKit 背景",
   "ChatKit text": "ChatKit 文字",
   "API service URL": "API 服务地址",
-  "Enter the service root URL, without /api.": "填写服务根地址，不包含 /api。",
+  "Enter the API URL, including /api. Existing service root URLs also work.": "请输入包含 /api 的 API 地址，也兼容原有的服务根地址。",
   "Xpert web URL": "Xpert 网页地址",
   "ChatKit URL": "ChatKit 地址",
   "Use the ChatKit page deployed by this service. Chats connect to this URL.": "使用该服务部署的 ChatKit 页面。对话会连接到这里。",

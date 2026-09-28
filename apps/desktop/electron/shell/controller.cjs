@@ -3,6 +3,7 @@ const path = require('node:path')
 const os = require('node:os')
 const { randomUUID, createHash } = require('node:crypto')
 const { fork } = require('node:child_process')
+const { apiRootUrl } = require('../connection/urls.mjs')
 const { parseSettings, isId, parsePreparation, parsePolicy } = require('@xpert-ai/desktop-protocol')
 
 class DesktopShellController {
@@ -252,7 +253,7 @@ class DesktopShellController {
       type: 'start',
       directory: path.join(this.directory, 'operations'),
       settings,
-      url: this.service.config.apiUrl,
+      url: apiRootUrl(this.service.config.apiUrl),
       token: registration.token
     })
     this.refreshTimer = setInterval(

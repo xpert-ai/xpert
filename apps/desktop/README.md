@@ -82,11 +82,75 @@ preview server clears it. The development bridge is not part of the packaged app
 
 Open **连接设置** on the login screen, or **用户菜单 → 连接与外观 → 连接**:
 
-| Setting                           | Local default                              |
-| --------------------------------- | ------------------------------------------ |
-| API service root (without `/api`) | `http://localhost:3000`                    |
-| Xpert Web                         | `http://localhost:4200`                    |
-| ChatKit frame                     | `http://localhost:4200/chatkit/index.html` |
+| Setting       | Default                          |
+| ------------- | -------------------------------- |
+| API service   | `https://api.xpertai.cn/api/`    |
+| Xpert Web     | `https://app.xpertai.cn/`        |
+| ChatKit frame | `https://app.xpertai.cn/chatkit` |
+
+API URLs can include `/api/`; older service-root URLs such as
+`http://localhost:3000` remain supported. The client normalizes trailing slashes
+and avoids duplicating `/api` for REST and ChatKit requests. Shell connections
+use the server root. Already saved connection settings take precedence over new
+build defaults, so upgrading does not change an existing account's server.
+
+### Customer builds
+
+Set the three URLs when building installers (macOS/Linux shell, from the repo root):
+
+```sh
+XPERT_DESKTOP_API_URL=https://api.customer.example/api/ \
+XPERT_DESKTOP_WEB_URL=https://app.customer.example/ \
+XPERT_DESKTOP_CHATKIT_URL=https://app.customer.example/chatkit \
+corepack pnpm --filter @xpert-ai/desktop package:installers
+```
+
+The native installer is written to `apps/desktop/release/`. This uses the same
+build-time defaults as the CI builds. Signing follows your local electron-builder
+configuration. `package` builds an unpacked app; `package:installers` builds the
+current platform's configured installer and never publishes it.
+
+For repeatable customer builds, copy `docs/connection.customer.example.json` to an
+untracked file, edit its three URLs, and pass its **absolute** path:
+
+```sh
+mkdir -p .local
+cp apps/desktop/docs/connection.customer.example.json .local/customer-connection.json
+# Edit .local/customer-connection.json, then:
+XPERT_DESKTOP_CONNECTION_FILE="$PWD/.local/customer-connection.json" \
+corepack pnpm --filter @xpert-ai/desktop package:installers
+```
+
+PowerShell supports the same configuration file:
+
+```powershell
+$env:XPERT_DESKTOP_CONNECTION_FILE = (Resolve-Path .local/customer-connection.json).Path
+corepack pnpm --filter @xpert-ai/desktop package:installers
+Remove-Item Env:XPERT_DESKTOP_CONNECTION_FILE
+```
+
+Environment URL overrides take precedence over the JSON file, which takes
+precedence over the official defaults. If only the Web URL is customized, ChatKit
+defaults to `<webUrl>/chatkit`; an explicit ChatKit URL takes precedence. Invalid
+URLs fail the build. Only `apiUrl`, `webUrl`, and `frameUrl` are accepted in the JSON
+file. Do not put credentials there.
+
+Vite writes the resolved URLs to `dist/connection-defaults.json`, which is included
+in the app. Installed apps read that snapshot without requiring environment
+variables on the customer's computer. A build with no overrides resets the snapshot
+to the official URLs. To verify defaults on a machine that already has Bosi,
+use a separate test profile or change **连接设置**; existing saved settings are retained.
+
+The same variables apply to `dev` and `dev:web`. For local platform development:
+
+```sh
+XPERT_DESKTOP_API_URL=http://localhost:3000/api/ \
+XPERT_DESKTOP_WEB_URL=http://localhost:4200/ \
+XPERT_DESKTOP_CHATKIT_URL=http://localhost:4200/chatkit/index.html \
+corepack pnpm --filter @xpert-ai/desktop dev
+```
+
+### Sign in and discover assistants
 
 Use the existing Xpert email and password to sign in. The application then loads
 the user's organizations and accessible published Agents from the existing
@@ -211,7 +275,11 @@ source files or command arguments.
 
 ```sh
 corepack pnpm --filter @xpert-ai/desktop test:local
-XPERT_DESKTOP_LOCAL_LOGIN=1 corepack pnpm --filter @xpert-ai/desktop dev
+XPERT_DESKTOP_LOCAL_LOGIN=1 \
+XPERT_DESKTOP_API_URL=http://localhost:3000/api/ \
+XPERT_DESKTOP_WEB_URL=http://localhost:4200/ \
+XPERT_DESKTOP_CHATKIT_URL=http://localhost:4200/chatkit/index.html \
+corepack pnpm --filter @xpert-ai/desktop dev
 ```
 
 The opt-in development button reads that credential mechanism inside the host.

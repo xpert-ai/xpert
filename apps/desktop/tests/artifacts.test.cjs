@@ -37,7 +37,7 @@ test('preview dispatch pins the image version and returns only a short-lived URL
   assert.deepEqual(result, { ok: true, value: { previewUrl: link.publicUrl, expiresAt: link.expiresAt } })
   assert.doesNotMatch(JSON.stringify(result), /account-private|refresh-private/)
   const { url, options } = calls[0]
-  assert.equal(url, 'http://localhost:3000/api/artifacts/artifact-1/links/signed-preview')
+  assert.equal(url, 'https://api.xpertai.cn/api/artifacts/artifact-1/links/signed-preview')
   assert.equal(options.method, 'POST')
   assert.equal(options.headers.Authorization, 'Bearer account-private')
   assert.equal(options.headers['tenant-id'], 'tenant-1')

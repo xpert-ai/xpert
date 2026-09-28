@@ -1,4 +1,5 @@
 import { t } from './i18n'
+import { chatkitUrl, followsWebUrl } from '../electron/connection/urls.mjs'
 import { Input, Label } from '@xpert-ai/shadcn-ui'
 import type { ConnectionConfig } from './types'
 
@@ -19,9 +20,11 @@ export function ConnectionFields({
           required
           value={draft.apiUrl}
           onChange={(e) => onChange({ ...draft, apiUrl: e.target.value })}
-          placeholder="https://api.example.com"
+          placeholder="https://api.xpertai.cn/api/"
         />
-        <p className="text-xs text-muted-foreground">{t('Enter the service root URL, without /api.')}</p>
+        <p className="text-xs text-muted-foreground">
+          {t('Enter the API URL, including /api. Existing service root URLs also work.')}
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="web-url">{t('Xpert web URL')}</Label>
@@ -32,11 +35,11 @@ export function ConnectionFields({
           value={draft.webUrl}
           onChange={(e) => {
             const webUrl = e.target.value
-            const followsWeb = draft.frameUrl === `${draft.webUrl.replace(/\/$/, '')}/chatkit/index.html`
+            const followsWeb = followsWebUrl(draft.frameUrl, draft.webUrl)
             onChange({
               ...draft,
               webUrl,
-              ...(followsWeb ? { frameUrl: `${webUrl.replace(/\/$/, '')}/chatkit/index.html` } : {})
+              ...(followsWeb ? { frameUrl: chatkitUrl(webUrl) } : {})
             })
           }}
         />

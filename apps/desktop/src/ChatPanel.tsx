@@ -1,4 +1,5 @@
 import { useWorkspaceConnection } from './WorkspaceConnection'
+import { apiRootUrl } from '../electron/connection/urls.mjs'
 import { useDeliveredFile } from './files/DeliveredFile'
 import { createWorkbenchHandler } from './workbench'
 import { useShellIntegration } from './shell/useShellIntegration'
@@ -71,7 +72,7 @@ export function ChatPanel({
       displayMode: 'chat',
       pet: false,
       api: {
-        apiUrl: `${config.apiUrl}/api/ai`,
+        apiUrl: `${apiRootUrl(config.apiUrl)}/api/ai`,
         xpertId: bot.assistantId || bot.id,
         getClientSecret: async () => {
           try {

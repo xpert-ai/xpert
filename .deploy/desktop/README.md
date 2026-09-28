@@ -79,6 +79,19 @@ node --test .deploy/desktop/*.test.*
 Root `lockfile:update` / `lockfile:check` also maintain this profile, including after
 Changesets versioning. CI does not rely on developer-built `dist` directories.
 
+## Connection defaults
+
+Official builds use `https://api.xpertai.cn/api/`, `https://app.xpertai.cn/` and
+`https://app.xpertai.cn/chatkit`. Vite embeds the resolved defaults in
+`dist/connection-defaults.json`; the packaged runtime check also verifies this
+snapshot. Existing user-saved connections are retained.
+
+For manual customer builds, set `XPERT_DESKTOP_API_URL`, `XPERT_DESKTOP_WEB_URL`
+and `XPERT_DESKTOP_CHATKIT_URL`, or set `XPERT_DESKTOP_CONNECTION_FILE` to an
+absolute JSON file path. See [customer build commands](../../apps/desktop/README.md#customer-builds).
+Pass these when running the build step, before packaging. Changing variables only
+at packaging time does not alter the already built defaults.
+
 ## Optional signing and notarization
 
 Configure the following **repository secrets** for branch builds (not PR builds):

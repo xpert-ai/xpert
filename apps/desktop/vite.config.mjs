@@ -4,10 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { desktopBridge } from './scripts/dev-bridge.mjs'
+import { connectionDefaultsPlugin } from './scripts/connection-defaults.mjs'
 
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss(), desktopBridge()],
+  plugins: [react(), tailwindcss(), desktopBridge(), connectionDefaultsPlugin()],
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: [

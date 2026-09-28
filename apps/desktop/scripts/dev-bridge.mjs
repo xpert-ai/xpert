@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 // Keep the Node host outside Vite's ESM configuration bundle.
 const require = createRequire(import.meta.url)
 const { DesktopService } = require('../electron/service.cjs')
+const { connectionDefaults } = require('../electron/connection/defaults.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 
 // Browser preview only: each HttpOnly cookie owns an isolated, in-memory host session.
@@ -11,6 +12,7 @@ export function desktopBridge() {
   return {
     name: 'xpert-desktop-development-bridge',
     configureServer(server) {
+      const defaultConfig = connectionDefaults()
       server.middlewares.use('/__desktop', async (req, res) => {
         const origin = `http://${req.headers.host}`
         const port = server.config.server.port
@@ -37,7 +39,7 @@ export function desktopBridge() {
               process.env.XPERT_DESKTOP_LOCAL_LOGIN === '1'
                 ? (await import('./local-credentials.mjs')).readLocalCredentials
                 : undefined
-            sessions.set(id, { service: new DesktopService({ localLogin }), touched: Date.now() })
+            sessions.set(id, { service: new DesktopService({ localLogin, defaultConfig }), touched: Date.now() })
             res.setHeader('Set-Cookie', `xpert-desktop=${id}; HttpOnly; SameSite=Strict; Path=/__desktop`)
           }
           const current = sessions.get(id)
