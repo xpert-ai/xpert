@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { platforms } from './release-plan.mjs'
-import { packaging, appPaths } from './package.mjs'
+import { packaging, appPaths, removeEmptySigningCredentials } from './package.mjs'
 const plan = { build: true, sha: 'a'.repeat(40), version: '0.1.1' }
 test('every platform produces two uniquely named installers with implicit publishing disabled', () => {
   for (const target of platforms) {
@@ -9,8 +9,37 @@ test('every platform produces two uniquely named installers with implicit publis
     assert.equal(config.extraMetadata.version, plan.version)
     assert.equal(config.publish, null)
     assert.equal(config[target.platform].target.length, 2)
-    assert.equal(config.artifactName, 'Bosi-${version}-${os}-${arch}.${ext}')
+    assert.equal(config.artifactName, `Bosi-${plan.version}-${target.platform}-${target.arch}.\${ext}`)
     assert.ok(appPaths(target, '/release').archive.endsWith('app.asar'))
+  }
+})
+test('missing GitHub signing secrets are removed before electron-builder reads the environment', () => {
+  const env = {
+    CSC_LINK: '',
+    CSC_KEY_PASSWORD: '',
+    APPLE_ID: ' ',
+    APPLE_APP_SPECIFIC_PASSWORD: '',
+    APPLE_TEAM_ID: '\n',
+    CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+  }
+  assert.equal(packaging(plan, platforms[0], env).signing, 'ad-hoc')
+  assert.deepEqual(removeEmptySigningCredentials(env), {
+    CSC_KEY_PASSWORD: '',
+    CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+  })
+  assert.equal(Object.hasOwn(env, 'CSC_LINK'), false)
+  const configured = { CSC_LINK: 'certificate', CSC_KEY_PASSWORD: ' ', APPLE_ID: 'id' }
+  assert.deepEqual(removeEmptySigningCredentials({ ...configured }), configured)
+  assert.throws(() => packaging(plan, platforms[0], configured), /requires a signing certificate/)
+})
+test('Linux x64 AppImage and tarball names match release receipts', () => {
+  const target = platforms.find((entry) => entry.id === 'linux-x64')
+  const { config } = packaging({ ...plan, version: '0.1.1-candidate.develop.aaaaaaaaaaaa' }, target, {})
+  for (const ext of ['AppImage', 'tar.gz']) {
+    assert.equal(
+      config.artifactName.replace('${ext}', ext),
+      `Bosi-0.1.1-candidate.develop.aaaaaaaaaaaa-linux-x64.${ext}`
+    )
   }
 })
 test('macOS without credentials uses ad-hoc signing; configured signing cannot silently degrade', () => {

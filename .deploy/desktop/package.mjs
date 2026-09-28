@@ -9,6 +9,13 @@ import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { platforms } from './release-plan.mjs'
 const require = createRequire(import.meta.url)
+export function removeEmptySigningCredentials(env = process.env) {
+  // GitHub injects absent secrets as empty strings; electron-builder treats an
+  // empty CSC_LINK as a certificate path pointing to the project directory.
+  for (const key of ['CSC_LINK', 'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID'])
+    if (typeof env[key] === 'string' && env[key].trim() === '') delete env[key]
+  return env
+}
 export function packaging(plan, target, env = process.env) {
   assert.ok(plan.build && /^[a-f0-9]{40}$/.test(plan.sha), 'Changesets build plan required')
   assert.match(plan.version, /^\d+\.\d+\.\d+(?:-candidate\.(?:main|develop)\.[a-f0-9]{12})?$/)
@@ -17,9 +24,11 @@ export function packaging(plan, target, env = process.env) {
       (entry) => entry.id === target.id && entry.platform === target.platform && entry.arch === target.arch
     )
   )
+  env = removeEmptySigningCredentials({ ...env })
   const config = {
     extraMetadata: { version: plan.version },
-    artifactName: 'Bosi-${version}-${os}-${arch}.${ext}',
+    // AppImage expands ${arch} to x86_64; receipts use the matrix's x64 name.
+    artifactName: `Bosi-${plan.version}-${target.platform}-${target.arch}.\${ext}`,
     publish: null
   }
   let signing = 'unsigned'
@@ -59,6 +68,7 @@ export async function packageDesktop(plan, target) {
   assert.equal(process.arch, target.arch, 'Package on a native-architecture runner')
   assert.equal(process.platform, { mac: 'darwin', win: 'win32', linux: 'linux' }[target.platform])
   const appDirectory = resolve('apps/desktop')
+  removeEmptySigningCredentials()
   const { config, signing } = packaging(plan, target)
   const builder = require('electron-builder')
   const original = JSON.parse(readFileSync(join(appDirectory, 'package.json'), 'utf8'))
