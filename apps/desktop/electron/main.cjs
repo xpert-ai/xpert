@@ -77,6 +77,9 @@ function createWindow() {
       webSecurity: true
     }
   })
+  window.on('closed', () => {
+    window = undefined
+  })
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
   window.webContents.setWindowOpenHandler(({ url }) => {
     openExternal(url)
@@ -95,6 +98,10 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
   app.on('second-instance', () => {
+    if (!window || window.isDestroyed()) {
+      if (app.isReady()) createWindow()
+      return
+    }
     if (window?.isMinimized()) window.restore()
     window?.focus()
   })
