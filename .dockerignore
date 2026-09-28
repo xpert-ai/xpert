@@ -1,6 +1,7 @@
 /.git
 /.github
 /.nx
+/.local
 /.vscode
 /.idea
 /coverage
