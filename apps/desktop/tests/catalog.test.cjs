@@ -182,6 +182,8 @@ test('application preflight denial and initializing state prevent writes; ready 
 test('template install requires a writable workspace, excludes app templates and publishes the created assistant', async () => {
   let isApp = false
   const { service, calls } = fixture((path) => {
+    if (path === '/api/copilot/availables/primary')
+      return { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
     if (path.endsWith('/my'))
       return {
         items: [
@@ -225,6 +227,8 @@ test('organization switch while resolving template setup cancels installation be
 
 test('ambiguous template POST failures are never automatically retried', async () => {
   const { service, calls } = fixture((path) => {
+    if (path === '/api/copilot/availables/primary')
+      return { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
     if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
     if (path.endsWith('/install')) throw new Error('Connection reset after sending request')
     return { type: 'agent' }
@@ -233,4 +237,54 @@ test('ambiguous template POST failures are never automatically retried', async (
     status: 503
   })
   assert.equal(calls.filter((call) => call.method === 'POST').length, 1)
+})
+
+test('template preflight requires an authorized primary default and never exposes its configuration', async () => {
+  let primary = null
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/my'))
+      return { items: [{ id: 'workspace', name: 'Workspace', capabilities: { canWrite: true } }] }
+    if (path === '/api/copilot/availables/primary') return primary
+    // A secondary model alone is insufficient for managed import.
+    if (path === '/api/copilot/models') return [{ id: 'secondary' }]
+    return { type: 'agent' }
+  })
+  for (const invalid of [
+    null,
+    { id: 'primary' },
+    { id: 'primary', copilotModel: { model: ' ' } },
+    { id: 'primary', copilotModel: { model: 'embed', modelType: 'text-embedding' } }
+  ]) {
+    primary = invalid
+    assert.deepEqual(await service.templateSetup(), {
+      workspaces: [{ id: 'workspace', name: 'Workspace' }],
+      hasPrimaryLanguageModel: false
+    })
+    await assert.rejects(service.installTemplate({ id: 'template', workspaceId: 'workspace', title: 'Test' }), {
+      status: 403
+    })
+  }
+  assert.ok(calls.every((call) => call.method === 'GET'))
+  for (const modelType of ['llm', undefined]) {
+    primary = { id: 'primary', copilotModel: { model: 'custom-default', modelType }, credentials: 'never-expose' }
+    assert.equal((await service.templateSetup()).hasPrimaryLanguageModel, true)
+    assert.doesNotMatch(JSON.stringify(await service.templateSetup()), /never-expose|custom-default/)
+  }
+})
+
+test('template install rechecks the primary default after setup and fails closed on lookup errors', async () => {
+  let primary = { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
+    if (path === '/api/copilot/availables/primary') return primary
+    return { type: 'agent' }
+  })
+  assert.equal((await service.templateSetup()).hasPrimaryLanguageModel, true)
+  primary = null
+  await assert.rejects(service.installTemplate({ id: 'template', workspaceId: 'workspace', title: 'Test' }), {
+    status: 403
+  })
+  primary = new Response('denied', { status: 403 })
+  await assert.rejects(service.templateSetup(), { status: 403 })
+  assert.ok(calls.every((call) => call.method === 'GET'))
 })

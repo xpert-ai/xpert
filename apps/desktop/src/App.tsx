@@ -160,6 +160,15 @@ export function App() {
                 selectBot(id)
               }}
               onRefresh={() => void loadBots()}
+              onRefreshOrganizations={async () => {
+                try {
+                  setState(await invoke('refreshProfile'))
+                } catch (error) {
+                  if (error instanceof HostError && error.status === 409) return
+                  setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                  if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
+                }
+              }}
               onSettings={() => setSettings(true)}
               onBrowse={() => setCatalog(true)}
               onLogout={async () => setState(await invoke('logout'))}

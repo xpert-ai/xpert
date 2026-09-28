@@ -2,6 +2,7 @@ const { translate } = require('./i18n/index.mjs')
 const { ClientError } = require('./service.cjs')
 const methods = new Set([
   'state',
+  'refreshProfile',
   'shellState',
   'shellEnable',
   'shellDisable',
@@ -42,6 +43,7 @@ const methods = new Set([
   'applicationSetup',
   'initializeApplication',
   'templateWorkspaces',
+  'templateSetup',
   'installTemplate',
   'logout'
 ])

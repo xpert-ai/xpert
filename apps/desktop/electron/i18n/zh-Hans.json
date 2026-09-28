@@ -548,5 +548,8 @@
   "Sign in with your Xpert account to get started.": "使用 Xpert 账号登录，开始与 Bosi 一起工作。",
   "Group by business domain": "按业务域分组",
   "Business domains": "业务域",
-  "Marketplace categories": "业务分类"
+  "Marketplace categories": "业务分类",
+  "No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.": "此组织尚未配置已授权的主语言模型。请管理员在 Xpert 中设置主模型的默认模型并授权，然后刷新设置。",
+  "This organization has no imported plugins. Ask an organization administrator to import a plugin in Xpert plugin management, then refresh this catalog.": "此组织尚未导入插件。请组织管理员在 Xpert 插件管理中导入插件，然后刷新此目录。",
+  "No plugins have been added to this workspace. Switch to All to choose one.": "此工作空间尚未添加插件。切换到「全部」选择插件。"
 }

@@ -124,6 +124,7 @@ export interface HostMethods {
   shellOperations: { input: undefined; output: ShellResult[] }
   shellCancel: { input: string; output: ShellResult }
   state: { input: undefined; output: AppState }
+  refreshProfile: { input: undefined; output: AppState }
   configure: { input: ConnectionConfig; output: AppState }
   login: { input: { email: string; password: string }; output: AppState }
   loginLocal: { input: undefined; output: AppState }
@@ -139,6 +140,7 @@ export interface HostMethods {
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
+  templateSetup: { input: undefined; output: { workspaces: WorkspaceOption[]; hasPrimaryLanguageModel: boolean } }
   installTemplate: { input: { id: string; workspaceId: string; title: string }; output: { botId: string } }
   logout: { input: undefined; output: AppState }
 }

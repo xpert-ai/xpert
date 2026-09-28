@@ -22,6 +22,7 @@ export function Sidebar({
   onSelect,
   onRefresh,
   onOrganization,
+  onRefreshOrganizations,
   onSettings,
   onBrowse,
   onLogout,
@@ -36,6 +37,7 @@ export function Sidebar({
   onSelect: (id: string, threadId?: string | null) => void
   onRefresh: () => void
   onOrganization: (id: string) => void
+  onRefreshOrganizations: () => void
   onSettings: () => void
   onBrowse: () => void
   onLogout: () => void
@@ -276,8 +278,9 @@ export function Sidebar({
           <div className="-ml-2 flex min-w-0 items-center gap-2">
             <Select
               value={profile.organizationId || undefined}
+              onOpenChange={(open) => open && onRefreshOrganizations()}
               onValueChange={onOrganization}
-              disabled={pending || !profile.organizations.length}
+              disabled={pending}
             >
               <SelectTrigger
                 className="min-w-0 max-w-[calc(100%-40px)] justify-start gap-1.5 border-0 px-2 text-lg leading-6 font-semibold tracking-tight shadow-none hover:bg-muted data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-muted [&>[data-slot=select-value]]:block [&>[data-slot=select-value]]:truncate"

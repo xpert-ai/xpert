@@ -1,7 +1,8 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
         currentUserId: jest.fn(),
-        getOrganizationId: jest.fn()
+        getOrganizationId: jest.fn(),
+        hasAnyPermission: jest.fn()
     }
 }))
 
@@ -9,7 +10,10 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
-jest.mock('@xpert-ai/server-core', () => ({ UserService: class UserService {} }))
+jest.mock('@xpert-ai/server-core', () => ({
+    UserService: class UserService {},
+    OrganizationService: class OrganizationService {}
+}))
 jest.mock('../assistant-binding/assistant-binding.service', () => ({
     AssistantBindingService: class AssistantBindingService {}
 }))
@@ -29,6 +33,7 @@ import {
 } from './mobile.service'
 
 describe('MobileService', () => {
+    const organizationService = { findAll: jest.fn() }
     const userService = {
         findCurrentUser: jest.fn()
     }
@@ -42,6 +47,7 @@ describe('MobileService', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        jest.mocked(RequestContext.hasAnyPermission).mockReturnValue(false)
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-2')
         userService.findCurrentUser.mockResolvedValue({
@@ -119,7 +125,8 @@ describe('MobileService', () => {
         return new MobileService(
             userService as unknown as ConstructorParameters<typeof MobileService>[0],
             assistantBindingService as unknown as ConstructorParameters<typeof MobileService>[1],
-            publishedXpertAccessService as unknown as ConstructorParameters<typeof MobileService>[2]
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof MobileService>[2],
+            organizationService as unknown as ConstructorParameters<typeof MobileService>[3]
         )
     }
 
@@ -138,6 +145,26 @@ describe('MobileService', () => {
         expect(serialized).not.toContain('secret-token')
         expect(serialized).not.toContain('do-not-leak')
         expect(result.deployment.capabilities.chatkit).toBe(true)
+    })
+
+    it('lists active tenant organizations for authorized administrators without inventing memberships', async () => {
+        jest.mocked(RequestContext.hasAnyPermission).mockReturnValue(true)
+        organizationService.findAll.mockResolvedValue({
+            items: [{ id: 'new-org', name: 'New organization', tenantId: 'tenant-1', isActive: true }]
+        })
+        const result = await createService().getBootstrap()
+        expect(result.organizations.map((organization) => organization.id)).toEqual(['new-org'])
+        expect(result.activeOrganizationId).toBe('new-org')
+        expect(organizationService.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { tenantId: 'tenant-1', isActive: true }
+            })
+        )
+    })
+
+    it('does not expose tenant organizations to ordinary members', async () => {
+        await createService().getBootstrap()
+        expect(organizationService.findAll).not.toHaveBeenCalled()
     })
 
     it('requires an authenticated user for bootstrap', async () => {

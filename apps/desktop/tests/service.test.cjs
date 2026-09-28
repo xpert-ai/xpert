@@ -247,3 +247,73 @@ test('encrypted storage restores credentials and logout erases the saved credent
   storage.write({ config: DEFAULT_CONFIG, credentials: null })
   assert.equal(storage.read().credentials, null)
 })
+
+test('refreshing organization choices discovers new memberships without resetting the current chat scope', async () => {
+  let refreshed = false
+  const { service } = fixture((url) =>
+    url.endsWith('/bootstrap') && refreshed
+      ? response({ ...bootstrap, organizations: [...bootstrap.organizations, { id: 'org-new', name: 'New team' }] })
+      : null
+  )
+  await service.login(input)
+  await service.listBots()
+  const generation = service.generation
+  refreshed = true
+  const result = await dispatch(service, 'refreshProfile')
+  assert.equal(result.ok, true)
+  assert.equal(result.value.profile.organizations.length, 3)
+  assert.equal(result.value.profile.organizationId, 'org-1')
+  assert.equal(service.generation, generation)
+  assert.equal(service.bots.length, 1)
+  await service.selectOrganization('org-new')
+  assert.equal(service.snapshot().profile.organizationId, 'org-new')
+})
+
+test('refreshing a revoked organization invalidates its bots and disables local shell', async () => {
+  let revoked = false
+  let disabled = false
+  const { service } = fixture((url) =>
+    url.endsWith('/bootstrap') && revoked
+      ? response({ ...bootstrap, organizations: [bootstrap.organizations[1]] })
+      : null
+  )
+  await service.login(input)
+  await service.listBots()
+  service.shell = {
+    disable: async () => {
+      disabled = true
+    }
+  }
+  revoked = true
+  const state = await service.refreshProfile()
+  assert.equal(state.profile.organizationId, 'org-2')
+  assert.equal(disabled, true)
+  assert.equal(service.bots.length, 0)
+  await assert.rejects(service.chatSession('bot-1'), { status: 403 })
+})
+
+test('tenant profile refresh omits organization scope and preserves a still-accessible selected organization', async () => {
+  const { service, calls } = fixture((url, options) => {
+    if (
+      url.endsWith('/bootstrap') &&
+      options.headers['x-scope-level'] === 'tenant' &&
+      options.headers['organization-id']
+    )
+      return response({ message: 'Conflicting scope headers' }, 400)
+    return null
+  })
+  await service.login(input)
+  await service.selectOrganization('org-2')
+  await service.listBots()
+  const generation = service.generation
+  const state = await service.refreshProfile()
+  const request = calls.findLast((call) => call.url.endsWith('/bootstrap'))
+  assert.equal(request.options.headers['x-scope-level'], 'tenant')
+  assert.equal(request.options.headers['tenant-id'], 'tenant-1')
+  assert.equal(request.options.headers['organization-id'], undefined)
+  assert.equal(state.profile.organizationId, 'org-2')
+  assert.equal(service.generation, generation)
+  assert.equal(service.bots.length, 1)
+  await service.chatSession('bot-1')
+  assert.equal(calls.at(-1).options.headers['organization-id'], 'org-2')
+})

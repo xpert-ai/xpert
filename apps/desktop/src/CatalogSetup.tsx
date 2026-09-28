@@ -65,6 +65,7 @@ export function CatalogSetup({
 }) {
   const [setup, setSetup] = useState<ApplicationSetup | null>(null)
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([])
+  const [hasPrimaryLanguageModel, setHasPrimaryLanguageModel] = useState<boolean | null>(null)
   const [workspaceId, setWorkspaceId] = useState('')
   const [title, setTitle] = useState(item.name.slice(0, 100))
   const [reason, setReason] = useState('')
@@ -82,6 +83,7 @@ export function CatalogSetup({
     async function load() {
       setLoading(item.kind !== 'experts')
       setError('')
+      setHasPrimaryLanguageModel(null)
       try {
         if (item.kind === 'applications') {
           const result = await invoke('applicationSetup', { pluginName: item.pluginName, appName: item.appName })
@@ -91,10 +93,11 @@ export function CatalogSetup({
           setVision(result.defaultVisionModelId)
           if (result.application.status === 'ready') setInstalled(result.application.botId)
         } else if (item.kind === 'templates') {
-          const result = await invoke('templateWorkspaces')
+          const result = await invoke('templateSetup')
           if (!active) return
-          setWorkspaces(result)
-          setWorkspaceId(result[0]?.id || '')
+          setWorkspaces(result.workspaces)
+          setWorkspaceId(result.workspaces[0]?.id || '')
+          setHasPrimaryLanguageModel(result.hasPrimaryLanguageModel)
         }
       } catch (error) {
         if (active) setError(error instanceof Error ? error.message : t('Could not load installation settings.'))
@@ -116,7 +119,7 @@ export function CatalogSetup({
       (item.kind === 'experts'
         ? reason.trim().length > 0
         : item.kind === 'templates'
-          ? workspaceId && title.trim()
+          ? workspaceId && title.trim() && hasPrimaryLanguageModel === true
           : setup?.canInitialize &&
             !initializing &&
             (!setup.requireEmbedding || embedding) &&
@@ -203,6 +206,13 @@ export function CatalogSetup({
               )}
               {item.kind === 'templates' && (
                 <>
+                  {hasPrimaryLanguageModel === false && !installed && (
+                    <p role="status" className="rounded-lg bg-muted p-4 text-sm">
+                      {t(
+                        'No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.'
+                      )}
+                    </p>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="assistant-title">{t('Assistant name')}</Label>
                     <Input
@@ -228,7 +238,7 @@ export function CatalogSetup({
                         ))}
                       </SelectContent>
                     </Select>
-                    {!workspaces.length && (
+                    {!error && !workspaces.length && (
                       <p className="text-sm text-destructive">
                         {t('No writable workspace is available. Create one in Xpert or request edit access.')}
                       </p>

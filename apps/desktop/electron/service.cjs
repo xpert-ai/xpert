@@ -215,6 +215,33 @@ class DesktopService {
     return this.profile
   }
 
+  async refreshProfile() {
+    if (!this.credentials) return this.snapshot()
+    if (this.refreshingProfile) return this.refreshingProfile
+    this.refreshingProfile = (async () => {
+      const generation = this.generation
+      const profile = parseBootstrap(await this.request('/api/mobile/bootstrap', { scope: 'tenant' }))
+      const currentOrganizationId = this.profile?.organizationId
+      if (profile.organizations.some((organization) => organization.id === currentOrganizationId)) {
+        profile.organizationId = currentOrganizationId
+      }
+      if (profile.organizationId !== this.profile?.organizationId) {
+        await this.shell?.disable()
+        if (generation !== this.generation) throw new ClientError('The session changed. Please retry.', 409)
+        this.generation++
+        this.bots = []
+        this.sourceBots = []
+      }
+      this.profile = profile
+      this.credentials = { ...this.credentials, organizationId: profile.organizationId }
+      this.persist()
+      return this.snapshot()
+    })().finally(() => {
+      this.refreshingProfile = null
+    })
+    return this.refreshingProfile
+  }
+
   async selectOrganization(id) {
     if (!this.profile?.organizations.some((item) => item.id === id))
       throw new ClientError('You cannot access this workspace.', 403)
@@ -296,12 +323,13 @@ class DesktopService {
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'Accept-Language': this.config.locale
+      'Accept-Language': this.config.locale,
+      language: this.config.locale
     }
     if (auth || token) headers.Authorization = `Bearer ${token || this.credentials.token}`
     if (auth && this.credentials.tenantId) headers['tenant-id'] = this.credentials.tenantId
     const organizationId = this.profile?.organizationId || this.credentials?.organizationId
-    if (auth && organizationId) headers['organization-id'] = organizationId
+    if (auth && organizationId && scope !== 'tenant') headers['organization-id'] = organizationId
     if (auth && scope) headers['x-scope-level'] = scope
     let response
     try {

@@ -548,5 +548,8 @@
   "Sign in with your Xpert account to get started.": "Xpert アカウントでログインして、Bosi と始めましょう。",
   "Group by business domain": "業務分野でグループ化",
   "Business domains": "業務分野",
-  "Marketplace categories": "ビジネスカテゴリ"
+  "Marketplace categories": "ビジネスカテゴリ",
+  "No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.": "この組織には利用可能なプライマリ言語モデルが設定されていません。管理者に Xpert で既定のプライマリモデルとアクセス権を設定してもらい、設定を更新してください。",
+  "This organization has no imported plugins. Ask an organization administrator to import a plugin in Xpert plugin management, then refresh this catalog.": "この組織にはまだプラグインがありません。組織の管理者に Xpert のプラグイン管理でインポートを依頼し、このカタログを更新してください。",
+  "No plugins have been added to this workspace. Switch to All to choose one.": "このワークスペースにはプラグインが追加されていません。「すべて」に切り替えて選択してください。"
 }

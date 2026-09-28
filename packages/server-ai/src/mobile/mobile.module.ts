@@ -1,4 +1,4 @@
-import { UserModule } from '@xpert-ai/server-core'
+import { OrganizationModule, UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { AssistantBindingModule } from '../assistant-binding'
@@ -10,6 +10,7 @@ import { MobileService } from './mobile.service'
     imports: [
         RouterModule.register([{ path: '/mobile', module: MobileModule }]),
         forwardRef(() => UserModule),
+        forwardRef(() => OrganizationModule),
         forwardRef(() => AssistantBindingModule),
         forwardRef(() => XpertModule)
     ],

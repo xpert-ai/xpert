@@ -13,6 +13,15 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     if (!Array.isArray(value)) throw new ClientError('Invalid catalog response.', 502)
     return value
   }
+  // Use the same role lookup as managed template import, including custom default models.
+  const hasPrimaryLanguageModel = async (service) => {
+    const primary = await service.request('/api/copilot/availables/primary')
+    return Boolean(
+      text(primary?.id).trim() &&
+      text(primary?.copilotModel?.model).trim() &&
+      (text(primary?.copilotModel?.modelType).trim() || 'llm') === 'llm'
+    )
+  }
   const choice = (value, values) => {
     if (!values.includes(value)) throw new ClientError('Invalid catalog status. Please refresh.', 502)
     return value
@@ -231,6 +240,10 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           name: text(item.name)
         }))
     },
+    async templateSetup() {
+      const workspaces = await this.templateWorkspaces()
+      return { workspaces, hasPrimaryLanguageModel: await hasPrimaryLanguageModel(this) }
+    },
     async installTemplate(input) {
       scope(this)
       const id = required(input?.id, 'Template ID')
@@ -242,6 +255,11 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       const detail = await this.request(`/api/xpert-template/${encodeURIComponent(id)}`)
       if (detail?.application || !['agent', 'copilot'].includes(detail?.type))
         throw new ClientError('Install this resource from the Apps tab.')
+      if (!(await hasPrimaryLanguageModel(this)))
+        throw new ClientError(
+          'No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.',
+          403
+        )
       const result = await this.request(`/api/xpert-template/${encodeURIComponent(id)}/install`, {
         method: 'POST',
         body: { workspaceId, publish: true, basic: { title } },

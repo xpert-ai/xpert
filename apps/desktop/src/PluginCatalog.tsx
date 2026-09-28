@@ -225,7 +225,15 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
               ))}
             </div>
             {!items.length && (
-              <p className="py-12 text-center text-sm text-muted-foreground">{t('No matching results')}</p>
+              <p className="mx-auto max-w-md py-12 text-center text-sm leading-6 text-muted-foreground">
+                {t(
+                  !data?.items.length
+                    ? 'This organization has no imported plugins. Ask an organization administrator to import a plugin in Xpert plugin management, then refresh this catalog.'
+                    : filter === 'available' && !search.trim()
+                      ? 'No plugins have been added to this workspace. Switch to All to choose one.'
+                      : 'No matching results'
+                )}
+              </p>
             )}
           </>
         )}
