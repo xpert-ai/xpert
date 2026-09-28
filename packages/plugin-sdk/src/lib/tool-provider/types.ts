@@ -80,6 +80,8 @@ export interface XpertToolOptions<
   resultFormat?: 'dto' | 'tool_result'
   /** true uses the class default, a string selects a declared group, false disables Middleware exposure. */
   middleware?: true | string | false
+  /** Native middleware App exposure; does not publish an MCP endpoint. */
+  app?: { resourceKey?: string; visibility: readonly ('model' | 'app')[]; approval?: 'required' | 'none' }
   /** MCP exposure is opt-in. */
   mcp?: XpertMcpToolOptions | false
   /** LangChain Tool metadata used only on the Agent Middleware surface. */

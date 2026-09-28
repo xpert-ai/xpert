@@ -49,6 +49,17 @@ export function describeXpertToolProvider(instance: object): XpertToolProviderDe
     if (middlewareProvider && !middlewareProviders.has(middlewareProvider)) {
       throw new Error(`Tool '${toolOptions.name}' references undeclared Middleware provider '${middlewareProvider}'.`)
     }
+    if (toolOptions.app) {
+      if (
+        !middlewareProvider ||
+        !toolOptions.app.visibility.length ||
+        toolOptions.app.visibility.some((item) => item !== 'model' && item !== 'app') ||
+        (toolOptions.app.resourceKey &&
+          (!appKeys.has(toolOptions.app.resourceKey) || !toolOptions.app.visibility.includes('app')))
+      ) {
+        throw new Error(`Tool '${toolOptions.name}' has an invalid middleware App binding.`)
+      }
+    }
     const appKey = toolOptions.mcp && toolOptions.mcp.app?.resourceKey
     if (appKey && !appKeys.has(appKey)) {
       throw new Error(`MCP Tool '${toolOptions.name}' references undeclared App '${appKey}'.`)

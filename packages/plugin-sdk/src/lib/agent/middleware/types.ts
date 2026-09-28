@@ -300,6 +300,9 @@ export interface AgentMiddleware<
 
   tools?: DynamicStructuredTool[]
 
+  /** Resource-backed MCP Apps and explicit model/App tool visibility. */
+  apps?: import('../../mcp/app').MiddlewareMcpApps
+
   beforeAgent?: BeforeAgentHook<TSchema, TFullContext>
   beforeModel?: BeforeModelHook<TSchema, TFullContext>
   afterModel?: AfterModelHook<TSchema, TFullContext>
