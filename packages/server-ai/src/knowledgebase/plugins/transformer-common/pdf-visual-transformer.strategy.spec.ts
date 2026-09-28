@@ -188,13 +188,49 @@ function runOutsideJest(kind: string): PdfVisualReport {
 }
 
 function isPdfVisualReport(value: unknown): value is PdfVisualReport {
-    if (!value || typeof value !== 'object') return false
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
     return (
         'textChunkCount' in value &&
+        typeof value.textChunkCount === 'number' &&
+        Number.isFinite(value.textChunkCount) &&
+        'textMediaTypes' in value &&
+        Array.isArray(value.textMediaTypes) &&
+        value.textMediaTypes.every((item: unknown) => item === null || typeof item === 'string') &&
         'text' in value &&
+        typeof value.text === 'string' &&
+        'textContainsImageMarkdown' in value &&
+        typeof value.textContainsImageMarkdown === 'boolean' &&
         'imageChunks' in value &&
+        Array.isArray(value.imageChunks) &&
+        value.imageChunks.every(isReportImageChunk) &&
         'assets' in value &&
+        Array.isArray(value.assets) &&
+        value.assets.every(isReportAsset) &&
         'diagnostics' in value
+    )
+}
+
+function isReportImageChunk(value: unknown): value is PdfVisualReport['imageChunks'][number] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    return (
+        'sourceType' in value &&
+        (value.sourceType === null || typeof value.sourceType === 'string') &&
+        'pageContent' in value &&
+        typeof value.pageContent === 'string' &&
+        'containsSection' in value &&
+        typeof value.containsSection === 'boolean'
+    )
+}
+
+function isReportAsset(value: unknown): value is PdfVisualReport['assets'][number] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    return (
+        (!('type' in value) || value.type === undefined || typeof value.type === 'string') &&
+        (!('sourceType' in value) || value.sourceType === undefined || typeof value.sourceType === 'string') &&
+        (!('page' in value) ||
+            value.page === undefined ||
+            (typeof value.page === 'number' && Number.isFinite(value.page))) &&
+        (!('filePath' in value) || value.filePath === undefined || typeof value.filePath === 'string')
     )
 }
 
@@ -209,6 +245,42 @@ if (process.argv.includes(RUNNER_FLAG)) {
             process.exitCode = 1
         })
 } else {
+    describe('pdf-visual runner report validation', () => {
+        const report: PdfVisualReport = {
+            textChunkCount: 1,
+            textMediaTypes: ['text', null],
+            text: 'Page',
+            textContainsImageMarkdown: false,
+            imageChunks: [{ sourceType: 'pdf_page', pageContent: '![page](page.png)', containsSection: false }],
+            assets: [{ type: 'image', sourceType: 'pdf_page', page: 1, filePath: 'page.png' }, {}],
+            diagnostics: null
+        }
+
+        it('accepts a complete report including nullable and optional fields', () => {
+            expect(isPdfVisualReport(report)).toBe(true)
+        })
+
+        it.each([
+            { ...report, textMediaTypes: undefined },
+            { ...report, textMediaTypes: ['text', 1] },
+            { ...report, textChunkCount: '1' },
+            { ...report, textChunkCount: Number.NaN },
+            { ...report, text: null },
+            { ...report, textContainsImageMarkdown: 'false' },
+            { ...report, imageChunks: {} },
+            { ...report, imageChunks: [null] },
+            { ...report, imageChunks: [{ sourceType: 1, pageContent: '', containsSection: false }] },
+            { ...report, imageChunks: [{ sourceType: null, pageContent: 1, containsSection: false }] },
+            { ...report, imageChunks: [{ sourceType: null, pageContent: '', containsSection: 'false' }] },
+            { ...report, assets: [{ type: 1 }] },
+            { ...report, assets: [{ sourceType: false }] },
+            { ...report, assets: [{ page: '1' }] },
+            { ...report, assets: [{ filePath: null }] }
+        ])('rejects malformed subprocess fields: %j', (value: unknown) => {
+            expect(isPdfVisualReport(value)).toBe(false)
+        })
+    })
+
     describe('pdf-visual page text and page images', () => {
         it('chunks extracted page text while keeping the rendered page image', () => {
             const report = runOutsideJest('native')
