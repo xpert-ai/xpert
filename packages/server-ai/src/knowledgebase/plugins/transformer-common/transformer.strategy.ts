@@ -29,6 +29,7 @@ import path from 'path'
 import * as XLSX from 'xlsx'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
 import { loadDocxStructuredMarkdown } from './docx-outline'
+import { loadPptxStructuredMarkdown } from './pptx-slides'
 
 type TResolvedDocumentFile = {
     absolutePath: string
@@ -376,6 +377,19 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     }
 
     async processPPT(url: string): Promise<Document<ChunkMetadata>[]> {
+        try {
+            // Prefer OOXML so graphicFrame tables keep their rows and columns.
+            const structured = await loadPptxStructuredMarkdown(url)
+            if (structured?.length) {
+                return structured
+            }
+        } catch (error) {
+            this.#logger.warn(
+                `Failed to extract structured PPTX tables for '${url}'. Falling back to PPTXLoader. ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            )
+        }
         const loader = new PPTXLoader(url)
         return toChunkDocuments(await loader.load())
     }
