@@ -41,6 +41,7 @@ describe('table metadata language', () => {
             tableId: 'table',
             sheetName: '\u58f2\u4e0a',
             range: 'A1:A2',
+            headerRow: 1,
             rowCount: 1,
             columns: [{ columnId: 'A', column: 1, label: '\u58f2\u4e0a\u91d1\u984d', key: 'amount' }],
             samples: []
@@ -71,6 +72,7 @@ describe('table metadata language', () => {
             [
                 {
                     ...coordinate,
+                    headerRow: 1,
                     columns: [{ columnId: 'A', key: 'amount', label: '\u9500\u552e\u989d', column: 1 }],
                     samples: [{ rowNumber: 2, values: { A: 'private forecast' } }]
                 }
@@ -83,5 +85,58 @@ describe('table metadata language', () => {
         const indexed = tableLanguageMessages([coordinate], ['A'], 16384)
         expect(indexed[1].content).toContain('\u51b7\u5374\u6c34\u6cf5-01')
         expect(indexed[1].content).not.toContain('\u5f52\u8fd8\u524d')
+    })
+
+    it('uses explicit header rows even when field names look like column coordinates', () => {
+        const source: KnowledgeTableSource = {
+            tableId: 'sheet:0',
+            sheetName: 'Products',
+            range: 'A1:B2',
+            headerRow: 1,
+            rowCount: 1,
+            columns: [
+                { columnId: 'A', key: 'SKU', label: 'SKU', column: 1 },
+                { columnId: 'B', key: 'VAT', label: 'VAT', column: 2 }
+            ],
+            samples: [{ rowNumber: 2, values: { A: 'ABC-123', B: 'CN tax' } }]
+        }
+
+        const messages = tableLanguageMessages([source], undefined, 16384)
+
+        expect(messages[0].content).not.toContain('coordinates')
+        expect(messages[1].content).toContain('SKU')
+        expect(messages[1].content).toContain('VAT')
+        expect(messages[1].content).not.toContain('ABC-123')
+        expect(messages[1].content).not.toContain('CN tax')
+    })
+
+    it('samples only selected columns of sheets without headers in a mixed workbook', () => {
+        const named: KnowledgeTableSource = {
+            tableId: 'sheet:0',
+            sheetName: 'Catalog',
+            range: 'A1:A2',
+            headerRow: 1,
+            rowCount: 1,
+            columns: [{ columnId: 'A', key: 'Description', label: 'Description', column: 1 }],
+            samples: [{ rowNumber: 2, values: { A: 'private named row' } }]
+        }
+        const withoutHeaders: KnowledgeTableSource = {
+            tableId: 'sheet:1',
+            sheetName: 'Raw',
+            range: 'A1:B1',
+            rowCount: 1,
+            columns: [
+                { columnId: 'A', key: 'A', label: 'A', column: 1 },
+                { columnId: 'B', key: 'B', label: 'B', column: 2 }
+            ],
+            samples: [{ rowNumber: 1, values: { A: 'selected sample', B: 'excluded sample' } }]
+        }
+
+        const messages = tableLanguageMessages([named, withoutHeaders], ['Description', 'A'], 16384)
+
+        expect(messages[1].content).toContain('Description')
+        expect(messages[1].content).toContain('selected sample')
+        expect(messages[1].content).not.toContain('private named row')
+        expect(messages[1].content).not.toContain('excluded sample')
     })
 })
