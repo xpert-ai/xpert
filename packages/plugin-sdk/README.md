@@ -115,6 +115,8 @@ For completed operations, `prepareToolResult(() => project(result), () => minima
 
 For a host-native MCP App, declare each static HTML bundle once in the Provider's `apps` array, then bind a Tool with `mcp.app.resourceKey` and include `app` visibility. The App key must exist in the same Provider and its entry must be a relative `.html` path inside the packaged plugin. The host publishes the bundle as a `ui://` resource; plugins must not create a stdio server or put CSP/credentials in Tool results.
 
+Agent middleware can also expose these Apps without a published Toolset. See [middleware Apps and post-tool continuation](./MIDDLEWARE_APPS.md) for `app` bindings and `interruptAfter` checkpoints.
+
 The host owns the public MCP endpoint identity. It combines the plugin's stable `artifactNamespace`, the Provider key, and an opaque scope hash; client names and product-specific identifiers do not belong in the slug. A tenant- or system-level plugin has one tenant-scoped Publication and capability snapshot, while each organization receives an independent access grant and organization-bound credential. An organization-level plugin receives a dedicated organization-scoped Publication.
 
 ## View extensions

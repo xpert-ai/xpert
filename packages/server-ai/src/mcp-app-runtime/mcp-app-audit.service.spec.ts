@@ -7,6 +7,29 @@ import { McpAppAuditService } from './mcp-app-audit.service'
 describe('McpAppAuditService', () => {
     beforeEach(() => applicationMetrics.reset())
 
+    it('records native middleware identity without fabricating a Toolset id', async () => {
+        const repository = {
+            create: jest.fn((input) => Object.assign(new McpAppAudit(), input)),
+            save: jest.fn(async (audit) => audit)
+        } as unknown as Repository<McpAppAudit>
+        const source = {
+            kind: 'middleware' as const,
+            provider: 'Settings',
+            nodeKey: 'settings',
+            agentKey: 'Main',
+            pluginName: 'settings-plugin'
+        }
+        const instance = {
+            id: 'app',
+            toolset: { tenantId: 'tenant', workspaceId: 'workspace' },
+            executionContext: { xpertId: 'assistant' },
+            middleware: { source }
+        } as McpAppInstance
+        const audit = await new McpAppAuditService(repository).start({ instance, method: 'tools/call' })
+        expect(audit.toolsetId).toBeNull()
+        expect(audit.source).toEqual({ ...source, xpertId: 'assistant' })
+    })
+
     it('summarizes request shape without values and bounds metric method labels', async () => {
         const repository = {
             create: jest.fn((input) => Object.assign(new McpAppAudit(), input)),

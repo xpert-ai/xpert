@@ -117,7 +117,8 @@ export async function getAgentMiddlewares(
     agent: IXpertAgent,
     agentMiddlewareRegistry: AgentMiddlewareRegistry,
     context: Omit<IAgentMiddlewareContext, 'node'>,
-    options?: TXpertAgentRuntimeOptions
+    options?: TXpertAgentRuntimeOptions,
+    bindApps?: (middleware: AgentMiddleware, context: IAgentMiddlewareContext) => AgentMiddleware
 ): Promise<AgentMiddleware[]> {
     const middlewares = getRuntimeEnabledMiddlewareNodes(graph, agent, options)
 
@@ -134,7 +135,7 @@ export async function getAgentMiddlewares(
             continue
         }
 
-        const middleware = inheritMiddlewareToolDisplayMetadata(
+        let middleware = inheritMiddlewareToolDisplayMetadata(
             await strategy.createMiddleware(entity.options, {
                 ...context,
                 xpertFeatures: context.xpertFeatures ?? null,
@@ -154,6 +155,7 @@ export async function getAgentMiddlewares(
                 options?.toolPreferences
             )
         }
+        if (middleware && bindApps) middleware = bindApps(middleware, { ...context, node: { ...entity, provider } })
         if (middleware) result.push(middleware)
     }
 

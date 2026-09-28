@@ -30,6 +30,8 @@ import { SkillPackageModule } from '../skill-package'
 import { PromptWorkflowModule } from '../prompt-workflow'
 import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
 import { NativeAgentCompiler } from '../agent-invocation/native-agent.compiler'
+import { MiddlewareMcpAppsService } from '../mcp-app-runtime/middleware-mcp-apps.service'
+import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
 
 @Module({
     imports: [
@@ -62,6 +64,8 @@ import { NativeAgentCompiler } from '../agent-invocation/native-agent.compiler'
         WorkflowTriggerRegistry,
         WorkflowNodeRegistry,
         AgentMiddlewareRegistry,
+        MiddlewareMcpAppsService,
+        McpAppBundleService,
         ConnectorMiddleware,
         XpertAgentNodeValidator,
         XpertAgentGraphValidator,
@@ -72,6 +76,6 @@ import { NativeAgentCompiler } from '../agent-invocation/native-agent.compiler'
         ...PluginValidators,
         ...Strategies
     ],
-    exports: [XpertAgentService, AgentMiddlewareRegistry]
+    exports: [XpertAgentService, AgentMiddlewareRegistry, MiddlewareMcpAppsService]
 })
 export class XpertAgentModule {}

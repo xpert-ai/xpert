@@ -5,6 +5,7 @@
         "ToolAfterMismatch": "Post-tool continuation does not match the completed tool call",
         "ToolAfterInvalidAttachment": "Invalid inline App attachment",
         "ToolAfterAttachmentLimit": "App attachments exceed the size limit",
+        "MiddlewareAppUnavailable": "This middleware App is no longer available in the current assistant scope.",
         "ToolImageInvalid": "The tool image is invalid, unsupported or exceeds the image limit.",
         "ToolImageUnavailable": "The tool image is unavailable in this conversation or its content has changed. Capture a new image.",
         "ToolImageBatchLimit": "At most three tool images can be inspected in one model step.",

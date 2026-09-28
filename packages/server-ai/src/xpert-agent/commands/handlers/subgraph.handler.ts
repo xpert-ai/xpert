@@ -1,3 +1,4 @@
+import { MiddlewareMcpAppsService } from '../../../mcp-app-runtime/middleware-mcp-apps.service'
 import { createInterruptAfterNode } from '../../../shared/agent/interrupt-after'
 import { authorizeAgentInvocation } from '../../../agent-invocation/invocation-errors'
 import {
@@ -170,6 +171,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
     @Inject(AgentMiddlewareRegistry)
     private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
+
+    @Inject(MiddlewareMcpAppsService)
+    private readonly middlewareApps: MiddlewareMcpAppsService
 
     @Inject(AgentInvocationGraphService)
     private readonly invocationGraph: AgentInvocationGraphService
@@ -959,7 +963,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             {
                 toolPreferences: options.toolPreferences,
                 runtimeCapabilities: options.runtimeCapabilities
-            }
+            },
+            (middleware, context) =>
+                middleware.apps
+                    ? this.middlewareApps.bind(middleware, context, {
+                          interruptAfter: team.agentConfig?.interruptAfter,
+                          isDraft: options.isDraft
+                      })
+                    : middleware
         )
         const visibleMiddlewareEntries = visibleMiddlewareNodes.reduce<
             Array<{ key: string; middleware: AgentMiddleware }>

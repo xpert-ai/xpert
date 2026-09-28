@@ -1,3 +1,4 @@
+import type { MiddlewareAppBackend } from '../../../mcp-app-runtime/middleware-app-source'
 import type { McpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
@@ -36,6 +37,13 @@ import {
 import { applicationMetrics } from '../../../metrics/application-metrics'
 
 const MCP_APP_INSTANCE_TTL_MS = 30 * 60 * 1000
+// Paused native forms have no remote connection to keep alive. Retain their
+// scoped identity across overnight pauses; every RPC revalidates the binding.
+const MIDDLEWARE_FORM_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+function appInstanceTtl(middleware?: MiddlewareAppBackend) {
+    return middleware?.source.interruptAfter ? MIDDLEWARE_FORM_TTL_MS : MCP_APP_INSTANCE_TTL_MS
+}
 const MCP_APP_RESOURCE_MAX_BYTES = 2 * 1024 * 1024
 const MCP_APP_HISTORY_TOOL_RESULT_MAX_BYTES = 128 * 1024
 const MCP_APP_MESSAGE_MAX_BYTES = 25 * 1024 * 1024
@@ -78,7 +86,8 @@ export type McpAppInstance = {
     id: string
     userId?: string
     executionContext?: McpAppExecutionContext
-    client: MultiServerMCPClient
+    client?: MultiServerMCPClient
+    middleware?: MiddlewareAppBackend
     destroy?: (() => Promise<void>) | null
     closeClientOnExpire?: boolean
     toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
@@ -138,6 +147,7 @@ export function snapshotMcpAppInstance(instance: McpAppInstance): McpAppInstance
         userId: instance.userId,
         executionContext: instance.executionContext,
         toolsetId: instance.toolset.id,
+        source: instance.middleware?.source,
         serverName: instance.toolMeta.serverName,
         toolName: instance.toolMeta.name,
         displayName: instance.toolMeta.displayName,
@@ -412,7 +422,7 @@ export function verifyMcpAppInstanceToken(
 }
 
 export function refreshMcpAppInstanceToken(instance: McpAppInstance, now = Date.now()) {
-    instance.expiresAt = now + MCP_APP_INSTANCE_TTL_MS
+    instance.expiresAt = now + appInstanceTtl(instance.middleware)
     markMcpAppInstanceChanged(instance)
     persistMcpAppInstance(instance)
     return createMcpAppInstanceToken(instance)
@@ -1001,7 +1011,7 @@ function closeMcpAppInstanceClient(instance: McpAppInstance) {
         return
     }
     instance.destroy?.().catch(() => undefined)
-    instance.client.close().catch(() => undefined)
+    instance.client?.close().catch(() => undefined)
 }
 
 function pruneExpiredMcpAppInstances(now = Date.now()) {
@@ -1022,11 +1032,13 @@ export function isMcpAppsEnabled(): boolean {
 }
 
 export function registerMcpAppInstance(options: {
-    client: MultiServerMCPClient
+    client?: MultiServerMCPClient
+    middleware?: MiddlewareAppBackend
     userId?: string
     executionContext?: McpAppExecutionContext
     toolset: Pick<IXpertToolset, 'id' | 'name' | 'tools' | 'options' | 'tenantId' | 'organizationId' | 'workspaceId'>
     tool: DynamicStructuredTool
+    toolMeta?: TMcpToolAppMeta
     toolCallId?: string
     toolInput?: unknown
     toolResult?: unknown
@@ -1035,7 +1047,7 @@ export function registerMcpAppInstance(options: {
         return null
     }
 
-    const toolMeta = getMcpToolAppMeta(options.tool)
+    const toolMeta = options.toolMeta ?? getMcpToolAppMeta(options.tool)
     if (!toolMeta || !toolMeta.visibility.includes('app')) {
         return null
     }
@@ -1062,6 +1074,7 @@ export function registerMcpAppInstance(options: {
         userId: options.userId,
         executionContext: options.executionContext,
         client: options.client,
+        middleware: options.middleware,
         destroy: null,
         closeClientOnExpire: false,
         toolset: options.toolset,
@@ -1076,13 +1089,13 @@ export function registerMcpAppInstance(options: {
         logs: [],
         stateVersion: 1,
         createdAt: now,
-        expiresAt: now + MCP_APP_INSTANCE_TTL_MS
+        expiresAt: now + appInstanceTtl(options.middleware)
     }
 
     mcpAppInstances.set(id, instance)
     applicationMetrics.startMcpAppInstance({ publicationId: 'consumer' })
     persistMcpAppInstance(instance)
-    mcpStdioRuntimeManager.attachAppInstance(options.client, id)
+    if (options.client) mcpStdioRuntimeManager.attachAppInstance(options.client, id)
 
     return {
         type: 'McpApp',
@@ -1109,7 +1122,8 @@ export function registerMcpAppInstance(options: {
 
 export function restoreMcpAppInstance(options: {
     id: string
-    client: MultiServerMCPClient
+    client?: MultiServerMCPClient
+    middleware?: MiddlewareAppBackend
     userId?: string
     executionContext?: McpAppExecutionContext
     destroy?: (() => Promise<void>) | null
@@ -1140,7 +1154,7 @@ export function restoreMcpAppInstance(options: {
 
     const now = Date.now()
     pruneExpiredMcpAppInstances(now)
-    const expiresAt = Math.max(now + MCP_APP_INSTANCE_TTL_MS, options.expiresAt ?? 0)
+    const expiresAt = Math.max(now + appInstanceTtl(options.middleware), options.expiresAt ?? 0)
     const stateVersion =
         (options.stateVersion ?? 1) + (options.expiresAt !== undefined && expiresAt > options.expiresAt ? 1 : 0)
 
@@ -1149,6 +1163,7 @@ export function restoreMcpAppInstance(options: {
         userId: options.userId,
         executionContext: options.executionContext,
         client: options.client,
+        middleware: options.middleware,
         destroy: options.destroy ?? null,
         closeClientOnExpire: true,
         toolset: options.toolset,
@@ -1232,7 +1247,7 @@ export function getMcpAppInstance(appInstanceId: string): McpAppInstance | null 
         }
         return null
     }
-    if (!mcpStdioRuntimeManager.isClientRuntimeUsable(instance.client)) {
+    if (instance.client && !mcpStdioRuntimeManager.isClientRuntimeUsable(instance.client)) {
         deleteMcpAppInstanceRecord(appInstanceId)
         closeMcpAppInstanceClient(instance)
         return null
@@ -1367,10 +1382,13 @@ async function readClientResource(
 
 export async function readMcpAppResource(instance: McpAppInstance) {
     const resourceUri = instance.toolMeta.ui?.resourceUri
+    if (instance.middleware && resourceUri)
+        return normalizeMcpResourceContent(await instance.middleware.readResource(resourceUri), resourceUri)
     if (!resourceUri?.startsWith('ui://')) {
         throw new Error('MCP App resource URI must use the ui:// scheme')
     }
 
+    if (!instance.client) throw new Error('MCP App transport is unavailable')
     mcpStdioRuntimeManager.touchClient(instance.client)
     const connection = new LangChainMcpConnection(instance.client)
     const result = await readClientResource(instance.client, connection, instance.toolMeta.serverName, resourceUri)
@@ -1414,6 +1432,7 @@ export async function callMcpAppTool(
     name: string,
     args: unknown
 ): Promise<McpConsumerCallToolResult> {
+    if (instance.middleware) return instance.middleware.callTool(name, args)
     const toolMeta = await getMcpAppToolMetadata(instance, name)
     if (!toolMeta) {
         throw new Error(`MCP App tool '${name}' was not found on this server`)
@@ -1425,6 +1444,7 @@ export async function callMcpAppTool(
         throw new Error(`MCP App tool '${name}' is disabled`)
     }
 
+    if (!instance.client) throw new Error('MCP App transport is unavailable')
     mcpStdioRuntimeManager.touchClient(instance.client)
     const connection = new LangChainMcpConnection(instance.client)
     return connection.usesModernHttp(instance.toolMeta.serverName)
@@ -1448,14 +1468,22 @@ export async function callMcpAppTool(
 }
 
 export async function getMcpAppToolMetadata(instance: McpAppInstance, name: string) {
-    const toolMetadata = await listMcpToolAppMetadata(instance.client)
+    const toolMetadata = instance.middleware
+        ? await instance.middleware.listTools()
+        : instance.client
+          ? await listMcpToolAppMetadata(instance.client)
+          : []
     return toolMetadata.find(
         (item) => item.serverName === instance.toolMeta.serverName && (item.name === name || item.displayName === name)
     )
 }
 
 export async function listMcpAppVisibleToolMetadata(instance: McpAppInstance) {
-    const metadata = await listMcpToolAppMetadata(instance.client)
+    const metadata = instance.middleware
+        ? await instance.middleware.listTools()
+        : instance.client
+          ? await listMcpToolAppMetadata(instance.client)
+          : []
     return metadata.filter(
         (item) =>
             item.serverName === instance.toolMeta.serverName &&
@@ -1465,6 +1493,7 @@ export async function listMcpAppVisibleToolMetadata(instance: McpAppInstance) {
 }
 
 export async function readMcpAppServerResource(instance: McpAppInstance, uri: string): Promise<ReadResourceResult> {
+    if (instance.middleware) return instance.middleware.readResource(uri)
     const scheme = uri.match(/^([a-z][a-z0-9+.-]*):\/\//i)?.[1]?.toLowerCase()
     if (!scheme) {
         throw new Error('MCP App resource reads require an absolute MCP resource URI')
@@ -1473,6 +1502,7 @@ export async function readMcpAppServerResource(instance: McpAppInstance, uri: st
         throw new Error(`MCP App resource reads do not allow the ${scheme}:// scheme`)
     }
 
+    if (!instance.client) throw new Error('MCP App transport is unavailable')
     mcpStdioRuntimeManager.touchClient(instance.client)
     const connection = new LangChainMcpConnection(instance.client)
     const result = await readClientResource(instance.client, connection, instance.toolMeta.serverName, uri)

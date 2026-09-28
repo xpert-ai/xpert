@@ -112,6 +112,7 @@ export class AgentMiddlewareRuntimeService {
         const connectorApi = this.platformCapabilities.require(ConnectorRuntimeFactoryCapability).createScopedApi(scope)
         const capabilities = new DefaultRuntimeCapabilityRegistry(
             [
+                ['platform.middleware.mcp-apps', { version: 1 }],
                 [ActorTokenRuntimeCapability, actorTokenApi],
                 [FileRuntimeCapability, this.fileRuntime.createScopedApi(scope)],
                 [ConnectorRuntimeCapability, connectorApi],

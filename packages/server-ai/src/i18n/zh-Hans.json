@@ -5,6 +5,7 @@
         "ToolAfterMismatch": "恢复请求与已完成的工具调用不匹配",
         "ToolAfterInvalidAttachment": "App 附件格式无效",
         "ToolAfterAttachmentLimit": "App 附件超过大小限制",
+        "MiddlewareAppUnavailable": "此应用已不在当前助手的可用范围内，请重新打开。",
         "ToolImageInvalid": "\u5de5\u5177\u56fe\u7247\u65e0\u6548\u3001\u683c\u5f0f\u4e0d\u652f\u6301\u6216\u8d85\u8fc7\u5927\u5c0f\u9650\u5236\u3002",
         "ToolImageUnavailable": "\u6b64\u56fe\u7247\u5728\u5f53\u524d\u5bf9\u8bdd\u4e2d\u4e0d\u53ef\u7528\u6216\u5185\u5bb9\u5df2\u6539\u53d8\uff0c\u8bf7\u91cd\u65b0\u622a\u56fe\u3002",
         "ToolImageBatchLimit": "\u6bcf\u6b21\u6a21\u578b\u8c03\u7528\u6700\u591a\u68c0\u67e5\u4e09\u5f20\u5de5\u5177\u56fe\u7247\u3002",

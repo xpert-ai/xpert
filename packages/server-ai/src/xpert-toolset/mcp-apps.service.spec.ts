@@ -136,6 +136,45 @@ describe('McpAppsService RPC approval orchestration', () => {
         jest.clearAllMocks()
     })
 
+    it('retains a paused native form on unmount and returns its scoped continuation', async () => {
+        const instance = mockGetMcpAppInstance('app-1')!
+        const assertAccess = jest.fn()
+        mockGetMcpAppInstance.mockReturnValue({
+            ...instance,
+            toolCallId: 'call-1',
+            executionContext: { xpertId: 'assistant', conversationId: 'conversation', executionId: 'run' },
+            middleware: {
+                source: {
+                    kind: 'middleware',
+                    provider: 'settings',
+                    nodeKey: 'settings',
+                    agentKey: 'Main',
+                    pluginName: 'test',
+                    interruptAfter: true
+                },
+                assertAccess,
+                callTool: jest.fn(),
+                listTools: jest.fn(),
+                readResource: jest.fn(),
+                requiresApproval: jest.fn()
+            }
+        })
+        await expect(service.teardown('app-1')).resolves.toEqual({ removed: false })
+        expect(instanceStore.delete).not.toHaveBeenCalled()
+        expect(mockRefreshMcpAppInstanceToken).toHaveBeenCalled()
+        const response = await service.handleRpc('app-1', {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'ui/message',
+            params: { role: 'user', content: [{ type: 'text', text: 'Continue' }] }
+        })
+        expect(response).toMatchObject({
+            result: { continuation: { type: 'tool_after', toolCallId: 'call-1', executionId: 'run' } }
+        })
+        expect(assertAccess).toHaveBeenCalled()
+        mockGetMcpAppInstance.mockReturnValue(instance)
+    })
+
     it('rejects an app instance bound to another user before invoking a tool', async () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
         const instance = mockGetMcpAppInstance('app-1')
