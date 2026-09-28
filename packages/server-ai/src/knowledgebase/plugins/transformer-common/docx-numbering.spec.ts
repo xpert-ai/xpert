@@ -5,6 +5,42 @@ import JSZip from 'jszip'
 import { loadDocxStructuredMarkdown } from './docx-outline'
 
 describe('DOCX numbering in structured markdown', () => {
+    it('preserves nested cell content and advances numbering in document order', async () => {
+        const filePath = await writeNumberedDocx({
+            numberingXml: numberingXml(`
+                <w:abstractNum w:abstractNumId="1">
+                  <w:lvl w:ilvl="0">
+                    <w:start w:val="1"/>
+                    <w:numFmt w:val="decimal"/>
+                    <w:lvlText w:val="%1."/>
+                  </w:lvl>
+                </w:abstractNum>
+                <w:num w:numId="1"><w:abstractNumId w:val="1"/></w:num>`),
+            bodyXml: `
+                <w:tbl><w:tr><w:tc>
+                  ${numberedParagraph('1', '0', 'Before')}
+                  <w:tbl><w:tr><w:tc>
+                    <w:p><w:r><w:t>Nested details</w:t></w:r></w:p>
+                    ${numberedParagraph('1', '0', 'Inside')}
+                  </w:tc></w:tr></w:tbl>
+                  <w:sdt><w:sdtContent>
+                    ${numberedParagraph('1', '0', 'Wrapped')}
+                  </w:sdtContent></w:sdt>
+                  ${numberedParagraph('1', '0', 'After')}
+                </w:tc></w:tr></w:tbl>
+                ${numberedParagraph('1', '0', 'Outside')}`
+        })
+
+        expect(await convert(filePath)).toBe(
+            [
+                '| 1. Before<br>Nested details<br>2. Inside<br>3. Wrapped<br>4. After |',
+                '| --- |',
+                '',
+                '5. Outside'
+            ].join('\n')
+        )
+    })
+
     it('keeps decimal numbering defined on a paragraph style and preserves tables', async () => {
         const filePath = await writeNumberedDocx({
             stylesXml: stylesXml(`

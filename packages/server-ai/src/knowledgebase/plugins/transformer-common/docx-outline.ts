@@ -229,10 +229,7 @@ function readCell(cell: Element, context: ReadContext): TableCell {
     const images = collectImageRefs(cell, context)
     const parts: string[] = []
     let hasNumbering = false
-    for (const paragraph of elementChildren(cell)) {
-        if (localName(paragraph) !== 'p') {
-            continue
-        }
+    for (const paragraph of cellParagraphs(cell)) {
         const text = normalizeParagraphText(readText(paragraph))
         if (!text) {
             continue
@@ -248,6 +245,17 @@ function readCell(cell: Element, context: ReadContext): TableCell {
     return {
         text: hasNumbering ? parts.join('\n') : normalizeParagraphText(readText(cell)),
         images
+    }
+}
+
+function* cellParagraphs(node: Element): Generator<Element> {
+    for (const child of elementChildren(node)) {
+        if (localName(child) === 'p') {
+            yield child
+        } else {
+            // Nested tables and content controls share the enclosing cell's document order.
+            yield* cellParagraphs(child)
+        }
     }
 }
 
