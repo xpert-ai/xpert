@@ -147,6 +147,12 @@
 
         <div class="w-full flex justify-end px-2 mb-4">
           <z-switch
+            [ngModel]="getInterruptAfter(item.tool.name)"
+            (ngModelChange)="updateInterruptAfter(item.tool.name, $event)"
+          >
+            {{ 'XP.Xpert.InterruptAfter' | translate: { Default: 'Pause after execution' } }}
+          </z-switch>
+          <z-switch
             [ngModel]="getSensitive(item.tool.name)"
             (ngModelChange)="updateSensitive(item.tool.name, $event)"
             labelPosition="before"

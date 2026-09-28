@@ -188,6 +188,17 @@ export class XpertStudioPanelToolsetComponent {
     })
   }
 
+  getInterruptAfter(name: string) {
+    return this.agentConfig()?.interruptAfter?.includes(name) ?? false
+  }
+
+  updateInterruptAfter(name: string, enabled: boolean) {
+    const current = this.agentConfig()?.interruptAfter ?? []
+    this.studioService.updateXpertAgentConfig({
+      interruptAfter: enabled ? uniq([...current, name]) : current.filter((item) => item !== name)
+    })
+  }
+
   isEnd(name: string) {
     return this.agentConfig()?.endNodes?.includes(name)
   }

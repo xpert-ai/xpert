@@ -7150,6 +7150,7 @@
       "ActionUndone": "此操作無法撤消。",
       "Confirm": "確認",
       "Reject": "拒絕",
+      "InterruptAfter": "執行後暫停",
       "Sensitive": "敏感",
       "SensitiveToolsTip": "敏感工具需要經過用戶確認後才能執行",
       "SensitiveAgentTip": "敏感智能體需要經過用戶確認後才能執行",

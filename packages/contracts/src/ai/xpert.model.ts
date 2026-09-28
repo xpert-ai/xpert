@@ -432,6 +432,8 @@ export type TXpertAgentConfig = {
    * Sensitive tools and agents
    */
   interruptBefore?: string[]
+  /** Pause after these tools finish, before the next model turn. Resume never reruns the tool. */
+  interruptAfter?: string[]
   /**
    * End nodes
    */

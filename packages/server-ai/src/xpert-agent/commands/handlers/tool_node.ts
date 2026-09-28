@@ -189,6 +189,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                     })
 
                     const toolMessage = new ToolMessage({
+                        status: 'error',
                         content: `Error: ${e.message}\n Please fix your mistakes.`,
                         name: call.name,
                         tool_call_id: call.id ?? ''

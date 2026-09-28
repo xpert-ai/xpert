@@ -1,3 +1,4 @@
+import { createInterruptAfterNode } from '../../../shared/agent/interrupt-after'
 import { authorizeAgentInvocation } from '../../../agent-invocation/invocation-errors'
 import {
     RUNTIME_RESOURCE_SKILLS,
@@ -1619,26 +1620,59 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // Add nodes for tools
         if (!hiddenAgent) {
+            const pauseAfterTools = tools.filter(({ tool }) => team.agentConfig?.interruptAfter?.includes(tool.name))
+            const afterToolsGate = pauseAfterTools.length ? `${agentKey}__interrupt_after_tools` : null
+            if (afterToolsGate) {
+                subgraphBuilder.addNode(
+                    afterToolsGate,
+                    createInterruptAfterNode(
+                        agentChannel,
+                        pauseAfterTools.map(({ tool }) => ({
+                            name: tool.name,
+                            app: tool instanceof DynamicStructuredTool && tool.metadata?.middlewareMcpApp === true
+                        }))
+                    )
+                )
+                subgraphBuilder.addEdge(afterToolsGate, agentLoopEntryNode)
+            }
             tools
                 ?.filter((_) => !_.graph)
                 .forEach(({ caller, tool, variables, toolset }) => {
                     const name = tool.name
+                    const afterNode =
+                        endNodes?.includes(name) && team.agentConfig?.interruptAfter?.includes(name)
+                            ? `${name}__interrupt_after`
+                            : name
+                    if (afterNode !== name) {
+                        subgraphBuilder.addNode(
+                            afterNode,
+                            createInterruptAfterNode(agentChannel, [
+                                {
+                                    name,
+                                    app:
+                                        tool instanceof DynamicStructuredTool &&
+                                        tool.metadata?.middlewareMcpApp === true
+                                }
+                            ])
+                        )
+                        subgraphBuilder.addEdge(name, afterNode)
+                    }
                     const ends = []
                     if (endNodes?.includes(tool.name)) {
                         // If it is end of the agent, connect the subsequent nodes of the agent
                         if (nextNodeKey?.length) {
                             ends.push(...nextNodeKey)
-                            subgraphBuilder.addConditionalEdges(name, (state, config) => {
+                            subgraphBuilder.addConditionalEdges(afterNode, (state, config) => {
                                 return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
                             })
                         } else {
                             // No subsequent node, go to the end
-                            subgraphBuilder.addEdge(name, END)
+                            subgraphBuilder.addEdge(afterNode, END)
                             ends.push(END)
                         }
                     } else {
                         // Not the end of the agent, return to the agent node
-                        subgraphBuilder.addEdge(name, agentLoopEntryNode)
+                        subgraphBuilder.addEdge(afterNode, afterToolsGate ?? agentLoopEntryNode)
                         // ends.push(agentKey)
                     }
                     subgraphBuilder.addNode(

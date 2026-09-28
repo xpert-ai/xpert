@@ -166,6 +166,18 @@
 
             <div class="w-full flex justify-end px-2 mb-4">
               <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <span>{{ 'XP.Xpert.InterruptAfter' | translate: { Default: 'Pause after execution' } }}</span>
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  [ngModel]="getInterruptAfter(item.name)"
+                  (ngModelChange)="updateInterruptAfter(item.name, $event)"
+                />
+              </label>
+            </div>
+
+            <div class="w-full flex justify-end px-2 mb-4">
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
                 <span>{{ 'XP.Xpert.End' | translate: { Default: 'End' } }}</span>
                 <input
                   type="checkbox"
