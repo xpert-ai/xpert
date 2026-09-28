@@ -173,7 +173,25 @@ it('rejects short copied samples', () => {
     ).toThrow(/repeats the sample|重复了样例值/)
 })
 
-it('accepts a description that contains a two-character Han sample as an ordinary word', () => {
+it.each(['\u738b\u4e94', '\u8fd0\u884c'])(
+    'rejects copied two-character Han samples without guessing their meaning: %s',
+    (sample) => {
+        const table = {
+            ...source,
+            headerRow: undefined,
+            columns: [{ columnId: 'C', key: 'C', label: 'C', column: 3 }],
+            samples: [{ rowNumber: 1, values: { C: sample } }]
+        }
+        for (const output of [
+            { summary: sample, columns: [{ columnId: 'C', description: '' }] },
+            { summary: '', columns: [{ columnId: 'C', description: `\u8bb0\u5f55${sample}\u4fe1\u606f` }] }
+        ]) {
+            expect(() => parseTableModelResult(JSON.stringify(output), table, '', 'zh')).toThrow(sample)
+        }
+    }
+)
+
+it('accepts a rewritten description without copying a two-character Han sample', () => {
     const table = {
         ...source,
         headerRow: undefined,
@@ -184,13 +202,13 @@ it('accepts a description that contains a two-character Han sample as an ordinar
         parseTableModelResult(
             JSON.stringify({
                 summary: '设备阶段台账',
-                columns: [{ columnId: 'C', description: '记录设备运行状态' }]
+                columns: [{ columnId: 'C', description: '记录设备状态' }]
             }),
             table,
             '',
             'zh'
         ).columns[0].description
-    ).toBe('记录设备运行状态')
+    ).toBe('记录设备状态')
 })
 
 it('names header evidence copied from the first data row separately from a copied sample', () => {

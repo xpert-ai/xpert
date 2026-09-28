@@ -169,8 +169,6 @@ export function parseTableModelResult(
     }
 }
 
-const minimumCopiedHanSampleLength = 3
-
 function assertSupportedEvidence(
     column: { columnId?: string; unit?: string; valueMeanings?: string; evidence?: string },
     label: string,
@@ -209,8 +207,7 @@ function copiedSampleText(value: string | number | boolean | null, generatedText
     const text = typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''
     if (!text) return undefined
     if (/\p{Script=Han}/u.test(text)) {
-        // Short Han cells are ordinary words. Substring checks reject valid descriptions.
-        if ([...text].length < minimumCopiedHanSampleLength) return undefined
+        // Length cannot distinguish ordinary words from record-specific names or codes.
         return generatedText.includes(text.toLocaleLowerCase()) ? text : undefined
     }
     const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
