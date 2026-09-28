@@ -5,16 +5,37 @@ function createShellMethods(ClientError) {
       return await service.shell[method](input)
     } catch (error) {
       if (error instanceof ClientError) throw error
+      const messages = {
+        SHELL_DENIED: 'Local Shell is disabled in permissions. Change the policy before requesting another command.',
+        GRANT_REVOKED: 'This command permission expired or was revoked. It was not executed.',
+        OPERATION_CONFLICT: 'This command no longer matches the approved request. It was not executed.',
+        SESSION_CHANGED: 'The account or organization changed. Request permission again in the current conversation.',
+        DEVICE_OFFLINE: 'This computer is offline. Stop this operation; do not retry automatically.'
+      }
       throw new ClientError(
-        'Desktop Shell could not complete the operation. Check the connection and Shell settings.',
+        messages[error.message] ||
+          'Desktop Shell could not complete the operation. Check the connection and Shell settings.',
         400
       )
     }
   }
   return {
+    shellConfigure(input) {
+      return call(this, 'configureSettings', input)
+    },
+    shellPrepare(input) {
+      return call(this, 'prepare', input)
+    },
+    shellDecide(input) {
+      return call(this, 'decide', input)
+    },
+    shellPolicy(input) {
+      return call(this, 'setPolicy', input)
+    },
     shellState() {
       return (
         this.shell?.snapshot() ?? {
+          policy: 'ask',
           available: false,
           enabled: false,
           connected: false,

@@ -8,6 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite --host 127.0.0.1 --port 4390 --strictPort",
     "build": "tsc --noEmit && vite build",
+    "icons:macos": "node scripts/generate-macos-icons.mjs",
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
     "test:local": "node scripts/test-local.mjs",
@@ -18,7 +19,7 @@
     "@emoji-mart/data": "^1.2.1",
     "@xpert-ai/contracts": "workspace:*",
     "@xpert-ai/chatkit-types": "catalog:",
-    "@xpert-ai/chatkit-web-component": "~0.6.0",
+    "@xpert-ai/chatkit-web-component": "catalog:",
     "@xpert-ai/shadcn-ui": "workspace:*",
     "lucide-react": "^1.21.0",
     "react": "^19.2.0",
@@ -36,37 +37,38 @@
   },
   "build": {
     "appId": "ai.xpert.desktop",
-    "productName": "Xpert",
+    "productName": "Bosi",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "resources/**/*",
       "package.json"
     ],
     "mac": {
-      "icon": "../cloud/src/assets/icon.png",
+      "icon": "resources/Xpert.icns",
       "category": "public.app-category.productivity",
       "target": [
         "dmg"
       ]
     },
     "win": {
-      "icon": "../cloud/src/assets/icon.ico",
+      "icon": "resources/logo.png",
       "target": [
         "nsis"
       ]
     },
     "linux": {
-      "icon": "../cloud/src/assets/icon.png",
+      "icon": "resources/logo.png",
       "target": [
         "AppImage"
       ],
       "category": "Office"
     }
   },
-  "description": "Xpert desktop client with a React sidebar and hosted ChatKit workspace",
+  "description": "Xpert Bosi - Your AI team leader.",
   "author": "XpertAI",
   "license": "AGPL-3.0",
   "dependencies": {

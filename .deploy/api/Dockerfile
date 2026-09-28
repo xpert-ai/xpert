@@ -105,6 +105,7 @@ COPY --chown=node:node --from=build /srv/xpert/api-runtime ./
 COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
 COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 COPY --chown=node:node .deploy/api/healthcheck.cjs ./
+COPY --chown=node:node .deploy/api/check-native-modules.cjs ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
 RUN pnpm install --prod --frozen-lockfile && \
@@ -116,6 +117,9 @@ RUN pnpm install --prod --frozen-lockfile && \
     touch ormlogs.log && chown -R node:node /srv/xpert
 
 USER node:node
+
+# Exercise native bindings as the runtime user, not just dependency resolution.
+RUN node check-native-modules.cjs
 
 EXPOSE ${PORT}
 

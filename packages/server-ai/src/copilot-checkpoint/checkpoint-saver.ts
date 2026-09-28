@@ -1,6 +1,7 @@
 import { RunnableConfig } from '@langchain/core/runnables'
 import {
     BaseCheckpointSaver,
+    WRITES_IDX_MAP,
     type Checkpoint,
     type CheckpointListOptions,
     type CheckpointMetadata,
@@ -13,6 +14,7 @@ import { Repository } from 'typeorm'
 import { CopilotCheckpoint } from './copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from './writes/writes.entity'
 import { checkpointReadConfig } from './checkpoint-reference'
+import { MessageStateSerializer } from './serde/message-state'
 
 @Injectable()
 export class CopilotCheckpointSaver extends BaseCheckpointSaver {
@@ -23,6 +25,7 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
         private wRepository: Repository<CopilotCheckpointWrites>
     ) {
         super()
+        this.serde = new MessageStateSerializer(this.serde)
     }
 
     async getCopilotCheckpoint(
@@ -195,7 +198,8 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
                         checkpoint_ns: config.configurable?.checkpoint_ns,
                         checkpoint_id: config.configurable?.checkpoint_id ?? '',
                         task_id: taskId,
-                        idx,
+                        // Interrupt and resume writes must coexist across successive pauses.
+                        idx: WRITES_IDX_MAP[write[0]] ?? idx,
                         channel: write[0],
                         type,
                         value: serializedWrite

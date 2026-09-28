@@ -89,7 +89,11 @@ export type {
   AgentPluginConnectorAuth,
   AgentPluginConnectorBinding,
   RuntimeResourceDefinition,
-  RuntimeResourceBindingInput
+  RuntimeResourceBindingInput,
+  WorkspaceAgentPlugin,
+  WorkspaceAgentPluginOptions,
+  WorkspaceAgentPluginAddInput,
+  WorkspaceAgentPluginAddResult
 } from './agent-plugin'
 
 export * from './desktop-shell.model'

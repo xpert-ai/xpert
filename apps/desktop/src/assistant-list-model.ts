@@ -1,4 +1,6 @@
 import type { Bot } from './types'
+// Keep the renderer independent of the contracts barrel's runtime side effects.
+import { orderAssistantXperts } from '../../../packages/contracts/src/ai/assistant-order.ts'
 import type { BotActivity, SidebarState } from './assistant-list-types'
 
 export const SIDEBAR_MIN = 240
@@ -11,31 +13,73 @@ export function resizeSidebar(width: number, available: number) {
   }
 }
 export function assistantRows(bots: Bot[], sidebar: SidebarState, activities: BotActivity[], query: string) {
-  const result = bots
+  return orderAssistantXperts(bots)
     .map((bot) => {
       const preference = sidebar.items.find((item) => item.botId === bot.id)
       const activity = activities.find((item) => item.xpertId === (bot.assistantId || bot.id))
       const unread = !!preference?.unreadAt || (activity?.unreadMessages ?? 0) > 0
-      const at = Math.max(
-        preference?.unreadAt ?? 0,
-        Date.parse(String((unread ? activity?.latestUnreadAt : null) || activity?.latestConversationAt || '')) || 0
-      )
       return {
         bot,
         preference,
         activity,
         unread,
-        at,
         subtitle: activity?.latestConversationTitle?.trim() || bot.description
       }
     })
     .filter((item) => `${item.bot.name} ${item.subtitle}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-  return result.sort(
-    (a, b) =>
-      Number(b.unread) - Number(a.unread) ||
-      b.at - a.at ||
-      a.bot.name.localeCompare(b.bot.name) ||
-      a.bot.id.localeCompare(b.bot.id)
-  )
 }
 export type AssistantRow = ReturnType<typeof assistantRows>[number]
+
+export function assistantGroups(rows: AssistantRow[], sidebar: SidebarState) {
+  const automatic = rows.filter(
+    (row) => !row.preference?.pinnedAt && !sidebar.sections.some((section) => section.id === row.preference?.sectionId)
+  )
+  const domains = new Map<string, { id: string; name: string; kind: 'domain'; rows: AssistantRow[] }>()
+  const unassigned: AssistantRow[] = []
+  for (const row of automatic) {
+    const area = row.bot.businessArea
+    if (area) {
+      const group = domains.get(area.id)
+      if (group) group.rows.push(row)
+      else domains.set(area.id, { id: `domain:${area.id}`, name: area.name, kind: 'domain', rows: [row] })
+    } else unassigned.push(row)
+  }
+  return [
+    {
+      id: 'pinned',
+      name: 'Pinned assistants',
+      kind: 'pinned' as const,
+      rows: rows.filter((row) => row.preference?.pinnedAt)
+    },
+    ...sidebar.sections.map((section) => ({
+      ...section,
+      kind: 'section' as const,
+      rows: rows.filter((row) => !row.preference?.pinnedAt && row.preference?.sectionId === section.id)
+    })),
+    ...[...domains.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
+    {
+      id: '',
+      name: 'Unassigned',
+      kind: 'unassigned' as const,
+      rows: unassigned
+    }
+  ].filter((group) => group.rows.length > 0)
+}
+
+export function assistantStatusLabel(
+  activity?: Pick<BotActivity, 'latestConversationStatus' | 'latestConversationId'>
+) {
+  const labels = {
+    idle: 'Idle',
+    busy: 'Working',
+    pausing: 'Pausing',
+    paused: 'Paused',
+    interrupted: 'Waiting for input',
+    error: 'Failed'
+  }
+  return activity?.latestConversationStatus
+    ? labels[activity.latestConversationStatus]
+    : activity?.latestConversationId
+      ? 'Status unavailable'
+      : 'No conversations yet'
+}

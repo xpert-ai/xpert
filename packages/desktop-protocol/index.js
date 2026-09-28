@@ -172,3 +172,35 @@ module.exports = {
   parseCommand,
   parseReport
 }
+
+// These parsers are shared by the renderer boundary and the authenticated API.
+function parsePreparation(value) {
+  if (
+    !value ||
+    value.kind !== 'desktop-shell' ||
+    !isId(value.assistantId) ||
+    !isId(value.threadId) ||
+    !isId(value.runId) ||
+    typeof value.toolCallId !== 'string' ||
+    !value.toolCallId ||
+    value.toolCallId.length > 255
+  )
+    throw new Error('INVALID_MESSAGE')
+  const input = parseInput({ action: 'exec', command: value.command, cwd: value.cwd, timeout_sec: value.timeoutSec })
+  return {
+    kind: 'desktop-shell',
+    assistantId: value.assistantId,
+    threadId: value.threadId,
+    runId: value.runId,
+    toolCallId: value.toolCallId,
+    command: input.command,
+    cwd: input.cwd,
+    timeoutSec: input.timeout_sec || LIMITS.timeout
+  }
+}
+function parsePolicy(value) {
+  if (!['ask', 'allow', 'deny'].includes(value)) throw new Error('INVALID_MESSAGE')
+  return value
+}
+module.exports.parsePreparation = parsePreparation
+module.exports.parsePolicy = parsePolicy

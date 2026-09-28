@@ -185,6 +185,7 @@ export class KnowledgeTableMetadataService {
                         continue
                     await this.assertCurrent(document, state)
                     let result: KnowledgeTableResult | undefined
+                    let validationError = ''
                     for (let attempt = 0; attempt < 2; attempt++) {
                         await this.assertCurrent(document, state)
                         const response = await client.invoke(
@@ -193,8 +194,7 @@ export class KnowledgeTableMetadataService {
                                       ...batch.messages,
                                       {
                                           role: 'user' as const,
-                                          content:
-                                              'The previous output failed validation. Return corrected JSON in the requested language. Remove all copied sample values and unsupported meanings. Units and code meanings must be exact excerpts of the supplied evidence, otherwise leave them empty.'
+                                          content: metadataRetryMessage(validationError)
                                       }
                                   ]
                                 : batch.messages,
@@ -218,6 +218,7 @@ export class KnowledgeTableMetadataService {
                             break
                         } catch (error) {
                             if (attempt === 1) throw error
+                            validationError = getErrorMessage(error)
                         }
                     }
                     if (!result) throw new Error(t('server-ai:Error.KnowledgeTableMetadataInvalidResponse'))
@@ -417,6 +418,10 @@ export class KnowledgeTableMetadataService {
         if (!saved.affected) throw new TableMetadataStaleError()
         document.metadata = { ...(document.metadata ?? {}), tableMetadata: structuredClone(state) }
     }
+}
+
+function metadataRetryMessage(validationError: string): string {
+    return `The previous output failed validation: ${validationError} Return corrected JSON in the requested language. Do not repeat the cited sample values. Leave unit, valueMeanings and evidence empty unless they are exact excerpts of the column label or business guidance.`
 }
 
 function readTableState(document: IKnowledgeDocument) {

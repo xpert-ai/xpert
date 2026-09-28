@@ -8,6 +8,7 @@ import { Component, computed, effect, inject, signal, TemplateRef, untracked } f
 import { HttpClient } from '@angular/common/http'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
+import { ActivatedRoute } from '@angular/router'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from '@cloud/app/@core/state/constants'
 import { injectActiveScope } from '@cloud/app/@core/state'
@@ -54,6 +55,14 @@ export class AgentPluginsComponent {
   private readonly http = inject(HttpClient)
   private readonly toastr = injectToastr()
   private readonly scope = injectActiveScope()
+  private readonly route = inject(ActivatedRoute, { optional: true })
+  private handledDesktopLink = false
+  readonly desktopScopeMismatch = () => {
+    const requested = this.route?.snapshot.queryParamMap.get('organizationId')
+    const scope = this.scope()
+    return !!requested && (!scope || !('organizationId' in scope) || scope.organizationId !== requested)
+  }
+  readonly desktopWorkspaceName = signal('')
   private readonly dialog = inject(Dialog)
   private readonly endpoint = `${API_PREFIX}/agent-plugins`
   private importDialog?: DialogRef
@@ -140,6 +149,8 @@ export class AgentPluginsComponent {
       this.scope()
       untracked(() => {
         this.generation++
+        this.handledDesktopLink = false
+        this.desktopWorkspaceName.set('')
         this.importDialog?.close()
         this.packages.set([])
         this.bindings.set([])
@@ -169,12 +180,33 @@ export class AgentPluginsComponent {
         this.packages.set(data.packages)
         this.bindings.set(data.bindings)
         this.options.set(options)
+        this.openDesktopTarget()
       }
     } catch (error) {
       if (generation === this.generation && sequence === this.refreshSequence) this.error.set(getErrorMessage(error))
     } finally {
       if (generation === this.generation && sequence === this.refreshSequence) this.loading.set(false)
     }
+  }
+
+  private openDesktopTarget() {
+    if (this.handledDesktopLink || this.desktopScopeMismatch()) return
+    const query = this.route?.snapshot.queryParamMap
+    if (!query?.get('organizationId')) return
+    const workspaceId = query.get('workspaceId')
+    const workspace = this.options().workspaces.find((item) => item.id === workspaceId)
+    if (workspaceId && !workspace) return
+    this.handledDesktopLink = true
+    this.desktopWorkspaceName.set(workspace?.name ?? '')
+    const packageId = query.get('packageId')
+    const group = this.groups().find((item) => item.packages.some((pkg) => pkg.id === packageId))
+    if (!group) return
+    this.openGroup(group, 'workspaces')
+    const binding =
+      group.currentBindings.find((item) => item.workspaceIds.includes(workspaceId) && item.enabled) ??
+      group.currentBindings.find((item) => item.workspaceIds.includes(workspaceId))
+    if (binding) this.loadBinding(binding)
+    // Keep all existing workspace selections. A link never publishes or checks a new workspace by itself.
   }
 
   private async run(work: () => Promise<void>) {

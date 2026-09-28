@@ -1,4 +1,10 @@
-# Xpert Desktop
+# Xpert Bosi
+
+**Bosi** is your AI team leader. **You set the goal. Bosi leads the team.**
+
+**日常称呼：Bosi · 完整名称：Xpert Bosi · 定位：你的 AI 小队长 · 宣传语：你定目标，Bosi 带队。**
+
+See [brand naming and compatibility](docs/branding.md).
 
 Electron + React 19 + the repository's shadcn/ui primitives. The client owns a
 Sidebar and a Right Content Panel. The right panel embeds the official
@@ -29,6 +35,29 @@ applies variables consumed by its hosted version; fixed component styles are not
 overridden by the desktop client.
 
 ## Run
+
+Bosi branding lives in `resources/`: `icon-macos.png` supplies the login mark;
+`logo.png` supplies the favicon and Windows/Linux application icons. On macOS,
+`icon-macos.svg` frames the supplied PNG tile with transparent margins;
+its 1024px RGBA export, `icon-macos.png`, supplies the development Dock icon.
+Run `corepack pnpm --filter @xpert-ai/desktop icons:macos` on macOS to regenerate
+`Xpert.iconset` and the packaged `Xpert.icns`. See [icon resources](resources/README.md).
+Packaged macOS apps use their bundle icon.
+Avatar components and their emoji, color and motion helpers live together in
+`src/avatar/`. Consumers import `BotAvatar` and `PluginAvatar` from this directory;
+its animation helpers remain internal.
+Assistant avatars keep their custom images and emoji. Missing avatars use a vector
+version of the smile tile: eyes and mouth follow the pointer with bounded parallax,
+and the eye on the gaze side shrinks while the opposite eye grows. Pointer proximity
+also changes eye scale. The background uses a stable pseudorandom color from the ten
+`avatarPalette` entries in `electron/theme-defaults.json`, keyed by Assistant ID (not
+name or row position). Palette order and the hash are stable across releases, so
+refresh, restart, renamed Assistants and sidebar copies retain the same color.
+The tile uses the Desktop theme radius directly, including square and circular limits.
+Visible avatars share one animation driver; offscreen avatars and reduced-motion/coarse-pointer environments remain still.
+The native host supplies window-local cursor positions while Desktop is focused,
+including over ChatKit frames. It stops sampling when no visible avatar requests it
+or the window loses focus. Browser previews follow the host document's pointer only.
 
 Use Node 22.12+ (Node 24 LTS recommended) and the repository's Corepack-managed
 pnpm 10.24.0. Run these commands from the Xpert repository root:
@@ -72,6 +101,8 @@ The `+` button opens **发现与添加**, a searchable catalog with three tabs:
 
 Successful installation refreshes the Sidebar and opens the assistant in ChatKit.
 
+Application cards use `config.presentation.screenshots` as a lightly blurred background with a theme-aware text scrim. Select the application name or **View details** to browse full screenshots, including for installed applications. The detail carousel supports previous/next buttons, numbered indicators and arrow keys, without autoplay. Missing screenshots keep the plain card; failed images can be retried in the detail view. Screenshot URLs are normalized at the host boundary, accepting inline images, HTTPS and loopback development URLs; root-relative assets resolve against the configured Web URL.
+
 The frame URL must point at a trusted deployment of Xpert ChatKit. Check both its
 HTML and referenced JS/CSS assets if the panel is blank. After updating ChatKit
 packages in a running Angular development server, restart that server so its
@@ -83,8 +114,11 @@ HTTP is accepted only for loopback development addresses.
 Right-click an assistant (including pinned cards and the collapsed avatar rail)
 to pin/unpin, move to a personal section, mark read/unread, edit its local profile,
 duplicate its local entry, or copy its current/latest conversation ID. Pinned
-assistants appear as avatar cards above the list. Unread assistants sort before
-read assistants within each group; groups with unread activity also move first.
+assistants appear as avatar cards above the list. Within each group, assistants
+sort by creation time (newest first), using the same ordering helper as Cloud.
+Unread indicators and conversation activity do not reorder assistants or groups.
+Equal or missing creation dates keep their source order. Existing Cloud drag order
+and Desktop pins/groups remain local preferences; they do not sync across clients.
 Rows show the latest conversation title, falling back to the assistant description.
 Activity refreshes every 15 seconds while visible and when the window regains focus.
 
@@ -124,9 +158,10 @@ must ship the updated ChatKit frame assets, not just the desktop executable.
 ## Desktop Shell
 
 The native macOS app can execute commands for an authorized server Assistant.
-Enable **Desktop Shell** middleware in the Assistant, then use **Connection &
-appearance → Desktop Shell → Enable Shell** and **Use this computer** in the
-conversation. See [setup, protocol and limits](docs/desktop-shell.md).
+Enable **Desktop Shell** middleware in the Assistant. Bosi connects when the
+Agent requests a local command and shows an approval card in the message. The
+default is **Ask for every command**; manage the scoped policy in **Connection &
+appearance → Desktop Shell**. See [setup, protocol and limits](docs/desktop-shell.md).
 
 ## Client boundary
 
@@ -191,6 +226,29 @@ English (`en`) is the source language and the default for new and legacy configu
 
 Choose **User menu → Connection & appearance → Appearance → Language**. Changes preview immediately; Cancel restores the saved language and Save persists it locally. Changing only the language retains authentication, organization, selected assistant and the existing ChatKit element. Login, discovery, installation, tooltips, accessibility labels, form validation, host errors and native application menus use the shared resources in `electron/i18n/`. Native menu updates take effect on Save.
 
-The renderer passes the selected locale to ChatKit and the host sends it in `Accept-Language`. Hosted ChatKit owns its translations: the currently tested local ChatKit UI bundle contains only `en-US` and `zh-CN`; Japanese falls back to English and Traditional Chinese resolves to Simplified Chinese in that version. Full ChatKit translations require a hosted ChatKit version with those resources. User-authored organization names, assistant names and plain descriptions are preserved. Structured marketplace translations select the requested language with English fallback.
+The renderer passes the selected locale to ChatKit and the host sends it in `Accept-Language`. Hosted ChatKit owns its translations: the currently tested local ChatKit UI bundle contains only `en-US` and `zh-CN`; Japanese falls back to English and Traditional Chinese resolves to Simplified Chinese in that version. Full ChatKit translations require a hosted ChatKit version with those resources. User-authored organization names, assistant names and plain descriptions are preserved. Structured marketplace translations, including JSON-serialized I18nObject descriptions, select the requested language with English fallback. Malformed JSON and ordinary JSON prose remain literal text.
 
 To add a language, add a JSON resource matching every English key and interpolation placeholder, register it in `electron/i18n/index.mjs` and its declaration, and update locale normalization. Use English source messages in `t(...)`; do not translate module-level constants at import time. Host errors carry message keys and parameters so even an unsaved language preview can display errors in the chosen language. `tests/i18n.test.cjs` checks resource coverage, placeholders, untranslated JSX, aliases, persistence, host error handling and localized marketplace metadata.
+
+### Native headers and assistant rail
+
+Desktop enables ChatKit's opt-in `header.windowDrag` integration. Blank chat and Workbench header space is projected into native Electron drag regions, excluding interactive controls. Double-click follows the operating system's title-bar preference (normally zoom/maximize on macOS); it does not enter fullscreen. Frame menus and dialogs suspend the projected regions. No new native IPC permission is exposed.
+
+This requires the matching ChatKit UI **and** web-component build containing `header.windowDrag`. For local integration before publishing the ChatKit packages, build `@xpert-ai/chatkit-types`, `@xpert-ai/chatkit-web-shared`, and `@xpert-ai/chatkit-web-component` in order, run the matching ChatKit UI, and supply the local bundle to Desktop:
+
+```sh
+XPERT_DESKTOP_CHATKIT_BUNDLE=/absolute/path/to/chatkit-js/packages/web-component/dist/xpert-chatkit.js \
+  corepack pnpm --filter @xpert-ai/desktop dev
+```
+
+The override also applies to `build`. Normal installs use the packaged web component; upgrade that dependency together with the hosted ChatKit UI when releasing this integration. Older hosts safely ignore the option.
+
+The assistant list hides native scrollbars and provides press-and-hold arrows. Wheel/trackpad and keyboard navigation remain available. Release, pointer cancellation, blur and unmount stop continuous scrolling. Only the assistant avatar triggers the hover profile; titles and descriptions remain conversation buttons. Focus the avatar and press `Alt+Down` to open and pin the profile for keyboard navigation. The compact header retains the avatar, name and explicit conversation status. Recent conversation titles appear in Activity, while description/version and capability counts are inside About and Capabilities. Activity refresh uses the existing 15-second polling cycle. Older APIs that omit status show “Status unavailable”, not a guessed idle state.
+
+Pinned assistants, user-created sections and published business domains use the same grouping in both layouts, with divider lines between nonempty groups. Pins and manual sections take precedence. Otherwise, an assistant appears under its published `businessArea` (the `businessAreaId` relation), using the business area name without translating it as a marketplace category. Domains are maintained in Settings / Business Areas and selected during publication. Marketplace categories such as Business & operations do not determine sidebar groups. Missing, deleted or unnamed business areas remain Unassigned. Domain groups use the business area ID as identity, sort by name with ID as a tie-breaker, and retain creation order within each group. `Move to` / `Group by business domain` removes a manual assignment without changing the published metadata. Create or change sections from the assistant context menu (`Move to` / `New section`). Section membership is stored locally per account, organization and API endpoint; it is not yet shared with Cloud or other devices.
+
+The Digital experts catalog uses one horizontally scrollable filter rail: All, published business domains, then broader marketplace categories. Domain and category selections are combined with search. Clicking a selected filter clears only that filter; All clears both types. Tooltips distinguish equally named domains and categories. Domains use published business-area IDs, and the available domain choices are derived from discoverable experts across pages. Experts without a business area remain available under All.
+
+### Assistant profile Views
+
+Profiles include the server-enabled `agent.profile.tabs` extension Views. A custom View is loaded when selected and retains its UI state while switching tabs. More lists additional custom Views. Remote components receive scoped host data and declared actions through a sandboxed bridge; account tokens never enter the component. See [assistant-profile.md](docs/assistant-profile.md) for the supported protocol, lifecycle and current limits.

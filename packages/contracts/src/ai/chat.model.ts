@@ -1,3 +1,5 @@
+import type { TChatConversationStatus } from './chat-activity.model'
+export type { TChatConversationStatus, IChatConversationUnreadXpertSummary } from './chat-activity.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
@@ -40,8 +42,6 @@ export type TChatConversationSourceAudit = {
   channelType?: string | null
   sourceMessageLogIds?: string[]
 }
-
-export type TChatConversationStatus = 'idle' | 'busy' | 'pausing' | 'paused' | 'interrupted' | 'error'
 
 export type TChatCheckpointReference = { threadId: string; checkpointNs: string; checkpointId: string }
 
@@ -297,19 +297,6 @@ export interface IChatConversationMarkReadRequest {
 
 export interface IChatConversationUnreadXpertsRequest {
   xpertIds: string[]
-}
-
-export interface IChatConversationUnreadXpertSummary {
-  xpertId: string
-  unreadMessages: number
-  unreadConversations: number
-  latestUnreadAt?: Date | string | null
-  latestUnreadConversationId?: string | null
-  latestUnreadThreadId?: string | null
-  latestConversationAt?: Date | string | null
-  latestConversationId?: string | null
-  latestConversationThreadId?: string | null
-  latestConversationTitle?: string | null
 }
 
 // Types

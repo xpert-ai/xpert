@@ -1,4 +1,5 @@
 const { localizedText } = require('./i18n/index.mjs')
+const { parseBusinessArea } = require('./business-area.cjs')
 // A narrow marketplace boundary: credentials, template DSL and plugin configuration stay in the host.
 module.exports.createCatalogMethods = function createCatalogMethods(ClientError) {
   const text = (value) => (typeof value === 'string' ? value : '')
@@ -12,6 +13,15 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     if (!Array.isArray(value)) throw new ClientError('Invalid catalog response.', 502)
     return value
   }
+  // Use the same role lookup as managed template import, including custom default models.
+  const hasPrimaryLanguageModel = async (service) => {
+    const primary = await service.request('/api/copilot/availables/primary')
+    return Boolean(
+      text(primary?.id).trim() &&
+      text(primary?.copilotModel?.model).trim() &&
+      (text(primary?.copilotModel?.modelType).trim() || 'llm') === 'llm'
+    )
+  }
   const choice = (value, values) => {
     if (!values.includes(value)) throw new ClientError('Invalid catalog status. Please refresh.', 502)
     return value
@@ -23,6 +33,27 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         ? { id: value.emoji.id, unified: typeof value.emoji.unified === 'string' ? value.emoji.unified : null }
         : null
   })
+  const screenshots = (value, webUrl) => {
+    const images = strings(value).flatMap((entry) => {
+      const source = entry.trim()
+      if (/^data:image\/(?:png|jpeg|gif|webp|avif|svg\+xml);base64,[a-z\d+/]+={0,2}$/i.test(source)) return [source]
+      // Local plugin assets are resolved by the API; host-relative assets belong to the configured web app.
+      if (!/^https?:\/\//i.test(source) && !/^\/(?![\/\\])/.test(source)) return []
+      try {
+        const url = new URL(source, webUrl)
+        if (url.username || url.password) return []
+        if (
+          url.protocol === 'https:' ||
+          (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))
+        )
+          return [url.href]
+      } catch {
+        // Invalid image metadata must not prevent the application catalog from loading.
+      }
+      return []
+    })
+    return [...new Set(images)]
+  }
   const expert = (value, locale) => {
     const xpert = value?.xpert
     return {
@@ -36,6 +67,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         text(xpert.createdBy?.name) ||
         text(xpert.createdBy?.username),
       ...avatar(xpert.avatar),
+      businessArea: parseBusinessArea(xpert.businessArea),
       categories: [
         ...strings(value.marketplace?.businessCategories),
         ...(value.marketplace?.featured ? ['featured'] : [])
@@ -44,7 +76,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       access: choice(value.accessStatus, ['owned', 'accessible', 'approved', 'requested', 'not_requested', 'rejected'])
     }
   }
-  const application = (value, locale) => {
+  const application = (value, locale, webUrl) => {
     const localized = (value) => localizedText(value, locale)
     const app = value?.application
     const presentation = app?.config?.presentation
@@ -55,6 +87,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       appName: required(app.appName, 'App name'),
       name: localized(app.displayName),
       description: localized(presentation?.tagline) || localized(app.description),
+      screenshots: screenshots(presentation?.screenshots, webUrl),
       publisher: text(presentation?.developer) || text(app.pluginName),
       ...avatar(null),
       categories: [
@@ -103,7 +136,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       scope(this)
       if (kind === 'applications')
         return list(await this.request('/api/plugin-applications/catalog')).map((item) =>
-          application(item, this.config.locale)
+          application(item, this.config.locale, this.config.webUrl)
         )
       if (!['experts', 'templates'].includes(kind)) throw new ClientError('Invalid catalog type.')
       const items = []
@@ -151,7 +184,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       const embeddingModels = modelOptions(check.embeddingModels, this.config.locale)
       const visionModels = modelOptions(check.visionModels, this.config.locale)
       return {
-        application: application(detail, this.config.locale),
+        application: application(detail, this.config.locale, this.config.webUrl),
         canInitialize: check.supported === true && check.canInitialize,
         reason:
           preflightReasons[check.reason] ||
@@ -207,6 +240,10 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           name: text(item.name)
         }))
     },
+    async templateSetup() {
+      const workspaces = await this.templateWorkspaces()
+      return { workspaces, hasPrimaryLanguageModel: await hasPrimaryLanguageModel(this) }
+    },
     async installTemplate(input) {
       scope(this)
       const id = required(input?.id, 'Template ID')
@@ -218,6 +255,11 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       const detail = await this.request(`/api/xpert-template/${encodeURIComponent(id)}`)
       if (detail?.application || !['agent', 'copilot'].includes(detail?.type))
         throw new ClientError('Install this resource from the Apps tab.')
+      if (!(await hasPrimaryLanguageModel(this)))
+        throw new ClientError(
+          'No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.',
+          403
+        )
       const result = await this.request(`/api/xpert-template/${encodeURIComponent(id)}/install`, {
         method: 'POST',
         body: { workspaceId, publish: true, basic: { title } },

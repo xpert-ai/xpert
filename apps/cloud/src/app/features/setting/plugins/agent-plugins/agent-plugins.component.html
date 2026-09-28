@@ -21,6 +21,15 @@
         <i class="ri-add-line text-lg" aria-hidden="true"></i>{{ 'XP.AgentPlugins.Import' | translate }}
       </button>
     </header>
+    @if (desktopScopeMismatch()) {
+      <p role="alert" class="my-4 text-sm text-text-destructive">
+        {{ 'XP.Desktop.ConnectionOrganizationMismatch' | translate }}
+      </p>
+    } @else if (desktopWorkspaceName()) {
+      <p class="my-4 text-sm text-text-secondary">
+        {{ 'XP.Desktop.PluginWorkspaceHint' | translate: { workspace: desktopWorkspaceName() } }}
+      </p>
+    }
     <div class="mb-6 flex flex-wrap items-center justify-end gap-3">
       <z-search-input
         class="min-w-0 flex-1 sm:max-w-sm"

@@ -460,7 +460,10 @@
     },
     "Explore": {
       "AgentSquare": {
-        "UseExpert": "Use Expert"
+        "UseExpert": "Use Expert",
+        "BusinessDomains": "Business domains",
+        "MarketplaceCategories": "Marketplace categories",
+        "ClearBusinessDomain": "Clear domain"
       },
       "Application": {
         "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",
@@ -4391,6 +4394,23 @@
       "CopySkillCommand": "Copy skill command",
       "EditorVisibility": "Visibility",
       "WorkspaceScopeCommandsHelp": "Workspace prompts follow their expert associations and are enabled by default. You can explicitly disable a prompt for this expert; skill commands follow this command profile."
+    },
+    "Desktop": {
+      "ConnectWorkspaceService": "Connect workspace service",
+      "ConnectionReturnHint": "Connect this service, then return to Bosi and check the connection. Your message draft remains in Bosi.",
+      "ConnectionOrganizationMismatch": "Select the same organization as Bosi before continuing.",
+      "ConnectionReady": "Connected. Return to Bosi to continue.",
+      "ConfigureConnection": "Configure workspace connection",
+      "PluginWorkspaceHint": "From Bosi: {{workspace}}. Review the workspace selections below, then save availability.",
+      "ConnectionAutoReturnHint": "Complete the service connection here. Bosi will return automatically when it is ready.",
+      "ConnectionAutoReady": "Connected. Bosi is checking the result. You may close this tab.",
+      "ConnectionOpening": "Opening the service connection...",
+      "ConnectionComplete": "Connection complete",
+      "ConnectionContinue": "Continue connecting",
+      "ConnectionInvalidLink": "This connection link is incomplete. Open it again from Bosi.",
+      "ConnectionDraftSafe": "Your draft stays in Bosi. Connecting a shared service requires workspace management permission.",
+      "ConnectionAuthorizeStep": "Authorize service",
+      "ConnectionReturnStep": "Return to Bosi"
     }
   },
   "STORY_DESIGNER": {

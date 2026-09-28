@@ -1,11 +1,16 @@
 {
     "Project": { "ConversationProjectName": "{{assistant}} 项目" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
+    "File": {
+        "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
+    },
     "Error": {
         "ToolAfterMismatch": "恢复请求与已完成的工具调用不匹配",
         "ToolAfterInvalidAttachment": "App 附件格式无效",
         "ToolAfterAttachmentLimit": "App 附件超过大小限制",
         "MiddlewareAppUnavailable": "此应用已不在当前助手的可用范围内，请重新打开。",
+        "InvalidTemplateCatalogUpgrade": "模板目录 {{filePath}} 无效，升级未应用。",
+        "AgentPluginWorkspaceDisabled": "此插件已在工作空间停用，请联系管理员恢复。",
         "ToolImageInvalid": "\u5de5\u5177\u56fe\u7247\u65e0\u6548\u3001\u683c\u5f0f\u4e0d\u652f\u6301\u6216\u8d85\u8fc7\u5927\u5c0f\u9650\u5236\u3002",
         "ToolImageUnavailable": "\u6b64\u56fe\u7247\u5728\u5f53\u524d\u5bf9\u8bdd\u4e2d\u4e0d\u53ef\u7528\u6216\u5185\u5bb9\u5df2\u6539\u53d8\uff0c\u8bf7\u91cd\u65b0\u622a\u56fe\u3002",
         "ToolImageBatchLimit": "\u6bcf\u6b21\u6a21\u578b\u8c03\u7528\u6700\u591a\u68c0\u67e5\u4e09\u5f20\u5de5\u5177\u56fe\u7247\u3002",
@@ -28,6 +33,7 @@
         "FilePresentationCount": "请选择 1 至 {{count}} 个文件。",
         "FileOutputUnavailable": "无法交付文件：文件不存在、为空、路径不安全或超过 25 MiB：{{path}}",
         "FileOutputReadFailed": "无法读取所选文件：{{path}}",
+        "FileContentNotReadable": "此文件不支持直接按文本读取，请使用支持该格式的解析器或工具。",
         "FileOutputChanged": "读取期间文件发生变化，请重新交付：{{path}}",
         "DocumentSourceOutsideKnowledgebase": "来源文件不属于所选知识库。",
         "DocumentSourceRevisionChanged": "读取期间解析结果已变化，请从第一页重新读取。",
@@ -172,6 +178,8 @@
         "TagUseStatus": "请通过标签状态启用或停用标签。",
         "KnowledgeTableMetadataReservedKey": "tableMetadata 为服务端生成的表格说明保留，不能用作自定义元数据字段。",
         "KnowledgeTableMetadataInvalidResponse": "模型返回的表格元数据无效。",
+        "KnowledgeTableMetadataCopiedSample": "列说明重复了样例值「{{sample}}」。",
+        "KnowledgeTableMetadataUnsupportedEvidence": "列 {{columnId}} 的证据「{{evidence}}」不是列标签或业务说明中的原文摘录。",
         "KnowledgeTableMetadataStale": "表格或处理设置已更改，请重新处理文档。",
         "KnowledgeTableMetadataInputTooLarge": "表格元数据输入超出模型上下文预算。",
         "InvalidKnowledgeTableIndexedFields": "工作表 {{sheetName}} 中不存在已选索引列：{{fields}}。请预览后重新选择有效列。",
@@ -1034,6 +1042,12 @@
         }
     },
     "DesktopShell": {
+        "ApprovalTitle": "允许在此电脑运行命令？",
+        "Directory": "工作目录",
+        "Command": "执行命令",
+        "Access": "本机访问",
+        "ApprovalNotice": "以你的系统用户身份执行，命令输出会发送给 Xpert。工作目录不限制文件访问范围。",
+        "Denied": "本机执行已拒绝或不可用。停止本次操作，未收到用户新请求前不要重试或改用其他电脑。",
         "INVALID_MESSAGE": "无效的桌面 Shell 请求。",
         "INVALID_SETTINGS": "无效的 Shell 设置。",
         "DEVICE_OFFLINE": "此电脑已离线，请打开 Xpert Desktop 并启用 Shell。",

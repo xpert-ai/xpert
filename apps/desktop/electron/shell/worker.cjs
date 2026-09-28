@@ -84,8 +84,10 @@ process.on('message', (message) => {
       notify({ type: 'status', connected: false, errorCode: 'WORKER_FAILED' })
       void close()
     }
-  } else if (message.type === 'grants') engine?.setGrants(message.grants)
-  else if (message.type === 'token' && socket) {
+  } else if (message.type === 'grants' && engine) {
+    engine.setGrants(message.grants)
+    notify({ type: 'grants-applied', requestId: message.requestId })
+  } else if (message.type === 'token' && socket) {
     socket.auth = { token: message.token, version: VERSION }
     if (!socket.connected) socket.connect()
   } else if (message.type === 'stop') void close()

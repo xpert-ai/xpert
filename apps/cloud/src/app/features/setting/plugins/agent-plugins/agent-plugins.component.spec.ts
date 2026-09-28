@@ -3,10 +3,12 @@ import { TestBed } from '@angular/core/testing'
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TranslateModule } from '@ngx-translate/core'
+import { ActivatedRoute, convertToParamMap } from '@angular/router'
 import { AgentPluginsComponent } from './agent-plugins.component'
 import { BindingSummary, PackageSummary } from './agent-plugins.model'
 
-const mockScope = signal('organization-one')
+const mockScope = signal({ level: 'organization', organizationId: 'organization-one' })
+const mockRoute = { snapshot: { queryParamMap: convertToParamMap({}) } }
 jest.mock('@cloud/app/@core/state', () => ({ injectActiveScope: () => mockScope }))
 jest.mock('@cloud/app/@core', () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : 'Request failed'),
@@ -47,10 +49,11 @@ describe('AgentPluginsComponent publishing', () => {
     http.expectOne((request) => request.url.endsWith('/agent-plugins/options')).flush(options)
   }
   beforeEach(async () => {
-    mockScope.set('organization-one')
+    mockScope.set({ level: 'organization', organizationId: 'organization-one' })
+    mockRoute.snapshot.queryParamMap = convertToParamMap({})
     TestBed.configureTestingModule({
       imports: [AgentPluginsComponent, TranslateModule.forRoot()],
-      providers: [provideHttpClient(), provideHttpClientTesting()]
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ActivatedRoute, useValue: mockRoute }]
     })
     fixture = TestBed.createComponent(AgentPluginsComponent)
     component = fixture.componentInstance
@@ -133,7 +136,7 @@ describe('AgentPluginsComponent publishing', () => {
     const pending = component.refresh()
     const staleData = http.expectOne((request) => request.url.endsWith('/agent-plugins'))
     const staleOptions = http.expectOne((request) => request.url.endsWith('/agent-plugins/options'))
-    mockScope.set('organization-two')
+    mockScope.set({ level: 'organization', organizationId: 'organization-two' })
     fixture.detectChanges()
     http.expectOne((request) => request.url.endsWith('/agent-plugins')).flush({ packages: [], bindings: [] })
     http.expectOne((request) => request.url.endsWith('/agent-plugins/options')).flush({ workspaces: [], experts: [] })
@@ -142,5 +145,33 @@ describe('AgentPluginsComponent publishing', () => {
     await pending
     expect(component.packages()).toEqual([])
     expect(component.selectedName()).toBe('')
+  })
+  it('opens a Desktop package without publishing or changing existing workspace selections', async () => {
+    mockRoute.snapshot.queryParamMap = convertToParamMap({
+      organizationId: 'organization-one',
+      workspaceId: 'second',
+      packageId: 'new'
+    })
+    const refresh = component.refresh()
+    flushCatalog()
+    await refresh
+    expect(component.selectedName()).toBe('documents')
+    expect(component.workspaceIds()).toEqual(['workspace'])
+    expect(component.desktopWorkspaceName()).toBe('Second')
+    http.expectNone((request) => request.method !== 'GET')
+  })
+
+  it('does not apply a Desktop target from another organization', async () => {
+    mockRoute.snapshot.queryParamMap = convertToParamMap({
+      organizationId: 'other',
+      workspaceId: 'workspace',
+      packageId: 'old'
+    })
+    const refresh = component.refresh()
+    flushCatalog()
+    await refresh
+    expect(component.desktopScopeMismatch()).toBe(true)
+    expect(component.selectedName()).toBe('')
+    http.expectNone((request) => request.method !== 'GET')
   })
 })

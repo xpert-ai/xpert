@@ -38,3 +38,6 @@ export function parseSettings(value: unknown): ShellSettings
 export function parseInput(value: unknown): ShellInput
 export function parseCommand(value: unknown): ShellCommand
 export function parseReport(value: unknown): ShellReport
+
+export function parsePreparation(value: unknown): import('@xpert-ai/contracts').ShellPreparationRequest
+export function parsePolicy(value: unknown): import('@xpert-ai/contracts').ShellPolicy

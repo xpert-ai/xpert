@@ -1,4 +1,5 @@
 const { translate } = require('./i18n/index.mjs')
+const branding = require('./branding.json')
 
 function menuTemplate(locale, platform = process.platform) {
   const t = (key) => translate(locale, key)
@@ -9,22 +10,22 @@ function menuTemplate(locale, platform = process.platform) {
     ...(mac
       ? [
           {
-            label: 'Xpert',
+            label: branding.name,
             submenu: [
-              role('about', 'About Xpert'),
+              role('about', 'About Bosi'),
               separator,
               role('services', 'Services'),
               separator,
-              role('hide', 'Hide Xpert'),
+              role('hide', 'Hide Bosi'),
               role('hideOthers', 'Hide others'),
               role('unhide', 'Show all'),
               separator,
-              role('quit', 'Quit Xpert')
+              role('quit', 'Quit Bosi')
             ]
           }
         ]
       : []),
-    { label: t('File'), submenu: [role(mac ? 'close' : 'quit', mac ? 'Close window' : 'Quit Xpert')] },
+    { label: t('File'), submenu: [role(mac ? 'close' : 'quit', mac ? 'Close window' : 'Quit Bosi')] },
     {
       label: t('Edit'),
       submenu: [

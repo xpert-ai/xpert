@@ -1,11 +1,16 @@
 {
     "Project": { "ConversationProjectName": "{{assistant}} project" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
+    "File": {
+        "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
+    },
     "Error": {
         "ToolAfterMismatch": "Post-tool continuation does not match the completed tool call",
         "ToolAfterInvalidAttachment": "Invalid inline App attachment",
         "ToolAfterAttachmentLimit": "App attachments exceed the size limit",
         "MiddlewareAppUnavailable": "This middleware App is no longer available in the current assistant scope.",
+        "InvalidTemplateCatalogUpgrade": "Template catalog {{filePath}} is invalid. The upgrade was not applied.",
+        "AgentPluginWorkspaceDisabled": "This plugin was disabled in the workspace. Ask an administrator to restore it.",
         "ToolImageInvalid": "The tool image is invalid, unsupported or exceeds the image limit.",
         "ToolImageUnavailable": "The tool image is unavailable in this conversation or its content has changed. Capture a new image.",
         "ToolImageBatchLimit": "At most three tool images can be inspected in one model step.",
@@ -28,6 +33,7 @@
         "FilePresentationCount": "Select between 1 and {{count}} files.",
         "FileOutputUnavailable": "Cannot present this file: it is missing, empty, unsafe, or larger than 25 MiB: {{path}}",
         "FileOutputReadFailed": "Cannot read the selected file: {{path}}",
+        "FileContentNotReadable": "This file cannot be read directly as text. Use a parser or tool that supports its format.",
         "FileOutputChanged": "The selected file changed while being read. Retry presenting it: {{path}}",
         "DocumentSourceOutsideKnowledgebase": "The source document is outside the selected knowledgebase.",
         "DocumentSourceRevisionChanged": "The parsed source changed during reading. Restart from its first page.",
@@ -172,6 +178,8 @@
         "TagUseStatus": "Use tag status to enable or disable a tag.",
         "KnowledgeTableMetadataReservedKey": "tableMetadata is reserved for generated table descriptions.",
         "KnowledgeTableMetadataInvalidResponse": "The model returned invalid table metadata.",
+        "KnowledgeTableMetadataCopiedSample": "The description repeats the sample value \"{{sample}}\".",
+        "KnowledgeTableMetadataUnsupportedEvidence": "Column {{columnId}} evidence \"{{evidence}}\" is not an exact excerpt of its column label or the business guidance.",
         "KnowledgeTableMetadataStale": "The table or its processing settings changed. Reprocess the document.",
         "KnowledgeTableMetadataInputTooLarge": "The table metadata input exceeds the model context budget.",
         "InvalidKnowledgeTableIndexedFields": "Selected table columns are unavailable in {{sheetName}}: {{fields}}. Preview the table and select valid columns.",
@@ -1034,6 +1042,12 @@
         }
     },
     "DesktopShell": {
+        "ApprovalTitle": "Allow this command on your computer?",
+        "Directory": "Working directory",
+        "Command": "Command",
+        "Access": "Local access",
+        "ApprovalNotice": "Runs as your computer user. Output is sent to Xpert. The working directory does not restrict file access.",
+        "Denied": "Local execution was denied or unavailable. Stop this operation; do not retry or switch computers without a new user request.",
         "INVALID_MESSAGE": "Invalid desktop shell request.",
         "INVALID_SETTINGS": "Invalid Shell settings.",
         "DEVICE_OFFLINE": "This computer is offline. Open Xpert Desktop and enable Shell.",

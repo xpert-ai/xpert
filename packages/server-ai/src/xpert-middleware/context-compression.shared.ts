@@ -46,6 +46,7 @@ export const CONTEXT_WINDOW_EXCEEDED_FINISH_REASON = 'model_context_window_excee
 export const CONTEXT_WINDOW_RETRY_STATE_KEY = '__contextCompressionContextWindowRetryApplied'
 export const COMPRESSION_NO_GAIN_RETRY_STATE_KEY = '__contextCompressionNoGainRetryState'
 export const COMPRESSION_FAILURE_RETRY_STATE_KEY = '__contextCompressionFailureRetryState'
+export const COMPRESSION_TOKEN_CALIBRATION_STATE_KEY = '__contextCompressionTokenCalibration'
 export const MANUAL_COMPRESSION_RESULT_STATE_KEY = '__contextCompressionManualCommandResult'
 export const COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA = 1024
 export const MANUAL_COMPRESSION_SUCCESS_MESSAGE = 'Context compressed.'
@@ -98,6 +99,12 @@ export const CompressionFailureRetryStateSchema = z.object({
     nextRetryAt: z.number()
 })
 
+export const CompressionTokenCalibrationSchema = z.object({
+    modelKey: z.string(),
+    fixedInputTokens: z.number().finite().nonnegative(),
+    ratio: z.number().finite().min(1)
+})
+
 export class ContextSummaryError extends Error {
     constructor(readonly reason: 'summary_invalid' | 'summary_input_budget' | 'summary_output_budget') {
         super(reason)
@@ -113,6 +120,7 @@ export const ContextCompressionStateSchema = z.object({
     [CONTEXT_WINDOW_RETRY_STATE_KEY]: z.boolean().default(false),
     [COMPRESSION_NO_GAIN_RETRY_STATE_KEY]: CompressionNoGainRetryStateSchema.nullish(),
     [COMPRESSION_FAILURE_RETRY_STATE_KEY]: CompressionFailureRetryStateSchema.nullish(),
+    [COMPRESSION_TOKEN_CALIBRATION_STATE_KEY]: CompressionTokenCalibrationSchema.nullish(),
     [MANUAL_COMPRESSION_RESULT_STATE_KEY]: ManualCompressionResultSchema.optional()
 })
 
@@ -174,9 +182,11 @@ export interface PromptTokenAnchor {
     index: number
     promptTokens: number
     source: string
+    includesOutput: boolean
 }
 
 export interface PromptWindowEstimate {
+    calibrationRatio: number
     fixedInputTokens: number
     estimatedPromptTokens: number
     reservedOutputTokens: number

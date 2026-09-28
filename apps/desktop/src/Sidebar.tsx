@@ -5,7 +5,8 @@ import { ArrowLeft, ArrowRight, LoaderCircle, PanelLeft, Plus, RefreshCw, Search
 import { AssistantItem, type AssistantAction } from './AssistantItems'
 import { AssistantDialog } from './AssistantDialog'
 import { useAssistantList } from './useAssistantList'
-import { assistantRows, type AssistantRow } from './assistant-list-model'
+import { AssistantScrollArea } from './AssistantScrollArea'
+import { assistantGroups, assistantRows, type AssistantRow } from './assistant-list-model'
 import { SidebarResizer } from './SidebarResizer'
 import type { ConversationNotice } from './assistant-list-types'
 import { invoke } from './host'
@@ -21,6 +22,7 @@ export function Sidebar({
   onSelect,
   onRefresh,
   onOrganization,
+  onRefreshOrganizations,
   onSettings,
   onBrowse,
   onLogout,
@@ -35,6 +37,7 @@ export function Sidebar({
   onSelect: (id: string, threadId?: string | null) => void
   onRefresh: () => void
   onOrganization: (id: string) => void
+  onRefreshOrganizations: () => void
   onSettings: () => void
   onBrowse: () => void
   onLogout: () => void
@@ -61,11 +64,18 @@ export function Sidebar({
   }
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
   const pinned = rows.filter((row) => !!row.preference?.pinnedAt)
-  const unpinned = rows.filter((row) => !row.preference?.pinnedAt)
-  const selectRow = (row: AssistantRow) => {
+  const groups = assistantGroups(rows, list.sidebar)
+  const groupLabel = (group: (typeof groups)[number]) =>
+    group.kind === 'section' || group.kind === 'domain' ? group.name : t(group.name)
+  const selectRow = (row: AssistantRow, threadId?: string | null) => {
     if (row.preference?.unreadAt)
       void list.run(() => list.update({ action: 'unread', botId: row.bot.id, unread: false }))
-    onSelect(row.bot.id, row.activity?.latestUnreadThreadId || row.activity?.latestConversationThreadId || null)
+    onSelect(
+      row.bot.id,
+      threadId === undefined
+        ? row.activity?.latestUnreadThreadId || row.activity?.latestConversationThreadId || null
+        : threadId
+    )
   }
   const action = (row: AssistantRow, action: AssistantAction) => {
     if (action === 'edit' || action === 'duplicate' || action === 'section') {
@@ -99,6 +109,7 @@ export function Sidebar({
       key={row.bot.id}
       row={row}
       mode={mode}
+      preview={mode === 'compact' || !collapsed}
       selected={selected}
       sidebar={list.sidebar}
       busy={list.busy}
@@ -107,21 +118,7 @@ export function Sidebar({
       onMove={(row, sectionId) => void list.run(() => list.update({ action: 'move', botId: row.bot.id, sectionId }))}
     />
   )
-  const sections = [
-    ...list.sidebar.sections.map((section) => ({
-      ...section,
-      rows: unpinned.filter((row) => row.preference?.sectionId === section.id)
-    })),
-    {
-      id: '',
-      name: t('Unassigned'),
-      rows: unpinned.filter(
-        (row) =>
-          !row.preference?.sectionId ||
-          !list.sidebar.sections.some((section) => section.id === row.preference?.sectionId)
-      )
-    }
-  ].sort((a, b) => Number(b.rows.some((row) => row.unread)) - Number(a.rows.some((row) => row.unread)))
+  const sections = groups.filter((group) => group.kind !== 'pinned')
   const [history, setHistory] = useState<{ ids: string[]; index: number }>({ ids: [], index: -1 })
   const searchInput = useRef<HTMLInputElement>(null)
   const searchButton = useRef<HTMLButtonElement>(null)
@@ -164,7 +161,7 @@ export function Sidebar({
     >
       {!collapsed && <SidebarResizer width={list.sidebar.width} onChange={setLayout} onCommit={saveLayout} />}
       <div
-        className={`window-drag flex shrink-0 gap-1 text-muted-foreground ${collapsed ? `justify-center ${isMac ? 'h-[88px] items-end pb-2' : 'h-[48px] items-center'}` : `h-[48px] items-center pr-4 ${isMac ? 'pt-[2px] pl-[88px]' : 'pl-5'}`}`}
+        className={`window-drag flex shrink-0 gap-1 text-muted-foreground ${collapsed ? `justify-center ${isMac ? 'h-[88px] items-end' : 'h-[48px] items-center'}` : `h-[48px] items-center pr-4 ${isMac ? 'pt-[2px] pl-[88px]' : 'pl-5'}`}`}
       >
         <Button
           size="icon"
@@ -211,8 +208,8 @@ export function Sidebar({
             size="icon"
             variant="ghost"
             className="mb-2 size-12 shrink-0 text-muted-foreground"
-            aria-label={t('Search Bots')}
-            title={t('Search Bots')}
+            aria-label={t('Search digital experts')}
+            title={t('Search digital experts')}
             onClick={() => {
               setCollapsed(false)
               setSearchOpen(true)
@@ -220,10 +217,7 @@ export function Sidebar({
           >
             <Search className="size-5" />
           </Button>
-          <nav
-            aria-label={t('Assistant avatars')}
-            className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1 py-2 [scrollbar-width:thin]"
-          >
+          <AssistantScrollArea label={t('Assistant avatars')} className="flex flex-col items-center gap-1 px-1 py-1">
             {pending && (
               <span
                 role="status"
@@ -245,20 +239,29 @@ export function Sidebar({
                 <RefreshCw />
               </Button>
             )}
-            {!pending && !error && [...pinned, ...unpinned].map((row) => renderRow(row, 'compact'))}
-            {!pending && !error && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-12 shrink-0"
-                aria-label={t('Discover & add')}
-                title={t('Discover experts, apps and agent templates')}
-                onClick={onBrowse}
-              >
-                <Plus />
-              </Button>
-            )}
-          </nav>
+            {!pending &&
+              !error &&
+              groups.map((group, index) => (
+                <section
+                  key={group.id}
+                  aria-label={groupLabel(group)}
+                  className="flex w-full flex-col items-center gap-1"
+                >
+                  {index > 0 && <div role="separator" className="my-2 w-8 shrink-0 border-t" />}
+                  {group.rows.map((row) => renderRow(row, 'compact'))}
+                </section>
+              ))}
+          </AssistantScrollArea>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="my-1 size-12 shrink-0"
+            aria-label={t('Discover & add')}
+            title={t('Discover digital experts, apps, plugins and templates')}
+            onClick={onBrowse}
+          >
+            <Plus />
+          </Button>
           <div className="flex w-full shrink-0 justify-center border-t py-3">
             <UserMenu
               profile={profile}
@@ -275,8 +278,9 @@ export function Sidebar({
           <div className="-ml-2 flex min-w-0 items-center gap-2">
             <Select
               value={profile.organizationId || undefined}
+              onOpenChange={(open) => open && onRefreshOrganizations()}
               onValueChange={onOrganization}
-              disabled={pending || !profile.organizations.length}
+              disabled={pending}
             >
               <SelectTrigger
                 className="min-w-0 max-w-[calc(100%-40px)] justify-start gap-1.5 border-0 px-2 text-lg leading-6 font-semibold tracking-tight shadow-none hover:bg-muted data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-muted [&>[data-slot=select-value]]:block [&>[data-slot=select-value]]:truncate"
@@ -298,8 +302,8 @@ export function Sidebar({
               size="icon"
               variant="ghost"
               className="ml-auto size-8 shrink-0 text-muted-foreground"
-              aria-label={searchOpen ? t('Close search') : t('Search Bots')}
-              title={searchOpen ? t('Close search') : t('Search Bots')}
+              aria-label={searchOpen ? t('Close search') : t('Search digital experts')}
+              title={searchOpen ? t('Close search') : t('Search digital experts')}
               aria-expanded={searchOpen}
               aria-controls="bot-search"
               onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
@@ -312,8 +316,8 @@ export function Sidebar({
               <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
               <Input
                 ref={searchInput}
-                aria-label={t('Search Bots')}
-                placeholder={t('Search Bots')}
+                aria-label={t('Search digital experts')}
+                placeholder={t('Search digital experts')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -325,7 +329,7 @@ export function Sidebar({
           )}
           <div className="mt-4 mb-2 flex items-center justify-between">
             <h2 className="text-[0.8125rem] leading-5 font-medium text-muted-foreground">
-              {t('My Bots')}
+              {t('My digital experts')}
               <span className="ml-1 text-xs font-normal">{bots.length || ''}</span>
             </h2>
             <div className="flex">
@@ -345,7 +349,7 @@ export function Sidebar({
                 variant="ghost"
                 className="size-7"
                 aria-label={t('Discover & add')}
-                title={t('Discover experts, apps and agent templates')}
+                title={t('Discover digital experts, apps, plugins and templates')}
                 onClick={onBrowse}
               >
                 <Plus />
@@ -353,10 +357,7 @@ export function Sidebar({
             </div>
           </div>
         </div>
-        <nav
-          aria-label={t('My Bots')}
-          className="min-h-0 flex-1 space-y-[var(--desktop-row-gap)] overflow-y-auto px-3 pb-2"
-        >
+        <AssistantScrollArea label={t('My digital experts')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
           {pending && (
             <p role="status" className="flex items-center gap-2 px-3 py-5 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
@@ -396,11 +397,17 @@ export function Sidebar({
           {!pending &&
             !error &&
             sections.map(
-              (section) =>
+              (section, index) =>
                 section.rows.length > 0 && (
-                  <section key={section.id} aria-label={section.name}>
-                    {list.sidebar.sections.length > 0 && (
-                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">{section.name}</h3>
+                  <section
+                    key={section.id}
+                    aria-label={groupLabel(section)}
+                    className={index > 0 ? 'border-t pt-2' : ''}
+                  >
+                    {(section.kind === 'domain' || sections.length > 1 || list.sidebar.sections.length > 0) && (
+                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                        {groupLabel(section)}
+                      </h3>
                     )}
                     <div className="space-y-[var(--desktop-row-gap)]">{section.rows.map((row) => renderRow(row))}</div>
                   </section>
@@ -413,7 +420,7 @@ export function Sidebar({
                 : t('No Bots are available in this workspace. Publish an assistant in Xpert, then refresh.')}
             </p>
           )}
-        </nav>
+        </AssistantScrollArea>
         <div className="shrink-0 px-4 pb-3">
           <div className="mt-2 border-t pt-2">
             <UserMenu profile={profile} webUrl={state.config.webUrl} onSettings={onSettings} onLogout={onLogout} />

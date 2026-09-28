@@ -297,6 +297,47 @@ describe('XpertMarketplaceService', () => {
         expect(acrossGroups.items.map((item) => item.xpert.id)).toEqual(['sales-agent'])
     })
 
+    it('filters the complete catalog by business-area identity and categories before pagination', async () => {
+        const salesArea = { id: 'area-sales', name: 'Sales' }
+        const financeArea = { id: 'area-finance', name: 'Finance' }
+        const xperts = [
+            ...Array.from({ length: 201 }, (_, index) => createDiscoverableXpert({ id: `unassigned-${index}` })),
+            createDiscoverableXpert({
+                id: 'sales-productivity',
+                businessArea: salesArea,
+                businessAreaId: salesArea.id,
+                marketplace: { businessCategories: ['productivity'] }
+            }),
+            createDiscoverableXpert({
+                id: 'sales-communication',
+                businessArea: salesArea,
+                businessAreaId: salesArea.id,
+                marketplace: { businessCategories: ['communication'] }
+            }),
+            createDiscoverableXpert({
+                id: 'finance',
+                businessArea: financeArea,
+                businessAreaId: financeArea.id,
+                marketplace: { businessCategories: ['productivity'] }
+            })
+        ]
+        const { service, queryBuilder } = createService({ xperts })
+        const result = await service.findMarketplace({
+            businessAreaIds: ['area-sales'],
+            businessCategories: ['productivity'],
+            take: 1
+        })
+        expect(result.items.map((item) => item.xpert.id)).toEqual(['sales-productivity'])
+        expect(result.total).toBe(1)
+        expect(result.businessAreas).toEqual([financeArea, salesArea])
+        expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('xpert.businessArea', 'businessArea')
+        expect(queryBuilder.take).not.toHaveBeenCalled()
+
+        const empty = await service.findMarketplace({ businessAreaIds: ['unavailable-area'] })
+        expect(empty.total).toBe(0)
+        expect(empty.businessAreas).toEqual([financeArea, salesArea])
+    })
+
     it('returns the existing requested access request instead of creating a duplicate', async () => {
         const existingRequest = createRequest()
         const { service, requestRepository } = createService({

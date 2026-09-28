@@ -766,26 +766,32 @@ describe('context compression small-window tool budgets', () => {
     it.each([
         [131072, 22000, 28000, 45000],
         [200000, 6000, 42000, 97000]
-    ])('reserves the non-tool messages even in a %i window', async (window, oldTokens, recentTokens, textTokens) => {
-        const f = createContext()
-        const middleware = await new ContextCompressionMiddleware().createMiddleware({}, f.context)
-        const update = await getBeforeModel(middleware)(
-            {
-                messages: [
-                    new HumanMessage('Read old'),
-                    tool('old', oldTokens),
-                    new HumanMessage('Read recent'),
-                    tool('recent', recentTokens),
-                    new HumanMessage('c'.repeat(textTokens * 4))
-                ]
-            },
-            createRuntimeConfig(f.subscriber, 'Continue', { context_size: window, max_tokens: 4096 })
-        )
-        if (!update) throw new Error('Missing compression update')
-        expect(f.model.invoke).not.toHaveBeenCalled()
-        expect(
-            update?.messages?.some((message) => message.additional_kwargs.pruned || message.additional_kwargs.truncated)
-        ).toBe(true)
-        expect(JSON.stringify(f.model.invoke.mock.calls)).not.toContain('Tool output truncated')
-    })
+    ])(
+        'summarizes old turns when trimming barely fits a %i window',
+        async (window, oldTokens, recentTokens, textTokens) => {
+            const f = createContext()
+            const middleware = await new ContextCompressionMiddleware().createMiddleware({}, f.context)
+            const outputs = [tool('old', oldTokens), tool('recent', recentTokens)]
+            for (const output of outputs) {
+                output.additional_kwargs = { truncated: true, originalFile: `/existing-output-${output.id}.txt` }
+            }
+            const latestRequest = new HumanMessage('c'.repeat(textTokens * 4))
+            const update = await getBeforeModel(middleware)(
+                {
+                    messages: [
+                        new HumanMessage('Read old'),
+                        outputs[0],
+                        new HumanMessage('Read recent'),
+                        outputs[1],
+                        latestRequest
+                    ]
+                },
+                createRuntimeConfig(f.subscriber, 'Continue', { context_size: window, max_tokens: 4096 })
+            )
+            if (!update) throw new Error('Missing compression update')
+            expect(f.model.invoke).toHaveBeenCalledTimes(1)
+            expect(update.messages?.some((message) => message.additional_kwargs.compressed)).toBe(true)
+            expect(update.messages).toContain(latestRequest)
+        }
+    )
 })

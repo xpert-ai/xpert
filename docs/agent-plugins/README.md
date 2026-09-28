@@ -12,6 +12,22 @@
 
 Packages are organization-scoped. Runtime checks cover the organization, workspace, project, Assistant, resource and expert permissions. Users can select published package bindings and automatically discovered resources described below, and use connections configured by workspace administrators. Assistant access governs runtime use; users do not own Connector accounts.
 
+## Workspace editor additions in Desktop
+
+Discover & add > Plugins uses a searchable workspace combobox containing only current-organization workspaces the actor can edit. It adds already imported organization packages without opening the administrator page. Required logical expert references must be mapped to accessible published experts before adding.
+
+- `GET /api/agent-plugins/workspace-options`: editable workspace and authorized expert choices.
+- `GET /api/agent-plugins/workspaces/:id`: safe display catalog and workspace publication status; no source paths, MCP configuration or credentials.
+- `POST /api/agent-plugins/workspaces/:id/plugins`: `{ packageId, experts }`; returns `added` or `already_added` and `bindingId`.
+
+Each read/write checks workspace edit permission and organization scope. Addition targets exactly one workspace, uses the existing resource installer, preserves other workspace bindings and existing published versions, and cannot re-enable a disabled binding. A package-family/workspace advisory lock serializes repeated additions. Git/ZIP import, replacement, disabling and shared connection administration retain their existing administrator checks. Connector dependencies may need a workspace administrator to configure them first. Adding a plugin does not select it in a conversation; users select available capabilities in ChatKit afterward.
+
+### Desktop connection handoff
+
+ChatKit sends the connection command directly to Desktop without another confirmation dialog. A non-blocking status strip allows cancellation while the browser handles authorization. Its host validates the Assistant, organization, workspace binding and configuration permission, then opens `/workspace-connection` with `autostart=1` and identities only. The browser host revalidates the same context and enters the existing target Connector flow automatically. OAuth continues in that browser tab to retain its callback-binding cookie; credential forms and embedded QR flows retain their existing behavior. Regular Cloud chat continues using its existing popup flow.
+
+A Desktop attempt is bound to the current session generation, organization and binding, expires after ten minutes, and is superseded by a newer attempt. Desktop polls every 2.5 seconds with no overlapping requests; repeated commands for the same binding reuse the pending attempt. Only a fresh server response reporting a granted, active shared connection can finish the attempt and foreground the native app. Cancellation or a context change prevents a late completion; cancellation stops waiting without revoking provider access. No authorization codes or credentials are passed through a return URL. The message draft is preserved.
+
 ## 会话行为
 
 ### Automatic resource discovery

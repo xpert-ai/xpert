@@ -71,6 +71,56 @@ test('catalog follows pagination and does not leak DSL, application configuratio
   assert.ok(calls.every((call) => call.headers['organization-id'] === 'org-1'))
 })
 
+test('expert discovery exposes the published business area separately from marketplace categories', async () => {
+  const entry = expert('owned')
+  entry.xpert.businessArea = { id: 'area-sales', name: 'Sales', secret: 'never-expose' }
+  const { service } = fixture(() => ({ items: [entry], total: 1 }))
+  const [item] = await service.listCatalog('experts')
+  assert.deepEqual(item.businessArea, { id: 'area-sales', name: 'Sales' })
+  assert.deepEqual(item.categories, ['productivity'])
+  assert.doesNotMatch(JSON.stringify(item), /never-expose/)
+})
+
+test('application screenshots are normalized consistently for catalog and detail without exposing local files', async () => {
+  const inline = 'data:image/png;base64,cHJldmlldw=='
+  const sources = [
+    inline,
+    ' https://cdn.example.com/screen.webp ',
+    inline,
+    '/assets/screenshot.png',
+    'http://127.0.0.1:4200/local.png',
+    './assets/unresolved-plugin-file.png',
+    'file:///private/screenshot.png',
+    'javascript:alert(1)',
+    'data:text/html;base64,cHJldmlldw==',
+    'https://user:secret@example.com/private.png',
+    '//untrusted.example.com/image.png',
+    'http://remote.example.com/insecure.png',
+    'https://',
+    '  ',
+    null,
+    42
+  ]
+  const response = {
+    ...detail,
+    application: { ...app, config: { presentation: { screenshots: sources } } }
+  }
+  const { service } = fixture((path) => (path.endsWith('/catalog') ? [response] : response))
+  service.configure({ ...service.config, webUrl: 'https://workspace.example.com/explore' })
+  service.credentials = { token: 'fixture' }
+  service.profile = { organizationId: 'org-1' }
+  const expected = [
+    inline,
+    'https://cdn.example.com/screen.webp',
+    'https://workspace.example.com/assets/screenshot.png',
+    'http://127.0.0.1:4200/local.png'
+  ]
+  assert.deepEqual((await service.listCatalog('applications'))[0].screenshots, expected)
+  assert.deepEqual((await service.applicationSetup(app)).application.screenshots, expected)
+  response.application.config.presentation.screenshots = null
+  assert.deepEqual((await service.listCatalog('applications'))[0].screenshots, [])
+})
+
 test('expert access request rechecks access and submits only the reason, not renderer scope', async () => {
   let requested = false
   const { service, calls } = fixture((path, options) => {
@@ -132,6 +182,8 @@ test('application preflight denial and initializing state prevent writes; ready 
 test('template install requires a writable workspace, excludes app templates and publishes the created assistant', async () => {
   let isApp = false
   const { service, calls } = fixture((path) => {
+    if (path === '/api/copilot/availables/primary')
+      return { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
     if (path.endsWith('/my'))
       return {
         items: [
@@ -175,6 +227,8 @@ test('organization switch while resolving template setup cancels installation be
 
 test('ambiguous template POST failures are never automatically retried', async () => {
   const { service, calls } = fixture((path) => {
+    if (path === '/api/copilot/availables/primary')
+      return { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
     if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
     if (path.endsWith('/install')) throw new Error('Connection reset after sending request')
     return { type: 'agent' }
@@ -183,4 +237,54 @@ test('ambiguous template POST failures are never automatically retried', async (
     status: 503
   })
   assert.equal(calls.filter((call) => call.method === 'POST').length, 1)
+})
+
+test('template preflight requires an authorized primary default and never exposes its configuration', async () => {
+  let primary = null
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/my'))
+      return { items: [{ id: 'workspace', name: 'Workspace', capabilities: { canWrite: true } }] }
+    if (path === '/api/copilot/availables/primary') return primary
+    // A secondary model alone is insufficient for managed import.
+    if (path === '/api/copilot/models') return [{ id: 'secondary' }]
+    return { type: 'agent' }
+  })
+  for (const invalid of [
+    null,
+    { id: 'primary' },
+    { id: 'primary', copilotModel: { model: ' ' } },
+    { id: 'primary', copilotModel: { model: 'embed', modelType: 'text-embedding' } }
+  ]) {
+    primary = invalid
+    assert.deepEqual(await service.templateSetup(), {
+      workspaces: [{ id: 'workspace', name: 'Workspace' }],
+      hasPrimaryLanguageModel: false
+    })
+    await assert.rejects(service.installTemplate({ id: 'template', workspaceId: 'workspace', title: 'Test' }), {
+      status: 403
+    })
+  }
+  assert.ok(calls.every((call) => call.method === 'GET'))
+  for (const modelType of ['llm', undefined]) {
+    primary = { id: 'primary', copilotModel: { model: 'custom-default', modelType }, credentials: 'never-expose' }
+    assert.equal((await service.templateSetup()).hasPrimaryLanguageModel, true)
+    assert.doesNotMatch(JSON.stringify(await service.templateSetup()), /never-expose|custom-default/)
+  }
+})
+
+test('template install rechecks the primary default after setup and fails closed on lookup errors', async () => {
+  let primary = { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
+    if (path === '/api/copilot/availables/primary') return primary
+    return { type: 'agent' }
+  })
+  assert.equal((await service.templateSetup()).hasPrimaryLanguageModel, true)
+  primary = null
+  await assert.rejects(service.installTemplate({ id: 'template', workspaceId: 'workspace', title: 'Test' }), {
+    status: 403
+  })
+  primary = new Response('denied', { status: 403 })
+  await assert.rejects(service.templateSetup(), { status: 403 })
+  assert.ok(calls.every((call) => call.method === 'GET'))
 })

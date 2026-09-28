@@ -4,6 +4,7 @@ import {
     IResolvedAssistantBinding,
     IUser,
     IUserOrganization,
+    PermissionsEnum,
     SANDBOX_TERMINAL_NAMESPACE,
     XpertMobileAssistantBindingSummary,
     XpertMobileBootstrap,
@@ -15,7 +16,7 @@ import {
     XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { UnauthorizedException, Injectable } from '@nestjs/common'
-import { UserService } from '@xpert-ai/server-core'
+import { OrganizationService, UserService } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AssistantBindingService } from '../assistant-binding/assistant-binding.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -35,7 +36,8 @@ export class MobileService {
     constructor(
         private readonly userService: UserService,
         private readonly assistantBindingService: AssistantBindingService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
+        private readonly organizationService: OrganizationService
     ) {}
 
     async getBootstrap(): Promise<XpertMobileBootstrap> {
@@ -48,7 +50,30 @@ export class MobileService {
         const user = await this.userService.findCurrentUser(userId, ['organizations', 'organizations.organization'], {
             currentOrganizationId: activeOrganizationId
         })
-        const organizations = summarizeOrganizations(user.organizations ?? [])
+        let organizations = summarizeOrganizations(user.organizations ?? [])
+        // Tenant administrators can enter organizations without a membership, just as in Cloud.
+        if (RequestContext.hasAnyPermission([PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT])) {
+            const result = await this.organizationService.findAll({
+                where: { tenantId: user.tenantId, isActive: true },
+                select: [
+                    'id',
+                    'tenantId',
+                    'name',
+                    'imageUrl',
+                    'isDefault',
+                    'isActive',
+                    'timeZone',
+                    'preferredLanguage'
+                ],
+                order: { name: 'ASC' }
+            })
+            organizations = result.items.map((organization) =>
+                summarizeOrganization(
+                    user.organizations?.find((membership) => membership.organizationId === organization.id),
+                    organization
+                )
+            )
+        }
         const defaultOrganizationId =
             organizations.find((organization) => organization.id === activeOrganizationId)?.id ??
             organizations.find((organization) => organization.isDefault)?.id ??
@@ -59,7 +84,7 @@ export class MobileService {
             deployment: getDeploymentConfig(),
             user: summarizeUser(user),
             organizations,
-            activeOrganizationId: activeOrganizationId ?? defaultOrganizationId,
+            activeOrganizationId: defaultOrganizationId,
             defaultOrganizationId,
             assistantBindings: await this.getAssistantBindings()
         }
@@ -76,6 +101,7 @@ export class MobileService {
         const [items, total] = await Promise.all([
             this.publishedXpertAccessService.findAccessiblePublishedXperts({
                 where,
+                relations: ['businessArea'],
                 search,
                 take: limit,
                 skip: offset,
@@ -159,16 +185,16 @@ export function summarizeOrganizations(memberships: IUserOrganization[]): XpertM
 }
 
 export function summarizeOrganization(
-    membership: IUserOrganization,
+    membership: Pick<IUserOrganization, 'tenantId' | 'isDefault' | 'isActive'> | undefined,
     organization: IOrganization
 ): XpertMobileOrganizationSummary {
     return {
         id: organization.id,
-        tenantId: organization.tenantId ?? membership.tenantId ?? null,
+        tenantId: organization.tenantId ?? membership?.tenantId ?? null,
         name: organization.name,
         imageUrl: organization.imageUrl ?? null,
-        isDefault: membership.isDefault === true || organization.isDefault === true,
-        isActive: membership.isActive !== false && organization.isActive !== false,
+        isDefault: membership?.isDefault === true || organization.isDefault === true,
+        isActive: membership?.isActive !== false && organization.isActive !== false,
         timeZone: organization.timeZone ?? null,
         preferredLanguage: organization.preferredLanguage ?? null
     }
@@ -188,8 +214,11 @@ export function summarizeAssistantBinding(binding: IResolvedAssistantBinding): X
 }
 
 export function summarizeXpert(xpert: Xpert): XpertMobileXpertSummary {
+    const area = xpert.businessArea
+    const areaName = area?.name?.trim()
     return {
         id: xpert.id,
+        createdAt: xpert.createdAt ?? null,
         slug: xpert.slug,
         name: `${xpert.name}`,
         type: xpert.type,
@@ -202,6 +231,7 @@ export function summarizeXpert(xpert: Xpert): XpertMobileXpertSummary {
         workspaceId: xpert.workspaceId ?? null,
         organizationId: xpert.organizationId ?? null,
         publishAt: xpert.publishAt ?? null,
+        businessArea: area?.id && areaName ? { id: area.id, name: areaName } : null,
         starters: xpert.starters ?? null
     }
 }

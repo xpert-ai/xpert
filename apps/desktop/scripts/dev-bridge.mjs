@@ -1,6 +1,9 @@
 import crypto from 'node:crypto'
-import { DesktopService } from '../electron/service.cjs'
-import { dispatch } from '../electron/dispatch.cjs'
+import { createRequire } from 'node:module'
+// Keep the Node host outside Vite's ESM configuration bundle.
+const require = createRequire(import.meta.url)
+const { DesktopService } = require('../electron/service.cjs')
+const { dispatch } = require('../electron/dispatch.cjs')
 
 // Browser preview only: each HttpOnly cookie owns an isolated, in-memory host session.
 export function desktopBridge() {

@@ -1,6 +1,7 @@
 // Credentials stay in the host. Only scoped ChatKit secrets cross into the renderer.
 const { MessageError, normalizeLocale, isSupportedLocale, localizedText } = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
+const { parseBusinessArea } = require('./business-area.cjs')
 const DEFAULT_CONFIG = {
   apiUrl: 'http://localhost:3000',
   webUrl: 'http://localhost:4200',
@@ -95,10 +96,13 @@ function parseBots(value, locale) {
       const avatar = item.avatar
       return {
         id: item.id,
+        createdAt:
+          typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : null,
         name: [...(locale?.startsWith('zh') ? [item.titleCN] : []), item.title, item.name].find(
           (title) => typeof title === 'string' && title.trim()
         ),
         description: localizedText(item.description, locale),
+        businessArea: parseBusinessArea(item.businessArea),
         avatarEmoji:
           typeof avatar?.emoji?.id === 'string'
             ? { id: avatar.emoji.id, unified: typeof avatar.emoji.unified === 'string' ? avatar.emoji.unified : null }
@@ -211,6 +215,33 @@ class DesktopService {
     return this.profile
   }
 
+  async refreshProfile() {
+    if (!this.credentials) return this.snapshot()
+    if (this.refreshingProfile) return this.refreshingProfile
+    this.refreshingProfile = (async () => {
+      const generation = this.generation
+      const profile = parseBootstrap(await this.request('/api/mobile/bootstrap', { scope: 'tenant' }))
+      const currentOrganizationId = this.profile?.organizationId
+      if (profile.organizations.some((organization) => organization.id === currentOrganizationId)) {
+        profile.organizationId = currentOrganizationId
+      }
+      if (profile.organizationId !== this.profile?.organizationId) {
+        await this.shell?.disable()
+        if (generation !== this.generation) throw new ClientError('The session changed. Please retry.', 409)
+        this.generation++
+        this.bots = []
+        this.sourceBots = []
+      }
+      this.profile = profile
+      this.credentials = { ...this.credentials, organizationId: profile.organizationId }
+      this.persist()
+      return this.snapshot()
+    })().finally(() => {
+      this.refreshingProfile = null
+    })
+    return this.refreshingProfile
+  }
+
   async selectOrganization(id) {
     if (!this.profile?.organizations.some((item) => item.id === id))
       throw new ClientError('You cannot access this workspace.', 403)
@@ -283,18 +314,22 @@ class DesktopService {
     return this.refreshing
   }
 
-  async request(path, { method = 'GET', body, auth = true, token, scope, retry = true, timeout = 20000 } = {}) {
+  async request(
+    path,
+    { method = 'GET', body, auth = true, token, scope, retry = true, timeout = 20000, responseType = 'json' } = {}
+  ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
     const generation = this.generation
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'Accept-Language': this.config.locale
+      'Accept-Language': this.config.locale,
+      language: this.config.locale
     }
     if (auth || token) headers.Authorization = `Bearer ${token || this.credentials.token}`
     if (auth && this.credentials.tenantId) headers['tenant-id'] = this.credentials.tenantId
     const organizationId = this.profile?.organizationId || this.credentials?.organizationId
-    if (auth && organizationId) headers['organization-id'] = organizationId
+    if (auth && organizationId && scope !== 'tenant') headers['organization-id'] = organizationId
     if (auth && scope) headers['x-scope-level'] = scope
     let response
     try {
@@ -321,7 +356,7 @@ class DesktopService {
         if (error.status === 401) this.logout()
         throw error
       }
-      return this.request(path, { method, body, auth, scope, retry: false, timeout })
+      return this.request(path, { method, body, auth, scope, retry: false, timeout, responseType })
     }
     if (!response.ok) {
       if (response.status === 401)
@@ -336,7 +371,7 @@ class DesktopService {
     }
     let value
     try {
-      value = await response.json()
+      value = responseType === 'text' ? await response.text() : response.status === 204 ? null : await response.json()
     } catch {
       throw new ClientError('Invalid service response. Check the API URL.', 502)
     }
@@ -346,7 +381,10 @@ class DesktopService {
 }
 
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 

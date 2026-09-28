@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <clipPath id="tile">
+      <rect x="100" y="100" width="824" height="824" rx="184" />
+    </clipPath>
+    <filter id="shadow" x="0" y="0" width="1024" height="1024" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.16" />
+    </filter>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="#000000" filter="url(#shadow)" />
+  <!-- Place the supplied raster tile inside the established Dock footprint, excluding its white outer canvas. -->
+  <image x="-21.727273" y="-21.727273" width="1067.454545" height="1067.454545" xlink:href="logo.png" clip-path="url(#tile)" />
+</svg>

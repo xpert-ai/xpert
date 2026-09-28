@@ -39,6 +39,34 @@ describe('auto chunking', () => {
         expect(result.chunks.every((chunk) => chunk.metadata.chunking?.requestedStrategy === 'auto')).toBe(true)
     })
 
+    it('splits the same ATX headings for CRLF and LF', async () => {
+        const lf = '# One\n\nAlpha.\n\n# Two\n\nBeta.\n\n# Three\n\nGamma.'
+        const crlf = lf.replace(/\n/g, '\r\n')
+        const markdown = new MarkdownRecursiveStrategy()
+        const project = (chunks: Array<{ pageContent: string; metadata: ChunkMetadata }>) =>
+            chunks.map((chunk) => ({
+                headers: chunk.metadata.headers,
+                pageContent: chunk.pageContent.replace(/\r\n/g, '\n')
+            }))
+        const expected = [
+            { headers: [{ level: 1, text: 'One' }], pageContent: '# One\n\nAlpha.' },
+            { headers: [{ level: 1, text: 'Two' }], pageContent: '# Two\n\nBeta.' },
+            { headers: [{ level: 1, text: 'Three' }], pageContent: '# Three\n\nGamma.' }
+        ]
+
+        for (const text of [lf, crlf]) {
+            const automatic = await auto.splitDocuments([source(text)], options)
+            const legacy = await markdown.splitDocuments([source(text)], options)
+            expect(automatic.decisions[0]).toMatchObject({
+                resolvedStrategy: 'markdown-recursive',
+                reason: 'markdown-headings',
+                blockCounts: { heading: 3, paragraph: 3 }
+            })
+            expect(project(automatic.chunks)).toEqual(expected)
+            expect(project(legacy.chunks)).toEqual(expected)
+        }
+    })
+
     it('keeps a short introduction with its following table', async () => {
         const text =
             '库存记录与操作顺序\n四、分类记录（包含合并单元格）\n\n| 类别 | 设备 |\n| --- | --- |\n| 音视频 | 投影仪 |'

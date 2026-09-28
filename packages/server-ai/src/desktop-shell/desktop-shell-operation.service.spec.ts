@@ -1,17 +1,17 @@
 import 'reflect-metadata'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
 import type { RedisClientType } from 'redis'
 import type { ShellReport } from '@xpert-ai/contracts'
 import { LIMITS } from '@xpert-ai/desktop-protocol'
 import { DesktopShellAuthService } from './desktop-shell-auth.service'
 import { DesktopShellOperationService } from './desktop-shell-operation.service'
-import { DesktopShellDevice, DesktopShellOperation } from './desktop-shell.entities'
+import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './desktop-shell.entities'
 
 jest.mock('@xpert-ai/server-core', () => ({ TenantOrganizationBaseEntity: class {}, REDIS_CLIENT: 'REDIS_CLIENT' }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: {} }))
 jest.mock('i18next', () => ({ t: (_key: string, opts: { defaultValue: string }) => opts.defaultValue }))
 
-function fixture() {
+function fixture(command = 'pwd') {
     const scope = {
         tenantId: randomUUID(),
         organizationId: randomUUID(),
@@ -30,6 +30,20 @@ function fixture() {
         shell: '/bin/zsh',
         leaseExpiresAt: new Date(Date.now() + 90000)
     }
+    const grant = {
+        id: scope.grantId,
+        enabled: true,
+        expiresAt: new Date(Date.now() + 90000),
+        operation: {
+            runId: scope.runId,
+            toolCallId: scope.toolCallId,
+            argsHash: createHash('sha256')
+                .update(JSON.stringify([command, '/tmp', LIMITS.timeout]))
+                .digest('hex'),
+            decision: 'approved'
+        }
+    }
+    const grants = { findOne: jest.fn(async () => grant) }
     let stored: DesktopShellOperation | null = null
     const devices = { findOne: jest.fn(async () => device), findOneBy: jest.fn(async () => device) }
     const operations = {
@@ -43,12 +57,15 @@ function fixture() {
             return stored
         })
     }
-    const manager = { getRepository: (entity: object) => (entity === DesktopShellDevice ? devices : operations) }
+    const manager = {
+        getRepository: (entity: object) =>
+            entity === DesktopShellDevice ? devices : entity === DesktopShellGrant ? grants : operations
+    }
     const transaction = async <T>(work: (manager: object) => Promise<T>) => work(manager)
     const auth = {
         devices: { ...devices, manager: { transaction } },
         operations: { ...operations, manager: { transaction } },
-        requireGrant: jest.fn(async () => ({ device, grant: { id: scope.grantId } }))
+        requireGrant: jest.fn(async () => ({ device, grant }))
     }
     const redis = { publish: jest.fn(async () => 0) }
     const service = new DesktopShellOperationService(
@@ -66,18 +83,41 @@ function fixture() {
             data: 'hello',
             ...update
         }) as ShellReport
-    return { scope, device, service, operations, auth, report }
+    return { scope, device, service, operations, auth, report, grant, grants }
 }
 
 describe('Desktop Shell operation delivery', () => {
-    it('reuses the durable operation on retry and rejects changed arguments', async () => {
+    it.each(['pending', 'rejected'])('never dispatches a %s operation', async (decision) => {
         const f = fixture()
+        f.grant.operation.decision = decision
+        await expect(f.service.execute({ action: 'exec', command: 'pwd' }, f.scope)).rejects.toMatchObject({
+            status: 403
+        })
+        expect(f.operations.save).not.toHaveBeenCalled()
+    })
+    it('rechecks expiry/revocation under the execution lock', async () => {
+        const f = fixture()
+        f.grant.expiresAt = new Date(0)
+        await expect(f.service.execute({ action: 'exec', command: 'pwd' }, f.scope)).rejects.toMatchObject({
+            status: 403
+        })
+        expect(f.operations.save).not.toHaveBeenCalled()
+    })
+    it.each(['runId', 'toolCallId'])('binds approval to %s', async (key) => {
+        const f = fixture()
+        await expect(
+            f.service.execute({ action: 'exec', command: 'pwd' }, { ...f.scope, [key]: randomUUID() })
+        ).rejects.toMatchObject({ status: 403 })
+        expect(f.operations.save).not.toHaveBeenCalled()
+    })
+    it('reuses the durable operation on retry and rejects changed arguments', async () => {
+        const f = fixture('echo once')
         const first = await f.service.execute({ action: 'exec', command: 'echo once' }, f.scope)
         const retry = await f.service.execute({ action: 'exec', command: 'echo once' }, f.scope)
         expect(retry.id).toBe(first.id)
         expect(f.operations.save).toHaveBeenCalledTimes(1)
         await expect(f.service.execute({ action: 'exec', command: 'echo twice' }, f.scope)).rejects.toMatchObject({
-            status: 409
+            status: 403
         })
     })
     it('fails closed for offline or busy devices without creating queued work', async () => {

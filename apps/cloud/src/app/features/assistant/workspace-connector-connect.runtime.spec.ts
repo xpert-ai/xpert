@@ -11,8 +11,9 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
 jest.mock('../../@core/services/xpert-connector.service', () => ({ XpertConnectorService: class {} }))
 jest.mock('../xpert/workspace/connectors/connectors.component', () => ({ XpertConnectorsComponent: class {} }))
 
-function setup() {
+function setup(currentTab = false) {
   const assistantId = signal<string | null>('assistant')
+  const requestKey = signal('organization:assistant:binding')
   const options: ConnectorRuntimeOptions = {
     scope: { type: 'workspace', workspaceId: 'assistant-workspace' },
     canManageWorkspace: true,
@@ -43,9 +44,14 @@ function setup() {
       { provide: XpertConnectorService, useValue: { runtimeOptions } }
     ]
   })
-  const connect = TestBed.runInInjectionContext(() => injectWorkspaceConnectorConnect(assistantId))
+  const connect = TestBed.runInInjectionContext(() =>
+    injectWorkspaceConnectorConnect(
+      assistantId,
+      currentTab ? { authorizationNavigation: 'current-tab', requestKey } : undefined
+    )
+  )
   TestBed.flushEffects()
-  return { assistantId, options, runtimeOptions, open, close, connect }
+  return { assistantId, requestKey, options, runtimeOptions, open, close, connect }
 }
 async function settle() {
   for (let i = 0; i < 10; i++) await Promise.resolve()
@@ -115,6 +121,21 @@ describe('host workspace Connector command', () => {
     const pending = connect(request)
     await settle()
     assistantId.set('other-assistant')
+    TestBed.flushEffects()
+    expect(close).toHaveBeenCalledWith({ status: 'cancelled' })
+    await expect(pending).resolves.toEqual({ status: 'cancelled' })
+  })
+
+  it('uses the same browser tab for Desktop handoff and cancels a changed organization context', async () => {
+    const { connect, open, close, requestKey } = setup(true)
+    const pending = connect(request)
+    await settle()
+    expect(open.mock.calls[0][1].injector?.get(WORKSPACE_CONNECTOR_DIALOG)).toEqual({
+      workspaceId: 'assistant-workspace',
+      bindingId: 'binding',
+      authorizationNavigation: 'current-tab'
+    })
+    requestKey.set('other-organization:assistant:binding')
     TestBed.flushEffects()
     expect(close).toHaveBeenCalledWith({ status: 'cancelled' })
     await expect(pending).resolves.toEqual({ status: 'cancelled' })

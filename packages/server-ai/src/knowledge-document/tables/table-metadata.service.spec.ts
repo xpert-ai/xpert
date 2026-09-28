@@ -1,4 +1,5 @@
 jest.mock('../../shared/agent/middleware-runtime', () => ({ AgentMiddlewareRuntimeService: class {} }))
+import i18next from 'i18next'
 import { Repository } from 'typeorm'
 import {
     IKnowledgebase,
@@ -104,6 +105,10 @@ function fixture() {
     return { knowledgebase, document, source, repository, invoke, detectLanguage, runtime, service, builder }
 }
 
+beforeAll(async () => {
+    if (!i18next.isInitialized) await i18next.init({ lng: 'en', resources: {} })
+})
+
 describe('KnowledgeTableMetadataService', () => {
     it('uses the model-selected Japanese language for Han-only headers and reuses it on retry', async () => {
         const f = fixture()
@@ -191,6 +196,60 @@ describe('KnowledgeTableMetadataService', () => {
         expect(result.status).toBe('generated')
         expect(f.invoke).toHaveBeenCalledTimes(2)
         expect(result.tables[0].columns[0].unit).toBeUndefined()
+    })
+
+    it('retries with the concrete validation error and stores a distinguishable failure', async () => {
+        const prepareFailure = async (content: string) => {
+            const f = fixture()
+            f.document.parserConfig.indexedFields = undefined
+            f.detectLanguage.mockResolvedValue({ content: '{"language":"zh"}' })
+            f.source.headerRow = undefined
+            f.source.rowCount = 1
+            f.source.columns = [
+                { columnId: 'A', key: 'A', label: 'A', column: 1 },
+                { columnId: 'B', key: 'B', label: 'B', column: 2 }
+            ]
+            f.source.samples = [{ rowNumber: 1, values: { A: '冷却水泵-01', B: '归还前' } }]
+            f.invoke.mockResolvedValue({ content })
+            const failed = await f.service.prepare(f.document, f.knowledgebase, [f.source])
+            const retryMessages = f.invoke.mock.calls[1][0] as Array<{ role: string; content: string }>
+            return {
+                status: failed.status,
+                error: failed.error ?? '',
+                retry: retryMessages[retryMessages.length - 1].content,
+                languageInput: JSON.stringify(f.detectLanguage.mock.calls)
+            }
+        }
+        const evidence = await prepareFailure(
+            JSON.stringify({
+                summary: '设备阶段台账',
+                columns: [
+                    { columnId: 'A', description: '设备标识' },
+                    { columnId: 'B', description: '阶段名称', evidence: '归还前' }
+                ]
+            })
+        )
+        const copied = await prepareFailure(
+            JSON.stringify({
+                summary: '设备阶段台账',
+                columns: [
+                    { columnId: 'A', description: '样例为冷却水泵-01' },
+                    { columnId: 'B', description: '阶段名称' }
+                ]
+            })
+        )
+        expect(evidence.status).toBe('failed')
+        expect(evidence.languageInput).toContain('归还前')
+        expect(evidence.error).toContain('归还前')
+        expect(evidence.error).toMatch(/not an exact excerpt|不是列标签/)
+        expect(evidence.error).not.toMatch(/invalid table metadata|模型返回的表格元数据无效/)
+        expect(evidence.retry.startsWith('The previous output failed validation:')).toBe(true)
+        expect(evidence.retry).toContain(evidence.error)
+        expect(copied.status).toBe('failed')
+        expect(copied.error).toContain('冷却水泵-01')
+        expect(copied.error).toMatch(/repeats the sample|重复了样例值/)
+        expect(copied.error).not.toBe(evidence.error)
+        expect(copied.retry).toContain(copied.error)
     })
 
     it('shows complete structure after a wide-table failure and resumes only unfinished column batches', async () => {

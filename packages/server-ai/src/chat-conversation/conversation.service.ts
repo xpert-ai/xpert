@@ -232,6 +232,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         c."threadId",
                         c."xpertId",
                         c.title,
+                        c.status,
                         c."createdAt",
                         c."updatedAt"
                     FROM chat_conversation c
@@ -315,6 +316,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         "xpertId",
                         id AS "latestConversationId",
                         "threadId" AS "latestConversationThreadId",
+                        status AS "latestConversationStatus",
                         NULLIF(BTRIM(title), '') AS "latestConversationTitle",
                         COALESCE("updatedAt", "createdAt") AS "latestConversationAt"
                     FROM scoped_conversations
@@ -334,7 +336,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     latest_conversations."latestConversationAt" AS "latestConversationAt",
                     latest_conversations."latestConversationId" AS "latestConversationId",
                     latest_conversations."latestConversationThreadId" AS "latestConversationThreadId",
-                    latest_conversations."latestConversationTitle" AS "latestConversationTitle"
+                    latest_conversations."latestConversationTitle" AS "latestConversationTitle",
+                    latest_conversations."latestConversationStatus" AS "latestConversationStatus"
                 FROM latest_conversations
                 LEFT JOIN counts
                     ON counts."xpertId" = latest_conversations."xpertId"
@@ -353,6 +356,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             latestConversationId?: string | null
             latestConversationThreadId?: string | null
             latestConversationTitle?: string | null
+            latestConversationStatus?: IChatConversationUnreadXpertSummary['latestConversationStatus']
         }>
 
         return rows.map((row) => ({
@@ -365,7 +369,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             latestConversationAt: row.latestConversationAt ?? null,
             latestConversationId: row.latestConversationId ?? null,
             latestConversationThreadId: row.latestConversationThreadId ?? null,
-            latestConversationTitle: row.latestConversationTitle ?? null
+            latestConversationTitle: row.latestConversationTitle ?? null,
+            latestConversationStatus: row.latestConversationStatus ?? null
         }))
     }
 

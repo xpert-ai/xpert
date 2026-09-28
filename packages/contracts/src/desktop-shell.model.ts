@@ -106,6 +106,7 @@ export interface IDesktopShellDevice extends ShellScope {
   leaseExpiresAt: Date | null
 }
 export interface IDesktopShellGrant extends ShellScope {
+  operation: ShellOperationAuthorization | null
   id: string
   deviceId: string
   assistantId: string
@@ -133,4 +134,30 @@ export interface IDesktopShellOperation extends ShellScope {
   signal: string | null
   truncated: boolean
   errorCode: string | null
+}
+
+export type ShellPolicy = 'ask' | 'allow' | 'deny'
+export interface ShellPreparationRequest {
+  kind: 'desktop-shell'
+  assistantId: string
+  threadId: string
+  runId: string
+  toolCallId: string
+  command: string
+  cwd?: string
+  timeoutSec: number
+}
+export interface ShellOperationAuthorization {
+  runId: string
+  toolCallId: string
+  argsHash: string
+  decision: 'pending' | 'approved' | 'rejected'
+}
+export interface ShellPreparation {
+  kind: 'desktop-shell'
+  grantId: string
+  deviceName: string
+  cwd: string
+  decision: 'pending' | 'approved'
+  expiresAt: number
 }

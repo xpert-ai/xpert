@@ -31,6 +31,13 @@ export const routes: Routes = [
         redirectTo: 'chat',
         pathMatch: 'full'
       },
+      {
+        path: 'workspace-connection',
+        loadComponent: () =>
+          import('./assistant/workspace-connection-page.component').then((m) => m.WorkspaceConnectionPageComponent),
+        canActivate: [authGuard],
+        data: { title: 'Workspace connection', scopeContext: 'dual-scope' }
+      },
       // Xpert Routers
       {
         path: 'chat',

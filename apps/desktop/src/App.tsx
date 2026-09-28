@@ -12,6 +12,7 @@ import { HostError, invoke } from './host'
 import type { AppState, Bot, ConnectionConfig } from './types'
 import { applyDesktopTheme } from './theme'
 import { defaultAppearance } from './appearance-types'
+import { AssistantPreviewScope } from './profile/PreviewScope'
 
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
@@ -51,7 +52,7 @@ export function App() {
     try {
       setState(await invoke('state'))
     } catch (error) {
-      setFatal(error instanceof Error ? error.message : t('Could not load Xpert.'))
+      setFatal(error instanceof Error ? error.message : t('Could not load Bosi.'))
     }
   }, [])
   useEffect(() => {
@@ -134,7 +135,7 @@ export function App() {
         ) : (
           <>
             <LoaderCircle className="size-5 animate-spin" />
-            {t('Opening Xpert…')}
+            {t('Opening Bosi…')}
           </>
         )}
       </div>
@@ -144,36 +145,47 @@ export function App() {
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
       {state.profile ? (
         <div className="flex h-full">
-          <Sidebar
-            key={binding}
-            state={state}
-            bots={bots}
-            selected={selected}
-            pending={pending}
-            error={error}
-            onSelect={selectBot}
-            notice={notice}
-            onBotSaved={async (id) => {
-              await loadBots()
-              selectBot(id)
-            }}
-            onRefresh={() => void loadBots()}
-            onSettings={() => setSettings(true)}
-            onBrowse={() => setCatalog(true)}
-            onLogout={async () => setState(await invoke('logout'))}
-            onOrganization={async (id) => {
-              request.current++
-              setBots([])
-              setSelected(null)
-              setPending(true)
-              try {
-                setState(await invoke('selectOrganization', id))
-              } catch (error) {
-                setError(error instanceof Error ? error.message : t('Could not switch organization.'))
-                setPending(false)
-              }
-            }}
-          />
+          <AssistantPreviewScope key={binding}>
+            <Sidebar
+              key={binding}
+              state={state}
+              bots={bots}
+              selected={selected}
+              pending={pending}
+              error={error}
+              onSelect={selectBot}
+              notice={notice}
+              onBotSaved={async (id) => {
+                await loadBots()
+                selectBot(id)
+              }}
+              onRefresh={() => void loadBots()}
+              onRefreshOrganizations={async () => {
+                try {
+                  setState(await invoke('refreshProfile'))
+                } catch (error) {
+                  if (error instanceof HostError && error.status === 409) return
+                  setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                  if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
+                }
+              }}
+              onSettings={() => setSettings(true)}
+              onBrowse={() => setCatalog(true)}
+              onLogout={async () => setState(await invoke('logout'))}
+              onOrganization={async (id) => {
+                request.current++
+                setBots([])
+                setSelected(null)
+                setPending(true)
+                try {
+                  setState(await invoke('selectOrganization', id))
+                } catch (error) {
+                  setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                  setPending(false)
+                }
+              }}
+            />
+          </AssistantPreviewScope>
           <main className="flex min-w-0 flex-1 flex-col">
             {bot ? (
               <ChatPanel
@@ -242,7 +254,7 @@ export function App() {
                     'The assistant is not available yet. Check its publishing status and access permissions, then retry.'
                   )
                 )
-              setSelected(id)
+              selectBot(id)
               setError('')
               setCatalog(false)
             } finally {

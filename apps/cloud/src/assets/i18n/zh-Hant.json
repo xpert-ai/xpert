@@ -288,7 +288,10 @@
     "Title": "元數分析雲",
     "Explore": {
       "AgentSquare": {
-        "UseExpert": "使用專家"
+        "UseExpert": "使用專家",
+        "BusinessDomains": "業務領域",
+        "MarketplaceCategories": "業務分類",
+        "ClearBusinessDomain": "清除業務領域"
       },
       "Application": {
         "SetupExplanation": "應用程式已可用。初始化後，將為目前組織建立工作空間和入口助理。",
@@ -7963,6 +7966,23 @@
       "Target": {
         "prompt_workflow": "提示词"
       }
+    },
+    "Desktop": {
+      "ConnectWorkspaceService": "連接工作空間服務",
+      "ConnectionReturnHint": "連接服務後，請返回 Bosi 檢查連線。訊息草稿保留在 Bosi 中。",
+      "ConnectionOrganizationMismatch": "請先選擇與 Bosi 相同的組織再繼續。",
+      "ConnectionReady": "連線成功。請返回 Bosi 繼續。",
+      "ConfigureConnection": "設定工作空間連線",
+      "PluginWorkspaceHint": "來自 Bosi：{{workspace}}。請核對下方工作空間選擇，再儲存可用範圍。",
+      "ConnectionAutoReturnHint": "請在此完成服務連線，連線成功後將自動回到 Bosi。",
+      "ConnectionAutoReady": "連線成功，Bosi 正在檢查結果。可以關閉此分頁。",
+      "ConnectionOpening": "正在開啟服務連線…",
+      "ConnectionComplete": "連線成功",
+      "ConnectionContinue": "繼續連線",
+      "ConnectionInvalidLink": "連線連結不完整，請從 Bosi 重新發起。",
+      "ConnectionDraftSafe": "訊息草稿保留在 Bosi 中。設定共用服務需要相應工作空間的管理權限。",
+      "ConnectionAuthorizeStep": "完成服務授權",
+      "ConnectionReturnStep": "返回 Bosi"
     }
   },
   "ViewExtension": {

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="626" height="606" viewBox="0 0 626 606" fill="none">
+  <!-- Outer rounded square -->
+  <rect
+    x="69" y="67"
+    width="479" height="479"
+    rx="14"
+    stroke="currentColor"
+    stroke-width="40"
+    stroke-linejoin="round"
+  />
+
+  <!-- Left bold chevron ">" -->
+  <path
+    d="M142 146 L297 302 L143 467"
+    stroke="currentColor"
+    stroke-width="40"
+    stroke-linecap="butt"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Right thin chevron "<" (large, shifted right) -->
+  <path
+    d="M493 154 L343 304 L493 459"
+    stroke="currentColor"
+    stroke-width="8"
+    stroke-linecap="butt"
+    stroke-linejoin="miter"
+    fill="none"
+  />
+
+  <!-- Right thin chevron "<" (small, nested, shifted right) -->
+  <path
+    d="M479 254 L429 304 L482 357"
+    stroke="currentColor"
+    stroke-width="6"
+    stroke-linecap="butt"
+    stroke-linejoin="miter"
+    fill="none"
+  />
+</svg>

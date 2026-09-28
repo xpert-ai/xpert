@@ -245,7 +245,8 @@ describe('ChatConversationService workspace files', () => {
                 latestConversationAt: '2026-06-21T00:05:00.000Z',
                 latestConversationId: 'conversation-latest',
                 latestConversationThreadId: 'thread-latest',
-                latestConversationTitle: 'Latest planning chat'
+                latestConversationTitle: 'Latest planning chat',
+                latestConversationStatus: 'idle'
             }
         ])
 
@@ -277,6 +278,7 @@ describe('ChatConversationService workspace files', () => {
         expect(sql).toContain('AS "latestUnreadConversationId"')
         expect(sql).toContain('AS "latestUnreadThreadId"')
         expect(sql).toContain('AS "latestConversationTitle"')
+        expect(sql).toContain('status AS "latestConversationStatus"')
         expect(sql).toContain('FROM latest_conversations')
         expect(sql).toContain('LEFT JOIN counts')
         expect(sql).toContain('LEFT JOIN latest')
@@ -291,7 +293,8 @@ describe('ChatConversationService workspace files', () => {
                 latestConversationAt: '2026-06-21T00:05:00.000Z',
                 latestConversationId: 'conversation-latest',
                 latestConversationThreadId: 'thread-latest',
-                latestConversationTitle: 'Latest planning chat'
+                latestConversationTitle: 'Latest planning chat',
+                latestConversationStatus: 'idle'
             }
         ])
     })
@@ -305,7 +308,8 @@ describe('ChatConversationService workspace files', () => {
                 latestConversationAt: '2026-06-21T00:05:00.000Z',
                 latestConversationId: 'conversation-latest',
                 latestConversationThreadId: 'thread-latest',
-                latestConversationTitle: 'Latest planning chat'
+                latestConversationTitle: 'Latest planning chat',
+                latestConversationStatus: 'idle'
             }
         ])
 
@@ -322,7 +326,8 @@ describe('ChatConversationService workspace files', () => {
                 latestConversationAt: '2026-06-21T00:05:00.000Z',
                 latestConversationId: 'conversation-latest',
                 latestConversationThreadId: 'thread-latest',
-                latestConversationTitle: 'Latest planning chat'
+                latestConversationTitle: 'Latest planning chat',
+                latestConversationStatus: 'idle'
             }
         ])
     })

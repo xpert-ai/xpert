@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Button, Input, Label } from '@xpert-ai/shadcn-ui'
 import { LoaderCircle, Square, Terminal } from 'lucide-react'
 import type { ShellResult, ShellSettings as Settings } from '@xpert-ai/contracts'
-import { invoke } from './host'
-import { t } from './i18n'
-import type { DesktopShellState } from './types'
-import { ThemeSelect } from './ThemeFields'
+import { invoke } from '../host'
+import { t } from '../i18n'
+import type { DesktopShellState } from '../types'
+import { ThemeSelect } from '../ThemeFields'
 
 export function ShellSettings() {
   const [state, setState] = useState<DesktopShellState | null>(null)
@@ -48,10 +48,10 @@ export function ShellSettings() {
       setPending(false)
     }
   }
-  if (!state) return <p role="status">{t('Loading Shell status…')}</p>
+  if (!state) return <p role={error ? 'alert' : 'status'}>{error || t('Loading Shell status…')}</p>
   if (!state.available || !draft)
     return <p className="text-sm text-muted-foreground">{t('Desktop Shell requires the native macOS app.')}</p>
-  const status = state.enabled ? (state.connected ? t('Connected') : t('Connecting…')) : t('Disabled')
+  const status = state.enabled ? (state.connected ? t('Connected') : t('Connecting…')) : t('Connects when needed')
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
@@ -68,18 +68,37 @@ export function ShellSettings() {
           'Allow an authorized conversation to run commands with your computer user permissions. Command output is sent to Xpert. The working directory does not restrict file access.'
         )}
       </p>
+      <fieldset disabled={pending}>
+        <ThemeSelect
+          label={t('Execution permission')}
+          value={state.policy ?? 'ask'}
+          options={[
+            { value: 'ask', label: t('Ask for every command') },
+            { value: 'allow', label: t('Always allow in this organization') },
+            { value: 'deny', label: t('Never allow') }
+          ]}
+          onChange={(policy) => {
+            if (!pending) void run(() => invoke('shellPolicy', policy))
+          }}
+        />
+      </fieldset>
+      <p className="text-xs text-muted-foreground">
+        {t(
+          'Applies only to your account, this organization and this computer. Always allow permits future commands without asking.'
+        )}
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="shell-name">{t('Computer name')}</Label>
           <Input
             id="shell-name"
             value={draft.name}
-            disabled={pending || state.enabled}
+            disabled={pending}
             maxLength={100}
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
           />
         </div>
-        <fieldset disabled={pending || state.enabled}>
+        <fieldset disabled={pending}>
           <ThemeSelect
             label={t('Shell')}
             value={draft.shell}
@@ -88,7 +107,7 @@ export function ShellSettings() {
               { value: '/bin/bash', label: 'bash' }
             ]}
             onChange={(shell) => {
-              if (!state.enabled && !pending) setDraft({ ...draft, shell })
+              if (!pending) setDraft({ ...draft, shell })
             }}
           />
         </fieldset>
@@ -97,7 +116,7 @@ export function ShellSettings() {
           <Input
             id="shell-cwd"
             value={draft.cwd}
-            disabled={pending || state.enabled}
+            disabled={pending}
             onChange={(event) => setDraft({ ...draft, cwd: event.target.value })}
           />
         </div>
@@ -106,28 +125,26 @@ export function ShellSettings() {
           <Input
             id="shell-path"
             value={draft.path}
-            disabled={pending || state.enabled}
+            disabled={pending}
             onChange={(event) => setDraft({ ...draft, path: event.target.value })}
           />
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        {t(
-          'Shell changes apply immediately. Enable again after restarting the app. Each command starts a fresh, non-interactive shell.'
-        )}
+        {t('Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.')}
       </p>
       <Button
         type="button"
         disabled={pending}
         variant={state.enabled ? 'outline' : 'default'}
-        onClick={() => void run(() => (state.enabled ? invoke('shellDisable') : invoke('shellEnable', draft)))}
+        onClick={() => void run(() => invoke('shellConfigure', draft))}
       >
         {pending && <LoaderCircle className="size-4 animate-spin" />}
-        {state.enabled ? t('Disable Shell') : t('Enable Shell')}
+        {t('Apply Shell settings')}
       </Button>
       {(error || state.errorCode) && (
         <p role="alert" className="text-sm text-destructive">
-          {error || t('Desktop Shell could not connect. Check the service and enable it again.')}
+          {error || t('Desktop Shell could not connect. Check the service and try a new command.')}
         </p>
       )}
       {operations.length > 0 && (

@@ -1,11 +1,17 @@
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { MessagesAnnotation, StateGraph, START, END } from '@langchain/langgraph'
+import { emptyCheckpoint, MemorySaver } from '@langchain/langgraph-checkpoint'
 import { EntityManager, FindOperator, Repository } from 'typeorm'
 import { CopilotCheckpointSaver } from '../copilot-checkpoint/checkpoint-saver'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { copyBranchCheckpoints } from './branch-checkpoints'
+
+// Repository doubles do not need the server-core database bootstrap.
+jest.mock('@xpert-ai/server-core', () => ({
+    TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {}
+}))
 
 /** Real graph/serializer, with an in-memory implementation of the persistence boundary. */
 function store() {
@@ -84,6 +90,44 @@ function store() {
 }
 
 describe('conversation branch checkpoints', () => {
+    it('repairs legacy constructor copies in checkpoint and pending-write reads and writes', async () => {
+        const db = store()
+        const native = new MemorySaver().serde
+        const original = new ToolMessage({ content: 'STALE_OUTPUT'.repeat(10000), tool_call_id: 'call-1' })
+        const legacy = new ToolMessage({ ...original, content: '[Old tool output cleared. Tool: read_file]' })
+        const checkpoint = { ...emptyCheckpoint(), channel_values: { messages: [legacy] } }
+        const metadata = { source: 'update' as const, step: 1, parents: {} }
+        const [type, bytes] = await native.dumpsTyped(checkpoint)
+        const [, metadataBytes] = await native.dumpsTyped(metadata)
+        const [, writeBytes] = await native.dumpsTyped({ messages: [legacy] })
+        const reference = { thread_id: 'legacy-thread', checkpoint_ns: '', checkpoint_id: checkpoint.id }
+        db.rows.push(
+            Object.assign(new CopilotCheckpoint(), reference, { type, checkpoint: bytes, metadata: metadataBytes })
+        )
+        db.writes.push(
+            Object.assign(new CopilotCheckpointWrites(), reference, {
+                task_id: 'task-1',
+                channel: 'agent',
+                idx: 0,
+                type,
+                value: writeBytes
+            })
+        )
+
+        const restored = await db.saver.getTuple({ configurable: reference })
+        expect(restored?.checkpoint.channel_values.messages).toEqual([
+            expect.objectContaining({ content: legacy.content, tool_call_id: 'call-1' })
+        ])
+        expect(JSON.stringify(restored).length).toBeLessThan(4000)
+        expect(JSON.stringify(restored)).not.toContain('STALE_OUTPUT')
+        expect(restored?.pendingWrites).toEqual([['task-1', 'agent', { messages: [expect.any(ToolMessage)] }]])
+
+        await db.saver.put({ configurable: reference }, checkpoint, metadata)
+        await db.saver.putWrites({ configurable: reference }, [['agent', { messages: [legacy] }]], 'task-1')
+        expect(db.rows[0].checkpoint.byteLength).toBeLessThan(2000)
+        expect(db.writes[0].value.byteLength).toBeLessThan(2000)
+    })
+
     it('continues from A1 without H2, replayed tool calls, or dependence on the source', async () => {
         const db = store()
         let toolCalls = 0

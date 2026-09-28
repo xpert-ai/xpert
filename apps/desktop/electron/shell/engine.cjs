@@ -84,12 +84,14 @@ class ShellEngine {
   }
   setGrants(grants) {
     this.grants = new Map(
-      grants.filter((g) => isId(g.id) && Number.isFinite(g.expiresAt)).map((g) => [g.id, g.expiresAt])
+      grants
+        .filter((g) => isId(g.id) && Number.isFinite(g.expiresAt) && /^[a-f0-9]{64}$/.test(g.argsHash))
+        .map((g) => [g.id, g])
     )
     if (this.current && !this.authorized(this.current.record.grantId)) this.cancel(this.current.record.id)
   }
   authorized(id) {
-    return (this.grants.get(id) || 0) > this.clock()
+    return (this.grants.get(id)?.expiresAt || 0) > this.clock()
   }
   emit(record, payload) {
     if (this.epoch) this.report({ version: VERSION, operationId: record.id, connectionEpoch: this.epoch, ...payload })
@@ -133,6 +135,13 @@ class ShellEngine {
       return this.replay(existing)
     }
     if (!this.authorized(command.grantId) || this.leaseUntil <= this.clock()) throw new Error('GRANT_REVOKED')
+    if (
+      this.grants.get(command.grantId)?.argsHash !== command.argsHash ||
+      [...this.records.values()].some(
+        (record) => record.grantId === command.grantId && record.id !== command.operationId
+      )
+    )
+      throw new Error('GRANT_REVOKED')
     if (digest(command) !== command.argsHash) throw new Error('OPERATION_CONFLICT')
     this.cleanup()
     const bytes = [...this.records.values()].reduce((sum, record) => sum + record.bytes, 0)

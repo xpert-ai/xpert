@@ -22,14 +22,14 @@ function setup(t) {
   const epoch = randomUUID(),
     grantId = randomUUID()
   engine.connect(epoch, Date.now() + 90000)
-  engine.setGrants([{ id: grantId, expiresAt: Date.now() + 90000 }])
+  const permits = []
   const command = (value, extra = {}) => {
     const c = {
       type: 'exec',
       version: 1,
       operationId: randomUUID(),
       connectionEpoch: epoch,
-      grantId,
+      grantId: randomUUID(),
       command: value,
       cwd: root,
       timeoutSec: 5,
@@ -37,6 +37,10 @@ function setup(t) {
       ...extra
     }
     c.argsHash = digest(c)
+    if (!extra.grantId) {
+      permits.push({ id: c.grantId, argsHash: c.argsHash, expiresAt: Date.now() + 90000 })
+      engine.setGrants(permits)
+    }
     return c
   }
   const done = async (c) => {
@@ -162,7 +166,7 @@ test('worker restart turns uncertain intent into unknown without rerunning', asy
   const c = f.command('touch forbidden-retry')
   const record = {
     id: c.operationId,
-    grantId: f.grantId,
+    grantId: c.grantId,
     argsHash: c.argsHash,
     deadline: c.deadline,
     state: 'pending',
@@ -177,7 +181,7 @@ test('worker restart turns uncertain intent into unknown without rerunning', asy
   const restarted = new ShellEngine({ directory: f.directory, settings: f.settings, report() {} })
   t.after(() => restarted.close())
   restarted.connect(f.epoch, Date.now() + 90000)
-  restarted.setGrants([{ id: f.grantId, expiresAt: Date.now() + 90000 }])
+  restarted.setGrants([{ id: c.grantId, argsHash: c.argsHash, expiresAt: Date.now() + 90000 }])
   restarted.accept(c)
   assert.equal(restarted.records.get(c.operationId).state, 'unknown')
   assert.equal(fs.existsSync(path.join(f.root, 'forbidden-retry')), false)
@@ -222,4 +226,24 @@ test('unavailable executable produces a failed result without a success code', a
   assert.equal(result.state, 'failed')
   assert.equal(result.errorCode, 'SPAWN_FAILED')
   assert.notEqual(result.exitCode, 0)
+})
+
+test('one permit cannot run another command or a second operation', async (t) => {
+  const f = setup(t),
+    c = f.command('echo once >> one-use')
+  const changed = { ...c, command: 'touch forbidden' }
+  changed.argsHash = digest(changed)
+  assert.throws(() => f.engine.accept(changed), /GRANT_REVOKED/)
+  f.engine.accept(c)
+  await f.done(c)
+  assert.throws(() => f.engine.accept({ ...c, operationId: randomUUID() }), /GRANT_REVOKED/)
+  assert.equal(fs.readFileSync(path.join(f.root, 'one-use'), 'utf8'), 'once\n')
+  assert.equal(fs.existsSync(path.join(f.root, 'forbidden')), false)
+})
+test('legacy conversation grants do not authorize commands', (t) => {
+  const f = setup(t),
+    c = f.command('touch legacy')
+  f.engine.setGrants([{ id: c.grantId, expiresAt: Date.now() + 90000 }])
+  assert.throws(() => f.engine.accept(c), /GRANT_REVOKED/)
+  assert.equal(fs.existsSync(path.join(f.root, 'legacy')), false)
 })

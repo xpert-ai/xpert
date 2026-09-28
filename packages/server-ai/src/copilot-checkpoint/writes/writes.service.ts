@@ -1,5 +1,6 @@
 import { SerializerProtocol } from '@langchain/langgraph-checkpoint'
 import { JsonPlusSerializer } from '../serde/jsonplus'
+import { WRITES_IDX_MAP } from '@langchain/langgraph-checkpoint'
 import { ICopilotCheckpointWrites } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -9,47 +10,48 @@ import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/se
 
 @Injectable()
 export class CopilotCheckpointWritesService extends TenantOrganizationAwareCrudService<CopilotCheckpointWrites> {
-	serde: SerializerProtocol = new JsonPlusSerializer()
+    serde: SerializerProtocol = new JsonPlusSerializer()
 
-	constructor(
-		@InjectRepository(CopilotCheckpointWrites)
-		repository: Repository<CopilotCheckpointWrites>
-	) {
-		super(repository)
-	}
+    constructor(
+        @InjectRepository(CopilotCheckpointWrites)
+        repository: Repository<CopilotCheckpointWrites>
+    ) {
+        super(repository)
+    }
 
-	async upsert(entities: Partial<ICopilotCheckpointWrites>[]) {
-		await this.repository.manager.transaction(async (transactionalEntityManager) => {
-			let idx = 0
-			for await (const entity of entities) {
-				const [type, serializedWrite] = await this.serde.dumpsTyped(entity.value)
-				await transactionalEntityManager.upsert(
-					CopilotCheckpointWrites,
-					{
-						...entity,
-						idx,
-						type,
-						value: serializedWrite,
-						tenantId: RequestContext.currentTenantId(),
-						organizationId: RequestContext.getOrganizationId()
-					},
-					{
-						conflictPaths: [
-							'organizationId',
-							'thread_id',
-							'checkpoint_ns',
-							'checkpoint_id',
-							'task_id',
-							'idx'
-						]
-					}
-				)
-				idx++
-			}
-		})
-	}
+    async upsert(entities: (Omit<Partial<ICopilotCheckpointWrites>, 'value'> & { value?: unknown })[]) {
+        await this.repository.manager.transaction(async (transactionalEntityManager) => {
+            let idx = 0
+            for await (const entity of entities) {
+                const [type, serializedWrite] = await this.serde.dumpsTyped(entity.value)
+                await transactionalEntityManager.upsert(
+                    CopilotCheckpointWrites,
+                    {
+                        ...entity,
+                        // Remote graph workers use the same reserved indices as the local saver.
+                        idx: WRITES_IDX_MAP[entity.channel] ?? idx,
+                        type,
+                        value: serializedWrite,
+                        tenantId: RequestContext.currentTenantId(),
+                        organizationId: RequestContext.getOrganizationId()
+                    },
+                    {
+                        conflictPaths: [
+                            'organizationId',
+                            'thread_id',
+                            'checkpoint_ns',
+                            'checkpoint_id',
+                            'task_id',
+                            'idx'
+                        ]
+                    }
+                )
+                idx++
+            }
+        })
+    }
 
-	async deleteByThreadId(threadId: string): Promise<void> {
-		await this.delete({ thread_id: threadId })
-	}
+    async deleteByThreadId(threadId: string): Promise<void> {
+        await this.delete({ thread_id: threadId })
+    }
 }

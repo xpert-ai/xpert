@@ -1,8 +1,13 @@
 import { Document } from '@langchain/core/documents'
 import { KnowledgeTableMetadata, KnowledgeTableSource } from '@xpert-ai/contracts'
+import i18next from 'i18next'
 import { conservativeEmbeddingTokenCount } from '../embedding-input-guard'
 import { projectTableMetadata, tableModelBatches, parseTableModelResult } from './table-metadata'
 import { tableSummaryBatches } from './table-summary'
+
+beforeAll(async () => {
+    if (!i18next.isInitialized) await i18next.init({ lng: 'en', resources: {} })
+})
 
 const source: KnowledgeTableSource = {
     tableId: 'sheet:Orders',
@@ -159,7 +164,126 @@ it('rejects short copied samples', () => {
             JSON.stringify({ summary: '', columns: [{ columnId: 'A', description: '例如冷却水' }] }),
             table
         )
-    ).toThrow()
+    ).toThrow(/冷却水/)
+    expect(() =>
+        parseTableModelResult(
+            JSON.stringify({ summary: '', columns: [{ columnId: 'A', description: '例如冷却水' }] }),
+            table
+        )
+    ).toThrow(/repeats the sample|重复了样例值/)
+})
+
+it.each(['\u738b\u4e94', '\u8fd0\u884c'])(
+    'rejects copied two-character Han samples without guessing their meaning: %s',
+    (sample) => {
+        const table = {
+            ...source,
+            headerRow: undefined,
+            columns: [{ columnId: 'C', key: 'C', label: 'C', column: 3 }],
+            samples: [{ rowNumber: 1, values: { C: sample } }]
+        }
+        for (const output of [
+            { summary: sample, columns: [{ columnId: 'C', description: '' }] },
+            { summary: '', columns: [{ columnId: 'C', description: `\u8bb0\u5f55${sample}\u4fe1\u606f` }] }
+        ]) {
+            expect(() => parseTableModelResult(JSON.stringify(output), table, '', 'zh')).toThrow(sample)
+        }
+    }
+)
+
+it('accepts a rewritten description without copying a two-character Han sample', () => {
+    const table = {
+        ...source,
+        headerRow: undefined,
+        columns: [{ columnId: 'C', key: 'C', label: 'C', column: 3 }],
+        samples: [{ rowNumber: 1, values: { C: '运行' } }]
+    }
+    expect(
+        parseTableModelResult(
+            JSON.stringify({
+                summary: '设备阶段台账',
+                columns: [{ columnId: 'C', description: '记录设备状态' }]
+            }),
+            table,
+            '',
+            'zh'
+        ).columns[0].description
+    ).toBe('记录设备状态')
+})
+
+it('names header evidence copied from the first data row separately from a copied sample', () => {
+    const table: KnowledgeTableSource = {
+        ...source,
+        headerRow: undefined,
+        columns: [
+            { columnId: 'A', key: 'A', label: 'A', column: 1 },
+            { columnId: 'B', key: 'B', label: 'B', column: 2 }
+        ],
+        samples: [{ rowNumber: 1, values: { A: '冷却水泵-01', B: '归还前' } }]
+    }
+    const evidence = () =>
+        parseTableModelResult(
+            JSON.stringify({
+                summary: '设备阶段台账',
+                columns: [
+                    { columnId: 'A', description: '设备标识' },
+                    { columnId: 'B', description: '阶段名称', evidence: '归还前' }
+                ]
+            }),
+            table,
+            '',
+            'zh'
+        )
+    const copied = () =>
+        parseTableModelResult(
+            JSON.stringify({
+                summary: '设备阶段台账',
+                columns: [
+                    { columnId: 'A', description: '样例为冷却水泵-01' },
+                    { columnId: 'B', description: '阶段名称' }
+                ]
+            }),
+            table,
+            '',
+            'zh'
+        )
+    const evidenceMessage = readThrownMessage(evidence)
+    const copiedMessage = readThrownMessage(copied)
+    expect(evidenceMessage).toContain('归还前')
+    expect(evidenceMessage).toMatch(/not an exact excerpt|不是列标签/)
+    expect(copiedMessage).toContain('冷却水泵-01')
+    expect(copiedMessage).toMatch(/repeats the sample|重复了样例值/)
+    expect(evidenceMessage).not.toBe(copiedMessage)
+    expect(evidenceMessage).not.toMatch(/invalid table metadata|模型返回的表格元数据无效/)
+    expect(copiedMessage).not.toMatch(/invalid table metadata|模型返回的表格元数据无效/)
+})
+
+function readThrownMessage(run: () => void): string {
+    try {
+        run()
+    } catch (error) {
+        return error instanceof Error ? error.message : String(error)
+    }
+    throw new Error('Expected table metadata validation to fail')
+}
+
+it('tells the model when the first sample row is data rather than a header', () => {
+    const noHeader: KnowledgeTableSource = {
+        ...source,
+        headerRow: undefined,
+        columns: [
+            { columnId: 'A', key: 'A', label: 'A', column: 1 },
+            { columnId: 'B', key: 'B', label: 'B', column: 2 }
+        ],
+        samples: [{ rowNumber: 1, values: { A: '冷却水泵-01', B: '归还前' } }]
+    }
+    const withoutHeader = tableModelBatches(noHeader, undefined, '', 16384, 'zh')[0].messages
+    const withHeader = tableModelBatches(source, undefined, '', 16384, 'zh')[0].messages
+    expect(withoutHeader[0].content).toContain('no header row')
+    expect(withoutHeader[0].content).toContain('including the first')
+    expect(withoutHeader[1].content).toContain('归还前')
+    expect(withHeader[0].content).not.toContain('no header row')
+    expect(withHeader[1].content).toContain('"headerRow":1')
 })
 
 it('uses all indexed headers for the table summary without exposing sample values', () => {

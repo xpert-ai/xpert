@@ -6,7 +6,7 @@ import { Repository, In, IsNull } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { QueryBus } from '@nestjs/cqrs'
 import type { ShellScope } from '@xpert-ai/contracts'
-import { LIMITS, isId, parseSettings } from '@xpert-ai/desktop-protocol'
+import { LIMITS, isId, parseSettings, parsePreparation } from '@xpert-ai/desktop-protocol'
 import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './desktop-shell.entities'
 import { parseShellBoundary, shellError } from './desktop-shell.errors'
 import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
@@ -122,6 +122,55 @@ export class DesktopShellAuthService {
             expiresAt: new Date(Math.min(device.credentialExpiresAt.getTime(), Date.now() + LIMITS.grant))
         })
         return { id: grant.id, expiresAt: grant.expiresAt.getTime(), threadId: grant.threadId }
+    }
+
+    async prepareOperation(deviceId: string, body: unknown) {
+        const input = parseShellBoundary(parsePreparation, body)
+        const scope = currentShellScope()
+        const device = await this.requireDevice(deviceId, scope)
+        const grant = await this.issueGrant(deviceId, input.assistantId, input.threadId)
+        const cwd = input.cwd ?? device.cwd
+        const argsHash = createHash('sha256')
+            .update(JSON.stringify([input.command, cwd, input.timeoutSec]))
+            .digest('hex')
+        // A pending grant routes one operation but cannot authorize execution.
+        const expiresAt = Math.min(grant.expiresAt, Date.now() + 10 * 60000)
+        await this.grants.update(grant.id, {
+            expiresAt: new Date(expiresAt),
+            operation: {
+                runId: input.runId,
+                toolCallId: input.toolCallId,
+                argsHash,
+                decision: 'pending'
+            }
+        })
+        return {
+            kind: 'desktop-shell' as const,
+            grantId: grant.id,
+            deviceName: device.name,
+            cwd,
+            decision: 'pending' as const,
+            expiresAt
+        }
+    }
+
+    async decideOperation(id: string, decision: unknown) {
+        if (!isId(id) || !['approve', 'reject'].includes(String(decision))) shellError('INVALID_MESSAGE')
+        const scope = currentShellScope()
+        return this.grants.manager.transaction(async (manager) => {
+            const grants = manager.getRepository(DesktopShellGrant)
+            const grant = await grants.findOne({
+                where: { id, ...scopeFields(scope), enabled: true },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!grant?.operation || grant.expiresAt.getTime() <= Date.now()) shellError('GRANT_REVOKED', 403)
+            await this.requireDevice(grant.deviceId, scope)
+            const next = decision === 'approve' ? 'approved' : 'rejected'
+            if (grant.operation.decision !== 'pending' && grant.operation.decision !== next)
+                shellError('OPERATION_CONFLICT', 409)
+            await grants.update(id, { operation: { ...grant.operation, decision: next } })
+            return { decision: next }
+        })
     }
 
     async bindForRun(grantId: unknown, threadId: string, assistantId: string, scope = currentShellScope()) {

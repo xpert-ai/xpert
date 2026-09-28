@@ -2247,7 +2247,10 @@
           "code": "代码",
           "database": "数据库",
           "structured-output": "结构化输出"
-        }
+        },
+        "BusinessDomains": "业务域",
+        "MarketplaceCategories": "业务分类",
+        "ClearBusinessDomain": "清除业务域"
       }
     },
     "XpertAccessRequests": {
@@ -9927,7 +9930,7 @@
       "Conditions": "条件",
       "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素",
       "BusinessArea": "业务区域",
-      "BusinessAreaHint": "可选。所选业务区域会作为该助理在菜单中的名称前缀。",
+      "BusinessAreaHint": "可选。用于菜单名称前缀，并在 Bosi 中自动归组未设置自定义分组的专家。可在设置中维护销售、采购、财务等业务域。",
       "SelectBusinessArea": "选择业务区域",
       "BusinessAreaLoadFailed": "业务区域加载失败。",
       "NoBusinessAreas": "暂无可选的已命名业务区域，可前往设置中维护。",
@@ -10239,6 +10242,23 @@
         "SelectTimeZone": "选择一个时区",
         "Currency": "币种"
       }
+    },
+    "Desktop": {
+      "ConnectWorkspaceService": "连接工作空间服务",
+      "ConnectionReturnHint": "连接服务后，请返回 Bosi 检查连接。消息草稿保留在 Bosi 中。",
+      "ConnectionOrganizationMismatch": "请先选择与 Bosi 相同的组织再继续。",
+      "ConnectionReady": "连接成功。请返回 Bosi 继续。",
+      "ConfigureConnection": "配置工作空间连接",
+      "PluginWorkspaceHint": "来自 Bosi：{{workspace}}。请核对下方工作空间选择，再保存可用范围。",
+      "ConnectionAutoReturnHint": "请在此完成服务连接，连接成功后将自动回到 Bosi。",
+      "ConnectionAutoReady": "连接成功，Bosi 正在检查结果。可以关闭此标签页。",
+      "ConnectionOpening": "正在打开服务连接…",
+      "ConnectionComplete": "连接成功",
+      "ConnectionContinue": "继续连接",
+      "ConnectionInvalidLink": "连接链接不完整，请从 Bosi 重新发起。",
+      "ConnectionDraftSafe": "消息草稿保留在 Bosi 中。配置共享服务需要相应工作空间的管理权限。",
+      "ConnectionAuthorizeStep": "完成服务授权",
+      "ConnectionReturnStep": "返回 Bosi"
     }
   },
   "ViewExtension": {

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen } = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
@@ -8,12 +8,17 @@ const { menuTemplate } = require('./menu.cjs')
 const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
+const { installAvatarPointer } = require('./avatar-pointer.cjs')
 
-app.setName('Xpert')
+const branding = require('./branding.json')
+
+// Keep the existing profile and OS encryption identity when changing the display brand.
+app.setName(branding.storageName)
 // A separate profile supports local acceptance without touching the daily app account.
 if (process.env.XPERT_DESKTOP_USER_DATA) app.setPath('userData', path.resolve(process.env.XPERT_DESKTOP_USER_DATA))
 const devUrl = !app.isPackaged ? process.env.XPERT_DESKTOP_DEV_URL : null
 const rendererUrl = devUrl || pathToFileURL(path.join(__dirname, '../dist/index.html')).href
+const appIcon = path.join(__dirname, '../resources', process.platform === 'darwin' ? 'icon-macos.png' : 'logo.png')
 let window
 let service
 
@@ -43,13 +48,25 @@ function allowClipboardWrite(contents, permission, source) {
   }
 }
 
+function updateApplicationMenu() {
+  const locale = service.config.locale
+  app.setAboutPanelOptions({
+    applicationName: branding.fullName,
+    applicationVersion: app.getVersion(),
+    iconPath: appIcon,
+    credits: `${translate(locale, 'Your AI team leader.')}\n${translate(locale, 'You set the goal. Bosi leads the team.')}`
+  })
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(locale)))
+}
+
 function createWindow() {
   window = new BrowserWindow({
     width: 1440,
     height: 1024,
     minWidth: 860,
     minHeight: 640,
-    title: 'Xpert',
+    title: branding.name,
+    icon: appIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 18 },
     webPreferences: {
@@ -60,6 +77,10 @@ function createWindow() {
       webSecurity: true
     }
   })
+  window.on('closed', () => {
+    window = undefined
+  })
+  installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
   window.webContents.setWindowOpenHandler(({ url }) => {
     openExternal(url)
     return { action: 'deny' }
@@ -77,10 +98,16 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
   app.on('second-instance', () => {
+    if (!window || window.isDestroyed()) {
+      if (app.isReady()) createWindow()
+      return
+    }
     if (window?.isMinimized()) window.restore()
     window?.focus()
   })
   app.whenReady().then(async () => {
+    // Packaged macOS apps use the bundle's ICNS; development runs in Electron's bundle.
+    if (process.platform === 'darwin' && !app.isPackaged) app.dock.setIcon(appIcon)
     let localLogin
     if (!app.isPackaged && process.env.XPERT_DESKTOP_LOCAL_LOGIN === '1') {
       localLogin = (await import('../scripts/local-credentials.mjs')).readLocalCredentials
@@ -100,7 +127,7 @@ else {
     session.defaultSession.setPermissionCheckHandler((contents, permission, origin) =>
       allowClipboardWrite(contents, permission, origin)
     )
-    Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(service.config.locale)))
+    updateApplicationMenu()
     ipcMain.handle('xpert:request', async (event, method, argument) => {
       if (!trusted(event))
         return {
@@ -110,8 +137,14 @@ else {
           status: 403
         }
       const result = await dispatch(service, method, argument)
-      if (method === 'configure' && result.ok)
-        Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(service.config.locale)))
+      // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
+      if (method === 'checkPluginConnection' && result.ok && result.value.status === 'connected') {
+        if (window?.isMinimized()) window.restore()
+        window?.show()
+        app.focus({ steal: true })
+        window?.focus()
+      }
+      if (method === 'configure' && result.ok) updateApplicationMenu()
       return result
     })
     ipcMain.handle('xpert:open-workspace', (event) => {

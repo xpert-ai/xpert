@@ -10,19 +10,26 @@ adds one tool, `desktop_shell`, for explicitly authorized desktop commands.
    before starting the server. Development schema synchronization also discovers the entities.
 2. In Studio, connect **Desktop Shell** middleware to the intended Agent and publish
    the Assistant. Keep **Sandbox Shell** connected when it also needs server commands.
-3. Sign in to the native macOS app. Open **User menu → Connection & appearance →
-   Desktop Shell**. Set the computer name, zsh/bash, default working directory and
-   command search path, then choose **Enable Shell**.
-4. Select the Assistant and choose **Use this computer** above ChatKit. This grants
-   access to that conversation. New or branched conversations require their own grant.
-5. Ask the Assistant to use `desktop_shell`. Recent commands and a **Stop command**
-   action appear in the Shell settings. **Disconnect this conversation** revokes its
-   grant; **Disable Shell** revokes all grants for the device.
+3. Sign in to the native macOS app. Optionally set the computer name, zsh/bash,
+   default working directory and command search path in **User menu → Connection &
+   appearance → Desktop Shell**. No manual connection or conversation grant is needed.
+4. Ask the Assistant for a local command. Bosi connects on demand; an inline message
+   card shows the exact command, computer, cwd and access notice. Choose **Allow once**
+   or **Deny**. Nothing runs while the request is pending.
+5. **Permissions** on the card opens the same Shell settings. Policies are **Ask for
+   every command** (default), **Always allow in this organization**, or **Never allow**.
+   The policy is persisted for this platform instance, account, organization and
+   installation only. Existing conversation grants do not migrate to permanent access.
 
-Shell settings take effect immediately, independently of the appearance Save/Cancel
-buttons. The shell starts disabled after restarting the app. Switching organizations,
-changing connections, signing out and quitting disable it and terminate active work.
-Closing the macOS window keeps the app and Worker running; quitting the app stops them.
+Also apply `packages/server-ai/src/desktop-shell/migrations/20260928-desktop-shell-approval.sql` for installations with
+external schema management. Deploy server, Desktop and ChatKit changes together.
+
+**Apply Shell settings** disconnects the current worker and revokes its pending
+permits; the next request connects with the new settings. **Never allow** stops active
+commands. Switching organizations, changing connections, signing out and quitting
+also stop the worker. Closing the macOS window keeps the app and worker running.
+After restarting, the selected policy remains but temporary operation permits do not.
+Expired approvals cannot execute; deny or stop the request and make a new request.
 
 Commands run with the signed-in operating-system user's permissions. The cwd is a
 starting directory, not a filesystem sandbox. stdout/stderr are returned to Xpert.
@@ -44,19 +51,19 @@ parameters. It returns a structured result with `executionTarget: "desktop"`, de
 name/platform/shell, cwd, operationId, state, stdout/stderr, exitCode/signal,
 nextCursor, truncated and optional error. A nonzero exit is `failed`, not success.
 
-| Limit                          | Value                                                                                     |
-| ------------------------------ | ----------------------------------------------------------------------------------------- |
-| Concurrent commands per device | 1; additional work returns `DEVICE_BUSY`                                                  |
-| Offline submission             | `DEVICE_OFFLINE`; no offline queue or sandbox fallback                                    |
-| Synchronous wait               | 10 seconds, then use `status`                                                             |
-| Command timeout                | 60 seconds by default, 1–600 seconds allowed                                              |
-| Retained output per command    | 1 MiB; further pipe data is drained and discarded                                         |
-| Tool result output             | 64 KiB per cursor page                                                                    |
-| Text transport                 | UTF-8; NUL bytes normalized to the replacement character                                  |
-| Frame / sending pace           | 64 KiB transport frame; one acknowledged report at a time, at most 50 reports/s           |
-| Heartbeat / execution lease    | 15 seconds / 90 seconds                                                                   |
-| Grant and device credential    | Up to 8 hours; device credential refreshed every 30 minutes                               |
-| Local journal                  | Results retained 24 hours after deadline; 2,000 records / approximately 64 MiB output cap |
+| Limit                                | Value                                                                                     |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Concurrent commands per device       | 1; additional work returns `DEVICE_BUSY`                                                  |
+| Offline submission                   | `DEVICE_OFFLINE`; no offline queue or sandbox fallback                                    |
+| Synchronous wait                     | 10 seconds, then use `status`                                                             |
+| Command timeout                      | 60 seconds by default, 1–600 seconds allowed                                              |
+| Retained output per command          | 1 MiB; further pipe data is drained and discarded                                         |
+| Tool result output                   | 64 KiB per cursor page                                                                    |
+| Text transport                       | UTF-8; NUL bytes normalized to the replacement character                                  |
+| Frame / sending pace                 | 64 KiB transport frame; one acknowledged report at a time, at most 50 reports/s           |
+| Heartbeat / execution lease          | 15 seconds / 90 seconds                                                                   |
+| Operation permit / device credential | Permit up to 10 minutes; device credential up to 8 hours, refreshed every 30 minutes      |
+| Local journal                        | Results retained 24 hours after deadline; 2,000 records / approximately 64 MiB output cap |
 
 The server persists output and final facts before acknowledging them. Results remain
 queryable in the server database; deleting a local expired journal does not erase the
@@ -77,9 +84,15 @@ sequenceDiagram
     participant DB as Operation database
     participant GW as Desktop Shell Gateway
     participant Worker as Desktop Worker
-    UI->>GW: Account-authenticated registration and conversation grant
+    Agent->>UI: Client tool interrupt: prepare exact local command
+    UI->>GW: Register device on demand, prepare pending operation permit
     Worker->>GW: Outbound authenticated WebSocket
-    Agent->>DB: Unique operation (tenant, run, toolCallId)
+    Agent->>UI: Generic HITL interrupt with opaque host reference
+    UI->>UI: Show message approval; user allows or denies
+    UI->>DB: Approve exact scoped permit
+    UI->>Worker: Install one-operation permit and wait for ACK
+    UI->>Agent: Resume only after host accepts the decision
+    Agent->>DB: Revalidate permit and create unique operation (tenant, run, toolCallId)
     Agent->>GW: Redis dispatch notification
     GW->>Worker: Exec with operationId, epoch, grant and deadline
     Worker->>Worker: Durable intent, then spawn process group
@@ -100,6 +113,14 @@ The Worker is a separate process launched with Electron's bundled Node runtime. 
 only exposes settings, state, grants and cancellation to the trusted top frame. Neither
 renderer nor ChatKit has a direct `exec` bridge. The gateway authenticates a short-lived,
 hashed, device-only credential; it cannot be used as a general platform account token.
+
+ChatKit owns only `approvals.placement`, the generic approval layout and callbacks.
+It does not classify shell commands or store native policies. The authenticated API
+binds each permit to identity, thread, run, tool call and a digest of command/cwd/timeout.
+The worker independently checks that digest and permits at most one operation per
+grant. Direct API approval cannot bypass the worker's local permit check. A missing
+host callback fails closed. `allow` still creates and validates a new permit for each
+command; it merely omits interactive approval.
 
 Duplicate delivery returns the existing operation without spawning again. Changed
 arguments for the same run/toolCallId are rejected. Reconnect resends unacknowledged
@@ -135,13 +156,14 @@ This opt-in test signs in using the existing local Keychain convention (or
 command in a temporary directory, checks the actual file, revokes access and removes
 its local fixture. It does not create or modify an Assistant.
 
-The output is `apps/desktop/release/mac-arm64/Xpert.app`. `XPERT_DESKTOP_USER_DATA`
+The output is `apps/desktop/release/mac-arm64/Bosi.app`. `XPERT_DESKTOP_USER_DATA`
 can select a separate absolute profile directory for testing without replacing the
 normal account. No system Node/pnpm is required to run the packaged Worker.
 
 Desktop UI text is translated into en, zh-Hans, zh-Hant and ja (jp remains an alias).
 Server messages use the platform's en/en-US/zh-Hans i18next resources.
 
-See `desktop-shell-acceptance.md` for exercised paths and remaining release checks.
+See `desktop-shell-inline-approval-acceptance.md` for the current approval upgrade,
+and `desktop-shell-acceptance.md` for earlier transport validation.
 Unsigned packaging is suitable for internal validation; signing, notarization, update
 rollout and Windows/Linux support are separate release work.
