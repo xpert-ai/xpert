@@ -1,7 +1,9 @@
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
+import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
 import type { QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
-import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding'
-import { VolumeClient, VolumeHandle, type VolumeRootResolution, type VolumeScope } from '../../volume'
+import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding/queries/resolve-authorized-file-asset.query'
+import { VolumeClient, VolumeHandle, type VolumeRootResolution, type VolumeScope } from '../../volume/volume'
 import { LoadFileCommand } from '../load-file.command'
 import { LoadFileHandler } from './load-file.handler'
 import { OfficeFileParser } from '../../../file-understanding/parsers/office.parser'
@@ -24,6 +26,49 @@ class TestVolumeClient extends VolumeClient {
 }
 
 describe('LoadFileHandler', () => {
+    it.each([
+        ['/tmp/resume.pdf', 'resume'],
+        ['/tmp/upload', 'resume.pdf']
+    ])('reads PDF content from %s with display name %s', async (filePath, originalName) => {
+        const documents = [new Document({ pageContent: 'Resume source text' })]
+        const load = jest.spyOn(PDFLoader.prototype, 'load').mockResolvedValue(documents)
+        const queryBus = { execute: jest.fn() }
+        const handler = new LoadFileHandler(queryBus as unknown as QueryBus, new TestVolumeClient())
+        try {
+            await expect(
+                handler.execute(
+                    new LoadFileCommand({
+                        filePath,
+                        originalName,
+                        mimeType: 'application/pdf'
+                    })
+                )
+            ).resolves.toEqual(documents)
+        } finally {
+            load.mockRestore()
+        }
+    })
+
+    it('keeps a ZIP-based document on its parser when its display name has no extension', async () => {
+        const documents = [new Document({ pageContent: 'Slide source text' })]
+        const load = jest.spyOn(PPTXLoader.prototype, 'load').mockResolvedValue(documents)
+        const queryBus = { execute: jest.fn() }
+        const handler = new LoadFileHandler(queryBus as unknown as QueryBus, new TestVolumeClient())
+        try {
+            await expect(
+                handler.execute(
+                    new LoadFileCommand({
+                        filePath: '/tmp/slides.pptx',
+                        originalName: 'slides',
+                        mimeType: 'application/zip'
+                    })
+                )
+            ).resolves.toEqual(documents)
+        } finally {
+            load.mockRestore()
+        }
+    })
+
     it('uses the shared Office parser for attachment fallback without injecting its summary twice', async () => {
         const parse = jest.spyOn(OfficeFileParser.prototype, 'parse').mockResolvedValue({
             capabilities: ['read'],
@@ -93,7 +138,7 @@ describe('LoadFileHandler', () => {
                         fileId: 'file-asset-1',
                         filePath: relativePath,
                         mimeType: 'text/plain'
-                    } as any)
+                    })
                 )
             ).resolves.toEqual([expect.objectContaining({ pageContent: 'ok' })])
 

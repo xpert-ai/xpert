@@ -1,6 +1,9 @@
 {
     "Project": { "ConversationProjectName": "{{assistant}} 项目" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
+    "File": {
+        "ReferenceOnlyPrompt": "\u672a\u5305\u542b\u6587\u4ef6\u6b63\u6587\uff0c\u4e0d\u652f\u6301\u76f4\u63a5\u6309\u6587\u672c\u8bfb\u53d6\u3002\u8bf7\u4f7f\u7528\u652f\u6301\u8be5\u683c\u5f0f\u7684\u53ef\u7528\u5de5\u5177\uff1b\u5bf9\u4e8e ZIP\uff0c\u5148\u5217\u51fa\u6216\u89e3\u538b\u6761\u76ee\uff0c\u518d\u5904\u7406\u6240\u9700\u7684\u5b50\u6587\u4ef6\u3002\u6b64\u5f15\u7528\u4e0d\u4f1a\u6539\u53d8\u6587\u4ef6\u8bbf\u95ee\u6743\u9650\u3002"
+    },
     "Error": {
         "ToolImageInvalid": "\u5de5\u5177\u56fe\u7247\u65e0\u6548\u3001\u683c\u5f0f\u4e0d\u652f\u6301\u6216\u8d85\u8fc7\u5927\u5c0f\u9650\u5236\u3002",
         "ToolImageUnavailable": "\u6b64\u56fe\u7247\u5728\u5f53\u524d\u5bf9\u8bdd\u4e2d\u4e0d\u53ef\u7528\u6216\u5185\u5bb9\u5df2\u6539\u53d8\uff0c\u8bf7\u91cd\u65b0\u622a\u56fe\u3002",
@@ -24,6 +27,7 @@
         "FilePresentationCount": "请选择 1 至 {{count}} 个文件。",
         "FileOutputUnavailable": "无法交付文件：文件不存在、为空、路径不安全或超过 25 MiB：{{path}}",
         "FileOutputReadFailed": "无法读取所选文件：{{path}}",
+        "FileContentNotReadable": "\u6b64\u6587\u4ef6\u4e0d\u652f\u6301\u76f4\u63a5\u6309\u6587\u672c\u8bfb\u53d6\uff0c\u8bf7\u4f7f\u7528\u652f\u6301\u8be5\u683c\u5f0f\u7684\u89e3\u6790\u5668\u6216\u5de5\u5177\u3002",
         "FileOutputChanged": "读取期间文件发生变化，请重新交付：{{path}}",
         "DocumentSourceOutsideKnowledgebase": "来源文件不属于所选知识库。",
         "DocumentSourceRevisionChanged": "读取期间解析结果已变化，请从第一页重新读取。",
