@@ -50,4 +50,38 @@ describe('table metadata language', () => {
         expect(countTextTokens(JSON.stringify(messages))).toBeLessThanOrEqual(2000)
         expect(tableModelBatches(source, undefined, '', 16384, 'ja')[0].messages[0].content).toContain('"ja"')
     })
+
+    it('uses sample text for language detection when labels are only column coordinates', () => {
+        const coordinate: KnowledgeTableSource = {
+            tableId: 'sheet:0',
+            sheetName: '\u8bbe\u5907',
+            range: 'A1:B2',
+            rowCount: 2,
+            columns: [
+                { columnId: 'A', key: 'A', label: 'A', column: 1 },
+                { columnId: 'B', key: 'B', label: 'B', column: 2 }
+            ],
+            samples: [{ rowNumber: 1, values: { A: '\u51b7\u5374\u6c34\u6cf5-01', B: '\u5f52\u8fd8\u524d' } }]
+        }
+        const messages = tableLanguageMessages([coordinate], undefined, 16384)
+        expect(messages[0].content).toContain('coordinates')
+        expect(messages[1].content).toContain('\u5f52\u8fd8\u524d')
+        expect(messages[1].content).toContain('\u51b7\u5374\u6c34\u6cf5-01')
+        const named = tableLanguageMessages(
+            [
+                {
+                    ...coordinate,
+                    columns: [{ columnId: 'A', key: 'amount', label: '\u9500\u552e\u989d', column: 1 }],
+                    samples: [{ rowNumber: 2, values: { A: 'private forecast' } }]
+                }
+            ],
+            undefined,
+            16384
+        )
+        expect(named[1].content).not.toContain('private forecast')
+        expect(named[0].content).not.toContain('coordinates')
+        const indexed = tableLanguageMessages([coordinate], ['A'], 16384)
+        expect(indexed[1].content).toContain('\u51b7\u5374\u6c34\u6cf5-01')
+        expect(indexed[1].content).not.toContain('\u5f52\u8fd8\u524d')
+    })
 })
