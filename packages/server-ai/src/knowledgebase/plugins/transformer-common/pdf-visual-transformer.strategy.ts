@@ -1,7 +1,7 @@
 import { invalidKnowledgeParserConfig } from '../../../knowledge-document/parser-validation'
 import { Document, DocumentInterface } from '@langchain/core/documents'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
-import { IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
+import { DocumentParserDiagnostics, IconType, IKnowledgeDocument } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import {
     ChunkMetadata,
@@ -128,6 +128,8 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
             const renderPageImages = config.renderPageImages !== false
             const assets: TDocumentAsset[] = []
             let chunks: DocumentInterface<ChunkMetadata>[] = textDocuments
+            // Text-only diagnostics stay in place when rendering is off or the renderer fails.
+            let parserDiagnostics = diagnosticsForTextDocuments(textDocuments)
 
             if (renderPageImages) {
                 try {
@@ -140,6 +142,7 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
                     )
                     chunks = rendered.chunks
                     assets.push(...rendered.assets)
+                    parserDiagnostics = rendered.parserDiagnostics
                 } catch (error) {
                     this.#logger.warn(
                         `Failed to render PDF page images for '${file.name ?? file.filePath ?? file.id ?? 'unknown'}': ${
@@ -163,7 +166,8 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
                 metadata: {
                     ...(file.metadata ?? {}),
                     chunkId: ((file.metadata ?? {}) as Partial<ChunkMetadata>).chunkId ?? uuid(),
-                    assets
+                    assets,
+                    parserDiagnostics
                 }
             })
         }
@@ -191,7 +195,11 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
         textDocuments: DocumentInterface<ChunkMetadata>[],
         xpFileSystem: XpFileSystem,
         config: TPdfVisualTransformerConfig
-    ): Promise<{ chunks: DocumentInterface<ChunkMetadata>[]; assets: TDocumentAsset[] }> {
+    ): Promise<{
+        chunks: DocumentInterface<ChunkMetadata>[]
+        assets: TDocumentAsset[]
+        parserDiagnostics: DocumentParserDiagnostics
+    }> {
         const { pdf } = await importPdfToImg('pdf-to-img')
         const document = await pdf(filePath, {
             scale: normalizePositiveNumber(config.renderScale, DEFAULT_RENDER_SCALE)
@@ -203,21 +211,20 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
             )
             const textByPage = new Map<number, DocumentInterface<ChunkMetadata>>()
             textDocuments.forEach((chunk, index) => {
-                const metadata = chunk.metadata ?? {}
-                const page = Number(metadata['loc']?.pageNumber ?? metadata['page'] ?? index + 1)
-                textByPage.set(page, chunk)
+                textByPage.set(pdfPageNumber(chunk, index), chunk)
             })
 
             const assets: TDocumentAsset[] = []
             const chunks: DocumentInterface<ChunkMetadata>[] = []
+            const pages: DocumentParserDiagnostics['pages'] = []
             for (let page = 1; page <= maxPages; page++) {
                 const buffer = await document.getPage(page)
                 const fileName = `${safeBaseName(file.name ?? file.filePath ?? 'pdf')}-page-${String(page).padStart(4, '0')}-${randomUUID()}.png`
-                const filePath = `images/${fileName}`
-                const url = await xpFileSystem.writeFile(filePath, buffer)
+                const imagePath = `images/${fileName}`
+                const url = await xpFileSystem.writeFile(imagePath, buffer)
                 const asset = {
                     type: 'image',
-                    filePath,
+                    filePath: imagePath,
                     url,
                     sourceType: 'pdf_page',
                     page,
@@ -226,29 +233,29 @@ export class PdfVisualTransformerStrategy implements IDocumentTransformerStrateg
                 } satisfies TDocumentAsset
                 assets.push(asset)
 
-                const text = textByPage.get(page)?.pageContent?.trim()
-                chunks.push(
-                    new Document<ChunkMetadata>({
-                        pageContent: [text, `![Page ${page}](${url})`].filter(Boolean).join('\n\n'),
-                        metadata: {
-                            ...(textByPage.get(page)?.metadata ?? {}),
-                            chunkId: textByPage.get(page)?.metadata?.chunkId ?? uuid(),
-                            chunkIndex: textByPage.get(page)?.metadata?.chunkIndex ?? page - 1,
-                            page,
-                            source: file.filePath ?? file.fileUrl,
-                            mediaType: 'image',
-                            sourceType: 'pdf_page',
-                            assets: [asset]
-                        }
-                    })
-                )
+                const textSource = textByPage.get(page)
+                const text = textSource?.pageContent?.trim() ?? ''
+                // Keep the text layer out of the image chunk so the text splitter can cut it.
+                // imagePaths stay empty on a text page: any path is treated as an OCR gap.
+                if (text && textSource) {
+                    chunks.push(textPageChunk(textSource, page, file))
+                }
+                chunks.push(imagePageChunk(file, page, url, asset))
+                pages.push({
+                    page,
+                    status: text ? 'text' : 'needs-ocr',
+                    imagePaths: text ? [] : [imagePath]
+                })
             }
 
-            if (textDocuments.length > maxPages) {
-                chunks.push(...textDocuments.slice(maxPages))
-            }
+            textDocuments.slice(maxPages).forEach((source, offset) => {
+                const page = pdfPageNumber(source, maxPages + offset)
+                const text = source.pageContent.trim()
+                if (text) chunks.push(textPageChunk(source, page, file))
+                pages.push({ page, status: text ? 'text' : 'blank', imagePaths: [] })
+            })
 
-            return { chunks, assets }
+            return { chunks, assets, parserDiagnostics: { schemaVersion: 1, pages } }
         } finally {
             await document.destroy().catch(() => undefined)
         }
@@ -317,4 +324,65 @@ function normalizePositiveInteger(value: unknown, fallback: number) {
 function normalizePositiveNumber(value: unknown, fallback: number) {
     const normalized = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''))
     return Number.isFinite(normalized) && normalized > 0 ? normalized : fallback
+}
+
+function pdfPageNumber(document: DocumentInterface<ChunkMetadata>, index: number): number {
+    const metadata: ChunkMetadata = document.metadata ?? { chunkId: '' }
+    const locatedPage = readLocatedPage(metadata.loc)
+    const page = locatedPage ?? metadata.page
+    return typeof page === 'number' && Number.isInteger(page) && page > 0 ? page : index + 1
+}
+
+function readLocatedPage(location: unknown): number | undefined {
+    if (!location || typeof location !== 'object' || !('pageNumber' in location)) return undefined
+    const pageNumber = location.pageNumber
+    return typeof pageNumber === 'number' && Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : undefined
+}
+
+function textPageChunk(
+    source: DocumentInterface<ChunkMetadata>,
+    page: number,
+    file: Partial<IKnowledgeDocument>
+): Document<ChunkMetadata> {
+    return new Document<ChunkMetadata>({
+        pageContent: source.pageContent.trim(),
+        metadata: {
+            ...source.metadata,
+            chunkId: source.metadata?.chunkId ?? uuid(),
+            page,
+            source: file.filePath ?? file.fileUrl,
+            mediaType: 'text',
+            contentFormat: 'text'
+        }
+    })
+}
+
+function imagePageChunk(
+    file: Partial<IKnowledgeDocument>,
+    page: number,
+    url: string,
+    asset: TDocumentAsset
+): Document<ChunkMetadata> {
+    return new Document<ChunkMetadata>({
+        pageContent: `![Page ${page}](${url})`,
+        metadata: {
+            chunkId: uuid(),
+            page,
+            source: file.filePath ?? file.fileUrl,
+            mediaType: 'image',
+            sourceType: 'pdf_page',
+            assets: [asset]
+        }
+    })
+}
+
+function diagnosticsForTextDocuments(documents: DocumentInterface<ChunkMetadata>[]): DocumentParserDiagnostics {
+    return {
+        schemaVersion: 1,
+        pages: documents.map((document, index) => ({
+            page: pdfPageNumber(document, index),
+            status: document.pageContent.trim() ? 'text' : 'blank',
+            imagePaths: []
+        }))
+    }
 }
