@@ -2,8 +2,15 @@ import { BaseMessage, isAIMessage, isSystemMessage } from '@langchain/core/messa
 import { convertToOpenAITool } from '@langchain/core/utils/function_calling'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
+import { createHash } from 'node:crypto'
 import { TAgentRunnableConfigurable } from '@xpert-ai/contracts'
-import { PromptTokenAnchor, PromptWindowEstimate } from './context-compression.shared'
+import {
+    COMPRESSION_TOKEN_CALIBRATION_STATE_KEY,
+    CompressionTokenCalibrationSchema,
+    isStateContainer,
+    PromptTokenAnchor,
+    PromptWindowEstimate
+} from './context-compression.shared'
 
 export function estimateTokenCountSync(text: string): number {
     return Math.max(0, Math.ceil((text || '').length / 4))
@@ -53,19 +60,19 @@ export function extractPromptTokenAnchor(message: BaseMessage): PromptTokenAncho
     const tokenUsage = parseTokenUsage(message.response_metadata?.tokenUsage)
     const raw: unknown = message.additional_kwargs?.__raw_response
     const rawUsage = parseTokenUsage(raw && typeof raw === 'object' && 'usage' in raw ? raw.usage : null)
-    const candidates: Array<[string, unknown]> = [
-        ['response_metadata.usage.total_tokens', usage?.total_tokens],
-        ['response_metadata.usage.prompt_tokens', usage?.prompt_tokens],
-        ['response_metadata.tokenUsage.totalTokens', tokenUsage?.totalTokens],
-        ['response_metadata.tokenUsage.promptTokens', tokenUsage?.promptTokens],
-        ['usage_metadata.total_tokens', message.usage_metadata?.total_tokens],
-        ['usage_metadata.input_tokens', message.usage_metadata?.input_tokens],
-        ['additional_kwargs.__raw_response.usage.total_tokens', rawUsage?.total_tokens],
-        ['additional_kwargs.__raw_response.usage.prompt_tokens', rawUsage?.prompt_tokens]
+    const candidates: Array<[string, unknown, boolean]> = [
+        ['response_metadata.usage.total_tokens', usage?.total_tokens, true],
+        ['response_metadata.usage.prompt_tokens', usage?.prompt_tokens, false],
+        ['response_metadata.tokenUsage.totalTokens', tokenUsage?.totalTokens, true],
+        ['response_metadata.tokenUsage.promptTokens', tokenUsage?.promptTokens, false],
+        ['usage_metadata.total_tokens', message.usage_metadata?.total_tokens, true],
+        ['usage_metadata.input_tokens', message.usage_metadata?.input_tokens, false],
+        ['additional_kwargs.__raw_response.usage.total_tokens', rawUsage?.total_tokens, true],
+        ['additional_kwargs.__raw_response.usage.prompt_tokens', rawUsage?.prompt_tokens, false]
     ]
-    for (const [source, value] of candidates) {
+    for (const [source, value, includesOutput] of candidates) {
         const promptTokens = toPositiveTokenCount(value)
-        if (promptTokens !== null) return { index: -1, promptTokens, source }
+        if (promptTokens !== null) return { index: -1, promptTokens, source, includesOutput }
     }
     return null
 }
@@ -123,18 +130,45 @@ export async function estimatePromptWindowUsage(
     model: TAgentRunnableConfigurable['copilotModel'],
     tokenLimit: number,
     threshold: number,
-    fixedInputTokens = 0
+    fixedInputTokens = 0,
+    stateContainer?: unknown
 ): Promise<PromptWindowEstimate> {
     const messageOnlyTokens = await estimateTokens(messages)
     const anchor = findLatestPromptTokenAnchor(messages)
+    const modelKey = createHash('sha256')
+        .update(JSON.stringify({ copilotId: model?.copilotId, model: model?.model, options: model?.options }))
+        .digest('hex')
+    const saved = CompressionTokenCalibrationSchema.safeParse(
+        isStateContainer(stateContainer) ? Reflect.get(stateContainer, COMPRESSION_TOKEN_CALIBRATION_STATE_KEY) : null
+    )
+    let calibrationRatio =
+        saved.success && saved.data.modelKey === modelKey && saved.data.fixedInputTokens === fixedInputTokens
+            ? saved.data.ratio
+            : 1
 
     let deltaMessageTokens = messageOnlyTokens
-    let estimatedPromptTokens = messageOnlyTokens + fixedInputTokens
-
+    const measuredPrefixLength = anchor ? anchor.index + (anchor.includesOutput ? 1 : 0) : 0
     if (anchor) {
-        const subsequentMessages = messages.slice(anchor.index + 1)
+        // Provider usage describes this prefix. Retain its measured density after a rewrite
+        // invalidates the exact usage, instead of silently reverting to chars / 4.
+        const measuredPrefixTokens = await estimateTokens(messages.slice(0, measuredPrefixLength))
+        calibrationRatio = Math.max(1, (anchor.promptTokens - fixedInputTokens) / Math.max(1, measuredPrefixTokens))
+    }
+    let estimatedPromptTokens = Math.ceil(messageOnlyTokens * calibrationRatio) + fixedInputTokens
+    if (anchor) {
+        const subsequentMessages = messages.slice(measuredPrefixLength)
         deltaMessageTokens = subsequentMessages.length ? await estimateTokens(subsequentMessages) : 0
-        estimatedPromptTokens = Math.max(messageOnlyTokens + fixedInputTokens, anchor.promptTokens + deltaMessageTokens)
+        estimatedPromptTokens = Math.max(
+            estimatedPromptTokens,
+            anchor.promptTokens + Math.ceil(deltaMessageTokens * calibrationRatio)
+        )
+    }
+    if (isStateContainer(stateContainer)) {
+        Reflect.set(stateContainer, COMPRESSION_TOKEN_CALIBRATION_STATE_KEY, {
+            modelKey,
+            fixedInputTokens,
+            ratio: calibrationRatio
+        })
     }
 
     const { reservedOutputTokens, source } = resolveReservedOutputTokens(model, tokenLimit, threshold)
@@ -143,6 +177,7 @@ export async function estimatePromptWindowUsage(
     const effectivePromptBudget = Math.min(availablePromptTokens, thresholdPromptTokens || availablePromptTokens)
 
     return {
+        calibrationRatio,
         fixedInputTokens,
         estimatedPromptTokens,
         reservedOutputTokens,

@@ -584,7 +584,7 @@ export class ContextCompressionHistory {
     async generateStateSnapshot(
         messagesToCompress: BaseMessage[],
         model: BaseLanguageModel,
-        budget: { tokenLimit: number; outputTokens: number }
+        budget: { tokenLimit: number; outputTokens: number; inputTokenRatio?: number }
     ): Promise<string> {
         try {
             const messagesText = messagesToCompress
@@ -605,7 +605,14 @@ export class ContextCompressionHistory {
 
             const prompt = getCompressionPrompt(messagesText)
 
-            if (estimateTokenCountSync(JSON.stringify(prompt)) + budget.outputTokens > budget.tokenLimit) {
+            // Calibrate the rewritten history, not the fixed summary instructions.
+            const inputTokens =
+                estimateTokenCountSync(JSON.stringify(prompt)) +
+                Math.ceil(
+                    estimateTokenCountSync(JSON.stringify(messagesText)) *
+                        Math.max(0, (budget.inputTokenRatio ?? 1) - 1)
+                )
+            if (inputTokens + budget.outputTokens > budget.tokenLimit) {
                 throw new ContextSummaryError('summary_input_budget')
             }
 
