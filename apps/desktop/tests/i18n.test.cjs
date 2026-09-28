@@ -106,6 +106,7 @@ test('language persists across restarts without invalidating authentication, org
   }
   const headers = []
   const fetcher = async (url, options) => {
+    assert.equal(options.headers.language, options.headers['Accept-Language'])
     headers.push(options.headers['Accept-Language'])
     return new Response(
       JSON.stringify(

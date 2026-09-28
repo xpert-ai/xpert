@@ -155,3 +155,98 @@ test('a preview arriving after logout or an organization switch is discarded', a
     await assert.rejects(pending, { status: 409 })
   }
 })
+
+const deliveredBytes = Buffer.from('test document content')
+const deliveredHash = require('node:crypto').createHash('sha256').update(deliveredBytes).digest('hex')
+const delivered = { artifactId: 'artifact-1', artifactVersionId: 'version-1' }
+const documentLink = () => ({
+  ...previewLink(),
+  version: {
+    ...previewLink().version,
+    fileName: 'result.docx',
+    size: deliveredBytes.length,
+    sha256: deliveredHash,
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  }
+})
+
+test('file delivery resolves the saved version, not the latest artifact, without returning account credentials', async () => {
+  const link = documentLink()
+  const { service, calls } = fixture((url) =>
+    url.endsWith('signed-preview') ? response(link) : new Response(deliveredBytes)
+  )
+  const result = await dispatch(service, 'deliveredFilePreview', delivered)
+  assert.equal(result.ok, true)
+  assert.equal(result.value.name, 'result.docx')
+  assert.equal(result.value.sha256, deliveredHash)
+  assert.equal(result.value.size, deliveredBytes.length)
+  assert.equal(result.value.base64, deliveredBytes.toString('base64'))
+  assert.equal(calls[1].options.headers, undefined)
+  assert.equal(calls[1].options.redirect, 'error')
+  assert.doesNotMatch(JSON.stringify(result), /account-private|refresh-private/)
+  assert.equal(calls[0].options.headers['x-scope-level'], 'organization')
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    artifactVersionId: 'version-1',
+    versionMode: 'version',
+    ttlSeconds: 300,
+    presentation: { disposition: 'inline', allowDownload: true }
+  })
+})
+
+test('file delivery rejects invalid IDs, unpinned versions and untrusted metadata', async () => {
+  const { service, calls } = fixture()
+  for (const input of [null, {}, { artifactId: 'a' }, { ...delivered, artifactId: '../a' }])
+    await assert.rejects(service.deliveredFilePreview(input), { status: 400 })
+  assert.equal(calls.length, 0)
+  const link = documentLink()
+  for (const invalid of [
+    { ...link, artifactId: 'other' },
+    { ...link, version: { ...link.version, id: 'latest' } },
+    { ...link, version: { ...link.version, sha256: 'unknown' } },
+    { ...link, version: { ...link.version, size: 65 * 1024 * 1024 } },
+    { ...link, publicUrl: 'file:///etc/passwd' },
+    { ...link, expiresAt: 'invalid' }
+  ]) {
+    const { service } = fixture(() => response(invalid))
+    await assert.rejects(service.deliveredFilePreview(delivered), { status: 502 })
+  }
+})
+
+test('denied deliveries and results from an old organization do not fall back to another file', async () => {
+  const denied = fixture(() => response({}, 403))
+  await assert.rejects(denied.service.deliveredFilePreview(delivered), { status: 403 })
+  assert.equal(denied.calls.length, 1)
+  let finish
+  const { service } = fixture(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  const pending = service.deliveredFilePreview(delivered)
+  await service.selectOrganization('org-2')
+  finish(response(documentLink()))
+  await assert.rejects(pending, { status: 409 })
+})
+
+test('file delivery checks downloaded content and discards files after an organization switch', async () => {
+  for (const bytes of [Buffer.from('different'), Buffer.alloc(deliveredBytes.length + 1)]) {
+    const { service } = fixture((url) =>
+      url.endsWith('signed-preview') ? response(documentLink()) : new Response(bytes)
+    )
+    await assert.rejects(service.deliveredFilePreview(delivered), { status: 502 })
+  }
+  let finish
+  const { service } = fixture((url) =>
+    url.endsWith('signed-preview')
+      ? response(documentLink())
+      : new Promise((resolve) => {
+          finish = resolve
+        })
+  )
+  const pending = service.deliveredFilePreview(delivered)
+  while (!finish) await new Promise((resolve) => setImmediate(resolve))
+  await service.selectOrganization('org-2')
+  finish(new Response(deliveredBytes))
+  await assert.rejects(pending, { status: 409 })
+})

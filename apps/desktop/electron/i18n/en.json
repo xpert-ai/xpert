@@ -551,5 +551,14 @@
   "Marketplace categories": "Marketplace categories",
   "No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.": "No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.",
   "This organization has no imported plugins. Ask an organization administrator to import a plugin in Xpert plugin management, then refresh this catalog.": "This organization has no imported plugins. Ask an organization administrator to import a plugin in Xpert plugin management, then refresh this catalog.",
-  "No plugins have been added to this workspace. Switch to All to choose one.": "No plugins have been added to this workspace. Switch to All to choose one."
+  "No plugins have been added to this workspace. Switch to All to choose one.": "No plugins have been added to this workspace. Switch to All to choose one.",
+  "Invalid file delivery.": "Invalid file delivery.",
+  "Invalid file preview.": "Invalid file preview.",
+  "Could not load the delivered file.": "Could not load the delivered file.",
+  "File preview": "File preview",
+  "Preview of the delivered version.": "Preview of the delivered version.",
+  "Loading file…": "Loading file…",
+  "Download": "Download",
+  "Rendering document…": "Rendering document…",
+  "Preview unavailable. Download the file to view it.": "Preview unavailable. Download the file to view it."
 }

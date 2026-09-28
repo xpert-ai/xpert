@@ -135,6 +135,10 @@ export interface HostMethods {
     input: Pick<ToolOutputImageAttachment, 'artifactId' | 'artifactVersionId' | 'sha256' | 'mimeType'>
     output: ToolOutputAttachmentPreview
   }
+  deliveredFilePreview: {
+    input: { artifactId: string; artifactVersionId: string }
+    output: { base64: string; sha256: string; size: number; mimeType: string; name: string }
+  }
   listCatalog: { input: Exclude<CatalogKind, 'plugins'>; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }

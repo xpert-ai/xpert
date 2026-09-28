@@ -31,6 +31,7 @@ const methods = new Set([
   'duplicateBot',
   'chatSession',
   'toolOutputPreview',
+  'deliveredFilePreview',
   'workbenchSession',
   'listCatalog',
   'pluginConnection',

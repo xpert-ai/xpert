@@ -1,4 +1,5 @@
 import { useWorkspaceConnection } from './WorkspaceConnection'
+import { useDeliveredFile } from './files/DeliveredFile'
 import { createWorkbenchHandler } from './workbench'
 import { ShellControls } from './ShellControls'
 import { t } from './i18n'
@@ -32,6 +33,9 @@ export function ChatPanel({
   const [frameReady, setFrameReady] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const delivery = useDeliveredFile()
+  const deliveryRef = useRef(delivery.open)
+  deliveryRef.current = delivery.open
   const grantRef = useRef<string | null>(null)
   const onGrant = useCallback((id: string | null) => {
     grantRef.current = id
@@ -127,6 +131,9 @@ export function ChatPanel({
         setThreadId(event.detail.threadId)
       }
     })
+    element.addEventListener('chatkit.effect', (event) => {
+      if (!disposed) deliveryRef.current(event.detail)
+    })
     const read = () => {
       if (!disposed && activeAssistant === (bot.assistantId || bot.id)) onConversationRead(bot.id, activeThread)
     }
@@ -178,6 +185,7 @@ export function ChatPanel({
       className="relative flex h-full min-w-0 flex-1 flex-col bg-background"
     >
       {connection.status}
+      {delivery.dialog}
       <ShellControls key={shellAssistantId} assistantId={shellAssistantId} threadId={threadId} onGrant={onGrant} />
       {error && (
         <div
