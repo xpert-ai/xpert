@@ -35,7 +35,11 @@ export class ViewClientCommandRegistry {
   }
 
   async execute(commandKey: string, payload: unknown, context: ViewClientCommandContext) {
-    const handler = this.#handlers.get(commandKey)?.findLast((entry) => entry.active())?.handler
+    const handler = this.#handlers
+      .get(commandKey)
+      ?.slice()
+      .reverse()
+      .find((entry) => entry.active())?.handler
     if (!handler) {
       return {
         success: false,

@@ -1,7 +1,7 @@
 import { Dialog, DialogConfig } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import type { ConnectorRuntimeOptions } from '@xpert-ai/plugin-sdk'
+import type { ConnectorRuntimeOptions } from '@xpert-ai/plugin-sdk/connector'
 import type { WorkspaceConnectorConnectResult } from '@xpert-ai/chatkit-types'
 import { of, Subject } from 'rxjs'
 import { XpertConnectorService } from '../../@core/services/xpert-connector.service'

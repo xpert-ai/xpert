@@ -12,7 +12,7 @@ import type {
   ConnectorScopeType,
   ConnectorSelectOption,
   ConnectorStrategyDefinition
-} from '@xpert-ai/plugin-sdk'
+} from '@xpert-ai/plugin-sdk/connector'
 import { API_CONNECTOR } from '../constants/app.constants'
 
 @Injectable({ providedIn: 'root' })

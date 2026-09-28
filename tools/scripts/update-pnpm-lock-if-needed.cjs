@@ -2,8 +2,18 @@
 
 const { execFileSync, spawnSync } = require('node:child_process')
 
-const lockfilePaths = ['pnpm-lock.yaml', '.deploy/api/pnpm-lock.build.yaml', '.deploy/api/pnpm-lock.production.yaml']
-const watchedFiles = new Set(['.npmrc', 'pnpm-workspace.yaml', '.deploy/api/dependencies.cjs'])
+const lockfilePaths = [
+  'pnpm-lock.yaml',
+  '.deploy/api/pnpm-lock.build.yaml',
+  '.deploy/api/pnpm-lock.production.yaml',
+  '.deploy/webapp/pnpm-lock.yaml'
+]
+const watchedFiles = new Set([
+  '.npmrc',
+  'pnpm-workspace.yaml',
+  '.deploy/api/dependencies.cjs',
+  '.deploy/webapp/dependencies.cjs'
+])
 const manifestFields = [
   'name',
   'version',
@@ -99,7 +109,7 @@ if (!shouldUpdateLockfile) {
   process.exit(0)
 }
 
-console.log('Dependency metadata changed; updating workspace and API deployment locks...')
+console.log('Dependency metadata changed; updating workspace and deployment locks...')
 
 const installResult = spawnSync('corepack', ['pnpm', 'run', 'lockfile:update'], {
   stdio: 'inherit'
