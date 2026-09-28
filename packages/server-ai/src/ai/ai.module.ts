@@ -1,3 +1,5 @@
+import { McpAppsRuntimeController } from './mcp-apps-runtime.controller'
+import { XpertToolsetModule } from '../xpert-toolset/xpert-toolset.module'
 import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -84,9 +86,11 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => FileUnderstandingModule),
         SseStreamModule,
         forwardRef(() => XpertAgentExecutionModule),
-        XpertProjectModule
+        XpertProjectModule,
+        forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        McpAppsRuntimeController,
         SandboxRuntimeController,
         ConversationBranchController,
         AIController,

@@ -2,7 +2,9 @@ import { ForbiddenException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { TMcpToolAppMeta } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, type IApiKey } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext as SdkRequestContext } from '@xpert-ai/plugin-sdk'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { McpAppAuditService, McpAppInstanceStoreService, McpAppToolApprovalService } from '../mcp-app-runtime'
 import { McpAppsService } from './mcp-apps.service'
@@ -153,6 +155,78 @@ describe('McpAppsService RPC approval orchestration', () => {
                 params: { name: 'write_file', arguments: { path: 'report.txt' } }
             })
         ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('rejects a session bound to another Assistant before App RPC', async () => {
+        const instance = mockGetMcpAppInstance('app-1')!
+        mockGetMcpAppInstance.mockReturnValueOnce({
+            ...instance,
+            executionContext: { xpertId: 'assistant-a', conversationId: 'conversation', executionId: 'run' }
+        })
+        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'assistant-b'
+        } as IApiKey)
+        await expect(
+            service.handleRpc('app-1', {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'tools/call',
+                params: { name: 'write_file', arguments: {} }
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('accepts an expert App only through its persisted same-thread delegation', async () => {
+        const instance = mockGetMcpAppInstance('app-1')!
+        mockGetMcpAppInstance.mockReturnValueOnce({
+            ...instance,
+            executionContext: {
+                xpertId: 'expert',
+                conversationId: 'conversation',
+                executionId: 'child',
+                threadId: 'thread'
+            }
+        })
+        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'main'
+        } as IApiKey)
+        queryBus.execute.mockImplementation(async (query) =>
+            query.id === 'child'
+                ? { id: 'child', xpertId: 'expert', threadId: 'thread', parentId: 'root' }
+                : { id: 'root', xpertId: 'main', threadId: 'thread' }
+        )
+        approvals.risk.mockReturnValue('read')
+        await expect(
+            service.handleRpc('app-1', {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'tools/call',
+                params: { name: 'write_file', arguments: {} }
+            })
+        ).resolves.toMatchObject({ result: { content: [{ text: 'done' }] } })
+        expect(mockCallMcpAppTool).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects another Assistant audience before restoring an App backend', async () => {
+        mockGetMcpAppInstance.mockReturnValueOnce(null)
+        instanceStore.get.mockResolvedValue({ executionContext: { xpertId: 'assistant-a' } })
+        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'assistant-b'
+        } as IApiKey)
+        await expect(
+            service.handleRpc('app-1', {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'tools/call',
+                params: { name: 'write_file', arguments: {} }
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(mockCreateMcpClient).not.toHaveBeenCalled()
         expect(mockCallMcpAppTool).not.toHaveBeenCalled()
     })
 

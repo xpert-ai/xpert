@@ -5,6 +5,7 @@ const executionContextSchema = z.object({
     xpertId: z.string().min(1),
     conversationId: z.string().min(1),
     executionId: z.string().min(1),
+    threadId: z.string().min(1).optional(),
     projectId: z.string().min(1).optional()
 })
 export type McpAppExecutionContext = z.infer<typeof executionContextSchema>

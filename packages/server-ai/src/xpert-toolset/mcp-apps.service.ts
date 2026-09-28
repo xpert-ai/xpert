@@ -1,3 +1,4 @@
+import { assertMcpAppAssistantAudience } from '../mcp-app-runtime/mcp-app-audience'
 import type { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
 import {
     BadRequestException,
@@ -269,6 +270,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         }
 
         const snapshot = await this.instanceStore.get(appInstanceId)
+        await assertMcpAppAssistantAudience(snapshot?.executionContext, this.queryBus)
         normalizedQuery = reviveQueryFromSnapshot(normalizedQuery, snapshot)
         const revived = await this.reviveInstance(appInstanceId, normalizedQuery, options, snapshot)
         if (!revived) {
@@ -283,6 +285,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         query: NormalizedMcpAppReviveQuery,
         options?: { allowMessageBootstrap?: boolean }
     ) {
+        await assertMcpAppAssistantAudience(instance.executionContext, this.queryBus)
         try {
             this.assertTokenForInstance(instance, query)
             return
