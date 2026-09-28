@@ -6,13 +6,15 @@ const lockfilePaths = [
   'pnpm-lock.yaml',
   '.deploy/api/pnpm-lock.build.yaml',
   '.deploy/api/pnpm-lock.production.yaml',
-  '.deploy/webapp/pnpm-lock.yaml'
+  '.deploy/webapp/pnpm-lock.yaml',
+  '.deploy/desktop/pnpm-lock.yaml'
 ]
 const watchedFiles = new Set([
   '.npmrc',
   'pnpm-workspace.yaml',
   '.deploy/api/dependencies.cjs',
-  '.deploy/webapp/dependencies.cjs'
+  '.deploy/webapp/dependencies.cjs',
+  '.deploy/desktop/dependencies.cjs'
 ])
 const manifestFields = [
   'name',

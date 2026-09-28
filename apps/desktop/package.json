@@ -21,6 +21,7 @@
     "@xpert-ai/chatkit-types": "catalog:",
     "@xpert-ai/chatkit-web-component": "catalog:",
     "@xpert-ai/shadcn-ui": "workspace:*",
+    "docx-preview": "^0.3.7",
     "lucide-react": "^1.21.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

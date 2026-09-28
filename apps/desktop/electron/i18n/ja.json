@@ -560,5 +560,20 @@
   "Loading file…": "ファイルを読み込み中…",
   "Download": "ダウンロード",
   "Rendering document…": "ドキュメントを描画中…",
-  "Preview unavailable. Download the file to view it.": "プレビューできません。ファイルをダウンロードしてご確認ください。"
+  "Preview unavailable. Download the file to view it.": "プレビューできません。ファイルをダウンロードしてご確認ください。",
+  "Local execution permissions": "ローカル実行の権限",
+  "Connects when needed": "必要なときに接続",
+  "Execution permission": "実行権限",
+  "Ask for every command": "コマンドごとに確認",
+  "Always allow in this organization": "この組織では常に許可",
+  "Never allow": "常に拒否",
+  "Applies only to your account, this organization and this computer. Always allow permits future commands without asking.": "このアカウント、この組織、このコンピューターにのみ適用されます。「常に許可」を選ぶと、以後のコマンドは確認なしで実行されます。",
+  "Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.": "ローカルコマンドが要求されると、Bosi が接続します。各コマンドは新しい非対話型シェルで実行されます。",
+  "Apply Shell settings": "Shell 設定を適用",
+  "Local Shell is disabled in permissions. Change the policy before requesting another command.": "権限設定でローカル Shell が無効になっています。ポリシーを変更してから、新しいコマンドを要求してください。",
+  "This command permission expired or was revoked. It was not executed.": "このコマンドの権限は期限切れまたは取り消し済みです。実行されていません。",
+  "This command no longer matches the approved request. It was not executed.": "このコマンドは承認されたリクエストと一致しません。実行されていません。",
+  "The account or organization changed. Request permission again in the current conversation.": "アカウントまたは組織が変更されました。現在の会話でもう一度権限を要求してください。",
+  "This computer is offline. Stop this operation; do not retry automatically.": "このコンピューターはオフラインです。操作を停止し、自動的に再試行しないでください。",
+  "Desktop Shell could not connect. Check the service and try a new command.": "Desktop Shell に接続できませんでした。サービスを確認してから、新しいコマンドを試してください。"
 }

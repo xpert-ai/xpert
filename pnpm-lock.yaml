@@ -772,6 +772,9 @@ importers:
       '@xpert-ai/shadcn-ui':
         specifier: workspace:*
         version: link:../../packages/shadcn-ui
+      docx-preview:
+        specifier: ^0.3.7
+        version: 0.3.7
       electron:
         specifier: 44.4.5
         version: 44.4.5

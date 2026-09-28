@@ -1,0 +1,12 @@
+{
+  "extends": "../../packages/contracts/tsconfig.lib.json",
+  "compilerOptions": {
+    "moduleResolution": "Bundler",
+    "rootDir": "../../packages/contracts/src",
+    "outDir": "../../packages/contracts/dist",
+    "declaration": true,
+    "emitDeclarationOnly": true
+  },
+  "include": ["../../packages/contracts/src/**/*.ts"],
+  "exclude": ["../../packages/contracts/src/**/*.spec.ts", "../../packages/contracts/src/**/*.test.ts"]
+}

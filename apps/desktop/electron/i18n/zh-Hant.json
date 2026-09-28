@@ -560,5 +560,20 @@
   "Loading file…": "正在載入檔案…",
   "Download": "下載",
   "Rendering document…": "正在轉譯文件…",
-  "Preview unavailable. Download the file to view it.": "暫不支援此檔案的預覽，請下載後檢視。"
+  "Preview unavailable. Download the file to view it.": "暫不支援此檔案的預覽，請下載後檢視。",
+  "Local execution permissions": "本機執行權限",
+  "Connects when needed": "需要時連線",
+  "Execution permission": "執行權限",
+  "Ask for every command": "每個命令都詢問",
+  "Always allow in this organization": "在此組織中一律允許",
+  "Never allow": "永不允許",
+  "Applies only to your account, this organization and this computer. Always allow permits future commands without asking.": "僅適用於你的帳號、此組織及此電腦。「一律允許」會允許後續命令直接執行，不再詢問。",
+  "Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.": "需要執行本機命令時，Bosi 會自動連線。每個命令均啟動全新的非互動式 Shell。",
+  "Apply Shell settings": "套用 Shell 設定",
+  "Local Shell is disabled in permissions. Change the policy before requesting another command.": "本機 Shell 已在權限設定中停用。請先變更策略，再請求新命令。",
+  "This command permission expired or was revoked. It was not executed.": "此命令的授權已過期或被撤銷，尚未執行。",
+  "This command no longer matches the approved request. It was not executed.": "此命令與已核准的請求不符，尚未執行。",
+  "The account or organization changed. Request permission again in the current conversation.": "帳號或組織已變更。請在目前對話中重新請求授權。",
+  "This computer is offline. Stop this operation; do not retry automatically.": "此電腦已離線。請停止此操作，不要自動重試。",
+  "Desktop Shell could not connect. Check the service and try a new command.": "Desktop Shell 無法連線。請檢查服務，再嘗試新命令。"
 }

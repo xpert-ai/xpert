@@ -198,8 +198,10 @@ corepack pnpm --filter @xpert-ai/desktop package
 
 `start` runs the compiled assets without Vite. `package` builds an unpacked native
 application under `apps/desktop/release`. Platform release targets are defined for
-macOS, Windows and Linux; signing/notarization and updates are release work, not
-configured by this first client.
+macOS, Windows and Linux. [GitHub Actions releases](../../.deploy/desktop/README.md)
+build x64 and arm64 installers for each platform using Changesets, with optional
+signing/notarization and a reviewed GitHub Release draft. Automatic application
+updates are not configured.
 
 For live integration testing, use the existing Xpert development credential
 convention: `XPERT_USERNAME` + `XPERT_PASSWORD` in the process environment, or the

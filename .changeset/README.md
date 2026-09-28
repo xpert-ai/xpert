@@ -2,6 +2,9 @@
 
 This repository uses [Changesets](https://github.com/changesets/changesets) to manage npm package releases.
 
+The private `@xpert-ai/desktop` app also uses Changesets for cross-platform Bosi
+installer builds. See [Desktop release instructions](../.deploy/desktop/README.md).
+
 Create a release note with:
 
 ```bash
