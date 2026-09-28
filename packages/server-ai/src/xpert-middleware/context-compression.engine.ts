@@ -19,6 +19,8 @@ import { ContextCompressionHistory } from './context-compression.history'
 import {
     COMPRESSION_NO_GAIN_RETRY_STATE_KEY,
     COMPRESSION_FAILURE_RETRY_STATE_KEY,
+    COMPRESSION_TOKEN_CALIBRATION_STATE_KEY,
+    CompressionTokenCalibrationSchema,
     COMPRESSION_NO_GAIN_RETRY_MIN_TOKEN_DELTA,
     MANUAL_COMPRESSION_FALLBACK_SNAPSHOT,
     COMPRESSION_NO_UNPROTECTED_HISTORY_MESSAGE,
@@ -116,7 +118,11 @@ export class ContextCompressionEngine {
     }
 
     compressionStateUpdate(state: unknown) {
+        const calibration = CompressionTokenCalibrationSchema.safeParse(
+            isStateContainer(state) ? Reflect.get(state, COMPRESSION_TOKEN_CALIBRATION_STATE_KEY) : null
+        )
         return {
+            [COMPRESSION_TOKEN_CALIBRATION_STATE_KEY]: calibration.success ? calibration.data : null,
             [COMPRESSION_NO_GAIN_RETRY_STATE_KEY]: this.readNoGainRetryState(state),
             [COMPRESSION_FAILURE_RETRY_STATE_KEY]: this.readFailureRetryState(state)
         }
@@ -166,7 +172,7 @@ export class ContextCompressionEngine {
         tokenLimit: number,
         forceCompression: boolean
     ): boolean {
-        if (forceCompression) {
+        if (forceCompression || promptWindowEstimate.projectedTotalTokens > tokenLimit) {
             return false
         }
 
@@ -232,7 +238,8 @@ export class ContextCompressionEngine {
             model,
             tokenLimit,
             options.threshold,
-            estimateFixedInputTokens(stateContainer, messages, this.tools)
+            estimateFixedInputTokens(stateContainer, messages, this.tools),
+            stateContainer
         )
 
         return this.shouldSkipCompressionAfterNoGain(
@@ -391,7 +398,8 @@ export class ContextCompressionEngine {
                 model,
                 tokenLimit,
                 options.threshold,
-                fixedInputTokens
+                fixedInputTokens,
+                stateContainer
             )
             let currentPromptWindowEstimate = promptWindowEstimate
 
@@ -472,6 +480,26 @@ export class ContextCompressionEngine {
                       Math.max(1, Math.ceil(promptWindowEstimate.estimatedPromptTokens - promptBudget))
                   )
                 : options.pruneMinimumTokens
+            const hasSufficientGain = (estimate: PromptWindowEstimate) =>
+                promptWindowEstimate.estimatedPromptTokens - estimate.estimatedPromptTokens >=
+                options.pruneMinimumTokens
+            const finishToolCompression = () => {
+                if (hasSufficientGain(currentPromptWindowEstimate)) this.clearNoGainRetryState(stateContainer)
+                else
+                    this.recordNoGainRetryState(
+                        stateContainer,
+                        currentTokenCount,
+                        currentTokenCount,
+                        currentPromptWindowEstimate,
+                        tokenLimit
+                    )
+                this.emitCompressionChunk(runtime, {
+                    id: currentCompressionId,
+                    status: 'success',
+                    message: COMPRESSION_COMPLETED_DISPLAY
+                })
+                return currentMessages
+            }
 
             if (options.enableTwoPhase) {
                 const pruneResult = await this.history.pruneOldToolOutputs(currentMessages, {
@@ -488,7 +516,8 @@ export class ContextCompressionEngine {
                         model,
                         tokenLimit,
                         options.threshold,
-                        fixedInputTokens
+                        fixedInputTokens,
+                        stateContainer
                     )
                     currentPromptWindowEstimate = prunedWindowEstimate
 
@@ -500,16 +529,10 @@ export class ContextCompressionEngine {
                         prunedWindowEstimate.estimatedPromptTokens <= prunedWindowEstimate.effectivePromptBudget &&
                         prunedWindowEstimate.projectedTotalTokens <= tokenLimit
                     ) {
-                        this.clearNoGainRetryState(stateContainer)
                         this.logger.log(
                             `First layer pruning sufficient, no further compression needed: estimated prompt ${prunedWindowEstimate.estimatedPromptTokens} <= effective prompt budget ${prunedWindowEstimate.effectivePromptBudget}; reserved output ${prunedWindowEstimate.reservedOutputTokens}; projected total ${prunedWindowEstimate.projectedTotalTokens}/${tokenLimit}`
                         )
-                        this.emitCompressionChunk(runtime, {
-                            id: currentCompressionId,
-                            status: 'success',
-                            message: COMPRESSION_COMPLETED_DISPLAY
-                        })
-                        return currentMessages
+                        return finishToolCompression()
                     }
                 }
             }
@@ -517,10 +540,11 @@ export class ContextCompressionEngine {
             this.logger.log('First layer pruning insufficient, starting second layer summary compression...')
 
             const nonToolTokens = await estimateTokens(currentMessages.filter((message) => !isToolMessage(message)))
-            const toolOutputBudget = Math.max(
+            const messageBudget = Math.max(
                 0,
-                Math.min(options.toolOutputBudget, promptBudget - fixedInputTokens - nonToolTokens)
+                Math.floor((promptBudget - fixedInputTokens) / promptWindowEstimate.calibrationRatio)
             )
+            const toolOutputBudget = Math.max(0, Math.min(options.toolOutputBudget, messageBudget - nonToolTokens))
             const truncatedHistory = await this.history.truncateHistoryToBudget(currentMessages, toolOutputBudget)
             currentMessages = truncatedHistory
             currentTokenCount = await estimateTokens(currentMessages)
@@ -529,21 +553,20 @@ export class ContextCompressionEngine {
                 model,
                 tokenLimit,
                 options.threshold,
-                fixedInputTokens
+                fixedInputTokens,
+                stateContainer
+            )
+            this.logger.log(
+                `After tool compression: estimated prompt ${promptWindowEstimate.estimatedPromptTokens} -> ${currentPromptWindowEstimate.estimatedPromptTokens}; message estimate ${originalTokenCount} -> ${currentTokenCount}; usage calibration ${currentPromptWindowEstimate.calibrationRatio}; minimum gain ${options.pruneMinimumTokens}`
             )
 
             if (
                 execution.reason !== 'manual' &&
                 currentMessages !== messages &&
-                fitsPromptBudget(currentPromptWindowEstimate, tokenLimit)
+                fitsPromptBudget(currentPromptWindowEstimate, tokenLimit) &&
+                hasSufficientGain(currentPromptWindowEstimate)
             ) {
-                this.clearNoGainRetryState(stateContainer)
-                this.emitCompressionChunk(runtime, {
-                    id: currentCompressionId,
-                    status: 'success',
-                    message: COMPRESSION_COMPLETED_DISPLAY
-                })
-                return currentMessages
+                return finishToolCompression()
             }
 
             const splitResult = findCompressSplitPoint(
@@ -558,19 +581,14 @@ export class ContextCompressionEngine {
             if (historyToCompress.length === 0) {
                 if (!fitsPromptBudget(currentPromptWindowEstimate, tokenLimit)) return reportBudgetFailure()
                 this.logger.debug(COMPRESSION_NO_UNPROTECTED_HISTORY_MESSAGE)
-                if (currentMessages !== messages) {
-                    this.clearNoGainRetryState(stateContainer)
-                }
+                if (currentMessages !== messages) return finishToolCompression()
                 this.emitCompressionChunk(runtime, {
                     id: currentCompressionId,
                     status: 'success',
-                    message:
-                        currentMessages !== messages
-                            ? COMPRESSION_COMPLETED_DISPLAY
-                            : COMPRESSION_NO_UNPROTECTED_HISTORY_DISPLAY,
-                    ...(currentMessages !== messages ? {} : { reason: 'no_unprotected_history' })
+                    message: COMPRESSION_NO_UNPROTECTED_HISTORY_DISPLAY,
+                    reason: 'no_unprotected_history'
                 })
-                return currentMessages !== messages ? currentMessages : null
+                return null
             }
 
             this.logger.log(
@@ -615,18 +633,25 @@ export class ContextCompressionEngine {
             )
             const summaryBudget = Math.floor(
                 Math.min(
-                    promptBudget - fixedInputTokens - (await estimateTokens(emptySummaryHistory)),
+                    messageBudget - (await estimateTokens(emptySummaryHistory)),
                     (await estimateTokens(historyToCompress)) - 1,
                     currentPromptWindowEstimate.reservedOutputTokens
                 )
             )
             const minimumSummaryTokens = estimateTokenCountSync(JSON.stringify('<state_snapshot>x</state_snapshot>'))
-            if (summaryBudget < minimumSummaryTokens) return reportBudgetFailure()
+            if (summaryBudget < minimumSummaryTokens) {
+                // A tiny old prefix may not pay for the summary envelope. Keep a valid
+                // trim and suppress retries instead of reporting a false budget failure.
+                if (currentMessages !== messages && fitsPromptBudget(currentPromptWindowEstimate, tokenLimit))
+                    return finishToolCompression()
+                return reportBudgetFailure()
+            }
             const compressionModel = await getCompressionModel(summaryBudget)
 
             const snapshot = await this.history.generateStateSnapshot(historyToCompress, compressionModel, {
                 tokenLimit: Math.min(tokenLimit, getModelContextSize(compressionModel) ?? tokenLimit),
-                outputTokens: summaryBudget
+                outputTokens: summaryBudget,
+                inputTokenRatio: promptWindowEstimate.calibrationRatio
             })
 
             const newHistory = this.history.buildNewHistory(
@@ -644,15 +669,19 @@ export class ContextCompressionEngine {
                 model,
                 tokenLimit,
                 options.threshold,
-                fixedInputTokens
+                fixedInputTokens,
+                stateContainer
             )
             if (!fitsPromptBudget(summaryEstimate, tokenLimit) || newTokenCount >= originalTokenCount)
                 return reportBudgetFailure()
 
-            const compressionRatio = Math.round((newTokenCount / originalTokenCount) * 100)
-            const compressionStats = `Two-phase compression complete: ${historyToCompress.length} messages → 1 summary | ${originalTokenCount} → ${newTokenCount} tokens (${compressionRatio}%)`
+            const compressionRatio = Math.round(
+                (summaryEstimate.estimatedPromptTokens / promptWindowEstimate.estimatedPromptTokens) * 100
+            )
+            const compressionStats = `Two-phase compression complete: ${historyToCompress.length} messages → 1 summary | estimated prompt ${promptWindowEstimate.estimatedPromptTokens} → ${summaryEstimate.estimatedPromptTokens} tokens (${compressionRatio}%)`
 
-            this.clearNoGainRetryState(stateContainer)
+            if (hasSufficientGain(summaryEstimate)) this.clearNoGainRetryState(stateContainer)
+            else this.recordNoGainRetryState(stateContainer, newTokenCount, newTokenCount, summaryEstimate, tokenLimit)
             this.logger.log(`✅ ${compressionStats}`)
 
             this.emitCompressionChunk(runtime, {

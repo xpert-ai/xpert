@@ -4,7 +4,7 @@ export type ClawXpertWorkspaceFileRefreshLogEvent = Parameters<NonNullable<ChatK
 export type ClawXpertWorkspaceFileRefreshEffectEvent = Parameters<NonNullable<ChatKitEventHandlers['onEffect']>>[0]
 
 const WORKSPACE_FILE_REFRESH_LOG_TOOL_NAMES = new Set([
-  // Disabled for now: shell commands may be read-only, so they should not auto-open the file panel.
+  // Shell commands may be read-only, so they should not trigger a file list refresh.
   // 'sandbox_shell',
   'sandbox_write_file',
   'sandbox_append_file',
@@ -78,7 +78,7 @@ function isWorkspaceFileRefreshToolPayload(value: object) {
     return true
   }
 
-  // Disabled for now: legacy Bash execute logs are too broad and can open the file panel unexpectedly.
+  // Legacy Bash execute logs do not reliably indicate file mutations.
   // const toolset = readStringProperty(value, 'toolset')
   // if (toolset === 'Bash' && tool === 'execute') {
   //   return true

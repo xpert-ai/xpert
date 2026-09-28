@@ -3,12 +3,14 @@ import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import {
     IChatConversation,
     IEnvironment,
+    ProjectSelection,
     TAgentExecutionMetadata,
     TChatCheckpointReference,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
-import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
+import { TChatRequest as ChatKitLegacyRequest } from '@xpert-ai/chatkit-types'
+import { clearContextProject, projectSelectionSchema, resolveSendProjectSelection } from '../../project-selection'
 import { BadRequestException, Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
@@ -37,6 +39,7 @@ import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { AssertXpertAgentExecutionAccessQuery } from '../../../xpert-agent-execution/queries'
 import { XpertProjectService } from '../../../xpert-project'
+import { ConversationProjectService } from '../../../xpert-project/services/conversation-project.service'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { getTrustedApiChatSource } from '../../api-chat-source'
@@ -47,6 +50,8 @@ import {
     bindConversationAssistantIfUnbound,
     resolveAssistantForRequest
 } from '../../assistant-request-context'
+
+type LegacyTChatRequest = ChatKitLegacyRequest & { projectSelection?: ProjectSelection }
 
 const humanInputSchema = z.object({}).passthrough()
 
@@ -79,6 +84,7 @@ const sendChatRequestSchema = z
         action: z.literal('send'),
         conversationId: z.string().optional(),
         projectId: z.string().optional(),
+        projectSelection: projectSelectionSchema.optional(),
         environmentId: z.string().optional(),
         sandboxEnvironmentId: z.string().optional(),
         message: z
@@ -266,6 +272,7 @@ function normalizeLegacyChatRequest(
             action: 'send',
             conversationId: input.conversationId,
             projectId: input.projectId,
+            projectSelection: input.projectSelection,
             environmentId: input.environmentId,
             sandboxEnvironmentId: input.sandboxEnvironmentId,
             agentKey: input.agentKey,
@@ -366,7 +373,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         @Optional() private readonly projectService?: XpertProjectService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
         @Optional() private readonly threadRunControl?: ThreadRunControlService,
-        @Optional() private readonly desktopShellAuth?: DesktopShellAuthService
+        @Optional() private readonly desktopShellAuth?: DesktopShellAuthService,
+        @Optional() private readonly conversationProjects?: ConversationProjectService
     ) {}
 
     private async resolveRequestEnvironment(
@@ -417,8 +425,16 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             )
         }
         let runtimeContext = getRunCreateContext(runCreate.context)
-        if (chatRequest.action === 'send' && !chatRequest.projectId) {
-            chatRequest.projectId = getContextProjectId(runtimeContext)
+        if (chatRequest.action === 'send') {
+            const selection = resolveSendProjectSelection(
+                chatRequest,
+                conversation,
+                xpert,
+                getContextProjectId(runtimeContext)
+            )
+            chatRequest.projectId = selection.projectId
+            chatRequest.projectSelection = selection.selection
+            if (selection.selection) runtimeContext = clearContextProject(runtimeContext)
         }
 
         const referencedExecutionId =
@@ -451,6 +467,22 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         // Project scope is persisted before streaming and then treated as the
         // sole trusted source for runtime files and nested Agent execution.
         const requestedProjectId = chatRequest.action === 'send' ? chatRequest.projectId : undefined
+        if (
+            chatRequest.action === 'send' &&
+            !requestedProjectId &&
+            !conversation.projectId &&
+            chatRequest.projectSelection?.mode !== 'none' &&
+            xpert.options?.workspaceScope?.onMissing === 'create'
+        ) {
+            if (!this.conversationProjects) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
+            conversation = await this.conversationProjects.prepare(conversation, xpert)
+        }
         const effectiveProjectId = conversation.projectId ?? requestedProjectId
         if (effectiveProjectId) {
             if (!this.projectService) {
@@ -471,6 +503,16 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         if (chatRequest.action === 'send' && conversation.projectId) {
             // Replace transient request scope with the authorized persisted id.
             chatRequest.projectId = conversation.projectId
+        }
+        if (chatRequest.action === 'send' && chatRequest.projectSelection?.mode === 'none') {
+            if (!this.conversationProjects) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
+            conversation = await this.conversationProjects.selectNone(conversation)
         }
 
         if (runtimeContext?.desktopShellGrantId !== undefined) {

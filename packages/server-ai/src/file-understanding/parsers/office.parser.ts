@@ -2,10 +2,24 @@ import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
 import { Injectable } from '@nestjs/common'
 import { createRequire } from 'node:module'
+import { open } from 'node:fs/promises'
 import { FileParseSource, ParsedFileResult } from '../domain/types'
 import { FileParser, getFileExtension, summarizeText } from './file-parser'
 
 const requireFromHere = createRequire(__filename)
+const compoundDocumentSignature = Buffer.from('d0cf11e0a1b11ae1', 'hex')
+
+/** WPS may save binary Word content with a DOCX filename and an embedded ZIP trailer. */
+async function isCompoundDocument(filePath: string): Promise<boolean> {
+    const file = await open(filePath, 'r')
+    try {
+        const header = Buffer.alloc(compoundDocumentSignature.length)
+        const { bytesRead } = await file.read(header, 0, header.length, 0)
+        return bytesRead === header.length && header.equals(compoundDocumentSignature)
+    } finally {
+        await file.close()
+    }
+}
 
 @Injectable()
 export class OfficeFileParser implements FileParser {
@@ -18,7 +32,7 @@ export class OfficeFileParser implements FileParser {
 
     async parse(source: FileParseSource): Promise<ParsedFileResult> {
         const extension = getFileExtension(source.originalName ?? source.filePath)
-        if (extension === 'doc') {
+        if (extension === 'doc' || (extension === 'docx' && (await isCompoundDocument(source.filePath)))) {
             return this.parseLegacyDoc(source)
         }
         const docs =

@@ -204,7 +204,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             )
         }
 
-        if (input.name !== undefined) project.name = input.name
+        if (input.name !== undefined) {
+            project.name = input.name
+            if (project.settings?.conversationBootstrap) project.settings.conversationBootstrap.nameResolved = true
+        }
         if (input.avatar !== undefined) project.avatar = input.avatar
         if (input.description !== undefined) project.description = input.description
         if (input.settings) {

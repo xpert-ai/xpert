@@ -27,6 +27,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import type { ChatKitReference } from '@xpert-ai/chatkit-types'
 import type {
+  ProjectSelection,
   WorkbenchOpenFile,
   TChatElementReference,
   XpertExtensionViewManifest,
@@ -123,9 +124,6 @@ import {
   CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX,
   CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
   CLAWXPERT_CHAT_COLUMN_MAX_WIDTH,
-  CHAT_SHELL_TRANSITION_CLASSES,
-  DETAIL_PANEL_SHELL_TRANSITION_CLASSES,
-  DETAIL_PANEL_CONTENT_TRANSITION_CLASSES,
   clampChatkitWidth,
   toConfiguredWorkbenchLayoutState,
   resolveEmbeddedChatkitElement,
@@ -134,6 +132,7 @@ import {
 import { installChatkitOverlayDialogControls } from './conversation-detail/chatkit/overlay-controls'
 import { startChatkitPanelResize } from './conversation-detail/chatkit/panel-resize'
 import { createWorkspaceLayoutClasses } from './conversation-detail/chatkit/workspace-layout'
+import { createWorkspacePanelClasses } from './conversation-detail/chatkit/workspace-panels'
 import {
   CONVERSATION_DETAIL_RELATIONS,
   type WorkbenchConversationChatkitScope,
@@ -285,12 +284,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly runtimeProjectId = computed(() =>
     this.facade.projectId ? this.projectId() : (this.resolvedConversation()?.projectId ?? null)
   )
-  readonly #projectSelectionEnabled = computed(
-    () =>
-      !this.#workbenchConversationScope() &&
-      Boolean(this.facade.assistantId()?.trim()) &&
-      !this.facade.threadId()?.trim()
+  readonly #projectControlsEnabled = computed(
+    () => !this.#workbenchConversationScope() && Boolean(this.facade.assistantId()?.trim())
   )
+  readonly #projectSelectionEnabled = computed(() => this.#projectControlsEnabled() && !this.facade.threadId()?.trim())
   readonly #hostChatRouteKey = computed(() =>
     JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
@@ -305,7 +302,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
   readonly chatkitProjectId = computed(() => {
     const scope = this.#workbenchConversationScope()
-    return scope ? scope.projectId : this.projectId()
+    return scope
+      ? scope.projectId
+      : this.facade.chatkitMountProjectId
+        ? this.facade.chatkitMountProjectId()
+        : this.projectId()
   })
   readonly chatkitInitialThread = computed(() => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId())
   readonly chatkitDelegatedConversation = computed(() => {
@@ -344,8 +345,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     delegatedConversation: this.chatkitDelegatedConversation,
     composer: computed(() => ({
       projects: {
-        enabled: this.#projectSelectionEnabled(),
-        createEnabled: this.#projectSelectionEnabled()
+        enabled: this.#projectControlsEnabled(),
+        createEnabled: this.#projectSelectionEnabled(),
+        selection: this.#workbenchConversationScope() ? undefined : this.facade.chatkitProjectSelection?.(),
+        autoNewEnabled:
+          !this.#workbenchConversationScope() &&
+          this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing === 'create',
+        allowNone: this.facade.currentXpert?.()?.options?.workspaceScope?.mode !== 'project-required'
       },
       connectors: { enabled: true }
     })),
@@ -382,14 +388,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.#chatkitOriginThreadId = normalizedThreadId
       this.facade.onChatThreadChange(threadId)
     },
-    onProjectChange: ({ projectId }) => {
+    onProjectChange: ({ projectId, selection }: { projectId: string | null; selection?: ProjectSelection }) => {
       if (this.#workbenchConversationScope()) {
         return
       }
-      this.facade.onChatProjectChange?.(projectId)
+      this.facade.onChatProjectChange?.(projectId, undefined, selection)
     },
     onThreadLoadEnd: ({ threadId }) => {
       this.markChatkitThreadRead(threadId)
+      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
     },
     onEffect: (event) => {
       const projectRequest = chatProjectCreateRequest(event)
@@ -419,6 +426,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onLog: (event) => {
+      if (event.name === 'lg.conversation.start' && !this.#workbenchConversationScope()) {
+        const threadId = this.activeChatkitThreadId()
+        if (threadId) void this.facade.syncConversationProject?.(threadId)
+      }
       const toolCompletedEvent = createAssistantToolCompletedHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
@@ -457,6 +468,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseEnd: () => {
+      const threadId = this.activeChatkitThreadId()
+      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
       void this.openGeneratedOutputs()
       this.#responseActive.set(false)
       if (!this.#workbenchConversationScope()) {
@@ -582,33 +595,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       !this.chatkitHiddenFromWorkspace()
   )
   readonly workspaceLayoutClasses = createWorkspaceLayoutClasses(this)
-  readonly detailPanelShellClasses = computed(() =>
-    this.showDetailPanel()
-      ? `min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
-      : `pointer-events-none min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-0 -translate-y-4 opacity-0 lg:max-h-none lg:-translate-x-6 lg:translate-y-0`
-  )
-  readonly detailPanelContentClasses = computed(() =>
-    this.showDetailPanel()
-      ? `flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
-      : `pointer-events-none flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} -translate-y-3 opacity-0 lg:-translate-x-3 lg:translate-y-0`
-  )
-  readonly chatShellClasses = computed(() => {
-    if (this.overlayDialog()) {
-      return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-    }
-
-    if (this.chatkitHiddenFromWorkspace()) {
-      if (this.isChatMinimizedToPet()) {
-        return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-      }
-
-      return `pointer-events-none relative min-h-0 min-w-0 overflow-hidden p-0 opacity-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-    }
-
-    return this.showDetailPanel()
-      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[var(--clawxpert-chatkit-width)] lg:justify-self-end`
-      : `relative min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full`
-  })
+  readonly narrowChatSidebarCollapsed = signal(false)
+  readonly chatSidebarOpenerElement = viewChild('chatSidebarOpener', { read: ElementRef<HTMLButtonElement> })
+  private readonly workspacePanels = createWorkspacePanelClasses(this)
+  readonly detailPanelShellClasses = this.workspacePanels.detailPanelShellClasses
+  readonly detailPanelContentClasses = this.workspacePanels.detailPanelContentClasses
+  readonly chatShellClasses = this.workspacePanels.chatShellClasses
   readonly chatSurfaceClasses = computed(() =>
     this.showChatkitResizeHandle() ? 'bg-components-card-bg border-l border-border' : ''
   )
@@ -2102,26 +2094,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private scheduleWorkspaceFileListRefresh() {
-    this.openDetailPanelForWorkspaceFileEvent()
     this.clearScheduledWorkspaceFileListRefresh()
     this.#workspaceFileRefreshTimer = setTimeout(() => {
       this.#workspaceFileRefreshTimer = null
       this.fileListReloadKey.update((value) => value + 1)
     }, WORKSPACE_FILE_REFRESH_DEBOUNCE_MS)
-  }
-
-  private openDetailPanelForWorkspaceFileEvent() {
-    const filesTab = this.workspaceTabs().find((tab) => tab.kind === 'files')
-    if (filesTab) {
-      if (!this.showDetailPanel()) {
-        this.activateWorkspaceTab(filesTab.id, 'push')
-        return
-      }
-      this.openDetailPanel()
-      return
-    }
-
-    this.addWorkspaceTab('files')
   }
 
   private clearScheduledWorkspaceFileListRefresh() {

@@ -2,8 +2,10 @@ import { Logger } from '@nestjs/common'
 import {
     AIMessage,
     BaseMessage,
+    BaseMessageFields,
     HumanMessage,
     ToolMessage,
+    ToolMessageFieldsWithToolCallId,
     isAIMessage,
     isHumanMessage,
     isToolMessage
@@ -20,6 +22,28 @@ import {
     ContextSummaryError
 } from './context-compression.shared'
 import { estimateTokenCountSync } from './context-compression.budget'
+
+// Copy constructor fields only: spreading a message also copies lc_kwargs,
+// retaining old content and nesting the previous constructor arguments.
+function messageFields(message: BaseMessage): BaseMessageFields {
+    return {
+        id: message.id,
+        name: message.name,
+        content: message.content,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata
+    }
+}
+
+function toolMessageFields(message: ToolMessage): ToolMessageFieldsWithToolCallId {
+    return {
+        ...messageFields(message),
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        artifact: message.artifact,
+        metadata: message.metadata
+    }
+}
 
 export function hasToolCalls(message: BaseMessage): boolean {
     if (!isAIMessage(message)) {
@@ -457,10 +481,8 @@ export class ContextCompressionHistory {
             if (pruneInfo && isToolMessage(message)) {
                 // Create pruned message
                 return new ToolMessage({
-                    ...message,
+                    ...toolMessageFields(message),
                     content: formatPrunedToolOutput(pruneInfo.toolName),
-                    tool_call_id: message.tool_call_id,
-                    name: message.name,
                     additional_kwargs: {
                         ...message.additional_kwargs,
                         pruned: true,
@@ -544,7 +566,7 @@ export class ContextCompressionHistory {
             )
             history.unshift(
                 new ToolMessage({
-                    ...output.message,
+                    ...toolMessageFields(output.message),
                     content,
                     additional_kwargs: {
                         ...output.message.additional_kwargs,
@@ -562,7 +584,7 @@ export class ContextCompressionHistory {
     async generateStateSnapshot(
         messagesToCompress: BaseMessage[],
         model: BaseLanguageModel,
-        budget: { tokenLimit: number; outputTokens: number }
+        budget: { tokenLimit: number; outputTokens: number; inputTokenRatio?: number }
     ): Promise<string> {
         try {
             const messagesText = messagesToCompress
@@ -583,7 +605,14 @@ export class ContextCompressionHistory {
 
             const prompt = getCompressionPrompt(messagesText)
 
-            if (estimateTokenCountSync(JSON.stringify(prompt)) + budget.outputTokens > budget.tokenLimit) {
+            // Calibrate the rewritten history, not the fixed summary instructions.
+            const inputTokens =
+                estimateTokenCountSync(JSON.stringify(prompt)) +
+                Math.ceil(
+                    estimateTokenCountSync(JSON.stringify(messagesText)) *
+                        Math.max(0, (budget.inputTokenRatio ?? 1) - 1)
+                )
+            if (inputTokens + budget.outputTokens > budget.tokenLimit) {
                 throw new ContextSummaryError('summary_input_budget')
             }
 
@@ -615,7 +644,10 @@ export class ContextCompressionHistory {
         return messages.map((message) =>
             isAIMessage(message)
                 ? new AIMessage({
-                      ...message,
+                      ...messageFields(message),
+                      tool_calls: message.tool_calls,
+                      invalid_tool_calls: message.invalid_tool_calls,
+                      usage_metadata: message.usage_metadata,
                       additional_kwargs: { ...message.additional_kwargs, contextCompressionUsageInvalidated: true }
                   })
                 : message

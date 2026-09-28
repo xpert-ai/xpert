@@ -16,6 +16,8 @@ export type TXpertProjectSettings = {
   instruction?: string
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
+  /** Server-owned first-send provenance; the provisional name may be reconciled once by the business app. */
+  conversationBootstrap?: { conversationId: string; initialName: string; nameResolved?: boolean }
   /** @deprecated Project Xperts are peers and no default Project Assistant is selected. */
   projectAssistantId?: string
 }

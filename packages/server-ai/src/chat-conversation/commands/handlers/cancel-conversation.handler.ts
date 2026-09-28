@@ -9,6 +9,8 @@ import { Logger, Optional } from '@nestjs/common'
 import { StopHandoffMessageCommand } from '../../../handoff/commands'
 import { ThreadRunControlService } from '../../thread-run-control.service'
 import { ChatConversationThreadService } from '../../conversation-thread.service'
+import { ChatMessage } from '../../../chat-message/chat-message.entity'
+import { In } from 'typeorm'
 
 /**
  * Handler to cancel
@@ -122,7 +124,13 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
             if (!runtimeThread || runtimeThread.threadId === conversation.threadId) {
                 conversation.status = 'interrupted'
                 conversation.error = 'Canceled by user'
-                await this.service.repository.save(conversation)
+                // Persist only status columns. Saving the hydrated conversation cascades
+                // stale message trees while streaming finalization is still in flight,
+                // which can discard closure-table ancestors and prevent the next turn.
+                await this.service.repository.update(conversation.id, {
+                    status: 'interrupted',
+                    error: 'Canceled by user'
+                })
             }
             if (runtimeThread && !this.threadRunControl) {
                 await this.conversationThreadService?.updateRuntimeState(
@@ -131,6 +139,15 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
                     'Canceled by user'
                 )
             }
+        }
+
+        if (conversation && messagesToUpdate.length) {
+            await this.service.repository.manager
+                .getRepository(ChatMessage)
+                .update(
+                    { conversationId: conversation.id, id: In(messagesToUpdate.map((message) => message.id)) },
+                    { status: 'aborted', error: 'Canceled by user' }
+                )
         }
 
         // Stream finalization can race cancellation and attempt to persist a

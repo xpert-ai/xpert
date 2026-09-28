@@ -15,6 +15,8 @@ import { IUser } from '../user.model'
 import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 
 export type TChatConversationOptions = {
+  /** Preserve an explicit no-Project choice across reloads and subsequent sends. */
+  projectSelection?: import('./project-selection.model').ProjectSelection
   /** Persisted resources augment the entry Agent without changing the Assistant graph. */
   runtimeResources?: import('../agent-plugin').RuntimeResourcesSelection
   parameters?: {

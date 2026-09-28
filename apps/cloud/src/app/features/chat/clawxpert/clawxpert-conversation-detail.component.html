@@ -2,6 +2,7 @@
   [attr.data-workbench-layout]="showDetailPanel() ? (immersiveWorkbench() ? 'maximized' : 'normal') : 'chat'"
   [class]="workspaceLayoutClasses()"
   [style.--clawxpert-chatkit-width]="chatkitWidthStyle()"
+  [attr.data-chat-sidebar-collapsed]="narrowChatSidebarCollapsed()"
 >
   <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
     <div [class]="detailPanelContentClasses()">
@@ -260,6 +261,23 @@
         </ng-template>
 
         <div data-workbench-header-actions class="ml-auto flex shrink-0 items-center justify-end gap-1">
+          <button
+            #chatSidebarOpener
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon"
+            data-open-chat-sidebar
+            class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary lg:hidden"
+            [attr.aria-label]="'XP.Chat.ClawXpert.OpenChatSidebar' | translate: { Default: 'Open chat sidebar' }"
+            [title]="'XP.Chat.ClawXpert.OpenChatSidebar' | translate: { Default: 'Open chat sidebar' }"
+            [zTooltip]="'XP.Chat.ClawXpert.OpenChatSidebar' | translate: { Default: 'Open chat sidebar' }"
+            zPosition="bottom"
+            [attr.aria-expanded]="!narrowChatSidebarCollapsed()"
+            (click)="narrowChatSidebarCollapsed.set(false)"
+          >
+            <i class="ri-chat-3-line text-lg" aria-hidden="true"></i>
+          </button>
           <button
             z-button
             type="button"
@@ -573,6 +591,15 @@
     </div>
   </section>
 
+  @if (showChatkitResizeHandle() && !narrowChatSidebarCollapsed()) {
+    <button
+      type="button"
+      data-chat-sidebar-backdrop
+      class="absolute inset-0 z-20 cursor-default bg-transparent lg:hidden"
+      [attr.aria-label]="'XP.Chat.ClawXpert.CloseChatSidebar' | translate: { Default: 'Close chat sidebar' }"
+      (click)="narrowChatSidebarCollapsed.set(true); chatSidebarOpenerElement()?.nativeElement?.focus()"
+    ></button>
+  }
   <section
     data-workbench-chat-shell
     [class]="chatShellClasses()"

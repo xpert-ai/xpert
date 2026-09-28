@@ -14,6 +14,7 @@ import { Repository } from 'typeorm'
 import { CopilotCheckpoint } from './copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from './writes/writes.entity'
 import { checkpointReadConfig } from './checkpoint-reference'
+import { MessageStateSerializer } from './serde/message-state'
 
 @Injectable()
 export class CopilotCheckpointSaver extends BaseCheckpointSaver {
@@ -24,6 +25,7 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
         private wRepository: Repository<CopilotCheckpointWrites>
     ) {
         super()
+        this.serde = new MessageStateSerializer(this.serde)
     }
 
     async getCopilotCheckpoint(

@@ -5,6 +5,7 @@ jest.mock('../../conversation-thread.service', () => ({ ChatConversationThreadSe
 jest.mock('../../conversation.service', () => ({ ChatConversationService: class {} }))
 jest.mock('../../../xpert-agent-execution/agent-execution.service', () => ({ XpertAgentExecutionService: class {} }))
 jest.mock('../../../shared/', () => ({ ExecutionCancelService: class {} }))
+jest.mock('../../../chat-message/chat-message.entity', () => ({ ChatMessage: class {} }))
 
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { CancelConversationCommand } from '../cancel-conversation.command'
@@ -13,10 +14,15 @@ import type { DesktopShellOperationService } from '../../../desktop-shell/deskto
 
 describe('CancelConversationHandler', () => {
     function createHandler(conversation: Record<string, any> | null) {
+        const messageRepository = { update: jest.fn().mockResolvedValue({ affected: 1 }) }
         const service = {
             findOne: jest.fn().mockResolvedValue(conversation),
             findOneByOptions: jest.fn().mockResolvedValue(conversation),
-            repository: { save: jest.fn().mockImplementation(async (value) => value) }
+            repository: {
+                save: jest.fn(),
+                update: jest.fn().mockResolvedValue({ affected: 1 }),
+                manager: { getRepository: jest.fn().mockReturnValue(messageRepository) }
+            }
         }
         const executionService = { update: jest.fn().mockResolvedValue(undefined) }
         const executionCancelService = { cancelExecutions: jest.fn().mockResolvedValue(undefined) }
@@ -32,7 +38,15 @@ describe('CancelConversationHandler', () => {
             desktopShellOperations as unknown as DesktopShellOperationService
         )
 
-        return { handler, service, executionService, executionCancelService, commandBus, desktopShellOperations }
+        return {
+            handler,
+            service,
+            messageRepository,
+            executionService,
+            executionCancelService,
+            commandBus,
+            desktopShellOperations
+        }
     }
 
     it('cancels an explicit execution before its AI message has been persisted', async () => {
@@ -58,7 +72,41 @@ describe('CancelConversationHandler', () => {
             'Canceled by user'
         )
         expect(conversation.status).toBe('interrupted')
-        expect(context.service.repository.save).toHaveBeenCalledWith(conversation)
+        expect(context.service.repository.update).toHaveBeenCalledWith(conversation.id, {
+            status: 'interrupted',
+            error: 'Canceled by user'
+        })
+        expect(context.service.repository.save).not.toHaveBeenCalled()
+    })
+
+    it('updates only the canceled message status without saving or reparenting the hydrated tree', async () => {
+        const conversation = {
+            id: 'conversation-1',
+            messages: [
+                { id: 'old-ai', role: 'ai', executionId: 'old-run', status: 'done', parentId: 'older-human' },
+                {
+                    id: 'current-ai',
+                    role: 'ai',
+                    executionId: 'current-run',
+                    status: 'answering',
+                    parentId: 'current-human'
+                }
+            ]
+        }
+        const context = createHandler(conversation)
+        await context.handler.execute(
+            new CancelConversationCommand({ conversationId: conversation.id, executionId: 'current-run' })
+        )
+        expect(context.messageRepository.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                conversationId: conversation.id,
+                id: expect.objectContaining({ _value: ['current-ai'] })
+            }),
+            { status: 'aborted', error: 'Canceled by user' }
+        )
+        expect(conversation.messages[0]).toMatchObject({ status: 'done', parentId: 'older-human' })
+        expect(conversation.messages[1].parentId).toBe('current-human')
+        expect(context.service.repository.save).not.toHaveBeenCalled()
     })
 
     it('does nothing without an explicit execution or a persisted AI message', async () => {

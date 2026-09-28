@@ -2,6 +2,7 @@ import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from 
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { CopilotModule } from '../copilot'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
 import { CopilotUserModule } from '../copilot-user/index'
@@ -41,6 +42,12 @@ import { ConnectorRuntimeController } from './connector-runtime.controller'
 import { ConversationBranchController } from './conversation-branch.controller'
 import { ConversationBranchService } from '../chat-conversation/conversation-branch.service'
 import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
+import { SandboxModule } from '../sandbox/sandbox.module'
+import { SandboxRuntimeController } from './sandbox-runtime.controller'
+import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
+import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
     imports: [
@@ -51,6 +58,9 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
             }
         ]),
         TenantModule,
+        TypeOrmModule.forFeature([ChatConversation, ChatConversationThread]),
+        SandboxModule,
+        SuperAdminOrganizationScopeModule,
         CopilotCheckpointModule,
         SecretTokenModule,
         RedisModule,
@@ -77,6 +87,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         XpertProjectModule
     ],
     controllers: [
+        SandboxRuntimeController,
         ConversationBranchController,
         AIController,
         AIV1Controller,
@@ -90,6 +101,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoin
         StoreController
     ],
     providers: [
+        AssistantThreadScopeGuard,
         ConversationBranchService,
         AiService,
         RuntimeCommandService,

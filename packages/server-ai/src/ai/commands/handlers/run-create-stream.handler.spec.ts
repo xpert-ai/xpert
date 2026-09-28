@@ -1,3 +1,6 @@
+jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
+    ConversationProjectService: class {}
+}))
 jest.mock('../../../desktop-shell/desktop-shell-auth.service', () => ({ DesktopShellAuthService: class {} }))
 jest.mock('../../../chat-conversation/conversation-thread.service', () => ({ ChatConversationThreadService: class {} }))
 jest.mock('../../../shared/stream/', () => jest.requireActual('../../../shared/stream/run-stream-payload'))

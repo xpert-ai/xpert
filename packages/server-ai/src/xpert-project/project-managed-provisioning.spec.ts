@@ -66,6 +66,65 @@ describe('XpertProjectService managed provisioning', () => {
         expect(harness.content.initialize).toHaveBeenCalledWith(harness.createdProject)
     })
 
+    it('replaces a provisional conversation name once and preserves subsequent user naming', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const project = harness.createdProject
+        project.name = 'Bid project'
+        project.settings = { conversationBootstrap: { conversationId: 'conversation', initialName: project.name } }
+        harness.repository.findOne.mockResolvedValue(project)
+        const input = {
+            projectId: project.id,
+            xpertId: requester.id,
+            name: 'Tender project',
+            status: 'active' as const
+        }
+        await harness.service.ensureManagedProject(input)
+        expect(project.name).toBe('Tender project')
+        project.name = 'User name'
+        await harness.service.ensureManagedProject(input)
+        expect(project.name).toBe('User name')
+    })
+
+    it('keeps entity names owned by the application after conversation bootstrap', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const project = harness.createdProject
+        project.name = 'Original tender'
+        project.projectTypeSnapshot = {
+            applicationTitle: 'Bid',
+            title: 'Tender',
+            binding: { kind: 'entity', providerKey: 'bid' }
+        }
+        project.settings = {
+            conversationBootstrap: { conversationId: 'conversation', initialName: 'Bid project', nameResolved: true }
+        }
+        harness.repository.findOne.mockResolvedValue(project)
+        await harness.service.ensureManagedProject({
+            projectId: project.id,
+            xpertId: requester.id,
+            name: 'Renamed tender',
+            status: 'active'
+        })
+        expect(project.name).toBe('Renamed tender')
+    })
+
+    it('preserves a name edited before the business app first provisions the conversation Project', async () => {
+        const requester = buildRequester([])
+        const harness = buildHarness({ requester })
+        const project = harness.createdProject
+        project.name = 'User name'
+        project.settings = { conversationBootstrap: { conversationId: 'conversation', initialName: 'Bid project' } }
+        harness.repository.findOne.mockResolvedValue(project)
+        await harness.service.ensureManagedProject({
+            projectId: project.id,
+            xpertId: requester.id,
+            name: 'Tender',
+            status: 'active'
+        })
+        expect(project.name).toBe('User name')
+    })
+
     it('connects the requester and every validated direct required External Assistant in one save', async () => {
         const role = buildRole()
         const requester = buildRequester([role.id])
@@ -106,6 +165,89 @@ describe('XpertProjectService managed provisioning', () => {
         expect(harness.repository.findOne).not.toHaveBeenCalled()
         expect(harness.repository.save).not.toHaveBeenCalled()
     })
+
+    it('provisions selected role dependencies without replaying the root token against a nested Assistant', async () => {
+        const role = buildRole(),
+            child = buildRole('figure'),
+            optional = buildRole('optional'),
+            unrelated = buildRole('unrelated')
+        role.graph = {
+            nodes: [child, optional].map((candidate) => ({
+                type: 'xpert',
+                key: candidate.id,
+                entity: candidate,
+                position: { x: 0, y: 0 }
+            })),
+            connections: [child, optional].map((candidate) => ({
+                key: `${role.id}/${candidate.id}`,
+                type: 'xpert',
+                from: role.agent.key,
+                to: candidate.id,
+                required: candidate.id === child.id
+            }))
+        }
+        const requester = buildRequester([role.id, unrelated.id])
+        unrelated.options = {
+            templateSource: {
+                templateId: 'another-role',
+                pluginName: expectation.pluginName,
+                templateKey: 'another-role'
+            }
+        }
+        const harness = buildHarness({ requester, roles: [role, child, optional, unrelated] })
+        const result = await harness.service.ensureManagedProject({
+            projectId: 'project-1',
+            xpertId: requester.id,
+            requesterAgentKey: requester.agent.key,
+            externalAssistantExpectations: [expectation],
+            name: 'Nested case',
+            status: 'active'
+        })
+        expect(result.xpertIds).toEqual([requester.id, role.id, child.id])
+        expect(harness.publishedXpertAccess.getAccessiblePublishedXpert.mock.calls.map(([id]) => id)).toEqual([
+            requester.id
+        ])
+    })
+
+    it.each(['cross_organization', 'cross_tenant', 'unpublished', 'cycle'] as const)(
+        'rejects a %s dependency before Project writes',
+        async (invalid) => {
+            const role = buildRole(),
+                child = buildRole('figure')
+            role.graph = {
+                nodes: [{ type: 'xpert', key: child.id, entity: child, position: { x: 0, y: 0 } }],
+                connections: [{ key: 'role/child', type: 'xpert', from: role.agent.key, to: child.id, required: true }]
+            }
+            if (invalid === 'cross_organization') child.organizationId = 'another-org'
+            if (invalid === 'cross_tenant') child.tenantId = 'another-tenant'
+            if (invalid === 'unpublished') child.active = false
+            if (invalid === 'cycle')
+                child.graph = {
+                    nodes: [{ type: 'xpert', key: role.id, entity: role, position: { x: 0, y: 0 } }],
+                    connections: [
+                        { key: 'child/role', type: 'xpert', from: child.agent.key, to: role.id, required: true }
+                    ]
+                }
+            const requester = buildRequester([role.id]),
+                harness = buildHarness({ requester, roles: [role, child] })
+            await expect(
+                harness.service.ensureManagedProject({
+                    projectId: 'project-1',
+                    xpertId: requester.id,
+                    requesterAgentKey: requester.agent.key,
+                    externalAssistantExpectations: [expectation],
+                    name: 'Nested case',
+                    status: 'active'
+                })
+            ).rejects.toMatchObject({
+                response: {
+                    errorCode: `project_assistant_binding_${invalid === 'cycle' ? 'incompatible' : invalid === 'cross_tenant' ? 'cross_organization' : invalid}`
+                }
+            })
+            expect(harness.repository.save).not.toHaveBeenCalled()
+            expect(harness.service.create).not.toHaveBeenCalled()
+        }
+    )
 
     it('rejects an expectation that resolves to more than one direct Assistant', async () => {
         const roles = [buildRole('role-1'), buildRole('role-2')]
@@ -220,7 +362,7 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         projectTypeTestService()
     )
     jest.spyOn(service, 'create').mockResolvedValue(createdProject)
-    return { service, repository, createdProject, content }
+    return { service, repository, createdProject, content, publishedXpertAccess }
 }
 
 function projectTypeTestService() {

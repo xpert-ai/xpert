@@ -2,6 +2,7 @@ import { DiscoveryModule } from '@nestjs/core'
 import { ProjectTypeProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
 import { XpertProjectTypeService } from './services/project-type.service'
+import { ConversationProjectService } from './services/conversation-project.service'
 import { ProjectProvisioningRuntimeService } from './services/project-provisioning-runtime.service'
 import { FileAsset } from '../file-understanding/entities/file-asset.entity'
 import { XpertProjectPurgeService } from './services/project-purge.service'
@@ -120,6 +121,7 @@ import { XpertAgentModule } from '../xpert-agent'
     ],
     controllers: [XpertProjectController, XpertProjectInvitationController, XpertProjectAdminController],
     providers: [
+        ConversationProjectService,
         ProjectTypeProviderRegistry,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,
@@ -144,6 +146,12 @@ import { XpertAgentModule } from '../xpert-agent'
         XpertProjectPermissionGuard,
         ...CommandHandlers
     ],
-    exports: [XpertProjectService, XpertProjectAccessModule, XpertProjectContentService, XpertProjectMembershipService]
+    exports: [
+        XpertProjectService,
+        XpertProjectAccessModule,
+        XpertProjectContentService,
+        XpertProjectMembershipService,
+        ConversationProjectService
+    ]
 })
 export class XpertProjectModule {}

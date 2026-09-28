@@ -1,4 +1,5 @@
 {
+    "Project": { "ConversationProjectName": "{{assistant}} project" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "Error": {
         "InvalidTemplateCatalogUpgrade": "Template catalog {{filePath}} is invalid. The upgrade was not applied.",
@@ -623,6 +624,7 @@
         "ProjectAdvancedModeDowngradeUnsupported": "Advanced Projects cannot be downgraded to simple mode.",
         "ProjectArchived": "The requested Project is archived.",
         "ProjectConversationUnavailable": "Project conversations are unavailable.",
+        "ProjectAutoCreateUnavailable": "This Assistant does not support automatic Project creation.",
         "ProjectConversationXpertRequired": "A Project conversation requires an Xpert ID.",
         "ProjectAdminInterventionInvalid": "A non-empty reason is required for Project administrator intervention.",
         "ProjectAdminInterventionPermissionRequired": "Organization user administration permission is required to intervene in this Project.",

@@ -1084,6 +1084,8 @@
         "Computer": "电脑",
         "Browser": "浏览器",
         "BrowserLauncherDesc": "打开网站",
+        "OpenChatSidebar": "打开聊天侧栏",
+        "CloseChatSidebar": "收起聊天侧栏",
         "NewWorkspaceTab": "新增工作区标签",
         "ScrollTabsLeft": "向左滚动标签",
         "ScrollTabsRight": "向右滚动标签",
