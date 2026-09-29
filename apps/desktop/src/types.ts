@@ -124,6 +124,14 @@ export interface HostMethods {
   }
   markBotRead: { input: { botId: string; threadId: string }; output: { read: boolean } }
   markAllBotRead: { input: string; output: SidebarState }
+  assistantConfiguration: {
+    input: { botId: string; capabilities?: string[] }
+    output: import('./assistant-settings/types').AssistantSettings
+  }
+  saveAssistantConfiguration: {
+    input: { botId: string; revision: string; prompt: string; modelId: string; capabilities: string[] }
+    output: { botId: string }
+  }
   editBot: { input: { botId: string; name: string; description: string }; output: { botId: string } }
   duplicateBot: { input: { botId: string; name: string }; output: { botId: string } }
   shellConfigure: { input: ShellSettings; output: DesktopShellState }
@@ -158,8 +166,25 @@ export interface HostMethods {
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
-  templateSetup: { input: undefined; output: { workspaces: WorkspaceOption[]; hasPrimaryLanguageModel: boolean } }
-  installTemplate: { input: { id: string; workspaceId: string; title: string }; output: { botId: string } }
+  templateSetup: {
+    input: { id: string; capabilities?: string[] }
+    output: {
+      workspaces: WorkspaceOption[]
+      hasPrimaryLanguageModel: boolean
+      preflight?: import('./catalog-types').TemplatePreflight
+    }
+  }
+  installTemplate: {
+    input: {
+      id: string
+      workspaceId: string
+      title: string
+      prompt?: string
+      capabilities?: string[]
+      modelId?: string
+    }
+    output: { botId: string }
+  }
   logout: { input: undefined; output: AppState }
 }
 declare global {

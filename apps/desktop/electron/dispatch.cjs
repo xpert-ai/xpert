@@ -33,6 +33,8 @@ const methods = new Set([
   'markBotRead',
   'markAllBotRead',
   'editBot',
+  'assistantConfiguration',
+  'saveAssistantConfiguration',
   'duplicateBot',
   'chatSession',
   'toolOutputPreview',

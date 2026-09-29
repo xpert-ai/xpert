@@ -52,3 +52,11 @@ export interface WorkspaceOption {
   id: string
   name: string
 }
+
+export interface TemplatePreflight {
+  canInstall: boolean
+  reason: string
+  requiresModel: boolean
+  optionalCapabilities: { key: string; label: string; description: string }[]
+  models: { id: string; label: string }[]
+}

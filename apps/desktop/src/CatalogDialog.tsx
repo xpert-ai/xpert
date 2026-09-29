@@ -14,7 +14,7 @@ import {
   TabsList,
   TabsTrigger
 } from '@xpert-ai/shadcn-ui'
-import { ArrowLeft, ArrowUpRight, Layers, LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Layers, LoaderCircle, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { BotAvatar } from './avatar'
 import { ApplicationCardBackground } from './ApplicationScreenshots'
 import { CatalogSetup } from './CatalogSetup'
@@ -22,6 +22,7 @@ import { invoke } from './host'
 import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLabel } from './catalog-labels'
 import type { CatalogItem, CatalogKind } from './catalog-types'
 import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
+import { blankAssistant } from './catalog/blank-assistant'
 
 const tabs: { id: CatalogKind; label: string }[] = [
   { id: 'experts', label: 'Digital experts' },
@@ -50,6 +51,7 @@ export function CatalogDialog({
   const [category, setCategory] = useState('all')
   const [businessAreaId, setBusinessAreaId] = useState<string | null>(null)
   const [selected, setSelected] = useState<CatalogItem | null>(null)
+  const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pluginRevision, setPluginRevision] = useState(0)
   const version = useRef(0)
@@ -141,6 +143,7 @@ export function CatalogDialog({
               disabled={busy}
               onClick={() => {
                 setSelected(null)
+                setCreating(false)
                 void reload()
               }}
             >
@@ -151,7 +154,9 @@ export function CatalogDialog({
             <DialogTitle className="text-xl">{selected ? selected.name : t('Discover & add')}</DialogTitle>
             <DialogDescription className="truncate">
               {selected
-                ? statusLabel(selected)
+                ? creating
+                  ? t('Choose a workspace, model and capabilities')
+                  : statusLabel(selected)
                 : t('Discover digital experts, apps, plugins and templates for {{organization}}', { organization })}
             </DialogDescription>
           </div>
@@ -170,6 +175,7 @@ export function CatalogDialog({
           <CatalogSetup
             key={selected.id}
             item={selected}
+            creation={creating}
             webUrl={webUrl}
             onBusy={setBusy}
             onUse={onUse}
@@ -205,6 +211,18 @@ export function CatalogDialog({
                 ))}
               </TabsList>
               <div className="flex min-w-0 items-center gap-2">
+                {kind === 'experts' && (
+                  <Button
+                    disabled={busy}
+                    onClick={() => {
+                      setCreating(true)
+                      setSelected(blankAssistant())
+                    }}
+                  >
+                    <Plus className="size-4" />
+                    {t('New digital expert')}
+                  </Button>
+                )}
                 <div className="relative w-64 max-w-full">
                   <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
                   <Input
